@@ -2,13 +2,10 @@
  * Tests for the threshold ratchet, part 2: Tier 2 gate configs (stryker
  * break score, k6 bounds), Tier 3 exemption additions (audit ignores,
  * mutate exclusions, allow-list self-service), the baseline-side allow
- * list, and the wiring of all three enforcement layers (plugin hook
- * manifest, husky/lefthook pre-commit, reusable CI workflows, template
- * copy parity). Tier 1 comparator behavior lives in
- * threshold-ratchet.test.ts.
+ * list. Tier 1 comparator behavior lives in threshold-ratchet.test.ts;
+ * enforcement-layer wiring lives in threshold-ratchet-wiring.test.ts.
  */
 import { beforeAll, describe, expect, it } from "vitest";
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -18,12 +15,6 @@ const RATCHET_MODULES = [
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",
 ];
-const TEMPLATE_SCRIPT_DIRS = [
-  "typescript/copy-overwrite/scripts",
-  "rails/copy-overwrite/scripts",
-];
-const ENTRY_TEMPLATE_NAME = "check-threshold-ratchet.mjs";
-
 const STRYKER_FILE = "stryker.conf.json";
 const K6_FILE = ".github/k6/thresholds/normal.json";
 const LISA_CONFIG_FILE = ".lisa.config.json";
@@ -42,15 +33,6 @@ interface Finding {
   readonly key: string;
   readonly type: string;
   readonly message: string;
-}
-
-/**
- * Read a repo-relative text file.
- * @param relativePath - Repo-relative path
- * @returns File contents
- */
-function read(relativePath: string): string {
-  return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf-8");
 }
 
 describe("threshold-ratchet tiers 2 and 3", () => {
@@ -157,6 +139,42 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
       expect(findings[0].key).toBe("http_req_failed.abortOnFail");
+    });
+
+    it("blocks removing an explicit abortOnFail entirely", () => {
+      const current = JSON.stringify({
+        thresholds: {
+          http_req_failed: { threshold: RATE_UPPER },
+          http_req_duration: { threshold: P95_BOUND },
+          checks: { threshold: RATE_LOWER },
+        },
+      });
+      const findings = compareFile(K6_FILE, base, current);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].key).toBe("http_req_failed.abortOnFail");
+    });
+
+    it("handles long-format arrays without crashing and per item", () => {
+      const arrayBase = JSON.stringify({
+        thresholds: {
+          http_req_duration: [
+            "p(99)<2000",
+            { threshold: P95_BOUND, abortOnFail: true },
+          ],
+        },
+      });
+      const weakened = JSON.stringify({
+        thresholds: {
+          http_req_duration: [
+            "p(99)<2000",
+            { threshold: P95_BOUND, abortOnFail: false },
+          ],
+        },
+      });
+      expect(compareFile(K6_FILE, arrayBase, arrayBase)).toHaveLength(0);
+      const findings = compareFile(K6_FILE, arrayBase, weakened);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].key).toBe("http_req_duration.abortOnFail[1]");
     });
 
     it("blocks deleting a gated metric", () => {
@@ -275,65 +293,5 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       ).toEqual([{ file: "a.json", key: "x" }]);
       expect(extractAllowEntries(undefined)).toEqual([]);
     });
-  });
-});
-
-describe("threshold-ratchet wiring", () => {
-  it("template copies are byte-identical to the canonical modules", () => {
-    for (const dir of TEMPLATE_SCRIPT_DIRS) {
-      expect(
-        read(`${dir}/${ENTRY_TEMPLATE_NAME}`),
-        `${dir}/${ENTRY_TEMPLATE_NAME}`
-      ).toBe(read(`${HOOKS_REL}/threshold-ratchet.mjs`));
-      for (const module of RATCHET_MODULES) {
-        expect(read(`${dir}/${module}`), `${dir}/${module}`).toBe(
-          read(`${HOOKS_REL}/${module}`)
-        );
-      }
-    }
-  });
-
-  it("registers the PostToolUse hook in the base plugin manifest", () => {
-    const manifest = JSON.parse(
-      read("plugins/src/base/.claude-plugin/plugin.json")
-    );
-    const postToolUse: Array<{
-      matcher?: string;
-      hooks: Array<{ command: string }>;
-    }> = manifest.hooks.PostToolUse;
-    const entry = postToolUse.find(e =>
-      e.hooks.some(h => h.command.includes("threshold-ratchet.sh"))
-    );
-    expect(entry).toBeDefined();
-    expect(entry?.matcher).toBe("Edit|Write|NotebookEdit|Bash");
-  });
-
-  it("wires the husky pre-commit backstop", () => {
-    const preCommit = read("typescript/copy-contents/.husky/pre-commit");
-    expect(preCommit).toContain(ENTRY_TEMPLATE_NAME);
-    expect(preCommit).toContain("--staged");
-  });
-
-  it("wires the rails lefthook backstop", () => {
-    const lefthook = read("rails/copy-overwrite/lefthook.yml");
-    expect(lefthook).toContain(ENTRY_TEMPLATE_NAME);
-    expect(lefthook).toContain("--staged");
-  });
-
-  it("wires the CI gate into both reusable quality workflows", () => {
-    for (const workflow of [
-      ".github/workflows/quality.yml",
-      ".github/workflows/quality-rails.yml",
-    ]) {
-      const text = read(workflow);
-      expect(text, workflow).toContain("threshold_ratchet:");
-      expect(text, workflow).toContain(`${ENTRY_TEMPLATE_NAME} --base`);
-    }
-  });
-
-  it("ships the hook wrapper alongside the comparator in the base plugin", () => {
-    expect(
-      fs.existsSync(path.join(REPO_ROOT, HOOKS_REL, "threshold-ratchet.sh"))
-    ).toBe(true);
   });
 });

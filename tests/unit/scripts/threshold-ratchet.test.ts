@@ -185,6 +185,17 @@ describe("threshold-ratchet tier 1", () => {
       expect(findings).toHaveLength(1);
       expect(findings[0].key).toBe("Metrics/AbcSize.Max");
     });
+
+    it("skips empty-value rubocop lines instead of reading them as 0", () => {
+      const base = [
+        METHOD_LENGTH_SECTION,
+        MAX_20,
+        "  Exclude:",
+        "    - 'db/**/*'",
+      ].join("\n");
+      const current = [METHOD_LENGTH_SECTION, MAX_20].join("\n");
+      expect(compareFile(RUBOCOP_FILE, base, current)).toHaveLength(0);
+    });
   });
 
   describe("report", () => {

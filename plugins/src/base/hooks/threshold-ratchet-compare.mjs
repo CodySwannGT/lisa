@@ -144,7 +144,9 @@ function compareK6(relPath, base, current) {
   const currentC = extractK6Constraints(current);
   const findings = compareConstraints(relPath, baseC.numeric, currentC.numeric);
   for (const [key, wasOn] of baseC.booleans) {
-    if (wasOn && currentC.booleans.get(key) === false) {
+    // k6 defaults abortOnFail to false, so DELETING an explicit `true` is as
+    // much a weakening as flipping it — anything but a current `true` blocks.
+    if (wasOn && currentC.booleans.get(key) !== true) {
       findings.push({
         file: relPath,
         key,
