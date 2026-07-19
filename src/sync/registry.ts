@@ -154,6 +154,14 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     description: "Repair-intake stall window and candidate cap",
   },
   {
+    // Semantics documented in one place: the claim-archaeology rule pair
+    // (plugins/src/base/rules/{eager,reference}/claim-archaeology.md).
+    key: "archaeology",
+    defaultValue: { maxSteps: 8 },
+    description:
+      "Claim-time archaeology cost budget (max tracker/git queries per claim)",
+  },
+  {
     key: "monitor",
     defaultValue: {
       maxCandidates: 20,
