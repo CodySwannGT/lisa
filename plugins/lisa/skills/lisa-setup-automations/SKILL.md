@@ -67,7 +67,18 @@ report the exact conflicting path(s).
 | **monitor** | `/lisa:monitor` | **once a day** |
 
 For a Codex `rrule`: every 60 min → `FREQ=HOURLY;INTERVAL=1`; every 10 min →
-`FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`.
+`FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`; once a week →
+`FREQ=WEEKLY;INTERVAL=1`.
+
+**Optional automation — the gardener.** When the operator opts in
+(`learnings-audit=true`; default **false** — this one is opt-in, unlike the six
+defaults above), additionally create `lisa-auto-<project>-learnings-audit`
+running `/lisa:learnings:audit` once a **week**. It audits the project's
+knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files
+human-gated promote/demote/confirm/retire tickets per the
+`lisa-learnings-audit` skill; its output is marker-deduped, so overlapping
+manual runs are safe. Tear-down removes it with the rest of the
+`lisa-auto-<project>-*` set.
 
 **Exploratory PRD pressure gate.** `auto-start-prds=true` means "create PRDs in the ready PRD
 lifecycle when the PRD queue has capacity," not "always create a new ready PRD." The
