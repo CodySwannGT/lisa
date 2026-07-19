@@ -171,6 +171,8 @@ Determine the work type and execute the matching variant:
 3. Recommend next action (Research, Plan, Implement, or escalate)
 4. `learner` -- capture discoveries
 
+In every work type above, before a task completes -- immediately ahead of the closing `learner` step -- the implementing agent records concise kind-tagged MLD (Mistakes / Learnings / Desires) into that task's `metadata.learnings`: one line per item, empty is valid, never re-prompted or scored. See the `lisa-implement` skill for the full `{ kind, note, evidence? }` schema and routing (change the schema there, not here).
+
 Output: Code passing all quality gates + local empirical verification + codified regression test for each verification (except for spikes, which produce findings only, and non-behavioral verification types — PR / Documentation / Deploy — which carry their own proof).
 
 ### Verify
