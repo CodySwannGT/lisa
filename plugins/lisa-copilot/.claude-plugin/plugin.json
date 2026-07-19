@@ -26,6 +26,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/shell-write-nudge.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/threshold-ratchet.sh"
+          }
+        ]
       }
     ],
     "preToolUse": [
