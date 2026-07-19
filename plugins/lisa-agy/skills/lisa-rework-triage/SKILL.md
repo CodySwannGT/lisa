@@ -115,16 +115,33 @@ Upstream issues target the Lisa repository itself so the harness gets fixed for 
 project at once. Resolve the repo from `.lisa.config.json` `hardening.upstreamRepo`;
 default `CodySwannGT/lisa`.
 
+There are **two upstream lanes**, distinguished by what the filing proposes. Both share
+the same dedupe-marker and evidence-chain discipline below; only the label and one body
+section differ:
+
+| Lane | Label | When | Extra body section |
+|------|-------|------|--------------------|
+| Defect | `self-hardening` | A Lisa gate/skill/template did something wrong — a harness bug the kernel must fix. | none |
+| Contribution | `template-candidate` | A generalizable pattern discovered downstream that would benefit every host project — not a defect, a proposed improvement to Lisa's templates/rules/skills. | `## Proposed template change` |
+
 1. **Dedupe first.** `gh issue list -R <upstream> --state open --search "<fingerprint terms>"`
-   — if an open issue already covers this failure class, comment the new occurrence on it
-   (evidence compounds; duplicates dilute) and link it instead of filing.
-2. **File with the same bar as any ticket:** a three-audience description (what failed for
-   the operator, what the harness did wrong, what to change), the verbatim evidence chain
-   (PRD text → ticket AC → QA failure → gate that passed it), and a `self-hardening` label:
-   `gh issue create -R <upstream> --title "<gate/skill>: <failure class>" --label self-hardening`.
+   — if an open issue already covers this failure class or pattern, comment the new
+   occurrence on it (evidence compounds; duplicates dilute) and link it instead of filing.
+2. **File with the same bar as any ticket:** a three-audience description (what failed or
+   improved for the operator, what the harness did or could do, what to change), the
+   verbatim evidence chain (PRD text → ticket AC → QA failure → gate that passed it; for
+   patterns, the downstream occurrences proving generality), and the lane's label:
+   `gh issue create -R <upstream> --title "<gate/skill>: <failure class>" --label self-hardening`
+   for defects, or
+   `gh issue create -R <upstream> --title "<template surface>: <pattern>" --label template-candidate`
+   for contributions. A `template-candidate` filing MUST include a
+   `## Proposed template change` section naming the Lisa template/rule/skill surface to
+   change (e.g. `typescript/package-lisa/package.lisa.json`, a `plugins/src/base` rule)
+   and the proposed content or diff sketch, so Lisa-side intake can triage it as a
+   contribution rather than a defect.
 3. **Close the loop.** Reference the upstream issue URL in the triage comment. The upstream
-   repo's own build intake implements it; the next kernel release ships the hardening to
-   every host project.
+   repo's own build intake implements it; the next kernel release ships the hardening (or
+   the generalized pattern) to every host project.
 
 ## Verdict
 
