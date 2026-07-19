@@ -52,6 +52,24 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     expect(handoff).toMatch(/never write a markerless body/);
   });
 
+  it("dedupes across all issue states and handles the closed-ticket branch", () => {
+    expect(handoff).toMatch(/Search \*\*all issue states\*\*/);
+    expect(handoff).toMatch(/--state all/);
+    expect(handoff).not.toMatch(/--state open/);
+    expect(handoff).toMatch(/\*\*Existing ticket \(open or closed\)\*\*/);
+    expect(handoff).toMatch(/do not reopen it yourself/);
+    expect(handoff).toMatch(/upstream maintainer's call/);
+  });
+
+  it("requires the attribution skill's lisa verdict and a redacted chain", () => {
+    expect(handoff).toMatch(
+      /Require a confirmed `lisa` verdict from `lisa-attribute-failure` — always/
+    );
+    expect(handoff).toMatch(/never substitutes for the verdict/);
+    expect(handoff).toMatch(/redacted evidence chain \(Lisa-owned text only/);
+    expect(handoff).not.toMatch(/verbatim evidence chain/);
+  });
+
   it("updates the existing ticket on repeat encounters instead of duplicating", () => {
     expect(handoff).toMatch(/repeat encounter/);
     expect(handoff).toContain(
@@ -86,8 +104,12 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     );
     expect(handoff).not.toMatch(/routed upstream\)/);
     expect(handoff).toContain(
-      "[lisa-learning-upstream-handoff] key=<fingerprint>-resolution"
+      "[lisa-learning-upstream-handoff] key=<fingerprint>-inconclusive"
     );
+    expect(handoff).toContain(
+      "[lisa-learning-upstream-handoff] key=<fingerprint>-filing-failed"
+    );
+    expect(handoff).not.toContain("key=<fingerprint>-resolution");
     expect(handoff).toMatch(
       /Attribution was inconclusive — nothing was filed upstream and nothing was persisted locally\./
     );
@@ -97,7 +119,9 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
   });
 
   it("files nothing on ambiguous and keeps the local trace a note, not a rule", () => {
-    expect(handoff).toMatch(/`ambiguous` verdict[\s\S]*files \*\*NOTHING\*\*/);
+    expect(handoff).toMatch(
+      /`ambiguous`, `project`, or a verdict that cannot name a concrete Lisa surface — files \*\*NOTHING\*\*/
+    );
     expect(handoff).toMatch(/stays local and low-confidence/);
     expect(handoff).toMatch(/no durable local rule/);
     expect(handoff).toContain("[lisa-upstream-filed] key=<fingerprint>");

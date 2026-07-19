@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 const PLUGIN_ROOTS = [
   "plugins/src/base",
   "plugins/lisa",
+  "plugins/lisa/.codex-plugin",
   "plugins/lisa-cursor",
   "plugins/lisa-agy",
   "plugins/lisa-copilot",
@@ -28,9 +29,12 @@ const BUILD_INTAKE_SKILLS = [
   "lisa-linear-build-intake",
 ] as const;
 
-// Antigravity ships no rules/ tree (AGENTS.md bridge instead), and Cursor
-// flattens the eager+reference pair into .mdc files — assert each projection
-// where the reference body actually lives.
+// Per-agent parity gaps (documented, not silently dropped): Antigravity ships
+// no rules/ tree (Lisa reconciles a bounded AGENTS.md bridge instead), and the
+// Codex overlay (`plugins/lisa/.codex-plugin`) distributes skills only — its
+// SKILL.md pointer surface has no rules projection — so neither appears below.
+// Cursor flattens the eager+reference pair into .mdc files. Assert each
+// projection where the reference body actually lives.
 const REFERENCE_RULE_PATHS = [
   "plugins/src/base/rules/reference/project-learnings.md",
   "plugins/lisa/rules/reference/project-learnings.md",
@@ -59,6 +63,9 @@ describe.each(PLUGIN_ROOTS)("claim-time confirmation contract (%s)", root => {
       expect(section).toMatch(/advances ONLY `last_confirmed`/);
       expect(section).toMatch(/idempotent within a claim/);
       expect(section).toMatch(/bumped once, not once per application/);
+      expect(section).toMatch(/failure-safe by construction/);
+      expect(section).toMatch(/\|\| true/);
+      expect(section).toMatch(/never abort the lifecycle/);
       expect(section).toMatch(/Never block on it/);
     }
   );
