@@ -36,15 +36,15 @@ Each persisted entry has seven fields:
   (`persistLearningEntry` / `persistConsolidatedLearning`) from task learnings.
   It is capture-only: it never appends to `PROJECT_RULES.md`, creates skills, or
   files upstream issues — promotion is the gardener's ticket-gated job.
+- **`lisa-debrief-apply`** routes accepted debrief findings in the three
+  knowledge categories — recurring gotcha, process friction, convention drift —
+  to the ledger through the same contract (`persistLearningEntry` /
+  `persistConsolidatedLearning`, with consolidation-at-write), provenance drawn
+  from the triage row's evidence links and a `high` starting confidence because
+  a human Accept is corroboration. It no longer writes to machine-local memory,
+  `PROJECT_RULES.md`, or `CLAUDE.md` for these categories.
 - The **build-intake flows** advance `last_confirmed` at claim time
   (`confirmLearningEntry`, below).
-
-**Legacy writer (NOT contract-mediated, pending #1733)**:
-
-- **`lisa-debrief-apply`** still routes debrief findings to machine-local
-  memory and `PROJECT_RULES.md`, entirely outside the contract. It becomes a
-  contract-mediated ledger writer only when #1733 ships its reroute — until
-  then, never treat its output as budgeted/validated ledger content.
 
 Promotion to a higher rung (skill, eager rule, executable control, upstream
 ticket) is never a writer here — it is the gardener's job, gated by a human
