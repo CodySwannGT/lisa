@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.241.0](https://github.com/CodySwannGT/lisa/compare/v2.240.0...v2.241.0) (2026-07-19)
+
+
+### Features
+
+* **rules:** add claim-time archaeology rule and gate it into the three build intakes ([121b497](https://github.com/CodySwannGT/lisa/commit/121b4970f8a16702494c656b96f17a8799c7ac77)), closes [#1570](https://github.com/CodySwannGT/lisa/issues/1570) [#1574](https://github.com/CodySwannGT/lisa/issues/1574) [#1580](https://github.com/CodySwannGT/lisa/issues/1580) [#1584](https://github.com/CodySwannGT/lisa/issues/1584) [#1564](https://github.com/CodySwannGT/lisa/issues/1564) [#1566](https://github.com/CodySwannGT/lisa/issues/1566) [#1554](https://github.com/CodySwannGT/lisa/issues/1554) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+* **sync:** seed the archaeology.maxSteps budget default via the sync registry ([eb7d604](https://github.com/CodySwannGT/lisa/commit/eb7d6040dd9479dfaab4fc25e2d37244cd56e29b)), closes [#1584](https://github.com/CodySwannGT/lisa/issues/1584) [#1566](https://github.com/CodySwannGT/lisa/issues/1566) [#1554](https://github.com/CodySwannGT/lisa/issues/1554) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+
+
+### Bug Fixes
+
+* **rules:** centralize archaeology semantics in the rule pair; POSIX-safe grep ([cec67b1](https://github.com/CodySwannGT/lisa/commit/cec67b1effcd50571257bf8251969aaf08ca17c7)), closes [#1764](https://github.com/CodySwannGT/lisa/issues/1764) [#1570](https://github.com/CodySwannGT/lisa/issues/1570) [#1574](https://github.com/CodySwannGT/lisa/issues/1574) [#1580](https://github.com/CodySwannGT/lisa/issues/1580) [#1584](https://github.com/CodySwannGT/lisa/issues/1584) [#1566](https://github.com/CodySwannGT/lisa/issues/1566) [#1554](https://github.com/CodySwannGT/lisa/issues/1554) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+* **rules:** harden claim-archaeology merge-PR recipe, dedupe scope, marker key ([4e0c479](https://github.com/CodySwannGT/lisa/commit/4e0c479a5c0e5fdc9fa88df7420ec7b8db140729)), closes [#1570](https://github.com/CodySwannGT/lisa/issues/1570) [#1574](https://github.com/CodySwannGT/lisa/issues/1574) [#1580](https://github.com/CodySwannGT/lisa/issues/1580) [#1584](https://github.com/CodySwannGT/lisa/issues/1584) [#1566](https://github.com/CodySwannGT/lisa/issues/1566) [#1554](https://github.com/CodySwannGT/lisa/issues/1554) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+
 ## [2.240.0](https://github.com/CodySwannGT/lisa/compare/v2.239.1...v2.240.0) (2026-07-19)
 
 
