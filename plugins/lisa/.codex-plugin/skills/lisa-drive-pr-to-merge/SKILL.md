@@ -19,6 +19,16 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
   `chore(release): X.Y.Z [skip ci]` commits and breaks release promotion detection.
 - `verify_commit=<sha>` — the commit that MUST end up in the merged base (for the
   ancestry check). Default: the PR head at the time this skill starts.
+- `auto_merge=<true|false>` — whether this skill is allowed to merge the PR at
+  all. Default `true` (existing behavior, byte-identical for every current
+  caller). With `auto_merge=false` the PR is deliberately left for a human:
+  skip the **entire** "## 1. Enable auto-merge" step — including its
+  direct-merge capability fallback — and never run any `gh pr merge` variant.
+  Still drive every blocker per `on_blocker` (green checks, resolved reviews,
+  synced branch), then stop at the `awaiting-human` terminal state below. A
+  green, open, un-merged PR is the *success* outcome of this mode, not a hang.
+  Used by learning-persistence flows whose low-confidence PRs must wait for a
+  human (`lisa-persist-learning`).
 - `on_blocker=<fix|report>` — what to do when a blocker needs code or review work.
   Default `fix`.
   - **`fix`** (the full loop): resolve conflicts, fix failing checks, address +
@@ -75,6 +85,12 @@ releases is why the TTL exists; do not rely on it as the normal release path.
 
 ## 1. Enable auto-merge
 
+**Gate: only when `auto_merge=true` (the default).** When `auto_merge=false`,
+skip this entire section — do not enable auto-merge, and do **not** use the
+capability fallback below: on a repo that disallows auto-merge, an
+`auto_merge=false` PR must stay OPEN for human triage, never be silently
+direct-merged. Proceed straight to the watch loop (section 2).
+
 Before enabling auto-merge, capture the live PR head and compare it to
 `verify_commit`:
 
@@ -98,9 +114,11 @@ started, then re-enable auto-merge. Do not leave auto-merge armed while a
 required fix, CodeRabbit follow-up, generated artifact update, or CI auto-fix is
 still in flight.
 
-- **Capability fallback**: if the repo disallows auto-merge, do not fail. Keep
-  watching; once checks are green, the review gate is clear, and `mergeable == MERGEABLE`,
-  run `gh pr merge <pr> --<merge_method>` directly.
+- **Capability fallback** (`auto_merge=true` only): if the repo disallows
+  auto-merge, do not fail. Keep watching; once checks are green, the review gate
+  is clear, and `mergeable == MERGEABLE`, run `gh pr merge <pr> --<merge_method>`
+  directly. This fallback lives inside the gated section above — with
+  `auto_merge=false` it never fires; the PR remains open awaiting a human.
 
 ## 2. The watch loop
 
@@ -114,9 +132,15 @@ Handle every blocker class; after any fix, re-poll and continue. Do not stop whi
 the PR is still open and progress is possible. On each iteration, refresh the
 babysitter lease if its last stamp is older than ~30 minutes (section 0).
 
+With **`auto_merge=false`**, the loop's goal changes from "merged" to "clean and
+waiting": drive blockers exactly the same, but exit successfully at
+`awaiting-human` (section 4) once the PR is open with green checks, a clear
+review gate, and `mergeable == MERGEABLE`. Never enable auto-merge or merge
+directly in this mode.
+
 In **`on_blocker=report`** mode, only the mechanical step (a) and auto-merge enabling
-apply; for any of (b)–(e) do not act — classify the blocker and return per the input
-contract above.
+(when `auto_merge=true`) apply; for any of (b)–(e) do not act — classify the blocker
+and return per the input contract above.
 
 ### a. Branch behind base (`mergeStateStatus == BEHIND`)
 Before proactively syncing a clean `BEHIND` PR, check whether the base branch
@@ -220,6 +244,12 @@ failed drive-to-merge outcome, not a successful closeout.
 Loop until one of:
 
 - **`MERGED`** and the ancestry check passes → success.
+- **`awaiting-human`** (`auto_merge=false` only) → success. The PR is `OPEN`,
+  required checks are green, the review gate is clear, and
+  `mergeable == MERGEABLE`, with auto-merge deliberately not enabled
+  (`gh pr view <pr> --json autoMergeRequest` shows `null`). Report the PR URL
+  and state — a human decides whether it merges. This is the intended outcome
+  of auto-merge-off mode, not a stall; do not keep looping for `MERGED`.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
