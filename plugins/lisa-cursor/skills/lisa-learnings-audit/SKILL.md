@@ -173,10 +173,22 @@ entry demonstrably applied) and every **provably-redundant** RETIRE row (with
 the mechanical owner / staleness proof per row). Rows are individually
 strikeable — the human deletes rows they reject, then flips the ticket ready.
 The gardener **never bumps `last_confirmed` itself**: the bumps are executed
-by the **implementing factory run** that picks up the flipped batch ticket,
-which applies each surviving CONFIRM row via `confirmLearningEntry` from
-`@codyswann/lisa/learnings` and each surviving RETIRE row as a deletion PR
-citing the row's proof.
+by the **implementing factory run** that picks up the flipped batch ticket.
+Embed the following execution contract **verbatim** (markers included — do
+not paraphrase, reorder, or partially quote it) in every batch ticket, so the
+implementing run receives its instructions inside the work item:
+
+<!-- gardener-batch-ticket-template:start -->
+### Execution contract (CONFIRM/RETIRE batch)
+
+- Apply each surviving CONFIRM row via `confirmLearningEntry` from
+  `@codyswann/lisa/learnings` — never hand-edit the ledger.
+- Implement each surviving RETIRE row as a proof-citing deletion PR per the
+  `promotion-contract` rule's reverse-atomicity clause: the deleting PR must
+  cite the row's mechanical owner or staleness proof.
+- Struck/deleted rows are human rejections — skip them; they are not re-filed
+  without new postdating evidence.
+<!-- gardener-batch-ticket-template:end -->
 
 **Upstream scope** → an issue on `CodySwannGT/lisa` (resolve via
 `hardening.upstreamRepo`, default `CodySwannGT/lisa`), following the
@@ -196,13 +208,30 @@ marker in the ticket/issue body:
 ```
 
 where `<surface>` names the audited artifact (e.g. `ledger:<entry-id>`,
-`rules-eager:<file>#<section>`, `skill:<name>`) and `<invariant-hash>` is a
-short stable hash of the normalized invariant text — the same knowledge item
-always produces the same key across runs.
+`rules-eager:<file>#<section>`, `skill:<name>`) and `<invariant-hash>` is
+computed **deterministically — never estimated by the model**:
+
+1. **Normalize** the invariant text: trim leading/trailing whitespace,
+   collapse every internal whitespace run to a single space, lowercase.
+2. **Hash** in Bash: `printf '%s' "$normalized" | shasum -a 256 | cut -c1-12`.
+
+The same knowledge item therefore always produces the same key across runs,
+regardless of which session computes it.
 
 Before filing anything, search the tracker for the marker in
-**open AND closed** issues (e.g. `gh search issues "<marker>" --state all`,
-plus a body-grep fallback for search-index lag):
+**open AND closed** issues — and key the search on the deterministic
+`<surface>` prefix **first**, using the hash as disambiguation only, so even
+a hash discrepancy can never cause a duplicate for the same surface:
+
+```bash
+gh search issues "[lisa-gardener] key=<surface>" --state all
+```
+
+plus a body-enumeration fallback for search-index lag (`gh issue list …
+--json number,body` and grep bodies for `[lisa-gardener] key=<surface>`).
+Among prefix hits, compare hashes to distinguish genuinely different
+invariants on the same surface; a prefix hit with a mismatched hash is
+resolved by reading the ticket, never by filing a sibling blind. Then:
 
 - **Open** with the marker → do not re-file; append new evidence as a comment
   only if it is materially new.

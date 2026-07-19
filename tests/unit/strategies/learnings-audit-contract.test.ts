@@ -20,7 +20,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { extractAcTemplate } from "./promotion-contract-helpers.js";
+import {
+  extractAcTemplate,
+  extractBatchTemplate,
+} from "./promotion-contract-helpers.js";
 
 const SKILL_PATHS = [
   "plugins/src/base/skills/lisa-learnings-audit/SKILL.md",
@@ -117,6 +120,20 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toMatch(/implementing factory run|factory.*applies/i);
   });
 
+  it("carries the delimited batch-ticket execution contract, byte-identical to canonical", () => {
+    const template = extractBatchTemplate(skill);
+
+    expect(template).toContain("confirmLearningEntry");
+    expect(template).toMatch(/proof-citing deletion PR/i);
+    expect(template).toMatch(/reverse-atomicity/i);
+    expect(template).toMatch(/never hand-edit the ledger/i);
+
+    const canonical = extractBatchTemplate(
+      read("plugins/src/base/skills/lisa-learnings-audit/SKILL.md")
+    );
+    expect(template).toBe(canonical);
+  });
+
   it("embeds the promotion-contract AC template verbatim for EXECUTABLE-CONTROL", () => {
     expect(skill).toContain("EXECUTABLE-CONTROL");
     expect(skill).toContain("promotion-contract");
@@ -136,6 +153,27 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
   it("uses the stable gardener fingerprint marker grammar", () => {
     expect(skill).toContain("<!-- [lisa-gardener] key=");
     expect(skill).toMatch(/invariant/i);
+  });
+
+  it("computes the invariant hash deterministically, never model-estimated", () => {
+    // Normalization: trim + collapse internal whitespace + lowercase.
+    expect(skill).toMatch(/trim/i);
+    expect(skill).toMatch(/collapse/i);
+    expect(skill).toMatch(/lowercase/i);
+    // Deterministic Bash hash, truncated to 12 hex chars.
+    expect(skill).toContain("shasum -a 256");
+    expect(skill).toContain("cut -c1-12");
+    expect(skill).toMatch(/never estimated by the model/i);
+  });
+
+  it("dedupes on the surface prefix first, hash as disambiguation only", () => {
+    expect(skill).toContain(
+      'gh search issues "[lisa-gardener] key=<surface>" --state all'
+    );
+    expect(skill).toMatch(/prefix.*first|first.*prefix/i);
+    expect(skill).toMatch(/disambiguation only/i);
+    // Body-enumeration fallback covers search-index lag.
+    expect(skill).toMatch(/body-enum/i);
   });
 
   it("dedupes against open AND closed issues, remembering rejections", () => {
