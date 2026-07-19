@@ -273,8 +273,12 @@ Every external write is marker-deduped, so a crashed or interrupted run
 leaves no cleanup debt: re-running is the recovery procedure. A partial run's
 already-filed tickets are found by their markers and not duplicated; a batch
 ticket from an interrupted run is reused (append missing rows as a comment)
-rather than reissued. Never attempt to "roll back" filed tickets — close-out
-decisions belong to humans.
+rather than reissued. **Filing order**: file the per-item PROMOTE/DEMOTE
+tickets first and the CONFIRM/RETIRE **batch ticket last** — the batch is the
+run's completion signal, so a crash mid-run leaves individually
+marker-recoverable per-item tickets and a missing (not half-filled) batch:
+the most recoverable state. Never attempt to "roll back" filed tickets —
+close-out decisions belong to humans.
 
 ## Terminal states
 
@@ -290,13 +294,24 @@ Exactly one per run: **`nothing-needed | candidates-proposed | blocked`**
 
 ## Retirement condition
 
-The loop retires itself by the same discipline it applies to everything else:
-after **six consecutive `nothing-needed` runs** with no new ledger entries
-captured in the same window, the gardener files ONE (marker-deduped) ticket
-proposing to lengthen its cadence or tear down its automation
-(`/tear-down-automations`), with the run log as evidence. It keeps running
-until a human flips that ticket — retirement is a recommendation like any
-other, never a self-executed exit.
+The loop retires itself by the same discipline it applies to everything else,
+and the condition is **stateless — derived from the tracker, never from a
+counter or state file** (there is no durable home for a run counter, and a
+tracker-derived condition is headless- and concurrent-safe by construction).
+Propose retirement when BOTH hold:
+
+1. **Quiet trailing window** — a date-filtered search finds NO
+   `[lisa-gardener]` ticket created in the
+   **trailing six-week window** (six runs at the weekly cadence), e.g.
+   `gh search issues '"[lisa-gardener] key="' --created ">=<six-weeks-ago>"`.
+2. **This run proposes nothing** — the current run's inventory yields zero
+   candidates (it is terminating `nothing-needed`).
+
+When both hold, the gardener files ONE (marker-deduped) ticket proposing to
+lengthen its cadence or tear down its automation (`/tear-down-automations`),
+with the date-filtered search result and this run's summary as evidence. It
+keeps running until a human flips that ticket — retirement is a
+recommendation like any other, never a self-executed exit.
 
 ## Scheduling
 
@@ -305,9 +320,20 @@ Register as an **optional** recurring loop through `lisa-setup-automations`
 `lisa-auto-<project>-learnings-audit`, running `/lisa:learnings:audit`, once
 a **week** (Codex `rrule`: `FREQ=WEEKLY;INTERVAL=1`) — opt-in, created only
 when the operator asks for the gardener loop, unlike the six default
-automations. Also runnable on demand via `/lisa:learnings:audit` at any time;
-manual and scheduled runs are identical (the markers make them safely
-concurrent-adjacent).
+automations. **Single-scheduled-runner assumption**: register at most ONE
+learnings-audit automation per project. Also runnable on demand — but before
+a manual `/lisa:learnings:audit`, confirm the scheduled automation is not due
+or currently running (check the scheduler's last-run/next-run state) and
+prefer waiting over racing it.
+
+**Concurrency honesty.** Marker dedupe is search-then-write, not an atomic
+claim: two truly concurrent runs can each miss the other's in-flight ticket
+and file a transient duplicate. Dedupe therefore guarantees
+**convergence, not mutual exclusion** — a duplicate is found and closed by
+the next run's marker search (or by the human triaging the pair), and because
+rejection memory keys on the surface prefix, a duplicate never multiplies.
+This is an accepted trade-off for a weekly advisory loop; a tracker-side
+locking protocol would be disproportionate to the risk.
 
 ## Rules
 

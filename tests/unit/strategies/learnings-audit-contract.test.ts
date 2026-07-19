@@ -211,8 +211,32 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toContain("max_candidates");
   });
 
-  it("states an explicit retirement condition for the loop itself", () => {
-    expect(skill).toMatch(/consecutive.*nothing-needed/i);
+  it("states a stateless, tracker-derived retirement condition for the loop itself", () => {
+    // No durable counter: the condition is derived from the tracker.
+    expect(skill).toMatch(/stateless/i);
+    expect(skill).toMatch(/never from a\s+counter or state file/i);
+    // (a) date-filtered search over the trailing window …
+    expect(skill).toMatch(/trailing six-week window/i);
+    expect(skill).toContain("--created");
+    // … AND (b) the current run itself proposes nothing.
+    expect(skill).toMatch(/current run'?s inventory yields zero/i);
+    // The old in-memory consecutive-run counter is gone.
+    expect(skill).not.toMatch(/six consecutive/i);
+  });
+
+  it("is honest about concurrency: convergence, not mutual exclusion", () => {
+    expect(skill).toMatch(/convergence, not mutual exclusion/i);
+    expect(skill).toMatch(/transient duplicate/i);
+    // Single-scheduled-runner assumption + manual runs check the cron first.
+    expect(skill).toMatch(/at most ONE\s+learnings-audit automation/i);
+    expect(skill).toMatch(/not due\s+or currently running/i);
+    // No overstated overlap-safety claim survives.
+    expect(skill).not.toMatch(/safely\s+concurrent-adjacent/i);
+  });
+
+  it("files per-item tickets first and the batch ticket last for recoverability", () => {
+    expect(skill).toMatch(/batch ticket last/i);
+    expect(skill).toMatch(/completion signal/i);
   });
 });
 
@@ -238,6 +262,12 @@ describe.each(SETUP_AUTOMATIONS_PATHS)(
     it("registers learnings-audit as an optional (opt-in) automation", () => {
       expect(setup).toContain("learnings-audit");
       expect(setup).toMatch(/opt-in|optional/i);
+    });
+
+    it("documents the single-runner assumption instead of overlap safety", () => {
+      expect(setup).toMatch(/at most ONE learnings-audit automation/i);
+      expect(setup).toMatch(/convergence/i);
+      expect(setup).not.toMatch(/overlapping\s+manual runs are safe/i);
     });
   }
 );
