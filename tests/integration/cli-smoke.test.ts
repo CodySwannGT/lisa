@@ -45,6 +45,7 @@ describe("built Lisa CLI smoke", () => {
     expect(help).toContain("doctor");
     expect(help).toContain("version");
     expect(help).toContain("update");
+    expect(help).toContain("check-learnings-budget");
   });
 
   it("prints the package version from the built artifact", () => {
