@@ -76,13 +76,14 @@ When detection returns `rejection-reclaim`, the build-intake claim phase reflect
 
 ### Graceful degrade — `lisa-persist-learning` unavailable
 
-If `lisa-persist-learning` is not installed when reflection runs (e.g. the learning-persistence flow has not merged yet), do **not** fail. Record the candidate as a marked comment on the item and proceed:
+If `lisa-persist-learning` is not installed when reflection runs (e.g. the learning-persistence flow has not merged yet), do **not** fail. Record the candidate as a marked comment on the item and proceed. The comment MUST carry a **visible prose line** as well as the marker — a bare HTML marker renders as an empty comment bubble on GitHub/Linear, defeating the "visible paper trail" this reflection exists to create:
 
 ```text
+Recorded a candidate learning from this rejection (queued for the judgment gate): <one-line candidate rule>.
 <!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->
 ```
 
-so a later run (once the skill exists) can pick it up, and the build still proceeds to implement the item.
+so a human sees the paper trail, a later run (once the skill exists) can pick it up, and the build still proceeds to implement the item. The marker line is verbatim — the dedupe contract keys on it, not on the prose.
 
 ### Idempotency — marker dedupe
 
