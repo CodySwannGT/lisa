@@ -70,6 +70,26 @@ build_per_agent_variant() {
 # Base plugin
 build_plugin base lisa
 
+# Threshold-ratchet comparator: the canonical implementation lives in the base
+# plugin's hooks/ (agent-time layer). The pre-commit (husky/lefthook) and CI
+# layers in downstream projects run the same file as scripts/
+# check-threshold-ratchet.mjs, delivered via the stack templates. Sync the
+# copies here so they can never drift; a unit test asserts byte-equality.
+if [ -f "$SRC_DIR/base/hooks/threshold-ratchet.mjs" ]; then
+  for ratchet_scripts_dir in \
+    "$ROOT_DIR/typescript/copy-overwrite/scripts" \
+    "$ROOT_DIR/rails/copy-overwrite/scripts"; do
+    mkdir -p "$ratchet_scripts_dir"
+    # The entry point takes the template check-* naming; its relative imports
+    # (threshold-ratchet-*.mjs) keep their canonical names in both trees.
+    cp "$SRC_DIR/base/hooks/threshold-ratchet.mjs" \
+      "$ratchet_scripts_dir/check-threshold-ratchet.mjs"
+    cp "$SRC_DIR/base/hooks/threshold-ratchet-families.mjs" \
+      "$SRC_DIR/base/hooks/threshold-ratchet-compare.mjs" \
+      "$ratchet_scripts_dir/"
+  done
+fi
+
 # Stack-specific plugins (NO base copy)
 STACKS=(typescript expo nestjs cdk harper-fabric phaser rails)
 for stack in "${STACKS[@]}"; do

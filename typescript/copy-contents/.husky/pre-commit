@@ -102,6 +102,23 @@ fi
 #   exit 1
 # fi
 
+# Threshold ratchet: quality thresholds may tighten, never weaken. The staged
+# change is compared against HEAD by the same deterministic comparator the
+# agent-time hooks and CI run; human-approved exceptions live in
+# .lisa.config.json under thresholdRatchet.allow.
+if [ -f "scripts/check-threshold-ratchet.mjs" ] && command -v node >/dev/null 2>&1; then
+  echo "📐 Checking threshold ratchet..."
+  node scripts/check-threshold-ratchet.mjs --staged
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ A quality threshold was weakened. Thresholds may only tighten."
+    echo "   Fix the code to meet the current gate, or ask a human to record a"
+    echo "   documented exception in .lisa.config.json (thresholdRatchet.allow)."
+    echo ""
+    exit 1
+  fi
+fi
+
 # Run type check on entire project (can't be done incrementally)
 echo "🔍 Running type check..."
 $RUNNER typecheck

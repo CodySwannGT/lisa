@@ -4,6 +4,12 @@ pre-commit:
     rubocop:
       glob: '*.rb'
       run: bundle exec rubocop --force-exclusion {staged_files}
+    threshold-ratchet:
+      # Quality thresholds (simplecov minimums, rubocop Metrics maximums, …)
+      # may tighten, never weaken. Same deterministic comparator as the
+      # agent-time hooks and CI; self-skips when node or the script is absent
+      # (CI still enforces the gate).
+      run: sh -c 'command -v node >/dev/null 2>&1 || exit 0; [ -f scripts/check-threshold-ratchet.mjs ] || exit 0; node scripts/check-threshold-ratchet.mjs --staged'
     bundler-audit:
       # Unset GIT_DIR/GIT_WORK_TREE so `--update`'s internal git pull of the
       # ruby-advisory-db (~/.local/share/ruby-advisory-db) does not inherit the
