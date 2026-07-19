@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { runApply } from "./apply.js";
+import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
 import {
   type CrossPollinateOptions,
   runCrossPollinate,
@@ -41,6 +42,8 @@ export interface ProgramDependencies {
   runSync: typeof runSync;
   /** Serves the Lisa settings console (after a config sync). */
   runUi: typeof runUi;
+  /** Checks the project learnings file against its hard budget. */
+  runCheckLearningsBudget: typeof runCheckLearningsBudget;
   /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
   runUpdateCheck: typeof runUpdateCheck;
   /** Prints the update warning (defaults to {@link printUpdateWarning}). */
@@ -57,12 +60,40 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runCrossPollinate,
   runSync,
   runUi,
+  runCheckLearningsBudget,
   runUpdateCheck,
   printUpdateWarning,
 };
 
 /** Shared help text for the optional project-path positional argument. */
 const PATH_ARG_DESCRIPTION = "Project path (default: current directory)";
+
+/**
+ * Register the `check-learnings-budget` gate command. Extracted so the broader
+ * maintenance-command registrar stays within the function-length budget.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addCheckLearningsBudgetCommand(
+  program: Command,
+  deps: ProgramDependencies
+): void {
+  program
+    .command("check-learnings-budget")
+    .description(
+      "Fail if the project learnings file exceeds its hard budget (missing file passes)"
+    )
+    .argument(
+      "[path]",
+      "Learnings file to check (default: resolved from .lisa.config.json)"
+    )
+    .action(async (targetPath: string | undefined) => {
+      const code = await deps.runCheckLearningsBudget(targetPath);
+      if (code !== 0) {
+        process.exitCode = code;
+      }
+    });
+}
 
 /**
  * Register CLI maintenance commands that do not run the root update warning.
@@ -131,6 +162,8 @@ function addMaintenanceCommands(
       await deps.runUi(targetPath, options);
     });
 
+  addCheckLearningsBudgetCommand(program, deps);
+
   program
     .command("cross-pollinate")
     .description(
@@ -182,9 +215,14 @@ export function createProgram(
   // It is non-fatal: a failed check never blocks the action from running.
   program.hook("preAction", async (_thisCommand, actionCommand) => {
     if (
-      ["doctor", "sync", "ui", "update", "version"].includes(
-        actionCommand.name()
-      )
+      [
+        "doctor",
+        "sync",
+        "ui",
+        "update",
+        "version",
+        "check-learnings-budget",
+      ].includes(actionCommand.name())
     ) {
       return;
     }

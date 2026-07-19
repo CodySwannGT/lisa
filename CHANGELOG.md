@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.236.0](https://github.com/CodySwannGT/lisa/compare/v2.235.0...v2.236.0) (2026-07-18)
+
+
+### Features
+
+* **ui:** add detected-stacks status probe ([c588acc](https://github.com/CodySwannGT/lisa/commit/c588acc36ed64198700e65767e00cade68a639f3)), closes [CodySwannGT/lisa#1539](https://github.com/CodySwannGT/lisa/issues/1539)
+* **ui:** compute deploy pipeline stages from deploy.yml and GitHub environments ([eaf4c4b](https://github.com/CodySwannGT/lisa/commit/eaf4c4b2b56d9123d2537d014b50038d77fc6f5c))
+* **ui:** detect connected observability providers via live-status probes ([f6dfb4e](https://github.com/CodySwannGT/lisa/commit/f6dfb4e4612d9cfc8cb0e2251c7e8fedd09ba234))
+* **ui:** populate Automations from harness scheduler probe ([50074f1](https://github.com/CodySwannGT/lisa/commit/50074f1af232c4f1e0a2972d6591c917a5a579bc)), closes [#1719](https://github.com/CodySwannGT/lisa/issues/1719) [#1720](https://github.com/CodySwannGT/lisa/issues/1720)
+* **ui:** populate GitHub repository panel from live gh api probes ([d21f98f](https://github.com/CodySwannGT/lisa/commit/d21f98f2cb5fdc3a339e1cae6ed5fa09f6e9c6d7))
+* **ui:** wire Plugins & MCP section to enabledPlugins via live-status ([9f43573](https://github.com/CodySwannGT/lisa/commit/9f43573372276ab33ee81781b1600604e1041fe6)), closes [#1540](https://github.com/CodySwannGT/lisa/issues/1540)
+* **ui:** wire Stacks console section to the detected-stacks probe ([4246c03](https://github.com/CodySwannGT/lisa/commit/4246c0313694cb8a6e07467683741e44b5059126)), closes [CodySwannGT/lisa#1539](https://github.com/CodySwannGT/lisa/issues/1539)
+
+
+### Bug Fixes
+
+* **ui:** harden detected-stacks against non-string arrays and lock escaping ([336c48b](https://github.com/CodySwannGT/lisa/commit/336c48b0a37be098cc09078081866e4cb1357904)), closes [CodySwannGT/lisa#1539](https://github.com/CodySwannGT/lisa/issues/1539)
+* **ui:** restore applyCiQualityJobs close after deploy-pipeline merge ([55718ec](https://github.com/CodySwannGT/lisa/commit/55718ec8714bd4e6878916aa67b22ab4300537e5))
+* **ui:** restore applyDeployPipelineStages closing brace lost in merge ([651e69e](https://github.com/CodySwannGT/lisa/commit/651e69ead00b7df56b478f7bd4bdbe2dc84cf1b3)), closes [#1714](https://github.com/CodySwannGT/lisa/issues/1714)
+* **ui:** restore console script syntax ([e496006](https://github.com/CodySwannGT/lisa/commit/e49600637bbc468e426f501b3963315f95c8436d))
+* **ui:** use own-key-safe Map for stack catalog lookups ([9c5155f](https://github.com/CodySwannGT/lisa/commit/9c5155f077442a7a2e9f3d81f97c764016686ce0)), closes [#1714](https://github.com/CodySwannGT/lisa/issues/1714)
+
+
+### Documentation
+
+* **rules:** capture Lisa Console UI build + e2e testing constraints ([ee14ff2](https://github.com/CodySwannGT/lisa/commit/ee14ff21b6b8b86622a4daf5ad2b7676a83fe274))
+
 ## [2.235.0](https://github.com/CodySwannGT/lisa/compare/v2.234.0...v2.235.0) (2026-07-18)
 
 
