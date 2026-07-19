@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.247.2](https://github.com/CodySwannGT/lisa/compare/v2.247.1...v2.247.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ci:** collapse learnings budget bridge ([ce5d199](https://github.com/CodySwannGT/lisa/commit/ce5d199cd8a5dd16fb6f780338727d38d50628ad))
+
 ### [2.247.1](https://github.com/CodySwannGT/lisa/compare/v2.247.0...v2.247.1) (2026-07-19)
 
 ## [2.247.0](https://github.com/CodySwannGT/lisa/compare/v2.246.0...v2.247.0) (2026-07-19)
