@@ -11,6 +11,7 @@ import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { createDetectorRegistry } from "../detection/index.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
+import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { STARTERS } from "./starters.js";
 import { runUpdateCheck } from "./update-check.js";
 
@@ -369,6 +370,7 @@ export async function runDoctor(
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
+    await checkWorkerEpoch(resolvedTarget),
     checkLegacyCodexOverlay(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),
     checkWiki(resolvedTarget),
