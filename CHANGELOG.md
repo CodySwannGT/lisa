@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.245.0](https://github.com/CodySwannGT/lisa/compare/v2.244.0...v2.245.0) (2026-07-19)
+
+
+### Features
+
+* **learner:** rewrite as capture-only ledger writer (LLG-2) ([854c806](https://github.com/CodySwannGT/lisa/commit/854c80626f9a008533c3d59f98ef81ebae369917)), closes [#1735](https://github.com/CodySwannGT/lisa/issues/1735) [#1731](https://github.com/CodySwannGT/lisa/issues/1731)
+
+
+### Bug Fixes
+
+* **learner:** apply review fixes for MLD fields, writer claim, confidence (LLG-2) ([4f9cee3](https://github.com/CodySwannGT/lisa/commit/4f9cee3d282cee0fb6f4d9a541c74886c506361c)), closes [#1732](https://github.com/CodySwannGT/lisa/issues/1732) [#1732](https://github.com/CodySwannGT/lisa/issues/1732) [#1733](https://github.com/CodySwannGT/lisa/issues/1733) [#1733](https://github.com/CodySwannGT/lisa/issues/1733) [#1731](https://github.com/CodySwannGT/lisa/issues/1731)
+
 ## [2.244.0](https://github.com/CodySwannGT/lisa/compare/v2.243.0...v2.244.0) (2026-07-19)
 
 
