@@ -3,6 +3,7 @@ export * from "./learnings-writer.js";
 export {
   DEFAULT_PROJECT_RULES_FILE,
   PROJECT_LEARNINGS_FILENAME,
+  readProjectConfig,
   resolveProjectLearningsFile,
   resolveProjectRulesFile,
   type ProjectConfig,

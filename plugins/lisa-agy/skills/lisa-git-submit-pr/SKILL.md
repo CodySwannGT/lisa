@@ -14,6 +14,7 @@ Recognized optional hints:
 - `target_branch=<branch>` or `base=<branch>` — intended PR base branch, used to decide whether a GitHub closing keyword is safe.
 - `tracker_provider=<github|linear|jira|none>` — explicit provider when the ref shape is ambiguous.
 - `pr_url=<url>` — live pull request URL, only needed when updating tracker backlinks from an existing PR context.
+- `auto_merge=<true|false>` — whether the PR should merge automatically. Default `true` (existing behavior for every current caller). With `auto_merge=false`, skip step 5 entirely (never run `gh pr merge --auto`) and pass `auto_merge=false` through to the `drive-pr-to-merge` delegation in step 6 so the PR is driven to a clean, green, OPEN state and then left awaiting a human.
 
 ## Workflow
 
@@ -34,10 +35,10 @@ Recognized optional hints:
    - Include native development linkage for the source work item when `work_item_ref` can be inferred from `$ARGUMENTS`, the current branch name, an existing PR body, or the issue/ticket context passed by the caller.
    - After the PR exists, ensure the source work item has a backlink to the PR: invoke `lisa-tracker-sync` with the work item, milestone `pr-ready`, the live `pr_url`, and `tracker_provider` when known. This makes ticket -> PR linkage mandatory, not just a best-effort milestone comment.
    - After the PR exists, re-resolve the live Pull Request node id and, when `github.projects.v2` is enabled, invoke `lisa-github-project-v2` with `operation: ensure-item` and `content_node_id: <pull-request-node-id>` so linked pull requests join the configured shared Project without replacing the PR as the durable review/merge surface.
-5. **Auto-merge**: Choose merge strategy by PR type:
+5. **Auto-merge** (only when `auto_merge=true`, the default — with `auto_merge=false` skip this step entirely): Choose merge strategy by PR type:
    - **Promotion PRs** (env → env, e.g. `dev` → `staging`): use `gh pr merge --auto --merge` (never squash). Squashing flattens the constituent `chore(release): X.Y.Z [skip ci]` commits into one commit titled with the PR title, stripping the `[skip ci]` markers and breaking the release workflow's promotion-detection regex — the destination branch then double-bumps its version. `--merge` keeps each `chore(release)` commit (and its `[skip ci]` marker) intact under a clean merge commit subject the workflow can recognize.
    - **Feature PRs** (anything → `dev`): use `gh pr merge --auto --merge`.
-6. **Drive to merge**: Opening the PR and enabling auto-merge is not terminal. Delegate the full mergeability loop to the `drive-pr-to-merge` skill — invoke it with the PR number and `merge_method=merge` (and `verify_commit=<pushed head sha>` for the ancestry check). That skill is the single source of truth for clearing every blocker: auto-merge with direct-merge fallback, `BEHIND` re-sync, conflict resolution, failing-check fixes, human + bot (CodeRabbit) review-comment handling with GraphQL thread resolution, stale `CHANGES_REQUESTED` dismissal, and post-merge ancestry verification. It runs inline and uses plain `gh`/`git` so Claude and Codex behave identically. Do not re-implement the loop here.
+6. **Drive to merge**: Opening the PR and enabling auto-merge is not terminal. Delegate the full mergeability loop to the `drive-pr-to-merge` skill — invoke it with the PR number and `merge_method=merge` (and `verify_commit=<pushed head sha>` for the ancestry check). When the caller passed `auto_merge=false`, also pass `auto_merge=false` so the delegated loop drives the PR to green-and-open (`awaiting-human`) instead of merged — never merging it, even on repos that disallow auto-merge. That skill is the single source of truth for clearing every blocker: auto-merge with direct-merge fallback, `BEHIND` re-sync, conflict resolution, failing-check fixes, human + bot (CodeRabbit) review-comment handling with GraphQL thread resolution, stale `CHANGES_REQUESTED` dismissal, and post-merge ancestry verification. It runs inline and uses plain `gh`/`git` so Claude and Codex behave identically. Do not re-implement the loop here.
 
 ### Native Development Linkage
 

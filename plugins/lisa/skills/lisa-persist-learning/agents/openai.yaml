@@ -1,0 +1,4 @@
+display_name: "Persist Learning"
+short_description: "a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed"
+default_prompt:
+  - "Use $lisa-persist-learning: a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed."
