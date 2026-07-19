@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.239.0](https://github.com/CodySwannGT/lisa/compare/v2.238.0...v2.239.0) (2026-07-19)
+
+
+### Features
+
+* **atlassian:** add changelog transition-history op to lisa-atlassian-access ([521bb3f](https://github.com/CodySwannGT/lisa/commit/521bb3fa9f40cd38ba8d023d4e5bff07ec161554)), closes [#1571](https://github.com/CodySwannGT/lisa/issues/1571) [#1559](https://github.com/CodySwannGT/lisa/issues/1559) [#1553](https://github.com/CodySwannGT/lisa/issues/1553) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+* **implement:** consume rejection evidence so re-claim does not repeat it ([a1a03f9](https://github.com/CodySwannGT/lisa/commit/a1a03f9f6267a2c7ccf704453fff3aa79fdb6871)), closes [#1587](https://github.com/CodySwannGT/lisa/issues/1587) [#1565](https://github.com/CodySwannGT/lisa/issues/1565) [#1553](https://github.com/CodySwannGT/lisa/issues/1553) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+* **linear:** add history transition-history op to lisa-linear-access ([b3c79d7](https://github.com/CodySwannGT/lisa/commit/b3c79d7b223fd36336403e6440c6b4370c407aa1)), closes [#1573](https://github.com/CodySwannGT/lisa/issues/1573) [#1559](https://github.com/CodySwannGT/lisa/issues/1559) [#1553](https://github.com/CodySwannGT/lisa/issues/1553) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+* **rules:** add vendor-neutral rejection-detection rule at claim time ([a5951fa](https://github.com/CodySwannGT/lisa/commit/a5951fac8578d2b5f8ee86f93883c93c8b16d245)), closes [#1575](https://github.com/CodySwannGT/lisa/issues/1575) [#1565](https://github.com/CodySwannGT/lisa/issues/1565) [#1553](https://github.com/CodySwannGT/lisa/issues/1553) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+* **rules:** reflect on rejection-reclaim and route a candidate learning ([d00a9c3](https://github.com/CodySwannGT/lisa/commit/d00a9c3cb5f1a9b213e60e2e98917d053842b4b3)), closes [#1586](https://github.com/CodySwannGT/lisa/issues/1586) [#1565](https://github.com/CodySwannGT/lisa/issues/1565) [#1553](https://github.com/CodySwannGT/lisa/issues/1553) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+
+
+### Bug Fixes
+
+* **rules:** make fallback rejection-candidate comment visible + linear op naming ([838a6b8](https://github.com/CodySwannGT/lisa/commit/838a6b8512f3a703529e93363571a202a3cf6fb2)), closes [#1586](https://github.com/CodySwannGT/lisa/issues/1586) [#1586](https://github.com/CodySwannGT/lisa/issues/1586) [#1565](https://github.com/CodySwannGT/lisa/issues/1565) [#1553](https://github.com/CodySwannGT/lisa/issues/1553) [#1548](https://github.com/CodySwannGT/lisa/issues/1548)
+
 ## [2.238.0](https://github.com/CodySwannGT/lisa/compare/v2.237.0...v2.238.0) (2026-07-19)
 
 
