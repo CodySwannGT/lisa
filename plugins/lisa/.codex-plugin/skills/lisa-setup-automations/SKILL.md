@@ -82,9 +82,12 @@ defaults above), additionally create `lisa-auto-<project>-learnings-audit`
 running `/lisa:learnings:audit` once a **week**. It audits the project's
 knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files
 human-gated promote/demote/confirm/retire tickets per the
-`lisa-learnings-audit` skill; its output is marker-deduped, so overlapping
-manual runs are safe. Tear-down removes it with the rest of the
-`lisa-auto-<project>-*` set.
+`lisa-learnings-audit` skill. Register at most ONE learnings-audit automation
+per project — the gardener's marker dedupe assumes a single scheduled runner
+and guarantees convergence (a transient duplicate from a concurrent run is
+closed by the next run's dedupe or the human), not mutual exclusion; manual
+runs should first confirm the cron is not due or running. Tear-down removes
+it with the rest of the `lisa-auto-<project>-*` set.
 
 **Exploratory PRD pressure gate.** `auto-start-prds=true` means "create PRDs in the ready PRD
 lifecycle when the PRD queue has capacity," not "always create a new ready PRD." The

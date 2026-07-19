@@ -89,11 +89,14 @@ describe("gardener deterministic invariant-hash procedure", () => {
   });
 
   it("is stable across normalization-equivalent spellings (whitespace/case)", () => {
-    const canonical = normalizeInvariant(VECTORS[0].raw);
+    // Hardcoded expected value (test isolation: never derive the expected
+    // output by calling the function under test on the clean input).
+    const expectedNormalized =
+      "when writing utility functions, avoid calling shared validation helpers (expression statements/side effects) before const definitions, as this violates the enforce-statement-order rule. instead, inline validation as `if` guard clauses, which are exempt from the ordering rule.";
     const noisy = normalizeInvariant(
       `  \n\t${VECTORS[0].raw.toUpperCase().replace(/ /gu, "   ")}\n  `
     );
-    expect(noisy).toBe(canonical);
+    expect(noisy).toBe(expectedNormalized);
     expect(fingerprint(noisy)).toBe(VECTORS[0].hash);
   });
 });
