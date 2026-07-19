@@ -91,3 +91,12 @@ The candidate marker key is `<issue>-<backward-transition-timestamp>` (the ISO t
 ### Never block the build
 
 Unreadable or absent rejection evidence (no comment, deleted PR) ends with **no candidate produced and the item still implemented** — degraded, not stopped. Reflection is layered on top of the claim; it never gates it.
+
+## Evidence handoff into implementation (`rejection-reclaim` only)
+
+Mining a learning is not enough — if the agent then rebuilds the same rejected thing, the item is re-bounced. So the same rejection evidence read in reflection is **also** handed into the implementation, so the re-implementation consumes it instead of repeating the rejected approach.
+
+- **The handoff is at claim time.** `lisa-implement` never sees the claim and cannot fetch this itself; the build-intake `3c` lifecycle dispatch passes the rejection evidence summary into `lisa-implement` as part of the context bundle. Reuse the evidence already read in the reflection step — do not fetch it twice.
+- **The evidence summary** names: what was rejected, why (the defect the QA comment named), and the specific approach the rejection named as wrong.
+- **The plan must reckon with it.** On a `rejection-reclaim`, the re-implementation plan MUST explicitly address the rejection evidence and MUST NOT re-propose the specific approach the rejection named as wrong.
+- **Absence never blocks.** If the rejection evidence is unreadable or absent, the agent still implements the item — degraded, not stopped.
