@@ -108,7 +108,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
   {
     key: "projectRulesFile",
     defaultValue: DEFAULT_PROJECT_RULES_FILE,
-    description: "Project rules file used to derive PROJECT_LEARNINGS.md",
+    description: "Hand-authored project rules file (independent of the ledger)",
   },
   {
     key: "quality.testCoverage",

@@ -25,8 +25,63 @@ export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
 /** Default durable project-rules destination used by governance skills. */
 export const DEFAULT_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
 
-/** Fixed sibling filename for machine-managed project learnings. */
+/** Fixed filename for the machine-managed project-learnings ledger. */
 export const PROJECT_LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
+
+/**
+ * Default location for the machine-managed learnings ledger.
+ *
+ * The ledger lives beside other machine-managed state under `.lisa/`, NOT in an
+ * auto-loaded rules tree. Anything under `.claude/rules/` (and the equivalents
+ * other runtimes inject) is read raw into every session — placing the ledger
+ * there double-loads it and bypasses the executable contract's budget and
+ * validation. `.lisa/` is cold: the ledger is consumed only through the
+ * contract's bounded projection.
+ */
+export const DEFAULT_PROJECT_LEARNINGS_FILE = path.posix.join(
+  ".lisa",
+  PROJECT_LEARNINGS_FILENAME
+);
+
+/**
+ * Directory prefixes that one or more runtimes inject raw at session start. The
+ * learnings ledger must never resolve inside any of them, or the relocation's
+ * whole point — keeping the raw file out of eager context — is defeated. Kept
+ * conservative and explicit rather than agent-exhaustive; extend it as new
+ * eager rule trees are added.
+ */
+const AUTO_LOADED_RULES_DIR_PREFIXES = [
+  ".claude/rules",
+  ".cursor/rules",
+  ".github/instructions",
+  ".agents/rules",
+] as const;
+
+/**
+ * Repo-root instruction files that runtimes auto-load whole at session start
+ * (AGENTS.md for Codex/Cursor/Copilot/agy/OpenCode; CLAUDE.md for Claude). A
+ * `learnings.file` override must never resolve to one of these, or the ledger
+ * would again be injected raw.
+ */
+const ROOT_EAGER_INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
+
+/**
+ * Non-root instruction files the generators maintain and runtimes auto-load
+ * (Copilot reads `.github/copilot-instructions.md`). Matched by exact path.
+ */
+const EAGER_INSTRUCTION_FILE_PATHS = [
+  ".github/copilot-instructions.md",
+] as const;
+
+/** Optional `learnings` configuration block in `.lisa.config.json`. */
+export interface LearningsConfig {
+  /**
+   * Relative path to the machine-managed learnings ledger, overriding the
+   * `.lisa/PROJECT_LEARNINGS.md` default. Must be a safe relative Markdown path
+   * outside every auto-loaded rules tree.
+   */
+  readonly file?: string;
+}
 
 /**
  * Schema of `.lisa.config.json`. Additional fields may be added in future
@@ -37,6 +92,8 @@ export interface ProjectConfig {
   readonly harness?: Harness;
   /** Relative path to the project's durable rules file. */
   readonly projectRulesFile?: string;
+  /** Optional overrides for the machine-managed learnings ledger. */
+  readonly learnings?: LearningsConfig;
 }
 
 /**
@@ -52,12 +109,34 @@ export function resolveProjectRulesFile(config: ProjectConfig): string {
 }
 
 /**
- * Keep learned rules separate from hand-authored rules while honoring the same
- * configured directory.
+ * Resolve the machine-managed learnings ledger path. A validated
+ * `learnings.file` override wins; otherwise the `.lisa/PROJECT_LEARNINGS.md`
+ * default is used. The path is intentionally independent of `projectRulesFile`:
+ * the ledger is cold state, not a rules sibling.
  * @param config - Parsed project configuration
  * @returns Safe project-relative learnings Markdown path
  */
 export function resolveProjectLearningsFile(config: ProjectConfig): string {
+  if (config.learnings?.file !== undefined) {
+    return validateLearningsFile(
+      config.learnings.file,
+      PROJECT_CONFIG_FILENAME
+    );
+  }
+  return DEFAULT_PROJECT_LEARNINGS_FILE;
+}
+
+/**
+ * Resolve the ledger's LEGACY location — the sibling of `projectRulesFile`,
+ * where releases before the `.lisa/` relocation kept it. Used only by the
+ * apply/doctor relocation so an existing file can be found and moved to the new
+ * canonical path; never a serving path.
+ * @param config - Parsed project configuration
+ * @returns Legacy project-relative learnings Markdown path
+ */
+export function resolveLegacyProjectLearningsFile(
+  config: ProjectConfig
+): string {
   return path.posix.join(
     path.posix.dirname(resolveProjectRulesFile(config)),
     PROJECT_LEARNINGS_FILENAME
@@ -219,9 +298,11 @@ function validateProjectConfig(
     obj.projectRulesFile === undefined
       ? undefined
       : validateProjectRulesFile(obj.projectRulesFile, configPath);
+  const learnings = validateLearningsConfig(obj.learnings, configPath);
   return {
     ...(harness === undefined ? {} : { harness }),
     ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
+    ...(learnings === undefined ? {} : { learnings }),
   };
 }
 
@@ -256,12 +337,19 @@ function validateOptionalHarness(
 }
 
 /**
- * Validate the configurable rules destination as a safe Markdown path.
+ * Validate a configurable destination as a safe, relative, non-traversing
+ * Markdown path. Shared by every path-typed config field; the `field` label is
+ * interpolated into each diagnostic so callers get a field-specific message.
  * @param value - Raw configured path
  * @param source - Config source for errors
+ * @param field - Config field name used in error messages
  * @returns Validated project-relative path
  */
-function validateProjectRulesFile(value: unknown, source: string): string {
+function validateSafeRelativeMarkdownPath(
+  value: unknown,
+  source: string,
+  field: string
+): string {
   if (
     typeof value !== "string" ||
     value.length === 0 ||
@@ -273,7 +361,7 @@ function validateProjectRulesFile(value: unknown, source: string): string {
     path.win32.isAbsolute(value)
   ) {
     throw new Error(
-      `Invalid projectRulesFile in ${source}: expected a safe relative POSIX path`
+      `Invalid ${field} in ${source}: expected a safe relative POSIX path`
     );
   }
   const segments = value.split("/");
@@ -283,23 +371,100 @@ function validateProjectRulesFile(value: unknown, source: string): string {
     )
   ) {
     throw new Error(
-      `Invalid projectRulesFile in ${source}: path traversal is not allowed`
+      `Invalid ${field} in ${source}: path traversal is not allowed`
     );
   }
   if (path.posix.extname(value).toLowerCase() !== ".md") {
-    throw new Error(
-      `Invalid projectRulesFile in ${source}: expected a Markdown file`
-    );
+    throw new Error(`Invalid ${field} in ${source}: expected a Markdown file`);
   }
+  return value;
+}
+
+/**
+ * Validate the configurable rules destination as a safe Markdown path, and
+ * reject the reserved learnings filename so a rules file can never collide with
+ * the machine-managed ledger.
+ * @param value - Raw configured path
+ * @param source - Config source for errors
+ * @returns Validated project-relative path
+ */
+function validateProjectRulesFile(value: unknown, source: string): string {
+  const safe = validateSafeRelativeMarkdownPath(
+    value,
+    source,
+    "projectRulesFile"
+  );
   if (
-    path.posix.basename(value).toLowerCase() ===
+    path.posix.basename(safe).toLowerCase() ===
     PROJECT_LEARNINGS_FILENAME.toLowerCase()
   ) {
     throw new Error(
       `Invalid projectRulesFile in ${source}: ${PROJECT_LEARNINGS_FILENAME} is reserved for machine-managed learnings`
     );
   }
-  return value;
+  return safe;
+}
+
+/**
+ * Validate a `learnings.file` override: a safe relative Markdown path that does
+ * NOT resolve inside any auto-loaded rules tree. Placing the ledger in an eager
+ * tree is exactly the defect this relocation exists to prevent, so it is a hard
+ * rejection with a readable reason rather than a silent fallback.
+ * @param value - Raw configured path
+ * @param source - Config source for errors
+ * @returns Validated project-relative learnings path
+ */
+function validateLearningsFile(value: unknown, source: string): string {
+  const safe = validateSafeRelativeMarkdownPath(
+    value,
+    source,
+    "learnings.file"
+  );
+  const normalized = path.posix.normalize(safe);
+  const lowered = normalized.toLowerCase();
+  const insideEagerTree = AUTO_LOADED_RULES_DIR_PREFIXES.some(
+    prefix => normalized === prefix || normalized.startsWith(`${prefix}/`)
+  );
+  const isRootEagerFile =
+    path.posix.dirname(normalized) === "." &&
+    ROOT_EAGER_INSTRUCTION_FILES.some(name => name.toLowerCase() === lowered);
+  const isNamedEagerFile = EAGER_INSTRUCTION_FILE_PATHS.some(
+    filePath => filePath.toLowerCase() === lowered
+  );
+  if (insideEagerTree || isRootEagerFile || isNamedEagerFile) {
+    const surfaces = [
+      ...AUTO_LOADED_RULES_DIR_PREFIXES,
+      ...ROOT_EAGER_INSTRUCTION_FILES,
+      ...EAGER_INSTRUCTION_FILE_PATHS,
+    ].join(", ");
+    throw new Error(
+      `Invalid learnings.file in ${source}: the ledger must not live in an auto-loaded rules tree or instruction file (${surfaces}); the default ${DEFAULT_PROJECT_LEARNINGS_FILE} is the recommended location`
+    );
+  }
+  return safe;
+}
+
+/**
+ * Validate the optional `learnings` block, preserving an absent value.
+ * @param value - Raw learnings value
+ * @param source - Config source for errors
+ * @returns Typed learnings config, or undefined when absent
+ */
+function validateLearningsConfig(
+  value: unknown,
+  source: string
+): LearningsConfig | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid learnings in ${source}: expected an object`);
+  }
+  const file = (value as Record<string, unknown>).file;
+  if (file === undefined) {
+    return {};
+  }
+  return { file: validateLearningsFile(file, source) };
 }
 
 /**

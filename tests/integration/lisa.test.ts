@@ -51,6 +51,8 @@ const JEST_CONFIG_LOCAL = "jest.config.local.ts";
 const PACKAGE_LISA_DIR = "package-lisa";
 const LISA_MANIFEST = ".lisa-manifest";
 const PROJECT_LEARNINGS = "PROJECT_LEARNINGS.md";
+const LISA_STATE_DIR = ".lisa";
+const LISA_CONFIG_JSON = ".lisa.config.json";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
 const WORKFLOWS_DIR = path.join(".github", "workflows");
 const CLAUDE_PACKAGE_MANAGER_WORKFLOWS = [
@@ -131,8 +133,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       const learningsPath = path.join(
         destDir,
-        ".claude",
-        "rules",
+        LISA_STATE_DIR,
         PROJECT_LEARNINGS
       );
 
@@ -164,43 +165,98 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.readFile(learningsPath, "utf8")).toBe(populated);
     });
 
-    it("uses only the configured project-rules sibling for project learnings", async () => {
+    it("keeps the ledger at .lisa regardless of a custom projectRulesFile", async () => {
       await createTypeScriptProject(destDir);
-      await fs.writeJson(path.join(destDir, ".lisa.config.json"), {
+      await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
         harness: "claude",
         projectRulesFile: "rules/CUSTOM_RULES.md",
       });
-      const configuredPath = path.join(destDir, "rules", PROJECT_LEARNINGS);
-      const defaultPath = path.join(
+      const ledgerPath = path.join(destDir, LISA_STATE_DIR, PROJECT_LEARNINGS);
+      const legacySibling = path.join(destDir, "rules", PROJECT_LEARNINGS);
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      // Relocating the rules file must NOT drag the ledger back to its sibling.
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(
+        renderLearningsFile([])
+      );
+      expect(await fs.pathExists(legacySibling)).toBe(false);
+
+      const sentinel = `${renderLearningsFile([])}<!-- custom sentinel -->\n`;
+      await fs.writeFile(ledgerPath, sentinel);
+      await createLisa().apply();
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(sentinel);
+      expect(await fs.pathExists(legacySibling)).toBe(false);
+    });
+
+    it("honors a learnings.file override for the ledger destination", async () => {
+      await createTypeScriptProject(destDir);
+      await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
+        harness: "claude",
+        learnings: { file: "docs/LEARNINGS.md" },
+      });
+      const overridePath = path.join(destDir, "docs", "LEARNINGS.md");
+      const defaultPath = path.join(destDir, LISA_STATE_DIR, PROJECT_LEARNINGS);
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      expect(await fs.readFile(overridePath, "utf8")).toBe(
+        renderLearningsFile([])
+      );
+      expect(await fs.pathExists(defaultPath)).toBe(false);
+    });
+
+    it("relocates a populated legacy ledger on the bootstrap/skip-git-check path without seeding an empty one (#1730 fleet upgrade)", async () => {
+      await createTypeScriptProject(destDir);
+      const legacyPath = path.join(
         destDir,
         ".claude",
         "rules",
         PROJECT_LEARNINGS
       );
+      const ledgerPath = path.join(destDir, LISA_STATE_DIR, PROJECT_LEARNINGS);
+      const populated = renderLearningsFile([
+        {
+          id: "fleet-upgrade-sentinel",
+          rule: "Never strand a populated legacy ledger on upgrade.",
+          why: "The fleet updater forces LISA_BOOTSTRAP=1 + --skip-git-check.",
+          provenance: ["https://github.com/CodySwannGT/lisa/issues/1730"],
+          first_learned: "2026-07-16",
+          last_confirmed: "2026-07-16",
+          confidence: "high",
+        },
+      ]);
+      await fs.outputFile(legacyPath, populated);
 
-      const first = await createLisa().apply();
+      // STEP 1: the exact fleet-upgrade path — skipGitCheck triggers
+      // shouldSkipAgentEmitDuringPostinstall.
+      const first = await createLisa({ skipGitCheck: true }).apply();
 
       expect(first.success).toBe(true);
-      expect(await fs.readFile(configuredPath, "utf8")).toBe(
-        renderLearningsFile([])
-      );
-      expect(await fs.pathExists(defaultPath)).toBe(false);
+      // The new ledger holds the MOVED entries — never an empty seed.
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(populated);
+      // The raw-injected legacy path is gone.
+      expect(await fs.pathExists(legacyPath)).toBe(false);
 
-      const sentinel = `${renderLearningsFile([])}<!-- custom sentinel -->\n`;
-      await fs.writeFile(configuredPath, sentinel);
-      await createLisa().apply();
-      expect(await fs.readFile(configuredPath, "utf8")).toBe(sentinel);
-      expect(await fs.pathExists(defaultPath)).toBe(false);
+      // STEP 2: idempotent — a second bootstrap apply changes nothing and never
+      // resurrects the both-exist stranding.
+      const second = await createLisa({ skipGitCheck: true }).apply();
+
+      expect(second.success).toBe(true);
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(populated);
+      expect(await fs.pathExists(legacyPath)).toBe(false);
     });
 
     it("rejects a configured learnings seed whose parent symlink escapes the host project", async () => {
       await createTypeScriptProject(destDir);
-      const externalDir = path.join(tempDir, "external-rules");
+      const externalDir = path.join(tempDir, "external-ledger");
       await fs.ensureDir(externalDir);
-      await fs.symlink(externalDir, path.join(destDir, "rules"), "dir");
-      await fs.writeJson(path.join(destDir, ".lisa.config.json"), {
+      await fs.symlink(externalDir, path.join(destDir, "data"), "dir");
+      await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
         harness: "claude",
-        projectRulesFile: "rules/CUSTOM_RULES.md",
+        learnings: { file: "data/PROJECT_LEARNINGS.md" },
       });
 
       const result = await createLisa().apply();
@@ -220,8 +276,7 @@ describe("Lisa Integration Tests", () => {
         lisaDir,
         "all",
         CREATE_ONLY,
-        ".claude",
-        "rules",
+        LISA_STATE_DIR,
         PROJECT_LEARNINGS
       );
       const overwriteSource = path.join(

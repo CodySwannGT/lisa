@@ -371,6 +371,30 @@ describe("quality.yml reusable workflow", () => {
   });
 });
 
+describe("learnings-budget transition bridge (#1730)", () => {
+  // Both the no-arg leg (legacy path under the pinned CLI's old resolver) and
+  // the explicit .lisa/ leg must be present, each with its OWN marker grep, so
+  // a relocated ledger cannot silently pass an empty legacy gate (PR #1754).
+  it.each([QUALITY_YML, QUALITY_RAILS_YML])(
+    "%s gates both the legacy and the relocated ledger",
+    file => {
+      const workflow = fs.readFileSync(file, "utf8");
+
+      expect(workflow).toContain(
+        "bunx @codyswann/lisa@2.239.0 check-learnings-budget | tee learnings-budget.out"
+      );
+      expect(workflow).toContain(
+        "bunx @codyswann/lisa@2.239.0 check-learnings-budget .lisa/PROJECT_LEARNINGS.md | tee learnings-budget-relocated.out"
+      );
+      // Each leg is asserted by its own marker grep — two greps, two out files.
+      expect(
+        workflow.match(/grep -qE "learnings budget passed\|no learnings file"/g)
+      ).toHaveLength(2);
+      expect(workflow).toContain("learnings-budget-relocated.out");
+    }
+  );
+});
+
 describe("release and deploy workflows", () => {
   let releaseWorkflow: ReleaseWorkflow;
   let deployWorkflow: DeployWorkflow;

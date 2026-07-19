@@ -21,8 +21,9 @@
  * Lisa-managed agy marker block. Everything else is additive.
  * @module core/instruction-files-migration
  */
+import * as fse from "fs-extra";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import {
   AGENTS_MD_FILENAME,
@@ -35,7 +36,12 @@ import {
 } from "../claude/claude-md-installer.js";
 import { harnessIncludesAgent } from "./config.js";
 import {
+  assertSafeLearningParents,
+  resolveSafeLearningTarget,
+} from "./learnings-file-safety.js";
+import {
   readProjectConfig,
+  resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
 } from "./project-config.js";
 
@@ -62,6 +68,70 @@ export interface InstructionFilesMigrationResult {
   readonly actions: readonly string[];
 }
 
+/** Outcome of the learnings-ledger relocation. */
+export interface LearningsRelocationResult {
+  /** True when the ledger was moved from its legacy to its new location. */
+  readonly moved: boolean;
+  /** Info line describing the completed move (present only when moved). */
+  readonly action?: string;
+  /**
+   * Warning line when both the legacy and new ledgers exist. Neither file is
+   * touched — a human reconciles — so re-runs keep surfacing it until resolved.
+   */
+  readonly warning?: string;
+}
+
+/**
+ * Relocate the machine-managed learnings ledger from its legacy location (the
+ * sibling of `projectRulesFile`, inside an auto-loaded rules tree) to the new
+ * canonical `.lisa/PROJECT_LEARNINGS.md`. Runs during `lisa apply`/`doctor`
+ * reconciliation.
+ *
+ * Move semantics (all idempotent):
+ *   - legacy present, new absent → move byte-for-byte, remove the legacy file.
+ *   - both present → do NOT clobber; keep both and warn once, naming both
+ *     paths, so a human decides which to keep.
+ *   - legacy absent (or already relocated) → quiet no-op.
+ *
+ * The move preserves bytes exactly (read buffer, write, unlink) rather than
+ * trusting a same-filesystem rename, so it also works across mount boundaries.
+ * @param destDir - Absolute path to the host project root.
+ * @returns Whether the ledger moved, plus an info or warning line.
+ */
+export async function relocateProjectLearningsLedger(
+  destDir: string
+): Promise<LearningsRelocationResult> {
+  const config = await readProjectConfig(destDir);
+  const legacyRelative = resolveLegacyProjectLearningsFile(config);
+  const targetRelative = resolveProjectLearningsFile(config);
+  if (legacyRelative === targetRelative) {
+    return { moved: false };
+  }
+  const legacyPath = path.join(destDir, legacyRelative);
+  if (!existsSync(legacyPath)) {
+    return { moved: false };
+  }
+  // Resolve and containment-check the target the same way the writers do, so
+  // doctor's direct path is as guarded as apply's — a symlinked parent that
+  // escapes the project root throws before any bytes are written.
+  const { root, target } = resolveSafeLearningTarget(destDir, targetRelative);
+  if (existsSync(target)) {
+    return {
+      moved: false,
+      warning: `Learnings ledger exists at BOTH ${legacyRelative} and ${targetRelative}. Keeping both untouched. The canonical location is ${targetRelative} — copy any entries you want to keep into it, then delete ${legacyRelative}.`,
+    };
+  }
+  await assertSafeLearningParents(root, path.dirname(target));
+  const contents = await readFile(legacyPath);
+  await fse.ensureDir(path.dirname(target));
+  await writeFile(target, contents);
+  await rm(legacyPath);
+  return {
+    moved: true,
+    action: `moved learnings ledger ${legacyRelative} -> ${targetRelative}`,
+  };
+}
+
 /** Options controlling the instruction-files migration. */
 export interface MigrateInstructionFilesOptions {
   /**
@@ -84,6 +154,14 @@ export interface MigrateInstructionFilesOptions {
    * configured `projectRulesFile`.
    */
   readonly projectLearningsFile?: string;
+  /**
+   * Whether to relocate a legacy ledger as part of this pass. Defaults to true
+   * (doctor's behavior). `lisa apply` sets this false because it already runs
+   * the relocation in an earlier phase (before the create-only strategy seeds
+   * an empty ledger), and re-running it here would re-emit the both-exist
+   * warning a second time in the same run.
+   */
+  readonly relocateLearnings?: boolean;
 }
 
 /**
@@ -126,10 +204,11 @@ export function buildAgyProjectLearningsBridge(
   return [
     LISA_PROJECT_LEARNINGS_START_MARKER,
     "Antigravity startup bridge: before normal task work, resolve the canonical",
-    "project-learnings file from `.lisa.config.json` (`projectRulesFile`'s sibling",
-    "`PROJECT_LEARNINGS.md`; default `.claude/rules/PROJECT_LEARNINGS.md`). If it",
-    "exists and satisfies the Lisa learnings contract, read and apply its entries.",
-    "If it is absent, continue silently. If it is malformed, warn once and ignore it.",
+    "machine-managed project-learnings ledger from `.lisa.config.json` (the",
+    "optional `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md`).",
+    "Consume it only through the Lisa learnings contract's bounded projection — never",
+    "read the raw ledger wholesale into context. If it is absent, continue silently.",
+    "If it is malformed, warn once and ignore it.",
     "",
     `Resolved path for this project: \`${projectLearningsFile}\`.`,
     LISA_PROJECT_LEARNINGS_END_MARKER,
@@ -294,6 +373,27 @@ async function reconcileClaudeMd(
 }
 
 /**
+ * Relocate the legacy ledger and flatten the result into action strings, unless
+ * the caller already ran the relocation in an earlier phase (`enabled` false).
+ * @param destDir - Absolute path to the host project root.
+ * @param enabled - Whether to run the relocation in this pass.
+ * @returns Action/warning strings (empty when disabled or a no-op).
+ */
+async function collectLearningsRelocationActions(
+  destDir: string,
+  enabled: boolean
+): Promise<string[]> {
+  if (!enabled) {
+    return [];
+  }
+  const relocation = await relocateProjectLearningsLedger(destDir);
+  return [
+    ...(relocation.action === undefined ? [] : [relocation.action]),
+    ...(relocation.warning === undefined ? [] : [relocation.warning]),
+  ];
+}
+
+/**
  * Run the instruction-files migration against a host project root.
  * @param destDir - Absolute path to the host project root.
  * @param options - Migration options (see {@link MigrateInstructionFilesOptions}).
@@ -313,8 +413,12 @@ export async function migrateInstructionFiles(
       options.projectLearningsFile ??
       resolveProjectLearningsFile(projectConfig),
   };
+  const relocationActions = await collectLearningsRelocationActions(
+    destDir,
+    options.relocateLearnings ?? true
+  );
   const agentsActions = await reconcileAgentsMd(destDir, agyProjectLearnings);
   const claudeActions = await reconcileClaudeMd(destDir, createClaudePointer);
-  const actions = [...agentsActions, ...claudeActions];
+  const actions = [...relocationActions, ...agentsActions, ...claudeActions];
   return { changed: actions.length > 0, actions };
 }

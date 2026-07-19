@@ -45,7 +45,7 @@ describe("learnings writer", () => {
 
   beforeEach(async () => {
     tempDir = await createTempDir();
-    learningsPath = path.join(tempDir, ".claude", "rules", LEARNINGS_FILENAME);
+    learningsPath = path.join(tempDir, ".lisa", LEARNINGS_FILENAME);
   });
 
   afterEach(async () => {
@@ -153,7 +153,7 @@ describe("learnings writer", () => {
         entries.map(entry => persistLearningEntry(projectRoot, entry))
       );
       const content = await readFile(
-        path.join(projectRoot, ".claude", "rules", LEARNINGS_FILENAME),
+        path.join(projectRoot, ".lisa", LEARNINGS_FILENAME),
         "utf8"
       );
       expect(parseLearningsFile(content)).toHaveLength(entries.length);
