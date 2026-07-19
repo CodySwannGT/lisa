@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.239.1](https://github.com/CodySwannGT/lisa/compare/v2.239.0...v2.239.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ci:** repoint learnings budget gate at a CLI that actually runs headless ([3fe092b](https://github.com/CodySwannGT/lisa/commit/3fe092b9365725e7474c10cc66eb5b7a6cbb9227)), closes [#1753](https://github.com/CodySwannGT/lisa/issues/1753) [CodySwannGT/lisa#1581](https://github.com/CodySwannGT/lisa/issues/1581)
+
 ## [2.239.0](https://github.com/CodySwannGT/lisa/compare/v2.238.0...v2.239.0) (2026-07-19)
 
 
