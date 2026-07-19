@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.244.0](https://github.com/CodySwannGT/lisa/compare/v2.243.0...v2.244.0) (2026-07-19)
+
+
+### Features
+
+* **implement:** capture MLD task-end telemetry (LLG-3) ([ce09100](https://github.com/CodySwannGT/lisa/commit/ce091008397d15a40ae5c9c533aba873513bacc9)), closes [#1731](https://github.com/CodySwannGT/lisa/issues/1731) [#1732](https://github.com/CodySwannGT/lisa/issues/1732)
+* **rules:** thread task-end MLD into intent-routing Implement sequence (LLG-3) ([f1e1864](https://github.com/CodySwannGT/lisa/commit/f1e1864bb053c6afca4fc5d80b0d24583b1937b9)), closes [#1732](https://github.com/CodySwannGT/lisa/issues/1732)
+
+
+### Bug Fixes
+
+* **implement:** literal JSON MLD example + built-artifact fan-out tests (LLG-3) ([9b62d67](https://github.com/CodySwannGT/lisa/commit/9b62d676c5c6a0a5c05f4b39450efc098752a571)), closes [#1770](https://github.com/CodySwannGT/lisa/issues/1770) [#1732](https://github.com/CodySwannGT/lisa/issues/1732)
+
 ## [2.243.0](https://github.com/CodySwannGT/lisa/compare/v2.242.0...v2.243.0) (2026-07-19)
 
 
