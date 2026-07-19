@@ -25,12 +25,12 @@ interface CapturedRun {
 }
 
 describe("runCheckLearningsBudget", () => {
-  it("resolves the default file from .lisa.config.json projectRulesFile and passes when within budget", async () => {
+  it("resolves the .lisa ledger via a learnings.file override and passes when within budget", async () => {
     const project = createTemporaryDirectory();
-    writeConfig(project, { projectRulesFile: "custom/rules/RULES.md" });
+    writeConfig(project, { learnings: { file: "docs/LEARNINGS.md" } });
     writeLearnings(
       project,
-      "custom/rules/PROJECT_LEARNINGS.md",
+      "docs/LEARNINGS.md",
       renderLearningsFile([createEntry("within-budget")])
     );
 
@@ -39,17 +39,14 @@ describe("runCheckLearningsBudget", () => {
     expect(run.code).toBe(0);
     expect(run.errors).toHaveLength(0);
     expect(run.logs.join("\n")).toContain("learnings budget passed");
-    expect(run.logs.join("\n")).toContain(
-      path.join("custom", "rules", "PROJECT_LEARNINGS.md")
-    );
+    expect(run.logs.join("\n")).toContain(path.join("docs", "LEARNINGS.md"));
   });
 
-  it("fails with exit 1 and names the budget when the resolved default file is over budget", async () => {
+  it("fails with exit 1 and names the budget when the resolved ledger is over budget", async () => {
     const project = createTemporaryDirectory();
-    writeConfig(project, { projectRulesFile: "custom/rules/RULES.md" });
     writeLearnings(
       project,
-      "custom/rules/PROJECT_LEARNINGS.md",
+      ".lisa/PROJECT_LEARNINGS.md",
       "x".repeat(LEARNINGS_CONTRACT.maxTokens + 1)
     );
 
@@ -60,11 +57,11 @@ describe("runCheckLearningsBudget", () => {
     expect(run.logs).toHaveLength(0);
   });
 
-  it("uses the default rules directory when no projectRulesFile is configured", async () => {
+  it("uses the .lisa ledger by default when no override is configured", async () => {
     const project = createTemporaryDirectory();
     writeLearnings(
       project,
-      ".claude/rules/PROJECT_LEARNINGS.md",
+      ".lisa/PROJECT_LEARNINGS.md",
       renderLearningsFile([createEntry("default-dir")])
     );
 
@@ -72,7 +69,7 @@ describe("runCheckLearningsBudget", () => {
 
     expect(run.code).toBe(0);
     expect(run.logs.join("\n")).toContain(
-      path.join(".claude", "rules", "PROJECT_LEARNINGS.md")
+      path.join(".lisa", "PROJECT_LEARNINGS.md")
     );
   });
 

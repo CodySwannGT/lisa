@@ -51,6 +51,8 @@ const JEST_CONFIG_LOCAL = "jest.config.local.ts";
 const PACKAGE_LISA_DIR = "package-lisa";
 const LISA_MANIFEST = ".lisa-manifest";
 const PROJECT_LEARNINGS = "PROJECT_LEARNINGS.md";
+const LISA_STATE_DIR = ".lisa";
+const LISA_CONFIG_JSON = ".lisa.config.json";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
 const WORKFLOWS_DIR = path.join(".github", "workflows");
 const CLAUDE_PACKAGE_MANAGER_WORKFLOWS = [
@@ -131,8 +133,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       const learningsPath = path.join(
         destDir,
-        ".claude",
-        "rules",
+        LISA_STATE_DIR,
         PROJECT_LEARNINGS
       );
 
@@ -164,43 +165,57 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.readFile(learningsPath, "utf8")).toBe(populated);
     });
 
-    it("uses only the configured project-rules sibling for project learnings", async () => {
+    it("keeps the ledger at .lisa regardless of a custom projectRulesFile", async () => {
       await createTypeScriptProject(destDir);
-      await fs.writeJson(path.join(destDir, ".lisa.config.json"), {
+      await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
         harness: "claude",
         projectRulesFile: "rules/CUSTOM_RULES.md",
       });
-      const configuredPath = path.join(destDir, "rules", PROJECT_LEARNINGS);
-      const defaultPath = path.join(
-        destDir,
-        ".claude",
-        "rules",
-        PROJECT_LEARNINGS
-      );
+      const ledgerPath = path.join(destDir, LISA_STATE_DIR, PROJECT_LEARNINGS);
+      const legacySibling = path.join(destDir, "rules", PROJECT_LEARNINGS);
 
       const first = await createLisa().apply();
 
       expect(first.success).toBe(true);
-      expect(await fs.readFile(configuredPath, "utf8")).toBe(
+      // Relocating the rules file must NOT drag the ledger back to its sibling.
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(
         renderLearningsFile([])
       );
-      expect(await fs.pathExists(defaultPath)).toBe(false);
+      expect(await fs.pathExists(legacySibling)).toBe(false);
 
       const sentinel = `${renderLearningsFile([])}<!-- custom sentinel -->\n`;
-      await fs.writeFile(configuredPath, sentinel);
+      await fs.writeFile(ledgerPath, sentinel);
       await createLisa().apply();
-      expect(await fs.readFile(configuredPath, "utf8")).toBe(sentinel);
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(sentinel);
+      expect(await fs.pathExists(legacySibling)).toBe(false);
+    });
+
+    it("honors a learnings.file override for the ledger destination", async () => {
+      await createTypeScriptProject(destDir);
+      await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
+        harness: "claude",
+        learnings: { file: "docs/LEARNINGS.md" },
+      });
+      const overridePath = path.join(destDir, "docs", "LEARNINGS.md");
+      const defaultPath = path.join(destDir, LISA_STATE_DIR, PROJECT_LEARNINGS);
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      expect(await fs.readFile(overridePath, "utf8")).toBe(
+        renderLearningsFile([])
+      );
       expect(await fs.pathExists(defaultPath)).toBe(false);
     });
 
     it("rejects a configured learnings seed whose parent symlink escapes the host project", async () => {
       await createTypeScriptProject(destDir);
-      const externalDir = path.join(tempDir, "external-rules");
+      const externalDir = path.join(tempDir, "external-ledger");
       await fs.ensureDir(externalDir);
-      await fs.symlink(externalDir, path.join(destDir, "rules"), "dir");
-      await fs.writeJson(path.join(destDir, ".lisa.config.json"), {
+      await fs.symlink(externalDir, path.join(destDir, "data"), "dir");
+      await fs.writeJson(path.join(destDir, LISA_CONFIG_JSON), {
         harness: "claude",
-        projectRulesFile: "rules/CUSTOM_RULES.md",
+        learnings: { file: "data/PROJECT_LEARNINGS.md" },
       });
 
       const result = await createLisa().apply();
