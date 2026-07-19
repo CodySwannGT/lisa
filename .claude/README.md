@@ -108,7 +108,7 @@ Custom agent definitions in `agents/` provide specialized AI personas for differ
 | `product-specialist.md` | User flows, acceptance criteria, UX validation |
 | `quality-specialist.md` | Code correctness, coding philosophy, test coverage review |
 | `security-specialist.md` | Threat modeling (STRIDE), OWASP Top 10, auth/secrets review |
-| `skill-evaluator.md` | Skill quality assessment |
+| `skill-evaluator.md` | Six-rung ladder router: advisory destination recommendations for learnings |
 | `test-specialist.md` | Test strategy, test writing, coverage analysis |
 | `verification-specialist.md` | Empirical proof via verification lifecycle |
 
