@@ -47,10 +47,11 @@ Everything else in Lisa — the skills, hooks, quality checks, and guardrails �
 
 <!-- LISA_PROJECT_LEARNINGS_START -->
 Antigravity startup bridge: before normal task work, resolve the canonical
-project-learnings file from `.lisa.config.json` (`projectRulesFile`'s sibling
-`PROJECT_LEARNINGS.md`; default `.claude/rules/PROJECT_LEARNINGS.md`). If it
-exists and satisfies the Lisa learnings contract, read and apply its entries.
-If it is absent, continue silently. If it is malformed, warn once and ignore it.
+machine-managed project-learnings ledger from `.lisa.config.json` (the
+optional `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md`).
+Consume it only through the Lisa learnings contract's bounded projection — never
+read the raw ledger wholesale into context. If it is absent, continue silently.
+If it is malformed, warn once and ignore it.
 
-Resolved path for this project: `.claude/rules/PROJECT_LEARNINGS.md`.
+Resolved path for this project: `.lisa/PROJECT_LEARNINGS.md`.
 <!-- LISA_PROJECT_LEARNINGS_END -->

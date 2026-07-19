@@ -21,8 +21,9 @@
  * Lisa-managed agy marker block. Everything else is additive.
  * @module core/instruction-files-migration
  */
+import * as fse from "fs-extra";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import {
   AGENTS_MD_FILENAME,
@@ -36,6 +37,7 @@ import {
 import { harnessIncludesAgent } from "./config.js";
 import {
   readProjectConfig,
+  resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
 } from "./project-config.js";
 
@@ -60,6 +62,66 @@ export interface InstructionFilesMigrationResult {
   readonly changed: boolean;
   /** Human-readable description of each action taken (empty when no-op). */
   readonly actions: readonly string[];
+}
+
+/** Outcome of the learnings-ledger relocation. */
+export interface LearningsRelocationResult {
+  /** True when the ledger was moved from its legacy to its new location. */
+  readonly moved: boolean;
+  /** Info line describing the completed move (present only when moved). */
+  readonly action?: string;
+  /**
+   * Warning line when both the legacy and new ledgers exist. Neither file is
+   * touched — a human reconciles — so re-runs keep surfacing it until resolved.
+   */
+  readonly warning?: string;
+}
+
+/**
+ * Relocate the machine-managed learnings ledger from its legacy location (the
+ * sibling of `projectRulesFile`, inside an auto-loaded rules tree) to the new
+ * canonical `.lisa/PROJECT_LEARNINGS.md`. Runs during `lisa apply`/`doctor`
+ * reconciliation.
+ *
+ * Move semantics (all idempotent):
+ *   - legacy present, new absent → move byte-for-byte, remove the legacy file.
+ *   - both present → do NOT clobber; keep both and warn once, naming both
+ *     paths, so a human decides which to keep.
+ *   - legacy absent (or already relocated) → quiet no-op.
+ *
+ * The move preserves bytes exactly (read buffer, write, unlink) rather than
+ * trusting a same-filesystem rename, so it also works across mount boundaries.
+ * @param destDir - Absolute path to the host project root.
+ * @returns Whether the ledger moved, plus an info or warning line.
+ */
+export async function relocateProjectLearningsLedger(
+  destDir: string
+): Promise<LearningsRelocationResult> {
+  const config = await readProjectConfig(destDir);
+  const legacyRelative = resolveLegacyProjectLearningsFile(config);
+  const targetRelative = resolveProjectLearningsFile(config);
+  if (legacyRelative === targetRelative) {
+    return { moved: false };
+  }
+  const legacyPath = path.join(destDir, legacyRelative);
+  const targetPath = path.join(destDir, targetRelative);
+  if (!existsSync(legacyPath)) {
+    return { moved: false };
+  }
+  if (existsSync(targetPath)) {
+    return {
+      moved: false,
+      warning: `learnings ledger exists at both ${legacyRelative} and ${targetRelative}; not clobbering — a human should reconcile and remove one`,
+    };
+  }
+  const contents = await readFile(legacyPath);
+  await fse.ensureDir(path.dirname(targetPath));
+  await writeFile(targetPath, contents);
+  await rm(legacyPath);
+  return {
+    moved: true,
+    action: `moved learnings ledger ${legacyRelative} -> ${targetRelative}`,
+  };
 }
 
 /** Options controlling the instruction-files migration. */
@@ -126,10 +188,11 @@ export function buildAgyProjectLearningsBridge(
   return [
     LISA_PROJECT_LEARNINGS_START_MARKER,
     "Antigravity startup bridge: before normal task work, resolve the canonical",
-    "project-learnings file from `.lisa.config.json` (`projectRulesFile`'s sibling",
-    "`PROJECT_LEARNINGS.md`; default `.claude/rules/PROJECT_LEARNINGS.md`). If it",
-    "exists and satisfies the Lisa learnings contract, read and apply its entries.",
-    "If it is absent, continue silently. If it is malformed, warn once and ignore it.",
+    "machine-managed project-learnings ledger from `.lisa.config.json` (the",
+    "optional `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md`).",
+    "Consume it only through the Lisa learnings contract's bounded projection — never",
+    "read the raw ledger wholesale into context. If it is absent, continue silently.",
+    "If it is malformed, warn once and ignore it.",
     "",
     `Resolved path for this project: \`${projectLearningsFile}\`.`,
     LISA_PROJECT_LEARNINGS_END_MARKER,
@@ -313,8 +376,13 @@ export async function migrateInstructionFiles(
       options.projectLearningsFile ??
       resolveProjectLearningsFile(projectConfig),
   };
+  const relocation = await relocateProjectLearningsLedger(destDir);
+  const relocationActions = [
+    ...(relocation.action === undefined ? [] : [relocation.action]),
+    ...(relocation.warning === undefined ? [] : [relocation.warning]),
+  ];
   const agentsActions = await reconcileAgentsMd(destDir, agyProjectLearnings);
   const claudeActions = await reconcileClaudeMd(destDir, createClaudePointer);
-  const actions = [...agentsActions, ...claudeActions];
+  const actions = [...relocationActions, ...agentsActions, ...claudeActions];
   return { changed: actions.length > 0, actions };
 }

@@ -72,7 +72,10 @@ import {
   createInitialCounters,
   harnessIncludesAgent,
 } from "./config.js";
-import { migrateInstructionFiles } from "./instruction-files-migration.js";
+import {
+  migrateInstructionFiles,
+  relocateProjectLearningsLedger,
+} from "./instruction-files-migration.js";
 import {
   assertSafeLearningParents,
   resolveSafeLearningTarget,
@@ -946,6 +949,7 @@ export class Lisa {
       await this.detectTypes();
       await this.detectSelfApply();
       await this.loadProjectLearningsFile();
+      await this.processLearningsRelocation();
       await this.loadPendingDeletions();
       await this.loadCreateOnlyOwnership();
       await this.loadCopyOverwriteOwnership();
@@ -1404,6 +1408,30 @@ export class Lisa {
         }${mcpMessage}`
       )
     );
+  }
+
+  /**
+   * Relocate a legacy `.claude/rules/PROJECT_LEARNINGS.md` ledger to the new
+   * cold `.lisa/PROJECT_LEARNINGS.md` BEFORE the create-only strategy would
+   * seed an empty ledger at the new path — otherwise both would exist and the
+   * real entries would be stranded at the legacy location. Idempotent; logs one
+   * readable line on a move and one warning when both files exist. Skipped in
+   * dry-run and during the reconciling postinstall pass.
+   */
+  private async processLearningsRelocation(): Promise<void> {
+    if (this.config.dryRun) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      return;
+    }
+    const result = await relocateProjectLearningsLedger(this.config.destDir);
+    if (result.action !== undefined) {
+      this.deps.logger.info(pc.cyan(`Learnings ledger: ${result.action}`));
+    }
+    if (result.warning !== undefined) {
+      this.deps.logger.warn(`Learnings ledger: ${result.warning}`);
+    }
   }
 
   /**
