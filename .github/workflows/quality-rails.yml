@@ -390,11 +390,15 @@ jobs:
       # Pinned for reproducibility: the gate must not change behavior under
       # unchanged host commits. Bump deliberately when the learnings contract
       # changes. (Publishing npm and pushing this @main workflow are the same
-      # trust domain; the pin buys determinism, not a trust boundary.) When a
-      # future release moves the ledger default path, a stale pin degrades to
-      # the missing-file silent PASS — never a false failure.
+      # trust domain; the pin buys determinism, not a trust boundary.) The pin
+      # must be >= 2.237.0: earlier CLIs lack this subcommand AND self-skip in
+      # non-interactive environments with exit 0, silently voiding the gate —
+      # which is why the marker grep below asserts the check actually ran.
       - name: 📚 Check learnings budget
-        run: bunx @codyswann/lisa@2.236.0 check-learnings-budget
+        run: |
+          set -o pipefail
+          bunx @codyswann/lisa@2.239.0 check-learnings-budget | tee learnings-budget.out
+          grep -qE "learnings budget passed|no learnings file" learnings-budget.out
 
   license_compliance:
     name: 📜 FOSSA License Check
