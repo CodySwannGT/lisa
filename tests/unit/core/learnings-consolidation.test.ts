@@ -111,6 +111,22 @@ describe("learnings consolidation writer", () => {
     expect(persisted.map(entry => entry.id)).toEqual([FIRST_ID, SECOND_ID]);
   });
 
+  it("treats an explicit empty supersede array exactly like an append", async () => {
+    await persistLearningEntry(tempDir, numberedEntry(1));
+    await persistConsolidatedLearning(tempDir, numberedEntry(2), {
+      supersede: [],
+    });
+    const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
+    expect(persisted.map(entry => entry.id)).toEqual([FIRST_ID, SECOND_ID]);
+    await expect(
+      persistConsolidatedLearning(
+        tempDir,
+        { ...numberedEntry(2), rule: "Different rule." },
+        { supersede: [] }
+      )
+    ).rejects.toThrow(/duplicate.*id/i);
+  });
+
   it("still throws on a duplicate id when no supersede is requested", async () => {
     await persistLearningEntry(tempDir, BASE_ENTRY);
     const before = await readFile(learningsPath, "utf8");
