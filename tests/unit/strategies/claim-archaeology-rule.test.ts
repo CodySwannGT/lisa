@@ -163,10 +163,34 @@ describe("claim-archaeology rule contract", () => {
         const doc = read(root, `skills/${skill}/SKILL.md`);
         expect(doc).toContain("claim-archaeology");
         expect(doc).toMatch(/after rejection detection/i);
-        expect(doc).toContain("[lisa-archaeology-candidate]");
-        expect(doc).toContain("archaeology.maxSteps");
-        expect(doc).toMatch(/degrade[sd]? to `?fresh`?/i);
-        expect(doc).toMatch(/never blocks? the (claim|build)/i);
+        expect(doc).toMatch(/before the (relabel|transition)/i);
+      }
+    });
+
+    it("arms carry vendor wiring only — shared semantics live solely in the rule pair", () => {
+      const wiring: Record<(typeof BUILD_INTAKES)[number], readonly string[]> =
+        {
+          "lisa-jira-build-intake": [
+            "operation: search-issues",
+            "operation: comment",
+          ],
+          "lisa-github-build-intake": ["gh search issues", "gh issue comment"],
+          "lisa-linear-build-intake": [
+            "operation: list-issues",
+            "operation: save-comment",
+          ],
+        };
+      for (const skill of BUILD_INTAKES) {
+        const doc = read(root, `skills/${skill}/SKILL.md`);
+        for (const primitive of wiring[skill]) {
+          expect(doc).toContain(primitive);
+        }
+        // Restating shared semantics in an arm is the drift hazard this rule
+        // exists to prevent: the marker key format and the budget read belong
+        // to the rule pair alone.
+        expect(doc).not.toContain("key=<issue>::<ancestor>");
+        expect(doc).not.toContain("archaeology.maxSteps");
+        expect(doc).not.toContain("[lisa-archaeology-candidate]");
       }
     });
   });

@@ -58,7 +58,8 @@ git blame -L <range> --line-porcelain <file>            # who last shipped the i
 # simplifies away merge commits by default, silently dropping the merge-PR answer.
 # Two --grep patterns (OR'd) cover both merge conventions: classic merge commits
 # ("Merge pull request #<n>") and squash/rebase merges (subject ending "(#<n>)").
-git log --full-history --grep "Merge pull request #" --grep "(#[0-9]\+)" --format='%H %aI %s' -n 5 -- <file>
+# POSIX BRE only — GNU-only \+ silently matches nothing on BSD/macOS git.
+git log --full-history --grep "Merge pull request #" --grep "(#[0-9][0-9]*)" --format='%H %aI %s' -n 5 -- <file>
 ```
 
 Keep the result **parseable**: a `{file, sha, pr, date}` tuple per implicated file (PR number extracted from the subject — `Merge pull request #<n>` for merge commits, the trailing `(#<n>)` for squash/rebase merges; empty when the history matches neither convention). The PR maps back to its issue via `closingIssuesReferences` / the PR body's issue reference.
