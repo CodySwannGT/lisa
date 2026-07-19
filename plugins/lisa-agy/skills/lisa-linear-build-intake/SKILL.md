@@ -258,8 +258,10 @@ Run this at the end of 3c, after the lifecycle outcome is recorded and before 3d
 2. **Bump each applied entry exactly once** via the surgical writer:
 
    ```bash
-   node -e 'import("@codyswann/lisa/learnings").then(async m => { const r = await m.confirmLearningEntry(process.cwd(), process.argv[1], new Date().toISOString().slice(0, 10)); console.log(JSON.stringify(r)); })' <entry-id>
+   node -e 'import("@codyswann/lisa/learnings").then(async m => { const r = await m.confirmLearningEntry(process.cwd(), process.argv[1], new Date().toISOString().slice(0, 10)); console.log(JSON.stringify(r)); }).catch(error => { console.log(JSON.stringify({ status: "error", id: process.argv[1], message: String(error) })); })' <entry-id> || true
    ```
+
+   The invocation is failure-safe by construction: a rejected import or write resolves to a structured `error` result instead of a crash, and the trailing `|| true` absorbs any remaining non-zero exit (missing `node`, unresolvable package). Record an `error` or non-zero outcome in the cycle summary and continue — the bump must never abort the lifecycle.
 
    `confirmLearningEntry` advances ONLY `last_confirmed` — rule text, why, provenance, `first_learned`, and confidence are untouched — and is idempotent within a claim: a repeat same-date bump returns `unchanged`, so an entry that applied repeatedly during one claim is bumped once, not once per application.
 3. **Never block on it.** A failed bump, an unwritable file, or a `not-found` result (the entry was pruned) is recorded under the cycle summary and the claim proceeds — shipping the Issue always outranks confirming a learning about it.
