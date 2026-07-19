@@ -554,8 +554,14 @@ jobs:
         with:
           bun-version: '1.3.8'
 
+      # Pinned for reproducibility: the gate must not change behavior under
+      # unchanged host commits. Bump deliberately when the learnings contract
+      # changes. (Publishing npm and pushing this @main workflow are the same
+      # trust domain; the pin buys determinism, not a trust boundary.) When a
+      # future release moves the ledger default path, a stale pin degrades to
+      # the missing-file silent PASS — never a false failure.
       - name: 📚 Check learnings budget
-        run: bunx @codyswann/lisa check-learnings-budget
+        run: bunx @codyswann/lisa@2.236.0 check-learnings-budget
         working-directory: ${{ inputs.working_directory || '.' }}
 
   test_unit:
