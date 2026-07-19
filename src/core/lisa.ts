@@ -72,7 +72,10 @@ import {
   createInitialCounters,
   harnessIncludesAgent,
 } from "./config.js";
-import { migrateInstructionFiles } from "./instruction-files-migration.js";
+import {
+  migrateInstructionFiles,
+  relocateProjectLearningsLedger,
+} from "./instruction-files-migration.js";
 import {
   assertSafeLearningParents,
   resolveSafeLearningTarget,
@@ -80,6 +83,7 @@ import {
 import type { IGitService } from "./git-service.js";
 import {
   readProjectConfig,
+  resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
 } from "./project-config.js";
 
@@ -90,8 +94,7 @@ import {
 const HOST_OWNED_LABEL = "already present (host-owned)";
 const CREATE_ONLY_STRATEGY = "create-only" as const;
 const PROJECT_LEARNINGS_TEMPLATE_PATH = path.join(
-  ".claude",
-  "rules",
+  ".lisa",
   "PROJECT_LEARNINGS.md"
 );
 
@@ -179,6 +182,13 @@ export class Lisa {
   private projectLearningsFile = PROJECT_LEARNINGS_TEMPLATE_PATH;
   /** Whether the canonical all/create-only learnings source is registered. */
   private projectLearningsTemplateRegistered = false;
+  /**
+   * True when a populated legacy ledger exists and the new `.lisa/` destination
+   * does not yet — the create-only strategy must NOT seed an empty ledger over
+   * it, or the pending relocation would collide (both-exist no-clobber) and
+   * strand the real entries at the raw-injected legacy path.
+   */
+  private suppressLearningsSeedForRelocation = false;
   private readonly separator = "========================================";
   private readonly lisaignoreSuffix = "(.lisaignore)";
 
@@ -317,15 +327,23 @@ export class Lisa {
    * destination follows the configured project-rules directory.
    */
   private async loadProjectLearningsFile(): Promise<void> {
-    const relativeFile = resolveProjectLearningsFile(
-      await readProjectConfig(this.config.destDir)
-    );
+    const config = await readProjectConfig(this.config.destDir);
+    const relativeFile = resolveProjectLearningsFile(config);
     const { root, target } = resolveSafeLearningTarget(
       this.config.destDir,
       relativeFile
     );
     await assertSafeLearningParents(root, path.dirname(target));
     this.projectLearningsFile = path.normalize(relativeFile);
+    // Belt-and-braces against the fleet-upgrade defect: if a populated legacy
+    // ledger exists and the destination does not, the create-only strategy must
+    // not seed an empty ledger here — the relocation (which runs even on the
+    // bootstrap/skip path) moves the real file into place instead.
+    const legacyRelative = resolveLegacyProjectLearningsFile(config);
+    this.suppressLearningsSeedForRelocation =
+      legacyRelative !== relativeFile &&
+      (await fse.pathExists(path.join(this.config.destDir, legacyRelative))) &&
+      !(await fse.pathExists(target));
   }
 
   /**
@@ -946,6 +964,7 @@ export class Lisa {
       await this.detectTypes();
       await this.detectSelfApply();
       await this.loadProjectLearningsFile();
+      await this.processLearningsRelocation();
       await this.loadPendingDeletions();
       await this.loadCreateOnlyOwnership();
       await this.loadCopyOverwriteOwnership();
@@ -1407,6 +1426,33 @@ export class Lisa {
   }
 
   /**
+   * Relocate a legacy `.claude/rules/PROJECT_LEARNINGS.md` ledger to the new
+   * cold `.lisa/PROJECT_LEARNINGS.md` BEFORE the create-only strategy would
+   * seed an empty ledger at the new path — otherwise both would exist and the
+   * real entries would be stranded at the legacy location.
+   *
+   * Runs even on the postinstall/bootstrap skip path: that guard exists to
+   * suppress agent-surface EMISSIONS, but moving machine-managed state under
+   * `.lisa/` is not an agent emission and is safe headless. Skipping it there
+   * was the exact defect that stranded populated legacy ledgers on the fleet
+   * upgrade path (create-only still seeds an empty `.lisa/` ledger, so every
+   * later run then hits the both-exist no-clobber warning). Only dry-run is
+   * exempt. Idempotent; logs one line on a move and one warning when both exist.
+   */
+  private async processLearningsRelocation(): Promise<void> {
+    if (this.config.dryRun) {
+      return;
+    }
+    const result = await relocateProjectLearningsLedger(this.config.destDir);
+    if (result.action !== undefined) {
+      this.deps.logger.info(pc.cyan(`Learnings ledger: ${result.action}`));
+    }
+    if (result.warning !== undefined) {
+      this.deps.logger.warn(`Learnings ledger: ${result.warning}`);
+    }
+  }
+
+  /**
    * Reconcile the project's agent instruction files onto Lisa's canonical
    * pattern after the per-harness emits run.
    *
@@ -1432,6 +1478,9 @@ export class Lisa {
     }
     const result = await migrateInstructionFiles(this.config.destDir, {
       createClaudePointer: harnessIncludesAgent(this.config.harness, "claude"),
+      // apply already relocated the ledger in processLearningsRelocation (an
+      // earlier phase); skip it here so a both-exist conflict warns only once.
+      relocateLearnings: false,
     });
     if (result.changed) {
       this.deps.logger.info(
@@ -1626,6 +1675,45 @@ export class Lisa {
   }
 
   /**
+   * Whether the create-only strategy must skip seeding the empty ledger because
+   * a populated legacy ledger is pending relocation into this destination.
+   * @param isProjectLearnings - Whether the candidate is the ledger destination
+   * @param strategyName - Strategy that would apply the file
+   * @returns True when the empty seed must be suppressed
+   */
+  private isSuppressedLearningsSeed(
+    isProjectLearnings: boolean,
+    strategyName: CopyStrategy
+  ): boolean {
+    return (
+      isProjectLearnings &&
+      strategyName === CREATE_ONLY_STRATEGY &&
+      this.suppressLearningsSeedForRelocation
+    );
+  }
+
+  /**
+   * The other-type owner of a create-only path, when a more-specific stack owns
+   * it and would otherwise be overwritten by this pass — else undefined. Flat
+   * predicate so the file router stays under its complexity budget.
+   * @param relativePath - Path relative to the strategy source directory
+   * @param strategyName - Strategy that would apply the file
+   * @param currentType - Project type currently being processed
+   * @returns The owning type to defer to, or undefined when none applies
+   */
+  private createOnlyOverrideOwner(
+    relativePath: string,
+    strategyName: CopyStrategy,
+    currentType: string
+  ): string | undefined {
+    if (strategyName !== CREATE_ONLY_STRATEGY) {
+      return undefined;
+    }
+    const owner = this.createOnlyOwnership.get(relativePath);
+    return owner !== undefined && owner !== currentType ? owner : undefined;
+  }
+
+  /**
    * Decide whether a candidate source file should be passed to its strategy.
    * Centralizes three independent skip rules that all need to short-circuit
    * before a strategy ever sees the file:
@@ -1657,6 +1745,15 @@ export class Lisa {
       return false;
     }
     const isProjectLearnings = this.isProjectLearningsPath(relativePath);
+    if (this.isSuppressedLearningsSeed(isProjectLearnings, strategyName)) {
+      this.counters.skipped++;
+      this.logSkip(
+        "legacy learnings ledger pending relocation",
+        relativePath,
+        "Skipped (legacy learnings ledger pending relocation)"
+      );
+      return false;
+    }
     if (this.pendingDeletions.has(relativePath) && !isProjectLearnings) {
       this.counters.skipped++;
       this.logSkip(
@@ -1675,14 +1772,16 @@ export class Lisa {
       );
       return false;
     }
-    if (strategyName === CREATE_ONLY_STRATEGY) {
-      const owner = this.createOnlyOwnership.get(relativePath);
-      if (owner !== undefined && owner !== currentType) {
-        this.counters.skipped++;
-        const reason = `overridden by ${owner}/create-only`;
-        this.logSkip(reason, relativePath, `Skipped (${reason})`);
-        return false;
-      }
+    const overridingOwner = this.createOnlyOverrideOwner(
+      relativePath,
+      strategyName,
+      currentType
+    );
+    if (overridingOwner !== undefined) {
+      this.counters.skipped++;
+      const reason = `overridden by ${overridingOwner}/create-only`;
+      this.logSkip(reason, relativePath, `Skipped (${reason})`);
+      return false;
     }
     if (strategyName === "copy-overwrite") {
       return this.shouldProcessCopyOverwrite(relativePath, currentType);

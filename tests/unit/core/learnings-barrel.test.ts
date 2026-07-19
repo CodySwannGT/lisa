@@ -12,6 +12,7 @@ import {
   parseLearningsFile,
   persistConsolidatedLearning,
   persistLearningEntry,
+  projectLearnings,
   readProjectConfig,
   resolveProjectLearningsFile,
 } from "../../../src/core/learnings.js";
@@ -24,6 +25,7 @@ const REQUIRED_BARREL_FUNCTIONS = [
   ["persistLearningEntry", persistLearningEntry],
   ["persistConsolidatedLearning", persistConsolidatedLearning],
   ["confirmLearningEntry", confirmLearningEntry],
+  ["projectLearnings", projectLearnings],
 ] as const;
 
 describe("learnings barrel surface", () => {

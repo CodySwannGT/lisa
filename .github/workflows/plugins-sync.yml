@@ -25,7 +25,7 @@ on:
       - 'scripts/check-plugins-sync.sh'
       - 'scripts/check-learnings-budget.ts'
       - 'scripts/check-rules-pairing.sh'
-      - 'all/create-only/.claude/rules/PROJECT_LEARNINGS.md'
+      - 'all/create-only/.lisa/PROJECT_LEARNINGS.md'
       - 'src/core/**'
       - 'scripts/clean-dist.mjs'
       - 'tsconfig.json'

@@ -14,8 +14,7 @@ const DEFAULT_LEARNINGS_FILE = path.resolve(
   "..",
   "all",
   "create-only",
-  ".claude",
-  "rules",
+  ".lisa",
   "PROJECT_LEARNINGS.md"
 );
 

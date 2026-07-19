@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
 import {
+  DEFAULT_PROJECT_LEARNINGS_FILE,
   DEFAULT_PROJECT_RULES_FILE,
   PROJECT_CONFIG_FILENAME,
   readProjectConfig,
@@ -86,19 +87,59 @@ describe("learnings contract", () => {
     });
   });
 
-  it("resolves the default rules file and its separate learnings sibling", () => {
+  it("resolves the default rules file and the relocated .lisa learnings ledger", () => {
     expect(DEFAULT_PROJECT_RULES_FILE).toBe(".claude/rules/PROJECT_RULES.md");
     expect(resolveProjectRulesFile({})).toBe(DEFAULT_PROJECT_RULES_FILE);
+    expect(DEFAULT_PROJECT_LEARNINGS_FILE).toBe(".lisa/PROJECT_LEARNINGS.md");
     expect(resolveProjectLearningsFile({})).toBe(
-      ".claude/rules/PROJECT_LEARNINGS.md"
+      DEFAULT_PROJECT_LEARNINGS_FILE
     );
   });
 
-  it("derives the learnings file beside a configured project-rules file", () => {
+  it("keeps the ledger at .lisa regardless of the configured project-rules file", () => {
+    // The ledger no longer rides along with projectRulesFile: relocating rules
+    // must never drag the machine-managed ledger back into an eager tree.
     const config = { projectRulesFile: CUSTOM_PROJECT_RULES_FILE };
     expect(resolveProjectRulesFile(config)).toBe(CUSTOM_PROJECT_RULES_FILE);
     expect(resolveProjectLearningsFile(config)).toBe(
-      "rules/PROJECT_LEARNINGS.md"
+      DEFAULT_PROJECT_LEARNINGS_FILE
+    );
+  });
+
+  it("honors a valid learnings.file override ahead of the default", () => {
+    expect(
+      resolveProjectLearningsFile({ learnings: { file: "docs/LEARNINGS.md" } })
+    ).toBe("docs/LEARNINGS.md");
+  });
+
+  it("rejects a learnings.file override that lands in an auto-loaded rules tree, a root eager instruction file, or escapes the root", () => {
+    for (const file of [
+      ".claude/rules/PROJECT_LEARNINGS.md",
+      ".claude/rules/nested/LEARNINGS.md",
+      ".cursor/rules/LEARNINGS.md",
+      ".github/instructions/LEARNINGS.md",
+      // Repo-root instruction files auto-loaded whole by the runtimes.
+      "AGENTS.md",
+      "CLAUDE.md",
+      "claude.md",
+      ".github/copilot-instructions.md",
+      "../ESCAPE.md",
+      "rules/\tLEARNINGS.md",
+      "notmarkdown.txt",
+    ]) {
+      expect(() =>
+        resolveProjectLearningsFile({ learnings: { file } })
+      ).toThrow(/learnings\.file/i);
+    }
+  });
+
+  it("teaches the recommended default when rejecting an eager-tree override", () => {
+    expect(() =>
+      resolveProjectLearningsFile({
+        learnings: { file: ".claude/rules/LEARNINGS.md" },
+      })
+    ).toThrow(
+      /the default \.lisa\/PROJECT_LEARNINGS\.md is the recommended location/
     );
   });
 

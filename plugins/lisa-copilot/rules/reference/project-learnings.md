@@ -1,14 +1,21 @@
 # Project Learnings
 
-Project learnings are Lisa's bounded, repo-local memory surface. They are stored
-in `PROJECT_LEARNINGS.md`, derived as the sibling of the configured
-`.lisa.config.json` `projectRulesFile` value. With no config override, the path
-is `.claude/rules/PROJECT_LEARNINGS.md`.
+Project learnings are Lisa's bounded, repo-local memory surface. The
+machine-managed ledger is `PROJECT_LEARNINGS.md`, resolved from
+`.lisa.config.json`: the optional `learnings.file` override, else the default
+`.lisa/PROJECT_LEARNINGS.md`. The ledger deliberately lives in the cold `.lisa/`
+directory — **not** under `.claude/rules/` or any other auto-loaded rules tree —
+because anything in those trees is injected raw into every session, which
+double-loads the file and bypasses the contract's budget and validation.
 
-Consume learnings before normal task work whenever the file exists. Use the
-executable contract from `@codyswann/lisa/learnings` to parse, validate, and
-budget-check the document. Do not duplicate numeric caps in rules or prompts;
-the exported contract is the source of truth.
+Consume learnings before normal task work whenever the file exists, and consume
+them ONLY through the executable contract from `@codyswann/lisa/learnings`:
+`parseLearningsFile` to parse and validate, then `projectLearnings` to take the
+bounded serving slice (the highest-priority entries — ordered by confidence,
+then recency — that fit the token/entry budget, plus how many were omitted).
+**Never read the raw ledger file wholesale into context**; the session receives
+the bounded projection, not the full document. Do not duplicate numeric caps in
+rules or prompts; the exported contract is the source of truth.
 
 Each persisted entry has seven fields:
 

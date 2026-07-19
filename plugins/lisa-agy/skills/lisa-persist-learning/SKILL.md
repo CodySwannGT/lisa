@@ -139,7 +139,7 @@ Continue to Phase 3.
 No learning content is ever committed without a PR — there is no other write path, and the PR must touch **only** the learnings surface (any other changed file is a bug).
 
 1. **PR dedupe.** Search all PRs for the marker `[lisa-learning-pr] key=<fingerprint>` in the body (`gh pr list --state all --search '"<marker>" in:body' --json number,url`), with the stale-index guard above. If one exists, reference it and stop — never open a duplicate.
-2. **Resolve the learnings surface path — never hardcode it.** The canonical path is `resolveProjectLearningsFile` from `@codyswann/lisa/learnings`: the `PROJECT_LEARNINGS.md` sibling of the configured `.lisa.config.json` `projectRulesFile` (default `.claude/rules/PROJECT_LEARNINGS.md`):
+2. **Resolve the learnings surface path — never hardcode it.** The canonical path is `resolveProjectLearningsFile` from `@codyswann/lisa/learnings`: the machine-managed ledger resolved from `.lisa.config.json` (the `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md` — a cold path, never an auto-loaded rules tree):
 
    ```bash
    LEARNINGS_FILE=$(node -e 'import("@codyswann/lisa/learnings").then(async m => { const c = await m.readProjectConfig(process.cwd()); console.log(m.resolveProjectLearningsFile(c)); })')

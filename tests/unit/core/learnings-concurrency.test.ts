@@ -71,7 +71,7 @@ describe("learnings writer cross-process concurrency", () => {
     );
     const persisted = parseLearningsFile(
       await readFile(
-        path.join(projectRoot, ".claude", "rules", LEARNINGS_FILENAME),
+        path.join(projectRoot, ".lisa", LEARNINGS_FILENAME),
         "utf8"
       )
     );

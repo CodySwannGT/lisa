@@ -283,7 +283,7 @@ async function createMockAllTemplates(dir: string): Promise<void> {
   );
   await fs.writeFile(path.join(allCreateOnly, "README.md"), "# Test\n");
   await fs.outputFile(
-    path.join(allCreateOnly, ".claude", "rules", "PROJECT_LEARNINGS.md"),
+    path.join(allCreateOnly, ".lisa", "PROJECT_LEARNINGS.md"),
     renderLearningsFile([])
   );
   await fs.writeJson(path.join(allMerge, PACKAGE_JSON), {
