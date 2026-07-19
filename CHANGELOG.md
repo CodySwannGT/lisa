@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.240.0](https://github.com/CodySwannGT/lisa/compare/v2.239.1...v2.240.0) (2026-07-19)
+
+
+### Features
+
+* **learnings:** add surgical confirmLearningEntry last_confirmed bump ([8bd3a94](https://github.com/CodySwannGT/lisa/commit/8bd3a94828154eb9de039efd5e2e27c547d3d42c)), closes [#1579](https://github.com/CodySwannGT/lisa/issues/1579) [#1579](https://github.com/CodySwannGT/lisa/issues/1579)
+* **skills:** auto-file the upstream Lisa ticket from handoff-upstream ([aeb9d0f](https://github.com/CodySwannGT/lisa/commit/aeb9d0f05d58c9f751ad135280334243959bde6b)), closes [#1583](https://github.com/CodySwannGT/lisa/issues/1583) [#1583](https://github.com/CodySwannGT/lisa/issues/1583)
+* **skills:** confirm applied learnings at claim time via 3c.2 bump ([3209621](https://github.com/CodySwannGT/lisa/commit/32096215a9ddec701886e66e8d2d0d06bfb47d2e)), closes [#1579](https://github.com/CodySwannGT/lisa/issues/1579) [#1579](https://github.com/CodySwannGT/lisa/issues/1579)
+* **skills:** extract event-triggered lisa-attribute-failure from doctor ([ae220dc](https://github.com/CodySwannGT/lisa/commit/ae220dcdc8aaaa033b3e8965de122f99846adea2)), closes [#1494](https://github.com/CodySwannGT/lisa/issues/1494) [#1582](https://github.com/CodySwannGT/lisa/issues/1582) [#1622](https://github.com/CodySwannGT/lisa/issues/1622) [#1582](https://github.com/CodySwannGT/lisa/issues/1582)
+
+
+### Bug Fixes
+
+* **skills:** bind upstream evidence redaction and resolve handoff claims ([378b4ba](https://github.com/CodySwannGT/lisa/commit/378b4ba0833d0fb5a1b32ef0f50de3cdfdac3116)), closes [#1583](https://github.com/CodySwannGT/lisa/issues/1583)
+* **skills:** harden upstream filing and claim-time bump per review ([7f85eae](https://github.com/CodySwannGT/lisa/commit/7f85eae5f27266af8d59ee717267141f4fa34f7b)), closes [#1763](https://github.com/CodySwannGT/lisa/issues/1763) [#1582](https://github.com/CodySwannGT/lisa/issues/1582) [#1583](https://github.com/CodySwannGT/lisa/issues/1583) [#1579](https://github.com/CodySwannGT/lisa/issues/1579)
+
+
+### Code Refactoring
+
+* **learnings:** return file path from in-lock not-found confirm result ([afced27](https://github.com/CodySwannGT/lisa/commit/afced2789a25bd6b7342d15c0d71d826abaca4bd)), closes [#1579](https://github.com/CodySwannGT/lisa/issues/1579)
+
 ### [2.239.1](https://github.com/CodySwannGT/lisa/compare/v2.239.0...v2.239.1) (2026-07-19)
 
 
