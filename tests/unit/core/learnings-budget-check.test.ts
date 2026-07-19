@@ -9,6 +9,7 @@ import {
 } from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-document.js";
 
+const BUDGET_REMEDIATION = "to fit the learnings budget";
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -54,6 +55,7 @@ describe("checkLearningsBudget", () => {
     if (result.kind === "violation") {
       expect(result.detail).toContain("maxTokens");
       expect(result.detail).toContain(String(measuredBytes));
+      expect(result.detail).toContain(BUDGET_REMEDIATION);
     }
   });
 
@@ -73,6 +75,8 @@ describe("checkLearningsBudget", () => {
     if (result.kind === "violation") {
       expect(result.detail).toContain("maxEntries");
       expect(result.detail).toContain(String(measuredEntries));
+      expect(result.detail).toContain("consolidate or remove entries");
+      expect(result.detail).toContain(BUDGET_REMEDIATION);
     }
   });
 
@@ -92,11 +96,15 @@ describe("checkLearningsBudget", () => {
     expect(result.kind).toBe("violation");
     if (result.kind === "violation") {
       expect(result.detail).toContain("maxRuleCharacters");
-      expect(result.detail).toContain(id);
+      // Rendered with single quotes, never double-escaped `\"id\"`.
+      expect(result.detail).toContain(`'${id}'`);
+      expect(result.detail).not.toContain(`\\"${id}\\"`);
+      // Per-entry breaches keep their id-naming and get no budget remediation.
+      expect(result.detail).not.toContain(BUDGET_REMEDIATION);
     }
   });
 
-  it("returns a violation for a non-canonical document", async () => {
+  it("returns a violation with remediation for a non-canonical document", async () => {
     const fixture = writeFixture(
       "noncanonical.md",
       `${JSON.stringify(createEntry("valid-but-unwrapped"))}\n`
@@ -105,9 +113,10 @@ describe("checkLearningsBudget", () => {
     const result = await checkLearningsBudget(fixture);
 
     expect(result.kind).toBe("violation");
-    expect(result.kind === "violation" && result.detail).toMatch(
-      /canonical|format/i
-    );
+    if (result.kind === "violation") {
+      expect(result.detail).toMatch(/canonical|format/i);
+      expect(result.detail).toContain("re-generate");
+    }
   });
 
   it("returns a violation for a non-regular file without blocking", async () => {
