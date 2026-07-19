@@ -7,6 +7,7 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CLAUDE_MD_AGENTS_IMPORT } from "../../../src/claude/claude-md-installer.js";
+import { renderLearningsFile } from "../../../src/core/learnings-document.js";
 import {
   LISA_PROJECT_LEARNINGS_END_MARKER,
   LISA_PROJECT_LEARNINGS_START_MARKER,
@@ -14,6 +15,7 @@ import {
   LISA_RULES_START_MARKER,
   buildAgyProjectLearningsBridge,
   migrateInstructionFiles,
+  relocateProjectLearningsLedger,
   stripAgyProjectLearningsBridge,
   stripBakedAgyRulesBlock,
 } from "../../../src/core/instruction-files-migration.js";
@@ -22,10 +24,13 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const CONFIG_PATH = ".lisa.config.json";
 const CUSTOM_RULES_PATH = "rules/CUSTOM_RULES.md";
 const DEFAULT_LEARNINGS_LINE =
-  "Resolved path for this project: `.claude/rules/PROJECT_LEARNINGS.md`.";
-const CUSTOM_LEARNINGS_LINE =
-  "Resolved path for this project: `rules/PROJECT_LEARNINGS.md`.";
+  "Resolved path for this project: `.lisa/PROJECT_LEARNINGS.md`.";
+const OVERRIDE_LEARNINGS_LINE =
+  "Resolved path for this project: `docs/LEARNINGS.md`.";
+const OVERRIDE_LEARNINGS_PATH = "docs/LEARNINGS.md";
 const CUSTOM_LEARNINGS_PATH = "rules/PROJECT_LEARNINGS.md";
+const LEGACY_LEARNINGS_PATH = ".claude/rules/PROJECT_LEARNINGS.md";
+const NEW_LEARNINGS_PATH = ".lisa/PROJECT_LEARNINGS.md";
 
 describe("core/instruction-files-migration", () => {
   let dir: string;
@@ -135,14 +140,14 @@ describe("core/instruction-files-migration", () => {
     expect(agents).not.toContain(LISA_RULES_START_MARKER);
   });
 
-  it("replaces the agy bridge when projectRulesFile moves the learnings sibling", async () => {
+  it("replaces the agy bridge when a learnings.file override moves the ledger", async () => {
     await fs.writeJson(path.join(dir, CONFIG_PATH), {
       harness: "agy",
     });
     await migrateInstructionFiles(dir);
     await fs.writeJson(path.join(dir, CONFIG_PATH), {
       harness: "agy",
-      projectRulesFile: CUSTOM_RULES_PATH,
+      learnings: { file: OVERRIDE_LEARNINGS_PATH },
     });
 
     const result = await migrateInstructionFiles(dir);
@@ -150,7 +155,7 @@ describe("core/instruction-files-migration", () => {
     const agents = await fs.readFile(agentsPath(), "utf8");
     expect(result.changed).toBe(true);
     expect(agents.match(/LISA_PROJECT_LEARNINGS_START/g)).toHaveLength(1);
-    expect(agents).toContain(CUSTOM_LEARNINGS_LINE);
+    expect(agents).toContain(OVERRIDE_LEARNINGS_LINE);
     expect(agents).not.toContain(DEFAULT_LEARNINGS_LINE);
   });
 
@@ -212,6 +217,81 @@ describe("core/instruction-files-migration", () => {
     // Exactly one occurrence — no duplicate import prepended.
     expect(claude.match(/@AGENTS\.md/g)).toHaveLength(1);
     expect(result.actions.some(a => a.includes("CLAUDE.md"))).toBe(false);
+  });
+
+  describe("relocateProjectLearningsLedger", () => {
+    const legacyPath = (): string => path.join(dir, LEGACY_LEARNINGS_PATH);
+    const newPath = (): string => path.join(dir, NEW_LEARNINGS_PATH);
+    const ledger = (): string =>
+      renderLearningsFile([
+        {
+          id: "relocate-1",
+          rule: "Keep the ledger out of eager context.",
+          why: "Raw injection bypasses the contract.",
+          provenance: ["https://github.com/CodySwannGT/lisa/issues/1730"],
+          first_learned: "2026-07-16",
+          last_confirmed: "2026-07-16",
+          confidence: "high",
+        },
+      ]);
+
+    it("moves a legacy ledger byte-for-byte to the new path and removes the legacy file", async () => {
+      const content = ledger();
+      await fs.outputFile(legacyPath(), content);
+
+      const result = await relocateProjectLearningsLedger(dir);
+
+      expect(result.moved).toBe(true);
+      expect(await fs.readFile(newPath(), "utf8")).toBe(content);
+      expect(await fs.pathExists(legacyPath())).toBe(false);
+    });
+
+    it("keeps both files without clobbering when the new path already exists", async () => {
+      const legacyContent = ledger();
+      const newContent = renderLearningsFile([]);
+      await fs.outputFile(legacyPath(), legacyContent);
+      await fs.outputFile(newPath(), newContent);
+
+      const result = await relocateProjectLearningsLedger(dir);
+
+      expect(result.moved).toBe(false);
+      expect(result.warning).toMatch(/both/i);
+      expect(result.warning).toContain(LEGACY_LEARNINGS_PATH);
+      expect(result.warning).toContain(NEW_LEARNINGS_PATH);
+      // Neither file is touched — a human reconciles.
+      expect(await fs.readFile(legacyPath(), "utf8")).toBe(legacyContent);
+      expect(await fs.readFile(newPath(), "utf8")).toBe(newContent);
+    });
+
+    it("is idempotent — a second run is a quiet no-op", async () => {
+      await fs.outputFile(legacyPath(), ledger());
+      await relocateProjectLearningsLedger(dir);
+
+      const second = await relocateProjectLearningsLedger(dir);
+
+      expect(second.moved).toBe(false);
+      expect(second.warning).toBeUndefined();
+    });
+
+    it("does nothing when no legacy ledger exists", async () => {
+      const result = await relocateProjectLearningsLedger(dir);
+
+      expect(result.moved).toBe(false);
+      expect(await fs.pathExists(newPath())).toBe(false);
+    });
+
+    it("runs inside migrateInstructionFiles so doctor relocates too", async () => {
+      const content = ledger();
+      await fs.outputFile(legacyPath(), content);
+
+      const result = await migrateInstructionFiles(dir);
+
+      expect(result.actions.some(action => action.includes("ledger"))).toBe(
+        true
+      );
+      expect(await fs.readFile(newPath(), "utf8")).toBe(content);
+      expect(await fs.pathExists(legacyPath())).toBe(false);
+    });
   });
 
   describe("stripBakedAgyRulesBlock", () => {
