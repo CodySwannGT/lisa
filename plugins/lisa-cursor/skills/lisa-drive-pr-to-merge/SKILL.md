@@ -40,7 +40,7 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
     base branch requires strict up-to-date checks. For **anything** that would
     require editing code, resolving threads, or dismissing a review, **do not
     act** — stop and return a structured blocker classification
-    (`merged` / `will-merge-after-resync` / `blocked:<conflict|checks|changes_requested|deploy>`)
+    (`merged` / `will-merge-after-resync` / `blocked:<conflict|checks|changes_requested|deploy|pending-auto-fix>`)
     so the caller applies its own policy. This is the mode `repair-intake` and the
     build-intake skills use to diagnose-and-route without fixing in place.
 
@@ -87,10 +87,29 @@ releases is why the TTL exists; do not rely on it as the normal release path.
 ## 1. Enable auto-merge
 
 **Gate: only when `auto_merge=true` (the default).** When `auto_merge=false`,
-skip this entire section — do not enable auto-merge, and do **not** use the
-capability fallback below: on a repo that disallows auto-merge, an
-`auto_merge=false` PR must stay OPEN for human triage, never be silently
-direct-merged. Proceed straight to the watch loop (section 2).
+skip the enable step and its capability fallback — do not enable auto-merge,
+and do **not** use the capability fallback below: on a repo that disallows
+auto-merge, an `auto_merge=false` PR must stay OPEN for human triage, never be
+silently direct-merged.
+
+With `auto_merge=false`, also **disarm any pre-existing auto-merge latch**
+before entering the watch loop — skipping the enable step is not enough when a
+prior session (or `lisa-git-submit-pr`'s default path) already armed the PR,
+because an armed latch would still merge the instant checks go green:
+
+```bash
+armed=$(gh pr view <pr> --json autoMergeRequest -q .autoMergeRequest)
+if [ "$armed" != "null" ] && [ -n "$armed" ]; then
+  gh pr merge <pr> --disable-auto
+fi
+gh pr view <pr> --json autoMergeRequest -q .autoMergeRequest   # must print null
+```
+
+If the disarm fails or the re-read still shows an armed `autoMergeRequest`,
+**fail closed**: treat the PR as a hard block (section 4) and report that the
+`awaiting-human` state was NOT reached — never proceed to a state in which the
+PR could merge without a human. Once disarmed (or already unarmed), proceed
+straight to the watch loop (section 2).
 
 Before enabling auto-merge, capture the live PR head and compare it to
 `verify_commit`:
@@ -140,8 +159,10 @@ review gate, and `mergeable == MERGEABLE`. Never enable auto-merge or merge
 directly in this mode.
 
 In **`on_blocker=report`** mode, only the mechanical step (a) and auto-merge enabling
-(when `auto_merge=true`) apply; for any of (b)–(e) do not act — classify the blocker
-and return per the input contract above.
+(when `auto_merge=true`) apply; for any of (b)–(f) do not act — classify the blocker
+and return per the input contract above. That includes (f): adjudicating a pending
+auto-fix PR (merging, closing, or deleting its branch) is destructive work, not
+diagnosis — return its classification (`blocked:pending-auto-fix`) instead.
 
 ### a. Branch behind base (`mergeStateStatus == BEHIND`)
 Before proactively syncing a clean `BEHIND` PR, check whether the base branch
@@ -221,7 +242,9 @@ needed, otherwise close it and delete the side branch. Never leave it dangling
 — it represents a competing writer's pending work. Merging it mutates the
 driven branch, so treat it like any other push: disarm auto-merge first,
 re-read `headRefOid`, reset `verify_commit` to the merged head, wait for that
-head's checks to start, then re-enable auto-merge (section 1).
+head's checks to start, then re-enable auto-merge (section 1). In
+`on_blocker=report` mode this whole step is off-limits (diagnose-only): do not
+merge, close, or delete anything — return `blocked:pending-auto-fix`.
 
 ## 3. Merge and verify it actually shipped (ancestry check)
 
