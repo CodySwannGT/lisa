@@ -1,0 +1,41 @@
+---
+description: "Rejection Detection at Claim Time (load-bearing)"
+alwaysApply: true
+---
+
+# Rejection Detection at Claim Time (load-bearing)
+
+A QA rejection — an item that reached a `review`/`done`-ward state and is now back in the build-ready lane — is a **teaching signal**, not fresh work. Detect it at claim time so the re-claim can reflect on the rejection instead of repeating it.
+
+**One vendor-neutral contract, cited by every build-intake arm** (the `leaf-only-lifecycle` / `repo-scope-split` precedent: one shared slug, never three divergent implementations).
+
+## When it runs
+
+At the **top of build-intake step 3b (Claim), BEFORE the relabel** `$READY → $CLAIMED`. After the relabel the current-lane signal is gone, so detection must read history first. Detection is a pure read — idempotent, headless-safe, no side effects.
+
+## Classify the claimed item
+
+Return exactly one of:
+
+- **`rejection-reclaim`** — history shows the item reached a `review`/`done`-ward lane and is now back in `$READY`.
+- **`forward-only`** — history shows only forward moves (never returned to `$READY` from a later lane).
+- **`never-left-ready`** — history shows the item never left `$READY`.
+- **`unknown`** — the vendor history query failed, was inconclusive, or is absent.
+
+## Vendor history sources (through the access layers only — `integration-access-layer`)
+
+- **GitHub** — `LABELED` / `UNLABELED` timeline events on the configured **ready** label (the Label-Event History surface from `lisa-github-read-issue`).
+- **JIRA** — the `changelog` operation on `lisa-atlassian-access` (`?expand=changelog`, status items).
+- **Linear** — the `history` operation on `lisa-linear-access`, keyed on `status:*` label history (`addedLabelIds`/`removedLabelIds` resolved against `list-issue-labels`).
+
+**Lane names ALWAYS come from `.lisa.config.json` lanes** (`github.labels.build.{ready,claimed,done}` and the JIRA/Linear equivalents; `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS`). **Never hardcode** `status:ready`, `Ready`, etc.
+
+## Never block the build
+
+`unknown` is a first-class result, not an error. A failing/absent history yields `unknown` and **the build proceeds** to implement the item. Detection never stops a claim.
+
+## Learning-loop exclusion (no learning about learning)
+
+An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
+
+Full contract (classification table, per-vendor bindings, reflection & evidence handoff): [reference/rejection-detection.md](rejection-detection-reference.mdc).

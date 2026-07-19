@@ -252,6 +252,8 @@ A blocker is active if it is open and has no cleared status label. Treat `status
 
 #### 3b. Claim
 
+**Rejection detection runs first — before the relabel below.** Per the vendor-neutral `rejection-detection` rule (cite the slug; do not restate its classification table), classify this item at the **top of 3b, BEFORE** the `$READY → $CLAIMED` relabel — after the relabel the current-lane signal is gone. Read the item's Label-Event History from `lisa-github-read-issue` (chronological `LabeledEvent` / `UnlabeledEvent` on the configured `$READY` label) and classify it `rejection-reclaim | forward-only | never-left-ready | unknown`. Lane names come from `.lisa.config.json` (`github.labels.build.*`), never hardcoded. A failing/absent history yields `unknown` and the claim proceeds — detection never blocks the build. Items carrying a learning marker (`[lisa-learning-drop]` / `[lisa-learning-pr]` / `[lisa-learning-upstream-handoff]`) or the `learning:needs-triage` label are never rejection triggers (no learning-about-learning). Carry the classification into the relabel and lifecycle below.
+
 ```bash
 gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
 # Assign to the authenticated user ONLY when the issue is currently unassigned (attributable claim;
