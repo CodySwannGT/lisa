@@ -1,0 +1,4 @@
+display_name: "Learnings Audit"
+short_description: "The gardener of the learnings…"
+default_prompt:
+  - "Use $lisa-learnings-audit: The gardener of the learnings…."
