@@ -20,6 +20,16 @@ const IMPLEMENT_FANOUTS = [
 
 const REFERENCE_RULE = "plugins/src/base/rules/reference/project-learnings.md";
 
+// The canonical Implement step sequence is dual-homed (lisa-implement +
+// intent-routing). The task-end MLD step is threaded into the intent-routing
+// reference rule as a pointer to the lisa-implement contract (schema is NOT
+// duplicated here). These are every built fan-out of that reference rule.
+const INTENT_ROUTING_FANOUTS = [
+  "plugins/lisa/rules/reference/intent-routing.md",
+  "plugins/lisa-copilot/rules/reference/intent-routing.md",
+  "plugins/lisa-cursor/rules/intent-routing-reference.mdc",
+];
+
 describe("MLD task-end telemetry contract (LLG-3)", () => {
   describe.each(IMPLEMENT_FANOUTS)("lisa-implement fan-out %s", path => {
     const skill = readFileSync(path, "utf8");
@@ -66,6 +76,29 @@ describe("MLD task-end telemetry contract (LLG-3)", () => {
     it("promotes only through the learner's ledger capture and the gardener's gated promotion", () => {
       expect(reference).toMatch(/learner's validation into the\s+ledger/);
       expect(reference).toMatch(/gardener's ticket-gated promotion/);
+    });
+  });
+
+  describe.each(INTENT_ROUTING_FANOUTS)("intent-routing fan-out %s", path => {
+    const rule = readFileSync(path, "utf8");
+
+    it("threads the task-end MLD step into the Implement sequence", () => {
+      expect(rule).toMatch(
+        /before a task completes .*ahead of the closing `learner` step.*records concise kind-tagged MLD/s
+      );
+      expect(rule).toContain("`metadata.learnings`");
+    });
+
+    it("points at lisa-implement for the schema instead of duplicating it", () => {
+      expect(rule).toContain("`lisa-implement`");
+      expect(rule).toContain("change the schema there, not here");
+      // The full kind-union schema must live only in lisa-implement, not be copied here.
+      expect(rule).not.toContain('"kind": "mistake" | "learning" | "desire"');
+    });
+
+    it("preserves the empty-is-valid / never-scored discipline", () => {
+      expect(rule).toContain("empty is valid");
+      expect(rule).toContain("never re-prompted or scored");
     });
   });
 });
