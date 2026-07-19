@@ -57,6 +57,22 @@ const AUTO_LOADED_RULES_DIR_PREFIXES = [
   ".agents/rules",
 ] as const;
 
+/**
+ * Repo-root instruction files that runtimes auto-load whole at session start
+ * (AGENTS.md for Codex/Cursor/Copilot/agy/OpenCode; CLAUDE.md for Claude). A
+ * `learnings.file` override must never resolve to one of these, or the ledger
+ * would again be injected raw.
+ */
+const ROOT_EAGER_INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
+
+/**
+ * Non-root instruction files the generators maintain and runtimes auto-load
+ * (Copilot reads `.github/copilot-instructions.md`). Matched by exact path.
+ */
+const EAGER_INSTRUCTION_FILE_PATHS = [
+  ".github/copilot-instructions.md",
+] as const;
+
 /** Optional `learnings` configuration block in `.lisa.config.json`. */
 export interface LearningsConfig {
   /**
@@ -405,12 +421,24 @@ function validateLearningsFile(value: unknown, source: string): string {
     "learnings.file"
   );
   const normalized = path.posix.normalize(safe);
+  const lowered = normalized.toLowerCase();
   const insideEagerTree = AUTO_LOADED_RULES_DIR_PREFIXES.some(
     prefix => normalized === prefix || normalized.startsWith(`${prefix}/`)
   );
-  if (insideEagerTree) {
+  const isRootEagerFile =
+    path.posix.dirname(normalized) === "." &&
+    ROOT_EAGER_INSTRUCTION_FILES.some(name => name.toLowerCase() === lowered);
+  const isNamedEagerFile = EAGER_INSTRUCTION_FILE_PATHS.some(
+    filePath => filePath.toLowerCase() === lowered
+  );
+  if (insideEagerTree || isRootEagerFile || isNamedEagerFile) {
+    const surfaces = [
+      ...AUTO_LOADED_RULES_DIR_PREFIXES,
+      ...ROOT_EAGER_INSTRUCTION_FILES,
+      ...EAGER_INSTRUCTION_FILE_PATHS,
+    ].join(", ");
     throw new Error(
-      `Invalid learnings.file in ${source}: the ledger must not live in an auto-loaded rules tree (${AUTO_LOADED_RULES_DIR_PREFIXES.join(", ")})`
+      `Invalid learnings.file in ${source}: the ledger must not live in an auto-loaded rules tree or instruction file (${surfaces}); the default ${DEFAULT_PROJECT_LEARNINGS_FILE} is the recommended location`
     );
   }
   return safe;

@@ -112,12 +112,17 @@ describe("learnings contract", () => {
     ).toBe("docs/LEARNINGS.md");
   });
 
-  it("rejects a learnings.file override that lands in an auto-loaded rules tree or escapes the root", () => {
+  it("rejects a learnings.file override that lands in an auto-loaded rules tree, a root eager instruction file, or escapes the root", () => {
     for (const file of [
       ".claude/rules/PROJECT_LEARNINGS.md",
       ".claude/rules/nested/LEARNINGS.md",
       ".cursor/rules/LEARNINGS.md",
       ".github/instructions/LEARNINGS.md",
+      // Repo-root instruction files auto-loaded whole by the runtimes.
+      "AGENTS.md",
+      "CLAUDE.md",
+      "claude.md",
+      ".github/copilot-instructions.md",
       "../ESCAPE.md",
       "rules/\tLEARNINGS.md",
       "notmarkdown.txt",
@@ -126,6 +131,16 @@ describe("learnings contract", () => {
         resolveProjectLearningsFile({ learnings: { file } })
       ).toThrow(/learnings\.file/i);
     }
+  });
+
+  it("teaches the recommended default when rejecting an eager-tree override", () => {
+    expect(() =>
+      resolveProjectLearningsFile({
+        learnings: { file: ".claude/rules/LEARNINGS.md" },
+      })
+    ).toThrow(
+      /the default \.lisa\/PROJECT_LEARNINGS\.md is the recommended location/
+    );
   });
 
   it("rejects unsafe projectRulesFile paths", () => {

@@ -280,6 +280,25 @@ describe("core/instruction-files-migration", () => {
       expect(await fs.pathExists(newPath())).toBe(false);
     });
 
+    it("refuses to write through a target parent symlink that escapes the project root", async () => {
+      // Guards doctor's direct path (no apply-phase pre-check): a symlinked
+      // .lisa/ pointing outside the project must throw before any write.
+      const external = await createTempDir();
+      await fs.symlink(external, path.join(dir, ".lisa"), "dir");
+      await fs.outputFile(legacyPath(), ledger());
+
+      await expect(relocateProjectLearningsLedger(dir)).rejects.toThrow(
+        /parent escapes project root/i
+      );
+      expect(
+        await fs.pathExists(path.join(external, "PROJECT_LEARNINGS.md"))
+      ).toBe(false);
+      // The legacy file is left intact — nothing was moved.
+      expect(await fs.pathExists(legacyPath())).toBe(true);
+
+      await fs.remove(external);
+    });
+
     it("runs inside migrateInstructionFiles so doctor relocates too", async () => {
       const content = ledger();
       await fs.outputFile(legacyPath(), content);
