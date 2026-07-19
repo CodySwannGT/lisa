@@ -136,7 +136,8 @@ describe.each(REFERENCE_RULE_PATHS)(
       // #1733 ships; until then it is a legacy writer outside the contract.
       expect(rule).toContain("lisa-debrief-apply");
       expect(rule).toMatch(/#1733/);
-      expect(rule).toMatch(/legacy writer/);
+      expect(rule).toMatch(/legacy writer/i);
+      expect(rule).toMatch(/NOT contract-mediated/);
       // Promotion is the gardener's ticket-gated job, not a writer here.
       expect(rule).toContain("gardener");
       expect(rule).toMatch(/status:ready/);
