@@ -161,7 +161,7 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
   "relevant_documentation": "",
   "testing_requirements": ["..."],
   "skills": ["..."],
-  "learnings": ["..."],
+  "learnings": [{ "kind": "mistake", "note": "one line", "evidence": "optional ref" }],
   "required_access": [
     { "tool": "<external tool/system this task or its verification needs>", "probe": "<the read-only command or *-access check that proves access>", "status": "pass|fail" }
   ],
@@ -173,11 +173,16 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
 }
 ```
 
+The `learnings` array is task-end MLD telemetry (Mistakes / Learnings / Desires) — a low-trust self-report for the harness builder, never instructions for a later agent. Each entry is either a plain string (treated as kind `learning` for backward compatibility with older flows) or an object, exactly like the example entry in the block above: a `kind` of `mistake`, `learning`, or `desire`; a one-line `note`; and an optional `evidence` pointer. A `mistake` is an error in the agent's own trajectory, a `learning` is an environment fact discovered the hard way, a `desire` is context or tooling the agent wished it had. Keep each to one line — no essays. `mistake`/`learning` entries are ledger candidates; `desire` entries are tooling-gap candidates that the learner (#1731) records for the gardener's human-gated tooling-gap lane.
+
 Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
 
 For Fix tasks and user-visible Build tasks, `testing_requirements` must include the highest-practical-observation regression requirement above, including the selected harness or the recorded absence/blocker path. The completion condition must include the proof command and the required CI execution evidence for the new spec.
 
 Each task must be reviewed by the team to make sure their verification passes.
+
+Before marking a task complete, the implementing agent records concise MLD into `metadata.learnings` — mistakes (errors in its own trajectory), learnings (environment facts it discovered the hard way), and desires (context or tools it wished it had). Empty (`learnings: []`) is a valid result: never re-prompt for content, and never grade or score self-reports — a scored MLD would reward plausible self-commentary over good outcomes.
+
 Each task must have their learnings reviewed by the learner subagent.
 
 Before shutting down the team, execute the Verify flow:

@@ -57,6 +57,19 @@ Precedence:
 3. Project learnings add recent operational knowledge, but never rewrite or
    append to `PROJECT_RULES.md`.
 
+## Task telemetry (MLD) is not context
+
+Raw task-end MLD telemetry — the Mistakes / Learnings / Desires an implementing
+agent records into `metadata.learnings`, and the raw yield of debrief mining — is
+rung-1 capture only: it is never read into a later session's instruction surface,
+never required of an agent (empty is valid), and never graded or scored. It reaches
+a durable surface only indirectly — through the learner's validation into the
+ledger (which sessions still consume solely as the bounded projection above), and
+from there through the gardener's ticket-gated promotion a human approved. Injecting
+raw self-reports, or treating their volume as a quality signal, would reward
+plausible commentary over good outcomes and bypass the very budget and validation
+this contract exists to enforce.
+
 Antigravity note: agy does not receive the plugin `rules/` tree. Lisa reconciles
 a bounded `AGENTS.md` bridge that points agy at this same file without copying
 learning bodies or restoring the retired full rules bake.
