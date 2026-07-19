@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.245.1](https://github.com/CodySwannGT/lisa/compare/v2.245.0...v2.245.1) (2026-07-19)
+
+
+### Documentation
+
+* **rules:** split contract-mediated vs legacy ledger writers (LLG-2) ([5b7c458](https://github.com/CodySwannGT/lisa/commit/5b7c45843ebe99e1c90cdb2518e29b33e2c41192)), closes [#1771](https://github.com/CodySwannGT/lisa/issues/1771) [pre-#1733](https://github.com/CodySwannGT/pre-/issues/1733) [#1733](https://github.com/CodySwannGT/lisa/issues/1733)
+
 ## [2.245.0](https://github.com/CodySwannGT/lisa/compare/v2.244.0...v2.245.0) (2026-07-19)
 
 
