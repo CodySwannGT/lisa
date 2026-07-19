@@ -27,6 +27,23 @@ Each persisted entry has seven fields:
 - `last_confirmed`
 - `confidence`
 
+## Who writes the ledger
+
+The ledger has exactly three machine writers, all going through the executable
+contract (`@codyswann/lisa/learnings`) — never a hand-edit:
+
+- The **learner agent** at capture time appends or consolidates new entries
+  (`persistLearningEntry` / `persistConsolidatedLearning`) from task learnings.
+  It is capture-only: it never appends to `PROJECT_RULES.md`, creates skills, or
+  files upstream issues — promotion is the gardener's ticket-gated job.
+- **`lisa-debrief-apply`** reroutes debrief findings into the same ledger.
+- The **build-intake flows** advance `last_confirmed` at claim time
+  (`confirmLearningEntry`, below).
+
+Promotion to a higher rung (skill, eager rule, executable control, upstream
+ticket) is never a writer here — it is the gardener's job, gated by a human
+flipping a tracker ticket to `status:ready`.
+
 ## Claim-time confirmation (`last_confirmed`)
 
 `last_confirmed` is advanced at claim time by the build-intake flows (step
