@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.247.3](https://github.com/CodySwannGT/lisa/compare/v2.247.2...v2.247.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* broaden worker-epoch host detection and workaround matching ([4975ed6](https://github.com/CodySwannGT/lisa/commit/4975ed6e874d43d93cbf20251008e0f33ab9e88f)), closes [#1782](https://github.com/CodySwannGT/lisa/issues/1782)
+* surface worker epoch drift in doctor ([b7e9dea](https://github.com/CodySwannGT/lisa/commit/b7e9dea92c24cec855b0a051971f28170466aa77))
+
 ### [2.247.2](https://github.com/CodySwannGT/lisa/compare/v2.247.1...v2.247.2) (2026-07-19)
 
 
