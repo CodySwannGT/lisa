@@ -117,5 +117,25 @@ describe("rejection-detection rule contract", () => {
         expect(doc).toMatch(/reflect before re-implementing/i);
       }
     });
+
+    it("hands the rejection evidence into the implementation plan", () => {
+      expect(reference).toMatch(/Evidence handoff into implementation/i);
+      expect(reference).toMatch(/MUST NOT re-propose/i);
+      expect(reference).toMatch(
+        /lisa-implement never sees the claim|never sees the claim/i
+      );
+      for (const skill of BUILD_INTAKES) {
+        const doc = read(root, `skills/${skill}/SKILL.md`);
+        expect(doc).toMatch(/rejection evidence summary/i);
+      }
+    });
+
+    it("lisa-implement consumes rejection evidence in its plan phase", () => {
+      const impl = read(root, "skills/lisa-implement/SKILL.md");
+      expect(impl).toContain("rejection-detection");
+      expect(impl).toMatch(/rejection evidence summary/i);
+      expect(impl).toMatch(/MUST NOT re-propose/i);
+      expect(impl).toMatch(/never blocks/i);
+    });
   });
 });
