@@ -87,3 +87,34 @@ Runtime: Claude Code implicit-team model (Agent tool). No shared task-list tool 
 - `EXCLUDE - Plan - decomposition exists; this IS the leaf work item.`
 
 Base-branch resolution (recorded assumption): ticket env is `dev — local only; there is no deployed environment for this surface`. Merged `deploy.branches` maps only `production → main` (single-env repo; the npm release IS the deploy). Surface has no deployable environment → base = remote default `main` per the no-environment fallback. PR targets `main`.
+
+---
+
+# Roster Decision — plan: `sll-self-learning-loop-1548` (PRD #1548 open descendants)
+
+Recorded: 2026-07-19. Runtime: Claude Code implicit-team model; no TaskCreate/TaskList in this runtime — task plan persisted in `.lisa/plan-1548.md`. Model floor per /goal: never below Opus 4.8 — every teammate spawn uses `model: opus`; the highest-complexity design/build lanes (#1589 gate, #1574/#1580 archaeology, #1582 attribution) inherit the lead's Fable 5 (model omitted).
+
+INCLUDE - Explore - Mandatory read-only research; feeds every task's metadata.relevant_documentation.
+INCLUDE - general-purpose - Bounded lead-session chores the skill assigns (input resolution done; branch sync, preflight probes); never a build lane.
+INCLUDE - lisa:architecture-specialist - Designs cross-cutting seams: vendor transition-history substrate ops, archaeology gate seam, attribution procedure, auto-merge-off mode.
+INCLUDE - lisa:builder - Primary TDD implementer for all Build leaves (one instance per phase batch).
+INCLUDE - lisa:test-specialist - Test strategy + regression coverage for contract/script/workflow-template/skill changes.
+INCLUDE - lisa:quality-specialist - Review lane (correctness, philosophy, coverage) — parallel with the other reviewers.
+INCLUDE - lisa:product-specialist - Reviews operator-facing text surfaces (dropped-with-reason notes, upstream ticket bodies, rule prose) for three-audience readability.
+INCLUDE - coderabbit:code-reviewer - Independent review lane per Agent Team Workflows parallel-review rule.
+INCLUDE - lisa:spec-conformance-specialist - Per-batch conformance check against each ticket's Gherkin AC; catches scope drift across 18 leaves.
+INCLUDE - lisa:verification-specialist - Independent empirical verification + writes .lisa/verification-status.json; never the implementer.
+INCLUDE - lisa:learner - Mandatory per-task learnings review before team dismissal.
+INCLUDE - lisa:skill-evaluator - Reached via learner; ALSO research input for #1589 (the gate reuses its discipline).
+INCLUDE - lisa:git-history-analyzer - Research input for SLL-3 archaeology (#1574/#1580) and #1582 doctor-attribution generalization.
+INCLUDE - lisa:security-specialist - Reviews #1581 (host CI workflow-template step) and #1583 (auto-filing upstream tickets) for permission/credential hazards.
+EXCLUDE - lisa:bug-fixer - Build work type, not Fix; no reproduction sub-flow.
+EXCLUDE - lisa:debug-specialist - No live defect; roster will be amended before spawning if CI failures need root-causing.
+EXCLUDE - lisa:performance-specialist - No perf-sensitive surface; archaeology cost budget (#1584) is a design constraint, not a perf investigation.
+EXCLUDE - lisa:jira-agent / lisa:github-agent / lisa:linear-agent - Lifecycle wrappers; we are already inside Implement.
+EXCLUDE - lisa:*-build-intake / lisa:*-prd-intake / lisa:tracker-* intake surfaces - Queue scanners; dispatch already happened via /goal.
+EXCLUDE - lisa:learnings-synthesizer / lisa:pr-mining-specialist / lisa:tracker-mining-specialist - Debrief-flow specialists.
+EXCLUDE - Plan - Decomposition exists as the SLL tree.
+EXCLUDE - claude / claude-code-guide / hookify:conversation-analyzer / statusline-setup / code-simplifier:code-simplifier - Generic or unrelated; review lanes bounded to product/quality/coderabbit/spec-conformance to control cycle time per the convergent-review principle.
+
+Scope: 18 in-scope leaves in 5 PR batches (see plan-1548.md). #1585 excluded — superseded by gardener #1735 (same rationale as parent #1556); being closed with a supersession comment. #1579 in scope per the #1729 amendment carve-in. Ledger path always via the executable contract resolver. Base branch: main (single-env; ticket `dev` values are placeholder enum per #1561/#1564 self-notes).
