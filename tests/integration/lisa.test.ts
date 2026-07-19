@@ -208,6 +208,47 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.pathExists(defaultPath)).toBe(false);
     });
 
+    it("relocates a populated legacy ledger on the bootstrap/skip-git-check path without seeding an empty one (#1730 fleet upgrade)", async () => {
+      await createTypeScriptProject(destDir);
+      const legacyPath = path.join(
+        destDir,
+        ".claude",
+        "rules",
+        PROJECT_LEARNINGS
+      );
+      const ledgerPath = path.join(destDir, LISA_STATE_DIR, PROJECT_LEARNINGS);
+      const populated = renderLearningsFile([
+        {
+          id: "fleet-upgrade-sentinel",
+          rule: "Never strand a populated legacy ledger on upgrade.",
+          why: "The fleet updater forces LISA_BOOTSTRAP=1 + --skip-git-check.",
+          provenance: ["https://github.com/CodySwannGT/lisa/issues/1730"],
+          first_learned: "2026-07-16",
+          last_confirmed: "2026-07-16",
+          confidence: "high",
+        },
+      ]);
+      await fs.outputFile(legacyPath, populated);
+
+      // STEP 1: the exact fleet-upgrade path — skipGitCheck triggers
+      // shouldSkipAgentEmitDuringPostinstall.
+      const first = await createLisa({ skipGitCheck: true }).apply();
+
+      expect(first.success).toBe(true);
+      // The new ledger holds the MOVED entries — never an empty seed.
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(populated);
+      // The raw-injected legacy path is gone.
+      expect(await fs.pathExists(legacyPath)).toBe(false);
+
+      // STEP 2: idempotent — a second bootstrap apply changes nothing and never
+      // resurrects the both-exist stranding.
+      const second = await createLisa({ skipGitCheck: true }).apply();
+
+      expect(second.success).toBe(true);
+      expect(await fs.readFile(ledgerPath, "utf8")).toBe(populated);
+      expect(await fs.pathExists(legacyPath)).toBe(false);
+    });
+
     it("rejects a configured learnings seed whose parent symlink escapes the host project", async () => {
       await createTypeScriptProject(destDir);
       const externalDir = path.join(tempDir, "external-ledger");
