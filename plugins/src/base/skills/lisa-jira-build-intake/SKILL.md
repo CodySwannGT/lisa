@@ -257,6 +257,20 @@ If the canonical fix is merged but not yet present on the production branch, app
 
 This path is distinct from `BLOCKED`: ambiguity, open blockers, and duplicate-of-open findings remain held for human action and must not be auto-closed.
 
+#### 3c.2 Confirm applied learnings (last_confirmed bump)
+
+Run this at the end of 3c, after the lifecycle outcome is recorded and before 3d. It keeps the decay pass safe: a genuinely useful learning that keeps applying stays fresh, while dead weight ages out.
+
+1. **Identify which learnings demonstrably applied.** Resolve the learnings surface with `resolveProjectLearningsFile` and parse it with `parseLearningsFile` from `@codyswann/lisa/learnings` (never hardcode the path; a missing file skips this step silently). An entry counts as applied ONLY when its rule was explicitly cited or observably followed in this claim's plan, diff, or review responses — the plan quotes the rule or its id, or the diff does specifically what the rule mandates where the default behavior would have differed. **Presence in context is NOT application**: the ledger is loaded eagerly into every session, so counting "it was loaded" would confirm every entry on every claim and defeat decay entirely. A run that produced no plan or diff has nothing to confirm.
+2. **Bump each applied entry exactly once** via the surgical writer:
+
+   ```bash
+   node -e 'import("@codyswann/lisa/learnings").then(async m => { const r = await m.confirmLearningEntry(process.cwd(), process.argv[1], new Date().toISOString().slice(0, 10)); console.log(JSON.stringify(r)); })' <entry-id>
+   ```
+
+   `confirmLearningEntry` advances ONLY `last_confirmed` — rule text, why, provenance, `first_learned`, and confidence are untouched — and is idempotent within a claim: a repeat same-date bump returns `unchanged`, so an entry that applied repeatedly during one claim is bumped once, not once per application.
+3. **Never block on it.** A failed bump, an unwritable file, or a `not-found` result (the entry was pruned) is recorded under the cycle summary and the claim proceeds — shipping the ticket always outranks confirming a learning about it.
+
 #### 3d. Transition to $DONE (only after the PR is merged)
 
 A `done` env status (`On Dev`, `On Stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Setting `On Stg` on an open PR makes a ticket *claim* a deploy that never happened. Transition only after confirming the PR merged.
