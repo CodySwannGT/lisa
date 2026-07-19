@@ -34,7 +34,8 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
   - **`fix`** (the full loop): resolve conflicts, fix failing checks, address +
     resolve review comments, dismiss stale review gates — drive until merged.
   - **`report`** (diagnose & mechanically nudge only): perform just the safe,
-    idempotent, non-destructive actions — ensure auto-merge is enabled and, if the
+    idempotent, non-destructive actions — ensure auto-merge is enabled (when
+    `auto_merge=true`) and, if the
     PR is `BEHIND` but otherwise clean, run `gh pr update-branch` only when the
     base branch requires strict up-to-date checks. For **anything** that would
     require editing code, resolving threads, or dismissing a review, **do not

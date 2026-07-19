@@ -53,10 +53,18 @@ Post **one** comment on the triggering issue and write **nothing** — zero byte
 
 ```markdown
 <!-- [lisa-learning-drop] key=<fingerprint> -->
-Dropped (<classification>): <reason>.
+Dropped (<classification> — <plain-language gloss>): <reason>.
 ```
 
-The note is one line naming the classification and the reason, readable by a non-technical operator. Dedupe before posting: if any comment on the triggering issue already carries `[lisa-learning-drop] key=<fingerprint>`, do not post again — report the existing note.
+The note is one line naming the classification (with its fixed plain-language gloss) and the reason, readable by a non-technical operator. Use exactly these glosses per class:
+
+| Classification | Gloss |
+|----------------|-------|
+| `one-off` | a one-time fluke, not a recurring pattern |
+| `misunderstanding/spec-gap` | traced to an unclear requirement, not a durable lesson |
+| `lisa-upstream` | root cause is Lisa itself; routed upstream |
+
+(The `lisa-upstream` gloss is used by the handoff note below, not by a drop note.) Dedupe before posting: if any comment on the triggering issue already carries `[lisa-learning-drop] key=<fingerprint>`, do not post again — report the existing note.
 
 ### `handoff-upstream` (classification `lisa-upstream`)
 
@@ -64,7 +72,7 @@ Emit the handoff marker only — file **nothing** (no upstream issue, no local r
 
 ```markdown
 <!-- [lisa-learning-upstream-handoff] key=<fingerprint> -->
-Upstream handoff (lisa-upstream): <reason>. Nothing persisted locally; upstream filing is a separate flow.
+Upstream handoff (lisa-upstream — root cause is Lisa itself; routed upstream): <reason>. Nothing persisted locally; upstream filing is a separate flow.
 ```
 
 Same one-comment marker dedupe on the triggering issue.
@@ -107,6 +115,12 @@ No learning content is ever committed without a PR — there is no other write p
    <"Superseded entry id(s) X, Y: <why they merged>" | "Appended: no related entry exists — <one-line search summary>">
    ```
 
+   For a **low-confidence** PR, the body must additionally end with this fixed decision-framing line so the human at the gate knows exactly what merging means:
+
+   ```markdown
+   **Merge** to adopt this rule into every future session for all six coding agents; **close** to discard it.
+   ```
+
 6. **Confidence routing.**
    - **`high`** → submit through `lisa-git-submit-pr` with its defaults: auto-merge ON, merging through the project's normal gates.
    - **`low`** → submit through `lisa-git-submit-pr` with `auto_merge=false` (drives the PR to green-and-open `awaiting-human`, never merging — even on repos that disallow auto-merge). Then apply the human-triage label, creating it idempotently first (the `lisa-drive-pr-to-merge` label pattern — `|| true` tolerates only already-exists, so verify):
@@ -120,7 +134,7 @@ No learning content is ever committed without a PR — there is no other write p
      gh pr edit <pr> --add-label "learning:needs-triage"
      ```
 
-     A low-confidence PR sitting OPEN with green checks and `autoMergeRequest: null` is this mode's **success** state — a human merges or closes it.
+     A low-confidence PR sitting OPEN with green checks and `autoMergeRequest: null` is this mode's **success** state — a human merges or closes it. All pending low-confidence learning PRs are findable by filtering on the `learning:needs-triage` label (`gh pr list --label "learning:needs-triage"`).
 
 ## Rules
 
