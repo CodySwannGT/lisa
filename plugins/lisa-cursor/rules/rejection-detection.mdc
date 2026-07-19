@@ -38,4 +38,8 @@ Return exactly one of:
 
 An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
 
+## Reflect on a `rejection-reclaim`
+
+On `rejection-reclaim` only, before re-implementing: read the rejection evidence (comments after the backward transition, review threads on the rejected PR) through the access layers, assemble **one** candidate learning with the rejection linked as provenance, and route it to the `lisa-persist-learning` skill. If that skill is absent, record the candidate as a comment marked `<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->` and proceed. **Marker-dedupe** on `<issue>-<backward-transition-timestamp>`: re-claiming twice produces no duplicate. Unreadable/absent evidence → proceed without a candidate, never block.
+
 Full contract (classification table, per-vendor bindings, reflection & evidence handoff): [reference/rejection-detection.md](rejection-detection-reference.mdc).
