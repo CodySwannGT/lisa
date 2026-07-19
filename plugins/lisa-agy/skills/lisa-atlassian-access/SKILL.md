@@ -291,7 +291,8 @@ Substrate column meanings:
 | `write-ticket payload:<P>` (create) | guarded fallback only: `acli jira workitem create --from-json <P>` + response tenant assertion | `mcp__plugin_atlassian_atlassian__createJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue` body=`<P>` |
 | `write-ticket payload:<P>` (edit) | guarded fallback only: `acli jira workitem edit <K> --from-json <P>` + response tenant assertion | `mcp__plugin_atlassian_atlassian__editJiraIssue` | `PUT https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>` body=`<P>` |
 | `transition key:<K> to:<S>` | guarded fallback only: `acli jira workitem transition --key <K> --status "<S>" --yes` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__transitionJiraIssue` | resolve transition id then `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/transitions` |
-| `transitions key:<K>` | (not exposed) | `mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>/transitions` |
+| `transitions key:<K>` — **false friend:** available transitions from current status, **NOT** past history; for history use `changelog` | (not exposed) | `mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>/transitions` |
+| `changelog key:<K>` (read; ordered past status transitions) | (not exposed) | (not exposed) | `GET https://<SITE>/rest/api/3/issue/<K>?expand=changelog` |
 | `comment key:<K> body:<B>` | guarded fallback only: `acli jira workitem comment add --key <K> --body "<B>"` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__addCommentToJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/comment` |
 | `link from:<K> to:<K2> type:<T>` | guarded fallback only: `acli jira workitem link create --in <K> --out <K2> --type "<T>" --yes` + direction and tenant assertion (see direction note) | `mcp__plugin_atlassian_atlassian__createJiraIssueLink` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issueLink` |
 | `remote-links key:<K>` | (not exposed) | `mcp__plugin_atlassian_atlassian__getJiraIssueRemoteIssueLinks` | `GET https://<SITE>/rest/api/3/issue/<K>/remotelink` |
@@ -337,6 +338,16 @@ Operations not in this table are unsupported — add an adapter row before using
 - `write-ticket` payload: full JSON spec when creating; partial JSON (only changed fields, with `key` to identify) when editing. Adapters detect create vs edit by presence of `key`.
 - `write-page` payload: supports a label-only mutation form — `{ "id": "<I>", "labels": { "add": [...], "remove": [...] } }` — so callers transitioning PRD lifecycle labels do not need to resend the page body. Full create/update payloads also accepted.
 - `comment-page` `kind: inline` requires `anchor` (the highlighted text the comment attaches to). `kind: footer` ignores `anchor`.
+
+### `changelog` — transition history (read-only)
+
+`changelog key:<K>` returns the ordered past status transitions of a JIRA issue — the raw material for rejection detection (an issue that reached `review`/`done`-ward and is now back in `ready`). It is distinct from `transitions`, which is a false friend: `transitions` lists the *available* next transitions from the current status, never past ones. `read-ticket` uses `fields=*all`, which does **not** include the changelog — the expansion must be requested explicitly with `?expand=changelog`.
+
+- **Substrate.** The only substrate that exposes the changelog is JIRA REST via the `?expand=changelog` query parameter (a read, so the `<SITE>` gateway is allowed after the token account check). Neither `acli jira workitem view` (a field-projection tool; the changelog is an `expand`, not a field) nor the Atlassian MCP surfaces a changelog expansion, so both are marked `(not exposed)` — do not invent a separate transport, and do not try to reconstruct history from `transitions`.
+- **Shape.** Walk `changelog.histories[].items[]` and keep entries where `field == "status"`; for each emit `{ from, to, when, author }` — `items[].fromString` → `items[].toString`, `histories[].created` (ISO timestamp), `histories[].author.displayName`/`accountId`. Preserve JIRA's oldest→newest ordering.
+- **Empty is valid.** An issue that never transitioned returns an **empty** history — an empty history is a valid result, not an error. Callers treat empty as "never left its initial status".
+- **Pagination / truncation.** The issue-resource changelog (`?expand=changelog`) truncates busy issues (`changelog.maxResults`/`total`/`startAt`). When `total` exceeds what the issue resource returned, page the dedicated endpoint `GET https://<SITE>/rest/api/3/issue/<K>/changelog?startAt=<n>` until `startAt + maxResults >= total`, preserving order across pages. A silently truncated history is a correctness bug for detection.
+- **Graceful degrade — never block the build.** A failed changelog fetch (network, auth, missing substrate) returns the substrate contract's `Error:` result. Callers MUST treat that as **unknown** history and proceed — a history read failure never blocks the build.
 
 ### Step 4 — Return result
 
