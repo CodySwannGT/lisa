@@ -1,4 +1,5 @@
 export * from "./learnings-contract.js";
+export * from "./learnings-projection.js";
 export * from "./learnings-writer.js";
 export {
   DEFAULT_PROJECT_RULES_FILE,
