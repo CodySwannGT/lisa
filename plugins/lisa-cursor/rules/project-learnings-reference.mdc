@@ -25,6 +25,24 @@ Each persisted entry has seven fields:
 - `last_confirmed`
 - `confidence`
 
+## Claim-time confirmation (`last_confirmed`)
+
+`last_confirmed` is advanced at claim time by the build-intake flows (step
+3c.2 of `lisa-{jira,github,linear}-build-intake`) when an entry's rule
+**demonstrably applied** during a claim — the rule was explicitly cited or
+observably followed in the claim's plan or diff. Presence in the eagerly
+loaded context is NOT application: every entry is present in every session,
+so counting mere presence would confirm everything on every claim and defeat
+decay entirely.
+
+The bump goes only through `confirmLearningEntry` from
+`@codyswann/lisa/learnings`: a surgical, lock-protected, atomic write that
+advances only `last_confirmed` (re-validated against the
+`>= first_learned` invariant), returns a structured no-op for a missing
+entry or file instead of throwing, and is idempotent within a claim (a
+same-date repeat returns `unchanged`). A failed bump is reported and never
+blocks the build.
+
 Only entries accepted by the executable contract may influence the session. A
 missing file is expected and silent. Malformed Markdown, invalid JSONL, unsafe
 paths, non-canonical content, or over-budget documents produce one readable
