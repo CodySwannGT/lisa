@@ -235,8 +235,7 @@ describe("Lisa Integration Tests", () => {
         lisaDir,
         "all",
         CREATE_ONLY,
-        ".claude",
-        "rules",
+        LISA_STATE_DIR,
         PROJECT_LEARNINGS
       );
       const overwriteSource = path.join(

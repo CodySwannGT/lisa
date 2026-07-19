@@ -27,7 +27,7 @@ const REQUIRED_TRIGGER_PATHS = [
 
 const LEARNINGS_BUDGET_TRIGGER_PATHS = [
   "scripts/check-learnings-budget.ts",
-  "all/create-only/.claude/rules/PROJECT_LEARNINGS.md",
+  "all/create-only/.lisa/PROJECT_LEARNINGS.md",
   "src/core/**",
   "scripts/clean-dist.mjs",
   "tsconfig.json",
