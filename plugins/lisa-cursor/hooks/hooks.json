@@ -10,6 +10,10 @@
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/shell-write-nudge.sh",
         "matcher": "Bash"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/threshold-ratchet.sh",
+        "matcher": "Edit|Write|NotebookEdit|Bash"
       }
     ],
     "preToolUse": [
