@@ -23,6 +23,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { extractAcTemplate } from "./promotion-contract-helpers.js";
+
 const RULE_PAIR_ROOTS = [
   "plugins/src/base",
   "plugins/lisa",
@@ -48,27 +50,8 @@ const PROJECT_RULES_PATHS = [
   "all/create-only/.claude/rules/PROJECT_RULES.md",
 ] as const;
 
-const AC_TEMPLATE_START = "<!-- promotion-contract-ac-template:start -->";
-const AC_TEMPLATE_END = "<!-- promotion-contract-ac-template:end -->";
-
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
-
-/**
- * Extracts the delimited AC-template snippet from a promotion-contract rule
- * body so the gardener's verbatim embedding can be asserted byte-for-byte.
- * @param body Full markdown body of a promotion-contract reference rule.
- * @returns The template text between the start/end markers, inclusive.
- */
-export function extractAcTemplate(body: string): string {
-  const start = body.indexOf(AC_TEMPLATE_START);
-  const end = body.indexOf(AC_TEMPLATE_END);
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error("promotion-contract AC template markers not found");
-  }
-  const result = body.slice(start, end + AC_TEMPLATE_END.length);
-  return result;
-}
 
 describe.each(RULE_PAIR_ROOTS)("promotion-contract rule pair (%s)", root => {
   const eager = read(path.join(root, "rules/eager/promotion-contract.md"));
