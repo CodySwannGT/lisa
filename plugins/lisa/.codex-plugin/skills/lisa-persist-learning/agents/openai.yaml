@@ -1,0 +1,4 @@
+display_name: "Persist Learning"
+short_description: "a candidate learning (from a…"
+default_prompt:
+  - "Use $lisa-persist-learning: a candidate learning (from a…."
