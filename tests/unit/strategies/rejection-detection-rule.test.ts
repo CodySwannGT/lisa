@@ -83,5 +83,39 @@ describe("rejection-detection rule contract", () => {
         expect(doc).toMatch(/before the (relabel|transition)/i);
       }
     });
+
+    it("routes a candidate learning with provenance into the judgment gate", () => {
+      expect(reference).toContain("lisa-persist-learning");
+      expect(reference).toContain("provenance");
+      expect(reference).toContain("fingerprint");
+      expect(reference).toContain("triggering_issue");
+      expect(reference).toMatch(/sll4-/);
+    });
+
+    it("dedupes candidates by issue + backward-transition timestamp", () => {
+      for (const doc of [eager, reference]) {
+        expect(doc).toContain("[lisa-rejection-candidate]");
+        expect(doc).toMatch(/key=<issue>-<transition-ts>/);
+      }
+      expect(reference).toMatch(
+        /no.*duplicate candidate|not.*produce a duplicate/i
+      );
+    });
+
+    it("degrades gracefully when lisa-persist-learning is absent", () => {
+      expect(reference).toMatch(/unavailable|not installed|absent/i);
+      expect(reference).toMatch(
+        /no candidate produced and the item still implemented/i
+      );
+    });
+
+    it("build-intake arms carry the reflection routing on rejection-reclaim", () => {
+      for (const skill of BUILD_INTAKES) {
+        const doc = read(root, `skills/${skill}/SKILL.md`);
+        expect(doc).toContain("lisa-persist-learning");
+        expect(doc).toContain("[lisa-rejection-candidate]");
+        expect(doc).toMatch(/reflect before re-implementing/i);
+      }
+    });
   });
 });

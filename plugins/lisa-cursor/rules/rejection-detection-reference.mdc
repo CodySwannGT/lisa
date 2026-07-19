@@ -59,3 +59,40 @@ This flow persists learnings via PRs and files upstream issues, so its own artif
 The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
 
 This is the **trigger-side** half of the no-learning-loops guard. The claim-time archaeology path carries the symmetric **scan-side** exclusion ("a learning PR is never treated as an ancestor").
+
+## Reflection at re-claim (`rejection-reclaim` only)
+
+When detection returns `rejection-reclaim`, the build-intake claim phase reflects on the rejection **before re-implementing** — the QA comment describing the defect, the review threads, and any linked failure output are the teaching material. This runs in the `3b`/`3c` claim seam, not in `lisa-implement` (which never sees the claim). On any other classification (`forward-only`, `never-left-ready`, `unknown`) there is nothing to reflect on — proceed to the normal claim.
+
+1. **Read the rejection evidence — through the access layers only** (`integration-access-layer`): the issue/ticket comments posted **after** the backward transition (the QA rejection comment), the review threads on the rejected PR, and any linked failure output. Read via `lisa-github-read-issue` / `lisa-atlassian-access` / `lisa-linear-access` as the vendor dictates — never a direct vendor API call.
+2. **Assemble ONE candidate learning** from that evidence:
+
+   | Field | Content |
+   |---|---|
+   | `rule` | The candidate rule/lesson the rejection teaches. |
+   | `why` | Why it matters — the defect the rejection named. |
+   | `provenance` | The rejection linked as provenance: the issue, the backward transition, the QA comment link, the rejected PR. |
+   | `evidence_links` | The comment / review-thread / failure-output URLs. |
+   | `scope_hint` | Where the learning applies (repo / stack / global). |
+   | `triggering_issue` | The re-claimed item's ref. |
+   | `fingerprint` | `sll4-` + `sha1(<normalized-rule> + "\n" + <triggering_issue>)` truncated to 12 chars (the learning-persistence flow's formula). |
+
+3. **Route the candidate into the judgment gate** via the `lisa-persist-learning` skill (the learning-persistence flow — cite it by name; it ships with that flow, so do not assume its file is present in this branch). Pass the candidate with the rejection as provenance.
+
+### Graceful degrade — `lisa-persist-learning` unavailable
+
+If `lisa-persist-learning` is not installed when reflection runs (e.g. the learning-persistence flow has not merged yet), do **not** fail. Record the candidate as a marked comment on the item and proceed:
+
+```text
+<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->
+```
+
+so a later run (once the skill exists) can pick it up, and the build still proceeds to implement the item.
+
+### Idempotency — marker dedupe
+
+The candidate marker key is `<issue>-<backward-transition-timestamp>` (the ISO timestamp of the backward transition that produced the rejection). Reuse the marker-dedupe discipline from `lisa-github-write-prd` Phase 2 — search for an existing candidate carrying this exact key before producing one; **match on the marker, never the title**. Re-claiming the same rejected item twice must **not** produce a duplicate candidate: the second run finds the existing marker and short-circuits. The backward-transition timestamp (not "now") makes the key stable across re-claims of the same rejection.
+
+### Never block the build
+
+Unreadable or absent rejection evidence (no comment, deleted PR) ends with **no candidate produced and the item still implemented** — degraded, not stopped. Reflection is layered on top of the claim; it never gates it.
