@@ -15,6 +15,7 @@ import {
   type LearningConfidence,
   type LearningEntry,
 } from "./learnings-contract.js";
+import { renderLearningsFile } from "./learnings-document.js";
 
 /** The bounded slice the contract serves, plus how many entries it dropped. */
 export interface LearningsProjection {
@@ -31,6 +32,18 @@ const CONFIDENCE_RANK: Readonly<Record<LearningConfidence, number>> =
     medium: 2,
     low: 1,
   });
+
+/**
+ * Byte cost of the canonical document wrapper — the header, the JSONL code
+ * fences, and their separators — measured once from an empty render. The serving
+ * slice must fit inside the same budget the on-disk document is checked against,
+ * so this fixed overhead is subtracted from `maxTokens` before entries are
+ * accumulated. Deterministic: `renderLearningsFile([])` has no entry bytes.
+ */
+const DOCUMENT_WRAPPER_TOKENS = estimateLearningTokens(renderLearningsFile([]));
+
+/** Byte cost of the single `\n` that joins one rendered entry to the previous. */
+const ENTRY_SEPARATOR_TOKENS = estimateLearningTokens("\n");
 
 /** Running state threaded through the greedy budget accumulation. */
 interface ProjectionAccumulator {
@@ -59,17 +72,28 @@ function compareForProjection(
   if (left.last_confirmed !== right.last_confirmed) {
     return left.last_confirmed < right.last_confirmed ? 1 : -1;
   }
-  return left.id.localeCompare(right.id);
+  // Codepoint comparison (not localeCompare) so the tiebreak is deterministic
+  // and locale-independent across every runtime that serves the projection.
+  if (left.id === right.id) {
+    return 0;
+  }
+  return left.id < right.id ? -1 : 1;
 }
 
 /**
  * Compute the bounded serving projection: the top entries by
  * {@link compareForProjection} accumulated in priority order until the next
- * entry would exceed either the entry-count or the estimated-token budget, at
- * which point accumulation stops (a greedy priority prefix, never skipping a
- * high-priority entry to fit a lower-priority one). Per-entry token cost is the
- * conservative byte-length upper bound of the entry's canonical JSONL rendering,
- * matching how the document itself is serialized.
+ * entry would exceed either the entry-count or the token budget, at which point
+ * accumulation stops (a greedy priority prefix, never skipping a high-priority
+ * entry to fit a lower-priority one).
+ *
+ * Token accounting mirrors the on-disk document exactly: the fixed document
+ * wrapper ({@link DOCUMENT_WRAPPER_TOKENS} — header + JSONL fences) is subtracted
+ * from `maxTokens` once, and each entry costs the byte length of its canonical
+ * `JSON.stringify` rendering plus, for every entry after the first, the single
+ * `\n` that joins it to the previous line. So `kept.tokens + wrapper` equals the
+ * byte length of `renderLearningsFile(projection.entries)`, the same quantity the
+ * budget gate measures.
  * @param entries - Validated learning entries (any order)
  * @returns The served slice and the count of entries it omitted
  */
@@ -77,21 +101,25 @@ export function projectLearnings(
   entries: readonly LearningEntry[]
 ): LearningsProjection {
   const ordered = [...entries].sort(compareForProjection);
+  const entryBudget = LEARNINGS_CONTRACT.maxTokens - DOCUMENT_WRAPPER_TOKENS;
   const accumulated = ordered.reduce<ProjectionAccumulator>(
     (accumulator, entry) => {
       if (accumulator.stopped) {
         return accumulator;
       }
-      const entryTokens = estimateLearningTokens(JSON.stringify(entry));
+      const separator =
+        accumulator.kept.length === 0 ? 0 : ENTRY_SEPARATOR_TOKENS;
+      const incremental =
+        separator + estimateLearningTokens(JSON.stringify(entry));
       if (
         accumulator.kept.length >= LEARNINGS_CONTRACT.maxEntries ||
-        accumulator.tokens + entryTokens > LEARNINGS_CONTRACT.maxTokens
+        accumulator.tokens + incremental > entryBudget
       ) {
         return { ...accumulator, stopped: true };
       }
       return {
         kept: [...accumulator.kept, entry],
-        tokens: accumulator.tokens + entryTokens,
+        tokens: accumulator.tokens + incremental,
         stopped: false,
       };
     },
