@@ -23,6 +23,7 @@ operation: get-issue id:<ID>
 operation: save-issue payload:{...}
 operation: list-comments issue_id:<ID>
 operation: save-comment issue_id:<ID> body:"..."
+operation: history id:<ID>
 operation: list-issue-labels [team:<ID>]
 operation: create-issue-label payload:{...}
 operation: list-project-labels
@@ -80,6 +81,59 @@ linear_graphql() {
 
 Map operation names to Linear GraphQL queries/mutations in this access skill.
 Consumers pass business-shaped arguments only; they do not embed GraphQL.
+
+## `history` — transition history (read-only)
+
+`history id:<ID>` returns an Issue's ordered past state changes — the raw
+material for rejection detection (an Issue that reached a `review`/`done`-ward
+state and is now back in `ready`). `IssueHistory` is reachable today through the
+existing `linear_graphql` adapter but was **not** in the documented contract; an
+undocumented-but-reachable capability is not exposed, so it now appears in the
+Invocation Contract above. Reuse the existing adapter — this is a
+contract/surface change, not a new transport (the `integration-access-layer`
+rule forbids consumers from reaching around the layer).
+
+Query through `linear_graphql` (oldest→newest; page `history(first:…, after:…)`
+via `pageInfo` for busy Issues so history never silently truncates):
+
+```graphql
+query($id:String!){
+  issue(id:$id){
+    history(first:100){
+      pageInfo{hasNextPage endCursor}
+      nodes{
+        createdAt
+        fromState{name type}
+        toState{name type}
+        actor{name}
+        addedLabelIds
+        removedLabelIds
+      }
+    }
+  }
+}
+```
+
+- **Shape.** For each node emit `{ from, to, when, who }` — `fromState.name` →
+  `toState.name`, `createdAt` (ISO timestamp), `actor.name`. Nodes with no
+  `fromState`/`toState` are non-state edits (label-only, assignee, etc.); keep
+  them for the label stream, skip them for workflow-state ordering.
+- **Label history (honest caveat).** Linear's build lanes are **label-driven**
+  (`lisa-linear-build-intake` keys the queue on `status:*` labels), so label
+  moves matter as much as workflow-state moves. `IssueHistory` carries label
+  changes as `addedLabelIds` / `removedLabelIds` — arrays of label **IDs**, not
+  names. It does **not** inline label names, and it does not carry the label's
+  full prior/next set — only the per-event deltas. Resolve IDs → names by
+  cross-referencing `list-issue-labels`. Do not overclaim: a caller that needs
+  `status:*` label transitions reconstructs them from the ID deltas plus the
+  label catalog, not from an inline name on the history node.
+- **Empty is valid.** An Issue that never changed state returns an **empty**
+  history — an empty history is a valid result, not an error.
+- **Graceful degrade — never block the build.** A failed history fetch returns
+  the layer's `Error:` result. Callers MUST treat that as **unknown** history
+  and proceed — a history read failure never blocks the build. MCP cannot reach
+  `IssueHistory`, so the `history` operation resolves only through the
+  `LINEAR_API_KEY` GraphQL substrate; without it, the result is unknown.
 
 ## Invariants
 
