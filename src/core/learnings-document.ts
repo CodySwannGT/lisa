@@ -91,8 +91,12 @@ function validateParsedLearningEntry(
     return validateLearningEntry(candidate);
   } catch (error) {
     const id = readDiagnosticEntryId(candidate);
-    const label =
-      id === undefined ? `entry ${index + 1}` : `entry ${JSON.stringify(id)}`;
+    // Single-quote the id rather than JSON.stringify it: the message is later
+    // rendered through a JSON-body escaper for terminal safety, which would
+    // double-escape embedded double quotes into `\"id\"`. Single quotes read
+    // cleanly and are not re-escaped, while control-character neutralization
+    // still happens downstream.
+    const label = id === undefined ? `entry ${index + 1}` : `entry '${id}'`;
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(`Invalid learning ${label}: ${detail}`);
   }

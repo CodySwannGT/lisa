@@ -92,8 +92,35 @@ export async function checkLearningsBudget(
     const detail = formatErrorDetail(error);
     return isFileNotFound(error)
       ? { kind: "missing", detail }
-      : { kind: "violation", detail };
+      : { kind: "violation", detail: withRemediation(detail, file) };
   }
+}
+
+/**
+ * Append a terse, actionable remediation clause to a file-level budget breach
+ * so an operator reading CI output learns the fix, not just the number. Only
+ * the whole-file budgets (token ceiling, entry count, canonical format) are
+ * augmented; per-entry validation failures already name the offending entry
+ * and are left verbatim, as are non-budget filesystem errors.
+ * @param detail - Terminal-safe diagnostic detail
+ * @param file - Absolute learnings file path
+ * @returns The detail, with a remediation clause when one applies
+ */
+function withRemediation(detail: string, file: string): string {
+  if (detail.startsWith("Invalid learning entry")) {
+    return detail;
+  }
+  const target = formatDiagnosticPath(file);
+  if (detail.includes("maxEntries")) {
+    return `${detail} — consolidate or remove entries in ${target} to fit the learnings budget`;
+  }
+  if (detail.includes("maxTokens")) {
+    return `${detail} — shorten or remove entries in ${target} to fit the learnings budget`;
+  }
+  if (detail.includes("canonical") || detail.includes("format")) {
+    return `${detail} — re-generate ${target} with the learnings writer to restore the canonical format`;
+  }
+  return detail;
 }
 
 /**

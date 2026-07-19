@@ -4,9 +4,9 @@
  *
  * This is the delivery vehicle that carries the budget gate (built into Lisa's
  * core) out to every host project's CI: the Lisa-managed reusable quality
- * workflow runs `bunx @codyswann/lisa check-learnings-budget`, which resolves
- * the project's learnings file from `.lisa.config.json` and checks it against
- * the shared contract. The learnings path is ALWAYS resolved through the
+ * workflow invokes this command with `bunx`, which resolves the project's
+ * learnings file from `.lisa.config.json` and checks it against the shared
+ * contract. The learnings path is ALWAYS resolved through the
  * executable config resolver — never hardcoded — so a project that relocates
  * its rules directory is still gated at the right file. A project with no
  * learnings file is the common, expected case and passes silently (exit 0), so
