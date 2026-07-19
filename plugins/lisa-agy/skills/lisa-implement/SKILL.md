@@ -49,6 +49,8 @@ The team lead does NOT read the input directly. The first task on the team's pla
 
 The input resolver is the only teammate that may be spawned before the Roster Decision exists. After it returns the resolved input, do not spawn any lifecycle, research, implementation, review, verification, or learning teammate until the Roster Decision has been recorded.
 
+**Rejection evidence in the claim handoff.** When this flow was dispatched from a build-intake claim that classified the item as a `rejection-reclaim` (per the `rejection-detection` rule), the context bundle carries a **rejection evidence summary** (what was rejected, the defect the QA comment named, the approach named as wrong). The plan MUST explicitly address that rejection evidence and MUST NOT re-propose the specific approach the rejection named as wrong — a bounced item must come back fixed, not re-bounced. `lisa-implement` cannot fetch this itself (it never sees the claim); it consumes what the handoff carries. Absence of rejection evidence never blocks — plan and implement normally.
+
 ## Select the agent roster
 
 Before spawning any teammate beyond the bounded input resolver, record a **Roster Decision** artifact. It must enumerate every agent or specialist type exposed by the current runtime's delegation tool and record one line per type:
