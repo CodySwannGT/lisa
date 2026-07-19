@@ -70,7 +70,7 @@ Do not spawn a teammate whose agent type is not included in the recorded Roster 
 When deciding the agents to use, consider:
 * Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
 * Each task must be reviewed by the team to make sure their verification passes.
-* Each task must have their learnings reviewed by the learner subagent.
+* Each task must have their learnings captured to the ledger by the learner subagent.
 
 Using the general-purpose agent in Team Lead session, Determine the name of this plan
 
@@ -183,7 +183,7 @@ Each task must be reviewed by the team to make sure their verification passes.
 
 Before marking a task complete, the implementing agent records concise MLD into `metadata.learnings` — mistakes (errors in its own trajectory), learnings (environment facts it discovered the hard way), and desires (context or tools it wished it had). Empty (`learnings: []`) is a valid result: never re-prompt for content, and never grade or score self-reports — a scored MLD would reward plausible self-commentary over good outcomes.
 
-Each task must have their learnings reviewed by the learner subagent.
+Each task must have their learnings captured to the ledger by the learner subagent.
 
 Before shutting down the team, execute the Verify flow:
 
