@@ -49,10 +49,14 @@ For the files the issue implicates (named in the body, or inferred from the simi
 ```bash
 git log --follow --format='%H %aI %s' -n 5 -- <file>   # last commits touching the file
 git blame -L <range> --line-porcelain <file>            # who last shipped the implicated lines
-git log --merges --grep "Merge pull request #" --format='%H %aI %s' -n 5 -- <file>  # the merge PR
+# The PR that shipped the file. --full-history is required: path-limited git log
+# simplifies away merge commits by default, silently dropping the merge-PR answer.
+# Two --grep patterns (OR'd) cover both merge conventions: classic merge commits
+# ("Merge pull request #<n>") and squash/rebase merges (subject ending "(#<n>)").
+git log --full-history --grep "Merge pull request #" --grep "(#[0-9]\+)" --format='%H %aI %s' -n 5 -- <file>
 ```
 
-Keep the result **parseable**: a `{file, sha, pr, date}` tuple per implicated file (PR number extracted from the `Merge pull request #<n>` subject; empty when the history has no merge-PR convention). The PR maps back to its issue via `closingIssuesReferences` / the PR body's issue reference.
+Keep the result **parseable**: a `{file, sha, pr, date}` tuple per implicated file (PR number extracted from the subject — `Merge pull request #<n>` for merge commits, the trailing `(#<n>)` for squash/rebase merges; empty when the history matches neither convention). The PR maps back to its issue via `closingIssuesReferences` / the PR body's issue reference.
 
 **Do NOT delegate this to the `git-history-analyzer` agent.** That agent can answer the question, but it returns a **prose report with no machine-readable contract** (nothing downstream can reliably parse it), it is explicitly forbidden from judging past decisions, and it reads the local repo only. For programmatic claim-time archaeology, run the deterministic query directly and keep the `{file, sha, pr, date}` result.
 
@@ -97,14 +101,14 @@ Same fallback pattern as the rejection path, with this rule's own distinct marke
 
 ```text
 Recorded a candidate learning from this retry's ancestry (queued for the judgment gate): <one-line candidate rule>.
-<!-- [lisa-archaeology-candidate] key=<issue>-<ancestor> -->
+<!-- [lisa-archaeology-candidate] key=<issue>::<ancestor> -->
 ```
 
 The marker line is verbatim — the dedupe contract keys on it, not on the prose.
 
 ### Idempotency — marker dedupe
 
-The key is `<issue>-<ancestor>` (the claimed item's ref plus the ancestor's ref — stable across re-claims of the same pair). Before producing a candidate, search for an existing `[lisa-archaeology-candidate]` comment/artifact carrying this exact key — match on the **marker, never the title** (the `lisa-github-write-prd` Phase 2 discipline). Re-claiming an issue whose archaeology already ran finds the marker and short-circuits: **no duplicate candidate**, ever.
+The key is `<issue>::<ancestor>` (the claimed item's ref, `::`, the ancestor's ref — the `::` separator keeps the key unambiguous when vendor refs themselves contain hyphens, e.g. `PROJ-123`; it is stable across re-claims of the same pair). Before producing a candidate, search for an existing `[lisa-archaeology-candidate]` comment/artifact carrying this exact key — match on the **marker, never the title** (the `lisa-github-write-prd` Phase 2 discipline). Dedupe is per **(issue, ancestor) pair**: re-claiming an issue whose archaeology already resolved the same ancestor finds the marker and short-circuits — no duplicate candidate for that pair. A re-claim that resolves a **different** ancestor is new evidence and may legitimately produce a second candidate under its own key — that is intended, not a dedupe failure.
 
 ### `fresh` produces silence
 
