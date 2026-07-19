@@ -83,29 +83,62 @@ describe.each(SKILL_ROOTS)("distributed F5 contract (%s)", skillRoot => {
 });
 
 describe.each(SKILL_ROOTS)("distributed doctor history contract (%s)", root => {
+  // #1582 extracted the upstream-history procedure out of lisa-doctor into the
+  // shared, event-triggered lisa-attribute-failure skill. The #1622 hardening
+  // contract now binds wherever the procedure lives; doctor must delegate.
+  const attribution = read(`${root}/lisa-attribute-failure/SKILL.md`);
   const doctor = read(`${root}/lisa-doctor/SKILL.md`);
 
   it("retains commit identity and targeted diff context", () => {
-    expect(doctor).toContain("--paginate --slurp |");
-    expect(doctor).toMatch(/jq '\{total_commits:/);
-    expect(doctor).not.toMatch(/--slurp \\\n\s+--jq/);
-    expect(doctor).toContain("commits: [.[].commits[]? | {sha, subject:");
-    expect(doctor).toContain("repos/CodySwannGT/lisa/commits/<sha>");
-    expect(doctor).toMatch(
+    expect(attribution).toContain("--paginate --slurp |");
+    expect(attribution).toMatch(/jq '\{total_commits:/);
+    expect(attribution).not.toMatch(/--slurp \\\n\s+--jq/);
+    expect(attribution).toContain("commits: [.[].commits[]? | {sha, subject:");
+    expect(attribution).toContain("repos/CodySwannGT/lisa/commits/<sha>");
+    expect(attribution).toMatch(
       /filename, status, additions, deletions, changes, patch/
     );
-    expect(doctor).toMatch(/rather than attributing from the subject alone/);
+    expect(attribution).toMatch(
+      /rather than attributing from the subject alone/
+    );
   });
 
   it("uses a finite, explicit-ref history fallback", () => {
-    expect(doctor).toMatch(/fetch --no-tags --filter=blob:none --depth=256/);
-    expect(doctor).toContain('lisa_history_dir="$(mktemp -d)"');
-    expect(doctor).toContain("refs/tags/v<installed>:refs/tags/v<installed>");
-    expect(doctor).toContain("refs/tags/v<latest>:refs/tags/v<latest>");
-    expect(doctor).toMatch(/merge-base --is-ancestor/);
-    expect(doctor).toMatch(/Do not\s+silently deepen beyond that ceiling/);
-    expect(doctor).not.toContain("git clone --filter=blob:none --no-checkout");
-    expect(doctor).not.toContain("shallow-clone");
+    expect(attribution).toMatch(
+      /fetch --no-tags --filter=blob:none --depth=256/
+    );
+    expect(attribution).toContain('lisa_history_dir="$(mktemp -d)"');
+    expect(attribution).toContain(
+      "refs/tags/v<installed>:refs/tags/v<installed>"
+    );
+    expect(attribution).toContain("refs/tags/v<latest>:refs/tags/v<latest>");
+    expect(attribution).toMatch(/merge-base --is-ancestor/);
+    expect(attribution).toMatch(/Do not\s+silently deepen beyond that ceiling/);
+    expect(attribution).not.toContain(
+      "git clone --filter=blob:none --no-checkout"
+    );
+    expect(attribution).not.toContain("shallow-clone");
+  });
+
+  it("returns the event-triggered verdict vocabulary with cited evidence", () => {
+    expect(attribution).toMatch(/`lisa` \| `project` \| `ambiguous`/);
+    expect(attribution).toMatch(/event-triggered, not version-window-keyed/);
+    expect(attribution).toMatch(/never let a degraded history produce `lisa`/);
+    expect(attribution).toMatch(/ambiguous stays local and low-confidence/i);
+  });
+
+  it("keeps doctor's diagnosis as a thin delegation without regressing it", () => {
+    expect(doctor).toContain("### Upstream Lisa change-history diagnosis");
+    expect(doctor).toMatch(
+      /distinguish them instead of blaming the\s+project by default/
+    );
+    expect(doctor).toContain("lisa-attribute-failure");
+    expect(doctor).toMatch(/Resolve the version window/);
+    expect(doctor).toMatch(/`lisa` \| `project` \| `ambiguous`/);
+    expect(doctor).toMatch(
+      /never fail the audit\s+because history was unavailable/
+    );
+    expect(doctor).toMatch(/read-only contract/);
   });
 });
 
