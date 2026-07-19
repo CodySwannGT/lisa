@@ -5,6 +5,7 @@ import { getPackageVersion } from "../../../src/cli/version.js";
 import type { UpdateCheckResult } from "../../../src/cli/update-check.js";
 
 const DEST = "./sample-proj";
+const CHECK_BUDGET_COMMAND = "check-learnings-budget";
 
 const SKIPPED_RESULT: UpdateCheckResult = {
   current: "0.0.0",
@@ -28,6 +29,7 @@ function createTestProgram(): {
   runDoctor: ReturnType<typeof vi.fn>;
   runSync: ReturnType<typeof vi.fn>;
   runUi: ReturnType<typeof vi.fn>;
+  runCheckLearningsBudget: ReturnType<typeof vi.fn>;
   runUpdateCheck: ReturnType<typeof vi.fn>;
   printUpdateWarning: ReturnType<typeof vi.fn>;
 } {
@@ -39,6 +41,7 @@ function createTestProgram(): {
   const runDoctor = vi.fn(async () => ({ checks: [] }));
   const runSync = vi.fn(async () => 0);
   const runUi = vi.fn(async () => ({}) as Server);
+  const runCheckLearningsBudget = vi.fn(async () => 0);
   const runUpdateCheck = vi.fn(async () => SKIPPED_RESULT);
   const printUpdateWarning = vi.fn();
   const program = createProgram({
@@ -50,6 +53,7 @@ function createTestProgram(): {
     runDoctor,
     runSync,
     runUi,
+    runCheckLearningsBudget,
     runUpdateCheck,
     printUpdateWarning,
   }).exitOverride();
@@ -63,6 +67,7 @@ function createTestProgram(): {
     runDoctor,
     runSync,
     runUi,
+    runCheckLearningsBudget,
     runUpdateCheck,
     printUpdateWarning,
   };
@@ -296,6 +301,45 @@ describe("sync and ui invocation", () => {
     const { program, runUpdateCheck } = createTestProgram();
 
     await program.parseAsync(["sync", DEST], { from: "user" });
+
+    expect(runUpdateCheck).not.toHaveBeenCalled();
+  });
+});
+
+describe("check-learnings-budget invocation", () => {
+  it("registers the check-learnings-budget subcommand", () => {
+    const { program } = createTestProgram();
+    const subcommandNames = program.commands.map(command => command.name());
+    expect(subcommandNames).toContain(CHECK_BUDGET_COMMAND);
+  });
+
+  it("routes the optional path argument to runCheckLearningsBudget", async () => {
+    const { program, runCheckLearningsBudget } = createTestProgram();
+
+    await program.parseAsync(
+      [CHECK_BUDGET_COMMAND, "custom/PROJECT_LEARNINGS.md"],
+      { from: "user" }
+    );
+
+    expect(runCheckLearningsBudget).toHaveBeenCalledTimes(1);
+    expect(runCheckLearningsBudget.mock.calls[0][0]).toBe(
+      "custom/PROJECT_LEARNINGS.md"
+    );
+  });
+
+  it("routes the no-argument form to runCheckLearningsBudget with undefined", async () => {
+    const { program, runCheckLearningsBudget } = createTestProgram();
+
+    await program.parseAsync([CHECK_BUDGET_COMMAND], { from: "user" });
+
+    expect(runCheckLearningsBudget).toHaveBeenCalledTimes(1);
+    expect(runCheckLearningsBudget.mock.calls[0][0]).toBeUndefined();
+  });
+
+  it("does not run the update check for check-learnings-budget", async () => {
+    const { program, runUpdateCheck } = createTestProgram();
+
+    await program.parseAsync([CHECK_BUDGET_COMMAND], { from: "user" });
 
     expect(runUpdateCheck).not.toHaveBeenCalled();
   });
