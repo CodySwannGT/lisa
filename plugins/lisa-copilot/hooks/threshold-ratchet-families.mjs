@@ -138,8 +138,11 @@ export function extractRubocopThresholds(text, direction) {
     const colon = line.indexOf(":");
     if (!indented || colon < 0 || !state.section) continue;
     const key = line.slice(0, colon).trim();
-    const value = Number(line.slice(colon + 1).trim());
-    if (key && Number.isFinite(value)) {
+    const rawValue = line.slice(colon + 1).trim();
+    // Number("") is 0, so an empty value (e.g. a nested `Exclude:` list
+    // header) must be skipped, not recorded as a zero threshold.
+    const value = Number(rawValue);
+    if (key && rawValue !== "" && Number.isFinite(value)) {
       out.set(`${state.section}.${key}`, { value, direction });
     }
   }
@@ -201,14 +204,16 @@ export function parseK6Expression(expr) {
 
 /**
  * Extract constraints from a k6 thresholds file. Each metric contributes its
- * expression bound plus (when present) an `abortOnFail` boolean constraint —
+ * expression bound(s) plus (when present) `abortOnFail` boolean constraints —
  * turning abortOnFail off makes the gate advisory, which is a weakening.
+ * Handles every documented k6 shape: a bare expression string, a single long
+ * form `{ threshold, abortOnFail }` object, and arrays mixing both.
  * @param {unknown} conf Parsed k6 thresholds JSON
  * @returns {{
  *   numeric: Map<string, { value: number, direction: "min"|"max" }>,
  *   booleans: Map<string, boolean>,
  * }} Numeric bounds keyed by `<metric>.threshold[i]` and abortOnFail flags
- *   keyed by `<metric>.abortOnFail`
+ *   keyed by `<metric>.abortOnFail` (`[i]`-suffixed for array items)
  */
 export function extractK6Constraints(conf) {
   const numeric = new Map();
@@ -216,26 +221,31 @@ export function extractK6Constraints(conf) {
   const thresholds = conf?.thresholds;
   if (thresholds && typeof thresholds === "object") {
     for (const [metric, spec] of Object.entries(thresholds)) {
-      const exprs =
-        typeof spec === "string"
-          ? [spec]
-          : Array.isArray(spec)
-            ? spec
-            : typeof spec?.threshold === "string"
-              ? [spec.threshold]
-              : [];
-      exprs.forEach((expr, i) => {
-        const c = parseK6Expression(expr);
-        if (c) numeric.set(`${metric}.threshold[${i}]`, c);
+      const isArray = Array.isArray(spec);
+      const items = isArray ? spec : [spec];
+      items.forEach((item, i) => {
+        const expr =
+          typeof item === "string"
+            ? item
+            : item && typeof item === "object" && !Array.isArray(item)
+              ? item.threshold
+              : undefined;
+        if (typeof expr === "string") {
+          const c = parseK6Expression(expr);
+          if (c) numeric.set(`${metric}.threshold[${i}]`, c);
+        }
+        if (
+          item &&
+          typeof item === "object" &&
+          !Array.isArray(item) &&
+          typeof item.abortOnFail === "boolean"
+        ) {
+          booleans.set(
+            isArray ? `${metric}.abortOnFail[${i}]` : `${metric}.abortOnFail`,
+            item.abortOnFail
+          );
+        }
       });
-      if (
-        spec &&
-        typeof spec === "object" &&
-        !Array.isArray(spec) &&
-        typeof spec.abortOnFail === "boolean"
-      ) {
-        booleans.set(`${metric}.abortOnFail`, spec.abortOnFail);
-      }
     }
   }
   return { numeric, booleans };
