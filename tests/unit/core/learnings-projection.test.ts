@@ -12,6 +12,7 @@ import {
   type LearningConfidence,
   type LearningEntry,
 } from "../../../src/core/learnings-contract.js";
+import { renderLearningsFile } from "../../../src/core/learnings-document.js";
 import { projectLearnings } from "../../../src/core/learnings-projection.js";
 
 /** Shared baseline ISO date used wherever the fixture value is irrelevant. */
@@ -104,7 +105,7 @@ describe("projectLearnings", () => {
     expect(projection.entries[0]?.id).toBe("id-000");
   });
 
-  it("stops accumulating once the next entry would exceed maxTokens", () => {
+  it("keeps the served slice within maxTokens accounting for the document wrapper", () => {
     // Each big entry's rendered JSON is a large, deterministic byte count.
     const bigRule = "x".repeat(200);
     const perEntryTokens = estimateLearningTokens(
@@ -121,13 +122,40 @@ describe("projectLearnings", () => {
 
     const projection = projectLearnings(entries);
 
-    const renderedTokens = projection.entries.reduce(
-      (sum, entry) => sum + estimateLearningTokens(JSON.stringify(entry)),
-      0
+    // The ACTUAL serialized document — wrapper, fences, and join separators
+    // included — must fit the budget, not just the bare sum of entry bytes.
+    const renderedDocumentTokens = estimateLearningTokens(
+      renderLearningsFile([...projection.entries])
     );
-    expect(renderedTokens).toBeLessThanOrEqual(LEARNINGS_CONTRACT.maxTokens);
+    expect(renderedDocumentTokens).toBeLessThanOrEqual(
+      LEARNINGS_CONTRACT.maxTokens
+    );
     expect(projection.entries.length).toBeLessThan(count);
     expect(projection.omittedCount).toBe(count - projection.entries.length);
+  });
+
+  it("stops at the first budget-busting entry and omits smaller ones after it (stop, not skip)", () => {
+    // All entries share confidence + date, so id ascending fixes the order.
+    const smallRule = "s";
+    const hugeRule = "H".repeat(LEARNINGS_CONTRACT.maxTokens);
+    const entries = [
+      makeEntry("id-00", { rule: smallRule, confidence: "high" }),
+      makeEntry("id-01", { rule: smallRule, confidence: "high" }),
+      // Mid-order entry that alone blows the entire token budget.
+      makeEntry("id-02", { rule: hugeRule, confidence: "high" }),
+      // A tiny entry that WOULD fit if the projection skipped id-02 — it must
+      // be omitted anyway, because accumulation stops at the first overflow.
+      makeEntry("id-03", { rule: smallRule, confidence: "high" }),
+    ];
+
+    const projection = projectLearnings(entries);
+
+    expect(projection.entries.map(entry => entry.id)).toEqual([
+      "id-00",
+      "id-01",
+    ]);
+    expect(projection.entries.some(entry => entry.id === "id-03")).toBe(false);
+    expect(projection.omittedCount).toBe(2);
   });
 
   it("is pure — it neither mutates nor reorders the caller's array", () => {
