@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.237.0](https://github.com/CodySwannGT/lisa/compare/v2.236.0...v2.237.0) (2026-07-19)
+
+
+### Features
+
+* **cli:** add lisa check-learnings-budget subcommand ([4c88fa4](https://github.com/CodySwannGT/lisa/commit/4c88fa46fe2309cef1c65452dc3c9b0b0074dc25)), closes [#1581](https://github.com/CodySwannGT/lisa/issues/1581) [#1561](https://github.com/CodySwannGT/lisa/issues/1561)
+
+
+### Bug Fixes
+
+* **learnings:** teach remediation and fix double-escaped entry id ([9a9a566](https://github.com/CodySwannGT/lisa/commit/9a9a566999ff3819af990b5ad067ef1dac3a81e5)), closes [#1581](https://github.com/CodySwannGT/lisa/issues/1581) [#1561](https://github.com/CodySwannGT/lisa/issues/1561)
+
+
+### Code Refactoring
+
+* **learnings:** extract reusable budget check into core ([eb0f06f](https://github.com/CodySwannGT/lisa/commit/eb0f06f4ca5ec622439f0ee41a7cd418616a7377)), closes [#1581](https://github.com/CodySwannGT/lisa/issues/1581) [#1581](https://github.com/CodySwannGT/lisa/issues/1581) [#1561](https://github.com/CodySwannGT/lisa/issues/1561)
+
 ## [2.236.0](https://github.com/CodySwannGT/lisa/compare/v2.235.0...v2.236.0) (2026-07-18)
 
 
