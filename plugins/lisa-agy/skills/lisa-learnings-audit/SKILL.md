@@ -224,7 +224,7 @@ Before filing anything, search the tracker for the marker in
 a hash discrepancy can never cause a duplicate for the same surface:
 
 ```bash
-gh search issues "[lisa-gardener] key=<surface>" --state all
+gh search issues "[lisa-gardener] key=<surface>" --repo <upstream-or-tracker-repo> # searches open AND closed by default; --state all is NOT a valid gh search flag
 ```
 
 plus a body-enumeration fallback for search-index lag (`gh issue list …
