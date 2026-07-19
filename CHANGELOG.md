@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.238.0](https://github.com/CodySwannGT/lisa/compare/v2.237.0...v2.238.0) (2026-07-19)
+
+
+### Features
+
+* **agents:** add learning-judge hostile-default judgment gate ([fd8ecd6](https://github.com/CodySwannGT/lisa/commit/fd8ecd61475cf63a9aea43b40de8894116d3a944)), closes [CodySwannGT/lisa#1589](https://github.com/CodySwannGT/lisa/issues/1589)
+* **core:** add supersede-capable consolidated learnings write ([c32ea39](https://github.com/CodySwannGT/lisa/commit/c32ea39ac6b4e1aeda36f4e42b192d09a6a7b692)), closes [CodySwannGT/lisa#1592](https://github.com/CodySwannGT/lisa/issues/1592)
+* **skills:** add auto_merge input to drive-pr-to-merge and git-submit-pr ([b179d2d](https://github.com/CodySwannGT/lisa/commit/b179d2d758913ea730ed335cad30b786b9e91856)), closes [CodySwannGT/lisa#1588](https://github.com/CodySwannGT/lisa/issues/1588)
+* **skills:** add lisa-persist-learning routing skill and command ([97c6b37](https://github.com/CodySwannGT/lisa/commit/97c6b37770a71a77acad45ec3035079aa949b9a3)), closes [CodySwannGT/lisa#1590](https://github.com/CodySwannGT/lisa/issues/1590) [CodySwannGT/lisa#1591](https://github.com/CodySwannGT/lisa/issues/1591) [CodySwannGT/lisa#1592](https://github.com/CodySwannGT/lisa/issues/1592)
+
+
+### Bug Fixes
+
+* **core:** export readProjectConfig from the learnings barrel ([0636726](https://github.com/CodySwannGT/lisa/commit/06367263c34a694eaf11967bddd4b40c65169c9a)), closes [CodySwannGT/lisa#1591](https://github.com/CodySwannGT/lisa/issues/1591) [CodySwannGT/lisa#1592](https://github.com/CodySwannGT/lisa/issues/1592)
+* **skills:** harden auto_merge=false disarm and report-mode scope ([c30872b](https://github.com/CodySwannGT/lisa/commit/c30872b578752f6fe5850e8bb0b497a0a57a520b)), closes [#1748](https://github.com/CodySwannGT/lisa/issues/1748) [CodySwannGT/lisa#1588](https://github.com/CodySwannGT/lisa/issues/1588)
+
+
+### Documentation
+
+* **skills:** apply review feedback to persist-learning and drive-pr prose ([4e63aeb](https://github.com/CodySwannGT/lisa/commit/4e63aebf76be4cf9db4a15e8cdd26b163b6bee6a)), closes [CodySwannGT/lisa#1588](https://github.com/CodySwannGT/lisa/issues/1588) [CodySwannGT/lisa#1590](https://github.com/CodySwannGT/lisa/issues/1590) [CodySwannGT/lisa#1591](https://github.com/CodySwannGT/lisa/issues/1591)
+
 ## [2.237.0](https://github.com/CodySwannGT/lisa/compare/v2.236.0...v2.237.0) (2026-07-19)
 
 
