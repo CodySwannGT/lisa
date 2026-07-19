@@ -93,8 +93,7 @@ import {
 const HOST_OWNED_LABEL = "already present (host-owned)";
 const CREATE_ONLY_STRATEGY = "create-only" as const;
 const PROJECT_LEARNINGS_TEMPLATE_PATH = path.join(
-  ".claude",
-  "rules",
+  ".lisa",
   "PROJECT_LEARNINGS.md"
 );
 

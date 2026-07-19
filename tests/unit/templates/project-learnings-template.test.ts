@@ -9,8 +9,7 @@ const TEMPLATE_PATH = path.join(
   process.cwd(),
   "all",
   "create-only",
-  ".claude",
-  "rules",
+  ".lisa",
   "PROJECT_LEARNINGS.md"
 );
 

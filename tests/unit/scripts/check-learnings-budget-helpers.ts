@@ -80,7 +80,7 @@ export function stagePackageWithFreshDist(
   const publishInputs = [
     "package.json",
     "scripts/check-learnings-budget.ts",
-    "all/create-only/.claude/rules/PROJECT_LEARNINGS.md",
+    "all/create-only/.lisa/PROJECT_LEARNINGS.md",
   ] as const;
   for (const relativePath of publishInputs) {
     const target = path.join(stagingRoot, relativePath);
