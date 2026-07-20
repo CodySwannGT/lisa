@@ -60,6 +60,30 @@ export class PackageLisaStrategy implements ICopyStrategy {
   );
 
   /**
+   * Produce the exact package.json result from already-safe project inputs.
+   * @param projectJson - Parsed host package.json
+   * @param detectedTypes - Canonically detected project types
+   * @param lisaDir - Lisa package root
+   * @param securityPinsOnly - Restrict to postinstall-safe security pins
+   * @returns Package document that apply would persist
+   */
+  async planPackageJson(
+    projectJson: Record<string, unknown>,
+    detectedTypes: readonly ProjectType[],
+    lisaDir: string,
+    securityPinsOnly = false
+  ): Promise<Record<string, unknown>> {
+    const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
+    const effective =
+      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
+        ? this.restrictToSecurityPins(merged)
+        : merged;
+    const result = this.applyTemplate(projectJson, effective);
+    assertNoDanglingDollarRefs(result, this.PACKAGE_JSON);
+    return result;
+  }
+
+  /**
    * Apply package-lisa strategy: Load templates from inheritance chain, apply to package.json
    * @remarks
    * This strategy is unique because:
@@ -218,32 +242,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // Get detected project types by analyzing the project structure
     const detectedTypes = await this.detectProjectTypes(projectDir);
 
-    // Load and merge all package.lisa.json templates from type hierarchy
-    const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
-
-    // A self-apply against the Lisa source repo must apply only dependency
-    // governance (security floors), never Lisa's own scripts/defaults — those
-    // are hand-authored, not template-derived. Same restriction as a
-    // skip-git-check apply, regardless of the git-check flag.
-    const isLisaSelfApply = projectJson.name === LISA_PACKAGE_NAME;
-
-    // During a skip-git-check apply on an existing package.json, restrict to the
-    // security-critical force.resolutions/force.overrides sections so host
-    // scripts/deps/defaults are preserved while dependency pins still land.
-    const effective =
-      securityPinsOnly || isLisaSelfApply
-        ? this.restrictToSecurityPins(merged)
-        : merged;
-
-    // Apply force/defaults/merge logic to project's package.json
-    const result = this.applyTemplate(projectJson, effective);
-
-    // Never emit a package.json whose overrides/resolutions carry a `$name`
-    // self-reference without the backing direct dependency — npm ci fails in
-    // CI with a dangling $ref. Fail the apply loudly instead.
-    assertNoDanglingDollarRefs(result, path.basename(packageJsonPath));
-
-    return result;
+    return this.planPackageJson(
+      projectJson,
+      detectedTypes,
+      lisaDir,
+      securityPinsOnly
+    );
   }
 
   /**
@@ -487,7 +491,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
    */
   private async loadAndMergeTemplates(
     lisaDir: string,
-    detectedTypes: ProjectType[]
+    detectedTypes: readonly ProjectType[]
   ): Promise<ResolvedPackageLisaTemplate> {
     const initial: ResolvedPackageLisaTemplate = {
       force: {},
@@ -537,7 +541,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @returns Expanded types including parents, sorted parents-first
    * @private
    */
-  private expandTypeHierarchy(types: ProjectType[]): ProjectType[] {
+  private expandTypeHierarchy(types: readonly ProjectType[]): ProjectType[] {
     const allTypes = new Set<ProjectType>(types);
 
     for (const type of types) {

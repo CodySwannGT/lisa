@@ -5,6 +5,43 @@ import type { FileOperationResult } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 
+const BEGIN_MARKER_PREFIX = "# BEGIN: AI GUARDRAILS";
+const END_MARKER_PREFIX = "# END: AI GUARDRAILS";
+
+/**
+ * Produce the exact copy-contents result without reading or writing files.
+ * @param sourceContent - Lisa-managed source block
+ * @param destinationContent - Existing host content
+ * @returns Content that apply would persist
+ */
+export function mergeCopyContents(
+  sourceContent: string,
+  destinationContent: string
+): string {
+  if (!sourceContent.includes(BEGIN_MARKER_PREFIX)) return sourceContent;
+  const lines = sourceContent.split(/\r?\n/);
+  const begin =
+    lines.find(line => line.startsWith(BEGIN_MARKER_PREFIX)) ??
+    BEGIN_MARKER_PREFIX;
+  const suffix = begin.slice(BEGIN_MARKER_PREFIX.length);
+  const matchingEnd = `${END_MARKER_PREFIX}${suffix}`;
+  const end = lines.includes(matchingEnd) ? matchingEnd : END_MARKER_PREFIX;
+  const startIndex = destinationContent.indexOf(begin);
+  const endIndex = destinationContent.indexOf(end, startIndex + begin.length);
+  if (startIndex !== -1 && endIndex !== -1) {
+    const trimmedSource = sourceContent.endsWith("\n")
+      ? sourceContent.slice(0, -1)
+      : sourceContent;
+    return (
+      destinationContent.slice(0, startIndex) +
+      trimmedSource +
+      destinationContent.slice(endIndex + end.length)
+    );
+  }
+  const prefix = destinationContent.endsWith("\n") ? "\n" : "\n\n";
+  return destinationContent + prefix + sourceContent;
+}
+
 /**
  * Copy-contents strategy: Block-based merge for .gitignore-style files
  * - Create new files silently
@@ -14,93 +51,6 @@ import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
  */
 export class CopyContentsStrategy implements ICopyStrategy {
   readonly name = "copy-contents" as const;
-
-  private readonly BEGIN_MARKER_PREFIX = "# BEGIN: AI GUARDRAILS";
-  private readonly END_MARKER_PREFIX = "# END: AI GUARDRAILS";
-
-  /**
-   * Find the guardrails block in content
-   * @param content File content to search
-   * @param beginMarker Opening marker for this managed block
-   * @param endMarker Closing marker for this managed block
-   * @returns Object with start/end indices or null if not found
-   */
-  private findGuardrailsBlock(
-    content: string,
-    beginMarker: string,
-    endMarker: string
-  ): { start: number; end: number } | null {
-    const startIndex = content.indexOf(beginMarker);
-    if (startIndex === -1) {
-      return null;
-    }
-
-    const endIndex = content.indexOf(
-      endMarker,
-      startIndex + beginMarker.length
-    );
-    if (endIndex === -1) {
-      return null;
-    }
-
-    return { start: startIndex, end: endIndex + endMarker.length };
-  }
-
-  /**
-   * Read the guardrail marker pair from the source block. This supports
-   * stack-specific blocks such as `# BEGIN: AI GUARDRAILS HARPER-FABRIC`
-   * without replacing the universal guardrails block.
-   * @param sourceContent Source file content
-   * @returns Marker pair to use while merging
-   */
-  private getSourceMarkers(sourceContent: string): {
-    readonly begin: string;
-    readonly end: string;
-  } {
-    const lines = sourceContent.split(/\r?\n/);
-    const begin =
-      lines.find(line => line.startsWith(this.BEGIN_MARKER_PREFIX)) ??
-      this.BEGIN_MARKER_PREFIX;
-    const suffix = begin.slice(this.BEGIN_MARKER_PREFIX.length);
-    const matchingEnd = `${this.END_MARKER_PREFIX}${suffix}`;
-    const end = lines.includes(matchingEnd)
-      ? matchingEnd
-      : this.END_MARKER_PREFIX;
-
-    return { begin, end };
-  }
-
-  /**
-   * Merge source content with destination, replacing or appending guardrails block
-   * @param sourceContent Source file content
-   * @param destContent Destination file content
-   * @returns Merged content
-   */
-  private mergeContent(sourceContent: string, destContent: string): string {
-    const markers = this.getSourceMarkers(sourceContent);
-    const block = this.findGuardrailsBlock(
-      destContent,
-      markers.begin,
-      markers.end
-    );
-
-    if (block) {
-      // Replace existing block, trimming source trailing newline
-      // to prevent doubling with destination's post-marker newline
-      const trimmedSource = sourceContent.endsWith("\n")
-        ? sourceContent.slice(0, -1)
-        : sourceContent;
-      return (
-        destContent.slice(0, block.start) +
-        trimmedSource +
-        destContent.slice(block.end)
-      );
-    }
-
-    // Append if no block exists
-    const prefix = destContent.endsWith("\n") ? "\n" : "\n\n";
-    return destContent + prefix + sourceContent;
-  }
 
   /**
    * Handle the case where destination doesn't exist
@@ -242,7 +192,7 @@ export class CopyContentsStrategy implements ICopyStrategy {
     // bug that shipped lisa-mutation.mjs twice). Such a file is fully
     // Lisa-managed and belongs in copy-overwrite — treat it as an overwrite
     // here so a miscategorized file can never silently self-duplicate.
-    if (!sourceContent.includes(this.BEGIN_MARKER_PREFIX)) {
+    if (!sourceContent.includes(BEGIN_MARKER_PREFIX)) {
       return this.handleOverwrite(
         realDestPath,
         realRelativePath,
@@ -251,7 +201,7 @@ export class CopyContentsStrategy implements ICopyStrategy {
       );
     }
 
-    const mergedContent = this.mergeContent(sourceContent, destContent);
+    const mergedContent = mergeCopyContents(sourceContent, destContent);
 
     if (mergedContent === destContent) {
       return {
