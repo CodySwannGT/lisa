@@ -54,7 +54,14 @@ if command -v gitleaks >/dev/null 2>&1; then
     # Explicit template with a trailing X run keeps this portable: BSD/macOS
     # `mktemp` requires a template argument (bare `mktemp` errors), while GNU
     # `mktemp` accepts it too.
-    GITLEAKS_COMBINED_IGNORE="$(mktemp "${TMPDIR:-/tmp}/gitleaks-ignore.XXXXXXXX")"
+    # This hook does not run under `set -e`, so an unguarded failure would leave
+    # the path empty and hand gitleaks a malformed --gitleaks-ignore-path=.
+    # Fail closed instead: a degraded secret scan is worse than a blocked commit.
+    if ! GITLEAKS_COMBINED_IGNORE="$(mktemp "${TMPDIR:-/tmp}/gitleaks-ignore.XXXXXXXX")" || [ -z "$GITLEAKS_COMBINED_IGNORE" ]; then
+      echo "❌ Failed to create the temporary Gitleaks ignore file." >&2
+      echo "   Check that TMPDIR (${TMPDIR:-/tmp}) exists and is writable." >&2
+      exit 1
+    fi
     if [ -f ".gitleaksignore" ]; then
       cat .gitleaksignore > "$GITLEAKS_COMBINED_IGNORE"
       printf '\n' >> "$GITLEAKS_COMBINED_IGNORE"
