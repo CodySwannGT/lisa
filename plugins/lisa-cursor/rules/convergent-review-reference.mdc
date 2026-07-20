@@ -1,0 +1,74 @@
+---
+description: "Convergent Review"
+alwaysApply: false
+---
+
+# Convergent Review
+
+Review exists to get correct work merged, not to keep a PR in review orbit.
+Apply this contract to every product, quality, local, bot-parity, and suggestion
+implementation pass.
+
+## Severity Bar
+
+Findings block only when they name a concrete failure scenario in one of these
+classes:
+
+- Correctness: shipped behavior violates the work item, breaks an existing
+  contract, or loses required data.
+- Security: the change creates or preserves an exploitable auth, input,
+  secret-handling, permission, or data-exposure flaw.
+- Data loss: a realistic path can delete, corrupt, overwrite, or strand user or
+  operational state.
+- Contract violation: the change breaks a public API, workflow, generated
+  artifact contract, tracker lifecycle, or documented factory invariant.
+
+Lint-owned style, formatting, taste, general maintainability preferences, and
+speculative improvements are non-blocking unless the repository rule or work
+item explicitly makes them release criteria.
+
+## Required Finding Shape
+
+Every finding must state:
+
+- Severity: `critical`, `major`, `minor`, or `nit`.
+- Blocking: `yes` or `no`.
+- Failure scenario: the concrete user, operator, security, or factory outcome
+  that occurs if the change ships as-is.
+- Evidence: the file, command output, observed behavior, ticket text, or
+  external constraint proving the scenario is reachable.
+- Fix: the smallest actionable correction, or the reason no code change is
+  needed.
+
+A finding marked blocking without a concrete failure scenario is malformed by
+contract. Downgrade it to non-blocking and ask for evidence instead of treating
+it as a merge blocker.
+
+## Dispositions
+
+The implementer resolves each finding with exactly one disposition:
+
+- `fixed`: code, tests, docs, or generated artifacts changed to remove the
+  failure scenario.
+- `deferred`: the issue is real but non-blocking; record the rationale and, when
+  useful, the follow-up work item.
+- `pushed-back`: the finding is not valid for this work because evidence,
+  scope, or existing project rules refute it; reply with that rationale.
+
+If a reviewer cannot refute a `pushed-back` disposition with fresh evidence, the
+author's disposition stands.
+
+## Stopping Rule
+
+After suggestion implementation completes and the required quality and
+verification gates pass, review does not reopen unless new evidence appears:
+
+- a new commit changes the reviewed behavior,
+- a gate fails,
+- a reviewer supplies a previously uncited failure scenario, or
+- the work item scope changes.
+
+Irreconcilable blocking disagreement is not an endless review loop. Move the
+work item to the configured blocked state, add the human-needed marker when the
+decision is human-only, and summarize both positions in operator-readable
+language.

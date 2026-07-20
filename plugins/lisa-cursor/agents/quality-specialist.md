@@ -24,7 +24,8 @@ For each changed file, evaluate:
 Rank findings by severity:
 
 ### Critical (must fix before merge)
-Broken logic or violates hard project rules.
+Broken logic, security exposure, data loss, or a hard contract violation with a
+concrete failure scenario.
 
 ### Warning (should fix)
 Could cause problems later or reduce maintainability.
@@ -54,3 +55,5 @@ For each finding:
 - Run the task's proof command to confirm the implementation works
 - Never approve code with failing tests
 - If no issues found, say so clearly -- do not invent problems
+- Apply the `convergent-review` rule: bias toward merge, block only concrete correctness/security/data-loss/contract failures, and do not block on lint-owned style, formatting, taste, or speculative maintainability improvements.
+- For every finding, state severity, whether it blocks, the concrete failure scenario, evidence, and the smallest fix. A blocker without a failure scenario is malformed.

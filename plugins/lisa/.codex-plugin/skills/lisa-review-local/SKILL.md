@@ -6,6 +6,14 @@ disable-model-invocation: false
 
 Provide a code review for the local changes on the current branch compared to the main branch.
 
+Apply the `convergent-review` rule throughout this skill: reviewers bias toward
+merge, block only concrete correctness/security/data-loss/contract failures, and
+must label every finding with severity, blocking status, failure scenario,
+evidence, and fix. Lint-owned style, formatting, taste, and speculative
+maintainability feedback are non-blocking unless a repository rule or work item
+explicitly makes them release criteria. A blocking finding without a concrete
+failure scenario is malformed and must be filtered out.
+
 To do this, follow these steps precisely:
 
 1. Use a Haiku agent to check the current git state:
@@ -24,6 +32,7 @@ To do this, follow these steps precisely:
    c. Agent #3: Read the git blame and history of the code modified, to identify any bugs in light of that historical context
    d. Agent #4: Read previous pull requests that touched these files, and check for any comments on those pull requests that may also apply to the current changes.
    e. Agent #5: Read code comments in the modified files, and make sure the changes comply with any guidance in the comments.
+   Each agent must apply the severity bar from `convergent-review` and return only findings that include a concrete failure scenario and evidence. Non-blocking observations may be summarized separately, but must not be presented as required changes.
 5. For each issue found in #4, launch a parallel Haiku agent that takes the diff, issue description, and list of CLAUDE.md files (from step 2), and returns a score to indicate the agent's level of confidence for whether the issue is real or false positive. To do that, the agent should score each issue on a scale from 0-100, indicating its level of confidence. For issues that were flagged due to CLAUDE.md instructions, the agent should double check that the CLAUDE.md actually calls out that issue specifically. The scale is (give this rubric to the agent verbatim):
    a. 0: Not confident at all. This is a false positive that doesn't stand up to light scrutiny, or is a pre-existing issue.
    b. 25: Somewhat confident. This might be a real issue, but may also be a false positive. The agent wasn't able to verify that it's a real issue. If the issue is stylistic, it is one that was not explicitly called out in the relevant CLAUDE.md.
@@ -31,6 +40,7 @@ To do this, follow these steps precisely:
    d. 75: Highly confident. The agent double checked the issue, and verified that it is very likely it is a real issue that will be hit in practice. The existing approach is insufficient. The issue is very important and will directly impact the code's functionality, or it is an issue that is directly mentioned in the relevant CLAUDE.md.
    e. 100: Absolutely certain. The agent double checked the issue, and confirmed that it is definitely a real issue, that will happen frequently in practice. The evidence directly confirms this.
 6. Filter out any issues with a score less than 80.
+6a. Filter out any blocking issue that does not name a concrete failure scenario in one of the `convergent-review` blocker classes. Keep it only as non-blocking context if it is useful.
 7. Write the review to claude-review.md. When writing your review, keep in mind to:
    a. Keep your output brief
    b. Avoid emojis
@@ -44,6 +54,7 @@ Examples of false positives, for steps 4 and 5:
 - Pedantic nitpicks that a senior engineer wouldn't call out
 - Issues that a linter, typechecker, or compiler would catch (eg. missing or incorrect imports, type errors, broken tests, formatting issues, pedantic style issues like newlines). No need to run these build steps yourself -- it is safe to assume that they will be run separately as part of CI.
 - General code quality issues (eg. lack of test coverage, general security issues, poor documentation), unless explicitly required in CLAUDE.md
+- Findings that restate lint-owned style, formatting, taste, or speculative cleanup as blockers without a concrete failure scenario
 - Issues that are called out in CLAUDE.md, but explicitly silenced in the code (eg. due to a lint ignore comment)
 - Changes in functionality that are likely intentional or are directly related to the broader change
 - Real issues, but on lines that were not modified in the current branch
