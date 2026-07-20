@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.261.0](https://github.com/CodySwannGT/lisa/compare/v2.260.2...v2.261.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add the claim-evidence mapping contract ([#1835](https://github.com/CodySwannGT/lisa/issues/1835)) ([eca613b](https://github.com/CodySwannGT/lisa/commit/eca613b025a7446ebea47ed8c6cc82f06b4eb776)), closes [#1837](https://github.com/CodySwannGT/lisa/issues/1837) [#1838](https://github.com/CodySwannGT/lisa/issues/1838) [#1839](https://github.com/CodySwannGT/lisa/issues/1839) [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+
 ### [2.260.2](https://github.com/CodySwannGT/lisa/compare/v2.260.1...v2.260.2) (2026-07-20)
 
 
