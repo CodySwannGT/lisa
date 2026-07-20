@@ -617,7 +617,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/config-resolution.md":
       "2689c1f47903a5f6c84677fbfd2f1f148096faf122b7498b21d3b0f2345c6c87",
     "plugins/src/base/rules/eager/convergent-review.md":
-      "700e0ac9c9812316930134c92f0b2d65cee90e70cb45a27b7966edfbe6962bc3",
+      "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
       "3a7c2a6264654a3cc44dd326441ba211a39c1c267033cc189c1c635adb84b52b",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
@@ -675,7 +675,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/config-resolution.md":
       "071b2c91f3b661ee493ea6f37d78f0fdea8004b4e4e7b5e94dcf232df7eceda7",
     "plugins/src/base/rules/reference/convergent-review.md":
-      "65f309c04095179eac28f8572da3c49c0e02741c4c594fe992ff643b341a4139",
+      "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
       "555155889c9cf279865b9d8fc554bdd461c96a3ec76a5001dfeb361a71056999",
     "plugins/src/base/rules/reference/empirical-inquiry.md":
@@ -7748,6 +7748,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/claim-archaeology-rule.test.ts": true,
     "tests/unit/strategies/claim-evidence-mapping-contract.test.ts": true,
     "tests/unit/strategies/claude-remote-substrates.test.ts": true,
+    "tests/unit/strategies/convergent-review-contract.test.ts": true,
     "tests/unit/strategies/copy-contents-gitignore.test.ts": true,
     "tests/unit/strategies/copy-contents.test.ts": true,
     "tests/unit/strategies/copy-overwrite.test.ts": true,
