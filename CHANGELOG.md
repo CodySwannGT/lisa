@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.260.0](https://github.com/CodySwannGT/lisa/compare/v2.259.4...v2.260.0) (2026-07-20)
+
+
+### Features
+
+* **learnings:** harden upstream filing projection ([b482052](https://github.com/CodySwannGT/lisa/commit/b482052a508072f90cf702ceedbdab26d7b05783)), closes [CodySwannGT/lisa#1826](https://github.com/CodySwannGT/lisa/issues/1826)
+
 ### [2.259.4](https://github.com/CodySwannGT/lisa/compare/v2.259.3...v2.259.4) (2026-07-20)
 
 
