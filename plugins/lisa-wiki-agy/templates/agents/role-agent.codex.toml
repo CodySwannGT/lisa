@@ -1,5 +1,5 @@
 name = "{{id}}"
-description = "{{roleDescription}}"
+description = {{roleDescriptionSerialized}}
 developer_instructions = """
 You are {{role}} for {{org}} — the domain expert for {{expertise}}.
 

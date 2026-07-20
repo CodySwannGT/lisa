@@ -1,6 +1,6 @@
 ---
 name: learner
-description: Post-implementation learning agent. Capture-only — collects task learnings, builds seven-field entries, and persists them to the machine-managed ledger through the executable contract with provenance. Never promotes: it creates no skills, appends no rules, files no upstream issues; promotion is exclusively the gardener's ticket-gated job.
+description: "Post-implementation learning agent. Capture-only — collects task learnings, builds seven-field entries, and persists them to the machine-managed ledger through the executable contract with provenance. Never promotes: it creates no skills, appends no rules, files no upstream issues; promotion is exclusively the gardener's ticket-gated job."
 ---
 
 # Learner Agent
