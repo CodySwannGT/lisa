@@ -1,0 +1,132 @@
+# Claim → Evidence Mapping Contract
+
+Lisa's verification machinery already proves outcomes empirically, but nothing states *which kind of
+evidence establishes which kind of claim*. So a claim about browser-visible behavior, supported only
+by a unit-test log, currently reads as "verified" — the report never names the boundary its evidence
+actually reaches. This contract writes the mapping down once, as the single spine every evidence
+surface cites: **every claim declares a boundary, and a claim is established only by evidence of a
+kind that reaches that boundary.**
+
+It is a **single vendor-neutral contract**. The later tickets of this PRD instantiate it rather than
+redefine it: the `verification-status.json` schema and gate that make the claim fields executable
+(**BCE-2, #1836**), the *Not-established* section and evidence templates (**BCE-3, #1837**), artifact
+identity (**BCE-4, #1838**), and security buckets (**BCE-5, #1839**) each cite this slug. This ticket
+adds no schema, no gate, and no skill edit — exactly as the `automation-runbook-contract` rule
+preceded the skills that made it executable.
+
+## Consumers
+
+Every surface that asserts a claim is proved cites this contract for what "proved" means at that
+claim's boundary: the verification flow and its `verification-specialist`, the evidence-posting and
+completion gates, the QA and Verify factories' reports, and any report a human reads at a gate. None
+of them redefines the mapping; each binds its claim to a boundary and cites evidence of a reaching
+kind.
+
+## The claim-boundary taxonomy
+
+Every claim binds to exactly one **boundary**. The table binds each boundary to the evidence kind(s)
+that establish it and at least one kind that cannot. The **establishing evidence kind(s)** column is
+drawn verbatim from the `verification` rule's artifact-type taxonomy (its fixed set:
+`screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`,
+`perf-trace`, `test-run-log`, `deploy-log`, `state-dump`) — this contract invents no new evidence
+types; it only says which reach which boundary.
+
+| Claim boundary | What it asserts | Establishing evidence kind(s) | Cannot be established by |
+|---|---|---|---|
+| `code-unit` | pure-logic behavior in isolation | `test-run-log` (unit) | — (but never satisfies any boundary below) |
+| `browser` | user-visible UI behavior | `screenshot`, `recording` | unit `test-run-log` |
+| `http-api` | request/response contract | `http-transcript` | unit `test-run-log` |
+| `cli` | command behavior | `cli-output` | prose |
+| `data` | persisted state | `db-query-output`, `state-dump` | unit `test-run-log` |
+| `deploy-health` | a healthy running deployment | `deploy-log` | any pre-deploy artifact |
+| `performance` | latency/throughput/frame timing | `perf-trace` (with methodology) | screenshot |
+| `standards-compat` | conformance to an external standard | `cli-output` / `test-run-log` from the compat runner | assertion prose |
+
+Reciprocal cross-link: the `verification` rule's artifact-type taxonomy is the source of the
+establishing-evidence column above; that rule's reference body should point back here for the
+boundary each type reaches. Cite these slugs, do not restate them: `verification` (the artifact-type
+taxonomy), `factory-model` (operator-readable writing — rule 5), and `empirical-inquiry` (observe the
+real result before claiming).
+
+## The core inequality
+
+The whole contract reduces to one inequality, stated explicitly so no surface can blur it:
+
+**unit tests ≠ browser behavior ≠ healthy deployment ≠ standards compatibility.**
+
+A passing unit `test-run-log` establishes only `code-unit` behavior. It can **never** establish a
+`browser`, `http-api`, `deploy-health`, or `standards-compat` claim — those live at boundaries a
+unit test does not reach. Unit tests are a *quality prerequisite* (they gate the commit); they are
+not a *claim discharger* for any boundary above `code-unit`. Symmetrically, a green `deploy-log`
+proves a healthy deployment but says nothing about whether the UI renders correctly, and a
+`screenshot` proves the pixels but not the latency. Each boundary stands on its own evidence.
+
+## The review-rejection rule
+
+Citing evidence whose *kind* does not reach a claim's *boundary* is a **review-rejectable defect** —
+a machine-checkable one once BCE-2's gate ships, and a review-rejectable one in prose review today.
+"It passed unit tests" is not an answer to "does the button work in the browser." A reviewer rejects
+the claim, names the boundary, and asks for evidence of a reaching kind.
+
+## The claim fields
+
+A claim is three fields, named here so BCE-2's schema reuses one spelling — this contract only
+defines the names; it stores nothing:
+
+| Field | Meaning |
+|---|---|
+| `claim_id` | stable identifier for the claim being made |
+| `boundary` | exactly one value from the claim-boundary taxonomy above |
+| `required_evidence_kinds` | the evidence kind(s) that reach that boundary, from the `verification` artifact-type set |
+
+A claim whose `required_evidence_kinds` has no captured, reaching artifact is **Not established** —
+the concept is named here and defined fully, with its evidence templates, in **BCE-3 (#1837)**; do
+not assume that section is present in this branch. Artifact identity — what makes two captured
+artifacts the same or different — is pinned in **BCE-4 (#1838)**, and the conservative default
+bucket for a security-sensitive claim is set in **BCE-5 (#1839)**. Each is named here as the field
+BCE-2's schema will carry; none is defined by this contract. Each ships with that ticket — do not
+assume its section is present in this branch.
+
+### Worked example
+
+```text
+Claim: "The checkout button submits the order and shows a confirmation."
+
+  boundary                 browser
+  required_evidence_kinds  screenshot | recording
+
+  Reaching evidence   A screenshot of the confirmation state after a real click, or a
+                      recording of the click-through. EITHER establishes the browser claim.
+
+  Non-reaching        A passing unit test-run-log for the submit handler. It establishes the
+                      code-unit boundary only — the handler's logic in isolation — and can
+                      NEVER establish this browser claim. Offered as proof here, it is a
+                      review-rejectable defect; the claim stays Not established until a
+                      screenshot or recording is captured.
+
+Claim: "The service is deployed and healthy."
+
+  boundary                 deploy-health
+  required_evidence_kinds  deploy-log
+
+  Non-reaching        Any pre-deploy artifact — a green CI test-run-log, a local screenshot.
+                      A healthy deployment is established only by a deploy-log / health-check
+                      response from the target environment.
+```
+
+## Philosophical precedent
+
+This generalizes the **bounded-claim discipline** of `lisa-improve-harness`: one trajectory supports
+one trajectory's claim, and a result record may claim only what its cited evidence reaches. Here the
+same discipline is applied to every claim in the factory — a claim reaches exactly as far as the
+*kind* of evidence behind it, and no further. BCE-3 generalizes the *Not established* half of that
+discipline into a first-class report state.
+
+## No behavior change; degrade, never block
+
+This rule ships as documentation that later tickets make executable. It changes no schema, no gate,
+and no skill. Where a surface it names (BCE-2's gate, BCE-3's templates) is not yet installed in a
+given branch, name the boundary a claim reaches and continue — the contract never blocks on an absent
+sibling surface. Every claim written under it must be operator-readable (`factory-model` rule 5): a
+person who does not code should be able to read the boundary and see why the evidence does or does
+not reach it.

@@ -610,6 +610,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d3a4bd518acf2c6f4e866042542f9155fdbf5b2fdad5747e1afd097bdef15351",
     "plugins/src/base/rules/eager/claim-archaeology.md":
       "96afa034075593dfb7433c5c990b472a6b6f7320332da42ef54b1f01fa45664b",
+    "plugins/src/base/rules/eager/claim-evidence-mapping.md":
+      "e30d81ff99dfaa5a2f1b2c1aa40e9485edaed6bad23d3152b0be7a35b64141b0",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -664,6 +666,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "487ea1764c4b636ca4a33b78a90e925f028bb9a54182c0795cd1bbdc437a262d",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
+    "plugins/src/base/rules/reference/claim-evidence-mapping.md":
+      "7bf3107ccaa6cf5db8e7e055abf7b87af75f15a4d89cfd6bf59ab344c213ef00",
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
@@ -3249,6 +3253,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/eager/base-rules.md": true,
     "plugins/lisa-copilot/rules/eager/claim-archaeology.md": true,
+    "plugins/lisa-copilot/rules/eager/claim-evidence-mapping.md": true,
     "plugins/lisa-copilot/rules/eager/coding-philosophy.md": true,
     "plugins/lisa-copilot/rules/eager/config-resolution.md": true,
     "plugins/lisa-copilot/rules/eager/convergent-review.md": true,
@@ -3276,6 +3281,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/reference/base-rules.md": true,
     "plugins/lisa-copilot/rules/reference/claim-archaeology.md": true,
+    "plugins/lisa-copilot/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa-copilot/rules/reference/coding-philosophy.md": true,
     "plugins/lisa-copilot/rules/reference/config-resolution.md": true,
     "plugins/lisa-copilot/rules/reference/convergent-review.md": true,
@@ -3603,6 +3609,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/base-rules.mdc": true,
     "plugins/lisa-cursor/rules/claim-archaeology-reference.mdc": true,
     "plugins/lisa-cursor/rules/claim-archaeology.mdc": true,
+    "plugins/lisa-cursor/rules/claim-evidence-mapping-reference.mdc": true,
+    "plugins/lisa-cursor/rules/claim-evidence-mapping.mdc": true,
     "plugins/lisa-cursor/rules/coding-philosophy-reference.mdc": true,
     "plugins/lisa-cursor/rules/coding-philosophy.mdc": true,
     "plugins/lisa-cursor/rules/config-resolution-reference.mdc": true,
@@ -5972,6 +5980,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa/rules/eager/base-rules.md": true,
     "plugins/lisa/rules/eager/claim-archaeology.md": true,
+    "plugins/lisa/rules/eager/claim-evidence-mapping.md": true,
     "plugins/lisa/rules/eager/coding-philosophy.md": true,
     "plugins/lisa/rules/eager/config-resolution.md": true,
     "plugins/lisa/rules/eager/convergent-review.md": true,
@@ -5999,6 +6008,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/automation-runbook-contract.md": true,
     "plugins/lisa/rules/reference/base-rules.md": true,
     "plugins/lisa/rules/reference/claim-archaeology.md": true,
+    "plugins/lisa/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa/rules/reference/coding-philosophy.md": true,
     "plugins/lisa/rules/reference/config-resolution.md": true,
     "plugins/lisa/rules/reference/convergent-review.md": true,
@@ -6491,6 +6501,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/automation-runbook-contract.md": true,
     "plugins/src/base/rules/eager/base-rules.md": true,
     "plugins/src/base/rules/eager/claim-archaeology.md": true,
+    "plugins/src/base/rules/eager/claim-evidence-mapping.md": true,
     "plugins/src/base/rules/eager/coding-philosophy.md": true,
     "plugins/src/base/rules/eager/config-resolution.md": true,
     "plugins/src/base/rules/eager/convergent-review.md": true,
@@ -6518,6 +6529,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/automation-runbook-contract.md": true,
     "plugins/src/base/rules/reference/base-rules.md": true,
     "plugins/src/base/rules/reference/claim-archaeology.md": true,
+    "plugins/src/base/rules/reference/claim-evidence-mapping.md": true,
     "plugins/src/base/rules/reference/coding-philosophy.md": true,
     "plugins/src/base/rules/reference/config-resolution.md": true,
     "plugins/src/base/rules/reference/convergent-review.md": true,
@@ -7669,6 +7681,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/build-ready-control.test.ts": true,
     "tests/unit/strategies/build-verification-credential-blocking.test.ts": true,
     "tests/unit/strategies/claim-archaeology-rule.test.ts": true,
+    "tests/unit/strategies/claim-evidence-mapping-contract.test.ts": true,
     "tests/unit/strategies/claude-remote-substrates.test.ts": true,
     "tests/unit/strategies/copy-contents-gitignore.test.ts": true,
     "tests/unit/strategies/copy-contents.test.ts": true,
