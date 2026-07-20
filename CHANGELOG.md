@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.251.1](https://github.com/CodySwannGT/lisa/compare/v2.251.0...v2.251.1) (2026-07-20)
+
+
+### Documentation
+
+* **ci:** correct learnings_budget rationale to bounded-projection design ([#1794](https://github.com/CodySwannGT/lisa/issues/1794)) ([70db4be](https://github.com/CodySwannGT/lisa/commit/70db4bede62e247fa056f94dadc263d1fcca6a90))
+
 ## [2.251.0](https://github.com/CodySwannGT/lisa/compare/v2.250.1...v2.251.0) (2026-07-20)
 
 
