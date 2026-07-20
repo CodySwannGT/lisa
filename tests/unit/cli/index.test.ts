@@ -30,6 +30,7 @@ function createTestProgram(): {
   runSync: ReturnType<typeof vi.fn>;
   runUi: ReturnType<typeof vi.fn>;
   runCheckLearningsBudget: ReturnType<typeof vi.fn>;
+  runFileUpstream: ReturnType<typeof vi.fn>;
   runUpdateCheck: ReturnType<typeof vi.fn>;
   printUpdateWarning: ReturnType<typeof vi.fn>;
 } {
@@ -42,6 +43,7 @@ function createTestProgram(): {
   const runSync = vi.fn(async () => 0);
   const runUi = vi.fn(async () => ({}) as Server);
   const runCheckLearningsBudget = vi.fn(async () => 0);
+  const runFileUpstream = vi.fn(async () => 0);
   const runUpdateCheck = vi.fn(async () => SKIPPED_RESULT);
   const printUpdateWarning = vi.fn();
   const program = createProgram({
@@ -54,6 +56,7 @@ function createTestProgram(): {
     runSync,
     runUi,
     runCheckLearningsBudget,
+    runFileUpstream,
     runUpdateCheck,
     printUpdateWarning,
   }).exitOverride();
@@ -68,6 +71,7 @@ function createTestProgram(): {
     runSync,
     runUi,
     runCheckLearningsBudget,
+    runFileUpstream,
     runUpdateCheck,
     printUpdateWarning,
   };
