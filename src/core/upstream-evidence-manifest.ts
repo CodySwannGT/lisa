@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/gitignore":
-      "581bb94c063453335735dd7a6fa05106d9b992708363a2690f47b6a0333192ae",
+      "74e0f12be861c5583cedbed89d0b029709748d7f38bc77bad22babded0489231",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "f88f69d44693084428f44e3f2b80afecda08c7ee8747588f40277fdc9396fd8f",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -671,7 +671,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "d8d8f2ca9e71f070fd92de9d12326a66625de40ccaa29533b034ced37e1b7cd4",
+      "071b2c91f3b661ee493ea6f37d78f0fdea8004b4e4e7b5e94dcf232df7eceda7",
     "plugins/src/base/rules/reference/convergent-review.md":
       "65f309c04095179eac28f8572da3c49c0e02741c4c594fe992ff643b341a4139",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
@@ -1886,6 +1886,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a286750ac2006dd84209bb713e85f994d8d15d9bb596ec3e287a187672e5072d",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
+    "scripts/verify-health-contract-built.mjs":
+      "9e090e3378325c4193e96ba03acff17fb63e40c9e7f2dd89296f72353ab6ba88",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -2029,7 +2031,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "7e99286c549c79b1c02c07a4313dcfe5b41b4ebb80a6fbbb8741dd74dc5f454d",
     "ui/README.md":
-      "7cebe4dbae8900e84196ef897a0374d34f28dcc0dc5173215e2ea2efd5f5a5f8",
+      "e055b899ec7d40e8035dbf91ce1621872296d4d6b460dd113f80c80aed7198df",
     "ui/index.html":
       "74c35220d1b8b7d8041374196eba2c821eb90d1b57d884f12afb695f47f5016c",
   });
@@ -7209,6 +7211,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/test-intent-routing.sh": true,
     "scripts/update-node-version.ts": true,
     "scripts/update-test-skill-paths.mjs": true,
+    "scripts/verify-health-contract-built.mjs": true,
     "sgconfig.yml": true,
     "specs/.keep": true,
     "src/agy/mcp-installer.ts": true,
@@ -7350,6 +7353,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/detection/detectors/typescript.ts": true,
     "src/detection/index.ts": true,
     "src/errors/index.ts": true,
+    "src/health/contract.ts": true,
+    "src/health/directory-sync.ts": true,
+    "src/health/index.ts": true,
+    "src/health/storage.ts": true,
+    "src/health/strict-validation.ts": true,
     "src/index.ts": true,
     "src/logging/console-logger.ts": true,
     "src/logging/index.ts": true,
@@ -7493,6 +7501,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-enabled-plugins-probe.test.ts": true,
     "tests/unit/cli/ui-github-repo-map.test.ts": true,
     "tests/unit/cli/ui-github-repo.test.ts": true,
+    "tests/unit/cli/ui-health-schedule-write.test.ts": true,
     "tests/unit/cli/ui-lisa-version-probe.test.ts": true,
     "tests/unit/cli/ui-observability-providers-probe.test.ts": true,
     "tests/unit/cli/ui-status-contract.test.ts": true,
@@ -7585,6 +7594,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/upstream-attribution-integrity.test.ts": true,
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,
+    "tests/unit/health/contract.test.ts": true,
+    "tests/unit/health/directory-sync.test.ts": true,
+    "tests/unit/health/gitignore.test.ts": true,
+    "tests/unit/health/package-surfaces.test.ts": true,
+    "tests/unit/health/storage.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing.test.ts": true,
@@ -7804,6 +7818,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/wiki-status-verdicts.test.ts": true,
     "tests/unit/sync/config-sync-artifacts.test.ts": true,
     "tests/unit/sync/config-sync.test.ts": true,
+    "tests/unit/sync/health-schedule.test.ts": true,
     "tests/unit/sync/legacy-monitor-thresholds.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,

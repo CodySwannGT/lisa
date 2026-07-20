@@ -11,8 +11,12 @@
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "build": "tsc",
+      "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
       "prepare": "$npm_execpath run build && husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest ."
+    },
+    "exports": {
+      "./health": "./dist/health/index.js"
     },
     "devDependencies": {
       "@commitlint/cli": "^20.3.1",

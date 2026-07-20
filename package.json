@@ -37,6 +37,7 @@
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json"
+    ,"verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs"
   },
   "engines": {
     "npm": "please-use-bun",
@@ -111,6 +112,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./learnings": "./dist/core/learnings.js",
+    "./health": "./dist/health/index.js",
     "./eslint": "./dist/configs/eslint/index.js",
     "./eslint/base": "./dist/configs/eslint/base.js",
     "./eslint/typescript": "./dist/configs/eslint/typescript.js",

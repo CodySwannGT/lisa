@@ -28,6 +28,19 @@ export async function withLearningTargetLock<T>(
   target: string,
   operation: () => Promise<T>
 ): Promise<T> {
+  return withFileTargetLock(target, operation);
+}
+
+/**
+ * Serialize same-target file transactions across processes.
+ * @param target - Absolute target whose adjacent lock is acquired
+ * @param operation - Transaction performed while the caller owns the lock
+ * @returns Operation result
+ */
+export async function withFileTargetLock<T>(
+  target: string,
+  operation: () => Promise<T>
+): Promise<T> {
   const lockPath = `${target}.lock`;
   const owner = {
     token: crypto.randomUUID(),
@@ -65,7 +78,7 @@ async function acquireLock(
   }
   await removeFileIfPresent(ownerPath);
   if (attempt >= MAX_LOCK_ATTEMPTS) {
-    throw new Error(`Timed out waiting for learnings lock: ${lockPath}`);
+    throw new Error(`Timed out waiting for file lock: ${lockPath}`);
   }
   await reclaimStaleLock(lockPath);
   await delay(LOCK_RETRY_DELAY_MS);
@@ -116,20 +129,48 @@ async function releaseLock(lockPath: string, lease: LockLease): Promise<void> {
  * @param lockPath - Shared lock path
  */
 async function reclaimStaleLock(lockPath: string): Promise<void> {
-  const before = await statFile(lockPath);
-  if (before === undefined || !before.isFile()) {
+  const retainedOwnerPath = await staleOwnerPath(lockPath);
+  if (retainedOwnerPath === null) {
     return;
+  }
+  await quarantineStaleLock(lockPath, retainedOwnerPath);
+}
+
+/**
+ * Determine whether a regular lock is reclaimable and retain its owner path.
+ * @param lockPath - Shared lock path
+ * @returns Owner path, undefined for unlinked ownership, or null when live
+ */
+async function staleOwnerPath(
+  lockPath: string
+): Promise<string | undefined | null> {
+  const before = await statFile(lockPath);
+  if (before === undefined) {
+    return null;
+  }
+  if (!before.isFile() || before.isSymbolicLink()) {
+    throw new Error(`Unsafe file lock path: ${lockPath}`);
   }
   const owner = await readLockOwner(lockPath);
   const timestamp = owner?.createdAt ?? Number(before.mtimeMs);
-  if (
-    Date.now() - timestamp <= STALE_LOCK_MS ||
-    (owner !== undefined && isProcessLive(owner.pid))
-  ) {
-    return;
+  if (owner !== undefined && isProcessLive(owner.pid)) {
+    return null;
   }
-  const retainedOwnerPath =
-    owner === undefined ? undefined : `${lockPath}.${owner.token}.owner`;
+  if (owner === undefined && Date.now() - timestamp <= STALE_LOCK_MS) {
+    return null;
+  }
+  return owner === undefined ? undefined : `${lockPath}.${owner.token}.owner`;
+}
+
+/**
+ * Reclaim only the same lock inode retained in a safe quarantine link.
+ * @param lockPath - Shared lock path
+ * @param retainedOwnerPath - Optional owner hard link
+ */
+async function quarantineStaleLock(
+  lockPath: string,
+  retainedOwnerPath: string | undefined
+): Promise<void> {
   const quarantine =
     retainedOwnerPath !== undefined &&
     (await sameFile(lockPath, retainedOwnerPath))
@@ -228,12 +269,27 @@ async function removeFileIfPresent(filePath: string): Promise<void> {
  * @returns Whether the metadata is a lock owner
  */
 function isLockOwner(value: unknown): value is LockOwner {
-  if (value === null || typeof value !== "object") {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return false;
+  }
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== 3 ||
+    keys.some(
+      key =>
+        typeof key !== "string" || !["token", "pid", "createdAt"].includes(key)
+    )
+  ) {
     return false;
   }
   const owner = value as Partial<LockOwner>;
   return (
     typeof owner.token === "string" &&
+    /^[A-Za-z0-9-]{1,128}$/u.test(owner.token) &&
     typeof owner.pid === "number" &&
     Number.isSafeInteger(owner.pid) &&
     owner.pid > 0 &&
