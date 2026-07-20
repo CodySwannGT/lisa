@@ -40,7 +40,7 @@ module.exports = {
     ],
     messages: {
       wrongOrder:
-        "{{current}} should come before {{previous}}. Expected order: definitions → side effects → return statement (tip: `if` guard clauses are exempt — inline validation as a guard instead of calling a helper)",
+        "{{current}} should come before {{previous}}. Expected order: definitions → side effects → return statement (tip: `if` statements are exempt from ordering checks — inline validation as an `if` guard clause instead of calling a helper)",
     },
   },
 
