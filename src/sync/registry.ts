@@ -11,6 +11,7 @@
  * @module sync/registry
  */
 import { DEFAULT_PROJECT_RULES_FILE } from "../core/project-config.js";
+import { validateHealthSchedule } from "../health/contract.js";
 import type { JsonValue } from "./json-path.js";
 import type { LegacyAliasMapping } from "./legacy-aliases.js";
 
@@ -32,6 +33,8 @@ export interface SyncedSetting {
   readonly key: string;
   /** Built-in default used when neither config nor artifact has a value */
   readonly defaultValue: JsonValue;
+  /** Optional executable validator for human/config supplied values. */
+  readonly validate?: (value: unknown) => JsonValue;
   /**
    * Internal relative-path mappings for deprecated keys that remain readable.
    * Sync uses these to avoid filling a new default beside a human-owned alias.
@@ -109,6 +112,12 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     key: "projectRulesFile",
     defaultValue: DEFAULT_PROJECT_RULES_FILE,
     description: "Hand-authored project rules file (independent of the ledger)",
+  },
+  {
+    key: "health.schedule",
+    defaultValue: "off",
+    validate: validateHealthSchedule,
+    description: "Health-check schedule (off, daily, or weekly)",
   },
   {
     key: "quality.testCoverage",
