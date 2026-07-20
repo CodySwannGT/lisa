@@ -81,6 +81,7 @@ interface QualityWorkflow {
     };
   };
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
+  permissions?: Record<string, unknown>;
   jobs: Record<string, WorkflowJob>;
 }
 
@@ -282,7 +283,12 @@ describe("quality.yml reusable workflow", () => {
   describe("verification coverage labels", () => {
     it("passes event labels to the coverage script without live GitHub context", () => {
       const job = workflow.jobs.verification_coverage;
-      expect(job.permissions).toBeUndefined();
+      // The job declares no permissions of its own, so it resolves to the
+      // workflow-level least-privilege floor (#1769). What must never change
+      // is that it gains no `pull-requests` scope — the gate reads PR labels
+      // from the event payload, not the API.
+      expect(workflow.permissions).toEqual({ contents: "read" });
+      expect(job.permissions?.["pull-requests"]).toBeUndefined();
 
       const steps = job.steps ?? [];
       const check = steps.find(s =>
@@ -295,6 +301,60 @@ describe("quality.yml reusable workflow", () => {
       expect(check?.env?.VERIFY_LABELS).toContain(
         "github.event.pull_request.labels"
       );
+    });
+  });
+
+  describe("least-privilege permissions floor", () => {
+    it("declares a workflow-level contents:read floor", () => {
+      // #1769: quality.yml is consumed fleet-wide via @main. Reusable-workflow
+      // tokens can only be downgraded relative to the caller's grant, so a
+      // read-only floor is safe for every consumer while capping consumers
+      // whose caller job declares no `permissions:` block of its own.
+      expect(workflow.permissions).toEqual({ contents: "read" });
+    });
+
+    it("gives summary-only jobs an empty permissions block", () => {
+      // These jobs neither check out the repository nor call the API.
+      for (const jobName of [
+        "playwright_e2e_setup",
+        "security_tools_summary",
+        "compliance_validation",
+        "performance_summary",
+      ]) {
+        expect(workflow.jobs[jobName]?.permissions, jobName).toEqual({});
+      }
+    });
+
+    it("resolves every job to a scope with no write access", () => {
+      // Effective scope = job-level block when present, otherwise the
+      // workflow-level floor. An audit of all jobs found zero uses of `gh`,
+      // `github.rest.*`, `GITHUB_TOKEN`, or `github.token`, so no job needs a
+      // write scope. This assertion catches a future job silently regressing
+      // the floor by declaring one.
+      for (const [jobName, job] of Object.entries(workflow.jobs)) {
+        const effective = job.permissions ?? workflow.permissions ?? {};
+        const writeScopes = Object.entries(effective)
+          .filter(([, value]) => value === "write")
+          .map(([scope]) => scope);
+        expect(writeScopes, `${jobName} must not hold a write scope`).toEqual(
+          []
+        );
+      }
+    });
+
+    it("checks out without persisting the git credential", () => {
+      // A persisted credential outlives the checkout step and is readable by
+      // every later step (and any compromised third-party action) in the job.
+      // No job in this workflow reuses the checkout credential.
+      for (const [jobName, job] of Object.entries(workflow.jobs)) {
+        for (const step of job.steps ?? []) {
+          if (!step.uses?.startsWith("actions/checkout@")) {
+            continue;
+          }
+
+          expect(step.with?.["persist-credentials"], jobName).toBe(false);
+        }
+      }
     });
   });
 
