@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.259.4](https://github.com/CodySwannGT/lisa/compare/v2.259.3...v2.259.4) (2026-07-20)
+
+
+### Bug Fixes
+
+* **skills:** replace stale eager-load premise with bounded-projection rationale ([#1802](https://github.com/CodySwannGT/lisa/issues/1802)) ([43a6862](https://github.com/CodySwannGT/lisa/commit/43a68620dc490f2eeee871d7d0ad295c118f48b6)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+
 ### [2.259.3](https://github.com/CodySwannGT/lisa/compare/v2.259.2...v2.259.3) (2026-07-20)
 
 
