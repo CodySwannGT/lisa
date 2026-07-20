@@ -56,6 +56,68 @@ export const EXPLORATORY_QA_STACK_PRIORITY = ["expo", "rails", "harper-fabric"];
 export const AUTOMATION_RUNBOOK_DIRECTORY = ".lisa/automations";
 
 /**
+ * Every fleet group, in render order, with the operator-facing title each one
+ * carries in the status report. This is the single source of truth for group
+ * membership: adapters bin entries with {@link createAutomationGroupBins} and
+ * render with {@link renderAutomationGroups}, so adding a group here surfaces it
+ * everywhere instead of silently dropping its entries.
+ */
+export const AUTOMATION_FLEET_GROUP_TITLES = {
+  core: "Core automations",
+  exploratory: "Exploratory automations",
+  "opt-in": "Opt-in automations",
+};
+
+/**
+ * Create one empty bin per known fleet group.
+ *
+ * @returns {Map<string, object[]>}
+ */
+export function createAutomationGroupBins() {
+  return new Map(
+    Object.keys(AUTOMATION_FLEET_GROUP_TITLES).map(group => [group, []])
+  );
+}
+
+/**
+ * Add a rendered status item to its group bin.
+ *
+ * Throws on an unknown group rather than dropping the item: a silently skipped
+ * entry is indistinguishable from a healthy fleet, which is exactly how the
+ * opt-in gardener went missing from both runtime adapters.
+ *
+ * @param {Map<string, object[]>} bins
+ * @param {string} group
+ * @param {object} item
+ * @returns {void}
+ */
+export function assignToAutomationGroup(bins, group, item) {
+  const bin = bins.get(group);
+  if (!bin) {
+    throw new Error(
+      `Unknown automation fleet group "${group}" for ${item?.id ?? "an automation"}. Add it to AUTOMATION_FLEET_GROUP_TITLES so the status report can render it.`
+    );
+  }
+  bin.push(item);
+}
+
+/**
+ * Render the group bins as the numbered report groups, in declaration order.
+ *
+ * @param {Map<string, object[]>} bins
+ * @returns {readonly { readonly id: string, readonly title: string, readonly items: readonly object[] }[]}
+ */
+export function renderAutomationGroups(bins) {
+  return Object.entries(AUTOMATION_FLEET_GROUP_TITLES).map(
+    ([group, title], index) => ({
+      id: String(index + 1),
+      title,
+      items: bins.get(group) ?? [],
+    })
+  );
+}
+
+/**
  * @typedef {{
  *   readonly id: string
  *   readonly automationId: string
@@ -76,6 +138,27 @@ export const AUTOMATION_RUNBOOK_DIRECTORY = ".lisa/automations";
  *   readonly runbookPath: string
  * }} UnsupportedAutomationEntry
  */
+
+/**
+ * Infer whether this project opted into the weekly gardener, from what is
+ * actually registered on the scheduler.
+ *
+ * Membership is registration, not configuration: there is no config key to
+ * read, so a read-only caller decides by looking for the registration itself.
+ * Pass the result as `learningsAudit` to {@link resolveExpectedAutomationFleet}
+ * so an opted-in project compares its gardener like any other loop instead of
+ * reporting it `UNSUPPORTED` forever.
+ *
+ * @param {{
+ *   readonly automationPrefix: string
+ *   readonly observedAutomationIds?: readonly string[]
+ * }} input
+ * @returns {boolean}
+ */
+export function inferLearningsAuditRegistration(input) {
+  const target = `${input.automationPrefix}learnings-audit`;
+  return (input.observedAutomationIds ?? []).includes(target);
+}
 
 /**
  * Resolve the repo-relative runbook path for a loop id.
@@ -129,6 +212,13 @@ export function resolveAutomationProjectIdentity(input = {}) {
  *   readonly autoStartTickets?: boolean | string
  *   readonly learningsAudit?: boolean | string
  * }} input
+ *
+ * `learningsAudit` has no config home by design — the gardener is opted into at
+ * registration time, and membership is registration, not configuration. A
+ * read-only caller (the status surface) therefore INFERS it: pass `true` when a
+ * `<automationPrefix>learnings-audit` entry is observed on the runtime
+ * scheduler. Without that inference an opted-in project would report the
+ * gardener `UNSUPPORTED` forever instead of comparing it like any other loop.
  * @returns {{
  *   readonly owner: string
  *   readonly repo: string
@@ -220,7 +310,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
       createUnsupportedEntry(
         identity,
         "exploratory-bugs",
-        "This repository does not ship an exploratory-qa command surface.",
+        "This project ships no exploratory-qa command, so there is nothing for this loop to run. No action needed unless the project adds one.",
         "exploratory"
       )
     );
@@ -240,7 +330,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
       createUnsupportedEntry(
         identity,
         "learnings-audit",
-        "The weekly gardener loop is opt-in and this project has not opted in (learnings-audit=false).",
+        "The weekly gardener loop is opt-in and this project has not opted in, so nobody is auditing its knowledge surfaces. Run /lisa:setup-automations learnings-audit=true to enable it.",
         "opt-in"
       )
     );

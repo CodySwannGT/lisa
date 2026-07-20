@@ -146,19 +146,53 @@ packet here** — cite the rule and instantiate it.
    id, the full automation name, the exact scheduled command with every `owner/repo` already baked
    in (never a placeholder), the human cadence and its `rrule`, the resolved queue arguments, and
    the resolved flag values that shaped the command (`auto-start-prds` / `auto-start-tickets` /
-   `learnings-audit`).
-2. The **ten contract sections** below it. Lisa owns them **only on first write**: seed each one
-   from this skill's per-loop defaults — what that loop maintains, what it reads, how it picks
-   candidates, its bounds, its proof, its approval boundary, its escalation, its recovery, its
-   next-run state, its retirement condition — written for a non-technical operator. After that they
-   belong to the operator.
+   `learnings-audit`). Its **first line inside the delimiters is a visible sentence**, so the
+   ownership boundary survives rendering to markdown where HTML comments disappear:
 
-**Re-run rule (idempotent, append-or-leave).** When the file already exists: rewrite the
+   ```text
+   Lisa rewrites this section on every /lisa:setup-automations run — edits here are lost. Your prose
+   belongs in the sections below.
+   ```
+
+   Immediately **below** the closing delimiter, write one more visible line — `Everything below is
+   yours.` — so an operator reading the rendered page knows where their half starts.
+2. The **ten contract sections** below it. Lisa owns them **only on first write**, then they belong
+   to the operator. Seed them deterministically, never improvised:
+   - **Intent, Sources of truth, Candidate selection, Scope/bounds, Retirement condition** come
+     from the per-loop seed table below.
+   - **Proof, Autonomous-vs-approval boundary, Escalation, Recovery, Next-run state** are derived
+     from **that loop's own SKILL.md** — named per loop in the table's last column — so the runbook
+     describes what the loop actually does rather than a generic paraphrase. Quote its behavior in
+     the operator's voice; if the skill file is unreadable, write one sentence saying the section
+     was not derivable and which file to read, and continue.
+
+   Every seeded sentence is written for a non-technical operator (`factory-model` rule 5).
+
+### Per-loop seed defaults
+
+One line each; expand them into the operator's voice, keep the meaning.
+
+| Loop | Intent | Sources of truth | Candidate selection | Scope/bounds | Retirement condition | Derive the other five from |
+|---|---|---|---|---|---|---|
+| **intake-repair** | Keeps the queues unstuck: work that stalled mid-flight gets diagnosed and moved again. | The PRD and build queues for this project, read through the tracker access layer. | Stuck or half-closed items — stalled in an in-progress role, terminal-labeled but still open, rollups whose children are all done — up to the `max_candidates` cap. | Only this project's configured queues; it repairs lifecycle state, never invents or closes real work. | Propose teardown when nothing has needed repair for a long quiet window AND this run found nothing. | `lisa-repair-intake/SKILL.md` |
+| **intake-prd** | Keeps PRDs moving: a PRD a human marked ready gets validated and decomposed into work items. | The configured PRD queue and its lifecycle roles, read through the source access layer. | The oldest PRD in the ready role, one per run. | Only this project's PRD queue; it never authors product intent, only validates and decomposes it. | Propose teardown when no PRD has entered the queue for a long quiet window AND this run proposed nothing. | `lisa-intake/SKILL.md` |
+| **intake-tickets** | Keeps the build queue moving: work items a human marked ready get built, reviewed, and shipped. | The configured tracker's build queue lanes plus each item's comments and linked PRs. | The oldest eligible leaf work item in the ready lane, one per run. | Only this repo's configured queue; containers with open children are repaired out, never built. | Propose teardown when no work item has entered this queue for a long quiet window AND this run proposed nothing. | `lisa-intake/SKILL.md` |
+| **monitor** | Keeps production honest: observability regressions become tracked work instead of silent decay. | The connected observability providers, each through its access layer, plus this project's `monitor.gapTiers` config. | The regressions and coverage gaps this cycle surfaced, capped per run. | Only this project's own services and dashboards; it files findings, it never changes production. | Propose teardown when the project has no connected observability surfaces AND this run found nothing. | `lisa-monitor/SKILL.md` |
+| **exploratory-prds** | Keeps the idea pipeline fed: the product's own gaps become PRDs when the PRD queue has room. | The PRD queue's pressure roles (the same ones `/lisa:queue-status` reports) and the project's own product surfaces. | One ideated PRD per run, and only when the pressure gate says the queue has capacity. | Never more than one PRD per run, and nothing at all while unresolved PRD pressure exists. | Propose teardown when the queue has been at pressure — or the project has shipped no new surface — across a long quiet window AND this run proposed nothing. | `lisa-project-ideation/SKILL.md` |
+| **exploratory-bugs** | Keeps quality visible: bugs and usability problems get found by using the product, before a customer does. | The running application through its exploratory-qa surface, plus this project's existing bug queue for dedupe. | The findings of one exploratory session, capped per run and deduped against already-filed items. | Only this project's own app; it files tickets, it never changes product code. | Propose teardown when no session has produced a finding across a long quiet window AND this run found nothing. | `lisa-exploratory-qa/SKILL.md` (the stack's own copy) |
+| **learnings-audit** | Keeps the project's knowledge true: stale, duplicated, or contradicted knowledge gets proposed for promotion, demotion, or retirement. | The learnings ledger, the rules trees, the skills, and the wiki — the project's knowledge surfaces. | The knowledge entries this audit judged stale, duplicated, or contradicted, capped per run. | It only proposes; every promote/demote/retire decision is a human-gated tracker ticket. | Propose teardown when the audit has proposed nothing across a long quiet window AND this run proposed nothing. | `lisa-learnings-audit/SKILL.md` |
+
+A loop not in this table — one registered later — seeds all ten sections from its own SKILL.md the
+same way. The table is seed prose for first write only; it is **not** a roster and never decides
+which automations exist.
+
+**Re-run rule (idempotent, never clobber).** When the file already exists: rewrite the
 machine-resolved block in place and **leave every one of the ten sections exactly as found** — an
-operator's edited Intent paragraph survives verbatim. If a section from the contract is **missing**
-from an existing file, append it with its seeded default; never overwrite, reorder, reword, or
-delete prose already on disk. If the machine-resolved delimiters are absent (a hand-written file),
-insert the block at the top and touch nothing else.
+operator's edited Intent paragraph survives verbatim. If a contract section is **missing** from an
+existing file, insert it **at its position in the contract's ten-section order** (never merely
+appended at the end, which would leave the file permanently out of order) with its seeded default.
+Never overwrite, reorder, reword, or delete prose already on disk. If the machine-resolved
+delimiters are absent (a hand-written file), insert the block at the top and touch nothing else.
 
 **Never a precondition.** A runbook that cannot be written is a **degradation, not a blocker**:
 report the failure and continue registering automations. A loop with a missing runbook still runs —
@@ -190,6 +224,15 @@ Then list each runbook written, by path (`.lisa/automations/<loop-id>.runbook.md
 whether it was **created** (seeded fresh) or **refreshed** (machine-resolved block rewritten,
 operator prose left untouched). Name every skipped loop again here and state plainly that it has no
 runbook because it was not registered, and why — for example, "exploratory-bugs was skipped because
-this project ships no exploratory-qa command, so no runbook was written for it." If a runbook could
-not be written, say which one and what failed; the automation itself is still registered. Write all
-of this so a non-technical operator can act on it without reading code.
+this project ships no exploratory-qa command, so no runbook was written for it."
+
+Close with the two lines that tell the operator what to do next:
+
+- When any runbook was newly created: "N new files were written under `.lisa/automations/` — commit
+  them so the whole team sees them."
+- When a runbook could not be written: name which one and what failed, then the consequence and the
+  fix — "that loop runs on defaults and its summaries will lead with 'Runbook missing' — re-run
+  `/lisa:setup-automations` to fix." The automation itself is still registered and still runs.
+
+Every line states the consequence and the action, in words a non-technical operator can act on
+without reading code.

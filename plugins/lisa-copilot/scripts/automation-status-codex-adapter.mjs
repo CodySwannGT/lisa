@@ -17,6 +17,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
+import {
+  assignToAutomationGroup,
+  createAutomationGroupBins,
+  renderAutomationGroups,
+} from "./automation-status-expected-fleet.mjs";
 
 const CODEx_RUNTIME_LABEL = "Codex automations";
 const RUN_TIMESTAMP_PATTERN = /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/;
@@ -156,10 +161,7 @@ export async function inspectCodexAutomationFleet(input) {
     automationPrefix: expectedFleet.automationPrefix,
   });
 
-  const expectedGroups = new Map([
-    ["core", []],
-    ["exploratory", []],
-  ]);
+  const expectedGroups = createAutomationGroupBins();
 
   const comparisons = compareAutomationFleet({
     expectedAutomations: expectedFleet.expected,
@@ -168,7 +170,9 @@ export async function inspectCodexAutomationFleet(input) {
 
   for (const [index, expected] of expectedFleet.expected.entries()) {
     const comparison = comparisons[index];
-    expectedGroups.get(expected.group)?.push(
+    assignToAutomationGroup(
+      expectedGroups,
+      expected.group,
       createObservedStatusItem({
         expected,
         comparison,
@@ -178,7 +182,7 @@ export async function inspectCodexAutomationFleet(input) {
   }
 
   for (const unsupported of expectedFleet.unsupported) {
-    expectedGroups.get(unsupported.group)?.push({
+    assignToAutomationGroup(expectedGroups, unsupported.group, {
       id: unsupported.automationId,
       status: "UNSUPPORTED",
       summary: unsupported.reason,
@@ -190,18 +194,7 @@ export async function inspectCodexAutomationFleet(input) {
   return {
     runtime: `${CODEx_RUNTIME_LABEL} (backing-store metadata)`,
     generatedAt: now.toISOString(),
-    groups: [
-      {
-        id: "1",
-        title: "Core automations",
-        items: expectedGroups.get("core") ?? [],
-      },
-      {
-        id: "2",
-        title: "Exploratory automations",
-        items: expectedGroups.get("exploratory") ?? [],
-      },
-    ],
+    groups: renderAutomationGroups(expectedGroups),
     observedAutomations,
   };
 }
@@ -583,6 +576,13 @@ function humanizeAutomationCadence(rrule) {
       : `every ${everyDays[1]} days`;
   }
 
+  const everyWeeks = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (everyWeeks?.[1]) {
+    return Number(everyWeeks[1]) === 1
+      ? "once a week"
+      : `every ${everyWeeks[1]} weeks`;
+  }
+
   return rrule;
 }
 
@@ -606,6 +606,11 @@ function rruleToIntervalMs(rrule) {
     return Number(daily[1]) * 24 * 60 * 60_000;
   }
 
+  const weekly = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (weekly?.[1]) {
+    return Number(weekly[1]) * 7 * 24 * 60 * 60_000;
+  }
+
   return null;
 }
 
@@ -621,6 +626,10 @@ function cadenceLabelToIntervalMs(label) {
 
   if (label === "once a day") {
     return 24 * 60 * 60_000;
+  }
+
+  if (label === "once a week") {
+    return 7 * 24 * 60 * 60_000;
   }
 
   return null;

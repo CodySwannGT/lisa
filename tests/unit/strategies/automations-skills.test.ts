@@ -120,7 +120,55 @@ describe("setup-automations is a runtime-branched declarative spec", () => {
 
     it("reports each runbook written and each skipped loop", () => {
       expect(content).toMatch(/list each runbook written/i);
-      expect(content).toMatch(/created.*refreshed|refreshed.*created/is);
+      // Anchored to the report sentence, not a wildcard span across the file.
+      expect(content).toMatch(
+        /whether it was \*\*created\*\* \(seeded fresh\) or \*\*refreshed\*\*/
+      );
+      expect(content).toMatch(/runbook because it was not registered/i);
+    });
+
+    it("states the consequence and the action on every report line", () => {
+      expect(content).toMatch(
+        /new files were written under `\.lisa\/automations\/` — commit\s+them/i
+      );
+      expect(content).toMatch(/runs on defaults and its summaries will lead/i);
+      expect(content).toMatch(/re-run\s+`\/lisa:setup-automations` to fix/i);
+    });
+
+    it("makes the ownership boundary visible in rendered markdown", () => {
+      expect(content).toMatch(
+        /Lisa rewrites this section on every \/lisa:setup-automations run — edits here are lost/
+      );
+      expect(content).toMatch(/Everything below is\s+yours\./);
+    });
+
+    it("seeds the ten sections deterministically, per loop", () => {
+      expect(content).toMatch(/### Per-loop seed defaults/);
+      for (const loop of [
+        "intake-repair",
+        "intake-prd",
+        "intake-tickets",
+        "monitor",
+        "exploratory-prds",
+        "exploratory-bugs",
+        "learnings-audit",
+      ]) {
+        expect(content).toContain(`| **${loop}** |`);
+      }
+      // The remaining five sections are derived from the loop's own skill file.
+      expect(content).toMatch(
+        /derived\s+from \*\*that loop's own SKILL\.md\*\*/i
+      );
+      expect(content).toContain("lisa-learnings-audit/SKILL.md");
+      // The seed table must not be mistaken for a roster.
+      expect(content).toMatch(/is \*\*not\*\* a roster/i);
+    });
+
+    it("inserts a missing section in contract order, never merely appended", () => {
+      expect(content).toMatch(
+        /insert it \*\*at its position in the contract's ten-section order\*\*/i
+      );
+      expect(content).toMatch(/never merely\s+appended at the end/i);
     });
   });
 });
@@ -161,9 +209,17 @@ describe("tear-down-automations removes only this project's lisa-auto set", () =
       expect(content).toMatch(/gardener/i);
     });
 
-    it("leaves scaffolded runbook files on disk", () => {
+    it("leaves scaffolded runbook files on disk, and says why", () => {
       expect(content).toContain(".lisa/automations/");
       expect(content).toMatch(/leave the runbooks alone|never deletes/i);
+      expect(content).toMatch(/written record of what those jobs did/i);
+      expect(content).toMatch(/kept on purpose/i);
+      expect(content).toMatch(/delete them yourself in git/i);
+    });
+
+    it("derives 'already absent' from the expected-fleet resolver", () => {
+      expect(content).toContain("resolveExpectedAutomationFleet");
+      expect(content).toMatch(/do not invent an expected set of your own/i);
     });
   });
 });

@@ -23,6 +23,14 @@ exactly what `setup-automations` registers for this repo — including the stack
 roster** (`automation-runbook-contract`): carry no fixed list of loop names here, so a loop added to
 or removed from the registration set flows through without editing this skill.
 
+The gardener is opted into at registration time and has no config key, so **infer it from the
+scheduler**: list the project's automations first, then call
+`inferLearningsAuditRegistration({ automationPrefix, observedAutomationIds })` and pass the result
+as `learningsAudit` when resolving the fleet. A `lisa-auto-<project>-learnings-audit` entry on the
+scheduler means the project opted in, so the gardener is compared like any other loop; no such entry
+means it is reported `UNSUPPORTED` (opted out), never `MISSING`. This skill stays read-only — it
+infers, it never writes the flag anywhere.
+
 Resolve the expected project identifier, fleet naming prefix, queue arguments, cadence, and stack-support rules from the same contract used by `setup-automations` and `tear-down-automations`. Do **not** invent a second source of truth for fleet naming or queue resolution.
 
 ## Runtime inspection
