@@ -168,6 +168,10 @@ describe("automation-runbook-contract rule contract", () => {
       expect(reference).toMatch(/approve/i);
       expect(reference).toMatch(/decline/i);
       expect(reference).toMatch(/re-cadence/i);
+      // Harmonized with RBC-6: a decline is a close-as-Not-planned, which is
+      // what durably suppresses the re-file. Pinned so it cannot regress to the
+      // pre-RBC-6 close-reason-agnostic wording.
+      expect(reference).toMatch(/not planned/i);
     });
 
     it("cites the precedent skills it generalizes by slug", () => {

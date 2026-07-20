@@ -303,7 +303,7 @@ so a quiet ideation run and a broken one are never confused.
 | Nothing to ideate — no Practical Idea cleared the bar; nothing created — **or** every idea was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
 | The Step 5.5 **PRD-queue-pressure gate** blocked auto-ready creation — a human must drain the queue before another auto-ready PRD is added | `approval-requested` |
 | The loop itself could not run — the PRD source reader failed or the queue is misconfigured (a source-reader failure snapshot, not queue pressure) — **or** the open-and-closed rejection-memory marker search could not read the source: a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
-| The runbook's **Retirement condition** tripped — the trailing quiet window is empty AND this run proposed nothing | `policy-obsolete` |
+| The runbook's **Retirement condition** tripped — the trailing quiet window is empty AND this run proposed nothing AND no unresolved PRD pressure exists while no new surface has shipped — this row supersedes the `nothing-needed` row when it applies | `policy-obsolete` |
 | A degradation that still let ideation run (optional Codex automation memory unavailable, an inspiration source unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 The pressure gate is `approval-requested`, **not** `recovery-required`: the loop ran fine and
@@ -331,20 +331,35 @@ the run — a recording failure is a degradation to report, never a reason to bl
 
 **Retirement evaluation (every run).** Evaluate this loop's runbook **Retirement condition** on
 every run, exactly as the `automation-runbook-contract` rule's Retirement section defines it — this
-skill conforms to that text and never restates or diverges from it. When both of its conditions
-hold, record `policy-obsolete` and file **exactly ONE** marker-deduped teardown proposal through
-`lisa-tracker-write` (per `tracked-work` + `integration-access-layer`):
+skill conforms to that text and never restates or diverges from it. On top of the contract's two
+conditions the runbook seeds a third **domain conjunct** — no unresolved PRD pressure exists and the
+project has shipped no new surface to ideate against — which only tightens the test and never
+replaces it: a quiet month because the queue was full is the loop working, not the loop being
+obsolete. Evaluate all three. When all three hold, record `policy-obsolete` and file **exactly ONE**
+marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work` +
+`integration-access-layer`):
 
 - **Marker** `<!-- [lisa-automation-retire] key=exploratory-prds -->` plus a visible prose line;
   matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
   **Proposal rejection memory**, so a teardown proposal a human already declined is remembered and
-  not re-filed without postdating evidence.
-- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet.
-- **Evidence** the date-filtered search result plus this run's summary.
+  not re-filed without postdating evidence. When that search finds an existing proposal, **the run
+  still records `policy-obsolete` and files nothing** — the outcome describes this run, while the
+  ticket is filed exactly once.
+- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
+  `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
+  re-dispatches it as stalled work.
+- **Evidence** the date-filtered search result, this run's summary, **the loop's current cadence**
+  (the baseline an operator needs to choose a longer one), and a one-line summary of recent runs
+  read from `.lisa/automations/runs/exploratory-prds.jsonl`. Fill the rest of the packet the same
+  way every time: *Work already attempted* is the searches this run ran, and *Risk of inaction* is
+  that the loop keeps consuming schedule slots and tokens for nothing.
 - **How to answer** names the three operator responses: **approve** — run
   `/lisa:tear-down-automations` and the registration goes away; **decline** — close the proposal as
   **Not planned** (closing it as **Completed** leaves a later re-file open) and the loop simply
-  continues; **re-cadence** — re-register it at the longer cadence instead.
+  continues; **re-cadence** — pick a longer cadence off that evidence and re-register with
+  `/lisa:setup-automations` instead of tearing down.
+- **Operator footer**, verbatim, as on every loop-filed proposal (`rejection-detection`):
+  > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
 The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
 registration.

@@ -152,7 +152,7 @@ so a quiet monitoring run and a broken one never look identical.
 | Anomalies or in-scope gaps filed — one or more `Bug` / `Task` / `Improvement` leaves created or referenced | `candidate-proposed` |
 | Clean sweep — health/audit ran end to end, nothing over the bar and no in-scope gaps — **or** every finding was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
 | Provider/threshold resolution failure — threshold collection fails (a present-but-uninspectable config, an invalid configured threshold) or a signal provider is unreachable so the sweep could not run — **or** the open-and-closed rejection-memory search could not read the tracker: a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
-| The runbook's **Retirement condition** tripped — the trailing quiet window is empty AND this sweep found nothing | `policy-obsolete` |
+| The runbook's **Retirement condition** tripped — the trailing quiet window is empty AND this sweep found nothing AND no connected observability surfaces are left — this row supersedes the `nothing-needed` row when it applies | `policy-obsolete` |
 | A degradation that still let the sweep run (an optional `ops-specialist` overlay absent, Kane unavailable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 Only the **standalone** run records. The nested report-only modes do their own job and do not file or
@@ -181,20 +181,35 @@ the cycle — a recording failure is a degradation to report, never a reason to 
 
 **Retirement evaluation (every run).** Evaluate this loop's runbook **Retirement condition** on
 every standalone run, exactly as the `automation-runbook-contract` rule's Retirement section defines
-it — this skill conforms to that text and never restates or diverges from it. When both of its
-conditions hold, record `policy-obsolete` and file **exactly ONE** marker-deduped teardown proposal
-through `lisa-tracker-write` (per `tracked-work` + `integration-access-layer`):
+it — this skill conforms to that text and never restates or diverges from it. On top of the
+contract's two conditions the runbook seeds a third **domain conjunct** — the project has no
+connected observability surfaces left, so there is nothing to monitor — which only tightens the test
+and never replaces it: a quiet month on a healthy project is good news, not a reason to stop
+watching it. Evaluate all three. When all three hold, record `policy-obsolete` and file
+**exactly ONE** marker-deduped teardown proposal through `lisa-tracker-write`
+(per `tracked-work` + `integration-access-layer`):
 
 - **Marker** `<!-- [lisa-automation-retire] key=monitor -->` plus a visible prose line; matched on
   the marker, never the title; searched **open AND closed** per `rejection-detection`'s **Proposal
   rejection memory**, so a teardown proposal a human already declined is remembered and not re-filed
-  without postdating evidence.
-- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet.
-- **Evidence** the date-filtered search result plus this run's summary.
+  without postdating evidence. When that search finds an existing proposal, **the run
+  still records `policy-obsolete` and files nothing** — the outcome describes this run,
+  while the ticket is filed exactly once.
+- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
+  `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
+  re-dispatches it as stalled work.
+- **Evidence** the date-filtered search result, this run's summary, **the loop's current cadence**
+  (the baseline an operator needs to choose a longer one), and a one-line summary of recent runs
+  read from `.lisa/automations/runs/monitor.jsonl`. Fill the rest of the packet the same way every
+  time: *Work already attempted* is the searches this run ran, and *Risk of inaction* is that the
+  loop keeps consuming schedule slots and tokens for nothing.
 - **How to answer** names the three operator responses: **approve** — run
   `/lisa:tear-down-automations` and the registration goes away; **decline** — close the proposal as
   **Not planned** (closing it as **Completed** leaves a later re-file open) and the loop simply
-  continues; **re-cadence** — re-register it at the longer cadence instead.
+  continues; **re-cadence** — pick a longer cadence off that evidence and re-register with
+  `/lisa:setup-automations` instead of tearing down.
+- **Operator footer**, verbatim, as on every loop-filed proposal (`rejection-detection`):
+  > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
 The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
 registration.

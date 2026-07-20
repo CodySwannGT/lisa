@@ -34,7 +34,8 @@ Health and operator action are **orthogonal** — a healthy run can still need a
   capability, then close the escalation item.
 - `policy-obsolete` — the loop's own retirement policy (the retirement condition written in its
   runbook) tripped, so it proposed its own teardown. **Healthy.** Operator action: approve the
-  teardown, decline it (close the proposal; the loop keeps running at cadence), or re-cadence it.
+  teardown, decline it (close the proposal as **Not planned**; the loop keeps running at cadence),
+  or re-cadence it.
 
 ## A run outcome is NOT a work-item lifecycle terminal state (CRITICAL)
 

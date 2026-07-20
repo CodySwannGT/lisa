@@ -41,8 +41,16 @@ const TEARDOWN = "lisa-tear-down-automations";
 const APPROVE = /\*\*approve\*\*/i;
 const DECLINE = /\*\*decline\*\*/i;
 const RE_CADENCE = /\*\*re-cadence\*\*/i;
-/** The contract's two-part retirement test, as seeded prose. */
+/** The contract's two-part test seeded verbatim (the gardener's shape). */
 const BOTH_HOLD = /Propose teardown when BOTH hold/;
+/** The two-part test plus a domain conjunct — stricter, never divergent. */
+const ALL_THREE = /Propose teardown when ALL THREE hold/;
+/** The verbatim RBC-6 close-reason footer every loop-filed proposal carries. */
+const OPERATOR_FOOTER =
+  "To stop this from being raised again, close it as **Not planned**";
+/** The precedence clause that keeps policy-obsolete from racing nothing-needed. */
+const PRECEDENCE =
+  "this row supersedes the `nothing-needed` row when it applies";
 
 /** Loop-ids seeded as structural to the factory — no retirement, ever. */
 const STRUCTURAL_LOOP_IDS = [
@@ -50,11 +58,22 @@ const STRUCTURAL_LOOP_IDS = [
   "intake-prd",
   "intake-tickets",
 ] as const;
-/** Loop-ids seeded with the contract's two-part quiet-window condition. */
+/**
+ * Loop-ids seeded with the two-part test PLUS a domain conjunct, paired with
+ * that conjunct. Silence alone means obsolescence only for the gardener: a
+ * quiet month on a monitored or explored project usually means it is healthy,
+ * so those loops must also observe that their subject matter is gone.
+ */
 const QUIET_WINDOW_LOOP_IDS = [
-  "monitor",
-  "exploratory-prds",
-  "exploratory-bugs",
+  ["monitor", /no connected observability surfaces left/],
+  ["exploratory-prds", /no unresolved PRD pressure exists/],
+  ["exploratory-bugs", /no longer ships an exploratory-qa command surface/],
+] as const;
+/** The three loops whose Run-outcome table carries a policy-obsolete row. */
+const PRECEDENCE_LOOP_SKILLS = [
+  "lisa-exploratory-qa",
+  "lisa-project-ideation",
+  "lisa-monitor",
 ] as const;
 /** Skills that FILE a teardown proposal, paired with the loop-id keying the marker. */
 const RETIRING_LOOP_SKILLS = [
@@ -115,14 +134,24 @@ describe("the runbook seed states a retirement condition per loop (#1801)", () =
       }
     );
 
+    it("permits a tightening domain conjunct but never a weakened condition", () => {
+      expect(content).toMatch(/domain conjunct/i);
+      expect(content).toMatch(/strictly\s+tighter and never divergent/i);
+      expect(content).toMatch(/never drop or weaken either/i);
+    });
+
     it.each(QUIET_WINDOW_LOOP_IDS)(
-      "seeds %s with the contract's two-part quiet-window shape",
-      loop => {
+      "seeds %s with the quiet-window shape plus its domain conjunct",
+      (loop, conjunct) => {
         const row = seedRow(content, loop);
-        expect(row).toMatch(BOTH_HOLD);
+        expect(row).toMatch(ALL_THREE);
         expect(row).toMatch(/date-filtered/);
         expect(row).toMatch(/trailing 30-day window/);
         expect(row).toMatch(/AND this run (found|proposed) nothing/);
+        // The domain conjunct is what stops a healthy quiet project from
+        // proposing to tear down its own monitoring or exploration.
+        expect(row).toMatch(conjunct);
+        expect(row).toMatch(/only tightens the contract's two-part test/);
       }
     );
 
@@ -158,10 +187,38 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
         expect(content).toContain("Proposal rejection memory");
       });
 
+      it("still records the outcome and files nothing on a re-fire", () => {
+        // AC3: the condition holding again must not mint a duplicate ticket,
+        // and must not silently drop the run outcome either.
+        expect(content).toMatch(
+          /still records `policy-obsolete` and files\s+nothing/
+        );
+        expect(content).toMatch(/ticket is filed exactly\s+once/);
+      });
+
       it("carries the decision-ready packet and its labels", () => {
         expect(content).toContain("status:blocked");
         expect(content).toContain("human-needed");
         expect(content).toMatch(/decision-ready packet/i);
+      });
+
+      it("marks the proposal human-owned so repair-intake leaves it alone", () => {
+        expect(content).toMatch(/marks the proposal\s+human-owned/);
+        expect(content).toContain("lisa-repair-intake");
+        expect(content).toMatch(/never\s+re-dispatches it/);
+      });
+
+      it("gives the operator enough evidence to choose a longer cadence", () => {
+        expect(content).toMatch(/the\s+loop's current cadence/);
+        expect(content).toContain(`.lisa/automations/runs/${id}.jsonl`);
+        // Packet field-mapping guidance, so the escalation reads the same
+        // way no matter which loop filed it.
+        expect(content).toMatch(/Work already attempted\* is the searches/);
+        expect(content).toMatch(/keeps consuming schedule\s+slots/);
+      });
+
+      it("carries the verbatim RBC-6 operator close-reason footer", () => {
+        expect(content).toContain(OPERATOR_FOOTER);
       });
 
       it("names the three operator responses with the full teardown command", () => {
@@ -179,6 +236,15 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
       });
     });
 
+    it.each(PRECEDENCE_LOOP_SKILLS)(
+      "%s's policy-obsolete row supersedes its nothing-needed row",
+      slug => {
+        // Both rows describe a run that proposed nothing; without an explicit
+        // precedence clause the exit-path table is ambiguous.
+        expect(readSkill(root, slug)).toContain(PRECEDENCE);
+      }
+    );
+
     describe.each(STRUCTURAL_LOOP_SKILLS)("%s never retires", slug => {
       const content = readSkill(root, slug);
 
@@ -186,6 +252,10 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
         expect(content).toMatch(/structural to the\s+factory/i);
         expect(content).toMatch(/do(es)? not retire/i);
         expect(content).toContain(OBSOLETE);
+        // "never reached by design" reads as intent; "unreachable" reads as a
+        // gap an implementer forgot to fill.
+        expect(content).toMatch(/never reached by design/);
+        expect(content).not.toMatch(/`policy-obsolete` — \*\*unreachable/);
       });
 
       it("files no teardown proposal at all", () => {
@@ -207,6 +277,24 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
         expect(content).toMatch(/always human-invoked/i);
         expect(content).toMatch(/never\s+triggered by a loop/i);
         expect(content).toMatch(/never removes its own registration/i);
+      });
+
+      it("tells the operator how to close the proposal after each answer", () => {
+        // Approve: teardown actually happened, so Completed is truthful.
+        expect(content).toMatch(
+          /When it has run, close the proposal as \*\*Completed\*\*/
+        );
+        // Decline: only Not planned durably suppresses the re-file.
+        expect(content).toMatch(
+          /close the proposal as \*\*Not planned\*\*.*stops the loop/s
+        );
+      });
+
+      it("routes re-cadence through setup-automations, never self-adjustment", () => {
+        expect(content).toContain("/lisa:setup-automations");
+        expect(content).toMatch(/you pick the longer cadence/i);
+        expect(content).toMatch(/never adjusts its own schedule/i);
+        expect(content).toMatch(/\*\*current cadence\*\* as the baseline/);
       });
     });
   });
