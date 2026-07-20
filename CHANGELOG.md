@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.262.0](https://github.com/CodySwannGT/lisa/compare/v2.261.0...v2.262.0) (2026-07-20)
+
+
+### Features
+
+* **verification:** verdict schema v2 with claim-boundary mapping and compat-windowed gate ([#1836](https://github.com/CodySwannGT/lisa/issues/1836)) ([2c71799](https://github.com/CodySwannGT/lisa/commit/2c717992fb310e4414c80b78db90d5553eda44dc))
+
 ## [2.261.0](https://github.com/CodySwannGT/lisa/compare/v2.260.2...v2.261.0) (2026-07-20)
 
 
