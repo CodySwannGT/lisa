@@ -9,14 +9,7 @@
  * @module tests/unit/config/expo-eslint-local-config
  */
 import { spawnSync } from "node:child_process";
-import {
-  copyFileSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -31,6 +24,25 @@ const EXPO_ESLINT_TEMPLATE = path.join(
   MANAGED_CONFIG_FILENAME
 );
 const TSC = path.join(REPO_ROOT, "node_modules", "typescript", "bin", "tsc");
+
+/**
+ * The managed template imports `@codyswann/lisa/eslint/expo`, which the package
+ * `exports` map points at the built `dist/configs/eslint/expo.js`. Resolving
+ * through that live artifact raced sibling suites that rebuild `dist/` mid-run:
+ * `cli-smoke.test.ts` runs `build:dist`, whose `clean-dist` step deletes `dist/`
+ * before `tsc` regenerates it, so under full-suite parallelism this temp project
+ * intermittently failed with TS2307 (#1824). The factory source is the very file
+ * that `dist/configs/eslint/expo.d.ts` is emitted from — identical public types,
+ * but never deleted by a build — so the fixture resolves the subpath straight to
+ * source via a tsconfig `paths` mapping, decoupling it from the mutable `dist/`.
+ */
+const EXPO_ESLINT_FACTORY_SOURCE = path.join(
+  REPO_ROOT,
+  "src",
+  "configs",
+  "eslint",
+  "expo.ts"
+);
 
 const MINIMAL_CUSTOM_PLUGIN = `
 const customPlugin = {
@@ -107,14 +119,13 @@ function compileHostFixture(name: string, localConfig: string): string {
           target: "ES2022",
           typeRoots: [path.join(REPO_ROOT, "node_modules", "@types")],
           types: ["node"],
+          paths: {
+            "@codyswann/lisa/eslint/expo": [EXPO_ESLINT_FACTORY_SOURCE],
+          },
         },
         include: [MANAGED_CONFIG_FILENAME, LOCAL_CONFIG_FILENAME],
       })
     );
-
-    const packageScope = path.join(fixture, "node_modules", "@codyswann");
-    mkdirSync(packageScope, { recursive: true });
-    symlinkSync(REPO_ROOT, path.join(packageScope, "lisa"), "dir");
 
     const result = spawnSync(
       process.execPath,
