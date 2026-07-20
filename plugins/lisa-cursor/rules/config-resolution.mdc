@@ -53,13 +53,32 @@ empirical evidence only—native Playwright/Cypress/Maestro remains the regressi
 
 ## Env → base branch
 
-For implementation work, map the work item's `## Target Backend Environment` to
-the PR base branch through `.lisa.config.json` `deploy.branches`. For bugs, a
-reported environment extracted from the description/reproduction steps wins over
-an autofill default. If a reported environment is absent from `deploy.branches`,
-stop and report the missing mapping instead of silently falling back to the
-default or integration branch. A non-integration environment bug is fixed,
-merged, and verified on that environment branch first, then forward
-cherry-picked down to the integration branch via a linked follow-up.
+The `## Target Backend Environment` grammar is durable: human-confirmed values
+are a bare configured key or `Confirmed: <env>`; automation writes either
+`Inferred: <env> — evidence: <title|body|reproduction|hostname>` or
+`Assumption: <env> — remote default branch <branch>`. When no unique environment
+maps to the default branch, use `Assumption: remote default branch <branch>`.
+Human confirmation replaces an automated annotation with a bare key or
+`Confirmed: <env>`. For legacy bare values, use managed draft markers and current
+ticket content only; provider edit history is not required. A marker proves
+automation and requires re-annotation; otherwise unknown provenance with
+conflicting evidence stops for confirmation.
+
+Resolution order is human-confirmed value; validated `Inferred:` evidence; then
+one unambiguous signal from the human-authored title, body, and reproduction
+steps or a URL hostname. Exclude the complete `Target Backend Environment`
+section and other machine-authored metadata/draft blocks from the scan so an
+annotation cannot validate or conflict with itself. Evidence supersedes only an
+`Assumption:`. A signal must be an exact
+`deploy.branches` key as a complete token/hostname label. The sole normalization
+is `prod` ↔ `production` when exactly one is configured; no other aliases exist.
+Conflicting signals stop. Never infer from arbitrary branch text, URL paths or
+query strings, or substrings. With no signals, use the remote default branch and
+record an assumption: include `<env>` only for a unique reverse-map, otherwise
+use the branch-only form without inventing an environment or blocking. Require
+any selected environment mapping and its remote branch to exist.
+A non-integration environment bug is fixed, merged, and verified on that
+environment branch first, then
+forward cherry-picked down to the integration branch via a linked follow-up.
 
 Full reference: [reference/config-resolution.md](config-resolution-reference.mdc).

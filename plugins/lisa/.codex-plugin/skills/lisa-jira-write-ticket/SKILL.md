@@ -35,7 +35,7 @@ Required fields (stop and ask if missing — do not invent values):
 | Priority | CREATE | Default to project default if unstated |
 | Acceptance criteria | Story, Task, Bug, Sub-task, Improvement | Gherkin — see Phase 3 |
 | Validation Journey | Runtime-behavior changes | Delegate to `/jira-add-journey` |
-| Target backend environment | Runtime-behavior changes | `dev` / `staging` / `prod`; recorded in description (Phase 3). Skip only for doc/config/type-only tickets. |
+| Target backend environment | Runtime-behavior changes | For every work type, use an exact `deploy.branches` key when an environment is known. Human: bare key or `Confirmed: <env>`. Automation: `Inferred: <env> — evidence: <title\|body\|reproduction\|hostname>`, `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` otherwise. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. |
 | Sign-in account / credentials | Tickets that touch authenticated surfaces | Name the account (or source — 1Password item, env var, seeded fixture) and role; recorded in description (Phase 3). Omit when sign-in is not required. |
 | Single-repo scope | Bug, Task, Sub-task, Improvement | These leaf work units MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
 | Source Requirement | PRD-sourced tickets (`prd_source` provided) | `h2. Source Requirement` with PRD link + verbatim requirement quote(s) — see Phase 3; enforced at every level, sub-tasks included |
@@ -83,11 +83,14 @@ h2. Out of Scope
 [Explicit list of what this ticket does NOT cover. Forces scope discipline.]
 
 h2. Target Backend Environment
-[Required when the ticket changes runtime behavior. One of: dev / staging / prod.
- This is the environment QA/product reported against and the backend the
- implementer points their local stack at during verification before CI/CD.
- Backend-only tickets state the deployed env they target. Skip section
- entirely for doc-only, config-only, or type-only tickets.]
+[Required when the ticket changes runtime behavior. Use an exact
+ `deploy.branches` key. A human-confirmed value is a bare key or
+ `Confirmed: <env>`. An automated evidence write is
+ `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated
+ generic default is `Assumption: <env> — remote default branch <branch>`.
+ Without a unique reverse-map use `Assumption: remote default branch <branch>`.
+ Human confirmation replaces the automated annotation with a bare key or
+ `Confirmed: <env>`. Skip only for doc/config/type-only tickets.]
 
 h2. Sign-in Required
 [Include this section ONLY if the work touches authenticated surfaces.
