@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.258.4](https://github.com/CodySwannGT/lisa/compare/v2.258.3...v2.258.4) (2026-07-20)
+
+
+### Bug Fixes
+
+* **expo:** pin e2e-coverage route sort to code-unit order ([#1713](https://github.com/CodySwannGT/lisa/issues/1713)) ([a9006a7](https://github.com/CodySwannGT/lisa/commit/a9006a70395e9d4146d908c7988cb93fd5491be7)), closes [#6189](https://github.com/CodySwannGT/lisa/issues/6189) [frontend-v2#6190](https://github.com/CodySwannGT/frontend-v2/issues/6190)
+
 ### [2.258.3](https://github.com/CodySwannGT/lisa/compare/v2.258.2...v2.258.3) (2026-07-20)
 
 
