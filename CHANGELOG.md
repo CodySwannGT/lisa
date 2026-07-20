@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.259.1](https://github.com/CodySwannGT/lisa/compare/v2.259.0...v2.259.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **ci:** deliberate least-privilege permissions for quality.yml and caller templates ([#1769](https://github.com/CodySwannGT/lisa/issues/1769)) ([7e8b372](https://github.com/CodySwannGT/lisa/commit/7e8b372494ac55d372279a4052da1fdeb01bde2c))
+* **ci:** drop unused pull-requests scope from quality caller templates ([00461a1](https://github.com/CodySwannGT/lisa/commit/00461a1d0c3a4ad8fc4b82e48cb1833b190349c8)), closes [#1769](https://github.com/CodySwannGT/lisa/issues/1769) [#1827](https://github.com/CodySwannGT/lisa/issues/1827) [CodySwannGT/lisa#1769](https://github.com/CodySwannGT/lisa/issues/1769)
+
 ## [2.259.0](https://github.com/CodySwannGT/lisa/compare/v2.258.4...v2.259.0) (2026-07-20)
 
 
