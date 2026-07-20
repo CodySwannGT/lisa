@@ -81,10 +81,11 @@ defines the names; it stores nothing:
 
 A claim whose `required_evidence_kinds` has no captured, reaching artifact is **Not established** —
 defined in full, with its evidence templates, in the section below. Artifact identity — what makes
-two captured artifacts the same or different — is defined in **BCE-4 (#1838)**, and the conservative
-default bucket for a security-sensitive claim is set in **BCE-5 (#1839)**. Each is named here as a
-field BCE-2's schema carries; neither is defined by this contract, and each ships with that ticket.
-Where such a sibling surface is not installed in a given branch, name what you can and continue.
+two captured artifacts the same or different — is defined in the *Artifact identity* section below
+(shipped by BCE-4, #1838). The conservative default bucket for a security-sensitive claim is set in
+**BCE-5 (#1839)** — named here as a field BCE-2's schema carries, not defined by this contract, and
+it ships with that ticket. Where such a sibling surface is not installed in a given branch, name what
+you can and continue.
 
 ### Worked example
 
@@ -112,6 +113,71 @@ Claim: "The service is deployed and healthy."
                       A healthy deployment is established only by a deploy-log / health-check
                       response from the target environment.
 ```
+
+## Artifact identity — what the evidence was collected against
+
+A claim reaches only as far as its evidence's *kind*; it applies only to the *artifact* that evidence
+was collected against. **Artifact identity is what makes two captured artifacts the same or
+different**: one repository, at one commit, in one environment, at one moment. Evidence that does not
+say which artifact it observed is not evidence about anything in particular — it silently transfers
+to whatever ships next, which is exactly how an auto-merge race ships code no verification ever
+touched.
+
+Identity is carried in two places, and they must agree:
+
+| Where | Field | What it pins |
+|---|---|---|
+| `artifact` (once per verdict) | `repository` | the `owner/repo` the run observed |
+| | `base_sha` | the base the change was measured against |
+| | `head_sha` | **the commit the verification actually observed** — required for a v2 pass |
+| | `build_id` | the build/run the evidence came from, where one exists |
+| | `environment` | where it ran (local, preview, staging, production) |
+| | `observed_at` | when the run observed it (ISO-8601 UTC) |
+| `evidence[]` (per artifact) | `artifact_head_sha` | the `head_sha` in force **when that artifact was captured** |
+| | `sha256` | content digest of the committed evidence file |
+| | `captured_at` | when that artifact was captured (ISO-8601 UTC) |
+
+`head_sha` pins the *build*; `sha256` pins the *bytes*. Together they answer both identity questions:
+"which artifact was this collected against" and "is this still the artifact that was collected". The
+`sha256` + commit-ref discipline is the same one Lisa's upstream-evidence manifest already uses — it
+is cited as prior art here, not reinvented.
+
+### Two identity failures, both loud
+
+- **`artifact_mismatch`** — an `evidence[]` entry whose `artifact_head_sha` differs from the verdict's
+  `artifact.head_sha`. The evidence describes a different build than the one the verdict claims. The
+  identity check fails **loudly, naming both SHAs** (the evidence's and the verdict's) so an operator
+  can see which build each half is talking about.
+- **`evidence_digest_mismatch`** — on read, recompute the `sha256` of each committed evidence file. If
+  the bytes no longer match the recorded digest, the artifact has changed since it was recorded: the
+  check fails, it names the evidence id, and blocks completion. A digest that cannot be recomputed
+  (file absent) is the same failure.
+
+Neither failure is ever summarized as "verification failed". Name the field, the ids, and both SHAs —
+a person who does not code reads this at the gate (`factory-model` rule 5). Both checks are
+**advisory-first**: reported to the operator but non-blocking until
+`verification.gate.enforceBoundaries` is `true` in `.lisa.config.json` — the same ratchet flag the
+boundary checks and the Stop-hook gate ride.
+
+### The merge race — one definition, two guards
+
+"The artifact that shipped" is already defined once, in `lisa-drive-pr-to-merge`: the **ancestry**
+check (is the verified commit an ancestor of the merged base branch, and is the merge commit's parent
+that verified head rather than a stale one) **plus** the **deploy-run** check (a deploy/release run
+actually fired for the merge SHA or an including descendant). Cite that definition; never write a
+second one. Identity reconciliation is the same definition read from the evidence side:
+
+- Evidence collected on a **pre-merge head** is valid for the merge commit **only when that head is a
+  parent of the merge** — i.e. it satisfies that skill's ancestry check against the merged head. If a
+  late commit raced past the merge, the merged head is not the verified one and the evidence does not
+  transfer.
+- Ancestry alone is never enough. That skill's rule stands unchanged here: **never report shipped on
+  ancestry alone** — the deploy-run check must also pass before completion is declared.
+- On mismatch (`artifact.head_sha` ≠ the reconciled merge SHA), completion is not declared. Flag the
+  mismatch naming both SHAs and **re-run verification against the merged head**; the re-run's verdict
+  is what may declare completion.
+
+Two guards, one definition — so they cannot disagree about what shipped.
 
 ## The "Not established" section — required, never omitted
 
