@@ -169,7 +169,12 @@ describe("parseReusableReference", () => {
       parseReusableReference(
         "CodySwannGT/lisa/.github/workflows/reusable-claude.yml@main"
       )
-    ).toEqual({ file: REUSABLE_CLAUDE_YML, ref: "main" });
+    ).toEqual({
+      file: REUSABLE_CLAUDE_YML,
+      owner: "CodySwannGT",
+      repo: "lisa",
+      ref: "main",
+    });
   });
 
   it("returns null for a plain action reference", () => {
@@ -191,6 +196,8 @@ describe("extractCallerJobs", () => {
     ].join("\n");
     expect(extractCallerJobs(content)).toEqual([
       {
+        owner: "CodySwannGT",
+        repo: "lisa",
         reusableFile: REUSABLE_CLAUDE_YML,
         ref: "main",
         withKeys: ["event_name", "package_manager"],
@@ -207,7 +214,13 @@ describe("extractCallerJobs", () => {
       "",
     ].join("\n");
     expect(extractCallerJobs(content)).toEqual([
-      { reusableFile: REUSABLE_CLAUDE_YML, ref: "main", withKeys: [] },
+      {
+        owner: "CodySwannGT",
+        repo: "lisa",
+        reusableFile: REUSABLE_CLAUDE_YML,
+        ref: "main",
+        withKeys: [],
+      },
     ]);
   });
 
