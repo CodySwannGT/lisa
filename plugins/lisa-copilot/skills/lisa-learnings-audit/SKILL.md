@@ -339,7 +339,7 @@ failure is a degradation to report, never a reason to block the loop.
 
 ## Retirement condition
 
-The loop retires itself by the same discipline it applies to everything else,
+The loop proposes retirement by the same discipline it applies to everything else,
 conforming to the `automation-runbook-contract` rule's Retirement section
 rather than restating or diverging from it. The condition is **stateless —
 derived from the tracker, never from a
@@ -361,13 +361,14 @@ automation, through `lisa-tracker-write` (per `tracked-work` +
 
 - **Marker** `<!-- [lisa-automation-retire] key=learnings-audit -->` plus a
   visible prose line; matched on the marker, never the title; searched **open
-  AND closed** per `rejection-detection`'s **Proposal rejection memory**, so a
-  teardown proposal a human already declined is remembered and not re-filed
-  without postdating evidence. The `[lisa-gardener]` search above stays what it
-  is — the candidate evidence, not the dedupe key. When that search finds an
-  existing proposal, **the run still records `policy-obsolete` and files
-  nothing** — the outcome describes this run, while the ticket is filed exactly
-  once.
+  AND closed** per `rejection-detection`'s **Proposal rejection memory**. Treat
+  matches by close state: **open** suppresses another proposal; **Not planned**
+  suppresses another proposal unless new evidence postdates the rejection;
+  **Completed** means the prior approved action happened, so a later recurrence
+  may be re-filed. The `[lisa-gardener]` search above stays what it is — the
+  candidate evidence, not the dedupe key. When an existing proposal suppresses
+  filing, **the run still records `policy-obsolete` and files nothing** — the
+  outcome describes this run, while the ticket is filed exactly once.
 - **Labels** `status:blocked` + `human-needed`, carrying the contract's
   decision-ready packet. The `human-needed` label marks the proposal
   human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as
@@ -380,7 +381,7 @@ automation, through `lisa-tracker-write` (per `tracked-work` +
   ran, and *Risk of inaction* is that the loop keeps consuming schedule slots
   and tokens for nothing.
 - **How to answer** names the three operator responses: **approve** — run
-  `/lisa:tear-down-automations` and the registration goes away; **decline** —
+  `/lisa:tear-down-automations learnings-audit` and only that loop registration goes away; **decline** —
   close the proposal as **Not planned** (closing it as **Completed** leaves a
   later re-file open) and the gardener simply continues; **re-cadence** — pick a
   longer cadence off that evidence and re-register with

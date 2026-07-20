@@ -1,6 +1,6 @@
 ---
 name: lisa-tear-down-automations
-description: "Remove every recurring Lisa…"
+description: "Remove recurring Lisa…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -8,7 +8,9 @@ allowed-tools: ["Skill", "Bash", "Read"]
 
 This skill is a **specification, not a script.** It tells the current runtime which recurring Lisa
 automations to remove — the ones `/setup-automations` created for THIS project — and the runtime
-removes them with its **native** scheduling mechanism.
+removes them with its **native** scheduling mechanism. With no loop argument it removes the whole
+project fleet. With a loop id argument (for example `monitor` or `learnings-audit`) it removes only
+that one registered loop.
 
 ## Runtime scheduler (branch on the current runtime)
 
@@ -21,11 +23,15 @@ removes them with its **native** scheduling mechanism.
 
 ## Scope (remove only what setup created)
 
-- Remove **every** automation `/setup-automations` registered for the current project — the whole
+- By default, remove **every** automation `/setup-automations` registered for the current project — the whole
   set found under the stable `lisa-auto-<project>-` name prefix, whatever it currently contains.
   **Membership is registration, not a roster** (`automation-runbook-contract`): sweep the prefix and
   remove what is there. Do **not** work from a fixed list of loop names — a list drifts the moment a
   loop is added, which is exactly how the opt-in gardener came to be orphaned.
+- When `$ARGUMENTS` names a loop id from a `policy-obsolete` teardown proposal, remove only that
+  loop's registration under the same prefix, e.g. `lisa-auto-<project>-monitor`. Report every other
+  project automation left in place. If the named loop is absent, that single-loop teardown is a clean
+  no-op; do not widen it into a fleet teardown.
 - This explicitly includes the opt-in **`learnings-audit`** gardener when it is registered:
   `/setup-automations learnings-audit=true` registers it under the same prefix, so teardown removes
   it with the rest. A conditionally-skipped loop (e.g. `exploratory-bugs` on a stack without
@@ -42,16 +48,20 @@ removes them with its **native** scheduling mechanism.
 
 ## Answering a `policy-obsolete` teardown proposal
 
-Running this skill is the **approve** answer to a loop's own retirement proposal. When a registered
-loop's runbook **Retirement condition** trips, that loop records the `policy-obsolete` run outcome
-and files exactly one ticket recommending its own teardown (`automation-runbook-contract`) — and
-then keeps running at its normal cadence, because a loop never removes its own registration.
+Running this skill with the proposing loop id is the **approve** answer to a loop's own retirement
+proposal. When a registered loop's runbook **Retirement condition** trips, that loop records the
+`policy-obsolete` run outcome and files exactly one ticket recommending its own teardown
+(`automation-runbook-contract`) — and then keeps running at its normal cadence, because a loop never
+removes its own registration.
 Teardown is **always human-invoked**: it is never
 triggered by a loop, on any schedule, for any outcome. The operator has three answers, and only the
-first brings you here — nothing about *what* this skill removes changes because a proposal exists.
+first brings you here. The proposal authorizes only that loop's registration unless the human
+explicitly asks for fleet teardown.
 
-1. **Approve** — run this skill. When it has run, close the proposal as **Completed**: the teardown
-   it asked for actually happened, and Completed is the close reason that says so.
+1. **Approve** — run this skill with the proposal's loop id, e.g.
+   `/lisa:tear-down-automations monitor`. When it has run, close the proposal as **Completed**: the
+   loop-scoped teardown it asked for actually happened, and Completed is the close reason that says
+   so.
 2. **Decline** — close the proposal as **Not planned** (that close reason is what stops the loop
    re-raising it; **Completed** would leave a later re-file open). The loop simply continues at its
    normal cadence, and nothing is removed.

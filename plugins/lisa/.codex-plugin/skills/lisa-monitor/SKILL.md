@@ -160,6 +160,10 @@ record: `--report-only` (including the `lisa-verify` post-deploy call, whose sum
 the originating item) and `--dry-run` (a preview that creates nothing) are not registered-loop
 invocations.
 
+Before invoking the run-record CLI, evaluate the **Retirement condition** first. If it applies,
+select `policy-obsolete` as the sole outcome and do not record a prior `nothing-needed` result;
+otherwise select the ordinary outcome from the table.
+
 Record **exactly one** outcome per standalone invocation through the run-record CLI, naming this
 loop's runbook (the `--summary` is the operator-readable one-liner in the contract's exemplar voice —
 plain, specific, actionable, e.g. `Health green; audit clean — nothing to propose.` for
@@ -191,10 +195,11 @@ watching it. Evaluate all three. When all three hold, record `policy-obsolete` a
 
 - **Marker** `<!-- [lisa-automation-retire] key=monitor -->` plus a visible prose line; matched on
   the marker, never the title; searched **open AND closed** per `rejection-detection`'s **Proposal
-  rejection memory**, so a teardown proposal a human already declined is remembered and not re-filed
-  without postdating evidence. When that search finds an existing proposal, **the run
-  still records `policy-obsolete` and files nothing** — the outcome describes this run,
-  while the ticket is filed exactly once.
+  rejection memory**. Treat matches by close state: **open** suppresses another proposal;
+  **Not planned** suppresses another proposal unless new evidence postdates the rejection;
+  **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
+  When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
+  nothing** — the outcome describes this run, while the ticket is filed exactly once.
 - **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
   `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
   re-dispatches it as stalled work.
@@ -204,7 +209,7 @@ watching it. Evaluate all three. When all three hold, record `policy-obsolete` a
   time: *Work already attempted* is the searches this run ran, and *Risk of inaction* is that the
   loop keeps consuming schedule slots and tokens for nothing.
 - **How to answer** names the three operator responses: **approve** — run
-  `/lisa:tear-down-automations` and the registration goes away; **decline** — close the proposal as
+  `/lisa:tear-down-automations monitor` and only that loop registration goes away; **decline** — close the proposal as
   **Not planned** (closing it as **Completed** leaves a later re-file open) and the loop simply
   continues; **re-cadence** — pick a longer cadence off that evidence and re-register with
   `/lisa:setup-automations` instead of tearing down.

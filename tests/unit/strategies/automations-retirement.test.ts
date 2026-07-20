@@ -119,8 +119,10 @@ describe("the runbook seed states a retirement condition per loop (#1801)", () =
       expect(content).toMatch(/mandatory and non-empty/i);
       expect(content).toMatch(/never an ad-hoc counter/i);
       expect(content).toMatch(/stateless/i);
-      // Valid substrates only: the tracker, or RBC-3's bounded run history.
-      expect(content).toContain(".lisa/automations/runs/<loop-id>.jsonl");
+      expect(content).toMatch(/derived from the tracker/i);
+      expect(content).toMatch(/never an ad-hoc counter/i);
+      expect(content).toMatch(/bounded run-history record/i);
+      expect(content).not.toContain(".lisa/automations/runs/<loop-id>.jsonl");
       expect(content).toContain(CONTRACT);
     });
 
@@ -196,6 +198,16 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
         expect(content).toMatch(/ticket is filed exactly\s+once/);
       });
 
+      it("branches proposal dedupe by open, Not planned, and Completed close state", () => {
+        expect(content).toMatch(/\*\*open\*\* suppresses another proposal/i);
+        expect(content).toMatch(
+          /\*\*Not planned\*\*\s+suppresses another proposal/i
+        );
+        expect(content).toMatch(
+          /\*\*Completed\*\* means the prior approved action happened/i
+        );
+      });
+
       it("carries the decision-ready packet and its labels", () => {
         expect(content).toContain("status:blocked");
         expect(content).toContain("human-needed");
@@ -223,6 +235,8 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
 
       it("names the three operator responses with the full teardown command", () => {
         expect(content).toContain(TEARDOWN_COMMAND);
+        expect(content).toContain(`${TEARDOWN_COMMAND} ${id}`);
+        expect(content).toMatch(/only that loop registration goes away/i);
         expect(content).toMatch(APPROVE);
         expect(content).toMatch(DECLINE);
         expect(content).toMatch(RE_CADENCE);
@@ -276,7 +290,7 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
       it("stays human-invoked — never triggered by a loop", () => {
         expect(content).toMatch(/always human-invoked/i);
         expect(content).toMatch(/never\s+triggered by a loop/i);
-        expect(content).toMatch(/never removes its own registration/i);
+        expect(content).toMatch(/loop never\s+removes its own registration/i);
       });
 
       it("tells the operator how to close the proposal after each answer", () => {
@@ -284,6 +298,8 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
         expect(content).toMatch(
           /When it has run, close the proposal as \*\*Completed\*\*/
         );
+        expect(content).toMatch(/with the proposal's loop id/i);
+        expect(content).toMatch(/only\s+that one registered loop/i);
         // Decline: only Not planned durably suppresses the re-file.
         expect(content).toMatch(
           /close the proposal as \*\*Not planned\*\*.*stops the loop/s
