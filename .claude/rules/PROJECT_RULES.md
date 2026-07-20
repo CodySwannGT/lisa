@@ -16,25 +16,6 @@ ticket over time, so this file shrinks instead of growing.
 
 ---
 
-## Never edit generated plugin artifacts (plugins/lisa, plugins/lisa-*)
-
-`plugins/lisa/` and every `plugins/lisa-<stack>/` directory are **generated build output**. `scripts/build-plugins.sh` (run via `bun run build:plugins`) does `rm -rf plugins/lisa && cp -r plugins/src/base`, so any edit made directly to an artifact is silently discarded on the next build or release.
-
-The source of truth is **`plugins/src/`**:
-
-- `plugins/src/base/` → builds `plugins/lisa`
-- `plugins/src/<stack>/` (typescript, expo, nestjs, cdk, harper-fabric, rails) → builds `plugins/lisa-<stack>`
-
-To change a skill, agent, rule, command, or hook:
-
-1. Edit the file under `plugins/src/...`.
-2. Run `bun run build:plugins`.
-3. Commit **both** `plugins/src` and the regenerated `plugins/lisa*`.
-
-The `🧩 Plugins Sync` CI workflow (and `bun run check:plugins` locally) rebuilds from source and fails if committed artifacts don't match — catching artifact-only edits. Two PRs (#471, #478) were wiped this way before the guard existed; do not reintroduce the pattern.
-
----
-
 ## package.json and package.lisa.json Management
 
 When updating package.json, always check if there's a corresponding `package.lisa.json` template file. Update both together:
@@ -86,30 +67,6 @@ Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-p
 ## Task Metadata
 
 When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is distributed as a generated Lisa rule and does not need to be explicitly invoked.
-
-## ESLint Statement Order
-
-When writing utility functions, avoid calling shared validation helpers (expression statements/side effects) before const definitions, as this violates the enforce-statement-order rule. Instead, inline validation as `if` guard clauses, which are exempt from the ordering rule.
-
-Example:
-
-```typescript
-// Wrong - validation helper call before const
-function fibonacci(n: number): bigint {
-  validateNonNegativeInteger(n, "n"); // Expression statement
-  const result = compute(n); // Const after expression
-  return result;
-}
-
-// Correct - inline validation as guard clause
-function fibonacci(n: number): bigint {
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
-    throw new RangeError(`Expected a non-negative integer for n, got ${String(n)}`);
-  }
-  const result = compute(n);
-  return result;
-}
-```
 
 ## Test Isolation
 
@@ -182,24 +139,6 @@ Solution: Combine deletion of old file + creation of new file in the same atomic
 
 Example: Deleting `src/utils/fibonacci.ts` alone fails because `src/utils/index.ts` exports `export * from './fibonacci.js'`. Instead, delete the old implementation and add the new implementation in a single commit.
 
-## ESLint Disable Comments
-
-### Description Requirement
-
-All `eslint-disable` directives must include a description to satisfy the `eslint-comments/require-description` rule.
-
-Format: `/* eslint-disable rule-name -- description of why this exception is needed */`
-
-Example from generator pattern — prefer a single tuple over separate variables to group related state:
-
-```typescript
-/* eslint-disable functional/no-let -- generator requires mutable pair to track consecutive Fibonacci values */
-let pair: readonly [bigint, bigint] = [0n, 1n];
-/* eslint-enable functional/no-let -- re-enable after generator state declaration */
-```
-
-Using a tuple (`readonly [bigint, bigint]`) instead of separate `let a, b` declarations keeps coupled state in a single structure and minimizes the number of mutable bindings.
-
 ## TypeScript Type System
 
 ### readonly is Compile-Time Only
@@ -209,34 +148,6 @@ TypeScript's `readonly` modifier (e.g., `readonly bigint[]`) is a compile-time c
 Do NOT test runtime immutability with `Object.isFrozen()` for readonly types — TypeScript types are erased at runtime.
 
 Runtime immutability tests (`Object.freeze()`, `Object.isFrozen()`) are separate from TypeScript readonly type checks.
-
-## DRY Principle
-
-### Prefer Delegation to Single Source of Truth
-
-When multiple functions compute the same sequence or data structure, prefer delegating to a shared generator or canonical implementation rather than reimplementing the algorithm.
-
-Example from fibonacci implementation:
-
-```typescript
-// Before: Reimplements Fibonacci logic with tuple-reduce (O(1) space but duplicates logic)
-export function fibonacci(n: number): bigint {
-  const [, result] = Array.from({ length: n - 1 }).reduce<readonly [bigint, bigint]>(
-    ([prev, curr]) => [curr, prev + curr] as const,
-    [0n, 1n]
-  );
-  return result;
-}
-
-// After: Delegates to fibonacciGenerator (DRY - single source of truth)
-export function fibonacci(n: number): bigint {
-  const gen = fibonacciGenerator();
-  Array.from({ length: n }, () => gen.next());
-  return gen.next().value;
-}
-```
-
-Even when the reimplementation has theoretical performance benefits (O(1) space), prefer simplicity and DRY unless performance is empirically proven to be a bottleneck.
 
 ## Test Assertion Preservation During Rewrites
 
@@ -272,16 +183,3 @@ This sequence is necessary because:
 - Pre-commit hooks (lint/typecheck) run on every commit and will fail if barrel exports reference missing files
 
 Deviating from this sequence (e.g., deleting source without removing barrel export, or adding barrel export before implementation exists) causes pre-commit hook failures.
-
-## Verify Auto-Merge Actually Shipped Your Fix (Ancestry Check)
-
-Enabling auto-merge and pushing a fix commit does NOT guarantee the fix ships. GitHub auto-merge can merge the PRIOR head the instant required checks go green — before your new commit becomes the PR head. This shipped a real bug: release 2.124.5 shipped the `./hooks/` Cursor bug because a CodeRabbit fix commit raced past PR #1069's merge; it had to be fixed forward in 2.124.6 (issue #1055).
-
-Before declaring any auto-merge PR done — do NOT rely on "pushed + thread resolved + checks green" as proof:
-
-1. `git fetch origin`
-2. Confirm the fix commit is an ancestor of the merged base: `git merge-base --is-ancestor <fix-sha> origin/main` (exit 0 = shipped).
-3. Confirm the merge commit's parent is your fixed commit, not a stale head.
-
-If CI or CodeRabbit forces another commit after auto-merge is enabled, re-confirm the merged head includes it.
-
