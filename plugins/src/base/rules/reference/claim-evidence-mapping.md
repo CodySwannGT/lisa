@@ -80,12 +80,11 @@ defines the names; it stores nothing:
 | `required_evidence_kinds` | the evidence kind(s) that reach that boundary, from the `verification` artifact-type set |
 
 A claim whose `required_evidence_kinds` has no captured, reaching artifact is **Not established** —
-the concept is named here and defined fully, with its evidence templates, in **BCE-3 (#1837)**; do
-not assume that section is present in this branch. Artifact identity — what makes two captured
-artifacts the same or different — is pinned in **BCE-4 (#1838)**, and the conservative default
-bucket for a security-sensitive claim is set in **BCE-5 (#1839)**. Each is named here as the field
-BCE-2's schema will carry; none is defined by this contract. Each ships with that ticket — do not
-assume its section is present in this branch.
+defined in full, with its evidence templates, in the section below. Artifact identity — what makes
+two captured artifacts the same or different — is defined in **BCE-4 (#1838)**, and the conservative
+default bucket for a security-sensitive claim is set in **BCE-5 (#1839)**. Each is named here as a
+field BCE-2's schema carries; neither is defined by this contract, and each ships with that ticket.
+Where such a sibling surface is not installed in a given branch, name what you can and continue.
 
 ### Worked example
 
@@ -114,13 +113,74 @@ Claim: "The service is deployed and healthy."
                       response from the target environment.
 ```
 
+## The "Not established" section — required, never omitted
+
+Every report that asserts something was verified also states, in the same breath, **what it did not
+establish**. This is one section, it is **required**, and it is **never omitted and never blank** —
+on the evidence comment, in the committed `evidence/<ticket>/verdict.json`, and in the
+`verification-status.json` verdict BCE-2's gate reads.
+
+**Where it appears and what it says**
+
+| Surface | Shape |
+|---|---|
+| Evidence comment (tracker + PR `## Evidence` section) | a `## Not established` heading, one plain-language bullet per item |
+| `evidence/<ticket>/verdict.json` | `not_established: []` plus `not_established_reviewed: true` |
+| `.lisa/verification-status.json` (schema v2) | per-claim `not_established[]` plus the top-level `not_established_reviewed` flag |
+
+**The empty case is not the omitted case.** A verification that genuinely left nothing unproved still
+renders the heading, with the single line:
+
+```text
+## Not established
+
+None outstanding — reviewed
+```
+
+An absent heading, or a heading with nothing under it, is a defect — it is indistinguishable from
+never having asked the question. The list may be empty; the section may not be blank.
+
+**Machine-readable semantics (as shipped by BCE-2, #1836).** `not_established` is the list — it may
+be empty. `not_established_reviewed` is the boolean attestation that the list was actually
+reviewed — **the flag may never be omitted**. That asymmetry is the whole mechanism: an empty list
+plus a present flag means "we looked and found nothing outstanding"; an absent flag means nobody
+looked. The Stop-hook gate treats an absent flag as a v2 contract violation, reported to stderr and
+**advisory** until `verification.gate.enforceBoundaries` is `true` in `.lisa.config.json` (the same
+ratchet flag the boundary checks ride); evidence surfaces refuse the post on the same terms.
+
+**What belongs under the heading** — written in operator voice (`factory-model` rule 5: a person who
+does not code reads this at the gate), not in engineering shorthand:
+
+- **Boundaries not exercised** — a claim's boundary that no captured artifact reached. *"The checkout
+  button was proved in the browser; the order's persisted row was never queried, so the `data`
+  boundary is not established."*
+- **Environments not tested** — where it was and was not run. *"Checked on production Chrome at
+  1440×900 only. Not checked on mobile Safari, and not checked against the staging database."*
+- **Claims consciously out of scope** — deliberately excluded behavior, named so nobody infers it.
+  *"Refunds were not touched or tested; this change covers new orders only."*
+- **Anything a green quality check might be mistaken for proving.** *"Unit tests pass for the submit
+  handler. That establishes the code-unit boundary only — it is not evidence the button works."*
+
+Each item names the thing, not a category: "not tested on mobile Safari" is usable at a gate; "some
+environments untested" is not.
+
+### Philosophical precedent for this section
+
+This generalizes `lisa-improve-harness`'s **`Known limits`** field — a required, never-empty line on
+every result record. That skill says it plainly:
+*"A record with nothing in it is invalid on its face"* — because a single-trajectory loop always has
+limits. The same is true of any verification:
+it ran somewhere, on something, once. `Known limits` (one record) and `not_established` (every claim
+in the factory) are the same discipline with the same never-empty rule; read either and you should
+recognize the other.
+
 ## Philosophical precedent
 
 This generalizes the **bounded-claim discipline** of `lisa-improve-harness`: one trajectory supports
 one trajectory's claim, and a result record may claim only what its cited evidence reaches. Here the
 same discipline is applied to every claim in the factory — a claim reaches exactly as far as the
-*kind* of evidence behind it, and no further. BCE-3 generalizes the *Not established* half of that
-discipline into a first-class report state.
+*kind* of evidence behind it, and no further. The *Not established* half of that discipline is a
+first-class report state — see the required, never-omitted section above.
 
 ## No behavior change; degrade, never block
 
