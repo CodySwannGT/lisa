@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.268.1](https://github.com/CodySwannGT/lisa/compare/v2.268.0...v2.268.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **security:** patch js-yaml advisory ([b7ec491](https://github.com/CodySwannGT/lisa/commit/b7ec4913de81edeed7043949df179bcd7398e76e)), closes [CodySwannGT/lisa#1866](https://github.com/CodySwannGT/lisa/issues/1866) [CodySwannGT/lisa#1866](https://github.com/CodySwannGT/lisa/issues/1866)
+
 ## [2.268.0](https://github.com/CodySwannGT/lisa/compare/v2.267.0...v2.268.0) (2026-07-20)
 
 
