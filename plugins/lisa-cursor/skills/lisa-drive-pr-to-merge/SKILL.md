@@ -1,6 +1,6 @@
 ---
 name: lisa-drive-pr-to-merge
-description: This skill should be used to drive a pull request all the way to MERGED, handling ANYTHING that blocks the merge. It enables auto-merge when the repo supports it (direct-merge fallback otherwise), keeps the branch rebased/synced and resolves merge conflicts, fixes failing CI/deploy checks, addresses and resolves every human and bot review comment (CodeRabbit, etc.) — implementing valid feedback and replying-then-resolving invalid feedback — dismisses stale CHANGES_REQUESTED gates, and verifies the fix actually shipped (auto-merge race ancestry check). Composable and inline — invoked by other skills (e.g. git-submit-pr, implement, sync-down) via the Skill tool, never as a standalone user command.
+description: This skill should be used to drive a pull request all the way to MERGED, handling ANYTHING that blocks the merge. It enables auto-merge when the repo supports it (direct-merge fallback otherwise), keeps the branch rebased/synced and resolves merge conflicts, fixes failing CI/deploy checks, addresses and resolves every human and bot review comment (CodeRabbit, etc.) — implementing valid feedback and replying-then-resolving invalid feedback — dismisses stale CHANGES_REQUESTED gates, and verifies the fix actually shipped — both merge ancestry and that a deploy/release run fired for the merge SHA (auto-merge race + zero-deploy-run check). Composable and inline — invoked by other skills (e.g. git-submit-pr, implement, sync-down) via the Skill tool, never as a standalone user command.
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "Skill"]
 ---
 
@@ -246,11 +246,16 @@ head's checks to start, then re-enable auto-merge (section 1). In
 `on_blocker=report` mode this whole step is off-limits (diagnose-only): do not
 merge, close, or delete anything — return `blocked:pending-auto-fix`.
 
-## 3. Merge and verify it actually shipped (ancestry check)
+## 3. Merge and verify it actually shipped (ancestry + deploy run)
 
 Enabling auto-merge + green checks + resolved threads is **not** proof the merge
-included your fix. Auto-merge can land the PRIOR head the instant gates go green,
-before a late fix commit becomes the head. After the PR reports `MERGED`:
+included your fix, and a passing merge **not** proof anything deployed. Both must
+be verified after the PR reports `MERGED`.
+
+### a. Ancestry check — is my code in the merged branch
+
+Auto-merge can land the PRIOR head the instant gates go green, before a late fix
+commit becomes the head:
 
 ```bash
 git fetch origin
@@ -263,11 +268,78 @@ ship — fix forward with a new commit/PR and re-drive. Re-confirm after any com
 that lands while auto-merge is enabled; a successful merge of an older head is a
 failed drive-to-merge outcome, not a successful closeout.
 
+### b. Deploy-run check — did a deploy/release workflow run actually fire
+
+Ancestry proves your code is *in* the merged branch; it does **not** prove
+anything deployed. GitHub can **suppress the `on: push` event for a merge commit
+created by auto-merge or a bot token** (`GITHUB_TOKEN`), so the deploy workflow
+fires **zero** runs — no run, not even a `startup_failure` — while the ancestry
+check above stays green. Incident of record: TunnlAI/frontend **TUN-186** (PR #67)
+merged to `dev` via auto-merge; the merge commit `1b3f836` produced **no**
+`deploy.yml` run, and only the next human push `d1fe18c` (which carries `1b3f836`
+as an ancestor) actually shipped it. **Never report shipped on ancestry alone.**
+
+After ancestry passes, capture the merge SHA and poll for a **deploy/release
+workflow run** whose head SHA **is the merge SHA or an including descendant** (a
+run whose head has the merge SHA as an ancestor also shipped the merge, mirroring
+`d1fe18c` shipping `1b3f836`), keyed to the merged-into branch. The observing
+workflow name is **not fixed** — do **not** hardcode `deploy.yml`:
+
+- **Downstream projects:** the deploy/release workflow run keyed to the base
+  branch resolved via `.lisa.config.json` `deploy.branches` (the merged-into env
+  branch) — the same "deploy run keyed to the merged-into branch via
+  `deploy.branches`" observation `lisa-linear-build-intake` performs before
+  relabeling.
+- **lisa / other repos:** the repo's release or publish workflow for
+  `<baseRefName>`.
+
+Discover the run with the same `gh run list --json …headSha…` pattern
+`lisa-verify-workflow-change` uses:
+
+```bash
+merge_sha=$(gh pr view <pr> --json mergeCommit -q .mergeCommit.oid)
+gh run list --branch <baseRefName> --commit "$merge_sha" \
+  --json databaseId,workflowName,status,conclusion,headSha,headBranch,createdAt --limit 20
+```
+
+**Bounded wait:** a just-created run can take a few seconds to register — poll
+briefly (a small number of short intervals / a short ceiling, mirroring the "wait
+for that head's checks to start" bound used above) before concluding the run is
+absent, so a not-yet-registered run is not mis-read as zero. When no run matches
+the merge SHA directly, also accept a descendant run whose head has `$merge_sha`
+as an ancestor (`git merge-base --is-ancestor "$merge_sha" <run_head_sha>`).
+
+**Zero runs after the bounded wait — do NOT report shipped.** Recover in order:
+
+1. **Dispatch the deploy, then re-verify.** Trigger the env's `workflow_dispatch`
+   for the merged-into branch and re-poll for a run that now covers the merge SHA
+   (or an including descendant):
+   ```bash
+   gh workflow run <deploy-or-release-workflow> --ref <baseRefName>
+   ```
+   Once such a run appears, the merge is confirmed shipped.
+2. **Still zero, or dispatch not permitted → surface a blocker.** Emit a hard
+   block (`blocked:deploy`) reporting exactly what was observed — the merge SHA,
+   the base branch, and zero deploy runs. A failed/blocked path, **never** a
+   silent "done".
+
+In **`on_blocker=report`** mode this deploy-run step is diagnose-only: dispatching
+a workflow is an action, so do **not** run `gh workflow run` / `workflow_dispatch`
+— classify the absence as `blocked:deploy` (or `blocked:no-deploy-run`) and return
+it for the caller to act on, consistent with the report-mode contract (steps b–f
+of section 2 are diagnose-only).
+
 ## 4. Terminal states
 
 Loop until one of:
 
-- **`MERGED`** and the ancestry check passes → success.
+- **`MERGED`** and the ancestry check passes **and** a deploy/release run for the
+  merge SHA (or an including descendant) is confirmed — observed directly or after
+  a `workflow_dispatch` recovery → success. Ancestry alone is **not** success.
+- **`blocked:deploy`** — merged with ancestry green, but after the bounded wait no
+  deploy/release run fired for the merge SHA and dispatch recovery could not
+  confirm one (or was not permitted, e.g. `on_blocker=report`). Stop and report
+  the merge SHA, base branch, and zero observed runs — never a silent "done".
 - **`awaiting-human`** (`auto_merge=false` only) → success. The PR is `OPEN`,
   required checks are green, the review gate is clear, and
   `mergeable == MERGEABLE`, with auto-merge deliberately not enabled
