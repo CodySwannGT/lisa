@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -17,6 +18,8 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 
 const HOOK_PATH = path.resolve(".husky/commit-msg");
 const BASH_PATH = "/bin/bash";
@@ -27,6 +30,11 @@ const OPENCODE_TRAILER = "Co-authored-by: OpenCode <noreply@opencode.ai>";
 const OPENCODE_AGENT_TRAILER = "AI-Agent: OpenCode";
 const OPENCODE_MODEL_HINT = "AI-Model: <provider/model>";
 const OPENCODE_EFFORT_HINT = "AI-Effort: <effort or runtime value>";
+const WORK_ITEM_REF = "acme/widgets#42";
+const WORK_ITEM_TRAILER = `Work-Item: ${WORK_ITEM_REF}`;
+const TRACKER_SCRIPT = path.resolve(
+  "all/copy-overwrite/scripts/lisa-work-item.mjs"
+);
 
 let tempDirs: string[] = [];
 
@@ -46,7 +54,13 @@ describe("commit-msg hook diagnostics", () => {
         "printf '%s\\n' '✖   subject must not be sentence-case, start-case, pascal-case, upper-case [subject-case]'",
         "exit 1",
       ].join("\n"),
-      message: "Fix Bad Subject\n\nCo-authored-by: Codex <codex@openai.com>\n",
+      message: [
+        "Fix Bad Subject",
+        "",
+        WORK_ITEM_TRAILER,
+        "Co-authored-by: Codex <codex@openai.com>",
+        "",
+      ].join("\n"),
     });
 
     const result = runHook(project);
@@ -61,7 +75,7 @@ describe("commit-msg hook diagnostics", () => {
     const project = createProject({
       binName: "npx",
       binBody: PASSING_COMMITLINT_BIN,
-      message: `${VALID_SUBJECT}\n`,
+      message: `${VALID_SUBJECT}\n\n${WORK_ITEM_TRAILER}\n`,
     });
 
     const result = runHook(project);
@@ -85,6 +99,7 @@ describe("commit-msg hook diagnostics", () => {
       message: [
         VALID_SUBJECT,
         "",
+        WORK_ITEM_TRAILER,
         OPENCODE_TRAILER,
         OPENCODE_AGENT_TRAILER,
         "AI-Model: openai/gpt-5.5",
@@ -102,7 +117,13 @@ describe("commit-msg hook diagnostics", () => {
     const project = createProject({
       binName: "npx",
       binBody: PASSING_COMMITLINT_BIN,
-      message: [VALID_SUBJECT, "", OPENCODE_TRAILER, ""].join("\n"),
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        OPENCODE_TRAILER,
+        "",
+      ].join("\n"),
     });
 
     const result = runHook(project);
@@ -133,15 +154,39 @@ type ProjectOptions = {
  */
 function createProject(options: ProjectOptions): string {
   const project = mkdtempSync(path.join(tmpdir(), "lisa-commit-msg-"));
+  const gitEnv = cleanGitEnv(process.env);
   tempDirs.push(project);
   mkdirSync(path.join(project, "node_modules", ".bin"), { recursive: true });
+  mkdirSync(path.join(project, "scripts"), { recursive: true });
   writeFileSync(path.join(project, "package-lock.json"), "{}\n");
+  writeFileSync(
+    path.join(project, ".lisa.config.json"),
+    '{"tracker":"github","github":{"org":"acme","repo":"widgets"}}\n'
+  );
   writeFileSync(path.join(project, "COMMIT_EDITMSG"), options.message);
+  copyFileSync(
+    TRACKER_SCRIPT,
+    path.join(project, "scripts/lisa-work-item.mjs")
+  );
   writeBin(project, options.binName, options.binBody);
-  spawnSync(GIT_PATH, ["init"], { cwd: project, encoding: "utf8" });
+  writeBin(
+    project,
+    "gh",
+    `if [ "\${1:-} \${2:-}" = "api graphql" ]; then
+  printf '%s\\n' '{"data":{"repository":{"issue":{"subIssues":{"nodes":[]}}}}}'
+else
+  printf '%s\\n' '{"number":42,"url":"https://github.com/acme/widgets/issues/42","state":"OPEN","labels":[{"name":"status:in-progress"},{"name":"type:Task"}],"comments":[],"closedByPullRequestsReferences":[]}'
+fi\n`
+  );
+  spawnSync(GIT_PATH, ["init"], {
+    cwd: project,
+    encoding: "utf8",
+    env: gitEnv,
+  });
   spawnSync(GIT_PATH, ["checkout", "-b", "codex/issue-1264"], {
     cwd: project,
     encoding: "utf8",
+    env: gitEnv,
   });
   return project;
 }
@@ -155,10 +200,9 @@ function runHook(project: string): ReturnType<typeof spawnSync> {
   return spawnSync(BASH_PATH, [HOOK_PATH, "COMMIT_EDITMSG"], {
     cwd: project,
     encoding: "utf8",
-    env: {
-      ...process.env,
+    env: cleanGitEnv(process.env, {
       PATH: `${path.join(project, "node_modules", ".bin")}:${process.env.PATH}`,
-    },
+    }),
   });
 }
 

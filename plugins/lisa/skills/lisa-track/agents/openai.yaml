@@ -1,0 +1,4 @@
+display_name: "Track"
+short_description: "Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in…"
+default_prompt:
+  - "Use $lisa-track: Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in…."

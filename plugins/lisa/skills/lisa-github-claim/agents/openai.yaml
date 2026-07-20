@@ -1,0 +1,4 @@
+display_name: "Github Claim"
+short_description: "Idempotently claims one live GitHub leaf issue for direct Lisa work"
+default_prompt:
+  - "Use $lisa-github-claim: Idempotently claims one live GitHub leaf issue for direct Lisa work."

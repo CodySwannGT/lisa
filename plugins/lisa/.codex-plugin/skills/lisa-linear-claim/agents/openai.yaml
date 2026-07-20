@@ -1,0 +1,4 @@
+display_name: "Linear Claim"
+short_description: "Idempotently claims one live…"
+default_prompt:
+  - "Use $lisa-linear-claim: Idempotently claims one live…."
