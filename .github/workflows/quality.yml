@@ -180,6 +180,33 @@ concurrency:
   group: ${{ inputs.concurrency_group != '' && inputs.concurrency_group || format('lisa-quality-no-serialize-{0}', github.run_id) }}
   cancel-in-progress: false
 
+# -----------------------------------------------------------------------------
+# Least-privilege token scope (deliberate, audited — see #1769)
+# -----------------------------------------------------------------------------
+# `contents: read` is the FLOOR for every job in this workflow. An audit of all
+# 32 jobs found ZERO uses of `gh`, `github.rest.*`, `github.request`,
+# `GITHUB_TOKEN`, or `github.token` anywhere in the file, so no job needs a
+# write scope:
+#   - SonarCloud PR decoration is performed server-side by the GitHub App, not
+#     by the workflow token (the scan action receives SONAR_TOKEN only).
+#   - Snyk / GitGuardian / FOSSA / Maestro authenticate with their own secrets.
+#   - `zaproxy/action-baseline` runs with `allow_issue_writing: false`; if that
+#     flag is ever flipped to true, that job — and only that job — needs
+#     `issues: write` added at the job level.
+#   - `actions/github-script` in audit_logger only writes a local file and the
+#     step summary; artifact upload/download and cache use the run-scoped
+#     runtime token, not GITHUB_TOKEN.
+#   - verification_coverage deliberately reads PR labels from the event payload
+#     instead of the API, so it must NEVER gain a `pull-requests` scope.
+# This workflow is `workflow_call`-only and consumed fleet-wide via @main.
+# Reusable-workflow tokens can only be DOWNGRADED relative to the caller's
+# grant, never escalated, so this floor is safe for every consumer: callers
+# granting >= read keep working, and no job relies on a write scope.
+# Jobs that touch neither the repository nor the API declare `permissions: {}`.
+# Never widen this floor — grant a job its minimal scope at the job level.
+permissions:
+  contents: read
+
 jobs:
   # Central dependency installation job to optimize performance
   install_dependencies:
@@ -191,6 +218,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -295,6 +324,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -349,6 +380,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -388,6 +421,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -427,6 +462,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -579,6 +616,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -645,6 +684,7 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
+          persist-credentials: false
           # Full history so the gate can diff changed files against the PR base.
           fetch-depth: 0
 
@@ -711,6 +751,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -776,6 +818,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -860,6 +904,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for Maestro API key
         id: check_maestro
@@ -938,6 +984,8 @@ jobs:
   playwright_e2e_setup:
     name: 🎭 Playwright Shard Setup
     runs-on: ubuntu-latest
+    # Pure shell arithmetic — no checkout, no API. Needs no token at all.
+    permissions: {}
     if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
     outputs:
       shards: ${{ steps.matrix.outputs.shards }}
@@ -976,6 +1024,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1121,6 +1171,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for Playwright config
         id: check_playwright
@@ -1222,6 +1274,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1261,6 +1315,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1383,6 +1439,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1428,6 +1486,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1505,6 +1565,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1691,6 +1753,7 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
+          persist-credentials: false
           fetch-depth: 0 # Full depth for proper analysis
 
       - name: 🔍 Check for SonarCloud token
@@ -1779,6 +1842,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for Snyk token
         id: check_snyk
@@ -1849,6 +1914,7 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
+          persist-credentials: false
           fetch-depth: 0 # Full depth for scanning history
 
       - name: 🔍 Check for GitGuardian API key
@@ -1904,6 +1970,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for FOSSA API key
         id: check_fossa
@@ -1940,6 +2008,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -1998,6 +2068,8 @@ jobs:
   security_tools_summary:
     name: 🔒 Security Tools Summary
     runs-on: ubuntu-latest
+    # Step-summary echoes off needs.*.result only — no checkout, no API.
+    permissions: {}
     if: always() && (needs.sonarcloud.result != 'skipped' || needs.snyk.result != 'skipped' || needs.secret_scanning.result != 'skipped' || needs.license_compliance.result != 'skipped' || needs.zap_baseline.result != 'skipped')
     needs: [sonarcloud, snyk, secret_scanning, license_compliance, zap_baseline]
     steps:
@@ -2130,6 +2202,8 @@ jobs:
   compliance_validation:
     name: ✅ Compliance Validation
     runs-on: ubuntu-latest
+    # Step-summary echoes off needs.*.result only — no checkout, no API.
+    permissions: {}
     if: ${{ inputs.compliance_framework != 'none' }}
     needs:
       [
@@ -2549,6 +2623,8 @@ jobs:
   performance_summary:
     name: ⚡ Performance Summary
     runs-on: ubuntu-latest
+    # Step-summary echoes off needs.*.result only — no checkout, no API.
+    permissions: {}
     if: always()
     needs:
       [
