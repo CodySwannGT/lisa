@@ -537,11 +537,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Hard budget gate for the project learnings surface (per-entry length cap,
-    # entry count, and token ceiling). The learnings file is loaded eagerly by
-    # every coding agent in every session, so an over-budget file degrades them
-    # all — this job fails the build when it grows too large. The check reads the
-    # learnings file resolved from .lisa.config.json; a project that has never
-    # recorded a learning has no file and passes silently.
+    # entry count, and token ceiling). The ledger lives cold in .lisa/ and
+    # reaches agents only through the contract's bounded projection — this gate
+    # keeps the document contract-valid and the projection serveable, and fails
+    # the build when the file grows past budget. The check reads the learnings
+    # file resolved from .lisa.config.json; a project that has never recorded a
+    # learning has no file and passes silently.
     if: ${{ !contains(inputs.skip_jobs, 'learnings_budget') }}
     steps:
       - name: 📥 Checkout repository
