@@ -13,6 +13,7 @@
       "build": "tsc",
       "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
       "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs",
+      "verify:learner-frontmatter-built": "bun run build:dist && node scripts/verify-learner-frontmatter-built.mjs",
       "prepare": "$npm_execpath run build && husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest ."
     },
