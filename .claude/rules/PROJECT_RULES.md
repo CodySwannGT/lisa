@@ -16,25 +16,6 @@ ticket over time, so this file shrinks instead of growing.
 
 ---
 
-## Never edit generated plugin artifacts (plugins/lisa, plugins/lisa-*)
-
-`plugins/lisa/` and every `plugins/lisa-<stack>/` directory are **generated build output**. `scripts/build-plugins.sh` (run via `bun run build:plugins`) does `rm -rf plugins/lisa && cp -r plugins/src/base`, so any edit made directly to an artifact is silently discarded on the next build or release.
-
-The source of truth is **`plugins/src/`**:
-
-- `plugins/src/base/` → builds `plugins/lisa`
-- `plugins/src/<stack>/` (typescript, expo, nestjs, cdk, harper-fabric, rails) → builds `plugins/lisa-<stack>`
-
-To change a skill, agent, rule, command, or hook:
-
-1. Edit the file under `plugins/src/...`.
-2. Run `bun run build:plugins`.
-3. Commit **both** `plugins/src` and the regenerated `plugins/lisa*`.
-
-The `🧩 Plugins Sync` CI workflow (and `bun run check:plugins` locally) rebuilds from source and fails if committed artifacts don't match — catching artifact-only edits. Two PRs (#471, #478) were wiped this way before the guard existed; do not reintroduce the pattern.
-
----
-
 ## package.json and package.lisa.json Management
 
 When updating package.json, always check if there's a corresponding `package.lisa.json` template file. Update both together:
@@ -68,8 +49,6 @@ When updating a project file, always check to see if it has a corresponding temp
 
 When upstreaming a governance pattern discovered in a downstream project (e.g., frontend-v2, backend-v2), trace it back to the Lisa template source files and update both the template and its tests. This ensures the pattern propagates to all projects using that stack template.
 
-Never parse JSON in shell scripts using grep/sed/cut/awk - always use jq for robust JSON handling.
-
 When creating Claude Code hooks for enforcement (linting, code quality, static analysis), always use blocking behavior (exit 2 on failures) so Claude receives feedback and can fix the errors. Notification-only hooks (like ntfy.sh) should exit 0 since they don't require Claude to take action.
 
 ## Skills and Commands
@@ -88,30 +67,6 @@ Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-p
 ## Task Metadata
 
 When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is distributed as a generated Lisa rule and does not need to be explicitly invoked.
-
-## ESLint Statement Order
-
-When writing utility functions, avoid calling shared validation helpers (expression statements/side effects) before const definitions, as this violates the enforce-statement-order rule. Instead, inline validation as `if` guard clauses, which are exempt from the ordering rule.
-
-Example:
-
-```typescript
-// Wrong - validation helper call before const
-function fibonacci(n: number): bigint {
-  validateNonNegativeInteger(n, "n"); // Expression statement
-  const result = compute(n); // Const after expression
-  return result;
-}
-
-// Correct - inline validation as guard clause
-function fibonacci(n: number): bigint {
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
-    throw new RangeError(`Expected a non-negative integer for n, got ${String(n)}`);
-  }
-  const result = compute(n);
-  return result;
-}
-```
 
 ## Test Isolation
 
@@ -184,24 +139,6 @@ Solution: Combine deletion of old file + creation of new file in the same atomic
 
 Example: Deleting `src/utils/fibonacci.ts` alone fails because `src/utils/index.ts` exports `export * from './fibonacci.js'`. Instead, delete the old implementation and add the new implementation in a single commit.
 
-## ESLint Disable Comments
-
-### Description Requirement
-
-All `eslint-disable` directives must include a description to satisfy the `eslint-comments/require-description` rule.
-
-Format: `/* eslint-disable rule-name -- description of why this exception is needed */`
-
-Example from generator pattern — prefer a single tuple over separate variables to group related state:
-
-```typescript
-/* eslint-disable functional/no-let -- generator requires mutable pair to track consecutive Fibonacci values */
-let pair: readonly [bigint, bigint] = [0n, 1n];
-/* eslint-enable functional/no-let -- re-enable after generator state declaration */
-```
-
-Using a tuple (`readonly [bigint, bigint]`) instead of separate `let a, b` declarations keeps coupled state in a single structure and minimizes the number of mutable bindings.
-
 ## TypeScript Type System
 
 ### readonly is Compile-Time Only
@@ -211,34 +148,6 @@ TypeScript's `readonly` modifier (e.g., `readonly bigint[]`) is a compile-time c
 Do NOT test runtime immutability with `Object.isFrozen()` for readonly types — TypeScript types are erased at runtime.
 
 Runtime immutability tests (`Object.freeze()`, `Object.isFrozen()`) are separate from TypeScript readonly type checks.
-
-## DRY Principle
-
-### Prefer Delegation to Single Source of Truth
-
-When multiple functions compute the same sequence or data structure, prefer delegating to a shared generator or canonical implementation rather than reimplementing the algorithm.
-
-Example from fibonacci implementation:
-
-```typescript
-// Before: Reimplements Fibonacci logic with tuple-reduce (O(1) space but duplicates logic)
-export function fibonacci(n: number): bigint {
-  const [, result] = Array.from({ length: n - 1 }).reduce<readonly [bigint, bigint]>(
-    ([prev, curr]) => [curr, prev + curr] as const,
-    [0n, 1n]
-  );
-  return result;
-}
-
-// After: Delegates to fibonacciGenerator (DRY - single source of truth)
-export function fibonacci(n: number): bigint {
-  const gen = fibonacciGenerator();
-  Array.from({ length: n }, () => gen.next());
-  return gen.next().value;
-}
-```
-
-Even when the reimplementation has theoretical performance benefits (O(1) space), prefer simplicity and DRY unless performance is empirically proven to be a bottleneck.
 
 ## Test Assertion Preservation During Rewrites
 
@@ -274,50 +183,3 @@ This sequence is necessary because:
 - Pre-commit hooks (lint/typecheck) run on every commit and will fail if barrel exports reference missing files
 
 Deviating from this sequence (e.g., deleting source without removing barrel export, or adding barrel export before implementation exists) causes pre-commit hook failures.
-
-## Verify Auto-Merge Actually Shipped Your Fix (Ancestry Check)
-
-Enabling auto-merge and pushing a fix commit does NOT guarantee the fix ships. GitHub auto-merge can merge the PRIOR head the instant required checks go green — before your new commit becomes the PR head. This shipped a real bug: release 2.124.5 shipped the `./hooks/` Cursor bug because a CodeRabbit fix commit raced past PR #1069's merge; it had to be fixed forward in 2.124.6 (issue #1055).
-
-Before declaring any auto-merge PR done — do NOT rely on "pushed + thread resolved + checks green" as proof:
-
-1. `git fetch origin`
-2. Confirm the fix commit is an ancestor of the merged base: `git merge-base --is-ancestor <fix-sha> origin/main` (exit 0 = shipped).
-3. Confirm the merge commit's parent is your fixed commit, not a stale head.
-
-If CI or CodeRabbit forces another commit after auto-merge is enabled, re-confirm the merged head includes it.
-
-## Local `lisa ui` verification
-
-- CLI entrypoint is `bun src/index.ts ui` (or `bun dist/index.js ui` after build). Do not use `bun src/cli/index.ts ui` — that module has no `main()`.
-- After source changes that register new `/api/status` probes, rebuild (`bun run build:dist`) or run via the source entrypoint before trusting live `dist/` output; a stale `dist/` can omit newly added probe modules.
-
-## Committing in this repo: use `git commit -F`, never a heredoc
-
-The parity-safety-net hook blocks `git commit -m "$(cat <<EOF … EOF)"` heredoc invocations. Write the message to a file and use `git commit -F <file>` instead. Every commit must also carry a `Co-authored-by: Claude <noreply@anthropic.com>` trailer (Codex commits use `Co-authored-by: Codex`) or the co-authorship hook rejects it — see [[reference_codex_commit_attribution]].
-
-## Lisa Console UI (`ui/`)
-
-The console UI ships as a single hand-written file, `ui/index.html` (there is no bundler/`ui/dist`). It is served by the `lisa ui` command in `src/cli/ui-cmd.ts` (`runUi`). Rules for working on it and its tests:
-
-### Built CLI entry is `dist/index.js`, not `dist/src/...`
-
-`tsconfig.local.json` sets `rootDir: "src"` + `outDir: "dist"`, which flattens `src/` out of the emitted tree. The CLI entry is `dist/index.js` (also `bin.lisa` in `package.json`) — **not** `dist/src/cli/index.js`. Verification, plan, and doctor commands that guess a nested `dist/src/...` path fail. Always target `dist/index.js`.
-
-### `runUi(..., { sync: false })` in tests
-
-Pass `sync: false` whenever calling `runUi` from a test. Without it, `runUi` calls `runConfigSync` and mutates the temp/working directory under test. All unit and e2e tests use `{ port: "0", sync: false }`.
-
-### e2e tests run under Playwright's own TS pipeline
-
-`playwright.config.ts` defines **one** global `webServer` on a fixed port (`UI_TEST_PORT = 4783`) with `baseURL: http://127.0.0.1:4783`. That single shared server cannot host per-test probe injection. To drive real code with stubbed edges (e.g. injected probes), a spec must bypass `baseURL`: `import { runUi }`, launch a per-test server on `port: "0"`, and navigate to the absolute `http://127.0.0.1:${address.port}` URL, closing the server in a `finally`. See `tests/e2e/ui-stacks.spec.ts`.
-
-e2e spec files are **not** type-checked by `tsc --noEmit` (root `tsconfig` `include` is `src/**`, and tests are excluded) and are ESLint-ignored (`eslint.ignore.config.json` ignores `e2e/**`). Playwright's own TypeScript pipeline is what typechecks them — do not expect the repo's `lint`/`typecheck` gates to cover changes made only inside `tests/e2e/`.
-
-### Toggle checkboxes need `dispatchEvent("click")`
-
-The console's toggle controls are an `opacity-0` `<input type="checkbox">` layered under a styled `.trk`/`span`. Playwright's `.click()` hits the visual layer and does not fire the input's change handler. Use `card.getByRole("checkbox").dispatchEvent("click")` — it reliably fires the handler. Reuse this for every console toggle test. (Web analog of the Maestro `opacity-0`/`testID` gaps in [[reference_maestro_ios_ax_pitfalls]].)
-
-### `esc()` / `el()` are a text-context escaper and a raw-HTML sink
-
-In `ui/index.html`, `esc(s)` escapes `& < > "` but **not** `'` — it is safe only for text/element content interpolated into `innerHTML`, not for attribute-value contexts (which can be broken out of with a single quote). `el(tag, cls, html)` assigns its third argument straight to `innerHTML`, so it is a raw-HTML sink: only ever pass it `esc()`-wrapped values or trusted catalog constants. If you add attribute interpolation, add an attribute-safe escaper rather than reusing `esc()`.
