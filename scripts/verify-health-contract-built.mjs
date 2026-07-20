@@ -81,8 +81,8 @@ try {
     {
       check: "agent.review",
       layer: "agentic",
-      status: "fail",
-      reason: "The agent review found actionable drift.",
+      status: "warn",
+      reason: "The agent review found a concern for operator review.",
     },
   ];
   const full = health.validateHealthResult({
@@ -94,12 +94,32 @@ try {
     findings: fullFindings,
     summary: health.summarizeHealthFindings(fullFindings),
   });
-  equal(full.summary.counts, { pass: 1, warn: 0, fail: 1 });
-  equal(full.summary.verdict, "drift detected");
+  equal(full.summary.counts, { pass: 1, warn: 1, fail: 0 });
+  equal(full.summary.verdict, "in band");
   check(
     Object.isFrozen(full) && Object.isFrozen(full.findings),
     "result is frozen"
   );
+  const historicalFailFindings = [
+    fullFindings[0],
+    {
+      check: "agent.historical-review",
+      layer: "agentic",
+      status: "fail",
+      reason: "The v1 contract historically permits an agentic failure.",
+    },
+  ];
+  const historicalFull = health.validateHealthResult({
+    schemaVersion: 1,
+    runId: "health-run-historical-full",
+    mode: "full",
+    startedAt: "2026-07-20T12:04:00.000Z",
+    completedAt: "2026-07-20T12:05:00.000Z",
+    findings: historicalFailFindings,
+    summary: health.summarizeHealthFindings(historicalFailFindings),
+  });
+  equal(historicalFull.summary.counts, { pass: 1, warn: 0, fail: 1 });
+  equal(historicalFull.summary.verdict, "drift detected");
   console.log("[EVIDENCE: health-v1-built-contract]");
 
   const neverRunProject = await mkdtemp(
