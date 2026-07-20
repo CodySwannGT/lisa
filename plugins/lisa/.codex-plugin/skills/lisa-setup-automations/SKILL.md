@@ -198,11 +198,16 @@ One line each; expand them into the operator's voice, keep the meaning.
 **Retirement condition is mandatory and non-empty.** Every seeded runbook states one, and a loop
 that is structurally permanent says exactly that instead of leaving the section blank — an operator
 reading it aloud must be able to say when this loop should stop existing, or that it never should.
-A valid condition is **stateless**: derived from the tracker, and **never an ad-hoc counter**, a new
-state file, or bounded run-history record. The mechanism itself — the two-part test, the single
-marker-deduped teardown proposal, and the
-three operator responses — is defined once in the `automation-runbook-contract` rule; these seeds
-only fill in each loop's specifics. A seed may add a **domain conjunct** on top of the contract's
+A valid condition is **stateless**: derived from the tracker, or from the loop's own bounded run
+history at `.lisa/automations/runs/<loop-id>.jsonl` — written by the contract's own recorder, not
+private per-loop state — and **never an ad-hoc counter** or a new state file. Those two sources are
+the same discipline, not a loosening of the contract's "never from a counter or a state file": the
+run history is written and bounded by `automation-run-record.mjs`, is readable by any run on any
+machine, and is never invented per loop. What the contract forbids is a loop minting private state
+to remember itself by. Prefer the tracker; reach for the run history only when the tracker cannot
+answer the question. The mechanism itself — the two-part test, the single marker-deduped teardown
+proposal, and the three operator responses — is defined once in the `automation-runbook-contract`
+rule; these seeds only fill in each loop's specifics. A seed may add a **domain conjunct** on top of the contract's
 two-part test — an extra AND that must also hold — because an additional conjunct is strictly
 tighter and never divergent. It may never drop or weaken either of the contract's two conditions.
 Silence alone means obsolescence only for the gardener; for a monitoring or exploratory loop a quiet
