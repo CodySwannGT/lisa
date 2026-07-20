@@ -275,6 +275,42 @@ Emit two distinct in-session sections (do not write a report file):
 Always include the **Personas**, **What Already Exists**, **Discovery Spikes**, and **Rejected**
 sections (even if empty) so the user sees what was considered and filtered out.
 
+## Run outcome
+
+As the registered `exploratory-prds` automation loop, this run conforms to the
+`automation-runbook-contract` rule: it ends in **exactly one** of the six run outcomes and records it,
+so a quiet ideation run and a broken one are never confused.
+
+| This run's exit path | Run outcome |
+|---|---|
+| PRD(s) created or reused this run (Step 6/7 **PRDs Created**) | `candidate-proposed` |
+| Nothing to ideate — no Practical Idea cleared the bar; nothing created | `nothing-needed` |
+| The Step 5.5 **PRD-queue-pressure gate** blocked auto-ready creation — a human must drain the queue before another auto-ready PRD is added | `approval-requested` |
+| The loop itself could not run — the PRD source reader failed or the queue is misconfigured (a source-reader failure snapshot, not queue pressure) | `recovery-required` |
+| A degradation that still let ideation run (optional Codex automation memory unavailable, an inspiration source unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
+
+The pressure gate is `approval-requested`, **not** `recovery-required`: the loop ran fine and
+correctly declined to add queue pressure — it is asking a human to drain the queue, not reporting a
+broken machine. `recovery-required` is reserved for the loop failing to run at all.
+
+Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
+(the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
+specific, actionable, e.g. `Reviewed evidence; no practical idea cleared the bar — nothing to
+propose.` for `nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id exploratory-prds --outcome candidate-proposed \
+  --summary "Created PRD #1810 for offline export; awaiting your flip to ready." \
+  --runbook .lisa/automations/exploratory-prds.runbook.md [--ref <prd-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
+`plugins/lisa/scripts/automation-run-record.mjs` or the source
+`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
+the run — a recording failure is a degradation to report, never a reason to block the loop.
+
 ## Out of scope (hard rules)
 
 - **No fabricated personas.** No evidence citation → no persona; generic roles banned without

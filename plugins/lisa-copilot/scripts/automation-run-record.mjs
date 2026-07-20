@@ -260,3 +260,113 @@ async function writeJsonlAtomically(filePath, records) {
   await writeFile(tempPath, content, "utf8");
   await rename(tempPath, filePath);
 }
+
+const CLI_USAGE = `Usage: node automation-run-record.mjs \\
+  --loop-id <slug> --outcome <${AUTOMATION_RUN_OUTCOMES.join("|")}> \\
+  --summary "<operator-readable one-liner>" --runbook <path> \\
+  [--ref <url>]... [--run-id <id>] [--project-root <dir>]`;
+
+/**
+ * Translate a repeatable-flag argv into a {@link RecordAutomationRunInput}.
+ *
+ * Every flag takes a following value; `--ref` may repeat and accumulates into
+ * `refs`. Unknown flags and value-less flags throw so a typo never silently
+ * records the wrong thing.
+ *
+ * @param {readonly string[]} argv
+ * @returns {RecordAutomationRunInput}
+ */
+function parseAutomationRunRecordArgv(argv) {
+  /** @type {Record<string, string>} */
+  const single = {};
+  /** @type {string[]} */
+  const refs = [];
+  const flags = {
+    "--loop-id": "loopId",
+    "--outcome": "outcome",
+    "--summary": "summary",
+    "--runbook": "runbook",
+    "--run-id": "runId",
+    "--project-root": "projectRoot",
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    const eq = token.indexOf("=");
+    const flag = eq === -1 ? token : token.slice(0, eq);
+    const inlineValue = eq === -1 ? undefined : token.slice(eq + 1);
+    const takeValue = () => {
+      if (inlineValue !== undefined) {
+        return inlineValue;
+      }
+      index += 1;
+      if (index >= argv.length) {
+        throw new Error(`Missing value for ${flag}.`);
+      }
+      return argv[index];
+    };
+
+    if (flag === "--ref") {
+      refs.push(takeValue());
+      continue;
+    }
+    const key = flags[flag];
+    if (!key) {
+      throw new Error(`Unknown flag "${flag}".`);
+    }
+    single[key] = takeValue();
+  }
+
+  return { ...single, refs };
+}
+
+/**
+ * Argv-driven CLI wrapper so registered loop skills can record an outcome with
+ * one portable `node …/automation-run-record.mjs --outcome …` call. Delegates
+ * validation to {@link recordAutomationRun}; surfaces its errors verbatim.
+ *
+ * @param {readonly string[]} argv
+ * @returns {Promise<number>} process exit code
+ */
+export async function runAutomationRunRecordCli(argv) {
+  if (argv.includes("--help") || argv.includes("-h")) {
+    process.stdout.write(`${CLI_USAGE}\n`);
+    return 0;
+  }
+  let input;
+  try {
+    input = parseAutomationRunRecordArgv(argv);
+  } catch (error) {
+    process.stderr.write(`${error.message}\n\n${CLI_USAGE}\n`);
+    return 2;
+  }
+  try {
+    const result = await recordAutomationRun(input);
+    process.stdout.write(
+      `${JSON.stringify({
+        path: result.path,
+        appended: result.appended,
+        outcome: result.record.outcome,
+        loop_id: result.record.loop_id,
+        run_id: result.record.run_id,
+      })}\n`
+    );
+    return 0;
+  } catch (error) {
+    process.stderr.write(`${error.message}\n`);
+    return 1;
+  }
+}
+
+// CLI entrypoint.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runAutomationRunRecordCli(process.argv.slice(2)).then(
+    code => {
+      process.exitCode = code;
+    },
+    error => {
+      process.stderr.write(`${error?.message ?? error}\n`);
+      process.exitCode = 1;
+    }
+  );
+}

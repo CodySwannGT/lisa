@@ -223,3 +223,70 @@ describe("tear-down-automations removes only this project's lisa-auto set", () =
     });
   });
 });
+
+/**
+ * Loop-conformance to the run-outcome recording contract (RBC-4, #1798).
+ *
+ * Every registered loop skill declares a Run outcome section citing the
+ * `automation-runbook-contract` rule and records via the RBC-3 helper CLI on
+ * every exit path. Six skills back the seven registered loop-ids (lisa-intake
+ * backs both intake-prd and intake-tickets).
+ */
+const LOOP_SKILLS = [
+  "lisa-repair-intake",
+  "lisa-intake",
+  "lisa-exploratory-qa",
+  "lisa-project-ideation",
+  "lisa-monitor",
+  "lisa-learnings-audit",
+] as const;
+
+describe("registered loops conform to the run-outcome recording contract (#1798)", () => {
+  describe.each(ROOTS)("%s", root => {
+    describe.each(LOOP_SKILLS)("%s", slug => {
+      const content = readSkill(root, slug);
+
+      it("carries a Run outcome section", () => {
+        // lisa-learnings-audit renames its section to the plural `## Run outcomes`.
+        expect(content).toMatch(/## Run outcomes?/);
+      });
+
+      it("cites the automation-runbook-contract rule by slug", () => {
+        expect(content).toContain("automation-runbook-contract");
+      });
+
+      it("requires recording via the RBC-3 helper CLI on every exit path", () => {
+        expect(content).toContain("scripts/automation-run-record.mjs");
+        expect(content).toContain("--outcome");
+        expect(content).toContain("--runbook");
+      });
+
+      it("names the never-block degradation rule for recording failures", () => {
+        expect(content).toMatch(/degrad/i);
+        expect(content).toMatch(/never\s+(block|abort)/i);
+      });
+    });
+  });
+});
+
+describe("lisa-intake keeps the blocked-is-a-successful-run seam explicit (#1798)", () => {
+  describe.each(ROOTS)("%s/lisa-intake", root => {
+    const content = readSkill(root, "lisa-intake");
+
+    it("states that routing to Blocked is candidate-proposed, never recovery-required", () => {
+      // Flatten prose line-wraps so the seam is checked as one statement.
+      const flat = content.replace(/\s+/g, " ");
+      const blockedIdx = flat.indexOf("routes to `Blocked`");
+      const successIdx = flat.indexOf("successful run — `candidate-proposed`");
+      const neverIdx = flat.indexOf("never `recovery-required`");
+      expect(blockedIdx).toBeGreaterThanOrEqual(0);
+      expect(successIdx).toBeGreaterThan(blockedIdx);
+      expect(neverIdx).toBeGreaterThan(successIdx);
+    });
+
+    it("records under both per-mode loop-ids", () => {
+      expect(content).toContain("intake-prd");
+      expect(content).toContain("intake-tickets");
+    });
+  });
+});
