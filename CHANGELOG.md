@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.258.2](https://github.com/CodySwannGT/lisa/compare/v2.258.1...v2.258.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **expo:** isolate local eslint config typing ([8b87756](https://github.com/CodySwannGT/lisa/commit/8b877568e776573e4dea89dbe1e1901d65fc7132)), closes [CodySwannGT/lisa#1707](https://github.com/CodySwannGT/lisa/issues/1707)
+
 ### [2.258.1](https://github.com/CodySwannGT/lisa/compare/v2.258.0...v2.258.1) (2026-07-20)
 
 
