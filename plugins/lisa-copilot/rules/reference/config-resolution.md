@@ -677,6 +677,7 @@ The shim → vendor mapping is fixed:
 | `lisa-tracker-validate` | `lisa-jira-validate-ticket` | `lisa-github-validate-issue` | `lisa-linear-validate-issue` |
 | `lisa-tracker-verify` | `lisa-jira-verify` | `lisa-github-verify` | `lisa-linear-verify` |
 | `lisa-tracker-read` | `lisa-jira-read-ticket` | `lisa-github-read-issue` | `lisa-linear-read-issue` |
+| `lisa-tracker-claim` | `lisa-jira-claim` | `lisa-github-claim` | `lisa-linear-claim` |
 | `lisa-tracker-evidence` | `lisa-jira-evidence` | `lisa-github-evidence` | `lisa-linear-evidence` |
 | `lisa-tracker-sync` | `lisa-jira-sync` | `lisa-github-sync` | `lisa-linear-sync` |
 | `lisa-tracker-add-journey` | `lisa-jira-add-journey` | `lisa-github-add-journey` | `lisa-linear-add-journey` |
@@ -689,7 +690,7 @@ The `tracker-source-artifacts` skill (formerly `tracker-source-artifacts`) is re
 ## Caller responsibilities
 
 - **PRD-source skills** (`notion-to-tracker`, `confluence-to-tracker`, `linear-to-tracker`, `github-to-tracker`) MUST invoke `tracker-write` and `tracker-validate` — never `jira-write-ticket` / `github-write-issue` / `linear-write-issue` directly. This is what makes a project's destination switchable via config.
-- **Lifecycle skills** (`implement`, `verify`, `monitor`) MUST invoke `tracker-read`, `tracker-evidence`, `tracker-sync` for ticket interaction — never the vendor-specific equivalents.
+- **Lifecycle skills** (`implement`, `verify`, `monitor`) MUST invoke `tracker-read`, `tracker-claim`, `tracker-evidence`, `tracker-sync` for ticket interaction — never the vendor-specific equivalents.
 - **Per-vendor PRD intake skills** (`notion-prd-intake`, `confluence-prd-intake`, `linear-prd-intake`, `github-prd-intake`) compose the PRD-source skills (which in turn invoke the shims) — they do not need to read `tracker` themselves.
 - **Vendor-specific destination skills** (`jira-*`, `github-*`, `linear-*`) read their own vendor config section directly. They do NOT consult `tracker` — they are the targets of dispatch, not the dispatchers.
 

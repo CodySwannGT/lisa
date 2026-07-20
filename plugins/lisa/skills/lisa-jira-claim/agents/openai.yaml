@@ -1,0 +1,4 @@
+display_name: "Jira Claim"
+short_description: "Idempotently claims one live Jira leaf ticket for direct Lisa work"
+default_prompt:
+  - "Use $lisa-jira-claim: Idempotently claims one live Jira leaf ticket for direct Lisa work."

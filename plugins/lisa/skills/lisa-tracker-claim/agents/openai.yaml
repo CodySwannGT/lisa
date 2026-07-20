@@ -1,0 +1,4 @@
+display_name: "Tracker Claim"
+short_description: "Vendor-neutral dispatcher for idempotently claiming one already live-validated leaf work item"
+default_prompt:
+  - "Use $lisa-tracker-claim: Vendor-neutral dispatcher for idempotently claiming one already live-validated leaf work item."

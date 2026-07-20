@@ -17,13 +17,23 @@ pre-commit:
       # inside a git worktree (the inherited GIT_DIR points at the wrong repo).
       run: env -u GIT_DIR -u GIT_WORK_TREE bundle exec bundler-audit check --update
 
+prepare-commit-msg:
+  commands:
+    work-item-trailer:
+      run: node scripts/lisa-work-item.mjs prepare-commit-msg {1} {2} {3}
+
 commit-msg:
   commands:
+    work-item:
+      run: node scripts/lisa-work-item.mjs validate-commit {1}
     conventional-commit:
       run: 'head -1 {1} | grep -qE "^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?: .+" || (echo "Commit message must follow conventional format" && exit 1)'
 
 pre-push:
   commands:
+    work-item:
+      run: node scripts/lisa-work-item.mjs validate-push {1}
+      use_stdin: true
     rspec:
       run: bundle exec rspec
     brakeman:

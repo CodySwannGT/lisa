@@ -1,0 +1,4 @@
+display_name: "Linear Claim"
+short_description: "Idempotently claims one live Linear leaf issue for direct Lisa work"
+default_prompt:
+  - "Use $lisa-linear-claim: Idempotently claims one live Linear leaf issue for direct Lisa work."
