@@ -38,7 +38,8 @@
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
-    "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs"
+    "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs",
+    "verify:learner-frontmatter-built": "bun run build:dist && node scripts/verify-learner-frontmatter-built.mjs"
   },
   "engines": {
     "npm": "please-use-bun",

@@ -79,6 +79,24 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  describe("root package template verifier scripts", () => {
+    it("preserves the learner frontmatter built verifier", () => {
+      const repoRoot = process.cwd();
+      const packageJson = fs.readJsonSync(path.join(repoRoot, "package.json"));
+      const packageTemplate = fs.readJsonSync(
+        path.join(repoRoot, "package.lisa.json")
+      );
+      const scriptName = "verify:learner-frontmatter-built";
+
+      expect(packageTemplate.force.scripts[scriptName]).toBe(
+        packageJson.scripts[scriptName]
+      );
+      expect(packageTemplate.force.scripts[scriptName]).toBe(
+        "bun run build:dist && node scripts/verify-learner-frontmatter-built.mjs"
+      );
+    });
+  });
+
   describe("when source does not exist", () => {
     it("skips when package.lisa.json not found", async () => {
       const sourcePath = path.join(

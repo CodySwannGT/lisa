@@ -395,7 +395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/jira-build-intake.md":
       "51397c08fe09380f53bd630fb81ff28905a532ea71336a424e944c28a0c2db55",
     "plugins/src/base/agents/learner.md":
-      "cd1a0ba1560f6d17d0c851b5d70167468c0a2953c77b6eb87d7782c48db8906d",
+      "50582e72b11eeb6b085845f2e32c31a6dcedd0439ca566bb1cca228dd1a45fee",
     "plugins/src/base/agents/learning-judge.md":
       "28618c3e20a0f790e4d254a9c8118645774233f19e3042b3cfeddf4ffbaf783a",
     "plugins/src/base/agents/learnings-synthesizer.md":
@@ -1635,7 +1635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/skills/lisa-wiki-add-ingest/SKILL.md":
       "d7334ca07bc9bcd7d51865b77a377d772c20dc546c9a63b22dabe7624586e0fb",
     "plugins/src/wiki/skills/lisa-wiki-add-role/SKILL.md":
-      "bb84917eb0b0837d16c2545b79b346023cdf042ece94b6794ee8e91f65379cf2",
+      "72d3fe746d484a8e3bce34f3147ad384549229a24b5cc33d1867a0351cfc57b3",
     "plugins/src/wiki/skills/lisa-wiki-connector-confluence/SKILL.md":
       "ee3a98bb83b1efab6e7cc7604b15e0daa3f4288aed3d8dc6de30aa4ffc06a709",
     "plugins/src/wiki/skills/lisa-wiki-connector-docs/SKILL.md":
@@ -1677,9 +1677,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/skills/lisa-wiki-usage/SKILL.md":
       "1f2747204722a9f0b0000188770bb70ca71a550d9b4a607b1e02587156d48f71",
     "plugins/src/wiki/templates/agents/role-agent.claude.md":
-      "5ab447762a7b5a9493f1aa43a0a23101e0f55c64f41e20b1fd2e043bf04c5442",
+      "e66982fa5b343d9f0e2dff23442c40fc157c729f756133d98fc43ebd15ccf81b",
     "plugins/src/wiki/templates/agents/role-agent.codex.toml":
-      "67ed38aa69d10faec1636c7dd9139a5eeb479a8fa4450396e2a5668c57de3b02",
+      "98d7a64a5fe80fa8c7ac4d94aea05e35361730edc9bf3699536de867d4e3c3fa",
     "plugins/src/wiki/templates/index.md":
       "88b45130a0149d98895e132182aeaa7b7e6d6174545fbb6e9245170863edce42",
     "plugins/src/wiki/templates/llm-wiki-contract.md":
@@ -1898,6 +1898,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9e090e3378325c4193e96ba03acff17fb63e40c9e7f2dd89296f72353ab6ba88",
     "scripts/verify-health-deterministic-built.mjs":
       "ab19427ec4b1dfaa06037cc23b7fc06319b4c12d8c6b67808dddd77e5367fd12",
+    "scripts/verify-learner-frontmatter-built.mjs":
+      "182e5e99f52257d3079ee1bc42b45c3dcca8b93a968205ddb3f3af26f2558b47",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -7233,6 +7235,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/update-test-skill-paths.mjs": true,
     "scripts/verify-health-contract-built.mjs": true,
     "scripts/verify-health-deterministic-built.mjs": true,
+    "scripts/verify-learner-frontmatter-built.mjs": true,
     "sgconfig.yml": true,
     "specs/.keep": true,
     "src/agy/mcp-installer.ts": true,
@@ -7628,6 +7631,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
     "tests/unit/core/project-config.test.ts": true,
+    "tests/unit/core/role-agent-template-contract.test.ts": true,
     "tests/unit/core/self-apply.test.ts": true,
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
