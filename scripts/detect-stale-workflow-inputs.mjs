@@ -42,11 +42,26 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  diffStaleKeys,
+  extractCallerJobs,
+  extractDeclaredInputs,
+  parseReusableReference,
+} from "./lib/reusable-workflow-contract.mjs";
+
+export {
+  diffStaleKeys,
+  extractCallerJobs,
+  extractDeclaredInputs,
+  parseReusableReference,
+};
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
 );
+const LISA_OWNER = "codyswanngt";
+const LISA_REPO = "lisa";
 
 /**
  * Usage error — thrown by `parseArgs` for an invalid invocation so `main` can
@@ -66,153 +81,6 @@ function isDirectory(target) {
   } catch {
     return false;
   }
-}
-
-/**
- * Leading-whitespace width of a line (its indentation level).
- *
- * @param {string} line - a single source line.
- * @returns {number} number of leading whitespace characters.
- */
-function indentOf(line) {
-  return line.length - line.trimStart().length;
-}
-
-/**
- * Collect the immediate child `key:` names nested directly under a block
- * opener line, given the opener's own indentation. Stops at the first line
- * whose indentation is `<= parentIndent` (blank lines are skipped).
- *
- * @param {readonly string[]} lines - full file, split into lines.
- * @param {number} openerIndex - index of the block-opener line (e.g. `with:`).
- * @param {number} parentIndent - indentation width of the opener line itself.
- * @returns {string[]} the immediate child key names, in file order.
- */
-function collectImmediateChildKeys(lines, openerIndex, parentIndent) {
-  const keys = [];
-  for (let k = openerIndex + 1; k < lines.length; k++) {
-    const line = lines[k];
-    if (line.trim() === "") {
-      continue;
-    }
-    const lineIndent = indentOf(line);
-    if (lineIndent <= parentIndent) {
-      break;
-    }
-    const match = /^\s*([A-Za-z0-9_-]+):/.exec(line);
-    if (match && lineIndent === parentIndent + 2) {
-      keys.push(match[1]);
-    }
-  }
-  return keys;
-}
-
-/**
- * Parse a `uses:` value referencing a reusable workflow into its basename and
- * ref, or `null` if it doesn't match the `.../.github/workflows/<file>@<ref>`
- * shape (e.g. a plain action reference like `actions/checkout@v6`).
- *
- * @param {string} usesValue - the raw value after `uses:`.
- * @returns {{ file: string, ref: string } | null} the parsed reference.
- */
-export function parseReusableReference(usesValue) {
-  const match = /\.github\/workflows\/([\w.-]+\.ya?ml)@(\S+)$/.exec(
-    usesValue.trim()
-  );
-  if (!match) {
-    return null;
-  }
-  return { file: match[1], ref: match[2] };
-}
-
-/**
- * Scan a caller workflow file's contents for every job that invokes a
- * reusable workflow, returning the `with:` keys each job passes.
- *
- * @param {string} content - full caller workflow file contents.
- * @returns {{ reusableFile: string, ref: string, withKeys: string[] }[]}
- *   one entry per job that calls a reusable workflow (in file order).
- */
-export function extractCallerJobs(content) {
-  const lines = content.split(/\r?\n/);
-  const jobs = [];
-  for (let i = 0; i < lines.length; i++) {
-    const usesMatch = /^(\s*)uses:\s*(\S+)\s*$/.exec(lines[i]);
-    if (!usesMatch) {
-      continue;
-    }
-    const [, indentStr, usesValue] = usesMatch;
-    const ref = parseReusableReference(usesValue);
-    if (!ref) {
-      continue;
-    }
-    const indent = indentStr.length;
-    let withKeys = [];
-    for (let j = i + 1; j < lines.length; j++) {
-      const line = lines[j];
-      if (line.trim() === "") {
-        continue;
-      }
-      const lineIndent = indentOf(line);
-      if (lineIndent < indent) {
-        break;
-      }
-      if (lineIndent === indent && /^\s*with:\s*$/.test(line)) {
-        withKeys = collectImmediateChildKeys(lines, j, indent).sort();
-        break;
-      }
-    }
-    jobs.push({ reusableFile: ref.file, ref: ref.ref, withKeys });
-  }
-  return jobs;
-}
-
-/**
- * Extract the declared `on.workflow_call.inputs` key names from a reusable
- * workflow's contents.
- *
- * @param {string} content - full reusable workflow file contents.
- * @returns {string[] | null} declared input names (sorted), an empty array when
- *   the reusable workflow declares no inputs, or `null` if the file has no
- *   `workflow_call:` block.
- */
-export function extractDeclaredInputs(content) {
-  const lines = content.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    if (!/^\s*workflow_call:\s*$/.test(lines[i])) {
-      continue;
-    }
-    const wcIndent = indentOf(lines[i]);
-    for (let j = i + 1; j < lines.length; j++) {
-      const line = lines[j];
-      if (line.trim() === "") {
-        continue;
-      }
-      const lineIndent = indentOf(line);
-      if (lineIndent <= wcIndent) {
-        break;
-      }
-      if (lineIndent === wcIndent + 2 && /^\s*inputs:\s*$/.test(line)) {
-        return collectImmediateChildKeys(lines, j, lineIndent).sort();
-      }
-    }
-    return [];
-  }
-  return null;
-}
-
-/**
- * Keys present in `used` but absent from `declared` — i.e. inputs a caller
- * passes that the reusable workflow's contract no longer accepts.
- *
- * @param {readonly string[]} used - `with:` keys a caller passes.
- * @param {readonly string[]} declared - `workflow_call.inputs` keys the
- *   reusable workflow declares.
- * @returns {string[]} the stale keys, sorted.
- */
-export function diffStaleKeys(used, declared) {
-  const declaredSet = new Set(declared);
-  return used.filter(key => !declaredSet.has(key)).sort();
 }
 
 /**
@@ -245,7 +113,12 @@ function resolveContractInputs(contractsRoot, reusableFile) {
 function scanCallerFile(filePath, contractsRoot) {
   const jobs = extractCallerJobs(fs.readFileSync(filePath, "utf8"));
   return jobs.map(job => {
-    const declared = resolveContractInputs(contractsRoot, job.reusableFile);
+    const isLisaContract =
+      job.owner?.toLowerCase() === LISA_OWNER &&
+      job.repo?.toLowerCase() === LISA_REPO;
+    const declared = isLisaContract
+      ? resolveContractInputs(contractsRoot, job.reusableFile)
+      : null;
     if (declared === null) {
       return { ...job, staleInputs: [], status: "unknown-contract" };
     }
