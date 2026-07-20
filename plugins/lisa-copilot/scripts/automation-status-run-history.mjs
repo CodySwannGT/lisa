@@ -121,11 +121,16 @@ export function resolveRecoveryEscalation(runDisplay) {
     return null;
   }
 
-  const summaries = runDisplay.recoverySummaries.join("; ");
+  // Number the citations rather than joining on a delimiter: recorded summaries
+  // carry their own `;` and `.`, so a `; `-separated list is ambiguous. `(1) …
+  // (2) …` stays legible no matter what punctuation a summary contains.
+  const citations = runDisplay.recoverySummaries
+    .map((summary, index) => `(${index + 1}) ${summary}`)
+    .join(" ");
   return {
     status: "FAILING",
     summary: `the last ${runDisplay.recoveryRequiredStreak} recorded runs all required recovery`,
-    remediation: `Repeated recovery-required runs (${summaries}). Inspect the loop's runbook and the cited runs, fix the recurring failure, then let the next scheduled run confirm recovery.`,
+    remediation: `Repeated recovery-required runs — ${citations} Inspect the loop's runbook and the cited runs, fix the recurring failure, then let the next scheduled run confirm recovery.`,
   };
 }
 
