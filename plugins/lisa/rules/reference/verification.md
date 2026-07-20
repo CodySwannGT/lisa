@@ -177,6 +177,8 @@ The list may be empty; the flag may not be missing. An absent `not_established_r
 
 The boundary each artifact type reaches — and therefore which claim a captured artifact can discharge — is the `claim-evidence-mapping` rule's taxonomy; the type table above is its evidence-kind source.
 
+The verdict is read twice. The Claude-only `enforce-verification-gate.sh` Stop hook reads it to decide whether the flow may stop; `lisa-spec-conformance` (run by `spec-conformance-specialist` in the verification phase) reads it to decide whether each shipped requirement's proof actually reaches its boundary — a cited-evidence-boundary mismatch is a `BOUNDARY_MISMATCH` conformance finding there, caught alongside empirical verification rather than after it. On harnesses without a Stop hook, `lisa-implement`'s prose gate carries the same v2 expectations by convention. The whole system, operator-readable end to end, is written up as the Lisa wiki's **Bounded-Claims Evidence System** concept page (`wiki/concepts/bounded-claims-evidence-system.md` upstream).
+
 ### Cross-work-item evidence references are non-claiming
 
 When prose needs to point at evidence declared by another work item, use the dedicated reference form:

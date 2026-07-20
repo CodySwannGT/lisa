@@ -278,7 +278,28 @@ Before shutting down the team, execute the Verify flow:
     - **Actionable blocker** — an unresolved dependency or fixable technical gap that some team or repository could build (a missing or changed schema field, an unbuilt sibling work item, a required upstream fix), **including cross-repo dependencies**. Before writing the blocked verdict you MUST (1) file a build-ready fix/dependency ticket capturing the diagnosis — in the dependency's own repository/tracker when it is cross-repo (e.g. a `[<repo>] …` ticket in the shared project, or the sibling tracker) — and (2) link the current work item to it as `is blocked by`. Only then write the verdict. This is the same discipline as the regression-spec blocker and the remote-verification-fail exits above, and it is what makes the block machine-recoverable: `repair-intake` re-dispatches a blocked item once its linked `is blocked by` dependency closes, but it cannot act on a prose-only comment. Recommending the ticket "as a human follow-up" without filing and linking it is **not** a permitted exit.
     - **Human-only blocker** — an input the agent genuinely cannot obtain or produce no matter what it does: credentials, secrets, or **tool access** it does not have (AWS/CloudWatch, Figma, Jam, Sentry, SonarCloud, a database, a protected deploy target, …), or a product/design decision only a human can make. For missing tool access, follow the `tool-access-gate` rule's break-out protocol: post the "Access Needed" comment naming the exact credential/role/env var to grant and the probe that must pass — never work around the gap by substituting weaker verification, mocking the inaccessible system, or narrowing scope. Record the blocked verdict, mark it `human_needed` (the marker `repair-intake` recognizes, so it won't churn re-dispatching it), and surface or reassign to a human; do **not** fabricate a build-ready ticket, because there is no build-ready work.
 
-    Other harnesses fall back to this prose obligation.
+    **Harnesses that do not fire a Stop hook enforce the same discipline by convention.** The
+    `enforce-verification-gate.sh` Stop hook is a **Claude-only** surface — Codex, Cursor, Antigravity,
+    Copilot, and OpenCode carry the skills, agents, and (where the runtime has a rules surface) the
+    `claim-evidence-mapping` rule, but nothing on those runtimes can refuse to stop. That is a known
+    **representation gap**, documented here rather than dropped: on those harnesses this prose gate
+    *is* the gate, and the flow may not declare completion until it has written the same v2 verdict
+    and self-checked it against the same expectations the hook would have applied:
+
+    - `schema_version: 2` is written, with `plan`, `status`, and `updated_at` terminal and fresh.
+    - Every claim carries a `claim_id`, a `boundary` from the closed set, and the
+      `required_evidence_kinds` that reach that boundary — and its `evidence_refs` resolve to evidence
+      whose `kind` is one of them. A unit `test-run-log` cited for a `browser`, `http-api`, or
+      `deploy-health` claim is the failure this check exists to catch.
+    - `artifact.head_sha` names what will ship, and every evidence entry's `artifact_head_sha` matches
+      it, with a `sha256` digest and `captured_at` recorded as values, never placeholders.
+    - The `not_established` list is present on every claim and `not_established_reviewed` is `true` —
+      an empty list is fine, an omitted flag is not.
+
+    Record the self-check in the completion summary the way the hook would have reported it: name the
+    boundary each claim reached, or name the violation. Where the runtime lacks the rules surface (the
+    agy artifacts carry no rules tree), the obligation still travels in this skill — cite the
+    `claim-evidence-mapping` contract by slug and continue; never block on the absent surface.
 3. Write the highest-practical-observation regression test encoding the verification. For user-visible bugs or user-visible Build changes with an available browser/device/e2e harness, this means a deterministic spec on the reported surface — and for frontend work, once the validation journey is verified, codification into **every supported UI runner**: a Playwright spec in the Playwright runner AND a Maestro flow when the project supports Maestro, per `codify-verification`. Prove the new spec actually executed and passed in PR CI by recording a named spec log/reporter line or equivalent execution record; green CI without that named evidence does not satisfy this step.
 4. Record Implement usage on the originating work artifact via `lisa-usage-accounting` so the work item (or other implementation-owned artifact) gains a direct `lisa-implement` usage entry in the canonical `## Lisa Usage` section. If the parent / child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
 5. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
