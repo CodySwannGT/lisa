@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.258.0](https://github.com/CodySwannGT/lisa/compare/v2.257.2...v2.258.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** per-loop retirement conditions and the policy-obsolete teardown proposal ([#1801](https://github.com/CodySwannGT/lisa/issues/1801)) ([77722a1](https://github.com/CodySwannGT/lisa/commit/77722a17a53fb365e58008e7931383b71656b734))
+
+
+### Bug Fixes
+
+* **automations:** align retirement proposal review fixes ([16eb215](https://github.com/CodySwannGT/lisa/commit/16eb215ae2e334dcfe92b1d662bfddaf373146da)), closes [CodySwannGT/lisa#1801](https://github.com/CodySwannGT/lisa/issues/1801) [CodySwannGT/lisa#1801](https://github.com/CodySwannGT/lisa/issues/1801)
+* **automations:** domain-grounded retirement conditions and review fixes ([#1801](https://github.com/CodySwannGT/lisa/issues/1801)) ([5d942ad](https://github.com/CodySwannGT/lisa/commit/5d942ada05874853fa8a6f3e965187074ce6acf4))
+
 ### [2.257.2](https://github.com/CodySwannGT/lisa/compare/v2.257.1...v2.257.2) (2026-07-20)
 
 
