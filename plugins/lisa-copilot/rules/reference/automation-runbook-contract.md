@@ -121,8 +121,17 @@ there is no silent exit for an operator to misread as health. A run that ends wi
 recorded outcome is indistinguishable from a crashed scheduler, which is exactly the ambiguity this
 contract removes. This generalizes `lisa-improve-harness`'s result-record discipline — every
 terminal step posts its result record before stopping, so there is no silent exit — from one flow to
-every registered loop. (The run-record substrate that stores outcomes and summaries is named here
-only; it ships with that ticket (#1797), do not assume its file is present in this branch.)
+every registered loop.
+
+The local storage substrate is `plugins/src/base/scripts/automation-run-record.mjs`. It writes one
+bounded JSONL file per loop at `.lisa/automations/runs/<loop-id>.jsonl`, with one object per line:
+`{ ts, loop_id, outcome, summary, runbook, refs[], run_id }`. The helper rejects any outcome outside
+the closed six-value vocabulary, requires a non-empty operator-readable summary, suppresses duplicate
+re-appends for the same `run_id`, skips corrupt/truncated lines on read, and trims to the newest
+configured records on write. The default bound is 50 records per loop, overridable via
+`.lisa.config.json` / `.lisa.config.local.json` `automations.runHistory.maxEntries`. These records
+are local scheduler observations, not project knowledge, so `.lisa/automations/runs/` is ignored;
+the runbooks under `.lisa/automations/*.runbook.md` remain checked-in knowledge.
 
 ## A run outcome is not a work-item lifecycle terminal state
 
@@ -209,8 +218,8 @@ packet above. A degraded run never blocks other work and never leaves the run un
 
 ## Citing adjacent work
 
-Cite these by name; each ships with its own ticket, do not assume its file is present in this
-branch: the runbook scaffolding that instantiates this template (#1796), the run-record substrate
-that stores outcomes and summaries (#1797), and the evidence packet defined by the evidence PRD
-(#1738) — named here, with no evidence format defined by this contract. Rejection memory
-extends `rejection-detection`; this contract neither restates nor overrides it.
+Cite these by name. The run-record substrate ships with that ticket (#1797), do not assume its file
+is present in older branches. The evidence packet ships with that ticket, do not assume its file is present in this branch. Other adjacent artifacts keep their own lifecycle: the runbook scaffolding
+that instantiates this template (#1796), and the evidence packet defined by the evidence PRD (#1738)
+— named here, with no evidence format defined by this contract. Rejection memory extends
+`rejection-detection`; this contract neither restates nor overrides it.
