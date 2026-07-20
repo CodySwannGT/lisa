@@ -43,18 +43,21 @@ Structure your findings as:
 
 ### Security (unproven)
 - [finding] -- where in the code, how to prevent
-  - reproducer: none
-  - impact: unproven
-  - reason: no reproducer / no bounded impact -- kept in the security section, not demoted
+  - reproducer: [evidence ref if one exists, else `none`]
+  - impact: [bounded statement if one exists, else `unproven`]
+  - reason: [which half is missing -- e.g. "impact bounded, but never reproduced"]
+    -- kept in the security section, not demoted
 
 ### Recommendations
 - [recommendation] -- priority (critical/warning/suggestion)
 ```
 
 A finding is **proven** only with both a reproducer evidence ref and a bounded impact statement;
-missing either, it stays **unproven** inside the security section. The full bar, the per-finding
-fields, and the `security.review.unprovenBucket` policy point live in the `security-review` skill --
-follow it, do not restate it.
+missing either, it stays **unproven** inside the security section. Record the two halves
+independently -- keep whichever one you have and let the `reason` name the missing half; never
+overwrite a real value with a placeholder. The full bar, the per-finding fields, and the
+`security.review.unprovenBucket` policy point live in the `security-review` skill -- follow it, do
+not restate it.
 
 ## Rules
 

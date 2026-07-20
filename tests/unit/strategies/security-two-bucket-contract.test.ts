@@ -77,6 +77,19 @@ describe("Security two-bucket contract (BCE-5)", () => {
         expect(review).toContain("http-transcript");
       });
 
+      it("names the BCE-1 evidence contract and its ticket at that citation", () => {
+        expect(review).toContain("BCE-1");
+        expect(review).toContain("#1835");
+      });
+
+      it("preserves each field independently when only one half is missing", () => {
+        // A bounded impact with no reproducer keeps its impact text — the
+        // placeholder belongs only to the half that is actually absent.
+        expect(review).toMatch(/each field stands on its own|independently/i);
+        expect(review).toMatch(/never overwrite|do not overwrite/i);
+        expect(review).toMatch(/which half|names? what is missing/i);
+      });
+
       it("keeps the unproven finding in the security section by default", () => {
         expect(review).toMatch(/not (auto-)?demote|never (auto-)?demote/i);
         expect(review).toMatch(/maintenance/i);
@@ -123,6 +136,18 @@ describe("Security two-bucket contract (BCE-5)", () => {
 
       it("honors the same policy point", () => {
         expect(zap).toContain(POLICY_POINT);
+      });
+
+      it("requires a proven alert's reproducer to reach the claim's boundary", () => {
+        expect(zap).toContain(MAPPING_SLUG);
+        expect(zap).toMatch(/boundary/i);
+      });
+
+      it("classifies every alert instead of summarizing Medium+ only", () => {
+        expect(zap).toMatch(/every alert|all alerts/i);
+        expect(zap).toMatch(
+          /before classification|unclassified|nothing is dropped/i
+        );
       });
     });
 
