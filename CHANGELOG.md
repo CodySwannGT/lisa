@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.257.0](https://github.com/CodySwannGT/lisa/compare/v2.256.1...v2.257.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** proposal rejection memory in rejection-detection + conform loops ([#1800](https://github.com/CodySwannGT/lisa/issues/1800)) ([1c45752](https://github.com/CodySwannGT/lisa/commit/1c4575284f5347361346f698c01a26991a9178d6))
+
+
+### Bug Fixes
+
+* address rejection memory review feedback ([f760920](https://github.com/CodySwannGT/lisa/commit/f7609203b1cf60aa9311beecdd72e30ec268e66b)), closes [CodySwannGT/lisa#1800](https://github.com/CodySwannGT/lisa/issues/1800) [CodySwannGT/lisa#1800](https://github.com/CodySwannGT/lisa/issues/1800)
+* **rules:** note stateReason case normalization in rejection memory ([#1800](https://github.com/CodySwannGT/lisa/issues/1800)) ([78271da](https://github.com/CodySwannGT/lisa/commit/78271da6cddcea2d41d0879629055a23739cd080))
+* **rules:** teach the close-reason semantic and polish rejection-memory wording ([#1800](https://github.com/CodySwannGT/lisa/issues/1800)) ([c15b3e5](https://github.com/CodySwannGT/lisa/commit/c15b3e5a17de74e3ecc81ee7c3b77270b733a058))
+
 ### [2.256.1](https://github.com/CodySwannGT/lisa/compare/v2.256.0...v2.256.1) (2026-07-20)
 
 
