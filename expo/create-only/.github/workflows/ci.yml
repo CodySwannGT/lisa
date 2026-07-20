@@ -30,7 +30,6 @@ jobs:
     # Reference to the quality checks workflow
     permissions:
       contents: read
-      pull-requests: read
     uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
     with:
       node_version: '22.21.1'
