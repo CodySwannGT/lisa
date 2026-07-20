@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.256.0](https://github.com/CodySwannGT/lisa/compare/v2.255.0...v2.256.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** show runbook, last outcome, and bounded run history in automation-status ([#1799](https://github.com/CodySwannGT/lisa/issues/1799)) ([201339c](https://github.com/CodySwannGT/lisa/commit/201339ce53cfaf3b85277bcfcd1799bce55b99db))
+
+
+### Bug Fixes
+
+* **automations:** number escalation citations and pin trailing-streak semantics ([#1799](https://github.com/CodySwannGT/lisa/issues/1799)) ([56719f2](https://github.com/CodySwannGT/lisa/commit/56719f207e99d291a49c1b71c55e74a2ca9239ec))
+
 ## [2.255.0](https://github.com/CodySwannGT/lisa/compare/v2.254.0...v2.255.0) (2026-07-20)
 
 
