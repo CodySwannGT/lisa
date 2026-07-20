@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns -- storage contract types and helpers are documented at their declarations */
 /** Confined, bounded, atomic storage for the latest completed Health v1 run. */
 import * as fse from "fs-extra";
 import { lstat, open, realpath, rename, rm } from "node:fs/promises";
@@ -11,6 +10,7 @@ import { syncContainingDirectory } from "./directory-sync.js";
 export const HEALTH_RESULT_PATH = ".lisa/health/latest.json";
 export const MAX_HEALTH_RESULT_BYTES = 256 * 1024;
 
+/** Non-throwing read outcome for persisted runtime health state. */
 export type HealthReadResult =
   | {
       readonly status: "available";
@@ -20,6 +20,7 @@ export type HealthReadResult =
   | { readonly status: "never-run" }
   | { readonly status: "unreadable"; readonly reason: string };
 
+/** Atomic write or monotonic no-op outcome. */
 export type HealthWriteResult =
   | {
       readonly status: "written";
@@ -32,7 +33,11 @@ export type HealthWriteResult =
       readonly result: HealthResult;
     };
 
-/** Read the canonical latest result without throwing for runtime-state faults. */
+/**
+ * Read the canonical latest result without throwing for runtime-state faults.
+ * @param projectRoot - Project containing runtime health state
+ * @returns Available, never-run, or unreadable outcome
+ */
 export async function readLatestHealthResult(
   projectRoot: string
 ): Promise<HealthReadResult> {
@@ -58,6 +63,9 @@ export async function readLatestHealthResult(
 /**
  * Validate and atomically publish a completed result. Writes are serialized,
  * and an older or equal completion timestamp cannot replace a newer result.
+ * @param projectRoot - Project receiving runtime health state
+ * @param candidate - Untrusted completed result candidate
+ * @returns Written or monotonic unchanged outcome
  */
 export async function writeLatestHealthResult(
   projectRoot: string,
@@ -108,7 +116,11 @@ export async function writeLatestHealthResult(
   });
 }
 
-/** Serialize once and reject over-budget output before filesystem mutation. */
+/**
+ * Serialize once and reject over-budget output before filesystem mutation.
+ * @param result - Validated result
+ * @returns Canonical bounded JSON payload
+ */
 function serializeHealthResult(result: HealthResult): string {
   const serialized = `${JSON.stringify(result, null, 2)}\n`;
   if (Buffer.byteLength(serialized, "utf8") > MAX_HEALTH_RESULT_BYTES) {
@@ -117,12 +129,21 @@ function serializeHealthResult(result: HealthResult): string {
   return serialized;
 }
 
-/** Return the canonical idempotent no-write result. */
+/**
+ * Return the canonical idempotent no-write result.
+ * @param target - Canonical result path
+ * @param result - Existing persisted result
+ * @returns Frozen unchanged outcome
+ */
 function unchanged(target: string, result: HealthResult): HealthWriteResult {
   return Object.freeze({ status: "unchanged", path: target, result });
 }
 
-/** Resolve an existing project root and canonical read target. */
+/**
+ * Resolve an existing project root and canonical read target.
+ * @param projectRoot - Project containing runtime health state
+ * @returns Confined canonical target
+ */
 async function resolveReadTarget(projectRoot: string): Promise<string> {
   const root = await requireProjectRoot(projectRoot);
   const lisaDirectory = path.join(root, ".lisa");
@@ -136,7 +157,11 @@ async function resolveReadTarget(projectRoot: string): Promise<string> {
   return path.join(root, HEALTH_RESULT_PATH);
 }
 
-/** Create safe canonical parent directories and return write paths. */
+/**
+ * Create safe canonical parent directories and return write paths.
+ * @param projectRoot - Project receiving runtime health state
+ * @returns Confined parent directory and target
+ */
 async function resolveWriteTarget(
   projectRoot: string
 ): Promise<{ readonly directory: string; readonly target: string }> {
@@ -148,7 +173,11 @@ async function resolveWriteTarget(
   return { directory, target: path.join(directory, "latest.json") };
 }
 
-/** Resolve and verify a real directory root. */
+/**
+ * Resolve and verify a real directory root.
+ * @param projectRoot - Project-root candidate
+ * @returns Canonical real project root
+ */
 async function requireProjectRoot(projectRoot: string): Promise<string> {
   const resolved = path.resolve(projectRoot);
   const root = await realpath(resolved);
@@ -159,7 +188,11 @@ async function requireProjectRoot(projectRoot: string): Promise<string> {
   return root;
 }
 
-/** Create one directory only after its nearest existing parent stays confined. */
+/**
+ * Create one directory only after its nearest existing parent stays confined.
+ * @param root - Canonical project root
+ * @param directory - Intended child directory
+ */
 async function ensureSafeDirectory(
   root: string,
   directory: string
@@ -173,7 +206,11 @@ async function ensureSafeDirectory(
   await assertConfinedDirectory(root, directory);
 }
 
-/** Reject symlinked, special, or root-escaping storage parents. */
+/**
+ * Reject symlinked, special, or root-escaping storage parents.
+ * @param root - Canonical project root
+ * @param directory - Existing storage parent
+ */
 async function assertConfinedDirectory(
   root: string,
   directory: string
@@ -188,7 +225,10 @@ async function assertConfinedDirectory(
   }
 }
 
-/** Reject an existing target unless it is a regular non-symlink file. */
+/**
+ * Reject an existing target unless it is a regular non-symlink file.
+ * @param target - Canonical result target
+ */
 async function assertSafeTarget(target: string): Promise<void> {
   try {
     const metadata = await lstat(target);
@@ -200,7 +240,11 @@ async function assertSafeTarget(target: string): Promise<void> {
   }
 }
 
-/** Read a bounded stable regular-file inode. */
+/**
+ * Read a bounded stable regular-file inode.
+ * @param target - Canonical result target
+ * @returns Strict UTF-8 payload, or undefined when absent
+ */
 async function readBoundedRegularFile(
   target: string
 ): Promise<string | undefined> {
@@ -234,7 +278,11 @@ async function readBoundedRegularFile(
   }
 }
 
-/** Read path metadata without following symlinks. */
+/**
+ * Read path metadata without following symlinks.
+ * @param filePath - Filesystem path
+ * @returns Metadata, or undefined when absent
+ */
 async function statPath(
   filePath: string
 ): Promise<Awaited<ReturnType<typeof lstat>> | undefined> {
@@ -246,7 +294,11 @@ async function statPath(
   }
 }
 
-/** Reduce runtime-state failures to a non-sensitive operator-readable reason. */
+/**
+ * Reduce runtime-state failures to a non-sensitive operator-readable reason.
+ * @param error - Read failure
+ * @returns Stable operator-facing reason
+ */
 function safeReadReason(error: unknown): string {
   const message = error instanceof Error ? error.message : "unknown error";
   if (message.includes("schemaVersion"))
@@ -257,4 +309,3 @@ function safeReadReason(error: unknown): string {
   }
   return "malformed health result";
 }
-/* eslint-enable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns -- restore repository defaults */
