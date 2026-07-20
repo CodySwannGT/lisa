@@ -642,6 +642,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "de0983a45b05f8509f7cc54e8f553f571f932c347b46778e1675b71233e87513",
     "plugins/src/base/rules/eager/promotion-contract.md":
       "e10dc13b99c5c7621309d5764635d2465ab72e603c3c8a925c4eb27878256e8a",
+    "plugins/src/base/rules/eager/readiness-rubric.md":
+      "5fee9f6ce3855b147d2f03b3e82a5dc6acb60d5c99cb3d328a71d74986f8fad9",
     "plugins/src/base/rules/eager/rejection-detection.md":
       "c80771ce3b59230734e66e582b11b548b6da2498a2f822eca5db70379150ea66",
     "plugins/src/base/rules/eager/repo-scope-split.md":
@@ -698,6 +700,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "0326d553d6cb9b997c6cb865635f72ec8b7d5026565f788f46bff0e912748e85",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "472416b82eda5431c8e5467d6093fe9da79efa7eb836e79c77b75ef77ee194a4",
+    "plugins/src/base/rules/reference/readiness-rubric.md":
+      "6b09f171166a7fc8e85f6e2deea68f42d89a554767bc91e8eed08d1e08501672",
     "plugins/src/base/rules/reference/rejection-detection.md":
       "9088ce1560c13a8753b44bab80d9f9101e8a59404a2df3fd80ff2ab539ae0aef",
     "plugins/src/base/rules/reference/repo-scope-split.md":
@@ -3277,6 +3281,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/pre-flight-autofill.md": true,
     "plugins/lisa-copilot/rules/eager/project-learnings.md": true,
     "plugins/lisa-copilot/rules/eager/promotion-contract.md": true,
+    "plugins/lisa-copilot/rules/eager/readiness-rubric.md": true,
     "plugins/lisa-copilot/rules/eager/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/eager/repo-scope-split.md": true,
     "plugins/lisa-copilot/rules/eager/security-audit-handling.md": true,
@@ -3305,6 +3310,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/pre-flight-autofill.md": true,
     "plugins/lisa-copilot/rules/reference/project-learnings.md": true,
     "plugins/lisa-copilot/rules/reference/promotion-contract.md": true,
+    "plugins/lisa-copilot/rules/reference/readiness-rubric.md": true,
     "plugins/lisa-copilot/rules/reference/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/reference/repo-scope-split.md": true,
     "plugins/lisa-copilot/rules/reference/security-audit-handling.md": true,
@@ -3649,6 +3655,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/project-learnings.mdc": true,
     "plugins/lisa-cursor/rules/promotion-contract-reference.mdc": true,
     "plugins/lisa-cursor/rules/promotion-contract.mdc": true,
+    "plugins/lisa-cursor/rules/readiness-rubric-reference.mdc": true,
+    "plugins/lisa-cursor/rules/readiness-rubric.mdc": true,
     "plugins/lisa-cursor/rules/rejection-detection-reference.mdc": true,
     "plugins/lisa-cursor/rules/rejection-detection.mdc": true,
     "plugins/lisa-cursor/rules/repo-scope-split-reference.mdc": true,
@@ -6004,6 +6012,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/pre-flight-autofill.md": true,
     "plugins/lisa/rules/eager/project-learnings.md": true,
     "plugins/lisa/rules/eager/promotion-contract.md": true,
+    "plugins/lisa/rules/eager/readiness-rubric.md": true,
     "plugins/lisa/rules/eager/rejection-detection.md": true,
     "plugins/lisa/rules/eager/repo-scope-split.md": true,
     "plugins/lisa/rules/eager/security-audit-handling.md": true,
@@ -6032,6 +6041,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/pre-flight-autofill.md": true,
     "plugins/lisa/rules/reference/project-learnings.md": true,
     "plugins/lisa/rules/reference/promotion-contract.md": true,
+    "plugins/lisa/rules/reference/readiness-rubric.md": true,
     "plugins/lisa/rules/reference/rejection-detection.md": true,
     "plugins/lisa/rules/reference/repo-scope-split.md": true,
     "plugins/lisa/rules/reference/security-audit-handling.md": true,
@@ -6525,6 +6535,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/pre-flight-autofill.md": true,
     "plugins/src/base/rules/eager/project-learnings.md": true,
     "plugins/src/base/rules/eager/promotion-contract.md": true,
+    "plugins/src/base/rules/eager/readiness-rubric.md": true,
     "plugins/src/base/rules/eager/rejection-detection.md": true,
     "plugins/src/base/rules/eager/repo-scope-split.md": true,
     "plugins/src/base/rules/eager/security-audit-handling.md": true,
@@ -6553,6 +6564,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md": true,
     "plugins/src/base/rules/reference/project-learnings.md": true,
     "plugins/src/base/rules/reference/promotion-contract.md": true,
+    "plugins/src/base/rules/reference/readiness-rubric.md": true,
     "plugins/src/base/rules/reference/rejection-detection.md": true,
     "plugins/src/base/rules/reference/repo-scope-split.md": true,
     "plugins/src/base/rules/reference/security-audit-handling.md": true,
@@ -7819,6 +7831,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/queue-status-fixture-smoke-and-read-only.test.ts": true,
     "tests/unit/strategies/queue-status-prd-readers.test.ts": true,
     "tests/unit/strategies/queue-status-scaffold.test.ts": true,
+    "tests/unit/strategies/readiness-rubric-contract.test.ts": true,
     "tests/unit/strategies/rejection-detection-rule.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-setup-wrapper.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-setup.test.ts": true,
