@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.252.0](https://github.com/CodySwannGT/lisa/compare/v2.251.1...v2.252.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add automation-runbook-contract rule pair with six run-outcome vocabulary ([#1795](https://github.com/CodySwannGT/lisa/issues/1795)) ([a0b0cca](https://github.com/CodySwannGT/lisa/commit/a0b0cca0ee90fcb4f472ad5aababf52223dfd633))
+
+
+### Bug Fixes
+
+* **rules:** address review findings for automation-runbook-contract ([#1795](https://github.com/CodySwannGT/lisa/issues/1795)) ([fa67aa1](https://github.com/CodySwannGT/lisa/commit/fa67aa16a02fb51ae5a8cf6a41746c7ea8bbba28)), closes [#1796](https://github.com/CodySwannGT/lisa/issues/1796) [#1797](https://github.com/CodySwannGT/lisa/issues/1797) [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+* **rules:** mirror the full Blocked-routing disambiguation in the eager head ([#1795](https://github.com/CodySwannGT/lisa/issues/1795)) ([e6f83c9](https://github.com/CodySwannGT/lisa/commit/e6f83c9d7cba5152df7756f5149b98d6117dc87b))
+
 ### [2.251.1](https://github.com/CodySwannGT/lisa/compare/v2.251.0...v2.251.1) (2026-07-20)
 
 
