@@ -34,18 +34,26 @@ Treat the first successful lead-spawn request (or, on the Codex fallback, the fi
 
 ## Resolve the input (first task assigned to the team)
 
-$ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request, or the request in text format.
+$ARGUMENTS is either a URL/key for an existing work item, a pointer to a file containing the request, or the request in text format. Every form must resolve to exactly one live, claimed tracker leaf and a verified worktree binding before the lead may begin durable work.
 
 The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a bounded input-resolver teammate, which then:
 
-- If it's a ticket, calls `lisa-tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`). **Mismatch guard**: if the ticket format doesn't match the configured tracker (e.g., a GitHub URL when `tracker` is `jira`), `tracker-read` stops and reports the error — never auto-translates vendors:
-  - JIRA ticket → `lisa-tracker-read` → `lisa-jira-read-ticket`
-  - GitHub Issue → `lisa-tracker-read` → `lisa-github-read-issue`
-  - Linear identifier or project URL → `lisa-tracker-read` → `lisa-linear-read-issue`
-  - Captures comments and metadata, not just the description.
-- If it's a file, reads the entire file without offset or limit.
-- If it's a plain-text request, uses the provided text verbatim as the resolved input.
-- Returns the resolved input to the team lead, who then proceeds to roster selection.
+The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve -> claim -> bind transaction:
+
+- **Explicit ticket:** call `lisa-tracker-read` against the configured tracker and require a live open/unresolved current-project leaf. **Mismatch guard:** if the ticket format/project does not match the configured tracker (for example, a GitHub URL when `tracker` is `jira`), stop — never auto-translate vendors or trust pasted/stale ticket text. The read captures comments, graph, and metadata, not just the description.
+- **Specification file:** read the entire file without offset or limit, preserve it as the resolved input, and follow the plain-text resolution path below.
+- **Plain text or file contents:** search the configured project conservatively for open leaves describing the same outcome. Live-validate every candidate through `lisa-tracker-read`; reuse only exactly one high-confidence match. When there is no unique match (zero or ambiguous candidates), synthesize one complete single-repository leaf and invoke `lisa-tracker-write` exactly once with `build_ready: true`, then live-read its canonical returned ref. Never create a thin placeholder, hierarchy, or container.
+- **Claim:** invoke `lisa-tracker-claim <canonical-ref>` and require the provider skill's post-read verified `claimed|reused` result. A failed or inaccessible claim blocks the flow.
+- **Bind before durable work:** only after the verified claim, run:
+
+  ```bash
+  node scripts/lisa-work-item.mjs bind <canonical-ref>
+  ```
+
+  Require a successful readback of that worktree-local binding. On detached HEAD, `branch: null` is the expected pending binding; after branch creation the mandatory `attach-branch` step below must replace it before any commit. Tracker or binding failure stops the flow; never continue untracked.
+- Return the full resolved work-item context plus `tracker_provider`, canonical `work_item_ref`, resolution outcome, claim outcome, and verified binding to the team lead, who then proceeds to roster selection.
+
+The input resolver may perform these tracker and local-binding operations before the Roster Decision because they are the mandatory gate that establishes what work the team is allowed to do. No project source, documentation, plan artifact, branch, or task may be created or changed before this transaction succeeds. Read-only discussion/orientation outside an Implement flow remains exempt per the `tracked-work` rule.
 
 The input resolver is the only teammate that may be spawned before the Roster Decision exists. After it returns the resolved input, do not spawn any lifecycle, research, implementation, review, verification, or learning teammate until the Roster Decision has been recorded.
 
@@ -86,13 +94,14 @@ Using the general-purpose agent in Team Lead session, **determine the base branc
    - **Rebase the feature branch onto `origin/<base>` and resolve any merge conflicts BEFORE starting work.** If the conflicts cannot be resolved cleanly and safely, create a fix task for the agent team (with the conflicting file list and current merge state) and resolve it before implementation begins — never start work on stale or conflicted code.
 4. **The PR targets the resolved base branch** — carry it as `target_branch=<base>` into `lisa-git-submit-pr` (Verify flow). `git-submit-pr` already chooses a closing keyword when the base is the production/default branch and a non-closing reference for a non-terminal environment branch. For a bug fixed on a non-integration environment branch, the current flow is not done until the fix is merged and verified there, then forward cherry-picked down to the integration branch via a linked follow-up.
 
-When the request came from a tracker work item, preserve its native identifier for development linkage:
+Every Implement run now has a tracker work item. Preserve its canonical identifier for development linkage unconditionally:
 
-- Capture `tracker_provider` and `work_item_ref` from the resolved input before creating or reusing a branch. Examples: `github` + `CodySwannGT/lisa#614`, `linear` + `ENG-123`, `jira` + `ENG-123`.
+- Capture `tracker_provider` and `work_item_ref` from the tracked input before creating or reusing a branch. Examples: `github` + `CodySwannGT/lisa#614`, `linear` + `ENG-123`, `jira` + `ENG-123`. Missing linkage is a workflow failure, never an optional/no-ticket mode.
 - If a new branch is needed and the provider can link branches by identifier, include the identifier in the branch name before the human-readable slug. Linear and JIRA integrations commonly link from branch names; GitHub issue linkage is PR-body driven, but including the issue number in the branch name is still useful. Keep branch names URL-safe, for example `codex/ENG-123-add-checkout-copy` or `codex/614-add-checkout-copy`.
+- After the feature branch exists, run `node scripts/lisa-work-item.mjs attach-branch` so the worktree-local binding records the actual branch without treating the branch name as authority.
 - Pass the work-item ref and target branch to `lisa-git-submit-pr` when opening or updating the PR, for example `work_item_ref=CodySwannGT/lisa#614 target_branch=<base resolved from the ticket's environment above>` (not hardcoded `main`). The PR workflow owns provider-specific body text and must decide whether to use a closing keyword or a non-closing reference.
 - After `lisa-git-submit-pr` returns a PR URL, ensure the reverse backlink is present on the source work item by running `lisa-tracker-sync <work_item_ref> pr-ready pr_url=<url> tracker_provider=<provider>`. The sync path must prefer native provider linkage and fall back to one managed `[lisa-pr-link]` comment when native linkage is unavailable or cannot be verified.
-- If the provider has no native branch or PR development-linkage surface, continue without linkage and mention that the provider was skipped.
+- If the provider has no native branch or PR development-linkage surface, the managed `[lisa-pr-link]` fallback is required; never continue without proven ticket-side linkage.
 
 Using the general-purpose agent in Team Lead session, Determine which flow applies:
 1. Research -- needs a PRD (no specification exists)
@@ -214,12 +223,13 @@ Before shutting down the team, execute the Verify flow:
 4. Record Implement usage on the originating work artifact via `lisa-usage-accounting` so the work item (or other implementation-owned artifact) gains a direct `lisa-implement` usage entry in the canonical `## Lisa Usage` section. If the parent / child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
 5. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 6. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-7. Open a pull request with auto-merge on via `lisa-git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the work-item ref when one exists so the PR can be linked natively to the source issue.
+7. Open a pull request with auto-merge on via `lisa-git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the mandatory work-item ref so the PR can be linked natively to the source issue.
 7a. Confirm two-way linkage before treating PR submission as complete: the PR body/title/branch must reference the work item, and the work item must have either a verified native PR link or a single managed `[lisa-pr-link]` fallback comment from `lisa-tracker-sync`.
 8. PR Watch Loop: Drive the PR to merge via the `drive-pr-to-merge` skill — the single source of truth for clearing every blocker (auto-merge with direct-merge fallback, `BEHIND` re-sync, conflict resolution, failing-check fixes, human + bot review-comment handling with thread resolution, stale `CHANGES_REQUESTED` dismissal, and post-merge ancestry verification). `git-submit-pr` already invokes it; if you reach this step with a PR already open, invoke `drive-pr-to-merge` directly with the PR number. For a large review backlog you may fan the code-fix work out to the agent team, but `drive-pr-to-merge` owns the loop and the terminal conditions — do not re-implement them.
-9. Merge the PR, then refresh the ticket-side backlink with `lisa-tracker-sync <work_item_ref> pr-merged pr_url=<url> merge_sha=<sha> tracker_provider=<provider>` when a work item exists.
+9. Merge the PR, then refresh the ticket-side backlink with `lisa-tracker-sync <work_item_ref> pr-merged pr_url=<url> merge_sha=<sha> tracker_provider=<provider>`.
 10. Monitor the deploy action that triggers automatically from the successful merge
 11. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
 12. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote), and refreshes the verdict (step 2a) to reflect the remote result.
 13. `ops-specialist`: post-deploy health check, monitor for errors in first minutes
 14. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 5. **Bound this loop**: after a small number of full fix→deploy→reverify cycles without reaching a passing remote verdict (treat ~3 as the ceiling unless the work item states otherwise), stop retrying — file a build-ready fix ticket, write the verdict with `status: "blocked"` and the diagnosis, and move the work item to blocked rather than looping indefinitely. The completion gate releases on a `blocked` verdict, so the flow ends with a recorded outcome instead of a silent spin or a self-declared success.
+15. After true terminal completion — required merge/deploy/verification passed, usage/evidence and two-way PR linkage are recorded, and the work item is terminal — run `node scripts/lisa-work-item.mjs clear` and verify the worktree has no current binding. Do not clear on an interruption or blocked outcome; preserving the binding is what keeps resumed work attributable.

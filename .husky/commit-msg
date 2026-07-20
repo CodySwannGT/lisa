@@ -20,29 +20,15 @@ fi
 # Get the commit message file path
 COMMIT_MSG_FILE=$1
 
-# Get the current branch name
-BRANCH_NAME=$(git branch --show-current)
-
-# Extract Jira key from branch name if present
-# Default pattern matches common Jira project keys (2-10 uppercase letters followed by a hyphen and numbers)
-# Can be overridden with JIRA_PROJECT_KEY environment variable (e.g., JIRA_PROJECT_KEY="SE|PROJ|ABC")
-JIRA_PROJECT_KEY=${JIRA_PROJECT_KEY:-"[A-Z]{2,10}"}
-
-# Extract Jira key from branch name using grep
-# Matches patterns like: feat/SE-2397-description, SE-2397-description, chore/PROJ-123-something
-JIRA_KEY=$(echo "$BRANCH_NAME" | grep -E "(^|/)($JIRA_PROJECT_KEY)-[0-9]+" | grep -E "($JIRA_PROJECT_KEY)-[0-9]+" -o | head -1)
-
-if [ -n "$JIRA_KEY" ]; then
-  # Read the current commit message
-  COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
-  
-  # Check if the Jira key is already in the commit message
-  if ! echo "$COMMIT_MSG" | grep -q "\[$JIRA_KEY\]"; then
-    # Append the Jira key to the commit message
-    echo "$COMMIT_MSG [$JIRA_KEY]" > "$COMMIT_MSG_FILE"
-    echo "🎫 Auto-appended Jira key: [$JIRA_KEY]"
-  fi
+WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
+if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
+  WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
 fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ Commit blocked: Node.js is required to validate tracker work items."
+  exit 1
+fi
+node "$WORK_ITEM_SCRIPT" validate-commit "$COMMIT_MSG_FILE" || exit 1
 
 echo "📝 Validating commit message with commitlint..."
 COMMITLINT_OUTPUT=$($EXECUTOR commitlint --edit "$COMMIT_MSG_FILE" 2>&1)

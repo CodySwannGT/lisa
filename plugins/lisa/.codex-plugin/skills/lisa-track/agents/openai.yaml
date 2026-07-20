@@ -1,0 +1,4 @@
+display_name: "Track"
+short_description: "Resolves exactly one live…"
+default_prompt:
+  - "Use $lisa-track: Resolves exactly one live…."
