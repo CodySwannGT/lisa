@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.260.2](https://github.com/CodySwannGT/lisa/compare/v2.260.1...v2.260.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **tests:** eliminate module-resolution race in expo-eslint-local-config temp project ([#1824](https://github.com/CodySwannGT/lisa/issues/1824)) ([9a4d7e1](https://github.com/CodySwannGT/lisa/commit/9a4d7e15ead4c47ece50170bcc253f15140076d7))
+
 ### [2.260.1](https://github.com/CodySwannGT/lisa/compare/v2.260.0...v2.260.1) (2026-07-20)
 
 
