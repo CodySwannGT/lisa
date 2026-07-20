@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.258.1](https://github.com/CodySwannGT/lisa/compare/v2.258.0...v2.258.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **automations:** restore the RBC-3 run-history retirement source ([#1819](https://github.com/CodySwannGT/lisa/issues/1819)) ([f108670](https://github.com/CodySwannGT/lisa/commit/f1086708747a55e5ff43136f406c7f27034dd121)), closes [#1818](https://github.com/CodySwannGT/lisa/issues/1818) [#1801](https://github.com/CodySwannGT/lisa/issues/1801) [#1801](https://github.com/CodySwannGT/lisa/issues/1801) [#1818](https://github.com/CodySwannGT/lisa/issues/1818)
+
 ## [2.258.0](https://github.com/CodySwannGT/lisa/compare/v2.257.2...v2.258.0) (2026-07-20)
 
 
