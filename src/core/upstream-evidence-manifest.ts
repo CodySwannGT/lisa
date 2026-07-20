@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/gitignore":
-      "21fa0e940db8231dce6d82c23d2bbe3e2c13ea66d681ae7003c7ae3ba3b39f44",
+      "581bb94c063453335735dd7a6fa05106d9b992708363a2690f47b6a0333192ae",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "f88f69d44693084428f44e3f2b80afecda08c7ee8747588f40277fdc9396fd8f",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
