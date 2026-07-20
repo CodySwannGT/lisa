@@ -47,11 +47,19 @@ loop's runbook **Retirement condition** trips, that loop records the `policy-obs
 and files exactly one ticket recommending its own teardown (`automation-runbook-contract`) — and
 then keeps running at its normal cadence, because a loop never removes its own registration.
 Teardown is **always human-invoked**: it is never
-triggered by a loop, on any schedule, for any outcome. The operator has three answers — **approve**
-(run this skill), **decline** (close the proposal as **Not planned**; the loop simply continues at
-cadence), or **re-cadence** (re-register at the longer cadence via `/lisa:setup-automations`). Only
-the first one brings you here, and nothing about *what* this skill removes changes because a
-proposal exists.
+triggered by a loop, on any schedule, for any outcome. The operator has three answers, and only the
+first brings you here — nothing about *what* this skill removes changes because a proposal exists.
+
+1. **Approve** — run this skill. When it has run, close the proposal as **Completed**: the teardown
+   it asked for actually happened, and Completed is the close reason that says so.
+2. **Decline** — close the proposal as **Not planned** (that close reason is what stops the loop
+   re-raising it; **Completed** would leave a later re-file open). The loop simply continues at its
+   normal cadence, and nothing is removed.
+3. **Re-cadence** — you pick the longer cadence and re-register the loop with
+   `/lisa:setup-automations`; the loop never adjusts its own schedule. The proposal's evidence
+   carries the loop's **current cadence** as the baseline to choose against, plus a one-line summary
+   of its recent runs. Then close the proposal as **Completed** — the schedule change is the action
+   it asked for.
 
 ## Report
 

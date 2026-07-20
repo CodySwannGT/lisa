@@ -131,7 +131,7 @@ matches the mode this cycle ran in: **`intake-prd`** (PRD-side dispatch) or **`i
 | A build cycle that shipped and verified (merged PR + evidence), or a shipped PRD moved to `verified` | `change-proved` |
 | A protected deployment (or other autonomy boundary the lifecycle hits) waiting on a human approval | `approval-requested` |
 | The queue itself is misconfigured or unreadable — missing required input (step 1) or an unreachable Status/workflow (step 2/`3` misconfig) so the cycle could not run | `recovery-required` |
-| The runbook's **Retirement condition** tripped | `policy-obsolete` — **unreachable for both intake loop-ids** (see Retirement evaluation below) |
+| The runbook's **Retirement condition** tripped | `policy-obsolete` — **never reached by design for either intake loop-id** (see Retirement evaluation below) |
 
 **Seam warning (the #1 misread in this ticket).** A run outcome describes this *cycle*; `Blocked` is
 a *work item's* lifecycle terminal state — the two never merge in the summary. When Intake correctly

@@ -1000,7 +1000,7 @@ to each item* — the two never merge in the one-line summary.
 | Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
 | A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed) | `approval-requested` |
 | The loop itself could not run — the queue is unreadable, tracker credentials are revoked, or an open-and-closed rejection-memory / blocker-marker search is unreadable and therefore must not fall through to `nothing-needed` | `recovery-required` |
-| The runbook's **Retirement condition** tripped | `policy-obsolete` — **unreachable for this loop** (see Retirement evaluation below) |
+| The runbook's **Retirement condition** tripped | `policy-obsolete` — **never reached by design for this loop** (see Retirement evaluation below) |
 
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
 (the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,

@@ -364,15 +364,30 @@ automation, through `lisa-tracker-write` (per `tracked-work` +
   AND closed** per `rejection-detection`'s **Proposal rejection memory**, so a
   teardown proposal a human already declined is remembered and not re-filed
   without postdating evidence. The `[lisa-gardener]` search above stays what it
-  is — the candidate evidence, not the dedupe key.
+  is — the candidate evidence, not the dedupe key. When that search finds an
+  existing proposal, **the run still records `policy-obsolete` and files
+  nothing** — the outcome describes this run, while the ticket is filed exactly
+  once.
 - **Labels** `status:blocked` + `human-needed`, carrying the contract's
-  decision-ready packet.
-- **Evidence** the date-filtered search result plus this run's summary.
+  decision-ready packet. The `human-needed` label marks the proposal
+  human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as
+  stalled work.
+- **Evidence** the date-filtered search result, this run's summary, **the
+  loop's current cadence** (the baseline an operator needs to choose a longer
+  one), and a one-line summary of recent runs read from
+  `.lisa/automations/runs/learnings-audit.jsonl`. Fill the rest of the packet
+  the same way every time: *Work already attempted* is the searches this run
+  ran, and *Risk of inaction* is that the loop keeps consuming schedule slots
+  and tokens for nothing.
 - **How to answer** names the three operator responses: **approve** — run
   `/lisa:tear-down-automations` and the registration goes away; **decline** —
   close the proposal as **Not planned** (closing it as **Completed** leaves a
-  later re-file open) and the gardener simply continues; **re-cadence** —
-  re-register it at the longer cadence instead.
+  later re-file open) and the gardener simply continues; **re-cadence** — pick a
+  longer cadence off that evidence and re-register with
+  `/lisa:setup-automations` instead of tearing down.
+- **Operator footer**, verbatim, as on every loop-filed proposal
+  (`rejection-detection`):
+  > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
 The gardener **keeps running at its normal cadence** until a human flips that
 ticket — retirement is a recommendation like any other, never a self-executed
