@@ -226,6 +226,14 @@ const AGY_PLUGIN_HOOKS = [
     agyScript: "parity-safety-net.agy.sh",
     supportScripts: ["parity-safety-net.sh", "parity-safety-net-heredoc.py"],
   },
+  {
+    sourceScript: "block-shell-json-parsing.sh",
+    hookName: "lisa-block-shell-json-parsing",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-shell-json-parsing.agy.sh",
+    supportScripts: ["block-shell-json-parsing.sh"],
+  },
 ];
 
 /**
