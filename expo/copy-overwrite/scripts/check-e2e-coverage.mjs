@@ -98,7 +98,10 @@ export function enumerateRoutes(files) {
   const routes = files
     .map(file => routeFromFile(file))
     .filter(route => route !== null);
-  return [...new Set(routes)].sort((a, b) => a.localeCompare(b));
+  // Code-unit comparator (not `localeCompare()`): route order must be
+  // reproducible across environments regardless of the runtime's default
+  // ICU locale, since localeCompare()'s collation is locale-sensitive.
+  return [...new Set(routes)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 /**
