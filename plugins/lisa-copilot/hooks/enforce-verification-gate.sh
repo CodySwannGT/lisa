@@ -81,6 +81,20 @@
 #     the flag may never be omitted)
 #   - "artifact.head_sha" exists and no evidence entry declares a different
 #     "artifact_head_sha" (reconciliation with the MERGED head is BCE-4)
+#   - every evidence entry that records BOTH a "sha256" and a "locator"
+#     resolving to a file on disk still hashes to that digest
+#     ("evidence_digest_mismatch"). A locator that is not on disk at stop time
+#     is NOT judged here: the Stop hook sees only the working tree, and evidence
+#     may legitimately live outside it. The absent-artifact arm of that check
+#     belongs to the read-side review surfaces, which see the committed
+#     evidence directory.
+#   - the claim/evidence structure is EVALUABLE at all: a v2 verdict whose
+#     "claims"/"evidence"/"artifact" are not the shapes the schema defines
+#     (claims as a string, evidence as a scalar) is reported as
+#     could-not-evaluate. Could-not-evaluate is NOT the same as no-violations:
+#     a verdict the gate cannot read may never be treated as a clean one, or a
+#     structurally-wrong verdict would sail past the gate the moment
+#     enforcement is ratcheted on.
 #
 # ADVISORY-FIRST: those v2 checks report to stderr but do NOT block unless
 # "verification.gate.enforceBoundaries" is true in .lisa.config.json (default
@@ -90,11 +104,15 @@
 # Per-session state lives under "$STATE_DIR" as flag files keyed by session_id.
 # Stale state (>24h) is cleaned on each invocation.
 #
-# Fail-open: any unexpected jq parse failure or missing field degrades to the
-# LESS strict outcome rather than inventing a new hard failure, and the
-# MAX_BLOCKS escalation below guarantees the gate always releases eventually. A
-# broken gate must never brick a session. In particular, a v2 verdict whose
-# claim structure cannot be evaluated is judged on the v1 conditions alone.
+# Fail-open: a missing field degrades to the LESS strict outcome rather than
+# inventing a new hard failure, and the MAX_BLOCKS escalation below guarantees
+# the gate always releases eventually. A broken gate must never brick a session.
+#
+# That fail-open posture bounds the BLAST RADIUS of a gate failure; it is not a
+# licence to read an unreadable verdict as a clean one. So a v2 verdict whose
+# claim structure cannot be evaluated is reported like any other violation —
+# advisory while the ratchet is off, blocking (still MAX_BLOCKS-bounded, so it
+# can never hard-wedge a session) once it is on.
 
 set -uo pipefail
 
@@ -225,9 +243,39 @@ boundary_enforcement_enabled() {
   [ "$value" = "true" ]
 }
 
+# Prints the sha256 of a file using whichever tool this machine has. Prints
+# nothing when neither exists — an unrecomputable digest is not a violation.
+sha256_of() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" 2>/dev/null | awk '{print $1}'
+  fi
+}
+
+# Emits one line per evidence entry whose bytes no longer hash to the digest the
+# verdict recorded. Only entries recording BOTH a sha256 and a locator that
+# resolves to a file on disk are judged; see the header for why an absent
+# locator is out of this hook's scope.
+v2_digest_violations() {
+  jq -r '
+    (.evidence // [])[]
+    | select(((.sha256 // "") | length) > 0)
+    | select(((.locator // "") | length) > 0)
+    | "\(.evidence_id // "?")\t\(.locator)\t\(.sha256)"
+  ' "$VERDICT_FILE" 2>/dev/null | while IFS=$'\t' read -r eid locator recorded; do
+    evidence_path="${PROJECT_DIR}/${locator}"
+    [ -f "$evidence_path" ] || continue
+    actual=$(sha256_of "$evidence_path")
+    [ -n "$actual" ] || continue
+    [ "$actual" = "$recorded" ] && continue
+    echo "evidence ${eid} (${locator}) no longer matches its recorded digest: recorded ${recorded}, bytes now hash to ${actual}"
+  done
+}
+
 # Emits one line per v2 claim->evidence contract violation. Empty output means
-# the verdict satisfies the contract (or could not be evaluated, which degrades
-# to the v1 decision rather than to a new hard failure).
+# the verdict satisfies the contract. A jq evaluation failure is NOT empty
+# output — see v2_evaluate_contract, which turns it into its own violation.
 v2_contract_violations() {
   jq -r '
     . as $v
@@ -263,7 +311,32 @@ v2_contract_violations() {
         )
       ]
     | .[]
-  ' "$VERDICT_FILE" 2>/dev/null || true
+  ' "$VERDICT_FILE" 2>/dev/null
+}
+
+# Set by v2_evaluate_contract: every violation line, or empty when the verdict
+# satisfies the contract. A global rather than a return value because a command
+# substitution would swallow the could-not-evaluate signal along with it.
+V2_VIOLATIONS=""
+
+# Evaluates the full v2 contract into V2_VIOLATIONS.
+#
+# The load-bearing distinction: jq returns NOTHING on an evaluation error, which
+# is byte-identical to "this verdict is clean". A parseable v2 verdict whose
+# claims/evidence are the wrong SHAPE (claims as a string, evidence as a scalar)
+# therefore used to read as violation-free — harmless while advisory, a genuine
+# bypass of the gate the moment enforcement is ratcheted on. So a non-zero jq
+# exit becomes its own, named violation.
+v2_evaluate_contract() {
+  local structural digests
+  structural=$(v2_contract_violations)
+  if [ "$?" -ne 0 ]; then
+    V2_VIOLATIONS="the v2 claim/evidence structure could not be evaluated - \"claims\" and \"evidence\" must be arrays of objects and \"artifact\" an object. A verdict the gate cannot read is not a verdict with no violations"
+    return 0
+  fi
+
+  digests=$(v2_digest_violations)
+  V2_VIOLATIONS=$(printf '%s\n%s' "$structural" "$digests" | sed '/^[[:space:]]*$/d')
 }
 
 # v2 = the v1 decision PLUS the claim->evidence contract, the latter advisory
@@ -277,7 +350,8 @@ verdict_is_terminal_v2() {
   status=$(jq -r '.status // empty' "$VERDICT_FILE" 2>/dev/null || true)
   [ "$status" = "pass" ] || return 0
 
-  violations=$(v2_contract_violations)
+  v2_evaluate_contract
+  violations="$V2_VIOLATIONS"
   [ -n "$violations" ] || return 0
 
   if boundary_enforcement_enabled; then

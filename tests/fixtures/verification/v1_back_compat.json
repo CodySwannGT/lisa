@@ -1,0 +1,13 @@
+{
+  "plan": "bce-6",
+  "status": "pass",
+  "criteria": [
+    {
+      "task": "T1",
+      "criterion": "the confirmation renders after a real click",
+      "status": "pass",
+      "evidence": "clicked the button in Chrome, observed the confirmation"
+    }
+  ],
+  "updated_at": "2026-07-20T00:00:00Z"
+}
