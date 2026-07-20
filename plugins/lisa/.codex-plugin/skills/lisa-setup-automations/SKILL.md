@@ -198,9 +198,9 @@ One line each; expand them into the operator's voice, keep the meaning.
 **Retirement condition is mandatory and non-empty.** Every seeded runbook states one, and a loop
 that is structurally permanent says exactly that instead of leaving the section blank — an operator
 reading it aloud must be able to say when this loop should stop existing, or that it never should.
-A valid condition is **stateless**: derived from the tracker, or from this loop's own bounded run
-history at `.lisa/automations/runs/<loop-id>.jsonl`, and **never an ad-hoc counter** or a new state
-file. The mechanism itself — the two-part test, the single marker-deduped teardown proposal, and the
+A valid condition is **stateless**: derived from the tracker, and **never an ad-hoc counter**, a new
+state file, or bounded run-history record. The mechanism itself — the two-part test, the single
+marker-deduped teardown proposal, and the
 three operator responses — is defined once in the `automation-runbook-contract` rule; these seeds
 only fill in each loop's specifics. A seed may add a **domain conjunct** on top of the contract's
 two-part test — an extra AND that must also hold — because an additional conjunct is strictly

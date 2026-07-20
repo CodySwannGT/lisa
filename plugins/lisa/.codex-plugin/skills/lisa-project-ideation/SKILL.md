@@ -310,6 +310,10 @@ The pressure gate is `approval-requested`, **not** `recovery-required`: the loop
 correctly declined to add queue pressure — it is asking a human to drain the queue, not reporting a
 broken machine. `recovery-required` is reserved for the loop failing to run at all.
 
+Before invoking the run-record CLI, evaluate the **Retirement condition** first. If it applies,
+select `policy-obsolete` as the sole outcome and do not record a prior `nothing-needed` result;
+otherwise select the ordinary outcome from the table.
+
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
 (the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
 specific, actionable, e.g. `Reviewed evidence; no practical idea cleared the bar — nothing to
@@ -341,10 +345,11 @@ marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work
 
 - **Marker** `<!-- [lisa-automation-retire] key=exploratory-prds -->` plus a visible prose line;
   matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
-  **Proposal rejection memory**, so a teardown proposal a human already declined is remembered and
-  not re-filed without postdating evidence. When that search finds an existing proposal, **the run
-  still records `policy-obsolete` and files nothing** — the outcome describes this run, while the
-  ticket is filed exactly once.
+  **Proposal rejection memory**. Treat matches by close state: **open** suppresses another proposal;
+  **Not planned** suppresses another proposal unless new evidence postdates the rejection;
+  **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
+  When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
+  nothing** — the outcome describes this run, while the ticket is filed exactly once.
 - **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
   `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
   re-dispatches it as stalled work.
@@ -354,7 +359,8 @@ marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work
   way every time: *Work already attempted* is the searches this run ran, and *Risk of inaction* is
   that the loop keeps consuming schedule slots and tokens for nothing.
 - **How to answer** names the three operator responses: **approve** — run
-  `/lisa:tear-down-automations` and the registration goes away; **decline** — close the proposal as
+  `/lisa:tear-down-automations exploratory-prds` and only that loop registration goes away;
+  **decline** — close the proposal as
   **Not planned** (closing it as **Completed** leaves a later re-file open) and the loop simply
   continues; **re-cadence** — pick a longer cadence off that evidence and re-register with
   `/lisa:setup-automations` instead of tearing down.
@@ -375,8 +381,9 @@ registration.
 - **Tests, lint, typecheck, and build are not the empirical verification plan** — they are
   prerequisites; verification must observe user-facing behavior.
 - **Do not create tracker tickets or mutate the host project's code.** PRD creation (via
-  `lisa-research`) is the only write this skill performs; ticket planning (`lisa-plan`) and
-  implementation (`lisa-implement`) are separate, user-invoked flows.
+  `lisa-research`) is the only normal write this skill performs; the only tracker-ticket exception is
+  the exactly-one marker-deduped `policy-obsolete` teardown proposal described above. Ticket planning
+  (`lisa-plan`) and implementation (`lisa-implement`) are separate, user-invoked flows.
 - **Do not write PRDs to the source directly** — always go through `lisa-research` →
   `lisa-prd-source-write` so the source stays switchable.
 - **Do not add a new verification/browser-automation framework** when one already exists — reuse it.
