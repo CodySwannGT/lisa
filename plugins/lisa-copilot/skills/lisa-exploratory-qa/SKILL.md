@@ -85,6 +85,36 @@ No report file. Emit a concise in-session summary:
 - **Findings filed**, bucketed by type — each with its **created or referenced ticket ref** and **build-ready state**.
 - **Observed but not filed:** anything noticed but intentionally not ticketed (including forbidden-mutation blocks), with why.
 
+## Run outcome
+
+As the registered `exploratory-bugs` automation loop, this pass conforms to the
+`automation-runbook-contract` rule: every invocation ends in **exactly one** of the six run outcomes
+and records it, so a quiet run and a broken run are never mistaken for each other.
+
+| This cycle's exit path | Run outcome |
+|---|---|
+| Findings filed — one or more `Bug` / `Improvement` tickets created or referenced (§6) | `candidate-proposed` |
+| Clean pass — explored the personas and surfaces, nothing worth filing | `nothing-needed` |
+| Tracker unconfigured — the §1 stop path; findings cannot be filed | `recovery-required` |
+| A degradation that still let the pass explore (e.g. Kane unavailable, one persona unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
+
+Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
+(the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
+specific, actionable, e.g. `Explored 4 personas; nothing confusing to file.` for `nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id exploratory-bugs --outcome candidate-proposed \
+  --summary "Explored 4 personas; filed 3 findings from the checkout flow — awaiting your flip to ready." \
+  --runbook .lisa/automations/exploratory-bugs.runbook.md [--ref <ticket-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
+`plugins/lisa/scripts/automation-run-record.mjs` or the source
+`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
+the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
 ## Quality bar
 
 - Explore as a true first-time user — judge clarity, not whether you (who can read the code) can figure it out.

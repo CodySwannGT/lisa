@@ -124,7 +124,10 @@ audits the auditor without re-running it.
    `drafted_artifact`; the gardener decides whether the evidence clears the
    filing bar and attaches the router's draft to the ticket.
 4. **Emit** (see Ticket emission).
-5. **Report** the terminal state and one-line summary.
+5. **Report and record** the run outcome and one-line summary — post the
+   outcome, then record **exactly one** run-record line through the CLI (see
+   Run outcomes), including the escalation path when it ends
+   `recovery-required`.
 
 ## Ticket emission
 
@@ -280,17 +283,50 @@ marker-recoverable per-item tickets and a missing (not half-filled) batch:
 the most recoverable state. Never attempt to "roll back" filed tickets —
 close-out decisions belong to humans.
 
-## Terminal states
+## Run outcomes
 
-Exactly one per run: **`nothing-needed | candidates-proposed | blocked`**
+Exactly one per run, from the closed six-value vocabulary of the
+`automation-runbook-contract` rule:
+**`nothing-needed | candidate-proposed | change-proved | approval-requested | recovery-required | policy-obsolete`**.
 
-- `nothing-needed` — no candidate met any recommendation threshold. Healthy.
-  Report one line: surfaces scanned, entries seen, "nothing to propose".
-- `candidates-proposed` — tickets filed. Report each ticket URL, its
-  recommendation (PROMOTE/DEMOTE + rung), and the batch ticket URL with its
-  row count.
-- `blocked` — could not complete; escalated per Escalation with the
-  operator-readable reason.
+This section supersedes the gardener's earlier three-value *terminal states*
+vocabulary (`nothing-needed | candidates-proposed | blocked`); the mapping is
+exact so nothing regresses:
+
+- `candidates-proposed` → **`candidate-proposed`** — per-item and/or batch
+  tickets filed. Report each ticket URL, its recommendation (PROMOTE/DEMOTE +
+  rung), and the batch ticket URL with its row count.
+- `nothing-needed` → **`nothing-needed`** (unchanged) — no candidate met any
+  recommendation threshold. Report one line: surfaces scanned, entries seen,
+  "nothing to propose".
+- `blocked` → **`recovery-required`** when the loop itself could not complete
+  (tracker unreachable, contradictory config, a ledger-contract parse error) —
+  escalated per Escalation with the operator-readable reason; **or**
+  **`approval-requested`** when the run finished and is waiting on a human gate
+  rather than being broken.
+
+The gardener also newly reaches **`policy-obsolete`** — the Retirement
+condition below tripped and it filed its own teardown proposal. It never
+produces **`change-proved`**: the gardener only files tickets and ships no
+change itself, so proving a change is the implementing factory run's job.
+
+Record exactly one outcome per run through the run-record CLI, naming this
+loop's runbook (the `--summary` is the operator-readable one-liner in the
+contract's exemplar voice — plain, specific, actionable):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id learnings-audit --outcome candidate-proposed \
+  --summary "Proposed 2 promotions and 1 batch confirm; awaiting your flip to ready." \
+  --runbook .lisa/automations/learnings-audit.runbook.md [--ref <ticket-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory
+directly — the built copy `plugins/lisa/scripts/automation-run-record.mjs` or
+the source `plugins/src/base/scripts/automation-run-record.mjs`. If recording
+still fails, **degrade, never abort** (per `automation-runbook-contract`): note
+the recording failure in the run output and finish the run — a recording
+failure is a degradation to report, never a reason to block the loop.
 
 ## Retirement condition
 

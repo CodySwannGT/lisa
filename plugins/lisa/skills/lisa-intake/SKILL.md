@@ -116,6 +116,46 @@ The single-item skills (`lisa-plan`, `lisa-implement`) and the per-vendor batch 
 5. **Stop after one item** — a claimed Ready item, a safe-blocked container, or a per-item error ends the *ready-claim* portion of the cycle. The per-vendor PRD scanner still runs its rollup and one verify-prd dispatch. Remaining Ready items stay untouched for later scheduler invocations.
 6. **Summary report** — the single processed/skipped/error item, total processed, total errors. Before returning, record intake usage on the persisted cycle-summary artifact via `lisa-usage-accounting` so the summary carries a direct `lisa-intake` entry in the canonical `## Lisa Usage` section. If the claimed / skipped work item's parent-child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same cycle; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
 
+## Run outcome
+
+As a registered automation loop, each Intake cycle conforms to the `automation-runbook-contract`
+rule: it ends in **exactly one** of the six run outcomes and records it, so a quiet queue and a
+broken loop never look alike. Intake backs **two** registered loop-ids — record under the one that
+matches the mode this cycle ran in: **`intake-prd`** (PRD-side dispatch) or **`intake-tickets`**
+(build-queue dispatch).
+
+| This cycle's exit path | Run outcome |
+|---|---|
+| Empty `Ready` set — the idle case (step 3), nothing to claim | `nothing-needed` |
+| A PRD routed to `Blocked` (clarifying questions) or `Ticketed`; a build ticket claimed and dispatched | `candidate-proposed` |
+| A build cycle that shipped and verified (merged PR + evidence), or a shipped PRD moved to `verified` | `change-proved` |
+| A protected deployment (or other autonomy boundary the lifecycle hits) waiting on a human approval | `approval-requested` |
+| The queue itself is misconfigured or unreadable — missing required input (step 1) or an unreachable Status/workflow (step 2/`3` misconfig) so the cycle could not run | `recovery-required` |
+
+**Seam warning (the #1 misread in this ticket).** A run outcome describes this *cycle*; `Blocked` is
+a *work item's* lifecycle terminal state — the two never merge in the summary. When Intake correctly
+routes to `Blocked` (an item whose requirements are unresolvable, carrying clarifying questions), the
+cycle **produced something**, so it is a successful run — `candidate-proposed`, and **never
+`recovery-required`** (the machinery is not broken) and **never `nothing-needed`** (the run did not
+find nothing). The summary must say both plainly: the item was blocked *and* the run succeeded.
+
+Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
+(the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
+specific, actionable, e.g. `Scanned 12 ready items; nothing to propose.` for `nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id intake-tickets --outcome candidate-proposed \
+  --summary "Routed PRD #1810 to Blocked with clarifying questions; the run succeeded." \
+  --runbook .lisa/automations/intake-tickets.runbook.md [--ref <item-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
+`plugins/lisa/scripts/automation-run-record.mjs` or the source
+`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
+the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
 ## Schedule examples
 
 ```text
