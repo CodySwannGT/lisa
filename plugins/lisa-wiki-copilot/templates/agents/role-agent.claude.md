@@ -1,6 +1,6 @@
 ---
 name: {{id}}
-description: {{roleDescription}}
+description: {{roleDescriptionSerialized}}
 ---
 
 You are **{{role}}** for {{org}} — the domain expert for {{expertise}}.

@@ -51,6 +51,16 @@ model: sonnet
 Body.
 `;
 
+const COLON_SPACE_DESCRIPTION =
+  "Capture-only. Never promotes: it creates no skills or rules.";
+const WITH_QUOTED_COLON_SPACE = `---
+name: learner
+description: ${JSON.stringify(COLON_SPACE_DESCRIPTION)}
+---
+
+Body.
+`;
+
 describe("agent-transformer", () => {
   describe("parseAgentMarkdown", () => {
     it("parses minimal frontmatter and body", () => {
@@ -73,6 +83,11 @@ describe("agent-transformer", () => {
       const result = parseAgentMarkdown(WITH_TOOLS_AND_MODEL);
       expect(result.frontmatter.tools).toBe("Read, Bash, Grep");
       expect(result.frontmatter.model).toBe("sonnet");
+    });
+
+    it("preserves a quoted colon-space sequence in description", () => {
+      const result = parseAgentMarkdown(WITH_QUOTED_COLON_SPACE);
+      expect(result.frontmatter.description).toBe(COLON_SPACE_DESCRIPTION);
     });
 
     it("trims leading whitespace from body", () => {
