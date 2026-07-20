@@ -241,9 +241,25 @@ Each created PRD carries the marker `[lisa-project-ideation] idea=<stable-key>`.
 `<stable-key>` deterministically from: repo identity (configured repo or git remote + repo-root
 basename) + a normalized slug of the idea name + the normalized persona key(s) + the existing-fit
 anchor. **Do not** include rank, date, confidence, or the generated PRD title (they change across
-runs). `lisa-prd-source-write` searches the source for an open PRD carrying this marker before
+runs). `lisa-prd-source-write` searches the source for a PRD carrying this marker before
 creating — matching by marker, never by title — so re-running ideation updates/references the
 existing PRD rather than duplicating it.
+
+Per the `rejection-detection` rule's **Proposal rejection memory** section, that marker search MUST
+cover **open AND closed** PRDs (with a body-enumeration fallback on search-index lag), and a PRD
+**closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/
+canceled equivalent on JIRA/Linear — never a hardcoded lane string) is a **durable human decline**
+that **suppresses** re-proposing that idea. Re-propose only with evidence that **postdates the
+decline**, and state it in the new PRD as BOTH the machine token (`declined <date>; recurred <date>
+in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred
+(<date>, <ref>), so we're raising it once more for your review.`). A PRD closed as _completed_ is
+not a decline. This is tracker-side memory; the advisory ideation memory ledger stays advisory and
+never overrides it.
+
+Every created PRD MUST carry the `rejection-detection` **operator footer** as a visible prose line
+so the operator knows which close-reason silences it:
+
+> To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
 ## Step 7 — Output (no report file)
 
@@ -284,9 +300,9 @@ so a quiet ideation run and a broken one are never confused.
 | This run's exit path | Run outcome |
 |---|---|
 | PRD(s) created or reused this run (Step 6/7 **PRDs Created**) | `candidate-proposed` |
-| Nothing to ideate — no Practical Idea cleared the bar; nothing created | `nothing-needed` |
+| Nothing to ideate — no Practical Idea cleared the bar; nothing created — **or** every idea was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
 | The Step 5.5 **PRD-queue-pressure gate** blocked auto-ready creation — a human must drain the queue before another auto-ready PRD is added | `approval-requested` |
-| The loop itself could not run — the PRD source reader failed or the queue is misconfigured (a source-reader failure snapshot, not queue pressure) | `recovery-required` |
+| The loop itself could not run — the PRD source reader failed or the queue is misconfigured (a source-reader failure snapshot, not queue pressure) — **or** the open-and-closed rejection-memory marker search could not read the source: a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
 | A degradation that still let ideation run (optional Codex automation memory unavailable, an inspiration source unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 The pressure gate is `approval-requested`, **not** `recovery-required`: the loop ran fine and
@@ -296,7 +312,8 @@ broken machine. `recovery-required` is reserved for the loop failing to run at a
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
 (the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
 specific, actionable, e.g. `Reviewed evidence; no practical idea cleared the bar — nothing to
-propose.` for `nothing-needed`):
+propose.` for `nothing-needed`; and for a `recovery-required` from an unreadable decline check,
+`Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
