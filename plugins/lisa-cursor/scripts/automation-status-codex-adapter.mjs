@@ -17,6 +17,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
+import {
+  assignToAutomationGroup,
+  createAutomationGroupBins,
+  renderAutomationGroups,
+} from "./automation-status-expected-fleet.mjs";
 
 const CODEx_RUNTIME_LABEL = "Codex automations";
 const RUN_TIMESTAMP_PATTERN = /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/;
@@ -156,10 +161,7 @@ export async function inspectCodexAutomationFleet(input) {
     automationPrefix: expectedFleet.automationPrefix,
   });
 
-  const expectedGroups = new Map([
-    ["core", []],
-    ["exploratory", []],
-  ]);
+  const expectedGroups = createAutomationGroupBins();
 
   const comparisons = compareAutomationFleet({
     expectedAutomations: expectedFleet.expected,
@@ -168,7 +170,9 @@ export async function inspectCodexAutomationFleet(input) {
 
   for (const [index, expected] of expectedFleet.expected.entries()) {
     const comparison = comparisons[index];
-    expectedGroups.get(expected.group)?.push(
+    assignToAutomationGroup(
+      expectedGroups,
+      expected.group,
       createObservedStatusItem({
         expected,
         comparison,
@@ -178,7 +182,7 @@ export async function inspectCodexAutomationFleet(input) {
   }
 
   for (const unsupported of expectedFleet.unsupported) {
-    expectedGroups.get(unsupported.group)?.push({
+    assignToAutomationGroup(expectedGroups, unsupported.group, {
       id: unsupported.automationId,
       status: "UNSUPPORTED",
       summary: unsupported.reason,
@@ -190,18 +194,7 @@ export async function inspectCodexAutomationFleet(input) {
   return {
     runtime: `${CODEx_RUNTIME_LABEL} (backing-store metadata)`,
     generatedAt: now.toISOString(),
-    groups: [
-      {
-        id: "1",
-        title: "Core automations",
-        items: expectedGroups.get("core") ?? [],
-      },
-      {
-        id: "2",
-        title: "Exploratory automations",
-        items: expectedGroups.get("exploratory") ?? [],
-      },
-    ],
+    groups: renderAutomationGroups(expectedGroups),
     observedAutomations,
   };
 }
@@ -249,21 +242,35 @@ export function deriveCodexObservedCommand(prompt) {
     return undefined;
   }
 
+  // The "with arguments" clause is optional: no-argument loops (monitor, the
+  // gardener) register without one. Requiring it made every such loop derive an
+  // undefined command and report DRIFTED forever, un-fixable by re-running setup.
   const lisaSkillMatch = prompt.match(
-    /Use the Lisa ([a-z0-9:-]+) skill with arguments `([^`]+)`/i
+    /Use the Lisa ([a-z0-9:-]+) skill(?: with arguments `([^`]*)`)?/i
   );
-  if (lisaSkillMatch?.[1] && lisaSkillMatch[2]) {
-    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2]}`.trim();
+  if (lisaSkillMatch?.[1]) {
+    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2] ?? ""}`.trim();
   }
 
   const aliasSkillMatch = prompt.match(
-    /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
+    /Use the `\$([a-z0-9:-]+)` skill(?: with arguments `([^`]*)`)?/i
   );
-  if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
-    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2]}`.trim();
+  if (aliasSkillMatch?.[1]) {
+    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2] ?? ""}`.trim();
   }
 
-  return undefined;
+  // A registration whose prompt carries the literal Lisa command on its own
+  // line — the shape `/lisa:setup-automations` bakes so a command that is not a
+  // plain skill name (`/lisa:learnings:audit`) round-trips exactly. Mirrors the
+  // Claude adapter, which has always accepted a bare `/lisa:` command. Codex
+  // stores prompts as single-line TOML, so a line break arrives either real or
+  // as the two-character escape `\n`; both delimit a line here.
+  const literalCommand = prompt
+    .split(/\r?\n|\\n/)
+    .map(segment => segment.trim())
+    .find(segment => /^\/lisa[:-]\S/.test(segment));
+
+  return literalCommand;
 }
 
 function canonicalizeCodexSkillAlias(alias) {
@@ -583,6 +590,13 @@ function humanizeAutomationCadence(rrule) {
       : `every ${everyDays[1]} days`;
   }
 
+  const everyWeeks = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (everyWeeks?.[1]) {
+    return Number(everyWeeks[1]) === 1
+      ? "once a week"
+      : `every ${everyWeeks[1]} weeks`;
+  }
+
   return rrule;
 }
 
@@ -606,6 +620,11 @@ function rruleToIntervalMs(rrule) {
     return Number(daily[1]) * 24 * 60 * 60_000;
   }
 
+  const weekly = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (weekly?.[1]) {
+    return Number(weekly[1]) * 7 * 24 * 60 * 60_000;
+  }
+
   return null;
 }
 
@@ -621,6 +640,10 @@ function cadenceLabelToIntervalMs(label) {
 
   if (label === "once a day") {
     return 24 * 60 * 60_000;
+  }
+
+  if (label === "once a week") {
+    return 7 * 24 * 60 * 60_000;
   }
 
   return null;

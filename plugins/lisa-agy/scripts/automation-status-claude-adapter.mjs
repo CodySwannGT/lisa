@@ -10,6 +10,11 @@
  */
 
 import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
+import {
+  assignToAutomationGroup,
+  createAutomationGroupBins,
+  renderAutomationGroups,
+} from "./automation-status-expected-fleet.mjs";
 
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
 const CLAUDE_ACTIVE_STATUSES = new Set([
@@ -75,10 +80,7 @@ export function inspectClaudeAutomationFleet(input) {
     automationPrefix: expectedFleet.automationPrefix,
   });
 
-  const expectedGroups = new Map([
-    ["core", []],
-    ["exploratory", []],
-  ]);
+  const expectedGroups = createAutomationGroupBins();
 
   const comparisons = compareAutomationFleet({
     expectedAutomations: expectedFleet.expected,
@@ -87,7 +89,9 @@ export function inspectClaudeAutomationFleet(input) {
 
   for (const [index, expected] of expectedFleet.expected.entries()) {
     const comparison = comparisons[index];
-    expectedGroups.get(expected.group)?.push(
+    assignToAutomationGroup(
+      expectedGroups,
+      expected.group,
       createObservedStatusItem({
         expected,
         comparison,
@@ -97,7 +101,7 @@ export function inspectClaudeAutomationFleet(input) {
   }
 
   for (const unsupported of expectedFleet.unsupported) {
-    expectedGroups.get(unsupported.group)?.push({
+    assignToAutomationGroup(expectedGroups, unsupported.group, {
       id: unsupported.automationId,
       status: "UNSUPPORTED",
       summary: unsupported.reason,
@@ -109,18 +113,7 @@ export function inspectClaudeAutomationFleet(input) {
   return {
     runtime: `${CLAUDE_RUNTIME_LABEL} listing`,
     generatedAt: now.toISOString(),
-    groups: [
-      {
-        id: "1",
-        title: "Core automations",
-        items: expectedGroups.get("core") ?? [],
-      },
-      {
-        id: "2",
-        title: "Exploratory automations",
-        items: expectedGroups.get("exploratory") ?? [],
-      },
-    ],
+    groups: renderAutomationGroups(expectedGroups),
     observedAutomations,
   };
 }
@@ -487,6 +480,13 @@ function normalizeClaudeRRule(value) {
   ) {
     return "FREQ=DAILY;INTERVAL=1";
   }
+  if (
+    cadence === "once a week" ||
+    cadence === "every week" ||
+    cadence === "weekly"
+  ) {
+    return "FREQ=WEEKLY;INTERVAL=1";
+  }
 
   const everyMinutes = cadence.match(/every (\d+) minutes?/);
   if (everyMinutes?.[1]) {
@@ -501,6 +501,11 @@ function normalizeClaudeRRule(value) {
   const everyDays = cadence.match(/every (\d+) days?/);
   if (everyDays?.[1]) {
     return `FREQ=DAILY;INTERVAL=${everyDays[1]}`;
+  }
+
+  const everyWeeks = cadence.match(/every (\d+) weeks?/);
+  if (everyWeeks?.[1]) {
+    return `FREQ=WEEKLY;INTERVAL=${everyWeeks[1]}`;
   }
 
   return undefined;
@@ -526,6 +531,9 @@ function humanizeClaudeCadence(value) {
   }
   if (normalized === "every day") {
     return "once a day";
+  }
+  if (normalized === "weekly" || normalized === "every week") {
+    return "once a week";
   }
   return normalized;
 }
@@ -556,6 +564,11 @@ function humanizeRRule(rrule) {
     return Number(daily[1]) === 1 ? "once a day" : `every ${daily[1]} days`;
   }
 
+  const weekly = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (weekly?.[1]) {
+    return Number(weekly[1]) === 1 ? "once a week" : `every ${weekly[1]} weeks`;
+  }
+
   return rrule;
 }
 
@@ -572,6 +585,11 @@ function cadenceLabelToIntervalMs(label) {
   const oncePerDay = new Set(["once a day", "daily"]);
   if (oncePerDay.has(label)) {
     return 24 * 60 * 60_000;
+  }
+
+  const oncePerWeek = new Set(["once a week", "weekly"]);
+  if (oncePerWeek.has(label)) {
+    return 7 * 24 * 60 * 60_000;
   }
 
   return null;

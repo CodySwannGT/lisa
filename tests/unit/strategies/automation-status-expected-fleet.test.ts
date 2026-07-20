@@ -18,6 +18,20 @@ const INTAKE_PRD_COMMAND = "/lisa:intake CodySwannGT/lisa intake_mode=prd";
 const INTAKE_PRD_ID = "intake-prd";
 const INTAKE_REPAIR_ID = "intake-repair";
 const INTAKE_TICKETS_ID = "intake-tickets";
+const MONITOR_ID = "monitor";
+const EXPLORATORY_BUGS_ID = "exploratory-bugs";
+const EXPLORATORY_PRDS_ID = "exploratory-prds";
+const LEARNINGS_AUDIT_ID = "learnings-audit";
+const WEEKLY_CADENCE = "once a week";
+const WEEKLY_RRULE = "FREQ=WEEKLY;INTERVAL=1";
+const OPT_IN_GROUP = "opt-in";
+
+/**
+ * Expected repo-relative runbook path for a loop id.
+ * @param id - Loop id (the automation-name suffix)
+ * @returns The repo-relative runbook path
+ */
+const runbook = (id: string): string => `.lisa/automations/${id}.runbook.md`;
 
 describe("automation-status expected fleet (#799)", () => {
   it("resolves the self-host GitHub Lisa fleet and flags unsupported exploratory-bugs", () => {
@@ -54,16 +68,35 @@ describe("automation-status expected fleet (#799)", () => {
         expectedCommand: "/lisa:intake CodySwannGT/lisa intake_mode=build",
       }),
       expect.objectContaining({
-        id: "exploratory-prds",
+        id: MONITOR_ID,
+        automationId: "lisa-auto-codyswanngt-lisa-monitor",
+        expectedCadence: "once a day",
+        expectedRRule: "FREQ=DAILY;INTERVAL=1",
+        expectedCommand: "/lisa:monitor",
+        group: "core",
+        runbookPath: runbook(MONITOR_ID),
+      }),
+      expect.objectContaining({
+        id: EXPLORATORY_PRDS_ID,
         expectedCommand: "/lisa:project-ideation prd_ready=false",
       }),
     ]);
     expect(fleet.unsupported).toEqual([
       expect.objectContaining({
-        id: "exploratory-bugs",
-        automationId: "lisa-auto-codyswanngt-lisa-exploratory-bugs",
-        reason:
-          "This repository does not ship an exploratory-qa command surface.",
+        id: EXPLORATORY_BUGS_ID,
+        group: "exploratory",
+        reason: expect.stringContaining(
+          "This project ships no exploratory-qa command"
+        ),
+        runbookPath: runbook(EXPLORATORY_BUGS_ID),
+      }),
+      expect.objectContaining({
+        id: LEARNINGS_AUDIT_ID,
+        automationId: "lisa-auto-codyswanngt-lisa-learnings-audit",
+        expectedCadence: WEEKLY_CADENCE,
+        expectedRRule: WEEKLY_RRULE,
+        group: OPT_IN_GROUP,
+        runbookPath: runbook(LEARNINGS_AUDIT_ID),
       }),
     ]);
   });
@@ -182,7 +215,9 @@ describe("automation-status expected fleet (#799)", () => {
         expectedCommand: "/lisa:project-ideation prd_ready=true",
       })
     );
-    expect(fleet.unsupported).toEqual([]);
+    expect(fleet.unsupported.map(entry => entry.id)).toEqual([
+      LEARNINGS_AUDIT_ID,
+    ]);
   });
 
   it("covers the build repair queue for mixed PRD source and JIRA tracker repos", () => {
