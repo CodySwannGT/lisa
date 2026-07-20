@@ -18,6 +18,11 @@ import {
 const EXPLORATORY_QA_UNSUPPORTED =
   "The current repo does not expose the exploratory-qa skill surface.";
 const EXPLORATORY_AUTOMATIONS_GROUP = "Exploratory automations";
+const CORE_GROUP_TITLE = "Core automations";
+const PRD_ITEM_ID = "intake-prd";
+const PRESENT_AND_CURRENT = "present and current";
+const OUTCOME_CHANGE_PROVED = "change-proved";
+const OUTCOME_NOTHING_NEEDED = "nothing-needed";
 
 describe("automation-status report rendering (#798)", () => {
   it("renders grouped fleet sections with expected contract and remediation lines", () => {
@@ -30,7 +35,7 @@ describe("automation-status report rendering (#798)", () => {
           title: "Core queue automations",
           items: [
             {
-              id: "intake-prd",
+              id: PRD_ITEM_ID,
               status: "HEALTHY",
               summary: "expected automation exists and matches the contract",
               expectedCadence: "every 60 minutes",
@@ -107,7 +112,7 @@ describe("automation-status report rendering (#798)", () => {
             {
               id: "intake-repair",
               status: "HEALTHY",
-              summary: "present and current",
+              summary: PRESENT_AND_CURRENT,
             },
           ],
         },
@@ -161,6 +166,113 @@ describe("automation-status report rendering (#798)", () => {
       STALE: 1,
       FAILING: 1,
     });
+  });
+
+  it("renders the runbook, last outcome, and bounded history between Observed and Remediation (#1799)", () => {
+    const report = renderAutomationStatusReport({
+      runtime: "Codex automations",
+      groups: [
+        {
+          id: "1",
+          title: CORE_GROUP_TITLE,
+          items: [
+            {
+              id: PRD_ITEM_ID,
+              status: "HEALTHY",
+              summary: "latest recorded run is within cadence",
+              observed: "Scheduler status: ACTIVE",
+              runbook: ".lisa/automations/intake-prd.runbook.md",
+              lastOutcome: {
+                ts: "2026-05-26T11:55:00Z",
+                outcome: OUTCOME_CHANGE_PROVED,
+                summary: "Shipped one build ticket.",
+              },
+              outcomeHistory: [
+                OUTCOME_CHANGE_PROVED,
+                "candidate-proposed",
+                OUTCOME_NOTHING_NEEDED,
+                OUTCOME_CHANGE_PROVED,
+                OUTCOME_NOTHING_NEEDED,
+              ],
+              olderRecordCount: 7,
+              remediation: "None needed.",
+            },
+          ],
+        },
+      ],
+    });
+
+    const lines = report.text.split("\n");
+    const observedIndex = lines.findIndex(line =>
+      line.includes("Observed: Scheduler status: ACTIVE")
+    );
+    const runbookIndex = lines.findIndex(line =>
+      line.includes("Runbook: .lisa/automations/intake-prd.runbook.md")
+    );
+    const remediationIndex = lines.findIndex(line =>
+      line.includes("Remediation: None needed.")
+    );
+
+    expect(observedIndex).toBeLessThan(runbookIndex);
+    expect(runbookIndex).toBeLessThan(remediationIndex);
+    expect(report.text).toContain(
+      "  Last run: change-proved — Shipped one build ticket. (2026-05-26T11:55:00Z)"
+    );
+    expect(report.text).toContain(
+      "  History: change-proved, candidate-proposed, nothing-needed, change-proved, nothing-needed (newest first); … and 7 older records"
+    );
+  });
+
+  it("states absent runbook and empty history explicitly, never blank (#1799)", () => {
+    const report = renderAutomationStatusReport({
+      groups: [
+        {
+          id: "1",
+          title: CORE_GROUP_TITLE,
+          items: [
+            {
+              id: PRD_ITEM_ID,
+              status: "HEALTHY",
+              summary: PRESENT_AND_CURRENT,
+              runbook: "not scaffolded — run /lisa:setup-automations",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(report.text).toContain(
+      "  Runbook: not scaffolded — run /lisa:setup-automations"
+    );
+    expect(report.text).toContain("  Last run: no recorded runs yet");
+    // With no outcomeHistory the History line is omitted rather than blank.
+    expect(report.text).not.toContain("  History:");
+  });
+
+  it("omits the older-records clause when history is not trimmed (#1799)", () => {
+    const report = renderAutomationStatusReport({
+      groups: [
+        {
+          id: "1",
+          title: CORE_GROUP_TITLE,
+          items: [
+            {
+              id: "monitor",
+              status: "HEALTHY",
+              summary: PRESENT_AND_CURRENT,
+              runbook: ".lisa/automations/monitor.runbook.md",
+              outcomeHistory: [OUTCOME_NOTHING_NEEDED, OUTCOME_NOTHING_NEEDED],
+              olderRecordCount: 0,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(report.text).toContain(
+      "  History: nothing-needed, nothing-needed (newest first)"
+    );
+    expect(report.text).not.toContain("older records");
   });
 
   it("renders empty groups as intentional unsupported buckets", () => {
