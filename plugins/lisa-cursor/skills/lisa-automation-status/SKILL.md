@@ -53,8 +53,13 @@ For each expected automation, report:
 4. Any detected drift in name, cadence, command shape, or queue arguments.
 5. Any available recent-run health signal such as stale last-run timing or repeated failure status.
 6. A concise remediation hint when attention is needed.
+7. Where the loop's checked-in runbook lives (`automation-runbook-contract`), or `not scaffolded — run /lisa:setup-automations` when it is absent.
+8. How the last recorded run ended — its outcome, one-line summary, and timestamp — or `no recorded runs yet` when the loop has never recorded one.
+9. A bounded run history: the five most recent outcomes newest first, plus a count of how many older records exist when the file holds more.
 
-Emit an overall grouped fleet verdict such as `HEALTHY`, `ATTENTION_NEEDED`, or `PARTIAL_SUPPORT`, plus the runtime surface inspected.
+The last-run and history facts come from the durable run-outcome substrate recorded by each loop (the RBC-3 records under `.lisa/automations/runs/<loop-id>.jsonl`, read through `readAutomationRunRecords`). That directory is local scheduler state, not project knowledge — read it, never write it.
+
+Emit an overall grouped fleet verdict such as `HEALTHY`, `ATTENTION_NEEDED`, or `PARTIAL_SUPPORT`, plus the runtime surface inspected. **Repeated recovery is a fleet-health signal the scheduler cannot see**: when a loop's last three or more consecutive recorded runs are all `recovery-required`, report that loop `FAILING` — and therefore the overall verdict `ATTENTION_NEEDED` — even when its scheduler entry itself looks healthy, and point the remediation at the recorded run summaries.
 
 ## Operator usage
 
@@ -89,7 +94,7 @@ Status-specific remediation guidance:
 - `MISSING`: tell the operator which job is absent and recommend rerunning `/lisa:setup-automations` or recreating the missing job with the expected cadence and command.
 - `DRIFTED`: show the expected versus observed cadence/command mismatch and recommend aligning the scheduler entry with Lisa's current setup contract, usually by rerunning `/lisa:setup-automations`.
 - `STALE`: explain that the job exists but has not run recently enough for its cadence. Recommend inspecting the runtime's recent-run history or failure logs before changing queue state.
-- `FAILING`: surface the failure signal directly and recommend checking the latest runtime error plus the affected queue command (`/lisa:intake`, `/lisa:repair-intake`, or exploratory job) after the scheduler issue is resolved.
+- `FAILING`: surface the failure signal directly and recommend checking the latest runtime error plus the affected queue command (`/lisa:intake`, `/lisa:repair-intake`, or exploratory job) after the scheduler issue is resolved. A loop also reports `FAILING` when its last three or more consecutive recorded runs are all `recovery-required` — even with a healthy scheduler entry — in which case cite the recorded run summaries and point the operator at the loop's runbook.
 - `UNSUPPORTED`: explain why the job is intentionally absent and say that no remediation is required unless the project stack or runtime support changed.
 
 Render the report in grouped sections using the shared `scripts/automation-status-report.mjs` contract:
@@ -104,10 +109,13 @@ Generated at: <ISO timestamp>
 - <STATUS> <automation-id>: <summary>
   Expected: <cadence> -> <command>
   Observed: <what the runtime exposed>
+  Runbook: <.lisa/automations/<loop-id>.runbook.md, or "not scaffolded — run /lisa:setup-automations">
+  Last run: <outcome> — <summary> (<ts>), or "no recorded runs yet"
+  History: <outcome>, <outcome>, … (newest first); … and <N> older records
   Remediation: <next step when attention is needed>
 ```
 
-Keep observable runtime facts separate from remediation guidance so operators can distinguish drift, unsupported jobs, and actual failures quickly.
+The Runbook, Last run, and History lines are observable facts and sit between Observed and Remediation. Keep observable runtime facts separate from remediation guidance so operators can distinguish drift, unsupported jobs, and actual failures quickly.
 
 ## Rules
 
