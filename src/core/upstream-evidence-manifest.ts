@@ -1817,7 +1817,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-opencode-plugin-templates.mjs":
       "bef79103c293b73d7c37e8a8c9fa1b4f1f2e53367898a6326b12f8a0ba8ddc43",
     "scripts/detect-stale-workflow-inputs.mjs":
-      "6ae55754a69157bd79e1fe2b5f5b5e6c6e0fbf966a03b9ce643ea8c5248f50b1",
+      "204e64ccbd87de0edde0045668814638181dec2fa439fa4d8f06a0aaf5082af4",
     "scripts/fix-namespace-test-assertions.mjs":
       "bfed6f27753660b38457c3f0a032a6c866691666d2d5d61fc10c3fb2f4f4f412",
     "scripts/fix-test-assertions-pass2.mjs":
@@ -1854,6 +1854,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
       "2565e2cb414f253fa7fd014021120ec9760f4e716bf0ae69e5f7de09a5b966c1",
+    "scripts/lib/reusable-workflow-contract.d.mts":
+      "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
+    "scripts/lib/reusable-workflow-contract.mjs":
+      "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-github-environments.sh":
@@ -1888,6 +1892,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-contract-built.mjs":
       "9e090e3378325c4193e96ba03acff17fb63e40c9e7f2dd89296f72353ab6ba88",
+    "scripts/verify-health-deterministic-built.mjs":
+      "ab19427ec4b1dfaa06037cc23b7fc06319b4c12d8c6b67808dddd77e5367fd12",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -7195,6 +7201,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
+    "scripts/lib/reusable-workflow-contract.d.mts": true,
+    "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
@@ -7212,6 +7220,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/update-node-version.ts": true,
     "scripts/update-test-skill-paths.mjs": true,
     "scripts/verify-health-contract-built.mjs": true,
+    "scripts/verify-health-deterministic-built.mjs": true,
     "sgconfig.yml": true,
     "specs/.keep": true,
     "src/agy/mcp-installer.ts": true,
@@ -7341,6 +7350,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
     "src/core/self-apply.ts": true,
+    "src/core/template-ownership.ts": true,
     "src/core/upstream-attribution-body.ts": true,
     "src/detection/detector.interface.ts": true,
     "src/detection/detectors/cdk.ts": true,
@@ -7354,10 +7364,20 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/detection/index.ts": true,
     "src/errors/index.ts": true,
     "src/health/contract.ts": true,
+    "src/health/deadline.ts": true,
+    "src/health/deterministic.ts": true,
     "src/health/directory-sync.ts": true,
+    "src/health/finding-utils.ts": true,
+    "src/health/governance-probes.ts": true,
+    "src/health/hook-inspection.ts": true,
     "src/health/index.ts": true,
+    "src/health/plugin-inspection.ts": true,
+    "src/health/project-probes.ts": true,
+    "src/health/read-only-fs.ts": true,
+    "src/health/ruleset-inspection.ts": true,
     "src/health/storage.ts": true,
     "src/health/strict-validation.ts": true,
+    "src/health/template-inspection.ts": true,
     "src/index.ts": true,
     "src/logging/console-logger.ts": true,
     "src/logging/index.ts": true,
@@ -7595,6 +7615,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,
     "tests/unit/health/contract.test.ts": true,
+    "tests/unit/health/deterministic-regressions.test.ts": true,
+    "tests/unit/health/deterministic.test.ts": true,
     "tests/unit/health/directory-sync.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,

@@ -11,6 +11,19 @@ import {
 import { JsonMergeError } from "../errors/index.js";
 
 /**
+ * Produce the exact JSON merge result without filesystem access.
+ * @param source - Lisa template object
+ * @param destination - Existing host object
+ * @returns Merged object with Lisa values taking precedence
+ */
+export function mergeTemplateJson(
+  source: Record<string, unknown>,
+  destination: Record<string, unknown>
+): Record<string, unknown> {
+  return deepMergeWithArrayUnion(destination, source);
+}
+
+/**
  * Merge strategy: Deep merge JSON files (Lisa values take precedence)
  * - Project values serve as defaults
  * - Lisa values take precedence on conflicts
@@ -64,7 +77,10 @@ export class MergeStrategy implements ICopyStrategy {
 
     // Deep merge: Lisa (source) takes precedence, project (dest) provides defaults.
     // Arrays are unioned so Lisa templates add guardrails without removing host ones.
-    const merged = deepMergeWithArrayUnion(destJson, sourceJson);
+    const merged = mergeTemplateJson(
+      sourceJson as Record<string, unknown>,
+      destJson as Record<string, unknown>
+    );
 
     // Normalize for comparison (parse and re-stringify both)
     const normalizedDest = JSON.stringify(destJson, null, 2);

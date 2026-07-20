@@ -35,6 +35,19 @@ export class TaggedMergeStrategy implements ICopyStrategy {
   readonly name = "tagged-merge" as const;
 
   /**
+   * Produce the exact tagged-merge result without filesystem access.
+   * @param source - Lisa tagged template object
+   * @param destination - Existing host object
+   * @returns Merged object preserving host-owned sections
+   */
+  mergeJson(
+    source: Record<string, unknown>,
+    destination: Record<string, unknown>
+  ): Record<string, unknown> {
+    return this.mergeWithTags(source, destination);
+  }
+
+  /**
    * Regex pattern for parsing opening tags
    * @remarks Captures behavior (force|defaults|merge) and category name for routing to appropriate merge logic
    */
@@ -87,7 +100,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
       }
     );
 
-    const merged = this.mergeWithTags(sourceJson, destJson);
+    const merged = this.mergeJson(sourceJson, destJson);
     const normalizedDest = JSON.stringify(destJson, null, 2);
     const normalizedMerged = JSON.stringify(merged, null, 2);
 
