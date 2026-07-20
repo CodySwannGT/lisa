@@ -74,7 +74,15 @@ Each finding is a flat leaf, so `build_ready` applies directly — pass it expli
 
 ### Idempotency — don't spam duplicates
 
-Re-running a pass must not refile the same finding. Before creating a ticket, search the tracker for an **open** ticket carrying a stable marker `[lisa-exploratory-qa] <finding-key>` in its body (the `<finding-key>` is a stable slug of surface + symptom, e.g. `settings-modal/horizontal-overflow@tablet`). If one exists, reference/update it instead; only create when none exists. **Match by the marker, never by title.** A *closed* prior ticket does not suppress a new one — a recurrence after a fix is a genuine regression.
+Re-running a pass must not refile the same finding. Before creating a ticket, search the tracker for a ticket carrying a stable marker `[lisa-exploratory-qa] <finding-key>` in its body (the `<finding-key>` is a stable slug of surface + symptom, e.g. `settings-modal/horizontal-overflow@tablet`). Per the `rejection-detection` rule's **Proposal rejection memory** section, that marker search MUST cover **open AND closed** tickets (with a body-enumeration fallback on search-index lag), and **match by the marker, never by title.** Then split on how any prior ticket closed:
+
+- **Open** ticket carrying the marker → reference/update it instead; do not create a second.
+- **Closed as _completed_** → does **not** suppress. A recurrence after a fix is a genuine **regression**, so file the finding.
+- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline**, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`).
+
+Every filed finding ticket MUST end with the `rejection-detection` **operator footer** as a visible prose line so the operator knows which close-reason silences it:
+
+> To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
 ## Output
 
@@ -94,13 +102,13 @@ and records it, so a quiet run and a broken run are never mistaken for each othe
 | This cycle's exit path | Run outcome |
 |---|---|
 | Findings filed — one or more `Bug` / `Improvement` tickets created or referenced (§6) | `candidate-proposed` |
-| Clean pass — explored the personas and surfaces, nothing worth filing | `nothing-needed` |
-| Tracker unconfigured — the §1 stop path; findings cannot be filed | `recovery-required` |
+| Clean pass — explored the personas and surfaces, nothing worth filing — **or** every candidate was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
+| Tracker unconfigured — the §1 stop path; findings cannot be filed — **or** the open-and-closed rejection-memory marker search could not run (tracker unreachable / credentials revoked): a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
 | A degradation that still let the pass explore (e.g. Kane unavailable, one persona unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
 (the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
-specific, actionable, e.g. `Explored 4 personas; nothing confusing to file.` for `nothing-needed`):
+specific, actionable, e.g. `Explored 4 personas; nothing confusing to file.` — or, when a decline suppressed the only candidates, `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.` — for `nothing-needed`; and for a `recovery-required` from an unreadable decline check, `Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
