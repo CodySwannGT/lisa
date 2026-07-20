@@ -1207,7 +1207,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/expo-cicd-workflows/scripts/fetch.js":
       "d930e22127481e1e210a2c7f5ae297c56263fdb616771b16a2762b9410c9d435",
     "plugins/src/expo/skills/expo-cicd-workflows/scripts/package.json":
-      "c405e32c72836c09697b19e326ac56786b6d06d830fce577d0785c9382a69daf",
+      "d2a49575e568f8b05e8b8ccb72061aa63ecd780136a62a46f4a17343e6c6f4b6",
     "plugins/src/expo/skills/expo-cicd-workflows/scripts/validate.js":
       "3fa181c28af49084a2efcd57f7b168c8af01f4794df3b67a7449203c16f2fbdd",
     "plugins/src/expo/skills/expo-deployment/SKILL.md":
@@ -7595,6 +7595,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/harper-fabric-template.test.ts": true,
     "tests/unit/config/jest-base.test.ts": true,
     "tests/unit/config/jest-expo.test.ts": true,
+    "tests/unit/config/js-yaml-security-floor.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
     "tests/unit/config/oxlint-typescript.test.ts": true,
