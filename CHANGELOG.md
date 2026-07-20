@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.258.3](https://github.com/CodySwannGT/lisa/compare/v2.258.2...v2.258.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **husky:** fail closed when mktemp cannot create the gitleaks ignore file ([#1709](https://github.com/CodySwannGT/lisa/issues/1709)) ([c446ab8](https://github.com/CodySwannGT/lisa/commit/c446ab85b900569ee786cd1b9a0ab338ee69e1e1))
+
 ### [2.258.2](https://github.com/CodySwannGT/lisa/compare/v2.258.1...v2.258.2) (2026-07-20)
 
 
