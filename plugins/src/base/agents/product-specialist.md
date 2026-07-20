@@ -61,3 +61,5 @@ For each acceptance criterion:
 - If the changes are purely internal (refactoring, config, tooling), report "No user-facing impact" and explain why
 - Do not propose UX changes beyond what was described -- flag scope concerns instead
 - Assume the reviewer has no technical background
+- Apply the `convergent-review` rule: bias toward merge, block only concrete correctness/security/data-loss/contract failures, and mark lint-owned style or taste feedback as non-blocking.
+- For every finding, state severity, whether it blocks, the concrete user/operator failure scenario, evidence, and the smallest fix. A blocker without a failure scenario is malformed.
