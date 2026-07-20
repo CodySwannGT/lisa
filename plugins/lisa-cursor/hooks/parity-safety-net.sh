@@ -50,16 +50,28 @@ EOF
 # text from the destructive-command scans below. Unknown executable heredocs
 # remain visible to every built-in and custom rule. Ambiguous or malformed
 # heredocs fail closed instead of guessing which text the shell would execute.
+#
+# block_heredoc() teaches the remediation the moment the wall is hit: heredoc
+# denials overwhelmingly come from `git commit -m "$(cat <<EOF …)"` attempts,
+# and a bare denial strands the agent with no path forward (gardener #1789).
+block_heredoc() {
+  block "$1
+Heredoc commit invocations are blocked (the payload is executable shell).
+Fix: write the commit message to a file and run \`git commit -F <file>\`.
+Every commit must also carry a Co-authored-by trailer for a supported agent
+(Claude/Codex/OpenCode) — the commit-msg hook enforces this."
+}
+
 command_for_guards="$command_str"
 case "$command_str" in
   *'<<'*)
     hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     heredoc_parser="$hook_dir/parity-safety-net-heredoc.py"
     if ! command -v python3 >/dev/null 2>&1 || [ ! -r "$heredoc_parser" ]; then
-      block "cannot safely classify heredoc command because its parser runtime is unavailable"
+      block_heredoc "cannot safely classify heredoc command because its parser runtime is unavailable"
     fi
     if ! printf '%s\n' "$command_str" | /bin/bash -n >/dev/null 2>&1; then
-      block "malformed heredoc command failed shell syntax validation"
+      block_heredoc "malformed heredoc command failed shell syntax validation"
     fi
 
     parser_status=0
@@ -72,8 +84,8 @@ case "$command_str" in
     case "$parser_status" in
       0) command_for_guards="$parser_output" ;;
       10) command_for_guards="$command_str" ;;
-      20) block "malformed or ambiguous heredoc command cannot be safely classified" ;;
-      *) block "heredoc parser failed; command was denied fail-closed" ;;
+      20) block_heredoc "malformed or ambiguous heredoc command cannot be safely classified" ;;
+      *) block_heredoc "heredoc parser failed; command was denied fail-closed" ;;
     esac
     ;;
 esac

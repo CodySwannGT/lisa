@@ -290,10 +290,6 @@ If CI or CodeRabbit forces another commit after auto-merge is enabled, re-confir
 - CLI entrypoint is `bun src/index.ts ui` (or `bun dist/index.js ui` after build). Do not use `bun src/cli/index.ts ui` — that module has no `main()`.
 - After source changes that register new `/api/status` probes, rebuild (`bun run build:dist`) or run via the source entrypoint before trusting live `dist/` output; a stale `dist/` can omit newly added probe modules.
 
-## Committing in this repo: use `git commit -F`, never a heredoc
-
-The parity-safety-net hook blocks `git commit -m "$(cat <<EOF … EOF)"` heredoc invocations. Write the message to a file and use `git commit -F <file>` instead. Every commit must also carry a `Co-authored-by: Claude <noreply@anthropic.com>` trailer (Codex commits use `Co-authored-by: Codex`) or the co-authorship hook rejects it — see [[reference_codex_commit_attribution]].
-
 ## Lisa Console UI (`ui/`)
 
 The console UI ships as a single hand-written file, `ui/index.html` (there is no bundler/`ui/dist`). It is served by the `lisa ui` command in `src/cli/ui-cmd.ts` (`runUi`). Rules for working on it and its tests:
