@@ -154,17 +154,21 @@ function populateMissing(
   artifactValue: JsonValue | undefined
 ): SyncState {
   if (artifactValue !== undefined) {
-    const absorbed = fillMissing(artifactValue, entry.defaultValue);
+    const absorbed = validateEntryValue(
+      entry,
+      fillMissing(artifactValue, entry.defaultValue)
+    );
     return withAction(state, setAtPath(state.committed, entry.key, absorbed), {
       key: entry.key,
       kind: "absorbed-artifact",
       detail: `value absorbed from ${entry.artifacts?.[0]?.file ?? "artifact"}`,
     });
   }
+  const defaultValue = validateEntryValue(entry, entry.defaultValue);
   const committed = recordPopulation(
-    setAtPath(state.committed, entry.key, entry.defaultValue),
+    setAtPath(state.committed, entry.key, defaultValue),
     entry.key,
-    entry.defaultValue
+    defaultValue
   );
   return withAction(state, committed, {
     key: entry.key,
@@ -197,10 +201,11 @@ function populateEntry(
     stateAfterMigration === state
       ? merged
       : (deepMerge(stateAfterMigration.committed, local) as JsonObject);
-  const configValue = getAtPath(mergedAfterMigration, entry.key);
-  if (configValue === undefined) {
+  const rawConfigValue = getAtPath(mergedAfterMigration, entry.key);
+  if (rawConfigValue === undefined) {
     return populateMissing(stateAfterMigration, entry, artifactValue);
   }
+  const configValue = validateEntryValue(entry, rawConfigValue);
   const committedValue = getAtPath(stateAfterMigration.committed, entry.key);
   const localValue = getAtPath(local, entry.key);
   const recorded = recordedPopulation(stateAfterMigration.committed, entry.key);
@@ -276,6 +281,7 @@ async function syncArtifacts(
   if (effective === undefined) {
     return state;
   }
+  const validatedEffective = validateEntryValue(entry, effective);
   return bindings.reduce<Promise<SyncState>>(async (statePromise, binding) => {
     const current = await statePromise;
     const filePath = path.join(destDir, binding.file);
@@ -286,10 +292,12 @@ async function syncArtifacts(
       return current;
     }
     const fileObject = isJsonObject(parsed) ? parsed : {};
-    if (jsonEquals(getAtPath(fileObject, binding.pointer), effective)) {
+    if (
+      jsonEquals(getAtPath(fileObject, binding.pointer), validatedEffective)
+    ) {
       return current;
     }
-    const updated = setAtPath(fileObject, binding.pointer, effective);
+    const updated = setAtPath(fileObject, binding.pointer, validatedEffective);
     const writes = new Map([
       ...current.artifactWrites,
       [binding.file, updated] as const,
@@ -307,6 +315,16 @@ async function syncArtifacts(
       ],
     };
   }, Promise.resolve(state));
+}
+
+/**
+ * Apply an entry's optional executable value contract.
+ * @param entry - Registry entry owning the value
+ * @param value - Untrusted effective value
+ * @returns Validated or unchanged JSON value
+ */
+function validateEntryValue(entry: SyncedSetting, value: JsonValue): JsonValue {
+  return entry.validate?.(value) ?? value;
 }
 
 /**

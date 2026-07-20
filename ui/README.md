@@ -126,9 +126,14 @@ product features, secrets, or business logic is never proposed.
 When the engine lands, `starter.*` should join the `lisa sync` registry so
 the section above governs it like every other setting.
 
-## Health (planned — documented, not wired)
+## Health (v1 contract available; consumers planned)
 
-The **Health** section answers two questions with different lifecycles:
+The **Health** section answers two questions with different lifecycles. Health
+v1 now defines its shared result and persistence contract at
+`@codyswann/lisa/health`: completed results are validated and atomically stored
+at the gitignored `.lisa/health/latest.json`; `health.schedule` is the only v1
+configuration key and accepts `off`, `daily`, or `weekly`. The button, probes,
+console readback, and scheduler remain downstream work.
 
 **Is Lisa on the latest version?** — always-on status. Lisa's CLI already
 checks npm on every invocation; the console surfaces the result permanently
