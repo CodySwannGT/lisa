@@ -139,3 +139,39 @@ After report, file what was found — **only when run standalone**, never under 
 ## Output
 
 A single report: the health/anomaly summary (failures, warnings, no-issue confirmations) + the observability audit table (each in-scope dimension as `OK` / `WARN` / `MISSING` / `PRESENT (unverified)`) + the filing summary (tickets filed with refs + fingerprints, duplicates skipped, dropped count if the cap truncated; or would-file tickets under `--dry-run`). For post-deploy verification (when called from `lisa-verify`), the report-only summary becomes evidence on the originating work item.
+
+## Run outcome
+
+As the registered `monitor` automation loop, the **standalone** cron run conforms to the
+`automation-runbook-contract` rule: it ends in **exactly one** of the six run outcomes and records it,
+so a quiet monitoring run and a broken one never look identical.
+
+| This cycle's exit path | Run outcome |
+|---|---|
+| Anomalies or in-scope gaps filed — one or more `Bug` / `Task` / `Improvement` leaves created or referenced | `candidate-proposed` |
+| Clean sweep — health/audit ran end to end, nothing over the bar and no in-scope gaps | `nothing-needed` |
+| Provider/threshold resolution failure — threshold collection fails (a present-but-uninspectable config, an invalid configured threshold) or a signal provider is unreachable so the sweep could not run | `recovery-required` |
+| A degradation that still let the sweep run (an optional `ops-specialist` overlay absent, Kane unavailable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
+
+Only the **standalone** run records. The nested report-only modes do their own job and do not file or
+record: `--report-only` (including the `lisa-verify` post-deploy call, whose summary is evidence on
+the originating item) and `--dry-run` (a preview that creates nothing) are not registered-loop
+invocations.
+
+Record **exactly one** outcome per standalone invocation through the run-record CLI, naming this
+loop's runbook (the `--summary` is the operator-readable one-liner in the contract's exemplar voice —
+plain, specific, actionable, e.g. `Health green; audit clean — nothing to propose.` for
+`nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id monitor --outcome candidate-proposed \
+  --summary "Filed #1810 for the p99 latency spike; awaiting your flip to ready." \
+  --runbook .lisa/automations/monitor.runbook.md [--ref <ticket-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
+`plugins/lisa/scripts/automation-run-record.mjs` or the source
+`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
+the cycle — a recording failure is a degradation to report, never a reason to block the loop.

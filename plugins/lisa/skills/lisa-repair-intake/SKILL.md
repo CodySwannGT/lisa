@@ -975,6 +975,40 @@ Report outcomes in these buckets:
 State every item repaired this cycle and the action taken. If the output would be long, group by
 bucket and show compact refs plus counts.
 
+## Run outcome
+
+As the registered `intake-repair` automation loop, each cycle conforms to the
+`automation-runbook-contract` rule: it ends in **exactly one** of the six run outcomes and records it,
+so a cycle that found nothing stuck and a cycle where the repair machinery itself broke never look
+alike. A run outcome describes this *cycle*; the Summary-report buckets above describe *what happened
+to each item* — the two never merge in the one-line summary.
+
+| This cycle's exit path | Run outcome |
+|---|---|
+| Nothing actionable — the idle case (walk step 5): examined N, all active or in backoff | `nothing-needed` |
+| Repairs applied **and confirmed** this cycle — `resumed` / `resynced` / `recovered` / `unblocked` / `closed_out` / `rolled_up` / `relinked` / `normalized_ready` | `change-proved` |
+| Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
+| A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed) | `approval-requested` |
+| The loop itself could not run — the queue is unreadable or tracker credentials are revoked | `recovery-required` |
+
+Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
+(the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
+specific, actionable, e.g. `Examined 14 items; all active or in backoff — nothing to repair.` for
+`nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id intake-repair --outcome change-proved \
+  --summary "Recovered 3 stalled builds and closed out 2 rollups; all confirmed." \
+  --runbook .lisa/automations/intake-repair.runbook.md [--ref <item-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
+`plugins/lisa/scripts/automation-run-record.mjs` or the source
+`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
+the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
 ## Schedule examples
 
 ```text
