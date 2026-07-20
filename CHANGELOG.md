@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.265.0](https://github.com/CodySwannGT/lisa/compare/v2.264.0...v2.265.0) (2026-07-20)
+
+
+### Features
+
+* **security:** two-bucket findings with the impact-or-exploitability bar ([#1839](https://github.com/CodySwannGT/lisa/issues/1839)) ([8d6d6e0](https://github.com/CodySwannGT/lisa/commit/8d6d6e0d13136c57d294c20858faa86c93c28d8f)), closes [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+
+
+### Bug Fixes
+
+* **security:** preserve fields, bind ZAP reproducers to boundaries, classify all alerts ([#1839](https://github.com/CodySwannGT/lisa/issues/1839)) ([013daab](https://github.com/CodySwannGT/lisa/commit/013daab29eb368c6865cd6243688f7eaefbdcaac)), closes [#1835](https://github.com/CodySwannGT/lisa/issues/1835)
+
 ## [2.264.0](https://github.com/CodySwannGT/lisa/compare/v2.263.0...v2.264.0) (2026-07-20)
 
 
