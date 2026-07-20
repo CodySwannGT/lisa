@@ -160,7 +160,7 @@ The manifest is the single source of truth for "what evidence is required": auth
 
 An evidence comment that lists only what passed is unreadable at a gate: a journey that skipped an edge state looks exactly like one that covered it. So every evidence comment — and the committed `evidence/<ticket>/verdict.json` — carries two extra sections, defined in full by the `claim-evidence-mapping` rule:
 
-- **Artifact identity** — what the evidence was captured against (repository, head SHA, environment, capture time). Populated by BCE-4 (#1838); render the heading with what is known.
+- **Artifact identity** — what the evidence was collected against, as values rather than placeholders: the `repository`, the `head_sha` the run observed, the `environment`, and per artifact its `sha256` digest and `captured_at`. Defined in full by the `claim-evidence-mapping` rule.
 - **Not established** — a **required, never-omitted** heading listing what the verification did *not* prove: boundaries not exercised, environments not tested, behavior consciously out of scope. When nothing is outstanding it still renders, reading `None outstanding — reviewed`. It is never blank.
 
 The committed verdict carries the machine-readable half:
@@ -169,8 +169,14 @@ The committed verdict carries the machine-readable half:
 evidence/<ticket>/verdict.json
   not_established: []            # what was NOT proved; may be empty
   not_established_reviewed: true # attests the list was reviewed; may NEVER be omitted
-  artifact: { repository, head_sha, environment, observed_at }
+  artifact: { repository, base_sha, head_sha, build_id, environment, observed_at }
+  evidence: [ { evidence_id, kind, locator,
+                artifact_head_sha,   # the head_sha in force when THIS artifact was captured
+                sha256,              # content digest of the committed evidence file
+                captured_at } ]
 ```
+
+`artifact.head_sha` pins the build the verification observed; each entry's `sha256` pins the bytes. An entry whose `artifact_head_sha` differs from `artifact.head_sha` is an `artifact_mismatch` and a recomputed digest that disagrees is an `evidence_digest_mismatch` — each fails loudly, naming both SHAs or the evidence id, and blocks completion. At completion the pinned `head_sha` is reconciled against **the merged head** using the ancestry + deploy-run definition of "what shipped" that `lisa-drive-pr-to-merge` already owns (cite it; there is no second definition): pre-merge evidence counts only when its head is a parent of the merge, and on a merge-race mismatch verification re-runs against the merged head before completion is declared.
 
 The list may be empty; the flag may not be missing. An absent `not_established_reviewed` is indistinguishable from nobody having asked the question, so the evidence-posting gate in `tracker-evidence` refuses the post, and the Stop-hook gate reports it as a v2 contract violation (advisory until `verification.gate.enforceBoundaries` is ratcheted on). This generalizes the required, never-empty `Known limits` field of `lisa-improve-harness` to every evidence surface.
 

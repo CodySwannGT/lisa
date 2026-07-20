@@ -42,8 +42,19 @@ rule 5).
 A claim carries three fields — `claim_id`, `boundary`, and `required_evidence_kinds` — named here so
 every downstream surface uses one spelling. This ticket only writes the contract down; the schema and
 gate that make these fields executable ship with **BCE-2 (#1836)** — do not assume that surface is
-present in this branch. An artifact's identity is pinned in **BCE-4 (#1838)** and the conservative
-security-bucket default is set in **BCE-5 (#1839)** — each named here, defined there.
+present in this branch. The conservative security-bucket default is set in **BCE-5 (#1839)** — named
+here, defined there.
+
+## Artifact identity (pinned, never assumed)
+
+A claim applies only to the artifact its evidence was collected against. Every verdict pins
+`artifact.head_sha` — the commit the run observed — and every evidence entry pins the
+`artifact_head_sha` in force when it was captured, its `sha256` content digest, and `captured_at`.
+Evidence collected on a pre-merge head is valid for the merge commit **only** when that head is a
+parent of the merge, per the ancestry + deploy-run definition of "what shipped" that
+`lisa-drive-pr-to-merge` already owns — cite it, never write a second one. A mismatched SHA or a
+recomputed digest that disagrees fails loudly, naming both SHAs / the evidence id, and verification
+re-runs against the merged head before completion is declared. Full definition: the reference body.
 
 ## Not established (required, never omitted)
 
