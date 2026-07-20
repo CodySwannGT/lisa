@@ -213,6 +213,8 @@ expo-env.d.ts
 # Transient verification verdict used by Lisa's completion gate. Durable
 # verification evidence belongs under evidence/<ticket>/ and remains trackable.
 .lisa/verification-status.json
+# Latest Health v1 result is local runtime state, never project configuration.
+.lisa/health/latest.json
 
 # Automation run outcomes — local scheduler observations read by
 # /lisa:automation-status. Runbooks are project knowledge; run records are not.
