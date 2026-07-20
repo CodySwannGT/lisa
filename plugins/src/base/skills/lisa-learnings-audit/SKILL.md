@@ -248,6 +248,12 @@ resolved by reading the ticket, never by filing a sibling blind. Then:
 
 Re-runs are quiet no-ops: same surfaces + same evidence ⇒ zero new tickets.
 
+This open-and-closed marker search plus the "declined `<date>`; recurred `<date>` in `<ref>`"
+re-file discipline is the shipped precedent for the **Proposal rejection memory** section of the
+`rejection-detection` rule — the shared contract every proposing loop now consults so a
+closed-as-not-planned proposal is never re-filed. The gardener already conforms; it is cited there,
+not re-implemented.
+
 ## Autonomous-vs-approval boundary
 
 **Everything is human-gated at v1 — this skill only files tickets.** The
