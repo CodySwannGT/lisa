@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.263.0](https://github.com/CodySwannGT/lisa/compare/v2.262.0...v2.263.0) (2026-07-20)
+
+
+### Features
+
+* **health:** add v1 result contract and storage ([163b0a6](https://github.com/CodySwannGT/lisa/commit/163b0a68059a0b78d1c224f4ecc2a99fb7149f27)), closes [CodySwannGT/lisa#1516](https://github.com/CodySwannGT/lisa/issues/1516)
+
+
+### Bug Fixes
+
+* **health:** address package and lint review ([e59b5ba](https://github.com/CodySwannGT/lisa/commit/e59b5ba51656f6728e7c68d6afabe90748519797)), closes [CodySwannGT/lisa#1516](https://github.com/CodySwannGT/lisa/issues/1516)
+
 ## [2.262.0](https://github.com/CodySwannGT/lisa/compare/v2.261.0...v2.262.0) (2026-07-20)
 
 

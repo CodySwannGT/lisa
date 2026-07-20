@@ -36,8 +36,8 @@
     "check:upstream-evidence-manifest": "node scripts/generate-upstream-evidence-manifest.mjs --check",
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
-    "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json"
-    ,"verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs"
+    "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
+    "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs"
   },
   "engines": {
     "npm": "please-use-bun",
@@ -106,7 +106,7 @@
     "form-data": ">=4.0.6"
   },
   "name": "@codyswann/lisa",
-  "version": "2.262.0",
+  "version": "2.263.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
