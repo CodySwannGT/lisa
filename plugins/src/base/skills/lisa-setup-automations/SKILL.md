@@ -1,7 +1,7 @@
 ---
 name: lisa-setup-automations
 description: "Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automations to create, how often, and with which parameters; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates six default automations: intake-repair (every 60 min), intake PRD (every 60 min), intake tickets (every 10 min), exploratory-bugs (once a day), exploratory-prds (once a day), monitor (once a day) — plus opt-in learnings-audit (once a week, the gardener). Three flags: auto-start-prds and auto-start-tickets control whether ideated PRDs / filed bug tickets are created auto-pickup-ready (prd_ready / ready, default true) or left for human review; learnings-audit (default false) opts into the weekly gardener loop. Tear down with /tear-down-automations."
-allowed-tools: ["Skill", "Bash", "Read"]
+allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit"]
 ---
 
 # Set up Lisa automations: $ARGUMENTS
@@ -115,6 +115,57 @@ repos (don't rely on a bare repo basename when it could collide; qualify it, e.g
 **Idempotent.** Re-running this skill updates the existing `lisa-auto-<project>-*` automations in
 place (same names) rather than creating duplicates.
 
+## Runbook scaffolding
+
+Registration is what pulls a loop under the `automation-runbook-contract` rule, so registration is
+what must produce its runbook. For **every automation actually registered above** — including the
+conditionally-guarded `exploratory-bugs` and the opt-in `learnings-audit` — write a checked-in
+runbook at:
+
+```text
+.lisa/automations/<loop-id>.runbook.md
+```
+
+`<loop-id>` is the automation's suffix, not its full name: `intake-tickets`, not
+`lisa-auto-<project>-intake-tickets`. These files are **project knowledge and belong in git**, like
+`.lisa/PROJECT_LEARNINGS.md` — commit them; they are not scratch output. Derive the set of runbooks
+from what was registered on this run: a loop that was **skipped gets no runbook**, and a loop
+registered later gets one when this skill next runs. Never write a runbook from a fixed list of
+loop names.
+
+Follow the `automation-runbook-contract` rule for the runbook's shape: its ten sections, in its
+order, in its prose register. **Do not restate the template, the run outcomes, or the escalation
+packet here** — cite the rule and instantiate it.
+
+**File shape — two halves with different owners.**
+
+1. A **machine-resolved header block**, delimited exactly by
+   `<!-- lisa:machine-resolved:start -->` and `<!-- lisa:machine-resolved:end -->`, written first
+   in the file. Lisa owns it: on every run it is **rewritten wholesale** from the values resolved
+   above. It carries the project identity (`<owner>/<repo>` and the `<project>` token), the loop
+   id, the full automation name, the exact scheduled command with every `owner/repo` already baked
+   in (never a placeholder), the human cadence and its `rrule`, the resolved queue arguments, and
+   the resolved flag values that shaped the command (`auto-start-prds` / `auto-start-tickets` /
+   `learnings-audit`).
+2. The **ten contract sections** below it. Lisa owns them **only on first write**: seed each one
+   from this skill's per-loop defaults — what that loop maintains, what it reads, how it picks
+   candidates, its bounds, its proof, its approval boundary, its escalation, its recovery, its
+   next-run state, its retirement condition — written for a non-technical operator. After that they
+   belong to the operator.
+
+**Re-run rule (idempotent, append-or-leave).** When the file already exists: rewrite the
+machine-resolved block in place and **leave every one of the ten sections exactly as found** — an
+operator's edited Intent paragraph survives verbatim. If a section from the contract is **missing**
+from an existing file, append it with its seeded default; never overwrite, reorder, reword, or
+delete prose already on disk. If the machine-resolved delimiters are absent (a hand-written file),
+insert the block at the top and touch nothing else.
+
+**Never a precondition.** A runbook that cannot be written is a **degradation, not a blocker**:
+report the failure and continue registering automations. A loop with a missing runbook still runs —
+on the contract's defaults, saying so in its one-line summary — per the contract's
+never-block-always-degrade rule. Scaffolding failure never aborts setup and never leaves an
+automation unregistered.
+
 ## Conditions / guards
 
 - **exploratory-bugs** is created only when the project ships an `exploratory-qa` command (the
@@ -134,3 +185,11 @@ place (same names) rather than creating duplicates.
 
 List each automation created or updated (name, the command it runs, cadence, and the resolved
 `auto-start-prds` / `auto-start-tickets` values), plus any automation skipped and why.
+
+Then list each runbook written, by path (`.lisa/automations/<loop-id>.runbook.md`), saying for each
+whether it was **created** (seeded fresh) or **refreshed** (machine-resolved block rewritten,
+operator prose left untouched). Name every skipped loop again here and state plainly that it has no
+runbook because it was not registered, and why — for example, "exploratory-bugs was skipped because
+this project ships no exploratory-qa command, so no runbook was written for it." If a runbook could
+not be written, say which one and what failed; the automation itself is still registered. Write all
+of this so a non-technical operator can act on it without reading code.

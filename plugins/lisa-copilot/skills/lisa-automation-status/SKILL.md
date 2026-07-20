@@ -16,14 +16,12 @@ Do **not** ask for confirmation once invoked. This skill inspects scheduler stat
 
 ## Scope
 
-Inspect only the Lisa automation fleet for the current project:
-
-- `intake-repair`
-- `intake-prd`
-- `intake-tickets`
-- `exploratory-bugs` when the current stack supports `exploratory-qa`
-- `exploratory-prds`
-- `monitor`
+Inspect only the Lisa automation fleet for the current project. Derive that fleet from
+`scripts/automation-status-expected-fleet.mjs` (`resolveExpectedAutomationFleet`), which resolves
+exactly what `setup-automations` registers for this repo — including the stack-guarded
+`exploratory-bugs` and the opt-in `learnings-audit` gardener. **Membership is registration, not a
+roster** (`automation-runbook-contract`): carry no fixed list of loop names here, so a loop added to
+or removed from the registration set flows through without editing this skill.
 
 Resolve the expected project identifier, fleet naming prefix, queue arguments, cadence, and stack-support rules from the same contract used by `setup-automations` and `tear-down-automations`. Do **not** invent a second source of truth for fleet naming or queue resolution.
 
