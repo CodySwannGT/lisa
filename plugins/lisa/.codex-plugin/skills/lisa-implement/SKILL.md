@@ -185,6 +185,32 @@ Before marking a task complete, the implementing agent records concise MLD into 
 
 Each task must have their learnings captured to the ledger by the learner subagent.
 
+## Implement valid suggestions
+
+When review, CodeRabbit, local-review, product, quality, security, or specialist
+feedback arrives, apply the `convergent-review` rule before changing code:
+
+1. Normalize each finding into severity, blocking yes/no, concrete failure
+   scenario, evidence, and proposed smallest fix.
+2. Treat a blocker with no concrete correctness, security, data-loss, or
+   contract-violation scenario as malformed. Reply with the missing-evidence
+   reason and handle it as non-blocking.
+3. Resolve each finding with one disposition:
+   - `fixed`: make the smallest code, test, docs, or generated-artifact change
+     that removes the failure scenario.
+   - `deferred`: record why the issue is real but non-blocking, and file or link
+     follow-up work when useful.
+   - `pushed-back`: cite the evidence, scope boundary, or repository rule that
+     refutes the finding.
+4. If a reviewer cannot refute a pushback with fresh evidence, the author's
+   disposition stands.
+5. After the suggestion-implementation task completes and required gates pass,
+   do not reopen review unless new evidence appears: a relevant new commit, a
+   failed gate, a newly cited failure scenario, or a scope change.
+6. If a blocking disagreement remains irreconcilable, stop the review loop:
+   move the work item to the configured blocked state, add `human-needed` when
+   the decision is human-only, and summarize both positions in plain language.
+
 Before shutting down the team, execute the Verify flow:
 
 1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
