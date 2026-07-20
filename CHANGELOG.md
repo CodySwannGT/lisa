@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.249.0](https://github.com/CodySwannGT/lisa/compare/v2.247.3...v2.249.0) (2026-07-20)
+
+
+### Features
+
+* require tracked work before durable changes ([d557349](https://github.com/CodySwannGT/lisa/commit/d557349e181c53c40a30b1f279ed417f394559e2)), closes [CodySwannGT/lisa#1783](https://github.com/CodySwannGT/lisa/issues/1783)
+* **skills:** add convergent review policy ([be06184](https://github.com/CodySwannGT/lisa/commit/be0618423f4d3858a657f1d44f1a363845f10389))
+* **verify:** add guarded Kane CLI browser provider ([00dee10](https://github.com/CodySwannGT/lisa/commit/00dee10b27eae8fc4987152898878cfed75308d1))
+
 ## [2.248.0](https://github.com/CodySwannGT/lisa/compare/v2.247.3...v2.248.0) (2026-07-20)
 
 
