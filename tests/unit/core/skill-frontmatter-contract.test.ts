@@ -1,5 +1,5 @@
 /**
- * Cross-agent skill/command frontmatter contract.
+ * Cross-agent skill, command, and agent frontmatter contract.
  *
  * Every coding agent Lisa distributes to must be able to load every skill and
  * command. The strictest loader in the fleet (GitHub Copilot CLI) enforces:
@@ -11,9 +11,10 @@
  * lenient loaders accept it, so parseability is asserted with a real YAML
  * parser rather than a regex.
  *
- * Scans the source trees (`plugins/src`, root `.claude`, `.agents`) and the
- * generated plugin artifacts (`plugins/lisa*`) so both hand-edited sources and
- * generator output are covered.
+ * Agent Markdown includes both ordinary `*.md` and Copilot `*.agent.md`
+ * projections. Scans the source trees (`plugins/src`, root `.claude`,
+ * `.agents`) and generated plugin artifacts (`plugins/lisa*`) so both
+ * hand-edited sources and generator output are covered.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -28,15 +29,47 @@ const MAX_DESCRIPTION_LENGTH = 1024;
 const SCAN_ROOTS = [".agents", ".claude", "plugins"] as const;
 
 const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "worktrees"]);
+const AGENT_TEMPLATE_KIND = "agent-template" as const;
 
-/** A skill or command markdown file discovered during the repository scan. */
+/** Kind of frontmatter-bearing Markdown surface discovered by this contract. */
+type ScannedFileKind =
+  | "agent"
+  | typeof AGENT_TEMPLATE_KIND
+  | "command"
+  | "skill";
+
+/** A frontmatter-bearing Markdown file discovered during the repository scan. */
 interface ScannedFile {
-  readonly isSkill: boolean;
+  readonly kind: ScannedFileKind;
   readonly relativePath: string;
 }
 
 /**
- * Recursively collects SKILL.md and command markdown files under a directory.
+ * Classifies a frontmatter-bearing Markdown file by its repository path.
+ * @param absolutePath Absolute path of the candidate file.
+ * @param entry Basename of the candidate file.
+ * @returns The surface kind, or undefined when the file is outside the contract.
+ */
+function classifyMarkdownFile(
+  absolutePath: string,
+  entry: string
+): ScannedFileKind | undefined {
+  if (absolutePath.includes("/agents/") && entry.endsWith(".md")) {
+    return absolutePath.includes("/templates/agents/")
+      ? AGENT_TEMPLATE_KIND
+      : "agent";
+  }
+  if (entry === "SKILL.md") {
+    return "skill";
+  }
+  if (absolutePath.includes("/commands/") && entry.endsWith(".md")) {
+    return "command";
+  }
+  return undefined;
+}
+
+/**
+ * Recursively collects skill, command, and agent Markdown under a directory.
  * @param directory Absolute path of the directory to walk.
  * @param collected Accumulator the discovered files are pushed onto.
  */
@@ -54,12 +87,10 @@ function collectMarkdownFiles(
       collectMarkdownFiles(absolutePath, collected);
       continue;
     }
-    const isSkill = entry === "SKILL.md";
-    const isCommand =
-      absolutePath.includes("/commands/") && entry.endsWith(".md");
-    if (isSkill || isCommand) {
+    const kind = classifyMarkdownFile(absolutePath, entry);
+    if (kind !== undefined) {
       collected.push({
-        isSkill,
+        kind,
         relativePath: absolutePath.slice(REPO_ROOT.length + 1),
       });
     }
@@ -67,7 +98,7 @@ function collectMarkdownFiles(
 }
 
 /**
- * Scans every configured root for skill and command markdown files.
+ * Scans every configured root for frontmatter-bearing Markdown files.
  * @returns The discovered files, with repo-relative paths.
  */
 function scanRepository(): readonly ScannedFile[] {
@@ -122,55 +153,84 @@ function parseFrontmatter(text: string): {
 
 /**
  * Applies the loader contract to each file and reports every violation.
- * @param files Scanned skill and command files to validate.
+ * @param files Scanned skill, command, and agent files to validate.
  * @returns One entry per violated rule, empty when everything loads.
  */
 function findViolations(files: readonly ScannedFile[]): readonly Violation[] {
-  return files.flatMap(file => {
-    const text = readFileSync(join(REPO_ROOT, file.relativePath), "utf8");
-    const { error, frontmatter } = parseFrontmatter(text);
-    if (error !== undefined) {
-      return [{ detail: error, relativePath: file.relativePath }];
-    }
-    if (frontmatter === undefined) {
-      return file.isSkill
-        ? [
-            {
-              detail: "missing YAML frontmatter",
-              relativePath: file.relativePath,
-            },
-          ]
-        : [];
-    }
-    const violations: Violation[] = [];
-    const description = frontmatter["description"];
-    if (file.isSkill && typeof description !== "string") {
-      violations.push({
-        detail: "frontmatter is missing a string `description`",
-        relativePath: file.relativePath,
-      });
-    }
-    if (
-      typeof description === "string" &&
-      description.length > MAX_DESCRIPTION_LENGTH
-    ) {
-      violations.push({
-        detail: `description is ${String(description.length)} characters (max ${String(MAX_DESCRIPTION_LENGTH)})`,
-        relativePath: file.relativePath,
-      });
-    }
-    return violations;
-  });
+  return files
+    .filter(file => file.kind !== AGENT_TEMPLATE_KIND)
+    .flatMap(file => {
+      const text = readFileSync(join(REPO_ROOT, file.relativePath), "utf8");
+      const { error, frontmatter } = parseFrontmatter(text);
+      if (error !== undefined) {
+        return [{ detail: error, relativePath: file.relativePath }];
+      }
+      if (frontmatter === undefined) {
+        return file.kind !== "command"
+          ? [
+              {
+                detail: "missing YAML frontmatter",
+                relativePath: file.relativePath,
+              },
+            ]
+          : [];
+      }
+      const violations: Violation[] = [];
+      const name = frontmatter["name"];
+      const description = frontmatter["description"];
+      if (
+        file.kind === "agent" &&
+        (typeof name !== "string" || name.trim().length === 0)
+      ) {
+        violations.push({
+          detail: "frontmatter is missing a non-empty string `name`",
+          relativePath: file.relativePath,
+        });
+      }
+      if (
+        file.kind !== "command" &&
+        (typeof description !== "string" || description.trim().length === 0)
+      ) {
+        violations.push({
+          detail: "frontmatter is missing a non-empty string `description`",
+          relativePath: file.relativePath,
+        });
+      }
+      if (
+        typeof description === "string" &&
+        description.length > MAX_DESCRIPTION_LENGTH
+      ) {
+        violations.push({
+          detail: `description is ${String(description.length)} characters (max ${String(MAX_DESCRIPTION_LENGTH)})`,
+          relativePath: file.relativePath,
+        });
+      }
+      return violations;
+    });
 }
 
-describe("skill and command frontmatter contract", () => {
+describe("skill, command, and agent frontmatter contract", () => {
   const files = scanRepository();
 
-  it("finds skill and command files to validate", () => {
+  it("finds every frontmatter surface family to validate", () => {
     expect(files.length).toBeGreaterThan(300);
+    const agents = files.filter(file => file.kind === "agent");
+    const agentTemplates = files.filter(
+      file => file.kind === AGENT_TEMPLATE_KIND
+    );
+    expect(agents).toHaveLength(250);
+    expect(agentTemplates).toHaveLength(5);
+    expect(
+      agentTemplates.every(file =>
+        file.relativePath.endsWith("/templates/agents/role-agent.claude.md")
+      )
+    ).toBe(true);
+    expect(agents.some(file => file.relativePath.endsWith(".agent.md"))).toBe(
+      true
+    );
   });
 
-  it("every skill and command loads under the strictest agent loader", () => {
+  it("every rendered surface loads under the active YAML parser", () => {
     const violations = findViolations(files);
     const report = violations
       .map(violation => `${violation.relativePath}: ${violation.detail}`)
