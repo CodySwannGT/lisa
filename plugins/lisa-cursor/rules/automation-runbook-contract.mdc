@@ -47,7 +47,8 @@ A **run outcome** describes the LOOP ITERATION. A **terminal state** describes a
 already uses that phrase for work-item lifecycles (`lisa-intake`: "`Blocked` is a valid terminal
 state of the downstream lifecycles"). The two vocabularies never merge in an operator-facing report.
 A healthy cycle that routes a work item to `Blocked` with clarifying questions is
-`candidate-proposed` — it produced something — and **never `recovery-required`**, which means the
+`candidate-proposed` — it produced something — so it is **never `nothing-needed`**, which is
+reserved for runs that found nothing at all, and **never `recovery-required`**, which means the
 loop itself is broken, not that a work item was blocked.
 
 ## No silent exit
