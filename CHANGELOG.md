@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.259.2](https://github.com/CodySwannGT/lisa/compare/v2.259.1...v2.259.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **skills:** verify a deploy run exists for the merge SHA in drive-pr-to-merge ([#1777](https://github.com/CodySwannGT/lisa/issues/1777)) ([80f8f84](https://github.com/CodySwannGT/lisa/commit/80f8f84599d0f77f447645fd4440447a24da0f5f)), closes [#67](https://github.com/CodySwannGT/lisa/issues/67)
+
 ### [2.259.1](https://github.com/CodySwannGT/lisa/compare/v2.259.0...v2.259.1) (2026-07-20)
 
 
