@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.257.2](https://github.com/CodySwannGT/lisa/compare/v2.257.1...v2.257.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **plugins:** guard npm root probe ([cb88589](https://github.com/CodySwannGT/lisa/commit/cb88589482e57029d5affb6e0469e40c1ee76281)), closes [CodySwannGT/lisa#1706](https://github.com/CodySwannGT/lisa/issues/1706) [CodySwannGT/lisa#1706](https://github.com/CodySwannGT/lisa/issues/1706)
+
 ### [2.257.1](https://github.com/CodySwannGT/lisa/compare/v2.257.0...v2.257.1) (2026-07-20)
 
 
