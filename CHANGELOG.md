@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.267.0](https://github.com/CodySwannGT/lisa/compare/v2.266.0...v2.267.0) (2026-07-20)
+
+
+### Features
+
+* **verification:** executable failure-mode fixtures and the could-not-evaluate guard ([#1840](https://github.com/CodySwannGT/lisa/issues/1840)) ([08a304f](https://github.com/CodySwannGT/lisa/commit/08a304f42fce4f0fb0cf58c845c87099cd2b6bbf))
+* **verification:** spec-conformance consumption, parity backstop, and bounded-claims docs ([#1841](https://github.com/CodySwannGT/lisa/issues/1841)) ([a536afa](https://github.com/CodySwannGT/lisa/commit/a536afa4c8f5f423119d41f994d8be6c46f1a3b8))
+
 ## [2.266.0](https://github.com/CodySwannGT/lisa/compare/v2.265.0...v2.266.0) (2026-07-20)
 
 
