@@ -417,7 +417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/quality-specialist.md":
       "2a1b433fa1be1c8b23c2c83e5f247b851c61e3c253a79caf8a3eb7f326744a22",
     "plugins/src/base/agents/security-specialist.md":
-      "7aa6775e6e43a860338fe77e5378a61dcc34c7f76f7d3c840288ae882f6cfd38",
+      "2d592b4c2666082ef84cae8878be99b9ebd07f75ab77656409beff306f17a6b4",
     "plugins/src/base/agents/skill-evaluator.md":
       "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
     "plugins/src/base/agents/spec-conformance-specialist.md":
@@ -611,7 +611,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/claim-archaeology.md":
       "96afa034075593dfb7433c5c990b472a6b6f7320332da42ef54b1f01fa45664b",
     "plugins/src/base/rules/eager/claim-evidence-mapping.md":
-      "d3428bb877c1a25639745d776e20b16c8ade7987e81c7c3bf3175fc0f12dbfb3",
+      "d12a6153b8c22db2826153c479d107c7a885e22cbcdd49e4fd8193e0cbbe8ae3",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -667,7 +667,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
-      "97a7cf623f6df51d57f6d649036c04067d4fe42d4ab66230ac51306f0104b4a1",
+      "49a3bbf4e8a9a8ca9e13eeafa672517d077060cfeb5d9710881ec9f5c3f3ec75",
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
@@ -1009,9 +1009,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "2b1cb5bac2be7e8bb6b852efb0bd499cbcdca6299c342a54e0c8d872821c7364",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
-      "4d5c30c4d637e8438ae02f904e08eb81cde2b3c8384c55469e76ae1b91bb96bd",
+      "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
-      "7abb4231389b54ffeff2dd081c9100500ee6803e1e034ac2a230b173a5d1537a",
+      "a5189442dbf970cc49fd089ab03c386c8a205b856e09501f6ad1966321e7e4b5",
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "ecaf49b42bbf399781a3ebd0b1595e5a8ac44422537832e0442b2f184da0c83c",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
@@ -7792,6 +7792,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/repair-intake-contract.test.ts": true,
     "tests/unit/strategies/repo-scope-claim.test.ts": true,
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
+    "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
     "tests/unit/strategies/setup-confluence-verified-parent.test.ts": true,
     "tests/unit/strategies/setup-github-prd-verified-label.test.ts": true,
     "tests/unit/strategies/setup-github-project-verification.test.ts": true,

@@ -42,8 +42,15 @@ rule 5).
 A claim carries three fields — `claim_id`, `boundary`, and `required_evidence_kinds` — named here so
 every downstream surface uses one spelling. This ticket only writes the contract down; the schema and
 gate that make these fields executable ship with **BCE-2 (#1836)** — do not assume that surface is
-present in this branch. The conservative security-bucket default is set in **BCE-5 (#1839)** — named
-here, defined there.
+present in this branch.
+
+## Security buckets (conservative by default)
+
+A security finding is **proven** only with both a reproducer of a reaching kind and a bounded
+impact/exploitability statement; missing either, it renders **unproven** with its reason and **stays
+in the security section** — never auto-demoted to maintenance. The label is one policy point,
+`security.review.unprovenBucket` (default `security-unproven`); the procedure lives in the
+`lisa-security-review` skill.
 
 ## Artifact identity (pinned, never assumed)
 
