@@ -1000,6 +1000,7 @@ to each item* — the two never merge in the one-line summary.
 | Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
 | A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed) | `approval-requested` |
 | The loop itself could not run — the queue is unreadable, tracker credentials are revoked, or an open-and-closed rejection-memory / blocker-marker search is unreadable and therefore must not fall through to `nothing-needed` | `recovery-required` |
+| The runbook's **Retirement condition** tripped | `policy-obsolete` — **never reached by design for this loop** (see Retirement evaluation below) |
 
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
 (the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
@@ -1018,6 +1019,13 @@ If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory direct
 `plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
 abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
 the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
+**Retirement evaluation (every run).** The `intake-repair` loop is **structural to the
+factory — it does not retire.** Its runbook says so plainly instead of leaving the Retirement
+condition blank, so the `automation-runbook-contract` rule's two-part retirement test never fires
+here: this loop never records `policy-obsolete` and never files a teardown proposal. An operator who
+wants repair to stop runs `/lisa:tear-down-automations` themselves — the loop never removes its own
+registration.
 
 ## Schedule examples
 
