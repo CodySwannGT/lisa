@@ -175,6 +175,13 @@ describe("rejection-detection rule contract", () => {
         }
       });
 
+      it("warns the GitHub stateReason compare is case-insensitive (raw gh is UPPERCASE)", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toMatch(/case-insensitive/i);
+          expect(doc).toContain("NOT_PLANNED");
+        }
+      });
+
       it("resolves the JIRA/Linear not-planned equivalent from config, never hardcoded", () => {
         for (const doc of [eager, reference]) {
           expect(doc).toContain("config-resolution");
