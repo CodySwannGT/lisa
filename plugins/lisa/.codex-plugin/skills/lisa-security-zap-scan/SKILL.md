@@ -25,7 +25,19 @@ Run a ZAP baseline security scan against the local application.
      - List each Medium+ finding with its rule ID, name, and recommended fix
      - Categorize findings as "infrastructure-level" (fix at CDN/proxy) vs "application-level" (fix in code)
 
-4. **Handle failures**:
+4. **Apply the impact-or-exploitability bar** -- the same bar the `lisa-security-review` skill
+   defines; follow that skill, do not restate it. A ZAP alert is not a reproducer by itself: the
+   alert names a pattern, not an exercised impact path.
+   - **Security (proven)** -- the alert carries a reproducer (the ZAP request/response transcript for
+     that alert, or a captured `http-transcript`) **and** a bounded impact statement.
+   - **Security (unproven)** -- everything else, each with a one-line `reason` (typically
+     "alert only, no reproducer / no bounded impact"). Unproven alerts are **not dropped** and not
+     demoted out of the security summary -- they render in the unproven bucket so a reader still sees
+     them.
+   - Rename the unproven heading only if `security.review.unprovenBucket` is set to something other
+     than `security-unproven`; no other classification changes.
+
+5. **Handle failures**:
    - If the scan failed, explain what failed and suggest concrete remediation steps
 
 ## Execution
