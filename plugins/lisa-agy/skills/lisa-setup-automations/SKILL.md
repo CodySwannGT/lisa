@@ -105,6 +105,19 @@ the scheduled commands (for example `/lisa:intake acme/frontend intake_mode=prd`
 config/read-context failure cannot silently redirect the cron. A short queueRepo is normalized to
 `github.org` before writing the automation.
 
+**Registration prompt shape (so status can read the command back).** Whatever prose the prompt
+carries, it must contain the **literal Lisa command on a line of its own**, exactly as scheduled and
+with every `owner/repo` already baked in:
+
+```text
+/lisa:intake acme/planning intake_mode=build
+```
+
+This holds for loops that take **no arguments** too — `/lisa:monitor` and `/lisa:learnings:audit`
+are written the same way, on their own line, with nothing after them. `/lisa:automation-status`
+reads that line back to compare the live registration against this contract; a loop whose command
+cannot be read back reports as drifted even though it is registered correctly.
+
 **Naming + scope (so teardown is precise).** Name each automation with the stable prefix
 `lisa-auto-<project>-` (e.g. `lisa-auto-<project>-intake-tickets`), where `<project>` identifies this
 repo, and scope each Codex automation to the durable project automation checkout described above.
