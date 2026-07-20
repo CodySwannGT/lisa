@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.257.1](https://github.com/CodySwannGT/lisa/compare/v2.257.0...v2.257.1) (2026-07-20)
+
+
+### Documentation
+
+* **learnings:** broaden fresh-worktree bootstrap rule ([f7d9a2b](https://github.com/CodySwannGT/lisa/commit/f7d9a2b6954b6b92cd853c06787851f04bd1e82d)), closes [CodySwannGT/lisa#1706](https://github.com/CodySwannGT/lisa/issues/1706)
+
 ## [2.257.0](https://github.com/CodySwannGT/lisa/compare/v2.256.1...v2.257.0) (2026-07-20)
 
 
