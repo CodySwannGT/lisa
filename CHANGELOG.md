@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.254.0](https://github.com/CodySwannGT/lisa/compare/v2.253.0...v2.254.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** add durable run outcome records ([58f086c](https://github.com/CodySwannGT/lisa/commit/58f086cbd342d7bf4a40b54a0bce5bba9d5d3777)), closes [CodySwannGT/lisa#1797](https://github.com/CodySwannGT/lisa/issues/1797)
+
 ## [2.253.0](https://github.com/CodySwannGT/lisa/compare/v2.252.0...v2.253.0) (2026-07-20)
 
 
