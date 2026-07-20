@@ -89,6 +89,11 @@ Retirement condition
   cadence until someone approves, declines, or re-cadences it.
 ```
 
+That example's 30-day retirement row is **illustration of the shape, not the shipped default**: the
+seed `lisa-setup-automations` writes declares the three `intake-*` loops structural to the factory,
+whose runbooks state plainly that they do not retire. The mechanism below is normative; the numbers
+above are only a filled-in example.
+
 ## The six run outcomes
 
 Exactly one per run. The one-line operator summary is not optional — it is what the status surface
@@ -104,7 +109,7 @@ only `recovery-required` means the machinery itself is broken.
 | `change-proved` | The loop made a change and proved it with evidence. | Healthy | None — informational. | What changed and the evidence that proves it. |
 | `approval-requested` | The loop reached its autonomous/approval boundary and asked a human. | Healthy | Answer the approval question. | What is waiting, on whom, and what happens if nobody answers. |
 | `recovery-required` | The loop itself could not complete: access, tooling, or substrate is broken. | **Not healthy** — needs a human | Restore the named capability, then close the escalation item. | What broke, and the escalation item to act on. |
-| `policy-obsolete` | The loop's own retirement policy — the retirement condition written in its runbook — tripped, so it proposed its own teardown. | Healthy | Decide: approve the teardown, decline it (close the proposal; the loop continues at cadence), or re-cadence it. | Why it looks obsolete and the teardown-proposal item. |
+| `policy-obsolete` | The loop's own retirement policy — the retirement condition written in its runbook — tripped, so it proposed its own teardown. | Healthy | Decide: approve the teardown, decline it (close the proposal as **Not planned**; the loop continues at cadence), or re-cadence it. | Why it looks obsolete and the teardown-proposal item. |
 
 ### Exemplar one-line summaries
 
@@ -194,7 +199,9 @@ teardown-proposal item — matched on the marker, never the title — carrying t
 result and this run's summary as evidence, and proposing either a longer cadence or
 `lisa-tear-down-automations`. The loop **keeps running at its normal cadence** until an operator
 flips that proposal one of three ways: **approve** it (`lisa-tear-down-automations` runs and the
-registration goes away), **decline** it (close the proposal — the loop simply continues), or
+registration goes away), **decline** it (close the proposal as **Not planned** — closing it as
+**Completed** leaves a later re-file open, per `rejection-detection`'s proposal rejection memory;
+either way the loop simply continues), or
 **re-cadence** it (register it at the longer cadence instead of tearing it down). Retirement is a
 recommendation like any other, **never a self-executed exit**: a loop never deletes its own
 registration, and a proposal nobody answers changes nothing.
