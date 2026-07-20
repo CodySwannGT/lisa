@@ -56,6 +56,7 @@ export type GateScenario = {
   stop: (sessionId: string) => HookResult;
   writeVerdict: (contents: string, options?: WriteVerdictOptions) => void;
   writeConfig: (enforceBoundaries: boolean) => void;
+  writeEvidenceFile: (relativePath: string, contents: string) => void;
 };
 
 /**
@@ -132,6 +133,19 @@ export const createGateScenario = (
         path.join(projectDir, ".lisa.config.json"),
         JSON.stringify({ verification: { gate: { enforceBoundaries } } })
       );
+    },
+
+    /**
+     * Materializes an evidence artifact inside the scenario's project directory
+     * so the gate's digest check has real bytes to recompute. Evidence
+     * `locator` values are project-relative, exactly as a verdict records them.
+     * @param relativePath - Locator relative to the project directory.
+     * @param contents - Bytes to write at that locator.
+     */
+    writeEvidenceFile: (relativePath: string, contents: string): void => {
+      const target = path.join(projectDir, relativePath);
+      mkdirSync(path.dirname(target), { recursive: true });
+      writeFileSync(target, contents);
     },
   };
 };
