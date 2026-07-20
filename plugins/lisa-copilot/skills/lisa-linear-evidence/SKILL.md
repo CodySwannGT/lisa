@@ -41,6 +41,15 @@ The caller must produce:
 
 If any of these are missing, stop and report.
 
+## Comment-body preflight (required)
+
+Before posting or updating anything, check the evidence body (`comment.md`, and `comment.txt` where this skill uses it):
+
+- It contains a `## Not established` heading. That heading is **never omitted and never blank** — when nothing is outstanding it still renders `None outstanding — reviewed`; otherwise it names, in plain operator language, what the verification did not prove.
+- The accompanying verdict carries `not_established_reviewed: true` (the list may be empty; the flag may never be omitted).
+
+If either is missing, **refuse to post**: stop and report the missing Not-established review to the caller instead of publishing. Composing the body is `lisa-tracker-evidence`'s job (see its UI Evidence Checklist); this skill only refuses to publish one that omits the section. The section is defined by the `claim-evidence-mapping` rule and generalizes `lisa-improve-harness`'s required, never-empty `Known limits` field.
+
 ## Phase 1 — Resolve Linear Issue
 
 1. Parse the identifier from `$ARGUMENTS`.

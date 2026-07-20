@@ -42,9 +42,18 @@ rule 5).
 A claim carries three fields — `claim_id`, `boundary`, and `required_evidence_kinds` — named here so
 every downstream surface uses one spelling. This ticket only writes the contract down; the schema and
 gate that make these fields executable ship with **BCE-2 (#1836)** — do not assume that surface is
-present in this branch. A claim with no reaching evidence is **Not established** (defined fully in
-**BCE-3 (#1837)**), an artifact's identity is pinned in **BCE-4 (#1838)**, and the conservative
+present in this branch. An artifact's identity is pinned in **BCE-4 (#1838)** and the conservative
 security-bucket default is set in **BCE-5 (#1839)** — each named here, defined there.
+
+## Not established (required, never omitted)
+
+A claim with no reaching evidence is **Not established**, and every report says so out loud. Each
+evidence comment and verdict carries a `Not established` section listing what was *not* proved —
+boundaries not exercised, environments not tested, behavior consciously out of scope. It is never
+omitted and never blank: with nothing outstanding it still renders `None outstanding — reviewed`, and
+`not_established_reviewed` attests the list was reviewed even when the list itself is empty. This
+generalizes the required, never-empty `Known limits` field of `lisa-improve-harness`. Full definition
+and operator-voice exemplars: the reference body.
 
 ## No behavior change; degrade, never block
 
