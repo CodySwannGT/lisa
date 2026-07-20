@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.260.1](https://github.com/CodySwannGT/lisa/compare/v2.260.0...v2.260.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **templates:** ignore .lisa/automations/runs/ in host projects ([#1807](https://github.com/CodySwannGT/lisa/issues/1807)) ([daea499](https://github.com/CodySwannGT/lisa/commit/daea499ea14d367f76e060011c149bc73e34387c)), closes [#1797](https://github.com/CodySwannGT/lisa/issues/1797) [#1806](https://github.com/CodySwannGT/lisa/issues/1806)
+
 ## [2.260.0](https://github.com/CodySwannGT/lisa/compare/v2.259.4...v2.260.0) (2026-07-20)
 
 
