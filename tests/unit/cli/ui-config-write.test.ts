@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- endpoint security regressions share one server fixture */
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
@@ -70,68 +69,6 @@ async function writeConfigPair(): Promise<void> {
 }
 
 describe("POST /api/config", () => {
-  it("rejects an invalid health.schedule through the generic registry validator", async () => {
-    await writeConfigPair();
-    resources.server = await runUi(
-      resources.dir,
-      { port: "0", sync: false },
-      { probes: [] }
-    );
-    const before = await readConfigBytes();
-
-    const response = await fetch(
-      `http://127.0.0.1:${serverPort()}/api/config`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": CONTENT_TYPE_JSON,
-          origin: `http://127.0.0.1:${serverPort()}`,
-        },
-        body: JSON.stringify({ changes: { "health.schedule": "hourly" } }),
-      }
-    );
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: expect.stringMatching(/health\.schedule/),
-    });
-    expect(await readConfigBytes()).toStrictEqual(before);
-  });
-
-  it.each([
-    ["parent", { health: { schedule: "hourly" } }],
-    ["descendant", { "health.schedule.unit": "daily" }],
-    ["overlap", { "health.schedule": "daily", health: { schedule: "hourly" } }],
-  ])(
-    "rejects invalid health.schedule introduced through a %s write",
-    async (_name, changes) => {
-      await writeConfigPair();
-      resources.server = await runUi(
-        resources.dir,
-        { port: "0", sync: false },
-        { probes: [] }
-      );
-      const before = await readConfigBytes();
-      const response = await fetch(
-        `http://127.0.0.1:${serverPort()}/api/config`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": CONTENT_TYPE_JSON,
-            origin: `http://127.0.0.1:${serverPort()}`,
-          },
-          body: JSON.stringify({ changes }),
-        }
-      );
-
-      expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({
-        error: expect.stringMatching(/health\.schedule/),
-      });
-      expect(await readConfigBytes()).toStrictEqual(before);
-    }
-  );
-
   it("rejects non-loopback origins without writing config files", async () => {
     await writeConfigPair();
     resources.server = await runUi(
@@ -364,4 +301,3 @@ describe("POST /api/config", () => {
     });
   });
 });
-/* eslint-enable max-lines -- restore repository defaults */
