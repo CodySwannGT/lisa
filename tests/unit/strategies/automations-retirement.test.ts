@@ -120,9 +120,13 @@ describe("the runbook seed states a retirement condition per loop (#1801)", () =
       expect(content).toMatch(/never an ad-hoc counter/i);
       expect(content).toMatch(/stateless/i);
       expect(content).toMatch(/derived from the tracker/i);
-      expect(content).toMatch(/never an ad-hoc counter/i);
-      expect(content).toMatch(/bounded run-history record/i);
-      expect(content).not.toContain(".lisa/automations/runs/<loop-id>.jsonl");
+      // Both valid substrates, per the ticket: the tracker OR RBC-3's bounded
+      // run history. The run record is the contract's own recorder-written
+      // substrate, so it is not the "counter or state file" the contract bans.
+      expect(content).toContain(".lisa/automations/runs/<loop-id>.jsonl");
+      expect(content).toMatch(/same discipline, not a loosening/);
+      expect(content).toContain("automation-run-record.mjs");
+      expect(content).toMatch(/Prefer the tracker/);
       expect(content).toContain(CONTRACT);
     });
 
