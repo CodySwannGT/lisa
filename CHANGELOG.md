@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.269.0](https://github.com/CodySwannGT/lisa/compare/v2.268.1...v2.269.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add invariant-violated and machinery-to-remove to convergent-review ([#1854](https://github.com/CodySwannGT/lisa/issues/1854)) ([9b5cf68](https://github.com/CodySwannGT/lisa/commit/9b5cf68a28f0fd4eb32adb1ee8cd3aa202050543))
+
 ### [2.268.1](https://github.com/CodySwannGT/lisa/compare/v2.268.0...v2.268.1) (2026-07-20)
 
 
