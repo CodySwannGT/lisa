@@ -240,4 +240,18 @@ describe("all/copy-contents/gitignore shipped content", () => {
     expect(rules).toContain(VERIFICATION_STATUS);
     expect(rules).not.toContain(".lisa/");
   });
+
+  it("ignores automation run records while keeping runbooks trackable", () => {
+    // Host projects run the automation loops that write
+    // .lisa/automations/runs/<loop-id>.jsonl; those local scheduler
+    // observations must be ignored. Runbooks (.lisa/automations/*.runbook.md)
+    // are project knowledge and must stay trackable, so the rule targets only
+    // the runs/ subdirectory — never the whole automations directory.
+    const rules = readShared()
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith("#"));
+    expect(rules).toContain(".lisa/automations/runs/");
+    expect(rules).not.toContain(".lisa/automations/");
+  });
 });
