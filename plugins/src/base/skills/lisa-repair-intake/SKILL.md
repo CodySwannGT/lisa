@@ -38,7 +38,11 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   one missed by dependency-only re-checks: nothing else is blocking it, so re-running the same gate
   against its current content is the only way to know it is now passable.
 - **Terminal-open drift** — an item already carrying its true terminal lifecycle role (for
-  example GitHub `status:done`) but still open/active in the provider's native state.
+  example GitHub `status:done`) but still open/active in the provider's native state. The inverse
+  also drifts on Linear: a leaf whose native `state` was auto-completed by a magic-word / branch-linkage
+  merge into a **non-terminal** env (Linear completes on merge to any branch, unlike GitHub's
+  default-branch-scoped close) while its derived `status:*` label is still intermediate — reconcile
+  it back to active via `lisa-linear-sync` Phase 4b per `leaf-only-lifecycle`.
 - **Rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or equivalent)
   whose own lifecycle state does not match the roll-up of its children's states per
   `leaf-only-lifecycle`. This covers the *completed* case (all children terminal → close the parent
