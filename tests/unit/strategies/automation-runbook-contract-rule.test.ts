@@ -89,6 +89,9 @@ describe("automation-runbook-contract rule contract", () => {
           /routes a work item to\s+`?Blocked`?[\s\S]{0,220}?`candidate-proposed`/
         );
         expect(doc).not.toMatch(/`nothing-needed` or `candidate-proposed`/);
+        // Both halves must rule out BOTH wrong outcomes — an agent that loads
+        // only the eager head must not mis-route a low-yield Blocked cycle.
+        expect(doc).toMatch(/never\s+\*{0,2}`?nothing-needed`?/i);
       }
       expect(reference).toContain("Blocked");
     });
