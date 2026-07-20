@@ -228,22 +228,52 @@ Before shutting down the team, execute the Verify flow:
 
 1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
 2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step. For UI-surface bugs, the proof must observe the UI surface with browser/device automation against the target environment whenever such a harness exists; unit-level or API-only proof cannot satisfy the empirical verification contract for a UI-surface defect.
-2a. **Record the verification verdict** — the independent, machine-readable proof that gates completion. The `verification-specialist` writes `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json` with one entry per acceptance criterion, each carrying the proof command's observed evidence:
+2a. **Record the verification verdict** — the independent, machine-readable proof that gates completion. The `verification-specialist` writes `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json` in **schema v2**, which binds every claim to the *boundary* it asserts and to the evidence *kinds* that reach that boundary, per the `claim-evidence-mapping` rule:
 
     ```json
     {
+      "schema_version": 2,
       "plan": "<plan-name>",
-      "status": "pass | fail | blocked | in_progress",
+      "artifact": {
+        "repository": "<owner/repo>", "base_sha": "<sha>", "head_sha": "<sha of what will ship>",
+        "build_id": "<build/run id>", "environment": "<where it was observed>", "observed_at": "<ISO8601 UTC>"
+      },
+      "claims": [
+        {
+          "claim_id": "AC-1",
+          "statement": "<the claim, in the operator's language>",
+          "boundary": "code-unit | browser | http-api | cli | data | deploy-health | performance | standards-compat",
+          "required_for_gate": true,
+          "required_evidence_kinds": ["<kinds that reach this boundary, e.g. screenshot, recording>"],
+          "status": "established | not-established",
+          "evidence_refs": ["EV-1"],
+          "not_established": ["<what this claim does NOT cover>"]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EV-1",
+          "kind": "screenshot | recording | http-transcript | cli-output | log-snippet | db-query-output | perf-trace | test-run-log | deploy-log | state-dump",
+          "locator": "evidence/<ticket>/<file>", "sha256": "<hash>",
+          "captured_at": "<ISO8601 UTC>", "artifact_head_sha": "<sha the artifact was captured at>"
+        }
+      ],
+      "not_established_reviewed": true,
       "criteria": [
         { "task": "<task id or title>", "criterion": "<the completion condition>", "status": "pass | fail | blocked", "evidence": "<the proof command run and the observed result; for a blocked criterion, the blocker diagnosis (e.g. the missing access and the probe that must pass)>" }
       ],
+      "status": "pass | fail | blocked | in_progress",
       "updated_at": "<ISO8601 UTC>"
     }
     ```
 
+    Rules for v2: a claim is established **only** by evidence whose `kind` reaches its `boundary` — a unit `test-run-log` reaches only `code-unit` and can never establish a `browser`, `http-api`, or `deploy-health` claim. `not_established_reviewed` must always be present (the `not_established` list may be empty, but the flag may never be omitted). `artifact.head_sha` names what will ship, and each evidence entry's `artifact_head_sha` must match it. The legacy `criteria[]` array is retained and still read, but under v2 it is **display-only** — it can never establish a v2 claim.
+
+    **v1 is still accepted during the compatibility window.** A verdict that omits `schema_version` (or sets it to `1`) carries only `plan` / `status` / `criteria[]` / `updated_at` and is judged exactly as before: terminal `status` plus no failing criterion plus freshness. Write v2 for new work; nothing in flight breaks.
+
     Set `status: "pass"` only when every criterion is `pass` with real evidence (output from running the system, not a claim). The verdict must be judged by an agent that did NOT implement the change (the `verification-specialist`), never self-certified by the implementer. This is runtime scratch — it is gitignored and MUST NOT be committed (treat it like the secrets exclusion in the commit step).
 
-    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file and **will not let the flow stop** until it shows a terminal, all-`pass` verdict — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion, write the verdict with `status: "blocked"` and the reason — marking each criterion whose proof is blocked as `status: "blocked"` with the blocker diagnosis as its `evidence`, while unaffected criteria keep their real `pass`/`fail` result — that records the outcome and releases the gate instead of leaving it to spin. But a `blocked` verdict is a last resort, not a shortcut around fillable work: **first resolve every gap you can resolve yourself.** If the work item is thin — missing its Validation Journey, acceptance criteria, or other derivable detail — enrich it: derive the missing detail from the ticket context and the codebase, write it back, and proceed. Do **not** block on a gap you could have filled. Only a blocker that survives that attempt is real, and it is one of two kinds:
+    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file — both v1 and v2 — and **will not let the flow stop** until it shows a terminal, all-`pass` verdict. The v2 claim/evidence checks are **advisory-first**: a boundary or identity violation is reported to stderr but does not block until `verification.gate.enforceBoundaries` is set to `true` in `.lisa.config.json` (default `false`, promoted via the threshold ratchet). Treat an advisory warning as a defect to fix now, not a warning to ignore — it becomes blocking on the ratchet. The gate — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion, write the verdict with `status: "blocked"` and the reason — marking each criterion whose proof is blocked as `status: "blocked"` with the blocker diagnosis as its `evidence`, while unaffected criteria keep their real `pass`/`fail` result — that records the outcome and releases the gate instead of leaving it to spin. But a `blocked` verdict is a last resort, not a shortcut around fillable work: **first resolve every gap you can resolve yourself.** If the work item is thin — missing its Validation Journey, acceptance criteria, or other derivable detail — enrich it: derive the missing detail from the ticket context and the codebase, write it back, and proceed. Do **not** block on a gap you could have filled. Only a blocker that survives that attempt is real, and it is one of two kinds:
 
     - **Actionable blocker** — an unresolved dependency or fixable technical gap that some team or repository could build (a missing or changed schema field, an unbuilt sibling work item, a required upstream fix), **including cross-repo dependencies**. Before writing the blocked verdict you MUST (1) file a build-ready fix/dependency ticket capturing the diagnosis — in the dependency's own repository/tracker when it is cross-repo (e.g. a `[<repo>] …` ticket in the shared project, or the sibling tracker) — and (2) link the current work item to it as `is blocked by`. Only then write the verdict. This is the same discipline as the regression-spec blocker and the remote-verification-fail exits above, and it is what makes the block machine-recoverable: `repair-intake` re-dispatches a blocked item once its linked `is blocked by` dependency closes, but it cannot act on a prose-only comment. Recommending the ticket "as a human follow-up" without filing and linking it is **not** a permitted exit.
     - **Human-only blocker** — an input the agent genuinely cannot obtain or produce no matter what it does: credentials, secrets, or **tool access** it does not have (AWS/CloudWatch, Figma, Jam, Sentry, SonarCloud, a database, a protected deploy target, …), or a product/design decision only a human can make. For missing tool access, follow the `tool-access-gate` rule's break-out protocol: post the "Access Needed" comment naming the exact credential/role/env var to grant and the probe that must pass — never work around the gap by substituting weaker verification, mocking the inaccessible system, or narrowing scope. Record the blocked verdict, mark it `human_needed` (the marker `repair-intake` recognizes, so it won't churn re-dispatching it), and surface or reassign to a human; do **not** fabricate a build-ready ticket, because there is no build-ready work.
