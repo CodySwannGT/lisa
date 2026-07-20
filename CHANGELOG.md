@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.268.0](https://github.com/CodySwannGT/lisa/compare/v2.267.0...v2.268.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add the readiness-rubric rule pair with eight dimensions and seven blockers ([#1853](https://github.com/CodySwannGT/lisa/issues/1853)) ([629e10f](https://github.com/CodySwannGT/lisa/commit/629e10fa102eb2bd030e1a369e5c60e0a96b0d3f)), closes [#1737](https://github.com/CodySwannGT/lisa/issues/1737) [#1835](https://github.com/CodySwannGT/lisa/issues/1835) [#1739](https://github.com/CodySwannGT/lisa/issues/1739) [#1854](https://github.com/CodySwannGT/lisa/issues/1854) [..#1859](https://github.com/CodySwannGT/../issues/1859)
+
+
+### Bug Fixes
+
+* **security:** force transitive brace-expansion to >=5.0.6 ([#1862](https://github.com/CodySwannGT/lisa/issues/1862)) ([8f03a56](https://github.com/CodySwannGT/lisa/commit/8f03a56bd04d3a002c036334c2c00bb95e2c4e07))
+
 ## [2.267.0](https://github.com/CodySwannGT/lisa/compare/v2.266.0...v2.267.0) (2026-07-20)
 
 
