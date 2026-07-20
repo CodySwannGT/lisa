@@ -340,7 +340,9 @@ failure is a degradation to report, never a reason to block the loop.
 ## Retirement condition
 
 The loop retires itself by the same discipline it applies to everything else,
-and the condition is **stateless — derived from the tracker, never from a
+conforming to the `automation-runbook-contract` rule's Retirement section
+rather than restating or diverging from it. The condition is **stateless —
+derived from the tracker, never from a
 counter or state file** (there is no durable home for a run counter, and a
 tracker-derived condition is headless- and concurrent-safe by construction).
 Propose retirement when BOTH hold:
@@ -352,11 +354,30 @@ Propose retirement when BOTH hold:
 2. **This run proposes nothing** — the current run's inventory yields zero
    candidates (it is terminating `nothing-needed`).
 
-When both hold, the gardener files ONE (marker-deduped) ticket proposing to
-lengthen its cadence or tear down its automation (`/tear-down-automations`),
-with the date-filtered search result and this run's summary as evidence. It
-keeps running until a human flips that ticket — retirement is a
-recommendation like any other, never a self-executed exit.
+When both hold, the gardener records `policy-obsolete` and files **exactly ONE**
+marker-deduped ticket proposing to lengthen its cadence or tear down its
+automation, through `lisa-tracker-write` (per `tracked-work` +
+`integration-access-layer`):
+
+- **Marker** `<!-- [lisa-automation-retire] key=learnings-audit -->` plus a
+  visible prose line; matched on the marker, never the title; searched **open
+  AND closed** per `rejection-detection`'s **Proposal rejection memory**, so a
+  teardown proposal a human already declined is remembered and not re-filed
+  without postdating evidence. The `[lisa-gardener]` search above stays what it
+  is — the candidate evidence, not the dedupe key.
+- **Labels** `status:blocked` + `human-needed`, carrying the contract's
+  decision-ready packet.
+- **Evidence** the date-filtered search result plus this run's summary.
+- **How to answer** names the three operator responses: **approve** — run
+  `/lisa:tear-down-automations` and the registration goes away; **decline** —
+  close the proposal as **Not planned** (closing it as **Completed** leaves a
+  later re-file open) and the gardener simply continues; **re-cadence** —
+  re-register it at the longer cadence instead.
+
+The gardener **keeps running at its normal cadence** until a human flips that
+ticket — retirement is a recommendation like any other, never a self-executed
+exit — and it never deletes its own
+registration.
 
 ## Scheduling
 

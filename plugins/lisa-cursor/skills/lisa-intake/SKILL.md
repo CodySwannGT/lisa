@@ -131,6 +131,7 @@ matches the mode this cycle ran in: **`intake-prd`** (PRD-side dispatch) or **`i
 | A build cycle that shipped and verified (merged PR + evidence), or a shipped PRD moved to `verified` | `change-proved` |
 | A protected deployment (or other autonomy boundary the lifecycle hits) waiting on a human approval | `approval-requested` |
 | The queue itself is misconfigured or unreadable — missing required input (step 1) or an unreachable Status/workflow (step 2/`3` misconfig) so the cycle could not run | `recovery-required` |
+| The runbook's **Retirement condition** tripped | `policy-obsolete` — **unreachable for both intake loop-ids** (see Retirement evaluation below) |
 
 **Seam warning (the #1 misread in this ticket).** A run outcome describes this *cycle*; `Blocked` is
 a *work item's* lifecycle terminal state — the two never merge in the summary. When Intake correctly
@@ -155,6 +156,13 @@ If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory direct
 `plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
 abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
 the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
+**Retirement evaluation (every run).** Both loop-ids this skill backs are **structural to the
+factory — they do not retire.** Their runbooks say so plainly instead of leaving the Retirement
+condition blank, so the `automation-runbook-contract` rule's two-part retirement test never fires
+here: neither `intake-prd` nor `intake-tickets` ever records `policy-obsolete`, and neither ever
+files a teardown proposal. An operator who wants intake to stop runs `/lisa:tear-down-automations`
+themselves — the loop never removes its own registration.
 
 ## Schedule examples
 
