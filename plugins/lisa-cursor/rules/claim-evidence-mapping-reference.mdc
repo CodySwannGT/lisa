@@ -87,10 +87,9 @@ defines the names; it stores nothing:
 A claim whose `required_evidence_kinds` has no captured, reaching artifact is **Not established** —
 defined in full, with its evidence templates, in the section below. Artifact identity — what makes
 two captured artifacts the same or different — is defined in the *Artifact identity* section below
-(shipped by BCE-4, #1838). The conservative default bucket for a security-sensitive claim is set in
-**BCE-5 (#1839)** — named here as a field BCE-2's schema carries, not defined by this contract, and
-it ships with that ticket. Where such a sibling surface is not installed in a given branch, name what
-you can and continue.
+(shipped by BCE-4, #1838). The bucket a security-sensitive claim lands in is defined in the *Security
+buckets* section below (shipped by BCE-5, #1839). Where such a sibling surface is not installed in a
+given branch, name what you can and continue.
 
 ### Worked example
 
@@ -183,6 +182,28 @@ second one. Identity reconciliation is the same definition read from the evidenc
   is what may declare completion.
 
 Two guards, one definition — so they cannot disagree about what shipped.
+
+## Security buckets — the impact-or-exploitability bar
+
+A security-shaped claim is a claim like any other: it reaches only as far as its evidence. Applied to
+security findings (shipped by BCE-5, #1839), that yields two buckets and one bar:
+
+- **Security (proven)** — the finding carries **both** a `reproducer` (an evidence ref of a kind that
+  reaches the claim's boundary, per the taxonomy above — e.g. an `http-transcript` for an injection
+  claim at `http-api`) **and** a bounded `impact`/exploitability statement.
+- **Security (unproven)** — **missing either**. It keeps a one-line `reason` and **stays in the
+  security section**: a reproducer-less finding is **never auto-demoted** to a `maintenance` bucket,
+  because under-reporting a real vulnerability is the worse failure.
+
+The unproven bucket's label is the single configurable policy point —
+`security.review.unprovenBucket` in `.lisa.config.json`, default `security-unproven`. An owner who
+prefers true demotion flips that one value; no other classification logic changes. Like the boundary
+checks, bucketing is **advisory** — it shapes the report, not the merge — until
+`verification.gate.enforceBoundaries` is `true`.
+
+The full procedure — per-finding fields, report shape, ZAP alignment — lives in the
+`lisa-security-review` skill (with `lisa-security-zap-scan` citing it); dependency-CVE remediation
+keeps its separate ladder in `security-audit-handling`. Cite those slugs; do not restate them here.
 
 ## The "Not established" section — required, never omitted
 
