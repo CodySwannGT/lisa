@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.255.0](https://github.com/CodySwannGT/lisa/compare/v2.254.0...v2.255.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** conform registered loops to the run-outcome recording contract ([#1798](https://github.com/CodySwannGT/lisa/issues/1798)) ([3b673f8](https://github.com/CodySwannGT/lisa/commit/3b673f8fc5031850eeffe3afe43cbed6a3c6f3dd))
+
 ## [2.254.0](https://github.com/CodySwannGT/lisa/compare/v2.253.0...v2.254.0) (2026-07-20)
 
 
