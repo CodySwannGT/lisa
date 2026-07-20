@@ -12,7 +12,12 @@ Review exists to get correct work merged, not to keep a PR in review orbit.
   are non-blocking unless the work item or repository rules make them release
   criteria.
 - Every finding must state severity, blocking yes/no, a concrete failure
-  scenario, evidence, and the smallest actionable fix.
+  scenario, evidence, and the smallest actionable fix — plus
+  `invariant_violated` (the property at risk) and `machinery_to_remove` (what
+  becomes deletable, or `none`), required for `readiness-rubric` findings and
+  recommended elsewhere.
+- Present findings highest-consequence first, by severity and blast radius, not
+  by discovery order. Report section order stays stable.
 - A blocking finding without a concrete failure scenario is malformed by
   contract; downgrade it to non-blocking and ask for evidence.
 - Resolve each finding as `fixed`, `deferred`, or `pushed-back`. If the reviewer
