@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.264.0](https://github.com/CodySwannGT/lisa/compare/v2.263.0...v2.264.0) (2026-07-20)
+
+
+### Features
+
+* **evidence:** pin evidence to artifact identity with merge-race reconciliation ([#1838](https://github.com/CodySwannGT/lisa/issues/1838)) ([77b1d4b](https://github.com/CodySwannGT/lisa/commit/77b1d4bd2fa06fc7032941d8134872d73ac1f3ff)), closes [#1836](https://github.com/CodySwannGT/lisa/issues/1836) [#1836](https://github.com/CodySwannGT/lisa/issues/1836)
+* **evidence:** require the Not-established section, bind claims to boundaries in S14 ([#1837](https://github.com/CodySwannGT/lisa/issues/1837)) ([6c5ebe6](https://github.com/CodySwannGT/lisa/commit/6c5ebe67dc6d5868138180b268bf1bacfeaae8d8)), closes [#1836](https://github.com/CodySwannGT/lisa/issues/1836)
+
 ## [2.263.0](https://github.com/CodySwannGT/lisa/compare/v2.262.0...v2.263.0) (2026-07-20)
 
 
