@@ -1,5 +1,12 @@
 # Lisa Wiki Log
 
+## 2026-07-19 - Gardener demotion: Console UI knowledge from eager rules to wiki
+
+- Created `wiki/architecture/lisa-console-ui.md` from the two Console-UI sections of `.claude/rules/PROJECT_RULES.md` ("Local `lisa ui` verification" and "Lisa Console UI (`ui/`)"), preserving every fact (entrypoints, `dist/index.js` flattening, `{ sync: false }`, Playwright pipeline boundary, toggle `dispatchEvent`, `esc()`/`el()` semantics).
+- Deleted both sections from `.claude/rules/PROJECT_RULES.md` in the same change; the wiki index is now the routing surface for this subsystem knowledge.
+- Provenance: gardener ticket CodySwannGT/lisa#1788 (learnings-audit run 2026-07-19, ladder rung WIKI).
+- Indexed the new page under `## Architecture` in `wiki/index.md`.
+
 ## 2026-06-14 - Incremental connector ingest
 
 - Synced the automation worktree with `origin/main` by fetching `origin` and created `wiki/ingest-20260614T000000Z` from current `origin/main` because the run started on a detached HEAD.
