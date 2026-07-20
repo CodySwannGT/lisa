@@ -37,9 +37,23 @@ export const AUTOMATION_EXPECTED_CADENCES = {
     human: "once a day",
     rrule: "FREQ=DAILY;INTERVAL=1",
   },
+  monitor: {
+    human: "once a day",
+    rrule: "FREQ=DAILY;INTERVAL=1",
+  },
+  "learnings-audit": {
+    human: "once a week",
+    rrule: "FREQ=WEEKLY;INTERVAL=1",
+  },
 };
 
 export const EXPLORATORY_QA_STACK_PRIORITY = ["expo", "rails", "harper-fabric"];
+
+/**
+ * Directory (repo-relative) holding the checked-in per-loop runbooks scaffolded
+ * by `/lisa:setup-automations` per the `automation-runbook-contract` rule.
+ */
+export const AUTOMATION_RUNBOOK_DIRECTORY = ".lisa/automations";
 
 /**
  * @typedef {{
@@ -48,18 +62,30 @@ export const EXPLORATORY_QA_STACK_PRIORITY = ["expo", "rails", "harper-fabric"];
  *   readonly expectedCadence: string
  *   readonly expectedRRule: string
  *   readonly expectedCommand: string
- *   readonly group: "core" | "exploratory"
+ *   readonly group: "core" | "exploratory" | "opt-in"
+ *   readonly runbookPath: string
  * }} ExpectedAutomationEntry
  *
  * @typedef {{
  *   readonly id: string
  *   readonly automationId: string
- *   readonly group: "core" | "exploratory"
+ *   readonly group: "core" | "exploratory" | "opt-in"
  *   readonly reason: string
  *   readonly expectedCadence: string
  *   readonly expectedRRule: string
+ *   readonly runbookPath: string
  * }} UnsupportedAutomationEntry
  */
+
+/**
+ * Resolve the repo-relative runbook path for a loop id.
+ *
+ * @param {string} id
+ * @returns {string}
+ */
+export function resolveAutomationRunbookPath(id) {
+  return `${AUTOMATION_RUNBOOK_DIRECTORY}/${id}.runbook.md`;
+}
 
 /**
  * Resolve the stable project identifier and automation prefix used by
@@ -101,6 +127,7 @@ export function resolveAutomationProjectIdentity(input = {}) {
  *   readonly detectedTypes?: readonly string[]
  *   readonly autoStartPrds?: boolean | string
  *   readonly autoStartTickets?: boolean | string
+ *   readonly learningsAudit?: boolean | string
  * }} input
  * @returns {{
  *   readonly owner: string
@@ -116,6 +143,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
   const identity = resolveAutomationProjectIdentity(input);
   const autoStartPrds = normalizeBooleanFlag(input.autoStartPrds);
   const autoStartTickets = normalizeBooleanFlag(input.autoStartTickets);
+  const learningsAudit = normalizeBooleanFlag(input.learningsAudit);
   const detectedTypes = input.detectedTypes ?? [];
 
   const tracker = config.tracker;
@@ -166,6 +194,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
       `/lisa:intake ${buildQueue}`,
       "core"
     ),
+    createExpectedEntry(identity, "monitor", "/lisa:monitor", "core"),
     createExpectedEntry(
       identity,
       "exploratory-prds",
@@ -191,7 +220,28 @@ export function resolveExpectedAutomationFleet(input = {}) {
       createUnsupportedEntry(
         identity,
         "exploratory-bugs",
-        "This repository does not ship an exploratory-qa command surface."
+        "This repository does not ship an exploratory-qa command surface.",
+        "exploratory"
+      )
+    );
+  }
+
+  if (learningsAudit) {
+    expected.push(
+      createExpectedEntry(
+        identity,
+        "learnings-audit",
+        "/lisa:learnings:audit",
+        "opt-in"
+      )
+    );
+  } else {
+    unsupported.push(
+      createUnsupportedEntry(
+        identity,
+        "learnings-audit",
+        "The weekly gardener loop is opt-in and this project has not opted in (learnings-audit=false).",
+        "opt-in"
       )
     );
   }
@@ -222,7 +272,7 @@ export function resolveExploratoryQaStack(detectedTypes = []) {
  * @param {{ readonly automationPrefix: string }} identity
  * @param {string} id
  * @param {string} expectedCommand
- * @param {"core" | "exploratory"} group
+ * @param {"core" | "exploratory" | "opt-in"} group
  * @returns {ExpectedAutomationEntry}
  */
 function createExpectedEntry(identity, id, expectedCommand, group) {
@@ -234,6 +284,7 @@ function createExpectedEntry(identity, id, expectedCommand, group) {
     expectedRRule: cadence.rrule,
     expectedCommand,
     group,
+    runbookPath: resolveAutomationRunbookPath(id),
   };
 }
 
@@ -241,17 +292,19 @@ function createExpectedEntry(identity, id, expectedCommand, group) {
  * @param {{ readonly automationPrefix: string }} identity
  * @param {string} id
  * @param {string} reason
+ * @param {"core" | "exploratory" | "opt-in"} group
  * @returns {UnsupportedAutomationEntry}
  */
-function createUnsupportedEntry(identity, id, reason) {
+function createUnsupportedEntry(identity, id, reason, group) {
   const cadence = AUTOMATION_EXPECTED_CADENCES[id];
   return {
     id,
     automationId: `${identity.automationPrefix}${id}`,
     expectedCadence: cadence.human,
     expectedRRule: cadence.rrule,
-    group: "exploratory",
+    group,
     reason,
+    runbookPath: resolveAutomationRunbookPath(id),
   };
 }
 
