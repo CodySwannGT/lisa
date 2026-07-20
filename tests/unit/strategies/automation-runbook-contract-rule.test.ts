@@ -81,14 +81,38 @@ describe("automation-runbook-contract rule contract", () => {
       for (const doc of [eager, reference]) {
         expect(doc).toMatch(/terminal state/i);
         expect(doc).toMatch(/run outcome[^.]*loop iteration/i);
-        expect(doc).toMatch(/never `?recovery-required`?/i);
+        // Tolerant of markdown bolding and the ~100-char hard wrap in rule bodies.
+        expect(doc).toMatch(/never\s+\*{0,2}`?recovery-required`?/i);
+        // A blocked work item means the run PRODUCED something — `nothing-needed`
+        // stays reserved for runs that found nothing at all.
+        expect(doc).toMatch(
+          /routes a work item to\s+`?Blocked`?[\s\S]{0,220}?`candidate-proposed`/
+        );
+        expect(doc).not.toMatch(/`nothing-needed` or `candidate-proposed`/);
       }
       expect(reference).toContain("Blocked");
     });
 
-    it("carries one runbook template section per contracted field", () => {
+    it("separates health from operator action for every outcome", () => {
+      expect(reference).toContain("| Operator action? |");
+      for (const doc of [eager, reference]) {
+        expect(doc).toMatch(/orthogonal/i);
+      }
+    });
+
+    it("carries an exemplar one-line summary per run outcome", () => {
+      const examples = /### Exemplar one-line summaries\n([\s\S]*?)\n## /.exec(
+        reference
+      )?.[1];
+      expect(examples).toBeDefined();
+      for (const outcome of RUN_OUTCOMES) {
+        expect(examples).toContain(outcome);
+      }
+    });
+
+    it("carries one runbook template table row per contracted field", () => {
       for (const section of TEMPLATE_SECTIONS) {
-        expect(reference).toContain(section);
+        expect(reference).toContain(`| ${section} |`);
       }
     });
 
@@ -108,12 +132,24 @@ describe("automation-runbook-contract rule contract", () => {
       }
     });
 
+    it("degrades rather than blocks", () => {
+      for (const doc of [eager, reference]) {
+        expect(doc).toMatch(/never block|degrade/i);
+      }
+      expect(reference).toMatch(/missing runbook/i);
+      expect(reference).toMatch(/unreadable record surface/i);
+      expect(reference).toMatch(/absent optional dependency/i);
+      expect(reference).toMatch(/does not\s+mint a seventh token/i);
+    });
+
     it("prescribes a decision-ready escalation packet", () => {
       expect(reference).toMatch(/current state/i);
       expect(reference).toMatch(/already attempted|work attempted/i);
       expect(reference).toMatch(/evidence/i);
       expect(reference).toMatch(/risk of inaction/i);
       expect(reference).toMatch(/smallest unresolved choice/i);
+      expect(reference).toMatch(/named options/i);
+      expect(reference).toMatch(/\| How to answer \|/);
       expect(reference).toContain("status:blocked");
       expect(reference).toContain("human-needed");
       expect(reference).toContain("factory-model");
@@ -125,6 +161,15 @@ describe("automation-runbook-contract rule contract", () => {
       expect(reference).toMatch(/quiet/i);
       expect(reference).toMatch(/marker-dedup/i);
       expect(reference).toMatch(/never a self-executed exit/i);
+      // The proposal's three named human responses, not a vague "acts on it".
+      expect(reference).toMatch(/approve/i);
+      expect(reference).toMatch(/decline/i);
+      expect(reference).toMatch(/re-cadence/i);
+    });
+
+    it("cites the precedent skills it generalizes by slug", () => {
+      expect(reference).toContain("lisa-learnings-audit");
+      expect(reference).toContain("lisa-improve-harness");
     });
 
     it("tests membership by registration, not skill existence", () => {
@@ -147,7 +192,7 @@ describe("automation-runbook-contract rule contract", () => {
 
     it("hedges artifacts that ship with sibling tickets", () => {
       expect(reference).toMatch(
-        /ships with that ticket, do not\s+assume its file is present/i
+        /ships with that ticket[^,]*, do not\s+assume its file is present in this\s+branch/i
       );
     });
 

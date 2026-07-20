@@ -4,9 +4,10 @@
 exactly one of six run outcomes** with a one-line, operator-readable summary. A registered loop with
 no runbook, or a run that stops without naming its outcome, is a contract violation.
 
-**One vendor-neutral contract, cited by `lisa-setup-automations`, `lisa-automation-status`,
-`lisa-tear-down-automations`, and every registered loop skill** (the `leaf-only-lifecycle` /
-`repo-scope-split` precedent: one shared slug, never divergent per-loop prose).
+**One vendor-neutral contract, to be cited by (wired in the loop-conformance ticket)
+`lisa-setup-automations`, `lisa-automation-status`, `lisa-tear-down-automations`, and every
+registered loop skill** (the `leaf-only-lifecycle` / `repo-scope-split` precedent: one shared slug,
+never divergent per-loop prose).
 
 ## Membership
 
@@ -19,22 +20,30 @@ no hardcoded roster of loops anywhere.
 Exactly one per run:
 **`nothing-needed | candidate-proposed | change-proved | approval-requested | recovery-required | policy-obsolete`**
 
-- `nothing-needed` — the loop ran and found nothing to act on. **Healthy**; no operator action.
-- `candidate-proposed` — the loop proposed work (ticket, PRD, recommendation) for a human or a
-  downstream factory to pick up.
-- `change-proved` — the loop made a change and proved it with evidence.
-- `approval-requested` — the loop reached a boundary it may not cross alone and asked a human.
+Health and operator action are **orthogonal** — a healthy run can still need an answer:
+
+- `nothing-needed` — the loop ran and found nothing to act on. **Healthy.** Operator action: none.
+- `candidate-proposed` — the loop proposed work (ticket, PRD, recommendation). **Healthy.** Operator
+  action: review the proposed item and flip it ready when you want it built.
+- `change-proved` — the loop made a change and proved it with evidence. **Healthy.** Operator
+  action: none (informational).
+- `approval-requested` — the loop reached a boundary it may not cross alone. **Healthy.** Operator
+  action: answer the approval question.
 - `recovery-required` — the loop itself could not complete (access, tooling, or substrate broken)
-  and escalated a decision-ready packet.
-- `policy-obsolete` — the loop's retirement condition tripped; it proposed its own teardown.
+  and escalated a decision-ready packet. **Not healthy.** Operator action: restore the named
+  capability, then close the escalation item.
+- `policy-obsolete` — the loop's own retirement policy (the retirement condition written in its
+  runbook) tripped, so it proposed its own teardown. **Healthy.** Operator action: approve the
+  teardown, decline it (close the proposal; the loop keeps running at cadence), or re-cadence it.
 
 ## A run outcome is NOT a work-item lifecycle terminal state (CRITICAL)
 
 A **run outcome** describes the LOOP ITERATION. A **terminal state** describes a TICKET — Lisa
 already uses that phrase for work-item lifecycles (`lisa-intake`: "`Blocked` is a valid terminal
 state of the downstream lifecycles"). The two vocabularies never merge in an operator-facing report.
-A healthy cycle that routes a work item to `Blocked` is `nothing-needed` or `candidate-proposed` —
-**never `recovery-required`**, which means the loop is broken, not that an item was blocked.
+A healthy cycle that routes a work item to `Blocked` with clarifying questions is
+`candidate-proposed` — it produced something — and **never `recovery-required`**, which means the
+loop itself is broken, not that a work item was blocked.
 
 ## No silent exit
 
