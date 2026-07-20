@@ -9,7 +9,9 @@ import { LISA_SKILLS_SUBDIR } from "../codex/skills-installer.js";
 import { AGENTS_MD_FILENAME } from "../codex/agents-md-installer.js";
 import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
+import { probeKaneReadiness } from "../core/kane-cli.js";
 import { createDetectorRegistry } from "../detection/index.js";
+import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { STARTERS } from "./starters.js";
@@ -47,6 +49,7 @@ export interface DoctorDependencies {
   runUpdateCheck: typeof runUpdateCheck;
   setExitCode: (code: number) => void;
   write: (message: string) => void;
+  probeKaneReadiness: typeof probeKaneReadiness;
 }
 
 const DEFAULT_DEPENDENCIES: DoctorDependencies = {
@@ -56,6 +59,7 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
     process.exitCode = code;
   },
   write: message => console.log(message),
+  probeKaneReadiness,
 };
 
 /**
@@ -67,7 +71,7 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
  * @returns Doctor check result
  */
 export async function checkVersion(
-  deps: DoctorDependencies,
+  deps: Pick<DoctorDependencies, "runUpdateCheck">,
   offline: boolean
 ): Promise<DoctorCheck> {
   if (offline) {
@@ -367,6 +371,7 @@ export async function runDoctor(
   const checks = [
     await checkVersion(deps, options.offline === true),
     await checkProjectConfig(resolvedTarget),
+    await checkKaneProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),

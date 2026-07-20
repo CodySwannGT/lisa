@@ -66,6 +66,13 @@ as applicable to the current repo:
 7. **Optional wiki delegation** — when a repo-local `wiki/` exists, either summarize the
    specialized `lisa-wiki-doctor` verdict or explicitly report that deeper wiki checks are
    available there. The base doctor stays narrower than full wiki migration enforcement.
+8. **Optional Kane browser provider** — when `verification.browser.kane.enabled` is true, run the
+   Lisa-owned readiness probe. Require explicit cloud-upload approval, the contract-tested exact
+   version, a non-production environment allow-list, local Chrome/Chromium, Test Manager
+   project/folder targeting, `whoami` authentication, and nonzero/observable credit readiness.
+   Report missing executable/browser, auth failure, wrong target, zero credits, and control-plane
+   failure separately. If Kane is not enabled, report an informational `OK`/not enabled rather than
+   probing or installing it.
 
 If a check family is not applicable to the current repo, report `SKIP` with the reason.
 

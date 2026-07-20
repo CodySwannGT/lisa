@@ -325,6 +325,30 @@ When `github.projects.v2` is present, later setup/doctor and writer preflight va
 | `linear.workspace` | `tracker = "linear"`, `source = "linear"`, or any `linear-*` skill is invoked | Linear workspace slug (e.g. `acme`). |
 | `linear.teamKey` | `tracker = "linear"` | Linear team key (e.g. `ENG`). The team owns the destination Issues. For source mode, projects are workspace-scoped or team-scoped per the URL passed. |
 
+#### `verification.browser.kane`
+
+Kane CLI is an optional empirical-browser provider. It is never enabled by executable discovery
+alone and never replaces native regression runners.
+
+| Field | Required when | Where it lives | Notes |
+|-------|---------------|----------------|-------|
+| `verification.browser.kane.enabled` | using Kane | **committed** | Must be literal `true`; absent/false means Lisa does not probe or select Kane. |
+| `verification.browser.kane.version` | enabled | **committed** | Exact contract-tested version, currently `0.6.3`. Version ranges and implicit latest are rejected. |
+| `verification.browser.kane.cloudUploadApproved` | enabled | **committed** | Exterior human approval that TestMu may receive objectives, screenshots, action logs, variables in scope, metadata, and packaged run artifacts from disposable test environments. |
+| `verification.browser.kane.allowedEnvironments` | enabled | **committed** | Non-empty environment allow-list. `prod` and `production` are invalid regardless of other config. Each environment must also resolve to `exploration.environments.<name>.mutation = full` at run time. |
+| `verification.browser.kane.projectId` | enabled | **committed** | Expected Test Manager project identifier. `lisa kane probe` verifies the active CLI config matches it. |
+| `verification.browser.kane.folderId` | no | **committed** | Optional expected Test Manager folder identifier, also verified by the probe. |
+| `verification.browser.kane.timeoutSeconds` | no | **committed** | Integer 1–600; defaults to 120. Lisa adds a small outer process-kill grace period. |
+
+Credentials never live in Lisa config. Developer OAuth state remains in Kane's protected local
+profile; CI uses its secret store and a dedicated service identity. Local config may override a
+Kane key per the normal per-key precedence, but shared upload policy, allow-list, and Test Manager
+target should be committed so teammates and automations see the same gate.
+
+Use `/lisa:setup-kane` only at the exterior setup gate. Factory workflows invoke
+`lisa-kane-browser`, which calls the Lisa adapter (`lisa kane probe/run`) rather than consuming the
+vendor's global skill or `agents.md`.
+
 #### `usage`
 
 `usage` is optional. It carries non-secret pricing metadata Lisa may use when runtime token counts are trustworthy but runtime monetary cost is absent.

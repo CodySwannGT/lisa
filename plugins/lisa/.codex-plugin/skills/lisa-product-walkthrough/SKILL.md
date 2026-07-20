@@ -36,6 +36,8 @@ Write this list down. If you can't, the PRD is too vague — note it as a covera
 
 **Invoke `use-the-product`** to detect the type, resolve the environment + mutation policy, and discover personas — then drive the surfaces from step 1 through its per-type playbook (browser for DOM, `curl` for an API, canvas+input for a game, `cdk synth`/`diff` for IaC). Capture evidence as you go: for a DOM app, a `browser_snapshot` (accessibility tree — best for reasoning) and a `browser_take_screenshot` (visual) per surface and per state, plus `browser_console_messages` / `browser_network_requests` after interactions; for an API, representative request/response pairs; for a game, screenshots of each state. If the project defines personas, walk the surfaces as the relevant archetype(s).
 
+When the resolved DOM environment is non-production with mutation policy `full` and the configured Kane provider passes `lisa kane probe`, `use-the-product` may delegate the bounded journey to `lisa-kane-browser`. Extract its screenshot, HAR/network, console, and result artifacts into the normal Current Product evidence. Never use the expiring Test Manager link as the only evidence. A walkthrough that resolves `read-only` stays on a directly controlled browser backend during the initial Kane rollout.
+
 Honor the mutation gate: on a `read-only` env, observe without submitting; never walk a `forbidden` env (production defaults to forbidden). Treat console errors, 4xx/5xx, and unexpected calls as findings.
 
 ## 3. Record findings
