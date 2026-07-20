@@ -160,7 +160,7 @@ A **build-ready leaf work unit** that is not part of an Epic context stands alon
 
 #### S8 — Target Backend Environment
 
-When `runtime_behavior_change = true`, description must contain `## Target Backend Environment` with one of `dev`, `staging`, `prod`. Skipped for doc-only / config-only / type-only / Epic.
+When `runtime_behavior_change = true`, the description must contain `## Target Backend Environment`. Read accepted environments from the exact configured keys of `.lisa.config.json` `deploy.branches`, never from a hardcoded list. Accept a human-confirmed bare exact configured key or `Confirmed: <env>`, automated `Inferred: <env> — evidence: <title|body|reproduction|hostname>`, automated `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` when no unique reverse-map exists. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. For legacy bare values, use managed draft markers and current ticket content only; provider edit history is not required. A marker proves automation and requires re-annotation; otherwise unknown provenance plus conflicting evidence fails for confirmation. Validate the annotation shape/source and remote-default branch; validate `<env>` as an exact configured key whenever present. A valid branch-only assumption must not fail solely because its reverse-map is absent or ambiguous. Normalize built-in `prod` ↔ `production` only when exactly one of those keys is configured. No other aliases are valid. Skipped for doc-only / config-only / type-only / Epic.
 
 #### S9 — Sign-in Required
 

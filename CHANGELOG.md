@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.256.1](https://github.com/CodySwannGT/lisa/compare/v2.256.0...v2.256.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **implement:** infer environment-aware base branches ([d2504b4](https://github.com/CodySwannGT/lisa/commit/d2504b4a5b8083c9a2ee330ead22f75a54fed0a1)), closes [CodySwannGT/lisa#1809](https://github.com/CodySwannGT/lisa/issues/1809)
+
 ## [2.256.0](https://github.com/CodySwannGT/lisa/compare/v2.255.0...v2.256.0) (2026-07-20)
 
 
