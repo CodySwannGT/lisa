@@ -303,11 +303,17 @@ describe("lisa-intake keeps the blocked-is-a-successful-run seam explicit (#1798
  */
 const OPEN_AND_CLOSED = "open AND closed";
 const NOT_PLANNED = 'stateReason == "not_planned"';
+const OPERATOR_FOOTER =
+  "To stop this from being raised again, close it as **Not planned**";
+const REFILE_ACK = "so we're raising it once more for your review";
+const RECOVERY_EXEMPLAR = "restore credentials; nothing was filed this run";
 
 /** All five proposing loops cite the shared contract. */
 const PROPOSING_LOOPS = [QA, IDEATION, MONITOR, REPAIR, GARDENER] as const;
 /** The four fresh-candidate proposers extend their search to closed items. */
 const CLOSED_SEARCH_PROPOSERS = [QA, IDEATION, MONITOR, REPAIR] as const;
+/** The four loops that FILE a proposal ticket carry the operator footer. */
+const FOOTER_LOOPS = [QA, MONITOR, IDEATION, GARDENER] as const;
 /** The three that surface a suppression count in their run outcome. */
 const RUN_OUTCOME_PROPOSERS = [QA, IDEATION, MONITOR] as const;
 
@@ -365,6 +371,30 @@ describe("proposing loops consult the shared rejection-memory contract (#1800)",
       it("escalates an unreadable memory check to recovery-required", () => {
         expect(content).toMatch(/rejection-memory.*could not (run|read)/i);
         expect(content).toContain("recovery-required");
+      });
+
+      it("pins the operator-readable recovery-required exemplar", () => {
+        expect(content).toContain(RECOVERY_EXEMPLAR);
+      });
+    });
+
+    // Every loop that files a proposal ticket teaches the close-reason via the
+    // operator footer so the not_planned-vs-completed choice is visible.
+    describe.each(FOOTER_LOOPS)("%s teaches the close-reason", slug => {
+      const content = readSkill(root, slug);
+
+      it("carries the required operator close-reason footer", () => {
+        expect(content).toContain(OPERATOR_FOOTER);
+      });
+    });
+
+    // The fresh-candidate proposers write a human acknowledgment sentence when
+    // re-filing a previously declined proposal.
+    describe.each(RUN_OUTCOME_PROPOSERS)("%s re-file tone", slug => {
+      const content = readSkill(root, slug);
+
+      it("re-files with a human acknowledgment sentence", () => {
+        expect(content).toContain(REFILE_ACK);
       });
     });
   });

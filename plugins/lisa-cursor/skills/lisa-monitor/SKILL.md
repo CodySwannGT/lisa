@@ -130,7 +130,8 @@ After report, file what was found — **only when run standalone**, never under 
 
 - **Anomalies** (live signals over the conservative bar) → `Bug` leaves. **Gaps** (in-scope MISSING rubric dimensions) → `Task`/`Improvement` leaves.
 - Every ticket is filed via the vendor-neutral `lisa-tracker-write` shim with `build_ready: true` (never a vendor write skill directly), as a **single-repo leaf** stamped `repo:<current>`, with a real three-audience description, Gherkin AC, Target Backend Environment, and a Validation Journey + typed `[EVIDENCE: <artifact-type>: <name>]` marker (e.g. `[EVIDENCE: log-snippet: alert-cleared]`) so it passes the `tracker-validate` gates.
-- **Idempotent + decline-aware:** embed the `<!-- lisa:monitor-finding: <fingerprint> -->` sentinel and search-before-create across **open AND closed** tickets; never duplicate a live or just-resolved finding. Per the `rejection-detection` rule's **Proposal rejection memory** section, a prior ticket **closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is a **permanent decline** that suppresses the finding regardless of age — layered on top of the 24h `monitor.backoffHours` just-resolved guard — and is re-filed only with evidence postdating the decline (`declined <date>; recurred <date> in <ref>`). A close as _completed_ is a regression path, not a decline. The `observability-audit` rule owns the full search/decline contract.
+- **Operator footer (required):** every filed ticket ends with the `rejection-detection` **operator footer** as a visible prose line — `To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.` — so the operator knows which close-reason silences the finding.
+- **Idempotent + decline-aware:** embed the `<!-- lisa:monitor-finding: <fingerprint> -->` sentinel and search-before-create across **open AND closed** tickets; never duplicate a live or just-resolved finding. Per the `rejection-detection` rule's **Proposal rejection memory** section, a prior ticket **closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is a **permanent decline** that suppresses the finding regardless of age — layered on top of the 24h `monitor.backoffHours` just-resolved guard — and is re-filed only with evidence postdating the decline, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`). A close as _completed_ is a regression path, not a decline. The `observability-audit` rule owns the full search/decline contract.
 - **Capped** at `max_candidates` (default 20), `core`/high-severity first; report how many were filed vs dropped.
 - **`--dry-run`** previews would-file tickets and creates nothing. **`--all-gaps`** widens gap filing to `recommended` tiers.
 
@@ -161,7 +162,8 @@ invocations.
 Record **exactly one** outcome per standalone invocation through the run-record CLI, naming this
 loop's runbook (the `--summary` is the operator-readable one-liner in the contract's exemplar voice —
 plain, specific, actionable, e.g. `Health green; audit clean — nothing to propose.` for
-`nothing-needed`):
+`nothing-needed`; and for a `recovery-required` from an unreadable decline check, `Tracker
+unreachable during the decline check — restore credentials; nothing was filed this run.`):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \

@@ -204,6 +204,32 @@ describe("rejection-detection rule contract", () => {
         }
       });
 
+      it("requires a human acknowledgment sentence on a re-file, alongside the machine token", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("You declined this on");
+          expect(doc).toContain(
+            "so we're raising it once more for your review"
+          );
+        }
+      });
+
+      it("mandates the operator close-reason footer on every filed proposal", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain(
+            "To stop this from being raised again, close it as **Not planned**"
+          );
+          expect(doc).toMatch(/Close it as \*\*Completed\*\* if it was fixed/);
+        }
+      });
+
+      it("pins an operator-readable recovery-required exemplar for an unreadable check", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain(
+            "restore credentials; nothing was filed this run"
+          );
+        }
+      });
+
       it("treats closed-as-completed as a regression, not a decline", () => {
         for (const doc of [eager, reference]) {
           expect(doc).toMatch(/is NOT a decline/i);
