@@ -73,8 +73,8 @@ const optInGroup = (report: AdapterReport): AdapterReport["groups"][number] => {
 };
 
 describe("opt-in fleet group is rendered, never dropped (#1796)", () => {
-  it("Claude: an opted-in, registered gardener is compared like any other loop", () => {
-    const report = inspectClaudeAutomationFleet({
+  it("Claude: an opted-in, registered gardener is compared like any other loop", async () => {
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet: fleetFor(true),
       scheduleListing: {
         routines: [
@@ -101,8 +101,8 @@ describe("opt-in fleet group is rendered, never dropped (#1796)", () => {
     );
   });
 
-  it("Claude: an opted-in gardener missing from the scheduler reports MISSING", () => {
-    const report = inspectClaudeAutomationFleet({
+  it("Claude: an opted-in gardener missing from the scheduler reports MISSING", async () => {
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet: fleetFor(true),
       scheduleListing: { routines: [] },
       now: NOW,
@@ -113,8 +113,8 @@ describe("opt-in fleet group is rendered, never dropped (#1796)", () => {
     );
   });
 
-  it("Claude: an un-opted-in gardener reports UNSUPPORTED with the enabling command", () => {
-    const report = inspectClaudeAutomationFleet({
+  it("Claude: an un-opted-in gardener reports UNSUPPORTED with the enabling command", async () => {
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet: fleetFor(false),
       scheduleListing: { routines: [] },
       now: NOW,
