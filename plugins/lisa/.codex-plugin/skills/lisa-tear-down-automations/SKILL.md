@@ -21,14 +21,34 @@ removes them with its **native** scheduling mechanism.
 
 ## Scope (remove only what setup created)
 
-- Remove the six automations `/setup-automations` creates for the current project, matched by the
-  stable `lisa-auto-<project>-` name prefix: `intake-repair`, `intake-prd`, `intake-tickets`,
-  `exploratory-bugs`, `exploratory-prds`, `monitor`.
+- Remove **every** automation `/setup-automations` registered for the current project — the whole
+  set found under the stable `lisa-auto-<project>-` name prefix, whatever it currently contains.
+  **Membership is registration, not a roster** (`automation-runbook-contract`): sweep the prefix and
+  remove what is there. Do **not** work from a fixed list of loop names — a list drifts the moment a
+  loop is added, which is exactly how the opt-in gardener came to be orphaned.
+- This explicitly includes the opt-in **`learnings-audit`** gardener when it is registered:
+  `/setup-automations learnings-audit=true` registers it under the same prefix, so teardown removes
+  it with the rest. A conditionally-skipped loop (e.g. `exploratory-bugs` on a stack without
+  `exploratory-qa`) simply is not in the sweep.
 - **Never** remove automations for a different project, or any non-Lisa automation (e.g. unrelated
   crawlers/ingestors). Match strictly on the `lisa-auto-<project>-` prefix for THIS project; when in
   doubt about an automation's ownership, leave it and report it rather than deleting it.
-- **Idempotent** — an automation that is already absent is a no-op, not an error.
+- **Idempotent** — an automation that is already absent is a no-op, not an error. Re-running when
+  the prefix sweep finds nothing is a clean, successful no-op.
+- **Leave the runbooks alone.** The checked-in `.lisa/automations/<loop-id>.runbook.md` files that
+  `/setup-automations` scaffolded are project knowledge and the historical record of what these
+  loops did. Teardown removes scheduler registrations only; it never deletes, edits, or moves a
+  runbook file. An operator who wants them gone removes them deliberately, in git.
 
 ## Report
 
-List each automation removed, and any in the expected set that were already absent.
+List each automation removed by name. For "already absent", compare against the one source of truth
+— the fleet `scripts/automation-status-expected-fleet.mjs` (`resolveExpectedAutomationFleet`)
+resolves for this project — and name anything it expects that the sweep did not find; that is a
+no-op, not an error. Do not invent an expected set of your own.
+
+Then state, in the operator's words, that the runbook files under `.lisa/automations/` were left on
+disk **and why**: they are the written record of what those jobs did, kept on purpose, and if you
+do not want them you delete them yourself in git. Finally, confirm that nothing outside this
+project's `lisa-auto-<project>-` prefix was touched. Write it so a non-technical operator can
+confirm what happened without reading code.

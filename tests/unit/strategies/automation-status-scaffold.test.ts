@@ -81,6 +81,18 @@ describe("automation-status scaffold (#797)", () => {
       expect(skill).toMatch(/stack-support/i);
     });
 
+    it("derives the fleet from the resolver, not a hardcoded roster (#1796)", () => {
+      const skill = read(root, SKILL_REL);
+
+      expect(skill).toContain("resolveExpectedAutomationFleet");
+      expect(skill).toContain("scripts/automation-status-expected-fleet.mjs");
+      expect(skill).toContain("automation-runbook-contract");
+      expect(skill).toMatch(/membership is registration, not a\s+roster/i);
+      expect(skill).toMatch(/carry no fixed list of loop names/i);
+      // The pre-#1796 roster bullet list must be gone.
+      expect(skill).not.toMatch(/^- `intake-repair`$/m);
+    });
+
     it("names the expected runtime branches and fleet outcomes", () => {
       const skill = read(root, SKILL_REL);
 
