@@ -421,13 +421,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/skill-evaluator.md":
       "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
     "plugins/src/base/agents/spec-conformance-specialist.md":
-      "b869bccbb1289db8ce05be6ea07827f8cdd336bb0e986167a5d08244c7936277",
+      "f589e4d543a617d3c421aa28d6583e1b25e0b18fc83412e6d544a389bdac225c",
     "plugins/src/base/agents/test-specialist.md":
       "0e6f7137b8338f76d0302cb7a930f50821b4d66dd197977012f32ab5a0c38061",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "fef49c3ca8622c83a54d34b3f960471e0f2ad50e6889f691585b0f208180f6bd",
     "plugins/src/base/agents/verification-specialist.md":
-      "5e016e5f03435a7a8dc75934173d962138868dc0c538630080468af527c60076",
+      "32d8a660ba486279fdbb6d0c6665bee36a9703e0cb05e1ab0629b82bc26ebd04",
     "plugins/src/base/commands/agent-ready.md":
       "b1bc19c90330b9885b44f733e83cc6b44afa9b5e9fd2e9aba99995480e0829e1",
     "plugins/src/base/commands/analyze-claude-remote.md":
@@ -713,7 +713,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "d2a24f8f176dbd900beb6e396fc669008b0be0c9033fac5c1c1ecc19002bd7c2",
     "plugins/src/base/rules/reference/verification.md":
-      "aeb348f8bcf4cd3dc1e6c8e3984afd4461bb2f1283055b9298dab3979c53a115",
+      "9aa9ec95a739268181b74d6952fa7cda16c96d633ece6a3e889d3b28a8f8ffb7",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "305d38e13984c2a64144f302336405d0ccbec493a6ed3ec67d210fed44940717",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -833,7 +833,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "bc919c52e2f42129d41a3f40279d2def99486ec58bed2dab51ca7166b427a947",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "046bc040b7a1182f71dd4be7a04e977a963a5ab707fad627d89ef0877d4a789b",
+      "634f09dbd2654af070be393f5fd41e8d7fedee7437be2890e54d47ec59258539",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1037,7 +1037,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "924b6f54e38bf000625fcbecef828e78f7b4a401c36a5353b7c22ff12d530d5c",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
-      "0d0b5576e1c3a1cd3352d613851d399c825de6fa31c1c75a3c691171ce7817c3",
+      "3bcaf6d3b47917d00732542e30a8a302c3e293a9957faf79cac5b1d75cc538a2",
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "c32e6a4e3115ca32b7d335e90d0a73b243c6c631a2d192568423be0cb5944e84",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
@@ -7727,6 +7727,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automation-status-scaffold.test.ts": true,
     "tests/unit/strategies/automations-retirement.test.ts": true,
     "tests/unit/strategies/automations-skills.test.ts": true,
+    "tests/unit/strategies/bce-parity-and-consumption.test.ts": true,
     "tests/unit/strategies/browser-verification-controller-contract.test.ts": true,
     "tests/unit/strategies/build-intake-duplicate-closeout.test.ts": true,
     "tests/unit/strategies/build-ready-control.test.ts": true,
@@ -7955,6 +7956,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/architecture/pattern-b-fan-out-spec.md": true,
     "wiki/architecture/template-governance.md": true,
     "wiki/concepts/.gitkeep": true,
+    "wiki/concepts/bounded-claims-evidence-system.md": true,
     "wiki/concepts/coding-agent-feature-taxonomy.md": true,
     "wiki/concepts/lisa-vocabulary.md": true,
     "wiki/decisions/.gitkeep": true,
