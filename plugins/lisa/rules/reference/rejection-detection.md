@@ -112,7 +112,7 @@ The most corrosive failure of an unattended fleet is nagging: a human declines a
 
 A proposal is **declined** when its prior item is **closed as _not planned_**:
 
-- **GitHub** — `stateReason == "not_planned"` (surfaced by `lisa-github-read-issue`, which renders `State: closed (not_planned)`).
+- **GitHub** — `stateReason == "not_planned"` (surfaced by `lisa-github-read-issue`, which renders `State: closed (not_planned)`). **The comparison is case-insensitive:** raw `gh issue view --json stateReason` returns the value UPPERCASE (`NOT_PLANNED` / `COMPLETED`), so a literal string-compare against `not_planned` on raw `gh` output would false-negative a genuine decline. Normalize the value to lowercase before comparing, or consume it through `lisa-github-read-issue`'s already-lowercased rendering — never string-match raw `gh` JSON directly.
 - **JIRA / Linear** — the configured *not-planned* equivalent resolved per the `config-resolution` rule (a JIRA won't-do resolution, a Linear canceled state), **never a hardcoded lane string** — exactly as the claim-time lane names above always come from `.lisa.config.json`, never a literal.
 
 **Closed as _completed_ is NOT a decline.** A completed fix whose underlying problem later recurs is a **regression**, and the loop **may file** it — the recurrence is genuinely new work, not a re-proposal of the declined thing. Only *not planned* is the durable "no".
