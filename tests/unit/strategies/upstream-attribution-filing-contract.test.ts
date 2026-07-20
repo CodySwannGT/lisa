@@ -49,7 +49,7 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     expect(handoff).toMatch(/never the host project or the local issue/i);
     expect(handoff).toMatch(/MUST collide on the same key/);
     expect(handoff).toMatch(/MARKER, never the title/);
-    expect(handoff).toMatch(/never write a markerless body/);
+    expect(handoff).toMatch(/never write a markerless body/i);
   });
 
   it("dedupes across all issue states and handles the closed-ticket branch", () => {
@@ -96,6 +96,13 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     expect(handoff).toMatch(/LINK the host-project issue instead of quoting/);
     expect(handoff).toMatch(/high-entropy values/);
     expect(handoff).toMatch(/strip on match/);
+  });
+
+  it("delegates public body composition to the executable allowlist builder", () => {
+    expect(handoff).toContain("buildUpstreamAttributionIssueBody");
+    expect(handoff).toContain("@codyswann/lisa/learnings");
+    expect(handoff).toMatch(/non-allowlisted fields? must reject/i);
+    expect(handoff).toMatch(/never by free-form prose assembly/i);
   });
 
   it("never claims a filing before attribution and resolves inconclusive paths", () => {
