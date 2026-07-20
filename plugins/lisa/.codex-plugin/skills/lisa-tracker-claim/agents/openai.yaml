@@ -1,0 +1,4 @@
+display_name: "Tracker Claim"
+short_description: "Vendor-neutral dispatcher for…"
+default_prompt:
+  - "Use $lisa-tracker-claim: Vendor-neutral dispatcher for…."
