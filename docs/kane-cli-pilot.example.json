@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "startedAt": "2026-07-19T00:00:00.000Z",
+  "resultsFile": "kane-pilot-results.jsonl",
+  "maximumCreditsPerRun": 25,
+  "applications": [
+    {
+      "name": "web-app-a",
+      "projectRoot": "../web-app-a",
+      "environment": "dev",
+      "cases": [
+        {
+          "id": "login-dashboard",
+          "url": "https://dev-a.example.test",
+          "objective": "Sign in with the configured disposable test user and verify the dashboard welcome state, then sign out",
+          "baselineSeconds": 180
+        }
+      ]
+    },
+    {
+      "name": "web-app-b",
+      "projectRoot": "../web-app-b",
+      "environment": "staging",
+      "cases": [
+        {
+          "id": "checkout-confirmation",
+          "url": "https://staging-b.example.test",
+          "objective": "Using the configured disposable test user, add the seeded product to the cart, complete checkout, verify the order confirmation, and remove the test order",
+          "baselineSeconds": 300
+        }
+      ]
+    }
+  ]
+}

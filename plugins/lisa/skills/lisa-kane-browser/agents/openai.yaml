@@ -1,0 +1,4 @@
+display_name: "Kane Browser"
+short_description: "Optional Lisa-owned adapter for TestMu Kane CLI empirical browser runs"
+default_prompt:
+  - "Use $lisa-kane-browser: Optional Lisa-owned adapter for TestMu Kane CLI empirical browser runs."
