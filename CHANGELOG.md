@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.259.0](https://github.com/CodySwannGT/lisa/compare/v2.258.4...v2.259.0) (2026-07-20)
+
+
+### Features
+
+* **learnings:** allowlist upstream attribution bodies ([c533bfe](https://github.com/CodySwannGT/lisa/commit/c533bfe1e63df68c5cad9c7ecbef94777486f910)), closes [CodySwannGT/lisa#1768](https://github.com/CodySwannGT/lisa/issues/1768)
+
 ### [2.258.4](https://github.com/CodySwannGT/lisa/compare/v2.258.3...v2.258.4) (2026-07-20)
 
 
