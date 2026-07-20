@@ -55,7 +55,10 @@ loop itself is broken, not that a work item was blocked.
 
 Every run — including a trivial early termination — ends by naming exactly one run outcome plus a
 one-line operator summary of what happened, recorded where the status surface can read it —
-there is no silent exit. Silence and health must never look identical to an operator.
+there is no silent exit. The shared local substrate is
+`plugins/src/base/scripts/automation-run-record.mjs`, which writes bounded JSONL records under
+`.lisa/automations/runs/<loop-id>.jsonl`. Silence and health must never look identical to an
+operator.
 
 ## Never block, always degrade
 
