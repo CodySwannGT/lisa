@@ -47,6 +47,7 @@ Before posting or updating anything, check the evidence body (`comment.md`, and 
 
 - It contains a `## Not established` heading. That heading is **never omitted and never blank** — when nothing is outstanding it still renders `None outstanding — reviewed`; otherwise it names, in plain operator language, what the verification did not prove.
 - The accompanying verdict carries `not_established_reviewed: true` (the list may be empty; the flag may never be omitted).
+- It contains a `## Artifact identity` heading carrying **values, not placeholders** — the repository, the `head_sha` the verification observed, the `environment`, and per artifact its `sha256` digest and `captured_at`. **Refuse to post** a body whose identity heading is absent or unpopulated, or whose recorded `artifact_head_sha` disagrees with the verdict's `artifact.head_sha` — report the evidence id and **both SHAs**. Definition: the `claim-evidence-mapping` rule.
 
 If either is missing, **refuse to post**: stop and report the missing Not-established review to the caller instead of publishing. Composing the body is `lisa-tracker-evidence`'s job (see its UI Evidence Checklist); this skill only refuses to publish one that omits the section. The section is defined by the `claim-evidence-mapping` rule and generalizes `lisa-improve-harness`'s required, never-empty `Known limits` field.
 
