@@ -22,18 +22,26 @@ Run a ZAP baseline security scan against the local application.
    - After the scan completes, read `zap-report.html` (or `zap-report.md` for text)
    - Summarize findings:
      - Total number of alerts by risk level (High, Medium, Low, Informational)
-     - List each Medium+ finding with its rule ID, name, and recommended fix
+     - **Every alert reaches classification** -- High, Medium, Low, and Informational alike. Risk
+       level orders the summary; it never filters it. **Nothing is dropped before classification**,
+       so no alert can leave the report unclassified. Medium+ alerts are listed first, in full (rule
+       ID, name, recommended fix); Low/Informational alerts are still listed, bucketed, and given a
+       `reason`, even when compressed to one line each.
      - Categorize findings as "infrastructure-level" (fix at CDN/proxy) vs "application-level" (fix in code)
 
 4. **Apply the impact-or-exploitability bar** -- the same bar the `lisa-security-review` skill
    defines; follow that skill, do not restate it. A ZAP alert is not a reproducer by itself: the
    alert names a pattern, not an exercised impact path.
-   - **Security (proven)** -- the alert carries a reproducer (the ZAP request/response transcript for
-     that alert, or a captured `http-transcript`) **and** a bounded impact statement.
+   - **Security (proven)** -- the alert carries a reproducer **and** a bounded impact statement. The
+     reproducer counts only if its evidence kind **reaches the claim's boundary** under the
+     `claim-evidence-mapping` contract (BCE-1, #1835): a ZAP request/response transcript is an
+     `http-transcript` and reaches the `http-api` boundary only. An alert whose claim is about
+     rendered UI (`browser`) or persisted state (`data`) needs evidence at *that* boundary -- a
+     transcript never proves it.
    - **Security (unproven)** -- everything else, each with a one-line `reason` (typically
-     "alert only, no reproducer / no bounded impact"). Unproven alerts are **not dropped** and not
-     demoted out of the security summary -- they render in the unproven bucket so a reader still sees
-     them.
+     "alert only, no reproducer / no bounded impact", or "transcript does not reach the claim's
+     boundary"). Unproven alerts are **not dropped** and not demoted out of the security summary --
+     they render in the unproven bucket so a reader still sees them.
    - Rename the unproven heading only if `security.review.unprovenBucket` is set to something other
      than `security-unproven`; no other classification changes.
 

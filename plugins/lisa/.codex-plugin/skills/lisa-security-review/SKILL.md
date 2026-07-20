@@ -30,10 +30,17 @@ mechanically, before it is written up:
 **The bar:** a finding is **proven** only when it carries **both** a reproducer **and** a bounded
 impact statement. **Missing either ⇒ unproven.** No other input changes the bucket.
 
-What counts as a reaching reproducer is defined by the `claim-evidence-mapping` contract, not here:
-an injection claim at the `http-api` boundary needs an `http-transcript`; a UI claim needs a
-`screenshot` or `recording`. A passing unit `test-run-log` reaches `code-unit` only and never
-discharges either.
+What counts as a reaching reproducer is defined by the `claim-evidence-mapping` contract (**BCE-1**,
+#1835), not here: an injection claim at the `http-api` boundary needs an `http-transcript`; a UI
+claim needs a `screenshot` or `recording`. A passing unit `test-run-log` reaches `code-unit` only and
+never discharges either.
+
+**Each field stands on its own.** The two halves are recorded independently: a finding with a bounded
+impact but no reproducer keeps its impact statement verbatim and only `reproducer` reads `none`; a
+finding with a reproducer but no bounded impact keeps the evidence ref and only `impact` reads
+`unproven`. **Never overwrite** a field you actually have with a missing-value placeholder — the
+`reason` line names which half is missing, and the surviving half is the head start the next reviewer
+needs.
 
 ## The two buckets — conservative by default
 
@@ -93,9 +100,10 @@ Structure findings as:
 
 ### Security (unproven)
 - [finding] -- where in the code, how to prevent
-  - reproducer: none
-  - impact: unproven
-  - reason: no reproducer / no bounded impact -- kept in the security section, not demoted
+  - reproducer: [evidence ref if one exists, else `none`]
+  - impact: [bounded statement if one exists, else `unproven`]
+  - reason: [which half is missing -- e.g. "impact bounded, but never reproduced"]
+    -- kept in the security section, not demoted
 
 ### Recommendations
 - [recommendation] -- priority (critical/warning/suggestion)

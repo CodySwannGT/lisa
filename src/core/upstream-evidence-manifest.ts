@@ -417,7 +417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/quality-specialist.md":
       "2a1b433fa1be1c8b23c2c83e5f247b851c61e3c253a79caf8a3eb7f326744a22",
     "plugins/src/base/agents/security-specialist.md":
-      "de35dd064d4d0ab27c4185395fffbc2d00cc41c86ee78cc93f50d112fea3439c",
+      "2d592b4c2666082ef84cae8878be99b9ebd07f75ab77656409beff306f17a6b4",
     "plugins/src/base/agents/skill-evaluator.md":
       "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
     "plugins/src/base/agents/spec-conformance-specialist.md":
@@ -1009,9 +1009,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "2b1cb5bac2be7e8bb6b852efb0bd499cbcdca6299c342a54e0c8d872821c7364",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
-      "b2971c09ed469762df543b1490a7c07ff864b27daf22990c46bb40c10b296d35",
+      "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
-      "da13f56e23290115ca722367504605114404ef27bac03cf93a48ee751fa7deed",
+      "a5189442dbf970cc49fd089ab03c386c8a205b856e09501f6ad1966321e7e4b5",
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "ecaf49b42bbf399781a3ebd0b1595e5a8ac44422537832e0442b2f184da0c83c",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
