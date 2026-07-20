@@ -165,32 +165,83 @@ describe("Codex adapter renders the opt-in group (#1796)", () => {
     tempDirs.length = 0;
   });
 
+  it("reads no-argument registrations back as HEALTHY, not DRIFTED", async () => {
+    const fleet = fleetFor(true);
+    const automationsDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "lisa-codex-no-arg-")
+    );
+    tempDirs.push(automationsDir);
+
+    // monitor and the gardener are the two no-argument loops: their prompts
+    // carry the literal command with no "with arguments" clause at all.
+    for (const entry of fleet.expected) {
+      await writeCodexAutomation(automationsDir, {
+        automationId: entry.automationId,
+        rrule: entry.expectedRRule,
+        prompt: `Run one cycle for this project.\n${entry.expectedCommand}`,
+        lastRunAt: LAST_RUN_AT,
+      });
+    }
+
+    const report = await inspectCodexAutomationFleet({
+      expectedFleet: fleet,
+      automationsDir,
+      now: NOW,
+    });
+
+    const items = report.groups.flatMap(group => group.items);
+    for (const id of ["monitor", "learnings-audit"]) {
+      const entry = fleet.expected.find(candidate => candidate.id === id);
+      expect(items).toContainEqual(
+        expect.objectContaining({
+          id: entry?.automationId,
+          status: "HEALTHY",
+        })
+      );
+    }
+  });
+
+  it("still reports DRIFTED when a no-argument loop runs the wrong command", async () => {
+    const fleet = fleetFor(true);
+    const monitor = fleet.expected.find(entry => entry.id === "monitor");
+    const automationsDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "lisa-codex-drift-")
+    );
+    tempDirs.push(automationsDir);
+
+    await writeCodexAutomation(automationsDir, {
+      automationId: monitor?.automationId ?? "",
+      rrule: monitor?.expectedRRule ?? "",
+      prompt: "Run one cycle for this project.\n/lisa:queue-status",
+      lastRunAt: LAST_RUN_AT,
+    });
+
+    const report = await inspectCodexAutomationFleet({
+      expectedFleet: fleet,
+      automationsDir,
+      now: NOW,
+    });
+
+    expect(report.groups.flatMap(group => group.items)).toContainEqual(
+      expect.objectContaining({
+        id: monitor?.automationId,
+        status: "DRIFTED",
+      })
+    );
+  });
+
   it("shows a registered gardener and an un-opted-in one in the same group", async () => {
     const automationsDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "lisa-codex-opt-in-")
     );
     tempDirs.push(automationsDir);
 
-    const automationDir = path.join(automationsDir, GARDENER_ID);
-    await fs.mkdir(automationDir, { recursive: true });
-    await fs.writeFile(
-      path.join(automationDir, "automation.toml"),
-      [
-        "version = 1",
-        `id = "${GARDENER_ID}"`,
-        'kind = "cron"',
-        `name = "${GARDENER_ID}"`,
-        `prompt = "Run one Lisa learnings-audit cycle. Use the Lisa learnings-audit skill."`,
-        'status = "ACTIVE"',
-        `rrule = "${WEEKLY_RRULE}"`,
-        'execution_environment = "local"',
-        "",
-      ].join("\n")
-    );
-    await fs.writeFile(
-      path.join(automationDir, "memory.md"),
-      `${LAST_RUN_AT}\n\n- Proposed nothing this week.\n`
-    );
+    await writeCodexAutomation(automationsDir, {
+      automationId: GARDENER_ID,
+      rrule: WEEKLY_RRULE,
+      prompt: `Run one Lisa learnings-audit cycle.\n${GARDENER_COMMAND}`,
+      lastRunAt: LAST_RUN_AT,
+    });
 
     const optedIn = await inspectCodexAutomationFleet({
       expectedFleet: fleetFor(true),
@@ -219,3 +270,50 @@ describe("Codex adapter renders the opt-in group (#1796)", () => {
     );
   });
 });
+
+/** One Codex automation fixture's backing-store fields. */
+type CodexAutomationFixture = {
+  /** Full automation name, e.g. `lisa-auto-acme-app-monitor`. */
+  readonly automationId: string;
+  /** Recurrence rule as Codex stores it. */
+  readonly rrule: string;
+  /** Registration prompt; newlines are escaped into the single-line TOML. */
+  readonly prompt: string;
+  /** Timestamp of the latest recorded run. */
+  readonly lastRunAt: string;
+};
+
+/**
+ * Write one Codex automation fixture (backing-store TOML + memory file).
+ * @param automationsDir - Fixture root standing in for `~/.codex/automations`
+ * @param input - The automation's backing-store fields
+ * @returns Nothing
+ */
+async function writeCodexAutomation(
+  automationsDir: string,
+  input: CodexAutomationFixture
+): Promise<void> {
+  const automationDir = path.join(automationsDir, input.automationId);
+  await fs.mkdir(automationDir, { recursive: true });
+  await fs.writeFile(
+    path.join(automationDir, "automation.toml"),
+    [
+      "version = 1",
+      `id = "${input.automationId}"`,
+      'kind = "cron"',
+      `name = "${input.automationId}"`,
+      // Codex stores prompts as single-line TOML: line breaks are escaped.
+      `prompt = "${input.prompt.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`,
+      'status = "ACTIVE"',
+      `rrule = "${input.rrule}"`,
+      'execution_environment = "local"',
+      // A real, non-bare Git work tree — an invalid cwd alone reports FAILING.
+      `cwds = ["${process.cwd()}"]`,
+      "",
+    ].join("\n")
+  );
+  await fs.writeFile(
+    path.join(automationDir, "memory.md"),
+    `${input.lastRunAt}\n\n- Completed the cycle cleanly.\n`
+  );
+}

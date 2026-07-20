@@ -242,21 +242,35 @@ export function deriveCodexObservedCommand(prompt) {
     return undefined;
   }
 
+  // The "with arguments" clause is optional: no-argument loops (monitor, the
+  // gardener) register without one. Requiring it made every such loop derive an
+  // undefined command and report DRIFTED forever, un-fixable by re-running setup.
   const lisaSkillMatch = prompt.match(
-    /Use the Lisa ([a-z0-9:-]+) skill with arguments `([^`]+)`/i
+    /Use the Lisa ([a-z0-9:-]+) skill(?: with arguments `([^`]*)`)?/i
   );
-  if (lisaSkillMatch?.[1] && lisaSkillMatch[2]) {
-    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2]}`.trim();
+  if (lisaSkillMatch?.[1]) {
+    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2] ?? ""}`.trim();
   }
 
   const aliasSkillMatch = prompt.match(
-    /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
+    /Use the `\$([a-z0-9:-]+)` skill(?: with arguments `([^`]*)`)?/i
   );
-  if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
-    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2]}`.trim();
+  if (aliasSkillMatch?.[1]) {
+    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2] ?? ""}`.trim();
   }
 
-  return undefined;
+  // A registration whose prompt carries the literal Lisa command on its own
+  // line — the shape `/lisa:setup-automations` bakes so a command that is not a
+  // plain skill name (`/lisa:learnings:audit`) round-trips exactly. Mirrors the
+  // Claude adapter, which has always accepted a bare `/lisa:` command. Codex
+  // stores prompts as single-line TOML, so a line break arrives either real or
+  // as the two-character escape `\n`; both delimit a line here.
+  const literalCommand = prompt
+    .split(/\r?\n|\\n/)
+    .map(segment => segment.trim())
+    .find(segment => /^\/lisa[:-]\S/.test(segment));
+
+  return literalCommand;
 }
 
 function canonicalizeCodexSkillAlias(alias) {
