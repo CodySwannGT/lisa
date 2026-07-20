@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.259.3](https://github.com/CodySwannGT/lisa/compare/v2.259.2...v2.259.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **skills:** gate Linear magic words to production merges and reconcile native auto-close ([#1778](https://github.com/CodySwannGT/lisa/issues/1778)) ([2c1ef69](https://github.com/CodySwannGT/lisa/commit/2c1ef69d6735f366734d67a70013f854bc287a49))
+
 ### [2.259.2](https://github.com/CodySwannGT/lisa/compare/v2.259.1...v2.259.2) (2026-07-20)
 
 
