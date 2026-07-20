@@ -64,7 +64,7 @@ export interface IgnorePatterns {
  * @param content - Raw content of the .lisaignore file
  * @returns Array of parsed patterns
  */
-function parseIgnorePatterns(content: string): readonly string[] {
+export function parseIgnorePatterns(content: string): readonly string[] {
   return content
     .split("\n")
     .map(line => line.trim())
@@ -77,7 +77,7 @@ function parseIgnorePatterns(content: string): readonly string[] {
  * @param patterns - Array of gitignore-style patterns
  * @returns True if the path should be ignored
  */
-function matchesAnyPattern(
+export function matchesAnyPattern(
   relativePath: string,
   patterns: readonly string[]
 ): boolean {

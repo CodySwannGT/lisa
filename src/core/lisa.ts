@@ -86,6 +86,10 @@ import {
   resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
 } from "./project-config.js";
+import {
+  decideTemplateOwnership,
+  templateSkipDescription,
+} from "./template-ownership.js";
 
 /**
  * Log fragment used when a create-only instruction file already exists and is
@@ -1662,58 +1666,6 @@ export class Lisa {
   }
 
   /**
-   * Identify the single machine-managed file that remains host-owned after
-   * creation, regardless of later stack templates or deletion manifests.
-   * @param relativePath - Candidate destination path
-   * @returns Whether the path is the registered project learnings destination
-   */
-  private isProjectLearningsPath(relativePath: string): boolean {
-    return (
-      this.projectLearningsTemplateRegistered &&
-      relativePath === this.projectLearningsFile
-    );
-  }
-
-  /**
-   * Whether the create-only strategy must skip seeding the empty ledger because
-   * a populated legacy ledger is pending relocation into this destination.
-   * @param isProjectLearnings - Whether the candidate is the ledger destination
-   * @param strategyName - Strategy that would apply the file
-   * @returns True when the empty seed must be suppressed
-   */
-  private isSuppressedLearningsSeed(
-    isProjectLearnings: boolean,
-    strategyName: CopyStrategy
-  ): boolean {
-    return (
-      isProjectLearnings &&
-      strategyName === CREATE_ONLY_STRATEGY &&
-      this.suppressLearningsSeedForRelocation
-    );
-  }
-
-  /**
-   * The other-type owner of a create-only path, when a more-specific stack owns
-   * it and would otherwise be overwritten by this pass — else undefined. Flat
-   * predicate so the file router stays under its complexity budget.
-   * @param relativePath - Path relative to the strategy source directory
-   * @param strategyName - Strategy that would apply the file
-   * @param currentType - Project type currently being processed
-   * @returns The owning type to defer to, or undefined when none applies
-   */
-  private createOnlyOverrideOwner(
-    relativePath: string,
-    strategyName: CopyStrategy,
-    currentType: string
-  ): string | undefined {
-    if (strategyName !== CREATE_ONLY_STRATEGY) {
-      return undefined;
-    }
-    const owner = this.createOnlyOwnership.get(relativePath);
-    return owner !== undefined && owner !== currentType ? owner : undefined;
-  }
-
-  /**
    * Decide whether a candidate source file should be passed to its strategy.
    * Centralizes three independent skip rules that all need to short-circuit
    * before a strategy ever sees the file:
@@ -1739,98 +1691,30 @@ export class Lisa {
     strategyName: CopyStrategy,
     currentType: string
   ): boolean {
-    if (this.ignorePatterns.shouldIgnore(relativePath)) {
-      this.counters.ignored++;
-      this.logSkip(`ignored`, relativePath, "Ignored");
-      return false;
-    }
-    const isProjectLearnings = this.isProjectLearningsPath(relativePath);
-    if (this.isSuppressedLearningsSeed(isProjectLearnings, strategyName)) {
-      this.counters.skipped++;
-      this.logSkip(
-        "legacy learnings ledger pending relocation",
-        relativePath,
-        "Skipped (legacy learnings ledger pending relocation)"
-      );
-      return false;
-    }
-    if (this.pendingDeletions.has(relativePath) && !isProjectLearnings) {
-      this.counters.skipped++;
-      this.logSkip(
-        "pending deletion by detected type",
-        relativePath,
-        "Skipped (pending deletion)"
-      );
-      return false;
-    }
-    if (isProjectLearnings && strategyName !== CREATE_ONLY_STRATEGY) {
-      this.counters.skipped++;
-      this.logSkip(
-        "owned by all/create-only",
-        relativePath,
-        "Skipped (host-owned project learnings)"
-      );
-      return false;
-    }
-    const overridingOwner = this.createOnlyOverrideOwner(
+    const decision = decideTemplateOwnership({
       relativePath,
-      strategyName,
-      currentType
-    );
-    if (overridingOwner !== undefined) {
-      this.counters.skipped++;
-      const reason = `overridden by ${overridingOwner}/create-only`;
-      this.logSkip(reason, relativePath, `Skipped (${reason})`);
+      strategy: strategyName,
+      currentType,
+      orderedTypes: ["all", ...this.detectedTypes],
+      ignored: this.ignorePatterns.shouldIgnore(relativePath),
+      pendingDeletion: this.pendingDeletions.has(relativePath),
+      projectLearningsPath: this.projectLearningsTemplateRegistered
+        ? this.projectLearningsFile
+        : undefined,
+      suppressLearningsSeed: this.suppressLearningsSeedForRelocation,
+      createOnlyOwner: this.createOnlyOwnership.get(relativePath),
+      copyOverwriteOwner: this.copyOverwriteOwnership.get(relativePath),
+    });
+    if (decision.process) return true;
+    if (decision.reason === "ignored") {
+      this.counters.ignored++;
+      this.logSkip("ignored", relativePath, "Ignored");
       return false;
     }
-    if (strategyName === "copy-overwrite") {
-      return this.shouldProcessCopyOverwrite(relativePath, currentType);
-    }
-    return true;
-  }
-
-  /**
-   * Apply copy-overwrite-specific ownership rules.
-   * @param relativePath - Path relative to the strategy source directory
-   * @param currentType - Project type currently being processed
-   * @returns True if copy-overwrite should apply the file, false to skip
-   */
-  private shouldProcessCopyOverwrite(
-    relativePath: string,
-    currentType: string
-  ): boolean {
-    const createOnlyOwner = this.createOnlyOwnership.get(relativePath);
-    if (
-      createOnlyOwner !== undefined &&
-      createOnlyOwner !== currentType &&
-      this.isMoreSpecificType(createOnlyOwner, currentType)
-    ) {
-      this.counters.skipped++;
-      const reason = `owned by ${createOnlyOwner}/create-only`;
-      this.logSkip(reason, relativePath, `Skipped (${reason})`);
-      return false;
-    }
-    const owner = this.copyOverwriteOwnership.get(relativePath);
-    if (owner !== undefined && owner !== currentType) {
-      this.counters.skipped++;
-      const reason = `overridden by ${owner}/copy-overwrite`;
-      this.logSkip(reason, relativePath, `Skipped (${reason})`);
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Determine whether one detected stack is more specific than another.
-   * `expandAndOrderTypes` orders parents before children, matching the strategy
-   * processing order, so a higher index means a more-specific owner.
-   * @param candidate - Potential child stack
-   * @param currentType - Current stack being processed
-   * @returns True when candidate is ordered after currentType
-   */
-  private isMoreSpecificType(candidate: string, currentType: string): boolean {
-    const orderedTypes = ["all", ...this.detectedTypes];
-    return orderedTypes.indexOf(candidate) > orderedTypes.indexOf(currentType);
+    this.counters.skipped++;
+    const reason = templateSkipDescription(decision);
+    this.logSkip(reason, relativePath, `Skipped (${reason})`);
+    return false;
   }
 
   /**
