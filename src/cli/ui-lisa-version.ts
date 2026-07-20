@@ -28,14 +28,10 @@ const OFFLINE_SKIP_DETAIL = "Skipped network check in offline mode";
 const UNRECOGNIZED_MESSAGE = "Version check returned an unrecognized result";
 
 /**
- * Default doctor collaborators for the version probe.
- * checkVersion only reads `runUpdateCheck`; the rest satisfy the type.
+ * Default collaborator for the shared doctor version check.
  */
-const DEFAULT_VERSION_PROBE_DEPS: DoctorDependencies = {
-  fetchImpl: fetch,
+const DEFAULT_VERSION_PROBE_DEPS: Pick<DoctorDependencies, "runUpdateCheck"> = {
   runUpdateCheck,
-  setExitCode: () => undefined,
-  write: () => undefined,
 };
 
 /**

@@ -52,6 +52,11 @@ These are the durable ideas. Everything concrete descends from them.
 
 **Evidence-based verification.** A task is not "done" because an agent says so. Lisa requires work to be proven with reproducible, empirical evidence — the change is exercised, the behavior observed, the proof attached to the ticket and the PR — and it enforces this with gates that are not meant to be bypassed. If you take one idea from Lisa, take this one.
 
+For DOM-web empirical verification, projects may explicitly opt into the guarded
+[Kane CLI provider](docs/kane-cli-integration.md). It supplies a normalized live-browser result and
+evidence pack while Lisa retains environment policy, the final verdict, durable evidence, and
+native Playwright/Maestro regression authority.
+
 > **Prompt for your coding agent**
 > "Walk me through how this project verifies that a change actually works before it is considered complete. What evidence is required, where is it recorded, and which gate refuses to let unverified work ship?"
 

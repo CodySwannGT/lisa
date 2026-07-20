@@ -51,6 +51,8 @@ Before creating anything new, find what the project already has. Use the Tool Di
 
 Do NOT install a new framework if one already exists for the verification type. Use what's there.
 
+If the empirical proof came from Kane, consume its exact objective, observable assertions, URL, and local evidence pack as inputs. Do not commit Kane `_test.md` recordings, generated code, or auto-healed selectors as the authoritative regression. Encode the same behavior in the project's existing native runner under the deterministic rules below.
+
 ### 2. Map verification type → framework
 
 | Verification type | Preferred framework (use whichever the project already has) |

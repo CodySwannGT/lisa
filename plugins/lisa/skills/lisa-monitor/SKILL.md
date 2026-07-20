@@ -122,6 +122,8 @@ Execute the **Monitor** sub-flow as defined in the `intent-routing` rule (loaded
 
 The **Rails** ops-specialist composes a different subset (`ops-run-local`, `ops-deploy`, `ops-check-logs`, `ops-verify-jobs`, `ops-verify-telemetry` — X-Ray/CloudWatch traces and metrics via `ops-verify-telemetry`). When no `ops-specialist` overlay is present (e.g. NestJS, CDK, or a generic TypeScript repo), fall back to **stack-agnostic base probing** — read manifests/config to discover what's wired, then probe live sources directly (Sentry CLI/REST, `aws logs` / `aws cloudwatch` / `aws xray`, the Playwright MCP for client-side console/network), exactly as the `observability-audit` "read-then-probe" detection prescribes. The agent decides which subset to run based on the env, the repo profile, and any extra context.
 
+For a configured non-production DOM environment with mutation policy `full`, `ops-browser-uat` or the stack-agnostic fallback may invoke `lisa-kane-browser` after `lisa kane probe` succeeds. Use the normalized outcome and local evidence pack; a Kane tool/auth/upload/schema failure is `PRESENT (unverified)` or a tooling warning, never an application anomaly. Under `--report-only`, Kane remains report-only too and cannot file tickets directly.
+
 ## Ticket filing (standalone only)
 
 After report, file what was found — **only when run standalone**, never under `--report-only`/`--dry-run` and never when nested inside `lisa-verify` (which passes `--report-only`):

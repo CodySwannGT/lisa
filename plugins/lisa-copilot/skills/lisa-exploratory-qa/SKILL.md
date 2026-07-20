@@ -21,6 +21,7 @@ Experience the product the way a **brand-new end user** would: drive its real co
 ## 1. Set up
 
 - **Invoke `use-the-product`** to detect the product type, resolve the environment + mutation policy, and discover personas/subagents. Everything about *how* to drive the product, *where*, and *how much you may mutate* comes from there — do not re-derive it.
+- For a DOM web app whose resolved non-production environment has mutation policy `full`, check the optional Kane provider with `lisa kane probe`. If ready, invoke `lisa-kane-browser` for self-contained journeys and use its screenshots, HAR/network, console, and normalized verdict as evidence. Keep the run on a directly controlled browser for `read-only`/`forbidden` environments. Treat `tool_failed`/`timed_out` as provider findings, never as product bugs.
 - **Confirm the tracker is configured.** Findings are filed as tickets, so read `tracker` from `.lisa.config.json` (local overrides global). If unset, stop and report that the tracker must be configured (`/lisa:setup:jira` / `:github` / `:linear`) before exploratory QA can file findings — do not silently fall back to a report file.
 - Read the `ready` flag (default `false`).
 
@@ -61,6 +62,8 @@ Whether you may create/edit/delete — and as which account — is set by the `u
 ## 6. File findings as tracked work
 
 No report file. Every finding becomes a **leaf work item** via `lisa-tracker-write` (the vendor-neutral writer — it dispatches to the configured tracker and runs the validation gate; never call a vendor `*-write-*` skill directly):
+
+Kane never files the work item itself. Even when it marks a failure as a confirmed product bug, run Lisa's marker-based duplicate search, apply the QA lens, and route the finding through `lisa-tracker-write` exactly as for every other controller.
 
 | Finding | `issue_type` | `build_ready` |
 |---|---|---|

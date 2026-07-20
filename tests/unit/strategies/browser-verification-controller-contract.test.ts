@@ -38,6 +38,7 @@ const VERIFIER_PATHS = [
   "plugins/lisa-agy/agents/verification-specialist.md",
   "plugins/lisa-cursor/agents/verification-specialist.md",
 ] as const;
+const LIFECYCLE_SKILL = "skills/lisa-verification-lifecycle/SKILL.md";
 
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
@@ -48,10 +49,7 @@ const readPath = (rel: string): string =>
 describe("browser verification controller contract", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("accepts interactive browser control without requiring one backend", () => {
-      const lifecycle = read(
-        root,
-        "skills/lisa-verification-lifecycle/SKILL.md"
-      );
+      const lifecycle = read(root, LIFECYCLE_SKILL);
       const productUse = read(root, "skills/lisa-use-the-product/SKILL.md");
 
       expect(lifecycle).toMatch(/interactive Playwright control/i);
@@ -64,10 +62,7 @@ describe("browser verification controller contract", () => {
     });
 
     it("keeps live evidence distinct from the codified test", () => {
-      const lifecycle = read(
-        root,
-        "skills/lisa-verification-lifecycle/SKILL.md"
-      );
+      const lifecycle = read(root, LIFECYCLE_SKILL);
       const productUse = read(root, "skills/lisa-use-the-product/SKILL.md");
 
       expect(lifecycle).toMatch(
@@ -87,6 +82,23 @@ describe("browser verification controller contract", () => {
       expect(evidence).toMatch(/do not require one named backend/i);
       expect(verify).toMatch(/interactive browser controller/i);
       expect(verify).not.toMatch(/one Playwright-MCP screenshot per step/i);
+    });
+
+    it("distributes the same guarded Kane provider contract", () => {
+      const provider = read(root, "skills/lisa-kane-browser/SKILL.md");
+      const setup = read(root, "skills/lisa-setup-kane/SKILL.md");
+      const lifecycle = read(root, LIFECYCLE_SKILL);
+      const codify = read(root, "skills/lisa-codify-verification/SKILL.md");
+
+      expect(provider).toMatch(/cloudUploadApproved/i);
+      expect(provider).toMatch(/non-production/i);
+      expect(provider).toMatch(/mutation policy.*`full`/i);
+      expect(provider).toMatch(/tool_failed.*product regression/is);
+      expect(provider).toMatch(/local evidence pack.*source artifact/is);
+      expect(setup).toMatch(/Kane CLI `0\.6\.3`/i);
+      expect(setup).toMatch(/Ask exactly one approval question/i);
+      expect(lifecycle).toMatch(/project-native Playwright\/Cypress\/Maestro/i);
+      expect(codify).toMatch(/Do not commit Kane `_test\.md` recordings/i);
     });
   });
 

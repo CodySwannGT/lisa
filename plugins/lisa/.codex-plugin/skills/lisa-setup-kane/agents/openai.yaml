@@ -1,0 +1,4 @@
+display_name: "Setup Kane"
+short_description: "Configure TestMu Kane CLI as an…"
+default_prompt:
+  - "Use $lisa-setup-kane: Configure TestMu Kane CLI as an…."
