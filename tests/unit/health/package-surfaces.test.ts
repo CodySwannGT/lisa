@@ -6,6 +6,8 @@ const VERIFY_SCRIPT =
 const HEALTH_EXPORT = "./dist/health/index.js";
 const DETERMINISTIC_VERIFY_SCRIPT =
   "bun run build:dist && node scripts/verify-health-deterministic-built.mjs";
+const AGENTIC_VERIFY_SCRIPT =
+  "bun run build:dist && node scripts/verify-health-agentic-built.mjs";
 
 describe("Health v1 package surfaces", () => {
   it("keeps the source package and forced package template synchronized", async () => {
@@ -33,6 +35,10 @@ describe("Health v1 package surfaces", () => {
     );
     expect(template.force.scripts["verify:health-deterministic"]).toBe(
       DETERMINISTIC_VERIFY_SCRIPT
+    );
+    expect(source.scripts["verify:health-agentic"]).toBe(AGENTIC_VERIFY_SCRIPT);
+    expect(template.force.scripts["verify:health-agentic"]).toBe(
+      AGENTIC_VERIFY_SCRIPT
     );
   });
 });
