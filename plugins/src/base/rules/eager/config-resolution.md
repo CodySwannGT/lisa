@@ -37,6 +37,15 @@ through the contract's bounded projection, never read raw wholesale. Both
 writers and budget checks import the executable contract from
 `@codyswann/lisa/learnings`; they must not copy its numeric limits.
 
+## Optional Kane browser provider
+
+Kane is selected only through `verification.browser.kane`: require `enabled: true`, exact version
+`0.6.3`, `cloudUploadApproved: true`, an explicit non-production `allowedEnvironments` entry, a
+Test Manager `projectId`, and a resolved `exploration` mutation policy of `full`. Credentials never
+live in Lisa config. Run `lisa kane probe` before use and invoke only through `lisa-kane-browser`;
+provider/auth/upload/schema failures are tooling failures, not product failures. Kane supplies
+empirical evidence only—native Playwright/Cypress/Maestro remains the regression authority.
+
 ## Env → base branch
 
 For implementation work, map the work item's `## Target Backend Environment` to

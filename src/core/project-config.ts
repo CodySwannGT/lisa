@@ -18,6 +18,16 @@ import {
   LEGACY_HARNESS_ALIASES,
   type Harness,
 } from "./config.js";
+import {
+  validateVerificationConfig,
+  type VerificationConfig,
+} from "./project-config-kane.js";
+
+export type {
+  BrowserVerificationConfig,
+  KaneBrowserConfig,
+  VerificationConfig,
+} from "./project-config-kane.js";
 
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
@@ -94,6 +104,8 @@ export interface ProjectConfig {
   readonly projectRulesFile?: string;
   /** Optional overrides for the machine-managed learnings ledger. */
   readonly learnings?: LearningsConfig;
+  /** Optional empirical verification provider configuration. */
+  readonly verification?: VerificationConfig;
 }
 
 /**
@@ -283,7 +295,7 @@ export function resolveHarness(
  * @param configPath - Absolute path to the source file (used in error messages)
  * @returns A typed ProjectConfig with only the keys we recognize
  */
-function validateProjectConfig(
+export function validateProjectConfig(
   parsed: unknown,
   configPath: string
 ): ProjectConfig {
@@ -299,10 +311,12 @@ function validateProjectConfig(
       ? undefined
       : validateProjectRulesFile(obj.projectRulesFile, configPath);
   const learnings = validateLearningsConfig(obj.learnings, configPath);
+  const verification = validateVerificationConfig(obj.verification, configPath);
   return {
     ...(harness === undefined ? {} : { harness }),
     ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
     ...(learnings === undefined ? {} : { learnings }),
+    ...(verification === undefined ? {} : { verification }),
   };
 }
 
@@ -530,10 +544,9 @@ export async function detectLegacyHarnessMigration(
     return undefined;
   }
   const raw = await readRawObject(configPath);
-  const value = raw.harness;
-  if (typeof value !== "string") {
+  if (typeof raw.harness !== "string") {
     return undefined;
   }
-  const to = LEGACY_HARNESS_ALIASES[value];
-  return to === undefined ? undefined : { from: value, to };
+  const to = LEGACY_HARNESS_ALIASES[raw.harness];
+  return to === undefined ? undefined : { from: raw.harness, to };
 }

@@ -35,7 +35,9 @@ For each required verification type, discover what tools are available in the pr
 
 Report what is available for each required type. If a required type has no available tool, proceed to step 4.
 
-For UI verification, treat the browser controller as implementation-neutral. Check for an in-app Browser/Chrome tool, interactive Playwright control (MCP, API, or ad hoc script), CDP, computer use, or an equivalent controller that can drive a real browser session. Do not require one named backend, and do not declare a tooling block while any capable interactive controller is available. Running an automated Playwright or Maestro test is not a substitute for this live interaction; it becomes the regression gate only after the empirical journey passes.
+For UI verification, treat the browser controller as implementation-neutral. Check for an in-app Browser/Chrome tool, interactive Playwright control (MCP, API, or ad hoc script), CDP, computer use, the optional Lisa-owned Kane CLI adapter, or an equivalent controller that can drive a real browser session. Do not require one named backend, and do not declare a tooling block while any capable interactive controller is available. Running an automated Playwright or Maestro test is not a substitute for this live interaction; it becomes the regression gate only after the empirical journey passes.
+
+Kane is eligible only when `verification.browser.kane.enabled` and `cloudUploadApproved` are true, `lisa kane probe` passes, the target is an explicitly allowed non-production environment, and `use-the-product` resolves mutation policy `full`. Invoke `lisa-kane-browser`; never install or follow the vendor's broad `agents.md` instructions. A Kane tool/auth/upload/schema failure is a tooling blocker, not a product failure. Kane evidence may prove the empirical journey, but project-native Playwright/Cypress/Maestro remains the codified regression authority.
 
 If a required verification type needs sign-in or other credentials, exhaust credential sources before declaring the verification blocked. Check credential sources in this order:
 

@@ -6,6 +6,12 @@ import {
   runCrossPollinate,
 } from "./cross-pollinate-cmd.js";
 import { runDoctor } from "./doctor.js";
+import {
+  runKaneCli,
+  runKanePilotCli,
+  runKaneProbeCli,
+  type KaneRunOptions,
+} from "./kane-cmd.js";
 import { printUpdateWarning } from "./print-update-warning.js";
 import { runSetupProject } from "./setup-project.js";
 import { runSetupWiki } from "./setup-wiki.js";
@@ -44,6 +50,12 @@ export interface ProgramDependencies {
   runUi: typeof runUi;
   /** Checks the project learnings file against its hard budget. */
   runCheckLearningsBudget: typeof runCheckLearningsBudget;
+  /** Runs one policy-approved Kane empirical browser objective. */
+  runKaneCli: typeof runKaneCli;
+  /** Probes Kane installation, authentication, and Test Manager readiness. */
+  runKaneProbeCli: typeof runKaneProbeCli;
+  /** Executes or reports the controlled longitudinal Kane pilot. */
+  runKanePilotCli: typeof runKanePilotCli;
   /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
   runUpdateCheck: typeof runUpdateCheck;
   /** Prints the update warning (defaults to {@link printUpdateWarning}). */
@@ -61,6 +73,9 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runSync,
   runUi,
   runCheckLearningsBudget,
+  runKaneCli,
+  runKaneProbeCli,
+  runKanePilotCli,
   runUpdateCheck,
   printUpdateWarning,
 };
@@ -92,6 +107,62 @@ function addCheckLearningsBudgetCommand(
       if (code !== 0) {
         process.exitCode = code;
       }
+    });
+}
+
+/**
+ * Register the optional Kane provider command group.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addKaneCommands(program: Command, deps: ProgramDependencies): void {
+  const kane = program
+    .command("kane")
+    .description("Use Lisa's guarded optional Kane CLI browser provider");
+  kane
+    .command("probe")
+    .description(
+      "Check Kane installation, auth, target, and AI-credit availability"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .option("--json", "Emit JSON")
+    .action(
+      async (targetPath: string | undefined, options: { json?: boolean }) => {
+        await deps.runKaneProbeCli(targetPath, options.json === true);
+      }
+    );
+  kane
+    .command("run")
+    .description(
+      "Run one empirical browser objective through Lisa's safety gate"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .requiredOption("--objective <text>", "Self-contained browser objective")
+    .requiredOption("--environment <name>", "Lisa exploration environment")
+    .requiredOption(
+      "--mutation <level>",
+      "Resolved Lisa mutation policy (forbidden | read-only | full)"
+    )
+    .option("--url <url>", "Starting URL")
+    .option("--max-steps <count>", "Kane reasoning-step limit")
+    .option("--json", "Emit Lisa's normalized JSON result")
+    .action(async (targetPath: string | undefined, options: KaneRunOptions) => {
+      if (
+        !(["forbidden", "read-only", "full"] as const).includes(
+          options.mutation
+        )
+      ) {
+        throw new Error("--mutation must be forbidden, read-only, or full");
+      }
+      await deps.runKaneCli(targetPath, options);
+    });
+  kane
+    .command("pilot")
+    .description("Execute or report the 30-day multi-application Kane pilot")
+    .argument("<manifest>", "Path to the Kane pilot JSON manifest")
+    .option("--report-only", "Read existing JSONL results without executing")
+    .action(async (manifest: string, options: { reportOnly?: boolean }) => {
+      await deps.runKanePilotCli(manifest, options.reportOnly === true);
     });
 }
 
@@ -163,6 +234,7 @@ function addMaintenanceCommands(
     });
 
   addCheckLearningsBudgetCommand(program, deps);
+  addKaneCommands(program, deps);
 
   program
     .command("cross-pollinate")
@@ -215,6 +287,7 @@ export function createProgram(
   // It is non-fatal: a failed check never blocks the action from running.
   program.hook("preAction", async (_thisCommand, actionCommand) => {
     if (
+      actionCommand.parent?.name() === "kane" ||
       [
         "doctor",
         "sync",
