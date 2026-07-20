@@ -104,6 +104,7 @@ and records it, so a quiet run and a broken run are never mistaken for each othe
 | Findings filed — one or more `Bug` / `Improvement` tickets created or referenced (§6) | `candidate-proposed` |
 | Clean pass — explored the personas and surfaces, nothing worth filing — **or** every candidate was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
 | Tracker unconfigured — the §1 stop path; findings cannot be filed — **or** the open-and-closed rejection-memory marker search could not run (tracker unreachable / credentials revoked): a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
+| The runbook's **Retirement condition** tripped — the trailing quiet window is empty AND this pass found nothing to file | `policy-obsolete` |
 | A degradation that still let the pass explore (e.g. Kane unavailable, one persona unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
@@ -122,6 +123,26 @@ If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory direct
 `plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
 abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
 the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
+**Retirement evaluation (every run).** Evaluate this loop's runbook **Retirement condition** on
+every run, exactly as the `automation-runbook-contract` rule's Retirement section defines it — this
+skill conforms to that text and never restates or diverges from it. When both of its conditions
+hold, record `policy-obsolete` and file **exactly ONE** marker-deduped teardown proposal through
+`lisa-tracker-write` (per `tracked-work` + `integration-access-layer`):
+
+- **Marker** `<!-- [lisa-automation-retire] key=exploratory-bugs -->` plus a visible prose line;
+  matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
+  **Proposal rejection memory**, so a teardown proposal a human already declined is remembered and
+  not re-filed without postdating evidence.
+- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet.
+- **Evidence** the date-filtered search result plus this run's summary.
+- **How to answer** names the three operator responses: **approve** — run
+  `/lisa:tear-down-automations` and the registration goes away; **decline** — close the proposal as
+  **Not planned** (closing it as **Completed** leaves a later re-file open) and the loop simply
+  continues; **re-cadence** — re-register it at the longer cadence instead.
+
+The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
+registration.
 
 ## Quality bar
 

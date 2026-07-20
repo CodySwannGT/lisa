@@ -89,6 +89,11 @@ Retirement condition
   cadence until someone approves, declines, or re-cadences it.
 ```
 
+That example's 30-day retirement row is **illustration of the shape, not the shipped default**: the
+seed `lisa-setup-automations` writes declares the three `intake-*` loops structural to the factory,
+whose runbooks state plainly that they do not retire. The mechanism below is normative; the numbers
+above are only a filled-in example.
+
 ## The six run outcomes
 
 Exactly one per run. The one-line operator summary is not optional — it is what the status surface

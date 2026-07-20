@@ -303,6 +303,7 @@ so a quiet ideation run and a broken one are never confused.
 | Nothing to ideate — no Practical Idea cleared the bar; nothing created — **or** every idea was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
 | The Step 5.5 **PRD-queue-pressure gate** blocked auto-ready creation — a human must drain the queue before another auto-ready PRD is added | `approval-requested` |
 | The loop itself could not run — the PRD source reader failed or the queue is misconfigured (a source-reader failure snapshot, not queue pressure) — **or** the open-and-closed rejection-memory marker search could not read the source: a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
+| The runbook's **Retirement condition** tripped — the trailing quiet window is empty AND this run proposed nothing | `policy-obsolete` |
 | A degradation that still let ideation run (optional Codex automation memory unavailable, an inspiration source unreachable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 The pressure gate is `approval-requested`, **not** `recovery-required`: the loop ran fine and
@@ -327,6 +328,26 @@ If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory direct
 `plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
 abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
 the run — a recording failure is a degradation to report, never a reason to block the loop.
+
+**Retirement evaluation (every run).** Evaluate this loop's runbook **Retirement condition** on
+every run, exactly as the `automation-runbook-contract` rule's Retirement section defines it — this
+skill conforms to that text and never restates or diverges from it. When both of its conditions
+hold, record `policy-obsolete` and file **exactly ONE** marker-deduped teardown proposal through
+`lisa-tracker-write` (per `tracked-work` + `integration-access-layer`):
+
+- **Marker** `<!-- [lisa-automation-retire] key=exploratory-prds -->` plus a visible prose line;
+  matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
+  **Proposal rejection memory**, so a teardown proposal a human already declined is remembered and
+  not re-filed without postdating evidence.
+- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet.
+- **Evidence** the date-filtered search result plus this run's summary.
+- **How to answer** names the three operator responses: **approve** — run
+  `/lisa:tear-down-automations` and the registration goes away; **decline** — close the proposal as
+  **Not planned** (closing it as **Completed** leaves a later re-file open) and the loop simply
+  continues; **re-cadence** — re-register it at the longer cadence instead.
+
+The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
+registration.
 
 ## Out of scope (hard rules)
 

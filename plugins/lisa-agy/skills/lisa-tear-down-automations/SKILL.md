@@ -40,6 +40,19 @@ removes them with its **native** scheduling mechanism.
   loops did. Teardown removes scheduler registrations only; it never deletes, edits, or moves a
   runbook file. An operator who wants them gone removes them deliberately, in git.
 
+## Answering a `policy-obsolete` teardown proposal
+
+Running this skill is the **approve** answer to a loop's own retirement proposal. When a registered
+loop's runbook **Retirement condition** trips, that loop records the `policy-obsolete` run outcome
+and files exactly one ticket recommending its own teardown (`automation-runbook-contract`) — and
+then keeps running at its normal cadence, because a loop never removes its own registration.
+Teardown is **always human-invoked**: it is never
+triggered by a loop, on any schedule, for any outcome. The operator has three answers — **approve**
+(run this skill), **decline** (close the proposal as **Not planned**; the loop simply continues at
+cadence), or **re-cadence** (re-register at the longer cadence via `/lisa:setup-automations`). Only
+the first one brings you here, and nothing about *what* this skill removes changes because a
+proposal exists.
+
 ## Report
 
 List each automation removed by name. For "already absent", compare against the one source of truth
