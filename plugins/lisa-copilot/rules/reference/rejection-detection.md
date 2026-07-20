@@ -132,18 +132,32 @@ Every loop-proposed item carries a **visible prose line** plus a marker (a bare 
 
 The same candidate therefore always produces the same key across runs, regardless of which session computes it. **Before filing anything, every loop searches the tracker for that marker across open AND closed items** — keyed on the stable prefix first, the hash as disambiguation only — plus a **body-enumeration fallback for search-index lag** (`gh issue list --state all --json number,body` and grep the bodies; `gh search issues` already covers open and closed by default — `--state all` is NOT a valid `gh search` flag). **Match on the marker, never the title.**
 
+### Operator footer — teach the close-reason where the operator reads it
+
+The whole mechanism hinges on a distinction the operator cannot see unless we say it: closing a proposal **Not planned** silences it for good, while closing it **Completed** leaves the door open to a regression re-file. So every loop-filed proposal ticket MUST carry this footer verbatim as its own visible prose line (not only the HTML marker), so the human at the gate knows exactly which close-reason produces which outcome:
+
+> To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
+
+This footer is **required on every proposing loop's filed ticket** (`lisa-exploratory-qa`, `lisa-monitor`, `lisa-project-ideation`, `lisa-learnings-audit`, and any other loop that files a proposal). It is what makes the tracker-as-memory legible to a non-technical operator — the close-button becomes a documented control, not a guess.
+
 ### The rule
 
-A marker hit on a **closed-as-not-planned** item **suppresses the proposal** — regardless of title similarity. Re-proposal is permitted **only** with evidence that **postdates the decline**, and the new item MUST state the postdating evidence explicitly — generalizing the gardener's wording:
+A marker hit on a **closed-as-not-planned** item **suppresses the proposal** — regardless of title similarity. Re-proposal is permitted **only** with evidence that **postdates the decline**, and the re-filed item MUST carry BOTH of the following:
 
-> declined `<decline-date>`; recurred `<recurrence-date>` in `<recurrence-ref>`
+1. **A machine token** for the dedupe/audit trail — generalizing the gardener's wording:
 
-Naming the decline date, the recurrence date, and the recurrence reference is what turns "raising it again" into an auditable, evidence-backed act rather than nagging. A marker hit on a closed-as-**completed** item is not a decline — it falls under the regression path above.
+   > declined `<decline-date>`; recurred `<recurrence-date>` in `<recurrence-ref>`
+
+2. **A human acknowledgment sentence** in plain prose, so re-raising reads as a respectful return to an answered question rather than a machine nagging:
+
+   > You declined this on `<decline-date>`. It has recurred (`<recurrence-date>`, `<recurrence-ref>`), so we're raising it once more for your review.
+
+Naming the decline date, the recurrence date, and the recurrence reference in both forms is what turns "raising it again" into an auditable, evidence-backed, operator-legible act rather than nagging. A marker hit on a closed-as-**completed** item is not a decline — it falls under the regression path above.
 
 ### Interaction with run outcomes
 
 - **Every candidate suppressed** — a cycle whose only candidates were each suppressed by a prior decline terminates **`nothing-needed`**, and its one-line summary **names the suppression count** (e.g. `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.`). Respecting a decline is thereby *visible* in the run record — never indistinguishable from finding nothing.
-- **Tracker unreadable during the memory check** — if the open-and-closed marker search cannot run (tracker unreachable, credentials revoked, the substrate broken), the loop terminates **`recovery-required`**, **never** a silent `nothing-needed`. A memory check that could not run is a broken loop, not a quiet one — this is the exact failure mode the contract exists to exclude, so "I saw no candidates" must never be conflated with "I could not look".
+- **Tracker unreadable during the memory check** — if the open-and-closed marker search cannot run (tracker unreachable, credentials revoked, the substrate broken), the loop terminates **`recovery-required`**, **never** a silent `nothing-needed`. A memory check that could not run is a broken loop, not a quiet one — this is the exact failure mode the contract exists to exclude, so "I saw no candidates" must never be conflated with "I could not look". The one-line summary names the broken check and the fix in operator language, e.g. `Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`
 
 ### Concurrency honesty
 

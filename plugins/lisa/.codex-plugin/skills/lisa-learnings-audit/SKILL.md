@@ -252,7 +252,10 @@ This open-and-closed marker search plus the "declined `<date>`; recurred `<date>
 re-file discipline is the shipped precedent for the **Proposal rejection memory** section of the
 `rejection-detection` rule — the shared contract every proposing loop now consults so a
 closed-as-not-planned proposal is never re-filed. The gardener already conforms; it is cited there,
-not re-implemented.
+not re-implemented. Like every proposing loop, each gardener-filed ticket MUST carry the
+`rejection-detection` **operator footer** as a visible prose line so the human knows which
+close-reason silences it: `To stop this from being raised again, close it as **Not planned**. Close
+it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.`
 
 ## Autonomous-vs-approval boundary
 

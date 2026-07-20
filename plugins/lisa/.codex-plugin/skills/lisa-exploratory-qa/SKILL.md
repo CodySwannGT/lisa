@@ -78,7 +78,11 @@ Re-running a pass must not refile the same finding. Before creating a ticket, se
 
 - **Open** ticket carrying the marker → reference/update it instead; do not create a second.
 - **Closed as _completed_** → does **not** suppress. A recurrence after a fix is a genuine **regression**, so file the finding.
-- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline**, and say so in the new ticket (`declined <date>; recurred <date> in <ref>`).
+- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline**, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`).
+
+Every filed finding ticket MUST end with the `rejection-detection` **operator footer** as a visible prose line so the operator knows which close-reason silences it:
+
+> To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
 ## Output
 
@@ -104,7 +108,7 @@ and records it, so a quiet run and a broken run are never mistaken for each othe
 
 Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
 (the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
-specific, actionable, e.g. `Explored 4 personas; nothing confusing to file.` — or, when a decline suppressed the only candidates, `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.` — for `nothing-needed`):
+specific, actionable, e.g. `Explored 4 personas; nothing confusing to file.` — or, when a decline suppressed the only candidates, `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.` — for `nothing-needed`; and for a `recovery-required` from an unreadable decline check, `Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
