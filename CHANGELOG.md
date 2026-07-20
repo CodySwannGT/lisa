@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.253.0](https://github.com/CodySwannGT/lisa/compare/v2.252.0...v2.253.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** scaffold per-loop runbooks and unify the fleet roster ([#1796](https://github.com/CodySwannGT/lisa/issues/1796)) ([b2acacc](https://github.com/CodySwannGT/lisa/commit/b2acacc96b589e172a765accacdb91e598a488cf))
+
+
+### Bug Fixes
+
+* **automations:** accept no-arg Codex registrations in observed-command derivation ([#1796](https://github.com/CodySwannGT/lisa/issues/1796)) ([ae02d4c](https://github.com/CodySwannGT/lisa/commit/ae02d4cc25ae07b514b4a456d52755147d30a78d))
+* **automations:** address review findings for runbook scaffolding ([#1796](https://github.com/CodySwannGT/lisa/issues/1796)) ([a9602f7](https://github.com/CodySwannGT/lisa/commit/a9602f7ab92aece97844b83e78be0bf1f1fd7674))
+
 ## [2.252.0](https://github.com/CodySwannGT/lisa/compare/v2.251.1...v2.252.0) (2026-07-20)
 
 
