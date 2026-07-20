@@ -575,7 +575,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-team-first.sh":
       "51d2e929ea6c04e7c7851be7849dd7d3e7cd0c211b4c8fb856e858a51ddeeb58",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
-      "827b1a48622ad6b5715d924d555fa19715e84f787cf45de30f5fb389c2281b7a",
+      "120cec1795ad4cb49ab67a54fb0c3552185338bb0b8dda0f19f70dc1dac288f9",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -7473,6 +7473,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/queue-status-prd-readers/github.json": true,
     "tests/fixtures/queue-status-prd-readers/linear.json": true,
     "tests/fixtures/queue-status-prd-readers/notion.json": true,
+    "tests/fixtures/verification/artifact_mismatch.json": true,
+    "tests/fixtures/verification/evidence_digest_mismatch.json": true,
+    "tests/fixtures/verification/evidence_kind_mismatch.json": true,
+    "tests/fixtures/verification/not_established_unreviewed.json": true,
+    "tests/fixtures/verification/pass_with_named_unproved_edge.json": true,
+    "tests/fixtures/verification/security_shaped_without_reproducer.json": true,
+    "tests/fixtures/verification/v1_back_compat.json": true,
+    "tests/fixtures/verification/v2_pass_clean.json": true,
+    "tests/fixtures/verification/v2_structurally_invalid_claims.json": true,
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
@@ -7639,6 +7648,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
+    "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,

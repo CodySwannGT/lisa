@@ -6,10 +6,28 @@
  * shape would silently weaken the compatibility proof.
  * @module tests/helpers/verification-gate-fixtures
  */
+import { readFileSync } from "fs";
+import path from "path";
+
 import {
   FIXTURE_HEAD_SHA,
   FIXTURE_TIMESTAMP,
 } from "./verification-gate-harness";
+
+/** Directory holding the committed failure-mode verdict fixtures (BCE-6). */
+const FAILURE_MODE_DIR = path.resolve("tests/fixtures/verification");
+
+/**
+ * Reads one committed failure-mode fixture verbatim.
+ *
+ * The fixtures are files rather than builders on purpose: each is the artifact
+ * a reviewer opens to see what the failure mode looks like, and the suite
+ * drives the same bytes through the real hook.
+ * @param name - Fixture basename without the .json extension.
+ * @returns The fixture's raw JSON text.
+ */
+export const loadFailureModeFixture = (name: string): string =>
+  readFileSync(path.join(FAILURE_MODE_DIR, `${name}.json`), "utf-8");
 
 /** Boundary asserted by the default v2 fixture claim. */
 export const BROWSER_BOUNDARY = "browser";

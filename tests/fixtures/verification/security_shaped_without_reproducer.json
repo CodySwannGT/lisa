@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+  "plan": "bce-6",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "aaaa111",
+    "head_sha": "bbbb222",
+    "build_id": "build-1840",
+    "environment": "local",
+    "observed_at": "2026-07-20T00:00:00Z"
+  },
+  "claims": [
+    {
+      "claim_id": "AC-1",
+      "statement": "the checkout button submits the order and shows a confirmation",
+      "boundary": "browser",
+      "required_for_gate": true,
+      "required_evidence_kinds": ["screenshot", "recording"],
+      "status": "established",
+      "evidence_refs": ["EV-1"],
+      "not_established": []
+    },
+    {
+      "claim_id": "SEC-1",
+      "statement": "the search box lets a signed-in customer read another customer's orders",
+      "boundary": "http-api",
+      "required_for_gate": false,
+      "required_evidence_kinds": ["http-transcript"],
+      "status": "not-established",
+      "evidence_refs": [],
+      "not_established": [
+        "Never reproduced against a running API, so this finding is reported unproven rather than dropped."
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-1",
+      "kind": "screenshot",
+      "locator": "evidence/1840/confirmation.png",
+      "sha256": "990a93ea77cc735408f25a80e9b4dd048a771c0c27f4c106a8404632dd86a1ce",
+      "captured_at": "2026-07-20T00:00:00Z",
+      "artifact_head_sha": "bbbb222"
+    }
+  ],
+  "security_findings": [
+    {
+      "finding_id": "SEC-1",
+      "bucket": "security-unproven",
+      "summary": "The order search box may accept an unvalidated customer id.",
+      "reproducer": "none",
+      "impact": "unproven",
+      "reason": "no reproducer was captured; the finding stays in the security section and is not demoted"
+    }
+  ],
+  "not_established": [
+    "Never reproduced against a running API, so this finding is reported unproven rather than dropped."
+  ],
+  "not_established_reviewed": true,
+  "criteria": [
+    {
+      "task": "T1",
+      "criterion": "the confirmation renders after a real click",
+      "status": "pass",
+      "evidence": "clicked the button in Chrome, captured the confirmation screenshot"
+    }
+  ],
+  "status": "pass",
+  "updated_at": "2026-07-20T00:00:00Z"
+}
