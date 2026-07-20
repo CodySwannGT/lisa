@@ -296,10 +296,11 @@ describe("lisa-intake keeps the blocked-is-a-successful-run seam explicit (#1798
  * Proposal rejection memory conformance (RBC-6, #1800).
  *
  * Every proposing loop cites the ONE shared `rejection-detection` "Proposal
- * rejection memory" contract rather than re-implementing it, extends its
- * pre-file marker search to closed items, and treats a closed-as-not-planned
- * proposal as a durable human decline. The gardener is the shipped precedent
- * (citation only). exploratory-qa's old closed-blind sentence is gone.
+ * rejection memory" contract. Fresh filing loops either carry their direct
+ * closed-item search wording or delegate to their owning rule; monitor delegates
+ * the fingerprint/idempotency details to `observability-audit`. The gardener is
+ * the shipped precedent (citation only). exploratory-qa's old closed-blind
+ * sentence is gone.
  */
 const OPEN_AND_CLOSED = "open AND closed";
 const NOT_PLANNED = 'stateReason == "not_planned"';
@@ -310,12 +311,14 @@ const RECOVERY_EXEMPLAR = "restore credentials; nothing was filed this run";
 
 /** All five proposing loops cite the shared contract. */
 const PROPOSING_LOOPS = [QA, IDEATION, MONITOR, REPAIR, GARDENER] as const;
-/** The four fresh-candidate proposers extend their search to closed items. */
-const CLOSED_SEARCH_PROPOSERS = [QA, IDEATION, MONITOR, REPAIR] as const;
-/** The four loops that FILE a proposal ticket carry the operator footer. */
-const FOOTER_LOOPS = [QA, MONITOR, IDEATION, GARDENER] as const;
+/** Fresh-candidate proposers that own direct closed-search wording. */
+const CLOSED_SEARCH_PROPOSERS = [QA, IDEATION, REPAIR] as const;
+/** The loops that FILE a proposal ticket carry the operator footer. */
+const FOOTER_LOOPS = [QA, MONITOR, IDEATION, REPAIR, GARDENER] as const;
 /** The three that surface a suppression count in their run outcome. */
 const RUN_OUTCOME_PROPOSERS = [QA, IDEATION, MONITOR] as const;
+/** Fresh-candidate proposers that own direct re-file wording. */
+const REFILE_TONE_PROPOSERS = [QA, IDEATION, REPAIR] as const;
 
 describe("proposing loops consult the shared rejection-memory contract (#1800)", () => {
   describe.each(ROOTS)("%s", root => {
@@ -358,6 +361,17 @@ describe("proposing loops consult the shared rejection-memory contract (#1800)",
       });
     });
 
+    describe("lisa-monitor delegates its idempotency contract", () => {
+      const content = readSkill(root, MONITOR);
+
+      it("points to observability-audit instead of restating the full decline contract", () => {
+        expect(content).toContain("observability-audit");
+        expect(content).toContain("current fingerprint/idempotency contract");
+        expect(content).toContain("open-and-closed search");
+        expect(content).not.toContain(REFILE_ACK);
+      });
+    });
+
     // Fresh-candidate proposers surface the suppression count in a
     // nothing-needed run and escalate an unreadable memory check to
     // recovery-required rather than a silent nothing-needed.
@@ -388,9 +402,9 @@ describe("proposing loops consult the shared rejection-memory contract (#1800)",
       });
     });
 
-    // The fresh-candidate proposers write a human acknowledgment sentence when
-    // re-filing a previously declined proposal.
-    describe.each(RUN_OUTCOME_PROPOSERS)("%s re-file tone", slug => {
+    // The fresh-candidate proposers that own direct filing wording write a human
+    // acknowledgment sentence when re-filing a previously declined proposal.
+    describe.each(REFILE_TONE_PROPOSERS)("%s re-file tone", slug => {
       const content = readSkill(root, slug);
 
       it("re-files with a human acknowledgment sentence", () => {
