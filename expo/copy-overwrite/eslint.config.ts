@@ -47,21 +47,22 @@ const localIgnores: string[] = existsSync(
   ? (require("./eslint.ignore.config.local.json").ignores ?? [])
   : [];
 
-// Annotate with the factory's return type so `tsc --noEmit` under
-// `declaration: true` does not surface @eslint/core's `RulesConfig` in the
-// emitted declaration (TS2883). Do NOT import `Linter` from "eslint" directly —
-// that trips knip's unlisted-dependency check.
-const config: ReturnType<typeof getExpoConfig> = [
-  ...getExpoConfig({
-    tsconfigRootDir: __dirname,
-    ignorePatterns: [
-      ...(ignoreConfig.ignores || defaultIgnores),
-      ...localIgnores,
-    ],
-    thresholds: { ...defaultThresholds, ...thresholdsConfig },
-    sourceRoot,
-  }),
-  ...localConfig,
-];
+// Type only the managed factory result, then trust project-owned additions at
+// their spread boundary. The double assertion is intentional: one custom-plugin
+// entry can be structurally different enough for a direct cast to raise TS2352.
+// Annotating an assembled array force-conforms the host's local config. Do not
+// import `Linter` from "eslint" directly either; that trips knip's
+// unlisted-dependency check.
+const config: ReturnType<typeof getExpoConfig> = getExpoConfig({
+  tsconfigRootDir: __dirname,
+  ignorePatterns: [
+    ...(ignoreConfig.ignores || defaultIgnores),
+    ...localIgnores,
+  ],
+  thresholds: { ...defaultThresholds, ...thresholdsConfig },
+  sourceRoot,
+});
+
+config.push(...(localConfig as unknown as ReturnType<typeof getExpoConfig>));
 
 export default config;

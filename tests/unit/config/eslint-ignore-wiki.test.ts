@@ -82,22 +82,23 @@ describe(".lisa.config.json ESLint ignore", () => {
 });
 
 /**
- * The managed eslint.config.ts / eslint.slow.config.ts wrappers must (a) annotate
- * their default export with the factory's ReturnType so `tsc --noEmit` under
- * `declaration: true` does not surface @eslint/core's `RulesConfig` (TS2883), and
- * (b) merge an optional, project-owned eslint.ignore.config.local.json so the
- * copy-overwrite of eslint.ignore.config.json stops wiping host ignore
- * customizations. Neither may import `Linter` from "eslint" directly (knip
- * unlisted-dependency). Kept in lock-step across every stack copy + Lisa's own root.
+ * The managed eslint.config.ts / eslint.slow.config.ts wrappers must (a) retain
+ * the factory's ReturnType so `tsc --noEmit` under `declaration: true` does not
+ * surface @eslint/core's `RulesConfig` (TS2883), and (b) merge an optional,
+ * project-owned eslint.ignore.config.local.json so the copy-overwrite of
+ * eslint.ignore.config.json stops wiping host ignore customizations. Neither may
+ * import `Linter` from "eslint" directly (knip unlisted-dependency). Kept in
+ * lock-step across every stack copy + Lisa's own root.
  */
 describe("managed eslint config wrappers", () => {
   const readText = (relativePath: string): string =>
     fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf-8");
+  const EXPO_CONFIG = "expo/copy-overwrite/eslint.config.ts";
 
   const CONFIGS = [
     ["eslint.config.ts", "getTypescriptConfig"],
     ["typescript/copy-overwrite/eslint.config.ts", "getTypescriptConfig"],
-    ["expo/copy-overwrite/eslint.config.ts", "getExpoConfig"],
+    [EXPO_CONFIG, "getExpoConfig"],
     ["nestjs/copy-overwrite/eslint.config.ts", "getNestjsConfig"],
     ["cdk/copy-overwrite/eslint.config.ts", "getCdkConfig"],
     ["harper-fabric/copy-overwrite/eslint.config.ts", "getHarperFabricConfig"],
@@ -112,7 +113,12 @@ describe("managed eslint config wrappers", () => {
     "cdk/copy-overwrite/eslint.slow.config.ts",
   ] as const;
 
-  it.each(CONFIGS.map(c => [c[0], c[1]]))(
+  it.each(
+    CONFIGS.filter(([relPath]) => relPath !== EXPO_CONFIG).map(c => [
+      c[0],
+      c[1],
+    ])
+  )(
     "%s annotates the default export with ReturnType<typeof %s> and never imports Linter",
     (relPath, factory) => {
       const src = readText(relPath);
@@ -150,4 +156,15 @@ describe("managed eslint config wrappers", () => {
       expect(importsEslint).toBe(false);
     }
   );
+
+  it("trusts Expo host config only at the localConfig spread boundary", () => {
+    const src = readText(EXPO_CONFIG);
+
+    expect(src).not.toMatch(
+      /const\s+config\s*:\s*ReturnType<typeof\s+getExpoConfig>\s*=\s*\[/
+    );
+    expect(src).toContain(
+      "...(localConfig as unknown as ReturnType<typeof getExpoConfig>)"
+    );
+  });
 });
