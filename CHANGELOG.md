@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.266.0](https://github.com/CodySwannGT/lisa/compare/v2.265.0...v2.266.0) (2026-07-20)
+
+
+### Features
+
+* **health:** add deterministic project probes ([f3b2291](https://github.com/CodySwannGT/lisa/commit/f3b229128283aa26a8e5d632891836fbdbade22d)), closes [CodySwannGT/lisa#1517](https://github.com/CodySwannGT/lisa/issues/1517) [CodySwannGT/lisa#1517](https://github.com/CodySwannGT/lisa/issues/1517)
+
 ## [2.265.0](https://github.com/CodySwannGT/lisa/compare/v2.264.0...v2.265.0) (2026-07-20)
 
 
