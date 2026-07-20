@@ -137,9 +137,10 @@ describe("check-e2e-coverage", () => {
     });
 
     it("sorts by code-unit order, not locale-aware collation", () => {
-      // localeCompare() collates case-insensitively → ["/apple", "/Zebra"].
-      // Code-unit order puts uppercase (< 0x5B) before lowercase (>= 0x61),
-      // keeping report ordering reproducible across ICU locales.
+      // Code-unit order is deterministic: uppercase code units (< 0x5B) sort
+      // before lowercase (>= 0x61), so ["/Zebra", "/apple"] — reproducible
+      // regardless of the runtime's ICU locale, unlike locale-sensitive
+      // collation.
       expect(enumerateRoutes(["apple.tsx", "Zebra.tsx"])).toEqual([
         "/Zebra",
         "/apple",
