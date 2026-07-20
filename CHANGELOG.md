@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.251.0](https://github.com/CodySwannGT/lisa/compare/v2.250.1...v2.251.0) (2026-07-20)
+
+
+### Features
+
+* **hooks:** promote jq-for-JSON rule to blocking executable control ([37f7ba6](https://github.com/CodySwannGT/lisa/commit/37f7ba6d8a7f4f244b08a847b27ad24522fe6cf6)), closes [#1787](https://github.com/CodySwannGT/lisa/issues/1787) [#1787](https://github.com/CodySwannGT/lisa/issues/1787)
+* **hooks:** teach git commit -F remediation in heredoc denial diagnostics ([c0f3ee2](https://github.com/CodySwannGT/lisa/commit/c0f3ee29063b2d44bf120ce2b8909643c23eaa65)), closes [#1789](https://github.com/CodySwannGT/lisa/issues/1789) [#1789](https://github.com/CodySwannGT/lisa/issues/1789)
+
+
+### Bug Fixes
+
+* **eslint:** state the statement-order exemption accurately in the diagnostic ([38c081d](https://github.com/CodySwannGT/lisa/commit/38c081d08c132a5e8e21830b5a356ac9dc3a50f7)), closes [#1791](https://github.com/CodySwannGT/lisa/issues/1791)
+
+
+### Documentation
+
+* **rules:** demote Console UI knowledge from eager rules to the wiki ([6337c3a](https://github.com/CodySwannGT/lisa/commit/6337c3a865f28d4a5bf88055a3ed71a0ef323e10)), closes [#1788](https://github.com/CodySwannGT/lisa/issues/1788) [#1788](https://github.com/CodySwannGT/lisa/issues/1788)
+* **rules:** retire five mechanically-owned PROJECT_RULES sections ([d8707a1](https://github.com/CodySwannGT/lisa/commit/d8707a1061c7596e30903baa5b8c83507284dccd)), closes [#1790](https://github.com/CodySwannGT/lisa/issues/1790) [#1790](https://github.com/CodySwannGT/lisa/issues/1790)
+
 ### [2.250.1](https://github.com/CodySwannGT/lisa/compare/v2.250.0...v2.250.1) (2026-07-20)
 
 ## [2.250.0](https://github.com/CodySwannGT/lisa/compare/v2.247.3...v2.250.0) (2026-07-20)
