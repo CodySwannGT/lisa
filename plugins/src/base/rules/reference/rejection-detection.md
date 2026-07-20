@@ -101,3 +101,50 @@ Mining a learning is not enough — if the agent then rebuilds the same rejected
 - **The evidence summary** names: what was rejected, why (the defect the QA comment named), and the specific approach the rejection named as wrong.
 - **The plan must reckon with it.** On a `rejection-reclaim`, the re-implementation plan MUST explicitly address the rejection evidence and MUST NOT re-propose the specific approach the rejection named as wrong.
 - **Absence never blocks.** If the rejection evidence is unreadable or absent, the agent still implements the item — degraded, not stopped.
+
+## Proposal rejection memory (a loop-proposed item closed as *not planned*)
+
+Everything above is **claim-time** memory — a work item that was bounced *backward* through the lanes. This section is its orthogonal twin: **proposal-time** memory — an item a **loop itself proposed** that a human then **closed as _not planned_**. The two never touch. The `rejection-reclaim` classification, its reflection path, and its evidence handoff above are **unchanged**; this section adds a second, independent contract that every *proposing* loop consults **before it files a candidate**.
+
+The most corrosive failure of an unattended fleet is nagging: a human declines a proposal and the loop cheerfully files it again next cycle, until operators stop reading the tracker. The cure is to make a decline durable. The memory lives in the **tracker, not a new state file** — a closed-as-not-planned proposal *is* the record of the human's "no", matched by a stable marker key. This generalizes `lisa-learnings-audit`'s already-shipped idempotency discipline to every proposing loop: `lisa-exploratory-qa`, `lisa-project-ideation`, `lisa-monitor`, and `lisa-repair-intake` cite this section; the gardener (`lisa-learnings-audit`) is the shipped precedent it was modeled on, not a second implementation.
+
+### Rejection signal — "not planned", resolved from config
+
+A proposal is **declined** when its prior item is **closed as _not planned_**:
+
+- **GitHub** — `stateReason == "not_planned"` (surfaced by `lisa-github-read-issue`, which renders `State: closed (not_planned)`).
+- **JIRA / Linear** — the configured *not-planned* equivalent resolved per the `config-resolution` rule (a JIRA won't-do resolution, a Linear canceled state), **never a hardcoded lane string** — exactly as the claim-time lane names above always come from `.lisa.config.json`, never a literal.
+
+**Closed as _completed_ is NOT a decline.** A completed fix whose underlying problem later recurs is a **regression**, and the loop **may file** it — the recurrence is genuinely new work, not a re-proposal of the declined thing. Only *not planned* is the durable "no".
+
+### Marker discipline — deterministic key, open AND closed search
+
+Every loop-proposed item carries a **visible prose line** plus a marker (a bare HTML marker renders as an empty comment bubble):
+
+```
+<!-- [<loop-marker>] key=<candidate-key> -->
+```
+
+`<loop-marker>` is the proposing loop's own marker (`[lisa-exploratory-qa]`, `[lisa-project-ideation]`, `lisa:monitor-finding`, `[lisa-repair-intake]`, `[lisa-gardener]`). `<candidate-key>` is computed **deterministically — never estimated by the model** (the gardener's exact formula):
+
+1. **Normalize** the candidate's stable identity (surface + symptom, idea key, or finding signature): trim, collapse every internal whitespace run to a single space, lowercase.
+2. **Hash** in Bash: `printf '%s' "$normalized" | shasum -a 256 | cut -c1-12`.
+
+The same candidate therefore always produces the same key across runs, regardless of which session computes it. **Before filing anything, every loop searches the tracker for that marker across open AND closed items** — keyed on the stable prefix first, the hash as disambiguation only — plus a **body-enumeration fallback for search-index lag** (`gh issue list --state all --json number,body` and grep the bodies; `gh search issues` already covers open and closed by default — `--state all` is NOT a valid `gh search` flag). **Match on the marker, never the title.**
+
+### The rule
+
+A marker hit on a **closed-as-not-planned** item **suppresses the proposal** — regardless of title similarity. Re-proposal is permitted **only** with evidence that **postdates the decline**, and the new item MUST state the postdating evidence explicitly — generalizing the gardener's wording:
+
+> declined `<decline-date>`; recurred `<recurrence-date>` in `<recurrence-ref>`
+
+Naming the decline date, the recurrence date, and the recurrence reference is what turns "raising it again" into an auditable, evidence-backed act rather than nagging. A marker hit on a closed-as-**completed** item is not a decline — it falls under the regression path above.
+
+### Interaction with run outcomes
+
+- **Every candidate suppressed** — a cycle whose only candidates were each suppressed by a prior decline terminates **`nothing-needed`**, and its one-line summary **names the suppression count** (e.g. `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.`). Respecting a decline is thereby *visible* in the run record — never indistinguishable from finding nothing.
+- **Tracker unreadable during the memory check** — if the open-and-closed marker search cannot run (tracker unreachable, credentials revoked, the substrate broken), the loop terminates **`recovery-required`**, **never** a silent `nothing-needed`. A memory check that could not run is a broken loop, not a quiet one — this is the exact failure mode the contract exists to exclude, so "I saw no candidates" must never be conflated with "I could not look".
+
+### Concurrency honesty
+
+The search-then-write here is **not** an atomic claim: two truly concurrent runs can each miss the other's in-flight proposal and file a transient duplicate. It therefore guarantees **convergence, not mutual exclusion** — the duplicate is found and closed by the next run's marker search, and because the key is a stable content hash, a duplicate never multiplies. State this rather than implying a lock; a cross-run locking protocol would be disproportionate to the risk.

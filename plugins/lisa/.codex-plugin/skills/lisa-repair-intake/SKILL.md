@@ -470,11 +470,17 @@ The item now sits in `blocked`; once the fix ticket reaches a terminal state, th
 `blocked` → unblock if cleared** path (next section) detects the cleared `is blocked by`
 dependency and resumes the original in place — a self-healing loop.
 
-**Idempotency.** Before filing, check for an **open** fix ticket already carrying the marker
+**Idempotency.** Before filing, check for a fix ticket already carrying the marker
 `[lisa-repair-intake] blocker:<item-ref>/<blocker-key>` (blocker-key is a stable slug of the
-blocker, e.g. `pr-1234/merge-conflict` or `pr-1234/checks-failing`). If one exists, reference it
-and ensure the `is blocked by` link is present rather than creating a duplicate. Honor the backoff
-window and state fingerprint (Loop prevention) so re-runs over the same unchanged blocker are no-ops.
+blocker, e.g. `pr-1234/merge-conflict` or `pr-1234/checks-failing`). Per the `rejection-detection`
+rule's **Proposal rejection memory** section, that marker search MUST cover **open AND closed**
+tickets (body-enumeration fallback on search-index lag): an **open** match → reference it and ensure
+the `is blocked by` link is present rather than creating a duplicate; a match **closed as _not
+planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is
+a **human decline** of that fix ticket — do **not** re-file it unless evidence **postdates the
+decline** (state `declined <date>; recurred <date> in <ref>`); a match closed as _completed_ is a
+regression path, not a decline. Honor the backoff window and state fingerprint (Loop prevention) so
+re-runs over the same unchanged blocker are no-ops.
 
 ### Build `blocked` → re-evaluate, unblock if cleared
 
@@ -985,7 +991,7 @@ to each item* — the two never merge in the one-line summary.
 
 | This cycle's exit path | Run outcome |
 |---|---|
-| Nothing actionable — the idle case (walk step 5): examined N, all active or in backoff | `nothing-needed` |
+| Nothing actionable — the idle case (walk step 5): examined N, all active or in backoff — including a fix ticket suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**), which the summary names in its suppression count | `nothing-needed` |
 | Repairs applied **and confirmed** this cycle — `resumed` / `resynced` / `recovered` / `unblocked` / `closed_out` / `rolled_up` / `relinked` / `normalized_ready` | `change-proved` |
 | Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
 | A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed) | `approval-requested` |

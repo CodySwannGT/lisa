@@ -130,7 +130,7 @@ After report, file what was found — **only when run standalone**, never under 
 
 - **Anomalies** (live signals over the conservative bar) → `Bug` leaves. **Gaps** (in-scope MISSING rubric dimensions) → `Task`/`Improvement` leaves.
 - Every ticket is filed via the vendor-neutral `lisa-tracker-write` shim with `build_ready: true` (never a vendor write skill directly), as a **single-repo leaf** stamped `repo:<current>`, with a real three-audience description, Gherkin AC, Target Backend Environment, and a Validation Journey + typed `[EVIDENCE: <artifact-type>: <name>]` marker (e.g. `[EVIDENCE: log-snippet: alert-cleared]`) so it passes the `tracker-validate` gates.
-- **Idempotent:** embed the `<!-- lisa:monitor-finding: <fingerprint> -->` sentinel and search-before-create; never duplicate a live or just-resolved finding.
+- **Idempotent + decline-aware:** embed the `<!-- lisa:monitor-finding: <fingerprint> -->` sentinel and search-before-create across **open AND closed** tickets; never duplicate a live or just-resolved finding. Per the `rejection-detection` rule's **Proposal rejection memory** section, a prior ticket **closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is a **permanent decline** that suppresses the finding regardless of age — layered on top of the 24h `monitor.backoffHours` just-resolved guard — and is re-filed only with evidence postdating the decline (`declined <date>; recurred <date> in <ref>`). A close as _completed_ is a regression path, not a decline. The `observability-audit` rule owns the full search/decline contract.
 - **Capped** at `max_candidates` (default 20), `core`/high-severity first; report how many were filed vs dropped.
 - **`--dry-run`** previews would-file tickets and creates nothing. **`--all-gaps`** widens gap filing to `recommended` tiers.
 
@@ -149,8 +149,8 @@ so a quiet monitoring run and a broken one never look identical.
 | This cycle's exit path | Run outcome |
 |---|---|
 | Anomalies or in-scope gaps filed — one or more `Bug` / `Task` / `Improvement` leaves created or referenced | `candidate-proposed` |
-| Clean sweep — health/audit ran end to end, nothing over the bar and no in-scope gaps | `nothing-needed` |
-| Provider/threshold resolution failure — threshold collection fails (a present-but-uninspectable config, an invalid configured threshold) or a signal provider is unreachable so the sweep could not run | `recovery-required` |
+| Clean sweep — health/audit ran end to end, nothing over the bar and no in-scope gaps — **or** every finding was suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**): the summary MUST name the suppression count | `nothing-needed` |
+| Provider/threshold resolution failure — threshold collection fails (a present-but-uninspectable config, an invalid configured threshold) or a signal provider is unreachable so the sweep could not run — **or** the open-and-closed rejection-memory search could not read the tracker: a memory check that could not run is a broken loop, never a silent `nothing-needed` | `recovery-required` |
 | A degradation that still let the sweep run (an optional `ops-specialist` overlay absent, Kane unavailable) | the outcome it actually reached above, with the summary **leading with the degradation** — degradation never mints a seventh token |
 
 Only the **standalone** run records. The nested report-only modes do their own job and do not file or
