@@ -42,7 +42,13 @@ removes them with its **native** scheduling mechanism.
 
 ## Report
 
-List each automation removed by name, and any that the prefix sweep expected to find but that were
-already absent. State explicitly that the runbook files under `.lisa/automations/` were left on
-disk, and that nothing outside this project's `lisa-auto-<project>-` prefix was touched. Write it so
-a non-technical operator can confirm what happened without reading code.
+List each automation removed by name. For "already absent", compare against the one source of truth
+— the fleet `scripts/automation-status-expected-fleet.mjs` (`resolveExpectedAutomationFleet`)
+resolves for this project — and name anything it expects that the sweep did not find; that is a
+no-op, not an error. Do not invent an expected set of your own.
+
+Then state, in the operator's words, that the runbook files under `.lisa/automations/` were left on
+disk **and why**: they are the written record of what those jobs did, kept on purpose, and if you
+do not want them you delete them yourself in git. Finally, confirm that nothing outside this
+project's `lisa-auto-<project>-` prefix was touched. Write it so a non-technical operator can
+confirm what happened without reading code.

@@ -85,8 +85,9 @@ describe("automation-status expected fleet (#799)", () => {
       expect.objectContaining({
         id: EXPLORATORY_BUGS_ID,
         group: "exploratory",
-        reason:
-          "This repository does not ship an exploratory-qa command surface.",
+        reason: expect.stringContaining(
+          "This project ships no exploratory-qa command"
+        ),
         runbookPath: runbook(EXPLORATORY_BUGS_ID),
       }),
       expect.objectContaining({
