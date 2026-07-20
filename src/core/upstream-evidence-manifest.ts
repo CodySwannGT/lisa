@@ -575,7 +575,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-team-first.sh":
       "51d2e929ea6c04e7c7851be7849dd7d3e7cd0c211b4c8fb856e858a51ddeeb58",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
-      "108b471e810687d9942bc6c3db120399dd644e67e1f4ae9beea2596646bd8172",
+      "827b1a48622ad6b5715d924d555fa19715e84f787cf45de30f5fb389c2281b7a",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -833,7 +833,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "bc919c52e2f42129d41a3f40279d2def99486ec58bed2dab51ca7166b427a947",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "74910bffb2dbfce03a57aa9b1314a01ab1898c755bc9ce8701e70d30e16f73c4",
+      "046bc040b7a1182f71dd4be7a04e977a963a5ab707fad627d89ef0877d4a789b",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -7449,6 +7449,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/wiki-safety/redaction-source.md": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/test-utils.ts": true,
+    "tests/helpers/verification-gate-fixtures.ts": true,
+    "tests/helpers/verification-gate-harness.ts": true,
     "tests/helpers/workflow-test-utils.ts": true,
     "tests/integration/autofix-ownership-guards.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
@@ -7591,6 +7593,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/commit-msg.test.ts": true,
     "tests/unit/hooks/enforce-config-extensions.test.ts": true,
     "tests/unit/hooks/enforce-team-first.test.ts": true,
+    "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
+    "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
