@@ -1837,12 +1837,11 @@
       DATA.sections.health = {
         title: "Health",
         desc: "Whether this project is on the latest Lisa and completely in band — every Lisa-managed surface matching what the installed version would emit. Version status is always visible (top bar); the in-band scan runs on demand.",
-        src: "lisa doctor · lisa sync --dry-run · planned /lisa:health skill",
+        src: "lisa health · /lisa:health skill · .lisa/health/latest.json",
         blocks: [
           {
             type: "callout",
-            variant: "warn",
-            text: "<b>Planned feature.</b> The version status is real today (lisa's npm update check). The in-band scan below documents the contract for a health-check skill that mixes deterministic checks with agentic review — not wired up yet.",
+            text: '<b>Live health.</b> The console runs the shared deterministic Health v1 consumer against this local project. It reads and writes the same canonical result as <span class="mono">lisa health</span>; optional agentic evaluation remains a coding-harness concern.',
           },
           {
             card: "Lisa version",
@@ -1874,17 +1873,18 @@
           },
           {
             card: "In-band scan",
-            note: "Deterministic checks + agentic review, packaged as a skill",
+            note: "Deterministic Health v1 checks",
             rows: [
               {
                 key: "",
-                label: "Run health check",
-                desc: "Scans every Lisa-managed surface and reports drift: managed files vs templates, package.json governance, config population, hooks, plugins, CI workflows, rulesets — then an agentic pass reviews what a diff can't judge.",
+                label: "Run deterministic health check",
+                desc: "Scans every Lisa-managed surface deterministically and reports drift: managed files vs templates, package.json governance, config population, hooks, plugins, CI workflows, and rulesets.",
                 control: {
                   type: "button",
-                  label: "Run health check",
-                  disabled: true,
-                  reason: "read-only: the health engine has not shipped yet",
+                  id: "runHealthCheckButton",
+                  action: "run-health",
+                  label: "Run deterministic health check",
+                  statusId: "healthRunStatus",
                 },
               },
               {
@@ -1895,86 +1895,30 @@
               },
               {
                 key: "",
-                label: "Last full check",
+                label: "Latest deterministic check",
                 desc: "",
-                control: stat("2026-07-10 · in band (1 advisory)", "mono"),
+                control: {
+                  ...stat("Never run", "mono"),
+                  id: "healthLastRun",
+                },
               },
             ],
           },
           {
             type: "table",
+            id: "healthResults",
             card: "Latest results",
-            note: "Sample output — what a health check reports",
-            cols: ["Check", "Layer", "Status"],
-            rows: [
-              [
-                {
-                  t: "text",
-                  v: "Managed files match templates (copy-overwrite)",
-                },
-                { t: "mono", v: "deterministic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                {
-                  t: "text",
-                  v: "package.json governance (force/defaults/merge)",
-                },
-                { t: "mono", v: "deterministic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                {
-                  t: "text",
-                  v: ".lisa.config.json fully populated (sync clean)",
-                },
-                { t: "mono", v: "deterministic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                { t: "text", v: "Git hooks installed and unmodified" },
-                { t: "mono", v: "deterministic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                { t: "text", v: "Plugins enabled and version-current" },
-                { t: "mono", v: "deterministic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                { t: "text", v: "CI workflows drifted from stack template" },
-                { t: "mono", v: "deterministic" },
-                { t: "badge", v: "warn", cls: "warn" },
-              ],
-              [
-                {
-                  t: "text",
-                  v: "Local overrides still justified (eslint.config.local.ts)",
-                },
-                { t: "mono", v: "agentic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                {
-                  t: "text",
-                  v: "Skipped CI jobs have a recorded reason",
-                },
-                { t: "mono", v: "agentic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-              [
-                {
-                  t: "text",
-                  v: "Grandfathered lint globs still needed",
-                },
-                { t: "mono", v: "agentic" },
-                { t: "badge", v: "pass", cls: "pass" },
-              ],
-            ],
+            note: "No completed health check yet",
+            cols: ["Check", "Layer", "Status", "Reason"],
+            rows: [],
+            empty: {
+              state: "never-run",
+              message: "Run deterministic health check to measure this project",
+            },
           },
           {
             type: "callout",
-            text: "<b>How it will work.</b> The deterministic layer reuses what already exists — lisa doctor, template diffing, lisa sync --dry-run, plugin reconciliation — and is fast and exact. The agentic layer reviews what a diff can't: whether local overrides still serve their original purpose, whether drift is intentional, whether skipped gates have justification. Both are packaged as one skill so the button, the cron, and the CLI share a single implementation.",
+            text: '<b>How it works.</b> Browser runs are deliberately deterministic: the local server invokes the shared Health v1 consumer directly, without a child process or nested coding agent. The optional agentic layer is composed by <span class="mono">/lisa:health</span> in a supported coding harness.',
           },
         ],
       };
@@ -5131,6 +5075,15 @@
          "detecting" so the Stacks section never presents the metadata catalog
          as if it were the detection result. */
       let stackDetection = { status: "detecting", ids: [] };
+      /* Version context and Health v1 verdict are painted together. Health
+         takes priority once measured without erasing the update context. */
+      let lisaVersionChipState = {
+        dotClass: "",
+        label: "@codyswann/lisa · checking…",
+      };
+      let healthChipState = { state: "idle" };
+      /* Durable Health view model projected by every whole-page render. */
+      let healthViewState = { state: "idle" };
 
       function el(tag, cls, html) {
         const node = document.createElement(tag);
@@ -5275,6 +5228,7 @@
         } else if (control.type === "button") {
           const b = el("button", "action-btn", esc(control.label));
           b.type = "button";
+          if (control.id) b.id = control.id;
           if (control.disabled) {
             b.disabled = true;
             if (control.reason) {
@@ -5282,11 +5236,35 @@
               b.setAttribute("aria-describedby", id + "-reason");
             }
           } else {
-            b.addEventListener("click", () =>
-              showToast(control.toast || "Prototype action")
-            );
+            b.addEventListener("click", () => {
+              if (control.action === "run-health") {
+                void runHealthCheck();
+                return;
+              }
+              showToast(control.toast || "Prototype action");
+            });
           }
           wrap.appendChild(b);
+          if (control.statusId) {
+            const status = el(
+              "span",
+              "status-why health-run-status",
+              esc(
+                control.statusMessage ||
+                  "Ready to run deterministic health check"
+              )
+            );
+            status.id = control.statusId;
+            status.setAttribute(
+              "role",
+              control.statusRole === "alert" ? "alert" : "status"
+            );
+            status.setAttribute(
+              "aria-live",
+              control.statusRole === "alert" ? "assertive" : "polite"
+            );
+            wrap.appendChild(status);
+          }
           if (control.disabled && control.reason) {
             const reason = el(
               "span",
@@ -5297,9 +5275,13 @@
             wrap.appendChild(reason);
           }
         } else if (control.type === "static") {
-          wrap.appendChild(
-            el("span", control.cls === "mono" ? "mono" : "", esc(control.value))
+          const value = el(
+            "span",
+            control.cls === "mono" ? "mono" : "",
+            esc(control.value)
           );
+          if (control.id) value.id = control.id;
+          wrap.appendChild(value);
         }
         return wrap;
       }
@@ -5930,6 +5912,7 @@
       }
 
       function renderAll() {
+        syncHealthViewModel();
         $main.innerHTML = "";
         $nav.innerHTML = "";
         ctlSeq = 0;
@@ -6422,8 +6405,6 @@
        * @param probes - Live-status probe map from /api/status
        */
       function applyLisaVersion(probes) {
-        const chip = document.getElementById("healthChip");
-        if (!chip) return;
         const raw =
           probes && Object.hasOwn(probes, "lisa-version")
             ? probes["lisa-version"]
@@ -6436,12 +6417,9 @@
                 message: "The lisa-version probe was not reported",
               }
             : normalizeLiveStatusResult(raw);
-        const setChip = (dotClass, label) => {
-          chip.innerHTML = "";
-          const dot = el("span", "dot" + (dotClass ? " " + dotClass : ""));
-          dot.setAttribute("aria-hidden", "true");
-          chip.appendChild(dot);
-          chip.appendChild(document.createTextNode(" " + label));
+        const setVersion = (dotClass, label) => {
+          lisaVersionChipState = { dotClass, label };
+          paintHealthChip();
         };
         if (
           result.state === "value" &&
@@ -6458,29 +6436,270 @@
             latest.length > 0
           ) {
             if (outdated) {
-              setChip(
+              setVersion(
                 "warn",
                 "@codyswann/lisa " + current + " · latest " + latest
               );
               return;
             }
-            setChip("ok", "@codyswann/lisa " + current + " · up to date");
+            setVersion("ok", "@codyswann/lisa " + current + " · up to date");
             return;
           }
         }
         if (result.state === "unknown") {
           const reason = result.reason || "unknown";
           const message = result.message || "Version status unavailable";
-          setChip(
+          setVersion(
             "unknown",
             "@codyswann/lisa · unknown (" + reason + ": " + message + ")"
           );
           return;
         }
-        setChip(
+        setVersion(
           "unknown",
           "@codyswann/lisa · unknown (invalid-value: lisa-version probe returned an unusable value)"
         );
+      }
+
+      /** Paint one chip from the latest version context and health state. */
+      function paintHealthChip() {
+        const chip = document.getElementById("healthChip");
+        if (!chip) return;
+        let dotClass = lisaVersionChipState.dotClass;
+        let label = lisaVersionChipState.label;
+        if (healthChipState.state === "result") {
+          dotClass = healthChipState.verdict === "in band" ? "ok" : "warn";
+          label = healthChipState.verdict + " · " + lisaVersionChipState.label;
+        } else if (healthChipState.state === "running") {
+          dotClass = "unknown";
+          label = "health check running · " + lisaVersionChipState.label;
+        } else if (healthChipState.state === "error") {
+          dotClass = "unknown";
+          label = "health unavailable · " + lisaVersionChipState.label;
+        }
+        chip.innerHTML = "";
+        const dot = el("span", "dot" + (dotClass ? " " + dotClass : ""));
+        dot.setAttribute("aria-hidden", "true");
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(" " + label));
+      }
+
+      /** Return the existing Health results-table descriptor. */
+      function healthResultsBlock() {
+        return DATA.sections.health.blocks.find(
+          block => block.id === "healthResults"
+        );
+      }
+
+      /** Return the existing deterministic-run row descriptor. */
+      function healthRunRow() {
+        const scan = DATA.sections.health.blocks.find(
+          block => block.card === "In-band scan"
+        );
+        return scan && scan.rows
+          ? scan.rows.find(
+              row => row.control && row.control.action === "run-health"
+            )
+          : undefined;
+      }
+
+      /** Return the existing latest deterministic-check row descriptor. */
+      function healthStampRow() {
+        const scan = DATA.sections.health.blocks.find(
+          block => block.card === "In-band scan"
+        );
+        return scan && scan.rows
+          ? scan.rows.find(
+              row => row.control && row.control.id === "healthLastRun"
+            )
+          : undefined;
+      }
+
+      /** Project durable Health state into the existing section descriptors. */
+      function syncHealthViewModel() {
+        const runRow = healthRunRow();
+        const stampRow = healthStampRow();
+        const block = healthResultsBlock();
+        if (!runRow || !stampRow || !block) return;
+        const running = healthViewState.state === "running";
+        runRow.control.label = running
+          ? "Running…"
+          : "Run deterministic health check";
+        runRow.control.disabled = running;
+        runRow.control.statusRole =
+          healthViewState.state === "error" ? "alert" : "status";
+        runRow.control.statusMessage =
+          healthViewState.state === "running"
+            ? "Deterministic health check running"
+            : healthViewState.state === "error"
+              ? healthViewState.message
+              : healthViewState.state === "result"
+                ? "Deterministic health check completed: " +
+                  healthViewState.result.summary.verdict
+                : "Ready to run deterministic health check";
+
+        const visibleResult = healthViewState.result;
+        if (visibleResult) {
+          block.note =
+            visibleResult.mode +
+            " · " +
+            visibleResult.summary.verdict +
+            " · run " +
+            visibleResult.runId;
+          block.rows = visibleResult.findings.map(finding => [
+            { t: "mono", v: finding.check },
+            { t: "mono", v: finding.layer },
+            { t: "badge", v: finding.status, cls: finding.status },
+            { t: "text", v: finding.reason },
+          ]);
+          delete block.empty;
+          stampRow.control.value =
+            visibleResult.completedAt + " · " + visibleResult.summary.verdict;
+        } else if (healthViewState.state === "error") {
+          block.note = "Deterministic health check failed";
+          block.rows = [];
+          block.empty = { state: "error", message: healthViewState.message };
+          stampRow.control.value = "Run failed · no current verdict";
+        } else {
+          block.note = "No completed deterministic health check yet";
+          block.rows = [];
+          block.empty = {
+            state: "never-run",
+            message: "Run deterministic health check to measure this project",
+          };
+          stampRow.control.value = "Never run";
+        }
+
+        healthChipState =
+          healthViewState.state === "running"
+            ? { state: "running" }
+            : healthViewState.state === "error"
+              ? { state: "error" }
+              : visibleResult
+                ? {
+                    state: "result",
+                    verdict: visibleResult.summary.verdict,
+                  }
+                : { state: "idle" };
+      }
+
+      /** Replace only the existing Health results card after state changes. */
+      function repaintHealthResults() {
+        syncHealthViewModel();
+        const block = healthResultsBlock();
+        const current = document.getElementById("healthResults");
+        if (block && current) current.replaceWith(buildTable(block));
+        const runRow = healthRunRow();
+        const currentButton = document.getElementById("runHealthCheckButton");
+        const currentControl =
+          currentButton && currentButton.closest(".control");
+        if (runRow && currentControl) {
+          currentControl.replaceWith(buildControl(runRow.control, runRow.key));
+        }
+        const stampRow = healthStampRow();
+        const stamp = document.getElementById("healthLastRun");
+        if (stampRow && stamp) stamp.textContent = stampRow.control.value;
+      }
+
+      /** Validate the browser-facing closed Health v1 shape before rendering. */
+      function requireHealthResult(candidate) {
+        const isObject = value =>
+          value !== null && typeof value === "object" && !Array.isArray(value);
+        const hasExactKeys = (value, keys) =>
+          isObject(value) &&
+          Object.keys(value).sort().join(",") === [...keys].sort().join(",");
+        if (
+          !hasExactKeys(candidate, [
+            "schemaVersion",
+            "runId",
+            "mode",
+            "startedAt",
+            "completedAt",
+            "findings",
+            "summary",
+          ]) ||
+          candidate.schemaVersion !== 1 ||
+          typeof candidate.runId !== "string" ||
+          !["deterministic", "full"].includes(candidate.mode) ||
+          typeof candidate.startedAt !== "string" ||
+          typeof candidate.completedAt !== "string" ||
+          !Array.isArray(candidate.findings) ||
+          candidate.findings.length === 0 ||
+          !hasExactKeys(candidate.summary, ["verdict", "counts"]) ||
+          !["in band", "drift detected"].includes(candidate.summary.verdict) ||
+          !hasExactKeys(candidate.summary.counts, ["pass", "warn", "fail"])
+        ) {
+          throw new TypeError("Health response is not valid Health v1 JSON");
+        }
+        candidate.findings.forEach(finding => {
+          if (
+            !hasExactKeys(finding, ["check", "layer", "status", "reason"]) ||
+            typeof finding.check !== "string" ||
+            !["deterministic", "agentic"].includes(finding.layer) ||
+            !["pass", "warn", "fail"].includes(finding.status) ||
+            typeof finding.reason !== "string"
+          ) {
+            throw new TypeError("Health response contains an invalid finding");
+          }
+        });
+        return candidate;
+      }
+
+      /** Render the exact canonical finding fields into the existing table. */
+      function applyHealthResult(candidate) {
+        const result = requireHealthResult(candidate);
+        healthViewState = { state: "result", result };
+        repaintHealthResults();
+        paintHealthChip();
+      }
+
+      /** Clear prior findings and surface one current failure without retrying. */
+      function applyHealthError(message) {
+        healthViewState = { state: "error", message };
+        repaintHealthResults();
+        paintHealthChip();
+      }
+
+      /** Read stored Health v1 state once when the console boots. */
+      async function hydrateHealth() {
+        try {
+          const response = await fetch("/api/health", { cache: "no-store" });
+          if (response.status === 404) return;
+          if (!response.ok) throw new Error("Unable to read Lisa health");
+          applyHealthResult(await response.json());
+        } catch (error) {
+          applyHealthError(
+            error instanceof Error
+              ? error.message
+              : "Unable to read Lisa health"
+          );
+        }
+      }
+
+      /** Run exactly one deterministic Health v1 check through the local server. */
+      async function runHealthCheck() {
+        const button = document.getElementById("runHealthCheckButton");
+        if (!button || button.disabled || healthViewState.state === "running")
+          return;
+        const previousResult = healthViewState.result;
+        healthViewState = {
+          state: "running",
+          ...(previousResult ? { result: previousResult } : {}),
+        };
+        repaintHealthResults();
+        paintHealthChip();
+        try {
+          const response = await fetch("/api/health", {
+            method: "POST",
+            cache: "no-store",
+          });
+          if (!response.ok) throw new Error("Unable to run Lisa health");
+          applyHealthResult(await response.json());
+        } catch (error) {
+          applyHealthError(
+            error instanceof Error ? error.message : "Unable to run Lisa health"
+          );
+        }
       }
       /**
        * Paint the CI Quality jobs Active column from the ci-quality-jobs probe.
@@ -7005,6 +7224,7 @@
         hydrateFromLiveConfig();
         renderAll();
         void hydrateLiveStatuses();
+        void hydrateHealth();
         showSection(location.hash ? location.hash.slice(1) : "overview");
         if (!document.getElementById("section-" + activeSection))
           showSection("overview");
