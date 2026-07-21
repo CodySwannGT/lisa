@@ -1,5 +1,5 @@
 /** Optional, read-only agentic Health composition over deterministic facts. */
-/* eslint-disable functional/immutable-data, functional/no-let, jsdoc/require-param, jsdoc/require-param-description, jsdoc/require-returns, max-lines -- one auditable hostile boundary stays cohesive */
+/* eslint-disable functional/immutable-data, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines -- one auditable hostile boundary stays cohesive */
 import { lstat, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { isProxy } from "node:util/types";
@@ -394,7 +394,9 @@ function validateJudgment(
 }
 
 /** Validate the evaluator's exact closed result union atomically. */
-function validateEvaluation(candidate: unknown): AgenticHealthEvaluation {
+export function validateAgenticHealthEvaluation(
+  candidate: unknown
+): AgenticHealthEvaluation {
   if (
     candidate === null ||
     typeof candidate !== "object" ||
@@ -541,7 +543,9 @@ export async function runHealth(
     const request = evaluatorRequest(deterministic, config, artifacts);
     const evaluation = await deadline.run(
       async () =>
-        validateEvaluation(await agentic.evaluator!(request, deadline.signal)),
+        validateAgenticHealthEvaluation(
+          await agentic.evaluator!(request, deadline.signal)
+        ),
       undefined
     );
     if (evaluation === undefined || evaluation.status === "unavailable") {
@@ -559,4 +563,4 @@ export async function runHealth(
   }
 }
 
-/* eslint-enable functional/immutable-data, functional/no-let, jsdoc/require-param, jsdoc/require-param-description, jsdoc/require-returns, max-lines -- restore repository defaults */
+/* eslint-enable functional/immutable-data, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines -- restore repository defaults */

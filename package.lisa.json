@@ -15,6 +15,7 @@
       "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs",
       "verify:learner-frontmatter-built": "bun run build:dist && node scripts/verify-learner-frontmatter-built.mjs",
       "verify:health-agentic": "bun run build:dist && node scripts/verify-health-agentic-built.mjs",
+      "verify:health-consumer": "bun run build:dist && node scripts/verify-health-consumer-built.mjs",
       "prepare": "$npm_execpath run build && husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest ."
     },
