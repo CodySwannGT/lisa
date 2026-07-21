@@ -119,6 +119,98 @@ export function createPluginSyncDoctorGroup(root = process.cwd()) {
 }
 
 /**
+ * The eight repository-readiness ownership dimensions, in fixed render order,
+ * defined once by the `readiness-rubric` rule. This group consumes that rubric;
+ * it does not redefine the vocabulary. Evidence gathering for each dimension is
+ * wired by later PRD #1739 tickets, so every dimension renders `SKIP` with a
+ * reason here — reported, never silently omitted, per the shipped contract.
+ * @type {readonly { id: string, question: string, skipReason: string }[]}
+ */
+const REPOSITORY_READINESS_DIMENSIONS = [
+  {
+    id: "context-routing",
+    question:
+      "Can an agent recover the real job from what is written down (integration-access-layer, wiki-knowledge-source, config-resolution)?",
+    skipReason:
+      "Context/routing evidence is assessed by the agent-ready wiring (RRR-4, #1856); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "capabilities-tools",
+    question:
+      "Is every tool the work needs provably reachable, not merely installed (tool-access-gate)?",
+    skipReason:
+      "Capabilities/tools evidence is gathered by the journey-execution wiring (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "domain-ownership",
+    question:
+      "Are the business rules, glossary, and danger zones owned and written down (agent-ready domain phase wiki pages)?",
+    skipReason:
+      "Domain-ownership evidence sources from agent-ready's danger-zone wiki pages, read by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "execution-proof",
+    question:
+      "Can the claimed user-visible outcome be proved by running the system (verification, empirical-inquiry, claim-evidence-mapping)?",
+    skipReason:
+      "Execution/proof consumes qualification evidence and representative journeys wired by RRR-6 (#1858); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "feedback-guardrails",
+    question:
+      "Does a failing loop produce a named outcome and a runbook (automation-runbook-contract, observability-audit)?",
+    skipReason:
+      "Feedback/guardrails evidence is assessed by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "dependencies-supply-chain",
+    question:
+      "Is there a confidence model for what the repo depends on (security-audit-handling)?",
+    skipReason:
+      "Dependencies/supply-chain evidence is assessed by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "delivery-authority",
+    question:
+      "Does the thing that ships equal the thing that was validated, and does the shipping credential carry only the authority it needs (claim-archaeology, security-audit-handling)?",
+    skipReason:
+      "Delivery/authority blockers are populated by the blocker gate in RRR-5 (#1857); no readiness probe is wired in this Lisa version.",
+  },
+  {
+    id: "proportionality",
+    question:
+      "Is the machinery proportional to the job, or is there scaffolding to subtract (repo-scope-split, #1742 subtraction candidates)?",
+    skipReason:
+      "Proportionality reuses the scaffolding-subtraction candidates surfaced by the journey work (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
+  },
+];
+
+/**
+ * Build the orthogonal "Repository readiness" doctor group ("may an agent fleet
+ * operate here unattended?"), scored against the eight `readiness-rubric`
+ * ownership dimensions. It is separate from the installation-readiness groups
+ * and is appended in a fixed position by the readiness-mode caller; the eight
+ * dimension checks render in fixed order. In this Lisa version every dimension
+ * is `SKIP` with a stated reason because the evidence-gathering surfaces ship
+ * with later PRD #1739 tickets — reported, never silently omitted.
+ * @param {string} root
+ * @returns {DoctorGroup}
+ */
+export function createRepositoryReadinessDoctorGroup(root = process.cwd()) {
+  void path.resolve(root);
+  return {
+    id: "repository-readiness",
+    title: "Repository readiness",
+    checks: REPOSITORY_READINESS_DIMENSIONS.map(dimension => ({
+      id: dimension.id,
+      status: "SKIP",
+      summary: dimension.question,
+      observed: dimension.skipReason,
+    })),
+  };
+}
+
+/**
  * @param {readonly DoctorGroup[]} groups
  * @returns {DoctorVerdict}
  */

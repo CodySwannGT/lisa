@@ -145,6 +145,27 @@ function addKaneCommands(program: Command, deps: ProgramDependencies): void {
 }
 
 /**
+ * Register the `doctor` command, including the additive `--readiness` audit.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addDoctorCommand(program: Command, deps: ProgramDependencies): void {
+  program
+    .command("doctor")
+    .description("Diagnose Lisa, project, starter, and wiki health")
+    .argument("[path]", "Project path to inspect")
+    .option("--json", "Emit JSON")
+    .option("--offline", "Skip network checks")
+    .option(
+      "--readiness",
+      "Also audit repository readiness for unattended fleet operation and persist .lisa/readiness.json"
+    )
+    .action(async (targetPath: string | undefined, options) => {
+      await deps.runDoctor(targetPath, options);
+    });
+}
+
+/**
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
@@ -174,15 +195,7 @@ function addMaintenanceCommands(
       }
     });
 
-  program
-    .command("doctor")
-    .description("Diagnose Lisa, project, starter, and wiki health")
-    .argument("[path]", "Project path to inspect")
-    .option("--json", "Emit JSON")
-    .option("--offline", "Skip network checks")
-    .action(async (targetPath: string | undefined, options) => {
-      await deps.runDoctor(targetPath, options);
-    });
+  addDoctorCommand(program, deps);
 
   program
     .command("sync")

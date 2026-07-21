@@ -737,7 +737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "e9a536389d2581370f6c470b8a070aaae96660646efc528a7ff7fb25d324a903",
     "plugins/src/base/scripts/doctor-report.mjs":
-      "a33586c8a5c0843a75e20af64fb7c5d0b35052fb855eb966dc5b0bf75ccbd8a3",
+      "080286c469b034d22930bd5efb7e70e5227e93697a315469e9f8e6089eb37505",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
@@ -789,7 +789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
       "47e4cda36b07994ff47ab15fb04a17dd6b0c310ad804f9cae9d69637edaaa72a",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "745543770f755f841d516bc4027ccfd1d7dfe23c25d27b209e2cd7329bdec22c",
+      "a9bac6af0746a222e9de7224e5f171411ee82e351f3449bcda4430b85f79486a",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "e8680c65da64351580658e423d2e30f565e9df52079f4deec44df84d4ab82982",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -7246,7 +7246,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/cross-pollinate-cmd.ts": true,
     "src/cli/cross-pollinate-nudge.ts": true,
     "src/cli/doctor-kane.ts": true,
+    "src/cli/doctor-legacy-overlay.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
+    "src/cli/doctor-readiness.ts": true,
     "src/cli/doctor-worker-epoch.ts": true,
     "src/cli/doctor.ts": true,
     "src/cli/file-upstream-cmd.ts": true,
@@ -7522,6 +7524,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
+    "tests/unit/cli/doctor-readiness.test.ts": true,
     "tests/unit/cli/doctor-worker-epoch.test.ts": true,
     "tests/unit/cli/doctor.test.ts": true,
     "tests/unit/cli/file-upstream-contract.test.ts": true,
@@ -7765,6 +7768,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-plugin-sync-guidance.test.ts": true,
     "tests/unit/strategies/doctor-project-readiness.test.ts": true,
     "tests/unit/strategies/doctor-report-rendering.test.ts": true,
+    "tests/unit/strategies/doctor-repository-readiness.test.ts": true,
     "tests/unit/strategies/doctor-scaffold.test.ts": true,
     "tests/unit/strategies/doctor-vendor-preflight.test.ts": true,
     "tests/unit/strategies/doctor-wiki-delegation.test.ts": true,
