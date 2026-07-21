@@ -36,6 +36,18 @@ const PLUGIN_MANIFEST_REL = path.join(PLUGINS_DIR, PLUGIN_NAME, "plugin.json");
 /** Same path in git's forward-slash form for `git show`. */
 const PLUGIN_MANIFEST_GIT = PLUGIN_MANIFEST_REL.split(path.sep).join("/");
 
+// Hermetic git environment: pin config to /dev/null so the temp repos never
+// read the developer's global/system git config, and never inherit ambient
+// hooks. This keeps the reproduction deterministic under the full parallel
+// suite (where global-config reads add file-descriptor pressure and variance).
+const GIT_ENV: NodeJS.ProcessEnv = {
+  ...process.env,
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_SYSTEM: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_TERMINAL_PROMPT: "0",
+};
+
 /**
  * Extracts the real "Push Changelog Changes" step from release.yml and
  * substitutes the GitHub expression context this test drives it with, so the
@@ -80,7 +92,7 @@ const PRE_FIX_SCRIPT = [
 ].join("\n");
 
 const runGit = (cwd: string, args: string[]): string =>
-  execFileSync(GIT_BIN, args, { cwd, encoding: "utf8" });
+  execFileSync(GIT_BIN, args, { cwd, encoding: "utf8", env: GIT_ENV });
 
 const writeJsonVersion = (file: string, version: string): void => {
   const parsed = fs.existsSync(file)
@@ -163,7 +175,9 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
   );
 
   // PATH shims. `npx` stands in for standard-version's deterministic
-  // `--release-as` re-stamp; `sleep` no-ops the backoff.
+  // `--release-as` re-stamp; `sleep` no-ops the backoff. The re-stamp uses
+  // sed (not a spawned node) to keep the subprocess/FD footprint minimal under
+  // the full parallel suite.
   fs.writeFileSync(
     path.join(binDir, "npx"),
     [
@@ -178,15 +192,10 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
       '  if [ "$1" = "--release-as" ]; then ver="$2"; shift 2; else shift; fi',
       "done",
       'echo "$ver" >> "$REPRO_MARKER"',
-      "node -e '",
-      '  const fs = require("fs");',
-      "  const ver = process.argv[1];",
-      `  for (const f of ["${PACKAGE_JSON}", "${PLUGIN_MANIFEST_GIT}"]) {`,
-      '    const j = JSON.parse(fs.readFileSync(f, "utf8"));',
-      "    j.version = ver;",
-      '    fs.writeFileSync(f, JSON.stringify(j, null, 2) + "\\n");',
-      "  }",
-      '\' "$ver"',
+      `for f in "${PACKAGE_JSON}" "${PLUGIN_MANIFEST_GIT}"; do`,
+      `  sed -i.bak 's/"version": *"[^"]*"/"version": "'"$ver"'"/' "$f"`,
+      '  rm -f "$f.bak"',
+      "done",
       "git add -A",
       'git commit -q -m "chore(release): v$ver [skip ci]"',
       "exit 0",
@@ -234,7 +243,7 @@ const runStep = (
       cwd: repo.workDir,
       encoding: "utf8",
       env: {
-        ...process.env,
+        ...GIT_ENV,
         PATH: `${repo.binDir}:${process.env.PATH ?? ""}`,
         REPRO_MARKER: repo.markerFile,
       },
@@ -251,6 +260,7 @@ const originPluginVersion = (repo: ConflictRepo): string => {
   const blob = execFileSync(GIT_BIN, ["show", `main:${PLUGIN_MANIFEST_GIT}`], {
     cwd: repo.originDir,
     encoding: "utf8",
+    env: GIT_ENV,
   });
   return (JSON.parse(blob) as { version: string }).version;
 };
@@ -300,6 +310,7 @@ describe("release changelog push recovery", () => {
       {
         cwd: repo.originDir,
         encoding: "utf8",
+        env: GIT_ENV,
       }
     );
     expect(pushed).not.toContain("<<<<<<<");
