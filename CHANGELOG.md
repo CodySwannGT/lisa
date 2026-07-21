@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.277.4](https://github.com/CodySwannGT/lisa/compare/v2.277.3...v2.277.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* **cli:** complete local setup project flow ([36e2af8](https://github.com/CodySwannGT/lisa/commit/36e2af852faff6e1a5f19825dab819ce8abe3664)), closes [CodySwannGT/lisa#1899](https://github.com/CodySwannGT/lisa/issues/1899)
+
 ### [2.277.3](https://github.com/CodySwannGT/lisa/compare/v2.277.2...v2.277.3) (2026-07-21)
 
 
