@@ -6,6 +6,7 @@ import type { DoctorCheck } from "./doctor.js";
 import {
   assessReadiness,
   type DetectedBlocker,
+  type ReadinessDimensionInput,
   type ReadinessVerdict,
 } from "./doctor-readiness-blockers.js";
 import {
@@ -195,8 +196,8 @@ export async function checkRepositoryReadiness(
     dimensions,
   };
 
-  const unassessed = countUnassessedDimensions(dimensions);
-  const unassessedPhrase = `${unassessed} of ${dimensions.length} dimensions unassessed (SKIP)`;
+  const headline = formatReadinessHeadline(verdict, dimensions);
+  const blockerPhrase = `${blockers.length} standing ship blocker${blockers.length === 1 ? "" : "s"}`;
 
   const reportPath = resolveReadinessReportPath(targetPath);
   try {
@@ -206,7 +207,7 @@ export async function checkRepositoryReadiness(
       name: REPOSITORY_READINESS_CHECK_NAME,
       status: "warn",
       detail:
-        `Repository readiness assessed: ${verdict} (${unassessedPhrase}). ` +
+        `${headline} (${blockerPhrase}). ` +
         `Could not persist ${READINESS_REPORT_DISPLAY_PATH}: ` +
         `${error instanceof Error ? error.message : String(error)}`,
     };
@@ -216,26 +217,44 @@ export async function checkRepositoryReadiness(
     name: REPOSITORY_READINESS_CHECK_NAME,
     status: verdict === "READY" ? "ok" : "warn",
     detail:
-      `Repository readiness assessed: ${verdict} across ${dimensions.length} ownership dimensions ` +
-      `(${blockers.length} standing ship blocker${blockers.length === 1 ? "" : "s"}; ` +
-      `${unassessedPhrase} — no evidence was gathered for ${unassessed === 1 ? "it" : "them"}, ` +
-      `so this report does not establish unattended operation; see readiness-rubric). ` +
+      `${headline} (${blockerPhrase}; see readiness-rubric). ` +
       `Report written to ${READINESS_REPORT_DISPLAY_PATH} (schema_version ${READINESS_SCHEMA_VERSION}).`,
   };
 }
 
 /**
- * Count the dimensions that were never assessed. This is the number the operator
- * line must state: an unassessed dimension is silence, not evidence of health
- * (#1897), so its size is what tells a reader how much of the rubric this run
- * actually covered.
+ * Write the operator-facing headline for a readiness run, conclusion first.
+ *
+ * The reader at the gate is non-technical (`factory-model`), so the sentence
+ * leads with what it means rather than burying it after the mechanics. When any
+ * dimension was never assessed the headline says the readiness question is NOT
+ * ESTABLISHED and states how much was skipped — silence is reported as silence,
+ * never as health (#1897). Once every dimension has been assessed the
+ * not-established caveat is dropped entirely, because a fully assessed run must
+ * not carry a sentence contradicting its own verdict. The doctor renderer
+ * already prefixes the check name, so this text does not repeat it.
+ * @param verdict - The computed verdict for this run
  * @param dimensions - The per-dimension records for this run
- * @returns How many dimensions rendered `SKIP`
+ * @returns One operator-language clause, conclusion first, with no trailing period
  */
-function countUnassessedDimensions(
-  dimensions: readonly ReadinessDimensionRecord[]
-): number {
-  return dimensions.filter(dimension => dimension.status === "SKIP").length;
+export function formatReadinessHeadline(
+  verdict: ReadinessVerdict,
+  dimensions: readonly ReadinessDimensionInput[]
+): string {
+  const unassessed = dimensions.filter(
+    dimension => dimension.status === "SKIP"
+  ).length;
+  if (unassessed === 0) {
+    return (
+      `${verdict} — every dimension was assessed ` +
+      `across ${dimensions.length} ownership dimensions`
+    );
+  }
+  return (
+    `NOT ESTABLISHED (${verdict}) — ${unassessed} of ${dimensions.length} ` +
+    `dimensions ${unassessed === 1 ? "was" : "were"} never assessed, so this ` +
+    `cannot say whether an unattended fleet may operate here`
+  );
 }
 
 /**
