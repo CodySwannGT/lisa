@@ -1802,6 +1802,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "206548c671a51d0194b08fd7433d27dbff29e14e0629c5d4ed6108f24abe4623",
     "scripts/build-plugins.sh":
       "d26321ea10bc3ed8cf096f900622cb4cf7a37117fabf9730f0fe5c9d949582fc",
+    "scripts/check-e2e-coverage.mjs":
+      "a50c2e75d0ee2573e4a4c3063f20ed7e19e9d25a299b951209404e1d55763a73",
     "scripts/check-learnings-budget.ts":
       "007430c2d6938efcc79ccbfd5717ebe2c7cf66b4de9a21a3e67b8db7f3600349",
     "scripts/check-plugins-sync.sh":
@@ -7214,6 +7216,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/github-rulesets/quality-checks.json": true,
     "rails/merge/.claude/settings.json": true,
     "scripts/build-plugins.sh": true,
+    "scripts/check-e2e-coverage.mjs": true,
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-rules-pairing.sh": true,
