@@ -195,6 +195,9 @@ export async function checkRepositoryReadiness(
     dimensions,
   };
 
+  const unassessed = countUnassessedDimensions(dimensions);
+  const unassessedPhrase = `${unassessed} of ${dimensions.length} dimensions unassessed (SKIP)`;
+
   const reportPath = resolveReadinessReportPath(targetPath);
   try {
     await persistReadinessReport(reportPath, report);
@@ -203,8 +206,8 @@ export async function checkRepositoryReadiness(
       name: REPOSITORY_READINESS_CHECK_NAME,
       status: "warn",
       detail:
-        `Repository readiness assessed: ${verdict} (8 dimensions, all SKIP pending ` +
-        `evidence wiring). Could not persist ${READINESS_REPORT_DISPLAY_PATH}: ` +
+        `Repository readiness assessed: ${verdict} (${unassessedPhrase}). ` +
+        `Could not persist ${READINESS_REPORT_DISPLAY_PATH}: ` +
         `${error instanceof Error ? error.message : String(error)}`,
     };
   }
@@ -213,11 +216,26 @@ export async function checkRepositoryReadiness(
     name: REPOSITORY_READINESS_CHECK_NAME,
     status: verdict === "READY" ? "ok" : "warn",
     detail:
-      `Repository readiness assessed: ${verdict} across 8 ownership dimensions ` +
+      `Repository readiness assessed: ${verdict} across ${dimensions.length} ownership dimensions ` +
       `(${blockers.length} standing ship blocker${blockers.length === 1 ? "" : "s"}; ` +
-      `all SKIP pending evidence wiring in later PRD #1739 tickets; see readiness-rubric). ` +
+      `${unassessedPhrase} — no evidence was gathered for ${unassessed === 1 ? "it" : "them"}, ` +
+      `so this report does not establish unattended operation; see readiness-rubric). ` +
       `Report written to ${READINESS_REPORT_DISPLAY_PATH} (schema_version ${READINESS_SCHEMA_VERSION}).`,
   };
+}
+
+/**
+ * Count the dimensions that were never assessed. This is the number the operator
+ * line must state: an unassessed dimension is silence, not evidence of health
+ * (#1897), so its size is what tells a reader how much of the rubric this run
+ * actually covered.
+ * @param dimensions - The per-dimension records for this run
+ * @returns How many dimensions rendered `SKIP`
+ */
+function countUnassessedDimensions(
+  dimensions: readonly ReadinessDimensionRecord[]
+): number {
+  return dimensions.filter(dimension => dimension.status === "SKIP").length;
 }
 
 /**

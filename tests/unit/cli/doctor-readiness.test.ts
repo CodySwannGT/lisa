@@ -79,7 +79,9 @@ describe("checkRepositoryReadiness", () => {
     const report = JSON.parse(raw) as Record<string, unknown>;
     expect(report.schema_version).toBe(READINESS_SCHEMA_VERSION);
     expect(report.schema_version).toBe(1);
-    expect(report.verdict).toBe("READY");
+    // #1897: every dimension renders SKIP on this default path, so the report
+    // must NOT claim READY — unassessed is not evidence of readiness.
+    expect(report.verdict).toBe("READY_WITH_WARNINGS");
     expect(report.narrowed_claim).toBeNull();
     expect(report.blockers).toEqual([]);
     expect(report.blocker_count).toBe(0);
@@ -95,6 +97,19 @@ describe("checkRepositoryReadiness", () => {
       expect(dimension.status).toBe("SKIP");
       expect(Array.isArray(dimension.findings)).toBe(true);
     }
+  });
+
+  it("names the unassessed dimension count and asserts no unattended readiness", async () => {
+    const cwd = await getTempDir();
+
+    const check = await checkRepositoryReadiness(cwd);
+
+    // #1897: the operator-facing line must say how much was never assessed and
+    // must not turn that silence into a readiness claim.
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("8 of 8 dimensions unassessed");
+    expect(check.detail).not.toMatch(/unattended fleet may run/i);
+    expect(check.detail).not.toMatch(/pending evidence wiring/i);
   });
 
   it("degrades to a WARN check instead of throwing when the report cannot be written", async () => {
