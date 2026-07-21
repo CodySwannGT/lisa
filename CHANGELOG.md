@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.278.0](https://github.com/CodySwannGT/lisa/compare/v2.277.4...v2.278.0) (2026-07-21)
+
+
+### Features
+
+* **ui:** add setup readiness projection ([6a857be](https://github.com/CodySwannGT/lisa/commit/6a857bee13463e1f0e0fc9dff38c08e8d80d6b02)), closes [CodySwannGT/lisa#1892](https://github.com/CodySwannGT/lisa/issues/1892)
+
+
+### Bug Fixes
+
+* **ui:** address setup readiness review ([422cd2c](https://github.com/CodySwannGT/lisa/commit/422cd2cd04b356ef83d0d6a170b602ffec50a133)), closes [CodySwannGT/lisa#1892](https://github.com/CodySwannGT/lisa/issues/1892)
+
 ### [2.277.4](https://github.com/CodySwannGT/lisa/compare/v2.277.3...v2.277.4) (2026-07-21)
 
 
