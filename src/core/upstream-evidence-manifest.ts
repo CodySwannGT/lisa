@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/gitignore":
-      "74e0f12be861c5583cedbed89d0b029709748d7f38bc77bad22babded0489231",
+      "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "f88f69d44693084428f44e3f2b80afecda08c7ee8747588f40277fdc9396fd8f",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -2053,7 +2053,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "2abf4253d9d576b4e16d41efd30a7f3b334c1a1ec2caad442929ab82bd28fc8d",
+      "a6741c556f79d05e5063500b795c7066b05280d166ead6b83047a308ba7cef91",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -7300,6 +7300,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/setup-project.ts": true,
     "src/cli/setup-wiki.ts": true,
     "src/cli/shared-options.ts": true,
+    "src/cli/standards-proof-cmd.ts": true,
     "src/cli/starters.ts": true,
     "src/cli/sync-cmd.ts": true,
     "src/cli/ui-automations-adapters.ts": true,
@@ -7476,6 +7477,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
     "src/opencode/support-file-resolver.ts": true,
+    "src/standards/capture.ts": true,
+    "src/standards/contract.ts": true,
+    "src/standards/git-state.ts": true,
+    "src/standards/index.ts": true,
+    "src/standards/readiness.ts": true,
+    "src/standards/registry.ts": true,
+    "src/standards/storage-reasons.ts": true,
+    "src/standards/storage.ts": true,
+    "src/standards/test-evidence.ts": true,
     "src/strategies/copy-contents.ts": true,
     "src/strategies/copy-overwrite.ts": true,
     "src/strategies/create-only.ts": true,
@@ -7578,6 +7588,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
+    "tests/integration/standards-proof-fixture.ts": true,
+    "tests/integration/standards-proof-rails.test.ts": true,
+    "tests/integration/standards-proof-tamper.test.ts": true,
+    "tests/integration/standards-proof-typescript.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
@@ -7798,6 +7812,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/standards/capture.test.ts": true,
+    "tests/unit/standards/contract.test.ts": true,
+    "tests/unit/standards/git-state.test.ts": true,
+    "tests/unit/standards/readiness.test.ts": true,
+    "tests/unit/standards/registry.test.ts": true,
+    "tests/unit/standards/storage.test.ts": true,
+    "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/agent-ready-ingest-boundary.test.ts": true,
     "tests/unit/strategies/agent-ready-readiness-consumption.test.ts": true,
     "tests/unit/strategies/artifact-identity-contract.test.ts": true,

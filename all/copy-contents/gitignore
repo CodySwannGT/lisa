@@ -215,6 +215,8 @@ expo-env.d.ts
 .lisa/verification-status.json
 # Latest Health v1 result is local runtime state, never project configuration.
 .lisa/health/latest.json
+# Freshness-bound standards proof is local runtime evidence, not knowledge.
+.lisa/standards/latest.json
 
 # Automation run outcomes — local scheduler observations read by
 # /lisa:automation-status. Runbooks are project knowledge; run records are not.

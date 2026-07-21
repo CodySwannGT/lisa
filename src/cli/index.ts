@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- command registration remains centralized for dependency-injection parity */
 import { Command } from "commander";
 import { runApply } from "./apply.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
@@ -23,6 +24,7 @@ import {
 import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
+import { runStandardsProofCli } from "./standards-proof-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
 import { runUi, type UiCmdOptions } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
@@ -60,6 +62,8 @@ export interface ProgramDependencies {
   runFileUpstream: typeof runFileUpstream;
   /** Runs and persists the shared Health v1 consumer. */
   runHealthCli: typeof runHealthCli;
+  /** Runs every standards command and writes freshness-bound proof. */
+  runStandardsProofCli: typeof runStandardsProofCli;
   /** Runs one policy-approved Kane empirical browser objective. */
   runKaneCli: typeof runKaneCli;
   /** Probes Kane installation, authentication, and Test Manager readiness. */
@@ -85,6 +89,7 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runCheckLearningsBudget,
   runFileUpstream,
   runHealthCli,
+  runStandardsProofCli,
   runKaneCli,
   runKaneProbeCli,
   runKanePilotCli,
@@ -200,6 +205,26 @@ function addHealthCommand(program: Command, deps: ProgramDependencies): void {
 }
 
 /**
+ * Register the explicit, mutating standards proof command.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addStandardsProofCommand(
+  program: Command,
+  deps: ProgramDependencies
+): void {
+  program
+    .command("standards-proof")
+    .description(
+      "Run all applicable Lisa standards checks and prove the current Git artifact"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .action(async (targetPath: string | undefined) => {
+      await deps.runStandardsProofCli(targetPath);
+    });
+}
+
+/**
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
@@ -231,6 +256,7 @@ function addMaintenanceCommands(
 
   addDoctorCommand(program, deps);
   addHealthCommand(program, deps);
+  addStandardsProofCommand(program, deps);
 
   program
     .command("sync")
@@ -292,6 +318,7 @@ function addMaintenanceCommands(
  * @param dependencies - Optional collaborator overrides for testing
  * @returns Configured Commander program
  */
+// eslint-disable-next-line max-lines-per-function -- root command construction is one dependency-injected registry
 export function createProgram(
   dependencies: Partial<ProgramDependencies> = {}
 ): Command {
@@ -314,9 +341,15 @@ export function createProgram(
   program.hook("preAction", async (_thisCommand, actionCommand) => {
     if (
       actionCommand.parent?.name() === "kane" ||
-      ["doctor", "health", "sync", "ui", "update", "version"].includes(
-        actionCommand.name()
-      ) ||
+      [
+        "doctor",
+        "health",
+        "standards-proof",
+        "sync",
+        "ui",
+        "update",
+        "version",
+      ].includes(actionCommand.name()) ||
       (GATE_COMMAND_NAMES as readonly string[]).includes(actionCommand.name())
     ) {
       return;
@@ -378,3 +411,4 @@ export function createProgram(
 }
 
 export { createPrompter } from "./prompts.js";
+/* eslint-enable max-lines -- restore repository default */
