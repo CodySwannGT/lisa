@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.281.0](https://github.com/CodySwannGT/lisa/compare/v2.280.0...v2.281.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** wire B1/B4 + capabilities-tools readiness producers, closing [#1896](https://github.com/CodySwannGT/lisa/issues/1896) ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([2c4638f](https://github.com/CodySwannGT/lisa/commit/2c4638f90f69c80d8ce8fe8848ac23759b4106da))
+
+
+### Bug Fixes
+
+* **doctor:** stop B1/B4 firing on ephemeral CI and preview infrastructure ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([d6c8e9d](https://github.com/CodySwannGT/lisa/commit/d6c8e9d78f236eb54f16384a12527fb7edfae58b))
+
 ## [2.280.0](https://github.com/CodySwannGT/lisa/compare/v2.279.2...v2.280.0) (2026-07-21)
 
 
