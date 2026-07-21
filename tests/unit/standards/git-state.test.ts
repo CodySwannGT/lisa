@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   normalizeGitRemoteIdentity,
   readStandardsGitState,
+  requireStandardsBaseCommit,
 } from "../../../src/standards/git-state.js";
 
 let root: string | undefined;
@@ -97,5 +98,44 @@ describe("standards Git state", () => {
     await expect(readStandardsGitState(repo)).rejects.toThrow(
       "origin is ambiguous"
     );
+  });
+
+  it("preserves the parent-commit error for a true root commit", async () => {
+    const repo = await repository();
+    await expect(requireStandardsBaseCommit(repo)).rejects.toThrow(
+      "Standards proof requires a parent commit for threshold comparison."
+    );
+  });
+
+  it("returns the parent commit when complete history is available", async () => {
+    const repo = await repository();
+    const parent = git(["rev-parse", "HEAD"]);
+    await writeFile(path.join(repo, README), "second commit\n");
+    git(["add", README]);
+    git(["commit", "-qm", "second"]);
+    await expect(requireStandardsBaseCommit(repo)).resolves.toBe(parent);
+  });
+
+  it("gives fetch-depth guidance when the parent is hidden by a shallow clone", async () => {
+    const source = await repository();
+    await writeFile(path.join(source, README), "second commit\n");
+    git(["add", README]);
+    git(["commit", "-qm", "second"]);
+    const shallow = `${source}-shallow`;
+    try {
+      execFileSync(
+        GIT,
+        ["clone", "-q", "--depth", "1", `file://${source}`, shallow],
+        { encoding: "utf8" }
+      );
+      root = shallow;
+      await expect(requireStandardsBaseCommit(shallow)).rejects.toThrow(
+        "Run `git fetch --deepen=1` and retry."
+      );
+    } finally {
+      await rm(source, { recursive: true, force: true });
+      await rm(shallow, { recursive: true, force: true });
+      root = undefined;
+    }
   });
 });

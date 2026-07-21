@@ -5,6 +5,7 @@ import {
 } from "../../../src/standards/contract.js";
 
 const NOW = new Date("2026-07-21T15:00:00.000Z");
+const CHECK_ID = "typescript.lint";
 
 /**
  * Build one valid strict proof candidate for tamper cases.
@@ -23,11 +24,11 @@ function proof(): Record<string, unknown> {
       tree: "d".repeat(40),
     },
     projectTypes: ["typescript"],
-    applicableChecks: ["typescript.lint"],
+    applicableChecks: [CHECK_ID],
     capturedAt: "2026-07-21T14:00:02.000Z",
     results: [
       {
-        check: "typescript.lint",
+        check: CHECK_ID,
         category: "lint",
         status: "pass",
         startedAt: "2026-07-21T14:00:00.000Z",
@@ -64,5 +65,23 @@ describe("standards proof contract", () => {
     const candidate = proof();
     mutate(candidate);
     expect(() => validateStandardsProof(candidate, NOW)).toThrow();
+  });
+
+  it("reports duplicate membership before an invalid result", () => {
+    const candidate = proof() as any;
+    candidate.applicableChecks.push(CHECK_ID);
+    candidate.results[0].status = "fail";
+    expect(() => validateStandardsProof(candidate, NOW)).toThrow(
+      "Invalid applicableChecks: entries must be unique"
+    );
+  });
+
+  it("reports a future capture before an invalid result", () => {
+    const candidate = proof() as any;
+    candidate.capturedAt = "2026-07-22T00:00:00.000Z";
+    candidate.results[0].status = "fail";
+    expect(() => validateStandardsProof(candidate, NOW)).toThrow(
+      "Invalid capturedAt: standards proof is from the future"
+    );
   });
 });

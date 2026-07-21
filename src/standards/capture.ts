@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns, code-organization/enforce-statement-order -- bounded capture transaction remains cohesive and auditable */
 /** Explicit standards-proof capture orchestration. */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -27,6 +26,7 @@ import { hasPositiveTestEvidence } from "./test-evidence.js";
 const execFileAsync = promisify(execFile);
 const MAX_CHECK_OUTPUT_BYTES = 1024 * 1024;
 
+/** Bounded result from one standards command invocation. */
 export interface StandardsCommandOutcome {
   readonly exitCode: number;
   readonly output: string;
@@ -112,7 +112,9 @@ export async function captureStandardsProof(
   }
   const after = await observeBoundInputs(before.git.root, deps);
   assertUnchanged(before, after);
+  // eslint-disable-next-line code-organization/enforce-statement-order -- capture time must be read only after unchanged-input validation
   const capturedAt = deps.now().toISOString();
+  // eslint-disable-next-line code-organization/enforce-statement-order -- immutable proof assembly intentionally follows unchanged-input validation
   const proof = {
     schemaVersion: 1,
     artifact: STANDARDS_PROOF_ARTIFACT,
@@ -132,13 +134,19 @@ export async function captureStandardsProof(
   return (await deps.writeProof(before.git.root, proof, deps.now())).proof;
 }
 
+/** Stack, configuration, registry, and Git inputs bound into one proof. */
 type BoundInputs = Readonly<{
   git: StandardsGitState;
   projectTypes: readonly ProjectType[];
   plan: StandardsCheckPlan;
 }>;
 
-/** Capture the exact stack/config/registry/git state around command execution. */
+/**
+ * Capture the exact stack/config/registry/git state around command execution.
+ * @param projectRoot - Supported project repository
+ * @param deps - Injectable process boundaries
+ * @returns Current proof-bound inputs
+ */
 async function observeBoundInputs(
   projectRoot: string,
   deps: StandardsCaptureDependencies
@@ -152,7 +160,11 @@ async function observeBoundInputs(
   return Object.freeze({ git, projectTypes, plan });
 }
 
-/** Reject any before/after drift before storage mutation. */
+/**
+ * Reject any before/after drift before storage mutation.
+ * @param before - Inputs observed before quality commands
+ * @param after - Inputs observed after quality commands
+ */
 function assertUnchanged(before: BoundInputs, after: BoundInputs): void {
   if (!after.git.clean) {
     throw new Error("Repository changed while standards checks were running.");
@@ -182,8 +194,13 @@ function assertUnchanged(before: BoundInputs, after: BoundInputs): void {
   }
 }
 
-/** Execute one fixed argv with a deadline, no shell, and bounded private output. */
-async function runStandardsCommand(
+/**
+ * Execute one fixed argv with a deadline, no shell, and bounded private output.
+ * @param root - Canonical project repository
+ * @param check - Fixed registry check to execute
+ * @returns Exit status and bounded private output
+ */
+export async function runStandardsCommand(
   root: string,
   check: StandardsCheckSpec
 ): Promise<StandardsCommandOutcome> {
@@ -196,6 +213,21 @@ async function runStandardsCommand(
       encoding: "utf8",
       env: {
         ...getProcessEnvironment(),
+        GIT_ALTERNATE_OBJECT_DIRECTORIES: undefined,
+        GIT_CONFIG: undefined,
+        GIT_CONFIG_PARAMETERS: undefined,
+        GIT_CONFIG_COUNT: undefined,
+        GIT_OBJECT_DIRECTORY: undefined,
+        GIT_DIR: undefined,
+        GIT_WORK_TREE: undefined,
+        GIT_IMPLICIT_WORK_TREE: undefined,
+        GIT_GRAFT_FILE: undefined,
+        GIT_INDEX_FILE: undefined,
+        GIT_NO_REPLACE_OBJECTS: undefined,
+        GIT_REPLACE_REF_BASE: undefined,
+        GIT_PREFIX: undefined,
+        GIT_SHALLOW_FILE: undefined,
+        GIT_COMMON_DIR: undefined,
         GIT_OPTIONAL_LOCKS: "0",
         CI: "1",
         VERIFY_BASE_SHA: undefined,
@@ -232,9 +264,11 @@ async function runStandardsCommand(
   }
 }
 
-/** Read the explicit CLI process environment for child quality commands. */
+/**
+ * Read the explicit CLI process environment for child quality commands.
+ * @returns Current process environment
+ */
 function getProcessEnvironment(): NodeJS.ProcessEnv {
   // eslint-disable-next-line no-restricted-syntax -- explicit operator command must inherit the configured project toolchain
   return process.env;
 }
-/* eslint-enable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns, code-organization/enforce-statement-order -- restore repository defaults */
