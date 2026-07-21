@@ -36,12 +36,22 @@ const PLUGIN_MANIFEST_REL = path.join(PLUGINS_DIR, PLUGIN_NAME, "plugin.json");
 /** Same path in git's forward-slash form for `git show`. */
 const PLUGIN_MANIFEST_GIT = PLUGIN_MANIFEST_REL.split(path.sep).join("/");
 
-// Hermetic git environment: pin config to /dev/null so the temp repos never
-// read the developer's global/system git config, and never inherit ambient
-// hooks. This keeps the reproduction deterministic under the full parallel
-// suite (where global-config reads add file-descriptor pressure and variance).
+// Ambient env with every GIT_* variable stripped. This is the critical
+// isolation step: when this suite runs from git's own pre-push hook, git
+// exports GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_PREFIX into the
+// environment. Inheriting them poisons every temp-repo git command (e.g.
+// `git init` fails "GIT_WORK_TREE not allowed without specifying GIT_DIR"),
+// which is exactly why the reproduction passed standalone but failed under
+// `git push`. Dropping them makes the temp repos hermetic from the caller.
+const AMBIENT_ENV: NodeJS.ProcessEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
+);
+
+// Hermetic git environment: no inherited GIT_* state, and config pinned to
+// /dev/null so the temp repos never read the developer's global/system config
+// or inherit ambient hooks.
 const GIT_ENV: NodeJS.ProcessEnv = {
-  ...process.env,
+  ...AMBIENT_ENV,
   GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_SYSTEM: "/dev/null",
   GIT_CONFIG_NOSYSTEM: "1",
