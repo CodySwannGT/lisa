@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.276.0](https://github.com/CodySwannGT/lisa/compare/v2.275.0...v2.276.0) (2026-07-21)
+
+
+### Features
+
+* **ui:** wire deterministic health console ([9112b1e](https://github.com/CodySwannGT/lisa/commit/9112b1e6d6b8926f78805cb2f35563631f80d35d)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+
+
+### Documentation
+
+* **ui:** attach verification usage record ([a20084e](https://github.com/CodySwannGT/lisa/commit/a20084e4c1bf5caf58dd4b65eff348650c200b62)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+* **ui:** document health single-flight helpers ([ca89e2e](https://github.com/CodySwannGT/lisa/commit/ca89e2e9f321d2e95a3f368674e0c63f0ee259ea)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+* **ui:** link published health evidence ([c81f09e](https://github.com/CodySwannGT/lisa/commit/c81f09ebdc9a2148ae8913b8c04f50984cd2a83c)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+
 ## [2.275.0](https://github.com/CodySwannGT/lisa/compare/v2.274.0...v2.275.0) (2026-07-21)
 
 
