@@ -1,0 +1,63 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "execution-proof",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B4",
+          "severity": "critical",
+          "blocking": true,
+          "invariant_violated": "Every irreversible or expensive operation sits behind a gate and has a way back.",
+          "evidence": "The customer-purge endpoint hard-deletes accounts synchronously with no confirmation step and no soft-delete window; there is no way to recover a purged account.",
+          "why_proof_missed": "The endpoint is covered only by a happy-path unit test that asserts a 200, never the irreversibility.",
+          "root_correction": "Introduce a soft-delete window and a human confirmation gate before hard deletion.",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "delivery-authority",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "proportionality",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    }
+  ]
+}
