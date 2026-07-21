@@ -621,7 +621,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
-      "78e95eb470fc89b117ad06a9c79edbb95abc7940b625ce232ebba4e113c8d95d",
+      "e22888f107906992e863fca50f26c2c4b124da7132535cacfac71e4f3085728f",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
       "3a7c2a6264654a3cc44dd326441ba211a39c1c267033cc189c1c635adb84b52b",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
-      "59318579408cdf07343e26abbb316d83a3119dbf4fb68bbcc72b299131f3e8f0",
+      "84f9fb8fa0a606307e828ec355ccbf2258beeeb88795dd113abe9bb2c37db39f",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
       "555155889c9cf279865b9d8fc554bdd461c96a3ec76a5001dfeb361a71056999",
     "plugins/src/base/rules/reference/empirical-inquiry.md":

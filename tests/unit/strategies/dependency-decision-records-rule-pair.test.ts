@@ -25,14 +25,24 @@ describe("dependency-decision-records eager/reference rule pair", () => {
   it("names every required record field in the reference body", () => {
     const reference = readFileSync(REFERENCE, "utf8");
 
-    expect(reference).toContain("**Dependency**");
+    // Same nine labels the scaffold uses, in the same order — operator's
+    // question first, technical term kept in parentheses.
     expect(reference).toContain("**Why we keep it**");
-    expect(reference).toContain("**Owned capability**");
-    expect(reference).toContain("**Trust basis**");
-    expect(reference).toContain("**Exposure**");
-    expect(reference).toContain("**Replacement cost**");
-    expect(reference).toContain("**Detection evidence**");
-    expect(reference).toContain("**Owner / review cadence**");
+    expect(reference).toContain("**What it is (dependency)**");
+    expect(reference).toContain("**What it does for us (owned capability)**");
+    expect(reference).toContain("**Why we believe it's safe (trust basis)**");
+    expect(reference).toContain(
+      "**What breaks if this is compromised (exposure)**"
+    );
+    expect(reference).toContain(
+      "**What it would take to replace (replacement cost)**"
+    );
+    expect(reference).toContain(
+      "**What would catch a bad update (detection evidence)**"
+    );
+    expect(reference).toContain(
+      "**Who owns this and how often we recheck (owner / review cadence)**"
+    );
     expect(reference).toContain("**Last reviewed**");
   });
 
@@ -43,6 +53,27 @@ describe("dependency-decision-records eager/reference rule pair", () => {
     expect(reference).toContain("`_Not yet decided_` is the reserved marker");
     expect(reference).toContain(
       "A `###` heading inside `## Records` is always\n  an entry, never guidance"
+    );
+  });
+
+  it("puts the plain-language why first and says so", () => {
+    const eager = readFileSync(EAGER, "utf8");
+    const reference = readFileSync(REFERENCE, "utf8");
+
+    expect(eager).toContain(
+      '"Why we keep it" comes first on purpose — an entry that opens'
+    );
+    expect(reference).toContain("This is deliberately the FIRST");
+  });
+
+  it("names the escalation triggers on both halves of the pair", () => {
+    const eager = readFileSync(EAGER, "utf8");
+    const reference = readFileSync(REFERENCE, "utf8");
+
+    expect(eager).toContain("Escalate, rather than just recording, when");
+    expect(reference).toContain("## When to escalate");
+    expect(reference).toContain(
+      "An entry full of `_Not yet decided_` is not an escalation"
     );
   });
 
