@@ -110,7 +110,7 @@ describe("health result storage", () => {
     });
     expect(JSON.parse(await readFile(written.path, "utf8"))).toEqual(candidate);
     expect(await readFile(written.path, "utf8")).toBe(
-      serializeHealthResult(candidate)
+      `${JSON.stringify(candidate, null, 2)}\n`
     );
     expect(
       (await readdir(path.dirname(written.path))).filter(name =>
