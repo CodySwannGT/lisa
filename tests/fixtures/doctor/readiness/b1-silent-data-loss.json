@@ -1,0 +1,63 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B1",
+          "severity": "critical",
+          "blocking": true,
+          "invariant_violated": "No realistic sequence destroys or corrupts data without an error surfaced and a recovery path.",
+          "evidence": "The nightly reconciliation job truncates the ledger table before reloading it; a mid-run failure leaves the table empty with no error surfaced and no backup taken.",
+          "why_proof_missed": "The job's unit tests stub the database, so the truncate-then-reload window is never exercised against real state.",
+          "root_correction": "Load into a staging table and swap atomically, or snapshot before truncation.",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "execution-proof",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "delivery-authority",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "proportionality",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    }
+  ]
+}

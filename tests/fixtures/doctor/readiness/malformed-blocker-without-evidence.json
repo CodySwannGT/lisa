@@ -1,0 +1,63 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "execution-proof",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B5",
+          "severity": "high",
+          "blocking": true,
+          "invariant_violated": "Every compatibility or security surface the repo owns has a confidence model.",
+          "evidence": "",
+          "why_proof_missed": "",
+          "root_correction": "",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "delivery-authority",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "proportionality",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    }
+  ]
+}

@@ -3,7 +3,33 @@ import { mkdir } from "node:fs/promises";
 import * as path from "node:path";
 import process from "node:process";
 import type { DoctorCheck } from "./doctor.js";
+import {
+  assessReadiness,
+  type DetectedBlocker,
+  type ReadinessVerdict,
+} from "./doctor-readiness-blockers.js";
 import { getPackageVersion } from "./version.js";
+
+// Re-export the blocker-gate surface (RRR-5, #1857) so `.lisa/readiness.json`
+// readers and tests keep one import path even though the gate lives in a
+// sibling module for file-size hygiene.
+export {
+  CLAIM_EVIDENCE_UNAVAILABLE_REASON,
+  SHIP_BLOCKER_IDS,
+  assessProvabilityBlocker,
+  assessReadiness,
+  computeNarrowedClaim,
+  detectShipBlockers,
+} from "./doctor-readiness-blockers.js";
+export type {
+  BlockerDetectionOptions,
+  DetectedBlocker,
+  ProvabilityAssessment,
+  ReadinessAssessment,
+  ReadinessDimensionInput,
+  ReadinessVerdict,
+  ShipBlockerId,
+} from "./doctor-readiness-blockers.js";
 
 /** Doctor check name for the repository-readiness collector. */
 const REPOSITORY_READINESS_CHECK_NAME = "Repository readiness";
@@ -16,9 +42,6 @@ const READINESS_REPORT_DISPLAY_PATH = path.join(".lisa", "readiness.json");
  * deliberate shape change; readers key off this to stay forward-compatible.
  */
 export const READINESS_SCHEMA_VERSION = 1;
-
-/** Verdict ladder reused from the shipped doctor surface (readiness-rubric). */
-type ReadinessVerdict = "READY" | "READY_WITH_WARNINGS" | "NOT_READY";
 
 /** Per-dimension status, mirroring the shared doctor `DOCTOR_STATUSES`. */
 type ReadinessStatus = "PASS" | "WARN" | "FAIL" | "SKIP";
@@ -114,8 +137,8 @@ interface ReadinessReport {
   readonly lisa_version: string;
   readonly worker_signature: string;
   readonly verdict: ReadinessVerdict;
-  readonly narrowed_claim: null;
-  readonly blockers: readonly unknown[];
+  readonly narrowed_claim: string | null;
+  readonly blockers: readonly DetectedBlocker[];
   readonly blocker_count: number;
   readonly dimensions: readonly ReadinessDimensionRecord[];
 }
@@ -139,11 +162,13 @@ export function resolveReadinessReportPath(root: string): string {
  * This is the flag-gated collector `runDoctor` appends only when
  * `options.readiness` is true, so the default doctor path stays byte-identical.
  * It is warn-only per intake decision O1: it never returns `fail` and never
- * changes doctor's exit-code semantics. Every dimension is reported (never
- * silently omitted); in this Lisa version each renders `SKIP` with a reason
- * because the evidence-gathering surfaces ship with later PRD #1739 tickets.
- * Persistence is atomic and never throws — a write error degrades the check to
- * `warn` instead of aborting the run.
+ * changes doctor's exit-code semantics — a standing blocker flips the readiness
+ * verdict to `NOT_READY` but still emits a `warn` check, because the gate is on
+ * the *claim*, not the *process*. Every dimension is reported (never silently
+ * omitted); in this Lisa version each renders `SKIP` with a reason because the
+ * evidence-gathering surfaces ship with later PRD #1739 tickets, so no blocker
+ * stands yet. Persistence is atomic and never throws — a write error degrades
+ * the check to `warn` instead of aborting the run.
  * @param targetPath - Project path to assess and persist under
  * @returns Doctor check result
  */
@@ -156,16 +181,16 @@ export async function checkRepositoryReadiness(
       status: "SKIP",
       findings: [],
     }));
-  const verdict = computeReadinessVerdict(dimensions);
+  const { verdict, blockers, narrowed_claim } = assessReadiness(dimensions);
   const report: ReadinessReport = {
     schema_version: READINESS_SCHEMA_VERSION,
     generated_at: new Date().toISOString(),
     lisa_version: resolveLisaVersion(),
     worker_signature: currentWorkerSignature(),
     verdict,
-    narrowed_claim: null,
-    blockers: [],
-    blocker_count: 0,
+    narrowed_claim,
+    blockers,
+    blocker_count: blockers.length,
     dimensions,
   };
 
@@ -188,27 +213,10 @@ export async function checkRepositoryReadiness(
     status: verdict === "READY" ? "ok" : "warn",
     detail:
       `Repository readiness assessed: ${verdict} across 8 ownership dimensions ` +
-      `(all SKIP pending evidence wiring in later PRD #1739 tickets; see readiness-rubric). ` +
+      `(${blockers.length} standing ship blocker${blockers.length === 1 ? "" : "s"}; ` +
+      `all SKIP pending evidence wiring in later PRD #1739 tickets; see readiness-rubric). ` +
       `Report written to ${READINESS_REPORT_DISPLAY_PATH} (schema_version ${READINESS_SCHEMA_VERSION}).`,
   };
-}
-
-/**
- * Reduce per-dimension statuses to the shipped verdict ladder. FAIL wins over
- * WARN, WARN over the rest; a report of only PASS/SKIP is READY.
- * @param dimensions - Per-dimension records
- * @returns Overall verdict
- */
-function computeReadinessVerdict(
-  dimensions: readonly ReadinessDimensionRecord[]
-): ReadinessVerdict {
-  if (dimensions.some(dimension => dimension.status === "FAIL")) {
-    return "NOT_READY";
-  }
-  if (dimensions.some(dimension => dimension.status === "WARN")) {
-    return "READY_WITH_WARNINGS";
-  }
-  return "READY";
 }
 
 /**

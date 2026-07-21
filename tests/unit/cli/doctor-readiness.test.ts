@@ -8,7 +8,8 @@
  * a reason while later tickets wire evidence), persistence lands at the single
  * resolver's path with schema_version 1, and a write failure degrades to WARN
  * rather than throwing. Warn-only per intake decision O1: the collector never
- * returns `fail`.
+ * returns `fail`. The blocker gate and narrowed claim (RRR-5, #1857) are pinned
+ * separately in doctor-readiness-blockers.test.ts.
  * @module tests/unit/cli/doctor-readiness
  */
 import {
