@@ -17,6 +17,7 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const CI_GUARD_PREFIX = '[ -n "$CI" ] ||';
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
 const LISA_BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 node";
+const EXPO_PACKAGE_TEMPLATE = "expo/package-lisa/package.lisa.json";
 
 /**
  * Minimal shape of a package.lisa.json for the assertions below.
@@ -49,7 +50,7 @@ function readTemplateJson(relativePath: string): unknown {
 const TEMPLATE_PATHS = [
   "package.lisa.json",
   "typescript/package-lisa/package.lisa.json",
-  "expo/package-lisa/package.lisa.json",
+  EXPO_PACKAGE_TEMPLATE,
   "nestjs/package-lisa/package.lisa.json",
   "cdk/package-lisa/package.lisa.json",
   "harper-fabric/package-lisa/package.lisa.json",
@@ -146,11 +147,15 @@ describe("package.lisa.json templates carry force-governed CVE floors", () => {
   });
 
   it("expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6)", () => {
-    const template = readTemplateJson(
-      "expo/package-lisa/package.lisa.json"
-    ) as OverridesShape;
+    const template = readTemplateJson(EXPO_PACKAGE_TEMPLATE) as OverridesShape;
     expect(template.force?.overrides?.["websocket-driver"]).toBe(">=0.7.5");
     expect(template.force?.resolutions?.["websocket-driver"]).toBe(">=0.7.5");
+  });
+
+  it("expo template floors fast-xml-parser (GHSA-8r6m-32jq-jx6q)", () => {
+    const template = readTemplateJson(EXPO_PACKAGE_TEMPLATE) as OverridesShape;
+    expect(template.force?.overrides?.["fast-xml-parser"]).toBe("^5.10.1");
+    expect(template.force?.resolutions?.["fast-xml-parser"]).toBe("^5.10.1");
   });
 });
 
