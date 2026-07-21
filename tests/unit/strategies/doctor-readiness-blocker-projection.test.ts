@@ -26,6 +26,8 @@ import {
 import {
   CONTEXT_ROUTING,
   DELIVERY_AUTHORITY,
+  DOMAIN_OWNERSHIP,
+  FEEDBACK_GUARDRAILS,
   FIXTURE_GENERATED_AT,
   FIXTURE_LISA_VERSION,
   passingDimensions,
@@ -127,6 +129,80 @@ describe("standing blockers outrank the recorded status (#1902)", () => {
 
     expect(check?.remediation).toContain("B3");
     expect(check?.remediation).not.toContain("undefined");
+  });
+
+  it("escalates only the dimension the CLI attributed the finding to", () => {
+    // B4 is specced with `owning_dimensions: [domain-ownership,
+    // feedback-guardrails]`, but only the guardrails producer emits the B4
+    // finding, so the CLI stamps that dimension as `dimension_id` and lets
+    // the domain-ownership producer record its own (clean) result. Escalating
+    // every co-owning dimension would stamp FAIL on a dimension whose own
+    // evidence says it found nothing — self-contradictory, and a per-dimension
+    // disagreement with the CLI.
+    writeReadinessReport(
+      root,
+      readinessReport({
+        verdict: "NOT_READY",
+        blockers: [
+          {
+            id: "B4",
+            label: "A consequential operation has no gate and no recovery",
+            dimension_id: FEEDBACK_GUARDRAILS,
+            owning_dimensions: [DOMAIN_OWNERSHIP, FEEDBACK_GUARDRAILS],
+          },
+        ],
+        dimensions: passingDimensions.map(dimension => {
+          if (dimension.id === FEEDBACK_GUARDRAILS) {
+            return {
+              ...dimension,
+              status: "WARN",
+              findings: [
+                { blocker: "B4", evidence: "deploy.yml runs ungated" },
+              ],
+            };
+          }
+          return dimension.id === DOMAIN_OWNERSHIP
+            ? {
+                ...dimension,
+                status: "SKIP",
+                findings: [
+                  { reason: "read 43 workflows and found none ungated" },
+                ],
+              }
+            : dimension;
+        }),
+      })
+    );
+
+    const group = createRepositoryReadinessDoctorGroup(root);
+    const statuses = Object.fromEntries(
+      group.checks.map(check => [check.id, check.status])
+    );
+
+    expect(statuses[FEEDBACK_GUARDRAILS]).toBe("FAIL");
+    expect(statuses[DOMAIN_OWNERSHIP]).toBe("SKIP");
+    expect(computeDoctorVerdict([group])).toBe("NOT_READY");
+  });
+
+  it("falls back to owning_dimensions when a blocker records no dimension_id", () => {
+    writeReadinessReport(
+      root,
+      readinessReport({
+        verdict: "NOT_READY",
+        blockers: [
+          { id: "B5", owning_dimensions: ["dependencies-supply-chain"] },
+        ],
+        dimensions: passingDimensions,
+      })
+    );
+
+    const group = createRepositoryReadinessDoctorGroup(root);
+    const check = group.checks.find(
+      entry => entry.id === "dependencies-supply-chain"
+    );
+
+    expect(check?.status).toBe("FAIL");
+    expect(computeDoctorVerdict([group])).toBe("NOT_READY");
   });
 
   it("leaves a clean report free of blocker remediation", () => {
