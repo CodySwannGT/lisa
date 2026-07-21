@@ -253,12 +253,9 @@ function assertModeLayers(
       "Invalid findings: deterministic mode permits deterministic findings only"
     );
   }
-  if (
-    mode === "full" &&
-    (!layers.has("deterministic") || !layers.has("agentic"))
-  ) {
+  if (mode === "full" && !layers.has("deterministic")) {
     throw new Error(
-      "Invalid findings: full mode requires both deterministic and agentic findings"
+      "Invalid findings: full mode requires deterministic findings"
     );
   }
 }

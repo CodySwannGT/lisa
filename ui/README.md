@@ -126,14 +126,16 @@ product features, secrets, or business logic is never proposed.
 When the engine lands, `starter.*` should join the `lisa sync` registry so
 the section above governs it like every other setting.
 
-## Health (v1 contract available; consumers planned)
+## Health (contract, deterministic probes, and optional composition available)
 
 The **Health** section answers two questions with different lifecycles. Health
-v1 now defines its shared result and persistence contract at
-`@codyswann/lisa/health`: completed results are validated and atomically stored
-at the gitignored `.lisa/health/latest.json`; `health.schedule` is the only v1
-configuration key and accepts `off`, `daily`, or `weekly`. The button, probes,
-console readback, and scheduler remain downstream work.
+v1 now ships its shared result and persistence contract, deterministic fast
+path, and harness-neutral optional agentic composition API at
+`@codyswann/lisa/health`. Completed results can be validated and atomically
+stored at the gitignored `.lisa/health/latest.json`; `health.schedule` is the
+only v1 configuration key and accepts `off`, `daily`, or `weekly`. The
+`/lisa:health` skill and command, console button and readback, and scheduler
+remain downstream work.
 
 **Is Lisa on the latest version?** — always-on status. Lisa's CLI already
 checks npm on every invocation; the console surfaces the result permanently
@@ -155,14 +157,16 @@ the cron, and the CLI share a single implementation:
   `lisa sync --dry-run` (config fully populated, artifacts in sync), git
   hooks installed and unmodified, plugins enabled and version-current, CI
   workflow drift vs the stack template, rulesets present.
-- **Agentic layer** (judges what a diff can't): whether local overrides
+- **Optional agentic composition** (judges what a diff can't): whether local overrides
   (`eslint.config.local.ts`, grandfathered globs) still serve their original
   purpose, whether detected drift looks intentional or accidental, whether
-  skipped CI jobs and disabled gates have a recorded justification.
+  skipped CI jobs and disabled gates have a recorded justification. The
+  shipped composition API accepts an injected evaluator; harness orchestration
+  remains the responsibility of the downstream `/lisa:health` skill.
 
-Results render as a per-check table (pass / warn / fail, with the layer that
-produced each finding), and the last full check's date + verdict stays
-visible in the section.
+The downstream console will render results as a per-check table (pass / warn /
+fail, with the layer that produced each finding) and keep the last full check's
+date and verdict visible in the section.
 
 ### Remote-environment requirements
 
