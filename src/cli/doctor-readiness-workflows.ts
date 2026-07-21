@@ -53,6 +53,12 @@ export interface ParsedWorkflowStep {
   readonly uses: string;
   /** Raw serialized `env` + `with` text, used for credential evidence. */
   readonly inputs: string;
+  /**
+   * The step's `if:` condition, or `""` when it always runs. Load-bearing for
+   * the B1/B4 producers: a conditional step is a step somebody deliberately
+   * gated, which is exactly what those blockers ask about.
+   */
+  readonly ifCondition: string;
 }
 
 /** One job inside a parsed workflow. */
@@ -70,6 +76,20 @@ export interface ParsedWorkflowJob {
   readonly secrets: WorkflowBlock;
   /** Declared deployment environments (a scalar or list, normalized). */
   readonly environment: readonly string[];
+  /** The job's `if:` condition, or `""` when it always runs. */
+  readonly ifCondition: string;
+  /**
+   * The job-level `env:` block, flattened to `key: value` lines. The B1
+   * producer resolves a command's target through it: `psql "$DATABASE_URL"`
+   * says nothing on its own, while the `DATABASE_URL` it expands to may name
+   * `127.0.0.1` and settle the question.
+   */
+  readonly env: string;
+  /**
+   * Ids of the `services:` containers the job starts. A job that boots its own
+   * database is operating on throwaway state by construction.
+   */
+  readonly services: readonly string[];
 }
 
 /** One parsed `.github/workflows/*.yml` file. */
@@ -154,16 +174,36 @@ function parseTrigger(value: unknown): ParsedWorkflowTrigger {
  * @returns Flattened `key: value` text, one pair per line
  */
 function serializeStepInputs(step: Record<string, unknown>): string {
-  return ["env", "with"]
-    .flatMap(key => {
-      const block = step[key];
-      return isJsonObject(block) ? Object.entries(block) : [];
-    })
-    .map(
-      ([name, value]) =>
-        `${name}: ${typeof value === "string" ? value : String(value)}`
-    )
-    .join("\n");
+  return ["env", "with"].flatMap(key => serializeBlock(step[key])).join("\n");
+}
+
+/**
+ * Flatten one YAML mapping to `key: value` lines so it can be searched as text.
+ * @param value - Candidate YAML mapping
+ * @returns One line per entry (empty when the value is not a mapping)
+ */
+function serializeBlock(value: unknown): readonly string[] {
+  if (!isJsonObject(value)) {
+    return [];
+  }
+  return Object.entries(value).map(
+    ([name, entry]) =>
+      `${name}: ${typeof entry === "string" ? entry : String(entry)}`
+  );
+}
+
+/**
+ * Normalize an `if:` condition, which GitHub accepts as an expression string or
+ * a bare boolean. Any non-empty value means the thing is conditional; the text
+ * itself is carried only so evidence can quote it.
+ * @param value - Candidate YAML `if` value
+ * @returns The condition text, or `""` when the block is absent
+ */
+function asCondition(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  return typeof value === "string" ? value.trim() : String(value);
 }
 
 /**
@@ -180,6 +220,7 @@ function parseSteps(value: unknown): readonly ParsedWorkflowStep[] {
     run: typeof step.run === "string" ? step.run.trim() : "",
     uses: typeof step.uses === "string" ? step.uses.trim() : "",
     inputs: serializeStepInputs(step as Record<string, unknown>),
+    ifCondition: asCondition(step.if),
   }));
 }
 
@@ -212,6 +253,9 @@ function parseJobs(
         permissions: asBlock(job.permissions),
         secrets: asBlock(job.secrets),
         environment: asEnvironments(job.environment),
+        ifCondition: asCondition(job.if),
+        env: serializeBlock(job.env).join("\n"),
+        services: isJsonObject(job.services) ? Object.keys(job.services) : [],
       },
     ];
   });
