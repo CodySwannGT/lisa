@@ -22,6 +22,18 @@ import {
   assessDependenciesSupplyChainDimension,
 } from "./doctor-readiness-supply-chain.js";
 import {
+  CAPABILITIES_TOOLS_DIMENSION_ID,
+  assessCapabilitiesToolsDimension,
+} from "./doctor-readiness-capabilities.js";
+import {
+  DOMAIN_OWNERSHIP_DIMENSION_ID,
+  assessDomainOwnershipDimension,
+} from "./doctor-readiness-domain.js";
+import {
+  FEEDBACK_GUARDRAILS_DIMENSION_ID,
+  assessFeedbackGuardrailsDimension,
+} from "./doctor-readiness-guardrails.js";
+import {
   EXECUTION_PROOF_DIMENSION_ID,
   PROPORTIONALITY_DIMENSION_ID,
   assessExecutionProofDimension,
@@ -64,10 +76,11 @@ const READINESS_REPORT_DISPLAY_PATH = path.join(".lisa", "readiness.json");
 export const READINESS_SCHEMA_VERSION = 1;
 
 /**
- * One readiness dimension descriptor. `skipReason` is stated only for dimensions
- * whose evidence surface has not shipped yet: a dimension registered in
- * {@link DIMENSION_PRODUCERS} states its own reason when it cannot assess
- * something, so a second reason here would be dead text that drifts out of date.
+ * One readiness dimension descriptor. `skipReason` exists for a dimension whose
+ * evidence surface has not shipped yet — as of #1896 every dimension is wired,
+ * so none carries one. A dimension registered in {@link DIMENSION_PRODUCERS}
+ * states its own reason when it cannot assess something, so a second reason here
+ * would be dead text that drifts out of date.
  */
 interface ReadinessDimensionSpec {
   readonly id: string;
@@ -78,10 +91,10 @@ interface ReadinessDimensionSpec {
 /**
  * The eight ownership dimensions, in fixed render order, defined once by the
  * `readiness-rubric` rule (RRR-1, #1853). This collector consumes that rubric —
- * it does not redefine the vocabulary. Evidence gathering is wired dimension by
- * dimension (see `DIMENSION_PRODUCERS`); a dimension whose producer has not
- * shipped yet renders `SKIP` carrying the `skipReason` stated here, per the
- * shipped never-silently-omit contract (#1898).
+ * it does not redefine the vocabulary. As of #1896 every one of the eight is
+ * wired to a producer in {@link DIMENSION_PRODUCERS}, so no dimension is ever
+ * blank: each renders either a producer's result or that producer's own stated
+ * reason for not assessing it, per the never-silently-omit contract (#1898).
  */
 const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
   {
@@ -93,15 +106,11 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "capabilities-tools",
     question:
       "Is every tool the work needs provably reachable, not merely installed (tool-access-gate)?",
-    skipReason:
-      "Capabilities/tools evidence is gathered by the journey-execution wiring (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "domain-ownership",
     question:
       "Are the business rules, glossary, and danger zones owned and written down (agent-ready domain phase wiki pages)?",
-    skipReason:
-      "Domain-ownership evidence sources from agent-ready's danger-zone wiki pages, read by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "execution-proof",
@@ -112,8 +121,6 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "feedback-guardrails",
     question:
       "Does a failing loop produce a named outcome and a runbook (automation-runbook-contract, observability-audit)?",
-    skipReason:
-      "Feedback/guardrails evidence is assessed by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "dependencies-supply-chain",
@@ -286,11 +293,14 @@ export function formatReadinessHeadline(
  * to its producer. Execution/proof and proportionality are wired to #1742's
  * shared journey runner (RRR-6, #1858); delivery/authority is wired to the
  * offline workflow producers assessing ship blockers B2 and B3, context/routing
- * to the documentation cross-check assessing B6, and dependencies/supply-chain
- * to the manifest and audit-gate producer assessing B5 (#1896). A
- * dimension with no producer yet falls through to a stated-reason SKIP rather
- * than a blank one (#1898), so the report never presents "never looked" as
- * "nothing to report".
+ * to the documentation cross-check assessing B6, dependencies/supply-chain to
+ * the manifest and audit-gate producer assessing B5, domain-ownership to the
+ * silent-data-loss producer assessing B1, feedback/guardrails to the
+ * gate-and-recovery producer assessing B4, and capabilities/tools to a producer
+ * whose only honest answer is a reasoned SKIP, because tool reachability needs a
+ * live probe (#1896). A dimension with no producer would fall through to a
+ * stated-reason SKIP rather than a blank one (#1898), so the report never
+ * presents "never looked" as "nothing to report".
  * @param targetPath - Project path to assess
  * @returns The eight per-dimension records, in fixed order
  */
@@ -364,6 +374,12 @@ const DIMENSION_PRODUCERS: Readonly<Record<string, DimensionProducer>> = {
     await assessProportionalityDimension(targetPath),
   [DELIVERY_AUTHORITY_DIMENSION_ID]: async targetPath =>
     await assessDeliveryAuthorityDimension(targetPath),
+  [CAPABILITIES_TOOLS_DIMENSION_ID]: async targetPath =>
+    await assessCapabilitiesToolsDimension(targetPath),
+  [DOMAIN_OWNERSHIP_DIMENSION_ID]: async targetPath =>
+    await assessDomainOwnershipDimension(targetPath),
+  [FEEDBACK_GUARDRAILS_DIMENSION_ID]: async targetPath =>
+    await assessFeedbackGuardrailsDimension(targetPath),
 };
 
 /**

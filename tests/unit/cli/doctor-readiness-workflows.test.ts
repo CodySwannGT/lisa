@@ -101,7 +101,7 @@ describe("parseRepositoryWorkflows", () => {
     const test = workflow.jobs[0];
     expect(test.needs).toEqual([]);
     expect(test.steps).toEqual([
-      { inputs: "", name: "", run: "npm run test", uses: "" },
+      { ifCondition: "", inputs: "", name: "", run: "npm run test", uses: "" },
     ]);
 
     const publish = workflow.jobs[1];
@@ -113,8 +113,20 @@ describe("parseRepositoryWorkflows", () => {
     });
     expect(publish.secrets).toBe("inherit");
     expect(publish.steps).toEqual([
-      { inputs: "", name: "", run: "", uses: "actions/download-artifact@v4" },
-      { inputs: "", name: "", run: "npm publish --provenance", uses: "" },
+      {
+        ifCondition: "",
+        inputs: "",
+        name: "",
+        run: "",
+        uses: "actions/download-artifact@v4",
+      },
+      {
+        ifCondition: "",
+        inputs: "",
+        name: "",
+        run: "npm publish --provenance",
+        uses: "",
+      },
     ]);
     expect(publish.workflow).toBe(".github/workflows/release.yml");
   });
@@ -139,6 +151,30 @@ describe("parseRepositoryWorkflows", () => {
     expect(workflows[0].jobs[0].uses).toBe("./.github/workflows/quality.yml");
     expect(workflows[0].jobs[1].needs).toEqual(["quality"]);
     expect(workflows[0].jobs[1].permissions).toBe("write-all");
+  });
+
+  it("captures the `if:` condition on a job and on a step (#1896)", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, CI_YML, [
+      "name: CI",
+      ON_PUSH,
+      JOBS,
+      "  gated:",
+      "    if: github.ref == 'refs/heads/main'",
+      STEPS,
+      "      - if: ${{ inputs.confirm == 'yes' }}",
+      "        run: echo done",
+      "      - run: echo always",
+    ]);
+
+    const workflows = await parseRepositoryWorkflows(cwd);
+
+    // The B1/B4 producers read these to tell a deliberately gated operation
+    // from an unattended one, so an absent block must be `""`, never undefined.
+    const job = workflows[0].jobs[0];
+    expect(job.ifCondition).toBe("github.ref == 'refs/heads/main'");
+    expect(job.steps[0].ifCondition).toBe("${{ inputs.confirm == 'yes' }}");
+    expect(job.steps[1].ifCondition).toBe("");
   });
 
   it("captures the trigger block, including push branches and tags", async () => {
