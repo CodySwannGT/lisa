@@ -14,8 +14,7 @@ import * as http from "node:http";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runConfigSync } from "../sync/config-sync.js";
-import { isJsonObject, type JsonObject } from "../sync/json-path.js";
-import { deepMerge, readJsonOrNull } from "../utils/index.js";
+import type { JsonObject } from "../sync/json-path.js";
 import { printSyncReport } from "./sync-cmd.js";
 import {
   inspectRemoteEnvironment,
@@ -41,6 +40,12 @@ import {
   createUiHealthHandler,
   type UiHealthDependencies,
 } from "./ui-health.js";
+import {
+  createSetupReadinessReader,
+  readMergedUiConfig,
+  type SetupReadinessDependencies,
+  type SetupReadinessResult,
+} from "./ui-setup-readiness.js";
 export {
   createGithubAuthProbe,
   runProbe,
@@ -106,6 +111,8 @@ export interface UiRuntimeDependencies {
   readonly probes?: readonly StatusProbe[];
   /** Health storage and execution boundaries exposed by /api/health. */
   readonly health?: Partial<UiHealthDependencies>;
+  /** Read-only setup-readiness boundaries exposed by /api/setup-readiness. */
+  readonly setupReadiness?: SetupReadinessDependencies;
 }
 
 /**
@@ -135,23 +142,6 @@ export function findUiHtml(startDir: string): string {
     throw new Error("Unable to locate the packaged ui/index.html");
   }
   return findUiHtml(parent);
-}
-
-/**
- * Read the project's merged config view (local overlay wins per key).
- * @param destDir - Project root
- * @returns Merged config object
- */
-async function readMergedConfig(destDir: string): Promise<JsonObject> {
-  const committed = await readJsonOrNull<unknown>(
-    path.join(destDir, ".lisa.config.json")
-  );
-  const local = await readJsonOrNull<unknown>(
-    path.join(destDir, ".lisa.config.local.json")
-  );
-  const committedObject = isJsonObject(committed) ? committed : {};
-  const localObject = isJsonObject(local) ? local : {};
-  return deepMerge(committedObject, localObject) as JsonObject;
 }
 
 /**
@@ -198,6 +188,29 @@ function createStatusSnapshotReader(
         if (inFlight === pending) {
           inFlight = undefined;
         }
+      };
+      void pending.then(clear, clear);
+    }
+    return inFlight;
+  };
+}
+
+/**
+ * Coalesce concurrent first-open setup reads without caching later requests.
+ * @param readCurrent - Current projection reader
+ * @returns Single-flight reader that clears after settlement
+ */
+function createSetupReadinessSnapshotReader(
+  readCurrent: () => Promise<SetupReadinessResult>
+): () => Promise<SetupReadinessResult> {
+  // eslint-disable-next-line functional/no-let -- single-flight state clears after settlement
+  let inFlight: Promise<SetupReadinessResult> | undefined;
+  return () => {
+    if (inFlight === undefined) {
+      const pending = readCurrent();
+      inFlight = pending;
+      const clear = (): void => {
+        if (inFlight === pending) inFlight = undefined;
       };
       void pending.then(clear, clear);
     }
@@ -255,6 +268,54 @@ function serveStatus(
 }
 
 /**
+ * Serve a current, non-persisted Setup readiness projection.
+ * @param request - Incoming loopback request
+ * @param response - Response associated with the request
+ * @param readCurrent - Current projection reader
+ */
+function serveSetupReadiness(
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+  readCurrent: () => Promise<SetupReadinessResult>
+): void {
+  if (request.method === "HEAD") {
+    response.writeHead(200, {
+      "cache-control": NO_STORE,
+      "content-type": JSON_CONTENT_TYPE,
+    });
+    response.end();
+    return;
+  }
+  if (request.method !== "GET") {
+    response.writeHead(405, {
+      allow: "GET, HEAD",
+      "cache-control": NO_STORE,
+      "content-type": TEXT_CONTENT_TYPE,
+    });
+    response.end("Method not allowed");
+    return;
+  }
+  void readCurrent().then(
+    result => {
+      response.writeHead(200, {
+        "cache-control": NO_STORE,
+        "content-type": JSON_CONTENT_TYPE,
+      });
+      response.end(JSON.stringify(result));
+    },
+    () => {
+      response.writeHead(500, {
+        "cache-control": NO_STORE,
+        "content-type": JSON_CONTENT_TYPE,
+      });
+      response.end(
+        JSON.stringify({ error: "Unable to observe setup readiness" })
+      );
+    }
+  );
+}
+
+/**
  * Parse an HTTP request target without allowing malformed input to escape.
  * @param requestUrl - Raw request target supplied by Node HTTP
  * @returns Parsed pathname, or undefined for an invalid target
@@ -300,16 +361,21 @@ function isLoopbackHost(host: string | undefined): boolean {
  * @param probes - Live-status probes registered for this server
  * @param destDir - Project root served by this UI process
  * @param healthDependencies - Injectable Health v1 storage/run boundaries
+ * @param setupReadinessDependencies - Injectable read-only Setup boundaries
  * @returns Loopback HTTP request handler
  */
 function createUiRequestHandler(
   page: string,
   probes: readonly StatusProbe[],
   destDir: string,
-  healthDependencies: Partial<UiHealthDependencies> = {}
+  healthDependencies: Partial<UiHealthDependencies> = {},
+  setupReadinessDependencies: SetupReadinessDependencies = {}
 ): http.RequestListener {
   const readSnapshot = createStatusSnapshotReader(probes);
   const serveHealth = createUiHealthHandler(destDir, healthDependencies);
+  const readCurrentSetup = createSetupReadinessSnapshotReader(
+    createSetupReadinessReader(destDir, setupReadinessDependencies)
+  );
   validateStatusProbes(probes);
   return (request, response) => {
     if (!isLoopbackHost(request.headers.host)) {
@@ -333,6 +399,10 @@ function createUiRequestHandler(
     }
     if (pathname === "/api/health") {
       serveHealth(request, response);
+      return;
+    }
+    if (pathname === "/api/setup-readiness") {
+      serveSetupReadiness(request, response, readCurrentSetup);
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {
@@ -369,7 +439,10 @@ export async function runUi(
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   const htmlPath = findUiHtml(moduleDir);
   const html = await readFile(htmlPath, "utf8");
-  const config = await readMergedConfig(destDir);
+  // Keep the read-only console available when config is malformed or unsafe;
+  // probes receive no claims instead of importing untrusted evidence. The
+  // config write endpoint still reads the originals strictly and fails closed.
+  const config = await readMergedUiConfig(destDir).catch(() => ({}));
   const remoteEnvironment = await inspectRemoteEnvironment(
     destDir,
     config,
@@ -388,7 +461,13 @@ export async function runUi(
     createAutomationsProbe({ cwd: destDir }),
   ];
   const server = http.createServer(
-    createUiRequestHandler(page, probes, destDir, dependencies.health)
+    createUiRequestHandler(
+      page,
+      probes,
+      destDir,
+      dependencies.health,
+      dependencies.setupReadiness
+    )
   );
   await new Promise<void>(resolve => {
     server.listen(port, "127.0.0.1", resolve);
