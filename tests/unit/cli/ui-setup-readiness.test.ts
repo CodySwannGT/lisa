@@ -360,10 +360,11 @@ describe("review red legs", () => {
     ).toMatchObject({ status: "fail" });
   });
 
-  it("keeps standards explicitly non-pass without current execution proof", () => {
-    expect(standardsFinding(healthResult())).toMatchObject({
+  it("keeps standards explicitly non-pass without current execution proof", async () => {
+    tempDir = await mkdtemp(path.join(tmpdir(), "lisa-setup-standards-"));
+    expect(await standardsFinding(tempDir, healthResult())).toMatchObject({
       status: "warn",
-      reason: expect.stringContaining("lint, test, and behavior-preservation"),
+      reason: expect.stringContaining("Standards proof is missing"),
     });
   });
 

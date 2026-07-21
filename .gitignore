@@ -217,6 +217,9 @@ expo-env.d.ts
 # flow and read by the enforce-verification-gate Stop hook. Never committed.
 .lisa/verification-status.json
 
+# Freshness-bound standards proof is local runtime evidence, not knowledge.
+.lisa/standards/latest.json
+
 # Automation run outcomes — local scheduler observations read by
 # /lisa:automation-status. Runbooks are project knowledge; run records are not.
 .lisa/automations/runs/
