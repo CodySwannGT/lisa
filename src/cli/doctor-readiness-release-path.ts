@@ -109,6 +109,25 @@ export function describeStep(step: ParsedWorkflowStep): string {
 }
 
 /**
+ * A rehearsal flag: the command goes through the motions and ships nothing.
+ */
+const DRY_RUN_FLAG = /--dry[-_]?run\b/;
+
+/**
+ * Whether a step actually puts an artifact in front of users. A `--dry-run`
+ * invocation names a publish verb but ships nothing, so faulting its release
+ * path would be a finding about something that cannot reach anyone.
+ * @param step - The step to classify
+ * @returns True when the step really publishes
+ */
+function isPublishStep(step: ParsedWorkflowStep): boolean {
+  return (
+    PUBLISH_VERBS.some(verb => step.run.includes(verb)) &&
+    !DRY_RUN_FLAG.test(step.run)
+  );
+}
+
+/**
  * Find the first step in a job that ships something.
  * @param job - The parsed job
  * @returns The publishing step, or undefined when the job ships nothing
@@ -116,9 +135,7 @@ export function describeStep(step: ParsedWorkflowStep): string {
 export function findPublishStep(
   job: ParsedWorkflowJob
 ): ParsedWorkflowStep | undefined {
-  return job.steps.find(step =>
-    PUBLISH_VERBS.some(verb => step.run.includes(verb))
-  );
+  return job.steps.find(isPublishStep);
 }
 
 /**
