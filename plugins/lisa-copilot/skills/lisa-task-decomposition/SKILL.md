@@ -74,6 +74,31 @@ Each task must have a verification method. Choose the most appropriate:
 - Prefer independent tasks that can run in parallel where possible
 - Flag external dependencies (other teams, services, permissions, data) that may block progress
 
+### 4.5. Classify Any New Material Dependency
+
+Step 4 maps dependencies *between tasks*. This step covers third-party
+dependencies a task proposes to **add**.
+
+A dependency is **material** if its failure, disappearance, or bad update would
+break something a user can see, or would cost real time to replace. If a work
+unit proposes adding one, the work unit must, before it is buildable:
+
+1. **Name its trust class** — exactly one of: mature ecosystem primitive,
+   fast-moving standard implementation, build/development tool, runtime-critical
+   service client, thin wrapper suitable for in-house ownership, or
+   temporary/experimental dependency. See the `dependency-trust-classes` rule
+   for what each class means and why it is trusted.
+2. **State the class's required evidence** — the detection evidence that class
+   demands, and whether product/human ratification is required before the work
+   starts. Runtime-critical service clients and expiry extensions on temporary
+   dependencies always require ratification; a work unit that needs it and does
+   not say so is not ready.
+3. **Include updating `.lisa/DEPENDENCY_DECISIONS.md`** in its acceptance
+   criteria, so the record entry lands in the same change as the dependency.
+
+If nobody can pick a class, that is the finding — resolve it before accepting
+the work unit, not after the package is installed.
+
 ### 5. Determine Execution Order
 
 - Place foundational tasks first (types, schemas, interfaces, shared utilities)
@@ -121,6 +146,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 - Every task must have at least one acceptance criterion that can be empirically verified
 - Do not create tasks that cannot be verified -- if you cannot define how to prove it is done, the task is not well-scoped
 - Every Task / Bug / Sub-task / Improvement is scoped to exactly one repo -- if the work spans repos, split into per-repo work units under a shared parent Story (see step 1.5)
+- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed, and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
 - Keep tasks ordered so that no task references work that has not been completed by a prior task
 - Flag any task that requires access, permissions, or external input not yet available
 - Prefer more small tasks over fewer large tasks -- smaller tasks are easier to verify and less risky to fail
