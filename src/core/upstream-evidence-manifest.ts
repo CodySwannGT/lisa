@@ -7566,6 +7566,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-workflow.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
+    "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
