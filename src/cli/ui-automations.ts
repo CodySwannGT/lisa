@@ -73,6 +73,7 @@ export type ProjectIdentityResolver = (
 export type CodexAutomationLister = (input: {
   readonly automationsDir?: string;
   readonly automationPrefix: string;
+  readonly signal?: AbortSignal;
 }) => Promise<readonly HarnessAutomationObservation[]>;
 
 /** List Claude `/schedule` automations matching a prefix (adapter seam). */
@@ -260,6 +261,7 @@ async function runAutomationsProbe(
         observations: await input.listCodex({
           automationsDir: input.automationsDir,
           automationPrefix: identity.value.automationPrefix,
+          signal: input.signal,
         }),
       });
     } catch (error) {

@@ -58,13 +58,25 @@ describe("mapRulesetRow", () => {
             include: ["~DEFAULT_BRANCH", "refs/heads/main", "refs/tags/v*"],
           },
         },
-        rules: [{ type: "deletion" }, { type: "pull_request" }],
+        rules: [
+          { type: "deletion" },
+          { type: "pull_request" },
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: [{ context: "CI" }],
+            },
+          },
+        ],
       })
     ).toEqual({
       name: "base",
       appliesTo: "default · main · v*",
-      enforces: "deletion, pull_request",
+      enforces: "deletion, pull_request, required_status_checks",
       active: true,
+      targetsDefaultBranch: true,
+      requiresPullRequest: true,
+      requiresStatusChecks: true,
     });
   });
 });
