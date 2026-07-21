@@ -319,9 +319,27 @@ default doctor path never renders it and stays byte-identical.
    contract; do not restate or fork that vocabulary here.
 3. **`SKIP` carries a reason and is never blank.** A dimension with no applicable evidence renders
    `SKIP` with a stated reason ("no deployment target configured, so delivery/authority was not
-   assessed"). An unassessed dimension is a known unknown, and the report says so. In Lisa versions
-   where the evidence-gathering surfaces (RRR-4/5/6) are not yet wired, every dimension renders `SKIP`
-   with that reason.
+   assessed"). An unassessed dimension is a known unknown, and the report says so.
+
+   **This surface reflects the CLI; it does not re-score.** The evidence producers and the blocker
+   engine live in the Lisa CLI, which is the single source of truth. When `.lisa/readiness.json` is
+   present and readable (parses, matching `schema_version`, carries a `dimensions` array), this group
+   **projects** each recorded dimension's status and its operator-facing evidence/reason text, so an
+   operator running `/lisa:doctor` through any coding agent sees the same readiness answer the CLI
+   gives. When the report is absent, unparseable, or stamped with an unknown `schema_version` — or
+   records nothing for a given dimension — that dimension falls back to `SKIP` with the reason it was
+   not assessed. Absence means the readiness pass has not run, never that the repository is clean: a
+   pass or a fail is never manufactured from a missing report. Run
+   `lisa doctor --offline --readiness` to produce the report first.
+
+   **A standing blocker outranks the recorded status.** Some CLI producers record `WARN` while
+   standing a ship blocker — the blocker engine never reads the per-dimension status, so the finding
+   flips the repository to `NOT_READY` exactly as a `FAIL` would. A dimension that owns an entry in
+   the report's `blockers[]` therefore projects as `FAIL` regardless of its recorded label, and its
+   remediation names the blocker ids and repeats the report's `narrowed_claim` (the "IS ready for
+   supervised, single-ticket agent work" fallback `readiness-rubric` requires whenever a blocker
+   stands). Projected checks also carry the report's `generated_at`/`lisa_version` so a stale report
+   cannot read as current truth, and unassessed dimensions carry the CLI's not-established caveat.
 4. **Reuse the shipped verdict ladder and consequence ordering.** No new verdict value and no new
    severity: reuse `READY` / `READY_WITH_WARNINGS` / `NOT_READY`. `READY` requires *positive*
    evidence — every readiness dimension assessed and clean, with no blocker standing. An unassessed
