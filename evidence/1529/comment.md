@@ -44,3 +44,13 @@ The exact SHA-256 digest and capture time for every cited artifact are recorded 
 5. Exercise a throwing Health dependency and confirm the generic failure state replaces all stale green findings without retrying or leaking the thrown value.
 
 Please correct this report if any screenshot, artifact identity value, or observed behavior does not match your review.
+
+## Lisa Usage
+
+_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._
+
+| Flow | Source | Model | Tokens | Cost |
+| --- | --- | --- | ---: | ---: |
+| verify | unavailable | OpenAI/GPT-5 | null | null | <!-- lisa:usage-entry entry_id=verify-1529-019f7f0c-0a0a-73c0-8140-43f619719293 flow=verify run_id=019f7f0c-0a0a-73c0-8140-43f619719293 provider=OpenAI model=GPT-5 source=unavailable input_tokens=null cached_input_tokens=null output_tokens=null reasoning_tokens=null total_tokens=null cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3ACodySwannGT%2Flisa%231529 parent_artifact_ref=github%3ACodySwannGT%2Flisa%231505 --> <!-- lisa:usage-entry-measured-subset entry_id=verify-1529-019f7f0c-0a0a-73c0-8140-43f619719293 measured_subset_tokens=null -->
+
+<!-- lisa:usage-rollup direct_entry_ids=verify-1529-019f7f0c-0a0a-73c0-8140-43f619719293 child_entry_ids= child_refs= direct_tokens=null child_tokens=null total_tokens=null direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->
