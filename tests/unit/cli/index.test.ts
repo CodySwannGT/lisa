@@ -27,6 +27,7 @@ function createTestProgram(): {
   runVersion: ReturnType<typeof vi.fn>;
   runUpdate: ReturnType<typeof vi.fn>;
   runDoctor: ReturnType<typeof vi.fn>;
+  runHealthCli: ReturnType<typeof vi.fn>;
   runSync: ReturnType<typeof vi.fn>;
   runUi: ReturnType<typeof vi.fn>;
   runCheckLearningsBudget: ReturnType<typeof vi.fn>;
@@ -40,6 +41,7 @@ function createTestProgram(): {
   const runVersion = vi.fn(async () => undefined);
   const runUpdate = vi.fn(async () => 0);
   const runDoctor = vi.fn(async () => ({ checks: [] }));
+  const runHealthCli = vi.fn(async () => undefined);
   const runSync = vi.fn(async () => 0);
   const runUi = vi.fn(async () => ({}) as Server);
   const runCheckLearningsBudget = vi.fn(async () => 0);
@@ -53,6 +55,7 @@ function createTestProgram(): {
     runVersion,
     runUpdate,
     runDoctor,
+    runHealthCli,
     runSync,
     runUi,
     runCheckLearningsBudget,
@@ -68,6 +71,7 @@ function createTestProgram(): {
     runVersion,
     runUpdate,
     runDoctor,
+    runHealthCli,
     runSync,
     runUi,
     runCheckLearningsBudget,
@@ -103,11 +107,11 @@ describe("createProgram", () => {
     expect(subcommandNames).toContain("setup-wiki");
   });
 
-  it("registers version, update, and doctor subcommands", () => {
+  it("registers version, update, doctor, and health subcommands", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
     expect(subcommandNames).toEqual(
-      expect.arrayContaining(["version", "update", "doctor"])
+      expect.arrayContaining(["version", "update", "doctor", "health"])
     );
   });
 
@@ -264,6 +268,19 @@ describe("maintenance command invocation", () => {
     expect(runDoctor).toHaveBeenCalledWith(
       DEST,
       expect.objectContaining({ json: true, offline: true })
+    );
+  });
+
+  it("routes both health protocol modes to the shared health action", async () => {
+    const { program, runHealthCli } = createTestProgram();
+
+    await program.parseAsync(["health", DEST, "--prepare-agentic"], {
+      from: "user",
+    });
+
+    expect(runHealthCli).toHaveBeenCalledWith(
+      DEST,
+      expect.objectContaining({ prepareAgentic: true })
     );
   });
 });
