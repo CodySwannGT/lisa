@@ -5,3 +5,4 @@ export * from "./storage.js";
 export * from "./evaluation-protocol.js";
 export * from "./prepare.js";
 export * from "./consumer.js";
+export * from "./setup-readiness.js";

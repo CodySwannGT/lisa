@@ -1522,67 +1522,64 @@
             card: "Required",
             items: [
               {
+                id: "setup.install",
                 label: "Install Lisa and apply templates",
                 desc: "Detects the project’s stacks, applies their templates, installs plugins and git hooks.",
                 command: "bun add -d @codyswann/lisa && bunx lisa",
-                done: true,
               },
               {
+                id: "setup.sync",
                 label: "Populate configuration",
                 desc: "Fills every missing .lisa.config.json setting (absorbing existing artifact values first) and syncs mirrored files. No unset configs.",
                 command: "lisa sync",
-                done: true,
               },
               {
+                id: "setup.agent-ready",
                 label: "Make the project agent-ready (brownfield)",
                 desc: "Builds the knowledge wiki through read-only, redacted ingestion; records every source as complete, partial, or unavailable; and writes wiki/gaps.md. Answer inline, re-run in a new session, repeat until every source is complete and zero gaps remain. Greenfield projects are ready by construction.",
                 command: "/lisa:agent-ready",
-                done: false,
-                why: "wiki/gaps.md has 2 open gaps",
               },
               {
+                id: "setup.standards",
                 label: "Adopt the standards (conformance refactor)",
                 desc: "Apply Lisa's full lint rules, guardrails, and thresholds — the project goes red by design — then agents refactor to conform without changing business logic, proven by tests and empirical verification.",
                 command: "/lisa:improve:* · /lisa:fix:linter-error",
-                done: false,
-                why: "blocked by agent-ready",
               },
               {
+                id: "setup.tracker",
                 label: "Connect the work tracker",
                 desc: "Verifies the workflow status names and writes the tracker section. This project: JIRA, project ACME.",
                 command: "/lisa:setup:jira | github | linear",
-                done: true,
               },
               {
+                id: "setup.prd-source",
                 label: "Connect the PRD source",
                 desc: "Wires the product-requirements queue and its lifecycle vocabulary. This project: Notion.",
                 command: "/lisa:setup:notion | confluence | linear | github",
-                done: true,
               },
               {
+                id: "setup.github-governance",
                 label: "Apply GitHub repository governance",
                 desc: "Repo settings (merge-only), rulesets with required checks, write deploy key, deployment environments with approval gates.",
                 command: "/lisa:setup:github-repo",
-                done: true,
               },
               {
+                id: "setup.secrets",
                 label: "Provision CI secrets",
                 desc: "CLAUDE_CODE_OAUTH_TOKEN, GITGUARDIAN_API_KEY, SONAR_TOKEN, per-environment AWS accounts, and the optional scanners.",
                 command: "gh secret set …",
-                done: false,
-                why: "2 missing: SNYK_TOKEN, FOSSA_API_KEY",
               },
               {
+                id: "setup.automations",
                 label: "Schedule the automations",
                 desc: "Creates the six-automation fleet — intake, repair, and the QA / Product Planning / Monitoring loops — on the harness’s native scheduler.",
                 command: "/lisa:setup-automations",
-                done: false,
               },
               {
+                id: "setup.exploration",
                 label: "Configure exploration environments",
                 desc: "Per-environment mutation policy and test identity so agents can use the product safely (production defaults to forbidden).",
                 command: ".lisa.config.json exploration.*",
-                done: false,
               },
             ],
           },
@@ -1591,17 +1588,17 @@
             card: "Optional",
             items: [
               {
+                id: "setup.wiki",
                 label: "Install the LLM wiki",
                 desc: "In-repo knowledge base agents read and maintain.",
                 command: "/lisa:wiki:install",
-                done: false,
                 optional: true,
               },
               {
+                id: "setup.starter-provenance",
                 label: "Record starter provenance",
                 desc: "Which starter repo(s) this project descends from, enabling starter sync (planned).",
                 command: ".lisa.config.json starter.*",
-                done: false,
                 optional: true,
               },
             ],
@@ -5084,6 +5081,7 @@
       let healthChipState = { state: "idle" };
       /* Durable Health view model projected by every whole-page render. */
       let healthViewState = { state: "idle" };
+      let setupReadinessState = { state: "loading", findings: new Map() };
 
       function el(tag, cls, html) {
         const node = document.createElement(tag);
@@ -5723,34 +5721,60 @@
         card.appendChild(head);
         const body = el("div", "card-body");
         block.items.forEach(item => {
-          const row = el("div", "check-item" + (item.done ? " done" : ""));
+          const finding =
+            item.id && setupReadinessState.findings
+              ? setupReadinessState.findings.get(item.id)
+              : undefined;
+          const row = el(
+            "div",
+            "check-item" + (finding && finding.status === "pass" ? " done" : "")
+          );
           const right = el("div", "check-right");
           const refreshRight = () => {
-            const isDone = row.classList.contains("done");
+            const current =
+              item.id && setupReadinessState.findings
+                ? setupReadinessState.findings.get(item.id)
+                : undefined;
+            const isDone = current && current.status === "pass";
+            const status =
+              setupReadinessState.state === "error"
+                ? "fail"
+                : current
+                  ? current.status
+                  : "warn";
             right.innerHTML = "";
             right.appendChild(
               el(
                 "span",
                 "badge " +
-                  (isDone ? "pass" : item.optional ? "default" : "warn"),
-                isDone ? "done" : item.optional ? "not set up" : "pending"
+                  (isDone
+                    ? "pass"
+                    : status === "fail"
+                      ? "fail"
+                      : item.optional
+                        ? "default"
+                        : "warn"),
+                isDone
+                  ? "done"
+                  : status === "fail"
+                    ? "blocked"
+                    : item.optional
+                      ? "not set up"
+                      : "pending"
               )
             );
-            if (!isDone && item.why) {
-              right.appendChild(el("span", "status-why", esc(item.why)));
+            const reason =
+              setupReadinessState.state === "error"
+                ? setupReadinessState.message
+                : current && current.reason;
+            if (!isDone && reason) {
+              right.appendChild(el("span", "status-why", esc(reason)));
             }
-            right.appendChild(
-              el(
-                "span",
-                "status-why",
-                "read-only: setup checklist state has not shipped yet"
-              )
-            );
           };
           const ck = el("button", "ck");
           ck.type = "button";
           ck.disabled = true;
-          ck.title = "read-only: setup checklist state has not shipped yet";
+          ck.title = finding ? finding.reason : "setup readiness loading";
           ck.setAttribute("aria-label", item.label + " checklist status");
           row.appendChild(ck);
           const content = el("div", "check-content");
@@ -6676,6 +6700,66 @@
         }
       }
 
+      function requireSetupReadiness(candidate) {
+        requireHealthResult(candidate);
+        const expected = [
+          "setup.install",
+          "setup.sync",
+          "setup.agent-ready",
+          "setup.standards",
+          "setup.tracker",
+          "setup.prd-source",
+          "setup.github-governance",
+          "setup.secrets",
+          "setup.automations",
+          "setup.exploration",
+          "setup.wiki",
+          "setup.starter-provenance",
+        ];
+        const byCheck = new Map(
+          candidate.findings.map(finding => [finding.check, finding])
+        );
+        if (
+          candidate.findings.length !== expected.length ||
+          expected.some(check => !byCheck.has(check))
+        ) {
+          throw new TypeError("Setup readiness response is incomplete");
+        }
+        return byCheck;
+      }
+
+      function repaintSetupChecklist() {
+        const current = document.getElementById("section-setup");
+        if (activeSection === "setup" && current) {
+          showSection("setup");
+        }
+      }
+
+      async function hydrateSetupReadiness() {
+        try {
+          const response = await fetch("/api/setup-readiness", {
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            throw new Error("Unable to read Lisa setup readiness");
+          }
+          setupReadinessState = {
+            state: "result",
+            findings: requireSetupReadiness(await response.json()),
+          };
+        } catch (error) {
+          setupReadinessState = {
+            state: "error",
+            findings: new Map(),
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unable to read Lisa setup readiness",
+          };
+        }
+        repaintSetupChecklist();
+      }
+
       /** Run exactly one deterministic Health v1 check through the local server. */
       async function runHealthCheck() {
         const button = document.getElementById("runHealthCheckButton");
@@ -7224,6 +7308,7 @@
         hydrateFromLiveConfig();
         renderAll();
         void hydrateLiveStatuses();
+        void hydrateSetupReadiness();
         void hydrateHealth();
         showSection(location.hash ? location.hash.slice(1) : "overview");
         if (!document.getElementById("section-" + activeSection))

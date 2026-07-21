@@ -2053,7 +2053,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "8dcbeda2160ce6c443382613a2319fe6253ffe2c0cdeea567034400cdea91152",
+      "81a5e545881065745414082f25ce7a993072fe4f2dde9d2abebf26a4024f45b2",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -7321,6 +7321,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-lisa-version.ts": true,
     "src/cli/ui-observability-checks.ts": true,
     "src/cli/ui-observability-providers.ts": true,
+    "src/cli/ui-setup-readiness.ts": true,
     "src/cli/ui-status-json.ts": true,
     "src/cli/ui-status.ts": true,
     "src/cli/update-check.ts": true,
@@ -7433,6 +7434,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/health/project-probes.ts": true,
     "src/health/read-only-fs.ts": true,
     "src/health/ruleset-inspection.ts": true,
+    "src/health/setup-readiness.ts": true,
     "src/health/storage.ts": true,
     "src/health/strict-validation.ts": true,
     "src/health/template-inspection.ts": true,
@@ -7708,6 +7710,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/directory-sync.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
+    "tests/unit/health/setup-readiness.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
