@@ -28,6 +28,7 @@ import {
   type CredentialFindings,
   detectCredentialFindings,
 } from "./doctor-readiness-credentials.js";
+import { informationalFindings } from "./doctor-readiness-shared.js";
 import {
   assessReleasePath,
   PROMOTION_ACTION,
@@ -135,19 +136,6 @@ function credentialFinding(
         "by explicit per-job scoping",
     ],
   };
-}
-
-/**
- * Wrap non-blocking observations as findings. They deliberately carry no
- * `blocker` key: naming one would stand a blocker up on an observation that was
- * never decidable offline.
- * @param notes - Informational lines
- * @returns Findings, one per note
- */
-function informationalFindings(
-  notes: readonly string[]
-): readonly Record<string, unknown>[] {
-  return notes.map(note => ({ observation: note, blocking: false }));
 }
 
 /**
