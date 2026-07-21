@@ -323,8 +323,11 @@ default doctor path never renders it and stays byte-identical.
    where the evidence-gathering surfaces (RRR-4/5/6) are not yet wired, every dimension renders `SKIP`
    with that reason.
 4. **Reuse the shipped verdict ladder and consequence ordering.** No new verdict value and no new
-   severity: reuse `READY` / `READY_WITH_WARNINGS` / `NOT_READY`. Section order stays stable; the
-   findings **within** each dimension check order highest-consequence-first.
+   severity: reuse `READY` / `READY_WITH_WARNINGS` / `NOT_READY`. `READY` requires *positive*
+   evidence — every readiness dimension assessed and clean, with no blocker standing. An unassessed
+   (`SKIP`) dimension is silence, not health, so any readiness report carrying one tops out at
+   `READY_WITH_WARNINGS`; only a standing ship blocker yields `NOT_READY`. Section order stays
+   stable; the findings **within** each dimension check order highest-consequence-first.
 5. **Persist to a versioned, relocatable artifact.** Writing the report to `.lisa/readiness.json`
    (`schema_version: 1`, with `verdict`, `blocker_count`, and per-dimension findings) is resolved
    through a single resolver so the location is one line to change. The write is atomic and must
