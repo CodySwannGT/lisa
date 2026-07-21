@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.286.0](https://github.com/CodySwannGT/lisa/compare/v2.285.1...v2.286.0) (2026-07-21)
+
+
+### Features
+
+* **deps:** add confidence-rebuild kit for dependency internalization ([#1890](https://github.com/CodySwannGT/lisa/issues/1890)) ([11d2a80](https://github.com/CodySwannGT/lisa/commit/11d2a80d47c4c85309a6078093bd009561b9b811)), closes [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1887](https://github.com/CodySwannGT/lisa/issues/1887)
+
 ### [2.285.1](https://github.com/CodySwannGT/lisa/compare/v2.285.0...v2.285.1) (2026-07-21)
 
 
