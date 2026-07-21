@@ -620,6 +620,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2689c1f47903a5f6c84677fbfd2f1f148096faf122b7498b21d3b0f2345c6c87",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
+    "plugins/src/base/rules/eager/dependency-decision-records.md":
+      "e22888f107906992e863fca50f26c2c4b124da7132535cacfac71e4f3085728f",
+    "plugins/src/base/rules/eager/dependency-trust-classes.md":
+      "43a0932a7b8d4fd075b66bfe778025d808a13d9aa61ae793e9eb2fc8a555a381",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
       "3a7c2a6264654a3cc44dd326441ba211a39c1c267033cc189c1c635adb84b52b",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
@@ -678,6 +682,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "071b2c91f3b661ee493ea6f37d78f0fdea8004b4e4e7b5e94dcf232df7eceda7",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
+    "plugins/src/base/rules/reference/dependency-decision-records.md":
+      "84f9fb8fa0a606307e828ec355ccbf2258beeeb88795dd113abe9bb2c37db39f",
+    "plugins/src/base/rules/reference/dependency-trust-classes.md":
+      "82216b80d4807e0ad302d04924032cc6a7a95b26f72ea853e378572a5c31821c",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
       "555155889c9cf279865b9d8fc554bdd461c96a3ec76a5001dfeb361a71056999",
     "plugins/src/base/rules/reference/empirical-inquiry.md":
@@ -1049,7 +1057,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "c32e6a4e3115ca32b7d335e90d0a73b243c6c631a2d192568423be0cb5944e84",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
-      "bcc5940772c018e1b72a527b8378895596a4668844bc9d10599f47be5bd69172",
+      "b8f44d501e38a8ebd3c9b566b983d3e97f1292d28688ff1d42ec2c582abebf93",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
@@ -3292,6 +3300,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/coding-philosophy.md": true,
     "plugins/lisa-copilot/rules/eager/config-resolution.md": true,
     "plugins/lisa-copilot/rules/eager/convergent-review.md": true,
+    "plugins/lisa-copilot/rules/eager/dependency-decision-records.md": true,
+    "plugins/lisa-copilot/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/eager/empirical-inquiry.md": true,
     "plugins/lisa-copilot/rules/eager/factory-model.md": true,
@@ -3321,6 +3331,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/coding-philosophy.md": true,
     "plugins/lisa-copilot/rules/reference/config-resolution.md": true,
     "plugins/lisa-copilot/rules/reference/convergent-review.md": true,
+    "plugins/lisa-copilot/rules/reference/dependency-decision-records.md": true,
+    "plugins/lisa-copilot/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/reference/empirical-inquiry.md": true,
     "plugins/lisa-copilot/rules/reference/factory-model.md": true,
@@ -3656,6 +3668,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/config-resolution.mdc": true,
     "plugins/lisa-cursor/rules/convergent-review-reference.mdc": true,
     "plugins/lisa-cursor/rules/convergent-review.mdc": true,
+    "plugins/lisa-cursor/rules/dependency-decision-records-reference.mdc": true,
+    "plugins/lisa-cursor/rules/dependency-decision-records.mdc": true,
+    "plugins/lisa-cursor/rules/dependency-trust-classes-reference.mdc": true,
+    "plugins/lisa-cursor/rules/dependency-trust-classes.mdc": true,
     "plugins/lisa-cursor/rules/documentation-source-paths-reference.mdc": true,
     "plugins/lisa-cursor/rules/documentation-source-paths.mdc": true,
     "plugins/lisa-cursor/rules/empirical-inquiry-reference.mdc": true,
@@ -6029,6 +6045,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/coding-philosophy.md": true,
     "plugins/lisa/rules/eager/config-resolution.md": true,
     "plugins/lisa/rules/eager/convergent-review.md": true,
+    "plugins/lisa/rules/eager/dependency-decision-records.md": true,
+    "plugins/lisa/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa/rules/eager/empirical-inquiry.md": true,
     "plugins/lisa/rules/eager/factory-model.md": true,
@@ -6058,6 +6076,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/coding-philosophy.md": true,
     "plugins/lisa/rules/reference/config-resolution.md": true,
     "plugins/lisa/rules/reference/convergent-review.md": true,
+    "plugins/lisa/rules/reference/dependency-decision-records.md": true,
+    "plugins/lisa/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa/rules/reference/empirical-inquiry.md": true,
     "plugins/lisa/rules/reference/factory-model.md": true,
@@ -6555,6 +6575,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/coding-philosophy.md": true,
     "plugins/src/base/rules/eager/config-resolution.md": true,
     "plugins/src/base/rules/eager/convergent-review.md": true,
+    "plugins/src/base/rules/eager/dependency-decision-records.md": true,
+    "plugins/src/base/rules/eager/dependency-trust-classes.md": true,
     "plugins/src/base/rules/eager/documentation-source-paths.md": true,
     "plugins/src/base/rules/eager/empirical-inquiry.md": true,
     "plugins/src/base/rules/eager/factory-model.md": true,
@@ -6584,6 +6606,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/coding-philosophy.md": true,
     "plugins/src/base/rules/reference/config-resolution.md": true,
     "plugins/src/base/rules/reference/convergent-review.md": true,
+    "plugins/src/base/rules/reference/dependency-decision-records.md": true,
+    "plugins/src/base/rules/reference/dependency-trust-classes.md": true,
     "plugins/src/base/rules/reference/documentation-source-paths.md": true,
     "plugins/src/base/rules/reference/empirical-inquiry.md": true,
     "plugins/src/base/rules/reference/factory-model.md": true,
@@ -7554,6 +7578,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-version-status.spec.ts": true,
     "tests/fixtures/automation-status/attention-needed-codex.json": true,
     "tests/fixtures/automation-status/partial-support-codex.json": true,
+    "tests/fixtures/dependency-trust-classes/dependency-addition-ticket.md": true,
     "tests/fixtures/doctor/not-ready-missing-config.json": true,
     "tests/fixtures/doctor/readiness/all-pass-assessed.json": true,
     "tests/fixtures/doctor/readiness/all-skip-unassessed.json": true,
@@ -7901,6 +7926,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/copy-overwrite.test.ts": true,
     "tests/unit/strategies/create-only.test.ts": true,
     "tests/unit/strategies/debrief-reroute-contract.test.ts": true,
+    "tests/unit/strategies/dependency-decision-records-rule-pair.test.ts": true,
+    "tests/unit/strategies/dependency-trust-classes-rule-pair.test.ts": true,
     "tests/unit/strategies/distributed-content-round2-contract.test.ts": true,
     "tests/unit/strategies/doctor-automation-readiness.test.ts": true,
     "tests/unit/strategies/doctor-config-readiness.test.ts": true,
@@ -8024,6 +8051,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/config-sync.test.ts": true,
     "tests/unit/sync/health-schedule.test.ts": true,
     "tests/unit/sync/legacy-monitor-thresholds.test.ts": true,
+    "tests/unit/templates/dependency-decisions-template.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,
     "tests/unit/transaction/backup.test.ts": true,
