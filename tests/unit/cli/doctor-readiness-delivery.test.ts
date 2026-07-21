@@ -14,116 +14,56 @@
  * key at all — otherwise a healthy repository would be reported NOT_READY.
  * @module tests/unit/cli/doctor-readiness-delivery
  */
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import * as os from "node:os";
-import * as path from "node:path";
+import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DELIVERY_AUTHORITY_DIMENSION_ID,
   assessDeliveryAuthorityDimension,
 } from "../../../src/cli/doctor-readiness-delivery.js";
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
+import {
+  asFindings,
+  CI_YML,
+  CONTENTS_READ,
+  DEPLOY_NAME,
+  DEPLOY_YML,
+  FAIL,
+  JOBS,
+  makeScratchRepo,
+  ON,
+  ON_PUSH,
+  PASS,
+  PERMISSIONS,
+  PUBLISH_JOB,
+  PUSH,
+  RELEASE_NAME,
+  RELEASE_YML,
+  RUN_DEPLOY,
+  RUN_PACK,
+  RUN_PUBLISH,
+  RUN_TEST,
+  RUNS_ON,
+  SKIP,
+  STEPS,
+  TAGS,
+  TEST_JOB,
+  USES_DOWNLOAD,
+  writeWorkflow,
+} from "../../helpers/readiness-workflow-fixtures.js";
 
-/** The shape a persisted readiness finding is read back as in assertions. */
-type Finding = Record<string, unknown>;
+/** The dimension this producer owns. */
+const DIMENSION_ID = "delivery-authority";
 
 let tempDir: string | undefined;
 
 /**
- * Resolve a temporary directory for one delivery/authority test case.
+ * Resolve a scratch repository for one test case.
  * @returns Temporary directory path
  */
 async function getTempDir(): Promise<string> {
-  tempDir ??= await mkdtemp(path.join(os.tmpdir(), "lisa-readiness-delivery-"));
+  tempDir ??= await makeScratchRepo("delivery");
   return tempDir;
 }
-
-/**
- * Write one workflow file into the scratch repository.
- * @param root - Repository root
- * @param fileName - Workflow file name, e.g. `release.yml`
- * @param lines - Raw YAML lines
- */
-async function writeWorkflow(
-  root: string,
-  fileName: string,
-  lines: readonly string[]
-): Promise<void> {
-  const dir = path.join(root, ".github", "workflows");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, fileName), `${lines.join("\n")}\n`, "utf8");
-}
-
-/**
- * Read a dimension record's findings as plain objects.
- * @param findings - The raw findings array
- * @returns The findings as records
- */
-function asFindings(findings: readonly unknown[]): readonly Finding[] {
-  return findings.map(finding => finding as Finding);
-}
-
-/** Repeated YAML fixture lines, named once so the fixtures stay readable. */
-const JOBS = "jobs:";
-const ON_PUSH = "on: [push]";
-const RUNS_ON = "    runs-on: ubuntu-latest";
-const PERMISSIONS = "    permissions:";
-const CONTENTS_READ = "      contents: read";
-const STEPS = "    steps:";
-
-/** The dimension this producer owns, and the status a violation renders. */
-const DIMENSION_ID = "delivery-authority";
-const FAIL = "FAIL";
-
-/** Workflow file names reused across fixtures. */
-const CI_YML = "ci.yml";
-const DEPLOY_YML = "deploy.yml";
-const RELEASE_YML = "release.yml";
-
-/** Repeated fixture lines shared by the credential cases. */
-const DEPLOY_NAME = "name: Deploy";
-const RUN_DEPLOY = "      - run: deploy.sh";
-
-/** A release workflow whose publish job ships an unvalidated local build. */
-const B2_VIOLATION_WORKFLOW = [
-  "name: Release",
-  "on:",
-  "  push:",
-  "    tags: ['v*']",
-  JOBS,
-  "  publish:",
-  RUNS_ON,
-  PERMISSIONS,
-  CONTENTS_READ,
-  STEPS,
-  "      - uses: actions/checkout@v4",
-  "      - run: npm pack",
-  "      - run: npm publish ./unvalidated-fresh-build.tgz",
-];
-
-/** A release workflow that validates first and promotes the CI-built artifact. */
-const CLEAN_RELEASE_WORKFLOW = [
-  "name: Release",
-  "on:",
-  "  push:",
-  "    tags: ['v*']",
-  JOBS,
-  "  test:",
-  RUNS_ON,
-  PERMISSIONS,
-  CONTENTS_READ,
-  STEPS,
-  "      - run: npm run test",
-  "  publish:",
-  "    needs: [test]",
-  RUNS_ON,
-  PERMISSIONS,
-  CONTENTS_READ,
-  "      id-token: write",
-  STEPS,
-  "      - uses: actions/download-artifact@v4",
-  "      - run: npm publish --provenance",
-];
 
 afterEach(async () => {
   if (tempDir) {
@@ -131,6 +71,47 @@ afterEach(async () => {
     tempDir = undefined;
   }
 });
+
+/** A release workflow whose publish job ships an unvalidated local build. */
+const B2_VIOLATION_WORKFLOW = [
+  RELEASE_NAME,
+  ON,
+  PUSH,
+  TAGS,
+  JOBS,
+  PUBLISH_JOB,
+  RUNS_ON,
+  PERMISSIONS,
+  CONTENTS_READ,
+  STEPS,
+  "      - uses: actions/checkout@v4",
+  RUN_PACK,
+  "      - run: npm publish ./unvalidated-fresh-build.tgz",
+];
+
+/** A release workflow that validates first and promotes the CI-built artifact. */
+const CLEAN_RELEASE_WORKFLOW = [
+  RELEASE_NAME,
+  ON,
+  PUSH,
+  TAGS,
+  JOBS,
+  TEST_JOB,
+  RUNS_ON,
+  PERMISSIONS,
+  CONTENTS_READ,
+  STEPS,
+  RUN_TEST,
+  PUBLISH_JOB,
+  "    needs: [test]",
+  RUNS_ON,
+  PERMISSIONS,
+  CONTENTS_READ,
+  "      id-token: write",
+  STEPS,
+  USES_DOWNLOAD,
+  RUN_PUBLISH,
+];
 
 describe("assessDeliveryAuthorityDimension — B2 (release path bypasses validation)", () => {
   it("FAILs with an evidenced B2 finding when a publish job ships a locally built artifact", async () => {
@@ -177,7 +158,7 @@ describe("assessDeliveryAuthorityDimension — B2 (release path bypasses validat
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    expect(record.status).toBe("PASS");
+    expect(record.status).toBe(PASS);
     // Load-bearing: the engine stands a blocker on any finding naming an id with
     // evidence, so a clean finding must not name one at all.
     for (const finding of asFindings(record.findings)) {
@@ -192,7 +173,7 @@ describe("assessDeliveryAuthorityDimension — B2 (release path bypasses validat
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    expect(record.status).toBe("SKIP");
+    expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
     expect(findings[0].skip).toBe(true);
     expect(typeof findings[0].reason).toBe("string");

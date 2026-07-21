@@ -1,88 +1,56 @@
 /**
- * Unit coverage for B2's conservatism: the readiness producers must never
+ * Unit coverage for B2's trigger conservatism: the readiness producers must never
  * manufacture RED from absence (PRD #1739, #1896).
  *
  * Reading workflow files offline cannot see a calling workflow, an upstream
- * `workflow_run`, or a branch protection rule. So when the file alone does not
+ * `workflow_run`, or a branch protection rule. When the file alone does not
  * PROVE that what ships bypassed what was validated, the honest answer is a
  * stated-reason SKIP — a FAIL there would report correct repositories as unsafe,
- * which is exactly how a gate loses its authority. This suite pins each case
- * where silence must not be read as a bypass, plus the traversal and evidence
- * details B2 depends on.
+ * which is how a gate loses its authority. This suite pins every case where
+ * silence must not be read as a bypass.
  * @module tests/unit/cli/doctor-readiness-delivery-triggers
  */
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import * as os from "node:os";
-import * as path from "node:path";
+import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import { assessDeliveryAuthorityDimension } from "../../../src/cli/doctor-readiness-delivery.js";
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
+import {
+  asFindings,
+  makeScratchRepo,
+  CI_YML,
+  CONTENTS_READ,
+  DEPLOY_NAME,
+  DEPLOY_YML,
+  FAIL,
+  JOBS,
+  ON,
+  ON_PUSH,
+  PERMISSIONS,
+  PUBLISH_JOB,
+  RUN_BUILD,
+  RUN_PUBLISH,
+  RUNS_ON,
+  SHIP_JOB,
+  SKIP,
+  STEPS,
+  writeWorkflow,
+} from "../../helpers/readiness-workflow-fixtures.js";
 
-/** The shape a persisted readiness finding is read back as in assertions. */
-type Finding = Record<string, unknown>;
+/** Deploy steps repeated across the trigger fixtures. */
+const RUN_CDK_DEPLOY = "      - run: cdk deploy";
+const WORKFLOW_RUN = "  workflow_run:";
+const WORKFLOWS_CI = "    workflows: [CI]";
 
 let tempDir: string | undefined;
 
 /**
- * Resolve a temporary directory for one trigger test case.
+ * Resolve a scratch repository for one test case.
  * @returns Temporary directory path
  */
 async function getTempDir(): Promise<string> {
-  tempDir ??= await mkdtemp(path.join(os.tmpdir(), "lisa-readiness-triggers-"));
+  tempDir ??= await makeScratchRepo("triggers");
   return tempDir;
 }
-
-/**
- * Write one workflow file into the scratch repository.
- * @param root - Repository root
- * @param fileName - Workflow file name
- * @param lines - Raw YAML lines
- */
-async function writeWorkflow(
-  root: string,
-  fileName: string,
-  lines: readonly string[]
-): Promise<void> {
-  const dir = path.join(root, ".github", "workflows");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, fileName), `${lines.join("\n")}\n`, "utf8");
-}
-
-/**
- * Read a dimension record's findings as plain objects.
- * @param findings - The raw findings array
- * @returns The findings as records
- */
-function asFindings(findings: readonly unknown[]): readonly Finding[] {
-  return findings.map(finding => finding as Finding);
-}
-
-/** Repeated YAML fixture lines, named once so the fixtures stay readable. */
-const JOBS = "jobs:";
-const ON_PUSH = "on: [push]";
-const ON = "on:";
-const PUSH = "  push:";
-const TAGS = "    tags: ['v*']";
-const RUNS_ON = "    runs-on: ubuntu-latest";
-const PERMISSIONS = "    permissions:";
-const CONTENTS_READ = "      contents: read";
-const STEPS = "    steps:";
-const PUBLISH_JOB = "  publish:";
-const SHIP_JOB = "  ship:";
-
-/** Statuses and file names reused across the fixtures. */
-const SKIP = "SKIP";
-const FAIL = "FAIL";
-const PASS = "PASS";
-const CI_YML = "ci.yml";
-const DEPLOY_YML = "deploy.yml";
-const RELEASE_YML = "release.yml";
-const RELEASE_NAME = "name: Release";
-
-/** Repeated step lines. */
-const RUN_PUBLISH = "      - run: npm publish --provenance";
-const RUN_BUILD = "      - run: npm run build";
-const RUN_PACK = "      - run: npm pack";
 
 afterEach(async () => {
   if (tempDir) {
@@ -127,10 +95,10 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
   it("SKIPs a workflow_run-triggered deploy instead of failing it", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, DEPLOY_YML, [
-      "name: Deploy",
+      DEPLOY_NAME,
       ON,
-      "  workflow_run:",
-      "    workflows: [CI]",
+      WORKFLOW_RUN,
+      WORKFLOWS_CI,
       "    types: [completed]",
       JOBS,
       SHIP_JOB,
@@ -151,7 +119,7 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
   it("SKIPs a default-branch push deploy instead of failing it", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, DEPLOY_YML, [
-      "name: Deploy",
+      DEPLOY_NAME,
       ON,
       "  push:",
       "    branches: [main]",
@@ -162,7 +130,7 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
       CONTENTS_READ,
       STEPS,
       RUN_BUILD,
-      "      - run: cdk deploy",
+      RUN_CDK_DEPLOY,
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
@@ -201,152 +169,82 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
 
-  it("PASSes a validation performed transitively two needs levels up", async () => {
+  it("SKIPs an unfiltered on: [push] deploy exactly as it does the branches: [main] spelling", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(cwd, RELEASE_YML, [
-      RELEASE_NAME,
-      ON,
-      PUSH,
-      TAGS,
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON_PUSH,
       JOBS,
-      "  test:",
+      SHIP_JOB,
       RUNS_ON,
       STEPS,
-      "      - run: npm run test",
-      "  package:",
-      "    needs: [test]",
-      RUNS_ON,
-      STEPS,
-      RUN_PACK,
-      PUBLISH_JOB,
-      "    needs: [package]",
-      RUNS_ON,
-      STEPS,
-      "      - uses: actions/download-artifact@v4",
-      RUN_PUBLISH,
-    ]);
-
-    const record = await assessDeliveryAuthorityDimension(cwd);
-
-    expect(record.status).toBe(PASS);
-    expect(assessReadiness([record]).blockers).toEqual([]);
-  });
-
-  it("terminates on a needs: cycle rather than recursing forever", async () => {
-    const cwd = await getTempDir();
-    await writeWorkflow(cwd, RELEASE_YML, [
-      RELEASE_NAME,
-      ON,
-      PUSH,
-      TAGS,
-      JOBS,
-      "  a:",
-      "    needs: [b]",
-      RUNS_ON,
-      STEPS,
-      RUN_PACK,
-      "  b:",
-      "    needs: [a]",
-      RUNS_ON,
-      STEPS,
-      "      - run: npm publish ./from-cycle.tgz",
-    ]);
-
-    const record = await assessDeliveryAuthorityDimension(cwd);
-
-    expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
-  });
-
-  it("PASSes a single job that validates before it publishes", async () => {
-    const cwd = await getTempDir();
-    await writeWorkflow(cwd, RELEASE_YML, [
-      RELEASE_NAME,
-      ON,
-      PUSH,
-      TAGS,
-      JOBS,
-      "  release:",
-      RUNS_ON,
-      STEPS,
-      "      - run: npm test",
-      RUN_PUBLISH,
-    ]);
-
-    const record = await assessDeliveryAuthorityDimension(cwd);
-
-    expect(record.status).toBe(PASS);
-    expect(assessReadiness([record]).blockers).toEqual([]);
-  });
-
-  it("still FAILs when a rebuild happens AFTER the artifact was downloaded", async () => {
-    const cwd = await getTempDir();
-    await writeWorkflow(cwd, RELEASE_YML, [
-      RELEASE_NAME,
-      ON,
-      PUSH,
-      TAGS,
-      JOBS,
-      PUBLISH_JOB,
-      RUNS_ON,
-      STEPS,
-      "      - uses: actions/download-artifact@v4",
       RUN_BUILD,
-      "      - run: npm publish ./rebuilt.tgz",
+      RUN_CDK_DEPLOY,
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    // An unfiltered push is a SUPERSET of a default-branch push, so it cannot be
+    // stricter than the spelling that names the branch explicitly.
+    expect(record.status).toBe(SKIP);
+    expect(assessReadiness([record]).blockers).toEqual([]);
   });
 
-  it("does not accept a loose 'test' substring as validation", async () => {
+  it("SKIPs a deploy that neither builds nor promotes an artifact", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(cwd, RELEASE_YML, [
-      RELEASE_NAME,
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
       ON,
-      PUSH,
-      TAGS,
+      "  workflow_dispatch:",
       JOBS,
-      PUBLISH_JOB,
+      SHIP_JOB,
       RUNS_ON,
       STEPS,
-      '      - run: echo "test the release notes"',
-      RUN_PACK,
-      "      - run: npm publish ./unvalidated-fresh-build.tgz",
+      "      - run: cdk deploy --all",
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    expect(record.status).toBe(FAIL);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    // Nothing here links what ships to what was validated — in either direction.
+    // Calling that PASS would assert an artifact chain that was never observed.
+    expect(record.status).toBe(SKIP);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).not.toContain(
+      "promotes the CI-built artifact"
+    );
   });
 
-  it("quotes a readable step label rather than dumping a multi-line script", async () => {
+  it("keeps the release-path reason alongside a standing credential blocker", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(cwd, RELEASE_YML, [
-      RELEASE_NAME,
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
       ON,
-      PUSH,
-      TAGS,
+      WORKFLOW_RUN,
+      WORKFLOWS_CI,
       JOBS,
-      PUBLISH_JOB,
+      SHIP_JOB,
       RUNS_ON,
       STEPS,
-      "      - name: Publish the package",
-      "        run: |",
-      "          set -euo pipefail",
-      "          npm pack",
-      "          npm publish ./unvalidated-fresh-build.tgz",
+      RUN_BUILD,
+      RUN_CDK_DEPLOY,
+    ]);
+    await writeWorkflow(cwd, CI_YML, [
+      "name: CI",
+      ON_PUSH,
+      JOBS,
+      "  quality:",
+      "    uses: ./.github/workflows/quality.yml",
+      "    secrets: inherit",
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    const evidence = String(asFindings(record.findings)[0].evidence);
+    // B3 standing must not swallow the release-path reason: dropping it is the
+    // #1898 defect one layer in.
     expect(record.status).toBe(FAIL);
-    expect(evidence).toContain("Publish the package");
-    expect(evidence).not.toContain("set -euo pipefail");
-    expect(evidence).not.toContain("\n");
+    expect(
+      assessReadiness([record]).blockers.map(blocker => blocker.id)
+    ).toEqual(["B3"]);
+    expect(JSON.stringify(record.findings)).toContain("workflow_run");
   });
 });

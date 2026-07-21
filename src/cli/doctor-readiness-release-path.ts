@@ -209,11 +209,13 @@ function shipsSelfBuiltArtifact(
   const downloadIndex = job.steps.findIndex(step =>
     step.uses.includes(PROMOTION_ACTION)
   );
-  const rebuildsAfterDownload = job.steps
-    .slice(downloadIndex + 1)
-    .some(step => LOCAL_BUILD_COMMAND.test(step.run));
-  if (downloadIndex >= 0 && !rebuildsAfterDownload) {
-    return false;
+  if (downloadIndex >= 0) {
+    const rebuildsAfterDownload = job.steps
+      .slice(downloadIndex + 1)
+      .some(step => LOCAL_BUILD_COMMAND.test(step.run));
+    if (!rebuildsAfterDownload) {
+      return false;
+    }
   }
   return (
     LOCAL_PATH_ARGUMENT.test(publishStep.run) ||
@@ -248,10 +250,16 @@ function offlineUnresolvableTrigger(workflow: ParsedWorkflow): string | null {
       "commit or tag the release was cut from, which is not visible in this file"
     );
   }
+  // An unfiltered `on: [push]` is a SUPERSET of a default-branch push, so it
+  // cannot be treated more strictly than the spelling that names the branch.
+  const unfilteredPush =
+    workflow.on.events.includes("push") &&
+    workflow.on.pushBranches.length === 0 &&
+    workflow.on.pushTags.length === 0;
   const defaultBranchPush = workflow.on.pushBranches.some(branch =>
     DEFAULT_BRANCHES.has(branch)
   );
-  if (defaultBranchPush) {
+  if (unfilteredPush || defaultBranchPush) {
     return (
       "it is triggered by a push to the default branch, where branch protection " +
       "may already require the validating checks — a rule that is not visible " +
@@ -276,12 +284,58 @@ export function assessReleasePath(
     return undefined;
   }
   const where = `${workflow.file} job \`${job.id}\` step \`${describeStep(publishStep)}\``;
-  if (
-    validationPrecedesPublish(workflow, job, publishStep) ||
-    !shipsSelfBuiltArtifact(job, publishStep)
-  ) {
+  const validated = validationPrecedesPublish(workflow, job, publishStep);
+  if (shipsSelfBuiltArtifact(job, publishStep)) {
+    return validated
+      ? rebuildPastValidation(where)
+      : unvalidatedSelfBuild(where, workflow);
+  }
+  if (validated || promotesValidatedArtifact(job)) {
     return { kind: "clean" };
   }
+  // Neither built here nor promoted from CI, and nothing validating precedes it:
+  // the link between what ships and what was validated is simply not observable
+  // in this file. That is unestablished, not clean.
+  return {
+    kind: "unresolved",
+    reason:
+      `${where} neither builds its own artifact nor promotes a CI-built one via ` +
+      `\`${PROMOTION_ACTION}\`, and no validating job precedes it, so what it ` +
+      "ships cannot be tied to anything that was validated",
+  };
+}
+
+/**
+ * The provable bypass that survives every trigger: the pipeline validated the
+ * source, then the release job rebuilt and shipped its own artifact. Whatever
+ * ran upstream, the bytes that reached users are not the bytes that were
+ * checked — so no trigger exempts this.
+ * @param where - Evidence location label
+ * @returns The violation outcome
+ */
+function rebuildPastValidation(where: string): ReleasePathOutcome {
+  return {
+    kind: "violation",
+    evidence:
+      `${where} rebuilds and ships its own artifact after validation ran — the ` +
+      "pipeline proved things about the source tree, then shipped bytes that " +
+      `were produced afterwards and never validated. Promote the CI-built ` +
+      `artifact via \`${PROMOTION_ACTION}\` instead of repacking at release time`,
+  };
+}
+
+/**
+ * A self-built, self-shipped artifact with nothing validating in front of it:
+ * a violation when the trigger makes in-file validation the expected place, and
+ * a stated-reason SKIP when the proof could live somewhere not visible offline.
+ * @param where - Evidence location label
+ * @param workflow - The workflow declaring the job
+ * @returns The violation or unresolved outcome
+ */
+function unvalidatedSelfBuild(
+  where: string,
+  workflow: ParsedWorkflow
+): ReleasePathOutcome {
   const unresolvable = offlineUnresolvableTrigger(workflow);
   if (unresolvable !== null) {
     return {
@@ -299,4 +353,13 @@ export function assessReleasePath(
       `its \`needs:\` closure and no \`${PROMOTION_ACTION}\` promotion of the ` +
       "CI-built one — nothing was proved about the bytes that reached users",
   };
+}
+
+/**
+ * Whether the job promotes the artifact CI already built and validated.
+ * @param job - The publishing job
+ * @returns True when a download-artifact step is present
+ */
+function promotesValidatedArtifact(job: ParsedWorkflowJob): boolean {
+  return job.steps.some(step => step.uses.includes(PROMOTION_ACTION));
 }

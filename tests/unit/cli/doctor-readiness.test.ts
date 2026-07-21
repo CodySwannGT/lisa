@@ -201,7 +201,12 @@ describe("checkRepositoryReadiness", () => {
       path.join(cwd, ".github", "workflows", "release.yml"),
       [
         "name: Release",
-        "on: [push]",
+        // A tag push: in-file validation is the expected place for it, so its
+        // absence is provable rather than possibly-upstream (an unfiltered
+        // `on: [push]` would include the default branch and correctly SKIP).
+        "on:",
+        "  push:",
+        "    tags: ['v*']",
         "jobs:",
         "  publish:",
         "    runs-on: ubuntu-latest",
