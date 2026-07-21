@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.270.0](https://github.com/CodySwannGT/lisa/compare/v2.269.3...v2.270.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** add repository-readiness mode and .lisa/readiness.json ([#1855](https://github.com/CodySwannGT/lisa/issues/1855)) ([2275152](https://github.com/CodySwannGT/lisa/commit/2275152778286647eb301451e3271b10e320686d)), closes [#1740](https://github.com/CodySwannGT/lisa/issues/1740) [#1853](https://github.com/CodySwannGT/lisa/issues/1853)
+
 ### [2.269.3](https://github.com/CodySwannGT/lisa/compare/v2.269.2...v2.269.3) (2026-07-21)
 
 ### [2.269.2](https://github.com/CodySwannGT/lisa/compare/v2.269.1...v2.269.2) (2026-07-21)
