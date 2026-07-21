@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- explicit CLI routing cases remain independently readable */
 import type { Server } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import { createProgram } from "../../../src/cli/index.js";
@@ -29,6 +30,7 @@ function createTestProgram(): {
   runUpdate: ReturnType<typeof vi.fn>;
   runDoctor: ReturnType<typeof vi.fn>;
   runHealthCli: ReturnType<typeof vi.fn>;
+  runStandardsProofCli: ReturnType<typeof vi.fn>;
   runSync: ReturnType<typeof vi.fn>;
   runUi: ReturnType<typeof vi.fn>;
   runCheckLearningsBudget: ReturnType<typeof vi.fn>;
@@ -43,6 +45,7 @@ function createTestProgram(): {
   const runUpdate = vi.fn(async () => 0);
   const runDoctor = vi.fn(async () => ({ checks: [] }));
   const runHealthCli = vi.fn(async () => undefined);
+  const runStandardsProofCli = vi.fn(async () => undefined);
   const runSync = vi.fn(async () => 0);
   const runUi = vi.fn(async () => ({}) as Server);
   const runCheckLearningsBudget = vi.fn(async () => 0);
@@ -57,6 +60,7 @@ function createTestProgram(): {
     runUpdate,
     runDoctor,
     runHealthCli,
+    runStandardsProofCli,
     runSync,
     runUi,
     runCheckLearningsBudget,
@@ -73,6 +77,7 @@ function createTestProgram(): {
     runUpdate,
     runDoctor,
     runHealthCli,
+    runStandardsProofCli,
     runSync,
     runUi,
     runCheckLearningsBudget,
@@ -108,11 +113,17 @@ describe("createProgram", () => {
     expect(subcommandNames).toContain("setup-wiki");
   });
 
-  it("registers version, update, doctor, and health subcommands", () => {
+  it("registers version, update, doctor, health, and standards proof subcommands", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
     expect(subcommandNames).toEqual(
-      expect.arrayContaining(["version", "update", "doctor", "health"])
+      expect.arrayContaining([
+        "version",
+        "update",
+        "doctor",
+        "health",
+        "standards-proof",
+      ])
     );
   });
 
@@ -288,6 +299,16 @@ describe("maintenance command invocation", () => {
       expect.objectContaining({ prepareAgentic: true })
     );
   });
+
+  it("routes standards-proof without running the update warning", async () => {
+    const { program, runStandardsProofCli, runUpdateCheck } =
+      createTestProgram();
+
+    await program.parseAsync(["standards-proof", DEST], { from: "user" });
+
+    expect(runStandardsProofCli).toHaveBeenCalledWith(DEST);
+    expect(runUpdateCheck).not.toHaveBeenCalled();
+  });
 });
 
 describe("sync and ui invocation", () => {
@@ -370,3 +391,4 @@ describe("check-learnings-budget invocation", () => {
     expect(runUpdateCheck).not.toHaveBeenCalled();
   });
 });
+/* eslint-enable max-lines -- restore repository default */

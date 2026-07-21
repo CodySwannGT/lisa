@@ -1542,8 +1542,9 @@
               },
               {
                 label: "Adopt the standards (conformance refactor)",
-                desc: "Apply Lisa's full lint rules, guardrails, and thresholds — the project goes red by design — then agents refactor to conform without changing business logic, proven by tests and empirical verification.",
-                command: "/lisa:improve:* · /lisa:fix:linter-error",
+                desc: "Apply Lisa's full lint rules, guardrails, and thresholds — the project goes red by design — then agents refactor to automated conformance without changing business logic. Empirical product verification remains a separate Verify-factory gate.",
+                command:
+                  "/lisa:improve:* · /lisa:fix:linter-error · lisa standards-proof",
                 done: false,
                 why: "blocked by agent-ready",
               },
