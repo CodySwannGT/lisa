@@ -1,0 +1,43 @@
+name: 🔢 Duplicate Versions
+
+# Makes the canonical dependency manifest authoritative: reports version
+# literals duplicated into governed workflows, scripts, templates, and fixtures
+# — every one of which is a second edit site a routine version bump can miss
+# (see scripts/update-node-version.ts, which exists only to hand-sync one such
+# duplicate across a dozen workflow files).
+#
+# ROLLOUT MODE: ADVISORY. Lisa itself is not yet clean, so this job reports and
+# exits 0 rather than reddening CI on pre-existing drift. Cleanup of the
+# existing duplicates is tracked separately; once a surface is clean (or its
+# duplicates carry documented `lisa-allow-duplicate-version:` markers), switch
+# the run step to `--strict` and this job becomes a gate.
+#
+# NOTE: This workflow is repo-specific to the Lisa monorepo and is NOT a Lisa
+# template — do not move it under plugins/src or the create-only template sets.
+# It is also deliberately separate from ci.yml/quality.yml, which are
+# Lisa-managed generated files.
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package.lisa.json'
+      - 'all/**'
+      - 'typescript/**'
+      - 'rails/**'
+      - 'expo/**'
+      - 'cdk/**'
+      - 'nestjs/**'
+  workflow_dispatch:
+
+jobs:
+  duplicate-versions:
+    name: 🔢 Manifest-authoritative version pins (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Report manifest-authoritative duplicate version pins
+        run: |
+          node scripts/check-duplicate-versions.mjs | tee "$GITHUB_STEP_SUMMARY"

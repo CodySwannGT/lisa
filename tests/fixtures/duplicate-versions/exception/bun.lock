@@ -1,0 +1,6 @@
+{
+  "lockfileVersion": 1,
+  "packages": {
+    "@ast-grep/cli": ["@ast-grep/cli@0.40.4", "", {}, "sha512-fixture"]
+  }
+}
