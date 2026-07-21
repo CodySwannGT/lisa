@@ -16,7 +16,10 @@ import {
   type KaneRunOptions,
 } from "./kane-cmd.js";
 import { printUpdateWarning } from "./print-update-warning.js";
-import { runSetupProject } from "./setup-project.js";
+import {
+  DEFAULT_SETUP_PROJECT_DEPENDENCIES,
+  runSetupProject,
+} from "./setup-project.js";
 import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
@@ -353,7 +356,10 @@ export function createProgram(
       destination: string | undefined,
       options: CLIOptions & { type?: string }
     ) => {
-      await deps.runSetupProject(destination, options);
+      await deps.runSetupProject(destination, options, {
+        ...DEFAULT_SETUP_PROJECT_DEPENDENCIES,
+        runApply: deps.runApply,
+      });
     }
   );
 
