@@ -568,12 +568,14 @@ jobs:
 
       - name: 📦 Install dependencies
         if: steps.check_script.outputs.exists == 'true'
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun install --frozen-lockfile
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
