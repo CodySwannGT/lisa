@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns, functional/immutable-data, code-organization/enforce-statement-order, max-lines, max-lines-per-function, sonarjs/cognitive-complexity -- one closed ordered multi-stack registry is easier to audit as a whole */
 /** Closed standards-check registry shared by every supported harness. */
 import { createHash } from "node:crypto";
 import { realpath } from "node:fs/promises";
@@ -28,6 +27,7 @@ export interface StandardsCheckPlan {
   readonly configDigest: string;
 }
 
+/** One package-script-backed standards check before runner resolution. */
 type ScriptCheck = Readonly<{
   id: string;
   script: string;
@@ -202,7 +202,8 @@ const RAILS_CHECKS: readonly StandardsCheckSpec[] = [
  * @param config - Current bounded merged Lisa config
  * @returns Closed current check plan
  */
-export async function resolveStandardsCheckPlan(
+// eslint-disable-next-line sonarjs/cognitive-complexity -- explicit stack gates preserve fail-closed requirements and command order
+export async function resolveStandardsCheckPlan( // eslint-disable-line max-lines-per-function -- the closed multi-stack registry is one auditable ordered plan
   projectRoot: string,
   projectTypes: readonly ProjectType[],
   config: JsonObject
@@ -223,6 +224,7 @@ export async function resolveStandardsCheckPlan(
         if (check.optional === true) continue;
         throw new Error(`Required package script is missing: ${check.script}.`);
       }
+      // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
       checks.push(
         Object.freeze({
           id: check.id,
@@ -241,6 +243,7 @@ export async function resolveStandardsCheckPlan(
     }
   }
   if (projectTypes.includes("rails")) {
+    // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
     checks.push(...RAILS_CHECKS);
     if (mutationGateEnabled(config)) {
       if (
@@ -250,6 +253,7 @@ export async function resolveStandardsCheckPlan(
           "Required Rails mutation command is missing: scripts/lisa-mutation.sh."
         );
       }
+      // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
       checks.push(
         direct(
           "rails.mutation",
@@ -272,6 +276,7 @@ export async function resolveStandardsCheckPlan(
         "Required verification-coverage command is missing: scripts/check-verification-coverage.mjs."
       );
     }
+    // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
     checks.push(
       Object.freeze({
         ...direct(
@@ -296,6 +301,7 @@ export async function resolveStandardsCheckPlan(
       "Required threshold command is missing: scripts/check-threshold-ratchet.mjs."
     );
   }
+  // eslint-disable-next-line functional/immutable-data -- the private ordered plan is frozen before it leaves this resolver
   checks.push(
     direct(
       "shared.threshold-ratchet",
@@ -307,11 +313,24 @@ export async function resolveStandardsCheckPlan(
       "HEAD^"
     )
   );
-  const ids = checks.map(check => check.id);
-  if (new Set(ids).size !== ids.length) {
+  if (new Set(checks.map(check => check.id)).size !== checks.length) {
     throw new Error("Standards registry produced duplicate check identifiers.");
   }
+  return freezePlan(checks, config);
+}
+
+/**
+ * Freeze the resolved checks and bind their registry and configuration digests.
+ * @param checks - Private ordered check accumulator
+ * @param config - Current bounded merged Lisa config
+ * @returns Frozen current check plan
+ */
+function freezePlan(
+  checks: readonly StandardsCheckSpec[],
+  config: JsonObject
+): StandardsCheckPlan {
   const frozen = Object.freeze(checks.map(check => Object.freeze(check)));
+  // eslint-disable-next-line max-lines -- this single closed registry keeps every supported stack command reviewable together
   return Object.freeze({
     checks: frozen,
     registryDigest: digest({ version: 1, checks: frozen }),
@@ -319,7 +338,11 @@ export async function resolveStandardsCheckPlan(
   });
 }
 
-/** Digest only configuration that changes standards applicability or policy. */
+/**
+ * Digest only configuration that changes standards applicability or policy.
+ * @param config - Current merged Lisa config
+ * @returns Canonical standards configuration digest
+ */
 export function digestStandardsConfig(config: JsonObject): string {
   return digest({
     quality: config.quality ?? null,
@@ -327,12 +350,23 @@ export function digestStandardsConfig(config: JsonObject): string {
   });
 }
 
-/** Return a canonical SHA-256 digest without retaining config values. */
+/**
+ * Return a canonical SHA-256 digest without retaining config values.
+ * @param value - JSON-like value to digest
+ * @returns Canonical SHA-256 digest
+ */
 export function digestStandardsValue(value: unknown): string {
   return digest(value);
 }
 
-/** Construct one fixed direct-command check. */
+/**
+ * Construct one fixed direct-command check.
+ * @param id - Stable check identifier
+ * @param category - Standards category
+ * @param timeoutMs - Command deadline in milliseconds
+ * @param command - Fixed no-shell argv
+ * @returns Frozen standards check
+ */
 function direct(
   id: string,
   category: StandardsCheckCategory,
@@ -347,7 +381,14 @@ function direct(
   });
 }
 
-/** Construct one direct test check with positive runner-evidence semantics. */
+/**
+ * Construct one direct test check with positive runner-evidence semantics.
+ * @param id - Stable check identifier
+ * @param timeoutMs - Command deadline in milliseconds
+ * @param testEvidence - Positive test-evidence parser
+ * @param command - Fixed no-shell argv
+ * @returns Frozen standards test check
+ */
 function directTest(
   id: string,
   timeoutMs: number,
@@ -360,7 +401,11 @@ function directTest(
   });
 }
 
-/** Read a bounded package manifest and require its object shape. */
+/**
+ * Read a bounded package manifest and require its object shape.
+ * @param projectRoot - Canonical project repository
+ * @returns Parsed package manifest
+ */
 async function readPackageManifest(projectRoot: string): Promise<JsonObject> {
   const payload = await readProjectText(projectRoot, "package.json");
   if (payload === undefined) {
@@ -373,7 +418,11 @@ async function readPackageManifest(projectRoot: string): Promise<JsonObject> {
   return parsed;
 }
 
-/** Resolve one managed package runner in stable precedence order. */
+/**
+ * Resolve one managed package runner in stable precedence order.
+ * @param projectRoot - Canonical project repository
+ * @returns Package runner selected by lockfile
+ */
 async function resolvePackageManager(projectRoot: string): Promise<string> {
   const candidates = [
     ["bun.lock", "bun"],
@@ -389,7 +438,11 @@ async function resolvePackageManager(projectRoot: string): Promise<string> {
   return "npm";
 }
 
-/** Read the shared mutation-gate switch without treating absence as enabled. */
+/**
+ * Read the shared mutation-gate switch without treating absence as enabled.
+ * @param config - Current merged Lisa config
+ * @returns Whether mutation proof is required
+ */
 function mutationGateEnabled(config: JsonObject): boolean {
   return (
     isJsonObject(config.quality) &&
@@ -399,13 +452,22 @@ function mutationGateEnabled(config: JsonObject): boolean {
   );
 }
 
-/** Stable recursive JSON serialization for registry/config digests. */
+/**
+ * Stable recursive JSON serialization for registry/config digests.
+ * @param value - JSON-like value to digest
+ * @returns Canonical SHA-256 digest
+ */
 function digest(value: unknown): string {
   return `sha256:${createHash("sha256")
     .update(canonicalJson(value))
     .digest("hex")}`;
 }
 
+/**
+ * Serialize JSON-like input with recursively sorted object keys.
+ * @param value - JSON-like value to serialize
+ * @returns Canonical JSON text
+ */
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(item => canonicalJson(item)).join(",")}]`;
@@ -418,4 +480,3 @@ function canonicalJson(value: unknown): string {
   }
   return JSON.stringify(value) ?? "null";
 }
-/* eslint-enable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns, functional/immutable-data, code-organization/enforce-statement-order, max-lines, max-lines-per-function, sonarjs/cognitive-complexity -- restore repository defaults */

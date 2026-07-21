@@ -84,6 +84,14 @@ export async function requireStandardsBaseCommit(
   try {
     return await git(projectRoot, ["rev-parse", "HEAD^"]);
   } catch {
+    const isShallow =
+      (await git(projectRoot, ["rev-parse", "--is-shallow-repository"])) ===
+      "true";
+    if (isShallow) {
+      throw new Error(
+        "Standards proof requires more Git history for threshold comparison in a shallow clone. Run `git fetch --deepen=1` and retry."
+      );
+    }
     throw new Error(
       "Standards proof requires a parent commit for threshold comparison."
     );

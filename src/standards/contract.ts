@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns, code-organization/enforce-statement-order -- hostile proof validation is intentionally one closed auditable boundary */
 /** Strict, agent-neutral contract for one standards-conformance proof. */
 import type { ProjectType } from "../core/config.js";
 import {
@@ -22,6 +21,7 @@ export const STANDARDS_CHECK_CATEGORIES = [
   "guardrail",
   "threshold",
 ] as const;
+/** Closed category names accepted in standards proof results. */
 export type StandardsCheckCategory =
   (typeof STANDARDS_CHECK_CATEGORIES)[number];
 
@@ -132,7 +132,9 @@ export function validateStandardsProof(
   ).map((value, index) =>
     requireClosedString(value, PROJECT_TYPES, `projectTypes[${index}]`)
   );
-  requireUnique(projectTypes, "projectTypes");
+  if (new Set(projectTypes).size !== projectTypes.length) {
+    throw new Error("Invalid projectTypes: entries must be unique");
+  }
   const applicableChecks = readStrictDenseArray(
     read(input, "applicableChecks"),
     1,
@@ -141,7 +143,9 @@ export function validateStandardsProof(
   ).map((value, index) =>
     requireBoundedMachineId(value, `applicableChecks[${index}]`, 128)
   );
-  requireUnique(applicableChecks, "applicableChecks");
+  if (new Set(applicableChecks).size !== applicableChecks.length) {
+    throw new Error("Invalid applicableChecks: entries must be unique");
+  }
   const capturedAt = requireCanonicalUtcTimestamp(
     read(input, "capturedAt"),
     "capturedAt"
@@ -177,7 +181,13 @@ export function validateStandardsProof(
   });
 }
 
-/** Validate one result row and its bounded, ordered timestamps. */
+/**
+ * Validate one result row and its bounded, ordered timestamps.
+ * @param candidate - Untrusted result candidate
+ * @param index - Result position used in validation messages
+ * @param capturedAt - Proof capture timestamp that bounds completion
+ * @returns Strict immutable result row
+ */
 function requireResult(
   candidate: unknown,
   index: number,
@@ -220,7 +230,11 @@ function requireResult(
   });
 }
 
-/** Validate the normalized remote identity and exact Git object IDs. */
+/**
+ * Validate the normalized remote identity and exact Git object IDs.
+ * @param candidate - Untrusted repository proof candidate
+ * @returns Strict immutable repository proof
+ */
 function requireRepository(candidate: unknown): StandardsRepositoryProof {
   const input = requireStrictRecord(candidate, REPOSITORY_FIELDS, "repository");
   const identity = requireText(
@@ -238,7 +252,12 @@ function requireRepository(candidate: unknown): StandardsRepositoryProof {
   return Object.freeze({ identity, head, tree });
 }
 
-/** Require one SHA-1 or SHA-256 Git object identifier. */
+/**
+ * Require one SHA-1 or SHA-256 Git object identifier.
+ * @param value - Candidate object identifier
+ * @param field - Field name used in validation messages
+ * @returns Validated object identifier
+ */
 function requireSha(value: unknown, field: string): string {
   if (typeof value !== "string" || !SHA.test(value)) {
     throw new Error(`Invalid ${field}: expected a Git object identifier`);
@@ -246,7 +265,12 @@ function requireSha(value: unknown, field: string): string {
   return value;
 }
 
-/** Require one prefixed SHA-256 digest. */
+/**
+ * Require one prefixed SHA-256 digest.
+ * @param value - Candidate digest
+ * @param field - Field name used in validation messages
+ * @returns Validated digest
+ */
 function requireDigest(value: unknown, field: string): string {
   if (typeof value !== "string" || !DIGEST.test(value)) {
     throw new Error(`Invalid ${field}: expected sha256 digest`);
@@ -254,7 +278,13 @@ function requireDigest(value: unknown, field: string): string {
   return value;
 }
 
-/** Require compact printable scalar text. */
+/**
+ * Require compact printable scalar text.
+ * @param value - Candidate scalar
+ * @param field - Field name used in validation messages
+ * @param maximumBytes - Maximum UTF-8 byte length
+ * @returns Validated text
+ */
 function requireText(
   value: unknown,
   field: string,
@@ -271,11 +301,3 @@ function requireText(
   }
   return value;
 }
-
-/** Reject duplicate list entries. */
-function requireUnique(values: readonly string[], field: string): void {
-  if (new Set(values).size !== values.length) {
-    throw new Error(`Invalid ${field}: entries must be unique`);
-  }
-}
-/* eslint-enable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns, code-organization/enforce-statement-order -- restore repository defaults */

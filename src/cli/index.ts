@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- command registration remains centralized for dependency-injection parity */
 import { Command } from "commander";
 import { runApply } from "./apply.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
@@ -9,7 +8,7 @@ import {
 import { runDoctor } from "./doctor.js";
 import { runFileUpstream } from "./file-upstream-cmd.js";
 import { runHealthCli, type HealthCliOptions } from "./health-cmd.js";
-import { GATE_COMMAND_NAMES, addGateCommands } from "./gate-commands.js";
+import { addGateCommands } from "./gate-commands.js";
 import {
   runKaneCli,
   runKanePilotCli,
@@ -29,6 +28,7 @@ import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
 import { runUi, type UiCmdOptions } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
+import { addUpdateCheckHook } from "./update-check-hook.js";
 import { runVersion } from "./version-cmd.js";
 import { getPackageVersion } from "./version.js";
 
@@ -318,7 +318,6 @@ function addMaintenanceCommands(
  * @param dependencies - Optional collaborator overrides for testing
  * @returns Configured Commander program
  */
-// eslint-disable-next-line max-lines-per-function -- root command construction is one dependency-injected registry
 export function createProgram(
   dependencies: Partial<ProgramDependencies> = {}
 ): Command {
@@ -336,30 +335,7 @@ export function createProgram(
     .version(getPackageVersion())
     .option("--no-update-check", "Skip the npm latest-version check");
 
-  // Run the npm update-check once per invocation, before the matched action.
-  // It is non-fatal: a failed check never blocks the action from running.
-  program.hook("preAction", async (_thisCommand, actionCommand) => {
-    if (
-      actionCommand.parent?.name() === "kane" ||
-      [
-        "doctor",
-        "health",
-        "standards-proof",
-        "sync",
-        "ui",
-        "update",
-        "version",
-      ].includes(actionCommand.name()) ||
-      (GATE_COMMAND_NAMES as readonly string[]).includes(actionCommand.name())
-    ) {
-      return;
-    }
-    if (program.opts().updateCheck === false) {
-      return;
-    }
-    const result = await deps.runUpdateCheck();
-    deps.printUpdateWarning(result);
-  });
+  addUpdateCheckHook(program, deps);
 
   // `apply` is both the explicit subcommand and the default command, so the
   // historical positional form `lisa <destination>` routes here unchanged and
@@ -411,4 +387,3 @@ export function createProgram(
 }
 
 export { createPrompter } from "./prompts.js";
-/* eslint-enable max-lines -- restore repository default */

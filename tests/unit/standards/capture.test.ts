@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   captureStandardsProof,
+  runStandardsCommand,
   type StandardsCaptureDependencies,
 } from "../../../src/standards/capture.js";
 import type { StandardsGitState } from "../../../src/standards/git-state.js";
@@ -17,6 +18,23 @@ const GIT: StandardsGitState = Object.freeze({
   clean: true,
 });
 const TEST_CHECK = "typescript.test";
+const GIT_LOCAL_ENVIRONMENT_KEYS = [
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_CONFIG",
+  "GIT_CONFIG_PARAMETERS",
+  "GIT_CONFIG_COUNT",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_IMPLICIT_WORK_TREE",
+  "GIT_GRAFT_FILE",
+  "GIT_INDEX_FILE",
+  "GIT_NO_REPLACE_OBJECTS",
+  "GIT_REPLACE_REF_BASE",
+  "GIT_PREFIX",
+  "GIT_SHALLOW_FILE",
+  "GIT_COMMON_DIR",
+] as const;
 const PLAN: StandardsCheckPlan = Object.freeze({
   registryDigest: `sha256:${"c".repeat(64)}`,
   configDigest: `sha256:${"d".repeat(64)}`,
@@ -29,6 +47,10 @@ const PLAN: StandardsCheckPlan = Object.freeze({
       testEvidence: "managed" as const,
     }),
   ]),
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 /**
@@ -63,6 +85,30 @@ function dependencies(): StandardsCaptureDependencies & {
 }
 
 describe("standards proof capture", () => {
+  it("clears every Git-local variable while preserving check environment", async () => {
+    for (const key of GIT_LOCAL_ENVIRONMENT_KEYS) {
+      vi.stubEnv(key, path.join(process.cwd(), `.inherited-${key}`));
+    }
+
+    const outcome = await runStandardsCommand(process.cwd(), {
+      id: "fixture.environment",
+      category: "guardrail",
+      argv: [
+        process.execPath,
+        "-e",
+        `const keys=${JSON.stringify(GIT_LOCAL_ENVIRONMENT_KEYS)}; process.stdout.write(JSON.stringify({ git: Object.fromEntries(keys.map(key => [key, process.env[key]])), checkValue: process.env.STANDARDS_CHECK_VALUE }))`,
+      ],
+      timeoutMs: 1_000,
+      environment: { STANDARDS_CHECK_VALUE: "preserved" },
+    });
+
+    expect(outcome.exitCode).toBe(0);
+    expect(JSON.parse(outcome.output)).toEqual({
+      git: {},
+      checkValue: "preserved",
+    });
+  });
+
   it("writes only after every check and before/after observation pass", async () => {
     const deps = dependencies();
     const proof = await captureStandardsProof("/fixture", deps);
