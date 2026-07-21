@@ -458,6 +458,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d1f520ffedaa1ca331c232c9e113ca8e7868a1e93028ff9d45a2bc32d7ce45e2",
     "plugins/src/base/commands/git/submit-pr.md":
       "131ba633e9bc4379e0ed63f30752076b1aa5b5552d8f542624bc8d4451135773",
+    "plugins/src/base/commands/health.md":
+      "f74536619029160e20240c3f1eaf02b300aaecd2a649651fd8ce6bf78f881c70",
     "plugins/src/base/commands/implement.md":
       "bfdcb2d1114b777be783014016dade094a4c5e2c03db744668ec42656713519f",
     "plugins/src/base/commands/improve-harness.md":
@@ -836,6 +838,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ee54b3d14cc5dd3a68a8c36590102dd02f49334c9493ad52fa8c7f35157073b1",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "bc919c52e2f42129d41a3f40279d2def99486ec58bed2dab51ca7166b427a947",
+    "plugins/src/base/skills/lisa-health/SKILL.md":
+      "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
       "634f09dbd2654af070be393f5fd41e8d7fedee7437be2890e54d47ec59258539",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
@@ -1896,6 +1900,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":
       "3c064ad162fa633efcaa91327746157bc046cabd1c030b8bfa17227fed077200",
+    "scripts/verify-health-consumer-built.mjs":
+      "8b65689a1fa38d9fc2e73b52433408ce19648b8504f80a174b7b7ac97ec42bae",
     "scripts/verify-health-contract-built.mjs":
       "5ebfec9b8a0e3004a5af65d2f2515526f7ff5817e61ae30042fb8be40d8f8d17",
     "scripts/verify-health-deterministic-built.mjs":
@@ -2045,7 +2051,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "7e99286c549c79b1c02c07a4313dcfe5b41b4ebb80a6fbbb8741dd74dc5f454d",
     "ui/README.md":
-      "56857365dbb1f28edf07779b04744ce8963ab9fd7655d6405a5ee70856296903",
+      "e473077b9c7c620a810202bbde7ca31150bfe292fc463b5a80f22c3c4ad27ed2",
     "ui/index.html":
       "74c35220d1b8b7d8041374196eba2c821eb90d1b57d884f12afb695f47f5016c",
   });
@@ -2896,6 +2902,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/git/commit.md": true,
     "plugins/lisa-agy/commands/lisa/git/prune.md": true,
     "plugins/lisa-agy/commands/lisa/git/submit-pr.md": true,
+    "plugins/lisa-agy/commands/lisa/health.md": true,
     "plugins/lisa-agy/commands/lisa/implement.md": true,
     "plugins/lisa-agy/commands/lisa/improve-harness.md": true,
     "plugins/lisa-agy/commands/lisa/improve/code-complexity.md": true,
@@ -3013,6 +3020,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-github-verify/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-health/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-improve-code-complexity/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-improve-harness/SKILL.md": true,
@@ -3201,6 +3209,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/git/commit.md": true,
     "plugins/lisa-copilot/commands/lisa/git/prune.md": true,
     "plugins/lisa-copilot/commands/lisa/git/submit-pr.md": true,
+    "plugins/lisa-copilot/commands/lisa/health.md": true,
     "plugins/lisa-copilot/commands/lisa/implement.md": true,
     "plugins/lisa-copilot/commands/lisa/improve-harness.md": true,
     "plugins/lisa-copilot/commands/lisa/improve/code-complexity.md": true,
@@ -3382,6 +3391,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-github-verify/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-health/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-improve-code-complexity/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-improve-harness/SKILL.md": true,
@@ -3555,6 +3565,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/git/commit.md": true,
     "plugins/lisa-cursor/commands/lisa/git/prune.md": true,
     "plugins/lisa-cursor/commands/lisa/git/submit-pr.md": true,
+    "plugins/lisa-cursor/commands/lisa/health.md": true,
     "plugins/lisa-cursor/commands/lisa/implement.md": true,
     "plugins/lisa-cursor/commands/lisa/improve-harness.md": true,
     "plugins/lisa-cursor/commands/lisa/improve/code-complexity.md": true,
@@ -3737,6 +3748,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-github-verify/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-health/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-improve-code-complexity/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-improve-harness/SKILL.md": true,
@@ -5630,6 +5642,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-github-write-issue/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-write-prd/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-write-prd/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-health/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-health/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-implement/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-improve-code-complexity/SKILL.md": true,
@@ -5924,6 +5938,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/git/commit.md": true,
     "plugins/lisa/commands/git/prune.md": true,
     "plugins/lisa/commands/git/submit-pr.md": true,
+    "plugins/lisa/commands/health.md": true,
     "plugins/lisa/commands/implement.md": true,
     "plugins/lisa/commands/improve-harness.md": true,
     "plugins/lisa/commands/improve/code-complexity.md": true,
@@ -6153,6 +6168,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-github-write-issue/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-github-write-prd/SKILL.md": true,
     "plugins/lisa/skills/lisa-github-write-prd/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-health/SKILL.md": true,
+    "plugins/lisa/skills/lisa-health/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa/skills/lisa-implement/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-improve-code-complexity/SKILL.md": true,
@@ -6447,6 +6464,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/git/commit.md": true,
     "plugins/src/base/commands/git/prune.md": true,
     "plugins/src/base/commands/git/submit-pr.md": true,
+    "plugins/src/base/commands/health.md": true,
     "plugins/src/base/commands/implement.md": true,
     "plugins/src/base/commands/improve-harness.md": true,
     "plugins/src/base/commands/improve/code-complexity.md": true,
@@ -6636,6 +6654,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-github-verify/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/src/base/skills/lisa-health/SKILL.md": true,
     "plugins/src/base/skills/lisa-implement/SKILL.md": true,
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md": true,
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md": true,
@@ -7236,6 +7255,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/update-node-version.ts": true,
     "scripts/update-test-skill-paths.mjs": true,
     "scripts/verify-health-agentic-built.mjs": true,
+    "scripts/verify-health-consumer-built.mjs": true,
     "scripts/verify-health-contract-built.mjs": true,
     "scripts/verify-health-deterministic-built.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
@@ -7260,6 +7280,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor.ts": true,
     "src/cli/file-upstream-cmd.ts": true,
     "src/cli/gate-commands.ts": true,
+    "src/cli/health-cmd.ts": true,
     "src/cli/index.ts": true,
     "src/cli/kane-cmd.ts": true,
     "src/cli/print-update-warning.ts": true,
@@ -7388,15 +7409,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/detection/index.ts": true,
     "src/errors/index.ts": true,
     "src/health/agentic.ts": true,
+    "src/health/consumer.ts": true,
     "src/health/contract.ts": true,
     "src/health/deadline.ts": true,
     "src/health/deterministic.ts": true,
     "src/health/directory-sync.ts": true,
+    "src/health/evaluation-protocol.ts": true,
     "src/health/finding-utils.ts": true,
     "src/health/governance-probes.ts": true,
     "src/health/hook-inspection.ts": true,
     "src/health/index.ts": true,
     "src/health/plugin-inspection.ts": true,
+    "src/health/prepare.ts": true,
     "src/health/project-probes.ts": true,
     "src/health/read-only-fs.ts": true,
     "src/health/ruleset-inspection.ts": true,
@@ -7550,6 +7574,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor.test.ts": true,
     "tests/unit/cli/file-upstream-contract.test.ts": true,
     "tests/unit/cli/gate-commands.test.ts": true,
+    "tests/unit/cli/health-cmd.test.ts": true,
     "tests/unit/cli/index.test.ts": true,
     "tests/unit/cli/kane-cmd.test.ts": true,
     "tests/unit/cli/kane-index.test.ts": true,
@@ -7665,6 +7690,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,
     "tests/unit/health/agentic.test.ts": true,
+    "tests/unit/health/consumer.test.ts": true,
     "tests/unit/health/contract.test.ts": true,
     "tests/unit/health/deterministic-regressions.test.ts": true,
     "tests/unit/health/deterministic.test.ts": true,
@@ -7816,6 +7842,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/harness-parity-council-runtime-adapters.test.ts": true,
     "tests/unit/strategies/harness-parity-council-skill.test.ts": true,
     "tests/unit/strategies/harper-fabric-template-no-advisory-pollution.test.ts": true,
+    "tests/unit/strategies/health-skill-contract.test.ts": true,
     "tests/unit/strategies/implement-env-base-branch.test.ts": true,
     "tests/unit/strategies/improve-harness-skill.test.ts": true,
     "tests/unit/strategies/intake-assignee-filter.test.ts": true,
