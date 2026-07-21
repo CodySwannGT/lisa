@@ -13,12 +13,16 @@
  * key at all — otherwise a healthy repository would be reported NOT_READY.
  * @module tests/unit/cli/doctor-readiness-supply-chain
  */
-import { rm } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
   assessDependenciesSupplyChainDimension,
 } from "../../../src/cli/doctor-readiness-supply-chain.js";
+import {
+  checkRepositoryReadiness,
+  resolveReadinessReportPath,
+} from "../../../src/cli/doctor-readiness.js";
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
 import {
   asFindings,
@@ -41,6 +45,9 @@ const PACKAGE_JSON = "package.json";
 
 /** The lockfile most fixtures commit. */
 const BUN_LOCK = "bun.lock";
+
+/** A minimal lockfile body — its presence is what the check reads, not its contents. */
+const LOCKFILE_BODY = '{"lockfileVersion": 1}\n';
 
 /** The update-bot config most fixtures use as their audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
@@ -82,7 +89,7 @@ async function getTempDir(): Promise<string> {
  */
 async function writeCleanRepo(root: string): Promise<void> {
   await writeRepoJson(root, PACKAGE_JSON, PINNED_MANIFEST);
-  await writeRepoFile(root, BUN_LOCK, '{"lockfileVersion": 1}\n');
+  await writeRepoFile(root, BUN_LOCK, LOCKFILE_BODY);
   await writeRepoFile(root, DEPENDABOT_PATH, DEPENDABOT_YML);
 }
 
@@ -92,7 +99,6 @@ afterEach(async () => {
     tempDir = undefined;
   }
 });
-
 describe("assessDependenciesSupplyChainDimension — B5 violations", () => {
   it("FAILs with an evidenced B5 finding when no lockfile is committed", async () => {
     const cwd = await getTempDir();
@@ -180,7 +186,7 @@ describe("assessDependenciesSupplyChainDimension — B5 violations", () => {
   it("FAILs with B5 when nothing anywhere audits the dependency tree", async () => {
     const cwd = await getTempDir();
     await writeRepoJson(cwd, PACKAGE_JSON, PINNED_MANIFEST);
-    await writeRepoFile(cwd, BUN_LOCK, '{"lockfileVersion": 1}\n');
+    await writeRepoFile(cwd, BUN_LOCK, LOCKFILE_BODY);
 
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
@@ -220,13 +226,17 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
     expect(record.status).toBe(PASS);
+    const findings = asFindings(record.findings);
     // Load-bearing: the engine stands a blocker on any finding naming an id with
     // evidence, so a clean finding must not name one at all.
-    for (const finding of asFindings(record.findings)) {
+    for (const finding of findings) {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
     expect(assessReadiness([record]).blockers).toEqual([]);
     expect(assessReadiness([record]).verdict).toBe("READY");
+    // The evidence must claim only what was read: the root manifest, not every
+    // workspace child's (walking those is #1903).
+    expect(findings[0].evidence).toContain("root `package.json`");
   });
 
   it("accepts an audit gate declared only in a CI workflow", async () => {
@@ -317,5 +327,27 @@ describe("dependencies/supply-chain dimension identity", () => {
     expect(DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID).toBe(
       "dependencies-supply-chain"
     );
+  });
+
+  it("is reachable through the collector's producer dispatch, not silently skipped", async () => {
+    const cwd = await getTempDir();
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: "scratch",
+      version: "1.0.0",
+      dependencies: { "left-pad": "*" },
+    });
+
+    await checkRepositoryReadiness(cwd);
+
+    // The producer's registration carries no stated skipReason any more, so a
+    // dropped dispatch entry would fall through to a generic SKIP and quietly
+    // stop assessing this dimension. Pin that it is actually wired.
+    const report = JSON.parse(
+      await readFile(resolveReadinessReportPath(cwd), "utf8")
+    ) as { readonly dimensions: readonly { id: string; status: string }[] };
+    const dimension = report.dimensions.find(
+      entry => entry.id === DIMENSION_ID
+    );
+    expect(dimension?.status).toBe(FAIL);
   });
 });

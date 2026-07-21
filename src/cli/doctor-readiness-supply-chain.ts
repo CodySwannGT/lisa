@@ -27,6 +27,7 @@
  *    stated-reason SKIP — never a violation, and never a false-green PASS.
  * @module cli/doctor-readiness-supply-chain
  */
+import { informationalFindings } from "./doctor-readiness-shared.js";
 import {
   auditExceptionViolations,
   collectSpecs,
@@ -37,6 +38,10 @@ import {
   LOCKFILES,
   readManifest,
 } from "./doctor-readiness-supply-chain-scan.js";
+import {
+  resolveWorkspaceMembers,
+  type WorkspaceMembers,
+} from "./doctor-readiness-workspaces.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 
 /** The dependencies/supply-chain readiness dimension id (readiness-rubric). */
@@ -64,21 +69,52 @@ function lockfileEvidence(specCount: number): string {
 }
 
 /**
+ * Whether a floating-looking spec is really a link to a package in this
+ * repository. `"@acme/utils": "*"` against a workspace member resolves to the
+ * local package, which is the workspace idiom rather than a floating install —
+ * so faulting it would fail every correctly configured monorepo.
+ *
+ * When workspaces are declared but no member name could be resolved (an
+ * unreadable child manifest, an unsupported glob), a bare `*` is exempted
+ * anyway: the repository has told us it links locally, and absence of proof is
+ * not proof of a violation.
+ * @param spec - The declared spec
+ * @param workspaces - What resolving the workspace members established
+ * @returns True when the spec links to a workspace member
+ */
+function linksWorkspaceMember(
+  spec: DependencySpec,
+  workspaces: WorkspaceMembers
+): boolean {
+  if (!workspaces.declared) {
+    return false;
+  }
+  return (
+    workspaces.names.has(spec.name) ||
+    (workspaces.names.size === 0 && spec.spec.trim() === "*")
+  );
+}
+
+/**
  * Assess a repository's dependency confidence model.
  * @param root - Repository root
  * @param specs - Declared dependency specs
+ * @param workspaces - What resolving the workspace members established
  * @returns Evidence lines for violations, and non-blocking observations
  */
 async function collectFindings(
   root: string,
-  specs: readonly DependencySpec[]
+  specs: readonly DependencySpec[],
+  workspaces: WorkspaceMembers
 ): Promise<{
   readonly violations: readonly string[];
   readonly observations: readonly string[];
 }> {
   const lockfile = await findLockfile(root);
   const auditGate = await findAuditGate(root);
-  const floating = specs.filter(spec => isFloatingSpec(spec.spec));
+  const floating = specs.filter(
+    spec => isFloatingSpec(spec.spec) && !linksWorkspaceMember(spec, workspaces)
+  );
   return {
     violations: [
       ...(lockfile === null ? [lockfileEvidence(specs.length)] : []),
@@ -90,10 +126,11 @@ async function collectFindings(
       ),
       ...(auditGate === null
         ? [
-            "no dependency-audit gate was found anywhere — no `npm`/`bun` audit " +
-              "step in `.github/workflows/*.yml`, none in a git hook, and no " +
-              "`dependabot.yml`/`renovate.json` — so a newly disclosed advisory " +
-              "in this tree would never be noticed by anything",
+            "no dependency-audit gate covering the JavaScript tree was found " +
+              "anywhere — no `npm`/`bun` audit step in `.github/workflows/*.yml`, " +
+              "none in a git hook, and no `dependabot.yml` npm entry or " +
+              "`renovate.json` — so a newly disclosed advisory in this tree " +
+              "would never be noticed by anything",
           ]
         : []),
       ...(await auditExceptionViolations(root)),
@@ -103,6 +140,12 @@ async function collectFindings(
       ...(auditGate === null
         ? []
         : [`Dependency-audit gate declared in \`${auditGate}\`.`]),
+      ...(workspaces.declared
+        ? [
+            `Workspaces are declared, so ${workspaces.names.size} locally linked ` +
+              "package name(s) were exempted from the floating-spec check.",
+          ]
+        : []),
     ],
   };
 }
@@ -143,18 +186,6 @@ function supplyChainFinding(
 }
 
 /**
- * Wrap non-blocking observations as findings. They deliberately carry no
- * `blocker` key: naming one would stand a blocker up on an observation.
- * @param notes - Informational lines
- * @returns Findings, one per note
- */
-function informationalFindings(
-  notes: readonly string[]
-): readonly Record<string, unknown>[] {
-  return notes.map(note => ({ observation: note, blocking: false }));
-}
-
-/**
  * Build the stated-reason SKIP for a repository with no assessable manifest.
  * @param reason - Why the dimension was not assessed
  * @returns The SKIP dimension record
@@ -191,7 +222,12 @@ export async function assessDependenciesSupplyChainDimension(
         "confidence is not established either way"
     );
   }
-  const { violations, observations } = await collectFindings(root, specs);
+  const workspaces = await resolveWorkspaceMembers(root, outcome.manifest);
+  const { violations, observations } = await collectFindings(
+    root,
+    specs,
+    workspaces
+  );
   if (violations.length > 0) {
     return {
       id: DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
@@ -208,10 +244,12 @@ export async function assessDependenciesSupplyChainDimension(
     findings: [
       {
         evidence:
-          `Inspected ${specs.length} dependency spec(s) in \`package.json\`: ` +
-          "every one names a version, a lockfile is committed, a dependency " +
-          "audit gate is declared, and every audit exception carries a written " +
-          "decision.",
+          `Inspected ${specs.length} dependency spec(s) in the root ` +
+          "`package.json`: every one names a version or links a workspace " +
+          "member, a lockfile is committed, a dependency-audit gate covering " +
+          "the JavaScript tree is declared, and every active audit exception " +
+          "carries a written decision. Workspace child manifests are not " +
+          "walked, so this speaks only to the root manifest.",
         checked: [SUPPLY_CHAIN_BLOCKER_ID],
       },
       ...informationalFindings(observations),

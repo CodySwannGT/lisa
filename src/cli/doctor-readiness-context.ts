@@ -7,29 +7,40 @@
  * that reads "the pre-commit hook always runs the tests" stops verifying, so a
  * documented guarantee with no mechanism behind it is worse than silence.
  *
- * Cross-checking prose against machinery is false-positive-prone, and a false
- * B6 is expensive: it tells an operator their documentation lies when it does
- * not. Three disciplines follow, and all three are load-bearing:
+ * Cross-checking prose against machinery is false-positive-prone, and a standing
+ * B6 is not a soft signal: the blocker engine reads a finding's `blocker` id and
+ * evidence and never reads its status, so a `WARN` finding naming B6 flips the
+ * whole repository to `NOT_READY` exactly as a `FAIL` one would. The `WARN`
+ * status communicates confidence to a human reader; it does NOT soften the
+ * verdict. **Precision is the only real defense**, which is why three
+ * disciplines are load-bearing here:
  *
- * 1. **WARN, never FAIL.** No offline read of prose is certain enough to fail a
- *    repository on, so this producer's violation status is `WARN`.
- * 2. **Only a named, resolvable mechanism can be faulted.** A claim is reported
- *    only when the sentence itself names a repository path and that path does
- *    not exist. A claim with no named mechanism, one inside a code fence, or a
- *    hedged sentence is surfaced as an unmappable observation — never guessed
- *    into a violation, and never dropped into silence.
- * 3. **A clean finding carries no `blocker` key.** The blocker engine stands a
- *    blocker up on any finding naming an id with evidence regardless of status,
- *    so a PASS finding that named B6 would report a healthy repository as
- *    NOT_READY.
+ * 1. **Only a provable, high-confidence overstatement stands the blocker.** A
+ *    claim is faulted only when the sentence names an in-repository mechanism
+ *    that survives `classifyMechanism` and still does not exist. Package names,
+ *    `org/repo` slugs, git refs, and generated artifacts are classified
+ *    `unmappable` rather than missing.
+ * 2. **Anything short of that is an observation, never a blocker.** A claim with
+ *    no resolvable mechanism, one inside a code fence, or a hedged sentence is
+ *    surfaced as a non-blocking finding — never guessed into a violation, and
+ *    never dropped into silence.
+ * 3. **A clean finding carries no `blocker` key.** A PASS finding that named B6
+ *    would report a healthy repository as NOT_READY.
  * @module cli/doctor-readiness-context
  */
 import {
   collectClaims,
   type EnforcementClaim,
-  pathExists,
-  readFileOrNull,
 } from "./doctor-readiness-context-claims.js";
+import {
+  classifyMechanism,
+  type IgnoreMatcher,
+  loadIgnoreMatcher,
+} from "./doctor-readiness-context-mechanisms.js";
+import {
+  informationalFindings,
+  readFileOrNull,
+} from "./doctor-readiness-shared.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 
 /** The context-routing readiness dimension id (readiness-rubric, RRR-1). */
@@ -68,6 +79,53 @@ interface ClaimAudit {
 }
 
 /**
+ * Cross-check one claim against the mechanisms it names.
+ *
+ * The claim becomes a violation only when at least one named mechanism is
+ * classified `missing` — provably absent AND provably a path this repository
+ * would own. Every other outcome is an observation, because a blocker built on
+ * a token that might be a package name or a git ref would flip a healthy
+ * repository to NOT_READY.
+ * @param root - Repository root
+ * @param claim - The claim to check
+ * @param isIgnored - The repository's ignore matcher
+ * @returns Either a violation line, an unmappable line, or neither
+ */
+async function auditOneClaim(
+  root: string,
+  claim: EnforcementClaim,
+  isIgnored: IgnoreMatcher
+): Promise<{ violation?: string; unmappable?: string }> {
+  const verdicts = await Promise.all(
+    claim.mechanisms.map(async mechanism => ({
+      mechanism,
+      verdict: await classifyMechanism(root, mechanism, isIgnored),
+    }))
+  );
+  const missing = verdicts
+    .filter(entry => entry.verdict === "missing")
+    .map(entry => entry.mechanism);
+  if (missing.length > 0) {
+    const named = missing.map(entry => `\`${entry}\``).join(", ");
+    return {
+      violation:
+        `\`${claim.file}\` line ${claim.line} claims enforcement by ` +
+        `${named}, which does not exist in this repository: ` +
+        `"${quoteClaim(claim.text)}"`,
+    };
+  }
+  if (verdicts.some(entry => entry.verdict === "present")) {
+    return {};
+  }
+  return {
+    unmappable:
+      `\`${claim.file}\` line ${claim.line} states a guarantee but names ` +
+      `no mechanism this check can resolve to a repository path, so it was ` +
+      `not assessed: "${quoteClaim(claim.text)}"`,
+  };
+}
+
+/**
  * Cross-check every claim against the mechanism it names.
  * @param root - Repository root
  * @param claims - The claims read from the instruction surfaces
@@ -77,33 +135,9 @@ async function auditClaims(
   root: string,
   claims: readonly EnforcementClaim[]
 ): Promise<ClaimAudit> {
+  const isIgnored = await loadIgnoreMatcher(root);
   const audited = await Promise.all(
-    claims.map(async claim => {
-      if (claim.mechanisms.length === 0) {
-        return {
-          unmappable:
-            `\`${claim.file}\` line ${claim.line} states a guarantee but names ` +
-            `no mechanism this check can resolve, so it was not assessed: ` +
-            `"${quoteClaim(claim.text)}"`,
-        };
-      }
-      const missing = (
-        await Promise.all(
-          claim.mechanisms.map(async mechanism =>
-            (await pathExists(root, mechanism)) ? [] : [mechanism]
-          )
-        )
-      ).flat();
-      const named = missing.map(entry => `\`${entry}\``).join(", ");
-      return missing.length === 0
-        ? {}
-        : {
-            violation:
-              `\`${claim.file}\` line ${claim.line} claims enforcement by ` +
-              `${named}, which does not exist in this repository: ` +
-              `"${quoteClaim(claim.text)}"`,
-          };
-    })
+    claims.map(async claim => await auditOneClaim(root, claim, isIgnored))
   );
   return {
     violations: audited.flatMap(entry =>
@@ -193,19 +227,6 @@ function contextFinding(
         "every time an agent relies on one",
     ],
   };
-}
-
-/**
- * Wrap non-blocking observations as findings. They deliberately carry no
- * `blocker` key: naming one would stand a blocker up on an observation that was
- * never decidable offline.
- * @param notes - Informational lines
- * @returns Findings, one per note
- */
-function informationalFindings(
-  notes: readonly string[]
-): readonly Record<string, unknown>[] {
-  return notes.map(note => ({ observation: note, blocking: false }));
 }
 
 /**
