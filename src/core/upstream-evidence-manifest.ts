@@ -727,7 +727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
       "b1054acf4a5cbbe5354bd62a22b96533bcbc69b6cb9245976ceb8af638a04494",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
-      "55bc37e79237e14e2a6b7f32ac0d9bfad607f2b22fe2c75fc1ab0b2c3a9dccea",
+      "ba1d8891f3369865d307e00699d5817172f64947d5b0c4e569e2f8e5bb46a9f5",
     "plugins/src/base/scripts/automation-status-contract-drift.mjs":
       "5f3f327fddedd6870017a86f2702d9cbb17352384fb225ab353eed54241182ef",
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs":
@@ -2053,7 +2053,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "8dcbeda2160ce6c443382613a2319fe6253ffe2c0cdeea567034400cdea91152",
+      "2abf4253d9d576b4e16d41efd30a7f3b334c1a1ec2caad442929ab82bd28fc8d",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -7309,6 +7309,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-ci-quality-jobs.ts": true,
     "src/cli/ui-cmd.ts": true,
     "src/cli/ui-config-write.ts": true,
+    "src/cli/ui-confined-project-read.ts": true,
     "src/cli/ui-deploy-pipeline-model.ts": true,
     "src/cli/ui-deploy-pipeline.ts": true,
     "src/cli/ui-detected-stacks.ts": true,
@@ -7321,6 +7322,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-lisa-version.ts": true,
     "src/cli/ui-observability-checks.ts": true,
     "src/cli/ui-observability-providers.ts": true,
+    "src/cli/ui-setup-readiness-config.ts": true,
+    "src/cli/ui-setup-readiness-contract.ts": true,
+    "src/cli/ui-setup-readiness-install.ts": true,
+    "src/cli/ui-setup-readiness-local.ts": true,
+    "src/cli/ui-setup-readiness-remote.ts": true,
+    "src/cli/ui-setup-readiness.ts": true,
     "src/cli/ui-status-json.ts": true,
     "src/cli/ui-status.ts": true,
     "src/cli/update-check.ts": true,
@@ -7603,6 +7610,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-ci-quality-jobs.test.ts": true,
     "tests/unit/cli/ui-cmd.test.ts": true,
     "tests/unit/cli/ui-config-write.test.ts": true,
+    "tests/unit/cli/ui-confined-project-read.test.ts": true,
     "tests/unit/cli/ui-deploy-pipeline-probe.test.ts": true,
     "tests/unit/cli/ui-detected-stacks-probe.test.ts": true,
     "tests/unit/cli/ui-enabled-plugins-probe.test.ts": true,
@@ -7612,6 +7620,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-health.test.ts": true,
     "tests/unit/cli/ui-lisa-version-probe.test.ts": true,
     "tests/unit/cli/ui-observability-providers-probe.test.ts": true,
+    "tests/unit/cli/ui-setup-readiness-endpoint-confinement.test.ts": true,
+    "tests/unit/cli/ui-setup-readiness-endpoint.test.ts": true,
+    "tests/unit/cli/ui-setup-readiness.test.ts": true,
     "tests/unit/cli/ui-status-contract.test.ts": true,
     "tests/unit/cli/ui-status-endpoint.test.ts": true,
     "tests/unit/cli/ui-status-http-edge.test.ts": true,
@@ -7797,6 +7808,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automation-run-record.test.ts": true,
     "tests/unit/strategies/automation-runbook-contract-rule.test.ts": true,
     "tests/unit/strategies/automation-status-claude-adapter.test.ts": true,
+    "tests/unit/strategies/automation-status-codex-adapter-confinement.test.ts": true,
     "tests/unit/strategies/automation-status-codex-adapter.test.ts": true,
     "tests/unit/strategies/automation-status-codex-command-memory.test.ts": true,
     "tests/unit/strategies/automation-status-codex-cwd.test.ts": true,
