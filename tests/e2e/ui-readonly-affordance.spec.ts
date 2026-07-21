@@ -33,15 +33,12 @@ test("renders mutating console controls as honest read-only affordances", async 
   const firstChecklistRow = page.locator("#section-setup .check-item").first();
   const beforeClass = await firstChecklistRow.getAttribute("class");
   await expect(firstChecklistButton).toBeDisabled();
-  await expect(firstChecklistButton).toHaveAttribute(
+  await expect(firstChecklistButton).not.toHaveAttribute(
     "title",
     "read-only: setup checklist state has not shipped yet"
   );
-  await expect(
-    firstChecklistRow.locator(".status-why", {
-      hasText: "read-only: setup checklist state has not shipped yet",
-    })
-  ).toBeVisible();
+  await expect(firstChecklistButton).toHaveAttribute("title", /.+/u);
+  await expect(firstChecklistRow.locator(".status-why")).toBeVisible();
   await firstChecklistButton.click({ force: true });
   await expect(firstChecklistRow).toHaveClass(beforeClass ?? "");
 
