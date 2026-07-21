@@ -185,7 +185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
-      "f374cd1cda0e505f5c725b490c4a1467e64da9aa38584092331682330372161a",
+      "bd2a5220b83c55f777c24fccf07f58bb277b526edc31a472232a8f34a8cfedd2",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -7786,6 +7786,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
+    "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
     "tests/unit/config/gitleaks-template.test.ts": true,
     "tests/unit/config/harper-fabric-template.test.ts": true,
     "tests/unit/config/jest-base.test.ts": true,
