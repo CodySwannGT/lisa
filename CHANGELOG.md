@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.273.0](https://github.com/CodySwannGT/lisa/compare/v2.272.0...v2.273.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** seven-blocker gate and narrowed-claim in readiness assessment ([#1857](https://github.com/CodySwannGT/lisa/issues/1857)) ([f28f81e](https://github.com/CodySwannGT/lisa/commit/f28f81e694f4c32c4cc2015098d333b87a6a1060)), closes [#1855](https://github.com/CodySwannGT/lisa/issues/1855) [#1853](https://github.com/CodySwannGT/lisa/issues/1853) [#1738](https://github.com/CodySwannGT/lisa/issues/1738) [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+
+
+### Bug Fixes
+
+* **doctor:** correct verb agreement for singular ship blocker in narrowed claim ([857deb5](https://github.com/CodySwannGT/lisa/commit/857deb5f4133bba5db9c774d298957c9adc6aa6c)), closes [CodySwannGT/lisa#1857](https://github.com/CodySwannGT/lisa/issues/1857)
+
 ## [2.272.0](https://github.com/CodySwannGT/lisa/compare/v2.271.0...v2.272.0) (2026-07-21)
 
 
