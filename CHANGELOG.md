@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.272.0](https://github.com/CodySwannGT/lisa/compare/v2.271.0...v2.272.0) (2026-07-21)
+
+
+### Features
+
+* **health:** add optional agentic composition ([2476321](https://github.com/CodySwannGT/lisa/commit/2476321e67636b73f2e91bfcfdf4481d894ff989)), closes [CodySwannGT/lisa#1522](https://github.com/CodySwannGT/lisa/issues/1522)
+
 ## [2.271.0](https://github.com/CodySwannGT/lisa/compare/v2.270.0...v2.271.0) (2026-07-21)
 
 
