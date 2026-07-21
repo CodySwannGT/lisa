@@ -18,6 +18,9 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseRepositoryWorkflows } from "../../../src/cli/doctor-readiness-workflows.js";
 
+/** A no-op step reused by fixtures that only exercise workflow metadata. */
+const RUN_ECHO = "      - run: echo hi";
+
 let tempDir: string | undefined;
 
 /**
@@ -147,6 +150,72 @@ describe("parseRepositoryWorkflows", () => {
     expect(workflows[0].jobs[0].uses).toBe("./.github/workflows/quality.yml");
     expect(workflows[0].jobs[1].needs).toEqual(["quality"]);
     expect(workflows[0].jobs[1].permissions).toBe("write-all");
+  });
+
+  it("captures the trigger block, including push branches and tags", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(
+      cwd,
+      "tagged.yml",
+      [
+        "name: Tagged",
+        "on:",
+        "  push:",
+        "    tags: ['v*']",
+        "  workflow_dispatch:",
+        "jobs:",
+        "  noop:",
+        "    steps:",
+        RUN_ECHO,
+        "",
+      ].join("\n")
+    );
+    await writeWorkflow(
+      cwd,
+      "called.yml",
+      [
+        "name: Called",
+        "on:",
+        "  workflow_call:",
+        "    inputs: {}",
+        "jobs:",
+        "  noop:",
+        "    steps:",
+        RUN_ECHO,
+        "",
+      ].join("\n")
+    );
+
+    const [called, tagged] = await parseRepositoryWorkflows(cwd);
+
+    expect(called.on.events).toEqual(["workflow_call"]);
+    expect(called.on.pushBranches).toEqual([]);
+    expect(tagged.on.events).toEqual(["push", "workflow_dispatch"]);
+    expect(tagged.on.pushTags).toEqual(["v*"]);
+    expect(tagged.on.pushBranches).toEqual([]);
+  });
+
+  it("normalizes a scalar and list trigger into the same shape", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(
+      cwd,
+      "scalar.yml",
+      [
+        "name: Scalar",
+        "on: push",
+        "jobs:",
+        "  a:",
+        "    steps:",
+        RUN_ECHO,
+        "",
+      ].join("\n")
+    );
+
+    const [workflow] = await parseRepositoryWorkflows(cwd);
+
+    expect(workflow.on.events).toEqual(["push"]);
+    expect(workflow.on.pushBranches).toEqual([]);
+    expect(workflow.on.pushTags).toEqual([]);
   });
 
   it("reads .yaml files and skips a file that cannot be parsed", async () => {

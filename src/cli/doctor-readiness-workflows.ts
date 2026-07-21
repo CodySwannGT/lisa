@@ -29,6 +29,21 @@ const WORKFLOWS_DIR = path.join(".github", "workflows");
  */
 export type WorkflowBlock = Record<string, unknown> | string | null;
 
+/**
+ * A workflow's `on:` trigger block, normalized across its three legal spellings
+ * (scalar, list, map). The trigger is load-bearing for readiness: it decides
+ * whether the *absence* of an in-file validating job proves a bypass or merely
+ * means the proof lives somewhere this parser cannot see.
+ */
+export interface ParsedWorkflowTrigger {
+  /** Declared event names, e.g. `push`, `workflow_call`, `workflow_run`. */
+  readonly events: readonly string[];
+  /** Branch filters on a `push` trigger (empty when unfiltered or absent). */
+  readonly pushBranches: readonly string[];
+  /** Tag filters on a `push` trigger (empty when unfiltered or absent). */
+  readonly pushTags: readonly string[];
+}
+
 /** One step inside a parsed workflow job. */
 export interface ParsedWorkflowStep {
   readonly name: string;
@@ -64,6 +79,8 @@ export interface ParsedWorkflow {
   readonly name: string;
   /** Workflow-level `permissions`: a map, a scalar, or null. */
   readonly permissions: WorkflowBlock;
+  /** The normalized `on:` trigger block. */
+  readonly on: ParsedWorkflowTrigger;
   readonly jobs: readonly ParsedWorkflowJob[];
 }
 
@@ -109,6 +126,25 @@ function asEnvironments(value: unknown): readonly string[] {
     return typeof value.name === "string" ? [value.name.trim()] : [];
   }
   return asStringList(value);
+}
+
+/**
+ * Normalize the `on:` block, which GitHub accepts as a scalar (`on: push`), a
+ * list (`on: [push, workflow_dispatch]`), or a map with per-event filters.
+ * @param value - Candidate YAML `on` value
+ * @returns The normalized trigger (all fields empty when absent or unreadable)
+ */
+function parseTrigger(value: unknown): ParsedWorkflowTrigger {
+  if (!isJsonObject(value)) {
+    return { events: asStringList(value), pushBranches: [], pushTags: [] };
+  }
+  const push = value.push;
+  const filters = isJsonObject(push) ? push : undefined;
+  return {
+    events: Object.keys(value),
+    pushBranches: asStringList(filters?.branches),
+    pushTags: asStringList(filters?.tags),
+  };
 }
 
 /**
@@ -222,6 +258,7 @@ async function parseOneWorkflow(
       file,
       name: typeof record.name === "string" ? record.name : fileName,
       permissions: asBlock(record.permissions),
+      on: parseTrigger(record.on),
       jobs: parseJobs(record, file),
     };
   } catch {

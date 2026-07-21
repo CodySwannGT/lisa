@@ -55,11 +55,16 @@ const READINESS_REPORT_DISPLAY_PATH = path.join(".lisa", "readiness.json");
  */
 export const READINESS_SCHEMA_VERSION = 1;
 
-/** One readiness dimension descriptor. */
+/**
+ * One readiness dimension descriptor. `skipReason` is stated only for dimensions
+ * whose evidence surface has not shipped yet: a dimension registered in
+ * {@link DIMENSION_PRODUCERS} states its own reason when it cannot assess
+ * something, so a second reason here would be dead text that drifts out of date.
+ */
 interface ReadinessDimensionSpec {
   readonly id: string;
   readonly question: string;
-  readonly skipReason: string;
+  readonly skipReason?: string;
 }
 
 /**
@@ -96,8 +101,6 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "execution-proof",
     question:
       "Can the claimed user-visible outcome be proved by running the system (verification, empirical-inquiry, claim-evidence-mapping)?",
-    skipReason:
-      "Execution/proof consumes qualification evidence and representative journeys wired by RRR-6 (#1858); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "feedback-guardrails",
@@ -117,15 +120,11 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "delivery-authority",
     question:
       "Does the thing that ships equal the thing that was validated, and does the shipping credential carry only the authority it needs (claim-archaeology, security-audit-handling)?",
-    skipReason:
-      "Delivery/authority is assessed offline from .github/workflows/*.yml (#1896); this reason is reached only when that producer is unavailable.",
   },
   {
     id: "proportionality",
     question:
       "Is the machinery proportional to the job, or is there scaffolding to subtract (repo-scope-split, #1742 subtraction candidates)?",
-    skipReason:
-      "Proportionality reuses the scaffolding-subtraction candidates surfaced by the journey work (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
   },
 ];
 
@@ -295,18 +294,49 @@ async function buildReadinessDimensions(
       async (dimension): Promise<ReadinessDimensionRecord> => {
         const produce = DIMENSION_PRODUCERS[dimension.id];
         return produce
-          ? await produce(targetPath)
-          : reasonedSkip(dimension.skipReason, dimension.id);
+          ? await runDimensionProducer(dimension.id, targetPath, produce)
+          : reasonedSkip(
+              dimension.skipReason ??
+                `No readiness probe is wired for the ${dimension.id} dimension ` +
+                  "in this Lisa version, so it was not assessed.",
+              dimension.id
+            );
       }
     )
   );
 }
 
 /**
+ * Run one dimension's producer behind an error boundary. A producer that throws
+ * degrades its own dimension to a stated-reason SKIP instead of aborting the
+ * whole readiness check — losing one dimension is recoverable, losing the report
+ * is not, and the operator is told which dimension failed and why.
+ * @param id - The dimension id
+ * @param targetPath - Project path to assess
+ * @param produce - The dimension's producer
+ * @returns The produced record, or a stated-reason SKIP on failure
+ */
+export async function runDimensionProducer(
+  id: string,
+  targetPath: string,
+  produce: DimensionProducer
+): Promise<ReadinessDimensionRecord> {
+  try {
+    return await produce(targetPath);
+  } catch (error) {
+    return reasonedSkip(
+      `The ${id} readiness probe could not complete, so this dimension was not ` +
+        `assessed: ${error instanceof Error ? error.message : String(error)}`,
+      id
+    );
+  }
+}
+
+/**
  * Produce one dimension's record from the project path. Every producer is
  * offline by construction — readiness must be assessable with no network.
  */
-type DimensionProducer = (
+export type DimensionProducer = (
   targetPath: string
 ) => Promise<ReadinessDimensionRecord>;
 
