@@ -36,6 +36,12 @@ const BUN_LOCK = "bun.lock";
 /** A minimal lockfile body — its presence is what the check reads, not its contents. */
 const LOCKFILE_BODY = '{"lockfileVersion": 1}\n';
 
+/** The monorepo fixture's root package name. */
+const MONOREPO_NAME = "scratch-monorepo";
+
+/** The workspace glob the monorepo fixtures declare. */
+const WORKSPACE_GLOB = "packages/*";
+
 /** The update-bot config most fixtures use as their audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
 
@@ -92,9 +98,9 @@ describe("assessDependenciesSupplyChainDimension — configurations that must NO
     await writeRepoFile(cwd, BUN_LOCK, LOCKFILE_BODY);
     await writeRepoFile(cwd, DEPENDABOT_PATH, DEPENDABOT_YML);
     await writeRepoJson(cwd, PACKAGE_JSON, {
-      name: "scratch-monorepo",
+      name: MONOREPO_NAME,
       version: "1.0.0",
-      workspaces: ["packages/*"],
+      workspaces: [WORKSPACE_GLOB],
       dependencies: { "@acme/utils": "*", "js-yaml": "^4.1.0" },
     });
     await writeRepoJson(cwd, "packages/utils/package.json", {
@@ -115,9 +121,9 @@ describe("assessDependenciesSupplyChainDimension — configurations that must NO
     await writeRepoFile(cwd, BUN_LOCK, LOCKFILE_BODY);
     await writeRepoFile(cwd, DEPENDABOT_PATH, DEPENDABOT_YML);
     await writeRepoJson(cwd, PACKAGE_JSON, {
-      name: "scratch-monorepo",
+      name: MONOREPO_NAME,
       version: "1.0.0",
-      workspaces: ["packages/*"],
+      workspaces: [WORKSPACE_GLOB],
       dependencies: { "@acme/core": "workspace:*" },
     });
 
@@ -290,5 +296,62 @@ describe("assessDependenciesSupplyChainDimension — configurations that must NO
       candidate => candidate.blocker === BLOCKER_ID
     );
     expect(finding?.evidence).toContain("further finding(s) of the same kind");
+  });
+
+  it("never faults an archive URL that names one immutable artifact", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: "scratch",
+      version: "1.0.0",
+      dependencies: {
+        tarball: "https://registry.internal/widget-1.2.3.tgz",
+        zipped: "https://registry.internal/gadget-4.5.6.zip",
+      },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    // An archive URL names one built artifact; it cannot resolve to something
+    // newer tomorrow, so demanding a `#ref` of it invents a violation.
+    expect(record.status).toBe(PASS);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("still faults a git URL that resolves to whatever the default branch holds", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: "scratch",
+      version: "1.0.0",
+      dependencies: {
+        headtracking: "git+https://example.com/acme/widget.git",
+        refpinned: "git+https://example.com/acme/gadget.git#v2.0.0",
+      },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain("headtracking");
+    expect(finding?.evidence).not.toContain("refpinned");
+  });
+
+  it("never treats a registry package merely named like a git host as a source fetch", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: "scratch",
+      version: "1.0.0",
+      dependencies: { "bitbucket-client": "^2.1.0" },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(PASS);
+    expect(assessReadiness([record]).blockers).toEqual([]);
   });
 });
