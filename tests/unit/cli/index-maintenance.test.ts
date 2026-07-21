@@ -49,6 +49,7 @@ describe("maintenance command invocation", () => {
     );
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Correctness / command routing).
   it("routes standards-proof without running the update warning", async () => {
     const { program, runStandardsProofCli, runUpdateCheck } =
       createTestProgram();

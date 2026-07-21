@@ -100,6 +100,7 @@ describe("standards Git state", () => {
     );
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Reliability / diagnostic accuracy).
   it("preserves the parent-commit error for a true root commit", async () => {
     const repo = await repository();
     await expect(requireStandardsBaseCommit(repo)).rejects.toThrow(
@@ -107,6 +108,7 @@ describe("standards Git state", () => {
     );
   });
 
+  // Test hardened to kill mutant M002 (Risk Factor: Correctness / threshold base selection).
   it("returns the parent commit when complete history is available", async () => {
     const repo = await repository();
     const parent = git(["rev-parse", "HEAD"]);
@@ -116,6 +118,7 @@ describe("standards Git state", () => {
     await expect(requireStandardsBaseCommit(repo)).resolves.toBe(parent);
   });
 
+  // Test hardened to kill mutant M003 (Risk Factor: Reliability / CI checkout recovery).
   it("gives fetch-depth guidance when the parent is hidden by a shallow clone", async () => {
     const source = await repository();
     await writeFile(path.join(source, README), "second commit\n");

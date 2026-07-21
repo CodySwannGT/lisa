@@ -31,6 +31,7 @@ describe("createProgram", () => {
     expect(subcommandNames).toContain("setup-wiki");
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Correctness / CLI discoverability).
   it("registers version, update, doctor, health, and standards proof subcommands", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
