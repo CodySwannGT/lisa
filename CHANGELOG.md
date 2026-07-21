@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.277.0](https://github.com/CodySwannGT/lisa/compare/v2.276.0...v2.277.0) (2026-07-21)
+
+
+### Features
+
+* **automations:** warn on readiness blockers and document the readiness rubric ([#1859](https://github.com/CodySwannGT/lisa/issues/1859)) ([a93a667](https://github.com/CodySwannGT/lisa/commit/a93a6672121428318f8fee960452148592bd62bf)), closes [#1739](https://github.com/CodySwannGT/lisa/issues/1739)
+
 ## [2.276.0](https://github.com/CodySwannGT/lisa/compare/v2.275.0...v2.276.0) (2026-07-21)
 
 
