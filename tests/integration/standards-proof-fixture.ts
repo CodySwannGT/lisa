@@ -103,7 +103,7 @@ export async function createTypescriptRepository(): Promise<string> {
   await writeFile(path.join(root, "scripts/gate.mjs"), TYPESCRIPT_GATE);
   await writeFile(
     path.join(root, "scripts/check-threshold-ratchet.mjs"),
-    "process.exit(0);\n"
+    TYPESCRIPT_THRESHOLD_GATE
   );
   const names = [
     "lint",
@@ -209,7 +209,9 @@ export async function proofResidue(root: string): Promise<readonly string[]> {
   return (await readdir(directory)).filter(name => name !== "latest.json");
 }
 
-const TYPESCRIPT_GATE = `import { readFileSync } from "node:fs";
+const TYPESCRIPT_GATE = `import { appendFileSync, readFileSync } from "node:fs";
+const sentinel = process.env.LISA_STANDARDS_EXECUTION_SENTINEL;
+if (sentinel) appendFileSync(sentinel, "executed\\n");
 const gate = process.argv[2] ?? "";
 const mode = readFileSync("test-mode.txt", "utf8").trim();
 if (gate === "lint" && (mode === "nonzero" || readFileSync("lint-target.txt", "utf8").includes("VIOLATION"))) {
@@ -221,6 +223,11 @@ if (gate.startsWith("test")) {
   else if (mode === "skipped") process.stdout.write("Tests  1 skipped (1)\\n");
   else process.stdout.write("Tests  1 passed (1)\\n");
 }
+`;
+
+const TYPESCRIPT_THRESHOLD_GATE = `import { appendFileSync } from "node:fs";
+const sentinel = process.env.LISA_STANDARDS_EXECUTION_SENTINEL;
+if (sentinel) appendFileSync(sentinel, "executed\\n");
 `;
 
 const RAILS_EXECUTABLE = `const fs = require("node:fs");

@@ -7591,6 +7591,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-fixture.ts": true,
     "tests/integration/standards-proof-rails.test.ts": true,
     "tests/integration/standards-proof-tamper.test.ts": true,
+    "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
