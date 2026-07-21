@@ -24,6 +24,11 @@ export const DECOMPOSITION =
   "plugins/src/base/skills/lisa-task-decomposition/SKILL.md";
 /** DEP-3: the manifest-authoritative duplicate-version detector. */
 export const DUPLICATE_CHECK = "scripts/check-duplicate-versions.mjs";
+/** DEP-2's canonical rule pair — the taxonomy every other surface defers to. */
+export const TRUST_CLASS_EAGER =
+  "plugins/src/base/rules/eager/dependency-trust-classes.md";
+export const TRUST_CLASS_REFERENCE =
+  "plugins/src/base/rules/reference/dependency-trust-classes.md";
 /** The operator walkthrough this layer is documented by (#1891 §4). */
 export const OPERATOR_DOC =
   "wiki/playbooks/dependency-ownership-operator-guide.md";

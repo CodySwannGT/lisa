@@ -19,5 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: package.json
-      - name: Smoke-test the payment client at the manifest's pinned version
-        run: bash scripts/verify-payments.sh
+      # Named for what it does. It installs the pinned client and asserts
+      # nothing about behavior, so calling it a smoke test would put a claim in
+      # the pipeline that the decision record would then inherit.
+      - name: Install the payment client at the manifest's pinned version
+        run: bash scripts/install-payment-client.sh

@@ -60,6 +60,8 @@ import {
   SCAFFOLD,
   SEED,
   TRUST_CLASSES,
+  TRUST_CLASS_EAGER,
+  TRUST_CLASS_REFERENCE,
   byName,
   flat,
   read,
@@ -81,8 +83,8 @@ describe("the dependency-ownership layer speaks one vocabulary", () => {
     // the record could never resolve, and the layer would be five documents that
     // merely look related.
     const surfaces = [
-      read("plugins/src/base/rules/eager/dependency-trust-classes.md"),
-      read("plugins/src/base/rules/reference/dependency-trust-classes.md"),
+      read(TRUST_CLASS_EAGER),
+      read(TRUST_CLASS_REFERENCE),
       read(DECOMPOSITION),
       read(OPERATOR_DOC),
     ].map(text => text.toLowerCase());
@@ -117,21 +119,29 @@ describe("the dependency-ownership layer speaks one vocabulary", () => {
     }
   });
 
-  it("uses the same nine record fields, in order, across scaffold, seed, and both journeys", () => {
+  it("uses the same nine record fields, in order, inside EVERY entry", () => {
     // DEP-1 fixes the shape, DEP-4 dogfoods it, both journeys append to it. One
     // divergent or reordered label makes the section unappendable by script.
-    for (const record of [
+    //
+    // Validated per ENTRY, not per document: scanning the whole file would let a
+    // well-formed first entry mask a later one that dropped or reordered a
+    // field, which is precisely the drift this assertion exists to catch.
+    const entries = [
       read(SCAFFOLD),
       read(SEED),
       readRecord(ADDITION_PROJECT),
       readRecord(INTERNALIZATION_PROJECT),
-    ]) {
+    ].flatMap(record => readEntries(record));
+
+    expect(entries.length).toBeGreaterThanOrEqual(4);
+    for (const entry of entries) {
       let cursor = -1;
       for (const label of FIELD_LABELS) {
-        const next = record.indexOf(label, cursor + 1);
-        expect(next, `missing or out-of-order field: ${label}`).toBeGreaterThan(
-          cursor
-        );
+        const next = entry.body.indexOf(label, cursor + 1);
+        expect(
+          next,
+          `entry "${entry.heading}": missing or out-of-order field ${label}`
+        ).toBeGreaterThan(cursor);
         cursor = next;
       }
     }
@@ -141,7 +151,7 @@ describe("the dependency-ownership layer speaks one vocabulary", () => {
     for (const surface of [
       read("plugins/src/base/rules/eager/dependency-decision-records.md"),
       read("plugins/src/base/rules/reference/dependency-decision-records.md"),
-      read("plugins/src/base/rules/eager/dependency-trust-classes.md"),
+      read(TRUST_CLASS_EAGER),
       read(DECOMPOSITION),
       read(ADDITION_TICKET),
       read(OPERATOR_DOC),
@@ -179,9 +189,7 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
 
     expect(declared).toBe("runtime-critical service client");
     expect(TRUST_CLASSES).toContain(declared);
-    expect(
-      read("plugins/src/base/rules/reference/dependency-trust-classes.md")
-    ).toContain(declared ?? "");
+    expect(read(TRUST_CLASS_REFERENCE)).toContain(declared ?? "");
   });
 
   it("resolves the record's trust basis to the class the work item named", () => {
@@ -193,15 +201,45 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
     );
   });
 
-  it("answers detection evidence rather than deferring it, as this class demands", () => {
-    // The taxonomy forbids blind trust in this class specifically, so the
-    // integration bar is stricter than the scaffold's general one: no gap marker
-    // anywhere in an entry for something that reaches money.
-    expect(entry?.body).toContain("integration test");
+  it("marks detection evidence as an open gap instead of claiming a check that does not exist", () => {
+    // The fixture project ships no test that exercises the payment client, so a
+    // record naming one would be a false claim — the exact failure this layer
+    // exists to prevent. An honest `_Not yet decided_` is the correct entry.
     expect(entry?.body).toContain(
+      "**What would catch a bad update (detection evidence):** `_Not yet decided_`"
+    );
+    expect(entry?.body).toContain("**Class requirement not currently met:**");
+    // Only the detection field defers. The other eight are answered, so the gap
+    // is a specific missing check rather than an unwritten record.
+    expect(entry?.body.split("_Not yet decided_").length - 1).toBe(1);
+  });
+
+  it("treats that gap as an escalation, because this class forbids blind trust", () => {
+    // The taxonomy's rule for this class: "nothing would catch it" is a
+    // rejection, not a disclosure. The record has to say which of the two it is.
+    expect(entry?.body).toContain("this line is an escalation, not a to-do");
+    expect(read(TRUST_CLASS_REFERENCE)).toContain(
       '"Nothing would catch it" is not an acceptable answer in this class'
     );
-    expect(entry?.body).not.toContain("_Not yet decided_");
+  });
+
+  it("keeps the install-only script from posing as detection evidence", () => {
+    // The script derives the pin and installs it. Naming it a smoke test in the
+    // workflow would put a claim in the pipeline that the record would inherit.
+    const script = read(
+      path.join(ADDITION_PROJECT, "scripts/install-payment-client.sh")
+    );
+    const workflow = read(
+      path.join(ADDITION_PROJECT, ".github/workflows/deploy.yml")
+    );
+
+    expect(script).toContain("It INSTALLS and nothing more.");
+    expect(workflow).toContain(
+      "Install the payment client at the manifest's pinned version"
+    );
+    expect(workflow).not.toContain("Smoke-test");
+    // The record names the script only to explain what it does NOT prove.
+    expect(entry?.body).toContain("asserts nothing about behavior");
   });
 
   it("leaves the manifest as the only edit site for the new pin", () => {
@@ -228,7 +266,7 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
     // detector names both arms — install pin and toolchain pin.
     const root = mkdtempSync(path.join(tmpdir(), "dep-ownership-"));
     const workflow = path.join(root, ".github/workflows/deploy.yml");
-    const script = path.join(root, "scripts/verify-payments.sh");
+    const script = path.join(root, "scripts/install-payment-client.sh");
 
     temporaryRoots.push(root);
     cpSync(path.resolve(ADDITION_PROJECT), root, { recursive: true });

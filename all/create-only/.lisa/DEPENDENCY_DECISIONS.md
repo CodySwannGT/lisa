@@ -48,16 +48,23 @@ script without rewriting the rest of the file:
 ## The rest of the dependency-ownership layer
 
 This file is one of five parts, and it is the only one that lives in your
-project. The other four are reachable from here, so you never have to know where
-Lisa keeps things. Paths below are relative to this project's root.
+project's own source. Three of the other four are still readable from here,
+because they ship inside the installed Lisa package — paths starting
+`node_modules/` below. The remaining two exist only in the Lisa project itself
+and are called out as such; do not go looking for them in this repository.
+
+**Installed in this project** (readable from your project root):
 
 - **The six trust classes** — how much scrutiny a dependency deserves, set by
   what it can reach rather than by how famous it is. The six are: mature
   ecosystem primitive, fast-moving standard implementation, build/development
   tool, runtime-critical service client, thin wrapper suitable for in-house
-  ownership, and temporary/experimental dependency. Two of them —
-  runtime-critical service clients and temporary/experimental dependencies —
-  require a human to sign off before the dependency is added. The full
+  ownership, and temporary/experimental dependency. Sign-off rules differ by
+  class and by moment: a **runtime-critical service client** needs a human
+  sign-off to be added and at every major upgrade; a **temporary/experimental
+  dependency** needs none to be added — moving fast is the point — but must
+  carry a written expiry date no more than one quarter out and a named exit, and
+  then needs sign-off to extend past that date or to promote it. The full
   definitions, with the evidence each class demands, are at
   `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-trust-classes.md`.
   Your coding agent already has these loaded, so "which trust class is this, and
@@ -85,16 +92,20 @@ Lisa keeps things. Paths below are relative to this project's root.
   it unless you do. It also deliberately under-reports rather than over-reports,
   so a clean run is not proof that no pin was duplicated.
 
+**Not shipped here — they exist only in the Lisa project.** Neither path below
+resolves from this repository; you would have to open Lisa's own repository to
+read them, and you do not need either one to use this file.
+
 - **A worked, filled-in example** — Lisa keeps this same file for its own
   dependencies, written from repository evidence only, with every unanswered
-  field tracked as a ticket rather than guessed. It is not shipped into your
-  project; it lives in the Lisa project at `.lisa/DEPENDENCY_DECISIONS.md`.
+  field tracked as a ticket rather than guessed. In the Lisa project it is at
+  `.lisa/DEPENDENCY_DECISIONS.md`.
 
 - **The full operator walkthrough** — a plain-language guide to deciding whether
   a proposed dependency change is acceptable, with a checklist for each of the
   three shapes (adding a dependency, taking one in-house, an ordinary version
-  bump). It is not shipped with the package either; it lives in the Lisa project
-  at `wiki/playbooks/dependency-ownership-operator-guide.md`.
+  bump). In the Lisa project it is at
+  `wiki/playbooks/dependency-ownership-operator-guide.md`.
 
 Nothing above is enforced by a build gate. Nothing blocks a change that skips
 this file, names no trust class, or removes a dependency with no rebuild
