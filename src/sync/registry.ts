@@ -69,6 +69,56 @@ const WHEN_TRACKER_LINEAR = "tracker=linear";
 const WHEN_SOURCE_LINEAR = "source=linear";
 const WHEN_SOURCE_NOTION = "source=notion";
 
+/** One provider's exact setup scope contract. */
+export interface SetupProviderRequirement {
+  readonly allOf: readonly string[];
+  readonly anyOf?: readonly string[];
+  readonly setupHint: string;
+}
+
+/**
+ * Authoritative tracker/PRD-source setup requirements. Config sync and
+ * read-only readiness consumers share this map so provider lanes cannot drift.
+ */
+export const SETUP_PROVIDER_REQUIREMENTS: Readonly<{
+  tracker: Readonly<Record<string, SetupProviderRequirement>>;
+  source: Readonly<Record<string, SetupProviderRequirement>>;
+}> = {
+  tracker: {
+    github: {
+      allOf: ["github.org", "github.repo"],
+      setupHint: "/lisa:setup:github",
+    },
+    jira: {
+      allOf: ["jira.project", "atlassian.cloudId"],
+      setupHint: "/lisa:setup:jira",
+    },
+    linear: {
+      allOf: ["linear.workspace", "linear.teamKey"],
+      setupHint: "/lisa:setup:linear",
+    },
+  },
+  source: {
+    github: {
+      allOf: ["github.org", "github.repo"],
+      setupHint: "/lisa:setup:github",
+    },
+    notion: {
+      allOf: ["notion.workspaceId", "notion.prdDatabaseId"],
+      setupHint: "/lisa:setup:notion",
+    },
+    linear: {
+      allOf: ["linear.workspace"],
+      setupHint: "/lisa:setup:linear",
+    },
+    confluence: {
+      allOf: ["atlassian.cloudId"],
+      anyOf: ["confluence.spaceKey", "confluence.parentPageId"],
+      setupHint: "/lisa:setup:confluence",
+    },
+  },
+};
+
 const COVERAGE_DEFAULTS: JsonValue = {
   global: { statements: 70, branches: 70, functions: 70, lines: 70 },
 };
@@ -266,43 +316,43 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
 export const REQUIRED_KEYS: readonly RequiredKey[] = [
   { key: "tracker", setupHint: "/lisa:setup:jira | github | linear" },
   {
-    key: "jira.project",
+    key: SETUP_PROVIDER_REQUIREMENTS.tracker.jira!.allOf[0]!,
     relevantWhen: [WHEN_TRACKER_JIRA],
-    setupHint: "/lisa:setup:jira",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.tracker.jira!.setupHint,
   },
   {
-    key: "atlassian.cloudId",
+    key: SETUP_PROVIDER_REQUIREMENTS.tracker.jira!.allOf[1]!,
     relevantWhen: [WHEN_TRACKER_JIRA, "source=confluence"],
     setupHint: "/lisa:setup:atlassian",
   },
   {
-    key: "github.org",
+    key: SETUP_PROVIDER_REQUIREMENTS.tracker.github!.allOf[0]!,
     relevantWhen: [WHEN_TRACKER_GITHUB, WHEN_SOURCE_GITHUB],
-    setupHint: "/lisa:setup:github",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.tracker.github!.setupHint,
   },
   {
-    key: "github.repo",
+    key: SETUP_PROVIDER_REQUIREMENTS.tracker.github!.allOf[1]!,
     relevantWhen: [WHEN_TRACKER_GITHUB, WHEN_SOURCE_GITHUB],
-    setupHint: "/lisa:setup:github",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.tracker.github!.setupHint,
   },
   {
-    key: "linear.workspace",
+    key: SETUP_PROVIDER_REQUIREMENTS.tracker.linear!.allOf[0]!,
     relevantWhen: [WHEN_TRACKER_LINEAR, WHEN_SOURCE_LINEAR],
-    setupHint: "/lisa:setup:linear",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.tracker.linear!.setupHint,
   },
   {
-    key: "linear.teamKey",
+    key: SETUP_PROVIDER_REQUIREMENTS.tracker.linear!.allOf[1]!,
     relevantWhen: [WHEN_TRACKER_LINEAR],
-    setupHint: "/lisa:setup:linear",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.tracker.linear!.setupHint,
   },
   {
-    key: "notion.workspaceId",
+    key: SETUP_PROVIDER_REQUIREMENTS.source.notion!.allOf[0]!,
     relevantWhen: [WHEN_SOURCE_NOTION],
-    setupHint: "/lisa:setup:notion",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.source.notion!.setupHint,
   },
   {
-    key: "notion.prdDatabaseId",
+    key: SETUP_PROVIDER_REQUIREMENTS.source.notion!.allOf[1]!,
     relevantWhen: [WHEN_SOURCE_NOTION],
-    setupHint: "/lisa:setup:notion",
+    setupHint: SETUP_PROVIDER_REQUIREMENTS.source.notion!.setupHint,
   },
 ];

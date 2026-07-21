@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -9,6 +9,7 @@ import {
   runProbe,
   runUi,
 } from "../../../src/cli/ui-cmd.js";
+import { readConfinedDetectedStacks } from "../../../src/cli/ui-detected-stacks.js";
 import { DetectorRegistry } from "../../../src/detection/index.js";
 
 /** Holder for per-test temp resources. */
@@ -36,6 +37,23 @@ afterEach(async () => {
 });
 
 describe("createDetectedStacksProbe", () => {
+  it("rejects package evidence that is an external symlink", async () => {
+    const outside = await mkdtemp(
+      path.join(tmpdir(), "lisa-detected-stacks-outside-")
+    );
+    try {
+      const target = path.join(outside, "package.json");
+      await writeFile(target, '{"dependencies":{"expo":"latest"}}\n');
+      await symlink(target, path.join(resources.dir, "package.json"));
+
+      await expect(readConfinedDetectedStacks(resources.dir)).rejects.toThrow(
+        /Unsafe/u
+      );
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it("registers with the detected-stacks id and a bounded timeout", () => {
     const probe = createDetectedStacksProbe(resources.dir);
 
