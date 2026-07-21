@@ -9,6 +9,7 @@ import {
   resolveProjectPath,
 } from "../health/read-only-fs.js";
 import { requireCanonicalUtcTimestamp } from "../health/strict-validation.js";
+import { standardsProofFinding } from "../standards/readiness.js";
 import {
   setupFinding,
   type SetupReadinessCheck,
@@ -30,12 +31,14 @@ export const STANDARDS_HEALTH_CHECKS = [
 
 /**
  * Never upgrade standards adoption without current lint/test preservation proof.
+ * @param projectRoot - Project root whose proof should be validated
  * @param health - Current deterministic Health evidence, when available
  * @returns Standards-adoption readiness finding
  */
-export function standardsFinding(
+export async function standardsFinding(
+  projectRoot: string,
   health: HealthResult | undefined
-): SetupReadinessFinding {
+): Promise<SetupReadinessFinding> {
   const managed = healthEvidenceFinding(
     "setup.standards",
     health,
@@ -44,11 +47,7 @@ export function standardsFinding(
     "fail"
   );
   return managed.status === "pass"
-    ? setupFinding(
-        "setup.standards",
-        "warn",
-        "Managed standards surfaces are current, but bounded current lint, test, and behavior-preservation proof is unavailable."
-      )
+    ? await standardsProofFinding(projectRoot)
     : managed;
 }
 
