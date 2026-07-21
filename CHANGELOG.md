@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.277.2](https://github.com/CodySwannGT/lisa/compare/v2.277.1...v2.277.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **release:** recover the changelog-push retry from version-line rebase conflicts ([#1884](https://github.com/CodySwannGT/lisa/issues/1884)) ([dae78e6](https://github.com/CodySwannGT/lisa/commit/dae78e60076746485ef716929afbd94a2a5eb08b)), closes [#1848](https://github.com/CodySwannGT/lisa/issues/1848)
+* **test:** isolate push-recovery reproduction from the caller's GIT_* env ([8a9ac97](https://github.com/CodySwannGT/lisa/commit/8a9ac97090a934e4ffaa61a43843873cd5730c0d)), closes [CodySwannGT/lisa#1884](https://github.com/CodySwannGT/lisa/issues/1884)
+
 ### [2.277.1](https://github.com/CodySwannGT/lisa/compare/v2.277.0...v2.277.1) (2026-07-21)
 
 ## [2.277.0](https://github.com/CodySwannGT/lisa/compare/v2.276.0...v2.277.0) (2026-07-21)
