@@ -149,8 +149,8 @@ with `--yes`) the package-manager update command.
 every Lisa-managed surface matches what the installed Lisa version would
 emit. The check is a mix of deterministic and agentic verification,
 packaged as one `/lisa:health` skill backed by the `lisa health` CLI so the
-console button, cron, CLI, and every coding-agent harness share one
-implementation:
+CLI and every coding-agent harness share one implementation; downstream
+console and cron integrations can reuse it:
 
 - **Deterministic layer** (fast, exact — reuses what exists today):
   `lisa doctor`, template diffing for copy-overwrite/managed-block files,

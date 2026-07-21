@@ -38,7 +38,6 @@ import {
   serializeHealthEvaluationRequest,
 } from "../../../src/health/evaluation-protocol.js";
 import { prepareHealthEvaluation } from "../../../src/health/prepare.js";
-import { serializeHealthResult } from "../../../src/health/storage.js";
 
 const STARTED_AT = "2026-07-21T12:00:00.000Z";
 const COMPLETED_AT = "2026-07-21T12:01:00.000Z";
@@ -204,7 +203,7 @@ describe("two-phase Health consumer", () => {
     expect(mocks.writeLatestHealthResult).toHaveBeenCalledOnce();
     expect(run.result.mode).toBe("full");
     expect(run.writeOutcome.result).toBe(run.result);
-    expect(run.serialized).toBe(serializeHealthResult(run.result));
+    expect(run.serialized).toBe(`${JSON.stringify(run.result, null, 2)}\n`);
   });
 
   it.each([
@@ -384,7 +383,7 @@ describe("two-phase Health consumer", () => {
 
     expect(run.writeOutcome.status).toBe("unchanged");
     expect(run.result).toBe(persisted);
-    expect(run.serialized).toBe(serializeHealthResult(persisted));
+    expect(run.serialized).toBe(`${JSON.stringify(persisted, null, 2)}\n`);
     expect(JSON.parse(run.serialized)).toEqual(persisted);
   });
 });
