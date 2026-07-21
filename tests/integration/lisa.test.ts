@@ -52,6 +52,7 @@ const PACKAGE_LISA_DIR = "package-lisa";
 const LISA_MANIFEST = ".lisa-manifest";
 const PROJECT_LEARNINGS = "PROJECT_LEARNINGS.md";
 const LISA_STATE_DIR = ".lisa";
+const DEPENDENCY_DECISIONS = "DEPENDENCY_DECISIONS.md";
 const LISA_CONFIG_JSON = ".lisa.config.json";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
 const WORKFLOWS_DIR = path.join(".github", "workflows");
@@ -163,6 +164,44 @@ describe("Lisa Integration Tests", () => {
       expect(second.success).toBe(true);
       expect(third.success).toBe(true);
       expect(await fs.readFile(learningsPath, "utf8")).toBe(populated);
+    });
+
+    it("seeds the governed dependency decision-record scaffold and never overwrites it", async () => {
+      await createTypeScriptProject(destDir);
+      const recordPath = path.join(
+        destDir,
+        LISA_STATE_DIR,
+        DEPENDENCY_DECISIONS
+      );
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      const seeded = await fs.readFile(recordPath, "utf8");
+
+      // Every required decision-record field reaches the host project.
+      expect(seeded).toContain("<!-- lisa-dependency-decisions:v1 -->");
+      expect(seeded).toContain("**Dependency:**");
+      expect(seeded).toContain("**Why we keep it:**");
+      expect(seeded).toContain("**Owned capability:**");
+      expect(seeded).toContain("**Trust basis:**");
+      expect(seeded).toContain("**Exposure:**");
+      expect(seeded).toContain("**Replacement cost:**");
+      expect(seeded).toContain("**Detection evidence:**");
+      expect(seeded).toContain("**Owner / review cadence:**");
+      expect(seeded).toContain("**Last reviewed:**");
+      expect(seeded).toContain(
+        "### ESLint (EXAMPLE — replace with your own dependencies)"
+      );
+
+      // Host-owned content survives re-apply: Lisa seeds once, never rewrites.
+      const hostAuthored = `${seeded}\n### internal-billing-sdk\n\n- **Dependency:** \`@acme/billing\` \`^3\`\n`;
+      await fs.writeFile(recordPath, hostAuthored);
+
+      const second = await createLisa().apply();
+
+      expect(second.success).toBe(true);
+      expect(await fs.readFile(recordPath, "utf8")).toBe(hostAuthored);
     });
 
     it("keeps the ledger at .lisa regardless of a custom projectRulesFile", async () => {
