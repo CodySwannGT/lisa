@@ -1743,9 +1743,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/config/initializers/version.rb":
       "fa664a84f407877b5ddbd3709a2352b30e4dc6fbce538a8503bad6c52448dc86",
     "rails/copy-overwrite/lefthook.yml":
-      "f0961616c5b61cbae14958cb332194c6f2398e9e7fe36210f37635acc8c82c0b",
+      "28bb382b9171a04fb92ebafc1f1522b8639f5edc4fcffcc6940e7fba3460fb4e",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "6da00221189ed0f8a2938f15e02bcc2633d44f5f05489979fbb94202bc45a6d4",
+    "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
+      "e7121a0ee9e1bf7c01cd2ab55f563dd6d9ab75990739bb6ddf571a513efa10e9",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "8bc4b379d7057b2fecf9cb35820c39efad0a65df7df49073786f996cc2a74810",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -1935,7 +1937,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "30fbbff4fc0f3a6188958ce49cf202ec072ea3fd5965acca7cd12923ed03412d",
     "typescript/copy-contents/.husky/pre-push":
-      "6d3c52cc08f595079c4a12ca7e3e8de010eab7d8b5a9d462eae99c4757cef418",
+      "001b5c2a779cf242c8d49029651f92ebddebf4ab706d58269d46e2be88a9df5b",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -7186,6 +7188,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-clean-git-env.sh": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": true,
     "rails/copy-overwrite/sgconfig.yml": true,
@@ -7756,6 +7759,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
+    "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
