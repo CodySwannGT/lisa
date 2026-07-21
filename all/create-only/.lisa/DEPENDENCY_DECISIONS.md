@@ -45,6 +45,62 @@ script without rewriting the rest of the file:
 - `_Not yet decided_` is the reserved marker for an unanswered field, so
   unfilled entries are visibly honest rather than silently empty.
 
+## The rest of the dependency-ownership layer
+
+This file is one of five parts, and it is the only one that lives in your
+project. The other four are reachable from here, so you never have to know where
+Lisa keeps things. Paths below are relative to this project's root.
+
+- **The six trust classes** — how much scrutiny a dependency deserves, set by
+  what it can reach rather than by how famous it is. The six are: mature
+  ecosystem primitive, fast-moving standard implementation, build/development
+  tool, runtime-critical service client, thin wrapper suitable for in-house
+  ownership, and temporary/experimental dependency. Two of them —
+  runtime-critical service clients and temporary/experimental dependencies —
+  require a human to sign off before the dependency is added. The full
+  definitions, with the evidence each class demands, are at
+  `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-trust-classes.md`.
+  Your coding agent already has these loaded, so "which trust class is this, and
+  what evidence does that class require?" is a question you can just ask it.
+
+- **The confidence-rebuild kit** — the seven things a change must prove when a
+  dependency is removed and the capability rebuilt in-house: real corpus,
+  conformance fixtures, negative fixtures, coverage as a gap detector,
+  provenance and license review, migration and update plan, and rollback or
+  replacement criteria. All seven are required; a partial kit is the finding. It
+  does **not** apply to an ordinary version bump. Full text at
+  `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-internalization-kit.md`.
+
+- **The manifest-authoritative duplicate-pin policy** — a version belongs in
+  `package.json` and nowhere else; every copy of the literal in a workflow or a
+  script is a second edit site a routine bump can miss. Lisa ships a detector
+  you can run against this project:
+
+  ```bash
+  node node_modules/@codyswann/lisa/scripts/check-duplicate-versions.mjs --root . --scan .
+  ```
+
+  Be honest about what it is today: **advisory**. It is not wired into this
+  project's `package.json` scripts and it does not fail a build, so nothing runs
+  it unless you do. It also deliberately under-reports rather than over-reports,
+  so a clean run is not proof that no pin was duplicated.
+
+- **A worked, filled-in example** — Lisa keeps this same file for its own
+  dependencies, written from repository evidence only, with every unanswered
+  field tracked as a ticket rather than guessed. It is not shipped into your
+  project; it lives in the Lisa project at `.lisa/DEPENDENCY_DECISIONS.md`.
+
+- **The full operator walkthrough** — a plain-language guide to deciding whether
+  a proposed dependency change is acceptable, with a checklist for each of the
+  three shapes (adding a dependency, taking one in-house, an ordinary version
+  bump). It is not shipped with the package either; it lives in the Lisa project
+  at `wiki/playbooks/dependency-ownership-operator-guide.md`.
+
+Nothing above is enforced by a build gate. Nothing blocks a change that skips
+this file, names no trust class, or removes a dependency with no rebuild
+evidence. That is deliberate — these are review disciplines, not lint rules —
+and it is exactly why the escalations below matter.
+
 ## When to escalate
 
 Reading an entry should end in a decision. Raise these to an owner rather than

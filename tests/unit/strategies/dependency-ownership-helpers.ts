@@ -30,6 +30,33 @@ export const OPERATOR_DOC =
 /** The canonical dependency manifest's filename. */
 export const MANIFEST = "package.json";
 
+/**
+ * The pointer section the shipped scaffold carries. AC scenario 2 names "a host
+ * project using Lisa's updated templates", and a host operator never sees
+ * `wiki/`, `plugins/src/`, or `tests/fixtures/` — those are Lisa-repository
+ * paths absent from a host checkout. The scaffold is the one file `lisa apply`
+ * guarantees them, so it has to be the self-contained entry point to all five
+ * surfaces.
+ */
+export const POINTER_HEADING = "## The rest of the dependency-ownership layer";
+
+/**
+ * Where a host project's copy of the governed rules actually lives — inside the
+ * installed package, since `plugins` is in the published `files[]`. Verified by
+ * running `lisa apply` into a fresh project.
+ */
+export const HOST_RULES_DIR =
+  "node_modules/@codyswann/lisa/plugins/lisa/rules/reference";
+
+/**
+ * How a host operator runs the duplicate-version detector. The published
+ * package ships the script (`scripts` is in `files[]`) but wires no
+ * `check:duplicate-versions` entry into the host's manifest, so this direct
+ * invocation is the only route that works there.
+ */
+export const HOST_DETECTOR_INVOCATION =
+  "node node_modules/@codyswann/lisa/scripts/check-duplicate-versions.mjs --root . --scan .";
+
 /** Work-item legs, reused from the per-story fixtures rather than duplicated. */
 export const ADDITION_TICKET =
   "tests/fixtures/dependency-trust-classes/dependency-addition-ticket.md";
