@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, realpathSync } from "node:fs";
+import { cpSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -90,19 +90,52 @@ export function stagePackageWithFreshDist(
   const compiler = realpathSync(
     path.join(REPO_ROOT, "node_modules", "typescript", "bin", "tsc")
   );
+  const compilerConfig = path.join(
+    stagingRoot,
+    "tsconfig.check-learnings-budget.json"
+  );
+  writeFileSync(
+    compilerConfig,
+    `${JSON.stringify(
+      {
+        extends: path.join(REPO_ROOT, "tsconfig.json"),
+        compilerOptions: {
+          declaration: false,
+          declarationMap: false,
+          outDir: path.join(stagingRoot, "dist"),
+          rootDir: path.join(REPO_ROOT, "src"),
+          sourceMap: false,
+          typeRoots: [path.join(REPO_ROOT, "node_modules", "@types")],
+          types: ["node"],
+        },
+        files: [
+          path.join(REPO_ROOT, "src", "core", "learnings-budget-check.ts"),
+        ],
+        include: [],
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+  return runCompiler(bunExecutable, compiler, compilerConfig);
+}
+
+/**
+ * Compile the staged checker's static dependency closure.
+ * @param bunExecutable - Validated absolute Bun executable path
+ * @param compiler - Real repository TypeScript compiler path
+ * @param compilerConfig - Temporary closure-only TypeScript configuration
+ * @returns Compiler exit status and combined output
+ */
+function runCompiler(
+  bunExecutable: string,
+  compiler: string,
+  compilerConfig: string
+): CommandResult {
   const result = spawnSync(
     bunExecutable,
-    [
-      compiler,
-      "--project",
-      path.join(REPO_ROOT, "tsconfig.json"),
-      "--outDir",
-      path.join(stagingRoot, "dist"),
-      "--declarationMap",
-      "false",
-      "--sourceMap",
-      "false",
-    ],
+    [compiler, "--project", compilerConfig],
     { cwd: REPO_ROOT, encoding: "utf8", timeout: 30_000 }
   );
   return {
