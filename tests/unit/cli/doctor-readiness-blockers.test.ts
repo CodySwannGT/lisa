@@ -238,26 +238,50 @@ describe("assessReadiness (blocker gate + narrowed claim)", () => {
   });
 });
 
+/** Shared single-blocker fixture reused across computeNarrowedClaim cases. */
+const SINGLE_STANDING_BLOCKER = {
+  id: "B2",
+  label: "A release path bypasses the validated artifact",
+  owning_dimensions: [DIMENSION_DELIVERY_AUTHORITY],
+  dimension_id: DIMENSION_DELIVERY_AUTHORITY,
+  invariant_violated: "What ships equals what CI validated.",
+  evidence: "The deploy job rebuilds from source at deploy time.",
+};
+
 describe("computeNarrowedClaim", () => {
   it("returns null when there are no standing blockers", () => {
     expect(computeNarrowedClaim([])).toBeNull();
   });
 
   it("names both what the repository is NOT ready for and what it IS ready for", () => {
-    const claim =
-      computeNarrowedClaim([
-        {
-          id: "B2",
-          label: "A release path bypasses the validated artifact",
-          owning_dimensions: [DIMENSION_DELIVERY_AUTHORITY],
-          dimension_id: DIMENSION_DELIVERY_AUTHORITY,
-          invariant_violated: "What ships equals what CI validated.",
-          evidence: "The deploy job rebuilds from source at deploy time.",
-        },
-      ]) ?? "";
+    const claim = computeNarrowedClaim([SINGLE_STANDING_BLOCKER]) ?? "";
 
     expect(claim.toLowerCase()).toContain("not ready");
     expect(claim.toLowerCase()).toMatch(/is ready|ready for/);
     expect(claim).toContain(BLOCKER_B2);
+  });
+
+  it("uses singular verb agreement for exactly one standing blocker", () => {
+    const claim = computeNarrowedClaim([SINGLE_STANDING_BLOCKER]) ?? "";
+
+    expect(claim).toContain("1 ship blocker stands:");
+    expect(claim).not.toContain("1 ship blocker stand:");
+  });
+
+  it("uses plural verb agreement for multiple standing blockers", () => {
+    const claim =
+      computeNarrowedClaim([
+        SINGLE_STANDING_BLOCKER,
+        {
+          id: "B5",
+          label: "A monitoring gap goes unaddressed",
+          owning_dimensions: [DIMENSION_DELIVERY_AUTHORITY],
+          dimension_id: DIMENSION_DELIVERY_AUTHORITY,
+          invariant_violated: "Regressions are observable.",
+          evidence: "No alerting is wired up.",
+        },
+      ]) ?? "";
+
+    expect(claim).toContain("2 ship blockers stand:");
   });
 });
