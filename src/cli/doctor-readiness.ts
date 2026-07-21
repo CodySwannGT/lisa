@@ -10,11 +10,16 @@ import {
   type ReadinessVerdict,
 } from "./doctor-readiness-blockers.js";
 import {
+  DELIVERY_AUTHORITY_DIMENSION_ID,
+  assessDeliveryAuthorityDimension,
+} from "./doctor-readiness-delivery.js";
+import {
   EXECUTION_PROOF_DIMENSION_ID,
   PROPORTIONALITY_DIMENSION_ID,
   assessExecutionProofDimension,
   assessProportionalityDimension,
 } from "./doctor-readiness-journey.js";
+import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import { getPackageVersion } from "./version.js";
 
 // Re-export the blocker-gate surface (RRR-5, #1857) so `.lisa/readiness.json`
@@ -50,22 +55,25 @@ const READINESS_REPORT_DISPLAY_PATH = path.join(".lisa", "readiness.json");
  */
 export const READINESS_SCHEMA_VERSION = 1;
 
-/** Per-dimension status, mirroring the shared doctor `DOCTOR_STATUSES`. */
-type ReadinessStatus = "PASS" | "WARN" | "FAIL" | "SKIP";
-
-/** One readiness dimension descriptor. */
+/**
+ * One readiness dimension descriptor. `skipReason` is stated only for dimensions
+ * whose evidence surface has not shipped yet: a dimension registered in
+ * {@link DIMENSION_PRODUCERS} states its own reason when it cannot assess
+ * something, so a second reason here would be dead text that drifts out of date.
+ */
 interface ReadinessDimensionSpec {
   readonly id: string;
   readonly question: string;
-  readonly skipReason: string;
+  readonly skipReason?: string;
 }
 
 /**
  * The eight ownership dimensions, in fixed render order, defined once by the
  * `readiness-rubric` rule (RRR-1, #1853). This collector consumes that rubric —
- * it does not redefine the vocabulary. Evidence gathering for each dimension is
- * wired by later PRD #1739 tickets (RRR-4/5/6); until then every dimension
- * renders `SKIP` with a reason, per the shipped never-silently-omit contract.
+ * it does not redefine the vocabulary. Evidence gathering is wired dimension by
+ * dimension (see `DIMENSION_PRODUCERS`); a dimension whose producer has not
+ * shipped yet renders `SKIP` carrying the `skipReason` stated here, per the
+ * shipped never-silently-omit contract (#1898).
  */
 const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
   {
@@ -93,8 +101,6 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "execution-proof",
     question:
       "Can the claimed user-visible outcome be proved by running the system (verification, empirical-inquiry, claim-evidence-mapping)?",
-    skipReason:
-      "Execution/proof consumes qualification evidence and representative journeys wired by RRR-6 (#1858); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "feedback-guardrails",
@@ -114,28 +120,17 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "delivery-authority",
     question:
       "Does the thing that ships equal the thing that was validated, and does the shipping credential carry only the authority it needs (claim-archaeology, security-audit-handling)?",
-    skipReason:
-      "Delivery/authority blockers are populated by the blocker gate in RRR-5 (#1857); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "proportionality",
     question:
       "Is the machinery proportional to the job, or is there scaffolding to subtract (repo-scope-split, #1742 subtraction candidates)?",
-    skipReason:
-      "Proportionality reuses the scaffolding-subtraction candidates surfaced by the journey work (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
   },
 ];
 
 /** The eight ownership dimension ids, in fixed render order. */
 export const READINESS_DIMENSION_IDS: readonly string[] =
   READINESS_DIMENSIONS.map(dimension => dimension.id);
-
-/** A persisted per-dimension record inside `.lisa/readiness.json`. */
-interface ReadinessDimensionRecord {
-  readonly id: string;
-  readonly status: ReadinessStatus;
-  readonly findings: readonly unknown[];
-}
 
 /** The persisted `.lisa/readiness.json` shape (schema_version 1). */
 interface ReadinessReport {
@@ -172,9 +167,8 @@ export function resolveReadinessReportPath(root: string): string {
  * changes doctor's exit-code semantics — a standing blocker flips the readiness
  * verdict to `NOT_READY` but still emits a `warn` check, because the gate is on
  * the *claim*, not the *process*. Every dimension is reported (never silently
- * omitted); in this Lisa version each renders `SKIP` with a reason because the
- * evidence-gathering surfaces ship with later PRD #1739 tickets, so no blocker
- * stands yet. Persistence is atomic and never throws — a write error degrades
+ * omitted), and a dimension whose evidence surface has not shipped yet renders
+ * `SKIP` carrying the reason it was not assessed (#1898). Persistence is atomic and never throws — a write error degrades
  * the check to `warn` instead of aborting the run.
  * @param targetPath - Project path to assess and persist under
  * @returns Doctor check result
@@ -198,6 +192,7 @@ export async function checkRepositoryReadiness(
 
   const headline = formatReadinessHeadline(verdict, dimensions);
   const blockerPhrase = `${blockers.length} standing ship blocker${blockers.length === 1 ? "" : "s"}`;
+  const standingDetail = formatStandingBlockerDetail(blockers, narrowed_claim);
 
   const reportPath = resolveReadinessReportPath(targetPath);
   try {
@@ -207,7 +202,9 @@ export async function checkRepositoryReadiness(
       name: REPOSITORY_READINESS_CHECK_NAME,
       status: "warn",
       detail:
-        `${headline} (${blockerPhrase}). ` +
+        // A failed write is precisely when the operator cannot go read the
+        // report, so this branch must name the standing blockers too.
+        `${headline} (${blockerPhrase}).${standingDetail} ` +
         `Could not persist ${READINESS_REPORT_DISPLAY_PATH}: ` +
         `${error instanceof Error ? error.message : String(error)}`,
     };
@@ -217,9 +214,32 @@ export async function checkRepositoryReadiness(
     name: REPOSITORY_READINESS_CHECK_NAME,
     status: verdict === "READY" ? "ok" : "warn",
     detail:
-      `${headline} (${blockerPhrase}; see readiness-rubric). ` +
+      `${headline} (${blockerPhrase}; see readiness-rubric).${standingDetail} ` +
       `Report written to ${READINESS_REPORT_DISPLAY_PATH} (schema_version ${READINESS_SCHEMA_VERSION}).`,
   };
+}
+
+/**
+ * Name each standing blocker and state the narrowed claim in the operator-facing
+ * detail line. A bare `NOT_READY` is unactionable at the gate: the reader is
+ * non-technical (`factory-model`), so they must be told which blocker stands and
+ * — the rubric's net-new requirement — what the repository IS still ready for.
+ * Returns an empty string when nothing stands, leaving the clean line untouched.
+ * @param blockers - Standing ship blockers
+ * @param narrowedClaim - The computed narrowed claim, or null
+ * @returns A leading-space detail fragment, or `""`
+ */
+function formatStandingBlockerDetail(
+  blockers: readonly DetectedBlocker[],
+  narrowedClaim: string | null
+): string {
+  if (blockers.length === 0) {
+    return "";
+  }
+  const named = blockers
+    .map(blocker => `${blocker.id} — ${blocker.label}`)
+    .join("; ");
+  return ` Standing: ${named}.${narrowedClaim ? ` ${narrowedClaim}` : ""}`;
 }
 
 /**
@@ -258,14 +278,13 @@ export function formatReadinessHeadline(
 }
 
 /**
- * Build the eight readiness dimensions in fixed render order. The execution/proof
- * and proportionality dimensions are wired to #1742's shared journey runner
- * (RRR-6, #1858): execution/proof reuses fresh qualification evidence or reports
- * the operability claim as not established (a stated-reason SKIP) when no journey
- * runner is injected, and proportionality surfaces the scaffolding-subtraction
- * candidate count into `machinery_to_remove`. The remaining six render `SKIP`
- * with a reason until their evidence surfaces ship (later PRD #1739 tickets), per
- * the never-silently-omit contract.
+ * Build the eight readiness dimensions in fixed render order by dispatching each
+ * to its producer. Execution/proof and proportionality are wired to #1742's
+ * shared journey runner (RRR-6, #1858); delivery/authority is wired to the
+ * offline workflow producers assessing ship blockers B2 and B3 (#1896). A
+ * dimension with no producer yet falls through to a stated-reason SKIP rather
+ * than a blank one (#1898), so the report never presents "never looked" as
+ * "nothing to report".
  * @param targetPath - Project path to assess
  * @returns The eight per-dimension records, in fixed order
  */
@@ -275,16 +294,80 @@ async function buildReadinessDimensions(
   return Promise.all(
     READINESS_DIMENSIONS.map(
       async (dimension): Promise<ReadinessDimensionRecord> => {
-        if (dimension.id === EXECUTION_PROOF_DIMENSION_ID) {
-          return assessExecutionProofDimension(targetPath);
-        }
-        if (dimension.id === PROPORTIONALITY_DIMENSION_ID) {
-          return assessProportionalityDimension(targetPath);
-        }
-        return { id: dimension.id, status: "SKIP", findings: [] };
+        const produce = DIMENSION_PRODUCERS[dimension.id];
+        return produce
+          ? await runDimensionProducer(dimension.id, targetPath, produce)
+          : reasonedSkip(
+              dimension.skipReason ??
+                `No readiness probe is wired for the ${dimension.id} dimension ` +
+                  "in this Lisa version, so it was not assessed.",
+              dimension.id
+            );
       }
     )
   );
+}
+
+/**
+ * Run one dimension's producer behind an error boundary. A producer that throws
+ * degrades its own dimension to a stated-reason SKIP instead of aborting the
+ * whole readiness check — losing one dimension is recoverable, losing the report
+ * is not, and the operator is told which dimension failed and why.
+ * @param id - The dimension id
+ * @param targetPath - Project path to assess
+ * @param produce - The dimension's producer
+ * @returns The produced record, or a stated-reason SKIP on failure
+ */
+export async function runDimensionProducer(
+  id: string,
+  targetPath: string,
+  produce: DimensionProducer
+): Promise<ReadinessDimensionRecord> {
+  try {
+    return await produce(targetPath);
+  } catch (error) {
+    return reasonedSkip(
+      `The ${id} readiness probe could not complete, so this dimension was not ` +
+        `assessed: ${error instanceof Error ? error.message : String(error)}`,
+      id
+    );
+  }
+}
+
+/**
+ * Produce one dimension's record from the project path. Every producer is
+ * offline by construction — readiness must be assessable with no network.
+ */
+export type DimensionProducer = (
+  targetPath: string
+) => Promise<ReadinessDimensionRecord>;
+
+/**
+ * The producer for each wired dimension, keyed by dimension id. Adding a
+ * dimension's evidence surface is one entry here; a dimension absent from this
+ * map falls through to {@link reasonedSkip} rather than to silence.
+ */
+const DIMENSION_PRODUCERS: Readonly<Record<string, DimensionProducer>> = {
+  [EXECUTION_PROOF_DIMENSION_ID]: async targetPath =>
+    await assessExecutionProofDimension(targetPath),
+  [PROPORTIONALITY_DIMENSION_ID]: async targetPath =>
+    await assessProportionalityDimension(targetPath),
+  [DELIVERY_AUTHORITY_DIMENSION_ID]: async targetPath =>
+    await assessDeliveryAuthorityDimension(targetPath),
+};
+
+/**
+ * Build the stated-reason SKIP a dimension without a wired producer renders
+ * (#1898). A blank SKIP reads as "nothing to report" when it actually means
+ * "never looked", so the reason the rubric already carries is surfaced into the
+ * record instead of being dropped. It names no `blocker`, so it can never stand
+ * one up.
+ * @param reason - Operator-language reason the dimension was not assessed
+ * @param id - The dimension id
+ * @returns The SKIP dimension record
+ */
+function reasonedSkip(reason: string, id: string): ReadinessDimensionRecord {
+  return { id, status: "SKIP", findings: [{ reason, skip: true }] };
 }
 
 /**
