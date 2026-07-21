@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.280.0](https://github.com/CodySwannGT/lisa/compare/v2.279.2...v2.280.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** wire B5/B6 supply-chain + context-routing readiness producers ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([8409aae](https://github.com/CodySwannGT/lisa/commit/8409aaef8bfe7be79b01e8efc418f7b6fde6fd89))
+
+
+### Bug Fixes
+
+* **doctor:** pin B5 archive URLs, id-less exclusions, and honest exemption wording ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([265ae44](https://github.com/CodySwannGT/lisa/commit/265ae447b429624915383ebd190c4c8ce7d849e3))
+* **doctor:** stop B5/B6 false-REDing correctly configured repositories ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([8f488d9](https://github.com/CodySwannGT/lisa/commit/8f488d90e3dcb81c3f8aad0e8ca44561a9dc8822)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.279.2](https://github.com/CodySwannGT/lisa/compare/v2.279.1...v2.279.2) (2026-07-21)
 
 
