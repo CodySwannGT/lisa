@@ -560,6 +560,26 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🍞 Setup Bun
+        if: steps.check_script.outputs.exists == 'true' && inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        if: steps.check_script.outputs.exists == 'true'
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
+            npm ci
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧭 Require e2e route/screen coverage thresholds
         if: steps.check_script.outputs.exists == 'true'
         run: node scripts/check-e2e-coverage.mjs

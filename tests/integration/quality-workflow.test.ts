@@ -55,6 +55,7 @@ interface WorkflowStep {
   run?: string;
   uses?: string;
   if?: string;
+  "working-directory"?: string;
   env?: Record<string, unknown>;
   with?: Record<string, unknown>;
 }
@@ -300,6 +301,46 @@ describe("quality.yml reusable workflow", () => {
       expect(check?.env?.VERIFY_GITHUB_TOKEN).toBeUndefined();
       expect(check?.env?.VERIFY_LABELS).toContain(
         "github.event.pull_request.labels"
+      );
+    });
+  });
+
+  describe("e2e route coverage dependencies", () => {
+    it("installs host dependencies after detection and before route analysis", () => {
+      const steps = workflow.jobs.e2e_coverage.steps ?? [];
+      const checkIndex = steps.findIndex(step => step.id === "check_script");
+      const bunIndex = steps.findIndex(step => step.name === "🍞 Setup Bun");
+      const installIndex = steps.findIndex(
+        step => step.name === "📦 Install dependencies"
+      );
+      const requireIndex = steps.findIndex(
+        step => step.name === "🧭 Require e2e route/screen coverage thresholds"
+      );
+
+      expect(checkIndex).toBeGreaterThanOrEqual(0);
+      expect(bunIndex).toBeGreaterThan(checkIndex);
+      expect(installIndex).toBeGreaterThan(bunIndex);
+      expect(requireIndex).toBeGreaterThan(installIndex);
+
+      const setupBun = steps[bunIndex];
+      expect(setupBun?.if).toContain(
+        "steps.check_script.outputs.exists == 'true'"
+      );
+      expect(setupBun?.if).toContain("inputs.package_manager == 'bun'");
+
+      const install = steps[installIndex];
+      expect(install?.if).toBe("steps.check_script.outputs.exists == 'true'");
+      expect(install?.env?.PACKAGE_MANAGER).toBe(
+        "${{ inputs.package_manager }}"
+      );
+      expect(install?.run).not.toContain("${{ inputs.package_manager }}");
+      expect(install?.run).toMatch(
+        /if \[\s*"\$PACKAGE_MANAGER"\s*=\s*"npm"\s*\]; then[\s\S]*npm ci/
+      );
+      expect(install?.run).toContain("yarn install --frozen-lockfile");
+      expect(install?.run).toContain("bun install --frozen-lockfile");
+      expect(install?.["working-directory"]).toBe(
+        "${{ inputs.working_directory || '.' }}"
       );
     });
   });
