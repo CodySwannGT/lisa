@@ -1,0 +1,43 @@
+# Dependency Trust Classes (load-bearing)
+
+Every material dependency belongs to exactly one **trust class**. The class is
+the answer to the decision record's "Why we believe it's safe (trust basis)"
+field in `.lisa/DEPENDENCY_DECISIONS.md` — it says why we can trust a *kind* of
+dependency, so each entry does not re-argue trust from scratch.
+
+The six classes, from most to least self-evidently trustworthy:
+
+1. **Mature ecosystem primitive** — so widely used that other people hit the
+   breakage first.
+2. **Fast-moving standard implementation** — the standard implementation of
+   something we refuse to own, but it changes faster than we do.
+3. **Build/development tool** — never runs in production; a bad update costs
+   developer time, not users.
+4. **Runtime-critical service client** — reaches users, data, or money directly,
+   so it is the least trusted regardless of how mature it is.
+5. **Thin wrapper suitable for in-house ownership** — small enough that we could
+   own the code, so the question is whether it earns its keep, not whether it is
+   safe.
+6. **Temporary/experimental dependency** — not trusted at all; admitted on a
+   clock with a written expiry date and a named exit.
+
+Each class fixes five review inputs: capability owner, update cadence, detection
+evidence, replacement-cost threshold, and whether product/human ratification is
+required. Higher exposure and lower trust buy stronger evidence and mandatory
+ratification, not weaker: runtime-critical service clients always need human
+ratification to add or major-upgrade; temporary dependencies need it to live
+past their expiry date; thin wrappers need it to be kept rather than in-housed.
+
+Every class also names one **human-review trigger** — the observable event that
+takes the decision away from the agent. A class definition that cannot say what
+would trigger human review is not finished.
+
+A work item that proposes adding a new material dependency must name the
+dependency's trust class and update its `.lisa/DEPENDENCY_DECISIONS.md` entry in
+the same change. A proposal with no named class is not ready to build.
+
+Reclassify — do not quietly re-trust — when a dependency's exposure changes: a
+build tool that gains runtime reach or reads CI credentials becomes a
+runtime-critical service client, and its stronger requirements apply immediately.
+
+Full prose: [reference/dependency-trust-classes.md](../reference/dependency-trust-classes.md).
