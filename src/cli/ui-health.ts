@@ -109,10 +109,15 @@ export function createUiHealthHandler(
   // eslint-disable-next-line functional/no-let -- one server-local single-flight is cleared after settlement
   let inFlight: ReturnType<typeof runPersistedHealth> | undefined;
 
+  /**
+   * Return the active deterministic run, starting one when none is pending.
+   * @returns The active persisted Health run
+   */
   const runOnce = (): ReturnType<typeof runPersistedHealth> => {
     if (inFlight === undefined) {
       const pending = deps.runPersisted(destDir);
       inFlight = pending;
+      /** Release this run only when it is still the active single-flight. */
       const clear = (): void => {
         if (inFlight === pending) inFlight = undefined;
       };
