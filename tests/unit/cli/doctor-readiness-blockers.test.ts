@@ -225,6 +225,55 @@ describe("assessReadiness (blocker gate + narrowed claim)", () => {
     expect(assessment.narrowed_claim).toBeNull();
   });
 
+  it("never claims READY when every dimension is unassessed (SKIP)", async () => {
+    // #1897: an all-SKIP assessment is zero evidence, not a clean bill of
+    // health. It must top out at READY_WITH_WARNINGS, never fall through to
+    // READY, or doctor emits a green unattended-fleet claim backed by nothing.
+    const dimensions = await loadDimensions("all-skip-unassessed");
+
+    const assessment = assessReadiness(dimensions);
+
+    expect(assessment.blockers).toHaveLength(0);
+    expect(assessment.verdict).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("never claims READY when even one dimension is unassessed (SKIP)", async () => {
+    const dimensions = await loadDimensions("mixed-pass-and-skip");
+
+    const assessment = assessReadiness(dimensions);
+
+    expect(assessment.blockers).toHaveLength(0);
+    expect(assessment.verdict).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("never claims READY when a dimension is WARN", () => {
+    const assessment = assessReadiness([
+      { id: "context-routing", status: "PASS", findings: [] },
+      { id: "delivery-authority", status: "WARN", findings: [] },
+    ]);
+
+    expect(assessment.verdict).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("never claims READY when there are no dimensions at all", () => {
+    // Zero dimensions is zero evidence — `every` on an empty list is vacuously
+    // true, so this rung needs its own guard and its own test.
+    const assessment = assessReadiness([]);
+
+    expect(assessment.blockers).toHaveLength(0);
+    expect(assessment.verdict).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("still reaches READY when every dimension is assessed PASS", async () => {
+    const dimensions = await loadDimensions("all-pass-assessed");
+
+    const assessment = assessReadiness(dimensions);
+
+    expect(assessment.blockers).toHaveLength(0);
+    expect(assessment.verdict).toBe("READY");
+    expect(assessment.narrowed_claim).toBeNull();
+  });
+
   it("degrades B7 to a non-standing skip when the #1738 contract is unavailable", async () => {
     const dimensions = await loadDimensions(FIXTURE_B7_UNPROVABLE);
 

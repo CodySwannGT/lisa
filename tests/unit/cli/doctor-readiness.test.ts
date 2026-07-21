@@ -27,6 +27,7 @@ import {
   READINESS_DIMENSION_IDS,
   READINESS_SCHEMA_VERSION,
   checkRepositoryReadiness,
+  formatReadinessHeadline,
   resolveReadinessReportPath,
 } from "../../../src/cli/doctor-readiness.js";
 import { runDoctor } from "../../../src/cli/doctor.js";
@@ -59,6 +60,59 @@ describe("resolveReadinessReportPath", () => {
   });
 });
 
+/** Operator-facing marker that the readiness question was not answered. */
+const NOT_ESTABLISHED = "NOT ESTABLISHED";
+
+/** A dimension record assessed clean, reused across the headline cases. */
+const ASSESSED_DIMENSION = {
+  id: "context-routing",
+  status: "PASS",
+  findings: [],
+} as const;
+
+/** A dimension record that was never assessed, reused across headline cases. */
+const UNASSESSED_DIMENSION = {
+  id: "delivery-authority",
+  status: "SKIP",
+  findings: [],
+} as const;
+
+describe("formatReadinessHeadline", () => {
+  it("leads with NOT ESTABLISHED and the unassessed count when anything was skipped", () => {
+    const headline = formatReadinessHeadline("READY_WITH_WARNINGS", [
+      ASSESSED_DIMENSION,
+      UNASSESSED_DIMENSION,
+      { id: "proportionality", status: "SKIP", findings: [] },
+    ]);
+
+    expect(headline).toContain(NOT_ESTABLISHED);
+    expect(headline).toContain("2 of 3 dimensions were never assessed");
+  });
+
+  it("agrees in number when exactly one dimension was never assessed", () => {
+    const headline = formatReadinessHeadline("READY_WITH_WARNINGS", [
+      ASSESSED_DIMENSION,
+      UNASSESSED_DIMENSION,
+    ]);
+
+    expect(headline).toContain("1 of 2 dimensions was never assessed");
+  });
+
+  it("drops the not-established caveat entirely once every dimension is assessed", () => {
+    // #1897 follow-up: a fully assessed READY run must not carry a sentence
+    // saying the report proves nothing — that contradicts its own verdict.
+    const headline = formatReadinessHeadline("READY", [
+      ASSESSED_DIMENSION,
+      { id: "delivery-authority", status: "PASS", findings: [] },
+    ]);
+
+    expect(headline).not.toContain(NOT_ESTABLISHED);
+    expect(headline).not.toContain("never assessed");
+    expect(headline).toContain("every dimension was assessed");
+    expect(headline).toContain("READY");
+  });
+});
+
 describe("checkRepositoryReadiness", () => {
   it("assesses exactly eight dimensions and never returns fail", async () => {
     const cwd = await getTempDir();
@@ -79,7 +133,9 @@ describe("checkRepositoryReadiness", () => {
     const report = JSON.parse(raw) as Record<string, unknown>;
     expect(report.schema_version).toBe(READINESS_SCHEMA_VERSION);
     expect(report.schema_version).toBe(1);
-    expect(report.verdict).toBe("READY");
+    // #1897: every dimension renders SKIP on this default path, so the report
+    // must NOT claim READY — unassessed is not evidence of readiness.
+    expect(report.verdict).toBe("READY_WITH_WARNINGS");
     expect(report.narrowed_claim).toBeNull();
     expect(report.blockers).toEqual([]);
     expect(report.blocker_count).toBe(0);
@@ -95,6 +151,20 @@ describe("checkRepositoryReadiness", () => {
       expect(dimension.status).toBe("SKIP");
       expect(Array.isArray(dimension.findings)).toBe(true);
     }
+  });
+
+  it("names the unassessed dimension count and asserts no unattended readiness", async () => {
+    const cwd = await getTempDir();
+
+    const check = await checkRepositoryReadiness(cwd);
+
+    // #1897: the operator-facing line must say how much was never assessed and
+    // must not turn that silence into a readiness claim.
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(NOT_ESTABLISHED);
+    expect(check.detail).toContain("8 of 8 dimensions were never assessed");
+    expect(check.detail).not.toMatch(/unattended fleet may run/i);
+    expect(check.detail).not.toMatch(/pending evidence wiring/i);
   });
 
   it("degrades to a WARN check instead of throwing when the report cannot be written", async () => {
