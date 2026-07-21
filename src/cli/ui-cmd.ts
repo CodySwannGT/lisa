@@ -7,6 +7,7 @@
  * `window.LISA_LIVE_CONFIG`, which the page uses to hydrate its controls.
  * @module cli/ui-cmd
  */
+/* eslint-disable max-lines -- the central UI route registry stays auditable in one module */
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as http from "node:http";
@@ -36,6 +37,10 @@ import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
 import { createAutomationsProbe } from "./ui-automations.js";
 import { createObservabilityProviderProbes } from "./ui-observability-providers.js";
 import { serveConfigWrite } from "./ui-config-write.js";
+import {
+  createUiHealthHandler,
+  type UiHealthDependencies,
+} from "./ui-health.js";
 export {
   createGithubAuthProbe,
   runProbe,
@@ -99,6 +104,8 @@ export interface UiCmdOptions {
 export interface UiRuntimeDependencies {
   /** Status probes exposed by GET /api/status. */
   readonly probes?: readonly StatusProbe[];
+  /** Health storage and execution boundaries exposed by /api/health. */
+  readonly health?: Partial<UiHealthDependencies>;
 }
 
 /**
@@ -292,14 +299,17 @@ function isLoopbackHost(host: string | undefined): boolean {
  * @param page - Hydrated settings console HTML
  * @param probes - Live-status probes registered for this server
  * @param destDir - Project root served by this UI process
+ * @param healthDependencies - Injectable Health v1 storage/run boundaries
  * @returns Loopback HTTP request handler
  */
 function createUiRequestHandler(
   page: string,
   probes: readonly StatusProbe[],
-  destDir: string
+  destDir: string,
+  healthDependencies: Partial<UiHealthDependencies> = {}
 ): http.RequestListener {
   const readSnapshot = createStatusSnapshotReader(probes);
+  const serveHealth = createUiHealthHandler(destDir, healthDependencies);
   validateStatusProbes(probes);
   return (request, response) => {
     if (!isLoopbackHost(request.headers.host)) {
@@ -319,6 +329,10 @@ function createUiRequestHandler(
     }
     if (pathname === "/api/config") {
       serveConfigWrite(request, response, destDir);
+      return;
+    }
+    if (pathname === "/api/health") {
+      serveHealth(request, response);
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {
@@ -374,7 +388,7 @@ export async function runUi(
     createAutomationsProbe({ cwd: destDir }),
   ];
   const server = http.createServer(
-    createUiRequestHandler(page, probes, destDir)
+    createUiRequestHandler(page, probes, destDir, dependencies.health)
   );
   await new Promise<void>(resolve => {
     server.listen(port, "127.0.0.1", resolve);
@@ -387,3 +401,4 @@ export async function runUi(
   console.log("Press Ctrl+C to stop.");
   return server;
 }
+/* eslint-enable max-lines -- restore repository default */

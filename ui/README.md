@@ -134,8 +134,13 @@ path, harness-neutral optional agentic composition API at
 `@codyswann/lisa/health`, `lisa health` CLI, and `/lisa:health` skill across all
 six supported harnesses. Completed results are validated and atomically stored
 at the gitignored `.lisa/health/latest.json`; `health.schedule` is the only v1
-configuration key and accepts `off`, `daily`, or `weekly`. The console button,
-readback, and scheduler remain downstream work.
+configuration key and accepts `off`, `daily`, or `weekly`. The console now
+reads that stored result on boot and its **Run deterministic health check** button invokes the
+shared consumer directly against the directory served by `lisa ui`. Browser
+runs are intentionally deterministic: the local server starts no child process
+or nested coding agent. Agentic composition remains the responsibility of the
+`/lisa:health` skill in the active coding harness. The scheduler remains
+downstream work.
 
 **Is Lisa on the latest version?** — always-on status. Lisa's CLI already
 checks npm on every invocation; the console surfaces the result permanently
@@ -144,13 +149,14 @@ Health section's version card. When behind, `lisa update` prints (or runs
 with `--yes`) the package-manager update command.
 
 **Is the project completely in band?** — on-demand scan behind the
-"Run health check" button (plus an optional scheduled cadence via
+"Run deterministic health check" button (plus an optional scheduled cadence via
 `health.schedule` that files a ticket when drift is found). "In band" means
 every Lisa-managed surface matches what the installed Lisa version would
-emit. The check is a mix of deterministic and agentic verification,
-packaged as one `/lisa:health` skill backed by the `lisa health` CLI so the
-CLI and every coding-agent harness share one implementation; downstream
-console and cron integrations can reuse it:
+emit. The console and `lisa health` CLI invoke the same deterministic persisted
+consumer. `/lisa:health` is the current-harness surface that may compose the
+optional agentic layer before persisting a final result; the console can read
+and render that stored full result, but a browser-initiated run remains
+deterministic. The scheduled consumer remains downstream work:
 
 - **Deterministic layer** (fast, exact — reuses what exists today):
   `lisa doctor`, template diffing for copy-overwrite/managed-block files,
@@ -168,9 +174,11 @@ console and cron integrations can reuse it:
   finalization revalidates the evidence digest before persisting one final
   result.
 
-The downstream console will render results as a per-check table (pass / warn /
-fail, with the layer that produced each finding) and keep the last full check's
-date and verdict visible in the section.
+The console renders every canonical finding field (`check`, `layer`, `status`,
+and `reason`) in its existing per-check table, keeps the stored completion stamp
+and verdict visible, and gives the health verdict priority in the top-bar chip
+while retaining Lisa version context. A failed run clears prior findings and
+the prior green verdict before surfacing a generic failure; it does not retry.
 
 ### Remote-environment requirements
 
