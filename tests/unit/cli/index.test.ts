@@ -1,6 +1,7 @@
 import type { Server } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import { createProgram } from "../../../src/cli/index.js";
+import { DEFAULT_SETUP_PROJECT_DEPENDENCIES } from "../../../src/cli/setup-project.js";
 import { getPackageVersion } from "../../../src/cli/version.js";
 import type { UpdateCheckResult } from "../../../src/cli/update-check.js";
 
@@ -208,7 +209,7 @@ describe("update-check pre-action hook", () => {
 
 describe("setup-project invocation", () => {
   it("routes setup-project to the setup action with shared options", async () => {
-    const { program, runSetupProject } = createTestProgram();
+    const { program, runApply, runSetupProject } = createTestProgram();
 
     await program.parseAsync(
       ["setup-project", "--type", "rails", DEST, "--yes", "--harness", "codex"],
@@ -221,7 +222,11 @@ describe("setup-project invocation", () => {
         type: "rails",
         yes: true,
         harness: "codex",
-      })
+      }),
+      {
+        runApply,
+        runCommand: DEFAULT_SETUP_PROJECT_DEPENDENCIES.runCommand,
+      }
     );
   });
 });
