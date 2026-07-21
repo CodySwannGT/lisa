@@ -251,7 +251,12 @@ describe("check:learnings-budget", () => {
       "learnings budget passed"
     );
     expect(result.status).toBe(0);
-  });
+    // This test compiles dist, `bun pm pack`s, and tar-extracts the full
+    // published surface — its cost grows with the packaged content, and it
+    // already grants its own subprocesses 30s. Match that budget at the it()
+    // level so a normal content addition can't tip it over the 10s default.
+    // Durable decoupling from surface growth is tracked as a follow-up.
+  }, 60_000);
 });
 
 /**
