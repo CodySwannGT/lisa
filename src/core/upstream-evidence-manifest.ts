@@ -1025,7 +1025,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "3820aecb57d184fde1cfa988e7e1402d8f2a766a0b3ffbb576de5a6a72b3d5c5",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "d4d2deb758691fb636c7a742c96a2db8c70d13494aa0e0f96bc715fe4005f693",
+      "cb049745e52d933dfe801c7598692ebcda61ce374ccc0b8e28acbdbb36970bf8",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
