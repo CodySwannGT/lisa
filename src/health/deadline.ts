@@ -24,7 +24,6 @@ export class HealthDeadline {
       this.signal.addEventListener("abort", () => resolve(), { once: true });
     });
     this.timer = setTimeout(() => this.controller.abort(), duration);
-    this.timer.unref();
   }
 
   /** Remaining whole milliseconds available to a bounded command. */

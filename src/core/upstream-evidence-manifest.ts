@@ -1894,8 +1894,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a286750ac2006dd84209bb713e85f994d8d15d9bb596ec3e287a187672e5072d",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
+    "scripts/verify-health-agentic-built.mjs":
+      "3c064ad162fa633efcaa91327746157bc046cabd1c030b8bfa17227fed077200",
     "scripts/verify-health-contract-built.mjs":
-      "9e090e3378325c4193e96ba03acff17fb63e40c9e7f2dd89296f72353ab6ba88",
+      "5ebfec9b8a0e3004a5af65d2f2515526f7ff5817e61ae30042fb8be40d8f8d17",
     "scripts/verify-health-deterministic-built.mjs":
       "ab19427ec4b1dfaa06037cc23b7fc06319b4c12d8c6b67808dddd77e5367fd12",
     "scripts/verify-learner-frontmatter-built.mjs":
@@ -2043,7 +2045,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "7e99286c549c79b1c02c07a4313dcfe5b41b4ebb80a6fbbb8741dd74dc5f454d",
     "ui/README.md":
-      "e055b899ec7d40e8035dbf91ce1621872296d4d6b460dd113f80c80aed7198df",
+      "56857365dbb1f28edf07779b04744ce8963ab9fd7655d6405a5ee70856296903",
     "ui/index.html":
       "74c35220d1b8b7d8041374196eba2c821eb90d1b57d884f12afb695f47f5016c",
   });
@@ -7233,6 +7235,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/test-intent-routing.sh": true,
     "scripts/update-node-version.ts": true,
     "scripts/update-test-skill-paths.mjs": true,
+    "scripts/verify-health-agentic-built.mjs": true,
     "scripts/verify-health-contract-built.mjs": true,
     "scripts/verify-health-deterministic-built.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
@@ -7380,6 +7383,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/detection/detectors/typescript.ts": true,
     "src/detection/index.ts": true,
     "src/errors/index.ts": true,
+    "src/health/agentic.ts": true,
     "src/health/contract.ts": true,
     "src/health/deadline.ts": true,
     "src/health/deterministic.ts": true,
@@ -7643,6 +7647,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/upstream-attribution-integrity.test.ts": true,
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,
+    "tests/unit/health/agentic.test.ts": true,
     "tests/unit/health/contract.test.ts": true,
     "tests/unit/health/deterministic-regressions.test.ts": true,
     "tests/unit/health/deterministic.test.ts": true,

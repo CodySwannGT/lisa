@@ -57,7 +57,7 @@ describe("validateHealthResult", () => {
     expect(Object.isFrozen(validated.summary.counts)).toBe(true);
   });
 
-  it("accepts full mode only when both layers completed", () => {
+  it("accepts historical full results containing both layers", () => {
     const findings = [
       finding(),
       finding({ check: "agent.review", layer: "agentic", status: "warn" }),
@@ -76,6 +76,32 @@ describe("validateHealthResult", () => {
     ).toBe("full");
   });
 
+  it("accepts full mode with zero agentic findings after a clean evaluation", () => {
+    const validated = validateHealthResult(result({ mode: "full" }));
+
+    expect(validated.mode).toBe("full");
+    expect(validated.findings).toEqual([finding()]);
+  });
+
+  it.each(["pass", "fail"])(
+    "preserves historical agentic %s findings for storage compatibility",
+    status => {
+      const findings = [
+        finding(),
+        finding({ check: "agent.historical", layer: "agentic", status }),
+      ];
+      expect(() =>
+        validateHealthResult(
+          result({
+            mode: "full",
+            findings,
+            summary: summarizeHealthFindings(findings),
+          })
+        )
+      ).not.toThrow();
+    }
+  );
+
   it.each([
     [
       "empty",
@@ -88,7 +114,13 @@ describe("validateHealthResult", () => {
       "agentic deterministic",
       result({ findings: [finding({ layer: "agentic" })] }),
     ],
-    ["missing full layer", result({ mode: "full" })],
+    [
+      "full without deterministic layer",
+      result({
+        mode: "full",
+        findings: [finding({ layer: "agentic" })],
+      }),
+    ],
     ["duplicate check", result({ findings: [finding(), finding()] })],
     ["blank reason", result({ findings: [finding({ reason: " " })] })],
     [
