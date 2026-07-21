@@ -41,6 +41,10 @@ import {
   createUiHealthHandler,
   type UiHealthDependencies,
 } from "./ui-health.js";
+import {
+  createUiSetupReadinessHandler,
+  type UiSetupReadinessDependencies,
+} from "./ui-setup-readiness.js";
 export {
   createGithubAuthProbe,
   runProbe,
@@ -106,6 +110,8 @@ export interface UiRuntimeDependencies {
   readonly probes?: readonly StatusProbe[];
   /** Health storage and execution boundaries exposed by /api/health. */
   readonly health?: Partial<UiHealthDependencies>;
+  /** Setup-readiness execution boundary exposed by /api/setup-readiness. */
+  readonly setupReadiness?: Partial<UiSetupReadinessDependencies>;
 }
 
 /**
@@ -300,16 +306,22 @@ function isLoopbackHost(host: string | undefined): boolean {
  * @param probes - Live-status probes registered for this server
  * @param destDir - Project root served by this UI process
  * @param healthDependencies - Injectable Health v1 storage/run boundaries
+ * @param setupReadinessDependencies - Injectable setup-readiness run boundary
  * @returns Loopback HTTP request handler
  */
 function createUiRequestHandler(
   page: string,
   probes: readonly StatusProbe[],
   destDir: string,
-  healthDependencies: Partial<UiHealthDependencies> = {}
+  healthDependencies: Partial<UiHealthDependencies> = {},
+  setupReadinessDependencies: Partial<UiSetupReadinessDependencies> = {}
 ): http.RequestListener {
   const readSnapshot = createStatusSnapshotReader(probes);
   const serveHealth = createUiHealthHandler(destDir, healthDependencies);
+  const serveSetupReadiness = createUiSetupReadinessHandler(
+    destDir,
+    setupReadinessDependencies
+  );
   validateStatusProbes(probes);
   return (request, response) => {
     if (!isLoopbackHost(request.headers.host)) {
@@ -333,6 +345,10 @@ function createUiRequestHandler(
     }
     if (pathname === "/api/health") {
       serveHealth(request, response);
+      return;
+    }
+    if (pathname === "/api/setup-readiness") {
+      serveSetupReadiness(request, response);
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {
@@ -388,7 +404,13 @@ export async function runUi(
     createAutomationsProbe({ cwd: destDir }),
   ];
   const server = http.createServer(
-    createUiRequestHandler(page, probes, destDir, dependencies.health)
+    createUiRequestHandler(
+      page,
+      probes,
+      destDir,
+      dependencies.health,
+      dependencies.setupReadiness
+    )
   );
   await new Promise<void>(resolve => {
     server.listen(port, "127.0.0.1", resolve);

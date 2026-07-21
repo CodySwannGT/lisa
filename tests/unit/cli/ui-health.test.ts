@@ -12,6 +12,7 @@ import type {
   HealthResult,
   PersistedHealthRun,
 } from "../../../src/health/index.js";
+import { SETUP_READINESS_CHECKS } from "../../../src/health/index.js";
 
 const RESULT: HealthResult = {
   schemaVersion: 1,
@@ -34,6 +35,7 @@ const RESULT: HealthResult = {
 };
 const SERIALIZED = `${JSON.stringify(RESULT, null, 2)}\n`;
 const HEALTH_PATH = "/api/health";
+const SETUP_READINESS_PATH = "/api/setup-readiness";
 const NO_STORE = "no-store";
 const CACHE_CONTROL = "cache-control";
 
@@ -228,5 +230,64 @@ describe("/api/health", () => {
     expect(runBody).toBe('{"error":"Unable to run Lisa health"}');
     expect(readBody).not.toContain(resources.dir);
     expect(runBody).not.toContain(resources.dir);
+  });
+});
+
+describe("/api/setup-readiness", () => {
+  it("GET computes current setup readiness for the bound project", async () => {
+    const run = vi.fn(
+      async (): Promise<HealthResult> => ({
+        ...RESULT,
+        runId: "setup-readiness-run-1",
+        findings: SETUP_READINESS_CHECKS.map(check => ({
+          check,
+          layer: "deterministic",
+          status: "warn",
+          reason: `${check} pending`,
+        })),
+        summary: {
+          verdict: "in band",
+          counts: { pass: 0, warn: SETUP_READINESS_CHECKS.length, fail: 0 },
+        },
+      })
+    );
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      { probes: [], setupReadiness: { run } }
+    );
+    const base = `http://127.0.0.1:${serverPort()}`;
+
+    const response = await fetch(`${base}${SETUP_READINESS_PATH}`);
+    const body = (await response.json()) as HealthResult;
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get(CACHE_CONTROL)).toBe(NO_STORE);
+    expect(run).toHaveBeenCalledWith(resources.dir);
+    expect(body.findings.map(finding => finding.check)).toEqual(
+      SETUP_READINESS_CHECKS
+    );
+  });
+
+  it("HEAD and unsupported methods do not run setup readiness", async () => {
+    const run = vi.fn();
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      { probes: [], setupReadiness: { run } }
+    );
+    const base = `http://127.0.0.1:${serverPort()}`;
+
+    const head = await fetch(`${base}${SETUP_READINESS_PATH}`, {
+      method: "HEAD",
+    });
+    const unsupported = await fetch(`${base}${SETUP_READINESS_PATH}`, {
+      method: "POST",
+    });
+
+    expect(head.status).toBe(200);
+    expect(unsupported.status).toBe(405);
+    expect(unsupported.headers.get("allow")).toBe("GET, HEAD");
+    expect(run).not.toHaveBeenCalled();
   });
 });
