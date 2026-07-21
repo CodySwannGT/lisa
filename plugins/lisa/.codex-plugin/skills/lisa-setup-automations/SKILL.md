@@ -49,6 +49,36 @@ without a human between the loops and the pipeline. Pass `false` explicitly to o
 human triage. The two auto-start flags affect **only** the two exploratory automations; the intake
 gates' adversarial validation remains the quality control either way.
 
+## Repository-readiness advisory
+
+Before creating or updating registrations, locate the standing repository-readiness report through
+RRR-3's canonical `resolveReadinessReportPath` contract (currently `.lisa/readiness.json` under the
+resolved project root). This consumes the shared report; it never creates a second readiness
+assessment. Read the report exactly once. Do not re-run `lisa doctor --readiness`, because doing so
+would execute journeys and replace the standing evidence the operator is about to act on.
+
+A report is usable for this advisory only when all of these are true:
+
+- the file parses to a JSON object whose `schema_version` is `1` and whose `verdict` is `NOT_READY`;
+- `blocker_count` is a positive integer and the `blockers` array length exactly equals
+  `blocker_count`;
+- each blocker has a unique `id` in the closed set B1 through B7 (duplicate blocker ids make the
+  report internally inconsistent, and uniqueness caps the count at seven) and a non-empty
+  operator-facing `label`; and
+- `narrowed_claim` is a non-empty string.
+
+For one usable report, emit exactly one warning naming the blocker count, each blocker's `id` and
+`label`, and the narrowed claim. For example: "Repository readiness warning — 3 standing ship
+blockers: B2 Release path bypasses validation; B4 Failing loop has no recovery; B7 Operability
+cannot be proved. Narrowed claim: ready for supervised changes only." This is a warning only:
+setup continues, and no registration or runbook step is skipped because blockers stand.
+
+Treat a missing or unreadable file, invalid JSON, unsupported schema, or internally inconsistent
+report as unavailable: emit no readiness warning and no error, then continue setup normally. Do not
+invent an artifact freshness, age, or TTL rule; the persisted contract defines no such field. This
+advisory is never a precondition and follows the same never-block-always-degrade posture as runbook
+scaffolding below.
+
 ## The automations to create
 
 Each automation runs **one cycle** of a Lisa command and respects that command's confirmation policy

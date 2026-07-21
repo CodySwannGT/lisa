@@ -54,6 +54,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 ## Concepts
 
 - [Lisa Vocabulary](concepts/lisa-vocabulary.md)
+  - Distinguishes installation readiness, repository readiness, and the ship blocker condition that produces a narrowed `NOT_READY` claim.
 - [Coding-Agent Feature Taxonomy](concepts/coding-agent-feature-taxonomy.md)
 - [Bounded-Claims Evidence System](concepts/bounded-claims-evidence-system.md)
   - What "verified" means: the claim-boundary taxonomy, the four evidence disciplines, the `verification.gate.enforceBoundaries` / `security.review.unprovenBucket` flip points, and the advisory→blocking ratchet.
