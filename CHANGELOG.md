@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.2](https://github.com/CodySwannGT/lisa/compare/v2.286.1...v2.286.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **learnings:** anchor stale-lock reclaim to the lock it judged stale ([#1878](https://github.com/CodySwannGT/lisa/issues/1878)) ([71e5a78](https://github.com/CodySwannGT/lisa/commit/71e5a784c1f759e3c896a4fdbee4ddf4fc1ac36e))
+
 ### [2.286.1](https://github.com/CodySwannGT/lisa/compare/v2.286.0...v2.286.1) (2026-07-21)
 
 
