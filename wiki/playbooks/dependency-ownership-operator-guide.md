@@ -10,6 +10,15 @@ a decision procedure you walk, not a reference you look things up in. The
 underlying rules stay in `plugins/src/base/rules/` — this page tells you where
 they are and what they mean in plain language.
 
+**If a change is in front of you right now, go straight to
+[Deciding whether a dependency change is acceptable](#deciding-whether-a-dependency-change-is-acceptable)
+and come back for the background.** The sections before it explain the five
+surfaces the checklists draw on; the file paths in them are Lisa-repository
+paths, and
+[What actually reaches a host project](#what-actually-reaches-a-host-project)
+translates each one for an operator working inside a project that merely uses
+Lisa.
+
 ## What a "dependency" is, and why we write any of this down
 
 A dependency is a piece of software someone else wrote that our product relies
@@ -103,11 +112,24 @@ somewhere else — a CI workflow, a setup script, a template — is a second pla
 someone has to remember to edit. Routine bumps miss those, and then two parts of
 the system quietly disagree about what version we run.
 
-The check is run with:
+Inside the Lisa project itself, the check is run with:
 
 ```bash
 bun run check:duplicate-versions
 ```
+
+**That command exists only in Lisa's own project.** A host project running Lisa
+does not get a `check:duplicate-versions` script wired into its `package.json`.
+The detector does ship inside the installed package, so a host operator can run
+it directly:
+
+```bash
+node node_modules/@codyswann/lisa/scripts/check-duplicate-versions.mjs --root . --scan .
+```
+
+Distributing it as a wired-up host command is deliberately not part of this
+work; until that happens, nothing runs it in a host project unless a person
+does.
 
 It reports a file, a line, and what to do instead — usually "read the value from
 the manifest". A genuinely intentional duplicate (mid-migration, say) is
@@ -118,18 +140,21 @@ ticket**, so the exception is tracked rather than silently muted.
 
 - It is **advisory** today: it reports and exits successfully, so a green build
   does not mean the report was empty. Read the report. Making it block a build
-  is a separate, deliberate change that goes through the threshold ratchet.
+  is a separate, deliberate change that goes through the threshold ratchet
+  (the standing rule that quality gates may only ever get stricter, never
+  looser — so turning a check on is a one-way door and gets its own review).
 - It deliberately under-reports rather than over-reports, because a false alarm
-  erodes a check faster than a missed one. It ignores lockfiles, prose,
-  comments, loose ranges like `22.x`, packages the manifest does not pin, and
-  the `.lisa/` ledgers. So a clean run is not proof that no pin was duplicated —
-  it is proof that none of the provably-actionable shapes were.
+  erodes a check faster than a missed one. It ignores lockfiles (the generated
+  file recording exact installed versions), prose, comments, loose ranges like
+  `22.x`, packages the manifest does not pin, and the `.lisa/` ledgers. So a
+  clean run is not proof that no pin was duplicated — it is proof that none of
+  the provably-actionable shapes were.
 
 ### 4. Lisa's own seeded records, and the #1918 gap ticket
 
 Lisa fills in this same file for itself, against its own real dependency set —
-seventeen entries, split by blast radius. It is worth reading as a worked
-example of what "good" looks like.
+one entry per material dependency, split by blast radius. It is worth reading as
+a worked example of what "good" looks like.
 
 It is also an honest example. Every entry was written from repository evidence
 only: what the manifests, workflows, hooks, and tests actually prove. Repository
@@ -178,6 +203,17 @@ dependency is **non-material**, with the reason. Silence is not a justification.
 
 Work out which of the three shapes you are looking at, then walk that list.
 
+**How to reject.** Write the rejection as a comment on the work item itself,
+naming which line below it failed — that is the record the next reader sees, and
+it is what turns "no" into a specific thing to fix. Then move the item back out
+of the ready-for-build queue so nothing picks it up in the meantime. For the two
+classes that require sign-off — runtime-critical service clients and
+temporary/experimental dependencies — the person who signs off is the named
+accountable owner in the record's *owner / review cadence* field; if the record
+does not name one yet, that missing name is itself the first thing to send back.
+This mirrors the escalation instruction the shipped record file gives every
+project: raise it to an owner rather than letting it sit.
+
 ### It is a dependency ADDITION
 
 Something new is being added to the project.
@@ -193,8 +229,9 @@ Accept it when all of these are true:
   dependency**, a human has signed off — before the work starts.
 - The change commits to adding an entry to `.lisa/DEPENDENCY_DECISIONS.md`, and
   that entry answers all nine fields.
-- The version is pinned in the manifest only. Run
-  `bun run check:duplicate-versions` and read the report.
+- The version is pinned in the manifest only. In the Lisa project, run
+  `bun run check:duplicate-versions`; in a host project, run the detector
+  directly (see surface 3 above) and read the report.
 
 Send it back when: no class is named; the class is argued from popularity rather
 than exposure; the detection-evidence answer is "nothing would catch it" on a
@@ -202,10 +239,23 @@ runtime-critical service client; replacement cost is left as `_Not yet decided_`
 on something that touches money or user data; or the version literal is copied
 into a workflow or script as well as the manifest.
 
-Worked example:
-`tests/fixtures/dependency-trust-classes/dependency-addition-ticket.md` (adding
-a payment client) with the record it produces at
-`tests/fixtures/dependency-ownership/addition/.lisa/DEPENDENCY_DECISIONS.md`.
+What a good one looks like — a payment client being added. The work item says:
+
+> **Trust class:** runtime-critical service client
+> **Why that class:** it runs on the production request path and reaches
+> customer payment data and money directly. Maturity does not lower the class —
+> blast radius sets it.
+
+and the record entry it produces answers the detection question without
+flinching:
+
+> **What would catch a bad update (detection evidence):** The `payments`
+> integration test, which charges a card against the processor's test mode on
+> every pull request, plus the production monitor on checkout success rate.
+
+The full fixtures live in the Lisa project under
+`tests/fixtures/dependency-trust-classes/` and
+`tests/fixtures/dependency-ownership/addition/`.
 
 ### It is a dependency INTERNALIZATION
 
@@ -229,10 +279,24 @@ Send it back when: fewer than seven questions are answered and the dependency
 was not explicitly declared non-material; conformance was checked against
 hand-written examples instead of a real corpus; or there is no stated way back.
 
-Worked example:
-`tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md`
-with the retired record at
-`tests/fixtures/dependency-ownership/internalization/.lisa/DEPENDENCY_DECISIONS.md`.
+What a good one looks like — a small slug-building package taken in-house. The
+rollback answer is concrete rather than reassuring:
+
+> **Rollback or replacement criteria** — when slug defects exceed one per
+> release, or an input class appears that the in-house builder cannot handle,
+> we reinstall slugify at the pinned version, which stays a one-commit revert.
+
+and the record entry is retired rather than deleted, keeping the version to go
+back to:
+
+> ### slugify (retired — capability moved in-house 2026-07-21)
+> **What it is (dependency):** `slugify` `1.6.6` — removed from the manifest in
+> this change. The version is written down here because it is the rollback
+> target, not because anything installs it.
+
+The full fixtures live in the Lisa project under
+`tests/fixtures/dependency-internalization-kit/` and
+`tests/fixtures/dependency-ownership/internalization/`.
 
 ### It is an ordinary version bump
 
@@ -243,15 +307,23 @@ The same dependency, a newer version, same trust class, ownership unchanged.
 - Do demand whatever the existing trust class already asks at an upgrade — for a
   fast-moving standard implementation or a runtime-critical service client, that
   includes human sign-off at a major version.
-- Do check that the bump touched the manifest and the lockfile, and not a
-  scattering of copied literals.
+- Do check that the bump touched the manifest and the lockfile (the generated
+  file recording exact installed versions), and not a scattering of copied
+  literals.
 - Do re-read the record entry and update **Last reviewed**.
 
-Send it back when it is not really a bump: a fork, a patch carried locally, or a
-bump declined in favor of owning the code. Those are internalizations, and they
-carry the full kit.
+Send it back when it is not really a bump — when it is a **fork** (we copied
+their code and now maintain our own version of it), a **patch carried locally**
+(we keep a private fix on top of theirs at every upgrade), or a bump declined in
+favor of owning the code. All three move ownership to us, so they are
+internalizations and carry the full kit.
 
-Worked example:
+What a good one looks like — the bump says plainly that nothing moved:
+
+> **Move:** none. Version bump only. The dependency's trust class is unchanged
+> before and after this bump, so the confidence-rebuild kit does **not** apply.
+
+The full fixture lives in the Lisa project at
 `tests/fixtures/dependency-internalization-kit/version-bump-ticket.md`.
 
 ## What is NOT enforced (and why you still have to look)
@@ -277,8 +349,28 @@ rule content through the shared mirror, and its planning skill carries the same
 dependency steps as every other agent. Cursor receives each rule pair flattened
 into two native `.mdc` files. Both are representation differences, written down
 here and asserted by
-`tests/unit/strategies/dependency-ownership-integration.test.ts`. A documented
-gap is not a parity violation; a silent one is.
+`tests/unit/strategies/dependency-ownership-parity.test.ts`. A documented gap is
+not a parity violation; a silent one is.
+
+### What actually reaches a host project
+
+This page lives in the Lisa repository and is not shipped inside the published
+package, so a host operator cannot open it from their own checkout. Verified by
+running `lisa apply` into a fresh project:
+
+| Surface | Reaches a host project? | Where the host operator finds it |
+|---------|-------------------------|----------------------------------|
+| Decision records | **Yes**, in the repository | `.lisa/DEPENDENCY_DECISIONS.md`, seeded once and never overwritten |
+| Trust classes | **Yes**, inside the installed package, and auto-loaded into the coding agent's context | `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-trust-classes.md` |
+| Confidence-rebuild kit | **Yes**, same route | `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-internalization-kit.md` |
+| Duplicate-pin check | **Ships, but is not wired up** — no host script, no gate | `node node_modules/@codyswann/lisa/scripts/check-duplicate-versions.mjs --root . --scan .` |
+| Lisa's own seeded records | **No** — Lisa-side only | the Lisa project's `.lisa/DEPENDENCY_DECISIONS.md` (`#1918` tracks its gaps) |
+| This guide | **No** — `wiki/` is not published | the Lisa project's `wiki/playbooks/` |
+
+Because of that, the shipped record scaffold carries its own pointer section —
+"The rest of the dependency-ownership layer" — naming each of the above in
+host-relative terms. That file, not this page, is the entry point for an
+operator working inside a host project.
 
 ## Where to go next
 

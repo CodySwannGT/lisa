@@ -24,12 +24,17 @@ import { describe, expect, it } from "vitest";
 import {
   DUPLICATE_CHECK,
   FIELD_LABELS,
+  HOST_DETECTOR_INVOCATION,
+  HOST_RULES_DIR,
   KIT_CRITERIA,
   MANIFEST,
   OPERATOR_DOC,
+  POINTER_HEADING,
   RECORD_PATH,
   RULES,
   RULE_TITLES,
+  SCAFFOLD,
+  TRUST_CLASSES,
   flat,
   read,
 } from "./dependency-ownership-helpers";
@@ -183,9 +188,22 @@ describe("the operator walkthrough reaches all five surfaces", () => {
     );
   });
 
-  it("names the same duplicate-version invocation the project actually ships", () => {
+  it("does not send a host operator after a command only Lisa has", () => {
+    // `bun run check:duplicate-versions` exists in Lisa's own package.json and
+    // nowhere else. Telling a host operator to run it would be an instruction
+    // that fails on first use, so the guide has to say whose command it is and
+    // give the host the invocation that actually works.
     expect(doc).toContain("bun run check:duplicate-versions");
     expect(read(MANIFEST)).toContain('"check:duplicate-versions"');
+    expect(doc).toContain(
+      "**That command exists only in Lisa's own project.**"
+    );
+    expect(doc).toContain(HOST_DETECTOR_INVOCATION);
+  });
+
+  it("tells the operator which surfaces reach a host project and which do not", () => {
+    expect(doc).toContain("### What actually reaches a host project");
+    expect(doc).toContain("`wiki/` is not published");
   });
 
   it("re-states the shared vocabulary rather than inventing its own", () => {
@@ -197,10 +215,101 @@ describe("the operator walkthrough reaches all five surfaces", () => {
     }
   });
 
-  it("names both worked journeys so an operator can see a real example", () => {
-    expect(doc).toContain("tests/fixtures/dependency-ownership/addition");
+  it("shows each worked example inline rather than only citing a fixture path", () => {
+    // A non-technical operator will not go read a test fixture. Each decision
+    // branch has to carry enough of the example to be judged on the page.
+    expect(doc.split("What a good one looks like").length - 1).toBe(3);
+    expect(doc).toContain("> **Trust class:** runtime-critical service client");
     expect(doc).toContain(
-      "tests/fixtures/dependency-ownership/internalization"
+      "> ### slugify (retired — capability moved in-house 2026-07-21)"
+    );
+    expect(doc).toContain("> **Move:** none. Version bump only.");
+  });
+
+  it("glosses the jargon an outcomes-focused reader would not know", () => {
+    expect(flat(doc)).toContain(
+      "the standing rule that quality gates may only ever get stricter"
+    );
+    expect(doc).toContain(
+      "the generated\n  file recording exact installed versions"
+    );
+    expect(flat(doc)).toContain(
+      "a **fork** (we copied their code and now maintain our own version of it)"
+    );
+  });
+
+  it("says where a rejection is written and who signs off", () => {
+    // "Send it back" with no addressee is not an instruction.
+    expect(doc).toContain("**How to reject.**");
+    expect(flat(doc)).toContain(
+      "Write the rejection as a comment on the work item itself"
+    );
+    expect(flat(doc)).toContain(
+      "the person who signs off is the named accountable owner in the record's *owner / review cadence* field"
+    );
+  });
+});
+
+describe("the shipped host scaffold reaches all five surfaces on its own", () => {
+  // AC scenario 2 names "a host project using Lisa's updated templates". A host
+  // operator never sees wiki/, plugins/src/, or tests/fixtures/ — the only file
+  // they are guaranteed to open is the create-only record scaffold. So the
+  // scaffold, not the wiki guide, has to be the self-contained entry point.
+  const scaffold = read(SCAFFOLD);
+
+  it("carries a pointer section, placed before the appendable Records section", () => {
+    const headings: readonly string[] = scaffold.match(/^## .+$/gmu) ?? [];
+
+    expect(headings).toContain(POINTER_HEADING);
+    expect(headings[headings.length - 1]).toBe("## Records");
+    expect(scaffold.indexOf(POINTER_HEADING)).toBeLessThan(
+      scaffold.indexOf("\n## Records")
+    );
+  });
+
+  it("names all six trust classes without making the operator leave the file", () => {
+    const lowered = flat(scaffold).toLowerCase();
+
+    for (const trustClass of TRUST_CLASSES) {
+      expect(lowered).toContain(trustClass);
+    }
+    expect(scaffold).toContain(`${HOST_RULES_DIR}/dependency-trust-classes.md`);
+  });
+
+  it("names all seven confidence-rebuild criteria and where the full rule lives", () => {
+    const lowered = flat(scaffold).toLowerCase();
+
+    for (const criterion of KIT_CRITERIA) {
+      expect(lowered).toContain(criterion.toLowerCase());
+    }
+    expect(scaffold).toContain(
+      `${HOST_RULES_DIR}/dependency-internalization-kit.md`
+    );
+  });
+
+  it("gives the host-runnable duplicate-pin invocation and is honest that it is not a gate", () => {
+    expect(scaffold).toContain(HOST_DETECTOR_INVOCATION);
+    expect(flat(scaffold)).toContain(
+      "It is not wired into this project's `package.json` scripts and it does not fail a build"
+    );
+    expect(flat(scaffold)).toContain(
+      "a clean run is not proof that no pin was duplicated"
+    );
+  });
+
+  it("points at Lisa's own worked example and at the full operator guide", () => {
+    // Deliberately no Lisa issue number here: a ticket in someone else's tracker
+    // is not actionable for a host operator, so the scaffold points at the
+    // artifact and the guide carries the gap ticket.
+    expect(scaffold).toContain(OPERATOR_DOC);
+    // Both are Lisa-side, so the scaffold must say so rather than implying the
+    // operator can open them from their own checkout.
+    expect(flat(scaffold)).toContain("it lives in the Lisa project at");
+  });
+
+  it("repeats the honest non-enforcement statement the guide makes", () => {
+    expect(flat(scaffold)).toContain(
+      "Nothing above is enforced by a build gate."
     );
   });
 });
