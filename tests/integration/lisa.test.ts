@@ -52,6 +52,7 @@ const PACKAGE_LISA_DIR = "package-lisa";
 const LISA_MANIFEST = ".lisa-manifest";
 const PROJECT_LEARNINGS = "PROJECT_LEARNINGS.md";
 const LISA_STATE_DIR = ".lisa";
+const DEPENDENCY_DECISIONS = "DEPENDENCY_DECISIONS.md";
 const LISA_CONFIG_JSON = ".lisa.config.json";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
 const WORKFLOWS_DIR = path.join(".github", "workflows");
@@ -163,6 +164,60 @@ describe("Lisa Integration Tests", () => {
       expect(second.success).toBe(true);
       expect(third.success).toBe(true);
       expect(await fs.readFile(learningsPath, "utf8")).toBe(populated);
+    });
+
+    it("seeds the governed dependency decision-record scaffold and never overwrites it", async () => {
+      await createTypeScriptProject(destDir);
+      const recordPath = path.join(
+        destDir,
+        LISA_STATE_DIR,
+        DEPENDENCY_DECISIONS
+      );
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      const seeded = await fs.readFile(recordPath, "utf8");
+
+      // Every required decision-record field reaches the host project.
+      expect(seeded).toContain("<!-- lisa-dependency-decisions:v1 -->");
+      expect(seeded).toContain("**Why we keep it:**");
+      expect(seeded).toContain("**What it is (dependency):**");
+      expect(seeded).toContain("**What it does for us (owned capability):**");
+      expect(seeded).toContain("**Why we believe it's safe (trust basis):**");
+      expect(seeded).toContain(
+        "**What breaks if this is compromised (exposure):**"
+      );
+      expect(seeded).toContain(
+        "**What it would take to replace (replacement cost):**"
+      );
+      expect(seeded).toContain(
+        "**What would catch a bad update (detection evidence):**"
+      );
+      expect(seeded).toContain(
+        "**Who owns this and how often we recheck (owner / review cadence):**"
+      );
+      expect(seeded).toContain("**Last reviewed:**");
+      expect(seeded).toContain("### ESLint (EXAMPLE — a complete entry)");
+
+      // The operator gets a sanctioned next action, and sees an honest gap
+      // in place rather than only a perfectly-filled example.
+      expect(seeded).toContain("## When to escalate");
+      expect(seeded).toContain(
+        "### sharp (EXAMPLE — an entry still being filled in)"
+      );
+      expect(seeded).toContain(
+        "**Last reviewed:** _Not yet decided_ (example entry — never reviewed)"
+      );
+
+      // Host-owned content survives re-apply: Lisa seeds once, never rewrites.
+      const hostAuthored = `${seeded}\n### internal-billing-sdk\n\n- **Why we keep it:** It bills our customers.\n`;
+      await fs.writeFile(recordPath, hostAuthored);
+
+      const second = await createLisa().apply();
+
+      expect(second.success).toBe(true);
+      expect(await fs.readFile(recordPath, "utf8")).toBe(hostAuthored);
     });
 
     it("keeps the ledger at .lisa regardless of a custom projectRulesFile", async () => {
