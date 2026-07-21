@@ -8,13 +8,17 @@
  * particular run: a token granted `write-all` is over-authorized whether or not
  * today's run happened to use it.
  *
- * Five declarations are treated as material over-authority:
- * inherited secrets (`secrets: inherit` hands a called workflow everything),
- * `write-all`/`read-all` blanket permission grants, a job that uses
- * `GITHUB_TOKEN` with no `permissions` block at all (so it takes the repository
- * default rather than a stated minimum), one secret shared across two different
- * deployment environments (a staging compromise reaches production), and static
- * long-lived AWS keys in a job that could have used OIDC instead.
+ * Four declarations are treated as material over-authority: inherited secrets
+ * (`secrets: inherit` hands a called workflow everything), `write-all`/`read-all`
+ * blanket permission grants, a job that uses `GITHUB_TOKEN` with no
+ * `permissions` block at all (so it takes the repository default rather than a
+ * stated minimum), and static long-lived AWS keys in a job that could have used
+ * OIDC instead. Each is provable from the declaration alone.
+ *
+ * A fifth signal — one secret NAME appearing under several environments — is
+ * reported as an *observation*, never a blocker: environment secrets are meant
+ * to reuse one name per environment, and repository-scope versus
+ * environment-scope is not decidable from YAML.
  *
  * It lives beside the delivery producer rather than inside it for file-size
  * hygiene — the same split the blocker gate and journey wiring already use.
@@ -209,9 +213,11 @@ function secretEnvironmentPairs(
 function jobSecretEnvironmentPairs(
   job: ParsedWorkflowJob
 ): readonly SecretEnvironmentPair[] {
-  const secrets = [...jobText(job).matchAll(SECRET_REFERENCE)].map(
-    match => match[1] ?? ""
-  );
+  const secrets = [...jobText(job).matchAll(SECRET_REFERENCE)]
+    .map(match => match[1] ?? "")
+    // GITHUB_TOKEN is minted fresh per job per run, so it cannot be "shared"
+    // between environments — reporting it as such is impossible by construction.
+    .filter(secret => secret !== "GITHUB_TOKEN");
   return secrets.flatMap(secret =>
     job.environment.map(environment => ({ secret, environment }))
   );
@@ -227,14 +233,18 @@ function uniqueSorted(names: readonly string[]): readonly string[] {
 }
 
 /**
- * Report each secret reused across more than one deployment environment. Sharing
- * one credential between environments means a compromise of the least-protected
- * one reaches the most-protected one, which is authority the credential was
- * never meant to carry.
+ * Note each secret NAME that appears under more than one deployment environment.
+ *
+ * This is informational, never a standing blocker. GitHub environment secrets
+ * are *supposed* to reuse one name across environments — that is the recommended
+ * least-privilege pattern, with a distinct value stored per environment — and
+ * whether a given name resolves to a repository-scoped secret (genuinely shared)
+ * or an environment-scoped one (correctly isolated) is not decidable from the
+ * YAML. Blocking on it would fail correct repositories for doing the right thing.
  * @param workflows - Parsed workflows
- * @returns Evidence lines (empty when every environment has its own secret)
+ * @returns Observation lines (empty when no name is reused)
  */
-function sharedSecretViolations(
+function sharedSecretObservations(
   workflows: readonly ParsedWorkflow[]
 ): readonly string[] {
   const pairs = secretEnvironmentPairs(workflows);
@@ -244,32 +254,46 @@ function sharedSecretViolations(
     );
     return environments.length > 1
       ? [
-          `secret \`${secret}\` is used by jobs deploying to ` +
-            `${environments.length} different environments ` +
-            `(${environments.join(", ")}), so a compromise of the ` +
-            "least-protected one carries authority over the rest",
+          `secret name \`${secret}\` appears under ${environments.length} ` +
+            `deployment environments (${environments.join(", ")}). If it is an ` +
+            "environment-scoped secret this is the recommended pattern; if it " +
+            "is repository-scoped, one credential spans every environment. " +
+            "Which one it is cannot be determined from the workflow files.",
         ]
       : [];
   });
 }
 
+/** The credential half of a delivery/authority assessment. */
+export interface CredentialFindings {
+  /** Provable over-authority: each line stands blocker B3. */
+  readonly violations: readonly string[];
+  /** Observations that are real but not decidable offline; never blocking. */
+  readonly informational: readonly string[];
+}
+
 /**
- * Detect every credential over-authority declaration across the repository's
- * workflows. Ordered by consequence: blanket grants and inherited secrets first
- * (they are unbounded), then narrower over-authority.
+ * Detect credential over-authority across the repository's workflows.
+ *
+ * Violations are ordered by consequence: blanket grants and inherited secrets
+ * first (they are unbounded), then narrower over-authority. Anything the
+ * workflow files cannot settle lands in `informational`, which carries no
+ * `blocker` key and therefore can never flip a verdict.
  * @param workflows - Parsed workflows
- * @returns Evidence lines, one per violation (empty when nothing is over-authorized)
+ * @returns Violations and informational observations
  */
-export function detectCredentialViolations(
+export function detectCredentialFindings(
   workflows: readonly ParsedWorkflow[]
-): readonly string[] {
-  return [
-    ...workflows.flatMap(workflow =>
-      blanketGrantViolations(workflow.file, workflow.permissions)
-    ),
-    ...workflows.flatMap(workflow =>
-      workflow.jobs.flatMap(job => jobCredentialViolations(workflow, job))
-    ),
-    ...sharedSecretViolations(workflows),
-  ];
+): CredentialFindings {
+  return {
+    violations: [
+      ...workflows.flatMap(workflow =>
+        blanketGrantViolations(workflow.file, workflow.permissions)
+      ),
+      ...workflows.flatMap(workflow =>
+        workflow.jobs.flatMap(job => jobCredentialViolations(workflow, job))
+      ),
+    ],
+    informational: sharedSecretObservations(workflows),
+  };
 }

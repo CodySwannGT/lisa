@@ -29,6 +29,7 @@ import {
   checkRepositoryReadiness,
   formatReadinessHeadline,
   resolveReadinessReportPath,
+  runDimensionProducer,
 } from "../../../src/cli/doctor-readiness.js";
 import { runDoctor } from "../../../src/cli/doctor.js";
 
@@ -60,6 +61,9 @@ describe("resolveReadinessReportPath", () => {
   });
 });
 
+/** The dimension whose producer this suite exercises end to end. */
+const DELIVERY_AUTHORITY = "delivery-authority";
+
 /** Operator-facing marker that the readiness question was not answered. */
 const NOT_ESTABLISHED = "NOT ESTABLISHED";
 
@@ -72,7 +76,7 @@ const ASSESSED_DIMENSION = {
 
 /** A dimension record that was never assessed, reused across headline cases. */
 const UNASSESSED_DIMENSION = {
-  id: "delivery-authority",
+  id: DELIVERY_AUTHORITY,
   status: "SKIP",
   findings: [],
 } as const;
@@ -103,7 +107,7 @@ describe("formatReadinessHeadline", () => {
     // saying the report proves nothing — that contradicts its own verdict.
     const headline = formatReadinessHeadline("READY", [
       ASSESSED_DIMENSION,
-      { id: "delivery-authority", status: "PASS", findings: [] },
+      { id: DELIVERY_AUTHORITY, status: "PASS", findings: [] },
     ]);
 
     expect(headline).not.toContain(NOT_ESTABLISHED);
@@ -241,6 +245,40 @@ describe("checkRepositoryReadiness", () => {
     expect(check.detail.toLowerCase()).toContain("readiness");
     // Restore permissions so afterEach cleanup succeeds.
     await chmod(lisaDir, 0o755);
+  });
+});
+
+describe("runDimensionProducer", () => {
+  it("degrades a throwing producer to a stated-reason SKIP for its own dimension", async () => {
+    const record = await runDimensionProducer(
+      DELIVERY_AUTHORITY,
+      "/nowhere",
+      async () => {
+        throw new Error("workflow parser exploded");
+      }
+    );
+
+    // One producer failing must cost its own dimension, never the whole report.
+    expect(record.id).toBe(DELIVERY_AUTHORITY);
+    expect(record.status).toBe("SKIP");
+    const finding = record.findings[0] as Record<string, unknown>;
+    expect(finding.skip).toBe(true);
+    expect(String(finding.reason)).toContain("workflow parser exploded");
+    expect(Object.hasOwn(finding, "blocker")).toBe(false);
+  });
+
+  it("returns the producer's record untouched when it succeeds", async () => {
+    const record = await runDimensionProducer(
+      "proportionality",
+      "/nowhere",
+      async () => ({ id: "proportionality", status: "PASS", findings: [] })
+    );
+
+    expect(record).toEqual({
+      id: "proportionality",
+      status: "PASS",
+      findings: [],
+    });
   });
 });
 

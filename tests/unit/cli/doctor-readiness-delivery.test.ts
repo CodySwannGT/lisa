@@ -80,6 +80,10 @@ const CI_YML = "ci.yml";
 const DEPLOY_YML = "deploy.yml";
 const RELEASE_YML = "release.yml";
 
+/** Repeated fixture lines shared by the credential cases. */
+const DEPLOY_NAME = "name: Deploy";
+const RUN_DEPLOY = "      - run: deploy.sh";
+
 /** A release workflow whose publish job ships an unvalidated local build. */
 const B2_VIOLATION_WORKFLOW = [
   "name: Release",
@@ -272,7 +276,7 @@ describe("assessDeliveryAuthorityDimension — B3 (credential over-authority)", 
   it("FAILs with B3 on static AWS keys where OIDC would do", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, DEPLOY_YML, [
-      "name: Deploy",
+      DEPLOY_NAME,
       ON_PUSH,
       JOBS,
       "  ship:",
@@ -294,10 +298,10 @@ describe("assessDeliveryAuthorityDimension — B3 (credential over-authority)", 
     expect(finding?.evidence).toContain("aws-access-key-id");
   });
 
-  it("FAILs with B3 when one secret is reused across two environments", async () => {
+  it("does NOT stand a blocker when one secret name appears in two environments", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, DEPLOY_YML, [
-      "name: Deploy",
+      DEPLOY_NAME,
       ON_PUSH,
       JOBS,
       "  staging:",
@@ -305,7 +309,7 @@ describe("assessDeliveryAuthorityDimension — B3 (credential over-authority)", 
       PERMISSIONS,
       CONTENTS_READ,
       STEPS,
-      "      - run: deploy.sh",
+      RUN_DEPLOY,
       "        env:",
       "          DEPLOY_KEY: ${{ secrets.SHARED_DEPLOY_KEY }}",
       "  production:",
@@ -313,20 +317,54 @@ describe("assessDeliveryAuthorityDimension — B3 (credential over-authority)", 
       PERMISSIONS,
       CONTENTS_READ,
       STEPS,
-      "      - run: deploy.sh",
+      RUN_DEPLOY,
       "        env:",
       "          DEPLOY_KEY: ${{ secrets.SHARED_DEPLOY_KEY }}",
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    expect(record.status).toBe(FAIL);
-    const finding = asFindings(record.findings).find(
-      candidate => candidate.blocker === "B3"
-    );
-    expect(finding?.evidence).toContain("SHARED_DEPLOY_KEY");
-    expect(finding?.evidence).toContain("staging");
-    expect(finding?.evidence).toContain("production");
+    // Environment secrets are SUPPOSED to reuse one name across environments —
+    // that is the recommended least-privilege pattern, and repo-scope vs
+    // environment-scope is not decidable from YAML. Surface it, never block on it.
+    expect(record.status).not.toBe(FAIL);
+    for (const finding of asFindings(record.findings)) {
+      expect(Object.hasOwn(finding, "blocker")).toBe(false);
+    }
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).toContain("SHARED_DEPLOY_KEY");
+  });
+
+  it("never treats GITHUB_TOKEN as a secret shared across environments", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON_PUSH,
+      JOBS,
+      "  staging:",
+      "    environment: staging",
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      RUN_DEPLOY,
+      "        env:",
+      "          TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+      "  production:",
+      "    environment: production",
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      RUN_DEPLOY,
+      "        env:",
+      "          TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    // GITHUB_TOKEN is minted per job per run: sharing it across environments is
+    // not a thing that can happen, so it must never be reported as one.
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).not.toContain("GITHUB_TOKEN");
   });
 
   it("attaches no blocker key when credentials are scoped and OIDC is used", async () => {
