@@ -29,6 +29,7 @@
 import {
   describeCommands,
   hasCheckedInRunbook,
+  looksEphemeral,
   type OperationScan,
   scanCommands,
   type ScannedCommand,
@@ -66,20 +67,6 @@ const IRREVERSIBLE_DATA_OPS: readonly RegExp[] = [
   /\baws\s+rds\s+delete-db-(instance|cluster)\b[^\n]*--skip-final-snapshot\b/,
 ];
 
-/**
- * Targets that mark a destructive command as aimed at throwaway state. A CI job
- * that drops its own `_test` database is doing the correct thing, and reporting
- * it as data loss is the archetypal false positive.
- */
-const EPHEMERAL_TARGETS: readonly RegExp[] = [
-  /(^|[^a-z0-9])test([^a-z0-9]|$)/,
-  /_test\b/,
-  /-test\b/,
-  /\blocalhost\b/,
-  /\b127\.0\.0\.1\b/,
-  /(^|[^a-z0-9])(tmp|temp)([^a-z0-9]|$)/,
-];
-
 /** Commands that create the way back: a copy taken before the destruction. */
 const RECOVERY_COMMANDS: readonly RegExp[] = [
   /\bpg_dump\b/,
@@ -91,13 +78,40 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
 
 /**
  * Whether a command irreversibly destroys data that is not obviously throwaway.
+ *
+ * The ephemeral screen reads the job's `env:` block alongside the command,
+ * because the evidence is routinely outside the command text: `psql
+ * "$DATABASE_URL" -c "DROP SCHEMA public CASCADE"` says nothing on its own,
+ * while the `DATABASE_URL` it expands to may point at `127.0.0.1` and settle the
+ * question outright.
  * @param command - The lower-cased `run` command
+ * @param job - The job the command runs in
  * @returns True when the command is an unambiguous data-destroying operation
  */
-function destroysData(command: string): boolean {
+function destroysData(command: string, job: ParsedWorkflowJob): boolean {
   return (
     IRREVERSIBLE_DATA_OPS.some(pattern => pattern.test(command)) &&
-    !EPHEMERAL_TARGETS.some(pattern => pattern.test(command))
+    !looksEphemeral(`${command}\n${job.env}`)
+  );
+}
+
+/**
+ * State why a job that boots its own `services:` containers cannot be settled.
+ * A job that starts its own database is operating on state it created moments
+ * earlier, so destroying it is not data loss — but proving *which* store the
+ * command targets is beyond an offline read, so this is deferred, not cleared.
+ * @param job - The job to consider
+ * @returns A stated reason, or null when the job starts no services
+ */
+function servicesDeferral(job: ParsedWorkflowJob): string | null {
+  if (job.services.length === 0) {
+    return null;
+  }
+  return (
+    `Job \`${job.id}\` runs a destructive data operation while starting its own ` +
+    `\`services:\` container(s) (${job.services.join(", ")}), which are created ` +
+    "and thrown away inside the run, so whether the command targets durable " +
+    "data is not established either way"
   );
 }
 
@@ -209,6 +223,7 @@ export async function assessDomainOwnershipDimension(
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
   const scan = scanCommands(workflows, destroysData, {
     exemptJob: jobTakesBackup,
+    unresolvedJob: servicesDeferral,
   });
   // A checked-in runbook is a way back, so it clears the "no recovery" half of
   // B1 for the whole repository — the blocker asks for BOTH halves at once.

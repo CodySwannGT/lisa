@@ -78,6 +78,18 @@ export interface ParsedWorkflowJob {
   readonly environment: readonly string[];
   /** The job's `if:` condition, or `""` when it always runs. */
   readonly ifCondition: string;
+  /**
+   * The job-level `env:` block, flattened to `key: value` lines. The B1
+   * producer resolves a command's target through it: `psql "$DATABASE_URL"`
+   * says nothing on its own, while the `DATABASE_URL` it expands to may name
+   * `127.0.0.1` and settle the question.
+   */
+  readonly env: string;
+  /**
+   * Ids of the `services:` containers the job starts. A job that boots its own
+   * database is operating on throwaway state by construction.
+   */
+  readonly services: readonly string[];
 }
 
 /** One parsed `.github/workflows/*.yml` file. */
@@ -162,16 +174,22 @@ function parseTrigger(value: unknown): ParsedWorkflowTrigger {
  * @returns Flattened `key: value` text, one pair per line
  */
 function serializeStepInputs(step: Record<string, unknown>): string {
-  return ["env", "with"]
-    .flatMap(key => {
-      const block = step[key];
-      return isJsonObject(block) ? Object.entries(block) : [];
-    })
-    .map(
-      ([name, value]) =>
-        `${name}: ${typeof value === "string" ? value : String(value)}`
-    )
-    .join("\n");
+  return ["env", "with"].flatMap(key => serializeBlock(step[key])).join("\n");
+}
+
+/**
+ * Flatten one YAML mapping to `key: value` lines so it can be searched as text.
+ * @param value - Candidate YAML mapping
+ * @returns One line per entry (empty when the value is not a mapping)
+ */
+function serializeBlock(value: unknown): readonly string[] {
+  if (!isJsonObject(value)) {
+    return [];
+  }
+  return Object.entries(value).map(
+    ([name, entry]) =>
+      `${name}: ${typeof entry === "string" ? entry : String(entry)}`
+  );
 }
 
 /**
@@ -236,6 +254,8 @@ function parseJobs(
         secrets: asBlock(job.secrets),
         environment: asEnvironments(job.environment),
         ifCondition: asCondition(job.if),
+        env: serializeBlock(job.env).join("\n"),
+        services: isJsonObject(job.services) ? Object.keys(job.services) : [],
       },
     ];
   });
