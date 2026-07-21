@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.269.1](https://github.com/CodySwannGT/lisa/compare/v2.269.0...v2.269.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **plugins:** harden learner frontmatter ([3f8f236](https://github.com/CodySwannGT/lisa/commit/3f8f2362c5ce8da958ba862dc98370655d9158ad)), closes [CodySwannGT/lisa#1869](https://github.com/CodySwannGT/lisa/issues/1869)
+* **plugins:** preserve learner verifier script ([fbc98c5](https://github.com/CodySwannGT/lisa/commit/fbc98c5cf4ff2c72b1b58a9aa3090fc670c42c44)), closes [CodySwannGT/lisa#1869](https://github.com/CodySwannGT/lisa/issues/1869)
+
 ## [2.269.0](https://github.com/CodySwannGT/lisa/compare/v2.268.1...v2.269.0) (2026-07-20)
 
 
