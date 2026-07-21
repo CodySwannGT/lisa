@@ -261,8 +261,10 @@ function skipRecord(
  * Assess the context-routing dimension: B6, "documentation overstates enforced
  * guarantees". Offline by construction — it reads only the repository's own
  * instruction surfaces and the paths they name — and high-precision by design:
- * it stands B6 only on a named mechanism that demonstrably does not exist, and
- * only ever as `WARN`.
+ * it stands B6 only on a named mechanism that survives {@link classifyMechanism}
+ * and still demonstrably does not exist. The record's status is `WARN` rather
+ * than `FAIL`, but that is a confidence signal to a human reader only: a
+ * standing B6 blocker flips the repository to `NOT_READY` either way.
  * @param root - Project root to assess
  * @returns The context-routing dimension record
  */
@@ -275,8 +277,10 @@ export async function assessContextRoutingDimension(
   if (violations.length > 0) {
     return {
       id: CONTEXT_ROUTING_DIMENSION_ID,
-      // WARN, never FAIL: cross-checking prose against machinery is not certain
-      // enough offline to fail a repository on, but it is certain enough to say.
+      // `WARN` reports how much confidence an offline prose cross-check can
+      // carry — it does NOT soften the verdict. The blocker engine never reads
+      // this status, so the finding below flips the repository to `NOT_READY`
+      // exactly as a `FAIL` would; precision is what keeps that honest.
       status: "WARN",
       findings: [
         contextFinding(violations),

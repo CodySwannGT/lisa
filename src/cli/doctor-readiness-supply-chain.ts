@@ -28,8 +28,8 @@
  * @module cli/doctor-readiness-supply-chain
  */
 import { informationalFindings } from "./doctor-readiness-shared.js";
+import { auditExceptionViolations } from "./doctor-readiness-audit-allowlist.js";
 import {
-  auditExceptionViolations,
   collectSpecs,
   type DependencySpec,
   findAuditGate,
@@ -140,14 +140,31 @@ async function collectFindings(
       ...(auditGate === null
         ? []
         : [`Dependency-audit gate declared in \`${auditGate}\`.`]),
-      ...(workspaces.declared
-        ? [
-            `Workspaces are declared, so ${workspaces.names.size} locally linked ` +
-              "package name(s) were exempted from the floating-spec check.",
-          ]
-        : []),
+      ...(workspaces.declared ? [workspaceObservation(workspaces)] : []),
     ],
   };
+}
+
+/**
+ * State what the workspace exemption actually did.
+ *
+ * The two cases must not be described in the same words. When member manifests
+ * resolved, named packages were exempted because they provably link locally.
+ * When none resolved, a bare `*` was exempted on the strength of the
+ * `workspaces` declaration alone — a deliberate refusal to manufacture a
+ * violation from absence, but NOT a resolved link, and reporting it as
+ * "0 package name(s) were exempted" would describe the opposite of what
+ * happened.
+ * @param workspaces - What resolving the workspace members established
+ * @returns One operator-language observation
+ */
+function workspaceObservation(workspaces: WorkspaceMembers): string {
+  return workspaces.names.size > 0
+    ? `Workspaces are declared, so ${workspaces.names.size} locally linked ` +
+        "package name(s) were exempted from the floating-spec check."
+    : "Workspaces are declared but no member manifests resolved offline, so " +
+        "bare `*` specs were treated as workspace links rather than as " +
+        "floating installs. Whether they really link locally is not established.";
 }
 
 /**
@@ -183,6 +200,19 @@ function supplyChainFinding(
         "attention every cycle and prove nothing",
     ],
   };
+}
+
+/**
+ * Describe what the spec check established, without overstating the bare-`*`
+ * workspace fallback as a resolved link.
+ * @param workspaces - What resolving the workspace members established
+ * @returns One clause for the PASS evidence
+ */
+function describeSpecCleanliness(workspaces: WorkspaceMembers): string {
+  return workspaces.declared && workspaces.names.size === 0
+    ? "every one names a version, except bare `*` specs exempted because " +
+        "workspaces are declared but no member manifests resolved offline"
+    : "every one names a version or links a workspace member";
 }
 
 /**
@@ -245,9 +275,9 @@ export async function assessDependenciesSupplyChainDimension(
       {
         evidence:
           `Inspected ${specs.length} dependency spec(s) in the root ` +
-          "`package.json`: every one names a version or links a workspace " +
-          "member, a lockfile is committed, a dependency-audit gate covering " +
-          "the JavaScript tree is declared, and every active audit exception " +
+          `\`package.json\`: ${describeSpecCleanliness(workspaces)}, a ` +
+          "lockfile is committed, a dependency-audit gate covering the " +
+          "JavaScript tree is declared, and every active audit exception " +
           "carries a written decision. Workspace child manifests are not " +
           "walked, so this speaks only to the root manifest.",
         checked: [SUPPLY_CHAIN_BLOCKER_ID],

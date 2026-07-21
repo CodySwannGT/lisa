@@ -73,9 +73,16 @@ const LOCAL_PROTOCOLS: readonly string[] = [
   "portal:",
 ];
 
-/** Specs fetched from a source tree rather than a registry release. */
-const SOURCE_FETCH_PROTOCOL =
-  /^(github:|gitlab:|bitbucket:|bitbucket|git\+|git:|https?:\/\/)/i;
+/**
+ * Protocols that clone a source tree. Without a ref these resolve to whatever
+ * the default branch holds at install time, which is the drift B5 cares about.
+ * Each alternative ends in `:` or `+` on purpose — a colonless `bitbucket`
+ * alternative would match the ordinary registry package `bitbucket-client`.
+ */
+const GIT_FETCH_PROTOCOL = /^(github:|gitlab:|bitbucket:|git\+|git:)/i;
+
+/** An `http(s)` spec, which may clone a repository or download an archive. */
+const HTTP_SPEC = /^https?:\/\//i;
 
 /**
  * Whether a source-fetch spec is anchored to one revision by a `#<sha|tag>`
@@ -89,6 +96,24 @@ function hasImmutableRef(spec: string): boolean {
 }
 
 /**
+ * Whether a spec clones a git repository.
+ *
+ * The distinction this draws is the whole point: `git+https://…/widget.git`
+ * tracks a moving branch tip, but `https://…/widget-1.2.3.tgz` names one built
+ * archive that cannot become something newer tomorrow. Demanding a `#ref` of an
+ * archive URL would fault a repository that is already perfectly pinned.
+ * @param spec - The declared spec text
+ * @returns True when the spec resolves by cloning a repository
+ */
+function clonesRepository(spec: string): boolean {
+  const beforeRef = spec.split("#")[0] ?? "";
+  return (
+    GIT_FETCH_PROTOCOL.test(spec) ||
+    (HTTP_SPEC.test(spec) && beforeRef.toLowerCase().endsWith(".git"))
+  );
+}
+
+/**
  * Whether a dependency spec resolves to whatever is newest at install time
  * rather than to a version something was validated against.
  *
@@ -98,8 +123,10 @@ function hasImmutableRef(spec: string): boolean {
  * - **Local protocols** resolve inside the repository and never float.
  * - **Registry aliases** (`npm:left-pad@latest`) hide the real spec behind the
  *   alias, so the part after the version separator is re-tested.
- * - **Source fetches** (`github:acme/widget`) float unless anchored to a
- *   `#<sha|tag>` revision, because the branch tip moves under the install.
+ * - **Repository clones** (`github:acme/widget`, `git+https://…/x.git`) float
+ *   unless anchored to a `#<sha|tag>` revision, because the branch tip moves
+ *   under the install. An archive URL (`…/widget-1.2.3.tgz`) is NOT a clone: it
+ *   names one built artifact and is treated as pinned.
  * - **Plain ranges** float only when they name no version at all. A `>=` floor
  *   in `overrides` is the recommended way to force a patched transitive
  *   dependency, so ranges are otherwise left alone.
@@ -117,7 +144,7 @@ export function isFloatingSpec(spec: string): boolean {
       ? isFloatingSpec(trimmed.slice(separator + 1))
       : true;
   }
-  if (SOURCE_FETCH_PROTOCOL.test(trimmed)) {
+  if (clonesRepository(trimmed)) {
     return !hasImmutableRef(trimmed);
   }
   return FLOATING_SPECS.has(trimmed.toLowerCase());
@@ -160,23 +187,6 @@ const UPDATE_BOT_FILES: readonly string[] = [
   "renovate.json",
   ".renovaterc",
   ".renovaterc.json",
-];
-
-/** Audit allowlists whose entries must each carry a decision record. */
-const ALLOWLIST_FILES: readonly string[] = [
-  "audit.ignore.config.json",
-  "audit.ignore.local.json",
-  ".nsprc",
-];
-
-/** Keys that count as the written decision behind an audit exception. */
-const DECISION_KEYS: readonly string[] = [
-  "reason",
-  "notes",
-  "justification",
-  "decision",
-  "rationale",
-  "comment",
 ];
 
 /** What reading the manifest established. */
@@ -357,135 +367,4 @@ export async function findAuditGate(root: string): Promise<string | null> {
     }
   }
   return null;
-}
-
-/**
- * Keys whose value holds audit exceptions. Everything outside these containers
- * is configuration, not an exception — walking a whole document as if every
- * top-level key were an advisory id turns audit-ci's own `.nsprc` (`$schema`,
- * `exceptions`, …) into fabricated findings.
- */
-const EXCEPTION_CONTAINERS: readonly string[] = [
-  "exclusions",
-  "exceptions",
-  "advisories",
-  "allowlist",
-];
-
-/**
- * Whether a top-level `.nsprc`-style key names an advisory rather than config.
- * @param key - The key to classify
- * @returns True when the key may name an advisory
- */
-function isAdvisoryKey(key: string): boolean {
-  return !key.startsWith("$") && !key.startsWith("//");
-}
-
-/**
- * Take the object-valued, non-config entries out of an exception map.
- * @param container - A candidate exception map
- * @returns The entries that are genuinely exceptions
- */
-function mapEntries(
-  container: Record<string, unknown>
-): readonly (readonly [string, Record<string, unknown>])[] {
-  return Object.entries(container).flatMap(([key, entry]) =>
-    isAdvisoryKey(key) && isRecord(entry)
-      ? [[key, entry] as readonly [string, Record<string, unknown>]]
-      : []
-  );
-}
-
-/**
- * Normalize one allowlist document into `id → entry` pairs.
- *
- * Two shapes exist in the wild: a named container holding an array or a map of
- * entries, and audit-ci's `.nsprc`, whose top level maps advisory id to entry.
- * In the map shape only OBJECT-valued entries are exceptions — a string, a
- * boolean, or a `$schema` pointer at the top level is configuration.
- * @param parsed - The parsed allowlist document
- * @returns The exception entries, keyed by advisory id
- */
-function exceptionEntries(
-  parsed: unknown
-): readonly (readonly [string, Record<string, unknown>])[] {
-  if (!isRecord(parsed)) {
-    return [];
-  }
-  const containers = EXCEPTION_CONTAINERS.flatMap(key =>
-    parsed[key] === undefined ? [] : [parsed[key]]
-  );
-  if (containers.length > 0) {
-    return containers.flatMap(container =>
-      Array.isArray(container)
-        ? container
-            .filter(isRecord)
-            .map(
-              entry => ["", entry] as readonly [string, Record<string, unknown>]
-            )
-        : isRecord(container)
-          ? mapEntries(container)
-          : []
-    );
-  }
-  // No recognized container: fall back to the `.nsprc` id → entry map. If
-  // nothing there is an object-valued advisory key, this document establishes
-  // nothing and reports nothing.
-  return mapEntries(parsed);
-}
-
-/**
- * Read one audit allowlist and report the exceptions carrying no decision.
- *
- * An entry with `active: false` is skipped: audit-ci never applies it, so there
- * is no live exception for anybody to justify.
- * @param file - Repo-relative allowlist path
- * @param parsed - The parsed allowlist document
- * @returns Evidence lines, one per undocumented exception
- */
-function undocumentedExceptions(
-  file: string,
-  parsed: unknown
-): readonly string[] {
-  return exceptionEntries(parsed).flatMap(([key, entry]) => {
-    const id = typeof entry.id === "string" ? entry.id : key;
-    const documented = DECISION_KEYS.some(
-      decisionKey =>
-        typeof entry[decisionKey] === "string" &&
-        (entry[decisionKey] as string).trim() !== ""
-    );
-    return entry.active === false || documented || id === ""
-      ? []
-      : [
-          `\`${file}\` excludes advisory \`${id}\` from the dependency audit ` +
-            "with no written decision (no reason/notes/justification field), so " +
-            "nobody can tell whether the exception is still true",
-        ];
-  });
-}
-
-/**
- * Collect the undocumented audit exceptions across every allowlist file.
- * @param root - Repository root
- * @returns Evidence lines, one per undocumented exception
- */
-export async function auditExceptionViolations(
-  root: string
-): Promise<readonly string[]> {
-  const perFile = await Promise.all(
-    ALLOWLIST_FILES.map(async file => {
-      const source = await readFileOrNull(root, file);
-      if (source === null) {
-        return [];
-      }
-      try {
-        return undocumentedExceptions(file, JSON.parse(source));
-      } catch {
-        // An unparseable allowlist establishes nothing about its entries, so it
-        // is passed over rather than reported as an undocumented exception.
-        return [];
-      }
-    })
-  );
-  return perFile.flat();
 }
