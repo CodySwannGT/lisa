@@ -148,3 +148,24 @@ EXCLUDE - code-simplifier:code-simplifier - prose deliverable; quality-specialis
 EXCLUDE - claude / claude-code-guide / hookify:conversation-analyzer / statusline-setup / Plan / fork - generic or unrelated; decomposition exists (this IS the leaf).
 
 Base-branch resolution: ticket Target Backend Environment = `production`; `deploy.branches` maps `production → main` → base = `main`. PR targets `main`.
+
+---
+
+# Roster Decision — plan: `readiness-warning-parity-1859` (CodySwannGT/lisa#1859)
+
+Recorded: 2026-07-21. Runtime: Codex collaboration. The runtime exposes one
+delegation type, the generic collaboration agent; it exposes no distinct native
+specialist-type selector.
+
+INCLUDE - generic collaboration agent - the only exposed type; use bounded role assignments for the mandatory read-only Explore pass, implementation support, independent review/verification, and learner review.
+EXCLUDE - no additional runtime agent types - none are exposed by the current collaboration surface; Lisa specialist skills may guide assignments but are not separately spawnable agent types here.
+
+Required assignments: one read-only Explore/research pass before planning; one
+independent review/verification pass after implementation; one learner pass
+before shutdown. The lead owns branch sync, implementation integration, tracker
+transitions, PR merge drive, and release proof.
+
+Work type: Build. Target environment is the human-confirmed configured key
+`production`; `.lisa.config.json` maps it uniquely to remote `main`. The existing
+feature branch `1859-setup-automations-warn` is reused and must be rebased onto
+`origin/main` before source work.
