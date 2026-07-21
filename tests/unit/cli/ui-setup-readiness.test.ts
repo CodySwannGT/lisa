@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- explicit contract fixtures favor local readability */
+/* eslint-disable sonarjs/no-duplicate-string, max-lines -- explicit contract fixtures favor local readability */
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -35,6 +35,38 @@ import type { ProbeResult } from "../../../src/cli/ui-status.js";
 
 let tempDir: string | undefined;
 
+const EXPECTED_BASE_CODEX_MANAGED_FILES = [
+  "agents/lisa/architecture-specialist.toml",
+  "agents/lisa/bug-fixer.toml",
+  "agents/lisa/builder.toml",
+  "agents/lisa/confluence-prd-intake.toml",
+  "agents/lisa/debug-specialist.toml",
+  "agents/lisa/git-history-analyzer.toml",
+  "agents/lisa/github-agent.toml",
+  "agents/lisa/github-build-intake.toml",
+  "agents/lisa/github-prd-intake.toml",
+  "agents/lisa/jira-agent.toml",
+  "agents/lisa/jira-build-intake.toml",
+  "agents/lisa/learner.toml",
+  "agents/lisa/learning-judge.toml",
+  "agents/lisa/learnings-synthesizer.toml",
+  "agents/lisa/linear-agent.toml",
+  "agents/lisa/linear-build-intake.toml",
+  "agents/lisa/linear-prd-intake.toml",
+  "agents/lisa/notion-prd-intake.toml",
+  "agents/lisa/performance-specialist.toml",
+  "agents/lisa/pr-mining-specialist.toml",
+  "agents/lisa/product-specialist.toml",
+  "agents/lisa/quality-specialist.toml",
+  "agents/lisa/security-specialist.toml",
+  "agents/lisa/skill-evaluator.toml",
+  "agents/lisa/spec-conformance-specialist.toml",
+  "agents/lisa/test-specialist.toml",
+  "agents/lisa/tracker-mining-specialist.toml",
+  "agents/lisa/verification-specialist.toml",
+  "config.toml",
+] as const;
+
 afterEach(async () => {
   if (tempDir !== undefined) {
     await rm(tempDir, { recursive: true, force: true });
@@ -42,6 +74,11 @@ afterEach(async () => {
   }
 });
 
+/**
+ * Build deterministic Health evidence for setup-readiness fixtures.
+ * @param status - Status assigned to every fixture finding.
+ * @returns Stable deterministic Health result.
+ */
 function healthResult(status: "pass" | "warn" = "pass"): HealthResult {
   const checks = [
     "project.state",
@@ -79,10 +116,22 @@ function healthResult(status: "pass" | "warn" = "pass"): HealthResult {
   };
 }
 
+/**
+ * Build an unavailable probe fixture.
+ * @param reason - Stable unavailable reason.
+ * @returns Unknown probe result.
+ */
 function unknown(reason: string): ProbeResult<never> {
   return { state: "unknown", reason, message: "Unavailable fixture" };
 }
 
+/**
+ * Write one managed harness surface and its manifest.
+ * @param root - Fixture project root.
+ * @param configDir - Harness-owned configuration directory.
+ * @param files - Relative managed files to create.
+ * @returns A promise that settles after every fixture file is written.
+ */
 async function writeManagedSurface(
   root: string,
   configDir: ".codex" | ".opencode",
@@ -102,6 +151,12 @@ async function writeManagedSurface(
   );
 }
 
+/**
+ * Write the authoritative project-owned surfaces for one harness fixture.
+ * @param root - Fixture project root.
+ * @param harness - Harness whose observable surfaces should be written.
+ * @returns A promise that settles after fixture creation.
+ */
 async function writeHarnessSurfaces(
   root: string,
   harness: Harness
@@ -124,7 +179,7 @@ async function writeHarnessSurfaces(
     await writeManagedSurface(
       root,
       ".codex",
-      await expectedCodexManagedFiles(root, { harness })
+      EXPECTED_BASE_CODEX_MANAGED_FILES
     );
   }
   if (includes("copilot")) {
@@ -140,6 +195,12 @@ async function writeHarnessSurfaces(
   }
 }
 
+/**
+ * Override one deterministic Health finding in the stable fixture.
+ * @param check - Finding identifier to override.
+ * @param status - Replacement finding status.
+ * @returns Health result with the requested override.
+ */
 function healthWithStatus(
   check: string,
   status: "pass" | "warn" | "fail"
@@ -153,6 +214,11 @@ function healthWithStatus(
   };
 }
 
+/**
+ * Build a passing GitHub repository probe fixture.
+ * @param setSecrets - Repository secret names visible to the probe.
+ * @returns GitHub repository probe value.
+ */
 function githubValue(
   setSecrets: readonly string[] = []
 ): ProbeResult<GithubRepoPanelValue> {
@@ -316,6 +382,11 @@ describe("review red legs", () => {
     for (const [harness, expected] of expectations) {
       const root = path.join(tempDir, harness);
       await mkdir(root);
+      if (harness === "codex") {
+        expect(await expectedCodexManagedFiles(root, { harness })).toEqual(
+          EXPECTED_BASE_CODEX_MANAGED_FILES
+        );
+      }
       await writeHarnessSurfaces(root, harness);
       const finding = await installFinding(root, { harness }, healthResult());
       expect(finding.status, harness).toBe(expected);
@@ -666,4 +737,4 @@ describe("truthful unavailable and reversible evidence", () => {
   });
 });
 
-/* eslint-enable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- end explicit contract fixture exceptions */
+/* eslint-enable sonarjs/no-duplicate-string, max-lines -- end explicit contract fixture exceptions */

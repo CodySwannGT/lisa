@@ -1,5 +1,4 @@
 /** Local filesystem and deterministic-Health evidence for Setup readiness. */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- bounded local evidence readers remain cohesive */
 import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import type { HealthResult, HealthStatus } from "../health/contract.js";
@@ -29,7 +28,11 @@ export const STANDARDS_HEALTH_CHECKS = [
   "ci.workflows",
 ] as const;
 
-/** Never upgrade standards adoption without current lint/test preservation proof. */
+/**
+ * Never upgrade standards adoption without current lint/test preservation proof.
+ * @param health - Current deterministic Health evidence, when available
+ * @returns Standards-adoption readiness finding
+ */
 export function standardsFinding(
   health: HealthResult | undefined
 ): SetupReadinessFinding {
@@ -52,12 +55,20 @@ export function standardsFinding(
 /** Project workflow secret available without explicit provisioning. */
 const IMPLICIT_WORKFLOW_SECRETS = new Set(["GITHUB_TOKEN"]);
 
-/** Whether an unknown field is non-empty operator text. */
+/**
+ * Whether an unknown field is non-empty operator text.
+ * @param value - Untrusted field value
+ * @returns Whether the value contains non-whitespace text
+ */
 function hasText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-/** Canonicalize one strictly source-confined evidence path. */
+/**
+ * Canonicalize one strictly source-confined evidence path.
+ * @param value - Untrusted source evidence path
+ * @returns Normalized wiki/sources path, or undefined when invalid
+ */
 function normalizeSourceEvidencePath(value: unknown): string | undefined {
   if (!hasText(value) || value.includes("\\") || path.posix.isAbsolute(value)) {
     return undefined;
@@ -76,7 +87,12 @@ function normalizeSourceEvidencePath(value: unknown): string | undefined {
     : undefined;
 }
 
-/** Refuse symlinks in every parent and inspect the final file with no-follow. */
+/**
+ * Refuse symlinks in every parent and inspect the final file with no-follow.
+ * @param root - Canonical project root
+ * @param evidencePath - Normalized project-relative evidence path
+ * @returns Whether the evidence path has safe parents and a regular final file
+ */
 async function sourceEvidenceIsRegular(
   root: string,
   evidencePath: string
@@ -92,7 +108,12 @@ async function sourceEvidenceIsRegular(
   return await projectRegularFileExists(root, evidencePath);
 }
 
-/** Validate one complete agent-ready source row and its confined evidence. */
+/**
+ * Validate one complete agent-ready source row and its confined evidence.
+ * @param root - Canonical project root
+ * @param source - Untrusted source-registry row
+ * @returns Completeness classification for the source row
+ */
 async function sourceRowIsComplete(
   root: string,
   source: unknown
@@ -135,7 +156,15 @@ async function sourceRowIsComplete(
     : "incomplete";
 }
 
-/** Aggregate stable check IDs without interpreting human-readable reasons. */
+/**
+ * Aggregate stable check IDs without interpreting human-readable reasons.
+ * @param check - Setup checklist identifier being evaluated
+ * @param health - Current deterministic Health evidence, when available
+ * @param requiredChecks - Health check identifiers required for readiness
+ * @param passReason - Operator-readable reason used when every check passes
+ * @param unavailableStatus - Status used when required evidence is absent
+ * @returns Setup finding derived from the required Health checks
+ */
 export function healthEvidenceFinding(
   check: SetupReadinessCheck,
   health: HealthResult | undefined,
@@ -168,7 +197,11 @@ export function healthEvidenceFinding(
   );
 }
 
-/** Require a complete source registry and no open knowledge gaps. */
+/**
+ * Require a complete source registry and no open knowledge gaps.
+ * @param projectRoot - Project root containing agent-ready evidence
+ * @returns Agent-readiness finding from confined registry and gap evidence
+ */
 // eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- one bounded registry-and-evidence validation transaction stays auditable together
 export async function agentReadyFinding(
   projectRoot: string
@@ -259,7 +292,12 @@ export async function agentReadyFinding(
   }
 }
 
-/** Require the optional wiki to exist before accepting the Health wiki check. */
+/**
+ * Require the optional wiki to exist before accepting the Health wiki check.
+ * @param projectRoot - Project root containing the optional wiki
+ * @param health - Current deterministic Health evidence, when available
+ * @returns Wiki setup readiness finding
+ */
 export async function wikiSetupFinding(
   projectRoot: string,
   health: HealthResult | undefined
@@ -288,7 +326,11 @@ export async function wikiSetupFinding(
   );
 }
 
-/** Read names referenced as `secrets.NAME` from current workflow files. */
+/**
+ * Read names referenced as `secrets.NAME` from current workflow files.
+ * @param projectRoot - Project root containing GitHub workflows
+ * @returns Sorted unique explicit workflow secret names
+ */
 export async function readWorkflowSecretNames(
   projectRoot: string
 ): Promise<readonly string[]> {
@@ -323,5 +365,3 @@ export async function readWorkflowSecretNames(
     return [];
   }
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- end typed evidence helper exception */

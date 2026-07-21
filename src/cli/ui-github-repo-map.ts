@@ -178,7 +178,7 @@ export function mapRulesetRow(raw: unknown): GithubRulesetRow {
   const includes = rulesetIncludes(Reflect.get(raw, "conditions"));
   return {
     name: requireString(raw, "name"),
-    appliesTo: formatAppliesTo(rulesetIncludes(Reflect.get(raw, "conditions"))),
+    appliesTo: formatAppliesTo(includes),
     enforces: ruleTypes.length > 0 ? ruleTypes.join(", ") : "—",
     active: Reflect.get(raw, "enforcement") === "active",
     targetsDefaultBranch: includes.includes("~DEFAULT_BRANCH"),

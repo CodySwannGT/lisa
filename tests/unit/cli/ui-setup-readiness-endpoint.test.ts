@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc -- focused endpoint fixture helpers are local to this suite */
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
@@ -30,6 +29,10 @@ afterEach(async () => {
   await rm(projectRoot, { recursive: true, force: true });
 });
 
+/**
+ * Build passing deterministic Health evidence for endpoint fixtures.
+ * @returns Stable deterministic Health result.
+ */
 function health(): HealthResult {
   const checks = [
     "project.state",
@@ -63,6 +66,10 @@ function health(): HealthResult {
   };
 }
 
+/**
+ * Build a governed GitHub repository fixture.
+ * @returns Passing GitHub repository panel value.
+ */
 function github(): GithubRepoPanelValue {
   return {
     owner: "owner",
@@ -99,6 +106,10 @@ function github(): GithubRepoPanelValue {
   } as GithubRepoPanelValue;
 }
 
+/**
+ * Build the complete expected scheduler fixture.
+ * @returns Active automation observations.
+ */
 function automations(): AutomationsProbeValue {
   const prefix = "lisa-auto-repo-";
   const suffixes = [
@@ -122,6 +133,10 @@ function automations(): AutomationsProbeValue {
   };
 }
 
+/**
+ * Read the bound loopback server port.
+ * @returns Current server port, or zero before binding.
+ */
 function port(): number {
   const address = server?.address();
   return typeof address === "object" && address !== null ? address.port : 0;
@@ -273,5 +288,3 @@ describe("GET /api/setup-readiness", () => {
     expect(readConfig).toHaveBeenCalledTimes(2);
   });
 });
-
-/* eslint-enable jsdoc/require-jsdoc -- end focused endpoint fixture exception */

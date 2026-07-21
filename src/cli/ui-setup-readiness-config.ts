@@ -1,5 +1,4 @@
 /** Config-backed Setup readiness findings with independent provider lanes. */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed config helpers are self-describing */
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
 import { SETUP_PROVIDER_REQUIREMENTS } from "../sync/registry.js";
 import { resolveMutationPolicy } from "./doctor-readiness-journey-freshness.js";
@@ -11,7 +10,12 @@ import {
 const EXPLORATION_CHECK = "setup.exploration";
 const STARTER_PROVENANCE_CHECK = "setup.starter-provenance";
 
-/** Return whether a dot path resolves to a non-empty string. */
+/**
+ * Return whether a dot path resolves to a non-empty string.
+ * @param config - Merged Lisa project configuration
+ * @param dotPath - Dot-delimited property path to inspect
+ * @returns Whether the property contains non-empty text
+ */
 function hasString(config: JsonObject, dotPath: string): boolean {
   const value = dotPath.split(".").reduce<unknown>((current, segment) => {
     if (!isJsonObject(current)) return undefined;
@@ -23,7 +27,14 @@ function hasString(config: JsonObject, dotPath: string): boolean {
 /** Provider lane whose requirements are owned by the sync registry. */
 type ProviderLane = keyof typeof SETUP_PROVIDER_REQUIREMENTS;
 
-/** Evaluate one provider lane from the shared sync-registry requirements. */
+/**
+ * Evaluate one provider lane from the shared sync-registry requirements.
+ * @param config - Merged Lisa project configuration
+ * @param lane - Provider lane to validate
+ * @param check - Setup finding identifier for the lane
+ * @param selectionHint - Operator-facing setup commands for invalid providers
+ * @returns Deterministic readiness finding for the provider lane
+ */
 function providerLaneFinding(
   config: JsonObject,
   lane: ProviderLane,
@@ -60,7 +71,11 @@ function providerLaneFinding(
       );
 }
 
-/** Read tracker readiness independently from the PRD source. */
+/**
+ * Read tracker readiness independently from the PRD source.
+ * @param config - Merged Lisa project configuration
+ * @returns Work-tracker readiness finding
+ */
 export function trackerFinding(config: JsonObject): SetupReadinessFinding {
   return providerLaneFinding(
     config,
@@ -70,7 +85,11 @@ export function trackerFinding(config: JsonObject): SetupReadinessFinding {
   );
 }
 
-/** Read PRD-source readiness independently from the work tracker. */
+/**
+ * Read PRD-source readiness independently from the work tracker.
+ * @param config - Merged Lisa project configuration
+ * @returns PRD-source readiness finding
+ */
 export function prdSourceFinding(config: JsonObject): SetupReadinessFinding {
   return providerLaneFinding(
     config,
@@ -80,7 +99,11 @@ export function prdSourceFinding(config: JsonObject): SetupReadinessFinding {
   );
 }
 
-/** Require an explicit exploration environment, policy, and test identity. */
+/**
+ * Require an explicit exploration environment, policy, and test identity.
+ * @param config - Merged Lisa project configuration
+ * @returns Exploration-environment readiness finding
+ */
 export function explorationFinding(config: JsonObject): SetupReadinessFinding {
   const exploration = config.exploration;
   if (!isJsonObject(exploration)) {
@@ -140,7 +163,11 @@ export function explorationFinding(config: JsonObject): SetupReadinessFinding {
       );
 }
 
-/** Require at least one bounded starter template provenance record. */
+/**
+ * Require at least one bounded starter template provenance record.
+ * @param config - Merged Lisa project configuration
+ * @returns Starter-provenance readiness finding
+ */
 export function starterProvenanceFinding(
   config: JsonObject
 ): SetupReadinessFinding {
@@ -173,5 +200,3 @@ export function starterProvenanceFinding(
         `${templates.length} starter template provenance record${templates.length === 1 ? " is" : "s are"} configured.`
       );
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- end typed config helper exception */

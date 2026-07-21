@@ -1,5 +1,4 @@
 /** Endpoint red leg for setup-readiness config confinement. */
-/* eslint-disable jsdoc/require-jsdoc -- focused endpoint fixture helpers are local to this suite */
 import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -15,12 +14,21 @@ const SCHEDULER_PREFIX = "lisa-auto-external-repo-";
 const SCHEDULER_ID = `${SCHEDULER_PREFIX}intake-tickets`;
 const SCHEDULER_TOML = "automation.toml";
 
+/**
+ * Create and track one disposable fixture root.
+ * @param prefix - Temporary-directory prefix.
+ * @returns Absolute fixture root path.
+ */
 async function temporaryRoot(prefix: string): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), prefix));
   roots.push(root);
   return root;
 }
 
+/**
+ * Build the minimal deterministic Health fixture for endpoint probes.
+ * @returns Stable deterministic Health result.
+ */
 function health(): HealthResult {
   return {
     schemaVersion: 1,
@@ -166,5 +174,3 @@ describe("GET /api/setup-readiness confinement", () => {
     }
   );
 });
-
-/* eslint-enable jsdoc/require-jsdoc -- end focused endpoint fixture exception */
