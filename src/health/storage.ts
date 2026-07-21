@@ -72,13 +72,14 @@ export async function writeLatestHealthResult(
   candidate: unknown
 ): Promise<HealthWriteResult> {
   const result = validateHealthResult(candidate);
-  const serialized = serializeHealthResult(result);
+  const serialized = serializeValidatedHealthResult(result);
   const { directory, target } = await resolveWriteTarget(projectRoot);
   return withFileTargetLock(target, async () => {
     await assertSafeTarget(target);
     const current = await readLatestHealthResult(projectRoot);
     if (current.status === "available") {
-      const samePayload = serializeHealthResult(current.result) === serialized;
+      const samePayload =
+        serializeValidatedHealthResult(current.result) === serialized;
       if (current.result.runId === result.runId) {
         if (!samePayload) {
           throw new Error("Health result conflict: runId was reused");
@@ -121,12 +122,23 @@ export async function writeLatestHealthResult(
  * @param result - Validated result
  * @returns Canonical bounded JSON payload
  */
-function serializeHealthResult(result: HealthResult): string {
+function serializeValidatedHealthResult(result: HealthResult): string {
   const serialized = `${JSON.stringify(result, null, 2)}\n`;
   if (Buffer.byteLength(serialized, "utf8") > MAX_HEALTH_RESULT_BYTES) {
     throw new Error("Health result exceeds 256 KiB");
   }
   return serialized;
+}
+
+/**
+ * Validate and serialize one Health v1 result using the storage wire format.
+ * Consumers use this function so emitted bytes cannot drift from persisted
+ * bytes.
+ * @param candidate - Untrusted completed result candidate
+ * @returns Canonical bounded JSON payload, including its trailing newline
+ */
+export function serializeHealthResult(candidate: unknown): string {
+  return serializeValidatedHealthResult(validateHealthResult(candidate));
 }
 
 /**

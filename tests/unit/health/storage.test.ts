@@ -21,6 +21,7 @@ import {
   HEALTH_RESULT_PATH,
   MAX_HEALTH_RESULT_BYTES,
   readLatestHealthResult,
+  serializeHealthResult,
   writeLatestHealthResult,
 } from "../../../src/health/storage.js";
 import { withFileTargetLock } from "../../../src/core/learnings-lock.js";
@@ -108,11 +109,21 @@ describe("health result storage", () => {
       lastRun: candidate.completedAt,
     });
     expect(JSON.parse(await readFile(written.path, "utf8"))).toEqual(candidate);
+    expect(await readFile(written.path, "utf8")).toBe(
+      serializeHealthResult(candidate)
+    );
     expect(
       (await readdir(path.dirname(written.path))).filter(name =>
         name.endsWith(".tmp")
       )
     ).toEqual([]);
+  });
+
+  it("exposes the validated canonical storage serialization", () => {
+    expect(serializeHealthResult(validResult())).toBe(
+      `${JSON.stringify(validResult(), null, 2)}\n`
+    );
+    expect(() => serializeHealthResult({ schemaVersion: 1 })).toThrow();
   });
 
   it("replaces with newer results but never regresses completedAt", async () => {

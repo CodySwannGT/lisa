@@ -126,16 +126,16 @@ product features, secrets, or business logic is never proposed.
 When the engine lands, `starter.*` should join the `lisa sync` registry so
 the section above governs it like every other setting.
 
-## Health (contract, deterministic probes, and optional composition available)
+## Health (shared skill and CLI available)
 
 The **Health** section answers two questions with different lifecycles. Health
 v1 now ships its shared result and persistence contract, deterministic fast
-path, and harness-neutral optional agentic composition API at
-`@codyswann/lisa/health`. Completed results can be validated and atomically
-stored at the gitignored `.lisa/health/latest.json`; `health.schedule` is the
-only v1 configuration key and accepts `off`, `daily`, or `weekly`. The
-`/lisa:health` skill and command, console button and readback, and scheduler
-remain downstream work.
+path, harness-neutral optional agentic composition API at
+`@codyswann/lisa/health`, `lisa health` CLI, and `/lisa:health` skill across all
+six supported harnesses. Completed results are validated and atomically stored
+at the gitignored `.lisa/health/latest.json`; `health.schedule` is the only v1
+configuration key and accepts `off`, `daily`, or `weekly`. The console button,
+readback, and scheduler remain downstream work.
 
 **Is Lisa on the latest version?** — always-on status. Lisa's CLI already
 checks npm on every invocation; the console surfaces the result permanently
@@ -148,8 +148,9 @@ with `--yes`) the package-manager update command.
 `health.schedule` that files a ticket when drift is found). "In band" means
 every Lisa-managed surface matches what the installed Lisa version would
 emit. The check is a mix of deterministic and agentic verification,
-packaged as one skill (working name `/lisa:health`) so the console button,
-the cron, and the CLI share a single implementation:
+packaged as one `/lisa:health` skill backed by the `lisa health` CLI so the
+console button, cron, CLI, and every coding-agent harness share one
+implementation:
 
 - **Deterministic layer** (fast, exact — reuses what exists today):
   `lisa doctor`, template diffing for copy-overwrite/managed-block files,
@@ -161,8 +162,11 @@ the cron, and the CLI share a single implementation:
   (`eslint.config.local.ts`, grandfathered globs) still serve their original
   purpose, whether detected drift looks intentional or accidental, whether
   skipped CI jobs and disabled gates have a recorded justification. The
-  shipped composition API accepts an injected evaluator; harness orchestration
-  remains the responsibility of the downstream `/lisa:health` skill.
+  shipped composition API accepts an injected evaluator. The skill uses a
+  digest-bound prepare/finalize protocol: preparation emits only bounded
+  evidence and writes nothing, the current harness judges that envelope, and
+  finalization revalidates the evidence digest before persisting one final
+  result.
 
 The downstream console will render results as a per-check table (pass / warn /
 fail, with the layer that produced each finding) and keep the last full check's
@@ -200,7 +204,7 @@ browser payload; the server exposes names and boolean presence only.
 | Section | Source of truth in this repo |
 | --- | --- |
 | Setup checklist (install → sync → tracker/PRD → repo governance → secrets → automations) | `lisa apply`, `lisa sync`, `/lisa:setup:*` skills |
-| Health (version status + planned in-band scan) | `lisa doctor`, `lisa sync --dry-run`, planned `/lisa:health` skill |
+| Health (version status + in-band scan) | `lisa doctor`, `lisa sync --dry-run`, `lisa health`, `/lisa:health` skill |
 | Core workflow (the delivery-loop slash commands and their automations) | `plugins/src/base/commands/lisa/`, `plugins/src/base/skills/` |
 | Starter templates (provenance + planned two-way sync) | `src/cli/starters.ts`, planned `starter.*` config |
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |

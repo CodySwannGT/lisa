@@ -7,6 +7,7 @@ import {
 } from "./cross-pollinate-cmd.js";
 import { runDoctor } from "./doctor.js";
 import { runFileUpstream } from "./file-upstream-cmd.js";
+import { runHealthCli, type HealthCliOptions } from "./health-cmd.js";
 import { GATE_COMMAND_NAMES, addGateCommands } from "./gate-commands.js";
 import {
   runKaneCli,
@@ -54,6 +55,8 @@ export interface ProgramDependencies {
   runCheckLearningsBudget: typeof runCheckLearningsBudget;
   /** Projects a public upstream filing body from allowlisted fields. */
   runFileUpstream: typeof runFileUpstream;
+  /** Runs and persists the shared Health v1 consumer. */
+  runHealthCli: typeof runHealthCli;
   /** Runs one policy-approved Kane empirical browser objective. */
   runKaneCli: typeof runKaneCli;
   /** Probes Kane installation, authentication, and Test Manager readiness. */
@@ -78,6 +81,7 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runUi,
   runCheckLearningsBudget,
   runFileUpstream,
+  runHealthCli,
   runKaneCli,
   runKaneProbeCli,
   runKanePilotCli,
@@ -166,6 +170,33 @@ function addDoctorCommand(program: Command, deps: ProgramDependencies): void {
 }
 
 /**
+ * Register the shared deterministic/agentic health consumer.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addHealthCommand(program: Command, deps: ProgramDependencies): void {
+  program
+    .command("health")
+    .description(
+      "Run Lisa's shared project health check and persist the result"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .option(
+      "--prepare-agentic",
+      "Emit bounded agentic evidence without persisting a health result"
+    )
+    .option(
+      "--agentic-evaluation",
+      "Read a digest-bound evaluator response from standard input"
+    )
+    .action(
+      async (targetPath: string | undefined, options: HealthCliOptions) => {
+        await deps.runHealthCli(targetPath, options);
+      }
+    );
+}
+
+/**
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
@@ -196,6 +227,7 @@ function addMaintenanceCommands(
     });
 
   addDoctorCommand(program, deps);
+  addHealthCommand(program, deps);
 
   program
     .command("sync")
@@ -279,7 +311,7 @@ export function createProgram(
   program.hook("preAction", async (_thisCommand, actionCommand) => {
     if (
       actionCommand.parent?.name() === "kane" ||
-      ["doctor", "sync", "ui", "update", "version"].includes(
+      ["doctor", "health", "sync", "ui", "update", "version"].includes(
         actionCommand.name()
       ) ||
       (GATE_COMMAND_NAMES as readonly string[]).includes(actionCommand.name())
