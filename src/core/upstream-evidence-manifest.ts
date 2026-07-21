@@ -2055,7 +2055,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "a6741c556f79d05e5063500b795c7066b05280d166ead6b83047a308ba7cef91",
+      "a66598558cb95873aa674055d3bc3335654f7c615013bae0fa8effa35f64c351",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -7549,6 +7549,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-observability-providers.spec.ts": true,
     "tests/e2e/ui-plugins.spec.ts": true,
     "tests/e2e/ui-readonly-affordance.spec.ts": true,
+    "tests/e2e/ui-setup-readiness.spec.ts": true,
     "tests/e2e/ui-stacks.spec.ts": true,
     "tests/e2e/ui-version-status.spec.ts": true,
     "tests/fixtures/automation-status/attention-needed-codex.json": true,
@@ -7676,6 +7677,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-observability-providers-probe.test.ts": true,
     "tests/unit/cli/ui-setup-readiness-endpoint-confinement.test.ts": true,
     "tests/unit/cli/ui-setup-readiness-endpoint.test.ts": true,
+    "tests/unit/cli/ui-setup-readiness-renderer.test.ts": true,
     "tests/unit/cli/ui-setup-readiness.test.ts": true,
     "tests/unit/cli/ui-status-contract.test.ts": true,
     "tests/unit/cli/ui-status-endpoint.test.ts": true,
