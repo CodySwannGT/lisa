@@ -47,6 +47,7 @@ import {
   runRaw,
   SCAN_ALL,
   SCAN_FLAG,
+  SELF_NAME,
   STRICT_FLAG,
   VIOLATION_FIXTURE,
   WORKFLOW_FILE,
@@ -126,6 +127,55 @@ describe("check-duplicate-versions end-to-end", () => {
     // literal; the commented-out install line is prose.
     expect(findingsFor(report, "some-unmanaged-tool")).toEqual([]);
     expect(findingsFor(report, "node")).toEqual([]);
+  });
+
+  it("never flags a self-reference to the manifest's own package name", () => {
+    const { report } = runDetector(VIOLATION_FIXTURE);
+
+    // `bunx <own-name>@9.9.9` is a published-CLI version FLOOR, not a copy of
+    // this project's dogfooding dependency range. Telling an operator to read
+    // it from the manifest would DOWNGRADE the gate, so it is never a finding.
+    expect(findingsFor(report, SELF_NAME)).toEqual([]);
+    expect(report.summary.duplicate).toBe(2);
+  });
+
+  it("lists allowed exceptions in operator-facing output", () => {
+    const { code, stdout } = runRaw([
+      ROOT_FLAG,
+      EXCEPTION_FIXTURE,
+      SCAN_FLAG,
+      SCAN_ALL,
+      STRICT_FLAG,
+    ]);
+
+    expect(code).toBe(0);
+    // A mute nobody can see is not an honest exception — every allowed
+    // duplicate has to be visible in the report a human or CI summary reads.
+    expect(stdout).toContain("Allowed exceptions");
+    expect(stdout).toContain(`${WORKFLOW_FILE}:18`);
+    expect(stdout).toContain("migrating to manifest-derived install (#1888)");
+  });
+
+  it("exits 2 when an explicitly passed --scan directory is missing", () => {
+    // A silent skip would render the guard green while it scanned nothing.
+    const { code, stdout } = runRaw([
+      ROOT_FLAG,
+      VIOLATION_FIXTURE,
+      SCAN_FLAG,
+      "definitely-not-here",
+      STRICT_FLAG,
+    ]);
+
+    expect(code).toBe(2);
+    expect(stdout).not.toContain("No manifest-authoritative duplicates found");
+  });
+
+  it("tolerates absent default scan roots, naming the ones it skipped", () => {
+    const { code, stdout } = runRaw([ROOT_FLAG, CLEAN_FIXTURE, STRICT_FLAG]);
+
+    expect(code).toBe(0);
+    expect(stdout).toContain("skipped (absent)");
+    expect(stdout).toContain("rails");
   });
 
   it("defaults to advisory mode, reporting findings but exiting zero", () => {
