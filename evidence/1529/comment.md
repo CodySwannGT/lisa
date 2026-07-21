@@ -2,10 +2,20 @@
 
 ## Verification journey
 
-1. Built the exact source commit and ran deterministic `lisa health` against an isolated Lisa project whose managed `eslint.config.ts` was deliberately changed. The CLI reported `templates.managed` / `deterministic` / `fail` / `Managed files do not match templates: eslint.config.ts` and a `drift detected` summary. See [the observed CLI excerpt](./cli-output.json).
-2. Opened the built `lisa ui` server for that same project and clicked **Run deterministic health check**. The existing table rendered the same managed-file finding fields, the latest-run stamp showed `2026-07-21T04:37:26.223Z · drift detected`, and the top chip read `drift detected`. See [the drift screenshot](./browser-drift.png).
-3. Restored the managed file and clicked the browser control again. The latest-run stamp advanced to `2026-07-21T04:40:20.221Z · in band`, and the top chip switched to `in band`. See [the recovery screenshot](./browser-in-band.png).
-4. Began from a stored green result, replaced the run dependency with one that throws a sensitive local path, and clicked once. The UI showed the generic alert `Unable to run Lisa health`, zero result rows, `health unavailable`, and `Run failed · no current verdict`; the sensitive path was not visible. The server recorded one attempt and no retry. See [the failure screenshot](./browser-failure.png) and [the failure transcript](./failure-transcript.txt).
+1. Built the exact source commit and ran deterministic `lisa health` against an isolated Lisa project whose managed `eslint.config.ts` was deliberately changed. The CLI reported `templates.managed` / `deterministic` / `fail` / `Managed files do not match templates: eslint.config.ts` and a `drift detected` summary. See [the observed CLI excerpt](https://github.com/CodySwannGT/lisa/releases/download/pr-assets/pr-1882-cli-output.json).
+2. Opened the built `lisa ui` server for that same project and clicked **Run deterministic health check**. The existing table rendered the same managed-file finding fields, the latest-run stamp showed `2026-07-21T04:37:26.223Z · drift detected`, and the top chip read `drift detected`.
+
+   https://github.com/CodySwannGT/lisa/releases/download/pr-assets/pr-1882-browser-drift.png
+
+3. Restored the managed file and clicked the browser control again. The latest-run stamp advanced to `2026-07-21T04:40:20.221Z · in band`, and the top chip switched to `in band`.
+
+   https://github.com/CodySwannGT/lisa/releases/download/pr-assets/pr-1882-browser-in-band.png
+
+4. Began from a stored green result, replaced the run dependency with one that throws a sensitive local path, and clicked once. The UI showed the generic alert `Unable to run Lisa health`, zero result rows, `health unavailable`, and `Run failed · no current verdict`; the sensitive path was not visible. The server recorded one attempt and no retry.
+
+   https://github.com/CodySwannGT/lisa/releases/download/pr-assets/pr-1882-browser-failure.png
+
+   See [the failure transcript](https://github.com/CodySwannGT/lisa/releases/download/pr-assets/pr-1882-failure-transcript.txt).
 
 ## What this shows
 
@@ -13,7 +23,7 @@
 - Findings use the existing Health results table, and the last-run stamp is current after each run.
 - The top-bar health chip changes from `drift detected` to `in band` after the project is restored and rerun.
 - A failed run replaces stale green output with an operator-readable error state: no result rows remain, the chip is non-green, and no sensitive thrown value appears.
-- The codified public journey also passed: the focused Playwright set was 9/9, the Health endpoint unit set was 6/6, the full unit suite was 6794 passing, and integration was 137 passing. Lint, typecheck, format, build, plugin checks, and manifest checks were green. The targeted named Playwright artifact records 4/4 Health journeys in [playwright-output.log](./playwright-output.log).
+- The codified public journey also passed: the focused Playwright set was 9/9, the Health endpoint unit set was 6/6, the full unit suite was 6794 passing, and integration was 137 passing. Lint, typecheck, format, build, plugin checks, and manifest checks were green. The targeted named Playwright artifact records 4/4 Health journeys in [playwright-output.log](https://github.com/CodySwannGT/lisa/releases/download/pr-assets/pr-1882-playwright-output.log).
 
 ## Artifact identity
 
