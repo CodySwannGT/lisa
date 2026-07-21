@@ -8071,6 +8071,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/health-schedule.test.ts": true,
     "tests/unit/sync/legacy-monitor-thresholds.test.ts": true,
     "tests/unit/templates/dependency-decisions-template.test.ts": true,
+    "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,
     "tests/unit/transaction/backup.test.ts": true,
