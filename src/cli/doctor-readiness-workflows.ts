@@ -53,6 +53,12 @@ export interface ParsedWorkflowStep {
   readonly uses: string;
   /** Raw serialized `env` + `with` text, used for credential evidence. */
   readonly inputs: string;
+  /**
+   * The step's `if:` condition, or `""` when it always runs. Load-bearing for
+   * the B1/B4 producers: a conditional step is a step somebody deliberately
+   * gated, which is exactly what those blockers ask about.
+   */
+  readonly ifCondition: string;
 }
 
 /** One job inside a parsed workflow. */
@@ -70,6 +76,8 @@ export interface ParsedWorkflowJob {
   readonly secrets: WorkflowBlock;
   /** Declared deployment environments (a scalar or list, normalized). */
   readonly environment: readonly string[];
+  /** The job's `if:` condition, or `""` when it always runs. */
+  readonly ifCondition: string;
 }
 
 /** One parsed `.github/workflows/*.yml` file. */
@@ -167,6 +175,20 @@ function serializeStepInputs(step: Record<string, unknown>): string {
 }
 
 /**
+ * Normalize an `if:` condition, which GitHub accepts as an expression string or
+ * a bare boolean. Any non-empty value means the thing is conditional; the text
+ * itself is carried only so evidence can quote it.
+ * @param value - Candidate YAML `if` value
+ * @returns The condition text, or `""` when the block is absent
+ */
+function asCondition(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  return typeof value === "string" ? value.trim() : String(value);
+}
+
+/**
  * Parse one job's `steps` list.
  * @param value - Candidate YAML `steps` value
  * @returns Normalized steps
@@ -180,6 +202,7 @@ function parseSteps(value: unknown): readonly ParsedWorkflowStep[] {
     run: typeof step.run === "string" ? step.run.trim() : "",
     uses: typeof step.uses === "string" ? step.uses.trim() : "",
     inputs: serializeStepInputs(step as Record<string, unknown>),
+    ifCondition: asCondition(step.if),
   }));
 }
 
@@ -212,6 +235,7 @@ function parseJobs(
         permissions: asBlock(job.permissions),
         secrets: asBlock(job.secrets),
         environment: asEnvironments(job.environment),
+        ifCondition: asCondition(job.if),
       },
     ];
   });
