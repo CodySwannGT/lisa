@@ -1,0 +1,52 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "PASS",
+      "observed": "Routing evidence was gathered and holds.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "PASS",
+      "observed": "Every tool the work needs was proved reachable.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "PASS",
+      "observed": "Danger zones and glossary are owned and written down.",
+      "findings": []
+    },
+    {
+      "id": "execution-proof",
+      "status": "PASS",
+      "observed": "The claimed user-visible outcome was proved by running the system.",
+      "findings": []
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "PASS",
+      "observed": "A failing loop produces a named outcome and a runbook.",
+      "findings": []
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "PASS",
+      "observed": "A confidence model covers what the repo depends on.",
+      "findings": []
+    },
+    {
+      "id": "delivery-authority",
+      "status": "SKIP",
+      "observed": "No deployment target is configured, so delivery/authority was not assessed.",
+      "findings": []
+    },
+    {
+      "id": "proportionality",
+      "status": "PASS",
+      "observed": "The machinery is proportional to the job.",
+      "findings": []
+    }
+  ]
+}
