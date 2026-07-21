@@ -9,6 +9,7 @@ describe("Health v1 local runtime state", () => {
       "utf8"
     );
     expect(gitignore.split("\n")).toContain(".lisa/health/latest.json");
+    expect(gitignore.split("\n")).toContain(".lisa/standards/latest.json");
     expect(gitignore).not.toContain(".lisa/health/\n");
   });
 });

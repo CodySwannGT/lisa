@@ -11,11 +11,9 @@ pre-commit:
       # (CI still enforces the gate).
       run: sh -c 'command -v node >/dev/null 2>&1 || exit 0; [ -f scripts/check-threshold-ratchet.mjs ] || exit 0; node scripts/check-threshold-ratchet.mjs --staged'
     bundler-audit:
-      # Unset GIT_DIR/GIT_WORK_TREE so `--update`'s internal git pull of the
-      # ruby-advisory-db (~/.local/share/ruby-advisory-db) does not inherit the
-      # repo's git context. Without this, the command fails when the hook runs
-      # inside a git worktree (the inherited GIT_DIR points at the wrong repo).
-      run: env -u GIT_DIR -u GIT_WORK_TREE bundle exec bundler-audit check --update
+      # The wrapper removes Git's complete documented local environment before
+      # `--update` enters the nested ruby-advisory-db repository.
+      run: sh scripts/lisa-clean-git-env.sh bundle exec bundler-audit check --update
 
 prepare-commit-msg:
   commands:
@@ -35,16 +33,16 @@ pre-push:
       run: node scripts/lisa-work-item.mjs validate-push {1}
       use_stdin: true
     rspec:
-      run: bundle exec rspec
+      run: sh scripts/lisa-clean-git-env.sh bundle exec rspec
     brakeman:
-      run: bundle exec brakeman --no-pager --quiet
+      run: sh scripts/lisa-clean-git-env.sh bundle exec brakeman --no-pager --quiet
     reek:
-      run: bundle exec reek app/ lib/
+      run: sh scripts/lisa-clean-git-env.sh bundle exec reek app/ lib/
     flog:
-      run: bundle exec flog --all --group app/ lib/
+      run: sh scripts/lisa-clean-git-env.sh bundle exec flog --all --group app/ lib/
     flay:
-      run: bundle exec flay app/ lib/
+      run: sh scripts/lisa-clean-git-env.sh bundle exec flay app/ lib/
     mutation:
       # Opt-in, diff-only mutation gate. Self-skips instantly when disabled
       # (mutation.gate.yml: enabled: false), so it adds no cost until opted in.
-      run: bash scripts/lisa-mutation.sh
+      run: sh scripts/lisa-clean-git-env.sh bash scripts/lisa-mutation.sh

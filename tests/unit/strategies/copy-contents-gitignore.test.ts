@@ -14,6 +14,7 @@ const END_MARKER = "# END: AI GUARDRAILS";
 const GIT_BIN = "/usr/bin/git";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const VERIFICATION_STATUS = ".lisa/verification-status.json";
+const STANDARDS_PROOF = ".lisa/standards/latest.json";
 const ROSTER = ".lisa/roster.md";
 const CROSS_POLLINATION_LOCK = ".lisa/cross-pollination.lock.json";
 const AUTOMATION_RUN_RECORD = ".lisa/automations/runs/probe-loop.jsonl";
@@ -170,6 +171,7 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     expect(merged).not.toContain("old-lisa-rule/");
 
     await fs.outputFile(path.join(destDir, VERIFICATION_STATUS), "{}\n");
+    await fs.outputFile(path.join(destDir, STANDARDS_PROOF), "{}\n");
     await fs.outputFile(path.join(destDir, ROSTER), "# Roster\n");
     await fs.outputFile(path.join(destDir, CROSS_POLLINATION_LOCK), "{}\n");
     const gitEnv = cleanGitEnv();
@@ -187,6 +189,11 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
       cwd: destDir,
       env: gitEnv,
     });
+    const standards = spawnSync(
+      GIT_BIN,
+      [CHECK_IGNORE, "-q", STANDARDS_PROOF],
+      { cwd: destDir, env: gitEnv }
+    );
     const lock = spawnSync(
       GIT_BIN,
       [CHECK_IGNORE, "-q", CROSS_POLLINATION_LOCK],
@@ -199,9 +206,11 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     );
 
     expect(verdict.status).toBe(0);
+    expect(standards.status).toBe(0);
     expect(roster.status).toBe(1);
     expect(lock.status).toBe(1);
     expect(status).not.toContain(VERIFICATION_STATUS);
+    expect(status).not.toContain(STANDARDS_PROOF);
     expect(status).toContain(ROSTER);
     expect(status).toContain(CROSS_POLLINATION_LOCK);
   });
