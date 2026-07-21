@@ -6,7 +6,7 @@
  * repo adds real readiness probes. Keep this file dependency-free so future
  * doctor scripts can reuse it from plugin distributions and downstream repos.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
@@ -121,9 +121,12 @@ export function createPluginSyncDoctorGroup(root = process.cwd()) {
 /**
  * The eight repository-readiness ownership dimensions, in fixed render order,
  * defined once by the `readiness-rubric` rule. This group consumes that rubric;
- * it does not redefine the vocabulary. Evidence gathering for each dimension is
- * wired by later PRD #1739 tickets, so every dimension renders `SKIP` with a
- * reason here — reported, never silently omitted, per the shipped contract.
+ * it does not redefine the vocabulary. Evidence gathering lives in the
+ * TypeScript CLI producers, which persist the authoritative per-dimension
+ * result to `.lisa/readiness.json`; this surface projects that result. When no
+ * usable report is on disk, each dimension renders `SKIP` carrying the reason
+ * it was not assessed — reported, never silently omitted, per the shipped
+ * contract.
  * @type {readonly { id: string, question: string, skipReason: string }[]}
  */
 const REPOSITORY_READINESS_DIMENSIONS = [
@@ -132,81 +135,222 @@ const REPOSITORY_READINESS_DIMENSIONS = [
     question:
       "Can an agent recover the real job from what is written down (integration-access-layer, wiki-knowledge-source, config-resolution)?",
     skipReason:
-      "Context/routing evidence is assessed by the agent-ready wiring (RRR-4, #1856); no readiness probe is wired in this Lisa version.",
+      "Context/routing evidence is assessed by the agent-ready wiring (RRR-4, #1856); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "capabilities-tools",
     question:
       "Is every tool the work needs provably reachable, not merely installed (tool-access-gate)?",
     skipReason:
-      "Capabilities/tools evidence is gathered by the journey-execution wiring (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
+      "Capabilities/tools evidence is gathered by the journey-execution wiring (RRR-6, #1858); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "domain-ownership",
     question:
       "Are the business rules, glossary, and danger zones owned and written down (agent-ready domain phase wiki pages)?",
     skipReason:
-      "Domain-ownership evidence sources from agent-ready's danger-zone wiki pages, read by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
+      "Domain-ownership evidence sources from agent-ready's danger-zone wiki pages, read by RRR-4 (#1856); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "execution-proof",
     question:
       "Can the claimed user-visible outcome be proved by running the system (verification, empirical-inquiry, claim-evidence-mapping)?",
     skipReason:
-      "Execution/proof consumes qualification evidence and representative journeys wired by RRR-6 (#1858); no readiness probe is wired in this Lisa version.",
+      "Execution/proof consumes qualification evidence and representative journeys wired by RRR-6 (#1858); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "feedback-guardrails",
     question:
       "Does a failing loop produce a named outcome and a runbook (automation-runbook-contract, observability-audit)?",
     skipReason:
-      "Feedback/guardrails evidence is assessed by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
+      "Feedback/guardrails evidence is assessed by RRR-4 (#1856); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "dependencies-supply-chain",
     question:
       "Is there a confidence model for what the repo depends on (security-audit-handling)?",
     skipReason:
-      "Dependencies/supply-chain evidence is assessed by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
+      "Dependencies/supply-chain evidence is assessed by RRR-4 (#1856); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "delivery-authority",
     question:
       "Does the thing that ships equal the thing that was validated, and does the shipping credential carry only the authority it needs (claim-archaeology, security-audit-handling)?",
     skipReason:
-      "Delivery/authority blockers are populated by the blocker gate in RRR-5 (#1857); no readiness probe is wired in this Lisa version.",
+      "Delivery/authority blockers are populated by the blocker gate in RRR-5 (#1857); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
   {
     id: "proportionality",
     question:
       "Is the machinery proportional to the job, or is there scaffolding to subtract (repo-scope-split, #1742 subtraction candidates)?",
     skipReason:
-      "Proportionality reuses the scaffolding-subtraction candidates surfaced by the journey work (RRR-6, #1858); no readiness probe is wired in this Lisa version.",
+      "Proportionality reuses the scaffolding-subtraction candidates surfaced by the journey work (RRR-6, #1858); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
   },
 ];
+
+/**
+ * `schema_version` this surface knows how to project. A report stamped with any
+ * other version is treated as unreadable rather than guessed at: the whole point
+ * of the version stamp is that a reader may not invent a mapping it was never
+ * told about.
+ */
+const READINESS_REPORT_SCHEMA_VERSION = 1;
+
+/**
+ * Longest operator-facing summary projected out of a CLI finding. Findings can
+ * carry kilobytes of concatenated evidence (every offending workflow job, for
+ * example); the doctor line is a headline, and the full text stays available in
+ * `.lisa/readiness.json`.
+ */
+const READINESS_SUMMARY_MAX_LENGTH = 320;
+
+/**
+ * Resolve the single location the CLI writes the readiness report to. This
+ * mirrors the CLI's `resolveReadinessReportPath` so relocating the artifact
+ * stays a two-line change across both scorers.
+ * @param {string} repoRoot
+ * @returns {string}
+ */
+function resolveReadinessReportPath(repoRoot) {
+  return path.join(repoRoot, ".lisa", "readiness.json");
+}
+
+/**
+ * Read the CLI-authored readiness report, or `null` when there is nothing
+ * trustworthy to project. Absence, unparseable JSON, an unknown
+ * `schema_version`, and a missing `dimensions` array are all the same answer —
+ * "the CLI readiness pass has not produced a result this surface can read" —
+ * and none of them is evidence about the repository itself.
+ * @param {string} repoRoot
+ * @returns {{ dimensions: readonly Record<string, unknown>[], blockers: readonly Record<string, unknown>[] } | null}
+ */
+function readReadinessReport(repoRoot) {
+  const reportPath = resolveReadinessReportPath(repoRoot);
+  if (!existsSync(reportPath)) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(reportPath, "utf8"));
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      parsed.schema_version !== READINESS_REPORT_SCHEMA_VERSION ||
+      !Array.isArray(parsed.dimensions)
+    ) {
+      return null;
+    }
+    return {
+      dimensions: parsed.dimensions,
+      blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pull the operator-facing sentence out of a dimension's findings. The CLI
+ * producers write human text under `evidence` (an assessed dimension) or
+ * `reason` (a deliberately-unassessed one); the rest of the finding is machine
+ * bookkeeping the blocker engine owns.
+ * @param {readonly unknown[]} findings
+ * @returns {string}
+ */
+function summarizeReadinessFindings(findings) {
+  const sentences = findings
+    .filter(finding => finding !== null && typeof finding === "object")
+    .flatMap(finding => [finding.evidence, finding.reason])
+    .filter(text => typeof text === "string" && text.trim().length > 0)
+    .map(text => text.trim());
+  if (sentences.length === 0) {
+    return "";
+  }
+  const joined = sentences.join(" ");
+  return joined.length > READINESS_SUMMARY_MAX_LENGTH
+    ? `${joined.slice(0, READINESS_SUMMARY_MAX_LENGTH - 1).trimEnd()}…`
+    : joined;
+}
+
+/**
+ * Project one CLI dimension record into this surface's check shape, or `null`
+ * when the record is absent or carries a status outside the shipped vocabulary
+ * (the caller then falls back to the reasoned SKIP).
+ * @param {{ id: string, question: string, skipReason: string }} dimension
+ * @param {{ dimensions: readonly Record<string, unknown>[], blockers: readonly Record<string, unknown>[] }} report
+ * @returns {DoctorCheck | null}
+ */
+function projectReadinessDimension(dimension, report) {
+  const record = report.dimensions.find(
+    entry =>
+      entry !== null && typeof entry === "object" && entry.id === dimension.id
+  );
+  if (!record || !DOCTOR_STATUSES.includes(record.status)) {
+    return null;
+  }
+  const findings = Array.isArray(record.findings) ? record.findings : [];
+  const summary = summarizeReadinessFindings(findings);
+  const blockerIds = report.blockers
+    .filter(
+      blocker =>
+        blocker !== null &&
+        typeof blocker === "object" &&
+        (blocker.dimension_id === dimension.id ||
+          (Array.isArray(blocker.owning_dimensions) &&
+            blocker.owning_dimensions.includes(dimension.id)))
+    )
+    .map(blocker => String(blocker.id))
+    .filter((id, index, ids) => ids.indexOf(id) === index);
+
+  return {
+    id: dimension.id,
+    status: record.status,
+    summary: summary.length > 0 ? summary : dimension.question,
+    observed: `${dimension.question} Projected from \`.lisa/readiness.json\` (schema_version ${READINESS_REPORT_SCHEMA_VERSION}), the report the Lisa CLI readiness pass wrote.`,
+    ...(blockerIds.length > 0
+      ? {
+          remediation: `Standing ship blocker(s): ${blockerIds.join(", ")}. See \`.lisa/readiness.json\` for the full evidence and the \`readiness-rubric\` rule for the blocker definitions.`,
+        }
+      : {}),
+  };
+}
 
 /**
  * Build the orthogonal "Repository readiness" doctor group ("may an agent fleet
  * operate here unattended?"), scored against the eight `readiness-rubric`
  * ownership dimensions. It is separate from the installation-readiness groups
  * and is appended in a fixed position by the readiness-mode caller; the eight
- * dimension checks render in fixed order. In this Lisa version every dimension
- * is `SKIP` with a stated reason because the evidence-gathering surfaces ship
- * with later PRD #1739 tickets — reported, never silently omitted.
+ * dimension checks render in fixed order.
+ *
+ * The blocker engine and the evidence producers live in the TypeScript CLI,
+ * which is the single source of truth; this surface is a bridge, not a second
+ * implementation (#1902). It projects whatever the CLI persisted to
+ * `.lisa/readiness.json` so an operator running `/lisa:doctor` through any
+ * coding agent gets the same readiness answer the CLI gives. When no usable
+ * report exists, every unmatched dimension renders `SKIP` with its reason:
+ * absence means the readiness pass has not run, never that the repository is
+ * clean, so a pass or fail is never manufactured from it.
  * @param {string} root
  * @returns {DoctorGroup}
  */
 export function createRepositoryReadinessDoctorGroup(root = process.cwd()) {
-  void path.resolve(root);
+  const report = readReadinessReport(path.resolve(root));
   return {
     id: "repository-readiness",
     title: "Repository readiness",
-    checks: REPOSITORY_READINESS_DIMENSIONS.map(dimension => ({
-      id: dimension.id,
-      status: "SKIP",
-      summary: dimension.question,
-      observed: dimension.skipReason,
-    })),
+    checks: REPOSITORY_READINESS_DIMENSIONS.map(
+      dimension =>
+        (report === null
+          ? null
+          : projectReadinessDimension(dimension, report)) ?? {
+          id: dimension.id,
+          status: "SKIP",
+          summary: dimension.question,
+          observed:
+            report === null
+              ? dimension.skipReason
+              : `${dimension.question} \`.lisa/readiness.json\` carries no usable record for this dimension, so it was not assessed here. Re-run \`lisa doctor --offline --readiness\` to regenerate the report.`,
+        }
+    ),
   };
 }
 
