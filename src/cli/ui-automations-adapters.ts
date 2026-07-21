@@ -14,8 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 import type { JsonObject } from "../sync/json-path.js";
-import { isJsonObject } from "../sync/json-path.js";
-import { deepMerge, readJsonOrNull } from "../utils/index.js";
+import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
 import type {
   AutomationProjectIdentity,
   ClaudeAutomationLister,
@@ -84,21 +83,45 @@ async function loadAdapterModule<T>(scriptName: string): Promise<T> {
   return import(pathToFileURL(scriptPath).href) as Promise<T>;
 }
 
+/** Minimal expected-fleet entry consumed by setup readiness. */
+export interface ExpectedAutomationEntry {
+  readonly id: string;
+  readonly automationId: string;
+}
+
+/**
+ * Resolve applicable automations through setup-automations' shared contract.
+ * @param config - Current merged Lisa config
+ * @param detectedTypes - Authoritatively detected project types
+ * @param gitRemoteUrl - Optional origin fallback for repository identity
+ * @returns Applicable expected entries; unsupported loops are excluded
+ */
+export async function resolveExpectedAutomationEntries(
+  config: JsonObject,
+  detectedTypes: readonly string[],
+  gitRemoteUrl?: string
+): Promise<readonly ExpectedAutomationEntry[]> {
+  const { resolveExpectedAutomationFleet } = await loadAdapterModule<{
+    resolveExpectedAutomationFleet: (input: {
+      readonly config: JsonObject;
+      readonly detectedTypes: readonly string[];
+      readonly gitRemoteUrl?: string;
+    }) => { readonly expected: readonly ExpectedAutomationEntry[] };
+  }>("automation-status-expected-fleet.mjs");
+  return resolveExpectedAutomationFleet({
+    config,
+    detectedTypes,
+    ...(gitRemoteUrl === undefined ? {} : { gitRemoteUrl }),
+  }).expected;
+}
+
 /**
  * Read merged Lisa config for identity resolution.
  * @param cwd - Project root
  * @returns Merged config object
  */
 async function readMergedConfig(cwd: string): Promise<JsonObject> {
-  const committed = await readJsonOrNull<unknown>(
-    path.join(cwd, ".lisa.config.json")
-  );
-  const local = await readJsonOrNull<unknown>(
-    path.join(cwd, ".lisa.config.local.json")
-  );
-  const committedObject = isJsonObject(committed) ? committed : {};
-  const localObject = isJsonObject(local) ? local : {};
-  return deepMerge(committedObject, localObject) as JsonObject;
+  return await readConfinedMergedConfig(cwd);
 }
 
 /**
@@ -107,13 +130,12 @@ async function readMergedConfig(cwd: string): Promise<JsonObject> {
  * @param signal - Abort signal
  * @returns Origin URL, or undefined when unavailable
  */
-async function readOriginRemote(
+export async function readOriginRemote(
   cwd: string,
   signal: AbortSignal
 ): Promise<string | undefined> {
   try {
     const { stdout } = await execFileAsync(
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed git executable
       "git",
       ["-C", cwd, "remote", "get-url", "origin"],
       { cwd, signal, timeout: 2_500, encoding: "utf8" }
@@ -177,17 +199,23 @@ export const defaultResolveIdentity: ProjectIdentityResolver = async (
 /**
  * Default Codex directory readability check.
  * @param automationsDir - Directory to probe
+ * @param signal - Probe cancellation signal
  * @returns Whether the directory is readable
  */
-export const defaultCodexDirReadable: CodexDirReadableCheck =
-  async automationsDir => {
-    try {
-      await access(automationsDir, fsConstants.R_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  };
+export const defaultCodexDirReadable: CodexDirReadableCheck = async (
+  automationsDir,
+  signal
+) => {
+  signal.throwIfAborted();
+  try {
+    await access(automationsDir, fsConstants.R_OK);
+    signal.throwIfAborted();
+    return true;
+  } catch {
+    signal.throwIfAborted();
+    return false;
+  }
+};
 
 /**
  * Default Claude `/schedule` reader — Node cannot invoke the interactive
