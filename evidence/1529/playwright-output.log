@@ -1,0 +1,9 @@
+Command: bunx playwright test tests/e2e/ui-health.spec.ts
+Artifact head: 9112b1e6d
+Result: PASS — 4 passed (56.3s)
+
+Passing journeys:
+1. Run deterministic health check renders the exact canonical finding fields and stamp
+2. built CLI and UI agree through real drift, revert, and in-band recovery
+3. stored and in-flight state survive a delayed status-hydration rerender
+4. a failed run clears stale green findings and does not retry
