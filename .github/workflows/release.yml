@@ -665,10 +665,37 @@ jobs:
           source ./release-logger.sh
 
           target_ref="${{ github.ref_name }}"
+          version="${{ steps.version.outputs.version }}"
+
+          # Re-derive the release stamp on a freshly fetched tip. The initial
+          # release commit (Generate Changelog) stamps package.json,
+          # CHANGELOG.md, and every plugins/*/plugin.json version line. When a
+          # concurrent merge touches those same high-churn version lines,
+          # replaying the pre-stamped commit conflicts identically on every
+          # rebase attempt, so recovery discards it and regenerates the stamp
+          # from the pinned version instead. --release-as forces the exact
+          # version regardless of the current package.json, so this converges on
+          # the new tip rather than re-conflicting. (Per-branch releases are not
+          # expected to run concurrently, so re-stamping the pinned version is
+          # safe; the versioning scheme itself is out of scope here.)
+          restamp_release() {
+            git reset --hard "origin/$target_ref"
+            npx standard-version --release-as "$version" --skip.tag \
+              --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci]"
+          }
 
           for attempt in 1 2 3; do
             git fetch origin "$target_ref"
-            git rebase "origin/$target_ref"
+
+            # Guard the rebase: this block runs under `set -eo pipefail`, so a
+            # bare `git rebase` that hits a content conflict would exit the step
+            # immediately, making the retry loop below dead code. Catching the
+            # non-zero exit with `if !` keeps `set -e` from bypassing recovery.
+            if ! git rebase "origin/$target_ref"; then
+              echo "::warning::Changelog rebase conflicted on attempt $attempt; re-stamping v$version against fresh $target_ref"
+              git rebase --abort 2>/dev/null || true
+              restamp_release
+            fi
 
             if git push origin "HEAD:$target_ref"; then
               log_release_event "changelog_push" "completed" "Changelog changes pushed successfully" \
@@ -678,7 +705,6 @@ jobs:
             fi
 
             echo "::warning::Changelog push attempt $attempt failed; retrying after refreshing $target_ref"
-            git rebase --abort 2>/dev/null || true
             sleep $((attempt * 5))
           done
 
