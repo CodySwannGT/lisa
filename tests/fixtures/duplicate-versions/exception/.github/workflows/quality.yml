@@ -1,0 +1,18 @@
+# Fixture: the documented-exception shape. The duplicates are real, but each is
+# recorded inline with a reason and a tracking ticket, so the check reports them
+# as `allowed` instead of failing — the exception is honest, not silent.
+name: Quality
+
+on: [pull_request]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # lisa-allow-duplicate-version: setup-bun cannot read the manifest before checkout (#1888)
+          bun-version: '1.3.8'
+      - name: Install ast-grep
+        run: npm install -g @ast-grep/cli@0.40.4 # lisa-allow-duplicate-version: migrating to manifest-derived install (#1888)
