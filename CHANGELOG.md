@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.271.0](https://github.com/CodySwannGT/lisa/compare/v2.270.0...v2.271.0) (2026-07-21)
+
+
+### Features
+
+* **skills:** agent-ready readiness assessment with narrowed ingest-boundary carve-out ([#1856](https://github.com/CodySwannGT/lisa/issues/1856)) ([9abea36](https://github.com/CodySwannGT/lisa/commit/9abea360f4fce04ad0ff3d415f94c94aa383c78f)), closes [#1853](https://github.com/CodySwannGT/lisa/issues/1853) [#1855](https://github.com/CodySwannGT/lisa/issues/1855)
+
 ## [2.270.0](https://github.com/CodySwannGT/lisa/compare/v2.269.3...v2.270.0) (2026-07-21)
 
 
