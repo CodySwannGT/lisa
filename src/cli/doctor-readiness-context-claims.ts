@@ -16,8 +16,10 @@
  * checkable repository path.
  * @module cli/doctor-readiness-context-claims
  */
-import { readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import * as path from "node:path";
+import { isMechanismPath } from "./doctor-readiness-context-mechanisms.js";
+import { readFileOrNull } from "./doctor-readiness-shared.js";
 
 /** The instruction surfaces whose enforcement claims are cross-checked. */
 const CLAIM_SOURCE_FILES: readonly string[] = ["README.md", "AGENTS.md"];
@@ -43,83 +45,12 @@ const HEDGED_CLAIM =
 /** Inline-code spans, the only place a mechanism is read from. */
 const INLINE_CODE = /`([^`\n]+)`/g;
 
-/** File extensions a named mechanism plausibly ends in. */
-const MECHANISM_EXTENSION =
-  /\.(ya?ml|sh|bash|zsh|ts|tsx|js|mjs|cjs|json|jsonc|md|toml|cfg|ini)$/;
-
 /** One enforcement claim read out of an instruction surface. */
 export interface EnforcementClaim {
   readonly file: string;
   readonly line: number;
   readonly text: string;
   readonly mechanisms: readonly string[];
-}
-
-/**
- * Read a repository-relative file, returning null when it cannot be read.
- * @param root - Repository root
- * @param relativePath - Repo-relative path
- * @returns File contents, or null
- */
-export async function readFileOrNull(
-  root: string,
-  relativePath: string
-): Promise<string | null> {
-  try {
-    return await readFile(path.join(root, relativePath), "utf8");
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Whether a repository-relative path exists, as a file or a directory.
- * @param root - Repository root
- * @param relativePath - Repo-relative path
- * @returns True when something is present at that path
- */
-export async function pathExists(
-  root: string,
-  relativePath: string
-): Promise<boolean> {
-  const target = path.join(root, ...relativePath.split("/"));
-  if ((await readFileOrNull(root, relativePath)) !== null) {
-    return true;
-  }
-  try {
-    await readdir(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Whether an inline-code span names a repository path this producer can check.
- *
- * Every exclusion here is a false-positive guard: a URL is not a repo path, a
- * glob names a set rather than a file, a placeholder names nothing, and a token
- * with no separator and no extension is far more likely to be a command or an
- * identifier than a mechanism.
- * @param token - The inline-code text
- * @returns True when the token is a checkable repository path
- */
-function isMechanismPath(token: string): boolean {
-  const trimmed = token.trim();
-  if (trimmed === "" || /\s/.test(trimmed)) {
-    return false;
-  }
-  if (
-    trimmed.includes("://") ||
-    trimmed.includes("*") ||
-    trimmed.includes("<") ||
-    trimmed.includes("$") ||
-    trimmed.startsWith("/") ||
-    trimmed.startsWith("-")
-  ) {
-    return false;
-  }
-  return trimmed.includes("/") || MECHANISM_EXTENSION.test(trimmed);
 }
 
 /**

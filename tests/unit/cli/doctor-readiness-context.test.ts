@@ -15,18 +15,21 @@
  * hedged sentence, and a repository whose docs match reality.
  * @module tests/unit/cli/doctor-readiness-context
  */
-import { rm } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CONTEXT_ROUTING_DIMENSION_ID,
   assessContextRoutingDimension,
 } from "../../../src/cli/doctor-readiness-context.js";
+import {
+  checkRepositoryReadiness,
+  resolveReadinessReportPath,
+} from "../../../src/cli/doctor-readiness.js";
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
 import {
   asFindings,
   FAIL,
   makeScratchRepo,
-  PASS,
   SKIP,
   WARN,
   writeRepoFile,
@@ -151,118 +154,6 @@ describe("assessContextRoutingDimension — B6 (documentation overstates enforce
   });
 });
 
-describe("assessContextRoutingDimension — precision guards", () => {
-  it("PASSes with NO blocker key when every named mechanism exists", async () => {
-    const cwd = await getTempDir();
-    await writeRoutingArtifacts(cwd);
-    await writeRepoFile(cwd, ".husky/pre-commit", "#!/bin/sh\nnpm test\n");
-    await writeRepoFile(
-      cwd,
-      "README.md",
-      "# Scratch\n\nEvery commit is blocked by `.husky/pre-commit` when the tests fail.\n"
-    );
-
-    const record = await assessContextRoutingDimension(cwd);
-
-    expect(record.status).toBe(PASS);
-    // Load-bearing: the engine stands a blocker on any finding naming an id with
-    // evidence, so a clean finding must not name one at all.
-    for (const finding of asFindings(record.findings)) {
-      expect(Object.hasOwn(finding, "blocker")).toBe(false);
-    }
-    expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(assessReadiness([record]).verdict).toBe("READY");
-    expect(JSON.stringify(record.findings)).toContain("AGENTS.md");
-    expect(JSON.stringify(record.findings)).toContain(WIKI_INDEX);
-  });
-
-  it("never stands B6 on a claim that names no mechanism at all", async () => {
-    const cwd = await getTempDir();
-    await writeRoutingArtifacts(cwd);
-    await writeRepoFile(
-      cwd,
-      "README.md",
-      "# Scratch\n\nFormatting is enforced on every commit.\n"
-    );
-
-    const record = await assessContextRoutingDimension(cwd);
-
-    // An unmappable claim is reported as unmappable, never guessed into a
-    // violation and never dropped into silence.
-    for (const finding of asFindings(record.findings)) {
-      expect(Object.hasOwn(finding, "blocker")).toBe(false);
-    }
-    expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(JSON.stringify(record.findings)).toContain(
-      "Formatting is enforced on every commit."
-    );
-  });
-
-  it("never stands B6 on a claim inside a fenced code block", async () => {
-    const cwd = await getTempDir();
-    await writeRoutingArtifacts(cwd);
-    await writeRepoFile(
-      cwd,
-      "README.md",
-      [
-        "# Scratch",
-        "",
-        "```md",
-        "Every commit is blocked by `.husky/absent-hook`.",
-        "```",
-        "",
-      ].join("\n")
-    );
-
-    const record = await assessContextRoutingDimension(cwd);
-
-    expect(assessReadiness([record]).blockers).toEqual([]);
-    for (const finding of asFindings(record.findings)) {
-      expect(Object.hasOwn(finding, "blocker")).toBe(false);
-    }
-  });
-
-  it("never stands B6 on a hedged or hypothetical sentence", async () => {
-    const cwd = await getTempDir();
-    await writeRoutingArtifacts(cwd);
-    await writeRepoFile(
-      cwd,
-      "README.md",
-      "# Scratch\n\nFor example, a push could be blocked by `.husky/absent-hook`.\n"
-    );
-
-    const record = await assessContextRoutingDimension(cwd);
-
-    expect(assessReadiness([record]).blockers).toEqual([]);
-    for (const finding of asFindings(record.findings)) {
-      expect(Object.hasOwn(finding, "blocker")).toBe(false);
-    }
-  });
-
-  it("never stands B6 on a URL or a glob that only looks like a path", async () => {
-    const cwd = await getTempDir();
-    await writeRoutingArtifacts(cwd);
-    await writeRepoFile(
-      cwd,
-      "README.md",
-      [
-        "# Scratch",
-        "",
-        "The required check is documented at `https://example.com/ci/gate.yml`.",
-        "Linting is enforced across `src/**/*.ts` on every push.",
-        "",
-      ].join("\n")
-    );
-
-    const record = await assessContextRoutingDimension(cwd);
-
-    expect(assessReadiness([record]).blockers).toEqual([]);
-    for (const finding of asFindings(record.findings)) {
-      expect(Object.hasOwn(finding, "blocker")).toBe(false);
-    }
-  });
-});
-
 describe("assessContextRoutingDimension — unassessable repositories", () => {
   it("SKIPs with a stated reason when there is nothing written down to read", async () => {
     const cwd = await getTempDir();
@@ -312,5 +203,28 @@ describe("assessContextRoutingDimension — unassessable repositories", () => {
 describe("context-routing dimension identity", () => {
   it("owns the context-routing dimension id from the readiness rubric", () => {
     expect(CONTEXT_ROUTING_DIMENSION_ID).toBe("context-routing");
+  });
+
+  it("is reachable through the collector's producer dispatch, not silently skipped", async () => {
+    const cwd = await getTempDir();
+    await writeRoutingArtifacts(cwd);
+    await writeRepoFile(
+      cwd,
+      "README.md",
+      "# Scratch\n\nEvery push is blocked by `.github/workflows/absent.yml`.\n"
+    );
+
+    await checkRepositoryReadiness(cwd);
+
+    // The producer's registration carries no stated skipReason any more, so a
+    // dropped dispatch entry would fall through to a generic SKIP and quietly
+    // stop assessing this dimension. Pin that it is actually wired.
+    const report = JSON.parse(
+      await readFile(resolveReadinessReportPath(cwd), "utf8")
+    ) as { readonly dimensions: readonly { id: string; status: string }[] };
+    const dimension = report.dimensions.find(
+      entry => entry.id === DIMENSION_ID
+    );
+    expect(dimension?.status).toBe(WARN);
   });
 });

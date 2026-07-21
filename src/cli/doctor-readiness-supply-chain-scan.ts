@@ -14,8 +14,9 @@
  * establishes nothing and is passed over, never reported as a violation.
  * @module cli/doctor-readiness-supply-chain-scan
  */
-import { readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import * as path from "node:path";
+import { isRecord, readFileOrNull } from "./doctor-readiness-shared.js";
 
 /**
  * Every lockfile spelling a JavaScript package manager writes. One of these
@@ -62,18 +63,81 @@ const FLOATING_SPECS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Protocols that resolve to something inside this repository rather than to a
+ * published version, so there is nothing to pin and nothing to drift.
+ */
+const LOCAL_PROTOCOLS: readonly string[] = [
+  "workspace:",
+  "file:",
+  "link:",
+  "portal:",
+];
+
+/** Specs fetched from a source tree rather than a registry release. */
+const SOURCE_FETCH_PROTOCOL =
+  /^(github:|gitlab:|bitbucket:|bitbucket|git\+|git:|https?:\/\/)/i;
+
+/**
+ * Whether a source-fetch spec is anchored to one revision by a `#<sha|tag>`
+ * suffix. Written without a regex so it cannot backtrack on a hostile spec.
+ * @param spec - The declared spec text
+ * @returns True when a non-empty ref follows a `#`
+ */
+function hasImmutableRef(spec: string): boolean {
+  const marker = spec.indexOf("#");
+  return marker >= 0 && spec.slice(marker + 1).trim() !== "";
+}
+
+/**
  * Whether a dependency spec resolves to whatever is newest at install time
  * rather than to a version something was validated against.
+ *
+ * Four families are recognized, and the narrowness of each is deliberate — every
+ * over-eager rule here fails a correctly configured repository:
+ *
+ * - **Local protocols** resolve inside the repository and never float.
+ * - **Registry aliases** (`npm:left-pad@latest`) hide the real spec behind the
+ *   alias, so the part after the version separator is re-tested.
+ * - **Source fetches** (`github:acme/widget`) float unless anchored to a
+ *   `#<sha|tag>` revision, because the branch tip moves under the install.
+ * - **Plain ranges** float only when they name no version at all. A `>=` floor
+ *   in `overrides` is the recommended way to force a patched transitive
+ *   dependency, so ranges are otherwise left alone.
  * @param spec - The declared spec text
  * @returns True when the spec floats
  */
 export function isFloatingSpec(spec: string): boolean {
-  return FLOATING_SPECS.has(spec.trim().toLowerCase());
+  const trimmed = spec.trim();
+  if (LOCAL_PROTOCOLS.some(protocol => trimmed.startsWith(protocol))) {
+    return false;
+  }
+  if (/^npm:/i.test(trimmed)) {
+    const separator = trimmed.lastIndexOf("@");
+    return separator > "npm:".length
+      ? isFloatingSpec(trimmed.slice(separator + 1))
+      : true;
+  }
+  if (SOURCE_FETCH_PROTOCOL.test(trimmed)) {
+    return !hasImmutableRef(trimmed);
+  }
+  return FLOATING_SPECS.has(trimmed.toLowerCase());
 }
 
-/** Commands and actions that actually audit the dependency tree. */
+/**
+ * Commands and actions that actually audit the DEPENDENCY tree. A job merely
+ * titled "Security Scan" is deliberately not enough: a secret scanner proves
+ * nothing about the dependency tree, and counting it would be a false green —
+ * the worst direction to err for a confidence model.
+ */
 const AUDIT_GATE_PATTERN =
-  /\b(npm|bun|yarn|pnpm)\s+audit\b|audit-ci|osv-scanner|dependency-review-action|\bsnyk\b|\btrivy\b|security\s+scan/i;
+  /\b(npm|bun|yarn|pnpm)\s+audit\b|audit-ci|osv-scanner|dependency-review-action|\bsnyk\b|\btrivy\b|\bgrype\b/i;
+
+/**
+ * An update bot covering the JavaScript dependency tree. A `dependabot.yml`
+ * that only watches `github-actions` never looks at `package.json`, so its mere
+ * presence is not a confidence model for the dependencies.
+ */
+const JS_ECOSYSTEM_PATTERN = /package-ecosystem:\s*["']?(npm|bun|yarn|pnpm)\b/i;
 
 /** Files that may declare an audit gate in their text. */
 const GATE_DIRECTORIES: readonly string[] = [
@@ -121,15 +185,6 @@ export type ManifestOutcome =
   | { readonly kind: "unassessable"; readonly reason: string };
 
 /**
- * Whether a value is a plain JSON object.
- * @param value - Candidate value
- * @returns True when the value is a non-null, non-array object
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
  * Whether a repository-relative path exists.
  * @param root - Repository root
  * @param relativePath - Repo-relative path
@@ -140,23 +195,6 @@ async function fileExists(
   relativePath: string
 ): Promise<boolean> {
   return (await readFileOrNull(root, relativePath)) !== null;
-}
-
-/**
- * Read a repository-relative file, returning null when it cannot be read.
- * @param root - Repository root
- * @param relativePath - Repo-relative path
- * @returns File contents, or null
- */
-async function readFileOrNull(
-  root: string,
-  relativePath: string
-): Promise<string | null> {
-  try {
-    return await readFile(path.join(root, relativePath), "utf8");
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -278,6 +316,22 @@ export async function findLockfile(root: string): Promise<string | null> {
 }
 
 /**
+ * Whether an update-bot config actually watches the JavaScript dependency tree.
+ * Dependabot declares an ecosystem per entry, so a config covering only
+ * `github-actions` is not a confidence model for `package.json`. Renovate has no
+ * such per-file declaration and defaults to every manager it detects, so its
+ * presence is taken at face value.
+ * @param botFile - Repo-relative bot config path
+ * @param source - The config's text
+ * @returns True when the bot covers the JavaScript dependencies
+ */
+function coversJavaScriptTree(botFile: string, source: string): boolean {
+  return botFile.includes("dependabot")
+    ? JS_ECOSYSTEM_PATTERN.test(source)
+    : true;
+}
+
+/**
  * Find where the repository audits its dependency tree: a CI job, a git hook, a
  * lefthook declaration, or an update bot.
  * @param root - Repository root
@@ -285,16 +339,15 @@ export async function findLockfile(root: string): Promise<string | null> {
  */
 export async function findAuditGate(root: string): Promise<string | null> {
   for (const botFile of UPDATE_BOT_FILES) {
-    if (await fileExists(root, botFile)) {
-      return botFile;
+    const source = await readFileOrNull(root, botFile);
+    if (source !== null && coversJavaScriptTree(botFile, source)) {
+      return botFile.split(path.sep).join("/");
     }
   }
   const scanned = [
     ...(
       await Promise.all(GATE_DIRECTORIES.map(dir => listDirectory(root, dir)))
-    )
-      .flat()
-      .filter(file => !file.endsWith(path.join(".husky", "_"))),
+    ).flat(),
     ...GATE_FILES,
   ];
   for (const file of scanned) {
@@ -307,11 +360,85 @@ export async function findAuditGate(root: string): Promise<string | null> {
 }
 
 /**
+ * Keys whose value holds audit exceptions. Everything outside these containers
+ * is configuration, not an exception — walking a whole document as if every
+ * top-level key were an advisory id turns audit-ci's own `.nsprc` (`$schema`,
+ * `exceptions`, …) into fabricated findings.
+ */
+const EXCEPTION_CONTAINERS: readonly string[] = [
+  "exclusions",
+  "exceptions",
+  "advisories",
+  "allowlist",
+];
+
+/**
+ * Whether a top-level `.nsprc`-style key names an advisory rather than config.
+ * @param key - The key to classify
+ * @returns True when the key may name an advisory
+ */
+function isAdvisoryKey(key: string): boolean {
+  return !key.startsWith("$") && !key.startsWith("//");
+}
+
+/**
+ * Take the object-valued, non-config entries out of an exception map.
+ * @param container - A candidate exception map
+ * @returns The entries that are genuinely exceptions
+ */
+function mapEntries(
+  container: Record<string, unknown>
+): readonly (readonly [string, Record<string, unknown>])[] {
+  return Object.entries(container).flatMap(([key, entry]) =>
+    isAdvisoryKey(key) && isRecord(entry)
+      ? [[key, entry] as readonly [string, Record<string, unknown>]]
+      : []
+  );
+}
+
+/**
+ * Normalize one allowlist document into `id → entry` pairs.
+ *
+ * Two shapes exist in the wild: a named container holding an array or a map of
+ * entries, and audit-ci's `.nsprc`, whose top level maps advisory id to entry.
+ * In the map shape only OBJECT-valued entries are exceptions — a string, a
+ * boolean, or a `$schema` pointer at the top level is configuration.
+ * @param parsed - The parsed allowlist document
+ * @returns The exception entries, keyed by advisory id
+ */
+function exceptionEntries(
+  parsed: unknown
+): readonly (readonly [string, Record<string, unknown>])[] {
+  if (!isRecord(parsed)) {
+    return [];
+  }
+  const containers = EXCEPTION_CONTAINERS.flatMap(key =>
+    parsed[key] === undefined ? [] : [parsed[key]]
+  );
+  if (containers.length > 0) {
+    return containers.flatMap(container =>
+      Array.isArray(container)
+        ? container
+            .filter(isRecord)
+            .map(
+              entry => ["", entry] as readonly [string, Record<string, unknown>]
+            )
+        : isRecord(container)
+          ? mapEntries(container)
+          : []
+    );
+  }
+  // No recognized container: fall back to the `.nsprc` id → entry map. If
+  // nothing there is an object-valued advisory key, this document establishes
+  // nothing and reports nothing.
+  return mapEntries(parsed);
+}
+
+/**
  * Read one audit allowlist and report the exceptions carrying no decision.
  *
- * Both shapes in the wild are handled: an `exclusions` array of entry objects,
- * and the `.nsprc` map of advisory id to entry. An entry that is a bare string
- * has nowhere to record a decision, which is precisely the finding.
+ * An entry with `active: false` is skipped: audit-ci never applies it, so there
+ * is no live exception for anybody to justify.
  * @param file - Repo-relative allowlist path
  * @param parsed - The parsed allowlist document
  * @returns Evidence lines, one per undocumented exception
@@ -320,21 +447,14 @@ function undocumentedExceptions(
   file: string,
   parsed: unknown
 ): readonly string[] {
-  const entries: readonly (readonly [string, unknown])[] = isRecord(parsed)
-    ? Array.isArray(parsed.exclusions)
-      ? parsed.exclusions.map((entry, index) => [String(index), entry] as const)
-      : Object.entries(parsed)
-    : [];
-  return entries.flatMap(([key, entry]) => {
-    const id = isRecord(entry) && typeof entry.id === "string" ? entry.id : key;
-    const documented =
-      isRecord(entry) &&
-      DECISION_KEYS.some(
-        decisionKey =>
-          typeof entry[decisionKey] === "string" &&
-          (entry[decisionKey] as string).trim() !== ""
-      );
-    return documented
+  return exceptionEntries(parsed).flatMap(([key, entry]) => {
+    const id = typeof entry.id === "string" ? entry.id : key;
+    const documented = DECISION_KEYS.some(
+      decisionKey =>
+        typeof entry[decisionKey] === "string" &&
+        (entry[decisionKey] as string).trim() !== ""
+    );
+    return entry.active === false || documented || id === ""
       ? []
       : [
           `\`${file}\` excludes advisory \`${id}\` from the dependency audit ` +
