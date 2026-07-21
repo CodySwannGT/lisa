@@ -25,6 +25,7 @@
 import {
   describeCommands,
   hasCheckedInRunbook,
+  looksEphemeral,
   type OperationScan,
   scanCommands,
 } from "./doctor-readiness-operations.js";
@@ -32,6 +33,7 @@ import { informationalFindings } from "./doctor-readiness-shared.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
   type ParsedWorkflow,
+  type ParsedWorkflowJob,
   parseRepositoryWorkflows,
 } from "./doctor-readiness-workflows.js";
 
@@ -72,9 +74,13 @@ const CONSEQUENTIAL_OPS: readonly RegExp[] = [
   /\bserverless\s+remove\b/,
 ];
 
-/** Commands that apply schema migrations, in the ecosystems Lisa templates. */
+/**
+ * Commands that apply schema migrations, in the ecosystems Lisa templates. The
+ * `(?!:)` lookahead keeps the read-only subcommands out: `db:migrate:status`
+ * and `db:migrate:version` report what has run, they do not run anything.
+ */
 const MIGRATION_COMMANDS: readonly RegExp[] = [
-  /\bdb:migrate\b/,
+  /\bdb:migrate\b(?!:)/,
   /\bmigrate\s+deploy\b/,
   /\bmigration:run\b/,
   /\balembic\s+upgrade\b/,
@@ -94,14 +100,57 @@ const PRODUCTION_MARKERS: readonly RegExp[] = [
 
 /**
  * Whether a command is an irreversible or expensive operation.
+ *
+ * The ephemeral screen is the same one B1 uses, widened to the per-pull-request
+ * markers this blocker meets constantly: tearing down `pr-1234` or a
+ * `PreviewStack` destroys what the same pipeline built minutes earlier, and
+ * there is nothing durable there for a gate to protect. The job's `env:` block
+ * is read alongside the command, since the stage name usually lives there.
  * @param command - The lower-cased `run` command
+ * @param job - The job the command runs in
  * @returns True when the command is consequential on its face
  */
-function isConsequential(command: string): boolean {
+function isConsequential(command: string, job: ParsedWorkflowJob): boolean {
+  if (looksEphemeral(`${command}\n${job.env}`)) {
+    return false;
+  }
   return (
     CONSEQUENTIAL_OPS.some(pattern => pattern.test(command)) ||
     (MIGRATION_COMMANDS.some(pattern => pattern.test(command)) &&
       PRODUCTION_MARKERS.some(pattern => pattern.test(command)))
+  );
+}
+
+/**
+ * Triggers that fire on the lifecycle of a short-lived resource rather than on
+ * a release. A workflow that runs on a closing pull request or a deleted branch
+ * is tearing down what that branch created.
+ */
+const EPHEMERAL_LIFECYCLE_EVENTS: readonly string[] = [
+  "pull_request",
+  "pull_request_target",
+  "delete",
+];
+
+/**
+ * State why a workflow driven by a branch or pull-request lifecycle cannot be
+ * settled offline. This is deferred rather than cleared: the operation is real,
+ * but whether it touches anything durable is not provable from the file.
+ * @param workflow - The workflow to consider
+ * @returns A stated reason, or null when the trigger is a release-style one
+ */
+function lifecycleDeferral(workflow: ParsedWorkflow): string | null {
+  const events = workflow.on.events.filter(event =>
+    EPHEMERAL_LIFECYCLE_EVENTS.includes(event)
+  );
+  if (events.length === 0) {
+    return null;
+  }
+  return (
+    `\`${workflow.file}\` runs a consequential operation on the \`${events.join(", ")}\` ` +
+    "lifecycle, which tears down what that same branch or pull request created, " +
+    "so whether it ever touches a durable environment is not established " +
+    "either way — no gate was expected and none was required"
   );
 }
 
@@ -190,7 +239,9 @@ export async function assessFeedbackGuardrailsDimension(
 ): Promise<ReadinessDimensionRecord> {
   const workflows: readonly ParsedWorkflow[] =
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
-  const scan = scanCommands(workflows, isConsequential);
+  const scan = scanCommands(workflows, isConsequential, {
+    unresolvedWorkflow: lifecycleDeferral,
+  });
   const runbook = await hasCheckedInRunbook(root);
   if (scan.ungated.length === 0 || runbook) {
     return skipRecord(

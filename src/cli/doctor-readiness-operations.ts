@@ -19,7 +19,6 @@
  */
 import { readdir } from "node:fs/promises";
 import * as path from "node:path";
-import { directoryExists } from "./doctor-readiness-shared.js";
 import type {
   ParsedWorkflow,
   ParsedWorkflowJob,
@@ -51,7 +50,61 @@ export interface ScanOptions {
    * the way back is right there in the same job.
    */
   readonly exemptJob?: (job: ParsedWorkflowJob) => boolean;
+  /**
+   * A workflow-level reason the match cannot be settled offline, returning
+   * `null` when it can. Used for triggers that make the operation obviously
+   * ephemeral — a per-pull-request teardown destroys what that same pull
+   * request created, so there is nothing durable for a gate to protect.
+   */
+  readonly unresolvedWorkflow?: (workflow: ParsedWorkflow) => string | null;
+  /**
+   * A job-level reason the match cannot be settled offline, returning `null`
+   * when it can. Used for a job that boots its own `services:` containers.
+   */
+  readonly unresolvedJob?: (job: ParsedWorkflowJob) => string | null;
 }
+
+/**
+ * Targets that mark an operation as aimed at throwaway state — a CI database,
+ * a per-pull-request preview stack, a scratch stage. A pipeline that tears down
+ * what it just built is doing the correct thing, and reporting it as an ungated
+ * consequential operation is the archetypal false positive for both B1 and B4.
+ * Shared by both producers so they cannot drift apart on what "ephemeral" means.
+ */
+const EPHEMERAL_TARGETS: readonly RegExp[] = [
+  /(^|[^a-z0-9])test([^a-z0-9]|$)/,
+  /_test\b/,
+  /-test\b/,
+  /\blocalhost\b/,
+  /\b127\.0\.0\.1\b/,
+  /(^|[^a-z0-9])(tmp|temp)([^a-z0-9]|$)/,
+  /(^|[^a-z0-9])pr-/,
+  /\bpreview\b/,
+  /github\.event\.number/,
+  /\bpull_request\b/,
+];
+
+/**
+ * Whether any text — a command, a job's `env:` block, or the two together —
+ * names an obviously ephemeral target.
+ * @param text - The text to screen (case is normalized here)
+ * @returns True when the text names throwaway state
+ */
+export function looksEphemeral(text: string): boolean {
+  const normalized = text.toLowerCase();
+  return EPHEMERAL_TARGETS.some(pattern => pattern.test(normalized));
+}
+
+/**
+ * Whether one command is the kind of operation a producer is looking for. The
+ * job travels with the command because the evidence that settles the question
+ * is often outside the command text — a job `env:` block naming a CI database,
+ * for instance.
+ */
+export type CommandPredicate = (
+  command: string,
+  job: ParsedWorkflowJob
+) => boolean;
 
 /** One classified match, before the buckets are assembled. */
 type ScanOutcome =
@@ -107,7 +160,10 @@ export function stepIsGated(step: ParsedWorkflowStep): boolean {
   }
   const command = step.run.toLowerCase();
   return (
+    // `-dryrun` covers the AWS CLI's own hyphen-less spelling and the
+    // double-dashed one; `--dry-run` is the GNU-style form everything else uses.
     command.includes("--dry-run") ||
+    command.includes("-dryrun") ||
     command.includes("--require-approval") ||
     command.includes("inputs.confirm")
   );
@@ -142,17 +198,22 @@ function unresolvedReason(
 function classifyJob(
   workflow: ParsedWorkflow,
   job: ParsedWorkflowJob,
-  matches: (command: string) => boolean,
+  matches: CommandPredicate,
   options: ScanOptions
 ): readonly ScanOutcome[] {
   const hits = job.steps.filter(
-    step => step.run !== "" && matches(step.run.toLowerCase())
+    step => step.run !== "" && matches(step.run.toLowerCase(), job)
   );
   if (hits.length === 0) {
     return [];
   }
   if (!runsUnattended(workflow)) {
     return [{ kind: "unresolved", reason: unresolvedReason(workflow, job) }];
+  }
+  const deferred =
+    options.unresolvedWorkflow?.(workflow) ?? options.unresolvedJob?.(job);
+  if (deferred !== undefined && deferred !== null) {
+    return [{ kind: "unresolved", reason: deferred }];
   }
   const jobGated = jobIsGated(job) || (options.exemptJob?.(job) ?? false);
   return hits.map(step => ({
@@ -172,7 +233,7 @@ function classifyJob(
  */
 export function scanCommands(
   workflows: readonly ParsedWorkflow[],
-  matches: (command: string) => boolean,
+  matches: CommandPredicate,
   options: ScanOptions = {}
 ): OperationScan {
   const outcomes = workflows.flatMap(workflow =>
@@ -201,17 +262,33 @@ export function scanCommands(
  * @returns True when at least one runbook is checked in
  */
 export async function hasCheckedInRunbook(root: string): Promise<boolean> {
-  const conventional = await Promise.all(
-    ["wiki/runbooks", "docs/runbooks", "runbooks"].map(
-      async candidate => await directoryExists(root, candidate)
-    )
-  );
-  if (conventional.includes(true)) {
-    return true;
-  }
+  const holdsRunbooks = await Promise.all([
+    directoryHolds(root, path.join(".lisa", "automations"), ".runbook.md"),
+    ...["wiki/runbooks", "docs/runbooks", "runbooks"].map(
+      async candidate =>
+        // An EMPTY directory is not a recovery procedure. Accepting one would
+        // make `mkdir runbooks` a one-command switch for turning B1 and B4 off.
+        await directoryHolds(root, candidate, ".md")
+    ),
+  ]);
+  return holdsRunbooks.includes(true);
+}
+
+/**
+ * Whether a repository directory holds at least one file with a given suffix.
+ * @param root - Repository root
+ * @param relativePath - Repo-relative directory path
+ * @param suffix - Required file-name suffix
+ * @returns True when the directory exists and holds a matching file
+ */
+async function directoryHolds(
+  root: string,
+  relativePath: string,
+  suffix: string
+): Promise<boolean> {
   try {
-    const entries = await readdir(path.join(root, ".lisa", "automations"));
-    return entries.some(entry => entry.endsWith(".runbook.md"));
+    const entries = await readdir(path.join(root, ...relativePath.split("/")));
+    return entries.some(entry => entry.endsWith(suffix));
   } catch {
     return false;
   }
