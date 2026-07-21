@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.279.1](https://github.com/CodySwannGT/lisa/compare/v2.279.0...v2.279.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** install dependencies for e2e route coverage ([8f66089](https://github.com/CodySwannGT/lisa/commit/8f66089243080543d64f0fb8c57d0e8fd1c3ecb1)), closes [CodySwannGT/lisa#1906](https://github.com/CodySwannGT/lisa/issues/1906)
+
 ## [2.279.0](https://github.com/CodySwannGT/lisa/compare/v2.278.0...v2.279.0) (2026-07-21)
 
 
