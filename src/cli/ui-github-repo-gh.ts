@@ -30,6 +30,12 @@ export interface GithubRulesetRow {
   readonly appliesTo: string;
   readonly enforces: string;
   readonly active: boolean;
+  /** Structured default-branch targeting retained beside display text. */
+  readonly targetsDefaultBranch?: boolean;
+  /** Structured pull-request enforcement retained beside display text. */
+  readonly requiresPullRequest?: boolean;
+  /** At least one required status-check context is configured. */
+  readonly requiresStatusChecks?: boolean;
 }
 
 /** One label present on the remote repository. */

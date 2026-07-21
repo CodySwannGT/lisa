@@ -7,10 +7,11 @@
  * @module cli/ui-deploy-pipeline
  */
 import { execFile } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
-import * as path from "node:path";
-import { isJsonObject, type JsonObject } from "../sync/json-path.js";
-import { deepMerge, readJsonOrNull } from "../utils/index.js";
+import { isJsonObject } from "../sync/json-path.js";
+import {
+  readConfinedMergedConfig,
+  readConfinedProjectText,
+} from "./ui-confined-project-read.js";
 import type { StatusProbe } from "./ui-status.js";
 import {
   buildDeployPipelineResult,
@@ -32,7 +33,7 @@ export {
   type GithubEnvironmentsLookup,
 } from "./ui-deploy-pipeline-model.js";
 
-const DEPLOY_YML_RELATIVE = path.join(".github", "workflows", "deploy.yml");
+const DEPLOY_YML_RELATIVE = ".github/workflows/deploy.yml";
 const DEFAULT_TIMEOUT_MS = 8_000;
 
 /** Injectable collaborators for focused unit tests. */
@@ -54,13 +55,7 @@ export type DeployPipelineDependencies = {
  * @returns File contents or null
  */
 async function readDeployWorkflowDefault(cwd: string): Promise<string | null> {
-  const filePath = path.join(cwd, DEPLOY_YML_RELATIVE);
-  try {
-    await access(filePath);
-  } catch {
-    return null;
-  }
-  return await readFile(filePath, "utf8");
+  return (await readConfinedProjectText(cwd, DEPLOY_YML_RELATIVE)) ?? null;
 }
 
 /**
@@ -71,16 +66,7 @@ async function readDeployWorkflowDefault(cwd: string): Promise<string | null> {
 async function readConfiguredEnvironmentsDefault(
   cwd: string
 ): Promise<readonly string[]> {
-  const committed = await readJsonOrNull<unknown>(
-    path.join(cwd, ".lisa.config.json")
-  );
-  const local = await readJsonOrNull<unknown>(
-    path.join(cwd, ".lisa.config.local.json")
-  );
-  const merged = deepMerge(
-    isJsonObject(committed) ? committed : {},
-    isJsonObject(local) ? local : {}
-  ) as JsonObject;
+  const merged = await readConfinedMergedConfig(cwd);
   const github = merged.github;
   if (!isJsonObject(github)) {
     return [];
