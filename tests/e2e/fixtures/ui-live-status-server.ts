@@ -42,7 +42,29 @@ const probes: readonly StatusProbe[] = [
   },
 ];
 
-const server = await runUi(process.cwd(), { port, sync: false }, { probes });
+const unavailable = {
+  state: "unknown" as const,
+  reason: "fixture-unavailable",
+  message: "Unavailable in the shared browser fixture",
+};
+const server = await runUi(
+  process.cwd(),
+  { port, sync: false },
+  {
+    probes,
+    setupReadiness: {
+      readConfig: async () => ({}),
+      readHealth: async () => {
+        throw new Error("No Health fixture");
+      },
+      readGithub: async () => unavailable,
+      readDeployPipeline: async () => unavailable,
+      readAutomations: async () => unavailable,
+      readExpectedAutomationIds: async () => [],
+      readExpectedSecretNames: async () => [],
+    },
+  }
+);
 
 const close = (): void => {
   server.close(() => process.exit(0));
