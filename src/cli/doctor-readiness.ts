@@ -202,7 +202,9 @@ export async function checkRepositoryReadiness(
       name: REPOSITORY_READINESS_CHECK_NAME,
       status: "warn",
       detail:
-        `${headline} (${blockerPhrase}). ` +
+        // A failed write is precisely when the operator cannot go read the
+        // report, so this branch must name the standing blockers too.
+        `${headline} (${blockerPhrase}).${standingDetail} ` +
         `Could not persist ${READINESS_REPORT_DISPLAY_PATH}: ` +
         `${error instanceof Error ? error.message : String(error)}`,
     };

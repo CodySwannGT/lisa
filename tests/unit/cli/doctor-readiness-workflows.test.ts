@@ -12,11 +12,28 @@
  * the whole readiness run.
  * @module tests/unit/cli/doctor-readiness-workflows
  */
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import * as os from "node:os";
-import * as path from "node:path";
+import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseRepositoryWorkflows } from "../../../src/cli/doctor-readiness-workflows.js";
+import {
+  CI_YML,
+  DEPLOY_NAME,
+  JOBS,
+  makeScratchRepo,
+  ON,
+  ON_PUSH,
+  PUSH,
+  RELEASE_NAME,
+  RELEASE_YML,
+  RUNS_ON,
+  RUN_PUBLISH,
+  RUN_TEST,
+  STEPS,
+  TAGS,
+  TEST_JOB,
+  USES_DOWNLOAD,
+  writeWorkflow,
+} from "../../helpers/readiness-workflow-fixtures.js";
 
 /** A no-op step reused by fixtures that only exercise workflow metadata. */
 const RUN_ECHO = "      - run: echo hi";
@@ -24,30 +41,12 @@ const RUN_ECHO = "      - run: echo hi";
 let tempDir: string | undefined;
 
 /**
- * Resolve a temporary directory for one parser test case.
+ * Resolve a scratch repository for one parser test case.
  * @returns Temporary directory path
  */
 async function getTempDir(): Promise<string> {
-  tempDir ??= await mkdtemp(
-    path.join(os.tmpdir(), "lisa-readiness-workflows-")
-  );
+  tempDir ??= await makeScratchRepo("workflows");
   return tempDir;
-}
-
-/**
- * Write one workflow file into the scratch repository.
- * @param root - Repository root
- * @param fileName - Workflow file name, e.g. `release.yml`
- * @param body - Raw YAML body
- */
-async function writeWorkflow(
-  root: string,
-  fileName: string,
-  body: string
-): Promise<void> {
-  const dir = path.join(root, ".github", "workflows");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, fileName), body, "utf8");
 }
 
 afterEach(async () => {
@@ -66,34 +65,29 @@ describe("parseRepositoryWorkflows", () => {
 
   it("exposes each job's needs, steps, permissions, secrets, and environment", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(
-      cwd,
-      "release.yml",
-      [
-        "name: Release",
-        "on:",
-        "  push:",
-        "    branches: [main]",
-        "permissions:",
-        "  contents: read",
-        "jobs:",
-        "  test:",
-        "    runs-on: ubuntu-latest",
-        "    steps:",
-        "      - run: npm run test",
-        "  publish:",
-        "    needs: [test]",
-        "    environment: production",
-        "    permissions:",
-        "      contents: write",
-        "      id-token: write",
-        "    secrets: inherit",
-        "    steps:",
-        "      - uses: actions/download-artifact@v4",
-        "      - run: npm publish --provenance",
-        "",
-      ].join("\n")
-    );
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      "    branches: [main]",
+      "permissions:",
+      "  contents: read",
+      JOBS,
+      TEST_JOB,
+      RUNS_ON,
+      STEPS,
+      RUN_TEST,
+      "  publish:",
+      "    needs: [test]",
+      "    environment: production",
+      "    permissions:",
+      "      contents: write",
+      "      id-token: write",
+      "    secrets: inherit",
+      STEPS,
+      USES_DOWNLOAD,
+      RUN_PUBLISH,
+    ]);
 
     const workflows = await parseRepositoryWorkflows(cwd);
 
@@ -127,23 +121,18 @@ describe("parseRepositoryWorkflows", () => {
 
   it("normalizes a scalar needs value and a reusable-workflow job", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(
-      cwd,
-      "ci.yml",
-      [
-        "name: CI",
-        "on: [push]",
-        "jobs:",
-        "  quality:",
-        "    uses: ./.github/workflows/quality.yml",
-        "  gate:",
-        "    needs: quality",
-        "    permissions: write-all",
-        "    steps:",
-        "      - run: echo done",
-        "",
-      ].join("\n")
-    );
+    await writeWorkflow(cwd, CI_YML, [
+      "name: CI",
+      ON_PUSH,
+      JOBS,
+      "  quality:",
+      "    uses: ./.github/workflows/quality.yml",
+      "  gate:",
+      "    needs: quality",
+      "    permissions: write-all",
+      STEPS,
+      "      - run: echo done",
+    ]);
 
     const workflows = await parseRepositoryWorkflows(cwd);
 
@@ -154,37 +143,27 @@ describe("parseRepositoryWorkflows", () => {
 
   it("captures the trigger block, including push branches and tags", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(
-      cwd,
-      "tagged.yml",
-      [
-        "name: Tagged",
-        "on:",
-        "  push:",
-        "    tags: ['v*']",
-        "  workflow_dispatch:",
-        "jobs:",
-        "  noop:",
-        "    steps:",
-        RUN_ECHO,
-        "",
-      ].join("\n")
-    );
-    await writeWorkflow(
-      cwd,
-      "called.yml",
-      [
-        "name: Called",
-        "on:",
-        "  workflow_call:",
-        "    inputs: {}",
-        "jobs:",
-        "  noop:",
-        "    steps:",
-        RUN_ECHO,
-        "",
-      ].join("\n")
-    );
+    await writeWorkflow(cwd, "tagged.yml", [
+      "name: Tagged",
+      ON,
+      PUSH,
+      TAGS,
+      "  workflow_dispatch:",
+      JOBS,
+      "  noop:",
+      STEPS,
+      RUN_ECHO,
+    ]);
+    await writeWorkflow(cwd, "called.yml", [
+      "name: Called",
+      ON,
+      "  workflow_call:",
+      "    inputs: {}",
+      JOBS,
+      "  noop:",
+      STEPS,
+      RUN_ECHO,
+    ]);
 
     const [called, tagged] = await parseRepositoryWorkflows(cwd);
 
@@ -197,19 +176,14 @@ describe("parseRepositoryWorkflows", () => {
 
   it("normalizes a scalar and list trigger into the same shape", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(
-      cwd,
-      "scalar.yml",
-      [
-        "name: Scalar",
-        "on: push",
-        "jobs:",
-        "  a:",
-        "    steps:",
-        RUN_ECHO,
-        "",
-      ].join("\n")
-    );
+    await writeWorkflow(cwd, "scalar.yml", [
+      "name: Scalar",
+      "on: push",
+      JOBS,
+      "  a:",
+      STEPS,
+      RUN_ECHO,
+    ]);
 
     const [workflow] = await parseRepositoryWorkflows(cwd);
 
@@ -220,21 +194,16 @@ describe("parseRepositoryWorkflows", () => {
 
   it("reads .yaml files and skips a file that cannot be parsed", async () => {
     const cwd = await getTempDir();
-    await writeWorkflow(
-      cwd,
-      "deploy.yaml",
-      [
-        "name: Deploy",
-        "on: [push]",
-        "jobs:",
-        "  ship:",
-        "    steps:",
-        "      - run: cdk deploy",
-        "",
-      ].join("\n")
-    );
-    await writeWorkflow(cwd, "broken.yml", "jobs:\n  a: [\n   unclosed\n");
-    await writeWorkflow(cwd, "notes.md", "not a workflow\n");
+    await writeWorkflow(cwd, "deploy.yaml", [
+      DEPLOY_NAME,
+      ON_PUSH,
+      JOBS,
+      "  ship:",
+      STEPS,
+      "      - run: cdk deploy",
+    ]);
+    await writeWorkflow(cwd, "broken.yml", [JOBS, "  a: [", "   unclosed"]);
+    await writeWorkflow(cwd, "notes.md", ["not a workflow"]);
 
     const workflows = await parseRepositoryWorkflows(cwd);
 

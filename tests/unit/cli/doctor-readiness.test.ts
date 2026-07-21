@@ -237,6 +237,43 @@ describe("checkRepositoryReadiness", () => {
     expect(report.blocker_count).toBe(1);
   });
 
+  it("still names the standing blocker when the report cannot be persisted", async () => {
+    const cwd = await getTempDir();
+    await mkdir(path.join(cwd, ".github", "workflows"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".github", "workflows", "release.yml"),
+      [
+        "name: Release",
+        "on:",
+        "  push:",
+        "    tags: ['v*']",
+        "jobs:",
+        "  publish:",
+        "    runs-on: ubuntu-latest",
+        "    permissions:",
+        "      contents: read",
+        "    steps:",
+        "      - run: npm publish ./unvalidated-fresh-build.tgz",
+        "",
+      ].join("\n"),
+      "utf8"
+    );
+    const lisaDir = path.join(cwd, ".lisa");
+    await mkdir(lisaDir, { recursive: true });
+    await chmod(lisaDir, 0o500);
+
+    const check = await checkRepositoryReadiness(cwd);
+
+    // Persistence failing is exactly when the operator cannot go read the file,
+    // so the detail line must still say WHICH blocker stands.
+    expect(check.detail).toContain("B2");
+    expect(check.detail).toContain(
+      "It IS ready for supervised, single-ticket agent work"
+    );
+    expect(check.detail).toContain("Could not persist");
+    await chmod(lisaDir, 0o755);
+  });
+
   it("degrades to a WARN check instead of throwing when the report cannot be written", async () => {
     const cwd = await getTempDir();
     const lisaDir = path.join(cwd, ".lisa");
