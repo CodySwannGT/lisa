@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.277.4](https://github.com/CodySwannGT/lisa/compare/v2.277.3...v2.277.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* **cli:** complete local setup project flow ([36e2af8](https://github.com/CodySwannGT/lisa/commit/36e2af852faff6e1a5f19825dab819ce8abe3664)), closes [CodySwannGT/lisa#1899](https://github.com/CodySwannGT/lisa/issues/1899)
+
+### [2.277.3](https://github.com/CodySwannGT/lisa/compare/v2.277.2...v2.277.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* **doctor:** agent-facing readiness scorer must not call unassessed READY ([#1897](https://github.com/CodySwannGT/lisa/issues/1897)) ([d453ed9](https://github.com/CodySwannGT/lisa/commit/d453ed94dbe774a8d72fc332c1cb9caa67aa8819)), closes [#1896](https://github.com/CodySwannGT/lisa/issues/1896)
+* **doctor:** unassessed readiness dimensions must not report READY ([#1897](https://github.com/CodySwannGT/lisa/issues/1897)) ([80b2e61](https://github.com/CodySwannGT/lisa/commit/80b2e614947d16004d704df9db5f7d9c090d4b8b))
+
 ### [2.277.2](https://github.com/CodySwannGT/lisa/compare/v2.277.1...v2.277.2) (2026-07-21)
 
 
