@@ -181,21 +181,37 @@ describe("Lisa Integration Tests", () => {
 
       // Every required decision-record field reaches the host project.
       expect(seeded).toContain("<!-- lisa-dependency-decisions:v1 -->");
-      expect(seeded).toContain("**Dependency:**");
       expect(seeded).toContain("**Why we keep it:**");
-      expect(seeded).toContain("**Owned capability:**");
-      expect(seeded).toContain("**Trust basis:**");
-      expect(seeded).toContain("**Exposure:**");
-      expect(seeded).toContain("**Replacement cost:**");
-      expect(seeded).toContain("**Detection evidence:**");
-      expect(seeded).toContain("**Owner / review cadence:**");
-      expect(seeded).toContain("**Last reviewed:**");
+      expect(seeded).toContain("**What it is (dependency):**");
+      expect(seeded).toContain("**What it does for us (owned capability):**");
+      expect(seeded).toContain("**Why we believe it's safe (trust basis):**");
       expect(seeded).toContain(
-        "### ESLint (EXAMPLE — replace with your own dependencies)"
+        "**What breaks if this is compromised (exposure):**"
+      );
+      expect(seeded).toContain(
+        "**What it would take to replace (replacement cost):**"
+      );
+      expect(seeded).toContain(
+        "**What would catch a bad update (detection evidence):**"
+      );
+      expect(seeded).toContain(
+        "**Who owns this and how often we recheck (owner / review cadence):**"
+      );
+      expect(seeded).toContain("**Last reviewed:**");
+      expect(seeded).toContain("### ESLint (EXAMPLE — a complete entry)");
+
+      // The operator gets a sanctioned next action, and sees an honest gap
+      // in place rather than only a perfectly-filled example.
+      expect(seeded).toContain("## When to escalate");
+      expect(seeded).toContain(
+        "### sharp (EXAMPLE — an entry still being filled in)"
+      );
+      expect(seeded).toContain(
+        "**Last reviewed:** _Not yet decided_ (example entry — never reviewed)"
       );
 
       // Host-owned content survives re-apply: Lisa seeds once, never rewrites.
-      const hostAuthored = `${seeded}\n### internal-billing-sdk\n\n- **Dependency:** \`@acme/billing\` \`^3\`\n`;
+      const hostAuthored = `${seeded}\n### internal-billing-sdk\n\n- **Why we keep it:** It bills our customers.\n`;
       await fs.writeFile(recordPath, hostAuthored);
 
       const second = await createLisa().apply();

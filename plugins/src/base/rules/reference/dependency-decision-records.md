@@ -30,28 +30,50 @@ format would serve tooling and fail that reader.
 
 ## What an entry must name
 
-Each material-dependency entry names nine things:
+Each material-dependency entry names nine things, in this order. Every label
+leads with the operator's question and keeps the technical term in parentheses,
+because the record's primary reader is looking for an answer, not a term:
 
-- **Dependency** — package or service, plus the version range in use.
 - **Why we keep it** — plain-language reason, written for a non-technical
-  reader, leading with the outcome it protects.
-- **Owned capability** — the single capability the dependency is responsible
-  for. A dependency with no nameable capability is either not material, or is
-  doing too much and should be split in the record.
-- **Trust basis** — the evidence that it will still be maintained and safe next
-  quarter: maintainer, release cadence, security-response history, breadth of
-  adoption, whether the version is pinned.
-- **Exposure** — what it can reach and what breaks when it misbehaves:
-  build-time versus runtime, and whether it touches user data, secrets, the
-  network, or CI credentials.
-- **Replacement cost** — the honest effort to remove or swap it, what would need
-  rewriting, and whether a viable alternative exists today.
-- **Detection evidence** — the named check that would **fail** if an update
-  broke the owned capability: a test, suite, workflow, or monitor. "Nothing
-  would catch it" is a legitimate and high-value answer.
-- **Owner / review cadence** — who is accountable, and how often the entry gets
-  re-read.
+  reader, leading with the outcome it protects. This is deliberately the FIRST
+  bullet: an entry that opens with a version range opens with exactly the
+  package-manager trivia this record exists to replace.
+- **What it is (dependency)** — package or service, plus the version range in
+  use.
+- **What it does for us (owned capability)** — the single capability the
+  dependency is responsible for. A dependency with no nameable capability is
+  either not material, or is doing too much and should be split in the record.
+- **Why we believe it's safe (trust basis)** — the evidence that it will still
+  be maintained and safe next quarter: maintainer, release cadence,
+  security-response history, breadth of adoption, whether the version is pinned.
+- **What breaks if this is compromised (exposure)** — what it can reach and what
+  breaks when it misbehaves: build-time versus runtime, and whether it touches
+  user data, secrets, the network, or CI credentials.
+- **What it would take to replace (replacement cost)** — the honest effort to
+  remove or swap it, what would need rewriting, and whether a viable alternative
+  exists today.
+- **What would catch a bad update (detection evidence)** — the named check that
+  would **fail** if an update broke the owned capability: a test, suite,
+  workflow, or monitor. "Nothing would catch it" is a legitimate and high-value
+  answer.
+- **Who owns this and how often we recheck (owner / review cadence)** — who is
+  accountable, and how often the entry gets re-read.
 - **Last reviewed** — ISO `YYYY-MM-DD` date of the most recent actual review.
+
+## When to escalate
+
+The record exists to produce decisions, so three states are escalations rather
+than to-dos. Raise them to an owner instead of leaving them recorded:
+
+- Detection evidence says "nothing would catch it" — the capability is trusted
+  blind.
+- `Last reviewed` predates the dependency's last major upgrade — the record
+  describes software no longer running.
+- The trust basis names no maintainer, owner, or release history.
+
+An entry full of `_Not yet decided_` is not an escalation; it is unstarted work.
+These three are escalations precisely because someone already looked and the
+answer was bad.
 
 ## What counts as material
 
