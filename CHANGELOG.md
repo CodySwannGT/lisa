@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.285.0](https://github.com/CodySwannGT/lisa/compare/v2.284.0...v2.285.0) (2026-07-21)
+
+
+### Features
+
+* **ci:** add manifest-authoritative duplicate-version check ([#1888](https://github.com/CodySwannGT/lisa/issues/1888)) ([6e140ea](https://github.com/CodySwannGT/lisa/commit/6e140ea386796e39c479ecf4afbc17f2fb3e7330))
+
+
+### Bug Fixes
+
+* **ci:** stop duplicate-version check misreporting self-references ([#1888](https://github.com/CodySwannGT/lisa/issues/1888)) ([a9fbcd6](https://github.com/CodySwannGT/lisa/commit/a9fbcd6b6542b738b385c275fb650a74399911e1))
+
 ## [2.284.0](https://github.com/CodySwannGT/lisa/compare/v2.283.0...v2.284.0) (2026-07-21)
 
 
