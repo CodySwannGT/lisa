@@ -28,6 +28,28 @@ A strategy defines how Lisa applies a file to a downstream project: overwrite, c
 
 A quality gate is an automated check that must pass before a change can progress.
 
+## Installation Readiness
+
+Installation readiness answers: "Is Lisa installed and configured correctly in this project?" It is
+the question answered by the shipped `lisa doctor` groups. It does not establish that an unattended
+agent fleet can safely own the repository.
+
+## Repository Readiness
+
+Repository readiness answers: "May an agent fleet operate this repository unattended?" It applies
+the eight ownership dimensions in the `readiness-rubric` rule. Installation readiness and repository
+readiness are orthogonal: a project can pass installation checks while repository evidence still
+requires supervised operation.
+
+## Ship Blocker
+
+A ship blocker is one of the readiness rubric's closed B1-B7 conditions that, standing alone, makes
+repository readiness `NOT_READY` and requires a narrowed claim describing what operation remains
+safe. It is not a `convergent-review` blocking finding (a review result), a `tool-access-gate`
+break-out (leaving a flow to obtain access), or a `leaf-only-lifecycle` safe-block (a tracker state
+that preserves incomplete work). `NOT_READY` is the overall readiness verdict; a ship blocker is the
+repository condition that causes it.
+
 ## Automation Checkout
 
 An automation checkout is the durable local Git work tree used by recurring Codex automations for a project. It should be synced to the default remote branch at the start of each run and verified as a non-bare Git work tree before the automation is saved or executed.
