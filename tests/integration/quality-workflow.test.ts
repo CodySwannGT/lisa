@@ -330,7 +330,13 @@ describe("quality.yml reusable workflow", () => {
 
       const install = steps[installIndex];
       expect(install?.if).toBe("steps.check_script.outputs.exists == 'true'");
-      expect(install?.run).toContain("npm ci");
+      expect(install?.env?.PACKAGE_MANAGER).toBe(
+        "${{ inputs.package_manager }}"
+      );
+      expect(install?.run).not.toContain("${{ inputs.package_manager }}");
+      expect(install?.run).toMatch(
+        /if \[\s*"\$PACKAGE_MANAGER"\s*=\s*"npm"\s*\]; then[\s\S]*npm ci/
+      );
       expect(install?.run).toContain("yarn install --frozen-lockfile");
       expect(install?.run).toContain("bun install --frozen-lockfile");
       expect(install?.["working-directory"]).toBe(
