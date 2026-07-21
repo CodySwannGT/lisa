@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.283.0](https://github.com/CodySwannGT/lisa/compare/v2.282.0...v2.283.0) (2026-07-21)
+
+
+### Features
+
+* **deps:** add governed dependency decision-record scaffold ([#1886](https://github.com/CodySwannGT/lisa/issues/1886)) ([d66bbf5](https://github.com/CodySwannGT/lisa/commit/d66bbf53aeb7c60965bba5b562e916e42943f089)), closes [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1888](https://github.com/CodySwannGT/lisa/issues/1888) [#1889](https://github.com/CodySwannGT/lisa/issues/1889) [#1889](https://github.com/CodySwannGT/lisa/issues/1889)
+
+
+### Documentation
+
+* **deps:** make the dependency decision record readable at the gate ([#1886](https://github.com/CodySwannGT/lisa/issues/1886)) ([586e930](https://github.com/CodySwannGT/lisa/commit/586e93062856a14036df5e84473e6f0754a1b0fd)), closes [#1889](https://github.com/CodySwannGT/lisa/issues/1889)
+
 ## [2.282.0](https://github.com/CodySwannGT/lisa/compare/v2.281.0...v2.282.0) (2026-07-21)
 
 
