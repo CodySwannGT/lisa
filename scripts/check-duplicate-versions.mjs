@@ -36,6 +36,12 @@
  *     not literal duplicates and are skipped.
  *   - A package name absent from the manifest is never flagged: an unmanaged
  *     tool version is not manifest drift.
+ *   - Comment lines are prose, not active pins.
+ *   - A SELF-reference — an install literal for the canonical manifest's own
+ *     `name` — is never flagged. That literal is a published-artifact version
+ *     FLOOR ("the released CLI must be at least X for this gate to mean
+ *     anything"), a different knob from the dependency range the project
+ *     dogfoods, so "read it from the manifest" would DOWNGRADE the gate.
  *
  * Findings are reported whether the literal AGREES with the manifest
  * (`duplicate`) or has already diverged (`drifted`). Identity, not equality,
@@ -50,8 +56,10 @@
  *   # lisa-allow-duplicate-version: pinned during CI migration (#1888)
  *   run: npm i -g @ast-grep/cli@0.40.4
  *
- * The marker requires a non-empty reason so the exception is auditable rather
- * than a silent mute.
+ * The marker requires BOTH a non-empty reason and a ticket reference (`#1888`,
+ * `LISA-42`, or a URL) so the exception is tracked and auditable rather than a
+ * silent mute; a ticketless marker is rejected and the duplicate is reported.
+ * Every allowed exception is printed in the report, not merely counted.
  *
  * ## Remediation rule
  *
@@ -73,7 +81,10 @@
  *   0 — advisory mode (always), or strict mode with no findings.
  *   1 — strict mode with at least one unallowed finding.
  *   2 — operational/usage error: unknown flag, flag missing its value, a
- *       `--root`/`--scan` that isn't a directory, or no manifest found.
+ *       `--root` that isn't a directory, an explicitly passed `--scan` path
+ *       that is missing or isn't a directory, or no manifest found. An absent
+ *       BUILT-IN default scan root (a repo with no `rails/`) is not an error;
+ *       it is skipped and named in the report.
  *
  * @module scripts/check-duplicate-versions
  */
@@ -144,6 +155,13 @@ export const GOVERNED_EXTENSIONS = new Set([
 
 /** Inline marker that records an intentional, documented duplicate. */
 export const EXCEPTION_MARKER = "lisa-allow-duplicate-version:";
+
+/**
+ * A tracked ticket an exception must cite: a GitHub-style issue (`#1888`), a
+ * tracker key (`LISA-42`), or a URL. Without one the "exception" is untracked
+ * and would never be cleaned up.
+ */
+const TICKET_REFERENCE_PATTERN = /#\d+|\b[A-Z][A-Z\d]+-\d+\b|https?:\/\/\S+/u;
 
 /** Package-manager tokens that make a `name@version` literal an install pin. */
 const INSTALL_COMMAND_PATTERN =
@@ -216,6 +234,13 @@ export function collectManifestPins(manifest, label) {
       if (!entries || typeof entries !== "object") continue;
       for (const [name, version] of Object.entries(entries)) {
         if (typeof version !== "string" || packages[name]) continue;
+        // A project referencing its OWN published artifact is stating a
+        // minimum version FLOOR ("the released CLI must be at least X for this
+        // gate to mean anything"), which is a different knob from the
+        // dependency range it dogfoods. Telling an operator to read the floor
+        // from the dependency range would DOWNGRADE the gate, so a
+        // self-reference is never a governed pin.
+        if (name === manifest?.name) continue;
         packages[name] = {
           version: normalizeVersion(version),
           field: `${label} ${prefix}${section}.${name}`,
@@ -249,15 +274,20 @@ export function loadManifestPins(root) {
   const packages = {};
   const engines = {};
   const sources = [];
+  const selfNames = new Set();
   for (const file of MANIFEST_FILES) {
     const full = path.join(root, file);
     if (!fs.existsSync(full)) continue;
     const parsed = JSON.parse(fs.readFileSync(full, "utf8"));
+    if (typeof parsed?.name === "string") selfNames.add(parsed.name);
     const pins = collectManifestPins(parsed, file);
     Object.assign(packages, { ...pins.packages, ...packages });
     Object.assign(engines, { ...pins.engines, ...engines });
     sources.push(file);
   }
+  // A name declared by ANY canonical manifest is a self-reference, even when a
+  // sibling manifest is what pins it as a dependency.
+  for (const name of selfNames) delete packages[name];
   if (sources.length === 0) {
     throw new UsageError(
       `no canonical manifest (${MANIFEST_FILES.join(" or ")}) found in ${root}`
@@ -299,11 +329,14 @@ export function isCommentLine(line) {
 
 /**
  * Whether a finding on `lineIndex` carries a documented inline exception —
- * on its own line or the line directly above it, with a non-empty reason.
+ * on its own line or the line directly above it, with a non-empty reason AND a
+ * ticket reference. The ticket is mandatory: an exception nobody tracks is a
+ * silent mute, not the honest record the marker is supposed to be.
  *
  * @param {string[]} lines - all lines of the file.
  * @param {number} lineIndex - zero-based index of the finding's line.
- * @returns {string | null} the recorded reason, or null when unmarked.
+ * @returns {string | null} the recorded reason, or null when unmarked or
+ *   missing a ticket reference.
  */
 export function findExceptionReason(lines, lineIndex) {
   for (const index of [lineIndex, lineIndex - 1]) {
@@ -312,7 +345,9 @@ export function findExceptionReason(lines, lineIndex) {
     const reason = line
       .slice(line.indexOf(EXCEPTION_MARKER) + EXCEPTION_MARKER.length)
       .trim();
-    if (reason.length > 0) return reason;
+    if (reason.length > 0 && TICKET_REFERENCE_PATTERN.test(reason)) {
+      return reason;
+    }
   }
   return null;
 }
@@ -459,18 +494,30 @@ export function listGovernedFiles(directory, root) {
 /**
  * Build the full report for a root and its scan directories.
  *
- * @param {{ root: string, scan: string[], strict: boolean }} options - resolved CLI options.
- * @returns {{ schemaVersion: number, mode: string, root: string, manifests: string[], scanned: string[], summary: { files: number, duplicate: number, drifted: number, allowed: number }, findings: object[] }}
+ * @param {{ root: string, scan: string[], strict: boolean, scanIsExplicit?: boolean }} options - resolved CLI options.
+ * @returns {{ schemaVersion: number, mode: string, root: string, manifests: string[], scanned: string[], skippedDefaults: string[], summary: { files: number, duplicate: number, drifted: number, allowed: number }, findings: object[] }}
  *   the machine-readable report.
- * @throws {UsageError} when a scan directory is missing or no manifest exists.
+ * @throws {UsageError} when an explicitly requested scan directory is missing
+ *   or is not a directory, or when no manifest exists.
  */
-export function buildReport({ root, scan, strict }) {
+export function buildReport({ root, scan, strict, scanIsExplicit = false }) {
   const pins = loadManifestPins(root);
   const findings = [];
+  const skippedDefaults = [];
   let files = 0;
   for (const relative of scan) {
     const directory = path.join(root, relative);
-    if (!fs.existsSync(directory)) continue;
+    if (!fs.existsSync(directory)) {
+      // A directory the caller explicitly asked for and that does not exist is
+      // an error: silently skipping it would leave the check reporting "no
+      // duplicates found" while it scanned nothing at all. An absent BUILT-IN
+      // default (a repo with no `rails/`) is normal — skip it, but say so.
+      if (scanIsExplicit) {
+        throw new UsageError(`--scan directory does not exist: ${relative}`);
+      }
+      skippedDefaults.push(relative);
+      continue;
+    }
     if (!fs.statSync(directory).isDirectory()) {
       throw new UsageError(`--scan target is not a directory: ${relative}`);
     }
@@ -492,6 +539,7 @@ export function buildReport({ root, scan, strict }) {
     root,
     manifests: pins.sources,
     scanned: scan,
+    skippedDefaults,
     summary: {
       files,
       duplicate: count("duplicate"),
@@ -506,13 +554,14 @@ export function buildReport({ root, scan, strict }) {
  * Parse CLI arguments.
  *
  * @param {string[]} argv - arguments after the script path.
- * @returns {{ root: string, scan: string[], strict: boolean, json: boolean, help: boolean }} resolved options.
+ * @returns {{ root: string, scan: string[], scanIsExplicit: boolean, strict: boolean, json: boolean, help: boolean }} resolved options.
  * @throws {UsageError} on an unknown flag or a flag missing its value.
  */
 export function parseArgs(argv) {
   const options = {
     root: REPO_ROOT,
     scan: [],
+    scanIsExplicit: false,
     strict: false,
     json: false,
     help: false,
@@ -540,7 +589,8 @@ export function parseArgs(argv) {
   ) {
     throw new UsageError(`--root is not a directory: ${options.root}`);
   }
-  if (options.scan.length === 0) options.scan = [...DEFAULT_SCAN_DIRS];
+  options.scanIsExplicit = options.scan.length > 0;
+  if (!options.scanIsExplicit) options.scan = [...DEFAULT_SCAN_DIRS];
   return options;
 }
 
@@ -559,15 +609,18 @@ What it flags: a version literal pinned in a governed workflow, script,
 template, or fixture for a package or engine the canonical manifest already
 pins — a second edit site a routine bump can miss.
 
-What it never flags: lockfiles, prose/markdown, .lisa ledgers, node_modules,
-generated output, the manifests themselves, loose ranges (22.x), and any
-package the manifest does not pin.
+What it never flags: lockfiles, prose/markdown, comments, .lisa ledgers,
+node_modules, generated output, the manifests themselves, loose ranges (22.x),
+any package the manifest does not pin, and a self-reference to the manifest's
+own name (that is a published-artifact version FLOOR, not a mirrored range).
 
 Remediation rule: update the MANIFEST + LOCKFILE only, and make the governed
 input read the value from the manifest. If the duplicate must exist during a
 migration, record it inline with
   ${EXCEPTION_MARKER} <reason> (<ticket>)
-on the offending line or the line above it, and track the cleanup in a ticket.`;
+on the offending line or the line above it. A ticket reference (#123, KEY-123,
+or a URL) is REQUIRED — a ticketless marker is rejected — and every allowed
+exception is listed in the report so no mute is invisible.`;
 
 /**
  * Render the human-readable report.
@@ -588,6 +641,23 @@ export function formatReport(report) {
       "",
       `  ${finding.file}:${finding.line} [${finding.status}] ${finding.package}@${finding.version} (manifest: ${finding.manifestVersion})`,
       `    ${finding.remediation}`
+    );
+  }
+  // Every mute is printed, not just counted: an exception nobody can see in
+  // the report is indistinguishable from a duplicate nobody noticed.
+  const allowed = report.findings.filter(f => f.status === "allowed");
+  if (allowed.length > 0) {
+    lines.push("", `  Allowed exceptions (${allowed.length}):`);
+    for (const finding of allowed) {
+      lines.push(
+        `    ${finding.file}:${finding.line} ${finding.package}@${finding.version} — ${finding.exception}`
+      );
+    }
+  }
+  if (report.skippedDefaults?.length > 0) {
+    lines.push(
+      "",
+      `  Default scan roots skipped (absent): ${report.skippedDefaults.join(", ")}`
     );
   }
   if (violations.length === 0) {

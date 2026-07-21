@@ -8,5 +8,8 @@
   },
   "dependencies": {
     "@ast-grep/cli": "^0.40.4"
+  },
+  "devDependencies": {
+    "duplicate-versions-violation-fixture": "^1.0.0"
   }
 }

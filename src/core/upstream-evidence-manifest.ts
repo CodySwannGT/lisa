@@ -1813,7 +1813,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/build-plugins.sh":
       "d26321ea10bc3ed8cf096f900622cb4cf7a37117fabf9730f0fe5c9d949582fc",
     "scripts/check-duplicate-versions.mjs":
-      "d5b42848b51bb5ae496998dd614874cfb9c2cf262381ea0bafaf131ede3d3e3a",
+      "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
     "scripts/check-learnings-budget.ts":
       "007430c2d6938efcc79ccbfd5717ebe2c7cf66b4de9a21a3e67b8db7f3600349",
     "scripts/check-plugins-sync.sh":

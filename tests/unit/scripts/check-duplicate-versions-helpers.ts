@@ -36,6 +36,10 @@ export const AST_GREP = "@ast-grep/cli";
 export const AST_GREP_VERSION = "0.40.4";
 export const BUN_VERSION = "1.3.8";
 export const NODE_VERSION = "22.21.1";
+/** The canonical package manifest's filename. */
+export const PACKAGE_JSON = "package.json";
+/** The violation fixture's own package name — a self-reference, never a duplicate. */
+export const SELF_NAME = "duplicate-versions-violation-fixture";
 export const MANIFEST_FIELD_AST_GREP =
   "package.json dependencies.@ast-grep/cli";
 export const MANIFEST_FIELD_BUN = "package.json engines.bun";

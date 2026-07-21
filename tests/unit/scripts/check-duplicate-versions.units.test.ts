@@ -35,6 +35,7 @@ import {
   MANIFEST_FIELD_BUN,
   MANIFEST_FIELD_NODE,
   NODE_VERSION,
+  PACKAGE_JSON,
   WORKFLOW_FILE,
 } from "./check-duplicate-versions-helpers";
 describe("normalizeVersion", () => {
@@ -54,7 +55,7 @@ describe("collectManifestPins", () => {
         devDependencies: { typescript: "^6.0.3" },
         engines: { bun: "1.3.8", npm: "please-use-bun" },
       },
-      "package.json"
+      PACKAGE_JSON
     );
 
     expect(pins.packages["@ast-grep/cli"]).toEqual({
@@ -209,7 +210,7 @@ describe("findExceptionReason", () => {
     "          # lisa-allow-duplicate-version: migration in flight (#1888)",
     INDENTED_BUN_PIN,
     "          node-version: '22.21.1'",
-    "run: npm i -g pkg@1.2.3 # lisa-allow-duplicate-version: same-line reason",
+    "run: npm i -g pkg@1.2.3 # lisa-allow-duplicate-version: same-line reason (#1888)",
     "          # lisa-allow-duplicate-version:",
     INDENTED_BUN_PIN,
   ];
@@ -219,7 +220,7 @@ describe("findExceptionReason", () => {
   });
 
   it("honors a marker on the same line", () => {
-    expect(findExceptionReason(lines, 3)).toBe("same-line reason");
+    expect(findExceptionReason(lines, 3)).toBe("same-line reason (#1888)");
   });
 
   it("does not leak an exception to unrelated lines", () => {
@@ -228,6 +229,55 @@ describe("findExceptionReason", () => {
 
   it("rejects a marker with no reason", () => {
     expect(findExceptionReason(lines, 5)).toBeNull();
+  });
+
+  it("rejects a marker carrying no ticket reference", () => {
+    // An exception with no tracked ticket is a silent mute, not an honest,
+    // auditable record — the documented shape is `<reason> (<ticket>)`.
+    const ticketless = [
+      "  # lisa-allow-duplicate-version: we will clean this up later",
+      "  bun-version: '1.3.8'",
+    ];
+    expect(findExceptionReason(ticketless, 1)).toBeNull();
+  });
+
+  it("accepts issue, key, and URL ticket references", () => {
+    expect(
+      findExceptionReason(
+        ["# lisa-allow-duplicate-version: mid-migration (#1888)"],
+        0
+      )
+    ).toBe("mid-migration (#1888)");
+    expect(
+      findExceptionReason(
+        ["# lisa-allow-duplicate-version: mid-migration (LISA-42)"],
+        0
+      )
+    ).toBe("mid-migration (LISA-42)");
+    expect(
+      findExceptionReason(
+        ["# lisa-allow-duplicate-version: see https://example.test/i/7"],
+        0
+      )
+    ).toBe("see https://example.test/i/7");
+  });
+});
+
+describe("collectManifestPins self-reference handling", () => {
+  it("never treats the manifest's own name as a governed pin", () => {
+    // A project referencing its own published artifact is stating a version
+    // FLOOR; its dependency range is a different knob entirely, so "read it
+    // from the manifest" would be actively wrong guidance.
+    const pins = collectManifestPins(
+      {
+        name: "@codyswann/lisa",
+        devDependencies: { "@codyswann/lisa": "^2.195.6", eslint: "^9.0.0" },
+      },
+      PACKAGE_JSON
+    );
+
+    expect(pins.packages["@codyswann/lisa"]).toBeUndefined();
+    expect(pins.packages["eslint"]?.version).toBe("9.0.0");
   });
 });
 
