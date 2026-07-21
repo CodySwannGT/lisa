@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.284.0](https://github.com/CodySwannGT/lisa/compare/v2.283.0...v2.284.0) (2026-07-21)
+
+
+### Features
+
+* **deps:** define dependency trust classes and review requirements ([#1887](https://github.com/CodySwannGT/lisa/issues/1887)) ([8239440](https://github.com/CodySwannGT/lisa/commit/8239440dad929b8d1c4d5322fede5453e3ae8fde)), closes [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1888](https://github.com/CodySwannGT/lisa/issues/1888) [#1889](https://github.com/CodySwannGT/lisa/issues/1889)
+* **ui:** derive setup checklist readiness ([2abb76d](https://github.com/CodySwannGT/lisa/commit/2abb76dd1ac346bbd442e7f4ba163bd9bbcd4779)), closes [CodySwannGT/lisa#1531](https://github.com/CodySwannGT/lisa/issues/1531)
+
 ## [2.283.0](https://github.com/CodySwannGT/lisa/compare/v2.282.0...v2.283.0) (2026-07-21)
 
 
