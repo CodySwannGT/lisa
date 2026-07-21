@@ -224,6 +224,10 @@ function violationRecord(
       ...(credentials.violations.length > 0
         ? [credentialFinding(credentials.violations)]
         : []),
+      // A standing blocker must not swallow the release paths that could not be
+      // settled offline: dropping those reasons is #1898's defect one layer in.
+      // They carry no `blocker` key, so they add nothing to the verdict.
+      ...informationalFindings(summary.unresolved),
       ...informationalFindings(credentials.informational),
     ],
   };
