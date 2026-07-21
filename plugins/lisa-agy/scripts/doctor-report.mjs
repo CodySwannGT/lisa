@@ -321,9 +321,37 @@ function applyNotEstablishedCaveat(check, checks) {
 }
 
 /**
- * Collect the ids of the standing ship blockers a dimension owns. Blockers with
- * no usable id are dropped rather than stringified, so a malformed record can
- * never render "Standing ship blocker(s): undefined" at an operator.
+ * Decide whether a standing blocker was evidenced in this dimension.
+ *
+ * `dimension_id` is the authority: the CLI's `buildDetectedBlocker` documents it
+ * as "the dimension the evidencing finding was found in". `owning_dimensions` is
+ * the blocker's static spec and can name dimensions that did NOT evidence it —
+ * B4 is specced as `[domain-ownership, feedback-guardrails]` while only the
+ * guardrails producer ever emits the B4 finding. Escalating on the spec would
+ * stamp `FAIL` on a dimension whose own recorded evidence says it found nothing,
+ * contradicting both that evidence and the CLI's per-dimension result. The spec
+ * is used only as a fallback, for a blocker record carrying no attribution.
+ * @param {Record<string, unknown>} blocker
+ * @param {{ id: string }} dimension
+ * @returns {boolean}
+ */
+function blockerEvidencedIn(blocker, dimension) {
+  if (
+    typeof blocker.dimension_id === "string" &&
+    blocker.dimension_id.length > 0
+  ) {
+    return blocker.dimension_id === dimension.id;
+  }
+  return (
+    Array.isArray(blocker.owning_dimensions) &&
+    blocker.owning_dimensions.includes(dimension.id)
+  );
+}
+
+/**
+ * Collect the ids of the standing ship blockers evidenced in a dimension.
+ * Blockers with no usable id are dropped rather than stringified, so a malformed
+ * record can never render "Standing ship blocker(s): undefined" at an operator.
  * @param {{ id: string }} dimension
  * @param {{ blockers: readonly Record<string, unknown>[] }} report
  * @returns {readonly string[]}
@@ -334,9 +362,7 @@ function standingBlockerIds(dimension, report) {
       blocker =>
         blocker !== null &&
         typeof blocker === "object" &&
-        (blocker.dimension_id === dimension.id ||
-          (Array.isArray(blocker.owning_dimensions) &&
-            blocker.owning_dimensions.includes(dimension.id)))
+        blockerEvidencedIn(blocker, dimension)
     )
     .map(blocker => blocker.id)
     .filter(id => typeof id === "string" && id.length > 0)

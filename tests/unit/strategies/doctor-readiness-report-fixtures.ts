@@ -21,13 +21,19 @@ export const CONTEXT_ROUTING = "context-routing";
 /** Dimension the scaffolding-subtraction findings land on. */
 export const PROPORTIONALITY = "proportionality";
 
+/** Dimension whose producer evidences B4. */
+export const FEEDBACK_GUARDRAILS = "feedback-guardrails";
+
+/** Dimension that co-owns B4 in the spec but never evidences it. */
+export const DOMAIN_OWNERSHIP = "domain-ownership";
+
 /** The eight ownership dimensions, in fixed render order (readiness-rubric). */
 export const DIMENSION_IDS = [
   CONTEXT_ROUTING,
   "capabilities-tools",
-  "domain-ownership",
+  DOMAIN_OWNERSHIP,
   "execution-proof",
-  "feedback-guardrails",
+  FEEDBACK_GUARDRAILS,
   "dependencies-supply-chain",
   DELIVERY_AUTHORITY,
   PROPORTIONALITY,
