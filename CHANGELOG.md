@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.279.0](https://github.com/CodySwannGT/lisa/compare/v2.278.0...v2.279.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** wire B2/B3 delivery-authority readiness producers ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([d1cce39](https://github.com/CodySwannGT/lisa/commit/d1cce39ad21b24c05c2d259ad57299872a70e22e)), closes [#1898](https://github.com/CodySwannGT/lisa/issues/1898) [#1902](https://github.com/CodySwannGT/lisa/issues/1902)
+
+
+### Bug Fixes
+
+* **doctor:** close B2 residual false negatives and false greens ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([9505e30](https://github.com/CodySwannGT/lisa/commit/9505e30fae9524f98431716af01afec8a717b541)), closes [#1898](https://github.com/CodySwannGT/lisa/issues/1898) [#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** name blockers on the persist-failure path, ignore dry-run publishes ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([3e46ee9](https://github.com/CodySwannGT/lisa/commit/3e46ee965ded4a4af87d7934c836d661302c6a5e)), closes [#1905](https://github.com/CodySwannGT/lisa/issues/1905)
+* **doctor:** stop B2/B3 readiness producers failing correct repos ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([00d3b6c](https://github.com/CodySwannGT/lisa/commit/00d3b6c4ac56fdc113a536db347c2220bab58523)), closes [#1898](https://github.com/CodySwannGT/lisa/issues/1898)
+
 ## [2.278.0](https://github.com/CodySwannGT/lisa/compare/v2.277.4...v2.278.0) (2026-07-21)
 
 
