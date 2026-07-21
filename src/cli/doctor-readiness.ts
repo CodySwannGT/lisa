@@ -14,6 +14,14 @@ import {
   assessDeliveryAuthorityDimension,
 } from "./doctor-readiness-delivery.js";
 import {
+  CONTEXT_ROUTING_DIMENSION_ID,
+  assessContextRoutingDimension,
+} from "./doctor-readiness-context.js";
+import {
+  DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
+  assessDependenciesSupplyChainDimension,
+} from "./doctor-readiness-supply-chain.js";
+import {
   EXECUTION_PROOF_DIMENSION_ID,
   PROPORTIONALITY_DIMENSION_ID,
   assessExecutionProofDimension,
@@ -80,8 +88,6 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "context-routing",
     question:
       "Can an agent recover the real job from what is written down (integration-access-layer, wiki-knowledge-source, config-resolution)?",
-    skipReason:
-      "Context/routing evidence is assessed by the agent-ready wiring (RRR-4, #1856); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "capabilities-tools",
@@ -113,8 +119,6 @@ const READINESS_DIMENSIONS: readonly ReadinessDimensionSpec[] = [
     id: "dependencies-supply-chain",
     question:
       "Is there a confidence model for what the repo depends on (security-audit-handling)?",
-    skipReason:
-      "Dependencies/supply-chain evidence is assessed by RRR-4 (#1856); no readiness probe is wired in this Lisa version.",
   },
   {
     id: "delivery-authority",
@@ -281,7 +285,9 @@ export function formatReadinessHeadline(
  * Build the eight readiness dimensions in fixed render order by dispatching each
  * to its producer. Execution/proof and proportionality are wired to #1742's
  * shared journey runner (RRR-6, #1858); delivery/authority is wired to the
- * offline workflow producers assessing ship blockers B2 and B3 (#1896). A
+ * offline workflow producers assessing ship blockers B2 and B3, context/routing
+ * to the documentation cross-check assessing B6, and dependencies/supply-chain
+ * to the manifest and audit-gate producer assessing B5 (#1896). A
  * dimension with no producer yet falls through to a stated-reason SKIP rather
  * than a blank one (#1898), so the report never presents "never looked" as
  * "nothing to report".
@@ -348,6 +354,10 @@ export type DimensionProducer = (
  * map falls through to {@link reasonedSkip} rather than to silence.
  */
 const DIMENSION_PRODUCERS: Readonly<Record<string, DimensionProducer>> = {
+  [CONTEXT_ROUTING_DIMENSION_ID]: async targetPath =>
+    await assessContextRoutingDimension(targetPath),
+  [DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID]: async targetPath =>
+    await assessDependenciesSupplyChainDimension(targetPath),
   [EXECUTION_PROOF_DIMENSION_ID]: async targetPath =>
     await assessExecutionProofDimension(targetPath),
   [PROPORTIONALITY_DIMENSION_ID]: async targetPath =>
