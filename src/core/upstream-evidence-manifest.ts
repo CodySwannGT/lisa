@@ -7816,6 +7816,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-confirm.test.ts": true,
     "tests/unit/core/learnings-consolidation.test.ts": true,
     "tests/unit/core/learnings-contract.test.ts": true,
+    "tests/unit/core/learnings-lock-reclaim.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
