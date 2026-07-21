@@ -28,19 +28,6 @@ test("renders mutating console controls as honest read-only affordances", async 
     })
   ).toBeVisible();
 
-  await page.goto("/#health");
-  const healthCheck = page.getByRole("button", { name: "Run health check" });
-  await expect(healthCheck).toBeDisabled();
-  await expect(healthCheck).toHaveAttribute(
-    "title",
-    "read-only: the health engine has not shipped yet"
-  );
-  await expect(
-    page.locator("#section-health .readonly-reason", {
-      hasText: "read-only: the health engine has not shipped yet",
-    })
-  ).toBeVisible();
-
   await page.goto("/#setup");
   const firstChecklistButton = page.locator("#section-setup .ck").first();
   const firstChecklistRow = page.locator("#section-setup .check-item").first();

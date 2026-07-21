@@ -1,0 +1,25 @@
+Evidence type: faithful observed browser/server failure transcript
+Artifact head: 9112b1e6d6b8926f78805cb2f35563631f80d35d
+Environment: local source runUi server with an injected throwing Health dependency
+
+Action
+1. The browser began from a stored green Health result.
+2. The verifier clicked the unique "Run deterministic health check" button once.
+3. The injected dependency threw: /private/project/.lisa/health/latest.json exploded
+
+Observed server boundary
+- health-run-attempt=1
+- Exactly one attempt was recorded for the one click; no retry was observed.
+
+Observed browser boundary
+- Status role: alert
+- Status text: Unable to run Lisa health
+- Health chip text: health unavailable
+- Health chip dot class: dot unknown
+- Last-run text: Run failed · no current verdict
+- Result row count: 0
+- Empty-state text: Unable to run Lisa health
+- Sensitive thrown value visible in browser: no
+
+Scope note
+This is an observer transcript, not an HTTP request/response capture. It does not establish an HTTP status-code or response-body contract.

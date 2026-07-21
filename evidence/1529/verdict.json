@@ -1,0 +1,145 @@
+{
+  "schema_version": 2,
+  "plan": "implement-1529-console-health",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "761c746003f7d8a8bb2941d568b9bab78a6f525f",
+    "head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d",
+    "build_id": "local-build-9112b1e6d",
+    "environment": "local development: built CLI and localhost browser server",
+    "observed_at": "2026-07-21T04:42:40Z"
+  },
+  "claims": [
+    {
+      "claim_id": "AC-1-CLI",
+      "statement": "The built deterministic CLI reports the managed-file drift using the canonical stable finding fields and drift summary.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": ["cli-output"],
+      "status": "established",
+      "evidence_refs": ["EV-CLI"],
+      "not_established": []
+    },
+    {
+      "claim_id": "AC-1-UI",
+      "statement": "After a real click, the localhost console's existing Health table renders the same acceptance-critical managed-file finding fields as the CLI.",
+      "boundary": "browser",
+      "required_for_gate": true,
+      "required_evidence_kinds": ["screenshot", "recording"],
+      "status": "established",
+      "evidence_refs": ["EV-DRIFT"],
+      "not_established": []
+    },
+    {
+      "claim_id": "AC-2-3",
+      "statement": "Browser runs display a current last-run stamp and drive the top chip from drift detected to in band after the managed file is restored.",
+      "boundary": "browser",
+      "required_for_gate": true,
+      "required_evidence_kinds": ["screenshot", "recording"],
+      "status": "established",
+      "evidence_refs": ["EV-DRIFT", "EV-IN-BAND"],
+      "not_established": []
+    },
+    {
+      "claim_id": "AC-4",
+      "statement": "A failed browser run surfaces a generic error and removes stale green findings and verdict state without exposing the sensitive thrown path.",
+      "boundary": "browser",
+      "required_for_gate": true,
+      "required_evidence_kinds": ["screenshot", "recording"],
+      "status": "established",
+      "evidence_refs": ["EV-FAILURE"],
+      "not_established": []
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-DRIFT",
+      "kind": "screenshot",
+      "locator": "evidence/1529/browser-drift.png",
+      "sha256": "8d874863d6237417194e0a1e46eb9e04b10559493417962b611e9172164f9cd2",
+      "captured_at": "2026-07-21T04:39:44Z",
+      "artifact_head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d"
+    },
+    {
+      "evidence_id": "EV-IN-BAND",
+      "kind": "screenshot",
+      "locator": "evidence/1529/browser-in-band.png",
+      "sha256": "df044d76a3990d27d71cc209aa23987423a5d570103eb2e84fc099bd0607733e",
+      "captured_at": "2026-07-21T04:40:30Z",
+      "artifact_head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d"
+    },
+    {
+      "evidence_id": "EV-FAILURE",
+      "kind": "screenshot",
+      "locator": "evidence/1529/browser-failure.png",
+      "sha256": "a8e3c79820d8479455ca621e4efa3b34607dfe68c6127dfea024740fe7598a12",
+      "captured_at": "2026-07-21T04:42:40Z",
+      "artifact_head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d"
+    },
+    {
+      "evidence_id": "EV-CLI",
+      "kind": "cli-output",
+      "locator": "evidence/1529/cli-output.json",
+      "sha256": "cc440cad4a91707884a21bb598a5ba35297daa9ecd0cb32c4caacc2c35a040a7",
+      "captured_at": "2026-07-21T04:53:56Z",
+      "artifact_head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d"
+    },
+    {
+      "evidence_id": "EV-FAILURE-TRANSCRIPT",
+      "kind": "log-snippet",
+      "locator": "evidence/1529/failure-transcript.txt",
+      "sha256": "c09542046cbacbe36148875cd59a1f0de22ab662759fa8c0f6c5986f7712f0bd",
+      "captured_at": "2026-07-21T04:53:56Z",
+      "artifact_head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d"
+    },
+    {
+      "evidence_id": "EV-PLAYWRIGHT",
+      "kind": "test-run-log",
+      "locator": "evidence/1529/playwright-output.log",
+      "sha256": "8923104e27c0c596761f8ace994030a8b05b28bdcb4cb4e672e91e669f9f8216",
+      "captured_at": "2026-07-21T04:48:56Z",
+      "artifact_head_sha": "9112b1e6d6b8926f78805cb2f35563631f80d35d"
+    }
+  ],
+  "not_established": [
+    "No production or remotely hosted deployment was exercised; the ticket scopes this console to localhost.",
+    "The drift screenshot does not place all 12 findings in one viewport; it visibly establishes the acceptance-critical managed-file row, while the named regression journey covers the complete result set.",
+    "No HTTP request/response transcript was captured, so no HTTP status-code or response-body claim is made.",
+    "A browser-initiated full or agentic run was not exercised because the accepted amendment requires browser runs to remain deterministic."
+  ],
+  "not_established_reviewed": true,
+  "criteria": [
+    {
+      "task": "AC-1",
+      "criterion": "The console shows the same acceptance-critical stable finding fields that the independently run CLI printed.",
+      "status": "pass",
+      "evidence": "EV-CLI records templates.managed/deterministic/fail and its reason; EV-DRIFT visibly renders the same four stable fields and drift summary after a real browser click."
+    },
+    {
+      "task": "AC-2",
+      "criterion": "Findings render in the existing results table and the last-run stamp is displayed.",
+      "status": "pass",
+      "evidence": "EV-DRIFT visibly shows the existing table populated and the 2026-07-21T04:37:26.223Z latest deterministic check stamp."
+    },
+    {
+      "task": "AC-3",
+      "criterion": "The top-bar chip reflects drift detected and flips to in band after restoration and rerun.",
+      "status": "pass",
+      "evidence": "EV-DRIFT visibly shows drift detected; EV-IN-BAND visibly shows in band with a later 2026-07-21T04:40:20.221Z stamp."
+    },
+    {
+      "task": "AC-4",
+      "criterion": "A failed run surfaces an error instead of leaving stale green findings.",
+      "status": "pass",
+      "evidence": "EV-FAILURE visibly shows the generic alert, zero rows, health unavailable, and no current verdict; EV-FAILURE-TRANSCRIPT records one attempt, no retry, and no sensitive path in the browser."
+    },
+    {
+      "task": "Quality prerequisites",
+      "criterion": "Codified regression and repository quality gates pass.",
+      "status": "pass",
+      "evidence": "Targeted Health Playwright artifact: 4/4. Existing thread evidence: focused Playwright 9/9, endpoint unit 6/6, full tests 6794, integration 137, plus green lint, typecheck, format, build, plugins, and manifest checks."
+    }
+  ],
+  "status": "pass",
+  "updated_at": "2026-07-21T04:54:02Z"
+}

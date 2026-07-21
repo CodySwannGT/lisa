@@ -2051,9 +2051,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "7e99286c549c79b1c02c07a4313dcfe5b41b4ebb80a6fbbb8741dd74dc5f454d",
     "ui/README.md":
-      "36dbf7675108b73d08c6450ff7337b144d50fc2a9586f688ce202d2c1e1b9f05",
+      "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "74c35220d1b8b7d8041374196eba2c821eb90d1b57d884f12afb695f47f5016c",
+      "8dcbeda2160ce6c443382613a2319fe6253ffe2c0cdeea567034400cdea91152",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2298,6 +2298,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "eslint.ignore.config.json": true,
     "eslint.slow.config.ts": true,
     "eslint.thresholds.json": true,
+    "evidence/1529/browser-drift.png": true,
+    "evidence/1529/browser-failure.png": true,
+    "evidence/1529/browser-in-band.png": true,
+    "evidence/1529/cli-output.json": true,
+    "evidence/1529/comment.md": true,
+    "evidence/1529/failure-transcript.txt": true,
+    "evidence/1529/playwright-output.log": true,
+    "evidence/1529/verdict.json": true,
     "evidence/1537/authenticated-real-values.png": true,
     "evidence/1537/probe-failure-degrades-not-fabricates.png": true,
     "evidence/1537/unauthenticated-unknown-states.png": true,
@@ -7309,6 +7317,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-github-repo-gh.ts": true,
     "src/cli/ui-github-repo-map.ts": true,
     "src/cli/ui-github-repo.ts": true,
+    "src/cli/ui-health.ts": true,
     "src/cli/ui-lisa-version.ts": true,
     "src/cli/ui-observability-checks.ts": true,
     "src/cli/ui-observability-providers.ts": true,
@@ -7497,6 +7506,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
     "tests/e2e/ui-deploy-pipeline.spec.ts": true,
     "tests/e2e/ui-github-repo-panel.spec.ts": true,
+    "tests/e2e/ui-health.spec.ts": true,
     "tests/e2e/ui-live-status.spec.ts": true,
     "tests/e2e/ui-observability-providers.spec.ts": true,
     "tests/e2e/ui-plugins.spec.ts": true,
@@ -7595,6 +7605,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-github-repo-map.test.ts": true,
     "tests/unit/cli/ui-github-repo.test.ts": true,
     "tests/unit/cli/ui-health-schedule-write.test.ts": true,
+    "tests/unit/cli/ui-health.test.ts": true,
     "tests/unit/cli/ui-lisa-version-probe.test.ts": true,
     "tests/unit/cli/ui-observability-providers-probe.test.ts": true,
     "tests/unit/cli/ui-status-contract.test.ts": true,

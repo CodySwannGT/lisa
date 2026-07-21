@@ -1,0 +1,29 @@
+{
+  "evidenceType": "faithful observed CLI output excerpt",
+  "captureNote": "Captured from the built CLI at the artifact head. Stable finding fields and summary are reproduced exactly; per-run identifiers and timestamps are included for identity but are not parity fields.",
+  "command": "node dist/index.js --no-update-check health /tmp/lisa-1529-verify.ELyxrC",
+  "exitCode": 0,
+  "artifactHeadSha": "9112b1e6d6b8926f78805cb2f35563631f80d35d",
+  "result": {
+    "schemaVersion": 1,
+    "runId": "health-0613ef89-5278-41ab-b9ad-af2ba4ef1d05",
+    "mode": "deterministic",
+    "startedAt": "2026-07-21T04:35:45.837Z",
+    "completedAt": "2026-07-21T04:35:46.178Z",
+    "findings": [
+      { "check": "project.state", "layer": "deterministic", "status": "pass", "reason": "Project config, type, and local doctor state are readable." },
+      { "check": "project.wiki", "layer": "deterministic", "status": "pass", "reason": "No local wiki contract is present." },
+      { "check": "starters.remote", "layer": "deterministic", "status": "warn", "reason": "Starter repository reachability is unavailable in the offline deterministic path." },
+      { "check": "config.required", "layer": "deterministic", "status": "pass", "reason": "Required config keys are populated." },
+      { "check": "config.sync", "layer": "deterministic", "status": "pass", "reason": "Config and mirrored artifacts are synchronized." },
+      { "check": "templates.managed", "layer": "deterministic", "status": "fail", "reason": "Managed files do not match templates: eslint.config.ts" },
+      { "check": "package.conformance", "layer": "deterministic", "status": "pass", "reason": "package.json conforms to Lisa governance." },
+      { "check": "instructions.canonical", "layer": "deterministic", "status": "pass", "reason": "Instruction files are canonical." },
+      { "check": "hooks.managed", "layer": "deterministic", "status": "pass", "reason": "Git hook bytes, modes, and installation are current." },
+      { "check": "plugins.current", "layer": "deterministic", "status": "warn", "reason": "Plugin state unavailable: unsupported harness" },
+      { "check": "ci.workflows", "layer": "deterministic", "status": "pass", "reason": "CI workflows are present and caller inputs match shipped contracts." },
+      { "check": "github.rulesets", "layer": "deterministic", "status": "warn", "reason": "GitHub rulesets could not be observed within the deterministic deadline." }
+    ],
+    "summary": { "verdict": "drift detected", "counts": { "pass": 8, "warn": 3, "fail": 1 } }
+  }
+}
