@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.285.1](https://github.com/CodySwannGT/lisa/compare/v2.285.0...v2.285.1) (2026-07-21)
+
+
+### Documentation
+
+* **deps:** seed Lisa's dependency decision records ([#1889](https://github.com/CodySwannGT/lisa/issues/1889)) ([c9fb357](https://github.com/CodySwannGT/lisa/commit/c9fb35758d6d86cfa82f2dbd4133e6b45ac8c3f2)), closes [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1918](https://github.com/CodySwannGT/lisa/issues/1918) [#1918](https://github.com/CodySwannGT/lisa/issues/1918)
+
 ## [2.285.0](https://github.com/CodySwannGT/lisa/compare/v2.284.0...v2.285.0) (2026-07-21)
 
 
