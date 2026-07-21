@@ -28,6 +28,7 @@ const GATE_SCRIPT = "scripts/gate.mjs";
 
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   if (server !== undefined) {
     server.closeAllConnections();
     await new Promise(resolve => server?.close(resolve));
@@ -251,6 +252,10 @@ async function verifyHarnessParity(
  * @param projectRoot - Fixture repository root
  */
 async function verifyUiCanary(projectRoot: string): Promise<void> {
+  const commandSentinel = path.join(
+    projectRoot,
+    ".lisa/project-command-executed"
+  );
   const beforeProof = await snapshotProof(projectRoot);
   const beforeGit = await readStandardsGitState(projectRoot);
   const beforeScript = await readFile(
@@ -264,6 +269,9 @@ async function verifyUiCanary(projectRoot: string): Promise<void> {
     reason: "fixture-unavailable",
     message: "Fixture unavailable.",
   };
+  const endpoint = (): string =>
+    `http://127.0.0.1:${serverPort()}/api/setup-readiness`;
+  vi.stubEnv("LISA_STANDARDS_EXECUTION_SENTINEL", commandSentinel);
   server = await runUi(
     projectRoot,
     { port: "0", sync: false },
@@ -279,12 +287,11 @@ async function verifyUiCanary(projectRoot: string): Promise<void> {
       },
     }
   );
-  const endpoint = `http://127.0.0.1:${serverPort()}/api/setup-readiness`;
-  const head = await fetch(endpoint, { method: "HEAD" });
-  expect(head.status).toBe(200);
+  expect((await fetch(endpoint(), { method: "HEAD" })).status).toBe(200);
   expect(readHealth).not.toHaveBeenCalled();
+  await expect(stat(commandSentinel)).rejects.toMatchObject({ code: "ENOENT" });
   for (let index = 0; index < 2; index += 1) {
-    const response = await fetch(endpoint);
+    const response = await fetch(endpoint());
     const body = await response.json();
     expect(
       body.findings.find(
@@ -293,6 +300,7 @@ async function verifyUiCanary(projectRoot: string): Promise<void> {
     ).toMatchObject({ status: "pass" });
   }
   expect(readHealth).toHaveBeenCalledTimes(2);
+  await expect(stat(commandSentinel)).rejects.toMatchObject({ code: "ENOENT" });
   expect(await snapshotProof(projectRoot)).toEqual(beforeProof);
   expect(await readStandardsGitState(projectRoot)).toEqual(beforeGit);
   expect(await readFile(path.join(projectRoot, GATE_SCRIPT), "utf8")).toBe(
@@ -302,4 +310,5 @@ async function verifyUiCanary(projectRoot: string): Promise<void> {
     beforeMtime
   );
   expect(path.join(projectRoot, PROOF_PATH)).toContain(PROOF_PATH);
+  vi.unstubAllEnvs();
 }
