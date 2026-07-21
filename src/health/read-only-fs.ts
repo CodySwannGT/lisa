@@ -5,6 +5,7 @@ import path from "node:path";
 
 const DEFAULT_MAX_BYTES = 512 * 1024;
 const READ_CHUNK_BYTES = 64 * 1024;
+const UNSAFE_PROJECT_FILE = "Unsafe health project file";
 
 /** Stable metadata and bytes captured from one confined regular file. */
 export interface ProjectFileSnapshot {
@@ -39,10 +40,52 @@ export function resolveProjectPath(root: string, relativePath: string): string {
  */
 function assertBoundedFile(stat: Stats, maximumBytes: number): void {
   if (!stat.isFile() || stat.isSymbolicLink()) {
-    throw new Error("Unsafe health project file");
+    throw new Error(UNSAFE_PROJECT_FILE);
   }
   if (stat.size > maximumBytes) {
     throw new Error("Health project file exceeds size limit");
+  }
+}
+
+/**
+ * Test for one confined regular file while refusing to follow its final link.
+ * @param root - Canonical project root
+ * @param relativePath - Project-relative path
+ * @returns Whether a stable regular file exists
+ */
+export async function projectRegularFileExists(
+  root: string,
+  relativePath: string
+): Promise<boolean> {
+  const target = resolveProjectPath(root, relativePath);
+  try {
+    const before = await lstat(target);
+    if (!before.isFile() || before.isSymbolicLink()) {
+      throw new Error(UNSAFE_PROJECT_FILE);
+    }
+    const actual = await realpath(target);
+    if (!actual.startsWith(`${root}${path.sep}`)) {
+      throw new Error("Unsafe health project file escapes project root");
+    }
+    const handle = await open(
+      target,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
+    );
+    try {
+      const opened = await handle.stat();
+      if (!opened.isFile() || opened.isSymbolicLink()) {
+        throw new Error(UNSAFE_PROJECT_FILE);
+      }
+      if (opened.dev !== before.dev || opened.ino !== before.ino) {
+        throw new Error("Health project file changed during inspection");
+      }
+      return true;
+    } finally {
+      await handle.close();
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
   }
 }
 

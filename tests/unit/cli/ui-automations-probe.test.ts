@@ -5,7 +5,7 @@
  * resolve to unknown with a reason; only `lisa-auto-<project>-` matches appear.
  * @module tests/unit/cli/ui-automations-probe
  */
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,6 +17,10 @@ import {
   type HarnessAutomationObservation,
   type ProjectIdentityResolver,
 } from "../../../src/cli/ui-automations.js";
+import {
+  defaultResolveIdentity,
+  resolveExpectedAutomationEntries,
+} from "../../../src/cli/ui-automations-adapters.js";
 import { runProbe } from "../../../src/cli/ui-status.js";
 
 const AUTOMATIONS_PROBE_ID = "automations";
@@ -79,6 +83,43 @@ function fixedClaudeReader(
 }
 
 describe("createAutomationsProbe", () => {
+  it("rejects unsafe project config before scheduler identity resolution", async () => {
+    const project = await makeTempDir();
+    const outside = await makeTempDir();
+    const target = path.join(outside, "config.json");
+    await writeFile(target, '{"github":{"org":"unsafe","repo":"unsafe"}}\n');
+    await symlink(target, path.join(project, ".lisa.config.json"));
+
+    await expect(
+      defaultResolveIdentity(project, AbortSignal.timeout(1_000))
+    ).rejects.toThrow(/Unsafe/u);
+  });
+
+  it("uses the GitHub origin for Jira and Notion fleets without github config", async () => {
+    const expected = await resolveExpectedAutomationEntries(
+      {
+        tracker: "jira",
+        source: "notion",
+        jira: { project: "ENG" },
+        notion: { workspaceId: "workspace", prdDatabaseId: "database" },
+      },
+      ["typescript"],
+      "git@github.com:Acme/service.git"
+    );
+
+    expect(expected).toContainEqual(
+      expect.objectContaining({
+        id: "intake-repair",
+        automationId: "lisa-auto-acme-service-intake-repair",
+      })
+    );
+    expect(
+      expected.every(entry =>
+        entry.automationId.startsWith("lisa-auto-acme-service-")
+      )
+    ).toBe(true);
+  });
+
   it("lists matching Codex automations with real cadence", async () => {
     const probe = createAutomationsProbe({
       cwd: await makeTempDir(),
