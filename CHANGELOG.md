@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.275.0](https://github.com/CodySwannGT/lisa/compare/v2.274.0...v2.275.0) (2026-07-21)
+
+
+### Features
+
+* **health:** add shared cross-harness consumer ([f2d01db](https://github.com/CodySwannGT/lisa/commit/f2d01db19b4cf289202b2fd51bf495fb5233c953)), closes [CodySwannGT/lisa#1523](https://github.com/CodySwannGT/lisa/issues/1523)
+
 ## [2.274.0](https://github.com/CodySwannGT/lisa/compare/v2.273.0...v2.274.0) (2026-07-21)
 
 
