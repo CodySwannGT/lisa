@@ -1,5 +1,12 @@
 /** Cross-process serialization for project learnings writes. */
-import { link, lstat, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+  link,
+  lstat,
+  readFile,
+  rename,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 
 const MAX_LOCK_ATTEMPTS = 200;
 const LOCK_RETRY_DELAY_MS = 10;
@@ -99,10 +106,8 @@ async function publishOwnerLink(
     await link(ownerPath, lockPath);
     return true;
   } catch (error) {
-    if (
-      (error as NodeJS.ErrnoException).code === "EEXIST" ||
-      (error as NodeJS.ErrnoException).code === "ENOENT"
-    ) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "EEXIST" || code === "ENOENT") {
       return false;
     }
     throw error;
@@ -136,6 +141,21 @@ export interface StaleLockObservation {
   readonly dev: number;
   /** Inode that was judged stale. */
   readonly ino: number;
+}
+
+/**
+ * A stale lock detached into a private name and re-verified as the exact inode
+ * this observation judged reclaimable. Detaching by rename frees the shared
+ * lock path atomically, so removal only ever deletes this private claim — never
+ * the shared path a live acquirer may already have relinked.
+ */
+export interface PinnedStaleLock {
+  /** Private name holding the detached, judged-stale inode. */
+  readonly claim: string;
+  /** Shared lock path whose dead owner sidecar is cleaned up on removal. */
+  readonly lockPath: string;
+  /** Snapshot that judged this lock reclaimable. */
+  readonly observation: StaleLockObservation;
 }
 
 /**
@@ -177,7 +197,8 @@ export async function observeStaleLock(
 }
 
 /**
- * Reclaim only the same lock inode retained in a safe quarantine link.
+ * Reclaim only the exact inode this observation judged stale, by detaching it
+ * into a private claim before deleting it so the shared path is never unlinked.
  * @param lockPath - Shared lock path
  * @param observation - Snapshot that judged this lock reclaimable
  * @returns Whether the observed lock was reclaimed
@@ -186,55 +207,123 @@ export async function reclaimObservedStaleLock(
   lockPath: string,
   observation: StaleLockObservation
 ): Promise<boolean> {
-  // Pin whatever currently sits at the lock path so its inode cannot be
-  // recycled underneath the checks below, then prove it is still the very
-  // inode and ownership this observation judged stale before deleting it.
-  const quarantine = `${lockPath}.${crypto.randomUUID()}.stale`;
-  if (!(await publishOwnerLink(lockPath, quarantine))) {
+  const pinned = await pinObservedStaleLock(lockPath, observation);
+  if (pinned === null) {
     return false;
   }
+  return removePinnedStaleLock(pinned);
+}
+
+/**
+ * Detach the lock path into a private claim and prove the detached inode is
+ * still the very inode and ownership this observation judged stale.
+ *
+ * A bare `unlink(lockPath)` after an identity check is a residual theft race:
+ * between the check and the syscall another process can free the path and a
+ * live acquirer can relink a *different* inode there, so the unlink deletes a
+ * live lock. Detaching via `rename(lockPath, claim)` is atomic — exactly one
+ * reclaimer moves a given entry and the shared path is freed in the same step —
+ * so removal never has to unlink the shared path by name. A detached inode that
+ * is not the judged-stale one belongs to a live re-acquire, so it is restored
+ * to the path (or left reachable through its own sidecar) and nothing is lost.
+ * @param lockPath - Shared lock path
+ * @param observation - Snapshot that judged this lock reclaimable
+ * @returns Pinned stale lock, or null when the path is no longer that lock
+ */
+export async function pinObservedStaleLock(
+  lockPath: string,
+  observation: StaleLockObservation
+): Promise<PinnedStaleLock | null> {
+  const claim = `${lockPath}.${crypto.randomUUID()}.claim`;
+  if (!(await renameIfPresent(lockPath, claim))) {
+    return null;
+  }
+  if (await claimStillStale(claim, observation)) {
+    return { claim, lockPath, observation };
+  }
+  await linkIfAbsent(claim, lockPath);
+  await removeFileIfPresent(claim);
+  return null;
+}
+
+/**
+ * Delete the detached, judged-stale inode. The shared lock path was freed when
+ * the inode was detached, so this only removes the private claim and the dead
+ * owner sidecar — it can never delete a live re-acquire sitting at the path.
+ * @param pinned - Stale lock detached and re-verified for reclamation
+ * @returns Whether the pinned lock was reclaimed
+ */
+export async function removePinnedStaleLock(
+  pinned: PinnedStaleLock
+): Promise<boolean> {
+  const { claim, lockPath, observation } = pinned;
+  await removeFileIfPresent(claim);
+  if (observation.owner !== undefined) {
+    await removeFileIfPresent(`${lockPath}.${observation.owner.token}.owner`);
+  }
+  return true;
+}
+
+/**
+ * Atomically move a path to a private name, tolerating an already-gone source.
+ * @param from - Source path to detach
+ * @param to - Private destination that captures the detached inode
+ * @returns Whether an entry was moved (false when the source was already gone)
+ */
+async function renameIfPresent(from: string, to: string): Promise<boolean> {
   try {
-    if (!(await pinnedLockStillStale(lockPath, quarantine, observation))) {
+    await rename(from, to);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return false;
     }
-    await removeFileIfPresent(lockPath);
-    if (observation.owner !== undefined) {
-      await removeFileIfPresent(`${lockPath}.${observation.owner.token}.owner`);
-    }
-    return true;
-  } finally {
-    await removeFileIfPresent(quarantine);
+    throw error;
   }
 }
 
 /**
- * Confirm the pinned inode is still the lock this observation judged stale.
- * Identity alone is not enough: a released inode can be recycled by a live
- * holder, so the pinned ownership must still match the observed ownership.
- * @param lockPath - Shared lock path
- * @param quarantine - Hard link pinning the inode currently at the lock path
- * @param observation - Snapshot that judged the lock reclaimable
- * @returns Whether the pinned lock is still safe to delete
+ * Hard-link a source to a destination only when the destination is free.
+ * @param from - Existing source inode
+ * @param to - Destination path to restore when absent
  */
-async function pinnedLockStillStale(
-  lockPath: string,
-  quarantine: string,
+async function linkIfAbsent(from: string, to: string): Promise<void> {
+  try {
+    await link(from, to);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "EEXIST" && code !== "ENOENT") {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Confirm the detached inode is still the lock this observation judged stale.
+ * Identity alone is not enough: a released inode can be recycled by a live
+ * holder, so the detached ownership must still match the observed ownership.
+ * @param claim - Private name holding the detached inode
+ * @param observation - Snapshot that judged the lock reclaimable
+ * @returns Whether the detached inode is still safe to delete
+ */
+async function claimStillStale(
+  claim: string,
   observation: StaleLockObservation
 ): Promise<boolean> {
-  const pinned = await statFile(quarantine);
+  const detached = await statFile(claim);
   if (
-    pinned === undefined ||
-    !pinned.isFile() ||
-    Number(pinned.dev) !== observation.dev ||
-    Number(pinned.ino) !== observation.ino ||
-    !(await sameFile(lockPath, quarantine))
+    detached === undefined ||
+    !detached.isFile() ||
+    Number(detached.dev) !== observation.dev ||
+    Number(detached.ino) !== observation.ino
   ) {
     return false;
   }
-  const owner = await readLockOwner(quarantine);
+  const owner = await readLockOwner(claim);
   if (observation.owner === undefined) {
     return (
-      owner === undefined && Date.now() - Number(pinned.mtimeMs) > STALE_LOCK_MS
+      owner === undefined &&
+      Date.now() - Number(detached.mtimeMs) > STALE_LOCK_MS
     );
   }
   return (

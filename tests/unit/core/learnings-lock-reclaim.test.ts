@@ -5,7 +5,9 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   observeStaleLock,
+  pinObservedStaleLock,
   reclaimObservedStaleLock,
+  removePinnedStaleLock,
 } from "../../../src/core/learnings-lock.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -125,6 +127,64 @@ describe("stale lock reclaim", () => {
     expect(JSON.parse(await readFile(lockPath, "utf8"))).toMatchObject({
       token: live.token,
     });
+  });
+
+  it("does not delete a live lock re-acquired between the identity check and removal", async () => {
+    // The residual unlink-by-path TOCTOU: the reclaimer detaches the stale inode
+    // and proves it stale, then — in the microscopic gap before removal — a LIVE
+    // holder acquires the now-free path. A removal that unlinked by pathname would
+    // delete that live inode. Identity-safe removal deletes only the detached
+    // stale inode and leaves the live holder's lock intact.
+    await publishLock(lockPath, reapedPid());
+    const observation = await observeStaleLock(lockPath);
+    expect(observation).not.toBeNull();
+
+    // Reclaimer detaches and confirms the inode is exactly the judged-stale lock.
+    // This atomically frees the shared path in the same step.
+    const pinned = await pinObservedStaleLock(lockPath, observation!);
+    expect(pinned).not.toBeNull();
+
+    // GAP: a live holder acquires the freed path before removal completes.
+    const live = await publishLock(lockPath, process.pid);
+
+    // The reclaimer now removes the detached stale inode — never the shared path.
+    expect(await removePinnedStaleLock(pinned!)).toBe(true);
+
+    // The live holder's lock survives, still linked to its own sidecar.
+    const [lockStat, ownerStat] = await Promise.all([
+      lstat(lockPath),
+      lstat(live.ownerPath),
+    ]);
+    expect(lockStat.ino).toBe(ownerStat.ino);
+    expect(JSON.parse(await readFile(lockPath, "utf8"))).toMatchObject({
+      token: live.token,
+      pid: process.pid,
+    });
+  });
+
+  it("never deletes a live re-acquire across many contended reclaim/re-acquire rounds", async () => {
+    for (let round = 0; round < 80; round += 1) {
+      await publishLock(lockPath, reapedPid());
+      const observation = await observeStaleLock(lockPath);
+      expect(observation).not.toBeNull();
+
+      // Detach the stale inode, then let a live holder grab the freed path
+      // before removal — the check→removal gap, every round.
+      const pinned = await pinObservedStaleLock(lockPath, observation!);
+      expect(pinned).not.toBeNull();
+      const live = await publishLock(lockPath, process.pid);
+
+      expect(await removePinnedStaleLock(pinned!)).toBe(true);
+
+      // The live lock is never destroyed, in any round.
+      expect(JSON.parse(await readFile(lockPath, "utf8"))).toMatchObject({
+        token: live.token,
+        pid: process.pid,
+      });
+
+      await removeQuietly(lockPath);
+      await removeQuietly(live.ownerPath);
+    }
   });
 });
 
