@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   assembleDeployPipelineStages,
@@ -277,5 +280,25 @@ describe("createDeployPipelineProbe", () => {
       })
     );
     expect(listGithubEnvironments).not.toHaveBeenCalled();
+  });
+
+  it("degrades oversized deploy workflow evidence without parsing it", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "lisa-ui-deploy-confined-"));
+    try {
+      await mkdir(path.join(root, ".github/workflows"), { recursive: true });
+      await writeFile(
+        path.join(root, ".github/workflows/deploy.yml"),
+        "x".repeat(512 * 1024 + 1)
+      );
+
+      const result = await runProbe(createDeployPipelineProbe(root));
+
+      expect(result).toMatchObject({
+        state: "unknown",
+        reason: "probe-failed",
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
