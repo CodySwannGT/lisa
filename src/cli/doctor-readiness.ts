@@ -8,6 +8,12 @@ import {
   type DetectedBlocker,
   type ReadinessVerdict,
 } from "./doctor-readiness-blockers.js";
+import {
+  EXECUTION_PROOF_DIMENSION_ID,
+  PROPORTIONALITY_DIMENSION_ID,
+  assessExecutionProofDimension,
+  assessProportionalityDimension,
+} from "./doctor-readiness-journey.js";
 import { getPackageVersion } from "./version.js";
 
 // Re-export the blocker-gate surface (RRR-5, #1857) so `.lisa/readiness.json`
@@ -175,12 +181,7 @@ export function resolveReadinessReportPath(root: string): string {
 export async function checkRepositoryReadiness(
   targetPath: string
 ): Promise<DoctorCheck> {
-  const dimensions: readonly ReadinessDimensionRecord[] =
-    READINESS_DIMENSIONS.map(dimension => ({
-      id: dimension.id,
-      status: "SKIP",
-      findings: [],
-    }));
+  const dimensions = await buildReadinessDimensions(targetPath);
   const { verdict, blockers, narrowed_claim } = assessReadiness(dimensions);
   const report: ReadinessReport = {
     schema_version: READINESS_SCHEMA_VERSION,
@@ -217,6 +218,36 @@ export async function checkRepositoryReadiness(
       `all SKIP pending evidence wiring in later PRD #1739 tickets; see readiness-rubric). ` +
       `Report written to ${READINESS_REPORT_DISPLAY_PATH} (schema_version ${READINESS_SCHEMA_VERSION}).`,
   };
+}
+
+/**
+ * Build the eight readiness dimensions in fixed render order. The execution/proof
+ * and proportionality dimensions are wired to #1742's shared journey runner
+ * (RRR-6, #1858): execution/proof reuses fresh qualification evidence or reports
+ * the operability claim as not established (a stated-reason SKIP) when no journey
+ * runner is injected, and proportionality surfaces the scaffolding-subtraction
+ * candidate count into `machinery_to_remove`. The remaining six render `SKIP`
+ * with a reason until their evidence surfaces ship (later PRD #1739 tickets), per
+ * the never-silently-omit contract.
+ * @param targetPath - Project path to assess
+ * @returns The eight per-dimension records, in fixed order
+ */
+async function buildReadinessDimensions(
+  targetPath: string
+): Promise<readonly ReadinessDimensionRecord[]> {
+  return Promise.all(
+    READINESS_DIMENSIONS.map(
+      async (dimension): Promise<ReadinessDimensionRecord> => {
+        if (dimension.id === EXECUTION_PROOF_DIMENSION_ID) {
+          return assessExecutionProofDimension(targetPath);
+        }
+        if (dimension.id === PROPORTIONALITY_DIMENSION_ID) {
+          return assessProportionalityDimension(targetPath);
+        }
+        return { id: dimension.id, status: "SKIP", findings: [] };
+      }
+    )
+  );
 }
 
 /**
