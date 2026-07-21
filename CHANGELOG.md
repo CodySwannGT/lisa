@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.3](https://github.com/CodySwannGT/lisa/compare/v2.286.2...v2.286.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* **security:** floor fast-xml-parser at 5.10.1 ([b2bac0e](https://github.com/CodySwannGT/lisa/commit/b2bac0e1033695ae9adf26b0b6edd0d0cc5a45ba)), closes [CodySwannGT/lisa#1925](https://github.com/CodySwannGT/lisa/issues/1925)
+
 ### [2.286.2](https://github.com/CodySwannGT/lisa/compare/v2.286.1...v2.286.2) (2026-07-21)
 
 
