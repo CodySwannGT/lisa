@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.274.0](https://github.com/CodySwannGT/lisa/compare/v2.273.0...v2.274.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** populate readiness journey evidence via the shared worker-epoch runner ([#1858](https://github.com/CodySwannGT/lisa/issues/1858)) ([ebddba7](https://github.com/CodySwannGT/lisa/commit/ebddba7e49d733d9250c0fda521b5edebcfa0efa)), closes [#1742](https://github.com/CodySwannGT/lisa/issues/1742) [#1742](https://github.com/CodySwannGT/lisa/issues/1742) [#1738](https://github.com/CodySwannGT/lisa/issues/1738) [#1742](https://github.com/CodySwannGT/lisa/issues/1742)
+
 ## [2.273.0](https://github.com/CodySwannGT/lisa/compare/v2.272.0...v2.273.0) (2026-07-21)
 
 
