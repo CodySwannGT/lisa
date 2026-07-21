@@ -211,6 +211,22 @@ export function createRepositoryReadinessDoctorGroup(root = process.cwd()) {
 }
 
 /**
+ * Group id of the orthogonal repository-readiness assessment. Named once so the
+ * verdict scorer can hold that group — and only that group — to the stricter
+ * "assessed or it does not count" bar.
+ */
+const REPOSITORY_READINESS_GROUP_ID = "repository-readiness";
+
+/**
+ * Score the doctor groups onto the shipped verdict ladder.
+ *
+ * `SKIP` is benign for the installation groups — "no wiki/ directory here" is a
+ * genuine not-applicable, so an all-SKIP installation report is still `READY`.
+ * It is NOT benign for the repository-readiness group: there a `SKIP` means the
+ * ownership dimension was never assessed, and calling zero evidence `READY`
+ * emits a green unattended-fleet claim backed by nothing (#1897). So an
+ * unassessed readiness dimension downgrades to `READY_WITH_WARNINGS`, while a
+ * fully-`PASS` readiness group still reaches `READY`.
  * @param {readonly DoctorGroup[]} groups
  * @returns {DoctorVerdict}
  */
@@ -222,7 +238,11 @@ export function computeDoctorVerdict(groups) {
   if (checks.some(check => check.status === "WARN")) {
     return "READY_WITH_WARNINGS";
   }
-  return "READY";
+  const readinessUnassessed = groups
+    .filter(group => group.id === REPOSITORY_READINESS_GROUP_ID)
+    .flatMap(group => group.checks.map(normalizeCheck))
+    .some(check => check.status === "SKIP");
+  return readinessUnassessed ? "READY_WITH_WARNINGS" : "READY";
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   computeDoctorVerdict,
   countDoctorStatuses,
   createPluginSyncDoctorGroup,
+  createRepositoryReadinessDoctorGroup,
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
 
@@ -142,6 +143,42 @@ describe("doctor report rendering (#750)", () => {
         },
       ])
     ).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("never scores an unassessed repository-readiness group as READY (#1897)", () => {
+    // The eight readiness dimensions all render SKIP in this Lisa version. An
+    // unassessed dimension is silence, not evidence, so the agent-facing
+    // scorer must not turn it into a green unattended-fleet claim.
+    const group = createRepositoryReadinessDoctorGroup(process.cwd());
+
+    expect(group.checks).toHaveLength(8);
+    expect([...new Set(group.checks.map(check => check.status))]).toEqual([
+      "SKIP",
+    ]);
+    expect(computeDoctorVerdict([group])).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("still scores a fully assessed repository-readiness group as READY (#1897)", () => {
+    expect(
+      computeDoctorVerdict([
+        {
+          id: "repository-readiness",
+          title: "Repository readiness",
+          checks: [
+            {
+              id: "context-routing",
+              status: "PASS",
+              summary: "routing evidence was gathered and holds",
+            },
+            {
+              id: "delivery-authority",
+              status: "PASS",
+              summary: "what ships equals what was validated",
+            },
+          ],
+        },
+      ])
+    ).toBe("READY");
   });
 
   it("counts statuses across all groups", () => {
