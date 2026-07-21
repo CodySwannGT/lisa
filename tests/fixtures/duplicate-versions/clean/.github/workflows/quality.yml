@@ -1,0 +1,26 @@
+# Fixture: the manifest-derived (clean) shape. Every version this workflow
+# needs is PARSED from package.json at run time, so bumping the manifest is the
+# only edit a version change requires.
+name: Quality
+
+on: [pull_request]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Resolve pinned versions from the canonical manifest
+        id: pins
+        run: |
+          echo "bun=$(node -p "require('./package.json').engines.bun")" >> "$GITHUB_OUTPUT"
+          echo "astgrep=$(node -p "require('./package.json').dependencies['@ast-grep/cli'].replace(/^[^0-9]*/, '')")" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.pins.outputs.bun }}
+      - name: Install ast-grep at the manifest version
+        run: npm install -g "@ast-grep/cli@${{ steps.pins.outputs.astgrep }}"
+      - name: Loose ranges are not literal duplicates
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
