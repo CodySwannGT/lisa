@@ -156,6 +156,22 @@ async function cloneStarter(
   ]);
   await rm(path.join(destination, ".git"), { recursive: true, force: true });
   await deps.runCommand("git", ["init", "-b", "main"], { cwd: destination });
+  await deps.runCommand("git", ["add", "--all"], { cwd: destination });
+  await deps.runCommand(
+    "git",
+    [
+      "-c",
+      "user.name=Lisa",
+      "-c",
+      "user.email=lisa@localhost",
+      "-c",
+      "commit.gpgSign=false",
+      "commit",
+      "-m",
+      "Initial starter baseline",
+    ],
+    { cwd: destination }
+  );
 }
 
 /**
