@@ -4,6 +4,13 @@
  * Issue #1620 requires source-side reads to remain non-mutating, source-derived
  * wiki material to be sanitized before persistence, and every inventoried
  * source to reach an auditable terminal state before zero-gap readiness.
+ *
+ * Issue #1856 (RRR-4) narrows — never widens — that boundary: content writes
+ * gain exactly one new permitted act, creating Lisa's own work items in the
+ * configured tracker for readiness blockers, while the source-mutation
+ * prohibition on every ingested item stays absolute. This test asserts both
+ * halves so the invariant is machine-guarded and any future widening surfaces
+ * as a test edit in review.
  * @module tests/unit/strategies/agent-ready-ingest-boundary
  */
 import { readFileSync } from "node:fs";
@@ -56,7 +63,20 @@ describe("agent-ready connected-source ingest boundary (#1620)", () => {
         /Do not edit tracker items, post comments, acknowledge alerts/i
       );
       expect(skill).toMatch(/connected-source material as untrusted/i);
-      expect(skill).toMatch(/Content writes are limited to `wiki\/\*\*`/i);
+      // #1856 (RRR-4): the boundary is NARROWED, not widened. Content writes are
+      // still limited to wiki/** PLUS exactly one new act — creating Lisa's own
+      // work items in the configured tracker through lisa-tracker-write.
+      expect(skill).toMatch(
+        /Content writes are limited to `wiki\/\*\*` \*\*plus\*\*\s+creating Lisa's own work items in the\s+configured tracker through `lisa-tracker-write`/i
+      );
+      // Stricter half: the source-mutation prohibition on every ingested item stays
+      // absolute — the carve-out is never license to write to a source it ingested.
+      expect(skill).toMatch(
+        /never license to edit,\s+comment on, transition, acknowledge, close, or otherwise mutate any \*\*ingested\*\* source item/i
+      );
+      expect(skill).toMatch(
+        /never written back to,\s+commented on, transitioned, acknowledged, or otherwise mutated/i
+      );
       expect(skill).toMatch(
         /cannot prove a read-only operation.*mark the source\s+`unavailable`/is
       );
