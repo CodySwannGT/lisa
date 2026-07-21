@@ -41,6 +41,7 @@ export const USES_DOWNLOAD = "      - uses: actions/download-artifact@v4";
 /** Statuses and workflow file names reused across the fixtures. */
 export const PASS = "PASS";
 export const FAIL = "FAIL";
+export const WARN = "WARN";
 export const SKIP = "SKIP";
 export const CI_YML = "ci.yml";
 export const DEPLOY_YML = "deploy.yml";
@@ -74,6 +75,43 @@ export async function writeWorkflow(
   const dir = path.join(root, ".github", "workflows");
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, fileName), `${lines.join("\n")}\n`, "utf8");
+}
+
+/**
+ * Write one arbitrary file into a scratch repository, creating parent
+ * directories. The supply-chain and context-routing producers read ordinary
+ * repository files (manifests, lockfiles, docs, hooks) rather than workflows, so
+ * they need a writer that is not workflow-shaped.
+ * @param root - Repository root
+ * @param relativePath - Repo-relative path, e.g. `.husky/pre-commit`
+ * @param content - Exact file contents
+ */
+export async function writeRepoFile(
+  root: string,
+  relativePath: string,
+  content: string
+): Promise<void> {
+  const target = path.join(root, relativePath);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, content, "utf8");
+}
+
+/**
+ * Write a JSON file into a scratch repository.
+ * @param root - Repository root
+ * @param relativePath - Repo-relative path, e.g. `package.json`
+ * @param value - Value to serialize
+ */
+export async function writeRepoJson(
+  root: string,
+  relativePath: string,
+  value: unknown
+): Promise<void> {
+  await writeRepoFile(
+    root,
+    relativePath,
+    `${JSON.stringify(value, null, 2)}\n`
+  );
 }
 
 /**
