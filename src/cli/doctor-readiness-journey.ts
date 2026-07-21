@@ -31,6 +31,7 @@ import {
   resolveMutationPolicy,
   resolveMutationPolicyForPath,
 } from "./doctor-readiness-journey-freshness.js";
+import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
   resolveWorkerJourneyEvidence,
   type RuntimeWorkerSignature,
@@ -56,15 +57,10 @@ const OPERABILITY_CLAIM_ID = "end-to-end-operability";
 const OPERABILITY_BOUNDARY = "configured-worker-representative-journey";
 const PROVABILITY_BLOCKER_ID = "B7";
 
-/** Per-dimension status, mirroring the shared doctor readiness statuses. */
-type ReadinessStatus = "PASS" | "WARN" | "FAIL" | "SKIP";
-
-/** A per-dimension record the readiness collector persists. */
-export interface JourneyDimensionRecord {
-  readonly id: string;
-  readonly status: ReadinessStatus;
-  readonly findings: readonly unknown[];
-}
+// The per-dimension record shape is defined once in `doctor-readiness-types.ts`
+// and shared by every producer, so a producer can never drift from the record
+// the collector persists.
+export type { ReadinessDimensionRecord };
 
 /** The outcome of running a representative journey. */
 export type JourneyOutcome =
@@ -136,7 +132,7 @@ export interface ProportionalityOptions {
 export async function assessExecutionProofDimension(
   targetPath: string,
   options: ExecutionProofOptions = {}
-): Promise<JourneyDimensionRecord> {
+): Promise<ReadinessDimensionRecord> {
   const policy =
     options.mutationPolicy ?? (await resolveMutationPolicyForPath(targetPath));
   if (policy === "forbidden") {
@@ -171,18 +167,36 @@ export async function assessExecutionProofDimension(
 export async function assessProportionalityDimension(
   targetPath: string,
   options: ProportionalityOptions = {}
-): Promise<JourneyDimensionRecord> {
+): Promise<ReadinessDimensionRecord> {
   const count =
     options.subtractionCount ??
     (await resolveWorkerJourneyEvidence(targetPath)).subtractionCount;
   if (count <= 0) {
-    return { id: PROPORTIONALITY_DIMENSION_ID, status: "SKIP", findings: [] };
+    // A SKIP is never blank (#1898): it states why the dimension was not
+    // assessed, so silence is reported as silence rather than as health.
+    return {
+      id: PROPORTIONALITY_DIMENSION_ID,
+      status: "SKIP",
+      findings: [
+        {
+          reason:
+            "the worker-epoch runner (#1742) surfaced no scaffolding-subtraction " +
+            "candidates, so there is nothing to weigh against the job; " +
+            "proportionality is reported as unassessed rather than as proven",
+          skip: true,
+        },
+      ],
+    };
   }
   return {
     id: PROPORTIONALITY_DIMENSION_ID,
     status: "SKIP",
     findings: [
       {
+        reason:
+          "proportionality is surfaced, never scored: subtraction candidates " +
+          "are reported for operator review and no readiness judgement is made",
+        skip: true,
         machinery_to_remove: [
           `${count} worker-specific scaffolding-subtraction candidate` +
             `${count === 1 ? "" : "s"} surfaced by the worker-epoch runner (#1742)`,
@@ -203,7 +217,7 @@ export async function assessProportionalityDimension(
  */
 function reuseFreshEvidence(
   evidence: WorkerJourneyEvidence
-): JourneyDimensionRecord {
+): ReadinessDimensionRecord {
   return {
     id: EXECUTION_PROOF_DIMENSION_ID,
     status: "PASS",
@@ -235,7 +249,7 @@ async function runRepresentativeJourney(
   targetPath: string,
   evidence: WorkerJourneyEvidence,
   options: ExecutionProofOptions
-): Promise<JourneyDimensionRecord> {
+): Promise<ReadinessDimensionRecord> {
   if (!options.runJourney) {
     return skipDimension(
       "end-to-end operability not established: no representative journey could " +
@@ -267,7 +281,7 @@ async function runRepresentativeJourney(
 function journeyPassed(
   evidence: WorkerJourneyEvidence,
   journeyEvidence: string
-): JourneyDimensionRecord {
+): ReadinessDimensionRecord {
   return {
     id: EXECUTION_PROOF_DIMENSION_ID,
     status: "PASS",
@@ -297,7 +311,7 @@ async function journeyFailed(
   evidence: WorkerJourneyEvidence,
   outcome: Extract<JourneyOutcome, { result: "failed" }>,
   options: ExecutionProofOptions
-): Promise<JourneyDimensionRecord> {
+): Promise<ReadinessDimensionRecord> {
   const detail =
     outcome.failureDetail ?? "the representative journey did not pass";
   const summary = `Representative journey failed for ${evidence.signature.host}: ${detail}`;
@@ -359,7 +373,7 @@ function establishedClaim(): Record<string, unknown> {
 function skipDimension(
   reason: string,
   extra: Record<string, unknown> = {}
-): JourneyDimensionRecord {
+): ReadinessDimensionRecord {
   return {
     id: EXECUTION_PROOF_DIMENSION_ID,
     status: "SKIP",

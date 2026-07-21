@@ -309,12 +309,19 @@ describe("assessProportionalityDimension", () => {
     expect(assessReadiness([dimension]).blockers).toEqual([]);
   });
 
-  it("emits no findings when there is nothing to subtract", async () => {
+  it("SKIPs with a stated reason, never blankly, when there is nothing to subtract", async () => {
     const cwd = await getTempDir();
 
     const dimension = await assessProportionalityDimension(cwd);
 
     expect(dimension.status).toBe("SKIP");
-    expect(dimension.findings).toEqual([]);
+    // #1898: a blank SKIP reads as "nothing to report" when it means "never
+    // scored", so the reason travels with the record.
+    const finding = dimension.findings[0] as Record<string, unknown>;
+    expect(finding.skip).toBe(true);
+    expect(typeof finding.reason).toBe("string");
+    expect(finding.reason).not.toBe("");
+    expect(Object.hasOwn(finding, "blocker")).toBe(false);
+    expect(assessReadiness([dimension]).blockers).toEqual([]);
   });
 });
