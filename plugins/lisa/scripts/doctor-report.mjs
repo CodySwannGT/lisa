@@ -142,7 +142,7 @@ const REPOSITORY_READINESS_DIMENSIONS = [
     question:
       "Is every tool the work needs provably reachable, not merely installed (tool-access-gate)?",
     skipReason:
-      "Capabilities/tools evidence is gathered by the journey-execution wiring (RRR-6, #1858); no usable `.lisa/readiness.json` was found, so this dimension was not assessed here. Run `lisa doctor --offline --readiness` to produce the report, then re-run doctor.",
+      "Tool reachability needs a live read-only probe and can never be established from an offline read: the `tool-access-gate` rule names presence — a binary on `PATH`, a dependency in a manifest, a configured MCP server — as the anti-pattern, because it proves a tool was declared, never that a request through it succeeded. This dimension is therefore a deliberate, permanent reasoned SKIP on an offline pass rather than a not-yet-wired one; only a run that actually exercises the tools can answer it.",
   },
   {
     id: "domain-ownership",
@@ -222,7 +222,7 @@ function resolveReadinessReportPath(repoRoot) {
  * "the CLI readiness pass has not produced a result this surface can read" —
  * and none of them is evidence about the repository itself.
  * @param {string} repoRoot
- * @returns {{ dimensions: readonly Record<string, unknown>[], blockers: readonly Record<string, unknown>[] } | null}
+ * @returns {{ dimensions: readonly Record<string, unknown>[], blockers: readonly Record<string, unknown>[], narrowedClaim: string, provenance: string } | null}
  */
 function readReadinessReport(repoRoot) {
   const reportPath = resolveReadinessReportPath(repoRoot);
@@ -242,6 +242,15 @@ function readReadinessReport(repoRoot) {
     return {
       dimensions: parsed.dimensions,
       blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
+      // The narrowed claim is the sentence `readiness-rubric` requires whenever
+      // a blocker stands ("...IS ready for supervised, single-ticket agent
+      // work..."). Dropping it would hand the agent operator a bare NOT_READY
+      // where the CLI hands them the fallback they can actually act on.
+      narrowedClaim:
+        typeof parsed.narrowed_claim === "string" ? parsed.narrowed_claim : "",
+      // Stamped into every projected check so a months-old report cannot read
+      // as current truth: this surface reflects a file, not a live assessment.
+      provenance: describeReportProvenance(parsed),
     };
   } catch {
     return null;
@@ -249,17 +258,36 @@ function readReadinessReport(repoRoot) {
 }
 
 /**
+ * Describe when the projected report was produced and by which Lisa version.
+ * @param {Record<string, unknown>} parsed
+ * @returns {string}
+ */
+function describeReportProvenance(parsed) {
+  const generatedAt =
+    typeof parsed.generated_at === "string" && parsed.generated_at.length > 0
+      ? parsed.generated_at
+      : "an unrecorded time";
+  const version =
+    typeof parsed.lisa_version === "string" && parsed.lisa_version.length > 0
+      ? ` by Lisa ${parsed.lisa_version}`
+      : "";
+  return `generated ${generatedAt}${version}`;
+}
+
+/**
  * Pull the operator-facing sentence out of a dimension's findings. The CLI
- * producers write human text under `evidence` (an assessed dimension) or
- * `reason` (a deliberately-unassessed one); the rest of the finding is machine
- * bookkeeping the blocker engine owns.
+ * producers write human text under `evidence` (an assessed dimension),
+ * `reason` (a deliberately-unassessed one), or `observation` (a neutral note);
+ * the rest of the finding is machine bookkeeping the blocker engine owns.
+ * Reading only two of the three would print the dimension's question under a
+ * FAIL, which reads as "nothing to report" exactly when there is most to say.
  * @param {readonly unknown[]} findings
  * @returns {string}
  */
 function summarizeReadinessFindings(findings) {
   const sentences = findings
     .filter(finding => finding !== null && typeof finding === "object")
-    .flatMap(finding => [finding.evidence, finding.reason])
+    .flatMap(finding => [finding.evidence, finding.reason, finding.observation])
     .filter(text => typeof text === "string" && text.trim().length > 0)
     .map(text => text.trim());
   if (sentences.length === 0) {
@@ -272,11 +300,55 @@ function summarizeReadinessFindings(findings) {
 }
 
 /**
+ * Carry the CLI's not-established caveat onto every unassessed dimension. The
+ * CLI headline says it out loud — "N of 8 dimensions were never assessed, so
+ * this cannot say whether an unattended fleet may operate here" — and a reader
+ * who sees a lone `SKIP` line without it can mistake silence for a clean bill
+ * of health on that dimension.
+ * @param {DoctorCheck} check
+ * @param {readonly DoctorCheck[]} checks
+ * @returns {DoctorCheck}
+ */
+function applyNotEstablishedCaveat(check, checks) {
+  const unassessed = checks.filter(entry => entry.status === "SKIP").length;
+  if (check.status !== "SKIP" || unassessed === 0) {
+    return check;
+  }
+  return {
+    ...check,
+    observed: `${check.observed} NOT ESTABLISHED: ${unassessed} of ${checks.length} dimensions were never assessed, so this cannot say whether an unattended fleet may operate here.`,
+  };
+}
+
+/**
+ * Collect the ids of the standing ship blockers a dimension owns. Blockers with
+ * no usable id are dropped rather than stringified, so a malformed record can
+ * never render "Standing ship blocker(s): undefined" at an operator.
+ * @param {{ id: string }} dimension
+ * @param {{ blockers: readonly Record<string, unknown>[] }} report
+ * @returns {readonly string[]}
+ */
+function standingBlockerIds(dimension, report) {
+  return report.blockers
+    .filter(
+      blocker =>
+        blocker !== null &&
+        typeof blocker === "object" &&
+        (blocker.dimension_id === dimension.id ||
+          (Array.isArray(blocker.owning_dimensions) &&
+            blocker.owning_dimensions.includes(dimension.id)))
+    )
+    .map(blocker => blocker.id)
+    .filter(id => typeof id === "string" && id.length > 0)
+    .filter((id, index, ids) => ids.indexOf(id) === index);
+}
+
+/**
  * Project one CLI dimension record into this surface's check shape, or `null`
  * when the record is absent or carries a status outside the shipped vocabulary
  * (the caller then falls back to the reasoned SKIP).
  * @param {{ id: string, question: string, skipReason: string }} dimension
- * @param {{ dimensions: readonly Record<string, unknown>[], blockers: readonly Record<string, unknown>[] }} report
+ * @param {{ dimensions: readonly Record<string, unknown>[], blockers: readonly Record<string, unknown>[], narrowedClaim: string, provenance: string }} report
  * @returns {DoctorCheck | null}
  */
 function projectReadinessDimension(dimension, report) {
@@ -289,26 +361,27 @@ function projectReadinessDimension(dimension, report) {
   }
   const findings = Array.isArray(record.findings) ? record.findings : [];
   const summary = summarizeReadinessFindings(findings);
-  const blockerIds = report.blockers
-    .filter(
-      blocker =>
-        blocker !== null &&
-        typeof blocker === "object" &&
-        (blocker.dimension_id === dimension.id ||
-          (Array.isArray(blocker.owning_dimensions) &&
-            blocker.owning_dimensions.includes(dimension.id)))
-    )
-    .map(blocker => String(blocker.id))
-    .filter((id, index, ids) => ids.indexOf(id) === index);
+  const blockerIds = standingBlockerIds(dimension, report);
 
   return {
     id: dimension.id,
-    status: record.status,
+    // A standing blocker outranks the recorded label. Three CLI producers (B1
+    // domain-ownership, B4 feedback-guardrails, B6 context-routing) record
+    // `WARN` while standing a blocker, each stating in-line that "the blocker
+    // engine never reads this status, so the finding flips the repository to
+    // NOT_READY exactly as a FAIL would". Projecting that `WARN` verbatim would
+    // score READY_WITH_WARNINGS on a repository the CLI calls NOT_READY — the
+    // precise disagreement this bridge exists to eliminate. This still reflects
+    // the CLI's decision rather than re-scoring: the CLI decided the blocker
+    // stands and wrote it into `blockers[]`.
+    status: blockerIds.length > 0 ? "FAIL" : record.status,
     summary: summary.length > 0 ? summary : dimension.question,
-    observed: `${dimension.question} Projected from \`.lisa/readiness.json\` (schema_version ${READINESS_REPORT_SCHEMA_VERSION}), the report the Lisa CLI readiness pass wrote.`,
+    observed: `${dimension.question} Projected from \`.lisa/readiness.json\` (schema_version ${READINESS_REPORT_SCHEMA_VERSION}, ${report.provenance}), the report the Lisa CLI readiness pass wrote.`,
     ...(blockerIds.length > 0
       ? {
-          remediation: `Standing ship blocker(s): ${blockerIds.join(", ")}. See \`.lisa/readiness.json\` for the full evidence and the \`readiness-rubric\` rule for the blocker definitions.`,
+          remediation:
+            `Standing ship blocker(s): ${blockerIds.join(", ")}. See \`.lisa/readiness.json\` for the full evidence and the \`readiness-rubric\` rule for the blocker definitions.` +
+            (report.narrowedClaim.length > 0 ? ` ${report.narrowedClaim}` : ""),
         }
       : {}),
   };
@@ -334,23 +407,24 @@ function projectReadinessDimension(dimension, report) {
  */
 export function createRepositoryReadinessDoctorGroup(root = process.cwd()) {
   const report = readReadinessReport(path.resolve(root));
+  const checks = REPOSITORY_READINESS_DIMENSIONS.map(
+    dimension =>
+      (report === null
+        ? null
+        : projectReadinessDimension(dimension, report)) ?? {
+        id: dimension.id,
+        status: "SKIP",
+        summary: dimension.question,
+        observed:
+          report === null
+            ? dimension.skipReason
+            : `${dimension.question} \`.lisa/readiness.json\` carries no usable record for this dimension, so it was not assessed here. Re-run \`lisa doctor --offline --readiness\` to regenerate the report.`,
+      }
+  );
   return {
     id: "repository-readiness",
     title: "Repository readiness",
-    checks: REPOSITORY_READINESS_DIMENSIONS.map(
-      dimension =>
-        (report === null
-          ? null
-          : projectReadinessDimension(dimension, report)) ?? {
-          id: dimension.id,
-          status: "SKIP",
-          summary: dimension.question,
-          observed:
-            report === null
-              ? dimension.skipReason
-              : `${dimension.question} \`.lisa/readiness.json\` carries no usable record for this dimension, so it was not assessed here. Re-run \`lisa doctor --offline --readiness\` to regenerate the report.`,
-        }
-    ),
+    checks: checks.map(check => applyNotEstablishedCaveat(check, checks)),
   };
 }
 

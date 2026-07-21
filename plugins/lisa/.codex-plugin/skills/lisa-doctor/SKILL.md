@@ -331,6 +331,15 @@ default doctor path never renders it and stays byte-identical.
    not assessed. Absence means the readiness pass has not run, never that the repository is clean: a
    pass or a fail is never manufactured from a missing report. Run
    `lisa doctor --offline --readiness` to produce the report first.
+
+   **A standing blocker outranks the recorded status.** Some CLI producers record `WARN` while
+   standing a ship blocker — the blocker engine never reads the per-dimension status, so the finding
+   flips the repository to `NOT_READY` exactly as a `FAIL` would. A dimension that owns an entry in
+   the report's `blockers[]` therefore projects as `FAIL` regardless of its recorded label, and its
+   remediation names the blocker ids and repeats the report's `narrowed_claim` (the "IS ready for
+   supervised, single-ticket agent work" fallback `readiness-rubric` requires whenever a blocker
+   stands). Projected checks also carry the report's `generated_at`/`lisa_version` so a stale report
+   cannot read as current truth, and unassessed dimensions carry the CLI's not-established caveat.
 4. **Reuse the shipped verdict ladder and consequence ordering.** No new verdict value and no new
    severity: reuse `READY` / `READY_WITH_WARNINGS` / `NOT_READY`. `READY` requires *positive*
    evidence — every readiness dimension assessed and clean, with no blocker standing. An unassessed

@@ -8,10 +8,12 @@
  * group projects the CLI's per-dimension result when the report is on disk, and
  * degrades to today's reasoned SKIP when it is absent, stale, or unparseable.
  * Never manufacture a pass or a fail from absence: a missing report means the
- * CLI readiness pass has not run, not that the repository is clean.
+ * CLI readiness pass has not run, not that the repository is clean. The
+ * standing-blocker half of the contract lives in the sibling
+ * `doctor-readiness-blocker-projection` suite.
  * @module tests/unit/strategies/doctor-readiness-report-bridge
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -21,63 +23,18 @@ import {
   computeDoctorVerdict,
   createRepositoryReadinessDoctorGroup,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
-
-/** The dimension these fixtures drive a standing ship blocker through. */
-const DELIVERY_AUTHORITY = "delivery-authority";
-
-/** The eight ownership dimensions, in fixed render order (readiness-rubric). */
-const DIMENSION_IDS = [
-  "context-routing",
-  "capabilities-tools",
-  "domain-ownership",
-  "execution-proof",
-  "feedback-guardrails",
-  "dependencies-supply-chain",
+import {
+  CONTEXT_ROUTING,
   DELIVERY_AUTHORITY,
-  "proportionality",
-] as const;
+  DIMENSION_IDS,
+  passingDimensions,
+  PROPORTIONALITY,
+  readinessReport,
+  withDimension,
+  writeReadinessReport,
+} from "./doctor-readiness-report-fixtures.js";
 
 let root = "";
-
-const writeReadinessReport = (contents: string): void => {
-  mkdirSync(path.join(root, ".lisa"), { recursive: true });
-  writeFileSync(path.join(root, ".lisa", "readiness.json"), contents, "utf8");
-};
-
-/**
- * Build a persisted-report fixture in the CLI's shape.
- * @param root0 - Fixture inputs
- * @param root0.dimensions - Per-dimension records to persist
- * @param root0.verdict - Report-level verdict
- * @param root0.blockers - Detected blockers to persist
- * @returns The report serialized as JSON
- */
-const readinessReport = ({
-  dimensions,
-  verdict,
-  blockers = [],
-}: {
-  dimensions: readonly { id: string; status: string; findings: unknown[] }[];
-  verdict: string;
-  blockers?: readonly Record<string, unknown>[];
-}): string =>
-  JSON.stringify({
-    schema_version: 1,
-    generated_at: "2026-07-21T00:00:00.000Z",
-    lisa_version: "2.281.0",
-    worker_signature: "claude/unknown/unknown",
-    verdict,
-    narrowed_claim: null,
-    blockers,
-    blocker_count: blockers.length,
-    dimensions,
-  });
-
-const passingDimensions = DIMENSION_IDS.map(id => ({
-  id,
-  status: "PASS",
-  findings: [{ evidence: `dimension ${id} assessed clean`, checked: [] }],
-}));
 
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), "lisa-readiness-bridge-"));
@@ -90,46 +47,27 @@ afterEach(() => {
 describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
   it("projects a FAIL dimension from the CLI report instead of SKIP", () => {
     writeReadinessReport(
+      root,
       readinessReport({
         verdict: "NOT_READY",
-        blockers: [
-          {
-            id: "B3",
-            label: "Credentials carry material unintended authority",
-            dimension_id: DELIVERY_AUTHORITY,
-            owning_dimensions: [DELIVERY_AUTHORITY],
-          },
-        ],
-        dimensions: DIMENSION_IDS.map(id =>
-          id === DELIVERY_AUTHORITY
-            ? {
-                id,
-                status: "FAIL",
-                findings: [
-                  {
-                    blocker: "B3",
-                    evidence:
-                      "release.yml job `quality` declares `secrets: inherit`",
-                  },
-                ],
-              }
-            : {
-                id,
-                status: "PASS",
-                findings: [{ evidence: `dimension ${id} assessed clean` }],
-              }
-        ),
+        dimensions: withDimension(DELIVERY_AUTHORITY, {
+          status: "FAIL",
+          findings: [
+            {
+              blocker: "B3",
+              evidence: "release.yml job `quality` declares `secrets: inherit`",
+            },
+          ],
+        }),
       })
     );
 
     const group = createRepositoryReadinessDoctorGroup(root);
-    const check = group.checks.find(
-      entry => entry.id === DELIVERY_AUTHORITY
-    ) as { id: string; status: string; summary: string };
+    const check = group.checks.find(entry => entry.id === DELIVERY_AUTHORITY);
 
     expect(group.checks).toHaveLength(8);
-    expect(check.status).toBe("FAIL");
-    expect(check.summary).toContain(
+    expect(check?.status).toBe("FAIL");
+    expect(check?.summary).toContain(
       "release.yml job `quality` declares `secrets: inherit`"
     );
     expect(computeDoctorVerdict([group])).toBe("NOT_READY");
@@ -137,6 +75,7 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
 
   it("reaches READY when the CLI report is clean across all eight dimensions", () => {
     writeReadinessReport(
+      root,
       readinessReport({ verdict: "READY", dimensions: passingDimensions })
     );
 
@@ -149,32 +88,14 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
     expect(computeDoctorVerdict([group])).toBe("READY");
   });
 
-  it("projects WARN and SKIP dimension statuses verbatim", () => {
+  it("projects WARN and SKIP dimension statuses verbatim absent a blocker", () => {
     writeReadinessReport(
+      root,
       readinessReport({
         verdict: "READY_WITH_WARNINGS",
-        dimensions: DIMENSION_IDS.map(id => {
-          if (id === "capabilities-tools") {
-            return {
-              id,
-              status: "SKIP",
-              findings: [
-                { reason: "tool reachability needs a live probe", skip: true },
-              ],
-            };
-          }
-          if (id === "proportionality") {
-            return {
-              id,
-              status: "WARN",
-              findings: [{ evidence: "scaffolding to subtract remains" }],
-            };
-          }
-          return {
-            id,
-            status: "PASS",
-            findings: [{ evidence: `dimension ${id} assessed clean` }],
-          };
+        dimensions: withDimension(PROPORTIONALITY, {
+          status: "WARN",
+          findings: [{ evidence: "scaffolding to subtract remains" }],
         }),
       })
     );
@@ -184,9 +105,8 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
       group.checks.map(check => [check.id, check.status])
     );
 
-    expect(statuses["capabilities-tools"]).toBe("SKIP");
-    expect(statuses["proportionality"]).toBe("WARN");
-    expect(statuses["context-routing"]).toBe("PASS");
+    expect(statuses[PROPORTIONALITY]).toBe("WARN");
+    expect(statuses[CONTEXT_ROUTING]).toBe("PASS");
     expect(computeDoctorVerdict([group])).toBe("READY_WITH_WARNINGS");
   });
 
@@ -202,7 +122,7 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
   });
 
   it("reasoned-SKIPs when the report is unparseable", () => {
-    writeReadinessReport("{ not json");
+    writeReadinessReport(root, "{ not json");
 
     const group = createRepositoryReadinessDoctorGroup(root);
 
@@ -214,6 +134,7 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
 
   it("reasoned-SKIPs when the report carries an unknown schema_version", () => {
     writeReadinessReport(
+      root,
       JSON.stringify({
         schema_version: 99,
         verdict: "READY",
@@ -231,10 +152,11 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
 
   it("reasoned-SKIPs a dimension the report never recorded", () => {
     writeReadinessReport(
+      root,
       readinessReport({
         verdict: "READY",
         dimensions: passingDimensions.filter(
-          dimension => dimension.id !== "proportionality"
+          dimension => dimension.id !== PROPORTIONALITY
         ),
       })
     );
@@ -245,8 +167,39 @@ describe("agent readiness group bridges .lisa/readiness.json (#1902)", () => {
     );
 
     expect(group.checks).toHaveLength(8);
-    expect(statuses["proportionality"]).toBe("SKIP");
-    expect(statuses["context-routing"]).toBe("PASS");
+    expect(statuses[PROPORTIONALITY]).toBe("SKIP");
+    expect(statuses[CONTEXT_ROUTING]).toBe("PASS");
+    expect(computeDoctorVerdict([group])).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("degrades a status outside the shipped vocabulary to SKIP", () => {
+    writeReadinessReport(
+      root,
+      readinessReport({
+        verdict: "READY",
+        dimensions: withDimension("execution-proof", { status: "UNKNOWN" }),
+      })
+    );
+
+    const group = createRepositoryReadinessDoctorGroup(root);
+    const check = group.checks.find(entry => entry.id === "execution-proof");
+
+    expect(check?.status).toBe("SKIP");
+    expect(computeDoctorVerdict([group])).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("reasoned-SKIPs every dimension when the report records none", () => {
+    writeReadinessReport(
+      root,
+      readinessReport({ verdict: "READY", dimensions: [] })
+    );
+
+    const group = createRepositoryReadinessDoctorGroup(root);
+
+    expect(group.checks).toHaveLength(8);
+    expect([...new Set(group.checks.map(check => check.status))]).toEqual([
+      "SKIP",
+    ]);
     expect(computeDoctorVerdict([group])).toBe("READY_WITH_WARNINGS");
   });
 });
