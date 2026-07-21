@@ -298,6 +298,41 @@ without turning the base doctor into a second `lisa-wiki-doctor`.
    - Never require a wiki plugin surface when `wiki/` is absent.
    - Never let wiki-specific checks downgrade unrelated non-wiki repositories.
 
+### Minimum repository-readiness checks
+
+The eight groups above answer one question: **is Lisa installed correctly here?** There is a second,
+orthogonal question — **may an agent fleet operate here unattended?** — and conflating them is how a
+brownfield onboarding ends in "we built a wiki, looks good" instead of a verdict someone can act on.
+`Repository readiness` is that second question, and it is opt-in behind the `--readiness` flag; the
+default doctor path never renders it and stays byte-identical.
+
+1. **Render one separately-titled group.** When readiness mode is requested, append a single
+   `Repository readiness` group (id `repository-readiness`) in a fixed position after the eight
+   installation groups, using the shared `createRepositoryReadinessDoctorGroup` helper from
+   `scripts/doctor-report.mjs`. It is distinct from the installation groups so a reader is never left
+   guessing which question a verdict answered.
+2. **Score exactly the eight ownership dimensions from `readiness-rubric`.** Report **eight** checks,
+   in fixed order, **never fewer** and never silently omit one: `context-routing`,
+   `capabilities-tools`, `domain-ownership`, `execution-proof`, `feedback-guardrails`,
+   `dependencies-supply-chain`, `delivery-authority`, `proportionality`. Cite the `readiness-rubric`
+   slug for the dimension definitions, the seven ship blockers, and the consequence-ordering
+   contract; do not restate or fork that vocabulary here.
+3. **`SKIP` carries a reason and is never blank.** A dimension with no applicable evidence renders
+   `SKIP` with a stated reason ("no deployment target configured, so delivery/authority was not
+   assessed"). An unassessed dimension is a known unknown, and the report says so. In Lisa versions
+   where the evidence-gathering surfaces (RRR-4/5/6) are not yet wired, every dimension renders `SKIP`
+   with that reason.
+4. **Reuse the shipped verdict ladder and consequence ordering.** No new verdict value and no new
+   severity: reuse `READY` / `READY_WITH_WARNINGS` / `NOT_READY`. Section order stays stable; the
+   findings **within** each dimension check order highest-consequence-first.
+5. **Persist to a versioned, relocatable artifact.** Writing the report to `.lisa/readiness.json`
+   (`schema_version: 1`, with `verdict`, `blocker_count`, and per-dimension findings) is resolved
+   through a single resolver so the location is one line to change. The write is atomic and must
+   never fail the run: a write error degrades to a `WARN` check rather than throwing.
+6. **Warn-only, always.** This gates a claim, not a process: readiness never hard-blocks and never
+   changes doctor's exit-code semantics (exit 1 iff some check is `FAIL`). Where a surface named here
+   is not installed, degrade — state what was assessed, state what was not, and continue.
+
 ### Upstream Lisa change-history diagnosis
 
 A failing or warning check has two possible causes: the project drifted, or **Lisa itself changed
