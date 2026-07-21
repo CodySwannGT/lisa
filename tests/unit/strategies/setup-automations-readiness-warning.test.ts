@@ -95,6 +95,23 @@ describe("setup-automations repository-readiness advisory (#1859)", () => {
       expect(flat).toMatch(/no readiness warning and no error/i);
       expect(flat).toMatch(/do not invent[^]{0,80}(freshness|age|TTL)/i);
     });
+
+    it("documents every runtime's rule-delivery path and the Antigravity gap", () => {
+      for (const runtime of [
+        "Claude",
+        "Codex",
+        "Cursor",
+        "OpenCode",
+        "Antigravity",
+        "Copilot",
+      ]) {
+        expect(skill).toContain(runtime);
+      }
+      expect(flat).toMatch(/Codex[^]{0,120}\.codex\/lisa-rules/i);
+      expect(flat).toMatch(/OpenCode[^]{0,120}\.opencode\/lisa-rules/i);
+      expect(flat).toMatch(/Antigravity[^]{0,120}representation gap/i);
+      expect(flat).toMatch(/accepted limitation[^]{0,40}not a silent drop/i);
+    });
   });
 
   it("documents the readiness vocabulary and concrete doctor artifact", () => {
@@ -144,7 +161,6 @@ const CLAUDE_ROOT = "plugins/lisa";
 const CURSOR_ROOT = "plugins/lisa-cursor";
 const AGY_ROOT = "plugins/lisa-agy";
 const COPILOT_ROOT = "plugins/lisa-copilot";
-const CODEX_ROOT = "plugins/lisa/.codex-plugin";
 
 const read = (rel: string): string => readFileSync(path.resolve(rel), "utf8");
 
@@ -201,15 +217,33 @@ describe("RRR rubric six-agent parity backstop (#1859)", () => {
     expect(source).toContain("narrowed claim");
   });
 
-  describe("representation gaps are documented, never silent", () => {
+  describe("runtime delivery is positive and representation gaps are explicit", () => {
     it("agy carries no rules tree, so the rubric cannot be a silent drop", () => {
       expect(existsSync(path.resolve(AGY_ROOT, "rules"))).toBe(false);
       const generator = read("scripts/generate-agy-plugin-artifacts.mjs");
       expect(generator).toMatch(/no full rules tree in agy artifacts/i);
     });
 
-    it("the Codex plugin carries no rules tree of its own", () => {
-      expect(existsSync(path.resolve(CODEX_ROOT, "rules"))).toBe(false);
+    it("Codex mirrors the shared rules and injects the eager tier", () => {
+      const installer = read("src/codex/hooks-installer.ts");
+      expect(installer).toContain("mirrorLisaRules");
+      expect(installer).toContain("LISA_RULES_SUBDIR");
+      expect(installer).toMatch(/id: "inject-rules"/);
+      expect(installer).toMatch(/event: "SessionStart"/);
+    });
+
+    it("OpenCode mirrors the shared rules and loads the eager tier natively", () => {
+      const installer = read("src/opencode/hooks-installer.ts");
+      expect(installer).toContain("mirrorLisaRules");
+      expect(installer).toContain("OPENCODE_LISA_RULES_SUBDIR");
+      expect(installer).toContain("OPENCODE_EAGER_RULES_INSTRUCTION");
+    });
+
+    it("the shared mirror preserves eager and reference rule tiers", () => {
+      const mirror = read("src/core/lisa-rules-mirror.ts");
+      expect(mirror).toContain(
+        'const RULE_SUBDIRS = ["eager", "reference"] as const'
+      );
     });
   });
 });

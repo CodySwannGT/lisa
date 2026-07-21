@@ -79,6 +79,15 @@ invent an artifact freshness, age, or TTL rule; the persisted contract defines n
 advisory is never a precondition and follows the same never-block-always-degrade posture as runbook
 scaffolding below.
 
+The readiness rule pair reaches each supported runtime through its native delivery path. Claude and
+Copilot carry the shared Markdown rule tree and inject its eager tier; Cursor receives transformed
+`.mdc` rules. Codex mirrors the shared parent rules into `.codex/lisa-rules` and injects the eager
+tier at session start. OpenCode mirrors the same tree into `.opencode/lisa-rules`, loads the eager
+tier through `opencode.json` instructions, and leaves the reference tier available on demand.
+Antigravity is the explicit representation gap: its artifact has no rules tree or eager-rule
+injection. It still receives this setup skill and its warning contract; the missing standalone rule
+surface is an accepted limitation, not a silent drop.
+
 ## The automations to create
 
 Each automation runs **one cycle** of a Lisa command and respects that command's confirmation policy
