@@ -171,6 +171,7 @@ describe("dependency decisions create-only template", () => {
 
     expect(sectionHeadings).toEqual([
       "## How to use this file",
+      "## The rest of the dependency-ownership layer",
       "## When to escalate",
       "## What each field means",
       "## Entry template",
