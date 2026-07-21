@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.1](https://github.com/CodySwannGT/lisa/compare/v2.286.0...v2.286.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **deps:** stop the addition fixture modeling a false detection claim ([#1891](https://github.com/CodySwannGT/lisa/issues/1891)) ([ca285e1](https://github.com/CodySwannGT/lisa/commit/ca285e12fd03784978775219d2a318d86237144c)), closes [#1922](https://github.com/CodySwannGT/lisa/issues/1922) [#1887](https://github.com/CodySwannGT/lisa/issues/1887)
+
+
+### Documentation
+
+* **deps:** make the shipped record scaffold reach all five surfaces ([#1891](https://github.com/CodySwannGT/lisa/issues/1891)) ([d2a103d](https://github.com/CodySwannGT/lisa/commit/d2a103ded8fbe254682df981da6247877ef55ff6))
+
 ## [2.286.0](https://github.com/CodySwannGT/lisa/compare/v2.285.1...v2.286.0) (2026-07-21)
 
 
