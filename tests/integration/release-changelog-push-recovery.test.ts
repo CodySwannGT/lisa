@@ -46,6 +46,47 @@ const GIT_ENV: NodeJS.ProcessEnv = {
   GIT_CONFIG_SYSTEM: "/dev/null",
   GIT_CONFIG_NOSYSTEM: "1",
   GIT_TERMINAL_PROMPT: "0",
+  // Supply the commit identity via env so the temp repos need no `git config`
+  // spawns — fewer subprocesses is fewer chances to hit a transient fork
+  // failure under the full parallel suite.
+  GIT_AUTHOR_NAME: "Repro",
+  GIT_AUTHOR_EMAIL: "repro@example.com",
+  GIT_COMMITTER_NAME: "Repro",
+  GIT_COMMITTER_EMAIL: "repro@example.com",
+};
+
+// Codes a process-spawn can transiently fail with under heavy parallel load
+// (fork pressure, fd/inode ceilings). These are not logic errors — an immediate
+// bounded retry clears them, whereas a real failure repeats every attempt.
+const TRANSIENT_SPAWN_CODES = new Set([
+  "EAGAIN",
+  "EMFILE",
+  "ENFILE",
+  "ENOMEM",
+  "ETXTBSY",
+]);
+
+/**
+ * True when a spawn error/return looks like transient resource exhaustion
+ * rather than a deterministic failure.
+ * @param err The thrown error or spawnSync `.error`.
+ * @returns Whether the failure is worth retrying.
+ */
+const isTransientSpawn = (err: unknown): boolean => {
+  const code = (err as { code?: string })?.code ?? "";
+  const message = String((err as { message?: string })?.message ?? "");
+  return (
+    TRANSIENT_SPAWN_CODES.has(code) ||
+    [...TRANSIENT_SPAWN_CODES].some(c => message.includes(c))
+  );
+};
+
+/**
+ * Synchronous sleep with no subprocess, used to back off between spawn retries.
+ * @param ms Milliseconds to block.
+ */
+const sleepSync = (ms: number): void => {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 };
 
 /**
@@ -91,8 +132,23 @@ const PRE_FIX_SCRIPT = [
   "exit 1",
 ].join("\n");
 
-const runGit = (cwd: string, args: string[]): string =>
-  execFileSync(GIT_BIN, args, { cwd, encoding: "utf8", env: GIT_ENV });
+const runGit = (cwd: string, args: string[]): string => {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return execFileSync(GIT_BIN, args, {
+        cwd,
+        encoding: "utf8",
+        env: GIT_ENV,
+      });
+    } catch (err) {
+      if (!isTransientSpawn(err)) throw err;
+      lastErr = err;
+      sleepSync(25 * (attempt + 1));
+    }
+  }
+  throw lastErr;
+};
 
 const writeJsonVersion = (file: string, version: string): void => {
   const parsed = fs.existsSync(file)
@@ -135,8 +191,6 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
   // Seed origin/main with the shared base version on package.json and a plugin
   // manifest — the high-churn version line that conflicts.
   runGit(root, ["clone", "-q", originDir, seedDir]);
-  runGit(seedDir, ["config", "user.email", "seed@example.com"]);
-  runGit(seedDir, ["config", "user.name", "Seed"]);
   runGit(seedDir, ["checkout", "-q", "-b", "main"]);
   fs.ensureDirSync(path.join(seedDir, PLUGINS_DIR, PLUGIN_NAME));
   writeJsonVersion(path.join(seedDir, PACKAGE_JSON), BASE_VERSION);
@@ -149,8 +203,6 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
   // Working clone = the release job workspace. Stamp the release commit that
   // Generate Changelog would have produced (v2.0.0), but do NOT push it.
   runGit(root, ["clone", "-q", originDir, workDir]);
-  runGit(workDir, ["config", "user.email", "release@example.com"]);
-  runGit(workDir, ["config", "user.name", "Release"]);
   writeJsonVersion(path.join(workDir, PACKAGE_JSON), RELEASE_VERSION);
   writeJsonVersion(path.join(workDir, PLUGIN_MANIFEST_REL), RELEASE_VERSION);
   runGit(workDir, ["add", "-A"]);
@@ -235,20 +287,29 @@ const runStep = (
   repo: ConflictRepo
 ): ReturnType<typeof spawnSync> => {
   const scriptFile = path.join(repo.workDir, "push-step.sh");
+  const options = {
+    cwd: repo.workDir,
+    encoding: "utf8" as const,
+    env: {
+      ...GIT_ENV,
+      PATH: `${repo.binDir}:${process.env.PATH ?? ""}`,
+      REPRO_MARKER: repo.markerFile,
+    },
+  };
+  let result: ReturnType<typeof spawnSync>;
   fs.writeFileSync(scriptFile, script);
-  return spawnSync(
-    BASH_BIN,
-    ["--noprofile", "--norc", "-eo", "pipefail", scriptFile],
-    {
-      cwd: repo.workDir,
-      encoding: "utf8",
-      env: {
-        ...GIT_ENV,
-        PATH: `${repo.binDir}:${process.env.PATH ?? ""}`,
-        REPRO_MARKER: repo.markerFile,
-      },
-    }
-  );
+  for (let attempt = 0; attempt < 5; attempt++) {
+    result = spawnSync(
+      BASH_BIN,
+      ["--noprofile", "--norc", "-eo", "pipefail", scriptFile],
+      options
+    );
+    // spawnSync surfaces a spawn failure on `.error` rather than throwing; only
+    // retry transient resource exhaustion, never a real non-zero exit status.
+    if (!result.error || !isTransientSpawn(result.error)) return result;
+    sleepSync(25 * (attempt + 1));
+  }
+  return result!;
 };
 
 /**
