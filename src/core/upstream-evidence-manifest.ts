@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/gitignore":
-      "74e0f12be861c5583cedbed89d0b029709748d7f38bc77bad22babded0489231",
+      "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "f88f69d44693084428f44e3f2b80afecda08c7ee8747588f40277fdc9396fd8f",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -1747,9 +1747,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/config/initializers/version.rb":
       "fa664a84f407877b5ddbd3709a2352b30e4dc6fbce538a8503bad6c52448dc86",
     "rails/copy-overwrite/lefthook.yml":
-      "f0961616c5b61cbae14958cb332194c6f2398e9e7fe36210f37635acc8c82c0b",
+      "28bb382b9171a04fb92ebafc1f1522b8639f5edc4fcffcc6940e7fba3460fb4e",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "6da00221189ed0f8a2938f15e02bcc2633d44f5f05489979fbb94202bc45a6d4",
+    "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
+      "e7121a0ee9e1bf7c01cd2ab55f563dd6d9ab75990739bb6ddf571a513efa10e9",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "8bc4b379d7057b2fecf9cb35820c39efad0a65df7df49073786f996cc2a74810",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -1939,7 +1941,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "30fbbff4fc0f3a6188958ce49cf202ec072ea3fd5965acca7cd12923ed03412d",
     "typescript/copy-contents/.husky/pre-push":
-      "6d3c52cc08f595079c4a12ca7e3e8de010eab7d8b5a9d462eae99c4757cef418",
+      "001b5c2a779cf242c8d49029651f92ebddebf4ab706d58269d46e2be88a9df5b",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -2057,7 +2059,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "2abf4253d9d576b4e16d41efd30a7f3b334c1a1ec2caad442929ab82bd28fc8d",
+      "a6741c556f79d05e5063500b795c7066b05280d166ead6b83047a308ba7cef91",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -7198,6 +7200,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-clean-git-env.sh": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": true,
     "rails/copy-overwrite/sgconfig.yml": true,
@@ -7329,6 +7332,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/setup-project.ts": true,
     "src/cli/setup-wiki.ts": true,
     "src/cli/shared-options.ts": true,
+    "src/cli/standards-proof-cmd.ts": true,
     "src/cli/starters.ts": true,
     "src/cli/sync-cmd.ts": true,
     "src/cli/ui-automations-adapters.ts": true,
@@ -7359,6 +7363,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-setup-readiness.ts": true,
     "src/cli/ui-status-json.ts": true,
     "src/cli/ui-status.ts": true,
+    "src/cli/update-check-hook.ts": true,
     "src/cli/update-check.ts": true,
     "src/cli/update-cmd.ts": true,
     "src/cli/version-cmd.ts": true,
@@ -7505,6 +7510,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
     "src/opencode/support-file-resolver.ts": true,
+    "src/standards/capture.ts": true,
+    "src/standards/contract.ts": true,
+    "src/standards/git-state.ts": true,
+    "src/standards/index.ts": true,
+    "src/standards/readiness.ts": true,
+    "src/standards/registry.ts": true,
+    "src/standards/storage-reasons.ts": true,
+    "src/standards/storage.ts": true,
+    "src/standards/test-evidence.ts": true,
     "src/strategies/copy-contents.ts": true,
     "src/strategies/copy-overwrite.ts": true,
     "src/strategies/create-only.ts": true,
@@ -7608,6 +7622,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
+    "tests/integration/standards-proof-fixture.ts": true,
+    "tests/integration/standards-proof-rails.test.ts": true,
+    "tests/integration/standards-proof-tamper.test.ts": true,
+    "tests/integration/standards-proof-timeout.test.ts": true,
+    "tests/integration/standards-proof-typescript.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
@@ -7641,6 +7660,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/file-upstream-contract.test.ts": true,
     "tests/unit/cli/gate-commands.test.ts": true,
     "tests/unit/cli/health-cmd.test.ts": true,
+    "tests/unit/cli/index-maintenance.test.ts": true,
+    "tests/unit/cli/index-test-program.ts": true,
     "tests/unit/cli/index.test.ts": true,
     "tests/unit/cli/kane-cmd.test.ts": true,
     "tests/unit/cli/kane-index.test.ts": true,
@@ -7786,6 +7807,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
+    "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
@@ -7843,6 +7865,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/standards/capture.test.ts": true,
+    "tests/unit/standards/contract.test.ts": true,
+    "tests/unit/standards/git-state.test.ts": true,
+    "tests/unit/standards/readiness.test.ts": true,
+    "tests/unit/standards/registry.test.ts": true,
+    "tests/unit/standards/storage.test.ts": true,
+    "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/agent-ready-ingest-boundary.test.ts": true,
     "tests/unit/strategies/agent-ready-readiness-consumption.test.ts": true,
     "tests/unit/strategies/artifact-identity-contract.test.ts": true,

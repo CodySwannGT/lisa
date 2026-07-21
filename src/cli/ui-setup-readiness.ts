@@ -106,9 +106,10 @@ export async function projectSetupReadiness(
   projectRoot: string,
   observations: SetupReadinessObservations
 ): Promise<SetupReadinessResult> {
-  const [install, agentReady, wiki] = await Promise.all([
+  const [install, agentReady, standards, wiki] = await Promise.all([
     installFinding(projectRoot, observations.config, observations.health),
     agentReadyFinding(projectRoot),
+    standardsFinding(projectRoot, observations.health),
     wikiSetupFinding(projectRoot, observations.health),
   ]);
   const findings = [
@@ -121,7 +122,7 @@ export async function projectSetupReadiness(
       "fail"
     ),
     agentReady,
-    standardsFinding(observations.health),
+    standards,
     trackerFinding(observations.config),
     prdSourceFinding(observations.config),
     githubGovernanceFinding(
