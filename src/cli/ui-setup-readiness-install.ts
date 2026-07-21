@@ -1,5 +1,4 @@
 /** Truthful, harness-aware installation evidence for Setup readiness. */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed evidence helpers are self-describing */
 import path from "node:path";
 import { realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -50,13 +49,22 @@ const EXTERNAL_ONLY_HARNESSES = new Set<Harness>([
   "fleet",
 ]);
 
-/** Resolve the configured harness without accepting a malformed value. */
+/**
+ * Resolve the configured harness without accepting a malformed value.
+ * @param config - Merged Lisa project configuration
+ * @returns Normalized harness, or undefined for malformed configuration
+ */
 function configuredHarness(config: JsonObject): Harness | undefined {
   const raw = config.harness ?? DEFAULT_HARNESS;
   return typeof raw === "string" ? normalizeHarness(raw) : undefined;
 }
 
-/** Require one non-empty, confined regular project file. */
+/**
+ * Require one non-empty, confined regular project file.
+ * @param root - Canonical project root
+ * @param relativePath - Project-relative file path
+ * @returns Whether the confined file exists and contains non-whitespace text
+ */
 async function nonemptyProjectFile(
   root: string,
   relativePath: string
@@ -65,7 +73,11 @@ async function nonemptyProjectFile(
   return text !== undefined && text.trim().length > 0;
 }
 
-/** Validate one normalized path relative to an agent-owned manifest directory. */
+/**
+ * Validate one normalized path relative to an agent-owned manifest directory.
+ * @param value - Untrusted managed-manifest entry
+ * @returns Whether the value is a normalized relative path
+ */
 function validManifestEntry(value: unknown): value is string {
   if (
     typeof value !== "string" ||
@@ -83,7 +95,13 @@ function validManifestEntry(value: unknown): value is string {
   );
 }
 
-/** Refuse symlinked/special parents and final entries for one manifest file. */
+/**
+ * Refuse symlinked/special parents and final entries for one manifest file.
+ * @param root - Canonical project root
+ * @param configDir - Agent-owned configuration directory
+ * @param entry - Validated manifest-relative file path
+ * @returns Whether every parent and the final file are confined and regular
+ */
 async function manifestEntryIsRegular(
   root: string,
   configDir: string,
@@ -102,7 +120,13 @@ async function manifestEntryIsRegular(
   );
 }
 
-/** Validate a bounded managed-artifact manifest and every file it names. */
+/**
+ * Validate a bounded managed-artifact manifest and every file it names.
+ * @param root - Canonical project root
+ * @param configDir - Managed configuration directory
+ * @param expectedFiles - Optional authoritative set of required files
+ * @returns Whether the manifest is bounded, exact, and fully present
+ */
 async function managedManifestIsComplete(
   root: string,
   configDir: ".codex" | ".opencode",
@@ -146,6 +170,9 @@ async function managedManifestIsComplete(
  * Derive Codex's exact current managed-file set from the same selected plugin
  * and agent discovery contract used by apply. No project file is trusted as a
  * declaration of completeness.
+ * @param projectRoot - Project root to inspect
+ * @param config - Merged Lisa project configuration
+ * @returns Frozen authoritative Codex managed-file paths
  */
 export async function expectedCodexManagedFiles(
   projectRoot: string,
@@ -176,7 +203,13 @@ export async function expectedCodexManagedFiles(
   ]);
 }
 
-/** Convert one boolean observation into a stable drift label. */
+/**
+ * Convert one boolean observation into a stable drift label.
+ * @param applicable - Whether the surface applies to the selected harness
+ * @param label - Stable operator-facing drift label
+ * @param observe - Read-only observation for the surface
+ * @returns Empty when inapplicable or present, otherwise the drift label
+ */
 async function evidenceDrift(
   applicable: boolean,
   label: string,
@@ -186,7 +219,13 @@ async function evidenceDrift(
   return (await observe()) ? [] : [label];
 }
 
-/** Collect missing or unsafe project-owned surfaces for one harness. */
+/**
+ * Collect missing or unsafe project-owned surfaces for one harness.
+ * @param root - Canonical project root
+ * @param harness - Normalized configured harness
+ * @param config - Merged Lisa project configuration
+ * @returns Stable labels for missing or unsafe harness surfaces
+ */
 async function projectSurfaceDrift(
   root: string,
   harness: Harness,
@@ -245,6 +284,10 @@ async function projectSurfaceDrift(
 /**
  * Establish only installation state that Lisa can observe authoritatively.
  * External plugin/runtime state remains non-pass when no bounded reader exists.
+ * @param projectRoot - Project root to inspect
+ * @param config - Merged Lisa project configuration
+ * @param health - Current deterministic Health evidence, when available
+ * @returns Installation readiness finding for the configured harness
  */
 export async function installFinding(
   projectRoot: string,
@@ -320,4 +363,3 @@ export async function installFinding(
     `Lisa's required project-owned ${harness} installation surfaces are present and complete.`
   );
 }
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- restore repository documentation defaults */

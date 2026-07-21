@@ -1,5 +1,4 @@
 /** Presence-only GitHub and scheduler evidence for Setup readiness. */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed remote-evidence helpers are self-describing */
 import type { ProbeResult } from "./ui-status.js";
 import type { HealthResult } from "../health/contract.js";
 import type { GithubRepoPanelValue } from "./ui-github-repo.js";
@@ -14,7 +13,13 @@ const GITHUB_GOVERNANCE_CHECK = "setup.github-governance";
 const SECRETS_CHECK = "setup.secrets";
 const AUTOMATIONS_CHECK = "setup.automations";
 
-/** Map bounded GitHub live data to governance readiness. */
+/**
+ * Map bounded GitHub live data to governance readiness.
+ * @param health - Current deterministic Health evidence, when available
+ * @param github - Live GitHub repository observation
+ * @param deployPipeline - Live deployment-pipeline observation
+ * @returns GitHub governance readiness finding
+ */
 // eslint-disable-next-line sonarjs/cognitive-complexity -- independent canonical, live-repo, secret, and deployment gates stay visible together
 export function githubGovernanceFinding(
   health: HealthResult | undefined,
@@ -84,7 +89,12 @@ export function githubGovernanceFinding(
       );
 }
 
-/** Map only workflow-referenced secret names to presence readiness. */
+/**
+ * Map only workflow-referenced secret names to presence readiness.
+ * @param github - Live GitHub repository observation
+ * @param expectedSecretNames - Secret names referenced by confined workflows
+ * @returns Repository-secret presence readiness finding
+ */
 export function secretsFinding(
   github: ProbeResult<GithubRepoPanelValue>,
   expectedSecretNames: readonly string[]
@@ -122,7 +132,12 @@ export function secretsFinding(
       );
 }
 
-/** Require the exact six core scheduler entries with observed cadences. */
+/**
+ * Require the exact six core scheduler entries with observed cadences.
+ * @param result - Live harness scheduler observation
+ * @param expectedAutomationIds - Applicable authoritative automation IDs
+ * @returns Harness automation readiness finding
+ */
 export function automationsFinding(
   result: ProbeResult<AutomationsProbeValue>,
   expectedAutomationIds: readonly string[] | undefined
@@ -178,5 +193,3 @@ export function automationsFinding(
         `Missing, disabled, or cadence-unreadable automation entries: ${missing.join(", ")}. Run /lisa:setup-automations.`
       );
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- end typed remote-evidence helper exception */

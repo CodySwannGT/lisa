@@ -1,5 +1,4 @@
 /** Current read-only Setup checklist readiness projection for `lisa ui`. */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed projection helpers are self-describing */
 import { realpath } from "node:fs/promises";
 import * as path from "node:path";
 import { runDeterministicHealth } from "../health/deterministic.js";
@@ -48,6 +47,8 @@ import {
 } from "./ui-deploy-pipeline.js";
 import { runProbe, type ProbeResult } from "./ui-status.js";
 
+const ORIGIN_REMOTE_TIMEOUT_MS = 2_500;
+
 /** Bounded inputs captured for one projection. */
 export interface SetupReadinessObservations {
   readonly config: JsonObject;
@@ -84,14 +85,23 @@ export interface SetupReadinessDependencies {
   readonly now?: () => Date;
 }
 
-/** Read the same committed-plus-local merged config used by the console. */
+/**
+ * Read the same committed-plus-local merged config used by the console.
+ * @param projectRoot - Project root whose Lisa config should be read.
+ * @returns The bounded merged UI configuration.
+ */
 export async function readMergedUiConfig(
   projectRoot: string
 ): Promise<JsonObject> {
   return await readConfinedMergedConfig(projectRoot);
 }
 
-/** Produce the exact twelve findings from already captured observations. */
+/**
+ * Produce the exact twelve findings from already captured observations.
+ * @param projectRoot - Canonical project root for local evidence checks.
+ * @param observations - Bounded observations captured for this projection.
+ * @returns The validated twelve-finding readiness result.
+ */
 export async function projectSetupReadiness(
   projectRoot: string,
   observations: SetupReadinessObservations
@@ -135,7 +145,11 @@ export async function projectSetupReadiness(
   });
 }
 
-/** Convert a failed bounded read into an explicit unknown probe state. */
+/**
+ * Convert a failed bounded read into an explicit unknown probe state.
+ * @param reason - Stable machine-readable failure reason.
+ * @returns An unknown probe result that cannot be mistaken for success.
+ */
 function unknownProbe(reason: string): ProbeResult<never> {
   return {
     state: "unknown",
@@ -144,19 +158,32 @@ function unknownProbe(reason: string): ProbeResult<never> {
   };
 }
 
-/** Resolve applicable automation IDs with the same origin fallback as identity. */
+/**
+ * Resolve applicable automation IDs with the same origin fallback as identity.
+ * @param root - Canonical project root.
+ * @param config - Bounded merged Lisa configuration.
+ * @returns Expected automation identifiers for the current project.
+ */
 async function readDefaultExpectedAutomationIds(
   root: string,
   config: JsonObject
 ): Promise<readonly string[]> {
   const stacks = await readConfinedDetectedStacks(root);
-  const gitRemoteUrl = await readOriginRemote(root, AbortSignal.timeout(2_500));
+  const gitRemoteUrl = await readOriginRemote(
+    root,
+    AbortSignal.timeout(ORIGIN_REMOTE_TIMEOUT_MS)
+  );
   return (
     await resolveExpectedAutomationEntries(config, stacks, gitRemoteUrl)
   ).map(entry => entry.automationId);
 }
 
-/** Create a safe-to-repeat reader for one localhost UI server. */
+/**
+ * Create a safe-to-repeat reader for one localhost UI server.
+ * @param projectPath - Project path served by the local UI.
+ * @param dependencies - Optional bounded reader overrides for verification.
+ * @returns A read-only readiness projection reader.
+ */
 export function createSetupReadinessReader(
   projectPath: string,
   dependencies: SetupReadinessDependencies = {}
@@ -229,5 +256,3 @@ export {
   SETUP_READINESS_CHECKS,
   validateSetupReadinessResult,
 } from "./ui-setup-readiness-contract.js";
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- end typed projection helper exception */

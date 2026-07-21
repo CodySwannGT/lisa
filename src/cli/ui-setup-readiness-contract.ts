@@ -1,5 +1,4 @@
 /** Strict transport contract for the console Setup readiness projection. */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed contract helpers are self-describing */
 import {
   summarizeHealthFindings,
   validateHealthResult,
@@ -45,7 +44,13 @@ export interface SetupReadinessResult {
   readonly findings: readonly SetupReadinessFinding[];
 }
 
-/** Create one operator-readable deterministic Setup finding. */
+/**
+ * Create one operator-readable deterministic Setup finding.
+ * @param check - Closed Setup checklist identifier
+ * @param status - Deterministic readiness status
+ * @param reason - Operator-readable evidence or remediation summary
+ * @returns Deterministic Setup readiness finding
+ */
 export function setupFinding(
   check: SetupReadinessCheck,
   status: HealthStatus,
@@ -102,5 +107,3 @@ export function validateSetupReadinessResult(
     findings: Object.freeze(findings),
   });
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- end typed contract helper exception */
