@@ -1,18 +1,15 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import {
-  LISA_HOOKS_SUBDIR,
-  LISA_RULES_SUBDIR,
-} from "../codex/hooks-installer.js";
-import { LISA_SKILLS_SUBDIR } from "../codex/skills-installer.js";
 import { AGENTS_MD_FILENAME } from "../codex/agents-md-installer.js";
 import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { createDetectorRegistry } from "../detection/index.js";
 import { checkKaneProvider } from "./doctor-kane.js";
+import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
+import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { STARTERS } from "./starters.js";
 import { runUpdateCheck } from "./update-check.js";
@@ -41,6 +38,12 @@ export interface DoctorResult {
 export interface DoctorOptions {
   json?: boolean;
   offline?: boolean;
+  /**
+   * Add the orthogonal "Repository readiness" audit ("may an agent fleet
+   * operate here unattended?") and persist `.lisa/readiness.json`. Additive and
+   * warn-only: the default doctor path is byte-identical when this is unset.
+   */
+  readiness?: boolean;
 }
 
 /** Runtime collaborators for doctor. */
@@ -248,58 +251,6 @@ function checkWiki(targetPath: string): DoctorCheck {
   };
 }
 
-const LEGACY_CODEX_OVERLAY_CHECK_NAME = "Codex overlay current?";
-
-/**
- * Detect the retired pre-2.198 project-level Codex overlay. Lisa now delivers
- * Codex hooks and skills through the repository plugin marketplace
- * (`.agents/plugins/marketplace.json` → `node_modules`), and postinstall
- * applies deliberately skip agent emits — so a committed legacy overlay is
- * never cleaned up automatically. Fresh clones/worktrees then load stale
- * hooks/skills from it, and a later explicit apply retires them out from
- * under whatever session is running (exit-127 hooks, vanished skills — the
- * incident behind CodySwannGT/lisa#1632).
- * @param targetPath - Project path to inspect
- * @returns Doctor check result
- */
-function checkLegacyCodexOverlay(targetPath: string): DoctorCheck {
-  const codexDir = path.join(targetPath, ".codex");
-  if (!existsSync(codexDir)) {
-    return {
-      name: LEGACY_CODEX_OVERLAY_CHECK_NAME,
-      status: "ok",
-      detail: "No .codex directory present",
-    };
-  }
-
-  const legacyPaths = [
-    LISA_HOOKS_SUBDIR,
-    LISA_RULES_SUBDIR,
-    LISA_SKILLS_SUBDIR,
-  ].filter(subdir => existsSync(path.join(codexDir, subdir)));
-
-  if (legacyPaths.length === 0) {
-    return {
-      name: LEGACY_CODEX_OVERLAY_CHECK_NAME,
-      status: "ok",
-      detail: "No legacy project-level Codex overlay present",
-    };
-  }
-
-  const listed = legacyPaths
-    .map(subdir => path.join(".codex", subdir))
-    .join(", ");
-  return {
-    name: LEGACY_CODEX_OVERLAY_CHECK_NAME,
-    status: "warn",
-    detail:
-      `Legacy pre-2.198 Codex overlay present (${listed}). ` +
-      "Run `lisa apply` in the primary checkout and commit the removals — " +
-      "fresh clones/worktrees otherwise load stale hooks/skills that a later " +
-      "apply deletes mid-session (CodySwannGT/lisa#1632)",
-  };
-}
-
 /**
  * Determine whether a path looks like an agent-governed project, i.e. one that
  * should carry the canonical `AGENTS.md` / `CLAUDE.md` pointer pattern. True
@@ -379,6 +330,9 @@ export async function runDoctor(
     checkLegacyCodexOverlay(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),
     checkWiki(resolvedTarget),
+    ...(options.readiness === true
+      ? [await checkRepositoryReadiness(resolvedTarget)]
+      : []),
   ];
   const result = { checks };
 
