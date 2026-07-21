@@ -11,10 +11,11 @@
  * skill documents the section identically across the fanned-out plugin copies.
  * @module tests/unit/strategies/doctor-repository-readiness
  */
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   createRepositoryReadinessDoctorGroup,
@@ -45,16 +46,33 @@ const SKILL_ROOTS = [
 const readDoctorSkill = (root: string): string =>
   readFileSync(path.resolve(root, "lisa-doctor", "SKILL.md"), "utf8");
 
+/**
+ * A scratch root with no `.lisa/readiness.json`. Since #1902 the group projects
+ * the CLI-authored report when one is present, so the unassessed-dimension
+ * contract has to be asserted against a root that provably has no report —
+ * `process.cwd()` would flip these assertions on any machine where the Lisa CLI
+ * readiness pass has already run.
+ */
+let root = "";
+
+beforeEach(() => {
+  root = mkdtempSync(path.join(tmpdir(), "lisa-readiness-group-"));
+});
+
+afterEach(() => {
+  rmSync(root, { force: true, recursive: true });
+});
+
 describe("repository-readiness doctor render group (#1855)", () => {
   it("returns a separately-titled group with a stable id", () => {
-    const group = createRepositoryReadinessDoctorGroup(process.cwd());
+    const group = createRepositoryReadinessDoctorGroup(root);
 
     expect(group.id).toBe("repository-readiness");
     expect(group.title).toBe("Repository readiness");
   });
 
   it("scores exactly eight dimensions in fixed order, never fewer", () => {
-    const group = createRepositoryReadinessDoctorGroup(process.cwd());
+    const group = createRepositoryReadinessDoctorGroup(root);
 
     expect(group.checks).toHaveLength(8);
     expect(group.checks.map(check => check.id)).toEqual([
@@ -63,7 +81,7 @@ describe("repository-readiness doctor render group (#1855)", () => {
   });
 
   it("emits SKIP with a stated reason for every inapplicable dimension", () => {
-    const group = createRepositoryReadinessDoctorGroup(process.cwd());
+    const group = createRepositoryReadinessDoctorGroup(root);
 
     for (const check of group.checks) {
       expect(check.status).toBe("SKIP");
@@ -73,7 +91,7 @@ describe("repository-readiness doctor render group (#1855)", () => {
   });
 
   it("renders under the shared verdict/counts header as one titled group", () => {
-    const group = createRepositoryReadinessDoctorGroup(process.cwd());
+    const group = createRepositoryReadinessDoctorGroup(root);
     const report = renderDoctorReport({ groups: [group] });
 
     expect(report.text).toContain("Overall verdict: ");

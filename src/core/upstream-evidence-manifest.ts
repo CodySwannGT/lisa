@@ -739,7 +739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "e9a536389d2581370f6c470b8a070aaae96660646efc528a7ff7fb25d324a903",
     "plugins/src/base/scripts/doctor-report.mjs":
-      "ebad5a2724395911870b6be1dc81e3618031f7a6e04c51d3aef3efca72361929",
+      "36ceac6ce746ea5c4cf13727cef8de6d113cf372d737493f1c45bda892086092",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
@@ -791,7 +791,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
       "47e4cda36b07994ff47ab15fb04a17dd6b0c310ad804f9cae9d69637edaaa72a",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "a47f7ba3104121092e91b202646a74f83ec641cd24ad5807fc22adc65b6ccdc6",
+      "e834cabbe39eb02abf07c527229c8dd594208751060331d7cf61a9f03e7563b6",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "e8680c65da64351580658e423d2e30f565e9df52079f4deec44df84d4ab82982",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -7876,6 +7876,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-fixture-smoke-and-parity.test.ts": true,
     "tests/unit/strategies/doctor-plugin-sync-guidance.test.ts": true,
     "tests/unit/strategies/doctor-project-readiness.test.ts": true,
+    "tests/unit/strategies/doctor-readiness-report-bridge.test.ts": true,
     "tests/unit/strategies/doctor-report-rendering.test.ts": true,
     "tests/unit/strategies/doctor-repository-readiness.test.ts": true,
     "tests/unit/strategies/doctor-scaffold.test.ts": true,

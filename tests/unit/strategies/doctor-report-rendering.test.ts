@@ -146,10 +146,17 @@ describe("doctor report rendering (#750)", () => {
   });
 
   it("never scores an unassessed repository-readiness group as READY (#1897)", () => {
-    // The eight readiness dimensions all render SKIP in this Lisa version. An
-    // unassessed dimension is silence, not evidence, so the agent-facing
-    // scorer must not turn it into a green unattended-fleet claim.
-    const group = createRepositoryReadinessDoctorGroup(process.cwd());
+    // A root with no `.lisa/readiness.json` leaves all eight dimensions
+    // unassessed. An unassessed dimension is silence, not evidence, so the
+    // agent-facing scorer must not turn it into a green unattended-fleet claim.
+    // The root is a scratch directory rather than `process.cwd()` so the
+    // assertion cannot flip on a developer machine where the Lisa CLI has
+    // already written a readiness report (#1902).
+    const unassessedRoot = mkdtempSync(
+      path.join(tmpdir(), "lisa-doctor-unassessed-")
+    );
+    const group = createRepositoryReadinessDoctorGroup(unassessedRoot);
+    rmSync(unassessedRoot, { force: true, recursive: true });
 
     expect(group.checks).toHaveLength(8);
     expect([...new Set(group.checks.map(check => check.status))]).toEqual([
