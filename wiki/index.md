@@ -50,6 +50,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
   - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, lint-ignored file handling, executable plugin hooks, bootstrapper build-context guards, and shared audit-ignore promotion guidance are captured here.
 - [Coding-Agent Parity Research Playbook](playbooks/coding-agent-parity-research.md)
+- [Dependency Ownership — Operator Guide](playbooks/dependency-ownership-operator-guide.md)
+  - How a non-technical operator decides whether a dependency addition, internalization, or version bump is acceptable: the `.lisa/DEPENDENCY_DECISIONS.md` records, the six trust classes, the advisory manifest-authoritative duplicate-pin policy, Lisa's own seeded records with gaps tracked in `#1918`, and the seven-part confidence-rebuild kit.
 
 ## Concepts
 

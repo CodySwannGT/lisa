@@ -1,0 +1,23 @@
+# Fixture: the governed workflow for the dependency-ADDITION scenario.
+#
+# The Stripe pin and the Node pin both live in package.json and nowhere else.
+# This workflow READS them from the manifest instead of copying the literals,
+# which is exactly what the manifest-authoritative duplicate-version policy
+# asks for. Detecting drift is therefore unnecessary here: there is only one
+# edit site per pin.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: Smoke-test the payment client at the manifest's pinned version
+        run: bash scripts/verify-payments.sh

@@ -1,5 +1,14 @@
 # Lisa Wiki Log
 
+## 2026-07-21 - Dependency-ownership operator walkthrough
+
+- Created `wiki/playbooks/dependency-ownership-operator-guide.md`, the operator-facing walkthrough for the dependency-ownership layer shipped by PRD CodySwannGT/lisa#1741 (stories #1886-#1891).
+- Playbook rather than documentation on purpose: the page is a decision procedure an operator walks at the gate ("should I accept this dependency change?"), not a reference surface. The rules themselves remain canonical in `plugins/src/base/rules/reference/`.
+- Covers all five surfaces of the layer: the `.lisa/DEPENDENCY_DECISIONS.md` record scaffold and its nine fields, the six trust classes and their ratification triggers, the advisory manifest-authoritative duplicate-pin policy (`scripts/check-duplicate-versions.mjs`), Lisa's own seeded records with every open gap tracked in `#1918`, and the seven-part confidence-rebuild kit for internalizations.
+- Documents what is NOT enforced (uniform across all six supported coding agents) and the one representation gap: Antigravity ships no separate rules tree and inherits the same content through the shared mirror; Cursor receives each pair flattened to two `.mdc` rules.
+- Provenance: story CodySwannGT/lisa#1891 (§4 operator docs). Asserted by `tests/unit/strategies/dependency-ownership-integration.test.ts`.
+- Indexed the new page under `## Playbooks` in `wiki/index.md`.
+
 ## 2026-07-19 - Gardener demotion: Console UI knowledge from eager rules to wiki
 
 - Created `wiki/architecture/lisa-console-ui.md` from the two Console-UI sections of `.claude/rules/PROJECT_RULES.md` ("Local `lisa ui` verification" and "Lisa Console UI (`ui/`)"), preserving every fact (entrypoints, `dist/index.js` flattening, `{ sync: false }`, Playwright pipeline boundary, toggle `dispatchEvent`, `esc()`/`el()` semantics).
