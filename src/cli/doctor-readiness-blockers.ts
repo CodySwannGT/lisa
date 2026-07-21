@@ -208,8 +208,12 @@ export function assessReadiness(
 /**
  * Reduce dimensions and standing blockers to the shipped verdict ladder. A
  * standing ship blocker is the only thing that yields `NOT_READY` (the rubric's
- * definition); otherwise any non-clean dimension is `READY_WITH_WARNINGS`, and
- * an all-clean report is `READY`. No new verdict enum (F2).
+ * definition). Below that, `READY` requires *positive* evidence: every dimension
+ * must have been assessed and come back `PASS`. Anything else — a `WARN`, a
+ * `FAIL`, an unassessed `SKIP`, or no dimensions at all — tops out at
+ * `READY_WITH_WARNINGS`, because the rubric defines READY as "eight dimensions
+ * assessed, no blocker stands" and an unassessed dimension is silence, not
+ * evidence (#1897). No new verdict enum (F2).
  * @param dimensions - Per-dimension records
  * @param blockers - Standing ship blockers
  * @returns Overall verdict
@@ -221,14 +225,10 @@ function computeReadinessVerdict(
   if (blockers.length > 0) {
     return "NOT_READY";
   }
-  if (
-    dimensions.some(
-      dimension => dimension.status === "FAIL" || dimension.status === "WARN"
-    )
-  ) {
-    return "READY_WITH_WARNINGS";
-  }
-  return "READY";
+  const everyDimensionAssessedClean =
+    dimensions.length > 0 &&
+    dimensions.every(dimension => dimension.status === "PASS");
+  return everyDimensionAssessedClean ? "READY" : "READY_WITH_WARNINGS";
 }
 
 /**
