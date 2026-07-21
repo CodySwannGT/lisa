@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.282.0](https://github.com/CodySwannGT/lisa/compare/v2.281.0...v2.282.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** bridge agent readiness group to CLI .lisa/readiness.json ([#1902](https://github.com/CodySwannGT/lisa/issues/1902)) ([efd5dc0](https://github.com/CodySwannGT/lisa/commit/efd5dc09b5b395759e1a3420ae377152a78a482d)), closes [#1739](https://github.com/CodySwannGT/lisa/issues/1739) [#1897](https://github.com/CodySwannGT/lisa/issues/1897) [#1896](https://github.com/CodySwannGT/lisa/issues/1896)
+* **standards:** add freshness-bound conformance proof ([be43610](https://github.com/CodySwannGT/lisa/commit/be43610ed24fadf4d05d441f1aa24e4e846e66ef)), closes [CodySwannGT/lisa#1895](https://github.com/CodySwannGT/lisa/issues/1895)
+
+
+### Bug Fixes
+
+* address standards proof review findings ([3aab61a](https://github.com/CodySwannGT/lisa/commit/3aab61aa7cae6493789d30264046530d19ac6483)), closes [CodySwannGT/lisa#1895](https://github.com/CodySwannGT/lisa/issues/1895)
+* **doctor:** escalate readiness dimensions on attribution, not blocker spec ([#1902](https://github.com/CodySwannGT/lisa/issues/1902)) ([0261314](https://github.com/CodySwannGT/lisa/commit/02613149459024151a84ae0c1493bc4cf69eb84a))
+* **doctor:** let a standing blocker outrank the recorded readiness status ([#1902](https://github.com/CodySwannGT/lisa/issues/1902)) ([83e2c9c](https://github.com/CodySwannGT/lisa/commit/83e2c9ce04e23d6fb888582f2313185c7a6f7704)), closes [#1858](https://github.com/CodySwannGT/lisa/issues/1858)
+* **hooks:** isolate nested Git checks ([bc30e40](https://github.com/CodySwannGT/lisa/commit/bc30e405e1d5b61b97a88b6371c9596c84235d2e)), closes [CodySwannGT/lisa#1895](https://github.com/CodySwannGT/lisa/issues/1895)
+
 ## [2.281.0](https://github.com/CodySwannGT/lisa/compare/v2.280.0...v2.281.0) (2026-07-21)
 
 
