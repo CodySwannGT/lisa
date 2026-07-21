@@ -416,13 +416,13 @@ export function computeNarrowedClaim(
   const list = blockers
     .map(blocker => `${blocker.id} — ${blocker.label}`)
     .join("; ");
-  const count =
+  const standing =
     blockers.length === 1
-      ? "1 ship blocker"
-      : `${blockers.length} ship blockers`;
+      ? "1 ship blocker stands"
+      : `${blockers.length} ship blockers stand`;
   return (
     `This repository is NOT ready for unattended fleet operation because ` +
-    `${count} stand: ${list}. It IS ready for supervised, single-ticket agent ` +
+    `${standing}: ${list}. It IS ready for supervised, single-ticket agent ` +
     `work with a human reviewing and approving each change before it ships.`
   );
 }
