@@ -7598,7 +7598,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md": true,
     "tests/fixtures/dependency-ownership/addition/.github/workflows/deploy.yml": true,
     "tests/fixtures/dependency-ownership/addition/package.json": true,
-    "tests/fixtures/dependency-ownership/addition/scripts/verify-payments.sh": true,
+    "tests/fixtures/dependency-ownership/addition/scripts/install-payment-client.sh": true,
     "tests/fixtures/dependency-ownership/internalization/.github/workflows/deploy.yml": true,
     "tests/fixtures/dependency-ownership/internalization/package.json": true,
     "tests/fixtures/dependency-ownership/internalization/scripts/verify-slugs.sh": true,

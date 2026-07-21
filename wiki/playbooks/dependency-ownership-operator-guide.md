@@ -206,13 +206,13 @@ Work out which of the three shapes you are looking at, then walk that list.
 **How to reject.** Write the rejection as a comment on the work item itself,
 naming which line below it failed — that is the record the next reader sees, and
 it is what turns "no" into a specific thing to fix. Then move the item back out
-of the ready-for-build queue so nothing picks it up in the meantime. For the two
-classes that require sign-off — runtime-critical service clients and
-temporary/experimental dependencies — the person who signs off is the named
-accountable owner in the record's *owner / review cadence* field; if the record
-does not name one yet, that missing name is itself the first thing to send back.
-This mirrors the escalation instruction the shipped record file gives every
-project: raise it to an owner rather than letting it sit.
+of the ready-for-build queue so nothing picks it up in the meantime. Whenever a
+sign-off is required (the table above says which class needs one and at which
+moment), the person who signs off is the named accountable owner in the record's
+*owner / review cadence* field; if the record does not name one yet, that missing
+name is itself the first thing to send back. This mirrors the escalation
+instruction the shipped record file gives every project: raise it to an owner
+rather than letting it sit.
 
 ### It is a dependency ADDITION
 
@@ -225,8 +225,14 @@ Accept it when all of these are true:
 - The evidence that class demands is present and specific: a named accountable
   person, a stated update cadence, a named check that would catch a bad update,
   and a real replacement-cost estimate.
-- If the class is **runtime-critical service client** or **temporary/experimental
-  dependency**, a human has signed off — before the work starts.
+- If the class is **runtime-critical service client**, a human has signed off
+  before the work starts. That is the only class needing sign-off to be added.
+- If the class is **temporary/experimental dependency**, no sign-off is needed to
+  add it — moving fast is the point of the class — but it carries a written
+  expiry date no more than one quarter out and a named exit (replace, in-house,
+  promote to another class, or remove). Sign-off becomes required later, to
+  extend past that date or to promote it. **No expiry date means it does not
+  belong in this class**, so send it back to be classified honestly.
 - The change commits to adding an entry to `.lisa/DEPENDENCY_DECISIONS.md`, and
   that entry answers all nine fields.
 - The version is pinned in the manifest only. In the Lisa project, run
@@ -234,10 +240,13 @@ Accept it when all of these are true:
   directly (see surface 3 above) and read the report.
 
 Send it back when: no class is named; the class is argued from popularity rather
-than exposure; the detection-evidence answer is "nothing would catch it" on a
-runtime-critical service client; replacement cost is left as `_Not yet decided_`
-on something that touches money or user data; or the version literal is copied
-into a workflow or script as well as the manifest.
+than exposure; the detection-evidence answer on a runtime-critical service client
+is either "nothing would catch it" (we looked, nothing covers it) or
+`_Not yet decided_` (nobody has looked) — that class may not be trusted blind, so
+both are blockers there even though they mean different things; replacement cost
+is left as `_Not yet decided_` on something that touches money or user data; a
+temporary/experimental dependency carries no expiry date; or the version literal
+is copied into a workflow or script as well as the manifest.
 
 What a good one looks like — a payment client being added. The work item says:
 
@@ -246,12 +255,24 @@ What a good one looks like — a payment client being added. The work item says:
 > customer payment data and money directly. Maturity does not lower the class —
 > blast radius sets it.
 
-and the record entry it produces answers the detection question without
-flinching:
+That much is right: the class is argued from blast radius, not reputation. But
+the record entry it produces is also where this example earns its keep, because
+the honest answer to the detection question turns out to be "we don't have one
+yet", and it says so rather than inventing a check:
 
-> **What would catch a bad update (detection evidence):** The `payments`
-> integration test, which charges a card against the processor's test mode on
-> every pull request, plus the production monitor on checkout success rate.
+> **What would catch a bad update (detection evidence):** `_Not yet decided_`.
+> The only automation this project runs against the payment client today is
+> `scripts/install-payment-client.sh`, which installs the pinned version and
+> asserts nothing about behavior […] **Class requirement not currently met** […]
+> this line is an escalation, not a to-do.
+
+**So this one goes back** — not because the record is bad, but because it is good
+enough to show you the problem. A runtime-critical service client may not be
+trusted blind, so the missing check is the thing to fix before the dependency
+ships. That is the shape to want: a record that hands you the objection instead
+of a confident sentence nobody would ever re-read. Beware the opposite — an
+entry naming a test suite that does not exist reads better and tells you
+nothing.
 
 The full fixtures live in the Lisa project under
 `tests/fixtures/dependency-trust-classes/` and

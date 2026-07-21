@@ -22,6 +22,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  ADDITION_PROJECT,
   DUPLICATE_CHECK,
   FIELD_LABELS,
   HOST_DETECTOR_INVOCATION,
@@ -220,6 +221,14 @@ describe("the operator walkthrough reaches all five surfaces", () => {
     // branch has to carry enough of the example to be judged on the page.
     expect(doc.split("What a good one looks like").length - 1).toBe(3);
     expect(doc).toContain("> **Trust class:** runtime-critical service client");
+    // The addition example's excerpt has to match what the fixture record
+    // actually says, or the guide teaches an entry Lisa does not ship.
+    expect(doc).toContain(
+      "> **What would catch a bad update (detection evidence):** `_Not yet decided_`."
+    );
+    expect(read(path.join(ADDITION_PROJECT, RECORD_PATH))).toContain(
+      "**What would catch a bad update (detection evidence):** `_Not yet decided_`."
+    );
     expect(doc).toContain(
       "> ### slugify (retired — capability moved in-house 2026-07-21)"
     );
@@ -304,12 +313,87 @@ describe("the shipped host scaffold reaches all five surfaces on its own", () =>
     expect(scaffold).toContain(OPERATOR_DOC);
     // Both are Lisa-side, so the scaffold must say so rather than implying the
     // operator can open them from their own checkout.
-    expect(flat(scaffold)).toContain("it lives in the Lisa project at");
+    expect(flat(scaffold).match(/In the Lisa project it is at/gu)).toHaveLength(
+      2
+    );
+  });
+
+  it("separates what a host has from what only the Lisa project has", () => {
+    // Claiming a Lisa-repository path is reachable from a host root sends the
+    // operator looking for a file that is not there — the same class of false
+    // claim the records themselves exist to prevent.
+    expect(scaffold).toContain("**Installed in this project**");
+    expect(scaffold).toContain(
+      "**Not shipped here — they exist only in the Lisa project.**"
+    );
+    expect(flat(scaffold)).toContain(
+      "Neither path below resolves from this repository"
+    );
   });
 
   it("repeats the honest non-enforcement statement the guide makes", () => {
     expect(flat(scaffold)).toContain(
       "Nothing above is enforced by a build gate."
+    );
+  });
+});
+
+describe("the temporary/experimental sign-off contract is stated once", () => {
+  // The governed rule (#1887) is canonical: this class is admitted WITHOUT
+  // ratification — moving fast is its whole purpose — and ratification becomes
+  // required only to extend past its expiry date or to promote it. Every
+  // downstream surface has to say the same thing, or an operator gets a
+  // different answer depending on which file they happened to open.
+  const rule = flat(
+    read("plugins/src/base/rules/reference/dependency-trust-classes.md")
+  );
+  const eager = flat(
+    read("plugins/src/base/rules/eager/dependency-trust-classes.md")
+  );
+  const guide = flat(read(OPERATOR_DOC));
+  const scaffold = flat(read(SCAFFOLD));
+
+  it("keeps the canonical rule saying ratification is for extension or promotion", () => {
+    expect(rule).toContain(
+      "**Temporary/experimental dependency** — to extend past expiry or to promote."
+    );
+    expect(eager).toContain(
+      "temporary dependencies need it to live past their expiry date"
+    );
+  });
+
+  it("does not let the guide or the scaffold demand sign-off to ADD one", () => {
+    // The precise regression both surfaces carried: naming this class alongside
+    // runtime-critical service clients as needing sign-off before the work
+    // starts. That is a stricter rule than the one Lisa actually governs by.
+    for (const surface of [guide, scaffold]) {
+      expect(surface).not.toMatch(
+        /runtime-critical service clients? (?:or|and) \*{0,2}temporary\/experimental/u
+      );
+    }
+    expect(guide).toContain(
+      "no sign-off is needed to add it — moving fast is the point of the class"
+    );
+    expect(scaffold).toContain(
+      "needs none to be added — moving fast is the point"
+    );
+  });
+
+  it("states the same admission price on both downstream surfaces", () => {
+    // What the class DOES cost at add time, in place of a sign-off.
+    for (const surface of [guide, scaffold]) {
+      expect(surface).toMatch(/expiry date no more than one quarter out/u);
+      expect(surface).toContain("named exit");
+    }
+    expect(rule).toContain("at most one quarter out");
+  });
+
+  it("keeps sign-off attached to extension and promotion on both surfaces", () => {
+    expect(guide).toContain(
+      "Sign-off becomes required later, to extend past that date or to promote it."
+    );
+    expect(scaffold).toContain(
+      "needs sign-off to extend past that date or to promote it"
     );
   });
 });
