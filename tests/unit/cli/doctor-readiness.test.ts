@@ -29,6 +29,7 @@ import {
   checkRepositoryReadiness,
   formatReadinessHeadline,
   resolveReadinessReportPath,
+  runDimensionProducer,
 } from "../../../src/cli/doctor-readiness.js";
 import { runDoctor } from "../../../src/cli/doctor.js";
 
@@ -60,6 +61,9 @@ describe("resolveReadinessReportPath", () => {
   });
 });
 
+/** The dimension whose producer this suite exercises end to end. */
+const DELIVERY_AUTHORITY = "delivery-authority";
+
 /** Operator-facing marker that the readiness question was not answered. */
 const NOT_ESTABLISHED = "NOT ESTABLISHED";
 
@@ -72,7 +76,7 @@ const ASSESSED_DIMENSION = {
 
 /** A dimension record that was never assessed, reused across headline cases. */
 const UNASSESSED_DIMENSION = {
-  id: "delivery-authority",
+  id: DELIVERY_AUTHORITY,
   status: "SKIP",
   findings: [],
 } as const;
@@ -103,7 +107,7 @@ describe("formatReadinessHeadline", () => {
     // saying the report proves nothing — that contradicts its own verdict.
     const headline = formatReadinessHeadline("READY", [
       ASSESSED_DIMENSION,
-      { id: "delivery-authority", status: "PASS", findings: [] },
+      { id: DELIVERY_AUTHORITY, status: "PASS", findings: [] },
     ]);
 
     expect(headline).not.toContain(NOT_ESTABLISHED);
@@ -153,6 +157,29 @@ describe("checkRepositoryReadiness", () => {
     }
   });
 
+  it("gives every dimension without a wired producer a SKIP that states why (#1898)", async () => {
+    const cwd = await getTempDir();
+
+    await checkRepositoryReadiness(cwd);
+
+    const raw = await readFile(resolveReadinessReportPath(cwd), "utf8");
+    const report = JSON.parse(raw) as Record<string, unknown>;
+    const dimensions = report.dimensions as Array<Record<string, unknown>>;
+    const skipped = dimensions.filter(dimension => dimension.status === "SKIP");
+    expect(skipped.length).toBeGreaterThan(0);
+    for (const dimension of skipped) {
+      const findings = dimension.findings as Array<Record<string, unknown>>;
+      // #1898: a SKIP is never blank — it always carries the reason it was not
+      // assessed, so silence is reported as silence rather than as health.
+      expect(findings.length).toBeGreaterThan(0);
+      expect(typeof findings[0].reason).toBe("string");
+      expect(findings[0].reason).not.toBe("");
+      expect(findings[0].skip).toBe(true);
+      // A SKIP must never name a blocker: the engine would stand it up.
+      expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    }
+  });
+
   it("names the unassessed dimension count and asserts no unattended readiness", async () => {
     const cwd = await getTempDir();
 
@@ -165,6 +192,86 @@ describe("checkRepositoryReadiness", () => {
     expect(check.detail).toContain("8 of 8 dimensions were never assessed");
     expect(check.detail).not.toMatch(/unattended fleet may run/i);
     expect(check.detail).not.toMatch(/pending evidence wiring/i);
+  });
+
+  it("names the standing blocker and prints the narrowed claim when a release path bypasses validation", async () => {
+    const cwd = await getTempDir();
+    await mkdir(path.join(cwd, ".github", "workflows"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".github", "workflows", "release.yml"),
+      [
+        "name: Release",
+        // A tag push: in-file validation is the expected place for it, so its
+        // absence is provable rather than possibly-upstream (an unfiltered
+        // `on: [push]` would include the default branch and correctly SKIP).
+        "on:",
+        "  push:",
+        "    tags: ['v*']",
+        "jobs:",
+        "  publish:",
+        "    runs-on: ubuntu-latest",
+        "    permissions:",
+        "      contents: read",
+        "    steps:",
+        "      - run: npm publish ./unvalidated-fresh-build.tgz",
+        "",
+      ].join("\n"),
+      "utf8"
+    );
+
+    const check = await checkRepositoryReadiness(cwd);
+
+    // The operator at the gate must be told WHICH blocker stands and what the
+    // repository IS still ready for — a bare NOT_READY is unactionable.
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("NOT_READY");
+    expect(check.detail).toContain("B2");
+    expect(check.detail).toContain(
+      "It IS ready for supervised, single-ticket agent work"
+    );
+
+    const report = JSON.parse(
+      await readFile(resolveReadinessReportPath(cwd), "utf8")
+    ) as Record<string, unknown>;
+    expect(report.verdict).toBe("NOT_READY");
+    expect(report.blocker_count).toBe(1);
+  });
+
+  it("still names the standing blocker when the report cannot be persisted", async () => {
+    const cwd = await getTempDir();
+    await mkdir(path.join(cwd, ".github", "workflows"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".github", "workflows", "release.yml"),
+      [
+        "name: Release",
+        "on:",
+        "  push:",
+        "    tags: ['v*']",
+        "jobs:",
+        "  publish:",
+        "    runs-on: ubuntu-latest",
+        "    permissions:",
+        "      contents: read",
+        "    steps:",
+        "      - run: npm publish ./unvalidated-fresh-build.tgz",
+        "",
+      ].join("\n"),
+      "utf8"
+    );
+    const lisaDir = path.join(cwd, ".lisa");
+    await mkdir(lisaDir, { recursive: true });
+    await chmod(lisaDir, 0o500);
+
+    const check = await checkRepositoryReadiness(cwd);
+
+    // Persistence failing is exactly when the operator cannot go read the file,
+    // so the detail line must still say WHICH blocker stands.
+    expect(check.detail).toContain("B2");
+    expect(check.detail).toContain(
+      "It IS ready for supervised, single-ticket agent work"
+    );
+    expect(check.detail).toContain("Could not persist");
+    await chmod(lisaDir, 0o755);
   });
 
   it("degrades to a WARN check instead of throwing when the report cannot be written", async () => {
@@ -180,6 +287,40 @@ describe("checkRepositoryReadiness", () => {
     expect(check.detail.toLowerCase()).toContain("readiness");
     // Restore permissions so afterEach cleanup succeeds.
     await chmod(lisaDir, 0o755);
+  });
+});
+
+describe("runDimensionProducer", () => {
+  it("degrades a throwing producer to a stated-reason SKIP for its own dimension", async () => {
+    const record = await runDimensionProducer(
+      DELIVERY_AUTHORITY,
+      "/nowhere",
+      async () => {
+        throw new Error("workflow parser exploded");
+      }
+    );
+
+    // One producer failing must cost its own dimension, never the whole report.
+    expect(record.id).toBe(DELIVERY_AUTHORITY);
+    expect(record.status).toBe("SKIP");
+    const finding = record.findings[0] as Record<string, unknown>;
+    expect(finding.skip).toBe(true);
+    expect(String(finding.reason)).toContain("workflow parser exploded");
+    expect(Object.hasOwn(finding, "blocker")).toBe(false);
+  });
+
+  it("returns the producer's record untouched when it succeeds", async () => {
+    const record = await runDimensionProducer(
+      "proportionality",
+      "/nowhere",
+      async () => ({ id: "proportionality", status: "PASS", findings: [] })
+    );
+
+    expect(record).toEqual({
+      id: "proportionality",
+      status: "PASS",
+      findings: [],
+    });
   });
 });
 
