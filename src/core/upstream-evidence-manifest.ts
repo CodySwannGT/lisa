@@ -1105,7 +1105,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
       "ab45fdc00294c4ca9698093cb294a2aaf39a73d714fe1aa6ad686c6c34e157ba",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
-      "0b0ffc4f7b13020bcfcf58837e34b482e1f51ff96da9b1b716f2bb29dbd6313a",
+      "6302896b70d8211e2f412deea8be3e42e68cf36d566759af3c937ccf5287b91c",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
       "82f0a34e530d1940c38c9a2ee5f0d139cab4054616bdd34e73082753442871ab",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
@@ -1137,7 +1137,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/apollo-client/references/mutation-patterns.md":
       "987b90aed8aef765d1555ea02b28738fbc8d6eeac734272de4da8981747182fd",
     "plugins/src/expo/skills/atomic-design-gluestack/SKILL.md":
-      "d299b32e79f78ed2346cef838cda57d93ee7e2368c5d5d2cf01b727ec7b6753a",
+      "bc6ddd15b3a533d510e58e27e448cc22f57009bd90a4c4e5af836cac92157802",
     "plugins/src/expo/skills/atomic-design-gluestack/references/atomic-levels.md":
       "c01c1bcd68c128e10086195467564be196f78f4f771169d827da707a677ecde3",
     "plugins/src/expo/skills/atomic-design-gluestack/references/folder-structure.md":
