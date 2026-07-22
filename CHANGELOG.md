@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.289.1](https://github.com/CodySwannGT/lisa/compare/v2.289.0...v2.289.1) (2026-07-22)
+
+
+### Documentation
+
+* **rules:** make tracker status vocabulary config-bound for every actor ([78b8a49](https://github.com/CodySwannGT/lisa/commit/78b8a4965191ee2e7902569fadcee276177f23f4)), closes [CodySwannGT/lisa#1953](https://github.com/CodySwannGT/lisa/issues/1953)
+* **skills:** resolve jira-sync milestone table statuses from the configured workflow map ([dde5321](https://github.com/CodySwannGT/lisa/commit/dde5321e811047f83bec8d4b66ca75368002f003)), closes [#1954](https://github.com/CodySwannGT/lisa/issues/1954) [CodySwannGT/lisa#1953](https://github.com/CodySwannGT/lisa/issues/1953)
+
 ## [2.289.0](https://github.com/CodySwannGT/lisa/compare/v2.288.1...v2.289.0) (2026-07-22)
 
 
