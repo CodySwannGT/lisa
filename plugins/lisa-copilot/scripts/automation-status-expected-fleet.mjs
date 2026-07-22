@@ -37,9 +37,85 @@ export const AUTOMATION_EXPECTED_CADENCES = {
     human: "once a day",
     rrule: "FREQ=DAILY;INTERVAL=1",
   },
+  monitor: {
+    human: "once a day",
+    rrule: "FREQ=DAILY;INTERVAL=1",
+  },
+  "learnings-audit": {
+    human: "once a week",
+    rrule: "FREQ=WEEKLY;INTERVAL=1",
+  },
 };
 
 export const EXPLORATORY_QA_STACK_PRIORITY = ["expo", "rails", "harper-fabric"];
+
+/**
+ * Directory (repo-relative) holding the checked-in per-loop runbooks scaffolded
+ * by `/lisa:setup-automations` per the `automation-runbook-contract` rule.
+ */
+export const AUTOMATION_RUNBOOK_DIRECTORY = ".lisa/automations";
+
+/**
+ * Every fleet group, in render order, with the operator-facing title each one
+ * carries in the status report. This is the single source of truth for group
+ * membership: adapters bin entries with {@link createAutomationGroupBins} and
+ * render with {@link renderAutomationGroups}, so adding a group here surfaces it
+ * everywhere instead of silently dropping its entries.
+ */
+export const AUTOMATION_FLEET_GROUP_TITLES = {
+  core: "Core automations",
+  exploratory: "Exploratory automations",
+  "opt-in": "Opt-in automations",
+};
+
+/**
+ * Create one empty bin per known fleet group.
+ *
+ * @returns {Map<string, object[]>}
+ */
+export function createAutomationGroupBins() {
+  return new Map(
+    Object.keys(AUTOMATION_FLEET_GROUP_TITLES).map(group => [group, []])
+  );
+}
+
+/**
+ * Add a rendered status item to its group bin.
+ *
+ * Throws on an unknown group rather than dropping the item: a silently skipped
+ * entry is indistinguishable from a healthy fleet, which is exactly how the
+ * opt-in gardener went missing from both runtime adapters.
+ *
+ * @param {Map<string, object[]>} bins
+ * @param {string} group
+ * @param {object} item
+ * @returns {void}
+ */
+export function assignToAutomationGroup(bins, group, item) {
+  const bin = bins.get(group);
+  if (!bin) {
+    throw new Error(
+      `Unknown automation fleet group "${group}" for ${item?.id ?? "an automation"}. Add it to AUTOMATION_FLEET_GROUP_TITLES so the status report can render it.`
+    );
+  }
+  bin.push(item);
+}
+
+/**
+ * Render the group bins as the numbered report groups, in declaration order.
+ *
+ * @param {Map<string, object[]>} bins
+ * @returns {readonly { readonly id: string, readonly title: string, readonly items: readonly object[] }[]}
+ */
+export function renderAutomationGroups(bins) {
+  return Object.entries(AUTOMATION_FLEET_GROUP_TITLES).map(
+    ([group, title], index) => ({
+      id: String(index + 1),
+      title,
+      items: bins.get(group) ?? [],
+    })
+  );
+}
 
 /**
  * @typedef {{
@@ -48,18 +124,51 @@ export const EXPLORATORY_QA_STACK_PRIORITY = ["expo", "rails", "harper-fabric"];
  *   readonly expectedCadence: string
  *   readonly expectedRRule: string
  *   readonly expectedCommand: string
- *   readonly group: "core" | "exploratory"
+ *   readonly group: "core" | "exploratory" | "opt-in"
+ *   readonly runbookPath: string
  * }} ExpectedAutomationEntry
  *
  * @typedef {{
  *   readonly id: string
  *   readonly automationId: string
- *   readonly group: "core" | "exploratory"
+ *   readonly group: "core" | "exploratory" | "opt-in"
  *   readonly reason: string
  *   readonly expectedCadence: string
  *   readonly expectedRRule: string
+ *   readonly runbookPath: string
  * }} UnsupportedAutomationEntry
  */
+
+/**
+ * Infer whether this project opted into the weekly gardener, from what is
+ * actually registered on the scheduler.
+ *
+ * Membership is registration, not configuration: there is no config key to
+ * read, so a read-only caller decides by looking for the registration itself.
+ * Pass the result as `learningsAudit` to {@link resolveExpectedAutomationFleet}
+ * so an opted-in project compares its gardener like any other loop instead of
+ * reporting it `UNSUPPORTED` forever.
+ *
+ * @param {{
+ *   readonly automationPrefix: string
+ *   readonly observedAutomationIds?: readonly string[]
+ * }} input
+ * @returns {boolean}
+ */
+export function inferLearningsAuditRegistration(input) {
+  const target = `${input.automationPrefix}learnings-audit`;
+  return (input.observedAutomationIds ?? []).includes(target);
+}
+
+/**
+ * Resolve the repo-relative runbook path for a loop id.
+ *
+ * @param {string} id
+ * @returns {string}
+ */
+export function resolveAutomationRunbookPath(id) {
+  return `${AUTOMATION_RUNBOOK_DIRECTORY}/${id}.runbook.md`;
+}
 
 /**
  * Resolve the stable project identifier and automation prefix used by
@@ -101,7 +210,15 @@ export function resolveAutomationProjectIdentity(input = {}) {
  *   readonly detectedTypes?: readonly string[]
  *   readonly autoStartPrds?: boolean | string
  *   readonly autoStartTickets?: boolean | string
+ *   readonly learningsAudit?: boolean | string
  * }} input
+ *
+ * `learningsAudit` has no config home by design — the gardener is opted into at
+ * registration time, and membership is registration, not configuration. A
+ * read-only caller (the status surface) therefore INFERS it: pass `true` when a
+ * `<automationPrefix>learnings-audit` entry is observed on the runtime
+ * scheduler. Without that inference an opted-in project would report the
+ * gardener `UNSUPPORTED` forever instead of comparing it like any other loop.
  * @returns {{
  *   readonly owner: string
  *   readonly repo: string
@@ -116,6 +233,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
   const identity = resolveAutomationProjectIdentity(input);
   const autoStartPrds = normalizeBooleanFlag(input.autoStartPrds);
   const autoStartTickets = normalizeBooleanFlag(input.autoStartTickets);
+  const learningsAudit = normalizeBooleanFlag(input.learningsAudit);
   const detectedTypes = input.detectedTypes ?? [];
 
   const tracker = config.tracker;
@@ -166,6 +284,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
       `/lisa:intake ${buildQueue}`,
       "core"
     ),
+    createExpectedEntry(identity, "monitor", "/lisa:monitor", "core"),
     createExpectedEntry(
       identity,
       "exploratory-prds",
@@ -191,7 +310,28 @@ export function resolveExpectedAutomationFleet(input = {}) {
       createUnsupportedEntry(
         identity,
         "exploratory-bugs",
-        "This repository does not ship an exploratory-qa command surface."
+        "This project ships no exploratory-qa command, so there is nothing for this loop to run. No action needed unless the project adds one.",
+        "exploratory"
+      )
+    );
+  }
+
+  if (learningsAudit) {
+    expected.push(
+      createExpectedEntry(
+        identity,
+        "learnings-audit",
+        "/lisa:learnings:audit",
+        "opt-in"
+      )
+    );
+  } else {
+    unsupported.push(
+      createUnsupportedEntry(
+        identity,
+        "learnings-audit",
+        "The weekly gardener loop is opt-in and this project has not opted in, so nobody is auditing its knowledge surfaces. Run /lisa:setup-automations learnings-audit=true to enable it.",
+        "opt-in"
       )
     );
   }
@@ -222,7 +362,7 @@ export function resolveExploratoryQaStack(detectedTypes = []) {
  * @param {{ readonly automationPrefix: string }} identity
  * @param {string} id
  * @param {string} expectedCommand
- * @param {"core" | "exploratory"} group
+ * @param {"core" | "exploratory" | "opt-in"} group
  * @returns {ExpectedAutomationEntry}
  */
 function createExpectedEntry(identity, id, expectedCommand, group) {
@@ -234,6 +374,7 @@ function createExpectedEntry(identity, id, expectedCommand, group) {
     expectedRRule: cadence.rrule,
     expectedCommand,
     group,
+    runbookPath: resolveAutomationRunbookPath(id),
   };
 }
 
@@ -241,17 +382,19 @@ function createExpectedEntry(identity, id, expectedCommand, group) {
  * @param {{ readonly automationPrefix: string }} identity
  * @param {string} id
  * @param {string} reason
+ * @param {"core" | "exploratory" | "opt-in"} group
  * @returns {UnsupportedAutomationEntry}
  */
-function createUnsupportedEntry(identity, id, reason) {
+function createUnsupportedEntry(identity, id, reason, group) {
   const cadence = AUTOMATION_EXPECTED_CADENCES[id];
   return {
     id,
     automationId: `${identity.automationPrefix}${id}`,
     expectedCadence: cadence.human,
     expectedRRule: cadence.rrule,
-    group: "exploratory",
+    group,
     reason,
+    runbookPath: resolveAutomationRunbookPath(id),
   };
 }
 

@@ -26,13 +26,27 @@ information was already on the ticket; only the structure was missing).
   Gherkin Acceptance Criteria (one scenario per fix), expected-vs-actual +
   environment, Repository, Relationship Search (actually run the git+tracker
   search — don't fabricate "none found"), Validation Journey **draft** (via the
-  vendor `*-add-journey` skill), Target Backend Environment. For bugs, parse the
-  reported environment from the item body/reproduction steps before recommending
-  any default: bare environment names (`dev`, `staging`, `prod`, `production`)
-  and environment-bearing URLs (for example `staging.<domain>`, `gql.staging.*`,
-  `dev.<domain>`) are authoritative. Only recommend the repo's remote default branch when
-  no environment is discoverable anywhere in the work item, and record that as
-  an assumption.
+  vendor `*-add-journey` skill), Target Backend Environment. Preserve a bare
+  configured key or `Confirmed: <env>` as human-confirmed. Automation writes
+  `Inferred: <env> — evidence: <title|body|reproduction|hostname>` or
+  `Assumption: <env> — remote default branch <branch>`. Without a unique
+  reverse-map use `Assumption: remote default branch <branch>`; human confirmation
+  replaces the annotation with a bare key or `Confirmed: <env>`. For legacy bare
+  values, use managed draft markers and current ticket content only; provider
+  edit history is not required. A marker proves automation and requires
+  re-annotation; otherwise unknown provenance plus conflicting evidence stops.
+  Human-confirmed wins, then validated `Inferred:`
+  evidence. Otherwise use one unambiguous exact `deploy.branches` key from the
+  title, body, and reproduction steps or a URL hostname, excluding the complete
+  `Target Backend Environment` section and other machine-authored metadata/draft
+  blocks so annotations cannot become evidence. Evidence supersedes only
+  `Assumption:`. Normalize only built-in
+  `prod` ↔ `production` when exactly one is configured; no other aliases exist.
+  Never infer from arbitrary branch text, URL paths/query strings, or substrings.
+  Conflicting signals **stop** autofill. With no environment signal, use the
+  remote default and record the applicable `Assumption:` form; a non-unique
+  reverse-map alone never blocks. Require any selected mapping and remote branch.
+  Never overwrite human prose.
 - **Tier B — irreducibly human:** real credentials/access that exist nowhere on
   the item or in repo test-user docs; a genuine product/scoping decision with no
   defensible default. Still propose a recommended default where one exists; ask

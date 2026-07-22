@@ -38,7 +38,7 @@ Resolve `<ORG>` and `<REPO>` from the ref or from `.lisa.config.json`.
 | Priority | CREATE | Label `priority:<low|medium|high|critical>`. |
 | Acceptance criteria | Story, Task, Bug, Sub-task, Improvement | Gherkin in `## Acceptance Criteria` — see Phase 3. |
 | Validation Journey | Runtime-behavior changes | Delegate to `/github-add-journey`. |
-| Target backend environment | Runtime-behavior changes | Recorded under `## Target Backend Environment`. Skip only for doc / config / type-only. |
+| Target backend environment | Runtime-behavior changes | For every work type, use an exact `deploy.branches` key when an environment is known. Human: bare key or `Confirmed: <env>`. Automation: `Inferred: <env> — evidence: <title\|body\|reproduction\|hostname>`, `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` otherwise. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. |
 | Sign-in account / credentials | Authenticated-surface tickets | Recorded under `## Sign-in Required`. |
 | Repository | Bug, Task, Sub-task | GitHub Issues live in exactly one repo by definition — record the repo name under `## Repository`, and reject any AC bullet that references a different repo. |
 | Source Requirement | PRD-sourced issues (`prd_source` provided) | `## Source Requirement` with PRD link + verbatim requirement quote(s) — see Phase 3; enforced at every level, sub-issues included. |
@@ -91,8 +91,14 @@ Scenario: <name>
 [Explicit list of what this issue does NOT cover. Forces scope discipline.]
 
 ## Target Backend Environment
-[Required when the issue changes runtime behavior. One of: dev / staging / prod.
- Skip section entirely for doc-only, config-only, or type-only issues.]
+[Required when the issue changes runtime behavior. Use an exact
+ `deploy.branches` key. A human-confirmed value is a bare key or
+ `Confirmed: <env>`. An automated evidence write is
+ `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated
+ generic default is `Assumption: <env> — remote default branch <branch>`.
+ Without a unique reverse-map use `Assumption: remote default branch <branch>`.
+ Human confirmation replaces the automated annotation with a bare key or
+ `Confirmed: <env>`. Skip only for doc/config/type-only issues.]
 
 ## Sign-in Required
 [Include this section ONLY if the work touches authenticated surfaces.

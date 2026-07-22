@@ -151,6 +151,34 @@ Do not invent types inline; if none fits, propose extending this table. The lega
 
 The manifest is the single source of truth for "what evidence is required": authored once in the Validation Journey, enforced at write time, replayed during `tracker-journey` (which captures each artifact **in its declared type**), and checked again before the ticket closes. There is no second list to keep in sync.
 
+### Every evidence surface names what it did NOT establish
+
+An evidence comment that lists only what passed is unreadable at a gate: a journey that skipped an edge state looks exactly like one that covered it. So every evidence comment — and the committed `evidence/<ticket>/verdict.json` — carries two extra sections, defined in full by the `claim-evidence-mapping` rule:
+
+- **Artifact identity** — what the evidence was collected against, as values rather than placeholders: the `repository`, the `head_sha` the run observed, the `environment`, and per artifact its `sha256` digest and `captured_at`. Defined in full by the `claim-evidence-mapping` rule.
+- **Not established** — a **required, never-omitted** heading listing what the verification did *not* prove: boundaries not exercised, environments not tested, behavior consciously out of scope. When nothing is outstanding it still renders, reading `None outstanding — reviewed`. It is never blank.
+
+The committed verdict carries the machine-readable half:
+
+```
+evidence/<ticket>/verdict.json
+  not_established: []            # what was NOT proved; may be empty
+  not_established_reviewed: true # attests the list was reviewed; may NEVER be omitted
+  artifact: { repository, base_sha, head_sha, build_id, environment, observed_at }
+  evidence: [ { evidence_id, kind, locator,
+                artifact_head_sha,   # the head_sha in force when THIS artifact was captured
+                sha256,              # content digest of the committed evidence file
+                captured_at } ]
+```
+
+`artifact.head_sha` pins the build the verification observed; each entry's `sha256` pins the bytes. An entry whose `artifact_head_sha` differs from `artifact.head_sha` is an `artifact_mismatch` and a recomputed digest that disagrees is an `evidence_digest_mismatch` — each fails loudly, naming both SHAs or the evidence id, and blocks completion. At completion the pinned `head_sha` is reconciled against **the merged head** using the ancestry + deploy-run definition of "what shipped" that `lisa-drive-pr-to-merge` already owns (cite it; there is no second definition): pre-merge evidence counts only when its head is a parent of the merge, and on a merge-race mismatch verification re-runs against the merged head before completion is declared.
+
+The list may be empty; the flag may not be missing. An absent `not_established_reviewed` is indistinguishable from nobody having asked the question, so the evidence-posting gate in `tracker-evidence` refuses the post, and the Stop-hook gate reports it as a v2 contract violation (advisory until `verification.gate.enforceBoundaries` is ratcheted on). This generalizes the required, never-empty `Known limits` field of `lisa-improve-harness` to every evidence surface.
+
+The boundary each artifact type reaches — and therefore which claim a captured artifact can discharge — is the `claim-evidence-mapping` rule's taxonomy; the type table above is its evidence-kind source.
+
+The verdict is read twice. The Claude-only `enforce-verification-gate.sh` Stop hook reads it to decide whether the flow may stop; `lisa-spec-conformance` (run by `spec-conformance-specialist` in the verification phase) reads it to decide whether each shipped requirement's proof actually reaches its boundary — a cited-evidence-boundary mismatch is a `BOUNDARY_MISMATCH` conformance finding there, caught alongside empirical verification rather than after it. On harnesses without a Stop hook, `lisa-implement`'s prose gate carries the same v2 expectations by convention. The whole system, operator-readable end to end, is written up as the Lisa wiki's **Bounded-Claims Evidence System** concept page (`wiki/concepts/bounded-claims-evidence-system.md` upstream).
+
 ### Cross-work-item evidence references are non-claiming
 
 When prose needs to point at evidence declared by another work item, use the dedicated reference form:

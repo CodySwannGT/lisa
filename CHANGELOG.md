@@ -2,6 +2,634 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.10](https://github.com/CodySwannGT/lisa/compare/v2.286.9...v2.286.10) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** respect configured default branch for B2 ([f147662](https://github.com/CodySwannGT/lisa/commit/f147662485040bfd38bc653562746781e1d2231d)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.286.9](https://github.com/CodySwannGT/lisa/compare/v2.286.8...v2.286.9) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** assess every publish step ([db18611](https://github.com/CodySwannGT/lisa/commit/db186119d8f966b4e37003be5e8222babea38c7a)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** scope publish promotion checks ([23b16c7](https://github.com/CodySwannGT/lisa/commit/23b16c76f23c9520d26a244d9d0346deafb45036)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.286.8](https://github.com/CodySwannGT/lisa/compare/v2.286.7...v2.286.8) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** address templated build review ([f43aa84](https://github.com/CodySwannGT/lisa/commit/f43aa84a3420e59c4562e8d3ee8fe050d545b113)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** detect templated release builds ([e70fe5b](https://github.com/CodySwannGT/lisa/commit/e70fe5b3d5e511ceb9e8b9ddccece6f2d70b09e9)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.286.7](https://github.com/CodySwannGT/lisa/compare/v2.286.6...v2.286.7) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** detect action-based release publishes ([5f7dfaf](https://github.com/CodySwannGT/lisa/commit/5f7dfaf8fc6862c4a2942ad4924bc54f11c362e4)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.286.6](https://github.com/CodySwannGT/lisa/compare/v2.286.5...v2.286.6) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** detect round-2 static credential authority ([146fcdb](https://github.com/CodySwannGT/lisa/commit/146fcdbb8ea3c27fddc5e43446051df6ea38ebac)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.286.5](https://github.com/CodySwannGT/lisa/compare/v2.286.4...v2.286.5) (2026-07-22)
+
+
+### Bug Fixes
+
+* **migrations:** retire stale esbuild exclusion securely ([8df8de3](https://github.com/CodySwannGT/lisa/commit/8df8de3b1cae33f02f923060f8c50a544f6cda62)), closes [CodySwannGT/lisa#1929](https://github.com/CodySwannGT/lisa/issues/1929)
+
+### [2.286.4](https://github.com/CodySwannGT/lisa/compare/v2.286.3...v2.286.4) (2026-07-22)
+
+### [2.286.3](https://github.com/CodySwannGT/lisa/compare/v2.286.2...v2.286.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* **security:** floor fast-xml-parser at 5.10.1 ([b2bac0e](https://github.com/CodySwannGT/lisa/commit/b2bac0e1033695ae9adf26b0b6edd0d0cc5a45ba)), closes [CodySwannGT/lisa#1925](https://github.com/CodySwannGT/lisa/issues/1925)
+
+### [2.286.2](https://github.com/CodySwannGT/lisa/compare/v2.286.1...v2.286.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **learnings:** anchor stale-lock reclaim to the lock it judged stale ([#1878](https://github.com/CodySwannGT/lisa/issues/1878)) ([71e5a78](https://github.com/CodySwannGT/lisa/commit/71e5a784c1f759e3c896a4fdbee4ddf4fc1ac36e))
+
+### [2.286.1](https://github.com/CodySwannGT/lisa/compare/v2.286.0...v2.286.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **deps:** stop the addition fixture modeling a false detection claim ([#1891](https://github.com/CodySwannGT/lisa/issues/1891)) ([ca285e1](https://github.com/CodySwannGT/lisa/commit/ca285e12fd03784978775219d2a318d86237144c)), closes [#1922](https://github.com/CodySwannGT/lisa/issues/1922) [#1887](https://github.com/CodySwannGT/lisa/issues/1887)
+
+
+### Documentation
+
+* **deps:** make the shipped record scaffold reach all five surfaces ([#1891](https://github.com/CodySwannGT/lisa/issues/1891)) ([d2a103d](https://github.com/CodySwannGT/lisa/commit/d2a103ded8fbe254682df981da6247877ef55ff6))
+
+## [2.286.0](https://github.com/CodySwannGT/lisa/compare/v2.285.1...v2.286.0) (2026-07-21)
+
+
+### Features
+
+* **deps:** add confidence-rebuild kit for dependency internalization ([#1890](https://github.com/CodySwannGT/lisa/issues/1890)) ([11d2a80](https://github.com/CodySwannGT/lisa/commit/11d2a80d47c4c85309a6078093bd009561b9b811)), closes [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1887](https://github.com/CodySwannGT/lisa/issues/1887)
+
+### [2.285.1](https://github.com/CodySwannGT/lisa/compare/v2.285.0...v2.285.1) (2026-07-21)
+
+
+### Documentation
+
+* **deps:** seed Lisa's dependency decision records ([#1889](https://github.com/CodySwannGT/lisa/issues/1889)) ([c9fb357](https://github.com/CodySwannGT/lisa/commit/c9fb35758d6d86cfa82f2dbd4133e6b45ac8c3f2)), closes [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1918](https://github.com/CodySwannGT/lisa/issues/1918) [#1918](https://github.com/CodySwannGT/lisa/issues/1918)
+
+## [2.285.0](https://github.com/CodySwannGT/lisa/compare/v2.284.0...v2.285.0) (2026-07-21)
+
+
+### Features
+
+* **ci:** add manifest-authoritative duplicate-version check ([#1888](https://github.com/CodySwannGT/lisa/issues/1888)) ([6e140ea](https://github.com/CodySwannGT/lisa/commit/6e140ea386796e39c479ecf4afbc17f2fb3e7330))
+
+
+### Bug Fixes
+
+* **ci:** stop duplicate-version check misreporting self-references ([#1888](https://github.com/CodySwannGT/lisa/issues/1888)) ([a9fbcd6](https://github.com/CodySwannGT/lisa/commit/a9fbcd6b6542b738b385c275fb650a74399911e1))
+
+## [2.284.0](https://github.com/CodySwannGT/lisa/compare/v2.283.0...v2.284.0) (2026-07-21)
+
+
+### Features
+
+* **deps:** define dependency trust classes and review requirements ([#1887](https://github.com/CodySwannGT/lisa/issues/1887)) ([8239440](https://github.com/CodySwannGT/lisa/commit/8239440dad929b8d1c4d5322fede5453e3ae8fde)), closes [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1886](https://github.com/CodySwannGT/lisa/issues/1886) [#1888](https://github.com/CodySwannGT/lisa/issues/1888) [#1889](https://github.com/CodySwannGT/lisa/issues/1889)
+* **ui:** derive setup checklist readiness ([2abb76d](https://github.com/CodySwannGT/lisa/commit/2abb76dd1ac346bbd442e7f4ba163bd9bbcd4779)), closes [CodySwannGT/lisa#1531](https://github.com/CodySwannGT/lisa/issues/1531)
+
+## [2.283.0](https://github.com/CodySwannGT/lisa/compare/v2.282.0...v2.283.0) (2026-07-21)
+
+
+### Features
+
+* **deps:** add governed dependency decision-record scaffold ([#1886](https://github.com/CodySwannGT/lisa/issues/1886)) ([d66bbf5](https://github.com/CodySwannGT/lisa/commit/d66bbf53aeb7c60965bba5b562e916e42943f089)), closes [#1887](https://github.com/CodySwannGT/lisa/issues/1887) [#1888](https://github.com/CodySwannGT/lisa/issues/1888) [#1889](https://github.com/CodySwannGT/lisa/issues/1889) [#1889](https://github.com/CodySwannGT/lisa/issues/1889)
+
+
+### Documentation
+
+* **deps:** make the dependency decision record readable at the gate ([#1886](https://github.com/CodySwannGT/lisa/issues/1886)) ([586e930](https://github.com/CodySwannGT/lisa/commit/586e93062856a14036df5e84473e6f0754a1b0fd)), closes [#1889](https://github.com/CodySwannGT/lisa/issues/1889)
+
+## [2.282.0](https://github.com/CodySwannGT/lisa/compare/v2.281.0...v2.282.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** bridge agent readiness group to CLI .lisa/readiness.json ([#1902](https://github.com/CodySwannGT/lisa/issues/1902)) ([efd5dc0](https://github.com/CodySwannGT/lisa/commit/efd5dc09b5b395759e1a3420ae377152a78a482d)), closes [#1739](https://github.com/CodySwannGT/lisa/issues/1739) [#1897](https://github.com/CodySwannGT/lisa/issues/1897) [#1896](https://github.com/CodySwannGT/lisa/issues/1896)
+* **standards:** add freshness-bound conformance proof ([be43610](https://github.com/CodySwannGT/lisa/commit/be43610ed24fadf4d05d441f1aa24e4e846e66ef)), closes [CodySwannGT/lisa#1895](https://github.com/CodySwannGT/lisa/issues/1895)
+
+
+### Bug Fixes
+
+* address standards proof review findings ([3aab61a](https://github.com/CodySwannGT/lisa/commit/3aab61aa7cae6493789d30264046530d19ac6483)), closes [CodySwannGT/lisa#1895](https://github.com/CodySwannGT/lisa/issues/1895)
+* **doctor:** escalate readiness dimensions on attribution, not blocker spec ([#1902](https://github.com/CodySwannGT/lisa/issues/1902)) ([0261314](https://github.com/CodySwannGT/lisa/commit/02613149459024151a84ae0c1493bc4cf69eb84a))
+* **doctor:** let a standing blocker outrank the recorded readiness status ([#1902](https://github.com/CodySwannGT/lisa/issues/1902)) ([83e2c9c](https://github.com/CodySwannGT/lisa/commit/83e2c9ce04e23d6fb888582f2313185c7a6f7704)), closes [#1858](https://github.com/CodySwannGT/lisa/issues/1858)
+* **hooks:** isolate nested Git checks ([bc30e40](https://github.com/CodySwannGT/lisa/commit/bc30e405e1d5b61b97a88b6371c9596c84235d2e)), closes [CodySwannGT/lisa#1895](https://github.com/CodySwannGT/lisa/issues/1895)
+
+## [2.281.0](https://github.com/CodySwannGT/lisa/compare/v2.280.0...v2.281.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** wire B1/B4 + capabilities-tools readiness producers, closing [#1896](https://github.com/CodySwannGT/lisa/issues/1896) ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([2c4638f](https://github.com/CodySwannGT/lisa/commit/2c4638f90f69c80d8ce8fe8848ac23759b4106da))
+
+
+### Bug Fixes
+
+* **doctor:** stop B1/B4 firing on ephemeral CI and preview infrastructure ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([d6c8e9d](https://github.com/CodySwannGT/lisa/commit/d6c8e9d78f236eb54f16384a12527fb7edfae58b))
+
+## [2.280.0](https://github.com/CodySwannGT/lisa/compare/v2.279.2...v2.280.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** wire B5/B6 supply-chain + context-routing readiness producers ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([8409aae](https://github.com/CodySwannGT/lisa/commit/8409aaef8bfe7be79b01e8efc418f7b6fde6fd89))
+
+
+### Bug Fixes
+
+* **doctor:** pin B5 archive URLs, id-less exclusions, and honest exemption wording ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([265ae44](https://github.com/CodySwannGT/lisa/commit/265ae447b429624915383ebd190c4c8ce7d849e3))
+* **doctor:** stop B5/B6 false-REDing correctly configured repositories ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([8f488d9](https://github.com/CodySwannGT/lisa/commit/8f488d90e3dcb81c3f8aad0e8ca44561a9dc8822)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.279.2](https://github.com/CodySwannGT/lisa/compare/v2.279.1...v2.279.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** avoid package-manager template injection ([051325c](https://github.com/CodySwannGT/lisa/commit/051325cba936501a13e77b00bb41774928d6adae)), closes [CodySwannGT/lisa#1906](https://github.com/CodySwannGT/lisa/issues/1906)
+
+### [2.279.1](https://github.com/CodySwannGT/lisa/compare/v2.279.0...v2.279.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** install dependencies for e2e route coverage ([8f66089](https://github.com/CodySwannGT/lisa/commit/8f66089243080543d64f0fb8c57d0e8fd1c3ecb1)), closes [CodySwannGT/lisa#1906](https://github.com/CodySwannGT/lisa/issues/1906)
+
+## [2.279.0](https://github.com/CodySwannGT/lisa/compare/v2.278.0...v2.279.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** wire B2/B3 delivery-authority readiness producers ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([d1cce39](https://github.com/CodySwannGT/lisa/commit/d1cce39ad21b24c05c2d259ad57299872a70e22e)), closes [#1898](https://github.com/CodySwannGT/lisa/issues/1898) [#1902](https://github.com/CodySwannGT/lisa/issues/1902)
+
+
+### Bug Fixes
+
+* **doctor:** close B2 residual false negatives and false greens ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([9505e30](https://github.com/CodySwannGT/lisa/commit/9505e30fae9524f98431716af01afec8a717b541)), closes [#1898](https://github.com/CodySwannGT/lisa/issues/1898) [#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** name blockers on the persist-failure path, ignore dry-run publishes ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([3e46ee9](https://github.com/CodySwannGT/lisa/commit/3e46ee965ded4a4af87d7934c836d661302c6a5e)), closes [#1905](https://github.com/CodySwannGT/lisa/issues/1905)
+* **doctor:** stop B2/B3 readiness producers failing correct repos ([#1896](https://github.com/CodySwannGT/lisa/issues/1896)) ([00d3b6c](https://github.com/CodySwannGT/lisa/commit/00d3b6c4ac56fdc113a536db347c2220bab58523)), closes [#1898](https://github.com/CodySwannGT/lisa/issues/1898)
+
+## [2.278.0](https://github.com/CodySwannGT/lisa/compare/v2.277.4...v2.278.0) (2026-07-21)
+
+
+### Features
+
+* **ui:** add setup readiness projection ([6a857be](https://github.com/CodySwannGT/lisa/commit/6a857bee13463e1f0e0fc9dff38c08e8d80d6b02)), closes [CodySwannGT/lisa#1892](https://github.com/CodySwannGT/lisa/issues/1892)
+
+
+### Bug Fixes
+
+* **ui:** address setup readiness review ([422cd2c](https://github.com/CodySwannGT/lisa/commit/422cd2cd04b356ef83d0d6a170b602ffec50a133)), closes [CodySwannGT/lisa#1892](https://github.com/CodySwannGT/lisa/issues/1892)
+
+### [2.277.4](https://github.com/CodySwannGT/lisa/compare/v2.277.3...v2.277.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* **cli:** complete local setup project flow ([36e2af8](https://github.com/CodySwannGT/lisa/commit/36e2af852faff6e1a5f19825dab819ce8abe3664)), closes [CodySwannGT/lisa#1899](https://github.com/CodySwannGT/lisa/issues/1899)
+
+### [2.277.3](https://github.com/CodySwannGT/lisa/compare/v2.277.2...v2.277.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* **doctor:** agent-facing readiness scorer must not call unassessed READY ([#1897](https://github.com/CodySwannGT/lisa/issues/1897)) ([d453ed9](https://github.com/CodySwannGT/lisa/commit/d453ed94dbe774a8d72fc332c1cb9caa67aa8819)), closes [#1896](https://github.com/CodySwannGT/lisa/issues/1896)
+* **doctor:** unassessed readiness dimensions must not report READY ([#1897](https://github.com/CodySwannGT/lisa/issues/1897)) ([80b2e61](https://github.com/CodySwannGT/lisa/commit/80b2e614947d16004d704df9db5f7d9c090d4b8b))
+
+### [2.277.2](https://github.com/CodySwannGT/lisa/compare/v2.277.1...v2.277.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **release:** recover the changelog-push retry from version-line rebase conflicts ([#1884](https://github.com/CodySwannGT/lisa/issues/1884)) ([dae78e6](https://github.com/CodySwannGT/lisa/commit/dae78e60076746485ef716929afbd94a2a5eb08b)), closes [#1848](https://github.com/CodySwannGT/lisa/issues/1848)
+* **test:** isolate push-recovery reproduction from the caller's GIT_* env ([8a9ac97](https://github.com/CodySwannGT/lisa/commit/8a9ac97090a934e4ffaa61a43843873cd5730c0d)), closes [CodySwannGT/lisa#1884](https://github.com/CodySwannGT/lisa/issues/1884)
+
+### [2.277.1](https://github.com/CodySwannGT/lisa/compare/v2.277.0...v2.277.1) (2026-07-21)
+
+## [2.277.0](https://github.com/CodySwannGT/lisa/compare/v2.276.0...v2.277.0) (2026-07-21)
+
+
+### Features
+
+* **automations:** warn on readiness blockers and document the readiness rubric ([#1859](https://github.com/CodySwannGT/lisa/issues/1859)) ([a93a667](https://github.com/CodySwannGT/lisa/commit/a93a6672121428318f8fee960452148592bd62bf)), closes [#1739](https://github.com/CodySwannGT/lisa/issues/1739)
+
+## [2.276.0](https://github.com/CodySwannGT/lisa/compare/v2.275.0...v2.276.0) (2026-07-21)
+
+
+### Features
+
+* **ui:** wire deterministic health console ([9112b1e](https://github.com/CodySwannGT/lisa/commit/9112b1e6d6b8926f78805cb2f35563631f80d35d)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+
+
+### Documentation
+
+* **ui:** attach verification usage record ([a20084e](https://github.com/CodySwannGT/lisa/commit/a20084e4c1bf5caf58dd4b65eff348650c200b62)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+* **ui:** document health single-flight helpers ([ca89e2e](https://github.com/CodySwannGT/lisa/commit/ca89e2e9f321d2e95a3f368674e0c63f0ee259ea)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+* **ui:** link published health evidence ([c81f09e](https://github.com/CodySwannGT/lisa/commit/c81f09ebdc9a2148ae8913b8c04f50984cd2a83c)), closes [CodySwannGT/lisa#1529](https://github.com/CodySwannGT/lisa/issues/1529)
+
+## [2.275.0](https://github.com/CodySwannGT/lisa/compare/v2.274.0...v2.275.0) (2026-07-21)
+
+
+### Features
+
+* **health:** add shared cross-harness consumer ([f2d01db](https://github.com/CodySwannGT/lisa/commit/f2d01db19b4cf289202b2fd51bf495fb5233c953)), closes [CodySwannGT/lisa#1523](https://github.com/CodySwannGT/lisa/issues/1523)
+
+## [2.274.0](https://github.com/CodySwannGT/lisa/compare/v2.273.0...v2.274.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** populate readiness journey evidence via the shared worker-epoch runner ([#1858](https://github.com/CodySwannGT/lisa/issues/1858)) ([ebddba7](https://github.com/CodySwannGT/lisa/commit/ebddba7e49d733d9250c0fda521b5edebcfa0efa)), closes [#1742](https://github.com/CodySwannGT/lisa/issues/1742) [#1742](https://github.com/CodySwannGT/lisa/issues/1742) [#1738](https://github.com/CodySwannGT/lisa/issues/1738) [#1742](https://github.com/CodySwannGT/lisa/issues/1742)
+
+## [2.273.0](https://github.com/CodySwannGT/lisa/compare/v2.272.0...v2.273.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** seven-blocker gate and narrowed-claim in readiness assessment ([#1857](https://github.com/CodySwannGT/lisa/issues/1857)) ([f28f81e](https://github.com/CodySwannGT/lisa/commit/f28f81e694f4c32c4cc2015098d333b87a6a1060)), closes [#1855](https://github.com/CodySwannGT/lisa/issues/1855) [#1853](https://github.com/CodySwannGT/lisa/issues/1853) [#1738](https://github.com/CodySwannGT/lisa/issues/1738) [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+
+
+### Bug Fixes
+
+* **doctor:** correct verb agreement for singular ship blocker in narrowed claim ([857deb5](https://github.com/CodySwannGT/lisa/commit/857deb5f4133bba5db9c774d298957c9adc6aa6c)), closes [CodySwannGT/lisa#1857](https://github.com/CodySwannGT/lisa/issues/1857)
+
+## [2.272.0](https://github.com/CodySwannGT/lisa/compare/v2.271.0...v2.272.0) (2026-07-21)
+
+
+### Features
+
+* **health:** add optional agentic composition ([2476321](https://github.com/CodySwannGT/lisa/commit/2476321e67636b73f2e91bfcfdf4481d894ff989)), closes [CodySwannGT/lisa#1522](https://github.com/CodySwannGT/lisa/issues/1522)
+
+## [2.271.0](https://github.com/CodySwannGT/lisa/compare/v2.270.0...v2.271.0) (2026-07-21)
+
+
+### Features
+
+* **skills:** agent-ready readiness assessment with narrowed ingest-boundary carve-out ([#1856](https://github.com/CodySwannGT/lisa/issues/1856)) ([9abea36](https://github.com/CodySwannGT/lisa/commit/9abea360f4fce04ad0ff3d415f94c94aa383c78f)), closes [#1853](https://github.com/CodySwannGT/lisa/issues/1853) [#1855](https://github.com/CodySwannGT/lisa/issues/1855)
+
+## [2.270.0](https://github.com/CodySwannGT/lisa/compare/v2.269.3...v2.270.0) (2026-07-21)
+
+
+### Features
+
+* **doctor:** add repository-readiness mode and .lisa/readiness.json ([#1855](https://github.com/CodySwannGT/lisa/issues/1855)) ([2275152](https://github.com/CodySwannGT/lisa/commit/2275152778286647eb301451e3271b10e320686d)), closes [#1740](https://github.com/CodySwannGT/lisa/issues/1740) [#1853](https://github.com/CodySwannGT/lisa/issues/1853)
+
+### [2.269.3](https://github.com/CodySwannGT/lisa/compare/v2.269.2...v2.269.3) (2026-07-21)
+
+### [2.269.2](https://github.com/CodySwannGT/lisa/compare/v2.269.1...v2.269.2) (2026-07-21)
+
+### [2.269.1](https://github.com/CodySwannGT/lisa/compare/v2.269.0...v2.269.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **plugins:** harden learner frontmatter ([3f8f236](https://github.com/CodySwannGT/lisa/commit/3f8f2362c5ce8da958ba862dc98370655d9158ad)), closes [CodySwannGT/lisa#1869](https://github.com/CodySwannGT/lisa/issues/1869)
+* **plugins:** preserve learner verifier script ([fbc98c5](https://github.com/CodySwannGT/lisa/commit/fbc98c5cf4ff2c72b1b58a9aa3090fc670c42c44)), closes [CodySwannGT/lisa#1869](https://github.com/CodySwannGT/lisa/issues/1869)
+
+## [2.269.0](https://github.com/CodySwannGT/lisa/compare/v2.268.1...v2.269.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add invariant-violated and machinery-to-remove to convergent-review ([#1854](https://github.com/CodySwannGT/lisa/issues/1854)) ([9b5cf68](https://github.com/CodySwannGT/lisa/commit/9b5cf68a28f0fd4eb32adb1ee8cd3aa202050543))
+
+### [2.268.1](https://github.com/CodySwannGT/lisa/compare/v2.268.0...v2.268.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **security:** patch js-yaml advisory ([b7ec491](https://github.com/CodySwannGT/lisa/commit/b7ec4913de81edeed7043949df179bcd7398e76e)), closes [CodySwannGT/lisa#1866](https://github.com/CodySwannGT/lisa/issues/1866) [CodySwannGT/lisa#1866](https://github.com/CodySwannGT/lisa/issues/1866)
+
+## [2.268.0](https://github.com/CodySwannGT/lisa/compare/v2.267.0...v2.268.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add the readiness-rubric rule pair with eight dimensions and seven blockers ([#1853](https://github.com/CodySwannGT/lisa/issues/1853)) ([629e10f](https://github.com/CodySwannGT/lisa/commit/629e10fa102eb2bd030e1a369e5c60e0a96b0d3f)), closes [#1737](https://github.com/CodySwannGT/lisa/issues/1737) [#1835](https://github.com/CodySwannGT/lisa/issues/1835) [#1739](https://github.com/CodySwannGT/lisa/issues/1739) [#1854](https://github.com/CodySwannGT/lisa/issues/1854) [..#1859](https://github.com/CodySwannGT/../issues/1859)
+
+
+### Bug Fixes
+
+* **security:** force transitive brace-expansion to >=5.0.6 ([#1862](https://github.com/CodySwannGT/lisa/issues/1862)) ([8f03a56](https://github.com/CodySwannGT/lisa/commit/8f03a56bd04d3a002c036334c2c00bb95e2c4e07))
+
+## [2.267.0](https://github.com/CodySwannGT/lisa/compare/v2.266.0...v2.267.0) (2026-07-20)
+
+
+### Features
+
+* **verification:** executable failure-mode fixtures and the could-not-evaluate guard ([#1840](https://github.com/CodySwannGT/lisa/issues/1840)) ([08a304f](https://github.com/CodySwannGT/lisa/commit/08a304f42fce4f0fb0cf58c845c87099cd2b6bbf))
+* **verification:** spec-conformance consumption, parity backstop, and bounded-claims docs ([#1841](https://github.com/CodySwannGT/lisa/issues/1841)) ([a536afa](https://github.com/CodySwannGT/lisa/commit/a536afa4c8f5f423119d41f994d8be6c46f1a3b8))
+
+## [2.266.0](https://github.com/CodySwannGT/lisa/compare/v2.265.0...v2.266.0) (2026-07-20)
+
+
+### Features
+
+* **health:** add deterministic project probes ([f3b2291](https://github.com/CodySwannGT/lisa/commit/f3b229128283aa26a8e5d632891836fbdbade22d)), closes [CodySwannGT/lisa#1517](https://github.com/CodySwannGT/lisa/issues/1517) [CodySwannGT/lisa#1517](https://github.com/CodySwannGT/lisa/issues/1517)
+
+## [2.265.0](https://github.com/CodySwannGT/lisa/compare/v2.264.0...v2.265.0) (2026-07-20)
+
+
+### Features
+
+* **security:** two-bucket findings with the impact-or-exploitability bar ([#1839](https://github.com/CodySwannGT/lisa/issues/1839)) ([8d6d6e0](https://github.com/CodySwannGT/lisa/commit/8d6d6e0d13136c57d294c20858faa86c93c28d8f)), closes [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+
+
+### Bug Fixes
+
+* **security:** preserve fields, bind ZAP reproducers to boundaries, classify all alerts ([#1839](https://github.com/CodySwannGT/lisa/issues/1839)) ([013daab](https://github.com/CodySwannGT/lisa/commit/013daab29eb368c6865cd6243688f7eaefbdcaac)), closes [#1835](https://github.com/CodySwannGT/lisa/issues/1835)
+
+## [2.264.0](https://github.com/CodySwannGT/lisa/compare/v2.263.0...v2.264.0) (2026-07-20)
+
+
+### Features
+
+* **evidence:** pin evidence to artifact identity with merge-race reconciliation ([#1838](https://github.com/CodySwannGT/lisa/issues/1838)) ([77b1d4b](https://github.com/CodySwannGT/lisa/commit/77b1d4bd2fa06fc7032941d8134872d73ac1f3ff)), closes [#1836](https://github.com/CodySwannGT/lisa/issues/1836) [#1836](https://github.com/CodySwannGT/lisa/issues/1836)
+* **evidence:** require the Not-established section, bind claims to boundaries in S14 ([#1837](https://github.com/CodySwannGT/lisa/issues/1837)) ([6c5ebe6](https://github.com/CodySwannGT/lisa/commit/6c5ebe67dc6d5868138180b268bf1bacfeaae8d8)), closes [#1836](https://github.com/CodySwannGT/lisa/issues/1836)
+
+## [2.263.0](https://github.com/CodySwannGT/lisa/compare/v2.262.0...v2.263.0) (2026-07-20)
+
+
+### Features
+
+* **health:** add v1 result contract and storage ([163b0a6](https://github.com/CodySwannGT/lisa/commit/163b0a68059a0b78d1c224f4ecc2a99fb7149f27)), closes [CodySwannGT/lisa#1516](https://github.com/CodySwannGT/lisa/issues/1516)
+
+
+### Bug Fixes
+
+* **health:** address package and lint review ([e59b5ba](https://github.com/CodySwannGT/lisa/commit/e59b5ba51656f6728e7c68d6afabe90748519797)), closes [CodySwannGT/lisa#1516](https://github.com/CodySwannGT/lisa/issues/1516)
+
+## [2.262.0](https://github.com/CodySwannGT/lisa/compare/v2.261.0...v2.262.0) (2026-07-20)
+
+
+### Features
+
+* **verification:** verdict schema v2 with claim-boundary mapping and compat-windowed gate ([#1836](https://github.com/CodySwannGT/lisa/issues/1836)) ([2c71799](https://github.com/CodySwannGT/lisa/commit/2c717992fb310e4414c80b78db90d5553eda44dc))
+
+## [2.261.0](https://github.com/CodySwannGT/lisa/compare/v2.260.2...v2.261.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add the claim-evidence mapping contract ([#1835](https://github.com/CodySwannGT/lisa/issues/1835)) ([eca613b](https://github.com/CodySwannGT/lisa/commit/eca613b025a7446ebea47ed8c6cc82f06b4eb776)), closes [#1837](https://github.com/CodySwannGT/lisa/issues/1837) [#1838](https://github.com/CodySwannGT/lisa/issues/1838) [#1839](https://github.com/CodySwannGT/lisa/issues/1839) [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+
+### [2.260.2](https://github.com/CodySwannGT/lisa/compare/v2.260.1...v2.260.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **tests:** eliminate module-resolution race in expo-eslint-local-config temp project ([#1824](https://github.com/CodySwannGT/lisa/issues/1824)) ([9a4d7e1](https://github.com/CodySwannGT/lisa/commit/9a4d7e15ead4c47ece50170bcc253f15140076d7))
+
+### [2.260.1](https://github.com/CodySwannGT/lisa/compare/v2.260.0...v2.260.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **templates:** ignore .lisa/automations/runs/ in host projects ([#1807](https://github.com/CodySwannGT/lisa/issues/1807)) ([daea499](https://github.com/CodySwannGT/lisa/commit/daea499ea14d367f76e060011c149bc73e34387c)), closes [#1797](https://github.com/CodySwannGT/lisa/issues/1797) [#1806](https://github.com/CodySwannGT/lisa/issues/1806)
+
+## [2.260.0](https://github.com/CodySwannGT/lisa/compare/v2.259.4...v2.260.0) (2026-07-20)
+
+
+### Features
+
+* **learnings:** harden upstream filing projection ([b482052](https://github.com/CodySwannGT/lisa/commit/b482052a508072f90cf702ceedbdab26d7b05783)), closes [CodySwannGT/lisa#1826](https://github.com/CodySwannGT/lisa/issues/1826)
+
+### [2.259.4](https://github.com/CodySwannGT/lisa/compare/v2.259.3...v2.259.4) (2026-07-20)
+
+
+### Bug Fixes
+
+* **skills:** replace stale eager-load premise with bounded-projection rationale ([#1802](https://github.com/CodySwannGT/lisa/issues/1802)) ([43a6862](https://github.com/CodySwannGT/lisa/commit/43a68620dc490f2eeee871d7d0ad295c118f48b6)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+
+### [2.259.3](https://github.com/CodySwannGT/lisa/compare/v2.259.2...v2.259.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **skills:** gate Linear magic words to production merges and reconcile native auto-close ([#1778](https://github.com/CodySwannGT/lisa/issues/1778)) ([2c1ef69](https://github.com/CodySwannGT/lisa/commit/2c1ef69d6735f366734d67a70013f854bc287a49))
+
+### [2.259.2](https://github.com/CodySwannGT/lisa/compare/v2.259.1...v2.259.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **skills:** verify a deploy run exists for the merge SHA in drive-pr-to-merge ([#1777](https://github.com/CodySwannGT/lisa/issues/1777)) ([80f8f84](https://github.com/CodySwannGT/lisa/commit/80f8f84599d0f77f447645fd4440447a24da0f5f)), closes [#67](https://github.com/CodySwannGT/lisa/issues/67)
+
+### [2.259.1](https://github.com/CodySwannGT/lisa/compare/v2.259.0...v2.259.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **ci:** deliberate least-privilege permissions for quality.yml and caller templates ([#1769](https://github.com/CodySwannGT/lisa/issues/1769)) ([7e8b372](https://github.com/CodySwannGT/lisa/commit/7e8b372494ac55d372279a4052da1fdeb01bde2c))
+* **ci:** drop unused pull-requests scope from quality caller templates ([00461a1](https://github.com/CodySwannGT/lisa/commit/00461a1d0c3a4ad8fc4b82e48cb1833b190349c8)), closes [#1769](https://github.com/CodySwannGT/lisa/issues/1769) [#1827](https://github.com/CodySwannGT/lisa/issues/1827) [CodySwannGT/lisa#1769](https://github.com/CodySwannGT/lisa/issues/1769)
+
+## [2.259.0](https://github.com/CodySwannGT/lisa/compare/v2.258.4...v2.259.0) (2026-07-20)
+
+
+### Features
+
+* **learnings:** allowlist upstream attribution bodies ([c533bfe](https://github.com/CodySwannGT/lisa/commit/c533bfe1e63df68c5cad9c7ecbef94777486f910)), closes [CodySwannGT/lisa#1768](https://github.com/CodySwannGT/lisa/issues/1768)
+
+### [2.258.4](https://github.com/CodySwannGT/lisa/compare/v2.258.3...v2.258.4) (2026-07-20)
+
+
+### Bug Fixes
+
+* **expo:** pin e2e-coverage route sort to code-unit order ([#1713](https://github.com/CodySwannGT/lisa/issues/1713)) ([a9006a7](https://github.com/CodySwannGT/lisa/commit/a9006a70395e9d4146d908c7988cb93fd5491be7)), closes [#6189](https://github.com/CodySwannGT/lisa/issues/6189) [frontend-v2#6190](https://github.com/CodySwannGT/frontend-v2/issues/6190)
+
+### [2.258.3](https://github.com/CodySwannGT/lisa/compare/v2.258.2...v2.258.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **husky:** fail closed when mktemp cannot create the gitleaks ignore file ([#1709](https://github.com/CodySwannGT/lisa/issues/1709)) ([c446ab8](https://github.com/CodySwannGT/lisa/commit/c446ab85b900569ee786cd1b9a0ab338ee69e1e1))
+
+### [2.258.2](https://github.com/CodySwannGT/lisa/compare/v2.258.1...v2.258.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **expo:** isolate local eslint config typing ([8b87756](https://github.com/CodySwannGT/lisa/commit/8b877568e776573e4dea89dbe1e1901d65fc7132)), closes [CodySwannGT/lisa#1707](https://github.com/CodySwannGT/lisa/issues/1707)
+
+### [2.258.1](https://github.com/CodySwannGT/lisa/compare/v2.258.0...v2.258.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **automations:** restore the RBC-3 run-history retirement source ([#1819](https://github.com/CodySwannGT/lisa/issues/1819)) ([f108670](https://github.com/CodySwannGT/lisa/commit/f1086708747a55e5ff43136f406c7f27034dd121)), closes [#1818](https://github.com/CodySwannGT/lisa/issues/1818) [#1801](https://github.com/CodySwannGT/lisa/issues/1801) [#1801](https://github.com/CodySwannGT/lisa/issues/1801) [#1818](https://github.com/CodySwannGT/lisa/issues/1818)
+
+## [2.258.0](https://github.com/CodySwannGT/lisa/compare/v2.257.2...v2.258.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** per-loop retirement conditions and the policy-obsolete teardown proposal ([#1801](https://github.com/CodySwannGT/lisa/issues/1801)) ([77722a1](https://github.com/CodySwannGT/lisa/commit/77722a17a53fb365e58008e7931383b71656b734))
+
+
+### Bug Fixes
+
+* **automations:** align retirement proposal review fixes ([16eb215](https://github.com/CodySwannGT/lisa/commit/16eb215ae2e334dcfe92b1d662bfddaf373146da)), closes [CodySwannGT/lisa#1801](https://github.com/CodySwannGT/lisa/issues/1801) [CodySwannGT/lisa#1801](https://github.com/CodySwannGT/lisa/issues/1801)
+* **automations:** domain-grounded retirement conditions and review fixes ([#1801](https://github.com/CodySwannGT/lisa/issues/1801)) ([5d942ad](https://github.com/CodySwannGT/lisa/commit/5d942ada05874853fa8a6f3e965187074ce6acf4))
+
+### [2.257.2](https://github.com/CodySwannGT/lisa/compare/v2.257.1...v2.257.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **plugins:** guard npm root probe ([cb88589](https://github.com/CodySwannGT/lisa/commit/cb88589482e57029d5affb6e0469e40c1ee76281)), closes [CodySwannGT/lisa#1706](https://github.com/CodySwannGT/lisa/issues/1706) [CodySwannGT/lisa#1706](https://github.com/CodySwannGT/lisa/issues/1706)
+
+### [2.257.1](https://github.com/CodySwannGT/lisa/compare/v2.257.0...v2.257.1) (2026-07-20)
+
+
+### Documentation
+
+* **learnings:** broaden fresh-worktree bootstrap rule ([f7d9a2b](https://github.com/CodySwannGT/lisa/commit/f7d9a2b6954b6b92cd853c06787851f04bd1e82d)), closes [CodySwannGT/lisa#1706](https://github.com/CodySwannGT/lisa/issues/1706)
+
+## [2.257.0](https://github.com/CodySwannGT/lisa/compare/v2.256.1...v2.257.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** proposal rejection memory in rejection-detection + conform loops ([#1800](https://github.com/CodySwannGT/lisa/issues/1800)) ([1c45752](https://github.com/CodySwannGT/lisa/commit/1c4575284f5347361346f698c01a26991a9178d6))
+
+
+### Bug Fixes
+
+* address rejection memory review feedback ([f760920](https://github.com/CodySwannGT/lisa/commit/f7609203b1cf60aa9311beecdd72e30ec268e66b)), closes [CodySwannGT/lisa#1800](https://github.com/CodySwannGT/lisa/issues/1800) [CodySwannGT/lisa#1800](https://github.com/CodySwannGT/lisa/issues/1800)
+* **rules:** note stateReason case normalization in rejection memory ([#1800](https://github.com/CodySwannGT/lisa/issues/1800)) ([78271da](https://github.com/CodySwannGT/lisa/commit/78271da6cddcea2d41d0879629055a23739cd080))
+* **rules:** teach the close-reason semantic and polish rejection-memory wording ([#1800](https://github.com/CodySwannGT/lisa/issues/1800)) ([c15b3e5](https://github.com/CodySwannGT/lisa/commit/c15b3e5a17de74e3ecc81ee7c3b77270b733a058))
+
+### [2.256.1](https://github.com/CodySwannGT/lisa/compare/v2.256.0...v2.256.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **implement:** infer environment-aware base branches ([d2504b4](https://github.com/CodySwannGT/lisa/commit/d2504b4a5b8083c9a2ee330ead22f75a54fed0a1)), closes [CodySwannGT/lisa#1809](https://github.com/CodySwannGT/lisa/issues/1809)
+
+## [2.256.0](https://github.com/CodySwannGT/lisa/compare/v2.255.0...v2.256.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** show runbook, last outcome, and bounded run history in automation-status ([#1799](https://github.com/CodySwannGT/lisa/issues/1799)) ([201339c](https://github.com/CodySwannGT/lisa/commit/201339ce53cfaf3b85277bcfcd1799bce55b99db))
+
+
+### Bug Fixes
+
+* **automations:** number escalation citations and pin trailing-streak semantics ([#1799](https://github.com/CodySwannGT/lisa/issues/1799)) ([56719f2](https://github.com/CodySwannGT/lisa/commit/56719f207e99d291a49c1b71c55e74a2ca9239ec))
+
+## [2.255.0](https://github.com/CodySwannGT/lisa/compare/v2.254.0...v2.255.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** conform registered loops to the run-outcome recording contract ([#1798](https://github.com/CodySwannGT/lisa/issues/1798)) ([3b673f8](https://github.com/CodySwannGT/lisa/commit/3b673f8fc5031850eeffe3afe43cbed6a3c6f3dd))
+
+## [2.254.0](https://github.com/CodySwannGT/lisa/compare/v2.253.0...v2.254.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** add durable run outcome records ([58f086c](https://github.com/CodySwannGT/lisa/commit/58f086cbd342d7bf4a40b54a0bce5bba9d5d3777)), closes [CodySwannGT/lisa#1797](https://github.com/CodySwannGT/lisa/issues/1797)
+
+## [2.253.0](https://github.com/CodySwannGT/lisa/compare/v2.252.0...v2.253.0) (2026-07-20)
+
+
+### Features
+
+* **automations:** scaffold per-loop runbooks and unify the fleet roster ([#1796](https://github.com/CodySwannGT/lisa/issues/1796)) ([b2acacc](https://github.com/CodySwannGT/lisa/commit/b2acacc96b589e172a765accacdb91e598a488cf))
+
+
+### Bug Fixes
+
+* **automations:** accept no-arg Codex registrations in observed-command derivation ([#1796](https://github.com/CodySwannGT/lisa/issues/1796)) ([ae02d4c](https://github.com/CodySwannGT/lisa/commit/ae02d4cc25ae07b514b4a456d52755147d30a78d))
+* **automations:** address review findings for runbook scaffolding ([#1796](https://github.com/CodySwannGT/lisa/issues/1796)) ([a9602f7](https://github.com/CodySwannGT/lisa/commit/a9602f7ab92aece97844b83e78be0bf1f1fd7674))
+
+## [2.252.0](https://github.com/CodySwannGT/lisa/compare/v2.251.1...v2.252.0) (2026-07-20)
+
+
+### Features
+
+* **rules:** add automation-runbook-contract rule pair with six run-outcome vocabulary ([#1795](https://github.com/CodySwannGT/lisa/issues/1795)) ([a0b0cca](https://github.com/CodySwannGT/lisa/commit/a0b0cca0ee90fcb4f472ad5aababf52223dfd633))
+
+
+### Bug Fixes
+
+* **rules:** address review findings for automation-runbook-contract ([#1795](https://github.com/CodySwannGT/lisa/issues/1795)) ([fa67aa1](https://github.com/CodySwannGT/lisa/commit/fa67aa16a02fb51ae5a8cf6a41746c7ea8bbba28)), closes [#1796](https://github.com/CodySwannGT/lisa/issues/1796) [#1797](https://github.com/CodySwannGT/lisa/issues/1797) [#1738](https://github.com/CodySwannGT/lisa/issues/1738)
+* **rules:** mirror the full Blocked-routing disambiguation in the eager head ([#1795](https://github.com/CodySwannGT/lisa/issues/1795)) ([e6f83c9](https://github.com/CodySwannGT/lisa/commit/e6f83c9d7cba5152df7756f5149b98d6117dc87b))
+
+### [2.251.1](https://github.com/CodySwannGT/lisa/compare/v2.251.0...v2.251.1) (2026-07-20)
+
+
+### Documentation
+
+* **ci:** correct learnings_budget rationale to bounded-projection design ([#1794](https://github.com/CodySwannGT/lisa/issues/1794)) ([70db4be](https://github.com/CodySwannGT/lisa/commit/70db4bede62e247fa056f94dadc263d1fcca6a90))
+
+## [2.251.0](https://github.com/CodySwannGT/lisa/compare/v2.250.1...v2.251.0) (2026-07-20)
+
+
+### Features
+
+* **hooks:** promote jq-for-JSON rule to blocking executable control ([37f7ba6](https://github.com/CodySwannGT/lisa/commit/37f7ba6d8a7f4f244b08a847b27ad24522fe6cf6)), closes [#1787](https://github.com/CodySwannGT/lisa/issues/1787) [#1787](https://github.com/CodySwannGT/lisa/issues/1787)
+* **hooks:** teach git commit -F remediation in heredoc denial diagnostics ([c0f3ee2](https://github.com/CodySwannGT/lisa/commit/c0f3ee29063b2d44bf120ce2b8909643c23eaa65)), closes [#1789](https://github.com/CodySwannGT/lisa/issues/1789) [#1789](https://github.com/CodySwannGT/lisa/issues/1789)
+
+
+### Bug Fixes
+
+* **eslint:** state the statement-order exemption accurately in the diagnostic ([38c081d](https://github.com/CodySwannGT/lisa/commit/38c081d08c132a5e8e21830b5a356ac9dc3a50f7)), closes [#1791](https://github.com/CodySwannGT/lisa/issues/1791)
+
+
+### Documentation
+
+* **rules:** demote Console UI knowledge from eager rules to the wiki ([6337c3a](https://github.com/CodySwannGT/lisa/commit/6337c3a865f28d4a5bf88055a3ed71a0ef323e10)), closes [#1788](https://github.com/CodySwannGT/lisa/issues/1788) [#1788](https://github.com/CodySwannGT/lisa/issues/1788)
+* **rules:** retire five mechanically-owned PROJECT_RULES sections ([d8707a1](https://github.com/CodySwannGT/lisa/commit/d8707a1061c7596e30903baa5b8c83507284dccd)), closes [#1790](https://github.com/CodySwannGT/lisa/issues/1790) [#1790](https://github.com/CodySwannGT/lisa/issues/1790)
+
+### [2.250.1](https://github.com/CodySwannGT/lisa/compare/v2.250.0...v2.250.1) (2026-07-20)
+
+## [2.250.0](https://github.com/CodySwannGT/lisa/compare/v2.247.3...v2.250.0) (2026-07-20)
+
+
+### Features
+
+* require tracked work before durable changes ([d557349](https://github.com/CodySwannGT/lisa/commit/d557349e181c53c40a30b1f279ed417f394559e2)), closes [CodySwannGT/lisa#1783](https://github.com/CodySwannGT/lisa/issues/1783)
+* **skills:** add convergent review policy ([be06184](https://github.com/CodySwannGT/lisa/commit/be0618423f4d3858a657f1d44f1a363845f10389))
+* **skills:** add lisa-improve-harness bounded improvement loop ([#1744](https://github.com/CodySwannGT/lisa/issues/1744)) ([45a5087](https://github.com/CodySwannGT/lisa/commit/45a508712389351fa979743d62c834c0cf51f3df))
+* **verify:** add guarded Kane CLI browser provider ([00dee10](https://github.com/CodySwannGT/lisa/commit/00dee10b27eae8fc4987152898878cfed75308d1))
+
+
+### Bug Fixes
+
+* **skills:** address review findings for lisa-improve-harness ([#1744](https://github.com/CodySwannGT/lisa/issues/1744)) ([b349159](https://github.com/CodySwannGT/lisa/commit/b34915968349d6523b14d7591cecfc28a24badba))
+
+## [2.249.0](https://github.com/CodySwannGT/lisa/compare/v2.247.3...v2.249.0) (2026-07-20)
+
+
+### Features
+
+* require tracked work before durable changes ([d557349](https://github.com/CodySwannGT/lisa/commit/d557349e181c53c40a30b1f279ed417f394559e2)), closes [CodySwannGT/lisa#1783](https://github.com/CodySwannGT/lisa/issues/1783)
+* **skills:** add convergent review policy ([be06184](https://github.com/CodySwannGT/lisa/commit/be0618423f4d3858a657f1d44f1a363845f10389))
+* **verify:** add guarded Kane CLI browser provider ([00dee10](https://github.com/CodySwannGT/lisa/commit/00dee10b27eae8fc4987152898878cfed75308d1))
+
 ## [2.248.0](https://github.com/CodySwannGT/lisa/compare/v2.247.3...v2.248.0) (2026-07-20)
 
 

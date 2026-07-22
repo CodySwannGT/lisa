@@ -23,13 +23,14 @@ const ROOTS = [
   "plugins/lisa-cursor/skills",
 ] as const;
 const MARKER = "[lisa-pr-link]";
+const GIT_SUBMIT_PR = "lisa-git-submit-pr";
 
 const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
 describe("two-way PR/ticket linking contract", () => {
   describe.each(ROOTS)("%s/lisa-git-submit-pr", root => {
-    const content = readSkill(root, "lisa-git-submit-pr");
+    const content = readSkill(root, GIT_SUBMIT_PR);
 
     it("requires tracker-sync after PR creation", () => {
       expect(content).toMatch(/lisa-tracker-sync/);
@@ -83,4 +84,62 @@ describe("two-way PR/ticket linking contract", () => {
       expect(content).toMatch(/pr-merged/);
     });
   });
+});
+
+/**
+ * Linear native auto-close gate (#1778).
+ *
+ * Unlike GitHub — whose `Closes #n` auto-close is scoped to the repository
+ * default branch — Linear's GitHub integration completes a linked issue on
+ * merge to ANY branch. A Linear magic word (`Closes`/`Fixes`/`Resolves ENG-x`)
+ * on a merge into a non-terminal env branch therefore auto-closes the issue
+ * prematurely, desyncing the env-keyed `status:*` label ladder. `git-submit-pr`
+ * must gate magic words on the production/default branch, and `linear-sync` must
+ * carry a post-merge reconciliation step that re-opens a natively-completed
+ * Issue whose derived env is intermediate. All 5 ROOTS stay in parity.
+ */
+describe("Linear native auto-close env gate contract", () => {
+  describe.each(ROOTS)("%s/lisa-git-submit-pr Linear magic-word gate", root => {
+    const content = readSkill(root, GIT_SUBMIT_PR);
+
+    it("states the Linear-vs-GitHub any-branch auto-close asymmetry", () => {
+      expect(content).toMatch(/Linear[\s\S]*?any branch/i);
+    });
+
+    it("prohibits Linear magic words unless base is the production/default branch", () => {
+      expect(content).toMatch(/Closes[\s\S]*?Fixes[\s\S]*?Resolves/);
+      expect(content).toMatch(/deploy\.branches\.production/);
+      expect(content).toMatch(/leaf-only-lifecycle/);
+    });
+  });
+
+  describe.each(ROOTS)(
+    "%s/lisa-git-submit-pr GitHub closing-keyword gate",
+    root => {
+      const content = readSkill(root, GIT_SUBMIT_PR);
+
+      it("uses Closes on production/default and Refs on non-terminal env branches", () => {
+        expect(content).toMatch(/Closes #<n>/);
+        expect(content).toMatch(/Refs #<n>/);
+      });
+    }
+  );
+
+  describe.each(ROOTS)(
+    "%s/lisa-linear-sync native auto-close reconciliation",
+    root => {
+      const content = readSkill(root, "lisa-linear-sync");
+
+      it("carries a post-merge native auto-close reconciliation step citing leaf-only-lifecycle", () => {
+        expect(content).toMatch(/reconcil/i);
+        expect(content).toMatch(/any branch/i);
+        expect(content).toMatch(/leaf-only-lifecycle/);
+        expect(content).toMatch(/re-open[\s\S]*?native|native[\s\S]*?re-open/i);
+      });
+
+      it("is a no-op for uniform / single-environment done maps", () => {
+        expect(content).toMatch(/no-op/i);
+      });
+    }
+  );
 });

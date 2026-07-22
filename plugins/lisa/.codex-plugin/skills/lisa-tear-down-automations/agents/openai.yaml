@@ -1,4 +1,4 @@
 display_name: "Tear Down Automations"
-short_description: "Remove every recurring Lisa…"
+short_description: "Remove recurring Lisa…"
 default_prompt:
-  - "Use $lisa-tear-down-automations: Remove every recurring Lisa…."
+  - "Use $lisa-tear-down-automations: Remove recurring Lisa…."

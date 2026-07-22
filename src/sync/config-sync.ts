@@ -67,6 +67,14 @@ export interface SyncReport {
 export interface SyncOptions {
   /** Report without writing anything */
   readonly dryRun?: boolean;
+  /** Optional confined readers used by side-effect-free callers. */
+  readonly reads?: SyncReadDependencies;
+}
+
+/** Read-only project inputs consumed by the sync planner. */
+export interface SyncReadDependencies {
+  readonly readJson: (relativePath: string) => Promise<unknown | null>;
+  readonly pathExists: (relativePath: string) => Promise<boolean>;
 }
 
 /** Accumulated state threaded through the sync pass. */
@@ -107,22 +115,22 @@ function isRelevant(
 
 /**
  * Read the first existing artifact's value for a setting.
- * @param destDir - Project root
  * @param entry - Registry entry
+ * @param reads - Project input readers
  * @returns The artifact value, or undefined when no artifact holds one
  */
 async function readArtifactValue(
-  destDir: string,
-  entry: SyncedSetting
+  entry: SyncedSetting,
+  reads: SyncReadDependencies
 ): Promise<JsonValue | undefined> {
   const bindings = entry.artifacts ?? [];
-  const reads = await Promise.all(
+  const values = await Promise.all(
     bindings.map(async binding => {
-      const parsed = await readJsonOrNull(path.join(destDir, binding.file));
+      const parsed = await reads.readJson(binding.file);
       return parsed === null ? undefined : getAtPath(parsed, binding.pointer);
     })
   );
-  return reads.find(value => value !== undefined);
+  return values.find(value => value !== undefined);
 }
 
 /**
@@ -154,17 +162,21 @@ function populateMissing(
   artifactValue: JsonValue | undefined
 ): SyncState {
   if (artifactValue !== undefined) {
-    const absorbed = fillMissing(artifactValue, entry.defaultValue);
+    const absorbed = validateEntryValue(
+      entry,
+      fillMissing(artifactValue, entry.defaultValue)
+    );
     return withAction(state, setAtPath(state.committed, entry.key, absorbed), {
       key: entry.key,
       kind: "absorbed-artifact",
       detail: `value absorbed from ${entry.artifacts?.[0]?.file ?? "artifact"}`,
     });
   }
+  const defaultValue = validateEntryValue(entry, entry.defaultValue);
   const committed = recordPopulation(
-    setAtPath(state.committed, entry.key, entry.defaultValue),
+    setAtPath(state.committed, entry.key, defaultValue),
     entry.key,
-    entry.defaultValue
+    defaultValue
   );
   return withAction(state, committed, {
     key: entry.key,
@@ -197,10 +209,11 @@ function populateEntry(
     stateAfterMigration === state
       ? merged
       : (deepMerge(stateAfterMigration.committed, local) as JsonObject);
-  const configValue = getAtPath(mergedAfterMigration, entry.key);
-  if (configValue === undefined) {
+  const rawConfigValue = getAtPath(mergedAfterMigration, entry.key);
+  if (rawConfigValue === undefined) {
     return populateMissing(stateAfterMigration, entry, artifactValue);
   }
+  const configValue = validateEntryValue(entry, rawConfigValue);
   const committedValue = getAtPath(stateAfterMigration.committed, entry.key);
   const localValue = getAtPath(local, entry.key);
   const recorded = recordedPopulation(stateAfterMigration.committed, entry.key);
@@ -258,15 +271,15 @@ function populateEntry(
  * artifacts into stacks that do not use them.
  * @param state - Current sync state
  * @param entry - Registry entry
- * @param destDir - Project root
  * @param local - Local config overlay
+ * @param reads - Project input readers
  * @returns Updated state
  */
 async function syncArtifacts(
   state: SyncState,
   entry: SyncedSetting,
-  destDir: string,
-  local: JsonObject
+  local: JsonObject,
+  reads: SyncReadDependencies
 ): Promise<SyncState> {
   const bindings = entry.artifacts ?? [];
   if (bindings.length === 0) {
@@ -276,20 +289,21 @@ async function syncArtifacts(
   if (effective === undefined) {
     return state;
   }
+  const validatedEffective = validateEntryValue(entry, effective);
   return bindings.reduce<Promise<SyncState>>(async (statePromise, binding) => {
     const current = await statePromise;
-    const filePath = path.join(destDir, binding.file);
     const pending = current.artifactWrites.get(binding.file);
-    const parsed =
-      pending ?? (await readJsonOrNull<unknown>(filePath)) ?? undefined;
-    if (parsed === undefined && !(await fse.pathExists(filePath))) {
+    const parsed = pending ?? (await reads.readJson(binding.file)) ?? undefined;
+    if (parsed === undefined && !(await reads.pathExists(binding.file))) {
       return current;
     }
     const fileObject = isJsonObject(parsed) ? parsed : {};
-    if (jsonEquals(getAtPath(fileObject, binding.pointer), effective)) {
+    if (
+      jsonEquals(getAtPath(fileObject, binding.pointer), validatedEffective)
+    ) {
       return current;
     }
-    const updated = setAtPath(fileObject, binding.pointer, effective);
+    const updated = setAtPath(fileObject, binding.pointer, validatedEffective);
     const writes = new Map([
       ...current.artifactWrites,
       [binding.file, updated] as const,
@@ -307,6 +321,16 @@ async function syncArtifacts(
       ],
     };
   }, Promise.resolve(state));
+}
+
+/**
+ * Apply an entry's optional executable value contract.
+ * @param entry - Registry entry owning the value
+ * @param value - Untrusted effective value
+ * @returns Validated or unchanged JSON value
+ */
+function validateEntryValue(entry: SyncedSetting, value: JsonValue): JsonValue {
+  return entry.validate?.(value) ?? value;
 }
 
 /**
@@ -338,10 +362,9 @@ export async function runConfigSync(
   destDir: string,
   options: SyncOptions = {}
 ): Promise<SyncReport> {
-  const committedPath = path.join(destDir, ".lisa.config.json");
-  const localPath = path.join(destDir, ".lisa.config.local.json");
-  const committedRaw = await readJsonOrNull<unknown>(committedPath);
-  const localRaw = await readJsonOrNull<unknown>(localPath);
+  const reads = options.reads ?? defaultSyncReads(destDir);
+  const committedRaw = await reads.readJson(".lisa.config.json");
+  const localRaw = await reads.readJson(".lisa.config.local.json");
   const committed = isJsonObject(committedRaw) ? committedRaw : {};
   const local = isJsonObject(localRaw) ? localRaw : {};
 
@@ -357,7 +380,7 @@ export async function runConfigSync(
       if (!isRelevant(merged, entry.relevantWhen)) {
         return state;
       }
-      const artifactValue = await readArtifactValue(destDir, entry);
+      const artifactValue = await readArtifactValue(entry, reads);
       const populated = populateEntry(
         state,
         entry,
@@ -365,7 +388,7 @@ export async function runConfigSync(
         local,
         artifactValue
       );
-      return syncArtifacts(populated, entry, destDir, local);
+      return syncArtifacts(populated, entry, local, reads);
     },
     Promise.resolve(initial)
   );
@@ -380,6 +403,16 @@ export async function runConfigSync(
     dryRun: options.dryRun === true,
   };
 }
+
+/**
+ * Build the normal filesystem-backed readers used by mutating and CLI sync.
+ * @param destDir - Project root
+ * @returns Default sync input readers
+ */
+const defaultSyncReads = (destDir: string): SyncReadDependencies => ({
+  readJson: relativePath => readJsonOrNull(path.join(destDir, relativePath)),
+  pathExists: relativePath => fse.pathExists(path.join(destDir, relativePath)),
+});
 
 /**
  * Write the updated committed config and every queued artifact file.

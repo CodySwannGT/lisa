@@ -58,6 +58,21 @@ describe("codex/settings-installer", () => {
       expect((parsed.features as Record<string, unknown>).hooks).toBe(true);
     });
 
+    it("preserves a host inline comment while overwriting the value via toml-patch", () => {
+      // A value different from Lisa's 65536 forces the toml-patch update path
+      // (applyUpdatedKeys → patchToml), which is the ONLY reason
+      // @decimalturn/toml-patch is a dependency: it must rewrite the value in
+      // place without dropping the surrounding comment. A comment-dropping
+      // regression in that library would break this and nothing else caught it.
+      const existing = `project_doc_max_bytes = 1024  # keep this comment\n`;
+      const out = mergeSettings(existing);
+      const parsed = parseToml(out) as Record<string, unknown>;
+      // (a) Lisa's winning numeric value replaced the host's 1024
+      expect(parsed.project_doc_max_bytes).toBe(65536);
+      // (b) ...and the host's inline comment survived the in-place patch
+      expect(out).toContain("# keep this comment");
+    });
+
     it("adds hooks to an existing features table", () => {
       const out = mergeSettings(`[features]\nmodel_reasoning_summary = true\n`);
       const parsed = parseToml(out) as Record<string, unknown>;

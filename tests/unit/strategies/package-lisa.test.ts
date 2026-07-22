@@ -79,6 +79,24 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  describe("root package template verifier scripts", () => {
+    it("preserves the learner frontmatter built verifier", () => {
+      const repoRoot = process.cwd();
+      const packageJson = fs.readJsonSync(path.join(repoRoot, "package.json"));
+      const packageTemplate = fs.readJsonSync(
+        path.join(repoRoot, "package.lisa.json")
+      );
+      const scriptName = "verify:learner-frontmatter-built";
+
+      expect(packageTemplate.force.scripts[scriptName]).toBe(
+        packageJson.scripts[scriptName]
+      );
+      expect(packageTemplate.force.scripts[scriptName]).toBe(
+        "bun run build:dist && node scripts/verify-learner-frontmatter-built.mjs"
+      );
+    });
+  });
+
   describe("when source does not exist", () => {
     it("skips when package.lisa.json not found", async () => {
       const sourcePath = path.join(
@@ -1252,6 +1270,8 @@ describe("PackageLisaStrategy", () => {
         scripts: Record<string, string>;
         dependencies: Record<string, string>;
         devDependencies: Record<string, string>;
+        resolutions: Record<string, string>;
+        overrides: Record<string, string>;
       };
       defaults: {
         dependencies: Record<string, string>;
@@ -1265,6 +1285,46 @@ describe("PackageLisaStrategy", () => {
       const template = readExpoTemplate();
 
       expect(template.force.scripts).toMatchObject(expectedMaestroScripts);
+    });
+
+    it("repairs the fast-xml-parser advisory floor during full and postinstall applies", async () => {
+      const vulnerableFloor = "^5.3.6";
+      const patchedFloor = "^5.10.1";
+      const destPath = path.join(projectDir, "package.json");
+      await createExpoProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "expo-security-fixture",
+        dependencies: { expo: "~57.0.0" },
+        resolutions: { "fast-xml-parser": vulnerableFloor },
+        overrides: { "fast-xml-parser": vulnerableFloor },
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      let content = await fs.readJson(destPath);
+      expect(content.resolutions["fast-xml-parser"]).toBe(patchedFloor);
+      expect(content.overrides["fast-xml-parser"]).toBe(patchedFloor);
+
+      await fs.writeJson(destPath, {
+        ...content,
+        resolutions: { "fast-xml-parser": vulnerableFloor },
+        overrides: { "fast-xml-parser": vulnerableFloor },
+      });
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot, skipGitCheck: true })
+      );
+
+      content = await fs.readJson(destPath);
+      expect(content.resolutions["fast-xml-parser"]).toBe(patchedFloor);
+      expect(content.overrides["fast-xml-parser"]).toBe(patchedFloor);
     });
 
     it("repairs unpinned Maestro commands when applying the Expo template", async () => {

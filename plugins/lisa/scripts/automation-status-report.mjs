@@ -26,12 +26,22 @@ export const AUTOMATION_FLEET_VERDICTS = [
  * @typedef {"HEALTHY" | "PARTIAL_SUPPORT" | "ATTENTION_NEEDED"} AutomationFleetVerdict
  *
  * @typedef {{
+ *   readonly ts: string
+ *   readonly outcome: string
+ *   readonly summary: string
+ * }} AutomationLastOutcome
+ *
+ * @typedef {{
  *   readonly id: string
  *   readonly status: AutomationHealthStatus
  *   readonly summary: string
  *   readonly expectedCadence?: string
  *   readonly expectedCommand?: string
  *   readonly observed?: string
+ *   readonly runbook?: string
+ *   readonly lastOutcome?: AutomationLastOutcome
+ *   readonly outcomeHistory?: readonly string[]
+ *   readonly olderRecordCount?: number
  *   readonly remediation?: string
  * }} AutomationStatusItem
  *
@@ -129,6 +139,26 @@ export function renderAutomationStatusReport(input) {
       }
       if (item.observed) {
         lines.push(`  Observed: ${item.observed}`);
+      }
+      // Contract + run-history block: observable facts about where the runbook
+      // lives and how recent runs ended, kept between Observed and Remediation
+      // so operators read the state before the fix. Every line degrades
+      // explicitly — an absent runbook or empty history is stated, never blank.
+      if (item.runbook !== undefined) {
+        lines.push(`  Runbook: ${item.runbook}`);
+        lines.push(
+          item.lastOutcome
+            ? `  Last run: ${item.lastOutcome.outcome} — ${item.lastOutcome.summary} (${item.lastOutcome.ts})`
+            : "  Last run: no recorded runs yet"
+        );
+        if (item.outcomeHistory && item.outcomeHistory.length > 0) {
+          const historyLine = `  History: ${item.outcomeHistory.join(", ")} (newest first)`;
+          lines.push(
+            item.olderRecordCount && item.olderRecordCount > 0
+              ? `${historyLine}; … and ${item.olderRecordCount} older records`
+              : historyLine
+          );
+        }
       }
       if (item.remediation) {
         lines.push(`  Remediation: ${item.remediation}`);

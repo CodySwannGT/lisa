@@ -1,0 +1,279 @@
+# Claim → Evidence Mapping Contract
+
+Lisa's verification machinery already proves outcomes empirically, but nothing states *which kind of
+evidence establishes which kind of claim*. So a claim about browser-visible behavior, supported only
+by a unit-test log, currently reads as "verified" — the report never names the boundary its evidence
+actually reaches. This contract writes the mapping down once, as the single spine every evidence
+surface cites: **every claim declares a boundary, and a claim is established only by evidence of a
+kind that reaches that boundary.**
+
+It is a **single vendor-neutral contract**. The later tickets of this PRD instantiate it rather than
+redefine it: the `verification-status.json` schema and gate that make the claim fields executable
+(**BCE-2, #1836**), the *Not-established* section and evidence templates (**BCE-3, #1837**), artifact
+identity (**BCE-4, #1838**), and security buckets (**BCE-5, #1839**) each cite this slug. This ticket
+adds no schema, no gate, and no skill edit — exactly as the `automation-runbook-contract` rule
+preceded the skills that made it executable.
+
+## Consumers
+
+Every surface that asserts a claim is proved cites this contract for what "proved" means at that
+claim's boundary: the verification flow and its `verification-specialist`, the evidence-posting and
+completion gates, the QA and Verify factories' reports, and any report a human reads at a gate. None
+of them redefines the mapping; each binds its claim to a boundary and cites evidence of a reaching
+kind.
+
+## The claim-boundary taxonomy
+
+Every claim binds to exactly one **boundary**. The table binds each boundary to the evidence kind(s)
+that establish it and at least one kind that cannot. The **establishing evidence kind(s)** column is
+drawn verbatim from the `verification` rule's artifact-type taxonomy (its fixed set:
+`screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`,
+`perf-trace`, `test-run-log`, `deploy-log`, `state-dump`) — this contract invents no new evidence
+types; it only says which reach which boundary.
+
+| Claim boundary | What it asserts | Establishing evidence kind(s) | Cannot be established by |
+|---|---|---|---|
+| `code-unit` | pure-logic behavior in isolation | `test-run-log` (unit) | — (but never satisfies any boundary below) |
+| `browser` | user-visible UI behavior | `screenshot`, `recording` | unit `test-run-log` |
+| `http-api` | request/response contract | `http-transcript` | unit `test-run-log` |
+| `cli` | command behavior | `cli-output` | prose |
+| `data` | persisted state | `db-query-output`, `state-dump` | unit `test-run-log` |
+| `deploy-health` | a healthy running deployment | `deploy-log` | any pre-deploy artifact |
+| `performance` | latency/throughput/frame timing | `perf-trace` (with methodology) | screenshot |
+| `standards-compat` | conformance to an external standard | `cli-output` / `test-run-log` from the compat runner | assertion prose |
+
+Reciprocal cross-link: the `verification` rule's artifact-type taxonomy is the source of the
+establishing-evidence column above; that rule's reference body should point back here for the
+boundary each type reaches. Cite these slugs, do not restate them: `verification` (the artifact-type
+taxonomy), `factory-model` (operator-readable writing — rule 5), and `empirical-inquiry` (observe the
+real result before claiming).
+
+## The core inequality
+
+The whole contract reduces to one inequality, stated explicitly so no surface can blur it:
+
+**unit tests ≠ browser behavior ≠ healthy deployment ≠ standards compatibility.**
+
+A passing unit `test-run-log` establishes only `code-unit` behavior. It can **never** establish a
+`browser`, `http-api`, `deploy-health`, or `standards-compat` claim — those live at boundaries a
+unit test does not reach. Unit tests are a *quality prerequisite* (they gate the commit); they are
+not a *claim discharger* for any boundary above `code-unit`. Symmetrically, a green `deploy-log`
+proves a healthy deployment but says nothing about whether the UI renders correctly, and a
+`screenshot` proves the pixels but not the latency. Each boundary stands on its own evidence.
+
+## The review-rejection rule
+
+Citing evidence whose *kind* does not reach a claim's *boundary* is a **review-rejectable defect** —
+a machine-checkable one once BCE-2's gate ships, and a review-rejectable one in prose review today.
+"It passed unit tests" is not an answer to "does the button work in the browser." A reviewer rejects
+the claim, names the boundary, and asks for evidence of a reaching kind.
+
+## The claim fields
+
+A claim is three fields, named here so BCE-2's schema reuses one spelling — this contract only
+defines the names; it stores nothing:
+
+| Field | Meaning |
+|---|---|
+| `claim_id` | stable identifier for the claim being made |
+| `boundary` | exactly one value from the claim-boundary taxonomy above |
+| `required_evidence_kinds` | the evidence kind(s) that reach that boundary, from the `verification` artifact-type set |
+
+A claim whose `required_evidence_kinds` has no captured, reaching artifact is **Not established** —
+defined in full, with its evidence templates, in the section below. Artifact identity — what makes
+two captured artifacts the same or different — is defined in the *Artifact identity* section below
+(shipped by BCE-4, #1838). The bucket a security-sensitive claim lands in is defined in the *Security
+buckets* section below (shipped by BCE-5, #1839). Where such a sibling surface is not installed in a
+given branch, name what you can and continue.
+
+### Worked example
+
+```text
+Claim: "The checkout button submits the order and shows a confirmation."
+
+  boundary                 browser
+  required_evidence_kinds  screenshot | recording
+
+  Reaching evidence   A screenshot of the confirmation state after a real click, or a
+                      recording of the click-through. EITHER establishes the browser claim.
+
+  Non-reaching        A passing unit test-run-log for the submit handler. It establishes the
+                      code-unit boundary only — the handler's logic in isolation — and can
+                      NEVER establish this browser claim. Offered as proof here, it is a
+                      review-rejectable defect; the claim stays Not established until a
+                      screenshot or recording is captured.
+
+Claim: "The service is deployed and healthy."
+
+  boundary                 deploy-health
+  required_evidence_kinds  deploy-log
+
+  Non-reaching        Any pre-deploy artifact — a green CI test-run-log, a local screenshot.
+                      A healthy deployment is established only by a deploy-log / health-check
+                      response from the target environment.
+```
+
+## Artifact identity — what the evidence was collected against
+
+A claim reaches only as far as its evidence's *kind*; it applies only to the *artifact* that evidence
+was collected against. **Artifact identity is what makes two captured artifacts the same or
+different**: one repository, at one commit, in one environment, at one moment. Evidence that does not
+say which artifact it observed is not evidence about anything in particular — it silently transfers
+to whatever ships next, which is exactly how an auto-merge race ships code no verification ever
+touched.
+
+Identity is carried in two places, and they must agree:
+
+| Where | Field | What it pins |
+|---|---|---|
+| `artifact` (once per verdict) | `repository` | the `owner/repo` the run observed |
+| | `base_sha` | the base the change was measured against |
+| | `head_sha` | **the commit the verification actually observed** — required for a v2 pass |
+| | `build_id` | the build/run the evidence came from, where one exists |
+| | `environment` | where it ran (local, preview, staging, production) |
+| | `observed_at` | when the run observed it (ISO-8601 UTC) |
+| `evidence[]` (per artifact) | `artifact_head_sha` | the `head_sha` in force **when that artifact was captured** |
+| | `sha256` | content digest of the committed evidence file |
+| | `captured_at` | when that artifact was captured (ISO-8601 UTC) |
+
+`head_sha` pins the *build*; `sha256` pins the *bytes*. Together they answer both identity questions:
+"which artifact was this collected against" and "is this still the artifact that was collected". The
+`sha256` + commit-ref discipline is the same one Lisa's upstream-evidence manifest already uses — it
+is cited as prior art here, not reinvented.
+
+### Two identity failures, both loud
+
+- **`artifact_mismatch`** — an `evidence[]` entry whose `artifact_head_sha` differs from the verdict's
+  `artifact.head_sha`. The evidence describes a different build than the one the verdict claims. The
+  identity check fails **loudly, naming both SHAs** (the evidence's and the verdict's) so an operator
+  can see which build each half is talking about.
+- **`evidence_digest_mismatch`** — on read, recompute the `sha256` of each committed evidence file. If
+  the bytes no longer match the recorded digest, the artifact has changed since it was recorded: the
+  check fails, it names the evidence id, and blocks completion. A digest that cannot be recomputed
+  (file absent) is the same failure.
+
+Neither failure is ever summarized as "verification failed". Name the field, the ids, and both SHAs —
+a person who does not code reads this at the gate (`factory-model` rule 5). Both checks are
+**advisory-first**: reported to the operator but non-blocking until
+`verification.gate.enforceBoundaries` is `true` in `.lisa.config.json` — the same ratchet flag the
+boundary checks and the Stop-hook gate ride.
+
+### The merge race — one definition, two guards
+
+"The artifact that shipped" is already defined once, in `lisa-drive-pr-to-merge`: the **ancestry**
+check (is the verified commit an ancestor of the merged base branch, and is the merge commit's parent
+that verified head rather than a stale one) **plus** the **deploy-run** check (a deploy/release run
+actually fired for the merge SHA or an including descendant). Cite that definition; never write a
+second one. Identity reconciliation is the same definition read from the evidence side:
+
+- Evidence collected on a **pre-merge head** is valid for the merge commit **only when that head is a
+  parent of the merge** — i.e. it satisfies that skill's ancestry check against the merged head. If a
+  late commit raced past the merge, the merged head is not the verified one and the evidence does not
+  transfer.
+- Ancestry alone is never enough. That skill's rule stands unchanged here: **never report shipped on
+  ancestry alone** — the deploy-run check must also pass before completion is declared.
+- On mismatch (`artifact.head_sha` ≠ the reconciled merge SHA), completion is not declared. Flag the
+  mismatch naming both SHAs and **re-run verification against the merged head**; the re-run's verdict
+  is what may declare completion.
+
+Two guards, one definition — so they cannot disagree about what shipped.
+
+## Security buckets — the impact-or-exploitability bar
+
+A security-shaped claim is a claim like any other: it reaches only as far as its evidence. Applied to
+security findings (shipped by BCE-5, #1839), that yields two buckets and one bar:
+
+- **Security (proven)** — the finding carries **both** a `reproducer` (an evidence ref of a kind that
+  reaches the claim's boundary, per the taxonomy above — e.g. an `http-transcript` for an injection
+  claim at `http-api`) **and** a bounded `impact`/exploitability statement.
+- **Security (unproven)** — **missing either**. It keeps a one-line `reason` and **stays in the
+  security section**: a reproducer-less finding is **never auto-demoted** to a `maintenance` bucket,
+  because under-reporting a real vulnerability is the worse failure.
+
+The unproven bucket's label is the single configurable policy point —
+`security.review.unprovenBucket` in `.lisa.config.json`, default `security-unproven`. An owner who
+prefers true demotion flips that one value; no other classification logic changes. Like the boundary
+checks, bucketing is **advisory** — it shapes the report, not the merge — until
+`verification.gate.enforceBoundaries` is `true`.
+
+The full procedure — per-finding fields, report shape, ZAP alignment — lives in the
+`lisa-security-review` skill (with `lisa-security-zap-scan` citing it); dependency-CVE remediation
+keeps its separate ladder in `security-audit-handling`. Cite those slugs; do not restate them here.
+
+## The "Not established" section — required, never omitted
+
+Every report that asserts something was verified also states, in the same breath, **what it did not
+establish**. This is one section, it is **required**, and it is **never omitted and never blank** —
+on the evidence comment, in the committed `evidence/<ticket>/verdict.json`, and in the
+`verification-status.json` verdict BCE-2's gate reads.
+
+**Where it appears and what it says**
+
+| Surface | Shape |
+|---|---|
+| Evidence comment (tracker + PR `## Evidence` section) | a `## Not established` heading, one plain-language bullet per item |
+| `evidence/<ticket>/verdict.json` | `not_established: []` plus `not_established_reviewed: true` |
+| `.lisa/verification-status.json` (schema v2) | per-claim `not_established[]` plus the top-level `not_established_reviewed` flag |
+
+**The empty case is not the omitted case.** A verification that genuinely left nothing unproved still
+renders the heading, with the single line:
+
+```text
+## Not established
+
+None outstanding — reviewed
+```
+
+An absent heading, or a heading with nothing under it, is a defect — it is indistinguishable from
+never having asked the question. The list may be empty; the section may not be blank.
+
+**Machine-readable semantics (as shipped by BCE-2, #1836).** `not_established` is the list — it may
+be empty. `not_established_reviewed` is the boolean attestation that the list was actually
+reviewed — **the flag may never be omitted**. That asymmetry is the whole mechanism: an empty list
+plus a present flag means "we looked and found nothing outstanding"; an absent flag means nobody
+looked. The Stop-hook gate treats an absent flag as a v2 contract violation, reported to stderr and
+**advisory** until `verification.gate.enforceBoundaries` is `true` in `.lisa.config.json` (the same
+ratchet flag the boundary checks ride); evidence surfaces refuse the post on the same terms.
+
+**What belongs under the heading** — written in operator voice (`factory-model` rule 5: a person who
+does not code reads this at the gate), not in engineering shorthand:
+
+- **Boundaries not exercised** — a claim's boundary that no captured artifact reached. *"The checkout
+  button was proved in the browser; the order's persisted row was never queried, so the `data`
+  boundary is not established."*
+- **Environments not tested** — where it was and was not run. *"Checked on production Chrome at
+  1440×900 only. Not checked on mobile Safari, and not checked against the staging database."*
+- **Claims consciously out of scope** — deliberately excluded behavior, named so nobody infers it.
+  *"Refunds were not touched or tested; this change covers new orders only."*
+- **Anything a green quality check might be mistaken for proving.** *"Unit tests pass for the submit
+  handler. That establishes the code-unit boundary only — it is not evidence the button works."*
+
+Each item names the thing, not a category: "not tested on mobile Safari" is usable at a gate; "some
+environments untested" is not.
+
+### Philosophical precedent for this section
+
+This generalizes `lisa-improve-harness`'s **`Known limits`** field — a required, never-empty line on
+every result record. That skill says it plainly:
+*"A record with nothing in it is invalid on its face"* — because a single-trajectory loop always has
+limits. The same is true of any verification:
+it ran somewhere, on something, once. `Known limits` (one record) and `not_established` (every claim
+in the factory) are the same discipline with the same never-empty rule; read either and you should
+recognize the other.
+
+## Philosophical precedent
+
+This generalizes the **bounded-claim discipline** of `lisa-improve-harness`: one trajectory supports
+one trajectory's claim, and a result record may claim only what its cited evidence reaches. Here the
+same discipline is applied to every claim in the factory — a claim reaches exactly as far as the
+*kind* of evidence behind it, and no further. The *Not established* half of that discipline is a
+first-class report state — see the required, never-omitted section above.
+
+## No behavior change; degrade, never block
+
+This rule ships as documentation that later tickets make executable. It changes no schema, no gate,
+and no skill. Where a surface it names (BCE-2's gate, BCE-3's templates) is not yet installed in a
+given branch, name the boundary a claim reaches and continue — the contract never blocks on an absent
+sibling surface. Every claim written under it must be operator-readable (`factory-model` rule 5): a
+person who does not code should be able to read the boundary and see why the evidence does or does
+not reach it.

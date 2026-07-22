@@ -34,6 +34,12 @@ For each changed file, `Read` the surrounding code and use `Grep`/`Glob` to foll
 
 ## Step 3: Review across all dimensions
 
+Apply the `convergent-review` rule before deciding severity or whether a finding
+blocks merge. Bias toward merge: block only concrete correctness, security,
+data-loss, or contract-violation failures with evidence. Lint-owned style,
+formatting, taste, and speculative maintainability improvements are non-blocking
+unless the work item or repository rules explicitly make them release criteria.
+
 Walk every meaningful hunk and evaluate each dimension. A finding in any dimension is fair game.
 
 1. **Correctness / bugs** — Logic errors, off-by-one, inverted conditions, missing `await`, null/undefined handling, type coercion, broken control flow, incorrect defaults, mutation of shared state, race conditions, broken or missing tests for new behavior.
@@ -59,6 +65,9 @@ Group as **Critical → Major → Minor → Nit**. Every finding includes:
 - **What** — the issue, and which dimension it falls under (bug / security / perf / maintainability / tests).
 - **Where** — `path/to/file.ts:line`.
 - **Why** — the concrete consequence, with a triggering example where relevant.
+- **Blocking** — `yes` only for concrete correctness/security/data-loss/contract failures; otherwise `no`.
+- **Failure scenario** — the concrete user, operator, security, or factory outcome if the change ships as-is.
+- **Evidence** — the cited file, observed behavior, command output, or contract that proves the scenario is reachable.
 - **Fix** — a concrete suggestion or code snippet.
 
 ### Walkthrough (optional but encouraged)
@@ -71,6 +80,7 @@ Call out what's done well. A credible review is balanced, not only critical.
 
 - **Cover the whole diff.** If you deprioritize anything for size, say which files and why — never imply full coverage you didn't give.
 - **Ground every finding in the code.** No generic checklists detached from the actual change; no speculative findings you can't point to.
+- **Malformed blockers do not block.** If you cannot name a concrete failure scenario and evidence, report it as non-blocking context or omit it.
 - **Concrete fixes only.** "Consider improving error handling" is not a finding; "wrap the `fetch` in try/catch and return a 502 on network error at `api/proxy.ts:31`" is.
 - **No external review service.** Use only local git/tooling and the model — this is an independent review, not a CodeRabbit proxy.
 - **Review-only.** Report findings; do not edit files. Route fixes through the implementation flow, `parity-code-simplifier` (quality), or a follow-up.

@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "plan": "bce-6",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "aaaa111",
+    "head_sha": "bbbb222",
+    "build_id": "build-1840",
+    "environment": "local",
+    "observed_at": "2026-07-20T00:00:00Z"
+  },
+  "claims": "AC-1 established in the browser",
+  "evidence": 3,
+  "not_established_reviewed": true,
+  "criteria": [
+    {
+      "task": "T1",
+      "criterion": "the confirmation renders after a real click",
+      "status": "pass",
+      "evidence": "asserted in prose"
+    }
+  ],
+  "status": "pass",
+  "updated_at": "2026-07-20T00:00:00Z"
+}

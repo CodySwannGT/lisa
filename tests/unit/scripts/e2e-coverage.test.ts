@@ -135,6 +135,17 @@ describe("check-e2e-coverage", () => {
         enumerateRoutes(["(a)/home.tsx", "(b)/home.tsx", "_layout.tsx"])
       ).toEqual(["/home"]);
     });
+
+    it("sorts by code-unit order, not locale-aware collation", () => {
+      // Code-unit order is deterministic: uppercase code units (< 0x5B) sort
+      // before lowercase (>= 0x61), so ["/Zebra", "/apple"] — reproducible
+      // regardless of the runtime's ICU locale, unlike locale-sensitive
+      // collation.
+      expect(enumerateRoutes(["apple.tsx", "Zebra.tsx"])).toEqual([
+        "/Zebra",
+        "/apple",
+      ]);
+    });
   });
 
   describe("visited path normalization", () => {

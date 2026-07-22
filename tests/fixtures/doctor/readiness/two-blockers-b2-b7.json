@@ -1,0 +1,86 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "execution-proof",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B7",
+          "severity": "critical",
+          "blocking": true,
+          "invariant_violated": "The headline user-visible outcome is provable by running the system.",
+          "claim_evidence": {
+            "claim_id": "checkout-confirmation-renders",
+            "boundary": "browser",
+            "required_evidence_kinds": [
+              "screenshot",
+              "recording"
+            ],
+            "not_established": [
+              "browser boundary never exercised — only a unit test-run-log exists"
+            ],
+            "not_established_reviewed": true
+          },
+          "evidence": "The only artifact is a unit test-run-log; the browser claim is Not established.",
+          "why_proof_missed": "Unit tests reach only the code-unit boundary.",
+          "root_correction": "Capture a screenshot or recording at the browser boundary.",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "delivery-authority",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B2",
+          "severity": "critical",
+          "blocking": true,
+          "invariant_violated": "What ships to production is the artifact CI validated.",
+          "evidence": "The deploy job rebuilds from source at deploy time rather than promoting the CI-built image.",
+          "why_proof_missed": "All checks ran against a different artifact than the one that shipped.",
+          "root_correction": "Promote the validated image by digest at the delivery boundary.",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "proportionality",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    }
+  ]
+}

@@ -49,14 +49,29 @@ spec.
 - **Validation Journey (draft)** — run the vendor `*-add-journey` skill to draft
   the click-path, markers, and viewports from the reproduction steps. This is a
   draft for human approval, not the final ratified contract.
-- **Target Backend Environment** — for bugs, first parse the reported
-  environment from the title, description/body, screenshots captions, links, and
-  reproduction steps. Bare words such as `dev`, `staging`, `prod`, and
-  `production` count, as do environment-bearing URLs such as
-  `staging.<domain>`, `gql.staging.*`, and `dev.<domain>`. That reported
-  environment is authoritative for the draft. Only recommend the repo's
-  remote default branch when no environment is discoverable anywhere in the
-  work item, and record the default as an explicit assumption.
+- **Target Backend Environment** — preserve a bare configured key or
+  `Confirmed: <env>` as human-confirmed. Automated evidence must write
+  `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; a generic
+  fallback must write `Assumption: <env> — remote default branch <branch>`.
+  If the default branch has no unique environment reverse-map, instead write
+  `Assumption: remote default branch <branch>` without inventing an environment.
+  Human confirmation replaces an automated annotation with a bare key or
+  `Confirmed: <env>`. For legacy bare values, use managed draft markers and
+  current ticket content only; provider edit history is not required. A marker
+  proves automation and requires re-annotation; otherwise unknown provenance
+  plus conflicting evidence stops for confirmation. A human-confirmed value wins, followed by validated
+  `Inferred:` evidence. Otherwise inspect the title, body, and reproduction
+  steps or a URL hostname for one unambiguous exact `deploy.branches` key,
+  excluding the complete `Target Backend Environment` section and all other
+  machine-authored metadata/draft blocks so annotations cannot become evidence.
+  Clear evidence supersedes only an `Assumption:` value. The sole normalization
+  is `prod` ↔ `production` when exactly one key is configured; no other aliases
+  exist. Never infer from arbitrary branch text, URL paths or query strings, or
+  substrings. Multiple conflicting signals **stop** autofill. With no
+  environment signal, use the remote default and record the applicable
+  `Assumption:` form; a missing/ambiguous reverse-map alone never blocks.
+  Require any selected environment mapping and remote branch. Never overwrite
+  human prose.
 
 **Tier B — irreducibly human (cannot invent — but still propose a default):**
 

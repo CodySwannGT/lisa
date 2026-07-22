@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  buildUpstreamAttributionIssueBody,
   confirmLearningEntry,
   parseLearningsFile,
   persistConsolidatedLearning,
@@ -26,6 +27,7 @@ const REQUIRED_BARREL_FUNCTIONS = [
   ["persistConsolidatedLearning", persistConsolidatedLearning],
   ["confirmLearningEntry", confirmLearningEntry],
   ["projectLearnings", projectLearnings],
+  ["buildUpstreamAttributionIssueBody", buildUpstreamAttributionIssueBody],
 ] as const;
 
 describe("learnings barrel surface", () => {

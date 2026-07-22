@@ -11,12 +11,23 @@
  */
 
 import fs from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 
 import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
+import {
+  assignToAutomationGroup,
+  createAutomationGroupBins,
+  renderAutomationGroups,
+} from "./automation-status-expected-fleet.mjs";
+import {
+  resolveAutomationRunDisplay,
+  resolveRecoveryEscalation,
+} from "./automation-status-run-history.mjs";
 
 const CODEx_RUNTIME_LABEL = "Codex automations";
 const RUN_TIMESTAMP_PATTERN = /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/;
@@ -25,6 +36,12 @@ const RUN_FAILURE_PATTERN =
 const NEGATED_FAILURE_PATTERN =
   /\b(no|without)\s+(?:recent\s+)?(?:fail(?:ure|ed)|errors?|exceptions?)\b/i;
 const execFileAsync = promisify(execFile);
+const MAX_SCHEDULER_ENTRIES = 1_000;
+const MAX_MATCHING_AUTOMATIONS = 100;
+const MAX_AUTOMATION_TOML_BYTES = 256 * 1024;
+const MAX_AUTOMATION_MEMORY_BYTES = 512 * 1024;
+const READ_CHUNK_BYTES = 64 * 1024;
+const UNSAFE_SCHEDULER_FILE = "Unsafe Codex scheduler file";
 
 /**
  * Git location env vars that, when inherited, override the `-C <dir>` flag and
@@ -92,7 +109,9 @@ async function execGitWithRetry(args, options, attempts = 4) {
       if (!transient || attempt >= attempts) {
         throw error;
       }
-      await new Promise(resolve => setTimeout(resolve, 2 ** attempt * 25));
+      await delay(2 ** attempt * 25, undefined, {
+        signal: options?.signal,
+      });
     }
   }
 }
@@ -127,6 +146,7 @@ async function execGitWithRetry(args, options, attempts = 4) {
  * @param {{
  *   readonly expectedFleet: ExpectedFleet
  *   readonly automationsDir?: string
+ *   readonly projectRoot?: string
  *   readonly now?: string | Date
  * }} input
  * @returns {Promise<{
@@ -142,6 +162,10 @@ async function execGitWithRetry(args, options, attempts = 4) {
  *       readonly expectedCadence?: string
  *       readonly expectedCommand?: string
  *       readonly observed?: string
+ *       readonly runbook?: string
+ *       readonly lastOutcome?: { readonly ts: string, readonly outcome: string, readonly summary: string }
+ *       readonly outcomeHistory?: readonly string[]
+ *       readonly olderRecordCount?: number
  *       readonly remediation?: string
  *     }[]
  *   }[]
@@ -151,15 +175,15 @@ async function execGitWithRetry(args, options, attempts = 4) {
 export async function inspectCodexAutomationFleet(input) {
   const expectedFleet = input.expectedFleet;
   const now = normalizeDate(input.now);
+  const projectRoot = input.projectRoot ?? process.cwd();
   const observedAutomations = await listCodexAutomations({
     automationsDir: input.automationsDir,
     automationPrefix: expectedFleet.automationPrefix,
   });
 
-  const expectedGroups = new Map([
-    ["core", []],
-    ["exploratory", []],
-  ]);
+  const runDisplays = await resolveFleetRunDisplays(projectRoot, expectedFleet);
+
+  const expectedGroups = createAutomationGroupBins();
 
   const comparisons = compareAutomationFleet({
     expectedAutomations: expectedFleet.expected,
@@ -168,40 +192,37 @@ export async function inspectCodexAutomationFleet(input) {
 
   for (const [index, expected] of expectedFleet.expected.entries()) {
     const comparison = comparisons[index];
-    expectedGroups.get(expected.group)?.push(
+    assignToAutomationGroup(
+      expectedGroups,
+      expected.group,
       createObservedStatusItem({
         expected,
         comparison,
         now,
+        runDisplay: runDisplays.get(expected.id),
       })
     );
   }
 
   for (const unsupported of expectedFleet.unsupported) {
-    expectedGroups.get(unsupported.group)?.push({
+    const runDisplay = runDisplays.get(unsupported.id);
+    assignToAutomationGroup(expectedGroups, unsupported.group, {
       id: unsupported.automationId,
       status: "UNSUPPORTED",
       summary: unsupported.reason,
       expectedCadence: unsupported.expectedCadence,
       observed: "No automation is expected for this repo/runtime combination.",
+      runbook: runDisplay?.runbook,
+      lastOutcome: runDisplay?.lastOutcome,
+      outcomeHistory: runDisplay?.outcomeHistory,
+      olderRecordCount: runDisplay?.olderRecordCount,
     });
   }
 
   return {
     runtime: `${CODEx_RUNTIME_LABEL} (backing-store metadata)`,
     generatedAt: now.toISOString(),
-    groups: [
-      {
-        id: "1",
-        title: "Core automations",
-        items: expectedGroups.get("core") ?? [],
-      },
-      {
-        id: "2",
-        title: "Exploratory automations",
-        items: expectedGroups.get("exploratory") ?? [],
-      },
-    ],
+    groups: renderAutomationGroups(expectedGroups),
     observedAutomations,
   };
 }
@@ -212,29 +233,149 @@ export async function inspectCodexAutomationFleet(input) {
  * @param {{
  *   readonly automationsDir?: string
  *   readonly automationPrefix: string
+ *   readonly signal?: AbortSignal
  * }} input
  * @returns {Promise<readonly ObservedCodexAutomation[]>}
  */
 export async function listCodexAutomations(input) {
-  const automationsDir =
+  input.signal?.throwIfAborted();
+  const requestedRoot =
     input.automationsDir ?? resolveDefaultCodexAutomationsDir();
-  const dirEntries = await fs.readdir(automationsDir, {
-    withFileTypes: true,
-  });
-
-  const automationDirs = dirEntries
-    .filter(
-      entry =>
-        entry.isDirectory() && entry.name.startsWith(input.automationPrefix)
-    )
-    .map(entry => path.join(automationsDir, entry.name))
-    .sort((left, right) => left.localeCompare(right));
-
-  const automations = await Promise.all(
-    automationDirs.map(dir => readCodexAutomation(dir))
+  const automationsRoot = await fs.realpath(requestedRoot);
+  input.signal?.throwIfAborted();
+  const automationDirs = await listConfinedAutomationDirectories(
+    automationsRoot,
+    input.automationPrefix,
+    input.signal
   );
+  return await readCodexAutomations(automationDirs, input.signal);
+}
 
-  return automations.filter(Boolean);
+/**
+ * Enumerate a bounded number of direct, regular scheduler directories.
+ * @param {string} automationsRoot Canonical scheduler root.
+ * @param {string} automationPrefix Expected repository automation prefix.
+ * @param {AbortSignal | undefined} signal Probe cancellation signal.
+ * @returns {Promise<readonly string[]>} Canonical matching directories.
+ */
+async function listConfinedAutomationDirectories(
+  automationsRoot,
+  automationPrefix,
+  signal
+) {
+  const directory = await fs.opendir(automationsRoot);
+  try {
+    const names = await readBoundedDirectoryNames(
+      directory,
+      automationPrefix,
+      signal
+    );
+    const directories = await Promise.all(
+      names.map(name => confinedAutomationDirectory(automationsRoot, name))
+    );
+    signal?.throwIfAborted();
+    return directories.toSorted((left, right) => left.localeCompare(right));
+  } finally {
+    await closeDirectory(directory);
+  }
+}
+
+/**
+ * Close a scheduler directory while tolerating runtimes that auto-close it
+ * after async iteration.
+ * @param {import("node:fs").Dir} directory Open scheduler directory handle.
+ * @returns {Promise<void>}
+ */
+async function closeDirectory(directory) {
+  try {
+    await directory.close();
+  } catch (error) {
+    if (error?.code !== "ERR_DIR_CLOSED") throw error;
+  }
+}
+
+/**
+ * Consume directory entries with total and prefix-match bounds.
+ * @param {import("node:fs").Dir} directory Open scheduler directory handle.
+ * @param {string} automationPrefix Expected repository automation prefix.
+ * @param {AbortSignal | undefined} signal Probe cancellation signal.
+ * @param {number} [entryCount] Entries consumed so far.
+ * @param {readonly string[]} [matchingNames] Matching directory names.
+ * @returns {Promise<readonly string[]>} Bounded matching names.
+ */
+async function readBoundedDirectoryNames(
+  directory,
+  automationPrefix,
+  signal,
+  entryCount = 0,
+  matchingNames = []
+) {
+  signal?.throwIfAborted();
+  if (entryCount >= MAX_SCHEDULER_ENTRIES) {
+    const overflow = await directory.read();
+    if (overflow !== null) {
+      throw new Error("Codex scheduler enumeration exceeds entry limit");
+    }
+    return matchingNames;
+  }
+  const entry = await directory.read();
+  signal?.throwIfAborted();
+  if (entry === null) return matchingNames;
+  const matches =
+    entry.isDirectory() && entry.name.startsWith(automationPrefix);
+  const nextNames = matches ? [...matchingNames, entry.name] : matchingNames;
+  if (nextNames.length > MAX_MATCHING_AUTOMATIONS) {
+    throw new Error("Codex scheduler automation count exceeds limit");
+  }
+  return await readBoundedDirectoryNames(
+    directory,
+    automationPrefix,
+    signal,
+    entryCount + 1,
+    nextNames
+  );
+}
+
+/**
+ * Verify one direct scheduler entry remains a confined real directory.
+ * @param {string} automationsRoot Canonical scheduler root.
+ * @param {string} name Direct entry name.
+ * @returns {Promise<string>} Canonical automation directory.
+ */
+async function confinedAutomationDirectory(automationsRoot, name) {
+  const candidate = path.join(automationsRoot, name);
+  const stat = await fs.lstat(candidate);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new Error("Unsafe Codex scheduler directory");
+  }
+  const actual = await fs.realpath(candidate);
+  if (!actual.startsWith(`${automationsRoot}${path.sep}`)) {
+    throw new Error("Codex scheduler directory escapes root");
+  }
+  return actual;
+}
+
+/**
+ * Read scheduler entries sequentially to bound simultaneously open files.
+ * @param {readonly string[]} automationDirs Canonical automation directories.
+ * @param {AbortSignal | undefined} signal Probe cancellation signal.
+ * @param {number} [index] Next directory index.
+ * @param {readonly ObservedCodexAutomation[]} [results] Completed observations.
+ * @returns {Promise<readonly ObservedCodexAutomation[]>} Observations.
+ */
+async function readCodexAutomations(
+  automationDirs,
+  signal,
+  index = 0,
+  results = []
+) {
+  signal?.throwIfAborted();
+  if (index >= automationDirs.length) return results;
+  const observation = await readCodexAutomation(automationDirs[index], signal);
+  return await readCodexAutomations(automationDirs, signal, index + 1, [
+    ...results,
+    observation,
+  ]);
 }
 
 /**
@@ -249,21 +390,35 @@ export function deriveCodexObservedCommand(prompt) {
     return undefined;
   }
 
+  // The "with arguments" clause is optional: no-argument loops (monitor, the
+  // gardener) register without one. Requiring it made every such loop derive an
+  // undefined command and report DRIFTED forever, un-fixable by re-running setup.
   const lisaSkillMatch = prompt.match(
-    /Use the Lisa ([a-z0-9:-]+) skill with arguments `([^`]+)`/i
+    /Use the Lisa ([a-z0-9:-]+) skill(?: with arguments `([^`]*)`)?/i
   );
-  if (lisaSkillMatch?.[1] && lisaSkillMatch[2]) {
-    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2]}`.trim();
+  if (lisaSkillMatch?.[1]) {
+    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2] ?? ""}`.trim();
   }
 
   const aliasSkillMatch = prompt.match(
-    /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
+    /Use the `\$([a-z0-9:-]+)` skill(?: with arguments `([^`]*)`)?/i
   );
-  if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
-    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2]}`.trim();
+  if (aliasSkillMatch?.[1]) {
+    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2] ?? ""}`.trim();
   }
 
-  return undefined;
+  // A registration whose prompt carries the literal Lisa command on its own
+  // line — the shape `/lisa:setup-automations` bakes so a command that is not a
+  // plain skill name (`/lisa:learnings:audit`) round-trips exactly. Mirrors the
+  // Claude adapter, which has always accepted a bare `/lisa:` command. Codex
+  // stores prompts as single-line TOML, so a line break arrives either real or
+  // as the two-character escape `\n`; both delimit a line here.
+  const literalCommand = prompt
+    .split(/\r?\n|\\n/)
+    .map(segment => segment.trim())
+    .find(segment => /^\/lisa[:-]\S/.test(segment));
+
+  return literalCommand;
 }
 
 function canonicalizeCodexSkillAlias(alias) {
@@ -336,16 +491,130 @@ function findLatestAutomationMemoryBlock(lines) {
   };
 }
 
-async function readCodexAutomation(automationDir) {
-  const tomlPath = path.join(automationDir, "automation.toml");
-  const memoryPath = path.join(automationDir, "memory.md");
-  const tomlContent = await fs.readFile(tomlPath, "utf8");
+/**
+ * Read one stable bounded file without following a scheduler symlink or FIFO.
+ * @param {string} automationDir Canonical automation directory.
+ * @param {string} filename Direct scheduler filename.
+ * @param {number} maximumBytes Maximum allowed bytes.
+ * @param {AbortSignal | undefined} signal Probe cancellation signal.
+ * @param {boolean} [optional] Whether a missing file resolves to undefined.
+ * @returns {Promise<string | undefined>} Strict UTF-8 contents.
+ */
+async function readConfinedSchedulerText(
+  automationDir,
+  filename,
+  maximumBytes,
+  signal,
+  optional = false
+) {
+  signal?.throwIfAborted();
+  const target = path.join(automationDir, filename);
+  const before = await fs.lstat(target).catch(error => {
+    if (optional && error?.code === "ENOENT") return null;
+    throw error;
+  });
+  if (before === null) return undefined;
+  assertBoundedSchedulerFile(before, maximumBytes);
+  const actual = await fs.realpath(target);
+  if (!actual.startsWith(`${automationDir}${path.sep}`)) {
+    throw new Error("Codex scheduler file escapes automation directory");
+  }
+  const handle = await fs.open(
+    target,
+    fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK
+  );
+  try {
+    const opened = await handle.stat();
+    assertBoundedSchedulerFile(opened, maximumBytes);
+    if (opened.dev !== before.dev || opened.ino !== before.ino) {
+      throw new Error("Codex scheduler file changed during inspection");
+    }
+    const bytes = await readBoundedSchedulerFile(handle, maximumBytes, signal);
+    const after = await handle.stat();
+    if (after.size !== opened.size || bytes.length !== after.size) {
+      throw new Error("Codex scheduler file changed during read");
+    }
+    signal?.throwIfAborted();
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Reject non-regular and oversized scheduler files before opening them.
+ * @param {import("node:fs").Stats} stat Scheduler file metadata.
+ * @param {number} maximumBytes Maximum allowed bytes.
+ * @returns {void}
+ */
+function assertBoundedSchedulerFile(stat, maximumBytes) {
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error(UNSAFE_SCHEDULER_FILE);
+  }
+  if (stat.size > maximumBytes) {
+    throw new Error("Codex scheduler file exceeds size limit");
+  }
+}
+
+/**
+ * Read at most maximum plus one bytes from an already confined file handle.
+ * @param {import("node:fs/promises").FileHandle} handle Open file handle.
+ * @param {number} maximumBytes Maximum allowed bytes.
+ * @param {AbortSignal | undefined} signal Probe cancellation signal.
+ * @param {number} [offset] Current file offset.
+ * @returns {Promise<Buffer>} Bounded bytes.
+ */
+async function readBoundedSchedulerFile(
+  handle,
+  maximumBytes,
+  signal,
+  offset = 0
+) {
+  signal?.throwIfAborted();
+  const remaining = maximumBytes + 1 - offset;
+  if (remaining <= 0) {
+    throw new Error("Codex scheduler file exceeds size limit");
+  }
+  const chunk = Buffer.allocUnsafe(Math.min(READ_CHUNK_BYTES, remaining));
+  const { bytesRead } = await handle.read(chunk, 0, chunk.length, offset);
+  signal?.throwIfAborted();
+  if (bytesRead === 0) return Buffer.alloc(0);
+  const current = chunk.subarray(0, bytesRead);
+  const tail = await readBoundedSchedulerFile(
+    handle,
+    maximumBytes,
+    signal,
+    offset + bytesRead
+  );
+  return Buffer.concat([current, tail], bytesRead + tail.length);
+}
+
+/**
+ * Read one confined Codex automation contract and optional memory.
+ * @param {string} automationDir Canonical automation directory.
+ * @param {AbortSignal | undefined} signal Probe cancellation signal.
+ * @returns {Promise<ObservedCodexAutomation>} Normalized observation.
+ */
+async function readCodexAutomation(automationDir, signal) {
+  const tomlContent = await readConfinedSchedulerText(
+    automationDir,
+    "automation.toml",
+    MAX_AUTOMATION_TOML_BYTES,
+    signal
+  );
   const automation = parseAutomationToml(tomlContent);
-  const memoryContent = await fs.readFile(memoryPath, "utf8").catch(() => "");
+  const memoryContent =
+    (await readConfinedSchedulerText(
+      automationDir,
+      "memory.md",
+      MAX_AUTOMATION_MEMORY_BYTES,
+      signal,
+      true
+    )) ?? "";
   const memory = parseCodexAutomationMemory(memoryContent);
   const cwd = Array.isArray(automation.cwds) ? automation.cwds[0] : null;
   const normalizedCwd = typeof cwd === "string" ? cwd : null;
-  const cwdHealth = await inspectAutomationCwd(normalizedCwd);
+  const cwdHealth = await inspectAutomationCwd(normalizedCwd, signal);
 
   return {
     automationId:
@@ -367,15 +636,43 @@ async function readCodexAutomation(automationDir) {
   };
 }
 
+/**
+ * Read the read-only run-history display for every expected and unsupported
+ * loop up front, keyed by the loop's short id, so the per-entry item builder
+ * stays synchronous.
+ *
+ * @param {string} projectRoot
+ * @param {ExpectedFleet} expectedFleet
+ * @returns {Promise<Map<string, import("./automation-status-run-history.mjs").AutomationRunDisplay>>}
+ */
+async function resolveFleetRunDisplays(projectRoot, expectedFleet) {
+  const entries = [...expectedFleet.expected, ...expectedFleet.unsupported];
+  const displays = await Promise.all(
+    entries.map(entry =>
+      resolveAutomationRunDisplay({
+        projectRoot,
+        loopId: entry.id,
+        runbookPath: entry.runbookPath,
+      })
+    )
+  );
+  return new Map(entries.map((entry, index) => [entry.id, displays[index]]));
+}
+
 function createObservedStatusItem(input) {
   const expected = input.expected;
   const comparison = input.comparison;
   const observed = comparison.observedAutomation;
+  const runDisplay = input.runDisplay;
   const runSignal = classifyAutomationRunSignal({
     expected,
     observedAutomation: observed,
     now: input.now,
   });
+  // Three or more consecutive recorded recovery-required runs flip the loop to
+  // FAILING even when the scheduler entry looks fine — the fleet-health signal
+  // the raw backing store cannot see. It wins over the scheduler run-signal.
+  const escalation = resolveRecoveryEscalation(runDisplay);
 
   const observedDetails = [comparison.observed];
   if (observed?.status) {
@@ -394,20 +691,30 @@ function createObservedStatusItem(input) {
   }
 
   const status =
+    escalation?.status ??
     runSignal?.status ??
     /** @type {"HEALTHY" | "MISSING" | "DRIFTED"} */ (comparison.status);
 
   return {
     id: expected.automationId,
     status,
-    summary: composeAutomationSummary({
-      comparison,
-      runSignal,
-    }),
+    summary: escalation
+      ? escalation.summary
+      : composeAutomationSummary({
+          comparison,
+          runSignal,
+        }),
     expectedCadence: expected.expectedCadence,
     expectedCommand: expected.expectedCommand,
     observed: observedDetails.join(" "),
-    remediation: runSignal?.remediation ?? comparison.remediation,
+    runbook: runDisplay?.runbook,
+    lastOutcome: runDisplay?.lastOutcome,
+    outcomeHistory: runDisplay?.outcomeHistory,
+    olderRecordCount: runDisplay?.olderRecordCount,
+    remediation:
+      escalation?.remediation ??
+      runSignal?.remediation ??
+      comparison.remediation,
   };
 }
 
@@ -483,7 +790,8 @@ function classifyAutomationRunSignal(input) {
   return null;
 }
 
-async function inspectAutomationCwd(cwd) {
+async function inspectAutomationCwd(cwd, signal) {
+  signal?.throwIfAborted();
   if (!cwd) {
     return {
       status: "missing",
@@ -497,6 +805,7 @@ async function inspectAutomationCwd(cwd) {
     }
     throw error;
   });
+  signal?.throwIfAborted();
 
   if (!stat) {
     return {
@@ -515,7 +824,7 @@ async function inspectAutomationCwd(cwd) {
   try {
     const { stdout } = await execGitWithRetry(
       ["-C", cwd, "rev-parse", "--is-inside-work-tree", "--is-bare-repository"],
-      { timeout: 5000 }
+      { timeout: 5000, signal }
     );
     const [insideWorkTree, bareRepository] = stdout.trim().split(/\r?\n/);
 
@@ -538,6 +847,7 @@ async function inspectAutomationCwd(cwd) {
       summary: `${cwd} is a valid Git work tree`,
     };
   } catch (error) {
+    signal?.throwIfAborted();
     return {
       status: "git_error",
       summary: `git could not inspect ${cwd}: ${String(error?.message ?? error)}`,
@@ -583,6 +893,13 @@ function humanizeAutomationCadence(rrule) {
       : `every ${everyDays[1]} days`;
   }
 
+  const everyWeeks = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (everyWeeks?.[1]) {
+    return Number(everyWeeks[1]) === 1
+      ? "once a week"
+      : `every ${everyWeeks[1]} weeks`;
+  }
+
   return rrule;
 }
 
@@ -606,6 +923,11 @@ function rruleToIntervalMs(rrule) {
     return Number(daily[1]) * 24 * 60 * 60_000;
   }
 
+  const weekly = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (weekly?.[1]) {
+    return Number(weekly[1]) * 7 * 24 * 60 * 60_000;
+  }
+
   return null;
 }
 
@@ -621,6 +943,10 @@ function cadenceLabelToIntervalMs(label) {
 
   if (label === "once a day") {
     return 24 * 60 * 60_000;
+  }
+
+  if (label === "once a week") {
+    return 7 * 24 * 60 * 60_000;
   }
 
   return null;

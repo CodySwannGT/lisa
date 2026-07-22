@@ -1,0 +1,22 @@
+# Fixture: the governed workflow for the dependency-INTERNALIZATION scenario.
+#
+# `slugify` has left the manifest because the capability moved in-house. No
+# governed input carries a `slugify` literal either, so the removal left no
+# orphan pin behind for a future bump to miss. The Node pin still comes from the
+# manifest, not from a copy of the literal.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: Differential slug conformance over the real corpus
+        run: bash scripts/verify-slugs.sh

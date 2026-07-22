@@ -1,0 +1,15 @@
+# BEGIN: AI GUARDRAILS
+
+WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
+if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
+  WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ Commit blocked: Node.js is required to link commits to tracker work items."
+  exit 1
+fi
+
+node "$WORK_ITEM_SCRIPT" prepare-commit-msg "$@"
+
+# END: AI GUARDRAILS

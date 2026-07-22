@@ -10,6 +10,15 @@
  */
 
 import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
+import {
+  assignToAutomationGroup,
+  createAutomationGroupBins,
+  renderAutomationGroups,
+} from "./automation-status-expected-fleet.mjs";
+import {
+  resolveAutomationRunDisplay,
+  resolveRecoveryEscalation,
+} from "./automation-status-run-history.mjs";
 
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
 const CLAUDE_ACTIVE_STATUSES = new Set([
@@ -46,9 +55,10 @@ const NEGATED_FAILURE_PATTERN =
  * @param {{
  *   readonly expectedFleet: ExpectedFleet
  *   readonly scheduleListing?: string | readonly unknown[] | Record<string, unknown> | null
+ *   readonly projectRoot?: string
  *   readonly now?: string | Date
  * }} input
- * @returns {{
+ * @returns {Promise<{
  *   readonly runtime: string
  *   readonly generatedAt: string
  *   readonly groups: readonly {
@@ -61,24 +71,28 @@ const NEGATED_FAILURE_PATTERN =
  *       readonly expectedCadence?: string
  *       readonly expectedCommand?: string
  *       readonly observed?: string
+ *       readonly runbook?: string
+ *       readonly lastOutcome?: { readonly ts: string, readonly outcome: string, readonly summary: string }
+ *       readonly outcomeHistory?: readonly string[]
+ *       readonly olderRecordCount?: number
  *       readonly remediation?: string
  *     }[]
  *   }[]
  *   readonly observedAutomations: readonly ObservedClaudeAutomation[]
- * }}}
+ * }>}
  */
-export function inspectClaudeAutomationFleet(input) {
+export async function inspectClaudeAutomationFleet(input) {
   const expectedFleet = input.expectedFleet;
   const now = normalizeDate(input.now);
+  const projectRoot = input.projectRoot ?? process.cwd();
   const observedAutomations = listClaudeAutomations({
     scheduleListing: input.scheduleListing,
     automationPrefix: expectedFleet.automationPrefix,
   });
 
-  const expectedGroups = new Map([
-    ["core", []],
-    ["exploratory", []],
-  ]);
+  const runDisplays = await resolveFleetRunDisplays(projectRoot, expectedFleet);
+
+  const expectedGroups = createAutomationGroupBins();
 
   const comparisons = compareAutomationFleet({
     expectedAutomations: expectedFleet.expected,
@@ -87,40 +101,37 @@ export function inspectClaudeAutomationFleet(input) {
 
   for (const [index, expected] of expectedFleet.expected.entries()) {
     const comparison = comparisons[index];
-    expectedGroups.get(expected.group)?.push(
+    assignToAutomationGroup(
+      expectedGroups,
+      expected.group,
       createObservedStatusItem({
         expected,
         comparison,
         now,
+        runDisplay: runDisplays.get(expected.id),
       })
     );
   }
 
   for (const unsupported of expectedFleet.unsupported) {
-    expectedGroups.get(unsupported.group)?.push({
+    const runDisplay = runDisplays.get(unsupported.id);
+    assignToAutomationGroup(expectedGroups, unsupported.group, {
       id: unsupported.automationId,
       status: "UNSUPPORTED",
       summary: unsupported.reason,
       expectedCadence: unsupported.expectedCadence,
       observed: "No automation is expected for this repo/runtime combination.",
+      runbook: runDisplay?.runbook,
+      lastOutcome: runDisplay?.lastOutcome,
+      outcomeHistory: runDisplay?.outcomeHistory,
+      olderRecordCount: runDisplay?.olderRecordCount,
     });
   }
 
   return {
     runtime: `${CLAUDE_RUNTIME_LABEL} listing`,
     generatedAt: now.toISOString(),
-    groups: [
-      {
-        id: "1",
-        title: "Core automations",
-        items: expectedGroups.get("core") ?? [],
-      },
-      {
-        id: "2",
-        title: "Exploratory automations",
-        items: expectedGroups.get("exploratory") ?? [],
-      },
-    ],
+    groups: renderAutomationGroups(expectedGroups),
     observedAutomations,
   };
 }
@@ -202,15 +213,43 @@ function extractClaudeScheduleCadence(command) {
   );
 }
 
+/**
+ * Read the read-only run-history display for every expected and unsupported
+ * loop up front, keyed by the loop's short id, so the per-entry item builder
+ * stays synchronous.
+ *
+ * @param {string} projectRoot
+ * @param {ExpectedFleet} expectedFleet
+ * @returns {Promise<Map<string, import("./automation-status-run-history.mjs").AutomationRunDisplay>>}
+ */
+async function resolveFleetRunDisplays(projectRoot, expectedFleet) {
+  const entries = [...expectedFleet.expected, ...expectedFleet.unsupported];
+  const displays = await Promise.all(
+    entries.map(entry =>
+      resolveAutomationRunDisplay({
+        projectRoot,
+        loopId: entry.id,
+        runbookPath: entry.runbookPath,
+      })
+    )
+  );
+  return new Map(entries.map((entry, index) => [entry.id, displays[index]]));
+}
+
 function createObservedStatusItem(input) {
   const expected = input.expected;
   const comparison = input.comparison;
   const observed = comparison.observedAutomation;
+  const runDisplay = input.runDisplay;
   const runSignal = classifyAutomationRunSignal({
     expected,
     observedAutomation: observed,
     now: input.now,
   });
+  // Three or more consecutive recorded recovery-required runs flip the loop to
+  // FAILING even when the /schedule entry looks fine — the fleet-health signal
+  // the scheduler surface cannot see. It wins over the scheduler run-signal.
+  const escalation = resolveRecoveryEscalation(runDisplay);
 
   const observedDetails = [comparison.observed];
   if (observed?.status) {
@@ -230,20 +269,30 @@ function createObservedStatusItem(input) {
   }
 
   const status =
+    escalation?.status ??
     runSignal?.status ??
     /** @type {"HEALTHY" | "MISSING" | "DRIFTED"} */ (comparison.status);
 
   return {
     id: expected.automationId,
     status,
-    summary: composeAutomationSummary({
-      comparison,
-      runSignal,
-    }),
+    summary: escalation
+      ? escalation.summary
+      : composeAutomationSummary({
+          comparison,
+          runSignal,
+        }),
     expectedCadence: expected.expectedCadence,
     expectedCommand: expected.expectedCommand,
     observed: observedDetails.join(" "),
-    remediation: runSignal?.remediation ?? comparison.remediation,
+    runbook: runDisplay?.runbook,
+    lastOutcome: runDisplay?.lastOutcome,
+    outcomeHistory: runDisplay?.outcomeHistory,
+    olderRecordCount: runDisplay?.olderRecordCount,
+    remediation:
+      escalation?.remediation ??
+      runSignal?.remediation ??
+      comparison.remediation,
   };
 }
 
@@ -487,6 +536,13 @@ function normalizeClaudeRRule(value) {
   ) {
     return "FREQ=DAILY;INTERVAL=1";
   }
+  if (
+    cadence === "once a week" ||
+    cadence === "every week" ||
+    cadence === "weekly"
+  ) {
+    return "FREQ=WEEKLY;INTERVAL=1";
+  }
 
   const everyMinutes = cadence.match(/every (\d+) minutes?/);
   if (everyMinutes?.[1]) {
@@ -501,6 +557,11 @@ function normalizeClaudeRRule(value) {
   const everyDays = cadence.match(/every (\d+) days?/);
   if (everyDays?.[1]) {
     return `FREQ=DAILY;INTERVAL=${everyDays[1]}`;
+  }
+
+  const everyWeeks = cadence.match(/every (\d+) weeks?/);
+  if (everyWeeks?.[1]) {
+    return `FREQ=WEEKLY;INTERVAL=${everyWeeks[1]}`;
   }
 
   return undefined;
@@ -526,6 +587,9 @@ function humanizeClaudeCadence(value) {
   }
   if (normalized === "every day") {
     return "once a day";
+  }
+  if (normalized === "weekly" || normalized === "every week") {
+    return "once a week";
   }
   return normalized;
 }
@@ -556,6 +620,11 @@ function humanizeRRule(rrule) {
     return Number(daily[1]) === 1 ? "once a day" : `every ${daily[1]} days`;
   }
 
+  const weekly = rrule.match(/^FREQ=WEEKLY;INTERVAL=(\d+)$/);
+  if (weekly?.[1]) {
+    return Number(weekly[1]) === 1 ? "once a week" : `every ${weekly[1]} weeks`;
+  }
+
   return rrule;
 }
 
@@ -572,6 +641,11 @@ function cadenceLabelToIntervalMs(label) {
   const oncePerDay = new Set(["once a day", "daily"]);
   if (oncePerDay.has(label)) {
     return 24 * 60 * 60_000;
+  }
+
+  const oncePerWeek = new Set(["once a week", "weekly"]);
+  if (oncePerWeek.has(label)) {
+    return 7 * 24 * 60 * 60_000;
   }
 
   return null;

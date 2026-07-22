@@ -33,6 +33,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
   - Current template surface includes Phaser 4, Harper Fabric workflow/realtime guard additions, and the esbuild audit-ignore template exclusion.
 - [Coding-Agent Parity Architecture](architecture/coding-agent-parity.md)
 - [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md)
+- [Lisa Console UI](architecture/lisa-console-ui.md)
 - [Pattern B Per-Agent Plugin Fan-Out Specification](architecture/pattern-b-fan-out-spec.md)
 
 ## Requirements
@@ -49,11 +50,16 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
   - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, lint-ignored file handling, executable plugin hooks, bootstrapper build-context guards, and shared audit-ignore promotion guidance are captured here.
 - [Coding-Agent Parity Research Playbook](playbooks/coding-agent-parity-research.md)
+- [Dependency Ownership — Operator Guide](playbooks/dependency-ownership-operator-guide.md)
+  - How a non-technical operator decides whether a dependency addition, internalization, or version bump is acceptable: the `.lisa/DEPENDENCY_DECISIONS.md` records, the six trust classes, the advisory manifest-authoritative duplicate-pin policy, Lisa's own seeded records with gaps tracked in `#1918`, and the seven-part confidence-rebuild kit.
 
 ## Concepts
 
 - [Lisa Vocabulary](concepts/lisa-vocabulary.md)
+  - Distinguishes installation readiness, repository readiness, and the ship blocker condition that produces a narrowed `NOT_READY` claim.
 - [Coding-Agent Feature Taxonomy](concepts/coding-agent-feature-taxonomy.md)
+- [Bounded-Claims Evidence System](concepts/bounded-claims-evidence-system.md)
+  - What "verified" means: the claim-boundary taxonomy, the four evidence disciplines, the `verification.gate.enforceBoundaries` / `security.review.unprovenBucket` flip points, and the advisory→blocking ratchet.
 
 ## Entities
 

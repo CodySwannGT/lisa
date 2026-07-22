@@ -1,0 +1,63 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "execution-proof",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B5",
+          "severity": "high",
+          "blocking": true,
+          "invariant_violated": "Every compatibility or security surface the repo owns has a basis beyond hope for believing it still works.",
+          "evidence": "The public SDK the repo publishes has no contract tests and no consumer pinning; a breaking change ships undetected until a downstream consumer files a bug.",
+          "why_proof_missed": "Internal unit tests cover the implementation, but nothing exercises the published surface a consumer depends on.",
+          "root_correction": "Add contract tests against the published surface and a compatibility policy.",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "delivery-authority",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "proportionality",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    }
+  ]
+}

@@ -186,6 +186,7 @@ fi
 | `source` | no | — | Default PRD source for batch skills (`/lisa:intake`) and arg-less single-PRD skills. One of `"notion"`, `"confluence"`, `"linear"`, `"github"`, `"jira"`. Explicit URLs/keys passed to a skill always win over `source`; this is a default, not a lock. |
 | `projectRulesFile` | no | `.claude/rules/PROJECT_RULES.md` | Safe repo-relative Markdown path for hand-authored project rules. Independent of the learnings ledger — relocating the rules file never moves the ledger. |
 | `learnings.file` | no | `.lisa/PROJECT_LEARNINGS.md` | Safe repo-relative Markdown path for the machine-managed learnings ledger, overriding the `.lisa/` default. Rejected if it resolves inside any auto-loaded rules tree (`.claude/rules`, `.cursor/rules`, `.github/instructions`, `.agents/rules`) — the ledger must stay out of eager context. |
+| `health.schedule` | no | `off` | Health cadence contract: `off`, `daily`, or `weekly`. `lisa sync` populates the default with `_lisaSync.populated` provenance and rejects values outside this closed vocabulary. Runtime results live only at the gitignored `.lisa/health/latest.json`, never in either config file. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 | `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
 
@@ -222,23 +223,47 @@ Declares **where this repo's LLM Wiki lives** so the query/ingest skills can res
 
 ### Env → base branch
 
-Implementation flows resolve their PR base from the work item's
-`## Target Backend Environment` in the forward direction of `deploy.branches`.
+Implementation flows resolve their PR base from the work item's environment
+evidence in the forward direction of `deploy.branches`.
 For example, `{ "staging": "staging", "production": "main" }` means a staging
 work item starts from `origin/staging` and opens its PR against `staging`. This
 is the reverse/inverse of the env-keyed `done` inference that derives an
 environment from a merged PR's base branch.
 
-For bug work, the reported environment is authoritative. `pre-flight-autofill`
-must parse environment mentions from the description/body and reproduction
-steps, including bare names (`dev`, `staging`, `prod`, `production`) and
-environment-bearing URLs (`staging.<domain>`, `gql.staging.*`,
-`dev.<domain>`). A parsed reported environment wins over any generic autofill
-default. If no environment is named anywhere, the flow may fall back to the
-remote default branch and record that assumption on the work item.
+The field grammar records provenance durably: human-confirmed values are a bare
+configured key or `Confirmed: <env>`; automated evidence is
+`Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated
+fallback is `Assumption: <env> — remote default branch <branch>`. Human
+fallback without a unique reverse-map is
+`Assumption: remote default branch <branch>`. Human
+confirmation replaces an automated annotation with a bare key or
+`Confirmed: <env>`.
 
-If the reported environment is not present in `deploy.branches`, stop and report
-the missing mapping. Do not silently default to the integration branch.
+For legacy bare values created before this grammar, use managed draft markers
+and current ticket content only; provider edit history is neither required nor
+assumed. A managed marker proves automation and requires rewriting to
+`Inferred:` or `Assumption:`. Without one, provenance remains unknown, so the
+bare value is usable only if no conflicting evidence exists; a conflict stops
+for confirmation.
+
+Resolve it in this order: human-confirmed wins; validated `Inferred:` evidence
+is next; otherwise accept one unambiguous exact `deploy.branches` key from the
+human-authored title, body, and reproduction steps or a URL hostname. Exclude
+the entire `Target Backend Environment` section and all other machine-authored
+metadata/draft blocks from the evidence scan, so annotations never validate or
+conflict with themselves. Evidence supersedes only
+an `Assumption:`. Treat the reported bug environment as an example of this
+all-work-type evidence rule, not a special case. Normalize only built-in
+`prod` ↔ `production` when exactly one is configured; no other aliases exist.
+Never infer from arbitrary branch text, URL paths/query strings, or substrings.
+Multiple conflicting signals stop. With no signals, use the remote default
+branch and record an assumption: include the environment only for a unique
+reverse-map; otherwise use the branch-only form without inventing an environment
+or blocking solely on the reverse-map.
+
+Every selected environment must have a unique `deploy.branches` mapping and its
+mapped branch must exist on the remote. If either validation fails, stop and
+report it. Do not silently default to the integration branch.
 
 For non-integration environment bugs, definition of done is two-step:
 
@@ -509,10 +534,25 @@ If a project's terminal state is the same regardless of env, set `done` to a str
 
 `deploy.branches` is also read in the **forward** direction by the build flow (`lisa-implement`): the environment a work item targets determines the branch the work is built on and the branch the PR opens against.
 
-1. **Resolve the work item's target environment** — its `## Target Backend Environment` field.
-2. **If no environment is named**, use the **remote default branch** (`gh repo view --json defaultBranchRef`, or `origin/HEAD`) and record that default-branch assumption.
-3. **If a reported environment exists**, map env → base branch via `deploy.branches` (e.g. `staging → staging`, `production → main`). A reported env absent from `deploy.branches`, or a mapped branch missing from the remote, must stop and report the exact missing environment-to-branch mapping; never guess and never silently fall back.
-4. **Before any code is written**, `lisa-implement` fetches and **rebases the working branch onto `origin/<base>`, resolving conflicts**, so implementation builds on the latest target-environment code. **The PR then opens against that same base branch** (`target_branch=<base>` to `lisa-git-submit-pr`).
+The durable field forms are: bare configured key or `Confirmed: <env>` for a
+human-confirmed value; `Inferred: <env> — evidence: <title|body|reproduction|hostname>`
+for automation-backed evidence; and
+`Assumption: <env> — remote default branch <branch>` for a generic fallback.
+When the remote default has no unique environment reverse-map, the valid form is
+`Assumption: remote default branch <branch>`.
+Human confirmation replaces the automated annotation with a bare key or
+`Confirmed: <env>`.
+
+For a legacy bare value, use managed draft markers and current ticket content
+only; do not require provider edit history. A marker proves automation and
+requires re-annotation; otherwise unknown provenance plus conflicting evidence
+stops for confirmation.
+
+1. **Resolve provenance first.** Human-confirmed wins, then validated `Inferred:` evidence. Otherwise search the human-authored title, body, and reproduction steps or URL hostname for one unambiguous exact `deploy.branches` key. Exclude the complete `Target Backend Environment` section and other machine-authored metadata/draft blocks from the scan so annotations cannot become evidence. Evidence supersedes only an `Assumption:`.
+2. **Normalize narrowly.** Normalize built-in `prod` ↔ `production` only when exactly one of those keys is configured. No other aliases exist. Never infer from arbitrary branch text, URL paths/query strings, or substrings.
+3. **Handle absence and conflict explicitly.** Multiple conflicting signals stop. With no signals, use the remote default branch (`gh repo view --json defaultBranchRef`, or `origin/HEAD`) and record the env-bearing assumption only for a unique reverse-map; otherwise use the branch-only assumption without inventing an environment or blocking.
+4. **Validate the destination.** The selected exact configured key must map uniquely and the mapped remote branch must exist; otherwise stop without guessing or falling back.
+5. **Before any code is written**, `lisa-implement` fetches and **rebases the working branch onto `origin/<base>`, resolving conflicts**, then opens the PR against that same base (`target_branch=<base>`).
 
 This is the exact inverse of the env-keyed `done` "Branch inference" above: `done` derives the env *from* the PR base branch (reverse); the build flow derives the base branch *from* the env (forward). Both use the one `deploy.branches` map, so the branch a PR targets and the `done` status it earns always agree.
 
@@ -706,6 +746,7 @@ The shim → vendor mapping is fixed:
 | `lisa-tracker-validate` | `lisa-jira-validate-ticket` | `lisa-github-validate-issue` | `lisa-linear-validate-issue` |
 | `lisa-tracker-verify` | `lisa-jira-verify` | `lisa-github-verify` | `lisa-linear-verify` |
 | `lisa-tracker-read` | `lisa-jira-read-ticket` | `lisa-github-read-issue` | `lisa-linear-read-issue` |
+| `lisa-tracker-claim` | `lisa-jira-claim` | `lisa-github-claim` | `lisa-linear-claim` |
 | `lisa-tracker-evidence` | `lisa-jira-evidence` | `lisa-github-evidence` | `lisa-linear-evidence` |
 | `lisa-tracker-sync` | `lisa-jira-sync` | `lisa-github-sync` | `lisa-linear-sync` |
 | `lisa-tracker-add-journey` | `lisa-jira-add-journey` | `lisa-github-add-journey` | `lisa-linear-add-journey` |
@@ -718,7 +759,7 @@ The `tracker-source-artifacts` skill (formerly `tracker-source-artifacts`) is re
 ## Caller responsibilities
 
 - **PRD-source skills** (`notion-to-tracker`, `confluence-to-tracker`, `linear-to-tracker`, `github-to-tracker`) MUST invoke `tracker-write` and `tracker-validate` — never `jira-write-ticket` / `github-write-issue` / `linear-write-issue` directly. This is what makes a project's destination switchable via config.
-- **Lifecycle skills** (`implement`, `verify`, `monitor`) MUST invoke `tracker-read`, `tracker-evidence`, `tracker-sync` for ticket interaction — never the vendor-specific equivalents.
+- **Lifecycle skills** (`implement`, `verify`, `monitor`) MUST invoke `tracker-read`, `tracker-claim`, `tracker-evidence`, `tracker-sync` for ticket interaction — never the vendor-specific equivalents.
 - **Per-vendor PRD intake skills** (`notion-prd-intake`, `confluence-prd-intake`, `linear-prd-intake`, `github-prd-intake`) compose the PRD-source skills (which in turn invoke the shims) — they do not need to read `tracker` themselves.
 - **Vendor-specific destination skills** (`jira-*`, `github-*`, `linear-*`) read their own vendor config section directly. They do NOT consult `tracker` — they are the targets of dispatch, not the dispatchers.
 

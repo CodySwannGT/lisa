@@ -59,6 +59,10 @@ describe.each(PLUGIN_ROOTS)("claim-time confirmation contract (%s)", root => {
       expect(section).toContain("@codyswann/lisa/learnings");
       expect(section).toContain("resolveProjectLearningsFile");
       expect(section).toMatch(/Presence in context is NOT application/);
+      // #1802: the rationale is the contract's bounded projection, never the
+      // retired "loaded eagerly into every session" premise.
+      expect(section).not.toMatch(/loaded eagerly/);
+      expect(section).toMatch(/bounded projection/);
       expect(section).toMatch(/explicitly cited or observably followed/);
       expect(section).toMatch(/advances ONLY `last_confirmed`/);
       expect(section).toMatch(/idempotent within a claim/);

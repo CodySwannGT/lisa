@@ -17,6 +17,7 @@ import {
   computeDoctorVerdict,
   countDoctorStatuses,
   createPluginSyncDoctorGroup,
+  createRepositoryReadinessDoctorGroup,
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
 
@@ -142,6 +143,49 @@ describe("doctor report rendering (#750)", () => {
         },
       ])
     ).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("never scores an unassessed repository-readiness group as READY (#1897)", () => {
+    // A root with no `.lisa/readiness.json` leaves all eight dimensions
+    // unassessed. An unassessed dimension is silence, not evidence, so the
+    // agent-facing scorer must not turn it into a green unattended-fleet claim.
+    // The root is a scratch directory rather than `process.cwd()` so the
+    // assertion cannot flip on a developer machine where the Lisa CLI has
+    // already written a readiness report (#1902).
+    const unassessedRoot = mkdtempSync(
+      path.join(tmpdir(), "lisa-doctor-unassessed-")
+    );
+    const group = createRepositoryReadinessDoctorGroup(unassessedRoot);
+    rmSync(unassessedRoot, { force: true, recursive: true });
+
+    expect(group.checks).toHaveLength(8);
+    expect([...new Set(group.checks.map(check => check.status))]).toEqual([
+      "SKIP",
+    ]);
+    expect(computeDoctorVerdict([group])).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("still scores a fully assessed repository-readiness group as READY (#1897)", () => {
+    expect(
+      computeDoctorVerdict([
+        {
+          id: "repository-readiness",
+          title: "Repository readiness",
+          checks: [
+            {
+              id: "context-routing",
+              status: "PASS",
+              summary: "routing evidence was gathered and holds",
+            },
+            {
+              id: "delivery-authority",
+              status: "PASS",
+              summary: "what ships equals what was validated",
+            },
+          ],
+        },
+      ])
+    ).toBe("READY");
   });
 
   it("counts statuses across all groups", () => {

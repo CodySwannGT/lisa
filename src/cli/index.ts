@@ -6,6 +6,9 @@ import {
   runCrossPollinate,
 } from "./cross-pollinate-cmd.js";
 import { runDoctor } from "./doctor.js";
+import { runFileUpstream } from "./file-upstream-cmd.js";
+import { runHealthCli, type HealthCliOptions } from "./health-cmd.js";
+import { addGateCommands } from "./gate-commands.js";
 import {
   runKaneCli,
   runKanePilotCli,
@@ -13,14 +16,19 @@ import {
   type KaneRunOptions,
 } from "./kane-cmd.js";
 import { printUpdateWarning } from "./print-update-warning.js";
-import { runSetupProject } from "./setup-project.js";
+import {
+  DEFAULT_SETUP_PROJECT_DEPENDENCIES,
+  runSetupProject,
+} from "./setup-project.js";
 import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
+import { runStandardsProofCli } from "./standards-proof-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
 import { runUi, type UiCmdOptions } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
+import { addUpdateCheckHook } from "./update-check-hook.js";
 import { runVersion } from "./version-cmd.js";
 import { getPackageVersion } from "./version.js";
 
@@ -50,6 +58,12 @@ export interface ProgramDependencies {
   runUi: typeof runUi;
   /** Checks the project learnings file against its hard budget. */
   runCheckLearningsBudget: typeof runCheckLearningsBudget;
+  /** Projects a public upstream filing body from allowlisted fields. */
+  runFileUpstream: typeof runFileUpstream;
+  /** Runs and persists the shared Health v1 consumer. */
+  runHealthCli: typeof runHealthCli;
+  /** Runs every standards command and writes freshness-bound proof. */
+  runStandardsProofCli: typeof runStandardsProofCli;
   /** Runs one policy-approved Kane empirical browser objective. */
   runKaneCli: typeof runKaneCli;
   /** Probes Kane installation, authentication, and Test Manager readiness. */
@@ -73,6 +87,9 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runSync,
   runUi,
   runCheckLearningsBudget,
+  runFileUpstream,
+  runHealthCli,
+  runStandardsProofCli,
   runKaneCli,
   runKaneProbeCli,
   runKanePilotCli,
@@ -82,33 +99,6 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
 
 /** Shared help text for the optional project-path positional argument. */
 const PATH_ARG_DESCRIPTION = "Project path (default: current directory)";
-
-/**
- * Register the `check-learnings-budget` gate command. Extracted so the broader
- * maintenance-command registrar stays within the function-length budget.
- * @param program - Commander program to mutate
- * @param deps - Program dependencies
- */
-function addCheckLearningsBudgetCommand(
-  program: Command,
-  deps: ProgramDependencies
-): void {
-  program
-    .command("check-learnings-budget")
-    .description(
-      "Fail if the project learnings file exceeds its hard budget (missing file passes)"
-    )
-    .argument(
-      "[path]",
-      "Learnings file to check (default: resolved from .lisa.config.json)"
-    )
-    .action(async (targetPath: string | undefined) => {
-      const code = await deps.runCheckLearningsBudget(targetPath);
-      if (code !== 0) {
-        process.exitCode = code;
-      }
-    });
-}
 
 /**
  * Register the optional Kane provider command group.
@@ -167,6 +157,74 @@ function addKaneCommands(program: Command, deps: ProgramDependencies): void {
 }
 
 /**
+ * Register the `doctor` command, including the additive `--readiness` audit.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addDoctorCommand(program: Command, deps: ProgramDependencies): void {
+  program
+    .command("doctor")
+    .description("Diagnose Lisa, project, starter, and wiki health")
+    .argument("[path]", "Project path to inspect")
+    .option("--json", "Emit JSON")
+    .option("--offline", "Skip network checks")
+    .option(
+      "--readiness",
+      "Also audit repository readiness for unattended fleet operation and persist .lisa/readiness.json"
+    )
+    .action(async (targetPath: string | undefined, options) => {
+      await deps.runDoctor(targetPath, options);
+    });
+}
+
+/**
+ * Register the shared deterministic/agentic health consumer.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addHealthCommand(program: Command, deps: ProgramDependencies): void {
+  program
+    .command("health")
+    .description(
+      "Run Lisa's shared project health check and persist the result"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .option(
+      "--prepare-agentic",
+      "Emit bounded agentic evidence without persisting a health result"
+    )
+    .option(
+      "--agentic-evaluation",
+      "Read a digest-bound evaluator response from standard input"
+    )
+    .action(
+      async (targetPath: string | undefined, options: HealthCliOptions) => {
+        await deps.runHealthCli(targetPath, options);
+      }
+    );
+}
+
+/**
+ * Register the explicit, mutating standards proof command.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ */
+function addStandardsProofCommand(
+  program: Command,
+  deps: ProgramDependencies
+): void {
+  program
+    .command("standards-proof")
+    .description(
+      "Run all applicable Lisa standards checks and prove the current Git artifact"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .action(async (targetPath: string | undefined) => {
+      await deps.runStandardsProofCli(targetPath);
+    });
+}
+
+/**
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
@@ -196,15 +254,9 @@ function addMaintenanceCommands(
       }
     });
 
-  program
-    .command("doctor")
-    .description("Diagnose Lisa, project, starter, and wiki health")
-    .argument("[path]", "Project path to inspect")
-    .option("--json", "Emit JSON")
-    .option("--offline", "Skip network checks")
-    .action(async (targetPath: string | undefined, options) => {
-      await deps.runDoctor(targetPath, options);
-    });
+  addDoctorCommand(program, deps);
+  addHealthCommand(program, deps);
+  addStandardsProofCommand(program, deps);
 
   program
     .command("sync")
@@ -233,7 +285,7 @@ function addMaintenanceCommands(
       await deps.runUi(targetPath, options);
     });
 
-  addCheckLearningsBudgetCommand(program, deps);
+  addGateCommands(program, deps);
   addKaneCommands(program, deps);
 
   program
@@ -283,28 +335,7 @@ export function createProgram(
     .version(getPackageVersion())
     .option("--no-update-check", "Skip the npm latest-version check");
 
-  // Run the npm update-check once per invocation, before the matched action.
-  // It is non-fatal: a failed check never blocks the action from running.
-  program.hook("preAction", async (_thisCommand, actionCommand) => {
-    if (
-      actionCommand.parent?.name() === "kane" ||
-      [
-        "doctor",
-        "sync",
-        "ui",
-        "update",
-        "version",
-        "check-learnings-budget",
-      ].includes(actionCommand.name())
-    ) {
-      return;
-    }
-    if (program.opts().updateCheck === false) {
-      return;
-    }
-    const result = await deps.runUpdateCheck();
-    deps.printUpdateWarning(result);
-  });
+  addUpdateCheckHook(program, deps);
 
   // `apply` is both the explicit subcommand and the default command, so the
   // historical positional form `lisa <destination>` routes here unchanged and
@@ -334,7 +365,10 @@ export function createProgram(
       destination: string | undefined,
       options: CLIOptions & { type?: string }
     ) => {
-      await deps.runSetupProject(destination, options);
+      await deps.runSetupProject(destination, options, {
+        ...DEFAULT_SETUP_PROJECT_DEPENDENCIES,
+        runApply: deps.runApply,
+      });
     }
   );
 

@@ -17,6 +17,7 @@ const DELETIONS_JSON = "deletions.json";
 const COPY_OVERWRITE = "copy-overwrite";
 const COPY_CONTENTS = "copy-contents";
 const CREATE_ONLY = "create-only";
+const DEPENDENCY_DECISIONS_FILE = "DEPENDENCY_DECISIONS.md";
 const LISA_TEST_PREFIX = "lisa-test-";
 
 /**
@@ -285,6 +286,18 @@ async function createMockAllTemplates(dir: string): Promise<void> {
   await fs.outputFile(
     path.join(allCreateOnly, ".lisa", "PROJECT_LEARNINGS.md"),
     renderLearningsFile([])
+  );
+  // Copy the real shipped scaffold rather than a fabricated stand-in, so the
+  // integration assertions prove what host projects actually receive.
+  await fs.copy(
+    path.join(
+      process.cwd(),
+      "all",
+      CREATE_ONLY,
+      ".lisa",
+      DEPENDENCY_DECISIONS_FILE
+    ),
+    path.join(allCreateOnly, ".lisa", DEPENDENCY_DECISIONS_FILE)
   );
   await fs.writeJson(path.join(allMerge, PACKAGE_JSON), {
     scripts: { test: "echo test" },

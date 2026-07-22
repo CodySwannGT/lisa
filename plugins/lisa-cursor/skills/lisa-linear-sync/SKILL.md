@@ -92,6 +92,15 @@ Verify exactly one `status:*` label remains after the update — having two simu
 
 Without `--update-label`, this skill posts the comment only and does NOT touch labels.
 
+## Phase 4b — Reconcile Native Auto-Close (Linear-specific)
+
+Linear's GitHub integration completes a linked Issue on merge to **any branch** — unlike GitHub's default-branch-scoped `Closes` auto-close — so a magic word (`Closes`/`Fixes`/`Resolves ENG-123`) or branch-name linkage can natively move the Issue to a Done/Completed workflow `state` at a **non-terminal** env merge, front-running the env-keyed `status:*` label ladder. `git-submit-pr` prevents the magic-word case; this phase is the required post-merge repair for the residual (branch-linkage) case we cannot suppress server-side. Run it on a `pr-merged` sync whose resolved env is **intermediate** (below the production terminal `done`):
+
+1. Resolve the merged PR's base branch to its env via `.lisa.config.json` `deploy.branches` (`config-resolution`). If it maps to the production/terminal `done`, this phase is a **no-op** — native completion is correct there.
+2. **Uniform / single-environment no-op.** When the project's env-keyed `done` map is uniform — every environment resolves to the same `status:done`, as in this repo (`production: main` only) and TunnlAI/frontend — dev-merge == terminal, so native completion is correct. Do nothing. Only a **non-uniform** env→`done` map (distinct `status:on-dev`/`status:on-stg`/`status:done` rungs) can desync.
+3. Otherwise (non-uniform map, resolved env intermediate): re-read the Issue's native workflow `state`. If Linear natively moved it into a Done/Completed category while the derived `status:*` label is a lower env, **re-open** the native `state` back to the active/in-progress category (via `lisa-linear-access operation: save-issue`) so it mirrors the true env stage, and post a short `[lisa-linear-sync]` reconciliation comment. This applies the `leaf-only-lifecycle` "Terminal native closure" rule — native closure fires **only** at the production terminal `done` — as a *repair* of Linear front-running it. Cite the rule by slug; do not restate it.
+4. **Safe default.** If the true terminal cannot be resolved (ambiguous env or unresolvable `done` map), do not change the native `state` — post a `[lisa-linear-sync]` reconciliation-suggestion comment and leave it untouched, mirroring the Phase 5 safe default.
+
 ## Phase 5 — Parent Status Rollup (`--rollup`)
 
 When the caller passes `--rollup`, this skill **derives a parent/container's `status:*` label from the roll-up of its children** instead of acting on a leaf. A **Project** (the Epic equivalent) rolls up from its Issues; an **Issue** rolls up from its sub-Issues. This implements the Linear child-issue-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.

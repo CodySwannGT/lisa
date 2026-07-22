@@ -144,6 +144,28 @@ function rulesetRuleTypes(rules: unknown): readonly string[] {
 }
 
 /**
+ * Whether a required-status-check rule contains at least one context.
+ * @param rules - Raw ruleset rules
+ * @returns Whether at least one required check context is configured
+ */
+function hasRequiredStatusChecks(rules: unknown): boolean {
+  if (!Array.isArray(rules)) return false;
+  return rules.some(rule => {
+    if (
+      rule === null ||
+      typeof rule !== "object" ||
+      Reflect.get(rule, "type") !== "required_status_checks"
+    ) {
+      return false;
+    }
+    const parameters = Reflect.get(rule, "parameters");
+    if (parameters === null || typeof parameters !== "object") return false;
+    const checks = Reflect.get(parameters, "required_status_checks");
+    return Array.isArray(checks) && checks.length > 0;
+  });
+}
+
+/**
  * Map a detailed ruleset payload into a panel row.
  * @param raw - One ruleset object from gh api
  * @returns Panel row
@@ -153,11 +175,15 @@ export function mapRulesetRow(raw: unknown): GithubRulesetRow {
     throw new TypeError("Ruleset entry was not an object");
   }
   const ruleTypes = rulesetRuleTypes(Reflect.get(raw, "rules"));
+  const includes = rulesetIncludes(Reflect.get(raw, "conditions"));
   return {
     name: requireString(raw, "name"),
-    appliesTo: formatAppliesTo(rulesetIncludes(Reflect.get(raw, "conditions"))),
+    appliesTo: formatAppliesTo(includes),
     enforces: ruleTypes.length > 0 ? ruleTypes.join(", ") : "—",
     active: Reflect.get(raw, "enforcement") === "active",
+    targetsDefaultBranch: includes.includes("~DEFAULT_BRANCH"),
+    requiresPullRequest: ruleTypes.includes("pull_request"),
+    requiresStatusChecks: hasRequiredStatusChecks(Reflect.get(raw, "rules")),
   };
 }
 

@@ -38,7 +38,11 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   one missed by dependency-only re-checks: nothing else is blocking it, so re-running the same gate
   against its current content is the only way to know it is now passable.
 - **Terminal-open drift** — an item already carrying its true terminal lifecycle role (for
-  example GitHub `status:done`) but still open/active in the provider's native state.
+  example GitHub `status:done`) but still open/active in the provider's native state. The inverse
+  also drifts on Linear: a leaf whose native `state` was auto-completed by a magic-word / branch-linkage
+  merge into a **non-terminal** env (Linear completes on merge to any branch, unlike GitHub's
+  default-branch-scoped close) while its derived `status:*` label is still intermediate — reconcile
+  it back to active via `lisa-linear-sync` Phase 4b per `leaf-only-lifecycle`.
 - **Rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or equivalent)
   whose own lifecycle state does not match the roll-up of its children's states per
   `leaf-only-lifecycle`. This covers the *completed* case (all children terminal → close the parent
@@ -456,7 +460,9 @@ re-issued against an unchanged conflicting head.
    follow-up, `build_ready: true` so it auto-builds. The ticket MUST name: the blocked item + its
    PR/deploy URL, the exact blocker (conflict / which checks failed with their logs link / which
    change requests / which deploy run), three-audience description, and Gherkin acceptance criteria
-   for "PR is mergeable / deploy is green."
+   for "PR is mergeable / deploy is green." Every created blocker fix ticket MUST end with the
+   `rejection-detection` **operator footer** as a visible prose line:
+   `To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.`
 2. **Transition the stalled item `claimed → blocked`** and add an **`is blocked by`** link to the
    new fix ticket (vendor-native: JIRA issue link `is blocked by`; GitHub/Linear `Blocked by:` line
    + label). Post a `[lisa-repair-intake]` note naming what it is blocked by and why. This block is
@@ -470,11 +476,19 @@ The item now sits in `blocked`; once the fix ticket reaches a terminal state, th
 `blocked` → unblock if cleared** path (next section) detects the cleared `is blocked by`
 dependency and resumes the original in place — a self-healing loop.
 
-**Idempotency.** Before filing, check for an **open** fix ticket already carrying the marker
+**Idempotency.** Before filing, check for a fix ticket already carrying the marker
 `[lisa-repair-intake] blocker:<item-ref>/<blocker-key>` (blocker-key is a stable slug of the
-blocker, e.g. `pr-1234/merge-conflict` or `pr-1234/checks-failing`). If one exists, reference it
-and ensure the `is blocked by` link is present rather than creating a duplicate. Honor the backoff
-window and state fingerprint (Loop prevention) so re-runs over the same unchanged blocker are no-ops.
+blocker, e.g. `pr-1234/merge-conflict` or `pr-1234/checks-failing`). Per the `rejection-detection`
+rule's **Proposal rejection memory** section, that marker search MUST cover **open AND closed**
+tickets (body-enumeration fallback on search-index lag): an **open** match → reference it and ensure
+the `is blocked by` link is present rather than creating a duplicate; a match **closed as _not
+planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is
+a **human decline** of that fix ticket — do **not** re-file it unless evidence **postdates the
+decline**, and the re-filed ticket MUST carry BOTH the machine token (`declined <date>; recurred
+<date> in <ref>`) and the human acknowledgment sentence (`You declined this on <date>. It has
+recurred (<date>, <ref>), so we're raising it once more for your review.`); a match closed as
+_completed_ is a regression path, not a decline. Honor the backoff window and state fingerprint
+(Loop prevention) so re-runs over the same unchanged blocker are no-ops.
 
 ### Build `blocked` → re-evaluate, unblock if cleared
 
@@ -974,6 +988,48 @@ Report outcomes in these buckets:
 
 State every item repaired this cycle and the action taken. If the output would be long, group by
 bucket and show compact refs plus counts.
+
+## Run outcome
+
+As the registered `intake-repair` automation loop, each cycle conforms to the
+`automation-runbook-contract` rule: it ends in **exactly one** of the six run outcomes and records it,
+so a cycle that found nothing stuck and a cycle where the repair machinery itself broke never look
+alike. A run outcome describes this *cycle*; the Summary-report buckets above describe *what happened
+to each item* — the two never merge in the one-line summary.
+
+| This cycle's exit path | Run outcome |
+|---|---|
+| Nothing actionable — the idle case (walk step 5): examined N, all active or in backoff — including a fix ticket suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**), which the summary names in its suppression count | `nothing-needed` |
+| Repairs applied **and confirmed** this cycle — `resumed` / `resynced` / `recovered` / `unblocked` / `closed_out` / `rolled_up` / `relinked` / `normalized_ready` | `change-proved` |
+| Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
+| A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed) | `approval-requested` |
+| The loop itself could not run — the queue is unreadable, tracker credentials are revoked, or an open-and-closed rejection-memory / blocker-marker search is unreadable and therefore must not fall through to `nothing-needed` | `recovery-required` |
+| The runbook's **Retirement condition** tripped | `policy-obsolete` — **never reached by design for this loop** (see Retirement evaluation below) |
+
+Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
+(the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
+specific, actionable, e.g. `Examined 14 items; all active or in backoff — nothing to repair.` for
+`nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id intake-repair --outcome change-proved \
+  --summary "Recovered 3 stalled builds and closed out 2 rollups; all confirmed." \
+  --runbook .lisa/automations/intake-repair.runbook.md [--ref <item-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
+`plugins/lisa/scripts/automation-run-record.mjs` or the source
+`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
+the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+
+**Retirement evaluation (every run).** The `intake-repair` loop is **structural to the
+factory — it does not retire.** Its runbook says so plainly instead of leaving the Retirement
+condition blank, so the `automation-runbook-contract` rule's two-part retirement test never fires
+here: this loop never records `policy-obsolete` and never files a teardown proposal. An operator who
+wants repair to stop runs `/lisa:tear-down-automations` themselves — the loop never removes its own
+registration.
 
 ## Schedule examples
 

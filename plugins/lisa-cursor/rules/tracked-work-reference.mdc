@@ -1,0 +1,31 @@
+---
+description: "Tracked Work"
+alwaysApply: false
+---
+
+# Tracked Work
+
+The project tracker is the durable operator-facing record for project work. Every session that will produce a durable project outcome must establish exactly one live configured-tracker leaf before the first durable mutation. Durable outcomes include code, tests, configuration, documentation, committed research or plans, investigation findings, commits, and pull requests. Read-only questions, discussion, and repository orientation are exempt until they turn into durable work.
+
+## Resolve, claim, bind
+
+Use `lisa-track` as the single entry point:
+
+1. An explicit ticket is live-read through `lisa-tracker-read` and rejected if it is missing, inaccessible, terminal, a container, outside the configured project, or outside the current repository.
+2. A plain-text request or specification file is searched conservatively within the configured project. Reuse only one uniquely high-confidence matching live leaf. If no unique match exists, create exactly one complete single-repository leaf through `lisa-tracker-write`; never create a thin placeholder or a container.
+3. Idempotently claim the resolved leaf through `lisa-tracker-claim`, which reuses the vendor build-intake claim semantics and post-read verifies the claimed-or-later state.
+4. Before any durable repository work, persist the canonical reference with `node scripts/lisa-work-item.mjs bind <ref>` and verify the worktree-local binding.
+
+The sequence is strict: **live validate/create -> claim -> bind -> durable work**. A failed tracker read/write, claim, or binding blocks the work. Tracker availability must be proven; tool presence or stale session text is not access.
+
+## One canonical identity
+
+The binding is authoritative for the worktree. Branches, commits, pull requests, usage accounting, evidence, and tracker-sync operations all carry the same canonical ref. Branch names are helpful discovery metadata but are not authoritative. After branch creation, `node scripts/lisa-work-item.mjs attach-branch` may attach the local branch to the binding.
+
+Linkage is unconditional for an Implement flow because its input gate always establishes a work item. PR creation must pass the ref to `lisa-git-submit-pr`; `lisa-tracker-sync` must prove the reverse native link or its managed fallback.
+
+## Binding lifetime
+
+Binding state is local machine state and must remain untracked. Keep it through interruptions and blocked outcomes. Run `node scripts/lisa-work-item.mjs clear` only after true terminal completion: required merge/deploy/verification is complete, evidence and two-way PR linkage are recorded, and the tracker item is in its terminal state. Verify that no current binding remains before ending the completed flow.
+
+Git hooks and CI enforce this contract but never create work items. Their recovery message directs the operator to mention the related ticket or run `/lisa:track <description>` to create and bind one.

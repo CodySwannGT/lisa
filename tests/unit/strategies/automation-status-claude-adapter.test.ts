@@ -39,14 +39,14 @@ const HOURLY_SCHEDULE = "hourly";
 const TEN_MINUTE_SCHEDULE = "every 10 minutes";
 
 describe("automation-status Claude adapter (#802)", () => {
-  it("maps structured Claude schedule metadata into shared health states", () => {
+  it("maps structured Claude schedule metadata into shared health states", async () => {
     const expectedFleet = resolveExpectedAutomationFleet({
       config: REPO_CONFIG,
       detectedTypes: DETECTED_TYPES,
       autoStartPrds: true,
     });
 
-    const report = inspectClaudeAutomationFleet({
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet,
       scheduleListing: {
         routines: [
@@ -125,13 +125,13 @@ describe("automation-status Claude adapter (#802)", () => {
     );
   });
 
-  it("parses human-readable /schedule listings and marks unavailable run fields explicitly", () => {
+  it("parses human-readable /schedule listings and marks unavailable run fields explicitly", async () => {
     const expectedFleet = resolveExpectedAutomationFleet({
       config: REPO_CONFIG,
       detectedTypes: DETECTED_TYPES,
     });
 
-    const report = inspectClaudeAutomationFleet({
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet,
       scheduleListing: `
 Name: ${REPAIR_AUTOMATION_ID}
@@ -161,14 +161,14 @@ Last result: No recent failures reported.
     );
   });
 
-  it("normalizes quoted /schedule cadences when text listings omit cadence fields", () => {
+  it("normalizes quoted /schedule cadences when text listings omit cadence fields", async () => {
     const expectedFleet = resolveExpectedAutomationFleet({
       config: REPO_CONFIG,
       detectedTypes: DETECTED_TYPES,
       autoStartPrds: true,
     });
 
-    const report = inspectClaudeAutomationFleet({
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet,
       scheduleListing: `
 ID: lisa-auto-codyswanngt-lisa-exploratory-prds
@@ -198,13 +198,13 @@ Status: ACTIVE
     );
   });
 
-  it("does not classify negated error or exception summaries as failures (#885)", () => {
+  it("does not classify negated error or exception summaries as failures (#885)", async () => {
     const expectedFleet = resolveExpectedAutomationFleet({
       config: REPO_CONFIG,
       detectedTypes: DETECTED_TYPES,
     });
 
-    const report = inspectClaudeAutomationFleet({
+    const report = await inspectClaudeAutomationFleet({
       expectedFleet,
       scheduleListing: {
         routines: [
@@ -264,7 +264,7 @@ Status: ACTIVE
     ).toBe("/lisa:project-ideation prd_ready=true");
   });
 
-  it("inspects structured schedule metadata read-only", () => {
+  it("inspects structured schedule metadata read-only", async () => {
     const scheduleListing = Object.freeze({
       routines: Object.freeze([
         Object.freeze({
@@ -276,7 +276,7 @@ Status: ACTIVE
       ]),
     });
 
-    expect(() =>
+    await expect(
       inspectClaudeAutomationFleet({
         expectedFleet: resolveExpectedAutomationFleet({
           config: REPO_CONFIG,
@@ -285,7 +285,7 @@ Status: ACTIVE
         scheduleListing,
         now: FIXTURE_NOW,
       })
-    ).not.toThrow();
+    ).resolves.toBeDefined();
 
     expect(scheduleListing.routines[0].status).toBe("ACTIVE");
     expect(scheduleListing.routines).toHaveLength(1);
