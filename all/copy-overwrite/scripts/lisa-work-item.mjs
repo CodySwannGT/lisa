@@ -952,7 +952,12 @@ function parsePushLines(input, remote) {
             `${remoteOid}..${localOid}`,
             ...(defaultRef ? ["--not", defaultRef] : []),
           ]
-        : ["rev-list", localOid, "--not", `--remotes=${remote}`];
+        : // New-branch lane: `--remotes=<remote>` is safe HERE because the branch
+          // being pushed has no remote-tracking ref yet — the exclusion set can
+          // only contain refs that already passed validation on earlier pushes.
+          // The existing-branch lane above must NOT use it (its tracking ref is
+          // pusher-controlled); it excludes only the remote default branch.
+          ["rev-list", localOid, "--not", `--remotes=${remote}`];
     commits.push(...git(args).split("\n").filter(Boolean));
   }
   if (commits.length === 0 && input.trim() === "") {
