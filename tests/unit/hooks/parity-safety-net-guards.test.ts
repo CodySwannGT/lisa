@@ -95,7 +95,7 @@ describe("parity-safety-net.sh — guard parity matrix (#1960)", () => {
     );
   });
 
-  describe("project-local custom rules file (guard 5)", () => {
+  describe("project-local custom rules file (guard 14)", () => {
     let rulesPath: string;
 
     beforeAll(() => {

@@ -154,6 +154,7 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("RH-A3", "rm -rf ./node_modules", ALLOW, RM_HARDENING),
   fx("RH-A4", "rm -rf /tmp/scratch-dir", ALLOW, RM_HARDENING),
   fx("RH-A5", 'rm -rf "$TMPDIR/cache"', ALLOW, RM_HARDENING),
+  fx("RH-B6", "rm -rf ~/other-project", BLOCK, RM_HARDENING),
   fx("RH-A6", `rm -rf ${PROJECT_DIR_TOKEN}/dist`, ALLOW, RM_HARDENING),
   fx("RH-A7", "rm -rf .cache", ALLOW, RM_HARDENING),
   // I. quote-aware boundaries — verified bypasses (absorb 10 / F1)
@@ -176,6 +177,68 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("QB-A1", 'bash -c "rm -rf build"', ALLOW, QUOTE_BOUNDARY),
   fx("QB-A2", 'python -c "print(1)"', ALLOW, QUOTE_BOUNDARY),
   fx("QB-A3", "python spider.py -c config.yaml", ALLOW, QUOTE_BOUNDARY),
+  // I2. git global-option bypasses (security review F1): global options like
+  // -C/-c/--git-dir legally sit between `git` and the subcommand, so every
+  // subcommand guard must consume them instead of anchoring `git <subcmd>`.
+  fx("GO-B1", "git -C /some/path checkout -- file.ts", BLOCK, CHECKOUT_DISCARD),
+  fx(
+    "GO-B2",
+    "git -c core.pager=cat checkout -- file.ts",
+    BLOCK,
+    CHECKOUT_DISCARD
+  ),
+  fx(
+    "GO-B3",
+    "git --git-dir=/x/.git --work-tree=/x checkout -- file.ts",
+    BLOCK,
+    CHECKOUT_DISCARD
+  ),
+  fx(
+    "GO-B4",
+    "git --git-dir /x/.git checkout -- file.ts",
+    BLOCK,
+    CHECKOUT_DISCARD
+  ),
+  fx("GO-B5", "git --no-pager checkout -- file.ts", BLOCK, CHECKOUT_DISCARD),
+  fx("GO-B6", "git -C /x switch -f main", BLOCK, SWITCH_DISCARD),
+  fx("GO-B7", "git -C /x restore file.ts", BLOCK, RESTORE_WORKTREE),
+  fx("GO-B8", "git -C /x stash clear", BLOCK, STASH_DESTROY),
+  fx("GO-B9", "git -C /repo clean -fd", BLOCK, CLEAN_FORCE),
+  fx("GO-B10", "git -C /x branch -D feature", BLOCK, BRANCH_FORCE_DELETE),
+  fx("GO-B11", "git -C /repo push --force origin main", BLOCK, FORCE_PUSH),
+  fx("GO-B12", "git -C /x tag -d v1.0.0", BLOCK, TAG_DELETE),
+  fx("GO-B13", "git -C /x reflog delete 'HEAD@{1}'", BLOCK, REFLOG_DELETE),
+  fx(
+    "GO-B14",
+    "git -C /x worktree remove --force wt",
+    BLOCK,
+    WORKTREE_FORCE_REMOVE
+  ),
+  fx("GO-A1", "git -C /p checkout -b feature", ALLOW, CHECKOUT_DISCARD),
+  fx("GO-A2", "git -c core.editor=vim commit", ALLOW, CHECKOUT_DISCARD),
+  fx("GO-A3", "git -C /p status", ALLOW, CHECKOUT_DISCARD),
+  fx(
+    "GO-A4",
+    "git -C /p push --force-with-lease origin main",
+    ALLOW,
+    FORCE_PUSH
+  ),
+  fx("GO-A5", "git -C /p push --force origin feature-x", ALLOW, FORCE_PUSH),
+  fx("GO-A6", "git -C /x restore --staged file.ts", ALLOW, RESTORE_WORKTREE),
+  // I3. path-prefixed rm bypasses (security review F2): `rm` reached via an
+  // absolute or relative path must still trip every rm guard — but ONLY when
+  // the basename is exactly `rm` (charm/confirm/rmdir/informant stay allowed).
+  fx("PR-B1", `/bin/${RM_RF_ROOT}`, BLOCK, RM_ROOT),
+  fx("PR-B2", "/usr/bin/rm -rf ~", BLOCK, RM_ROOT),
+  fx("PR-B3", `./${RM_RF_ROOT}`, BLOCK, RM_ROOT),
+  fx("PR-B4", `bash -c '/bin/${RM_RF_ROOT}'`, BLOCK, RM_ROOT),
+  fx("PR-B5", "/bin/rm -rf /etc", BLOCK, RM_HARDENING),
+  fx("PR-B6", "/bin/rm -rf ../other", BLOCK, RM_HARDENING),
+  fx("PR-A1", "/bin/rm file.txt", ALLOW, RM_ROOT),
+  fx("PR-A2", "/usr/bin/charm x", ALLOW, RM_ROOT),
+  fx("PR-A3", "./scripts/confirm -rf /", ALLOW, RM_ROOT),
+  fx("PR-A4", "rmdir /tmp/x", ALLOW, RM_ROOT),
+  fx("PR-A5", "informant -rf /", ALLOW, RM_ROOT),
   // J. find / xargs deletion (absorb 11)
   fx("FX-B1", "find . -delete", BLOCK, FIND_DELETE),
   fx("FX-B2", "find . -name '*.tmp' -delete", BLOCK, FIND_DELETE),
@@ -213,6 +276,9 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("RG-RM-A2", "rm -f file.txt", ALLOW, RM_ROOT),
   fx("RG-RM-A3", "rm file.txt", ALLOW, RM_ROOT),
   fx("RG-RM-A4", "rm -rf build && echo done", ALLOW, RM_ROOT),
+  // Guard 1 scans per statement, so a harmless `/` in a LATER statement is
+  // never attributed to an earlier rm (quality review S1).
+  fx("RG-RM-A5", "rm -rf build && cd /", ALLOW, RM_ROOT),
   // M2. force-push regressions (guard 2) — deep coverage stays in the
   // pre-existing parity-safety-net.test.ts suite
   fx("RG-FP-B1", "git push --force origin main", BLOCK, FORCE_PUSH),
@@ -225,7 +291,7 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
     FORCE_PUSH
   ),
   fx("RG-FP-A3", "git push origin main", ALLOW, FORCE_PUSH),
-  // M4. destructive SQL regressions (guard 4)
+  // M4. destructive SQL regressions (guard 13)
   fx("RG-SQL-B1", "psql -c 'DROP TABLE users;'", BLOCK, SQL),
   fx("RG-SQL-B2", "mysql -e 'TRUNCATE sessions'", BLOCK, SQL),
   fx("RG-SQL-B3", "echo 'DROP DATABASE prod' | psql", BLOCK, SQL),
@@ -246,4 +312,7 @@ export const GIT_STATE_FIXTURES: readonly GitStateFixture[] = [
   gfx("GS-A3", "dirty", "git reset --soft HEAD~1", ALLOW),
   gfx("GS-A4", "dirty", "git reset --keep", ALLOW),
   gfx("GS-A5", "dirty", "git reset --mixed HEAD", ALLOW),
+  // Global options must not dodge the reset guard (security review F1).
+  gfx("GS-B4", "dirty", "git -C . reset --hard", BLOCK),
+  gfx("GS-A6", "clean", "git -C . reset --hard", ALLOW),
 ];
