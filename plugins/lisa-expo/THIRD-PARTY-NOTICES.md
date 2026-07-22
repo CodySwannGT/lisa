@@ -35,15 +35,25 @@ NOT registered in `.mcp.json`. Coding agents spawn stdio servers with a
 non-login PATH, so an always-on entry fails visibly (Claude Code shows a
 "Failed to reconnect … -32000" error every session) on any machine missing the
 Maestro CLI or a resolvable Java runtime — which is most of the fleet. Opt in
-per machine instead, e.g.:
+per machine instead.
+
+The supported path is the **`/lisa-expo:maestro-mcp-setup`** skill (Codex:
+`$maestro-mcp-setup`), which detects the Maestro CLI and a usable Java runtime,
+installs or guides whatever is missing, and registers `maestro mcp` at
+**local/per-machine scope** with an absolute command path and injected
+`JAVA_HOME`/`PATH` — so the spawn works even under a non-login PATH.
+
+To register by hand instead, keep it at local scope and inject the toolchain,
+e.g.:
 
 ```
-claude mcp add --scope local maestro -- maestro mcp
+claude mcp add --scope local maestro \
+  --env "JAVA_HOME=$JAVA_HOME" --env "PATH=$(dirname "$(command -v java)"):$HOME/.maestro/bin:$PATH" \
+  -- "$HOME/.maestro/bin/maestro" mcp
 ```
 
-ensuring `maestro` and a Java runtime are on the non-interactive PATH (mise
-users: `claude mcp add --scope local maestro -- mise exec java -- maestro mcp`
-from a directory where Java is active).
+Never register at `--scope project` / a committed `.mcp.json` — that is the
+always-on form that reds out every other machine in the fleet.
 
 ### MIT License
 
