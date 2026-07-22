@@ -1,7 +1,26 @@
-# Roster Decision — plan: dss-1-config-schema (CodySwannGT/lisa#1967)
+# Roster Decision — plan: dss-2-transition-engine (CodySwannGT/lisa#1968)
 
 Runtime: Claude Code, Agent tool subagent types enumerated 2026-07-22.
-(Replaces the stale 2026-07-18 Cursor-run roster for #1546, which completed.)
+(Supersedes the dss-1 roster below-noted amendments; dss-1 shipped via PR #1977, released 2.291.0.)
+
+## DSS-2 amendments to the include/exclude table
+INCLUDE - lisa:security-specialist - DSS-2 adds vendor API adapters handling credentials (GITHUB_TOKEN, LINEAR_API_KEY, Jira creds); secret-handling and injection review required (was EXCLUDE for dss-1's local resolver).
+All other INCLUDE/EXCLUDE lines and reasons carry over unchanged from dss-1.
+
+## DSS-2 flow determination
+Flow: Implement. Work type: Build (type:Story). Readiness gate PASS (AC + journey + blocker #1967 verified closed; claimed + bound to claude/1968-transition-engine).
+Base branch: same resolution as dss-1 (no Target Backend Environment section; remote default main reverse-maps uniquely to production) — `Assumption: production — remote default branch main`; target_branch=main.
+
+## DSS-2 completion condition (Verify contract)
+End state: the engine CLI, run against a real commit range and a sandbox GitHub repo, performs the six Validation Journey behaviors.
+Proof commands: (1) `--dry-run` over a fixture range with 2 Work-Item trailers + 1 merged-PR body -> exactly 3 deduped refs printed; (2) dev event vs sandbox issue at done[staging] -> zero API writes (timeline check); (3) staging event vs leaf at done[dev] run TWICE -> one label flip + exactly one comment; (4) production event -> done[production] + native close, referenced Epic untouched + rollup note; (5) unconfigured env -> no transitions + explanation naming missing config key.
+Constraints: leaf-only (containers never transitioned); no backward movement; vocabulary exclusively config-sourced; Linear/Jira adapters contract-tested but live-verified in DSS-6/DSS-7 (their journeys own that — recorded as not_established here, honest).
+
+## DSS-2 tool preflight (tool-access-gate)
+- gh CLI authenticated: PASS (continuous use this session).
+- Sandbox GitHub repo for journey steps 2-6: probe `gh api user --jq .login` PASS; repo creation rights assumed from gh auth scope — verifier creates/reuses a dedicated sandbox repo (NOT the production lisa tracker) and records it here. If repo creation fails at that point, continuous-gate: probe, record, break out per tool-access-gate.
+- RECORDED (T4, 2026-07-22): sandbox repo = `CodySwannGT/lisa-dss-sandbox` (private, created via `gh repo create`). Seeded: labels status:on-dev/on-stg/done/in-progress/ready + type:Epic/Story; issues #1 (leaf A), #2 (leaf B), #3 (Epic E, native sub-issue #4 open), #4 (open child); branches dev/staging + feature/dss; PR #5 (body `Closes #2` / `Refs #3`) merged into dev (merge bee95643e). Journey range: fc6a8738e..bee95643e. Left as-is (issues #1/#2 closed BY THE ENGINE at the production event — that closure is journey-5 evidence; #3/#4 open) for auditability and reuse by DSS-4/5/9.
+- Linear GraphQL / Jira REST: NOT required for this story's journey (adapters are contract-tested with fixtures; live vendor verification is DSS-6/DSS-7 scope per the PRD). Recorded so the gap is explicit, not silent.
 
 INCLUDE - Explore - mandatory read-only research agent; gathers relevant_documentation for every task before implementation.
 INCLUDE - lisa:architecture-specialist - designs the resolver module placement/API against existing config-resolution machinery (src/sync/registry.ts, doctor readers).
@@ -16,7 +35,7 @@ INCLUDE - general-purpose - fallback for bounded transactional chores (input-res
 EXCLUDE - lisa:bug-fixer - work type is Build, not Fix; no reproduction sub-flow needed.
 EXCLUDE - lisa:debug-specialist - no defect to root-cause.
 EXCLUDE - lisa:performance-specialist - config resolver is trivial-scale; no perf surface.
-EXCLUDE - lisa:security-specialist - no auth/secrets/input-trust surface in a local config resolver; PR-level scanners still run in CI.
+SUPERSEDED for dss-2 (INCLUDE — see "DSS-2 amendments" above; dss-1-only rationale follows) - lisa:security-specialist - no auth/secrets/input-trust surface in a local config resolver; PR-level scanners still run in CI.
 EXCLUDE - lisa:product-specialist - no user-facing UX; operator-readable error text is covered by AC + quality review.
 EXCLUDE - lisa:spec-conformance-specialist - single-story scope; spec conformance is covered by AC-driven verification here, full-PRD conformance belongs to DSS-9.
 EXCLUDE - lisa:git-history-analyzer - context bundle already carries the needed history (#1953/#1954).

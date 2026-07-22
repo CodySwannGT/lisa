@@ -38,6 +38,13 @@ export interface DeployLadder {
   readonly rungs: readonly DeployLadderRung[];
   /** True when the ladder collapsed to a single terminal rung */
   readonly terminalOnly: boolean;
+  /**
+   * Highest-ranked env of the configured universe (post-alias), even when its
+   * rung was skipped. Consumers gate terminal native closure on this — a
+   * lower rung must never close items just because higher rungs were skipped.
+   * Absent only when `deploy.branches` is empty.
+   */
+  readonly terminalEnv?: string;
 }
 
 /** Optional machine-written `deployStatusSync` section of the config. */
@@ -80,6 +87,17 @@ const DONE_MAP_PATHS: Readonly<Record<Tracker, string>> = {
   linear: "linear.labels.build.done",
   jira: "jira.workflow.done",
 };
+
+/**
+ * Config dot-path of a tracker's env-keyed done vocabulary. Exposed so
+ * consumers (e.g. the transition engine's explanatory no-ops) can name the
+ * exact missing config key without duplicating the vocabulary source map.
+ * @param tracker - Tracker whose done map applies
+ * @returns Dot-path inside `.lisa.config.json`
+ */
+export function doneMapPath(tracker: Tracker): string {
+  return DONE_MAP_PATHS[tracker];
+}
 
 /** Default done vocabulary per tracker, used when config has no entry. */
 const DONE_DEFAULTS: Readonly<
@@ -143,10 +161,30 @@ function readConfiguredDone(
 }
 
 /**
- * Reject a configured done entry whose environment has no deploy branch.
- * Only explicitly-configured entries can trigger this — default-table
- * entries are fallbacks and never error.
+ * Drop done-map entries whose value is EXACTLY the default table's value
+ * for that env. `lisa sync` materializes the default map into config, so
+ * such entries are not operator intent — they are invisible for ALL
+ * purposes: stripped before the env-key union is computed, they never
+ * block the sole `prod` ↔ `production` alias and never error. Only a
+ * value that DIFFERS from the default is deliberate configuration.
  * @param doneMap - Configured env-keyed done map
+ * @param defaults - Tracker default done vocabulary
+ * @returns The done map without materialized-default entries
+ */
+function stripMaterializedDefaults(
+  doneMap: Readonly<Record<string, string>>,
+  defaults: Readonly<Record<string, string>>
+): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    Object.entries(doneMap).filter(([env, status]) => status !== defaults[env])
+  );
+}
+
+/**
+ * Reject a configured done entry whose environment has no deploy branch.
+ * Materialized defaults are already stripped by the time this runs, so
+ * every remaining entry is deliberate operator intent.
+ * @param doneMap - Configured env-keyed done map (defaults stripped)
  * @param branchEnvs - Environments present in `deploy.branches`
  * @param source - Config source shown in errors
  */
@@ -247,27 +285,33 @@ function orderEnvironments(
   return [...ranked].sort((a, b) => a.rank - b.rank).map(entry => entry.env);
 }
 
+/** Inputs for {@link buildRungs}. */
+interface BuildRungsInput {
+  /** Environments ordered lowest first */
+  readonly orderedEnvs: readonly string[];
+  /** Env-to-branch record */
+  readonly branches: Readonly<Record<string, string>>;
+  /** Configured done vocabulary */
+  readonly done: ConfiguredDone;
+  /** Tracker default done vocabulary */
+  readonly defaults: Readonly<Record<string, string>>;
+  /** Alias-aware canonical name resolver */
+  readonly canonical: (env: string) => string;
+  /** Highest-ranked env of the configured universe */
+  readonly terminalEnv: string | undefined;
+}
+
 /**
  * Join ordered environments with their branch and done status. An env whose
  * done status resolves nowhere (possible only for custom names outside the
  * default tables) is skipped — a branch-only env is a deploy target without
  * tracker vocabulary, not an error.
- * @param orderedEnvs - Environments ordered lowest first
- * @param branches - Env-to-branch record
- * @param done - Configured done vocabulary
- * @param defaults - Tracker default done vocabulary
- * @param canonical - Alias-aware canonical name resolver
- * @param terminalEnv - Highest-ranked env of the configured universe
+ * @param input - Ordered envs, branch map, vocabularies, and alias resolver
  * @returns The joined rungs, lowest environment first
  */
-function buildRungs(
-  orderedEnvs: readonly string[],
-  branches: Readonly<Record<string, string>>,
-  done: ConfiguredDone,
-  defaults: Readonly<Record<string, string>>,
-  canonical: (env: string) => string,
-  terminalEnv: string | undefined
-): readonly DeployLadderRung[] {
+function buildRungs(input: BuildRungsInput): readonly DeployLadderRung[] {
+  const { orderedEnvs, branches, done, defaults, canonical, terminalEnv } =
+    input;
   return orderedEnvs.flatMap(env => {
     const branch = branches[env];
     const terminal = env === terminalEnv ? done.terminal : undefined;
@@ -300,36 +344,47 @@ export function resolveDeployLadder(
   const branches = readBranches(config);
   const branchEnvs = Object.keys(branches);
   if (branchEnvs.length === 0) return { rungs: [], terminalOnly: false };
-  const done = readConfiguredDone(config, tracker);
+  const raw = readConfiguredDone(config, tracker);
+  // Materialized defaults are invisible everywhere: strip them BEFORE the
+  // union so they can never block the sole alias or raise an error.
+  const doneMap =
+    raw.map === undefined
+      ? undefined
+      : stripMaterializedDefaults(raw.map, DONE_DEFAULTS[tracker]);
+  const done: ConfiguredDone = {
+    ...(doneMap === undefined ? {} : { map: doneMap }),
+    ...(raw.terminal === undefined ? {} : { terminal: raw.terminal }),
+  };
   const order = readOrder(config, source);
   const union = new Set([
     ...branchEnvs,
-    ...Object.keys(done.map ?? {}),
+    ...Object.keys(doneMap ?? {}),
     ...(order ?? []),
   ]);
   const soleProdAlias = union.has("prod") && !union.has("production");
   const canonical = (env: string): string =>
     soleProdAlias && env === "prod" ? "production" : env;
-  if (done.map !== undefined) {
-    assertDoneEnvsHaveBranches(done.map, branchEnvs, source);
+  if (doneMap !== undefined) {
+    assertDoneEnvsHaveBranches(doneMap, branchEnvs, source);
   }
   const ordered = orderEnvironments(branchEnvs, order, canonical, source);
   const terminalEnv = ordered.at(-1);
-  const rungs = buildRungs(
-    ordered,
+  const rungs = buildRungs({
+    orderedEnvs: ordered,
     branches,
     done,
-    DONE_DEFAULTS[tracker],
+    defaults: DONE_DEFAULTS[tracker],
     canonical,
-    terminalEnv
-  );
+    terminalEnv,
+  });
   // terminalOnly guards DSS-2's native closure: a sole surviving LOWER rung
   // (skip-collapsed ladder) must never be treated as the terminal env.
-  const terminalOnly =
-    rungs.length === 1 &&
-    rungs[0] !== undefined &&
-    rungs[0].env === terminalEnv;
-  return { rungs, terminalOnly };
+  const terminalOnly = rungs.length === 1 && rungs[0]?.env === terminalEnv;
+  return {
+    rungs,
+    terminalOnly,
+    ...(terminalEnv === undefined ? {} : { terminalEnv }),
+  };
 }
 
 /** Strict ISO-8601 UTC timestamp (`Z` suffix, optional milliseconds). */

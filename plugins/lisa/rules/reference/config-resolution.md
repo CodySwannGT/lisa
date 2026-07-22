@@ -636,9 +636,21 @@ configured surfaces (`deploy.branches`, the configured done map,
 configured spelling. When both spellings appear they are distinct environments
 and no aliasing occurs. No other alias exists.
 
+**Materialized defaults are fallbacks.** `lisa sync` writes the full default
+done map into config, so a configured done-map entry whose value is EXACTLY
+the default table's value for that env is treated as a materialized fallback,
+not operator intent — and it is invisible for ALL purposes: stripped before
+the env-key union is computed, it never blocks the sole `prod` ↔ `production`
+alias, never raises the done-without-branch error, and leaves the env exactly
+as if it were unconfigured (so `branches.prod` beside a materialized
+`production` entry still aliases to one prod rung). Only a value that DIFFERS
+from the default is deliberate configuration: it participates in the union
+(blocking the alias when it introduces the other spelling) and stays
+protected by the error below.
+
 **Error catalog** (verbatim):
 
-- `Invalid deploy configuration in <source>: a done status ("<status>") is configured for environment "<env>", but deploy.branches has no "<env>" entry. Add deploy.branches.<env> (the git branch that deploys to <env>) or remove "<env>" from the done map.`
+- `Invalid deploy configuration in <source>: a done status ("<status>") is configured for environment "<env>", but deploy.branches has no "<env>" entry. Add deploy.branches.<env> (the git branch that deploys to <env>) or remove "<env>" from the done map.` (custom values only — default-identical entries fall back silently)
 - `Invalid deploy.order in <source>: its environment names must exactly match the keys of deploy.branches. deploy.order has [<order-envs>]; deploy.branches has [<branch-envs>].` (also raised for duplicate `deploy.order` entries)
 - `Invalid deploy.order in <source>: every entry must be an environment name string; found <entry>.`
 - `Invalid deploy configuration in <source>: cannot order environment "<env>". Set deploy.order (environments listed lowest first, e.g. ["dev","staging","production"]) so Lisa knows the promotion order.`
