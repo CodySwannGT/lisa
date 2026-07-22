@@ -26,6 +26,16 @@ This applies before declaring connection state, before running any `acli jira *`
 
 Project tracker (`jira` / `github` / `linear`) is read from `.lisa.config.json` `tracker`. Vendor-neutral skills MUST dispatch through the configured tracker, never infer it from arguments. Missing `tracker` → stop and instruct the user to run the matching `/lisa:setup:*` skill.
 
+## Tracker status vocabulary
+
+**A status transition may target only a status named in the project's configured workflow map** (`jira.workflow.*` for JIRA; the equivalent label/state map for GitHub and Linear). The configured map is the COMPLETE authorized vocabulary — not a starting point.
+
+- **Never adopt statuses discovered from the tracker's live workflow metadata** — transition lists (`getTransitionsForJiraIssue` targets), board columns, status descriptions, or statuses seen on other tickets. A tracker workflow usually contains more statuses than the config names; those extra statuses are not lisa's to use. The live workflow is consulted only to find the transition *id* that reaches a config-named status.
+- **A lifecycle stage with no configured status gets no transition.** If the flow reaches a stage the map does not name (e.g. "PR open awaiting review" when `jira.workflow.review` is unset, or a QA-ready stage with no `qa` mapping), leave the status where it is and record the stage in a comment. Do not pick the nearest-sounding tracker status.
+- **This binds every actor that writes to the tracker** — the lead as much as any subagent. In runtimes where interactively-authenticated MCPs are lead-only, the lead performs the tracker writes for the whole flow; loading an implement/sync skill without the agent definition does not relax this rule.
+
+This is the shared slug for the config-bound-transitions policy (the `leaf-only-lifecycle` precedent: one slug, never divergent per-surface prose). Skills and agent definitions cite it rather than restating it.
+
 ## Repo identity
 
 `repo:<name>` is the canonical label for which repo a work item belongs to. Resolve current-repo identity in this priority order: `.lisa.config.local.json` `repo` → `.lisa.config.json` `repo` → `.lisa.config.json` `github.repo` → `basename -s .git "$(git remote get-url origin)"`. If none resolve, stop with a clear error.

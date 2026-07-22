@@ -70,6 +70,8 @@ Based on the milestone, suggest (but don't automatically perform) a status trans
 | PR ready | configured `jira.workflow.review` status, or no transition when unconfigured |
 | PR merged | "Done" |
 
+Every suggested or performed transition is bound by the **Tracker status vocabulary** section of the `config-resolution` rule: only statuses named in the configured workflow map, never statuses discovered from the tracker's live workflow (transition lists, board columns, other tickets) — and this binds the lead performing tracker writes exactly as it binds a subagent. A milestone with no configured status gets a comment, not a transition.
+
 ### Step 5: Parent Status Rollup (`--rollup`)
 
 When invoked with `--rollup`, this skill **derives a parent/container ticket's status from the roll-up of its children** (Stories under an Epic; Sub-tasks under a Story/Task) instead of posting a milestone update on a leaf. This implements the JIRA child/subtask-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.
