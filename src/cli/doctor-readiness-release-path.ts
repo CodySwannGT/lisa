@@ -66,8 +66,51 @@ function isValidatingCommand(run: string): boolean {
 const VALIDATING_WORKFLOW = /(quality|quality-rails|test|ci)\.ya?ml/;
 
 /** Commands that produce an artifact locally, inside the shipping job. */
-const LOCAL_BUILD_COMMAND =
-  /\b(npm pack|npm run build|yarn build|bun run build|bun run build:\w+|pnpm build|docker build|tsc)\b/;
+const LOCAL_BUILD_COMMANDS: readonly RegExp[] = [
+  /\b(npm pack|npm run build|yarn build|bun run build|bun run build:\w+|pnpm build|docker build|tsc)\b/,
+];
+
+/**
+ * Whether a templated package manager expression runs the standard build script.
+ * @param run - The step's `run` text
+ * @returns True for commands like `${{ inputs.package_manager }} run build`
+ */
+function isTemplatedPackageManagerBuild(run: string): boolean {
+  const lower = run.toLowerCase();
+  const scan = (cursor: number): boolean => {
+    const start = lower.indexOf("${{", cursor);
+    if (start < 0) {
+      return false;
+    }
+    const end = lower.indexOf("}}", start + 3);
+    if (end < 0) {
+      return false;
+    }
+    const expression = lower.slice(start + 3, end);
+    const tail = lower.slice(end + 2).trimStart();
+    if (
+      (expression.includes("package_manager") ||
+        expression.includes("package-manager")) &&
+      /^run\s+build(?:\s|$)/.test(tail)
+    ) {
+      return true;
+    }
+    return scan(end + 2);
+  };
+  return scan(0);
+}
+
+/**
+ * Whether a command builds an artifact inside the shipping job.
+ * @param run - The step's `run` text
+ * @returns True when the command matches a known local build invocation
+ */
+function isLocalBuildCommand(run: string): boolean {
+  return (
+    LOCAL_BUILD_COMMANDS.some(pattern => pattern.test(run)) ||
+    isTemplatedPackageManagerBuild(run)
+  );
+}
 
 /** A publish argument naming a local path rather than a registry coordinate. */
 const LOCAL_PATH_ARGUMENT = /\s\.{0,2}\//;
@@ -273,7 +316,7 @@ function shipsSelfBuiltArtifact(
   if (downloadIndex >= 0) {
     const rebuildsAfterDownload = job.steps
       .slice(downloadIndex + 1)
-      .some(step => LOCAL_BUILD_COMMAND.test(step.run));
+      .some(step => isLocalBuildCommand(step.run));
     if (!rebuildsAfterDownload) {
       return false;
     }
@@ -281,7 +324,7 @@ function shipsSelfBuiltArtifact(
   return (
     LOCAL_PATH_ARGUMENT.test(publishStep.run) ||
     LOCAL_ARTIFACT_FILE.test(publishStep.run) ||
-    job.steps.some(step => LOCAL_BUILD_COMMAND.test(step.run))
+    job.steps.some(step => isLocalBuildCommand(step.run))
   );
 }
 
