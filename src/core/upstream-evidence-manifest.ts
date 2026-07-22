@@ -7715,6 +7715,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/index.test.ts": true,
     "tests/unit/cli/kane-cmd.test.ts": true,
     "tests/unit/cli/kane-index.test.ts": true,
+    "tests/unit/cli/prompts.test.ts": true,
     "tests/unit/cli/setup-project.test.ts": true,
     "tests/unit/cli/setup-wiki.test.ts": true,
     "tests/unit/cli/shared-options.test.ts": true,
