@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.289.0](https://github.com/CodySwannGT/lisa/compare/v2.288.1...v2.289.0) (2026-07-22)
+
+
+### Features
+
+* **verification:** require drift-aware assertions for live-environment verification ([7e1be48](https://github.com/CodySwannGT/lisa/commit/7e1be4862ec5b2a268108022ba8561c4033c5381)), closes [CodySwannGT/lisa#1951](https://github.com/CodySwannGT/lisa/issues/1951)
+
+
+### Bug Fixes
+
+* **verification:** define the canonical drift field in the verdict contract ([182e2b0](https://github.com/CodySwannGT/lisa/commit/182e2b0f2557ca31a7176e14cf0990336a56db0e)), closes [#1952](https://github.com/CodySwannGT/lisa/issues/1952) [CodySwannGT/lisa#1951](https://github.com/CodySwannGT/lisa/issues/1951)
+
 ### [2.288.1](https://github.com/CodySwannGT/lisa/compare/v2.288.0...v2.288.1) (2026-07-22)
 
 
