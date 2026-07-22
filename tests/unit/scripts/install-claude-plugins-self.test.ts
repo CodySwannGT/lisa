@@ -515,6 +515,9 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).not.toContain("claude plugin install");
     expect(log).not.toContain("claude plugin marketplace update");
     expect(log).not.toContain("claude plugin marketplace list");
+    // Retirement of curated plugins is version-gated: a same-version run must
+    // not spawn the CLI to re-uninstall an already-retired plugin.
+    expect(log).not.toContain("claude plugin uninstall sentry");
   });
 
   it("performs a full plugin sync and records the marker when the Lisa version changes", async () => {
@@ -560,6 +563,14 @@ describe("install-claude-plugins self postinstall path", () => {
     // refreshed marketplace content is picked up.
     expect(log).toContain(CLAUDE_INSTALL_BASE);
     expect(log).toContain("claude plugin marketplace update lisa");
+    // The base lisa plugin bundles the Sentry MCP server, so the upstream
+    // sentry plugin is retired on sync instead of installed (issue #1955).
+    expect(log).not.toContain(
+      "claude plugin install sentry@claude-plugins-official"
+    );
+    expect(log).toContain(
+      "claude plugin uninstall sentry@claude-plugins-official --scope project"
+    );
     const marker = await readFile(
       path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
       "utf8"

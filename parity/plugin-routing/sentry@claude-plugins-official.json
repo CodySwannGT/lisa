@@ -3,8 +3,8 @@
   "plugin": "sentry@claude-plugins-official",
   "pluginName": "sentry",
   "marketplace": "claude-plugins-official",
-  "upstreamVersion": "1.0.0",
-  "analyzedAt": "2026-05-30",
+  "upstreamVersion": "1.2.0",
+  "analyzedAt": "2026-07-22",
   "status": "approved",
   "components": [
     {

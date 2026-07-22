@@ -470,12 +470,23 @@ for plugin in \
   "code-simplifier@claude-plugins-official" \
   "code-review@claude-plugins-official" \
   "coderabbit@claude-plugins-official" \
-  "sentry@claude-plugins-official" \
   "skill-creator@claude-plugins-official" \
   "atlassian@claude-plugins-official" \
   "safety-net@cc-marketplace"; do
   install_plugin_if_missing "$plugin"
 done
+
+# Retire third-party plugins Lisa no longer curates. The base lisa plugin
+# bundles the Sentry MCP server (plugins/src/base/.mcp.json) for every agent
+# runtime, so the upstream sentry plugin registered the same server twice in
+# each Claude session (issue #1955). The merge settings templates flip its
+# enabledPlugins entry to false; this removes the install itself. Version-gated
+# like the other one-time heals so same-version runs don't spawn the CLI.
+if [ "$FORCE_PLUGIN_SYNC" = "true" ]; then
+  for retired_plugin in "sentry@claude-plugins-official"; do
+    claude plugin uninstall "$retired_plugin" --scope project </dev/null >/dev/null 2>&1 || true
+  done
+fi
 
 # Install stack-specific third-party plugins
 if [ "$LISA_STACK" = "expo" ] || [ "$LISA_STACK" = "harper-fabric" ]; then

@@ -1,8 +1,8 @@
 # Parity routing review — `sentry@claude-plugins-official`
 
 - **Plugin:** `sentry@claude-plugins-official`
-- **Upstream version:** `1.0.0`
-- **Analyzed:** 2026-05-30
+- **Upstream version:** `1.2.0`
+- **Analyzed:** 2026-07-22 (re-review; originally 2026-05-30 at 1.0.0)
 - **Status:** `proposed` (flip to `approved` before running `implement-plugin-parity`)
 
 ## Components
@@ -52,3 +52,22 @@
 | copilot | `re-point-mcp-lsp` | - emit the sentry HTTP MCP as an inline mcpServers entry on Copilot's manifest<br>- reimplement the 30 SDK skills as Lisa-native skills stamped synced-from: sentry@claude-plugins-official@1.0.0 (or enable Copilot's native equivalent where applicable)<br>- reimplement the seer command as a Lisa-native skill stamped synced-from: sentry@claude-plugins-official@1.0.0 | The dominant component is the sentry HTTP MCP, emitted inline on Copilot's manifest; the seer command and the SDK skills are reimplemented as Lisa skills so no component group is dropped. |
 
 > Plan-only artifact. Review the routing, then flip `"status": "proposed"` → `"approved"` in the paired `.json` to authorize `implement-plugin-parity`.
+
+## Addendum — 2026-07-22 re-review at upstream 1.2.0 (issue #1955)
+
+Upstream 1.2.0 restructured the plugin: the ~30 per-SDK skills are consolidated
+into 10 skills (dominated by `sentry-instrument`), the `seer` command is folded
+into `sentry-debug-issue`, and the MCP server is declared inline on the plugin
+manifest. The Lisa parity skills (`lisa-parity-sentry-sdk-setup`,
+`lisa-parity-sentry-seer`) were reviewed against 1.2.0, absorbed the material
+guidance changes (install scope gating; untrusted-event-data rules), and re-pinned.
+
+**Claude-side change.** The original routing accepted an "identical-config
+benign duplicate" on Claude/Cursor: the base lisa plugin bundles the sentry MCP
+(for codex/agy/copilot/cursor) while `install-claude-plugins.sh` also installed
+the upstream plugin, so every Claude session registered the Sentry MCP twice.
+As of issue #1955 the bundled server is canonical on every agent: the upstream
+`sentry@claude-plugins-official` plugin is no longer installed (a version-gated
+uninstall retires existing installs) and the merge settings templates set its
+`enabledPlugins` entry to `false`. Sentry workflows on Claude are owned by the
+Lisa parity skills.
