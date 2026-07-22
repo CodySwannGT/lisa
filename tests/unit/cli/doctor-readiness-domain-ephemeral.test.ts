@@ -182,7 +182,12 @@ describe("assessDomainOwnershipDimension — an empty runbook directory suppress
     const record = await assessDomainOwnershipDimension(root);
 
     expect(record.status).toBe(SKIP);
-    for (const finding of asFindings(record.findings)) {
+    const findings = asFindings(record.findings);
+    expect(String(findings[0].reason)).toContain("recovery runbook present");
+    expect(String(findings[0].reason)).not.toContain(
+      "found none running unattended and ungated"
+    );
+    for (const finding of findings) {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
   });
