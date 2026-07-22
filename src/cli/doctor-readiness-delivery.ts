@@ -24,6 +24,8 @@
  *    was validated.
  * @module cli/doctor-readiness-delivery
  */
+import { readFile } from "node:fs/promises";
+import * as path from "node:path";
 import {
   type CredentialFindings,
   detectCredentialFindings,
@@ -39,6 +41,7 @@ import {
   type ParsedWorkflow,
   parseRepositoryWorkflows,
 } from "./doctor-readiness-workflows.js";
+import { isJsonObject } from "../sync/json-path.js";
 
 /** The delivery/authority readiness dimension id (readiness-rubric, RRR-1). */
 export const DELIVERY_AUTHORITY_DIMENSION_ID = "delivery-authority";
@@ -60,13 +63,17 @@ interface ReleasePathSummary {
 /**
  * Assess every publishing job across every workflow.
  * @param workflows - Parsed workflows
+ * @param defaultBranches - Project-local default-like branch names
  * @returns What the release paths established, in aggregate
  */
 function summarizeReleasePaths(
-  workflows: readonly ParsedWorkflow[]
+  workflows: readonly ParsedWorkflow[],
+  defaultBranches?: readonly string[]
 ): ReleasePathSummary {
   const outcomes: readonly ReleasePathOutcome[] = workflows.flatMap(workflow =>
-    workflow.jobs.flatMap(job => assessReleasePaths(workflow, job))
+    workflow.jobs.flatMap(job =>
+      assessReleasePaths(workflow, job, defaultBranches)
+    )
   );
   return {
     violations: outcomes.flatMap(outcome =>
@@ -78,6 +85,32 @@ function summarizeReleasePaths(
     cleanCount: outcomes.filter(outcome => outcome.kind === "clean").length,
     publishStepCount: outcomes.length,
   };
+}
+
+/**
+ * Read the local production branch hint Lisa writes into project config. This
+ * stays offline and best-effort: unreadable or unusual config falls back to the
+ * built-in `main`/`master` defaults in the release-path assessor.
+ * @param root - Project root to inspect
+ * @returns Configured default-like branch names
+ */
+async function configuredDefaultBranches(
+  root: string
+): Promise<readonly string[]> {
+  try {
+    const raw = await readFile(path.join(root, ".lisa.config.json"), "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (!isJsonObject(parsed) || !isJsonObject(parsed.deploy)) {
+      return [];
+    }
+    const branches = parsed.deploy.branches;
+    if (!isJsonObject(branches)) {
+      return [];
+    }
+    return typeof branches.production === "string" ? [branches.production] : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -283,7 +316,10 @@ export async function assessDeliveryAuthorityDimension(
   if (workflows.length === 0) {
     return noWorkflowsRecord();
   }
-  const summary = summarizeReleasePaths(workflows);
+  const summary = summarizeReleasePaths(
+    workflows,
+    await configuredDefaultBranches(root)
+  );
   const credentials = detectCredentialFindings(workflows);
   if (summary.violations.length > 0 || credentials.violations.length > 0) {
     return violationRecord(summary, credentials);

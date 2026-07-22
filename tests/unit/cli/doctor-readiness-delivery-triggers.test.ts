@@ -33,6 +33,7 @@ import {
   SHIP_JOB,
   SKIP,
   STEPS,
+  writeRepoJson,
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
@@ -139,6 +140,33 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
     // visible in the workflow file, so silence is not evidence of a bypass.
     expect(record.status).toBe(SKIP);
     expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("uses Lisa's configured production branch when detecting default-branch pushes", async () => {
+    const cwd = await getTempDir();
+    await writeRepoJson(cwd, ".lisa.config.json", {
+      deploy: { branches: { production: "develop" } },
+    });
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON,
+      "  push:",
+      "    branches: [develop]",
+      JOBS,
+      SHIP_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      RUN_BUILD,
+      RUN_CDK_DEPLOY,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(SKIP);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).toContain("default branch");
   });
 
   it("SKIPs with a stated reason when workflows exist but nothing publishes", async () => {
