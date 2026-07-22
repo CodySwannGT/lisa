@@ -53,11 +53,39 @@ RULES_FILE="${SAFETY_NET_RULES_FILE:-${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-
 
 ### Built-in guards (always on)
 
-1. `rm -rf` of a filesystem root, `$HOME`/`~`, or a top-level wildcard.
-2. Force-pushing a protected branch (`main`/`master`/`production`/`release`).
-   `--force-with-lease` is intentionally allowed.
-3. `git reset --hard` while the working tree is **dirty** (would discard work).
-4. Destructive SQL — `DROP DATABASE/SCHEMA/TABLE`, `TRUNCATE TABLE`.
+1. `rm -rf` of a filesystem root, `$HOME`/`~`, or a top-level wildcard — with
+   quote-aware boundaries, so wrapper/interpreter forms like
+   `bash -c "rm -rf /"` and `python -c "… os.system('rm -rf /')"` match too.
+2. `rm -rf` target hardening: the cwd itself (`.`/`./`), `..`-traversal paths,
+   absolute paths outside the project (`/tmp`, `/var/tmp`, and `$TMPDIR` are
+   allowed), `$VAR` targets other than `$TMPDIR`, and **any** recursive forced
+   delete while the working directory is `$HOME`.
+3. Force-pushing a protected branch (`main`/`master`/`production`/`release`).
+   `--force-with-lease` is intentionally allowed, and so is force-pushing a
+   feature branch (sanctioned rebase workflow).
+4. `git reset --hard` / `git reset --merge` while the working tree is **dirty**
+   (would discard work). Clean-tree resets are intentionally allowed.
+5. `git checkout` discards: the `--` pathspec form (with or without a ref),
+   `-f`/`--force`, `--pathspec-from-file`, and bare `git checkout .`.
+   Branch switching and `-b`/`-B` creation stay allowed.
+6. `git switch --discard-changes` / `-f`/`--force`.
+7. `git restore` touching the worktree — only `git restore --staged <path>`
+   without `--worktree` is allowed (unstaging is safe).
+8. `git stash drop` / `git stash clear` (push/pop/list/apply stay allowed).
+9. `git clean` with a force flag and no dry-run — `-n`/`--dry-run` anywhere
+   makes it a safe preview.
+10. `git branch -D` (or `-d` combined with `-f`, clustered or split);
+    safe `-d` and rename `-m` stay allowed.
+11. `git tag -d`, `git reflog delete`, `git worktree remove --force`.
+12. Deletion via `find … -delete`, `find … -exec rm -rf`, and `xargs … rm -rf`
+    (plain non-recursive `rm` on find/xargs output stays allowed).
+13. Disk destroyers: `dd of=/dev/…`, `mkfs … /dev/…`, `shred`.
+14. Destructive SQL — `DROP DATABASE/SCHEMA/TABLE`, `TRUNCATE TABLE`.
+
+Malformed hook input fails **closed** (exit 2 denies the command). A text-scan
+hook cannot exempt display commands, so prose like
+`echo "docs about rm -rf /"` can false-positive — quote-break the string or use
+the gh-writer heredoc form (payload is stripped before the guards run).
 
 ## View the current rules
 
