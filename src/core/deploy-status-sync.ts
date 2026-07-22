@@ -285,27 +285,33 @@ function orderEnvironments(
   return [...ranked].sort((a, b) => a.rank - b.rank).map(entry => entry.env);
 }
 
+/** Inputs for {@link buildRungs}. */
+interface BuildRungsInput {
+  /** Environments ordered lowest first */
+  readonly orderedEnvs: readonly string[];
+  /** Env-to-branch record */
+  readonly branches: Readonly<Record<string, string>>;
+  /** Configured done vocabulary */
+  readonly done: ConfiguredDone;
+  /** Tracker default done vocabulary */
+  readonly defaults: Readonly<Record<string, string>>;
+  /** Alias-aware canonical name resolver */
+  readonly canonical: (env: string) => string;
+  /** Highest-ranked env of the configured universe */
+  readonly terminalEnv: string | undefined;
+}
+
 /**
  * Join ordered environments with their branch and done status. An env whose
  * done status resolves nowhere (possible only for custom names outside the
  * default tables) is skipped — a branch-only env is a deploy target without
  * tracker vocabulary, not an error.
- * @param orderedEnvs - Environments ordered lowest first
- * @param branches - Env-to-branch record
- * @param done - Configured done vocabulary
- * @param defaults - Tracker default done vocabulary
- * @param canonical - Alias-aware canonical name resolver
- * @param terminalEnv - Highest-ranked env of the configured universe
+ * @param input - Ordered envs, branch map, vocabularies, and alias resolver
  * @returns The joined rungs, lowest environment first
  */
-function buildRungs(
-  orderedEnvs: readonly string[],
-  branches: Readonly<Record<string, string>>,
-  done: ConfiguredDone,
-  defaults: Readonly<Record<string, string>>,
-  canonical: (env: string) => string,
-  terminalEnv: string | undefined
-): readonly DeployLadderRung[] {
+function buildRungs(input: BuildRungsInput): readonly DeployLadderRung[] {
+  const { orderedEnvs, branches, done, defaults, canonical, terminalEnv } =
+    input;
   return orderedEnvs.flatMap(env => {
     const branch = branches[env];
     const terminal = env === terminalEnv ? done.terminal : undefined;
@@ -363,20 +369,17 @@ export function resolveDeployLadder(
   }
   const ordered = orderEnvironments(branchEnvs, order, canonical, source);
   const terminalEnv = ordered.at(-1);
-  const rungs = buildRungs(
-    ordered,
+  const rungs = buildRungs({
+    orderedEnvs: ordered,
     branches,
     done,
-    DONE_DEFAULTS[tracker],
+    defaults: DONE_DEFAULTS[tracker],
     canonical,
-    terminalEnv
-  );
+    terminalEnv,
+  });
   // terminalOnly guards DSS-2's native closure: a sole surviving LOWER rung
   // (skip-collapsed ladder) must never be treated as the terminal env.
-  const terminalOnly =
-    rungs.length === 1 &&
-    rungs[0] !== undefined &&
-    rungs[0].env === terminalEnv;
+  const terminalOnly = rungs.length === 1 && rungs[0]?.env === terminalEnv;
   return {
     rungs,
     terminalOnly,

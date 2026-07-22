@@ -8,12 +8,15 @@
  * @module cli/deploy-status-adapter-linear
  */
 import { runKaneCommand } from "../core/kane-cli-process.js";
-import { DEPLOY_STATUS_SYNC_MARKER } from "../core/deploy-status-transition.js";
-import type { TrackerItemState } from "../core/deploy-status-transition.js";
-import type {
-  CommentUpsertResult,
-  TrackerAdapter,
-  TrackerAdapterDeps,
+import {
+  DEPLOY_STATUS_SYNC_MARKER,
+  type TrackerItemState,
+} from "../core/deploy-status-transition.js";
+import {
+  deriveLabelState,
+  type CommentUpsertResult,
+  type TrackerAdapter,
+  type TrackerAdapterDeps,
 } from "./deploy-status-adapter.js";
 import { getProcessEnv } from "./update-check.js";
 
@@ -178,18 +181,13 @@ async function fetchState(
   const labels = (issue.labels?.nodes ?? []).flatMap(node =>
     typeof node.name === "string" ? [node.name] : []
   );
-  const type = labels.find(name => name.toLowerCase().startsWith("type:"));
-  const currentStatus = [...context.doneStatuses]
-    .reverse()
-    .find(status => labels.includes(status));
   const openChildren = (issue.children?.nodes ?? []).filter(
     node => !TERMINAL_STATE_TYPES.has(node.state?.type ?? "")
   ).length;
   return {
     ref,
-    ...(type === undefined ? {} : { type }),
+    ...deriveLabelState(labels, context.doneStatuses),
     openChildren,
-    ...(currentStatus === undefined ? {} : { currentStatus }),
     closed: TERMINAL_STATE_TYPES.has(issue.state?.type ?? ""),
   };
 }

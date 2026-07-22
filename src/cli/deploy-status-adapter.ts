@@ -65,25 +65,63 @@ export interface TrackerAdapterOptions {
 }
 
 /**
- * Build a gh executor over the shared fixed-argv process runner (no shell;
- * ambient gh auth — credentials never appear in argv).
+ * Build a fixed-argv executor for one executable over the shared process
+ * runner (no shell; credentials never appear in argv). Shared by the gh
+ * adapter transport and the ref-extraction git/gh deps.
+ * @param executable - Executable name resolved on PATH
  * @param cwd - Working directory
  * @param env - Optional environment override (tests point PATH at a fake)
- * @returns gh executor
+ * @returns Fixed-argv executor returning stdout
  */
-export function createExecGh(cwd: string, env?: NodeJS.ProcessEnv): ExecGh {
+export function createExec(
+  executable: string,
+  cwd: string,
+  env?: NodeJS.ProcessEnv
+): (args: readonly string[]) => Promise<string> {
   return async args => {
-    const result = await runKaneCommand("gh", [...args], {
+    const result = await runKaneCommand(executable, [...args], {
       cwd,
       timeoutMs: 120_000,
       env: env ?? getProcessEnv(),
     });
     if (result.exitCode !== 0) {
       throw new Error(
-        `gh ${args[0] ?? ""} failed (exit ${String(result.exitCode)}): ${result.stderr.trim()}`
+        `${executable} ${args[0] ?? ""} failed (exit ${String(result.exitCode)}): ${result.stderr.trim()}`
       );
     }
     return result.stdout;
+  };
+}
+
+/**
+ * Build a gh executor (ambient gh auth).
+ * @param cwd - Working directory
+ * @param env - Optional environment override (tests point PATH at a fake)
+ * @returns gh executor
+ */
+export function createExecGh(cwd: string, env?: NodeJS.ProcessEnv): ExecGh {
+  return createExec("gh", cwd, env);
+}
+
+/**
+ * Derive the vendor-neutral type and current status from an item's label
+ * names — shared by the label-driven adapters (GitHub, Linear). The
+ * highest-rung done label wins so at-or-beyond compares conservatively.
+ * @param labels - Label names on the item
+ * @param doneStatuses - Ladder done vocabulary, lowest rung first
+ * @returns Optional type and currentStatus fields
+ */
+export function deriveLabelState(
+  labels: readonly string[],
+  doneStatuses: readonly string[]
+): { readonly type?: string; readonly currentStatus?: string } {
+  const type = labels.find(name => name.toLowerCase().startsWith("type:"));
+  const currentStatus = [...doneStatuses]
+    .reverse()
+    .find(status => labels.includes(status));
+  return {
+    ...(type === undefined ? {} : { type }),
+    ...(currentStatus === undefined ? {} : { currentStatus }),
   };
 }
 
