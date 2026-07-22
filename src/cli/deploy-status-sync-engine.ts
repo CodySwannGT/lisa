@@ -250,8 +250,12 @@ async function executeAction(
   log: (message: string) => void
 ): Promise<ItemResult> {
   if (action.kind === "promote") {
-    await adapter.transitionToDone(action.ref, action.doneStatus);
+    // Comment FIRST: the upsert is idempotent (byte-identical body →
+    // `unchanged`), so any partial-failure prefix — comment ok + transition
+    // failed, or transition ok + close failed — heals on retry. Transition
+    // or closure first would strand evidence-less state changes.
     await adapter.upsertManagedComment(action.ref, action.commentBody);
+    await adapter.transitionToDone(action.ref, action.doneStatus);
     if (action.close) await adapter.closeNatively(action.ref);
     log(
       `promoted ${action.ref} → ${action.doneStatus}${action.close ? " (closed natively)" : ""}`

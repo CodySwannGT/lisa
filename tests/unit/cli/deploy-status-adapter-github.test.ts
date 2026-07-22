@@ -110,6 +110,12 @@ describe("github adapter managed comment", () => {
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
       "created"
     );
+    expect(calls[0]).toEqual([
+      "api",
+      "repos/acme/app/issues/41/comments",
+      "--paginate",
+      "--slurp",
+    ]);
     expect(calls[1]?.slice(0, 2)).toEqual([
       "api",
       "repos/acme/app/issues/41/comments",
@@ -117,9 +123,35 @@ describe("github adapter managed comment", () => {
     expect(calls[1]).toContain(`body=${BODY}`);
   });
 
+  it("finds the marker comment on a later slurped page (never re-creates)", async () => {
+    // --paginate --slurp emits one top-level array whose elements are the
+    // per-page arrays; the marker comment sitting on page 2 must be found.
+    const twoPages = JSON.stringify([
+      [{ id: 1, body: "unrelated" }],
+      [{ id: 9002, body: BODY }],
+    ]);
+    const { adapter, calls } = recordingAdapter([twoPages]);
+    await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
+      "unchanged"
+    );
+    expect(calls).toHaveLength(1);
+  });
+
+  it("updates a changed marker comment found on a later slurped page", async () => {
+    const twoPages = JSON.stringify([
+      [{ id: 1, body: "unrelated" }],
+      [{ id: 9002, body: `${DEPLOY_STATUS_SYNC_MARKER}\nold` }],
+    ]);
+    const { adapter, calls } = recordingAdapter([twoPages, "{}"]);
+    await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
+      "updated"
+    );
+    expect(calls[1]?.[1]).toBe("repos/acme/app/issues/comments/9002");
+  });
+
   it("updates the existing marker comment when the body changed", async () => {
     const existing = JSON.stringify([
-      { id: 9001, body: `${DEPLOY_STATUS_SYNC_MARKER}\nold` },
+      [{ id: 9001, body: `${DEPLOY_STATUS_SYNC_MARKER}\nold` }],
     ]);
     const { adapter, calls } = recordingAdapter([existing, "{}"]);
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
@@ -136,7 +168,7 @@ describe("github adapter managed comment", () => {
   });
 
   it("makes zero write calls when the body is byte-identical", async () => {
-    const existing = JSON.stringify([{ id: 9001, body: BODY }]);
+    const existing = JSON.stringify([[{ id: 9001, body: BODY }]]);
     const { adapter, calls } = recordingAdapter([existing]);
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
       "unchanged"
