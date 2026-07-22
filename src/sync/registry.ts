@@ -10,6 +10,10 @@
  * completely missing.
  * @module sync/registry
  */
+import {
+  ENV_DONE_LABEL_DEFAULTS,
+  JIRA_DONE_STATUS_DEFAULTS,
+} from "../core/deploy-status-sync.js";
 import { DEFAULT_PROJECT_RULES_FILE } from "../core/project-config.js";
 import { validateHealthSchedule } from "../health/contract.js";
 import type { JsonValue } from "./json-path.js";
@@ -128,11 +132,7 @@ const BUILD_LABEL_DEFAULTS = {
   claimed: "status:in-progress",
   blocked: "status:blocked",
   human_needed: "human-needed",
-  done: {
-    dev: "status:on-dev",
-    staging: "status:on-stg",
-    production: "status:done",
-  },
+  done: ENV_DONE_LABEL_DEFAULTS,
 } as const;
 
 const PRD_LABEL_DEFAULTS: JsonValue = {
@@ -254,7 +254,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
       claimed: "In Progress",
       review: "Code Review",
       blocked: "Blocked",
-      done: { dev: "On Dev", staging: "On Stg", production: "Done" },
+      done: JIRA_DONE_STATUS_DEFAULTS,
     },
     relevantWhen: ["jira", WHEN_TRACKER_JIRA],
     description: "JIRA workflow status names per lifecycle role",
