@@ -492,6 +492,112 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  // Regression (tunnlai frontend, fleet-wide): npm rejects a manifest with
+  // EOVERRIDE when an overrides/resolutions key that is ALSO a direct dependency
+  // carries a literal version instead of the "$name" self-reference. npm runs
+  // that validation before anything else, so the broken manifest breaks every
+  // `npx`/`npm` in the project dir — surfacing as e.g. a plugin MCP server dying
+  // with "Failed to reconnect ... -32000". A security remediation that
+  // force-bumped `prettier` in overrides while `prettier` stayed a direct
+  // devDependency is the canonical trigger. Lisa's apply must normalize these to
+  // the npm-valid "$name" form so the manifest self-heals on the next apply.
+  describe("EOVERRIDE self-referencing override normalization", () => {
+    it("rewrites a literal override to $name when the package is a direct dep", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: { devDependencies: { prettier: "^3.3.3" } },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      // Host: prettier is a direct devDep AND has a literal override (the
+      // EOVERRIDE-invalid state a security fix left behind).
+      await fs.writeJson(destPath, {
+        name: "ts-host",
+        devDependencies: { prettier: "^3.3.3", typescript: "^5.0.0" },
+        overrides: { prettier: "3.8.3", axios: ">=1.15.2" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      // The colliding override is normalized to the self-reference...
+      expect(content.overrides.prettier).toBe("$prettier");
+      // ...the backing direct dep is preserved so the $ref resolves...
+      expect(content.devDependencies.prettier).toBe("^3.3.3");
+      // ...and a transitive-only override (not a direct dep) is left literal.
+      expect(content.overrides.axios).toBe(">=1.15.2");
+    });
+
+    it("normalizes a colliding resolutions entry as well", async () => {
+      await createPackageLisaTemplate("typescript", {});
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "ts-host",
+        dependencies: { lodash: "^4.17.21" },
+        resolutions: { lodash: "4.17.21" },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.resolutions.lodash).toBe("$lodash");
+    });
+
+    it("leaves an existing $name reference and non-direct overrides untouched", async () => {
+      await createPackageLisaTemplate("typescript", {});
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "ts-host",
+        devDependencies: { vite: "^8.0.0" },
+        // vite already self-references (valid); ws is transitive-only (valid).
+        overrides: { vite: "$vite", ws: ">=8.21.0" },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.overrides.vite).toBe("$vite");
+      expect(content.overrides.ws).toBe(">=8.21.0");
+    });
+  });
+
   // Regression (#1659): running the apply inside the Lisa source repo must
   // apply only dependency governance (security floors) to Lisa's own
   // package.json — never overwrite Lisa's hand-authored scripts/defaults with
