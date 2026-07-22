@@ -26,6 +26,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -41,6 +42,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: "Done" },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -70,6 +72,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: LIVE_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -80,6 +83,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: true,
+      terminalEnv: "production",
     });
   });
 
@@ -88,6 +92,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "dev", branch: "trunk", doneStatus: DEV_LABEL }],
       terminalOnly: true,
+      terminalEnv: "dev",
     });
   });
 
@@ -98,6 +103,49 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "dev", branch: "dev", doneStatus: DEV_LABEL }],
       terminalOnly: false,
+      terminalEnv: "qa",
+    });
+  });
+
+  it("treats a materialized default done map as fallback for a single-env project", () => {
+    // The Lisa shape: sync writes the full default map into config while
+    // deploy.branches only names production — must resolve, not error.
+    const config: JsonValue = {
+      deploy: { branches: { production: "main" } },
+      github: {
+        labels: {
+          build: {
+            done: {
+              dev: DEV_LABEL,
+              staging: STAGING_LABEL,
+              production: PRODUCTION_LABEL,
+            },
+          },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [
+        { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
+      ],
+      terminalOnly: true,
+      terminalEnv: "production",
+    });
+  });
+
+  it("treats materialized jira workflow defaults as fallback likewise", () => {
+    const config: JsonValue = {
+      deploy: { branches: { production: "main" } },
+      jira: {
+        workflow: {
+          done: { dev: "On Dev", staging: "On Stg", production: "Done" },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
+      rungs: [{ env: "production", branch: "main", doneStatus: "Done" }],
+      terminalOnly: true,
+      terminalEnv: "production",
     });
   });
 
@@ -106,10 +154,53 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL }],
       terminalOnly: true,
+      terminalEnv: "prod",
     });
     expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
       rungs: [{ env: "prod", branch: "main", doneStatus: "Done" }],
       terminalOnly: true,
+      terminalEnv: "prod",
+    });
+  });
+
+  it("strips materialized defaults BEFORE the union so they never block the alias", () => {
+    // Corrected ruling: a materialized "production" entry is invisible for
+    // ALL purposes — the sole prod alias still applies and the default
+    // production vocabulary reaches the prod rung.
+    const config: JsonValue = {
+      deploy: { branches: { prod: "main" } },
+      github: {
+        labels: {
+          build: {
+            done: {
+              dev: DEV_LABEL,
+              staging: STAGING_LABEL,
+              production: PRODUCTION_LABEL,
+            },
+          },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [{ env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL }],
+      terminalOnly: true,
+      terminalEnv: "prod",
+    });
+  });
+
+  it("strips materialized jira defaults before the union likewise", () => {
+    const config: JsonValue = {
+      deploy: { branches: { prod: "main" } },
+      jira: {
+        workflow: {
+          done: { dev: "On Dev", staging: "On Stg", production: "Done" },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
+      rungs: [{ env: "prod", branch: "main", doneStatus: "Done" }],
+      terminalOnly: true,
+      terminalEnv: "prod",
     });
   });
 
@@ -123,6 +214,7 @@ describe("resolveDeployLadder", () => {
         { env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "prod",
     });
   });
 
@@ -146,6 +238,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -164,6 +257,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -180,6 +274,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -199,6 +294,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [],
       terminalOnly: false,
+      terminalEnv: "edge",
     });
   });
 
@@ -214,6 +310,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: "Shipped" },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -225,6 +322,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "edge", branch: "main", doneStatus: LIVE_LABEL }],
       terminalOnly: true,
+      terminalEnv: "edge",
     });
   });
 });

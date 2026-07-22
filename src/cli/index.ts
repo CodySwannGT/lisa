@@ -6,15 +6,13 @@ import {
   runCrossPollinate,
 } from "./cross-pollinate-cmd.js";
 import { runDoctor } from "./doctor.js";
+import { runDeployStatusSync } from "./deploy-status-sync-cmd.js";
 import { runFileUpstream } from "./file-upstream-cmd.js";
 import { runHealthCli, type HealthCliOptions } from "./health-cmd.js";
 import { addGateCommands } from "./gate-commands.js";
-import {
-  runKaneCli,
-  runKanePilotCli,
-  runKaneProbeCli,
-  type KaneRunOptions,
-} from "./kane-cmd.js";
+import { addKaneCommands } from "./kane-commands.js";
+import type { GateCommandDependencies } from "./gate-commands.js";
+import { runKaneCli, runKanePilotCli, runKaneProbeCli } from "./kane-cmd.js";
 import { printUpdateWarning } from "./print-update-warning.js";
 import {
   DEFAULT_SETUP_PROJECT_DEPENDENCIES,
@@ -37,7 +35,7 @@ import { getPackageVersion } from "./version.js";
  * apply action and npm update-check; tests override them to observe the program
  * wiring without touching the registry or the orchestrator.
  */
-export interface ProgramDependencies {
+export interface ProgramDependencies extends GateCommandDependencies {
   /** Applies Lisa to a destination (defaults to the real {@link runApply}). */
   runApply: typeof runApply;
   /** Creates a starter-backed project and applies Lisa overlays. */
@@ -56,10 +54,6 @@ export interface ProgramDependencies {
   runSync: typeof runSync;
   /** Serves the Lisa settings console (after a config sync). */
   runUi: typeof runUi;
-  /** Checks the project learnings file against its hard budget. */
-  runCheckLearningsBudget: typeof runCheckLearningsBudget;
-  /** Projects a public upstream filing body from allowlisted fields. */
-  runFileUpstream: typeof runFileUpstream;
   /** Runs and persists the shared Health v1 consumer. */
   runHealthCli: typeof runHealthCli;
   /** Runs every standards command and writes freshness-bound proof. */
@@ -88,6 +82,7 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runUi,
   runCheckLearningsBudget,
   runFileUpstream,
+  runDeployStatusSync,
   runHealthCli,
   runStandardsProofCli,
   runKaneCli,
@@ -99,62 +94,6 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
 
 /** Shared help text for the optional project-path positional argument. */
 const PATH_ARG_DESCRIPTION = "Project path (default: current directory)";
-
-/**
- * Register the optional Kane provider command group.
- * @param program - Commander program to mutate
- * @param deps - Program dependencies
- */
-function addKaneCommands(program: Command, deps: ProgramDependencies): void {
-  const kane = program
-    .command("kane")
-    .description("Use Lisa's guarded optional Kane CLI browser provider");
-  kane
-    .command("probe")
-    .description(
-      "Check Kane installation, auth, target, and AI-credit availability"
-    )
-    .argument("[path]", PATH_ARG_DESCRIPTION)
-    .option("--json", "Emit JSON")
-    .action(
-      async (targetPath: string | undefined, options: { json?: boolean }) => {
-        await deps.runKaneProbeCli(targetPath, options.json === true);
-      }
-    );
-  kane
-    .command("run")
-    .description(
-      "Run one empirical browser objective through Lisa's safety gate"
-    )
-    .argument("[path]", PATH_ARG_DESCRIPTION)
-    .requiredOption("--objective <text>", "Self-contained browser objective")
-    .requiredOption("--environment <name>", "Lisa exploration environment")
-    .requiredOption(
-      "--mutation <level>",
-      "Resolved Lisa mutation policy (forbidden | read-only | full)"
-    )
-    .option("--url <url>", "Starting URL")
-    .option("--max-steps <count>", "Kane reasoning-step limit")
-    .option("--json", "Emit Lisa's normalized JSON result")
-    .action(async (targetPath: string | undefined, options: KaneRunOptions) => {
-      if (
-        !(["forbidden", "read-only", "full"] as const).includes(
-          options.mutation
-        )
-      ) {
-        throw new Error("--mutation must be forbidden, read-only, or full");
-      }
-      await deps.runKaneCli(targetPath, options);
-    });
-  kane
-    .command("pilot")
-    .description("Execute or report the 30-day multi-application Kane pilot")
-    .argument("<manifest>", "Path to the Kane pilot JSON manifest")
-    .option("--report-only", "Read existing JSONL results without executing")
-    .action(async (manifest: string, options: { reportOnly?: boolean }) => {
-      await deps.runKanePilotCli(manifest, options.reportOnly === true);
-    });
-}
 
 /**
  * Register the `doctor` command, including the additive `--readiness` audit.

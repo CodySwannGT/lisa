@@ -5,34 +5,55 @@ import type { JsonValue } from "../../../src/sync/json-path.js";
 const SOURCE = ".lisa.config.json";
 
 // Hardcoded expected error text — never computed from the module under test.
+const CUSTOM_STAGING_STATUS = "Ready for QA";
 const STAGING_WITHOUT_BRANCH_ERROR =
-  'Invalid deploy configuration in .lisa.config.json: a done status ("status:on-stg") is configured for environment "staging", but deploy.branches has no "staging" entry. Add deploy.branches.staging (the git branch that deploys to staging) or remove "staging" from the done map.';
+  'Invalid deploy configuration in .lisa.config.json: a done status ("Ready for QA") is configured for environment "staging", but deploy.branches has no "staging" entry. Add deploy.branches.staging (the git branch that deploys to staging) or remove "staging" from the done map.';
 
 describe("resolveDeployLadder errors", () => {
-  it("rejects a configured done status whose environment has no branch", () => {
+  it("rejects a CUSTOM done status whose environment has no branch", () => {
     const config: JsonValue = {
       deploy: { branches: { dev: "dev", production: "main" } },
-      github: { labels: { build: { done: { staging: "status:on-stg" } } } },
+      github: {
+        labels: { build: { done: { staging: CUSTOM_STAGING_STATUS } } },
+      },
     };
     expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
       STAGING_WITHOUT_BRANCH_ERROR
     );
   });
 
-  it("rejects a configured production done entry beside branches.prod (both spellings block the alias)", () => {
+  it("errors only the custom entry when a materialized default sits beside it", () => {
     const config: JsonValue = {
-      deploy: { branches: { prod: "main" } },
-      github: { labels: { build: { done: { production: "status:done" } } } },
+      deploy: { branches: { production: "main" } },
+      github: {
+        labels: {
+          build: {
+            done: { staging: "status:on-stg", dev: "Deployed Dev" },
+          },
+        },
+      },
     };
     expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
-      'Invalid deploy configuration in .lisa.config.json: a done status ("status:done") is configured for environment "production", but deploy.branches has no "production" entry. Add deploy.branches.production (the git branch that deploys to production) or remove "production" from the done map.'
+      'Invalid deploy configuration in .lisa.config.json: a done status ("Deployed Dev") is configured for environment "dev", but deploy.branches has no "dev" entry. Add deploy.branches.dev (the git branch that deploys to dev) or remove "dev" from the done map.'
+    );
+  });
+
+  it("rejects a CUSTOM production done entry beside branches.prod (both spellings block the alias)", () => {
+    const config: JsonValue = {
+      deploy: { branches: { prod: "main" } },
+      github: { labels: { build: { done: { production: "status:live" } } } },
+    };
+    expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
+      'Invalid deploy configuration in .lisa.config.json: a done status ("status:live") is configured for environment "production", but deploy.branches has no "production" entry. Add deploy.branches.production (the git branch that deploys to production) or remove "production" from the done map.'
     );
   });
 
   it("rejects a non-string branch value by erroring its configured done entry", () => {
     const config: JsonValue = {
       deploy: { branches: { dev: "dev", staging: 42, production: "main" } },
-      github: { labels: { build: { done: { staging: "status:on-stg" } } } },
+      github: {
+        labels: { build: { done: { staging: CUSTOM_STAGING_STATUS } } },
+      },
     };
     expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
       STAGING_WITHOUT_BRANCH_ERROR
