@@ -1867,7 +1867,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "876914c369c5bd58f4a5f3c41d0c1264c6923f329a644f90640d15b434a0fbd1",
     "scripts/install-claude-plugins.sh":
-      "8c6bdb3d11e535414038df53202f0cf5f084a6b981ce7bf865adbfe2e1a36c66",
+      "3283dc0f93b1ea1c8948a132f9dcb354115a8cb826cf5efd4c8e7318bbf5cd59",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -7600,6 +7600,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/ignore-patterns.ts": true,
     "src/utils/index.ts": true,
     "src/utils/json-utils.ts": true,
+    "src/utils/linked-worktree.ts": true,
     "src/utils/package-manager-detect.ts": true,
     "src/utils/path-utils.ts": true,
     "src/utils/pm-env.ts": true,
@@ -8136,6 +8137,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/file-operations.test.ts": true,
     "tests/unit/utils/ignore-patterns.test.ts": true,
     "tests/unit/utils/json-utils.test.ts": true,
+    "tests/unit/utils/linked-worktree.test.ts": true,
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
     "tests/unit/utils/usage-accounting-backward-compatibility.test.ts": true,
     "tests/unit/utils/usage-accounting-rollup.test.ts": true,
