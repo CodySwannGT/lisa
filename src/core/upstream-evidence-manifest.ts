@@ -1119,7 +1119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/cdk/skills/setup-aws-accounts/SKILL.md":
       "a2eee104aecc34716137661f6f47c6e18105b3eadae84fddd29cbaf6ed756874",
     "plugins/src/expo/THIRD-PARTY-NOTICES.md":
-      "cc441c72d5f52d8878ea883169c56c6da678f6a5793f33b9df861aa93698cc0f",
+      "dba9f65622cc8e2e57a47ccc1e85fe7213f742722c74dda4ed47c6688d6a92f8",
     "plugins/src/expo/agents/ops-specialist.md":
       "43346dcd0761d2812b09054d47b488e7eeaac111897d17bd8f14f33356dfeb9f",
     "plugins/src/expo/commands/e2e-coverage-gaps.md":
@@ -1127,7 +1127,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/commands/maestro-mcp-setup.md":
       "993b3751fba104521c5787f472cb650ec7e04240e5dc4644d6ef196b1d3d303f",
     "plugins/src/expo/hooks/register-maestro-mcp.sh":
-      "f115acbbc0cb4b88a66238532e2ebcefd7af51ea57d25be82bc05a14deb1d358",
+      "5f423a4cf87cda2d13cbd11912c4cf73b03df0000b708fda0dfdecfab4def7ac",
     "plugins/src/expo/skills/add-app-clip/SKILL.md":
       "ae921363ec897ebdb8acd9e39d5ebf9c51364d9f1e3e2f3454a429d6bee64513",
     "plugins/src/expo/skills/add-app-clip/references/native-module.md":
@@ -1311,7 +1311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/local-state/references/reactive-variables.md":
       "8cd40d42d67776eabed9a5c6cbf4f890c18a537470f1466867bd861523c9e929",
     "plugins/src/expo/skills/maestro-mcp-setup/SKILL.md":
-      "5c4cd46ef54a86def3be835c675b45ddcd309d9a6330d483ab7460f393973a41",
+      "e627a01f806a6bc10e9abdcc03fa7d3f1cd3074c6fbd960f5c8bfc13890eb504",
     "plugins/src/expo/skills/native-data-fetching/SKILL.md":
       "2405bfc92eb1abb460c2d474fd69746a5d4f46dd9dacdbaece708ef686504eb0",
     "plugins/src/expo/skills/native-data-fetching/references/expo-router-loaders.md":

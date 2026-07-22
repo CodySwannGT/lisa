@@ -52,13 +52,22 @@ if command -v mise >/dev/null 2>&1 && JAVA_BIN="$(mise which java 2>/dev/null)";
   :
 elif command -v asdf >/dev/null 2>&1 && JAVA_BIN="$(asdf which java 2>/dev/null)"; then
   :
+elif [ -x "${SDKMAN_DIR:-${HOME}/.sdkman}/candidates/java/current/bin/java" ]; then
+  # SDKMAN's `sdk` is a shell function absent here; use its stable symlink.
+  JAVA_BIN="${SDKMAN_DIR:-${HOME}/.sdkman}/candidates/java/current/bin/java"
 elif command -v java >/dev/null 2>&1; then
   JAVA_BIN="$(command -v java)"
 fi
 [ -n "${JAVA_BIN}" ] && [ -x "${JAVA_BIN}" ] || exit 0
 
-JAVA_HOME_DIR="$(cd "$(dirname "${JAVA_BIN}")/.." && pwd)"
-JBIN_DIR="$(dirname "${JAVA_BIN}")"
+# Derive JAVA_HOME from the JVM itself, robust when `java` is a shim/symlink whose
+# parent is not a JDK root; fall back to bin/.. only if the query yields nothing.
+JAVA_HOME_DIR="$("${JAVA_BIN}" -XshowSettings:properties -version 2>&1 \
+  | sed -n 's/^[[:space:]]*java\.home = //p' | head -n 1)"
+if [ -z "${JAVA_HOME_DIR}" ] || [ ! -x "${JAVA_HOME_DIR}/bin/java" ]; then
+  JAVA_HOME_DIR="$(cd "$(dirname "${JAVA_BIN}")/.." && pwd)"
+fi
+JBIN_DIR="${JAVA_HOME_DIR}/bin"
 MBIN_DIR="$(dirname "${MAESTRO_BIN}")"
 
 # 3. Already registered (any scope)? Nothing to do.
