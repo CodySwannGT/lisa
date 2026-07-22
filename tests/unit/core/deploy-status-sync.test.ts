@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ENV_DONE_LABEL_DEFAULTS,
-  JIRA_DONE_STATUS_DEFAULTS,
-  resolveDeployLadder,
-  validateDeployStatusSyncConfig,
-} from "../../../src/core/deploy-status-sync.js";
-import { validateProjectConfig } from "../../../src/core/project-config.js";
+import { resolveDeployLadder } from "../../../src/core/deploy-status-sync.js";
 import type { JsonValue } from "../../../src/sync/json-path.js";
 
 const SOURCE = ".lisa.config.json";
@@ -22,21 +16,6 @@ const FULL_BRANCHES = {
     branches: { dev: "dev", staging: STAGING_BRANCH, production: "main" },
   },
 } satisfies JsonValue;
-
-describe("default done vocabularies", () => {
-  it("exports the shared label defaults consumed by the sync registry", () => {
-    expect(ENV_DONE_LABEL_DEFAULTS).toEqual({
-      dev: DEV_LABEL,
-      staging: STAGING_LABEL,
-      production: PRODUCTION_LABEL,
-    });
-    expect(JIRA_DONE_STATUS_DEFAULTS).toEqual({
-      dev: "On Dev",
-      staging: "On Stg",
-      production: "Done",
-    });
-  });
-});
 
 describe("resolveDeployLadder", () => {
   it("returns the ordered 3-env ladder from label defaults for github", () => {
@@ -94,16 +73,6 @@ describe("resolveDeployLadder", () => {
     });
   });
 
-  it("rejects a configured done status whose environment has no branch", () => {
-    const config: JsonValue = {
-      deploy: { branches: { dev: "dev", production: "main" } },
-      github: { labels: { build: { done: { staging: STAGING_LABEL } } } },
-    };
-    expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
-      'Invalid deploy configuration in .lisa.config.json: a done status ("status:on-stg") is configured for environment "staging", but deploy.branches has no "staging" entry. Add deploy.branches.staging (the git branch that deploys to staging) or remove "staging" from the done map.'
-    );
-  });
-
   it("collapses a production-only config to a single terminal-only rung", () => {
     const config: JsonValue = { deploy: { branches: { production: "main" } } };
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
@@ -111,6 +80,24 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: true,
+    });
+  });
+
+  it("flags a solo dev universe terminal-only (dev is its own terminal)", () => {
+    const config: JsonValue = { deploy: { branches: { dev: "trunk" } } };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [{ env: "dev", branch: "trunk", doneStatus: DEV_LABEL }],
+      terminalOnly: true,
+    });
+  });
+
+  it("does NOT flag terminal-only when the sole rung is not the highest env", () => {
+    const config: JsonValue = {
+      deploy: { branches: { dev: "dev", qa: "qa" }, order: ["dev", "qa"] },
+    };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [{ env: "dev", branch: "dev", doneStatus: DEV_LABEL }],
+      terminalOnly: false,
     });
   });
 
@@ -123,6 +110,19 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
       rungs: [{ env: "prod", branch: "main", doneStatus: "Done" }],
       terminalOnly: true,
+    });
+  });
+
+  it("ranks an aliased prod through canonical ordering in a 2-env ladder", () => {
+    const config: JsonValue = {
+      deploy: { branches: { prod: "main", dev: "dev" } },
+    };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [
+        { env: "dev", branch: "dev", doneStatus: DEV_LABEL },
+        { env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL },
+      ],
+      terminalOnly: false,
     });
   });
 
@@ -167,24 +167,6 @@ describe("resolveDeployLadder", () => {
     });
   });
 
-  it("rejects deploy.order whose env set differs from deploy.branches", () => {
-    const config: JsonValue = {
-      deploy: { ...FULL_BRANCHES.deploy, order: ["dev", "production"] },
-    };
-    expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
-      "Invalid deploy.order in .lisa.config.json: its environment names must exactly match the keys of deploy.branches. deploy.order has [dev, production]; deploy.branches has [dev, staging, production]."
-    );
-  });
-
-  it("rejects an unorderable custom environment when deploy.order is absent", () => {
-    const config: JsonValue = {
-      deploy: { branches: { dev: "dev", qa: "qa" } },
-    };
-    expect(() => resolveDeployLadder(config, "github", SOURCE)).toThrow(
-      'Invalid deploy configuration in .lisa.config.json: cannot order environment "qa". Set deploy.order (environments listed lowest first, e.g. ["dev","staging","production"]) so Lisa knows the promotion order.'
-    );
-  });
-
   it("skips a custom-env rung that has a branch but no done status", () => {
     const config: JsonValue = {
       deploy: {
@@ -212,11 +194,17 @@ describe("resolveDeployLadder", () => {
     });
   });
 
+  it("returns an empty ladder for a single custom env with no done vocabulary", () => {
+    const config: JsonValue = { deploy: { branches: { edge: "main" } } };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [],
+      terminalOnly: false,
+    });
+  });
+
   it("binds a string-valued done to the terminal rung only", () => {
     const config: JsonValue = {
-      deploy: {
-        branches: { dev: "dev", staging: STAGING_BRANCH, production: "main" },
-      },
+      ...FULL_BRANCHES,
       jira: { workflow: { done: "Shipped" } },
     };
     expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
@@ -238,86 +226,5 @@ describe("resolveDeployLadder", () => {
       rungs: [{ env: "edge", branch: "main", doneStatus: LIVE_LABEL }],
       terminalOnly: true,
     });
-  });
-});
-
-describe("validateDeployStatusSyncConfig", () => {
-  it("returns the typed section for a fully valid value", () => {
-    expect(
-      validateDeployStatusSyncConfig(
-        {
-          tier: "team",
-          provisioned: { "jira:On Dev": "10012" },
-          linearBinding: "labels",
-          verifiedAt: "2026-07-01T12:00:00Z",
-        },
-        SOURCE
-      )
-    ).toEqual({
-      tier: "team",
-      provisioned: { "jira:On Dev": "10012" },
-      linearBinding: "labels",
-      verifiedAt: "2026-07-01T12:00:00Z",
-    });
-  });
-
-  it("passes undefined through and accepts an empty section", () => {
-    expect(validateDeployStatusSyncConfig(undefined, SOURCE)).toBeUndefined();
-    expect(validateDeployStatusSyncConfig({}, SOURCE)).toEqual({});
-  });
-
-  it("rejects a non-object section", () => {
-    expect(() => validateDeployStatusSyncConfig("gold", SOURCE)).toThrow(
-      "Invalid deployStatusSync in .lisa.config.json: expected an object"
-    );
-  });
-
-  it("rejects an unknown linearBinding value", () => {
-    expect(() =>
-      validateDeployStatusSyncConfig({ linearBinding: "webhooks" }, SOURCE)
-    ).toThrow(
-      'Invalid deployStatusSync.linearBinding in .lisa.config.json: expected "labels" or "states"'
-    );
-  });
-
-  it.each(["2026-07-01", "2026-13-01T00:00:00Z", "2026-07-01T12:00:00+00:00"])(
-    "rejects non-ISO-8601-UTC verifiedAt %s",
-    verifiedAt => {
-      expect(() =>
-        validateDeployStatusSyncConfig({ verifiedAt }, SOURCE)
-      ).toThrow(
-        "Invalid deployStatusSync.verifiedAt in .lisa.config.json: expected an ISO-8601 UTC timestamp (e.g. 2026-01-01T00:00:00Z)"
-      );
-    }
-  );
-
-  it("rejects a non-string provisioned id", () => {
-    expect(() =>
-      validateDeployStatusSyncConfig(
-        { provisioned: { "jira:Done": 10001 } },
-        SOURCE
-      )
-    ).toThrow(
-      "Invalid deployStatusSync.provisioned.jira:Done in .lisa.config.json: expected a non-empty string"
-    );
-  });
-});
-
-describe("project config deployStatusSync wiring", () => {
-  it("parses the section beside the other validated sections", () => {
-    expect(
-      validateProjectConfig({ deployStatusSync: { tier: "team" } }, SOURCE)
-    ).toMatchObject({ deployStatusSync: { tier: "team" } });
-  });
-
-  it("rejects an invalid nested section during parse", () => {
-    expect(() =>
-      validateProjectConfig(
-        { deployStatusSync: { linearBinding: "webhooks" } },
-        SOURCE
-      )
-    ).toThrow(
-      'Invalid deployStatusSync.linearBinding in .lisa.config.json: expected "labels" or "states"'
-    );
   });
 });

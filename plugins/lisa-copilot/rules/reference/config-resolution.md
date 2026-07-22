@@ -623,8 +623,11 @@ terminal (highest) rung; lower rungs fall back to the default table. An env
 with a branch but no done status anywhere (possible only for custom names
 outside the default tables) is **skipped**, not an error; an explicitly
 configured done status whose env has no branch **is** a config error. A ladder
-that resolves to exactly one rung is flagged terminal-only. Absent or empty
-`deploy` yields an empty ladder, never an error.
+is flagged terminal-only when it resolves to exactly one rung **and** that
+rung's env is the highest-ranked environment of the configured universe
+(post-alias) — a sole surviving lower rung after skips is NOT terminal-only,
+so downstream native closure never fires on an intermediate environment.
+Absent or empty `deploy` yields an empty ladder, never an error.
 
 **Alias.** Iff exactly one of `prod` / `production` appears across the
 configured surfaces (`deploy.branches`, the configured done map,
@@ -636,7 +639,8 @@ and no aliasing occurs. No other alias exists.
 **Error catalog** (verbatim):
 
 - `Invalid deploy configuration in <source>: a done status ("<status>") is configured for environment "<env>", but deploy.branches has no "<env>" entry. Add deploy.branches.<env> (the git branch that deploys to <env>) or remove "<env>" from the done map.`
-- `Invalid deploy.order in <source>: its environment names must exactly match the keys of deploy.branches. deploy.order has [<order-envs>]; deploy.branches has [<branch-envs>].`
+- `Invalid deploy.order in <source>: its environment names must exactly match the keys of deploy.branches. deploy.order has [<order-envs>]; deploy.branches has [<branch-envs>].` (also raised for duplicate `deploy.order` entries)
+- `Invalid deploy.order in <source>: every entry must be an environment name string; found <entry>.`
 - `Invalid deploy configuration in <source>: cannot order environment "<env>". Set deploy.order (environments listed lowest first, e.g. ["dev","staging","production"]) so Lisa knows the promotion order.`
 
 ### What's configurable, what's not

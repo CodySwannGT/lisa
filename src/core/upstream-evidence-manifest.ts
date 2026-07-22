@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "dd1bdc9024147e42aad78332d98735871860e3e161807f7fbc8e373bc29a84a1",
+      "ffb231a7218235b5a8e8c4945f899e49f609b939e401e7c38bbed43ce8ab805e",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -7473,7 +7473,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
     "src/core/bootstrap-environment.ts": true,
+    "src/core/config-field-validation.ts": true,
     "src/core/config.ts": true,
+    "src/core/deploy-status-sync.ts": true,
     "src/core/git-service.ts": true,
     "src/core/index.ts": true,
     "src/core/instruction-files-migration.ts": true,
@@ -7838,6 +7840,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
+    "tests/unit/core/deploy-status-sync.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,

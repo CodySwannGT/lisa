@@ -11,7 +11,13 @@
  * imported the registry).
  * @module core/deploy-status-sync
  */
-import { getAtPath, isJsonObject, type JsonValue } from "../sync/json-path.js";
+import {
+  getAtPath,
+  isJsonObject,
+  type JsonObject,
+  type JsonValue,
+} from "../sync/json-path.js";
+import { optionalString } from "./config-field-validation.js";
 
 /** Tracker vendors whose done vocabulary can bind a deploy ladder. */
 export type Tracker = "jira" | "github" | "linear";
@@ -92,18 +98,26 @@ const CANONICAL_ENV_RANKS: Readonly<Record<string, number>> = {
 };
 
 /**
+ * Keep only the string-valued entries of a JSON object record.
+ * @param value - JSON object record
+ * @returns Record of the string-valued entries
+ */
+function stringRecord(value: JsonObject): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    )
+  );
+}
+
+/**
  * Read `deploy.branches` as an env → branch map, ignoring non-string values.
  * @param config - Parsed config value
  * @returns Env-to-branch record (empty when the section is absent)
  */
 function readBranches(config: JsonValue): Readonly<Record<string, string>> {
   const branches = getAtPath(config, "deploy.branches");
-  if (!isJsonObject(branches)) return {};
-  return Object.fromEntries(
-    Object.entries(branches).filter(
-      (entry): entry is [string, string] => typeof entry[1] === "string"
-    )
-  );
+  return isJsonObject(branches) ? stringRecord(branches) : {};
 }
 
 /** The configured done vocabulary: an env-keyed map or a terminal string. */
@@ -125,13 +139,7 @@ function readConfiguredDone(
   const done = getAtPath(config, DONE_MAP_PATHS[tracker]);
   if (typeof done === "string") return { terminal: done };
   if (!isJsonObject(done)) return {};
-  return {
-    map: Object.fromEntries(
-      Object.entries(done).filter(
-        (entry): entry is [string, string] => typeof entry[1] === "string"
-      )
-    ),
-  };
+  return { map: stringRecord(done) };
 }
 
 /**
@@ -144,11 +152,11 @@ function readConfiguredDone(
  */
 function assertDoneEnvsHaveBranches(
   doneMap: Readonly<Record<string, string>>,
-  branchEnvs: ReadonlySet<string>,
+  branchEnvs: readonly string[],
   source: string
 ): void {
   for (const [env, status] of Object.entries(doneMap)) {
-    if (!branchEnvs.has(env)) {
+    if (!branchEnvs.includes(env)) {
       throw new Error(
         `Invalid deploy configuration in ${source}: a done status ("${status}") is configured for environment "${env}", but deploy.branches has no "${env}" entry. Add deploy.branches.${env} (the git branch that deploys to ${env}) or remove "${env}" from the done map.`
       );
@@ -157,20 +165,35 @@ function assertDoneEnvsHaveBranches(
 }
 
 /**
- * Read `deploy.order` as a string array, if present.
+ * Read `deploy.order` as a string array, if present. A non-string entry is a
+ * decision-ready error, never silently dropped — dropping one would silently
+ * change the promotion order.
  * @param config - Parsed config value
+ * @param source - Config source shown in errors
  * @returns Ordered env names (lowest first), or undefined when absent
  */
-function readOrder(config: JsonValue): readonly string[] | undefined {
+function readOrder(
+  config: JsonValue,
+  source: string
+): readonly string[] | undefined {
   const order = getAtPath(config, "deploy.order");
   if (!Array.isArray(order)) return undefined;
-  return order.filter((entry): entry is string => typeof entry === "string");
+  return order.map(entry => {
+    if (typeof entry !== "string") {
+      throw new Error(
+        `Invalid deploy.order in ${source}: every entry must be an environment name string; found ${JSON.stringify(entry)}.`
+      );
+    }
+    return entry;
+  });
 }
 
 /**
- * Require `deploy.order` to name exactly the `deploy.branches` env set.
+ * Require `deploy.order` to name exactly the `deploy.branches` env set, with
+ * no duplicate entries — a duplicate would otherwise survive set comparison
+ * and produce duplicate rungs.
  * @param order - Configured order
- * @param branchEnvs - Environments present in `deploy.branches`
+ * @param branchEnvs - Environments present in `deploy.branches` (dupe-free)
  * @param source - Config source shown in errors
  */
 function assertOrderMatchesBranches(
@@ -179,9 +202,9 @@ function assertOrderMatchesBranches(
   source: string
 ): void {
   const orderSet = new Set(order);
-  const branchSet = new Set(branchEnvs);
   const matches =
-    orderSet.size === branchSet.size &&
+    orderSet.size === order.length &&
+    orderSet.size === branchEnvs.length &&
     branchEnvs.every(env => orderSet.has(env));
   if (!matches) {
     throw new Error(
@@ -234,6 +257,7 @@ function orderEnvironments(
  * @param done - Configured done vocabulary
  * @param defaults - Tracker default done vocabulary
  * @param canonical - Alias-aware canonical name resolver
+ * @param terminalEnv - Highest-ranked env of the configured universe
  * @returns The joined rungs, lowest environment first
  */
 function buildRungs(
@@ -241,9 +265,9 @@ function buildRungs(
   branches: Readonly<Record<string, string>>,
   done: ConfiguredDone,
   defaults: Readonly<Record<string, string>>,
-  canonical: (env: string) => string
+  canonical: (env: string) => string,
+  terminalEnv: string | undefined
 ): readonly DeployLadderRung[] {
-  const terminalEnv = orderedEnvs[orderedEnvs.length - 1];
   return orderedEnvs.flatMap(env => {
     const branch = branches[env];
     const terminal = env === terminalEnv ? done.terminal : undefined;
@@ -277,7 +301,7 @@ export function resolveDeployLadder(
   const branchEnvs = Object.keys(branches);
   if (branchEnvs.length === 0) return { rungs: [], terminalOnly: false };
   const done = readConfiguredDone(config, tracker);
-  const order = readOrder(config);
+  const order = readOrder(config, source);
   const union = new Set([
     ...branchEnvs,
     ...Object.keys(done.map ?? {}),
@@ -287,59 +311,29 @@ export function resolveDeployLadder(
   const canonical = (env: string): string =>
     soleProdAlias && env === "prod" ? "production" : env;
   if (done.map !== undefined) {
-    assertDoneEnvsHaveBranches(done.map, new Set(branchEnvs), source);
+    assertDoneEnvsHaveBranches(done.map, branchEnvs, source);
   }
   const ordered = orderEnvironments(branchEnvs, order, canonical, source);
+  const terminalEnv = ordered.at(-1);
   const rungs = buildRungs(
     ordered,
     branches,
     done,
     DONE_DEFAULTS[tracker],
-    canonical
+    canonical,
+    terminalEnv
   );
-  return { rungs, terminalOnly: rungs.length === 1 };
+  // terminalOnly guards DSS-2's native closure: a sole surviving LOWER rung
+  // (skip-collapsed ladder) must never be treated as the terminal env.
+  const terminalOnly =
+    rungs.length === 1 &&
+    rungs[0] !== undefined &&
+    rungs[0].env === terminalEnv;
+  return { rungs, terminalOnly };
 }
 
 /** Strict ISO-8601 UTC timestamp (`Z` suffix, optional milliseconds). */
 const ISO_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/u;
-
-/**
- * Whether a string contains an ASCII control character.
- * @param value - Candidate string
- * @returns True when a control character is present
- */
-function containsControlCharacter(value: string): boolean {
-  return Array.from(value).some(character => {
-    const codePoint = character.codePointAt(0) ?? 0;
-    return codePoint < 32 || codePoint === 127;
-  });
-}
-
-/**
- * Validate an optional non-empty trimmed string field.
- * @param value - Untrusted field value
- * @param source - Config source shown in errors
- * @param field - Dotted field name
- * @returns Valid string or undefined
- */
-function optionalString(
-  value: unknown,
-  source: string,
-  field: string
-): string | undefined {
-  if (value === undefined) return undefined;
-  if (
-    typeof value !== "string" ||
-    value.trim() !== value ||
-    value.length === 0 ||
-    containsControlCharacter(value)
-  ) {
-    throw new Error(
-      `Invalid ${field} in ${source}: expected a non-empty string`
-    );
-  }
-  return value;
-}
 
 /**
  * Validate the optional provisioned-artifact id map.
@@ -358,10 +352,14 @@ function validateProvisioned(
     );
   }
   return Object.fromEntries(
-    Object.entries(value).map(([key, id]) => [
-      key,
-      optionalString(id, source, `deployStatusSync.provisioned.${key}`) ?? "",
-    ])
+    Object.entries(value).flatMap(([key, id]) => {
+      const valid = optionalString(
+        id,
+        source,
+        `deployStatusSync.provisioned.${key}`
+      );
+      return valid === undefined ? [] : [[key, valid] as const];
+    })
   );
 }
 
@@ -425,11 +423,10 @@ export function validateDeployStatusSyncConfig(
       `Invalid deployStatusSync in ${source}: expected an object`
     );
   }
-  const input = value as Record<string, unknown>;
-  const tier = optionalString(input.tier, source, "deployStatusSync.tier");
-  const provisioned = validateProvisioned(input.provisioned, source);
-  const linearBinding = validateLinearBinding(input.linearBinding, source);
-  const verifiedAt = validateVerifiedAt(input.verifiedAt, source);
+  const tier = optionalString(value.tier, source, "deployStatusSync.tier");
+  const provisioned = validateProvisioned(value.provisioned, source);
+  const linearBinding = validateLinearBinding(value.linearBinding, source);
+  const verifiedAt = validateVerifiedAt(value.verifiedAt, source);
   return {
     ...(tier === undefined ? {} : { tier }),
     ...(provisioned === undefined ? {} : { provisioned }),

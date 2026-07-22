@@ -18,7 +18,7 @@ import {
   LEGACY_HARNESS_ALIASES,
   type Harness,
 } from "./config.js";
-import { validateSafeRelativeMarkdownPath } from "./config-path-validation.js";
+import { validateSafeRelativeMarkdownPath } from "./config-field-validation.js";
 import {
   validateDeployStatusSyncConfig,
   type DeployStatusSyncConfig,

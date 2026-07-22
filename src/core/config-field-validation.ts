@@ -1,10 +1,11 @@
 /**
- * Shared validation for path-typed `.lisa.config.json` fields.
+ * Shared validation for `.lisa.config.json` field values.
  *
- * Extracted from `project-config.ts` so every configurable file destination
- * (`projectRulesFile`, `learnings.file`, …) funnels through one hardened
- * safe-relative-Markdown-path check without growing the config module.
- * @module core/config-path-validation
+ * Extracted from `project-config.ts` so path-typed destinations
+ * (`projectRulesFile`, `learnings.file`, …) and string-typed section fields
+ * (`deployStatusSync.*`) funnel through the same hardened checks without
+ * growing the config module.
+ * @module core/config-field-validation
  */
 import * as path from "node:path";
 
@@ -18,6 +19,32 @@ function containsControlCharacter(value: string): boolean {
     const code = character.charCodeAt(0);
     return code <= 31 || code === 127;
   });
+}
+
+/**
+ * Validate an optional non-empty trimmed string field.
+ * @param value - Untrusted field value
+ * @param source - Config source shown in errors
+ * @param field - Dotted field name
+ * @returns Valid string or undefined
+ */
+export function optionalString(
+  value: unknown,
+  source: string,
+  field: string
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== "string" ||
+    value.trim() !== value ||
+    value.length === 0 ||
+    containsControlCharacter(value)
+  ) {
+    throw new Error(
+      `Invalid ${field} in ${source}: expected a non-empty string`
+    );
+  }
+  return value;
 }
 
 /**
