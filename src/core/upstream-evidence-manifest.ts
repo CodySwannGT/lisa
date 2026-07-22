@@ -7840,6 +7840,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
+    "tests/unit/core/deploy-status-sync-config.test.ts": true,
+    "tests/unit/core/deploy-status-sync-errors.test.ts": true,
     "tests/unit/core/deploy-status-sync.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
