@@ -33,6 +33,8 @@ import {
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
+const DOWNLOAD_ARTIFACT_STEP = "      - uses: actions/download-artifact@v4";
+
 let tempDir: string | undefined;
 
 /**
@@ -73,7 +75,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
       "    needs: [package]",
       RUNS_ON,
       STEPS,
-      "      - uses: actions/download-artifact@v4",
+      DOWNLOAD_ARTIFACT_STEP,
       RUN_PUBLISH,
     ]);
 
@@ -268,8 +270,30 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
       PUBLISH_JOB,
       RUNS_ON,
       STEPS,
-      "      - uses: actions/download-artifact@v4",
+      DOWNLOAD_ARTIFACT_STEP,
       RUN_BUILD,
+      "      - run: npm publish ./rebuilt.tgz",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+  });
+
+  it("FAILs when a templated package-manager build happens after artifact download", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      STEPS,
+      DOWNLOAD_ARTIFACT_STEP,
+      "      - run: ${{ inputs.package_manager }} run build",
       "      - run: npm publish ./rebuilt.tgz",
     ]);
 
