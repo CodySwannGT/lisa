@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.291.0](https://github.com/CodySwannGT/lisa/compare/v2.290.0...v2.291.0) (2026-07-22)
+
+
+### Features
+
+* **core:** add deploy-status-sync ladder resolver and config schema ([a8bc399](https://github.com/CodySwannGT/lisa/commit/a8bc3991c1b881842b9cf8f5da7f5d150997ec54)), closes [CodySwannGT/lisa#1967](https://github.com/CodySwannGT/lisa/issues/1967)
+
+
+### Bug Fixes
+
+* **core:** harden deploy ladder resolution per T3 review ([e67dcbe](https://github.com/CodySwannGT/lisa/commit/e67dcbeb23111ef7752a93ad61e83c2d235caf40)), closes [CodySwannGT/lisa#1967](https://github.com/CodySwannGT/lisa/issues/1967)
+
+
+### Documentation
+
+* **rules:** document deployStatusSync schema and deploy ladder resolution ([03eab13](https://github.com/CodySwannGT/lisa/commit/03eab138feaac95caa878aee23f24eeb65365d6d)), closes [CodySwannGT/lisa#1967](https://github.com/CodySwannGT/lisa/issues/1967)
+
 ## [2.290.0](https://github.com/CodySwannGT/lisa/compare/v2.289.2...v2.290.0) (2026-07-22)
 
 
