@@ -92,11 +92,8 @@ function isLocalBuildCommand(run: string): boolean {
 const LOCAL_PATH_ARGUMENT = /\s\.{0,2}\//;
 
 const LOCAL_ARTIFACT_FILE = /\.(tgz|tar\.gz|zip|whl)\b/;
-
 export const PROMOTION_ACTION = "actions/download-artifact";
-
 const DEFAULT_BRANCHES = new Set(["main", "master"]);
-
 const MAX_STEP_LABEL = 80;
 
 /** What assessing one publishing step established. */
@@ -125,9 +122,7 @@ export function describeStep(step: ParsedWorkflowStep): string {
     : source;
 }
 
-/**
- * A rehearsal flag: the command goes through the motions and ships nothing.
- */
+/** A rehearsal flag: the command goes through the motions and ships nothing. */
 const DRY_RUN_FLAG = /--dry[-_]?run\b/;
 
 /**
@@ -189,17 +184,6 @@ export function findPublishSteps(
   job: ParsedWorkflowJob
 ): readonly ParsedWorkflowStep[] {
   return job.steps.filter(isPublishStep);
-}
-
-/**
- * Find the first step in a job that ships something.
- * @param job - The parsed job
- * @returns The first publishing step, or undefined when the job ships nothing
- */
-export function findPublishStep(
-  job: ParsedWorkflowJob
-): ParsedWorkflowStep | undefined {
-  return findPublishSteps(job)[0];
 }
 
 /**
@@ -318,9 +302,13 @@ function shipsSelfBuiltArtifact(
  * Decide whether a workflow's trigger makes in-file validation the expected
  * place for it — the only case where absent validation proves a bypass.
  * @param workflow - The workflow to classify
+ * @param defaultBranches - Project-local default-like branch names
  * @returns The reason validation may live elsewhere, or null when it must be here
  */
-function offlineUnresolvableTrigger(workflow: ParsedWorkflow): string | null {
+function offlineUnresolvableTrigger(
+  workflow: ParsedWorkflow,
+  defaultBranches?: readonly string[]
+): string | null {
   const events = workflow.on.events;
   if (events.length > 0 && events.every(event => event === "workflow_call")) {
     return (
@@ -346,9 +334,13 @@ function offlineUnresolvableTrigger(workflow: ParsedWorkflow): string | null {
     workflow.on.events.includes("push") &&
     workflow.on.pushBranches.length === 0 &&
     workflow.on.pushTags.length === 0;
-  const defaultBranchPush = workflow.on.pushBranches.some(branch =>
-    DEFAULT_BRANCHES.has(branch)
-  );
+  const defaultBranchPush = workflow.on.pushBranches.some(branch => {
+    const trimmed = branch.trim();
+    return (
+      DEFAULT_BRANCHES.has(trimmed) ||
+      (defaultBranches ?? []).some(candidate => candidate.trim() === trimmed)
+    );
+  });
   if (unfilteredPush || defaultBranchPush) {
     return (
       "it is triggered by a push to the default branch, where branch protection " +
@@ -360,27 +352,16 @@ function offlineUnresolvableTrigger(workflow: ParsedWorkflow): string | null {
 }
 
 /**
- * Assess one job's release path against B2.
- * @param workflow - The workflow declaring the job
- * @param job - The job to assess
- * @returns What this job established, or undefined when it ships nothing
- */
-export function assessReleasePath(
-  workflow: ParsedWorkflow,
-  job: ParsedWorkflowJob
-): ReleasePathOutcome | undefined {
-  return assessReleasePaths(workflow, job)[0];
-}
-
-/**
  * Assess every publishing step in one job against B2.
  * @param workflow - The workflow declaring the job
  * @param job - The job to assess
+ * @param defaultBranches - Project-local default-like branch names
  * @returns One outcome per publishing step, or an empty list when it ships nothing
  */
 export function assessReleasePaths(
   workflow: ParsedWorkflow,
-  job: ParsedWorkflowJob
+  job: ParsedWorkflowJob,
+  defaultBranches?: readonly string[]
 ): readonly ReleasePathOutcome[] {
   return findPublishSteps(job).map(publishStep => {
     const where = `${workflow.file} job \`${job.id}\` step \`${describeStep(publishStep)}\``;
@@ -388,7 +369,7 @@ export function assessReleasePaths(
     if (shipsSelfBuiltArtifact(job, publishStep)) {
       return validated
         ? rebuildPastValidation(where)
-        : unvalidatedSelfBuild(where, workflow);
+        : unvalidatedSelfBuild(where, workflow, defaultBranches);
     }
     if (validated || promotesValidatedArtifact(job, publishStep)) {
       return { kind: "clean" };
@@ -431,13 +412,15 @@ function rebuildPastValidation(where: string): ReleasePathOutcome {
  * a stated-reason SKIP when the proof could live somewhere not visible offline.
  * @param where - Evidence location label
  * @param workflow - The workflow declaring the job
+ * @param defaultBranches - Project-local default-like branch names
  * @returns The violation or unresolved outcome
  */
 function unvalidatedSelfBuild(
   where: string,
-  workflow: ParsedWorkflow
+  workflow: ParsedWorkflow,
+  defaultBranches?: readonly string[]
 ): ReleasePathOutcome {
-  const unresolvable = offlineUnresolvableTrigger(workflow);
+  const unresolvable = offlineUnresolvableTrigger(workflow, defaultBranches);
   if (unresolvable !== null) {
     return {
       kind: "unresolved",
