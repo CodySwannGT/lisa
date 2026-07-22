@@ -72,6 +72,9 @@ describe("linear adapter request contract", () => {
     expect(calls[0]?.method).toBe("POST");
     expect(calls[0]?.headers["Authorization"]).toBe(KEY);
     expect(calls[0]?.headers["Content-Type"]).toBe("application/json");
+    // Paging pin: an unbounded children connection would use Linear's
+    // default page size (50) and under-detect openChildren on huge epics.
+    expect(calls[0]?.body).toContain("children(first:100)");
   });
 
   it("maps the issue payload into TrackerItemState", async () => {

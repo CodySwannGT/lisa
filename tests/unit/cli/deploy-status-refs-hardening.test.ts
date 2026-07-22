@@ -57,6 +57,21 @@ describe("extractWorkItemRefs revision hardening", () => {
     ]);
   });
 
+  it("rejects a three-dot range at the library level (zero git calls)", async () => {
+    // The cmd layer already rejects "...", but extractWorkItemRefs is an
+    // exported seam (DSS-4 consumers): without its own guard, rev-parse
+    // would see the dot-stripped head (two-dot semantics) while rev-list
+    // gets the raw range (symmetric difference) — two disagreeing calls.
+    const gitCalls: string[][] = [];
+    await expect(
+      extractWorkItemRefs(
+        { range: "abc...def", tracker: "github", cwd: CWD },
+        scriptedDeps([], gitCalls, [])
+      )
+    ).rejects.toThrow(/three-dot|symmetric difference/);
+    expect(gitCalls).toHaveLength(0);
+  });
+
   it("rejects a range with characters outside the revision charset", async () => {
     const gitCalls: string[][] = [];
     await expect(

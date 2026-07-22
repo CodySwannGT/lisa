@@ -133,6 +133,40 @@ describe("deploy-status-sync command --json output", () => {
     expect(output).not.toContain("\u001b");
   });
 
+  it("strips Unicode bidi/formatting controls from echoed skipped tokens", async () => {
+    // Trojan-Source-style spoofing: RLO/PDF overrides, isolates, and
+    // LRM/RLM marks can visually reorder the echoed line.
+    const bidiToken = "\u202eevil\u202cx\u2066#\u20697\u200e\u200f";
+    const adapter = adapterOf({});
+    const code = await runDeployStatusSync(
+      { environment: "dev", range: RANGE },
+      {
+        ...deps(adapter),
+        extractRefs: () =>
+          Promise.resolve({
+            refs: [],
+            skipped: [
+              { token: bidiToken, reason: "not a GitHub work-item ref" },
+            ],
+            headSha: "def456",
+          }),
+      }
+    );
+    expect(code).toBe(0);
+    const output = logs.join("\n");
+    expect(output).toContain("skipped token evilx#7 (");
+    for (const forbidden of [
+      "\u202e",
+      "\u202c",
+      "\u2066",
+      "\u2069",
+      "\u200e",
+      "\u200f",
+    ]) {
+      expect(output).not.toContain(forbidden);
+    }
+  });
+
   it("emits a parseable no-op payload for an unconfigured env", async () => {
     const code = await runDeployStatusSync(
       { environment: "qa", range: RANGE, json: true },

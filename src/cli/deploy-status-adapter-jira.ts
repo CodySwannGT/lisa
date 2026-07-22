@@ -82,6 +82,28 @@ function adfFirstText(body: unknown): string {
 }
 
 /**
+ * Project an ADF comment body onto plain text: text nodes joined per
+ * paragraph, paragraphs joined with newlines. This is the unchanged-check
+ * comparison basis — Jira round-trips ADF with its own key order and extra
+ * fields (attrs, marks), so a raw JSON comparison would report a semantic
+ * no-change as different and issue a redundant PUT on every run.
+ * @param body - ADF body value
+ * @returns Plain-text projection of the document
+ */
+function adfPlainText(body: unknown): string {
+  const doc = body as {
+    content?: readonly { content?: readonly { text?: unknown }[] }[];
+  };
+  return (doc.content ?? [])
+    .map(paragraph =>
+      (paragraph.content ?? [])
+        .map(node => (typeof node.text === "string" ? node.text : ""))
+        .join("")
+    )
+    .join("\n");
+}
+
+/**
  * Whether a Jira status payload sits in the done category.
  * @param status - Jira status field value
  * @returns True for done-category statuses
@@ -256,7 +278,10 @@ async function upsertComment(
     });
     return "created";
   }
-  if (JSON.stringify(existing.body) === JSON.stringify(doc)) {
+  // Compare on the plain-text projection, not raw JSON — the server-stored
+  // ADF is normalized (key order, attrs/marks defaults) and would never
+  // byte-match the freshly built document.
+  if (adfPlainText(existing.body) === body) {
     return "unchanged";
   }
   await request(`/rest/api/3/issue/${ref}/comment/${existing.id ?? ""}`, {

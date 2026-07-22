@@ -276,12 +276,21 @@ export async function runResolved(
   );
   extracted.skipped.forEach(entry => {
     // Skipped tokens come from untrusted commit messages and PR bodies —
-    // strip control characters (incl. ANSI escapes) before echoing so a
+    // strip control characters (incl. ANSI escapes) AND Unicode bidi/
+    // formatting controls (Trojan-Source-style reordering: LRM/RLM,
+    // embeddings/overrides U+202A-E, isolates U+2066-9) before echoing so a
     // crafted token cannot manipulate the operator's terminal.
     const printable = [...entry.token]
       .filter(character => {
         const code = character.codePointAt(0) ?? 0;
-        return code >= 0x20 && code !== 0x7f && (code < 0x80 || code > 0x9f);
+        const isControl =
+          code < 0x20 || code === 0x7f || (code >= 0x80 && code <= 0x9f);
+        const isBidi =
+          code === 0x20_0e ||
+          code === 0x20_0f ||
+          (code >= 0x20_2a && code <= 0x20_2e) ||
+          (code >= 0x20_66 && code <= 0x20_69);
+        return !isControl && !isBidi;
       })
       .join("");
     sinks.human(`skipped token ${printable} (${entry.reason})`);
