@@ -91,6 +91,17 @@ describe("deploy-status-sync command validation", () => {
     expect(errors.join("\n")).toContain("--range");
   });
 
+  it("rejects a three-dot range decision-readably", async () => {
+    const code = await runDeployStatusSync(
+      { environment: "dev", range: "abc...def" },
+      deps(adapterOf({}))
+    );
+    expect(code).toBe(1);
+    expect(errors.join("\n")).toContain(
+      'Invalid range "abc...def": three-dot "..." selects the symmetric difference, which is never a deploy range. Pass the deployed range as <base>..<head> (two dots).'
+    );
+  });
+
   it("normalizes --before/--after into a range", async () => {
     const seen: string[] = [];
     const adapter = adapterOf({

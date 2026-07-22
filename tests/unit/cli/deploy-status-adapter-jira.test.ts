@@ -125,36 +125,79 @@ describe("jira adapter request contract", () => {
   });
 });
 
+describe("jira adapter site fallback validation", () => {
+  /**
+   * Build a jira adapter bound to a site fallback (no cloudId).
+   * @param site - Configured atlassian.site value
+   * @returns Adapter plus recorded requests
+   */
+  function siteAdapter(site: string): {
+    readonly adapter: ReturnType<typeof createJiraAdapter>;
+    readonly calls: { url: string }[];
+  } {
+    const calls: { url: string }[] = [];
+    const fetchImpl = ((url: string | URL) => {
+      calls.push({ url: String(url) });
+      return Promise.resolve(
+        new Response(JSON.stringify(ISSUE_PAYLOAD), { status: 200 })
+      );
+    }) as typeof fetch;
+    const adapter = createJiraAdapter(
+      { site, email: "dev@acme.test" },
+      { fetchImpl, env: { JIRA_API_TOKEN: "jira-token" } }
+    );
+    return { adapter, calls };
+  }
+
+  it("accepts a *.atlassian.net site and requests against it", async () => {
+    const { adapter, calls } = siteAdapter("acme.atlassian.net");
+    await adapter.fetchItemState(REF);
+    expect(calls[0]?.url).toBe(
+      `https://acme.atlassian.net/rest/api/3/issue/${REF}?fields=status,issuetype,subtasks`
+    );
+  });
+
+  it("rejects a non-atlassian.net site host decision-readably (no request)", async () => {
+    const { adapter, calls } = siteAdapter("evil.example.com");
+    await expect(adapter.fetchItemState(REF)).rejects.toThrow(
+      /atlassian\.site.*atlassian\.net/
+    );
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe("jira adapter managed comment", () => {
   const BODY = `${DEPLOY_STATUS_SYNC_MARKER}\nDeploy status sync: body.`;
 
-  it("creates an ADF comment when no marker comment exists", async () => {
+  /** The exact ADF document for BODY: one paragraph node per line. */
+  const BODY_DOC = {
+    type: "doc",
+    version: 1,
+    content: [
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: DEPLOY_STATUS_SYNC_MARKER }],
+      },
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: "Deploy status sync: body." }],
+      },
+    ],
+  };
+
+  it("creates a proper multi-paragraph ADF comment (no raw newlines)", async () => {
     const { adapter, calls } = recordingAdapter([{ comments: [] }, {}]);
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
       "created"
     );
     expect(calls[1]?.method).toBe("POST");
-    const body = JSON.parse(calls[1]?.body ?? "{}") as {
-      body?: { content?: { content?: { text?: string }[] }[] };
-    };
-    expect(body.body?.content?.[0]?.content?.[0]?.text).toBe(BODY);
+    // Literal shape pin: newline-split into paragraph nodes — ADF text
+    // nodes must not carry raw \n characters.
+    expect(JSON.parse(calls[1]?.body ?? "{}")).toEqual({ body: BODY_DOC });
   });
 
   it("returns unchanged with no write when the ADF body is identical", async () => {
-    const existing = {
-      comments: [
-        {
-          id: "5001",
-          body: {
-            type: "doc",
-            version: 1,
-            content: [
-              { type: "paragraph", content: [{ type: "text", text: BODY }] },
-            ],
-          },
-        },
-      ],
-    };
+    const existing = { comments: [{ id: "5001", body: BODY_DOC }] };
     const { adapter, calls } = recordingAdapter([existing]);
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
       "unchanged"

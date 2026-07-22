@@ -40,7 +40,14 @@ function normalizeInputs(
         "Pass exactly one of --environment <env> or --branch <branch> to identify the deploy target.",
     };
   }
-  if (options.range !== undefined) return { range: options.range };
+  if (options.range !== undefined) {
+    if (options.range.includes("...")) {
+      return {
+        problem: `Invalid range "${options.range}": three-dot "..." selects the symmetric difference, which is never a deploy range. Pass the deployed range as <base>..<head> (two dots).`,
+      };
+    }
+    return { range: options.range };
+  }
   if (options.before !== undefined && options.after !== undefined) {
     return { range: `${options.before}..${options.after}` };
   }
