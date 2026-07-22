@@ -10,10 +10,11 @@
  *
  * Four declarations are treated as material over-authority: inherited secrets
  * (`secrets: inherit` hands a called workflow everything), `write-all`/`read-all`
- * blanket permission grants, a job that uses `GITHUB_TOKEN` with no
+ * blanket permission grants, a job that uses the repository token with no
  * `permissions` block at all (so it takes the repository default rather than a
- * stated minimum), and static long-lived AWS keys in a job that could have used
- * OIDC instead. Each is provable from the declaration alone.
+ * stated minimum), and static long-lived deployment credentials in jobs that
+ * should use a scoped or federated credential instead. Each is provable from
+ * the declaration alone.
  *
  * A fifth signal — one secret NAME appearing under several environments — is
  * reported as an *observation*, never a blocker: environment secrets are meant
@@ -36,11 +37,30 @@ const BLANKET_PERMISSIONS = new Set(["write-all", "read-all"]);
 /** Matches every `secrets.NAME` reference inside a job's declared text. */
 const SECRET_REFERENCE = /secrets\.(\w+)/g;
 
-/** Static AWS credential inputs that OIDC (`id-token: write`) would replace. */
-const STATIC_AWS_KEYS = ["aws-access-key-id", "aws-secret-access-key"];
+/** Static credential names and inputs that keyless or scoped auth should replace. */
+const STATIC_CREDENTIAL_KEYS = [
+  "aws-access-key-id",
+  "aws-secret-access-key",
+  "NPM_TOKEN",
+  "GCP_SERVICE_ACCOUNT_JSON",
+  "GOOGLE_APPLICATION_CREDENTIALS",
+  "AZURE_CREDENTIALS",
+  "ADMIN_PAT",
+  "BOT_ADMIN_PAT",
+  "GH_ADMIN_PAT",
+];
+
+/** Static cloud credential inputs that OIDC (`id-token: write`) can replace. */
+const OIDC_REPLACEABLE_KEYS = new Set([
+  "aws-access-key-id",
+  "aws-secret-access-key",
+  "GCP_SERVICE_ACCOUNT_JSON",
+  "GOOGLE_APPLICATION_CREDENTIALS",
+  "AZURE_CREDENTIALS",
+]);
 
 /** Matches a repository-token reference in either of its spellings. */
-const REPOSITORY_TOKEN = /GITHUB_TOKEN|github\.token/;
+const REPOSITORY_TOKEN = /\b(?:GITHUB_TOKEN|GH_TOKEN)\b|github\.token/;
 
 /** One secret referenced by one deployment environment. */
 interface SecretEnvironmentPair {
@@ -130,13 +150,14 @@ function unscopedTokenViolations(
   job: ParsedWorkflowJob,
   text: string
 ): readonly string[] {
+  const token = REPOSITORY_TOKEN.exec(text)?.[0];
   const unscoped =
-    REPOSITORY_TOKEN.test(text) &&
+    token !== undefined &&
     job.permissions === null &&
     workflow.permissions === null;
   return unscoped
     ? [
-        `${where} uses GITHUB_TOKEN with no \`permissions:\` block at either ` +
+        `${where} uses ${token} with no \`permissions:\` block at either ` +
           "scope, so it runs with the repository default rather than a stated minimum",
       ]
     : [];
@@ -157,17 +178,18 @@ function staticKeyViolations(
   job: ParsedWorkflowJob,
   text: string
 ): readonly string[] {
-  const staticKey = STATIC_AWS_KEYS.find(key => text.includes(key));
-  if (
-    staticKey === undefined ||
-    grantsOidc(job.permissions) ||
-    grantsOidc(workflow.permissions)
-  ) {
+  const oidcGranted =
+    grantsOidc(job.permissions) || grantsOidc(workflow.permissions);
+  const staticKey = STATIC_CREDENTIAL_KEYS.find(
+    key =>
+      text.includes(key) && !(oidcGranted && OIDC_REPLACEABLE_KEYS.has(key))
+  );
+  if (staticKey === undefined) {
     return [];
   }
   return [
     `${where} authenticates with the static long-lived credential ` +
-      `\`${staticKey}\` where keyless OIDC (\`id-token: write\`) would do`,
+      `\`${staticKey}\` instead of a scoped or federated deployment credential`,
   ];
 }
 
