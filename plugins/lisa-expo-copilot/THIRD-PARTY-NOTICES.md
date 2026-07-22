@@ -47,8 +47,10 @@ To register by hand instead, keep it at local scope and inject the toolchain,
 e.g.:
 
 ```
+# Resolve a real JAVA_HOME from the JVM (robust when `java` is a shim/symlink):
+JAVA_HOME="$(java -XshowSettings:properties -version 2>&1 | sed -n 's/^[[:space:]]*java\.home = //p' | head -n1)"
 claude mcp add --scope local maestro \
-  --env "JAVA_HOME=$JAVA_HOME" --env "PATH=$(dirname "$(command -v java)"):$HOME/.maestro/bin:$PATH" \
+  --env "JAVA_HOME=$JAVA_HOME" --env "PATH=$JAVA_HOME/bin:$HOME/.maestro/bin:$PATH" \
   -- "$HOME/.maestro/bin/maestro" mcp
 ```
 

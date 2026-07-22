@@ -60,17 +60,30 @@ Maestro needs a JDK (8+). Resolve `JAVA_HOME` **honoring the project's version
 manager** — do not install a parallel global JDK when one is already managed:
 
 ```bash
-# Prefer an already-active/managed Java before installing anything.
+# Prefer an already-active/managed Java before installing anything. Covers the
+# common version managers (mise, asdf, SDKMAN) plus an ambient install.
 if command -v mise >/dev/null 2>&1 && mise which java >/dev/null 2>&1; then
   JAVA_BIN="$(mise which java)"
 elif command -v asdf >/dev/null 2>&1 && asdf which java >/dev/null 2>&1; then
   JAVA_BIN="$(asdf which java)"
+elif [ -x "${SDKMAN_DIR:-$HOME/.sdkman}/candidates/java/current/bin/java" ]; then
+  # SDKMAN's `sdk` is a shell function absent in non-login shells; use its stable
+  # `candidates/java/current` symlink directly instead.
+  JAVA_BIN="${SDKMAN_DIR:-$HOME/.sdkman}/candidates/java/current/bin/java"
 elif command -v java >/dev/null 2>&1; then
   JAVA_BIN="$(command -v java)"
 fi
 echo "java: ${JAVA_BIN:-NOT FOUND}"
-# JAVA_HOME is the parent of the bin/ dir that contains java.
-[ -n "$JAVA_BIN" ] && JAVA_HOME="$(cd "$(dirname "$JAVA_BIN")/.." && pwd)"
+
+# Derive JAVA_HOME by asking the JVM itself — NOT `dirname "$JAVA_BIN"/..`, which
+# is wrong when `java` is a mise/asdf shim or a symlink whose parent is not a JDK
+# root. Fall back to the bin/.. parent only if the JVM query yields nothing usable.
+if [ -n "$JAVA_BIN" ]; then
+  JAVA_HOME="$("$JAVA_BIN" -XshowSettings:properties -version 2>&1 \
+    | sed -n 's/^[[:space:]]*java\.home = //p' | head -n 1)"
+  { [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; } &&
+    JAVA_HOME="$(cd "$(dirname "$JAVA_BIN")/.." && pwd)"
+fi
 ```
 
 If no Java is found: install through the project's version manager when present
@@ -86,7 +99,14 @@ the **current** coding agent. `$JAVA_BIN`/`$MAESTRO_BIN` are absolute.
 Claude Code:
 
 ```bash
-JBIN_DIR="$(dirname "$JAVA_BIN")"; MBIN_DIR="$(dirname "$MAESTRO_BIN")"
+# Refuse to register a broken server — both toolchain paths must resolve and be
+# executable, or `claude mcp add` would create the exact -32000 entry this skill
+# exists to avoid.
+[ -n "$MAESTRO_BIN" ] && [ -x "$MAESTRO_BIN" ] || { echo "Maestro CLI unresolved — abort"; exit 1; }
+[ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ] || { echo "Java runtime unresolved — abort"; exit 1; }
+
+# Use the real JDK bin (from JAVA_HOME), not the shim dir, on PATH.
+JBIN_DIR="$JAVA_HOME/bin"; MBIN_DIR="$(dirname "$MAESTRO_BIN")"
 claude mcp add --scope local maestro \
   --env "JAVA_HOME=$JAVA_HOME" \
   --env "PATH=$JBIN_DIR:$MBIN_DIR:$PATH" \
