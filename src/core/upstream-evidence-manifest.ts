@@ -589,7 +589,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "a22fd1b7c483f1a538202353ee85c82be17a8910e03c0a930635ce8cb3595c64",
+      "64546813f168fb446f39e34bc674fd3af85b15bd5e7f4f6bf4503463e701a7b9",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":

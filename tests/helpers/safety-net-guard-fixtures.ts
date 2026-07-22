@@ -239,6 +239,14 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("PR-A3", "./scripts/confirm -rf /", ALLOW, RM_ROOT),
   fx("PR-A4", "rmdir /tmp/x", ALLOW, RM_ROOT),
   fx("PR-A5", "informant -rf /", ALLOW, RM_ROOT),
+  // I4. mixed short/long recursive+force spellings (PR #1976 review): the
+  // split-flag gate must pair ANY recursive form with ANY force form, not just
+  // short+short / long+long.
+  fx("MX-B1", "rm -r --force /", BLOCK, RM_ROOT),
+  fx("MX-B2", "rm --recursive -f /", BLOCK, RM_ROOT),
+  fx("MX-B3", "rm --recursive -v -f /", BLOCK, RM_ROOT),
+  fx("MX-A1", "rm -r --verbose /", ALLOW, RM_ROOT),
+  fx("MX-A2", "rm --force -v file.txt", ALLOW, RM_ROOT),
   // J. find / xargs deletion (absorb 11)
   fx("FX-B1", "find . -delete", BLOCK, FIND_DELETE),
   fx("FX-B2", "find . -name '*.tmp' -delete", BLOCK, FIND_DELETE),
