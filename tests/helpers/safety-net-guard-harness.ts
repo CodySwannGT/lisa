@@ -7,7 +7,7 @@
  * @module tests/helpers/safety-net-guard-harness
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
@@ -37,6 +37,19 @@ export interface GitStateFixture extends GuardFixture {
   readonly repo: "clean" | "dirty";
 }
 
+/** Mid-rebase repository shapes for the rebase-abort guard (#1956 Fix 4). */
+export type RebaseRepoKind =
+  | "apply-conflict"
+  | "conflict-missing-automerge"
+  | "conflict-resolved"
+  | "conflict-untouched"
+  | "wedged-clean";
+
+/** A guard-matrix row whose verdict depends on in-progress rebase state. */
+export interface RebaseStateFixture extends GuardFixture {
+  readonly repo: RebaseRepoKind;
+}
+
 /** An environment map as spawned processes accept it. */
 type EnvMap = Record<string, string | undefined>;
 
@@ -57,6 +70,11 @@ interface GuardHarness {
   readonly runHookRaw: (input: string, options: RunOptions) => HookResult;
   readonly runHook: (command: string, options: RunOptions) => HookResult;
   readonly makeRepo: (root: string, name: string, dirty: boolean) => string;
+  readonly makeRebaseRepo: (
+    root: string,
+    name: string,
+    kind: RebaseRepoKind
+  ) => string;
 }
 
 /**
@@ -76,18 +94,117 @@ export const expectedStatus = (verdict: Verdict): number =>
  * @param baseEnv - Environment to inherit (callers pass process.env).
  * @returns The bound harness.
  */
-export const createGuardHarness = (baseEnv: EnvMap): GuardHarness => {
-  const strippedEnv = (): EnvMap =>
-    Object.fromEntries(
-      Object.entries(baseEnv).filter(([key]) => !key.startsWith("GIT_"))
-    );
+/** Repeated literals used by the rebase repo builders. */
+const MAIN_BRANCH = "main";
+const FEATURE_BRANCH = "feature";
+const CONFLICTED_FILE = "conflicted.txt";
+const BRANCH_CHANGE = "feat: branch change";
+const BASE_CHANGE = "chore: base change";
 
+/** Throwing git runner bound to a repo directory. */
+type GitRunner = (cwd: string, ...args: readonly string[]) => void;
+
+/** Non-throwing git runner returning the exit status. */
+type GitStatusRunner = (cwd: string, ...args: readonly string[]) => number;
+
+/**
+ * Strips hook-managed GIT_* variables from an environment map.
+ *
+ * Hook-managed GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE poison git
+ * subprocesses in temp repos (known repo learning).
+ * @param baseEnv - Environment to sanitize.
+ * @returns The environment without GIT_* keys.
+ */
+const stripGitVars = (baseEnv: EnvMap): EnvMap =>
+  Object.fromEntries(
+    Object.entries(baseEnv).filter(([key]) => !key.startsWith("GIT_"))
+  );
+
+/**
+ * Seeds a feature/main divergence that rebases CLEANLY, then installs a
+ * failing prepare-commit-msg hook so the pick cannot commit — the exact #1956
+ * clean wedge: rebase-merge exists, no unmerged paths, and both the worktree
+ * and the index match the AUTO_MERGE tree.
+ * @param dir - Seeded repo on the feature branch.
+ * @param gitIn - Throwing git runner.
+ */
+const seedWedgedCleanRepo = (dir: string, gitIn: GitRunner): void => {
+  const hookFile = path.join(dir, ".git", "hooks", "prepare-commit-msg");
+  writeFileSync(path.join(dir, "branch.txt"), "branch\n");
+  gitIn(dir, "add", "branch.txt");
+  gitIn(dir, "commit", "-m", BRANCH_CHANGE);
+  gitIn(dir, "switch", MAIN_BRANCH);
+  writeFileSync(path.join(dir, "base.txt"), "base advance\n");
+  gitIn(dir, "add", "base.txt");
+  gitIn(dir, "commit", "-m", BASE_CHANGE);
+  gitIn(dir, "switch", FEATURE_BRANCH);
+  mkdirSync(path.dirname(hookFile), { recursive: true });
+  writeFileSync(hookFile, "#!/bin/sh\nexit 1\n");
+  chmodSync(hookFile, 0o755);
+};
+
+/**
+ * Seeds a feature/main divergence where both sides rewrite the same file so a
+ * rebase stops on a conflict.
+ * @param dir - Seeded repo on the feature branch.
+ * @param gitIn - Throwing git runner.
+ */
+const seedConflictRepo = (dir: string, gitIn: GitRunner): void => {
+  const conflicted = path.join(dir, CONFLICTED_FILE);
+  writeFileSync(conflicted, "feature\n");
+  gitIn(dir, "add", CONFLICTED_FILE);
+  gitIn(dir, "commit", "-m", BRANCH_CHANGE);
+  gitIn(dir, "switch", MAIN_BRANCH);
+  writeFileSync(conflicted, "main\n");
+  gitIn(dir, "add", CONFLICTED_FILE);
+  gitIn(dir, "commit", "-m", BASE_CHANGE);
+  gitIn(dir, "switch", FEATURE_BRANCH);
+};
+
+/**
+ * Drives a seeded repo into the requested mid-rebase state (#1956 Fix 4).
+ * @param dir - Repo directory produced by makeRepo.
+ * @param kind - Mid-rebase shape to build.
+ * @param gitIn - Throwing git runner.
+ * @param gitTry - Non-throwing git runner (the rebase is expected to stop).
+ * @returns The repo directory.
+ */
+const buildRebaseState = (
+  dir: string,
+  kind: RebaseRepoKind,
+  gitIn: GitRunner,
+  gitTry: GitStatusRunner
+): string => {
+  gitIn(dir, "switch", "-c", FEATURE_BRANCH);
+  if (kind === "wedged-clean") seedWedgedCleanRepo(dir, gitIn);
+  else seedConflictRepo(dir, gitIn);
+  if (
+    gitTry(
+      dir,
+      ...(kind === "apply-conflict"
+        ? ["rebase", "--apply", MAIN_BRANCH]
+        : ["rebase", MAIN_BRANCH])
+    ) === 0
+  ) {
+    throw new Error(`expected the ${kind} rebase to stop before completing`);
+  }
+  if (kind === "conflict-resolved") {
+    writeFileSync(path.join(dir, CONFLICTED_FILE), "resolved by a human\n");
+    gitIn(dir, "add", CONFLICTED_FILE);
+  }
+  if (kind === "conflict-missing-automerge") {
+    gitIn(dir, "update-ref", "-d", "AUTO_MERGE");
+  }
+  return dir;
+};
+
+export const createGuardHarness = (baseEnv: EnvMap): GuardHarness => {
   const runHookRaw = (input: string, options: RunOptions): HookResult => {
     const result = spawnSync(BASH_PATH, [HOOK_PATH], {
       cwd: options.cwd,
       encoding: "utf-8",
       env: {
-        ...strippedEnv(),
+        ...stripGitVars(baseEnv),
         CLAUDE_PROJECT_DIR: options.cwd,
         // Point at a path that does not exist so project-local custom rules
         // cannot leak into built-in guard assertions.
@@ -105,20 +222,26 @@ export const createGuardHarness = (baseEnv: EnvMap): GuardHarness => {
       options
     );
 
-  const gitIn = (cwd: string, ...args: readonly string[]): void => {
-    const result = spawnSync(GIT_BIN, [...args], {
+  const spawnGit = (cwd: string, args: readonly string[]) =>
+    spawnSync(GIT_BIN, [...args], {
       cwd,
       encoding: "utf-8",
       env: {
-        ...strippedEnv(),
+        ...stripGitVars(baseEnv),
         GIT_CONFIG_GLOBAL: "/dev/null",
         GIT_CONFIG_SYSTEM: "/dev/null",
       },
     });
+
+  const gitIn = (cwd: string, ...args: readonly string[]): void => {
+    const result = spawnGit(cwd, args);
     if (result.status !== 0) {
       throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
     }
   };
+
+  const gitTry = (cwd: string, ...args: readonly string[]): number =>
+    spawnGit(cwd, args).status ?? 1;
 
   const makeRepo = (root: string, name: string, dirty: boolean): string => {
     const dir = path.join(root, name);
@@ -135,5 +258,12 @@ export const createGuardHarness = (baseEnv: EnvMap): GuardHarness => {
     return dir;
   };
 
-  return { runHookRaw, runHook, makeRepo };
+  const makeRebaseRepo = (
+    root: string,
+    name: string,
+    kind: RebaseRepoKind
+  ): string =>
+    buildRebaseState(makeRepo(root, name, false), kind, gitIn, gitTry);
+
+  return { runHookRaw, runHook, makeRepo, makeRebaseRepo };
 };

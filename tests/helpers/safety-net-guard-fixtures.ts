@@ -10,6 +10,8 @@
 import type {
   GitStateFixture,
   GuardFixture,
+  RebaseRepoKind,
+  RebaseStateFixture,
   Verdict,
 } from "./safety-net-guard-harness";
 
@@ -42,6 +44,7 @@ const RM_ROOT = "rm-root";
 const FORCE_PUSH = "force-push";
 const SQL = "sql";
 const RESET_DIRTY = "reset-dirty";
+const REBASE_ABORT = "rebase-abort";
 
 /**
  * Builds a {@link GuardFixture} row.
@@ -323,4 +326,40 @@ export const GIT_STATE_FIXTURES: readonly GitStateFixture[] = [
   // Global options must not dodge the reset guard (security review F1).
   gfx("GS-B4", "dirty", "git -C . reset --hard", BLOCK),
   gfx("GS-A6", "clean", "git -C . reset --hard", ALLOW),
+];
+
+/**
+ * Builds a {@link RebaseStateFixture} row for the rebase-abort guard.
+ * @param id - Matrix row id (e.g. "RB-B1").
+ * @param repo - Which mid-rebase fixture repo the hook runs in.
+ * @param command - Bash command the hook screens.
+ * @param expected - Verdict the hook must produce.
+ * @returns The fixture row.
+ */
+const rfx = (
+  id: string,
+  repo: RebaseRepoKind,
+  command: string,
+  expected: Verdict
+): RebaseStateFixture => ({ id, repo, command, expected, guard: REBASE_ABORT });
+
+/**
+ * `git rebase --abort`/`--quit` guard rows (#1956 Fix 4), asserted in real
+ * mid-rebase fixture repos. Block only when aborting would discard human/agent
+ * conflict resolutions; fail closed on the apply backend and on an
+ * unresolvable AUTO_MERGE ref while rebase-merge state exists.
+ */
+const REBASE_ABORT_CMD = "git rebase --abort";
+const RESOLVED_REPO: RebaseRepoKind = "conflict-resolved";
+
+export const REBASE_STATE_FIXTURES: readonly RebaseStateFixture[] = [
+  rfx("RB-B1", RESOLVED_REPO, REBASE_ABORT_CMD, BLOCK),
+  rfx("RB-B2", RESOLVED_REPO, "git rebase --quit", BLOCK),
+  rfx("RB-B3", "apply-conflict", REBASE_ABORT_CMD, BLOCK),
+  rfx("RB-B4", "conflict-missing-automerge", REBASE_ABORT_CMD, BLOCK),
+  // Global options must not dodge the abort guard (same model as GS-B4).
+  rfx("RB-B5", RESOLVED_REPO, "git -C . rebase --abort", BLOCK),
+  rfx("RB-A1", "wedged-clean", REBASE_ABORT_CMD, ALLOW),
+  rfx("RB-A2", "conflict-untouched", REBASE_ABORT_CMD, ALLOW),
+  rfx("RB-A3", RESOLVED_REPO, "git rebase --continue", ALLOW),
 ];
