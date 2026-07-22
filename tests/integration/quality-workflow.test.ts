@@ -550,10 +550,21 @@ describe("release and deploy workflows", () => {
     expect(run).toContain('!= "custom"');
 
     expect(run).toContain('VERSION="${VERSION#v}"');
+
+    // Environment-scoped release tags (standard-version): prod cuts a clean
+    // vX.Y.Z; non-prod cuts a vX.Y.Z-<env>.<ts> pre-release tag so tag
+    // namespaces never collide across branches. package.json version stays
+    // clean; only the git tag carries the suffix.
+    expect(run).toContain('PRERELEASE_LABEL="${{ inputs.prerelease }}"');
+    expect(run).toContain("main|master|prod|production) PRERELEASE_LABEL=");
+    expect(run).toContain('TAG="v${VERSION}-${PRERELEASE_LABEL}.$(date +%s)"');
+    expect(run).toContain("git fetch --tags --force origin");
+    expect(run).toContain('TAG="v$VERSION"');
+
     const guardIndex = run.indexOf("git rev-parse -q --verify");
     expect(guardIndex).toBeGreaterThan(run.indexOf('VERSION="${VERSION#v}"'));
     expect(run.indexOf('echo "version=$VERSION"')).toBeGreaterThan(guardIndex);
-    expect(run.indexOf('echo "tag=v$VERSION"')).toBeGreaterThan(guardIndex);
+    expect(run.indexOf('echo "tag=$TAG"')).toBeGreaterThan(guardIndex);
   });
 
   it("fails release creation on API errors but reuses an existing release on rerun", () => {
