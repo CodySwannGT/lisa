@@ -143,5 +143,19 @@
       "p95LatencyMs": 1000,
       "faultRatePct": 5
     }
+  },
+  "thresholdRatchet": {
+    "allow": [
+      {
+        "file": "audit.ignore.config.json",
+        "key": "exclusions:{\"id\":\"GHSA-3jxr-9vmj-r5cp\",\"package\":\"brace-expansion\",\"reason\":\"human-approved dev-tooling transitive DoS waiver; root-fix not reachable via bun\"}",
+        "reason": "Root-fix empirically unreachable (bun ignores per-major override keys; patched 1.1.16/2.1.2 are maintenance-tagged so ^ ranges skip them; blanket force unsafe). brace-expansion is a dev-tooling-only transitive (eslint/minimatch + self-lisa pin), no untrusted glob input. Approved by repo owner Cody Swann."
+      },
+      {
+        "file": "audit.ignore.config.json",
+        "key": "exclusions:{\"id\":\"GHSA-52cp-r559-cp3m\",\"package\":\"js-yaml\",\"reason\":\"human-approved dev-tooling transitive DoS waiver; root-fix not reachable via bun\"}",
+        "reason": "Root-fix empirically unreachable (js-yaml 3.14.2 held by the self-lisa@2.195.6 dev-pin at <3.15.0; 3->4 bump is breaking). Dev-tooling-only transitive, parses repo-owned YAML, no untrusted input. Approved by repo owner Cody Swann."
+      }
+    ]
   }
 }
