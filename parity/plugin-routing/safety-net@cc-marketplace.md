@@ -3,7 +3,7 @@
 - **Plugin:** `safety-net@cc-marketplace`
 - **Upstream version:** `1.0.6`
 - **Analyzed:** 2026-07-22 (re-review; originally 2026-05-30 at 0.9.0)
-- **Status:** `proposed` (flip to `approved` before running `implement-plugin-parity`)
+- **Status:** `approved`
 
 ## Components
 
