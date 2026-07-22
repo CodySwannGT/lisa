@@ -589,6 +589,7 @@ describe("provider liveness", () => {
     expect(epic.stderr).toContain("is a container");
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Data security / credential secrecy).
   it("uses canonical Atlassian credentials and requests Jira status in curl fallback", () => {
     const fixture = createFixture({
       tracker: "jira",
@@ -598,24 +599,30 @@ describe("provider liveness", () => {
     });
     rmSync(path.join(fixture.bin, "acli"));
     const log = path.join(fixture.root, "curl.log");
+    const stdinLog = path.join(fixture.root, "curl.stdin.log");
     executable(
       path.join(fixture.bin, "curl"),
-      `printf '%s\\n' "$*" > "\${FAKE_CURL_LOG}"\nprintf '%s\\n' '{"key":"LAS-12","fields":{"project":{"key":"LAS"},"status":{"name":"In Progress","statusCategory":{"key":"indeterminate"}},"labels":["repo:widgets"],"issuetype":{"name":"Task"},"subtasks":[],"comment":{"comments":[]}}}'`
+      `printf '%s\\n' "$*" > "\${FAKE_CURL_LOG}"\ncat > "\${FAKE_CURL_STDIN_LOG}"\nprintf '%s\\n' '{"key":"LAS-12","fields":{"project":{"key":"LAS"},"status":{"name":"In Progress","statusCategory":{"key":"indeterminate"}},"labels":["repo:widgets"],"issuetype":{"name":"Task"},"subtasks":[],"comment":{"comments":[]}}}'`
     );
 
     const result = command(fixture, ["bind", "LAS-12"], {
       env: {
         ATLASSIAN_API_TOKEN: "fake-atlassian-key",
         FAKE_CURL_LOG: log,
+        FAKE_CURL_STDIN_LOG: stdinLog,
         PATH: `${fixture.bin}:/usr/bin:/bin`,
       },
     });
     expect(result.status).toBe(0);
     const invocation = readFileSync(log, "utf8");
-    expect(invocation).toContain("agent@acme.test:fake-atlassian-key");
+    expect(invocation).not.toContain("fake-atlassian-key");
+    expect(invocation).toContain("--config -");
     expect(invocation).toContain("api.atlassian.com/ex/jira/cloud-123");
     expect(invocation).toContain(
       "fields=project,status,labels,components,issuetype,subtasks,comment"
+    );
+    expect(readFileSync(stdinLog, "utf8")).toContain(
+      'user = "agent@acme.test:fake-atlassian-key"'
     );
   });
 
@@ -634,6 +641,37 @@ describe("provider liveness", () => {
     });
     expect(terminal.status).toBe(1);
     expect(terminal.stderr).toContain("is terminal");
+  });
+
+  // Test hardened to kill mutant M002 (Risk Factor: Data security / credential secrecy).
+  it("passes Linear authorization through curl stdin rather than process argv", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+    const argsLog = path.join(fixture.root, "curl.args.log");
+    const stdinLog = path.join(fixture.root, "curl.stdin.log");
+    executable(
+      path.join(fixture.bin, "curl"),
+      `printf '%s\\n' "$*" > "\${FAKE_CURL_ARGS_LOG}"\ncat > "\${FAKE_CURL_STDIN_LOG}"\nprintf '%s\\n' "$FAKE_CURL_JSON"`
+    );
+
+    const result = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_ARGS_LOG: argsLog,
+        FAKE_CURL_STDIN_LOG: stdinLog,
+        LINEAR_API_KEY: "secret-linear-key",
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const invocation = readFileSync(argsLog, "utf8");
+    expect(invocation).not.toContain("secret-linear-key");
+    expect(invocation).toContain("--config -");
+    expect(readFileSync(stdinLog, "utf8")).toContain(
+      'header = "Authorization: secret-linear-key"'
+    );
   });
 
   it("rejects wrong-repo, unclaimed, and container Linear issues", () => {
