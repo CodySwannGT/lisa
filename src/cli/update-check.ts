@@ -67,10 +67,12 @@ export function getDefaultCachePath(cwd: string = process.cwd()): string {
 
 /**
  * Read process.env through one explicit, reviewable exception to the app-template
- * env rule. The CLI needs externally supplied process env for this root opt-out.
+ * env rule. The CLI needs externally supplied process env for this root opt-out;
+ * exported so other CLI modules (e.g. deploy-status-sync) reuse this single
+ * exception instead of adding their own.
  * @returns Current process environment
  */
-function getProcessEnv(): NodeJS.ProcessEnv {
+export function getProcessEnv(): NodeJS.ProcessEnv {
   // eslint-disable-next-line no-restricted-syntax -- CLI root option must read externally supplied process env once
   return process.env;
 }
