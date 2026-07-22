@@ -17,7 +17,7 @@ import type {
   CommentUpsertResult,
   TrackerAdapter,
   TrackerAdapterDeps,
-} from "./deploy-status-adapter.js";
+} from "./deploy-status-adapter-shared.js";
 import { getProcessEnv } from "./update-check.js";
 
 /** Construction options for {@link createJiraAdapter}. */
