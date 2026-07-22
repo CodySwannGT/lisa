@@ -115,6 +115,14 @@ step frames) with deterministic rendering. CI's `verification-coverage` check
 requires a verification-spec delta on every behavioral change. See the
 `reference/verification.md` "Making verification concrete (UAT)" section.
 
+### 3a. Drift-aware live-environment assertions
+
+When the codified test — or the remote re-verification it encodes — runs against a **live, deployed environment**, the environment will not hold still between the original verification and any later run: deploys, out-of-band infra applies, and data churn are normal, not exceptional. Encode the verification accordingly:
+
+- **Assert invariants, not snapshot equality.** Pin the properties that define correctness — document shape, exact paths, forbidden values/hosts, internal coherence (e.g. every URL in a discovery document uses the same host) — never a byte-for-byte diff against a captured baseline. A snapshot diff false-fails the moment the environment legitimately moves.
+- **Classify drift, don't just detect it.** When observed state differs from the baseline evidence, treat that as a classification problem, and record the classification in the verdict: **progress** (the change being verified, or a related fix, landed), **regression** (an invariant broke), or **unrelated churn**. Drift classified as progress or unrelated churn passes, with the environment change surfaced as evidence; only a broken invariant fails.
+- **Never encode "the environment will hold still" as an implicit assumption.** Evidence capture that only makes sense if nothing changed between baseline and re-check has that assumption baked in even when no assertion states it — e.g. an OAuth discovery document whose host legitimately flipped from a provider-prefix domain to the canonical vanity host between a local baseline and a remote re-check ~30 minutes later would false-fail a snapshot verifier, while an invariant-asserting verifier passes correctly and records the drift as progress.
+
 ### 4. Run the test in isolation
 
 Run only the new test, using whatever per-test invocation the project supports:

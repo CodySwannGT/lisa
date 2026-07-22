@@ -731,7 +731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "d2a24f8f176dbd900beb6e396fc669008b0be0c9033fac5c1c1ecc19002bd7c2",
     "plugins/src/base/rules/reference/verification.md":
-      "9aa9ec95a739268181b74d6952fa7cda16c96d633ece6a3e889d3b28a8f8ffb7",
+      "a295cd1bbdfc24b1be207790a92f0291dbc4a3eb28168417f9ac7b948194c354",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "305d38e13984c2a64144f302336405d0ccbec493a6ed3ec67d210fed44940717",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -789,7 +789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md":
       "77dbc2d7e86e5027df486294de315bb539a2ece84bd4b38e47ccc108f8c2875e",
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
-      "fc15f1f64766c5e40dbffb160080df519e375a9727ed3e8841df3d1b23fb0ffe",
+      "71dd12f651170533f87ebd38ecfa5ca378f5330971a18064357b71b22ff2e7ab",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a6a099abeb32940d44da7e9a6a62c3519f64efa85294c4b996789fa4fba97461",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
