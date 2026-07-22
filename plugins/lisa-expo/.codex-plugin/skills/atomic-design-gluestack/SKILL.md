@@ -325,6 +325,7 @@ When creating or reviewing components, verify:
 | Organism in atoms folder | Misclassification | Move to organisms folder |
 | Template with business logic | Templates handle layout only | Move logic to page |
 | Importing organism in atom | Wrong dependency direction | Restructure component hierarchy |
+| Spacing refactor inside a bounded-height sheet/modal | Wrapping siblings in new flex containers (e.g. margin→gap conversion) changes overflow distribution and can push a sticky footer/header out of view — pixel-faithful at rest, broken once content overflows | Route the surface through the bounded-scroll pattern: `flex-1` + `min-h-0` scroll body with a `shrink-0` pinned footer, and verify in the content-overflow state, not just the default mount |
 
 ## Testing by Atomic Level
 
