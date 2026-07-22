@@ -644,11 +644,14 @@ and no aliasing occurs. No other alias exists.
 **Materialized defaults are fallbacks.** `lisa sync` writes the full default
 done map into config, so a configured done-map entry whose value is EXACTLY
 the default table's value for that env is treated as a materialized fallback,
-not operator intent: it never raises the done-without-branch error and the env
-is simply absent from the ladder, the same as if it were unconfigured. The
-equivalence is tested per env AFTER union/alias resolution, with the same
-default table the join uses. Only a value that DIFFERS from the default is
-deliberate configuration and stays protected by the error below.
+not operator intent — and it is invisible for ALL purposes: stripped before
+the env-key union is computed, it never blocks the sole `prod` ↔ `production`
+alias, never raises the done-without-branch error, and leaves the env exactly
+as if it were unconfigured (so `branches.prod` beside a materialized
+`production` entry still aliases to one prod rung). Only a value that DIFFERS
+from the default is deliberate configuration: it participates in the union
+(blocking the alias when it introduces the other spelling) and stays
+protected by the error below.
 
 **Error catalog** (verbatim):
 
