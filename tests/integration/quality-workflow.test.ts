@@ -14,22 +14,23 @@ const QUALITY_YML = path.join(WORKFLOWS_DIR, "quality.yml");
 const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, "quality-rails.yml");
 const RELEASE_YML = path.join(WORKFLOWS_DIR, "release.yml");
 const DEPLOY_YML = path.join(WORKFLOWS_DIR, DEPLOY_WORKFLOW_FILE);
-const NESTJS_DEPLOY_YML = path.join(
-  REPO_ROOT,
-  "nestjs",
-  "create-only",
-  ".github",
-  "workflows",
-  DEPLOY_WORKFLOW_FILE
-);
-const EXPO_DEPLOY_YML = path.join(
-  REPO_ROOT,
-  "expo",
-  "create-only",
-  ".github",
-  "workflows",
-  DEPLOY_WORKFLOW_FILE
-);
+/**
+ * Absolute path of a stack template's create-only deploy workflow.
+ * @param stack Stack template directory name.
+ * @returns Path to `<stack>/create-only/.github/workflows/deploy.yml`.
+ */
+function stackDeployPath(stack: string): string {
+  return path.join(
+    REPO_ROOT,
+    stack,
+    "create-only",
+    ".github",
+    "workflows",
+    DEPLOY_WORKFLOW_FILE
+  );
+}
+const NESTJS_DEPLOY_YML = stackDeployPath("nestjs");
+const EXPO_DEPLOY_YML = stackDeployPath("expo");
 const EAS_BUILD_YML = path.join(WORKFLOWS_DIR, "build.yml");
 const CREATE_ISSUE_ON_FAILURE_YML = path.join(
   WORKFLOWS_DIR,
@@ -737,6 +738,127 @@ describe("release and deploy workflows", () => {
       contents: "read",
       issues: "write",
     });
+  });
+});
+
+describe("DSS-3 deploy environment declarations", () => {
+  const RAILS_DEPLOY_YML = stackDeployPath("rails");
+  const CDK_DEPLOY_YML = stackDeployPath("cdk");
+  const HARPER_DEPLOY_YML = stackDeployPath("harper-fabric");
+  const RELEASE_RAILS_YML = path.join(WORKFLOWS_DIR, "release-rails.yml");
+
+  /** Exact env expression for stacks with determine_environment. */
+  const APPROVAL_ENV_EXPR =
+    "${{ needs.determine_environment.outputs.approval_environment }}";
+  /** Exact env expression for stacks without determine_environment. */
+  const REF_TERNARY_EXPR =
+    "${{ github.ref_name == 'main' && 'production' || github.ref_name }}";
+
+  let expoRaw: string;
+  let nestjsRaw: string;
+  let railsRaw: string;
+  let cdkRaw: string;
+  let harperRaw: string;
+  let expoDeploy: DeployWorkflow;
+  let nestjsDeploy: DeployWorkflow;
+  let railsDeploy: DeployWorkflow;
+  let cdkDeploy: DeployWorkflow;
+  let harperDeploy: DeployWorkflow;
+  let releaseWf: ReleaseWorkflow;
+  let releaseRailsWf: ReusableWorkflow;
+  let buildWf: ReusableWorkflow;
+
+  beforeAll(() => {
+    expoRaw = fs.readFileSync(EXPO_DEPLOY_YML, "utf8");
+    nestjsRaw = fs.readFileSync(NESTJS_DEPLOY_YML, "utf8");
+    railsRaw = fs.readFileSync(RAILS_DEPLOY_YML, "utf8");
+    cdkRaw = fs.readFileSync(CDK_DEPLOY_YML, "utf8");
+    harperRaw = fs.readFileSync(HARPER_DEPLOY_YML, "utf8");
+    expoDeploy = yaml.load(expoRaw) as DeployWorkflow;
+    nestjsDeploy = yaml.load(nestjsRaw) as DeployWorkflow;
+    railsDeploy = yaml.load(railsRaw) as DeployWorkflow;
+    cdkDeploy = yaml.load(cdkRaw) as DeployWorkflow;
+    harperDeploy = yaml.load(harperRaw) as DeployWorkflow;
+    releaseWf = yaml.load(
+      fs.readFileSync(RELEASE_YML, "utf8")
+    ) as ReleaseWorkflow;
+    releaseRailsWf = yaml.load(
+      fs.readFileSync(RELEASE_RAILS_YML, "utf8")
+    ) as ReusableWorkflow;
+    buildWf = yaml.load(
+      fs.readFileSync(EAS_BUILD_YML, "utf8")
+    ) as ReusableWorkflow;
+  });
+
+  /**
+   * Collect the names of jobs declaring an `environment` key.
+   * @param workflow Parsed workflow.
+   * @param workflow.jobs Parsed jobs map.
+   * @returns Job names with an environment declaration.
+   */
+  function jobsWithEnvironment(workflow: {
+    jobs?: Record<string, WorkflowJob>;
+  }): string[] {
+    return Object.entries(workflow.jobs ?? {})
+      .filter(([, job]) => job.environment !== undefined)
+      .map(([name]) => name);
+  }
+
+  it("expo: only the deploy job declares the approval_environment expression", () => {
+    expect(expoDeploy.jobs?.deploy.environment).toBe(APPROVAL_ENV_EXPR);
+    expect(jobsWithEnvironment(expoDeploy)).toEqual(["deploy"]);
+  });
+
+  it("nestjs: only the deploy job declares environment, mapping form with url", () => {
+    expect(nestjsDeploy.jobs?.deploy.environment).toEqual({
+      name: APPROVAL_ENV_EXPR,
+      url: "${{ steps.deployment_outputs.outputs.environment_url }}",
+    });
+    expect(jobsWithEnvironment(nestjsDeploy)).toEqual(["deploy"]);
+  });
+
+  it("rails: only deploy_rails declares the ref-name ternary expression", () => {
+    expect(railsDeploy.jobs?.deploy_rails.environment).toBe(REF_TERNARY_EXPR);
+    expect(jobsWithEnvironment(railsDeploy)).toEqual(["deploy_rails"]);
+  });
+
+  it("harper-fabric: only the deploy job declares the ref-name ternary expression", () => {
+    expect(harperDeploy.jobs?.deploy.environment).toBe(REF_TERNARY_EXPR);
+    expect(jobsWithEnvironment(harperDeploy)).toEqual(["deploy"]);
+  });
+
+  it("cdk: no job declares environment; the downstream snippet ships commented", () => {
+    // cdk has no deploy job (determine_environment + release call only) —
+    // downstream projects declare the environment on their project-owned
+    // deploy job, per the commented snippet appended to the template.
+    expect(jobsWithEnvironment(cdkDeploy)).toEqual([]);
+    expect(cdkRaw).toContain(
+      "#   environment: ${{ needs.determine_environment.outputs.approval_environment }}"
+    );
+  });
+
+  it("release.yml: release_approval keeps its exact environment expression; no other job gains one", () => {
+    expect(releaseWf.jobs.release_approval.environment).toEqual({
+      name: "${{ inputs.approval_environment || inputs.environment }}",
+    });
+    expect(jobsWithEnvironment(releaseWf)).toEqual(["release_approval"]);
+  });
+
+  it("release-rails.yml and build.yml declare no environments", () => {
+    expect(jobsWithEnvironment(releaseRailsWf)).toEqual([]);
+    expect(jobsWithEnvironment(buildWf)).toEqual([]);
+  });
+
+  it("no stack deploy template introduces secrets: inherit", () => {
+    for (const [name, raw] of [
+      ["expo", expoRaw],
+      ["nestjs", nestjsRaw],
+      ["rails", railsRaw],
+      ["cdk", cdkRaw],
+      ["harper-fabric", harperRaw],
+    ] as const) {
+      expect(raw, name).not.toContain("secrets: inherit");
+    }
   });
 });
 

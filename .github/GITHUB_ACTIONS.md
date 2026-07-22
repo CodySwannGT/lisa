@@ -149,6 +149,23 @@ an unprovisioned gate blocks nothing. Not yet wired for rails
 (`release-rails.yml` doesn't thread approval inputs) or harper-fabric (no
 release.yml call).
 
+**Deploy jobs declare GitHub environments** (deploy-status-sync substrate):
+each stack template's actual deploy job carries an `environment:` declaration
+so every deploy run emits `deployment` / `deployment_status` events — the
+substrate deploy-status-sync (and GitHub-for-Jira) listens to. Expo and NestJS
+reuse `determine_environment`'s friendly-name resolution
+(`needs.determine_environment.outputs.approval_environment`; unconfigured
+branches degrade to the branch name, same as the approval gate); rails and
+harper-fabric have no `determine_environment` job and use the branch ternary
+`github.ref_name == 'main' && 'production' || github.ref_name`. The cdk
+template ships no deploy job — a commented snippet in its `deploy.yml` shows
+downstream projects how to declare the environment on their project-owned
+deploy job. Exactly one job per workflow declares an environment (the job that
+mutates the target); release/build bookkeeping jobs never do, so each run
+records exactly one deployment. Whether an approval-gated run re-prompts when
+the deploy job reaches the same protected environment is resolved empirically
+during verification (see #1969).
+
 **Blackout Periods** (configurable):
 - Production: No weekends, no late nights (10 PM - 6 AM)
 - Holiday blackouts: Dec 24 - Jan 2, Jul 3-5, Nov 27-29

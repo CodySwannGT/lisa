@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "04cca8fbcb7a5c6da1aeb2b2d00d7a328d15618e4252f1d9dd495052d264d0f5",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "2746e78fb0fbe7b23b30bbcb0f83171e16f6804fd467b3d41d3c69970572af3f",
+      "6e659b2234e2570c2d094b7eb4bd4c178b401e2b3bdc03cac503df61fafd48ef",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/tsconfig.local.json":
@@ -147,7 +147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "ba73a3d8c9195b6823525a396aef50809bbb3cab5cbdd24ce9ccf6e5efaf3d35",
     "expo/create-only/.github/workflows/deploy.yml":
-      "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
+      "54f2d2979a81307023a7984e507f01ce38204cfc199d922f91c4cac7ceefafd0",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
     "expo/create-only/.zap/baseline.conf":
@@ -213,7 +213,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "d24cd8d91b9942d8e0bd205ac41e103d49f2cb1e961bcdab259a56f5112e0151",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "37cf03c11e892f58c8fb818bbf35242af0e0e920f5d6a5f4716defccbb8d064d",
+      "f5c9c3f0d32dda6ba792ff1998309c80673e46d16c3f409b1e206b8e3739fc3b",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
       "0315cd74dbe463da373b6a2fb75d48f46959df4232a31573fb84b1a4ed8e4e36",
     "harper-fabric/create-only/.zap/baseline.conf":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "1cbe153a37e61cef21b0af8d7b2d41e6b59adbf8a4c289475439852896a531fc",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
+      "fb0d606579bae739f55e765a233bd37e2a11344390f2128ab6f306286821dd5d",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -1785,7 +1785,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/claude-sync-down-branches.yml":
       "072cc8290eec15ef6d55c2583e94ae49cda4a56a0fea252556a8fce8170cc540",
     "rails/create-only/.github/workflows/deploy.yml":
-      "e87c9f59fe653b29cb8a1a4d78b5d433f051366fe985035d56bd922fbd9603f8",
+      "d822f8e5b3a6bdf523dcadbebc7d3e896ee5a43b73371e1df0f3ef74b3677b18",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
