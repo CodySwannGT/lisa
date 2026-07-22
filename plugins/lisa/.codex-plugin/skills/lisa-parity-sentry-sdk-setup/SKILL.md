@@ -2,7 +2,7 @@
 name: lisa-parity-sentry-sdk-setup
 description: "Install and configure the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: sentry@claude-plugins-official@1.0.0
+synced-from: sentry@claude-plugins-official@1.2.0
 ---
 
 # Sentry SDK Setup
@@ -14,13 +14,36 @@ upload so stack traces are readable.
 
 ## Consolidation note
 
-The upstream `sentry@claude-plugins-official` plugin ships **~30 separate
-per-SDK setup skills** (one per framework/runtime). This **single** Lisa-native
-skill consolidates all of them: instead of one thin skill per SDK, it detects the
-framework and applies the matching case below. The behavior is reimplemented from
-scratch against Lisa conventions — it is **not** a translation of the upstream
-skills. Pinned to `sentry@claude-plugins-official@1.0.0` via `synced-from` so the
-parity drift detector tracks it as one unit.
+Upstream `sentry@claude-plugins-official` 1.0.0 shipped **~30 separate per-SDK
+setup skills**; this single Lisa-native skill consolidated all of them. As of
+upstream **1.2.0** Sentry itself consolidated the suite into one
+`sentry-instrument` playbook, so the shapes now match — but this skill remains a
+from-scratch reimplementation against Lisa conventions, **not** a translation of
+the upstream skill. Pinned to `sentry@claude-plugins-official@1.2.0` via
+`synced-from` so the parity drift detector tracks it as one unit.
+
+## Step 0 — Scope the install
+
+Decide what you are actually doing before touching code; default to the
+smallest scope (adapted from upstream 1.2.0's scope gate):
+
+- **First error** — no Sentry yet: install the SDK, initialize it for **error
+  capture plus tracing** — noting that tracing is **opt-in** in every Sentry
+  SDK: it only activates when you set `tracesSampleRate`/`tracesSampler` (and,
+  in browsers, add the tracing integration, e.g.
+  `browserTracingIntegration()`), exactly as the Step 3 snippets do — then
+  verify a real captured event and stop. Do not wire up further signals
+  unasked.
+- **Add a signal** — Sentry already installed and the user wants one more signal
+  (logging, profiling, session replay, metrics, cron check-ins, AI/LLM
+  monitoring): skip install/provisioning and configure just that signal per the
+  SDK's docs.
+- **Full setup** — the user asked for "proper" defaults: do first-error, then
+  propose releases + source maps + the signals that fit the app, and add what
+  they accept.
+
+**Never over-instrument.** Wiring up every signal upfront produces noise,
+quota burn, and config the team doesn't understand.
 
 ## Step 1 — Detect framework & runtime
 

@@ -23,7 +23,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "2d6a286dcbfeac0042479c76ed8143eb0c2192a0ccae818012e0e5d4f8c8d91b",
+      "f53702d4a1af4f3bd45082ca8bd9645591f77e1743025bf617cd6b7a699a064b",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -59,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/deletions.json":
       "b1d07e463f52deaa5f9958060de40d369f4f256b898563efb83911abf39a62a5",
     "cdk/merge/.claude/settings.json":
-      "b2eb7835f15beacf02378ce3d2dee57f5ea3c7cf6a6c8506cdf0235e5b28ca7d",
+      "d590b3d3c1cd639fa6316f75e1a7fe477acbe27705b3e41e950cf13fa618f175",
     "cdk/merge/.oxlintrc.json":
       "e74885a33fdb7b5d565e13ebd781a3dd2fd02409a2a059deed851645630a6985",
     "cdk/package-lisa/package.lisa.json":
@@ -181,7 +181,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/github-rulesets/playwright.json":
       "b57ccd12f768a1466a9681528858e59764bd0efedcbcb3a96c2fb40719bbd579",
     "expo/merge/.claude/settings.json":
-      "11d8a0dce9d40dc278c8f11c02c19266b466f2a84bfcfdc7aabe0c77f54a7a55",
+      "38afc4841039f05be92303cfd7ed36b600d4af5af2fd07335542b5ceeda29147",
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
@@ -223,7 +223,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "harper-fabric/merge/.claude/settings.json":
-      "0b78f98a5d8343bd727ab28cf57315a6ce4d226a50ad5d172a5304ab8990fb87",
+      "f376c8083e1ec7595c99b23c737cf643906b05792581425790e274400f925977",
     "harper-fabric/merge/.oxlintrc.json":
       "43bd2a48954e15fbd1fe89b1a4f7b84cf93706d7de7b84ec120d63906bfde31b",
     "harper-fabric/package-lisa/package.lisa.json":
@@ -309,7 +309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/deletions.json":
       "037a64f96b76670326bc61921f4484e864e02c09786adabbd1cfdf886183cad5",
     "nestjs/merge/.claude/settings.json":
-      "6b5edfb9f1ca262f16884679c68c6e7280cc20812a01beca1fc5d655efa696e7",
+      "4f9d9440fd208520c4be96edde19e84160f25e3bba3ac9505d95b7653ad34666",
     "nestjs/merge/.oxlintrc.json":
       "3743a1e2bcfc879f5250f35206f413b10815f34e20b1d0afce67824579813b5d",
     "nestjs/package-lisa/package.lisa.json":
@@ -367,7 +367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "phaser/merge/.claude/settings.json":
-      "b55636bcb2d603f5c66a6f048eaf893c3012eb98ba3de2960a7c0b4798a815cb",
+      "13336547df466d2aa4600aaf025d813c0189709776c8ed16de4f30e80be1ca63",
     "phaser/merge/.oxlintrc.json":
       "4ac4bca00bef4b32810f3759a914ab2b8148e6fad3e329417a497e36df9e810c",
     "phaser/package-lisa/package.lisa.json":
@@ -961,11 +961,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
-      "e53b0aaf33510b2c729f3b262e49d1ff77f13f56c3925473c186b9bd8fe09351",
+      "7126b7dbda7205922a7825eba47164954267ff65ef9f414182aab51889b9a7d8",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
-      "b6a81c2b0e0e6c7681e748f689b5e26b8d0c0cca69b2c13b66452c72abe26c52",
+      "ed52b0273f6b535d26d561c80ae6c0bedb84c67fcf4321f688c05fe3ee3af575",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
-      "f36d70fc39a212dddb4ea0be5490a9df824b7cea7a3bef4f8b4696e6a3cee349",
+      "f44216fa7c8f0c3c3371c65ff73bbeadd1717579502a5603f16b3b33291cab7a",
     "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":
       "616e0493f75fe92c18137548d7c86a91a9b04d9844ca76fa3f14156e3e7814e5",
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
@@ -1819,7 +1819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/github-rulesets/quality-checks.json":
       "ea42f2bb938881bc6ec129e7300a2b824313951031d4720f46e944c4dfe1a9da",
     "rails/merge/.claude/settings.json":
-      "206548c671a51d0194b08fd7433d27dbff29e14e0629c5d4ed6108f24abe4623",
+      "37a06617452435eec44afdd430c0375d14ad59458ddd48bf6c1115315748acb5",
     "scripts/build-plugins.sh":
       "d26321ea10bc3ed8cf096f900622cb4cf7a37117fabf9730f0fe5c9d949582fc",
     "scripts/check-duplicate-versions.mjs":
@@ -1867,7 +1867,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "876914c369c5bd58f4a5f3c41d0c1264c6923f329a644f90640d15b434a0fbd1",
     "scripts/install-claude-plugins.sh":
-      "3283dc0f93b1ea1c8948a132f9dcb354115a8cb826cf5efd4c8e7318bbf5cd59",
+      "2fcee140e86bcc213a6959b4b0eae533cc102c91948d47fe87e62cb29f795ed1",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -1905,7 +1905,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/migrate-deploy-order.sh":
       "77d909b4cbbfc05169a79168d7868600ea7f56f846feefb7d5121618c54800c3",
     "scripts/plugin-parity-drift.mjs":
-      "4d4cdbe7745e6572bdb9be47dd5eb5d08f09bdbe2edceaf89b30c4a0a8d3a978",
+      "34235c4c75c8735aaca96e3e0a52073ba1dee8bad54c85af01c3cf9912d0ea57",
     "scripts/plugin-routing-validate.mjs":
       "eb38cf139eb04a27dd6493ff6f766945060d5bf73a35856bd3da4c8e4110e2ba",
     "scripts/probes/wave3-verification.sh":
@@ -2067,7 +2067,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/github-rulesets/quality-checks.json":
       "89b9e09267cdb65865728d0e873de9c1225b8ca796e67f06fa8b72ccf6d4515e",
     "typescript/merge/.claude/settings.json":
-      "8cc0b88780f4cbca5effa196a4e272953f835e7dc46572a31ab1e74130bb5e48",
+      "bad82c215aca3102e1fd41cce7205b59029c74cfce0f416ce0a95177fc2b0c54",
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
