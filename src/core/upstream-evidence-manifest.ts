@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "04cca8fbcb7a5c6da1aeb2b2d00d7a328d15618e4252f1d9dd495052d264d0f5",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "5b31ed443511cae5a742238509f1210bb991575deae613aea73c41513c8fe3b8",
+      "2746e78fb0fbe7b23b30bbcb0f83171e16f6804fd467b3d41d3c69970572af3f",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/tsconfig.local.json":
