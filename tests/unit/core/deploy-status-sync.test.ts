@@ -26,6 +26,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -41,6 +42,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: "Done" },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -70,6 +72,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: LIVE_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -80,6 +83,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: true,
+      terminalEnv: "production",
     });
   });
 
@@ -88,6 +92,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "dev", branch: "trunk", doneStatus: DEV_LABEL }],
       terminalOnly: true,
+      terminalEnv: "dev",
     });
   });
 
@@ -98,6 +103,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "dev", branch: "dev", doneStatus: DEV_LABEL }],
       terminalOnly: false,
+      terminalEnv: "qa",
     });
   });
 
@@ -106,10 +112,12 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL }],
       terminalOnly: true,
+      terminalEnv: "prod",
     });
     expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
       rungs: [{ env: "prod", branch: "main", doneStatus: "Done" }],
       terminalOnly: true,
+      terminalEnv: "prod",
     });
   });
 
@@ -123,6 +131,7 @@ describe("resolveDeployLadder", () => {
         { env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "prod",
     });
   });
 
@@ -146,6 +155,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -164,6 +174,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -180,6 +191,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -199,6 +211,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [],
       terminalOnly: false,
+      terminalEnv: "edge",
     });
   });
 
@@ -214,6 +227,7 @@ describe("resolveDeployLadder", () => {
         { env: "production", branch: "main", doneStatus: "Shipped" },
       ],
       terminalOnly: false,
+      terminalEnv: "production",
     });
   });
 
@@ -225,6 +239,7 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
       rungs: [{ env: "edge", branch: "main", doneStatus: LIVE_LABEL }],
       terminalOnly: true,
+      terminalEnv: "edge",
     });
   });
 });

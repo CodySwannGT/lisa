@@ -38,6 +38,13 @@ export interface DeployLadder {
   readonly rungs: readonly DeployLadderRung[];
   /** True when the ladder collapsed to a single terminal rung */
   readonly terminalOnly: boolean;
+  /**
+   * Highest-ranked env of the configured universe (post-alias), even when its
+   * rung was skipped. Consumers gate terminal native closure on this — a
+   * lower rung must never close items just because higher rungs were skipped.
+   * Absent only when `deploy.branches` is empty.
+   */
+  readonly terminalEnv?: string;
 }
 
 /** Optional machine-written `deployStatusSync` section of the config. */
@@ -80,6 +87,17 @@ const DONE_MAP_PATHS: Readonly<Record<Tracker, string>> = {
   linear: "linear.labels.build.done",
   jira: "jira.workflow.done",
 };
+
+/**
+ * Config dot-path of a tracker's env-keyed done vocabulary. Exposed so
+ * consumers (e.g. the transition engine's explanatory no-ops) can name the
+ * exact missing config key without duplicating the vocabulary source map.
+ * @param tracker - Tracker whose done map applies
+ * @returns Dot-path inside `.lisa.config.json`
+ */
+export function doneMapPath(tracker: Tracker): string {
+  return DONE_MAP_PATHS[tracker];
+}
 
 /** Default done vocabulary per tracker, used when config has no entry. */
 const DONE_DEFAULTS: Readonly<
@@ -329,7 +347,11 @@ export function resolveDeployLadder(
     rungs.length === 1 &&
     rungs[0] !== undefined &&
     rungs[0].env === terminalEnv;
-  return { rungs, terminalOnly };
+  return {
+    rungs,
+    terminalOnly,
+    ...(terminalEnv === undefined ? {} : { terminalEnv }),
+  };
 }
 
 /** Strict ISO-8601 UTC timestamp (`Z` suffix, optional milliseconds). */
