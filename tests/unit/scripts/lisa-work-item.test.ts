@@ -169,6 +169,24 @@ function githubConfig(repository = "widgets"): object {
   return { tracker: "github", github: { org: "acme", repo: repository } };
 }
 
+/** Build a claimed, leaf Linear issue payload carrying the given labels. */
+function linearIssueResponse(labels: string[]): string {
+  return JSON.stringify({
+    data: {
+      issue: {
+        id: "id-12",
+        identifier: "LIN-12",
+        team: { key: "LIN" },
+        state: { type: "started" },
+        labels: { nodes: labels.map(name => ({ name })) },
+        children: { nodes: [] },
+        attachments: { nodes: [] },
+        comments: { nodes: [] },
+      },
+    },
+  });
+}
+
 /** Add one empty fixture commit and return its object ID. */
 function commit(fixture: Fixture, message: string): string {
   git(
@@ -447,6 +465,30 @@ describe("work-item binding and commit messages", () => {
     });
     expect(parent.status).toBe(1);
     expect(parent.stderr).toContain("is a container");
+  });
+
+  it("accepts a GitHub issue scoped by the bare repo-name label (#1957)", () => {
+    const fixture = createFixture({
+      tracker: "github",
+      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+    });
+    const bare = command(fixture, ["bind", "acme/widgets#42"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: JSON.stringify({
+          number: 42,
+          url: "https://github.com/acme/widgets/issues/42",
+          state: "OPEN",
+          labels: [
+            { name: "identity" },
+            { name: "status:in-progress" },
+            { name: "type:Bug" },
+          ],
+          comments: [],
+          closedByPullRequestsReferences: [],
+        }),
+      },
+    });
+    expect(bare.status).toBe(0);
   });
 
   it("exempts only the exact release subject", () => {
@@ -828,6 +870,80 @@ describe("provider liveness", () => {
     });
     expect(parent.status).toBe(1);
     expect(parent.stderr).toContain("is a container");
+  });
+
+  it("accepts a Linear issue scoped by the bare repo-name label (#1957)", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+
+    const bare = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "widgets",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(bare.status).toBe(0);
+
+    const mixedCase = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "Widgets",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(mixedCase.status).toBe(0);
+  });
+
+  it("still rejects Linear issues whose bare labels do not name this repository (#1957 controls)", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+
+    const unscoped = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(unscoped.status).toBe(1);
+    expect(unscoped.stderr).toContain("not scoped to repository widgets");
+
+    const wrongRepo = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "backend",
+          "repo:backend",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(wrongRepo.status).toBe(1);
+    expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
+
+    const unrelated = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "sentry",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(unrelated.status).toBe(1);
+    expect(unrelated.stderr).toContain("not scoped to repository widgets");
   });
 });
 

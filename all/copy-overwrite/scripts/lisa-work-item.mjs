@@ -426,15 +426,24 @@ function namesFrom(value) {
 }
 
 function assertRepoScope(ref, contract, labels, components = []) {
-  const expected = `repo:${contract.identityRepo}`.toLowerCase();
+  // #1957: mirror the intake-side scoping rule uniformly across trackers
+  // (plugins/lisa/rules/reference/config-resolution.md:949,:968): a work item
+  // is repo-scoped by the label `repo:<name>` OR the bare `<name>` label
+  // (Sentry-provenance items carry only the bare repo name). The match is the
+  // exact repo short name, case-insensitive via namesFrom's lowercasing —
+  // never substring or prefix. Jira additionally accepts a component equal to
+  // the bare name.
+  const bare = contract.identityRepo.toLowerCase();
+  const expected = `repo:${bare}`;
   const labelNames = namesFrom(labels);
   const componentNames = namesFrom(components);
   if (
     !labelNames.includes(expected) &&
-    !componentNames.includes(contract.identityRepo.toLowerCase())
+    !labelNames.includes(bare) &&
+    !componentNames.includes(bare)
   ) {
     throw new TrackingError(
-      `Work item ${ref} is not scoped to repository ${contract.identityRepo}; require label ${expected}`
+      `Work item ${ref} is not scoped to repository ${contract.identityRepo}; require label ${expected} or bare label ${bare}`
     );
   }
 }
