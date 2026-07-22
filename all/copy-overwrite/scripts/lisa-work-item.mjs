@@ -427,7 +427,7 @@ function namesFrom(value) {
 
 function assertRepoScope(ref, contract, labels, components = []) {
   // #1957: mirror the intake-side scoping rule uniformly across trackers
-  // (plugins/lisa/rules/reference/config-resolution.md:949,:973): a work item
+  // (plugins/lisa/rules/reference/config-resolution.md:949,:968): a work item
   // is repo-scoped by the label `repo:<name>` OR the bare `<name>` label
   // (Sentry-provenance items carry only the bare repo name). The match is the
   // exact repo short name, case-insensitive via namesFrom's lowercasing —
