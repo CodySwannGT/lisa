@@ -90,18 +90,19 @@ This disposition completes the SLL-5 loop (#1583): on a Lisa-attributed failure 
    root-cause-key = <lisa-surface>#<failure-class>
    ```
 
-   - `<lisa-surface>` — the Lisa-relative path of the surface at fault (e.g. `plugins/src/base/skills/lisa-doctor/SKILL.md`, `typescript/copy-overwrite/.github/workflows/quality.yml`), or the canonical rule/skill/hook name when no single file applies (e.g. `lisa-doctor`, `block-no-verify`).
-   - `<failure-class>` — a short lowercase hyphen-slug for the class of failure (e.g. `pagination-truncation`, `stale-artifact-overwrite`).
+   - `<lisa-surface>` — the exact public Lisa-relative path of the surface at fault (e.g. `plugins/src/base/skills/lisa-doctor/SKILL.md`, `typescript/copy-overwrite/.github/workflows/quality.yml`). Canonical names, aliases, host paths, and unmanifested paths are prohibited.
+   - `<failure-class>` — exactly one exported closed value: `access-control-failure`, `agent-parity-regression`, `configuration-regression`, `data-integrity-failure`, `dependency-regression`, `generated-artifact-regression`, `installation-regression`, `observability-gap`, `pagination-truncation`, `performance-regression`, `public-data-exposure`, `release-regression`, `runtime-regression`, `stale-artifact-overwrite`, `test-coverage-gap`, `validation-gap`, or `workflow-contract-violation`.
    - Normalize: lowercase, trim, collapse every whitespace run to a single `-`. The key must contain no host-project name, no local issue number, and no fingerprint — those vary per project and would defeat fleet-wide dedupe.
 
 4. **Enforce the per-run cap.** Resolve `hardening.maxUpstreamFilingsPerRun` from `.lisa.config.json` (default `5` — a conservative bound modeled on `lisa-repair-intake`'s `max_candidates` precedent). Count every upstream create **and** update this run performs; once the cap is reached, drop the remaining candidates and **note each dropped candidate visibly** (in the run summary, naming its root-cause key) — never queue a spam burst and never drop silently. A later run picks the dropped candidates up idempotently.
 
-5. **Evidence redaction (binding).** The upstream repo is PUBLIC by default (`hardening.upstreamRepo` → `CodySwannGT/lisa`) and this filing runs headless on crons — treat every drafted upstream body and comment as world-readable:
+5. **Evidence redaction (binding).** The upstream repo is PUBLIC by default (`hardening.upstreamRepo` → `CodySwannGT/lisa`) and this filing runs headless on crons — treat every drafted upstream body and comment as world-readable. The PRIMARY control is the **allowlist projection** in step 6: `bunx @codyswann/lisa file-upstream` calls the sole `buildUpstreamAttributionIssueBody` export from `@codyswann/lisa/learnings`, so content outside its enumerated fields is structurally incapable of reaching the public document. The rules below bind the FIELDS supplied to that command; the closing scan is a defense-in-depth backstop, never the primary control:
 
    - Quote ONLY Lisa-owned surface text: template/rule/skill/hook excerpts and upstream commit references. The reproduction must be REDACTED — generic placeholders, never the host project's real values.
    - Never paste host environment values, tokens/credentials, connection strings, API keys, PII (names, emails, customer data), or proprietary host code/payloads.
-   - The evidence chain names the Lisa surface and the failure class — never project payloads. When host context is essential to understand the failure, LINK the host-project issue instead of quoting it.
-   - Before filing or commenting, scan the drafted body for common secret shapes — `key=value` pairs with high-entropy values, token prefixes (`AKIA`, `ghp_`, `xox`), email addresses — and strip on match. When in doubt, leave it out: a thinner upstream ticket is recoverable; a leaked secret is not.
+   - The evidence chain names the Lisa surface and the failure class — never project payloads. Keep any host-project issue link only in the private local trace; it is never supplied to or emitted by the public builder.
+   - Use only these exact generic placeholders: `<host-project>`, `<env-value>`, `<credential>`, `<connection-string>`, `<pii>`, `<host-payload>`, `<path>`, `<identifier>`. A project-specific placeholder is host prose and must be rejected.
+   - **Backstop (defense in depth, never the primary control).** Before filing or commenting, scan the projected document for common secret shapes — `key=value` pairs with high-entropy values, token prefixes (`AKIA`, `ghp_`, `xox`), email addresses — and reject on a match. To strip on match, remove the offending INPUT field and re-run `file-upstream`; never strip or edit the generated output itself. Non-allowlisted fields must reject before filing rather than be silently dropped. When in doubt, leave it out: a thinner upstream document is recoverable; a leaked secret is not.
 
 6. **Dedupe by marker, then file or update.** The upstream marker is:
 
@@ -111,8 +112,32 @@ This disposition completes the SLL-5 loop (#1583): on a Lisa-attributed failure 
 
    Resolve the upstream repo from `.lisa.config.json` `hardening.upstreamRepo` (default `CodySwannGT/lisa`). Search **all issue states** for an existing issue carrying the marker — a closed marker-bearing ticket still owns this root cause, and searching only open issues would mint a duplicate the moment the original closes. Match on the **MARKER, never the title** — with the same eventual-consistency guard as above (`gh issue list -R <upstream> --state all --search '"<marker>" in:body' --json number,state,url`, and when the search index returns nothing, also `gh issue list -R <upstream> --state all --json number,state,body` and grep the bodies for the marker before concluding no ticket exists).
 
-   - **No existing ticket** → file via `lisa-github-write-issue` targeting the upstream repo, following the `lisa-rework-triage` "Filing upstream" discipline: a three-audience description (what failed for the operator, what the harness did wrong, what to change), the redacted evidence chain (Lisa-owned text only, per step 5: defect → Lisa surface → attribution evidence → redacted reproduction), the affected project named, and the `self-hardening` label. The body carries **exactly one** dedupe marker; **never write a markerless body** — it permanently breaks all future dedupe.
-   - **Existing ticket (open or closed)** → this is a repeat encounter: comment the new occurrence on the existing issue with this project's evidence, marker-deduped per occurrence via `<!-- [lisa-upstream-attribution-occurrence] key=<fingerprint> -->` so re-runs never duplicate the occurrence comment. Never open a second issue, and never match on the title — evidence compounds on one ticket. When the match is **CLOSED**, still comment the occurrence there and reference it in the local trace instead of filing a duplicate; do not reopen it yourself — recurrence evidence on a closed ticket signals the shipped fix may not cover this case, and reopening is the upstream maintainer's call.
+   - **No existing ticket** → compose the body EXCLUSIVELY through the executable builder, then file its stdout verbatim via `lisa-github-write-issue` targeting the upstream repo with the `self-hardening` label:
+
+     ```bash
+     bunx @codyswann/lisa file-upstream --input filing-event.json   # or pipe the JSON on stdin
+     ```
+
+     **Never assemble the public body as free-form prose.** Public composition happens through the builder, never by free-form prose assembly. The builder owns the three-audience description and the redacted evidence chain (Lisa-owned text only). Do not hand-write either section, name an affected project in prose, or edit the builder's output after generation. Supply only this JSON shape; host-project issue URLs remain private local-trace data and are never accepted by the public builder:
+
+     ```json
+     {
+       "documentKind": "issue",
+       "lisaSurface": "plugins/src/base/skills/lisa-doctor/SKILL.md",
+       "failureClass": "stale-artifact-overwrite",
+       "lisaOwnedExcerpts": [
+         {
+           "file": "plugins/src/base/skills/lisa-doctor/SKILL.md",
+           "text": "<verbatim Lisa-owned text>"
+         }
+       ],
+       "upstreamCommitRefs": ["<full 40-character public-origin SHA>"],
+       "redactedPlaceholders": ["<host-project>", "<env-value>"]
+     }
+     ```
+
+     Every excerpt is verified against the installed package's Lisa-owned source and every commit against the public origin. Callers cannot supply a verifier or Lisa root. Anything outside the allowlist is REJECTED by field name with empty stdout and a non-zero exit; fix or remove the offending input field and re-run the command, never route around it. The builder emits **exactly one** dedupe marker; **never write a markerless body** — it permanently breaks all future dedupe.
+   - **Existing ticket (open or closed)** → this is a repeat encounter: comment the new occurrence on the existing issue with this project's evidence. The comment is projected through the same builder: run `bunx @codyswann/lisa file-upstream` with the same allowlisted fields plus exactly `"documentKind": "occurrence"` and `"occurrenceFingerprint": "<fingerprint>"`. The supplied fingerprint is only a validated seed: the builder hashes it and emits a different deterministic `sll4-<12 lowercase hex>` marker. Use the marker in the builder's stdout — never the supplied literal — to search existing issue comments for a duplicate, then post stdout verbatim only when that emitted marker is absent. Free-form occurrence prose is prohibited, and post-generation edits are prohibited. Never open a second issue, and never match on the title — evidence compounds on one ticket. When the match is **CLOSED**, still comment the occurrence there and reference it in the local trace instead of filing a duplicate; do not reopen it yourself — recurrence evidence on a closed ticket signals the shipped fix may not cover this case, and reopening is the upstream maintainer's call.
 
 7. **Leave the local trace — a note, never a rule.** Post one follow-up comment on the triggering issue linking the upstream ticket:
 

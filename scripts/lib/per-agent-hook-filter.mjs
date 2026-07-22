@@ -43,6 +43,13 @@ const SCRIPT_RULES = {
     agy: true,
     copilot: true,
   },
+  "block-shell-json-parsing.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: true, // ships via AGY_PLUGIN_HOOKS (agy-protocol adapter), like the other PreToolUse guards
+    copilot: true,
+  },
   "enforce-team-first.sh": {
     claude: true,
     codex: false,

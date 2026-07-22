@@ -49,7 +49,30 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     expect(handoff).toMatch(/never the host project or the local issue/i);
     expect(handoff).toMatch(/MUST collide on the same key/);
     expect(handoff).toMatch(/MARKER, never the title/);
-    expect(handoff).toMatch(/never write a markerless body/);
+    expect(handoff).toMatch(/never write a markerless body/i);
+    expect(handoff).toMatch(/exact public Lisa-relative path/);
+    expect(handoff).toMatch(/Canonical names, aliases.*are prohibited/);
+    for (const failureClass of [
+      "access-control-failure",
+      "agent-parity-regression",
+      "configuration-regression",
+      "data-integrity-failure",
+      "dependency-regression",
+      "generated-artifact-regression",
+      "installation-regression",
+      "observability-gap",
+      "pagination-truncation",
+      "performance-regression",
+      "public-data-exposure",
+      "release-regression",
+      "runtime-regression",
+      "stale-artifact-overwrite",
+      "test-coverage-gap",
+      "validation-gap",
+      "workflow-contract-violation",
+    ]) {
+      expect(handoff).toContain(`\`${failureClass}\``);
+    }
   });
 
   it("dedupes across all issue states and handles the closed-ticket branch", () => {
@@ -72,9 +95,10 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
 
   it("updates the existing ticket on repeat encounters instead of duplicating", () => {
     expect(handoff).toMatch(/repeat encounter/);
-    expect(handoff).toContain(
-      "[lisa-upstream-attribution-occurrence] key=<fingerprint>"
-    );
+    expect(handoff).toContain("sll4-<12 lowercase hex>");
+    expect(handoff).toMatch(/supplied fingerprint is only a validated seed/i);
+    expect(handoff).toMatch(/Use the marker in the builder's stdout/);
+    expect(handoff).toMatch(/never the supplied literal/);
     expect(handoff).toMatch(/Never open a second issue/);
   });
 
@@ -93,9 +117,39 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     expect(handoff).toMatch(
       /Never paste host environment values, tokens\/credentials/
     );
-    expect(handoff).toMatch(/LINK the host-project issue instead of quoting/);
+    expect(handoff).toMatch(
+      /host-project issue link only in the private local trace/
+    );
+    expect(handoff).toMatch(
+      /never supplied to or emitted by the public builder/
+    );
     expect(handoff).toMatch(/high-entropy values/);
     expect(handoff).toMatch(/strip on match/);
+  });
+
+  it("delegates public body composition to the executable allowlist builder", () => {
+    expect(handoff).toContain("buildUpstreamAttributionIssueBody");
+    expect(handoff).toContain("@codyswann/lisa/learnings");
+    expect(handoff).toMatch(/non-allowlisted fields? must reject/i);
+    expect(handoff).toMatch(/never by free-form prose assembly/i);
+  });
+
+  it("makes projection primary and invokes the public file-upstream command", () => {
+    expect(handoff).toContain("file-upstream");
+    expect(handoff).toMatch(/allowlist projection/i);
+    expect(handoff).toMatch(/primary control/i);
+    expect(handoff).toMatch(/backstop/i);
+    expect(handoff).toMatch(
+      /never assemble the public body as free-form prose/i
+    );
+    expect(handoff).toContain('"redactedPlaceholders"');
+  });
+
+  it("projects repeat-occurrence comments through the same builder", () => {
+    expect(handoff).toMatch(/projected through the same builder/i);
+    expect(handoff).toContain('"documentKind": "occurrence"');
+    expect(handoff).toContain('"occurrenceFingerprint"');
+    expect(handoff).toMatch(/free-form occurrence prose is prohibited/i);
   });
 
   it("never claims a filing before attribution and resolves inconclusive paths", () => {

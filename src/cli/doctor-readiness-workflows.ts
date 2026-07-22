@@ -1,0 +1,330 @@
+/**
+ * Offline GitHub Actions workflow parser for the readiness producers
+ * (PRD #1739, #1896).
+ *
+ * The delivery/authority readiness questions — does the thing that ships equal
+ * the thing that was validated, and does the shipping credential carry only the
+ * authority it needs — are answered from what the repository's CI *declares*,
+ * not from what a live API reports. Parsing is therefore deliberately offline by
+ * construction: nothing in this module reaches the network, so `lisa doctor
+ * --offline --readiness` needs no flag threading to stay honest.
+ *
+ * Reading is best-effort by design. A workflow file that cannot be parsed is
+ * skipped rather than aborting the readiness run, because one malformed YAML
+ * file must not turn the whole report into an error the operator cannot act on.
+ * @module cli/doctor-readiness-workflows
+ */
+import { readdir, readFile } from "node:fs/promises";
+import * as path from "node:path";
+import yaml from "js-yaml";
+import { isJsonObject } from "../sync/json-path.js";
+
+/** The workflows directory every GitHub repository declares its CI in. */
+const WORKFLOWS_DIR = path.join(".github", "workflows");
+
+/**
+ * A `permissions`/`secrets` declaration: GitHub allows either a map of scopes
+ * or a bare scalar (`write-all`, `read-all`, `inherit`); `null` means the block
+ * was not declared at all, which is itself load-bearing evidence.
+ */
+export type WorkflowBlock = Record<string, unknown> | string | null;
+
+/**
+ * A workflow's `on:` trigger block, normalized across its three legal spellings
+ * (scalar, list, map). The trigger is load-bearing for readiness: it decides
+ * whether the *absence* of an in-file validating job proves a bypass or merely
+ * means the proof lives somewhere this parser cannot see.
+ */
+export interface ParsedWorkflowTrigger {
+  /** Declared event names, e.g. `push`, `workflow_call`, `workflow_run`. */
+  readonly events: readonly string[];
+  /** Branch filters on a `push` trigger (empty when unfiltered or absent). */
+  readonly pushBranches: readonly string[];
+  /** Tag filters on a `push` trigger (empty when unfiltered or absent). */
+  readonly pushTags: readonly string[];
+}
+
+/** One step inside a parsed workflow job. */
+export interface ParsedWorkflowStep {
+  readonly name: string;
+  /** The shell command the step runs, or `""` for an action step. */
+  readonly run: string;
+  /** The action the step uses, or `""` for a `run` step. */
+  readonly uses: string;
+  /** Raw serialized `env` + `with` text, used for credential evidence. */
+  readonly inputs: string;
+  /**
+   * The step's `if:` condition, or `""` when it always runs. Load-bearing for
+   * the B1/B4 producers: a conditional step is a step somebody deliberately
+   * gated, which is exactly what those blockers ask about.
+   */
+  readonly ifCondition: string;
+}
+
+/** One job inside a parsed workflow. */
+export interface ParsedWorkflowJob {
+  readonly id: string;
+  /** Repo-relative path of the workflow file declaring this job. */
+  readonly workflow: string;
+  readonly needs: readonly string[];
+  readonly steps: readonly ParsedWorkflowStep[];
+  /** The reusable workflow this job calls, or `""` when it runs steps. */
+  readonly uses: string;
+  /** Job-level `permissions`: a map, a scalar such as `write-all`, or null. */
+  readonly permissions: WorkflowBlock;
+  /** Job-level `secrets`: a map, the scalar `inherit`, or null. */
+  readonly secrets: WorkflowBlock;
+  /** Declared deployment environments (a scalar or list, normalized). */
+  readonly environment: readonly string[];
+  /** The job's `if:` condition, or `""` when it always runs. */
+  readonly ifCondition: string;
+  /**
+   * The job-level `env:` block, flattened to `key: value` lines. The B1
+   * producer resolves a command's target through it: `psql "$DATABASE_URL"`
+   * says nothing on its own, while the `DATABASE_URL` it expands to may name
+   * `127.0.0.1` and settle the question.
+   */
+  readonly env: string;
+  /**
+   * Ids of the `services:` containers the job starts. A job that boots its own
+   * database is operating on throwaway state by construction.
+   */
+  readonly services: readonly string[];
+}
+
+/** One parsed `.github/workflows/*.yml` file. */
+export interface ParsedWorkflow {
+  /** Repo-relative path, always with forward slashes. */
+  readonly file: string;
+  readonly name: string;
+  /** Workflow-level `permissions`: a map, a scalar, or null. */
+  readonly permissions: WorkflowBlock;
+  /** The normalized `on:` trigger block. */
+  readonly on: ParsedWorkflowTrigger;
+  readonly jobs: readonly ParsedWorkflowJob[];
+}
+
+/**
+ * Normalize a YAML scalar-or-list into a list of trimmed strings.
+ * @param value - Candidate YAML value
+ * @returns Normalized string list (empty when unreadable)
+ */
+function asStringList(value: unknown): readonly string[] {
+  if (typeof value === "string") {
+    return value.trim() === "" ? [] : [value.trim()];
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry): entry is string => typeof entry === "string")
+      .map(entry => entry.trim())
+      .filter(entry => entry !== "");
+  }
+  return [];
+}
+
+/**
+ * Normalize a `permissions`/`secrets` block, which GitHub allows as either a
+ * map or a bare scalar (`write-all`, `read-all`, `inherit`).
+ * @param value - Candidate YAML value
+ * @returns The map, the scalar string, or null when absent
+ */
+function asBlock(value: unknown): WorkflowBlock {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  return isJsonObject(value) ? (value as Record<string, unknown>) : null;
+}
+
+/**
+ * Normalize a job's `environment`, which may be a scalar name, a list, or a
+ * `{ name, url }` map.
+ * @param value - Candidate YAML value
+ * @returns Declared environment names
+ */
+function asEnvironments(value: unknown): readonly string[] {
+  if (isJsonObject(value)) {
+    return typeof value.name === "string" ? [value.name.trim()] : [];
+  }
+  return asStringList(value);
+}
+
+/**
+ * Normalize the `on:` block, which GitHub accepts as a scalar (`on: push`), a
+ * list (`on: [push, workflow_dispatch]`), or a map with per-event filters.
+ * @param value - Candidate YAML `on` value
+ * @returns The normalized trigger (all fields empty when absent or unreadable)
+ */
+function parseTrigger(value: unknown): ParsedWorkflowTrigger {
+  if (!isJsonObject(value)) {
+    return { events: asStringList(value), pushBranches: [], pushTags: [] };
+  }
+  const push = value.push;
+  const filters = isJsonObject(push) ? push : undefined;
+  return {
+    events: Object.keys(value),
+    pushBranches: asStringList(filters?.branches),
+    pushTags: asStringList(filters?.tags),
+  };
+}
+
+/**
+ * Serialize a step's `env` and `with` blocks to searchable text so credential
+ * evidence can quote the offending line without a second traversal.
+ * @param step - The raw step object
+ * @returns Flattened `key: value` text, one pair per line
+ */
+function serializeStepInputs(step: Record<string, unknown>): string {
+  return ["env", "with"].flatMap(key => serializeBlock(step[key])).join("\n");
+}
+
+/**
+ * Flatten one YAML mapping to `key: value` lines so it can be searched as text.
+ * @param value - Candidate YAML mapping
+ * @returns One line per entry (empty when the value is not a mapping)
+ */
+function serializeBlock(value: unknown): readonly string[] {
+  if (!isJsonObject(value)) {
+    return [];
+  }
+  return Object.entries(value).map(
+    ([name, entry]) =>
+      `${name}: ${typeof entry === "string" ? entry : String(entry)}`
+  );
+}
+
+/**
+ * Normalize an `if:` condition, which GitHub accepts as an expression string or
+ * a bare boolean. Any non-empty value means the thing is conditional; the text
+ * itself is carried only so evidence can quote it.
+ * @param value - Candidate YAML `if` value
+ * @returns The condition text, or `""` when the block is absent
+ */
+function asCondition(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  return typeof value === "string" ? value.trim() : String(value);
+}
+
+/**
+ * Parse one job's `steps` list.
+ * @param value - Candidate YAML `steps` value
+ * @returns Normalized steps
+ */
+function parseSteps(value: unknown): readonly ParsedWorkflowStep[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(isJsonObject).map(step => ({
+    name: typeof step.name === "string" ? step.name : "",
+    run: typeof step.run === "string" ? step.run.trim() : "",
+    uses: typeof step.uses === "string" ? step.uses.trim() : "",
+    inputs: serializeStepInputs(step as Record<string, unknown>),
+    ifCondition: asCondition(step.if),
+  }));
+}
+
+/**
+ * Parse the `jobs` map of one workflow document.
+ * @param document - Parsed workflow root
+ * @param file - Repo-relative workflow path (stamped on each job)
+ * @returns Normalized jobs, in declaration order
+ */
+function parseJobs(
+  document: Record<string, unknown>,
+  file: string
+): readonly ParsedWorkflowJob[] {
+  const jobs = document.jobs;
+  if (!isJsonObject(jobs)) {
+    return [];
+  }
+  return Object.entries(jobs).flatMap(([id, raw]) => {
+    if (!isJsonObject(raw)) {
+      return [];
+    }
+    const job = raw as Record<string, unknown>;
+    return [
+      {
+        id,
+        workflow: file,
+        needs: asStringList(job.needs),
+        steps: parseSteps(job.steps),
+        uses: typeof job.uses === "string" ? job.uses.trim() : "",
+        permissions: asBlock(job.permissions),
+        secrets: asBlock(job.secrets),
+        environment: asEnvironments(job.environment),
+        ifCondition: asCondition(job.if),
+        env: serializeBlock(job.env).join("\n"),
+        services: isJsonObject(job.services) ? Object.keys(job.services) : [],
+      },
+    ];
+  });
+}
+
+/**
+ * List the workflow files a repository declares, in stable name order.
+ * @param root - Repository root
+ * @returns Workflow file names, or an empty list when the directory is absent
+ */
+async function listWorkflowFiles(root: string): Promise<readonly string[]> {
+  try {
+    const entries = await readdir(path.join(root, WORKFLOWS_DIR));
+    return entries
+      .filter(entry => entry.endsWith(".yml") || entry.endsWith(".yaml"))
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Parse one workflow file, returning null when it cannot be read or parsed.
+ * @param root - Repository root
+ * @param fileName - Workflow file name
+ * @returns The parsed workflow, or null
+ */
+async function parseOneWorkflow(
+  root: string,
+  fileName: string
+): Promise<ParsedWorkflow | null> {
+  const file = `${WORKFLOWS_DIR.split(path.sep).join("/")}/${fileName}`;
+  try {
+    const source = await readFile(
+      path.join(root, WORKFLOWS_DIR, fileName),
+      "utf8"
+    );
+    const document: unknown = yaml.load(source);
+    if (!isJsonObject(document)) {
+      return null;
+    }
+    const record = document as Record<string, unknown>;
+    return {
+      file,
+      name: typeof record.name === "string" ? record.name : fileName,
+      permissions: asBlock(record.permissions),
+      on: parseTrigger(record.on),
+      jobs: parseJobs(record, file),
+    };
+  } catch {
+    // A malformed workflow is skipped, never fatal: one bad file must not turn
+    // the readiness report into an error the operator cannot act on.
+    return null;
+  }
+}
+
+/**
+ * Read and parse every `.github/workflows/*.yml` file in a repository, offline.
+ * @param root - Repository root
+ * @returns Parsed workflows in stable file-name order (empty when there are none)
+ */
+export async function parseRepositoryWorkflows(
+  root: string
+): Promise<readonly ParsedWorkflow[]> {
+  const fileNames = await listWorkflowFiles(root);
+  const parsed = await Promise.all(
+    fileNames.map(async fileName => await parseOneWorkflow(root, fileName))
+  );
+  return parsed.filter(
+    (workflow): workflow is ParsedWorkflow => workflow !== null
+  );
+}

@@ -28,6 +28,19 @@ export async function withLearningTargetLock<T>(
   target: string,
   operation: () => Promise<T>
 ): Promise<T> {
+  return withFileTargetLock(target, operation);
+}
+
+/**
+ * Serialize same-target file transactions across processes.
+ * @param target - Absolute target whose adjacent lock is acquired
+ * @param operation - Transaction performed while the caller owns the lock
+ * @returns Operation result
+ */
+export async function withFileTargetLock<T>(
+  target: string,
+  operation: () => Promise<T>
+): Promise<T> {
   const lockPath = `${target}.lock`;
   const owner = {
     token: crypto.randomUUID(),
@@ -65,7 +78,7 @@ async function acquireLock(
   }
   await removeFileIfPresent(ownerPath);
   if (attempt >= MAX_LOCK_ATTEMPTS) {
-    throw new Error(`Timed out waiting for learnings lock: ${lockPath}`);
+    throw new Error(`Timed out waiting for file lock: ${lockPath}`);
   }
   await reclaimStaleLock(lockPath);
   await delay(LOCK_RETRY_DELAY_MS);
@@ -112,43 +125,125 @@ async function releaseLock(lockPath: string, lease: LockLease): Promise<void> {
 }
 
 /**
+ * Snapshot of one lock observed to be reclaimable. The reclaim is anchored to
+ * this snapshot: a lock is only ever deleted while it still *is* the exact
+ * inode and ownership this observation judged stale.
+ */
+export interface StaleLockObservation {
+  /** Owner metadata when the lock was parseable; undefined when unowned. */
+  readonly owner: LockOwner | undefined;
+  /** Device of the inode that was judged stale. */
+  readonly dev: number;
+  /** Inode that was judged stale. */
+  readonly ino: number;
+}
+
+/**
  * Reclaim an expired lock only when its declared process is no longer live.
  * @param lockPath - Shared lock path
  */
 async function reclaimStaleLock(lockPath: string): Promise<void> {
-  const before = await statFile(lockPath);
-  if (before === undefined || !before.isFile()) {
+  const observation = await observeStaleLock(lockPath);
+  if (observation === null) {
     return;
+  }
+  await reclaimObservedStaleLock(lockPath, observation);
+}
+
+/**
+ * Determine whether a regular lock is reclaimable and retain its owner path.
+ * @param lockPath - Shared lock path
+ * @returns Observation of a reclaimable lock, or null when it is still held
+ */
+export async function observeStaleLock(
+  lockPath: string
+): Promise<StaleLockObservation | null> {
+  const before = await statFile(lockPath);
+  if (before === undefined) {
+    return null;
+  }
+  if (!before.isFile() || before.isSymbolicLink()) {
+    throw new Error(`Unsafe file lock path: ${lockPath}`);
   }
   const owner = await readLockOwner(lockPath);
   const timestamp = owner?.createdAt ?? Number(before.mtimeMs);
-  if (
-    Date.now() - timestamp <= STALE_LOCK_MS ||
-    (owner !== undefined && isProcessLive(owner.pid))
-  ) {
-    return;
+  if (owner !== undefined && isProcessLive(owner.pid)) {
+    return null;
   }
-  const retainedOwnerPath =
-    owner === undefined ? undefined : `${lockPath}.${owner.token}.owner`;
-  const quarantine =
-    retainedOwnerPath !== undefined &&
-    (await sameFile(lockPath, retainedOwnerPath))
-      ? retainedOwnerPath
-      : `${lockPath}.${crypto.randomUUID()}.stale`;
-  const linked =
-    quarantine === retainedOwnerPath
-      ? true
-      : await publishOwnerLink(lockPath, quarantine);
-  if (!linked) {
-    return;
+  if (owner === undefined && Date.now() - timestamp <= STALE_LOCK_MS) {
+    return null;
+  }
+  return { owner, dev: Number(before.dev), ino: Number(before.ino) };
+}
+
+/**
+ * Reclaim only the same lock inode retained in a safe quarantine link.
+ * @param lockPath - Shared lock path
+ * @param observation - Snapshot that judged this lock reclaimable
+ * @returns Whether the observed lock was reclaimed
+ */
+export async function reclaimObservedStaleLock(
+  lockPath: string,
+  observation: StaleLockObservation
+): Promise<boolean> {
+  // Pin whatever currently sits at the lock path so its inode cannot be
+  // recycled underneath the checks below, then prove it is still the very
+  // inode and ownership this observation judged stale before deleting it.
+  const quarantine = `${lockPath}.${crypto.randomUUID()}.stale`;
+  if (!(await publishOwnerLink(lockPath, quarantine))) {
+    return false;
   }
   try {
-    if (await sameFile(lockPath, quarantine)) {
-      await removeFileIfPresent(lockPath);
+    if (!(await pinnedLockStillStale(lockPath, quarantine, observation))) {
+      return false;
     }
+    await removeFileIfPresent(lockPath);
+    if (observation.owner !== undefined) {
+      await removeFileIfPresent(`${lockPath}.${observation.owner.token}.owner`);
+    }
+    return true;
   } finally {
     await removeFileIfPresent(quarantine);
   }
+}
+
+/**
+ * Confirm the pinned inode is still the lock this observation judged stale.
+ * Identity alone is not enough: a released inode can be recycled by a live
+ * holder, so the pinned ownership must still match the observed ownership.
+ * @param lockPath - Shared lock path
+ * @param quarantine - Hard link pinning the inode currently at the lock path
+ * @param observation - Snapshot that judged the lock reclaimable
+ * @returns Whether the pinned lock is still safe to delete
+ */
+async function pinnedLockStillStale(
+  lockPath: string,
+  quarantine: string,
+  observation: StaleLockObservation
+): Promise<boolean> {
+  const pinned = await statFile(quarantine);
+  if (
+    pinned === undefined ||
+    !pinned.isFile() ||
+    Number(pinned.dev) !== observation.dev ||
+    Number(pinned.ino) !== observation.ino ||
+    !(await sameFile(lockPath, quarantine))
+  ) {
+    return false;
+  }
+  const owner = await readLockOwner(quarantine);
+  if (observation.owner === undefined) {
+    return (
+      owner === undefined && Date.now() - Number(pinned.mtimeMs) > STALE_LOCK_MS
+    );
+  }
+  return (
+    owner !== undefined &&
+    owner.token === observation.owner.token &&
+    owner.pid === observation.owner.pid &&
+    owner.createdAt === observation.owner.createdAt &&
+    !isProcessLive(owner.pid)
+  );
 }
 
 /**
@@ -228,12 +323,27 @@ async function removeFileIfPresent(filePath: string): Promise<void> {
  * @returns Whether the metadata is a lock owner
  */
 function isLockOwner(value: unknown): value is LockOwner {
-  if (value === null || typeof value !== "object") {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return false;
+  }
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== 3 ||
+    keys.some(
+      key =>
+        typeof key !== "string" || !["token", "pid", "createdAt"].includes(key)
+    )
+  ) {
     return false;
   }
   const owner = value as Partial<LockOwner>;
   return (
     typeof owner.token === "string" &&
+    /^[A-Za-z0-9-]{1,128}$/u.test(owner.token) &&
     typeof owner.pid === "number" &&
     Number.isSafeInteger(owner.pid) &&
     owner.pid > 0 &&

@@ -124,7 +124,10 @@ audits the auditor without re-running it.
    `drafted_artifact`; the gardener decides whether the evidence clears the
    filing bar and attaches the router's draft to the ticket.
 4. **Emit** (see Ticket emission).
-5. **Report** the terminal state and one-line summary.
+5. **Report and record** the run outcome and one-line summary — post the
+   outcome, then record **exactly one** run-record line through the CLI (see
+   Run outcomes), including the escalation path when it ends
+   `recovery-required`.
 
 ## Ticket emission
 
@@ -245,6 +248,15 @@ resolved by reading the ticket, never by filing a sibling blind. Then:
 
 Re-runs are quiet no-ops: same surfaces + same evidence ⇒ zero new tickets.
 
+This open-and-closed marker search plus the "declined `<date>`; recurred `<date>` in `<ref>`"
+re-file discipline is the shipped precedent for the **Proposal rejection memory** section of the
+`rejection-detection` rule — the shared contract every proposing loop now consults so a
+closed-as-not-planned proposal is never re-filed. The gardener already conforms; it is cited there,
+not re-implemented. Like every proposing loop, each gardener-filed ticket MUST carry the
+`rejection-detection` **operator footer** as a visible prose line so the human knows which
+close-reason silences it: `To stop this from being raised again, close it as **Not planned**. Close
+it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.`
+
 ## Autonomous-vs-approval boundary
 
 **Everything is human-gated at v1 — this skill only files tickets.** The
@@ -280,22 +292,57 @@ marker-recoverable per-item tickets and a missing (not half-filled) batch:
 the most recoverable state. Never attempt to "roll back" filed tickets —
 close-out decisions belong to humans.
 
-## Terminal states
+## Run outcomes
 
-Exactly one per run: **`nothing-needed | candidates-proposed | blocked`**
+Exactly one per run, from the closed six-value vocabulary of the
+`automation-runbook-contract` rule:
+**`nothing-needed | candidate-proposed | change-proved | approval-requested | recovery-required | policy-obsolete`**.
 
-- `nothing-needed` — no candidate met any recommendation threshold. Healthy.
-  Report one line: surfaces scanned, entries seen, "nothing to propose".
-- `candidates-proposed` — tickets filed. Report each ticket URL, its
-  recommendation (PROMOTE/DEMOTE + rung), and the batch ticket URL with its
-  row count.
-- `blocked` — could not complete; escalated per Escalation with the
-  operator-readable reason.
+This section supersedes the gardener's earlier three-value *terminal states*
+vocabulary (`nothing-needed | candidates-proposed | blocked`); the mapping is
+exact so nothing regresses:
+
+- `candidates-proposed` → **`candidate-proposed`** — per-item and/or batch
+  tickets filed. Report each ticket URL, its recommendation (PROMOTE/DEMOTE +
+  rung), and the batch ticket URL with its row count.
+- `nothing-needed` → **`nothing-needed`** (unchanged) — no candidate met any
+  recommendation threshold. Report one line: surfaces scanned, entries seen,
+  "nothing to propose".
+- `blocked` → **`recovery-required`** when the loop itself could not complete
+  (tracker unreachable, contradictory config, a ledger-contract parse error) —
+  escalated per Escalation with the operator-readable reason; **or**
+  **`approval-requested`** when the run finished and is waiting on a human gate
+  rather than being broken.
+
+The gardener also newly reaches **`policy-obsolete`** — the Retirement
+condition below tripped and it filed its own teardown proposal. It never
+produces **`change-proved`**: the gardener only files tickets and ships no
+change itself, so proving a change is the implementing factory run's job.
+
+Record exactly one outcome per run through the run-record CLI, naming this
+loop's runbook (the `--summary` is the operator-readable one-liner in the
+contract's exemplar voice — plain, specific, actionable):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id learnings-audit --outcome candidate-proposed \
+  --summary "Proposed 2 promotions and 1 batch confirm; awaiting your flip to ready." \
+  --runbook .lisa/automations/learnings-audit.runbook.md [--ref <ticket-url>]...
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory
+directly — the built copy `plugins/lisa/scripts/automation-run-record.mjs` or
+the source `plugins/src/base/scripts/automation-run-record.mjs`. If recording
+still fails, **degrade, never abort** (per `automation-runbook-contract`): note
+the recording failure in the run output and finish the run — a recording
+failure is a degradation to report, never a reason to block the loop.
 
 ## Retirement condition
 
-The loop retires itself by the same discipline it applies to everything else,
-and the condition is **stateless — derived from the tracker, never from a
+The loop proposes retirement by the same discipline it applies to everything else,
+conforming to the `automation-runbook-contract` rule's Retirement section
+rather than restating or diverging from it. The condition is **stateless —
+derived from the tracker, never from a
 counter or state file** (there is no durable home for a run counter, and a
 tracker-derived condition is headless- and concurrent-safe by construction).
 Propose retirement when BOTH hold:
@@ -307,11 +354,46 @@ Propose retirement when BOTH hold:
 2. **This run proposes nothing** — the current run's inventory yields zero
    candidates (it is terminating `nothing-needed`).
 
-When both hold, the gardener files ONE (marker-deduped) ticket proposing to
-lengthen its cadence or tear down its automation (`/tear-down-automations`),
-with the date-filtered search result and this run's summary as evidence. It
-keeps running until a human flips that ticket — retirement is a
-recommendation like any other, never a self-executed exit.
+When both hold, the gardener records `policy-obsolete` and files **exactly ONE**
+marker-deduped ticket proposing to lengthen its cadence or tear down its
+automation, through `lisa-tracker-write` (per `tracked-work` +
+`integration-access-layer`):
+
+- **Marker** `<!-- [lisa-automation-retire] key=learnings-audit -->` plus a
+  visible prose line; matched on the marker, never the title; searched **open
+  AND closed** per `rejection-detection`'s **Proposal rejection memory**. Treat
+  matches by close state: **open** suppresses another proposal; **Not planned**
+  suppresses another proposal unless new evidence postdates the rejection;
+  **Completed** means the prior approved action happened, so a later recurrence
+  may be re-filed. The `[lisa-gardener]` search above stays what it is — the
+  candidate evidence, not the dedupe key. When an existing proposal suppresses
+  filing, **the run still records `policy-obsolete` and files nothing** — the
+  outcome describes this run, while the ticket is filed exactly once.
+- **Labels** `status:blocked` + `human-needed`, carrying the contract's
+  decision-ready packet. The `human-needed` label marks the proposal
+  human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as
+  stalled work.
+- **Evidence** the date-filtered search result, this run's summary, **the
+  loop's current cadence** (the baseline an operator needs to choose a longer
+  one), and a one-line summary of recent runs read from
+  `.lisa/automations/runs/learnings-audit.jsonl`. Fill the rest of the packet
+  the same way every time: *Work already attempted* is the searches this run
+  ran, and *Risk of inaction* is that the loop keeps consuming schedule slots
+  and tokens for nothing.
+- **How to answer** names the three operator responses: **approve** — run
+  `/lisa:tear-down-automations learnings-audit` and only that loop registration goes away; **decline** —
+  close the proposal as **Not planned** (closing it as **Completed** leaves a
+  later re-file open) and the gardener simply continues; **re-cadence** — pick a
+  longer cadence off that evidence and re-register with
+  `/lisa:setup-automations` instead of tearing down.
+- **Operator footer**, verbatim, as on every loop-filed proposal
+  (`rejection-detection`):
+  > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
+
+The gardener **keeps running at its normal cadence** until a human flips that
+ticket — retirement is a recommendation like any other, never a self-executed
+exit — and it never deletes its own
+registration.
 
 ## Scheduling
 

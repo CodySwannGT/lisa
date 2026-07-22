@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "plan": "bce-6",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "aaaa111",
+    "head_sha": "bbbb222",
+    "build_id": "build-1840",
+    "environment": "local",
+    "observed_at": "2026-07-20T00:00:00Z"
+  },
+  "claims": [
+    {
+      "claim_id": "AC-1",
+      "statement": "the checkout button submits the order and shows a confirmation",
+      "boundary": "browser",
+      "required_for_gate": true,
+      "required_evidence_kinds": ["screenshot", "recording"],
+      "status": "established",
+      "evidence_refs": ["EV-1"],
+      "not_established": []
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-1",
+      "kind": "test-run-log",
+      "locator": "evidence/1840/submit-handler.txt",
+      "sha256": "990a93ea77cc735408f25a80e9b4dd048a771c0c27f4c106a8404632dd86a1ce",
+      "captured_at": "2026-07-20T00:00:00Z",
+      "artifact_head_sha": "bbbb222"
+    }
+  ],
+  "not_established": [],
+  "not_established_reviewed": true,
+  "criteria": [
+    {
+      "task": "T1",
+      "criterion": "the confirmation renders after a real click",
+      "status": "pass",
+      "evidence": "unit tests for the submit handler passed"
+    }
+  ],
+  "status": "pass",
+  "updated_at": "2026-07-20T00:00:00Z"
+}

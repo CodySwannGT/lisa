@@ -118,3 +118,54 @@ EXCLUDE - Plan - Decomposition exists as the SLL tree.
 EXCLUDE - claude / claude-code-guide / hookify:conversation-analyzer / statusline-setup / code-simplifier:code-simplifier - Generic or unrelated; review lanes bounded to product/quality/coderabbit/spec-conformance to control cycle time per the convergent-review principle.
 
 Scope: 18 in-scope leaves in 5 PR batches (see plan-1548.md). #1585 excluded — superseded by gardener #1735 (same rationale as parent #1556); being closed with a supersession comment. #1579 in scope per the #1729 amendment carve-in. Ledger path always via the executable contract resolver. Base branch: main (single-env; ticket `dev` values are placeholder enum per #1561/#1564 self-notes).
+
+---
+
+# Roster Decision — plan: `improve-harness-skill-1744` (CodySwannGT/lisa#1744)
+
+Recorded: 2026-07-20. Runtime: Claude Code implicit-team model (Agent tool); no TaskCreate/TaskList in this runtime — task plan persisted in `.lisa/plan-1744.md`. Model floor per /goal: never below Opus 4.8 — mechanical/bounded lanes use `model: opus`; the skill-authoring build lane and spec-conformance lane inherit the lead's Fable 5 (model omitted).
+
+INCLUDE - general-purpose - bounded input-resolver (already run) and lead-session legwork (branch/env resolution, preflight probes); never a build lane.
+INCLUDE - Explore - mandatory read-only research: existing skill/command conventions, plugin fanout surfaces, adjacent skills (debrief, attribute-failure, rework-triage, learnings ladder) to ground the new skill and avoid overlap.
+INCLUDE - lisa:architecture-specialist - designs SKILL.md structure, command wiring, six-agent parity surfaces, idempotency marker, and template embedding before implementation.
+INCLUDE - lisa:builder - implements the skill + command + regenerated plugin artifacts from acceptance criteria.
+INCLUDE - lisa:quality-specialist - review lane: correctness/philosophy/convention compliance of skill text and wiring.
+INCLUDE - coderabbit:code-reviewer - independent review lane per Agent Team Workflows parallel-review rule.
+INCLUDE - lisa:product-specialist - operator-readability lane: result-record/job-contract templates must read for non-technical gate operators.
+INCLUDE - lisa:spec-conformance-specialist - verifies shipped work against the 4 Gherkin scenarios, Out of Scope, and cross-cutting invariants (headless-safe, idempotent marker, parity).
+INCLUDE - lisa:verification-specialist - independent empirical verification (build:plugins, check:plugins, artifact presence across agent surfaces, skill loadability) + writes .lisa/verification-status.json; never the implementer.
+INCLUDE - lisa:learner - captures task learnings to the ledger before team dismissal.
+EXCLUDE - lisa:bug-fixer / lisa:debug-specialist - Build flow, no defect to reproduce.
+EXCLUDE - lisa:performance-specialist - markdown skill authoring; no runtime perf surface.
+EXCLUDE - lisa:security-specialist - no new credential/permission/attack surface; skill is documentation-plane and files tickets via existing tracker-write.
+EXCLUDE - lisa:test-specialist - deliverable is a skill document + generated artifacts; artifact-parity checks covered by builder + verification-specialist (check:plugins, existing artifact tests).
+EXCLUDE - lisa:git-history-analyzer - referenced BY the new skill's content but not needed to author it; Explore covers context.
+EXCLUDE - lisa:github-agent / lisa:jira-agent / lisa:linear-agent - lifecycle wrappers; already inside Implement via intake dispatch.
+EXCLUDE - lisa:*-build-intake / lisa:*-prd-intake - queue scanners; item already claimed.
+EXCLUDE - lisa:learnings-synthesizer / lisa:pr-mining-specialist / lisa:tracker-mining-specialist - Debrief-flow agents, out of scope per ticket.
+EXCLUDE - lisa:learning-judge / lisa:skill-evaluator - gardener/judgment lanes reached via learner, not team lanes here.
+EXCLUDE - code-simplifier:code-simplifier - prose deliverable; quality-specialist covers refinement.
+EXCLUDE - claude / claude-code-guide / hookify:conversation-analyzer / statusline-setup / Plan / fork - generic or unrelated; decomposition exists (this IS the leaf).
+
+Base-branch resolution: ticket Target Backend Environment = `production`; `deploy.branches` maps `production → main` → base = `main`. PR targets `main`.
+
+---
+
+# Roster Decision — plan: `readiness-warning-parity-1859` (CodySwannGT/lisa#1859)
+
+Recorded: 2026-07-21. Runtime: Codex collaboration. The runtime exposes one
+delegation type, the generic collaboration agent; it exposes no distinct native
+specialist-type selector.
+
+INCLUDE - generic collaboration agent - the only exposed type; use bounded role assignments for the mandatory read-only Explore pass, implementation support, independent review/verification, and learner review.
+EXCLUDE - no additional runtime agent types - none are exposed by the current collaboration surface; Lisa specialist skills may guide assignments but are not separately spawnable agent types here.
+
+Required assignments: one read-only Explore/research pass before planning; one
+independent review/verification pass after implementation; one learner pass
+before shutdown. The lead owns branch sync, implementation integration, tracker
+transitions, PR merge drive, and release proof.
+
+Work type: Build. Target environment is the human-confirmed configured key
+`production`; `.lisa.config.json` maps it uniquely to remote `main`. The existing
+feature branch `1859-setup-automations-warn` is reused and must be rebased onto
+`origin/main` before source work.

@@ -152,5 +152,131 @@ describe("rejection-detection rule contract", () => {
       expect(impl).toMatch(/MUST NOT re-propose/i);
       expect(impl).toMatch(/never blocks/i);
     });
+
+    describe("Proposal rejection memory (proposal-side, orthogonal to the reclaim path)", () => {
+      it("names the section in both halves", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("Proposal rejection memory");
+        }
+      });
+
+      it("keeps the claim-time rejection-reclaim path untouched (orthogonality)", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("rejection-reclaim");
+          expect(doc).toMatch(/untouched|unchanged/i);
+        }
+      });
+
+      it("treats closed-as-not-planned as a durable decline that suppresses", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toMatch(/not[_ ]planned/i);
+          expect(doc).toContain('stateReason == "not_planned"');
+          expect(doc).toMatch(/suppress/i);
+        }
+      });
+
+      it("warns the GitHub stateReason compare is case-insensitive (raw gh is UPPERCASE)", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toMatch(/case-insensitive/i);
+          expect(doc).toContain("NOT_PLANNED");
+        }
+      });
+
+      it("resolves the JIRA/Linear not-planned equivalent from config, never hardcoded", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("config-resolution");
+          expect(doc).toMatch(/never (a )?hardcode/i);
+        }
+      });
+
+      it("searches open AND closed items with a body-enumeration fallback, matching on the marker", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("open AND closed");
+          expect(doc).toMatch(/body-enumeration fallback/i);
+          expect(doc).toMatch(/match on the marker, never the title/i);
+        }
+      });
+
+      it("uses the gardener's deterministic shasum-256 key formula", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("shasum -a 256 | cut -c1-12");
+        }
+      });
+
+      it("re-files only with evidence postdating the decline, citing decline+recurrence", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toMatch(/postdat/i);
+          expect(doc).toContain("declined");
+          expect(doc).toContain("recurred");
+        }
+      });
+
+      it("requires a human acknowledgment sentence on a re-file, alongside the machine token", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("You declined this on");
+          expect(doc).toContain(
+            "so we're raising it once more for your review"
+          );
+        }
+      });
+
+      it("mandates the operator close-reason footer on every filed proposal", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain(
+            "To stop this from being raised again, close it as **Not planned**"
+          );
+          expect(doc).toMatch(/Close it as \*\*Completed\*\* if it was fixed/);
+        }
+      });
+
+      it("pins an operator-readable recovery-required exemplar for an unreadable check", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain(
+            "restore credentials; nothing was filed this run"
+          );
+        }
+      });
+
+      it("treats closed-as-completed as a regression, not a decline", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toMatch(/is NOT a decline/i);
+          expect(doc).toMatch(/regression/i);
+        }
+      });
+
+      it("an all-suppressed cycle ends nothing-needed naming the suppression count", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("nothing-needed");
+          expect(doc).toMatch(/suppression count/i);
+        }
+      });
+
+      it("an unreadable memory check ends recovery-required, never a silent nothing-needed", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toContain("recovery-required");
+          expect(doc).toMatch(/silent .?nothing-needed/i);
+        }
+      });
+
+      it("states convergence-not-mutual-exclusion concurrency honesty (no cross-run lock)", () => {
+        for (const doc of [eager, reference]) {
+          expect(doc).toMatch(/convergence, not mutual exclusion/i);
+        }
+      });
+
+      it("names every proposing loop that consults the shared contract", () => {
+        for (const doc of [eager, reference]) {
+          for (const loop of [
+            "lisa-exploratory-qa",
+            "lisa-project-ideation",
+            "lisa-monitor",
+            "lisa-repair-intake",
+          ]) {
+            expect(doc).toContain(loop);
+          }
+          expect(doc).toContain("lisa-learnings-audit");
+        }
+      });
+    });
   });
 });

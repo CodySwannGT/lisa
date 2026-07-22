@@ -32,8 +32,17 @@
     "prepublishOnly": "$npm_execpath run build",
     "check:plugins": "bash scripts/check-plugins-sync.sh",
     "check:learnings-budget": "bun scripts/check-learnings-budget.ts",
+    "build:upstream-evidence-manifest": "node scripts/generate-upstream-evidence-manifest.mjs",
+    "check:upstream-evidence-manifest": "node scripts/generate-upstream-evidence-manifest.mjs --check",
+    "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
-    "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json"
+    "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
+    "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
+    "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
+    "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs",
+    "verify:learner-frontmatter-built": "bun run build:dist && node scripts/verify-learner-frontmatter-built.mjs",
+    "verify:health-agentic": "bun run build:dist && node scripts/verify-health-agentic-built.mjs",
+    "verify:health-consumer": "bun run build:dist && node scripts/verify-health-consumer-built.mjs"
   },
   "engines": {
     "npm": "please-use-bun",
@@ -86,7 +95,8 @@
     "ws": ">=8.21.0",
     "multer": ">=2.2.0",
     "undici": ">=6.27.0",
-    "form-data": ">=4.0.6"
+    "form-data": ">=4.0.6",
+    "brace-expansion": ">=5.0.6"
   },
   "overrides": {
     "@isaacs/brace-expansion": "^5.0.1",
@@ -99,15 +109,17 @@
     "ws": ">=8.21.0",
     "multer": ">=2.2.0",
     "undici": ">=6.27.0",
-    "form-data": ">=4.0.6"
+    "form-data": ">=4.0.6",
+    "brace-expansion": ">=5.0.6"
   },
   "name": "@codyswann/lisa",
-  "version": "2.248.0",
+  "version": "2.286.10",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
     "./learnings": "./dist/core/learnings.js",
+    "./health": "./dist/health/index.js",
     "./eslint": "./dist/configs/eslint/index.js",
     "./eslint/base": "./dist/configs/eslint/base.js",
     "./eslint/typescript": "./dist/configs/eslint/typescript.js",
@@ -207,7 +219,7 @@
     "husky": "^8.0.0",
     "jest": "^30.0.0",
     "jiti": "^2.4.0",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.3.0",
     "jscodeshift": "0.15.2",
     "jsonc-parser": "^3.3.1",
     "knip": "^5.0.0",

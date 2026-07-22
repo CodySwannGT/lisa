@@ -34,18 +34,26 @@ Treat the first successful lead-spawn request (or, on the Codex fallback, the fi
 
 ## Resolve the input (first task assigned to the team)
 
-$ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request, or the request in text format.
+$ARGUMENTS is either a URL/key for an existing work item, a pointer to a file containing the request, or the request in text format. Every form must resolve to exactly one live, claimed tracker leaf and a verified worktree binding before the lead may begin durable work.
 
 The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a bounded input-resolver teammate, which then:
 
-- If it's a ticket, calls `lisa-tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`). **Mismatch guard**: if the ticket format doesn't match the configured tracker (e.g., a GitHub URL when `tracker` is `jira`), `tracker-read` stops and reports the error — never auto-translates vendors:
-  - JIRA ticket → `lisa-tracker-read` → `lisa-jira-read-ticket`
-  - GitHub Issue → `lisa-tracker-read` → `lisa-github-read-issue`
-  - Linear identifier or project URL → `lisa-tracker-read` → `lisa-linear-read-issue`
-  - Captures comments and metadata, not just the description.
-- If it's a file, reads the entire file without offset or limit.
-- If it's a plain-text request, uses the provided text verbatim as the resolved input.
-- Returns the resolved input to the team lead, who then proceeds to roster selection.
+The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve -> claim -> bind transaction:
+
+- **Explicit ticket:** call `lisa-tracker-read` against the configured tracker and require a live open/unresolved current-project leaf. **Mismatch guard:** if the ticket format/project does not match the configured tracker (for example, a GitHub URL when `tracker` is `jira`), stop — never auto-translate vendors or trust pasted/stale ticket text. The read captures comments, graph, and metadata, not just the description.
+- **Specification file:** read the entire file without offset or limit, preserve it as the resolved input, and follow the plain-text resolution path below.
+- **Plain text or file contents:** search the configured project conservatively for open leaves describing the same outcome. Live-validate every candidate through `lisa-tracker-read`; reuse only exactly one high-confidence match. When there is no unique match (zero or ambiguous candidates), synthesize one complete single-repository leaf and invoke `lisa-tracker-write` exactly once with `build_ready: true`, then live-read its canonical returned ref. Never create a thin placeholder, hierarchy, or container.
+- **Claim:** invoke `lisa-tracker-claim <canonical-ref>` and require the provider skill's post-read verified `claimed|reused` result. A failed or inaccessible claim blocks the flow.
+- **Bind before durable work:** only after the verified claim, run:
+
+  ```bash
+  node scripts/lisa-work-item.mjs bind <canonical-ref>
+  ```
+
+  Require a successful readback of that worktree-local binding. On detached HEAD, `branch: null` is the expected pending binding; after branch creation the mandatory `attach-branch` step below must replace it before any commit. Tracker or binding failure stops the flow; never continue untracked.
+- Return the full resolved work-item context plus `tracker_provider`, canonical `work_item_ref`, resolution outcome, claim outcome, and verified binding to the team lead, who then proceeds to roster selection.
+
+The input resolver may perform these tracker and local-binding operations before the Roster Decision because they are the mandatory gate that establishes what work the team is allowed to do. No project source, documentation, plan artifact, branch, or task may be created or changed before this transaction succeeds. Read-only discussion/orientation outside an Implement flow remains exempt per the `tracked-work` rule.
 
 The input resolver is the only teammate that may be spawned before the Roster Decision exists. After it returns the resolved input, do not spawn any lifecycle, research, implementation, review, verification, or learning teammate until the Roster Decision has been recorded.
 
@@ -76,8 +84,12 @@ Using the general-purpose agent in Team Lead session, Determine the name of this
 
 Using the general-purpose agent in Team Lead session, **determine the base branch from the ticket's target environment, then sync the working branch onto the latest of it before any work** — so implementation always builds on current target-environment code:
 
-1. **Resolve the target environment** from the resolved work item — its `## Target Backend Environment` section (the field the `*-write-*` / `*-add-journey` skills record). For bug work, the environment named in the report is authoritative: if the title/body/reproduction steps mention bare env names (`dev`, `staging`, `prod`, `production`) or env-bearing URLs (`staging.<domain>`, `gql.staging.*`, `dev.<domain>`), that reported environment wins over a generic autofill default.
-2. **Map the environment to a base branch** via `.lisa.config.json` `deploy.branches` (e.g. `staging → staging`, `production → main`) — the forward direction of the same map the env-keyed `done` resolution uses in reverse (see the `config-resolution` rule). If the work item names **no** environment, the base branch is the **remote default branch** (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, or `git remote set-head origin -a` then read `origin/HEAD`), and record that fallback assumption in the plan/tracker artifact before proceeding. If the reported environment is absent from `deploy.branches`, or its branch does not exist on the remote, **stop and report** — never guess a base and never silently fall back to the default/integration branch.
+1. **Resolve the target environment with durable provenance.** The `## Target Backend Environment` value has this exact grammar: a human-confirmed value is either a bare configured key or `Confirmed: <env>`; automated evidence writes `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated fallback writes `Assumption: <env> — remote default branch <branch>` when the branch maps uniquely, or `Assumption: remote default branch <branch>` when it does not. Human confirmation replaces an automated annotation with the bare configured key or `Confirmed: <env>`. For a legacy bare value created before this grammar, use managed draft markers and current ticket content only — provider edit history is not required or assumed. A managed marker proves automation and requires rewriting to `Inferred:` or `Assumption:`; without a marker provenance is unknown, so the value may be used only when no conflicting evidence exists, and a conflict **stops for confirmation**.
+   - A human-confirmed value wins. Otherwise a validated `Inferred:` value is next.
+   - Otherwise inspect the human-authored title, body, and reproduction steps for exactly one unambiguous signal: an exact `deploy.branches` key as a complete token, or that key as a complete label in a URL hostname (`staging.<domain>`, `gql.staging.*`). Exclude the entire `Target Backend Environment` section and all other machine-authored metadata/draft blocks from this evidence scan so an `Inferred:` or `Assumption:` annotation can never validate or conflict with itself. Clear evidence may supersede only an `Assumption:` value, never a human-confirmed value.
+   - The only normalization is built-in `prod` ↔ `production`, and only when exactly one of those keys exists in `deploy.branches`; normalize to that configured key. No other aliases exist.
+   - Never infer from arbitrary branch text, URL paths or query strings, or substrings inside other words or hostname labels. Multiple conflicting signals after normalization **stop** the flow. If there are no signals, resolve the remote default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, or `git remote set-head origin -a` then `origin/HEAD`). When it reverse-maps uniquely, write the env-bearing `Assumption:` form; when the reverse-map is not unique, write the branch-only form and continue on the remote default without inventing an environment or blocking solely for that ambiguity. Record the fallback assumption in the plan/tracker artifact.
+2. **Map the resolved environment to a base branch** through `.lisa.config.json` `deploy.branches` — the forward direction of the env-keyed `done` resolution. The selected exact configured key must map uniquely, and the mapped branch must exist on the remote. A missing/ambiguous mapping or remote branch **stops** the flow; never guess or silently fall back.
 3. **Establish the feature branch off the latest base, conflict-free:**
    - `git fetch origin`.
    - Already on a feature branch with an **open PR** → reuse it. If the PR's base ≠ the resolved base branch, surface the mismatch and re-target only with confirmation — the ticket's environment is the source of truth.
@@ -86,13 +98,14 @@ Using the general-purpose agent in Team Lead session, **determine the base branc
    - **Rebase the feature branch onto `origin/<base>` and resolve any merge conflicts BEFORE starting work.** If the conflicts cannot be resolved cleanly and safely, create a fix task for the agent team (with the conflicting file list and current merge state) and resolve it before implementation begins — never start work on stale or conflicted code.
 4. **The PR targets the resolved base branch** — carry it as `target_branch=<base>` into `lisa-git-submit-pr` (Verify flow). `git-submit-pr` already chooses a closing keyword when the base is the production/default branch and a non-closing reference for a non-terminal environment branch. For a bug fixed on a non-integration environment branch, the current flow is not done until the fix is merged and verified there, then forward cherry-picked down to the integration branch via a linked follow-up.
 
-When the request came from a tracker work item, preserve its native identifier for development linkage:
+Every Implement run now has a tracker work item. Preserve its canonical identifier for development linkage unconditionally:
 
-- Capture `tracker_provider` and `work_item_ref` from the resolved input before creating or reusing a branch. Examples: `github` + `CodySwannGT/lisa#614`, `linear` + `ENG-123`, `jira` + `ENG-123`.
+- Capture `tracker_provider` and `work_item_ref` from the tracked input before creating or reusing a branch. Examples: `github` + `CodySwannGT/lisa#614`, `linear` + `ENG-123`, `jira` + `ENG-123`. Missing linkage is a workflow failure, never an optional/no-ticket mode.
 - If a new branch is needed and the provider can link branches by identifier, include the identifier in the branch name before the human-readable slug. Linear and JIRA integrations commonly link from branch names; GitHub issue linkage is PR-body driven, but including the issue number in the branch name is still useful. Keep branch names URL-safe, for example `codex/ENG-123-add-checkout-copy` or `codex/614-add-checkout-copy`.
+- After the feature branch exists, run `node scripts/lisa-work-item.mjs attach-branch` so the worktree-local binding records the actual branch without treating the branch name as authority.
 - Pass the work-item ref and target branch to `lisa-git-submit-pr` when opening or updating the PR, for example `work_item_ref=CodySwannGT/lisa#614 target_branch=<base resolved from the ticket's environment above>` (not hardcoded `main`). The PR workflow owns provider-specific body text and must decide whether to use a closing keyword or a non-closing reference.
 - After `lisa-git-submit-pr` returns a PR URL, ensure the reverse backlink is present on the source work item by running `lisa-tracker-sync <work_item_ref> pr-ready pr_url=<url> tracker_provider=<provider>`. The sync path must prefer native provider linkage and fall back to one managed `[lisa-pr-link]` comment when native linkage is unavailable or cannot be verified.
-- If the provider has no native branch or PR development-linkage surface, continue without linkage and mention that the provider was skipped.
+- If the provider has no native branch or PR development-linkage surface, the managed `[lisa-pr-link]` fallback is required; never continue without proven ticket-side linkage.
 
 Using the general-purpose agent in Team Lead session, Determine which flow applies:
 1. Research -- needs a PRD (no specification exists)
@@ -185,41 +198,119 @@ Before marking a task complete, the implementing agent records concise MLD into 
 
 Each task must have their learnings captured to the ledger by the learner subagent.
 
+## Implement valid suggestions
+
+When review, CodeRabbit, local-review, product, quality, security, or specialist
+feedback arrives, apply the `convergent-review` rule before changing code:
+
+1. Normalize each finding into severity, blocking yes/no, concrete failure
+   scenario, evidence, and proposed smallest fix.
+2. Treat a blocker with no concrete correctness, security, data-loss, or
+   contract-violation scenario as malformed. Reply with the missing-evidence
+   reason and handle it as non-blocking.
+3. Resolve each finding with one disposition:
+   - `fixed`: make the smallest code, test, docs, or generated-artifact change
+     that removes the failure scenario.
+   - `deferred`: record why the issue is real but non-blocking, and file or link
+     follow-up work when useful.
+   - `pushed-back`: cite the evidence, scope boundary, or repository rule that
+     refutes the finding.
+4. If a reviewer cannot refute a pushback with fresh evidence, the author's
+   disposition stands.
+5. After the suggestion-implementation task completes and required gates pass,
+   do not reopen review unless new evidence appears: a relevant new commit, a
+   failed gate, a newly cited failure scenario, or a scope change.
+6. If a blocking disagreement remains irreconcilable, stop the review loop:
+   move the work item to the configured blocked state, add `human-needed` when
+   the decision is human-only, and summarize both positions in plain language.
+
 Before shutting down the team, execute the Verify flow:
 
 1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
 2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step. For UI-surface bugs, the proof must observe the UI surface with browser/device automation against the target environment whenever such a harness exists; unit-level or API-only proof cannot satisfy the empirical verification contract for a UI-surface defect.
-2a. **Record the verification verdict** — the independent, machine-readable proof that gates completion. The `verification-specialist` writes `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json` with one entry per acceptance criterion, each carrying the proof command's observed evidence:
+2a. **Record the verification verdict** — the independent, machine-readable proof that gates completion. The `verification-specialist` writes `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json` in **schema v2**, which binds every claim to the *boundary* it asserts and to the evidence *kinds* that reach that boundary, per the `claim-evidence-mapping` rule:
 
     ```json
     {
+      "schema_version": 2,
       "plan": "<plan-name>",
-      "status": "pass | fail | blocked | in_progress",
+      "artifact": {
+        "repository": "<owner/repo>", "base_sha": "<sha>", "head_sha": "<sha of what will ship>",
+        "build_id": "<build/run id>", "environment": "<where it was observed>", "observed_at": "<ISO8601 UTC>"
+      },
+      "claims": [
+        {
+          "claim_id": "AC-1",
+          "statement": "<the claim, in the operator's language>",
+          "boundary": "code-unit | browser | http-api | cli | data | deploy-health | performance | standards-compat",
+          "required_for_gate": true,
+          "required_evidence_kinds": ["<kinds that reach this boundary, e.g. screenshot, recording>"],
+          "status": "established | not-established",
+          "evidence_refs": ["EV-1"],
+          "not_established": ["<what this claim does NOT cover>"]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EV-1",
+          "kind": "screenshot | recording | http-transcript | cli-output | log-snippet | db-query-output | perf-trace | test-run-log | deploy-log | state-dump",
+          "locator": "evidence/<ticket>/<file>", "sha256": "<hash>",
+          "captured_at": "<ISO8601 UTC>", "artifact_head_sha": "<sha the artifact was captured at>"
+        }
+      ],
+      "not_established_reviewed": true,
       "criteria": [
         { "task": "<task id or title>", "criterion": "<the completion condition>", "status": "pass | fail | blocked", "evidence": "<the proof command run and the observed result; for a blocked criterion, the blocker diagnosis (e.g. the missing access and the probe that must pass)>" }
       ],
+      "status": "pass | fail | blocked | in_progress",
       "updated_at": "<ISO8601 UTC>"
     }
     ```
 
+    Rules for v2: a claim is established **only** by evidence whose `kind` reaches its `boundary` — a unit `test-run-log` reaches only `code-unit` and can never establish a `browser`, `http-api`, or `deploy-health` claim. `not_established_reviewed` must always be present (the `not_established` list may be empty, but the flag may never be omitted). `artifact.head_sha` names what will ship, and each evidence entry's `artifact_head_sha` must match it. The legacy `criteria[]` array is retained and still read, but under v2 it is **display-only** — it can never establish a v2 claim.
+
+    **v1 is still accepted during the compatibility window.** A verdict that omits `schema_version` (or sets it to `1`) carries only `plan` / `status` / `criteria[]` / `updated_at` and is judged exactly as before: terminal `status` plus no failing criterion plus freshness. Write v2 for new work; nothing in flight breaks.
+
     Set `status: "pass"` only when every criterion is `pass` with real evidence (output from running the system, not a claim). The verdict must be judged by an agent that did NOT implement the change (the `verification-specialist`), never self-certified by the implementer. This is runtime scratch — it is gitignored and MUST NOT be committed (treat it like the secrets exclusion in the commit step).
 
-    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file and **will not let the flow stop** until it shows a terminal, all-`pass` verdict — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion, write the verdict with `status: "blocked"` and the reason — marking each criterion whose proof is blocked as `status: "blocked"` with the blocker diagnosis as its `evidence`, while unaffected criteria keep their real `pass`/`fail` result — that records the outcome and releases the gate instead of leaving it to spin. But a `blocked` verdict is a last resort, not a shortcut around fillable work: **first resolve every gap you can resolve yourself.** If the work item is thin — missing its Validation Journey, acceptance criteria, or other derivable detail — enrich it: derive the missing detail from the ticket context and the codebase, write it back, and proceed. Do **not** block on a gap you could have filled. Only a blocker that survives that attempt is real, and it is one of two kinds:
+    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file — both v1 and v2 — and **will not let the flow stop** until it shows a terminal, all-`pass` verdict. The v2 claim/evidence checks are **advisory-first**: a boundary or identity violation is reported to stderr but does not block until `verification.gate.enforceBoundaries` is set to `true` in `.lisa.config.json` (default `false`, promoted via the threshold ratchet). Treat an advisory warning as a defect to fix now, not a warning to ignore — it becomes blocking on the ratchet. The gate — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion, write the verdict with `status: "blocked"` and the reason — marking each criterion whose proof is blocked as `status: "blocked"` with the blocker diagnosis as its `evidence`, while unaffected criteria keep their real `pass`/`fail` result — that records the outcome and releases the gate instead of leaving it to spin. But a `blocked` verdict is a last resort, not a shortcut around fillable work: **first resolve every gap you can resolve yourself.** If the work item is thin — missing its Validation Journey, acceptance criteria, or other derivable detail — enrich it: derive the missing detail from the ticket context and the codebase, write it back, and proceed. Do **not** block on a gap you could have filled. Only a blocker that survives that attempt is real, and it is one of two kinds:
 
     - **Actionable blocker** — an unresolved dependency or fixable technical gap that some team or repository could build (a missing or changed schema field, an unbuilt sibling work item, a required upstream fix), **including cross-repo dependencies**. Before writing the blocked verdict you MUST (1) file a build-ready fix/dependency ticket capturing the diagnosis — in the dependency's own repository/tracker when it is cross-repo (e.g. a `[<repo>] …` ticket in the shared project, or the sibling tracker) — and (2) link the current work item to it as `is blocked by`. Only then write the verdict. This is the same discipline as the regression-spec blocker and the remote-verification-fail exits above, and it is what makes the block machine-recoverable: `repair-intake` re-dispatches a blocked item once its linked `is blocked by` dependency closes, but it cannot act on a prose-only comment. Recommending the ticket "as a human follow-up" without filing and linking it is **not** a permitted exit.
     - **Human-only blocker** — an input the agent genuinely cannot obtain or produce no matter what it does: credentials, secrets, or **tool access** it does not have (AWS/CloudWatch, Figma, Jam, Sentry, SonarCloud, a database, a protected deploy target, …), or a product/design decision only a human can make. For missing tool access, follow the `tool-access-gate` rule's break-out protocol: post the "Access Needed" comment naming the exact credential/role/env var to grant and the probe that must pass — never work around the gap by substituting weaker verification, mocking the inaccessible system, or narrowing scope. Record the blocked verdict, mark it `human_needed` (the marker `repair-intake` recognizes, so it won't churn re-dispatching it), and surface or reassign to a human; do **not** fabricate a build-ready ticket, because there is no build-ready work.
 
-    Other harnesses fall back to this prose obligation.
+    **Harnesses that do not fire a Stop hook enforce the same discipline by convention.** The
+    `enforce-verification-gate.sh` Stop hook is a **Claude-only** surface — Codex, Cursor, Antigravity,
+    Copilot, and OpenCode carry the skills, agents, and (where the runtime has a rules surface) the
+    `claim-evidence-mapping` rule, but nothing on those runtimes can refuse to stop. That is a known
+    **representation gap**, documented here rather than dropped: on those harnesses this prose gate
+    *is* the gate, and the flow may not declare completion until it has written the same v2 verdict
+    and self-checked it against the same expectations the hook would have applied:
+
+    - `schema_version: 2` is written, with `plan`, `status`, and `updated_at` terminal and fresh.
+    - Every claim carries a `claim_id`, a `boundary` from the closed set, and the
+      `required_evidence_kinds` that reach that boundary — and its `evidence_refs` resolve to evidence
+      whose `kind` is one of them. A unit `test-run-log` cited for a `browser`, `http-api`, or
+      `deploy-health` claim is the failure this check exists to catch.
+    - `artifact.head_sha` names what will ship, and every evidence entry's `artifact_head_sha` matches
+      it, with a `sha256` digest and `captured_at` recorded as values, never placeholders.
+    - The `not_established` list is present on every claim and `not_established_reviewed` is `true` —
+      an empty list is fine, an omitted flag is not.
+
+    Record the self-check in the completion summary the way the hook would have reported it: name the
+    boundary each claim reached, or name the violation. Where the runtime lacks the rules surface (the
+    agy artifacts carry no rules tree), the obligation still travels in this skill — cite the
+    `claim-evidence-mapping` contract by slug and continue; never block on the absent surface.
 3. Write the highest-practical-observation regression test encoding the verification. For user-visible bugs or user-visible Build changes with an available browser/device/e2e harness, this means a deterministic spec on the reported surface — and for frontend work, once the validation journey is verified, codification into **every supported UI runner**: a Playwright spec in the Playwright runner AND a Maestro flow when the project supports Maestro, per `codify-verification`. Prove the new spec actually executed and passed in PR CI by recording a named spec log/reporter line or equivalent execution record; green CI without that named evidence does not satisfy this step.
 4. Record Implement usage on the originating work artifact via `lisa-usage-accounting` so the work item (or other implementation-owned artifact) gains a direct `lisa-implement` usage entry in the canonical `## Lisa Usage` section. If the parent / child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
 5. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 6. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-7. Open a pull request with auto-merge on via `lisa-git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the work-item ref when one exists so the PR can be linked natively to the source issue.
+7. Open a pull request with auto-merge on via `lisa-git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the mandatory work-item ref so the PR can be linked natively to the source issue.
 7a. Confirm two-way linkage before treating PR submission as complete: the PR body/title/branch must reference the work item, and the work item must have either a verified native PR link or a single managed `[lisa-pr-link]` fallback comment from `lisa-tracker-sync`.
 8. PR Watch Loop: Drive the PR to merge via the `drive-pr-to-merge` skill — the single source of truth for clearing every blocker (auto-merge with direct-merge fallback, `BEHIND` re-sync, conflict resolution, failing-check fixes, human + bot review-comment handling with thread resolution, stale `CHANGES_REQUESTED` dismissal, and post-merge ancestry verification). `git-submit-pr` already invokes it; if you reach this step with a PR already open, invoke `drive-pr-to-merge` directly with the PR number. For a large review backlog you may fan the code-fix work out to the agent team, but `drive-pr-to-merge` owns the loop and the terminal conditions — do not re-implement them.
-9. Merge the PR, then refresh the ticket-side backlink with `lisa-tracker-sync <work_item_ref> pr-merged pr_url=<url> merge_sha=<sha> tracker_provider=<provider>` when a work item exists.
+9. Merge the PR, then refresh the ticket-side backlink with `lisa-tracker-sync <work_item_ref> pr-merged pr_url=<url> merge_sha=<sha> tracker_provider=<provider>`.
 10. Monitor the deploy action that triggers automatically from the successful merge
 11. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
 12. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote), and refreshes the verdict (step 2a) to reflect the remote result.
 13. `ops-specialist`: post-deploy health check, monitor for errors in first minutes
 14. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 5. **Bound this loop**: after a small number of full fix→deploy→reverify cycles without reaching a passing remote verdict (treat ~3 as the ceiling unless the work item states otherwise), stop retrying — file a build-ready fix ticket, write the verdict with `status: "blocked"` and the diagnosis, and move the work item to blocked rather than looping indefinitely. The completion gate releases on a `blocked` verdict, so the flow ends with a recorded outcome instead of a silent spin or a self-declared success.
+15. After true terminal completion — required merge/deploy/verification passed, usage/evidence and two-way PR linkage are recorded, and the work item is terminal — run `node scripts/lisa-work-item.mjs clear` and verify the worktree has no current binding. Do not clear on an interruption or blocked outcome; preserving the binding is what keeps resumed work attributable.

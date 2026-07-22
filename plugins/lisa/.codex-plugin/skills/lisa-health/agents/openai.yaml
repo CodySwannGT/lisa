@@ -1,0 +1,4 @@
+display_name: "Health"
+short_description: "Run Lisa Health through one…"
+default_prompt:
+  - "Use $lisa-health: Run Lisa Health through one…."

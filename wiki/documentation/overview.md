@@ -85,9 +85,17 @@ Lisa also ships small maintenance commands:
 
 ```bash
 lisa doctor [path]
+lisa doctor [path] --readiness
 lisa version
 lisa update
 ```
+
+The additive `--readiness` mode asks the repository-level question: may an agent fleet operate here
+unattended? It persists the schema-versioned result at `.lisa/readiness.json`, including
+`schema_version`, `verdict`, `blocker_count`, the standing blocker records, and the narrowed claim.
+Consumers use the exported `resolveReadinessReportPath` contract rather than inventing another
+location, so a future relocation changes the resolver instead of every reader. The default
+`lisa doctor [path]` path remains the installation-readiness check and does not write this report.
 
 Every normal command performs a timeout-bound npm latest-version check before it runs. The project-local cache lives under `node_modules/.cache`; the check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`. `lisa update --yes` updates this project's dependency and triggers the same automatic apply path.
 

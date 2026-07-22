@@ -59,12 +59,20 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toMatch(/## Autonomous-vs-approval boundary/);
     expect(skill).toMatch(/## Escalation/);
     expect(skill).toMatch(/## Recovery/);
-    expect(skill).toMatch(/## Terminal states/);
+    expect(skill).toMatch(/## Run outcomes/);
     expect(skill).toMatch(/## Retirement condition/);
   });
 
-  it("declares the three per-run terminal states", () => {
+  it("declares the six run outcomes and documents the mapping from the retired three", () => {
+    expect(skill).toContain(
+      "nothing-needed | candidate-proposed | change-proved | approval-requested | recovery-required | policy-obsolete"
+    );
+    // The retired three-value vocabulary is documented as the prior state it maps from.
     expect(skill).toContain("nothing-needed | candidates-proposed | blocked");
+    expect(skill).toContain("`candidates-proposed` → **`candidate-proposed`**");
+    expect(skill).toContain("`blocked` → **`recovery-required`**");
+    expect(skill).toContain("`approval-requested`");
+    expect(skill).toContain("`policy-obsolete`");
   });
 
   it("is human-gated everything at v1 — the skill only files tickets", () => {

@@ -6,12 +6,14 @@ import * as http from "node:http";
 import * as path from "node:path";
 import { readFile } from "node:fs/promises";
 import {
+  getAtPath,
   isJsonObject,
   setAtPath,
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
 import { writeJson } from "../utils/index.js";
+import { SYNC_REGISTRY } from "../sync/registry.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
@@ -164,6 +166,27 @@ function validateChangeEntry(key: string, change: unknown): string | undefined {
 }
 
 /**
+ * Validate every registered constraint against the fully merged document.
+ * @param config - Prospective committed config
+ */
+function validateProspectiveConfig(config: JsonObject): void {
+  SYNC_REGISTRY.forEach(entry => {
+    if (entry.validate === undefined) return;
+    const prospective = getAtPath(config, entry.key);
+    if (prospective === undefined) return;
+    try {
+      entry.validate(prospective);
+    } catch (error) {
+      throw new RequestBodyError(
+        error instanceof Error
+          ? error.message
+          : `Config value "${entry.key}" is invalid`
+      );
+    }
+  });
+}
+
+/**
  * Parse and validate the sparse config-write payload.
  * @param value - Parsed JSON request body
  * @returns Dot-path changes, or a specific validation error
@@ -263,6 +286,7 @@ async function writeConfigChanges(
       (state, [key, value]) => setAtPath(state, key, value),
       original
     );
+    validateProspectiveConfig(next);
     await writeJson(path.join(destDir, CONFIG_FILE), next);
     return next;
   });

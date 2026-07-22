@@ -24,5 +24,18 @@
         ]
       }
     ]
+  },
+  "lisa-block-shell-json-parsing": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/block-shell-json-parsing.agy.sh\""
+          }
+        ]
+      }
+    ]
   }
 }

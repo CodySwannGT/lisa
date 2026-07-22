@@ -35,12 +35,29 @@ Structure your findings as:
 - [ ] No XSS vectors in user-facing output
 - [ ] Dependencies free of known CVEs
 
-### Vulnerabilities Found
-- [vulnerability] -- where in the code, how to prevent
+### Security (proven)
+- [finding] -- where in the code, how to prevent
+  - reproducer: [evidence ref]
+  - impact: [who can do what, to what data, under what preconditions]
+  - reason: reproducer + bounded impact
+
+### Security (unproven)
+- [finding] -- where in the code, how to prevent
+  - reproducer: [evidence ref if one exists, else `none`]
+  - impact: [bounded statement if one exists, else `unproven`]
+  - reason: [which half is missing -- e.g. "impact bounded, but never reproduced"]
+    -- kept in the security section, not demoted
 
 ### Recommendations
 - [recommendation] -- priority (critical/warning/suggestion)
 ```
+
+A finding is **proven** only with both a reproducer evidence ref and a bounded impact statement;
+missing either, it stays **unproven** inside the security section. Record the two halves
+independently -- keep whichever one you have and let the `reason` name the missing half; never
+overwrite a real value with a placeholder. The full bar, the per-finding fields, and the
+`security.review.unprovenBucket` policy point live in the `security-review` skill -- follow it, do
+not restate it.
 
 ## Rules
 

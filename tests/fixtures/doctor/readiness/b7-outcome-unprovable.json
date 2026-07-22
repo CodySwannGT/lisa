@@ -1,0 +1,75 @@
+{
+  "dimensions": [
+    {
+      "id": "context-routing",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "capabilities-tools",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "domain-ownership",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "execution-proof",
+      "status": "FAIL",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": [
+        {
+          "blocker": "B7",
+          "severity": "critical",
+          "blocking": true,
+          "invariant_violated": "The headline user-visible outcome is provable by running the system at the boundary it claims.",
+          "claim_evidence": {
+            "claim_id": "checkout-confirmation-renders",
+            "boundary": "browser",
+            "required_evidence_kinds": [
+              "screenshot",
+              "recording"
+            ],
+            "not_established": [
+              "browser boundary never exercised — the only captured artifact is a unit test-run-log at the code-unit boundary"
+            ],
+            "not_established_reviewed": true
+          },
+          "evidence": "The only artifact backing the checkout claim is a unit test-run-log; the browser boundary the claim lives at was never exercised, so the outcome is Not established.",
+          "why_proof_missed": "Unit tests gate the commit but reach only the code-unit boundary; nothing captures a screenshot or recording at the browser boundary.",
+          "root_correction": "Capture a screenshot or recording of the confirmation state after a real click.",
+          "machinery_to_remove": []
+        }
+      ]
+    },
+    {
+      "id": "feedback-guardrails",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "dependencies-supply-chain",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "delivery-authority",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    },
+    {
+      "id": "proportionality",
+      "status": "SKIP",
+      "observed": "No readiness probe wired in this Lisa version.",
+      "findings": []
+    }
+  ]
+}

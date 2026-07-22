@@ -131,6 +131,8 @@ jobs:
     name: 🔍 Quality Checks
     needs: [determine_environment, cdk-checks] # Ensure CDK checks pass first
     # Reference to the quality checks workflow
+    permissions:
+      contents: read
     uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
     with:
       node_version: '22.21.1'

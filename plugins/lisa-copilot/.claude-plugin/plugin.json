@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "2.248.0",
+  "version": "2.286.10",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -48,6 +48,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
           }
         ]
       },

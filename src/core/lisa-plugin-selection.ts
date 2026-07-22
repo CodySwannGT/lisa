@@ -47,15 +47,29 @@ export async function selectProjectLisaPlugins(
   detectedTypes: readonly ProjectType[]
 ): Promise<ReadonlySet<string>> {
   const config = await readProjectConfig(destDir);
+  const hasLocalWiki = await fse.pathExists(
+    path.join(destDir, "wiki", "lisa-wiki.config.json")
+  );
+  return selectProjectLisaPluginsFromState(config, detectedTypes, hasLocalWiki);
+}
+
+/**
+ * Select plugins from already-safe project state without filesystem access.
+ * @param config - Parsed project config
+ * @param detectedTypes - Expanded, ordered project types
+ * @param hasLocalWiki - Whether the local wiki contract marker exists
+ * @returns Stable selected plugin set
+ */
+export function selectProjectLisaPluginsFromState(
+  config: LisaProjectConfig,
+  detectedTypes: readonly ProjectType[],
+  hasLocalWiki: boolean
+): ReadonlySet<string> {
   const configuredStandalonePlugins = Object.entries(
     STANDALONE_PLUGIN_CONFIG_KEYS
   )
     .filter(([configKey]) => config[configKey] !== undefined)
     .map(([, pluginName]) => pluginName);
-  const hasLocalWiki = await fse.pathExists(
-    path.join(destDir, "wiki", "lisa-wiki.config.json")
-  );
-
   return new Set([
     "lisa",
     ...detectedTypes.map(type => `lisa-${type}`),

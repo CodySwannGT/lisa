@@ -14,9 +14,13 @@ const END_MARKER = "# END: AI GUARDRAILS";
 const GIT_BIN = "/usr/bin/git";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const VERIFICATION_STATUS = ".lisa/verification-status.json";
+const STANDARDS_PROOF = ".lisa/standards/latest.json";
 const ROSTER = ".lisa/roster.md";
 const CROSS_POLLINATION_LOCK = ".lisa/cross-pollination.lock.json";
+const AUTOMATION_RUN_RECORD = ".lisa/automations/runs/probe-loop.jsonl";
+const AUTOMATION_RUNBOOK = ".lisa/automations/probe-loop.runbook.md";
 const CHECK_IGNORE = "check-ignore";
+const SHARED_TEMPLATE = "all/copy-contents/gitignore";
 
 /**
  * Return an isolated environment for git commands run inside temp fixtures.
@@ -126,7 +130,7 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
   });
 
   it("ignores only the transient verification verdict and preserves host rules on re-apply", async () => {
-    const srcFile = path.join(REPO_ROOT, "all/copy-contents/gitignore");
+    const srcFile = path.join(REPO_ROOT, SHARED_TEMPLATE);
     const destFile = path.join(destDir, DOTLESS);
     const destGitignore = path.join(destDir, GITIGNORE);
     const hostRule = "host-owned-cache/";
@@ -167,6 +171,7 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     expect(merged).not.toContain("old-lisa-rule/");
 
     await fs.outputFile(path.join(destDir, VERIFICATION_STATUS), "{}\n");
+    await fs.outputFile(path.join(destDir, STANDARDS_PROOF), "{}\n");
     await fs.outputFile(path.join(destDir, ROSTER), "# Roster\n");
     await fs.outputFile(path.join(destDir, CROSS_POLLINATION_LOCK), "{}\n");
     const gitEnv = cleanGitEnv();
@@ -184,6 +189,11 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
       cwd: destDir,
       env: gitEnv,
     });
+    const standards = spawnSync(
+      GIT_BIN,
+      [CHECK_IGNORE, "-q", STANDARDS_PROOF],
+      { cwd: destDir, env: gitEnv }
+    );
     const lock = spawnSync(
       GIT_BIN,
       [CHECK_IGNORE, "-q", CROSS_POLLINATION_LOCK],
@@ -196,20 +206,59 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     );
 
     expect(verdict.status).toBe(0);
+    expect(standards.status).toBe(0);
     expect(roster.status).toBe(1);
     expect(lock.status).toBe(1);
     expect(status).not.toContain(VERIFICATION_STATUS);
+    expect(status).not.toContain(STANDARDS_PROOF);
     expect(status).toContain(ROSTER);
     expect(status).toContain(CROSS_POLLINATION_LOCK);
+  });
+
+  it("ignores automation run records but keeps runbooks trackable in a real repo", async () => {
+    // Test hardened to kill mutant M001 (Risk Factor: host-project git hygiene /
+    // over-broad ignore). Rule-text pins can pass while the *effective* ignore
+    // set is wrong — an over-broad `.lisa/automations/` rule would also swallow
+    // runbooks (RBC-2 project knowledge). Materialize the shipped template and
+    // let git adjudicate: a run record MUST be ignored, a runbook MUST NOT be.
+    const srcFile = path.join(REPO_ROOT, SHARED_TEMPLATE);
+    const destFile = path.join(destDir, DOTLESS);
+    await strategy.apply(srcFile, destFile, DOTLESS, createContext());
+
+    const gitEnv = cleanGitEnv();
+    execFileSync(GIT_BIN, ["init", "-q"], { cwd: destDir, env: gitEnv });
+    await fs.outputFile(path.join(destDir, AUTOMATION_RUN_RECORD), "{}\n");
+    await fs.outputFile(path.join(destDir, AUTOMATION_RUNBOOK), "# runbook\n");
+
+    const runRecord = spawnSync(
+      GIT_BIN,
+      [CHECK_IGNORE, "-q", AUTOMATION_RUN_RECORD],
+      { cwd: destDir, env: gitEnv }
+    );
+    const runbook = spawnSync(
+      GIT_BIN,
+      [CHECK_IGNORE, "-q", AUTOMATION_RUNBOOK],
+      {
+        cwd: destDir,
+        env: gitEnv,
+      }
+    );
+    const status = execFileSync(
+      GIT_BIN,
+      ["status", "--short", "--untracked-files=all"],
+      { cwd: destDir, env: gitEnv, encoding: "utf8" }
+    );
+
+    expect(runRecord.status).toBe(0);
+    expect(runbook.status).toBe(1);
+    expect(status).not.toContain(AUTOMATION_RUN_RECORD);
+    expect(status).toContain(AUTOMATION_RUNBOOK);
   });
 });
 
 describe("all/copy-contents/gitignore shipped content", () => {
   const readShared = (): string =>
-    fs.readFileSync(
-      path.join(REPO_ROOT, "all/copy-contents/gitignore"),
-      "utf-8"
-    );
+    fs.readFileSync(path.join(REPO_ROOT, SHARED_TEMPLATE), "utf-8");
 
   it("orders the broad tasks.json ignore before the re-include (last-match-wins)", () => {
     // gitignore is last-match-wins: a broad `tasks.json` after `!tasks/tasks.json`
@@ -239,5 +288,21 @@ describe("all/copy-contents/gitignore shipped content", () => {
       .filter(line => line.length > 0 && !line.startsWith("#"));
     expect(rules).toContain(VERIFICATION_STATUS);
     expect(rules).not.toContain(".lisa/");
+  });
+
+  it("ignores automation run records while keeping runbooks trackable", () => {
+    // Test hardened to kill mutant M002 (Risk Factor: host-project git hygiene /
+    // over-broad ignore). Fast rule-text guard for the behavioral check above.
+    // Host projects run the automation loops that write
+    // .lisa/automations/runs/<loop-id>.jsonl; those local scheduler
+    // observations must be ignored. Runbooks (.lisa/automations/*.runbook.md)
+    // are project knowledge and must stay trackable, so the rule targets only
+    // the runs/ subdirectory — never the whole automations directory.
+    const rules = readShared()
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith("#"));
+    expect(rules).toContain(".lisa/automations/runs/");
+    expect(rules).not.toContain(".lisa/automations/");
   });
 });

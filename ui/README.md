@@ -126,9 +126,21 @@ product features, secrets, or business logic is never proposed.
 When the engine lands, `starter.*` should join the `lisa sync` registry so
 the section above governs it like every other setting.
 
-## Health (planned — documented, not wired)
+## Health (shared skill and CLI available)
 
-The **Health** section answers two questions with different lifecycles:
+The **Health** section answers two questions with different lifecycles. Health
+v1 now ships its shared result and persistence contract, deterministic fast
+path, harness-neutral optional agentic composition API at
+`@codyswann/lisa/health`, `lisa health` CLI, and `/lisa:health` skill across all
+six supported harnesses. Completed results are validated and atomically stored
+at the gitignored `.lisa/health/latest.json`; `health.schedule` is the only v1
+configuration key and accepts `off`, `daily`, or `weekly`. The console now
+reads that stored result on boot and its **Run deterministic health check** button invokes the
+shared consumer directly against the directory served by `lisa ui`. Browser
+runs are intentionally deterministic: the local server starts no child process
+or nested coding agent. Agentic composition remains the responsibility of the
+`/lisa:health` skill in the active coding harness. The scheduler remains
+downstream work.
 
 **Is Lisa on the latest version?** — always-on status. Lisa's CLI already
 checks npm on every invocation; the console surfaces the result permanently
@@ -137,12 +149,14 @@ Health section's version card. When behind, `lisa update` prints (or runs
 with `--yes`) the package-manager update command.
 
 **Is the project completely in band?** — on-demand scan behind the
-"Run health check" button (plus an optional scheduled cadence via
+"Run deterministic health check" button (plus an optional scheduled cadence via
 `health.schedule` that files a ticket when drift is found). "In band" means
 every Lisa-managed surface matches what the installed Lisa version would
-emit. The check is a mix of deterministic and agentic verification,
-packaged as one skill (working name `/lisa:health`) so the console button,
-the cron, and the CLI share a single implementation:
+emit. The console and `lisa health` CLI invoke the same deterministic persisted
+consumer. `/lisa:health` is the current-harness surface that may compose the
+optional agentic layer before persisting a final result; the console can read
+and render that stored full result, but a browser-initiated run remains
+deterministic. The scheduled consumer remains downstream work:
 
 - **Deterministic layer** (fast, exact — reuses what exists today):
   `lisa doctor`, template diffing for copy-overwrite/managed-block files,
@@ -150,14 +164,21 @@ the cron, and the CLI share a single implementation:
   `lisa sync --dry-run` (config fully populated, artifacts in sync), git
   hooks installed and unmodified, plugins enabled and version-current, CI
   workflow drift vs the stack template, rulesets present.
-- **Agentic layer** (judges what a diff can't): whether local overrides
+- **Optional agentic composition** (judges what a diff can't): whether local overrides
   (`eslint.config.local.ts`, grandfathered globs) still serve their original
   purpose, whether detected drift looks intentional or accidental, whether
-  skipped CI jobs and disabled gates have a recorded justification.
+  skipped CI jobs and disabled gates have a recorded justification. The
+  shipped composition API accepts an injected evaluator. The skill uses a
+  digest-bound prepare/finalize protocol: preparation emits only bounded
+  evidence and writes nothing, the current harness judges that envelope, and
+  finalization revalidates the evidence digest before persisting one final
+  result.
 
-Results render as a per-check table (pass / warn / fail, with the layer that
-produced each finding), and the last full check's date + verdict stays
-visible in the section.
+The console renders every canonical finding field (`check`, `layer`, `status`,
+and `reason`) in its existing per-check table, keeps the stored completion stamp
+and verdict visible, and gives the health verdict priority in the top-bar chip
+while retaining Lisa version context. A failed run clears prior findings and
+the prior green verdict before surfacing a generic failure; it does not retry.
 
 ### Remote-environment requirements
 
@@ -191,7 +212,7 @@ browser payload; the server exposes names and boolean presence only.
 | Section | Source of truth in this repo |
 | --- | --- |
 | Setup checklist (install → sync → tracker/PRD → repo governance → secrets → automations) | `lisa apply`, `lisa sync`, `/lisa:setup:*` skills |
-| Health (version status + planned in-band scan) | `lisa doctor`, `lisa sync --dry-run`, planned `/lisa:health` skill |
+| Health (version status + in-band scan) | `lisa doctor`, `lisa sync --dry-run`, `lisa health`, `/lisa:health` skill |
 | Core workflow (the delivery-loop slash commands and their automations) | `plugins/src/base/commands/lisa/`, `plugins/src/base/skills/` |
 | Starter templates (provenance + planned two-way sync) | `src/cli/starters.ts`, planned `starter.*` config |
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |

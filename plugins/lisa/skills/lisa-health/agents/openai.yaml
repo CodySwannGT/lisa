@@ -1,0 +1,4 @@
+display_name: "Health"
+short_description: "Run Lisa Health through one digest-bound current-harness review, persist exactly one final Health v1 result, and emit the persisted JSON…"
+default_prompt:
+  - "Use $lisa-health: Run Lisa Health through one digest-bound current-harness review, persist exactly one final Health v1 result, and emit the persisted JSON…."

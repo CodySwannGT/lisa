@@ -235,9 +235,20 @@ describe("check:learnings-budget", () => {
 
     const packageRoot = path.join(extracted, "package");
     expect(existsSync(path.join(packageRoot, "src"))).toBe(false);
-    expect(
-      existsSync(path.join(packageRoot, "dist", "core", "learnings.js"))
-    ).toBe(true);
+    const closureModules = [
+      "learnings-budget-check.js",
+      "learnings-contract.js",
+      "learnings-document.js",
+      "learnings-entry.js",
+    ] as const;
+    for (const moduleName of closureModules) {
+      expect(
+        existsSync(path.join(packageRoot, "dist", "core", moduleName))
+      ).toBe(true);
+    }
+    expect(existsSync(path.join(packageRoot, "dist", "core", "lisa.js"))).toBe(
+      false
+    );
     const result = spawnSync(
       BUN_EXECUTABLE,
       [
