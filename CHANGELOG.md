@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.293.1](https://github.com/CodySwannGT/lisa/compare/v2.293.0...v2.293.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **work-item:** accept bare repo-name labels as repository scope ([b105218](https://github.com/CodySwannGT/lisa/commit/b1052186f7dbafa18bad49e125c86fa86a4ced55)), closes [#1957](https://github.com/CodySwannGT/lisa/issues/1957) [CodySwannGT/lisa#1957](https://github.com/CodySwannGT/lisa/issues/1957)
+
+
+### Documentation
+
+* **work-item:** correct the config-resolution line citation in the scope comment ([5cade7e](https://github.com/CodySwannGT/lisa/commit/5cade7e91415420b283931f7a40d6682ded509dc)), closes [CodySwannGT/lisa#1957](https://github.com/CodySwannGT/lisa/issues/1957) [CodySwannGT/lisa#1957](https://github.com/CodySwannGT/lisa/issues/1957)
+
 ## [2.293.0](https://github.com/CodySwannGT/lisa/compare/v2.292.0...v2.293.0) (2026-07-22)
 
 
