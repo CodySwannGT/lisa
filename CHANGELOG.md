@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.13](https://github.com/CodySwannGT/lisa/compare/v2.287.0...v2.286.13) (2026-07-22)
+
+
+### Bug Fixes
+
+* **linear:** treat the `duplicate` state.type as terminal in lifecycle rollups ([fcdbe23](https://github.com/CodySwannGT/lisa/commit/fcdbe23e872a12ae26a8b1cc3ddbae26a79d4434)), closes [CodySwannGT/lisa#1942](https://github.com/CodySwannGT/lisa/issues/1942)
+
 ## [2.287.0](https://github.com/CodySwannGT/lisa/compare/v2.286.12...v2.287.0) (2026-07-22)
 
 
