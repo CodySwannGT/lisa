@@ -78,7 +78,9 @@ export class PackageLisaStrategy implements ICopyStrategy {
       securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
         ? this.restrictToSecurityPins(merged)
         : merged;
-    const result = this.applyTemplate(projectJson, effective);
+    const result = normalizeSelfReferencingOverrides(
+      this.applyTemplate(projectJson, effective)
+    );
     assertNoDanglingDollarRefs(result, this.PACKAGE_JSON);
     return result;
   }
@@ -756,6 +758,70 @@ const DIRECT_DEPENDENCY_SECTIONS = [
   "optionalDependencies",
   "peerDependencies",
 ] as const;
+
+/** package.json sections that carry npm-style version overrides. */
+const OVERRIDE_SECTIONS = ["overrides", "resolutions"] as const;
+
+/**
+ * Rewrite literal `overrides`/`resolutions` entries into npm's `"$name"`
+ * self-reference form when the overridden package is also a direct dependency.
+ * @remarks
+ * npm rejects a manifest with `EOVERRIDE` when an `overrides`/`resolutions` key
+ * that is also a direct dependency carries a literal version instead of the
+ * `"$name"` self-reference — e.g. a security remediation force-bumping
+ * `prettier` in `overrides` while `prettier` stays a direct devDependency. npm
+ * runs this validation before doing anything, so the broken manifest fails every
+ * `npx`/`npm` invocation in the project directory (including plugin MCP servers
+ * spawned via `npx`), not just installs. Normalizing to `$name` — the same form
+ * Lisa's own templates use (e.g. `"vite": "$vite"`) — resolves the override
+ * against the direct dependency and satisfies npm, healing a hand-injected or
+ * agent-injected override on the next apply without touching the project by hand.
+ *
+ * Only top-level string entries are rewritten: those are what trigger EOVERRIDE.
+ * Existing `$name` references and nested (parent-scoped) override objects are
+ * left untouched. Overrides for packages that are NOT direct dependencies are
+ * also left as literals — those are legitimate transitive pins.
+ * @param pkg - Merged package.json about to be persisted
+ * @returns A package.json with self-referencing overrides normalized (a shallow
+ *   copy is returned only when a rewrite was needed; otherwise the input)
+ */
+function normalizeSelfReferencingOverrides(
+  pkg: Record<string, unknown>
+): Record<string, unknown> {
+  const directDeps = collectDirectDependencyNames(pkg);
+  if (directDeps.size === 0) {
+    return pkg;
+  }
+  const needsRewrite = (name: string, value: unknown): boolean =>
+    directDeps.has(name) &&
+    typeof value === "string" &&
+    value.length > 0 &&
+    !value.startsWith("$");
+  const rewrites = OVERRIDE_SECTIONS.reduce<Record<string, unknown>>(
+    (acc, section) => {
+      const entries = pkg[section];
+      if (
+        entries === null ||
+        typeof entries !== "object" ||
+        Array.isArray(entries)
+      ) {
+        return acc;
+      }
+      const pairs = Object.entries(entries);
+      if (!pairs.some(([name, value]) => needsRewrite(name, value))) {
+        return acc;
+      }
+      const normalized = Object.fromEntries(
+        pairs.map(([name, value]) =>
+          needsRewrite(name, value) ? [name, `$${name}`] : [name, value]
+        )
+      );
+      return { ...acc, [section]: normalized };
+    },
+    {}
+  );
+  return Object.keys(rewrites).length > 0 ? { ...pkg, ...rewrites } : pkg;
+}
 
 /**
  * Narrow an unknown value to a plain object record, returning {} otherwise.
