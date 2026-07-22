@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.288.0](https://github.com/CodySwannGT/lisa/compare/v2.287.1...v2.288.0) (2026-07-22)
+
+
+### Features
+
+* **skills:** mandate post-merge Linear reconciliation on non-terminal merges ([610e8e1](https://github.com/CodySwannGT/lisa/commit/610e8e1c3260025d50f2e47294a0978bf11bfe62)), closes [#207](https://github.com/CodySwannGT/lisa/issues/207) [CodySwannGT/lisa#1948](https://github.com/CodySwannGT/lisa/issues/1948) [CodySwannGT/lisa#1948](https://github.com/CodySwannGT/lisa/issues/1948)
+
+
+### Bug Fixes
+
+* **skills:** harden drive-pr-to-merge Linear reconciliation ordering and safe default ([4c66796](https://github.com/CodySwannGT/lisa/commit/4c66796be17fb885afde278d10491db39632d70d)), closes [#1949](https://github.com/CodySwannGT/lisa/issues/1949) [CodySwannGT/lisa#1948](https://github.com/CodySwannGT/lisa/issues/1948) [CodySwannGT/lisa#1948](https://github.com/CodySwannGT/lisa/issues/1948)
+
 ### [2.287.1](https://github.com/CodySwannGT/lisa/compare/v2.286.14...v2.287.1) (2026-07-22)
 
 
