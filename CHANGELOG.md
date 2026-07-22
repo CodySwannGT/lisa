@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.294.0](https://github.com/CodySwannGT/lisa/compare/v2.293.1...v2.294.0) (2026-07-22)
+
+
+### Features
+
+* **cli:** add deploy-status ref extraction and tracker adapters ([62baa8e](https://github.com/CodySwannGT/lisa/commit/62baa8e0f87c58757f72fec745ff1b8768a6d55e)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** register lisa deploy-status-sync gate command ([cda7c60](https://github.com/CodySwannGT/lisa/commit/cda7c607fb680b646217cce217e796018e096ace)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **core:** add pure deploy-status transition planner ([b6099ab](https://github.com/CodySwannGT/lisa/commit/b6099ab6ffdec7d66cd84e346b9eda6d43f34d16)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+
+
+### Bug Fixes
+
+* **cli:** address CodeRabbit review on PR [#1980](https://github.com/CodySwannGT/lisa/issues/1980) deploy-status modules ([fd625b4](https://github.com/CodySwannGT/lisa/commit/fd625b485b66c884565aa1da5c683b5dd6a25c35)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** harden deploy-status transports and git argv handling ([b3b908e](https://github.com/CodySwannGT/lisa/commit/b3b908eafed383b2bf1b55c9d786dc06e5748088)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** json no-op payloads, three-dot range reject, jira site guard and ADF ([fa8d6df](https://github.com/CodySwannGT/lisa/commit/fa8d6df090b9229ccf8dffc8a638788cf7e7fc3f)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** slurp gh comment pages and reorder promote comment-first ([6c066fb](https://github.com/CodySwannGT/lisa/commit/6c066fb53136d3a4c10316d8d3b51c0d0708fd36)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **core:** strip materialized default done entries before union assembly ([ab79980](https://github.com/CodySwannGT/lisa/commit/ab79980a13158d8967a41a65b8ea9f4a4581eee1)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **core:** treat materialized default done-map entries as fallbacks ([a73b7b8](https://github.com/CodySwannGT/lisa/commit/a73b7b8ffaa9c1168a1f104c85938de59bd8bdfd)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+
+
+### Code Refactoring
+
+* **cli:** apply T3 simplifier batch to deploy-status modules ([992b6f7](https://github.com/CodySwannGT/lisa/commit/992b6f7e6894d1e3af58c1e462aadcce80eaf04b)), closes [#7](https://github.com/CodySwannGT/lisa/issues/7) [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** break adapter import cycle with leaf contract module ([cc8103a](https://github.com/CodySwannGT/lisa/commit/cc8103a4a535cc0e08ee6a33b57991380422057c)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+
 ### [2.293.1](https://github.com/CodySwannGT/lisa/compare/v2.293.0...v2.293.1) (2026-07-22)
 
 
