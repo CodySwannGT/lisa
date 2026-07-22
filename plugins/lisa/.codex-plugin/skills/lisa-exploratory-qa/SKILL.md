@@ -78,7 +78,7 @@ Re-running a pass must not refile the same finding. Before creating a ticket, se
 
 - **Open** ticket carrying the marker → reference/update it instead; do not create a second.
 - **Closed as _completed_** → does **not** suppress. A recurrence after a fix is a genuine **regression**, so file the finding.
-- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline**, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`).
+- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear, including a Linear `duplicate` state) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline**, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`).
 
 Every filed finding ticket MUST end with the `rejection-detection` **operator footer** as a visible prose line so the operator knows which close-reason silences it:
 

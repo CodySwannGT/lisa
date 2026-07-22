@@ -66,13 +66,13 @@ A generated top-level child is **terminal** (counts as done for rollup) when it 
 | Vendor | A generated top-level child is terminal when… |
 |---|---|
 | **GitHub Issues** | the issue is **closed** *and* (where the build-status label is used) carries the resolved `done` role label (`status:done` by default — env-keyed; see below). A closed-as-not-planned issue is terminal-but-dropped: it does not hold the PRD open but is excluded from "shipped" (treated like a won't-do leaf). |
-| **Linear** | the Issue/Project is in a **completed** workflow state (`done`-category), **or** a **canceled** state (terminal-but-dropped, like not-planned — does not hold the PRD open, excluded from shipped). |
+| **Linear** | the Issue/Project is in a **completed** workflow state (`done`-category), **or** a **canceled** or **duplicate** state (both terminal-but-dropped, like not-planned — do not hold the PRD open, excluded from shipped). Linear exposes `duplicate` as its own first-class `state.type`, distinct from `canceled`; an Issue marked as a duplicate (via Linear's native action or a team's Duplicate workflow state) is terminal and must be treated like canceled, never as still-open. |
 | **JIRA** | the issue's status is in the **Done status category** (`statusCategory.key == "done"`). |
 | **Confluence / Notion** | the documented generated-work entry is marked **done** in the PRD's machine-readable section (the durable equivalent of a closed ticket, since these sources have no native ticket state). |
 
 Notes:
 
-- **Required vs. optional children.** Only the generated top-level children that must ship for the PRD to be complete are counted toward the all-terminal check. Won't-do / canceled / not-planned children are terminal-but-dropped: they do not hold the PRD open and are excluded from the shipped set. This mirrors `leaf-only-lifecycle`'s "required leaves" qualifier.
+- **Required vs. optional children.** Only the generated top-level children that must ship for the PRD to be complete are counted toward the all-terminal check. Won't-do / canceled / duplicate / not-planned children are terminal-but-dropped: they do not hold the PRD open and are excluded from the shipped set. This mirrors `leaf-only-lifecycle`'s "required leaves" qualifier.
 - **Recursion is delegated, not duplicated.** A generated Epic is terminal only when *it* has rolled up to its own terminal state per `leaf-only-lifecycle`'s parent-status-rollup (all its required Stories/Sub-tasks terminal). This rule does not re-derive an Epic's state from its leaves — it reads the top-level child's own resolved state and trusts `leaf-only-lifecycle` to have rolled that up bottom-up.
 - **Blocked dominates at the report level.** If any required generated top-level child is blocked or incomplete, rollup leaves the PRD open and reports the incomplete child set (PRD #525: "rollup leaving a PRD open when at least one generated top-level child is incomplete"). The PRD is only advanced when **all** required top-level children are terminal.
 
