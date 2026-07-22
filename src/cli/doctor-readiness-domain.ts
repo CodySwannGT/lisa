@@ -158,12 +158,15 @@ function domainFinding(scan: OperationScan): Record<string, unknown> {
  * State why the dimension was not settled, naming what WAS looked at so an
  * operator can tell "nothing to report" from "never looked".
  * @param inspected - How many workflow files were read
+ * @param runbook - Whether a runbook is checked in
  * @returns The SKIP reason
  */
-function skipReason(inspected: number): string {
+function skipReason(inspected: number, runbook: boolean): string {
   return (
     `Read ${inspected} workflow file(s) for irreversible data-destroying ` +
-    "operations and found none running unattended and ungated. Whether this " +
+    "operations and found none that this file alone proves runs unattended, " +
+    `ungated, and with no way back (recovery runbook ` +
+    `${runbook ? "present" : "absent"}). Whether this ` +
     "repository's business rules, glossary, and danger zones are genuinely " +
     "owned and written down cannot be established by reading files offline — " +
     "that needs the agent-ready domain phase — so domain ownership is not " +
@@ -178,18 +181,20 @@ function skipReason(inspected: number): string {
  * @param guarded - The destructive commands something already guards
  * @param scan - The destructive-operation scan
  * @param inspected - How many workflow files were read
+ * @param runbook - Whether a runbook is checked in
  * @returns The SKIP dimension record
  */
 function skipRecord(
   guarded: readonly ScannedCommand[],
   scan: OperationScan,
-  inspected: number
+  inspected: number,
+  runbook: boolean
 ): ReadinessDimensionRecord {
   return {
     id: DOMAIN_OWNERSHIP_DIMENSION_ID,
     status: "SKIP",
     findings: [
-      { reason: skipReason(inspected), skip: true },
+      { reason: skipReason(inspected, runbook), skip: true },
       ...informationalFindings([
         ...guarded.map(
           entry =>
@@ -232,7 +237,8 @@ export async function assessDomainOwnershipDimension(
     return skipRecord(
       recoverable ? [...scan.gated, ...scan.ungated] : scan.gated,
       scan,
-      workflows.length
+      workflows.length,
+      recoverable
     );
   }
   return {
