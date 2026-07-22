@@ -16,6 +16,7 @@
   ],
   "skills": "./.codex-plugin/skills/",
   "mcpServers": "./.mcp.json",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Lisa Expo",
     "shortDescription": "Expo and React Native workflows",

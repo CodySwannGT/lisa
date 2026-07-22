@@ -1,0 +1,4 @@
+display_name: "Maestro MCP Setup"
+short_description: "Enable the Maestro CLI's…"
+default_prompt:
+  - "Use $maestro-mcp-setup: Enable the Maestro CLI's…."
