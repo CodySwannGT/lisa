@@ -4,8 +4,10 @@ import { DEPLOY_STATUS_SYNC_MARKER } from "../../../src/core/deploy-status-trans
 
 const REF = "PROJ-41";
 const CLOUD_ID = "cloud-123";
+const EMAIL = "dev@acme.test";
+const TOKEN = "jira-token";
 const GATEWAY = `https://api.atlassian.com/ex/jira/${CLOUD_ID}`;
-const BASIC = `Basic ${Buffer.from("dev@acme.test:jira-token").toString("base64")}`;
+const BASIC = `Basic ${Buffer.from(`${EMAIL}:jira-token`).toString("base64")}`;
 
 /** One recorded fetch request. */
 interface RecordedCall {
@@ -23,7 +25,7 @@ interface RecordedCall {
  */
 function recordingAdapter(
   payloads: readonly unknown[],
-  env: Record<string, string | undefined> = { JIRA_API_TOKEN: "jira-token" }
+  env: Record<string, string | undefined> = { JIRA_API_TOKEN: TOKEN }
 ): {
   readonly adapter: ReturnType<typeof createJiraAdapter>;
   readonly calls: RecordedCall[];
@@ -42,7 +44,7 @@ function recordingAdapter(
     );
   }) as typeof fetch;
   const adapter = createJiraAdapter(
-    { cloudId: CLOUD_ID, email: "dev@acme.test" },
+    { cloudId: CLOUD_ID, email: EMAIL },
     { fetchImpl, env }
   );
   return { adapter, calls };
@@ -123,6 +125,16 @@ describe("jira adapter request contract", () => {
       /JIRA_API_TOKEN|ATLASSIAN_API_TOKEN/
     );
   });
+
+  it("fails on a non-ok HTTP status with a status-only error", async () => {
+    const fetchImpl = (() =>
+      Promise.resolve(new Response("denied", { status: 401 }))) as typeof fetch;
+    const adapter = createJiraAdapter(
+      { cloudId: CLOUD_ID, email: EMAIL },
+      { fetchImpl, env: { JIRA_API_TOKEN: TOKEN } }
+    );
+    await expect(adapter.fetchItemState(REF)).rejects.toThrow(/HTTP 401/);
+  });
 });
 
 describe("jira adapter site fallback validation", () => {
@@ -143,8 +155,8 @@ describe("jira adapter site fallback validation", () => {
       );
     }) as typeof fetch;
     const adapter = createJiraAdapter(
-      { site, email: "dev@acme.test" },
-      { fetchImpl, env: { JIRA_API_TOKEN: "jira-token" } }
+      { site, email: EMAIL },
+      { fetchImpl, env: { JIRA_API_TOKEN: TOKEN } }
     );
     return { adapter, calls };
   }
@@ -189,6 +201,11 @@ describe("jira adapter managed comment", () => {
     const { adapter, calls } = recordingAdapter([{ comments: [] }, {}]);
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
       "created"
+    );
+    // Paging pin: bounded page size, newest first — the marker comment is
+    // recent by construction. Live multi-page walking is DSS-7 scope.
+    expect(calls[0]?.url).toBe(
+      `${GATEWAY}/rest/api/3/issue/${REF}/comment?maxResults=100&orderBy=-created`
     );
     expect(calls[1]?.method).toBe("POST");
     // Literal shape pin: newline-split into paragraph nodes — ADF text

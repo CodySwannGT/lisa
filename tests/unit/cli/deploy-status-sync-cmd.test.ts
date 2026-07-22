@@ -155,6 +155,26 @@ describe("deploy-status-sync command validation", () => {
     expect(errors.join("\n")).toContain(ENV_FLAG);
   });
 
+  it("names ALL raw candidates when several unconfigured envs share the branch", async () => {
+    await writeConfig(fixture.cwd, {
+      tracker: "github",
+      github: { org: "acme", repo: "app" },
+      deploy: {
+        branches: { qa: "main", uat: "main" },
+        order: ["qa", "uat"],
+      },
+    });
+    const code = await runDeployStatusSync(
+      { branch: "main", range: RANGE },
+      deps(adapterOf({}))
+    );
+    expect(code).toBe(1);
+    const message = errors.join("\n");
+    expect(message).toContain("qa");
+    expect(message).toContain("uat");
+    expect(message).toContain(ENV_FLAG);
+  });
+
   it("reports the unconfigured-env no-op naming the config key (exit 0)", async () => {
     const code = await runDeployStatusSync(
       { environment: "qa", range: RANGE },

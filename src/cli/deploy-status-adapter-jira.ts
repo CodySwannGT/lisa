@@ -236,7 +236,11 @@ async function upsertComment(
   ref: string,
   body: string
 ): Promise<CommentUpsertResult> {
-  const payload = (await request(`/rest/api/3/issue/${ref}/comment`)) as {
+  // Bounded page, newest first: the marker comment is recent by
+  // construction. Live multi-page walking is DSS-7 acceptance scope.
+  const payload = (await request(
+    `/rest/api/3/issue/${ref}/comment?maxResults=100&orderBy=-created`
+  )) as {
     comments?: readonly { id?: string; body?: unknown }[];
   };
   const existing = (payload.comments ?? []).find(comment =>

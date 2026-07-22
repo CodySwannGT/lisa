@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { TrackerAdapter } from "../../../src/cli/deploy-status-adapter.js";
+import {
+  withDryRun,
+  type TrackerAdapter,
+} from "../../../src/cli/deploy-status-adapter.js";
 import { runDeployStatusSync } from "../../../src/cli/deploy-status-sync-cmd.js";
 import type { DeployStatusSyncDependencies } from "../../../src/cli/deploy-status-sync-cmd.js";
 import type { TrackerItemState } from "../../../src/core/deploy-status-transition.js";
@@ -8,6 +11,7 @@ import {
   fakeAdapter,
   makeDeps,
   RANGE,
+  REF_101,
   type FixtureDir,
   type WriteCall,
 } from "../../helpers/deploy-status-cmd-fixture.js";
@@ -65,6 +69,44 @@ describe("deploy-status-sync command --json output", () => {
       error: message => errors.push(message),
     });
   }
+
+  it("dry-run at production plans the native closure with zero writes", async () => {
+    const adapter = adapterOf({
+      [REF_101]: { ref: REF_101, openChildren: 0, closed: false },
+    });
+    const code = await runDeployStatusSync(
+      { environment: "production", range: RANGE, dryRun: true },
+      deps(adapter)
+    );
+    expect(code).toBe(0);
+    expect(writes).toHaveLength(0);
+    const output = logs.join("\n");
+    expect(output).toContain("would transitionToDone");
+    expect(output).toContain("would upsertManagedComment");
+    expect(output).toContain(`would closeNatively ${REF_101}`);
+  });
+
+  it("withDryRun suppresses all three writes and delegates reads", async () => {
+    const recorded: { method: string; ref: string }[] = [];
+    const state: TrackerItemState = {
+      ref: REF_101,
+      openChildren: 0,
+      closed: false,
+    };
+    const wrapped = withDryRun(
+      { fetchItemState: () => Promise.resolve(state) },
+      write => recorded.push({ method: write.method, ref: write.ref })
+    );
+    await expect(wrapped.fetchItemState(REF_101)).resolves.toEqual(state);
+    await wrapped.transitionToDone(REF_101, "status:done");
+    await wrapped.upsertManagedComment(REF_101, "body");
+    await wrapped.closeNatively(REF_101);
+    expect(recorded.map(write => write.method)).toEqual([
+      "transitionToDone",
+      "upsertManagedComment",
+      "closeNatively",
+    ]);
+  });
 
   it("strips ANSI/control characters from echoed skipped tokens", async () => {
     const adapter = adapterOf({});
