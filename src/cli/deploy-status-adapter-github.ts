@@ -13,7 +13,7 @@ import {
   type CommentUpsertResult,
   type ExecGh,
   type TrackerAdapter,
-} from "./deploy-status-adapter.js";
+} from "./deploy-status-adapter-shared.js";
 
 /** Construction options for {@link createGithubAdapter}. */
 export interface GithubAdapterOptions {
