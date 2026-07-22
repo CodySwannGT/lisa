@@ -70,7 +70,7 @@ If neither source yields any generated top-level child (the PRD generated nothin
 Apply the **per-vendor terminal-state predicate from the `prd-lifecycle-rollup` rule** to every generated **top-level** work item (cite the rule by slug — do not restate its predicate table here). In summary, a top-level child is:
 
 - **Terminal** — it has reached its source/tracker's done/shipped state (GitHub: closed + the resolved build `done` role label where used; Linear: a `done`-category completed state; JIRA: `statusCategory.key == "done"`; Notion/Confluence: the documented generated-work entry marked done). A generated Epic is terminal only when *it* has rolled up to its own terminal state per `leaf-only-lifecycle` — read the child's own resolved state; do not re-derive it from its leaves.
-- **Terminal-but-dropped** — closed-as-not-planned (GitHub `stateReason == "not_planned"`) / canceled (Linear) / won't-do. It does **not** hold the PRD open and is excluded from the required set.
+- **Terminal-but-dropped** — closed-as-not-planned (GitHub `stateReason == "not_planned"`) / canceled or duplicate (Linear — both are terminal `state.type`s; `duplicate` is distinct from `canceled`) / won't-do. It does **not** hold the PRD open and is excluded from the required set.
 - **Incomplete / blocked** — anything else (still open, or closed without the `done` role). It holds the PRD open.
 
 The **required** set is the top-level children minus the terminal-but-dropped ones. Branch:
