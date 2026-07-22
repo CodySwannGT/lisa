@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "9223856be4618fb1e3e731b259ae5bf5328decc322f0b4a0d0fd18d6b12cd45a",
+      "e41e9534988ce69a836664437a78f3a3f3dc7ebbe396c86cdab0ea63fb7c19da",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "403b821ac0ac568e63172554cf22b7489065b014b133f86572b37b06c981e6fb",
+      "cb3a0587907321301e6662480af0d333aee4a3e0d29e9bdc851c225be2c220d7",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
