@@ -212,14 +212,25 @@ function isPublishStep(step: ParsedWorkflowStep): boolean {
 }
 
 /**
+ * Find every step in a job that ships something.
+ * @param job - The parsed job
+ * @returns The publishing steps, in execution order
+ */
+export function findPublishSteps(
+  job: ParsedWorkflowJob
+): readonly ParsedWorkflowStep[] {
+  return job.steps.filter(isPublishStep);
+}
+
+/**
  * Find the first step in a job that ships something.
  * @param job - The parsed job
- * @returns The publishing step, or undefined when the job ships nothing
+ * @returns The first publishing step, or undefined when the job ships nothing
  */
 export function findPublishStep(
   job: ParsedWorkflowJob
 ): ParsedWorkflowStep | undefined {
-  return job.steps.find(isPublishStep);
+  return findPublishSteps(job)[0];
 }
 
 /**
@@ -310,11 +321,13 @@ function shipsSelfBuiltArtifact(
   if (actionId(publishStep.uses) === DOCKER_BUILD_PUSH_ACTION) {
     return true;
   }
+  const publishIndex = job.steps.indexOf(publishStep);
+  const stepsThroughPublish = job.steps.slice(0, publishIndex + 1);
   const downloadIndex = job.steps.findIndex(step =>
     step.uses.includes(PROMOTION_ACTION)
   );
-  if (downloadIndex >= 0) {
-    const rebuildsAfterDownload = job.steps
+  if (downloadIndex >= 0 && downloadIndex < publishIndex) {
+    const rebuildsAfterDownload = stepsThroughPublish
       .slice(downloadIndex + 1)
       .some(step => isLocalBuildCommand(step.run));
     if (!rebuildsAfterDownload) {
@@ -324,7 +337,7 @@ function shipsSelfBuiltArtifact(
   return (
     LOCAL_PATH_ARGUMENT.test(publishStep.run) ||
     LOCAL_ARTIFACT_FILE.test(publishStep.run) ||
-    job.steps.some(step => isLocalBuildCommand(step.run))
+    stepsThroughPublish.some(step => isLocalBuildCommand(step.run))
   );
 }
 
@@ -383,30 +396,41 @@ export function assessReleasePath(
   workflow: ParsedWorkflow,
   job: ParsedWorkflowJob
 ): ReleasePathOutcome | undefined {
-  const publishStep = findPublishStep(job);
-  if (!publishStep) {
-    return undefined;
-  }
-  const where = `${workflow.file} job \`${job.id}\` step \`${describeStep(publishStep)}\``;
-  const validated = validationPrecedesPublish(workflow, job, publishStep);
-  if (shipsSelfBuiltArtifact(job, publishStep)) {
-    return validated
-      ? rebuildPastValidation(where)
-      : unvalidatedSelfBuild(where, workflow);
-  }
-  if (validated || promotesValidatedArtifact(job)) {
-    return { kind: "clean" };
-  }
-  // Neither built here nor promoted from CI, and nothing validating precedes it:
-  // the link between what ships and what was validated is simply not observable
-  // in this file. That is unestablished, not clean.
-  return {
-    kind: "unresolved",
-    reason:
-      `${where} neither builds its own artifact nor promotes a CI-built one via ` +
-      `\`${PROMOTION_ACTION}\`, and no validating job precedes it, so what it ` +
-      "ships cannot be tied to anything that was validated",
-  };
+  return assessReleasePaths(workflow, job)[0];
+}
+
+/**
+ * Assess every publishing step in one job against B2.
+ * @param workflow - The workflow declaring the job
+ * @param job - The job to assess
+ * @returns One outcome per publishing step, or an empty list when it ships nothing
+ */
+export function assessReleasePaths(
+  workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob
+): readonly ReleasePathOutcome[] {
+  return findPublishSteps(job).map(publishStep => {
+    const where = `${workflow.file} job \`${job.id}\` step \`${describeStep(publishStep)}\``;
+    const validated = validationPrecedesPublish(workflow, job, publishStep);
+    if (shipsSelfBuiltArtifact(job, publishStep)) {
+      return validated
+        ? rebuildPastValidation(where)
+        : unvalidatedSelfBuild(where, workflow);
+    }
+    if (validated || promotesValidatedArtifact(job)) {
+      return { kind: "clean" };
+    }
+    // Neither built here nor promoted from CI, and nothing validating precedes it:
+    // the link between what ships and what was validated is simply not observable
+    // in this file. That is unestablished, not clean.
+    return {
+      kind: "unresolved",
+      reason:
+        `${where} neither builds its own artifact nor promotes a CI-built one via ` +
+        `\`${PROMOTION_ACTION}\`, and no validating job precedes it, so what it ` +
+        "ships cannot be tied to anything that was validated",
+    };
+  });
 }
 
 /**
