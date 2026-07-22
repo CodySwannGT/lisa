@@ -281,6 +281,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     expect(assessReadiness([record]).blockers[0].id).toBe("B2");
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Release artifact integrity / templated build detection).
   it("FAILs when a templated package-manager build happens after artifact download", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, RELEASE_YML, [
@@ -293,7 +294,7 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
       RUNS_ON,
       STEPS,
       DOWNLOAD_ARTIFACT_STEP,
-      "      - run: ${{ inputs.package_manager }} run build",
+      "      - run: ${{ inputs.package_manager }} run\t build",
       "      - run: npm publish ./rebuilt.tgz",
     ]);
 
