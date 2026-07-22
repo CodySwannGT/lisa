@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.289.2](https://github.com/CodySwannGT/lisa/compare/v2.289.1...v2.289.2) (2026-07-22)
+
+
+### Performance Improvements
+
+* **postinstall:** inherit primary checkout plugin-sync state in linked worktrees ([5549ab3](https://github.com/CodySwannGT/lisa/commit/5549ab3ef9035ed34d6f4f62181badf923597c19)), closes [#320](https://github.com/CodySwannGT/lisa/issues/320) [#320](https://github.com/CodySwannGT/lisa/issues/320) [#1017](https://github.com/CodySwannGT/lisa/issues/1017) [CodySwannGT/lisa#1962](https://github.com/CodySwannGT/lisa/issues/1962)
+
 ### [2.289.1](https://github.com/CodySwannGT/lisa/compare/v2.289.0...v2.289.1) (2026-07-22)
 
 
