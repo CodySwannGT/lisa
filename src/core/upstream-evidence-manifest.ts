@@ -617,7 +617,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "8d292784056d0cc62d78cc079286a2fdd6381e14452615b7aa8db0d31c3ff2ca",
+      "1e6324bd037ea08b6c0179999578788e9f20ae2d256547527abf623a7d0dbc2f",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "071b2c91f3b661ee493ea6f37d78f0fdea8004b4e4e7b5e94dcf232df7eceda7",
+      "ffb231a7218235b5a8e8c4945f899e49f609b939e401e7c38bbed43ce8ab805e",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -7473,7 +7473,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
     "src/core/bootstrap-environment.ts": true,
+    "src/core/config-field-validation.ts": true,
     "src/core/config.ts": true,
+    "src/core/deploy-status-sync.ts": true,
     "src/core/git-service.ts": true,
     "src/core/index.ts": true,
     "src/core/instruction-files-migration.ts": true,
@@ -7838,6 +7840,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
+    "tests/unit/core/deploy-status-sync-config.test.ts": true,
+    "tests/unit/core/deploy-status-sync-errors.test.ts": true,
+    "tests/unit/core/deploy-status-sync.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,
