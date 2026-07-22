@@ -263,7 +263,16 @@ export async function runResolved(
     deps
   );
   extracted.skipped.forEach(entry => {
-    sinks.human(`skipped token ${entry.token} (${entry.reason})`);
+    // Skipped tokens come from untrusted commit messages and PR bodies —
+    // strip control characters (incl. ANSI escapes) before echoing so a
+    // crafted token cannot manipulate the operator's terminal.
+    const printable = [...entry.token]
+      .filter(character => {
+        const code = character.codePointAt(0) ?? 0;
+        return code >= 0x20 && code !== 0x7f && (code < 0x80 || code > 0x9f);
+      })
+      .join("");
+    sinks.human(`skipped token ${printable} (${entry.reason})`);
   });
   if (extracted.refs.length === 0) {
     emitNoOp(sinks, options, {
