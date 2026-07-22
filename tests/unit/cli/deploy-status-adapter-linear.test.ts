@@ -186,6 +186,41 @@ describe("linear adapter managed comment", () => {
   });
 });
 
+describe("linear adapter transport errors", () => {
+  it("fails on a non-ok HTTP status with a status-only error", async () => {
+    const fetchImpl = (() =>
+      Promise.resolve(
+        new Response("<html>gateway error with secrets</html>", {
+          status: 502,
+        })
+      )) as typeof fetch;
+    const adapter = createLinearAdapter(
+      { workspace: "acme", doneStatuses: DONE_STATUSES },
+      { fetchImpl, env: { LINEAR_API_KEY: KEY } }
+    );
+    await expect(adapter.fetchItemState(REF)).rejects.toThrow(
+      /Linear GraphQL request failed with HTTP 502$/
+    );
+  });
+
+  it("surfaces the GraphQL errors array as a failure", async () => {
+    const fetchImpl = (() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ errors: [{ message: "issue not found" }] }),
+          { status: 200 }
+        )
+      )) as typeof fetch;
+    const adapter = createLinearAdapter(
+      { workspace: "acme", doneStatuses: DONE_STATUSES },
+      { fetchImpl, env: { LINEAR_API_KEY: KEY } }
+    );
+    await expect(adapter.fetchItemState(REF)).rejects.toThrow(
+      /issue not found/
+    );
+  });
+});
+
 describe("linear adapter credential sourcing", () => {
   it("prefers LINEAR_API_KEY, then the workspace-suffixed variable", async () => {
     const { adapter, calls } = recordingAdapter([ISSUE_STATE], {

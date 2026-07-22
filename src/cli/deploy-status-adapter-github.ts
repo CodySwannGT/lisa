@@ -96,14 +96,17 @@ async function fetchState(
   ]);
   const issue = JSON.parse(issueRaw) as { state?: unknown };
   const [owner, repo] = context.repository.split("/");
+  // -f passes owner/repo as raw strings; -F stays only for the integer
+  // number variable — typed -F parsing of attacker-influencable strings
+  // could coerce them into unintended JSON values.
   const hierarchyRaw = await context.execGh([
     "api",
     "graphql",
     "-f",
     `query=${HIERARCHY_QUERY}`,
-    "-F",
+    "-f",
     `owner=${owner ?? ""}`,
-    "-F",
+    "-f",
     `repo=${repo ?? ""}`,
     "-F",
     `number=${number}`,

@@ -66,6 +66,31 @@ describe("deploy-status-sync command --json output", () => {
     });
   }
 
+  it("strips ANSI/control characters from echoed skipped tokens", async () => {
+    const adapter = adapterOf({});
+    const code = await runDeployStatusSync(
+      { environment: "dev", range: RANGE },
+      {
+        ...deps(adapter),
+        extractRefs: () =>
+          Promise.resolve({
+            refs: [],
+            skipped: [
+              {
+                token: "\u001b[31mevil\u001b[0m#x",
+                reason: "not a GitHub work-item ref",
+              },
+            ],
+            headSha: "def456",
+          }),
+      }
+    );
+    expect(code).toBe(0);
+    const output = logs.join("\n");
+    expect(output).toContain("skipped token [31mevil[0m#x");
+    expect(output).not.toContain("\u001b");
+  });
+
   it("emits a parseable no-op payload for an unconfigured env", async () => {
     const code = await runDeployStatusSync(
       { environment: "qa", range: RANGE, json: true },

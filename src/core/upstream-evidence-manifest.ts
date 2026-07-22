@@ -7728,6 +7728,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/deploy-status-adapter-github.test.ts": true,
     "tests/unit/cli/deploy-status-adapter-jira.test.ts": true,
     "tests/unit/cli/deploy-status-adapter-linear.test.ts": true,
+    "tests/unit/cli/deploy-status-refs-hardening.test.ts": true,
     "tests/unit/cli/deploy-status-refs.test.ts": true,
     "tests/unit/cli/deploy-status-sync-cmd-exec.test.ts": true,
     "tests/unit/cli/deploy-status-sync-cmd-output.test.ts": true,

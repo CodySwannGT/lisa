@@ -57,6 +57,28 @@ export interface ExtractedRefs {
 
 const GITHUB_TOKEN_PATTERN =
   /^(?:([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+))?#([1-9]\d*)$/;
+/** Git revision charset: branch names, SHAs, HEAD^/~ suffixes — nothing that
+ * could smuggle shell metacharacters or option-like payloads into argv. */
+const REVISION_PATTERN = /^[\w./^~@-]+$/;
+/** Maximum concurrent gh lookups during PR-token collection. */
+const GH_CONCURRENCY = 8;
+
+/**
+ * Split items into consecutive chunks of at most `size` elements. Used to
+ * bound gh fan-out: chunks run sequentially, items within a chunk run
+ * concurrently.
+ * @param items - Items to split
+ * @param size - Maximum chunk size (must be positive)
+ * @returns Consecutive chunks in input order
+ */
+export function chunk<T>(
+  items: readonly T[],
+  size: number
+): readonly (readonly T[])[] {
+  return Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
+    items.slice(index * size, (index + 1) * size)
+  );
+}
 const KEY_TOKEN_PATTERN = /^([A-Za-z][A-Za-z0-9]{1,9})-([1-9]\d*)$/;
 const REF_LINE_PATTERN = /^(?:refs|closes)\b(.*)$/i;
 
@@ -151,10 +173,19 @@ async function collectPrTokens(
   repository: string,
   deps: RefExtractionDeps
 ): Promise<readonly string[]> {
-  const payloads = await Promise.all(
-    shas.map(sha =>
-      deps.execGh(["api", `repos/${repository}/commits/${sha}/pulls`])
-    )
+  // Chunked fan-out: a large range must not open one gh process (and one
+  // API request) per SHA simultaneously.
+  const payloads = await chunk(shas, GH_CONCURRENCY).reduce(
+    async (accumulated: Promise<readonly string[]>, group) => {
+      const previous = await accumulated;
+      const results = await Promise.all(
+        group.map(sha =>
+          deps.execGh(["api", `repos/${repository}/commits/${sha}/pulls`])
+        )
+      );
+      return [...previous, ...results];
+    },
+    Promise.resolve([] as readonly string[])
   );
   const pulls = payloads.flatMap(raw => {
     const parsed = JSON.parse(raw.length > 0 ? raw : "[]") as unknown;
@@ -198,9 +229,28 @@ export async function extractWorkItemRefs(
       `Invalid range "${options.range}": expected <base>..<head>`
     );
   }
+  const base = options.range.slice(0, separator);
   const head = options.range.slice(separator + 2).replace(/^\./, "");
-  const headSha = (await deps.execGit(["rev-parse", head])).trim();
-  const shas = (await deps.execGit(["rev-list", "--reverse", options.range]))
+  // Charset gate + --end-of-options below: a revision must never be able to
+  // smuggle option-like or shell-meta payloads into the git argv.
+  if (!REVISION_PATTERN.test(base) || !REVISION_PATTERN.test(head)) {
+    throw new Error(
+      `Invalid range "${options.range}": each revision side must be a plain git revision (letters, digits, ".", "_", "/", "^", "~", "@", "-").`
+    );
+  }
+  // --verify puts rev-parse in single-revision mode, where --end-of-options
+  // is honored (bare rev-parse would echo it back instead).
+  const headSha = (
+    await deps.execGit(["rev-parse", "--verify", "--end-of-options", head])
+  ).trim();
+  const shas = (
+    await deps.execGit([
+      "rev-list",
+      "--reverse",
+      "--end-of-options",
+      options.range,
+    ])
+  )
     .split("\n")
     .map(line => line.trim())
     .filter(line => line.length > 0);

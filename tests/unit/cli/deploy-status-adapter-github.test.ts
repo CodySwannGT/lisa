@@ -61,7 +61,17 @@ describe("github adapter fetchItemState", () => {
       closed: false,
     });
     expect(calls[0]?.slice(0, 4)).toEqual(["issue", "view", "41", "--repo"]);
+    // -f passes owner/repo as raw strings; -F stays only for the integer
+    // number variable (typed parsing is wanted there, never for strings).
     expect(calls[1]?.slice(0, 2)).toEqual(["api", "graphql"]);
+    expect(calls[1]?.slice(4)).toEqual([
+      "-f",
+      "owner=acme",
+      "-f",
+      "repo=app",
+      "-F",
+      "number=41",
+    ]);
   });
 
   it("picks the highest-rung label when several done labels are present", async () => {

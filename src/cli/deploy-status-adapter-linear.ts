@@ -118,6 +118,13 @@ function createGraphql(workspace: string, deps: TrackerAdapterDeps): Graphql {
       headers: { Authorization: key, "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables }),
     });
+    // Status-only error: a non-ok body (gateway HTML, proxy pages) must not
+    // be parsed as JSON nor echoed — it can be huge or carry sensitive text.
+    if (!response.ok) {
+      throw new Error(
+        `Linear GraphQL request failed with HTTP ${String(response.status)}`
+      );
+    }
     const payload = (await response.json()) as {
       data?: Record<string, unknown>;
       errors?: readonly { message?: string }[];
