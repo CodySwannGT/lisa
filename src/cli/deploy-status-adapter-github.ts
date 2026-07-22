@@ -162,15 +162,21 @@ async function upsertComment(
   body: string
 ): Promise<CommentUpsertResult> {
   const number = issueNumber(ref);
+  // --slurp wraps each page in one top-level array; without it, multi-page
+  // output is concatenated JSON documents that JSON.parse cannot read and a
+  // marker comment past page 1 would be re-created instead of updated.
   const listRaw = await context.execGh([
     "api",
     `repos/${context.repository}/issues/${number}/comments`,
     "--paginate",
+    "--slurp",
   ]);
-  const comments = JSON.parse(listRaw) as readonly {
-    id?: unknown;
-    body?: unknown;
-  }[];
+  const comments = (
+    JSON.parse(listRaw) as readonly (readonly {
+      id?: unknown;
+      body?: unknown;
+    }[])[]
+  ).flat();
   const existing = comments.find(
     comment =>
       typeof comment.body === "string" &&
