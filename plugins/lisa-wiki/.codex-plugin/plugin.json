@@ -1,6 +1,6 @@
 {
   "name": "lisa-wiki",
-  "version": "2.286.5",
+  "version": "2.286.6",
   "description": "Distributable LLM Wiki kernel — ingest, query, lint, and maintain a git-native markdown knowledge base across Claude and Codex.",
   "author": {
     "name": "Cody Swann"
