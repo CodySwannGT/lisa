@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.290.0](https://github.com/CodySwannGT/lisa/compare/v2.289.2...v2.290.0) (2026-07-22)
+
+
+### Features
+
+* **parity:** hard-gate parity drift in pre-push ([9c562b7](https://github.com/CodySwannGT/lisa/commit/9c562b70756047a542567b344db18ace3150881f)), closes [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+* **parity:** refresh drifted parity pins to current upstreams ([2e5a7aa](https://github.com/CodySwannGT/lisa/commit/2e5a7aacb2c7a588411d9fb08ee19c6b3438870e)), closes [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+
+
+### Bug Fixes
+
+* **parity:** address review — fail-closed gate, 1.2.0 routing inventory, opt-in tracing wording ([fe72ae7](https://github.com/CodySwannGT/lisa/commit/fe72ae771b7c8eb25b653363cf4336d1957fb2d6)), closes [#1961](https://github.com/CodySwannGT/lisa/issues/1961) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+* **plugins:** retire upstream sentry plugin — the bundled MCP is canonical ([1b92d60](https://github.com/CodySwannGT/lisa/commit/1b92d6073fcc35586a776f990f7b64e8d7b22ff6)), closes [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+
 ### [2.289.2](https://github.com/CodySwannGT/lisa/compare/v2.289.1...v2.289.2) (2026-07-22)
 
 
