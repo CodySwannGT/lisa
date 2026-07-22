@@ -160,6 +160,56 @@ describe("assessDeliveryAuthorityDimension — B2 artifact chain", () => {
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
 
+  it("FAILs when docker/build-push-action pushes an unvalidated image", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - uses: docker/build-push-action@v6",
+      "        with:",
+      "          context: .",
+      "          push: true",
+      "          tags: ghcr.io/acme/app:latest",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(String(asFindings(record.findings)[0].evidence)).toContain(
+      "docker/build-push-action@v6"
+    );
+  });
+
+  it("does not treat docker/build-push-action with push:false as publishing", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - uses: docker/build-push-action@v6",
+      "        with:",
+      "          push: false",
+      "          tags: ghcr.io/acme/app:latest",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).not.toBe(FAIL);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
   it("terminates on a needs: cycle rather than recursing forever", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, RELEASE_YML, [
