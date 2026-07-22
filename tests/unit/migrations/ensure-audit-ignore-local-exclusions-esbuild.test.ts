@@ -46,13 +46,18 @@ describe("esbuild audit exclusion migration", () => {
 
   /**
    * Seed the host's enforced and installed esbuild versions.
-   * @param range - Package-manager constraint
+   * @param overrideRange - npm override constraint
    * @param version - Installed esbuild version
+   * @param resolutionRange - Yarn/Bun resolution constraint
    */
-  async function seedEsbuild(range: string, version: string): Promise<void> {
+  async function seedEsbuild(
+    overrideRange: string,
+    version: string,
+    resolutionRange = overrideRange
+  ): Promise<void> {
     await fs.writeJson(path.join(projectDir, "package.json"), {
-      overrides: { esbuild: range },
-      resolutions: { esbuild: range },
+      overrides: { esbuild: overrideRange },
+      resolutions: { esbuild: resolutionRange },
     });
     await fs.ensureDir(path.join(projectDir, "node_modules", "esbuild"));
     await fs.writeJson(
@@ -106,6 +111,26 @@ describe("esbuild audit exclusion migration", () => {
       id: ESBUILD_GHSA,
       package: "esbuild",
       reason: "vulnerable installation",
+    };
+    await fs.writeJson(path.join(projectDir, AUDIT_CONFIG), {
+      exclusions: [exclusion],
+    });
+
+    await migration.beforeStrategies(context());
+
+    expect(await migration.applies(context())).toBe(true);
+    expect((await migration.apply(context())).action).toBe("applied");
+    expect(await fs.readJson(path.join(projectDir, AUDIT_LOCAL))).toEqual({
+      exclusions: [exclusion],
+    });
+  });
+
+  it("retains the exclusion when only one package-manager constraint is patched", async () => {
+    await seedEsbuild(">=0.28.1", "0.28.1", "^0.27.0");
+    const exclusion = {
+      id: ESBUILD_GHSA,
+      package: "esbuild",
+      reason: "one constraint remains vulnerable",
     };
     await fs.writeJson(path.join(projectDir, AUDIT_CONFIG), {
       exclusions: [exclusion],

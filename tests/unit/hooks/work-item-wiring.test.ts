@@ -26,6 +26,7 @@ describe("work-item Git enforcement wiring", () => {
     }
   );
 
+  // Test hardened to kill mutant M001 (Risk Factor: Correctness / executable entrypoint).
   it("ships the validator to Lisa itself and downstream projects", () => {
     expect(read("scripts/lisa-work-item.mjs")).toContain(
       "../all/copy-overwrite/scripts/lisa-work-item.mjs"
