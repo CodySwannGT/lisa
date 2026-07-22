@@ -707,7 +707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/observability-audit.md":
       "98cf4c849baf0801bd2c46a90e7a072196649d506fbda577cc5c4019d2194551",
     "plugins/src/base/rules/reference/prd-lifecycle-rollup.md":
-      "2ab692a3f5b89dd49287bf7de5b2dd97d7a4bbd2b088d2859320d1b702b1f43a",
+      "f539e7b43918e173dd7491a139be078815d26098f992cd7fc86cd05878c90b9b",
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "e61b745bb1ddfbe24634246588c13e4e78c25b50817e5e8ff02e1a9681ad1130",
     "plugins/src/base/rules/reference/project-learnings.md":
@@ -809,7 +809,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md":
-      "70d6e44becf223ecee4573c53a8153a8663c87bac212e3fb972a80689e36d1ed",
+      "bc34dfc6418bff6eb5bc03f0c5cd98c7b6164ca3f4f80774d981f681321119b0",
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
@@ -913,7 +913,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "37dcf503f99dafb38bc6b721c48163d3bca3c52d28e7d1130a5bb9a379895d27",
+      "e1924eb8d968151127ac29d2242ba5bb220fe86c69f7f92e651867b97819581b",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "07e99b5bf91da096f7fcec3b0055d2671794011a6134bbb2b2f39967cc4f8aea",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1107,7 +1107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "6302896b70d8211e2f412deea8be3e42e68cf36d566759af3c937ccf5287b91c",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
-      "82f0a34e530d1940c38c9a2ee5f0d139cab4054616bdd34e73082753442871ab",
+      "a9deea13d2c201e9b265ee3d36f6dd17358fc35e82ae801e72dd1a3145e6fef8",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
       "d89740a4dc350a9ac0d26b1b955bf74f009775b60ee0275df3f9a50fe8be3048",
     "plugins/src/base/skills/lisa-verify/SKILL.md":
