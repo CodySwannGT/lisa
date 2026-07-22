@@ -66,9 +66,11 @@ Based on the milestone, suggest (but don't automatically perform) a status trans
 
 | Milestone | Suggested Status |
 |-----------|-----------------|
-| Plan created | "In Progress" |
+| Plan created | configured `jira.workflow.claimed` status |
 | PR ready | configured `jira.workflow.review` status, or no transition when unconfigured |
-| PR merged | "Done" |
+| PR merged | configured `jira.workflow.done` status for the PR's target environment (env-keyed `done` resolved via `deploy.branches`), or no transition when unconfigured |
+
+Every suggested or performed transition is bound by the **Tracker status vocabulary** section of the `config-resolution` rule: only statuses named in the configured workflow map, never statuses discovered from the tracker's live workflow (transition lists, board columns, other tickets) — and this binds the lead performing tracker writes exactly as it binds a subagent. A milestone with no configured status gets a comment, not a transition.
 
 ### Step 5: Parent Status Rollup (`--rollup`)
 
