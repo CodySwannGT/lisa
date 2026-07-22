@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.287.1](https://github.com/CodySwannGT/lisa/compare/v2.286.14...v2.287.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **release:** realign package.json version with npm latest (2.287.0) ([a74d4f3](https://github.com/CodySwannGT/lisa/commit/a74d4f35544a6aeb978b7e9c83cb9f4086112128)), closes [CodySwannGT/lisa#1945](https://github.com/CodySwannGT/lisa/issues/1945)
+
 ### [2.286.14](https://github.com/CodySwannGT/lisa/compare/v2.286.13...v2.286.14) (2026-07-22)
 
 ### [2.286.13](https://github.com/CodySwannGT/lisa/compare/v2.287.0...v2.286.13) (2026-07-22)
