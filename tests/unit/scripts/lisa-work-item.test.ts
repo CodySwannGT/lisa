@@ -589,6 +589,7 @@ describe("provider liveness", () => {
     expect(epic.stderr).toContain("is a container");
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Data security / credential secrecy).
   it("uses canonical Atlassian credentials and requests Jira status in curl fallback", () => {
     const fixture = createFixture({
       tracker: "jira",
@@ -615,6 +616,7 @@ describe("provider liveness", () => {
     expect(result.status).toBe(0);
     const invocation = readFileSync(log, "utf8");
     expect(invocation).not.toContain("fake-atlassian-key");
+    expect(invocation).toContain("--config -");
     expect(invocation).toContain("api.atlassian.com/ex/jira/cloud-123");
     expect(invocation).toContain(
       "fields=project,status,labels,components,issuetype,subtasks,comment"
@@ -641,6 +643,7 @@ describe("provider liveness", () => {
     expect(terminal.stderr).toContain("is terminal");
   });
 
+  // Test hardened to kill mutant M002 (Risk Factor: Data security / credential secrecy).
   it("passes Linear authorization through curl stdin rather than process argv", () => {
     const fixture = createFixture({
       tracker: "linear",
@@ -663,7 +666,9 @@ describe("provider liveness", () => {
     });
 
     expect(result.status).toBe(0);
-    expect(readFileSync(argsLog, "utf8")).not.toContain("secret-linear-key");
+    const invocation = readFileSync(argsLog, "utf8");
+    expect(invocation).not.toContain("secret-linear-key");
+    expect(invocation).toContain("--config -");
     expect(readFileSync(stdinLog, "utf8")).toContain(
       'header = "Authorization: secret-linear-key"'
     );
