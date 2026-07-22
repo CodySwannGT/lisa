@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.9](https://github.com/CodySwannGT/lisa/compare/v2.286.8...v2.286.9) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** assess every publish step ([db18611](https://github.com/CodySwannGT/lisa/commit/db186119d8f966b4e37003be5e8222babea38c7a)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** scope publish promotion checks ([23b16c7](https://github.com/CodySwannGT/lisa/commit/23b16c76f23c9520d26a244d9d0346deafb45036)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.286.8](https://github.com/CodySwannGT/lisa/compare/v2.286.7...v2.286.8) (2026-07-22)
 
 
