@@ -177,6 +177,16 @@
       "id": "GHSA-h67p-54hq-rp68",
       "package": "js-yaml",
       "reason": "Quadratic-complexity DoS in merge key handling — dev tooling and direct helper dependency, no untrusted YAML parsing path"
+    },
+    {
+      "id": "GHSA-3jxr-9vmj-r5cp",
+      "package": "brace-expansion",
+      "reason": "human-approved dev-tooling transitive DoS waiver; root-fix not reachable via bun"
+    },
+    {
+      "id": "GHSA-52cp-r559-cp3m",
+      "package": "js-yaml",
+      "reason": "human-approved dev-tooling transitive DoS waiver; root-fix not reachable via bun"
     }
   ]
 }
