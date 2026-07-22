@@ -329,6 +329,22 @@ a workflow is an action, so do **not** run `gh workflow run` / `workflow_dispatc
 it for the caller to act on, consistent with the report-mode contract (steps b–f
 of section 2 are diagnose-only).
 
+### c. Linear native-state reconciliation (non-terminal merges only)
+
+Linear's GitHub integration completes a linked Issue on merge to **any** branch
+— branch-name linkage alone triggers it, even when the PR body carries only the
+non-closing `Linear: <ID>` reference form (incident of record: TunnlAI backend
+PR #207 merged to `dev`; TUN-256 auto-completed and had to be manually
+reverted). When the driven PR's work item is a Linear Issue and `<baseRefName>`
+is **not** the production/terminal branch (resolve via `.lisa.config.json`
+`deploy.branches`, falling back to the repo default branch), re-read the
+Issue's native workflow `state` after `MERGED`. If Linear moved it to a
+`completed`-type state, revert it to the team's started/In Progress state and
+post a one-line reconciliation comment — per the `leaf-only-lifecycle` rule
+(native closure fires only at the production terminal). The full procedure is
+`lisa-linear-sync` Phase 4b; when the caller's flow already runs a `pr-merged`
+sync for this merge, confirming that sync ran satisfies this step.
+
 ## 4. Terminal states
 
 Loop until one of:
