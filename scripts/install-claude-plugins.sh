@@ -300,11 +300,66 @@ if ! command -v claude &>/dev/null; then exit 0; fi
 # (a removed plugin comes back on the next install) survives at the cost of a
 # single `claude plugin list` call.
 LISA_VERSION="$(node -e "console.log(require('$LISA_DIR/package.json').version || '')" 2>/dev/null || true)"
+
+# Linked worktrees inherit the primary checkout's sync state. The marker is
+# gitignored on purpose (it records THIS machine's ~/.claude plugin state, so
+# it must not travel to other machines via git) — but that means every fresh
+# agent worktree (.claude/worktrees/<ticket>, ~/.codex/worktrees/<ticket>)
+# starts marker-less and paid the full sync: marketplace pulls plus a dozen
+# Claude CLI spawns per ticket. Derive the primary checkout from
+# --git-common-dir (the same defended pattern install-pkgs.sh uses to link
+# node_modules, add08b409) and read its marker instead. Worktrees never WRITE
+# the primary marker: a full sync run from a worktree reinstalls plugins for
+# the worktree's own projectPath only, so recording it as the primary's synced
+# state would let the primary skip the forced reinstall it still needs after a
+# version bump.
+IS_LINKED_WORKTREE=false
+PRIMARY_ROOT=""
+GIT_COMMON_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [ -n "$GIT_COMMON_DIR" ]; then
+  PRIMARY_ROOT="$(dirname "$GIT_COMMON_DIR")"
+  if [ "$PRIMARY_ROOT" != "$PROJECT_ROOT" ] && [ -d "$PRIMARY_ROOT/.claude" ]; then
+    IS_LINKED_WORKTREE=true
+  else
+    PRIMARY_ROOT=""
+  fi
+fi
+
 PLUGIN_SYNC_MARKER="$PROJECT_ROOT/.claude/.lisa-plugins-synced"
+
+marker_current() {
+  [ -n "$LISA_VERSION" ] && [ -f "$1" ] \
+    && [ "$(cat "$1" 2>/dev/null)" = "$LISA_VERSION" ]
+}
+
 FORCE_PLUGIN_SYNC=true
-if [ -n "$LISA_VERSION" ] && [ -f "$PLUGIN_SYNC_MARKER" ] \
-  && [ "$(cat "$PLUGIN_SYNC_MARKER" 2>/dev/null)" = "$LISA_VERSION" ]; then
+if marker_current "$PLUGIN_SYNC_MARKER"; then
   FORCE_PLUGIN_SYNC=false
+elif [ "$IS_LINKED_WORKTREE" = "true" ] \
+  && marker_current "$PRIMARY_ROOT/.claude/.lisa-plugins-synced"; then
+  FORCE_PLUGIN_SYNC=false
+fi
+
+# In a linked worktree whose sync state is already settled (its own marker or
+# the primary checkout's marker is current for this Lisa version) there is
+# nothing left for this script to do: the marketplace cache is machine-global
+# (already refreshed when the primary synced), the heal migrations are gated
+# behind the same synced state, and per-worktree plugin registration is
+# handled by the coding agent's own startup — Claude Code auto-installs the
+# committed .claude/settings.json enabledPlugins for a new projectPath, and
+# Codex consumes the project-local .codex-plugin pointer, not Claude
+# project-scope registrations. Skipping here removes every Claude CLI spawn
+# from the fresh-worktree postinstall path. The #320 defense (refresh
+# marketplace whenever installs happened) is preserved: this path performs no
+# installs. Self-heal for the primary checkout is untouched. The worktree's
+# own marker is recorded so repeat installs (and health's root-confined
+# marker probe) see the settled state without reaching outside the project.
+if [ "$IS_LINKED_WORKTREE" = "true" ] && [ "$FORCE_PLUGIN_SYNC" != "true" ]; then
+  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
+    && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
+    || true
+  echo "Lisa plugins already in sync for ${LISA_VERSION} (primary checkout: ${PRIMARY_ROOT}); deferring worktree plugin registration to the coding agent's startup."
+  exit 0
 fi
 
 INSTALLED_PLUGINS_FOR_PROJECT=""
@@ -500,6 +555,10 @@ fi
 # Record the fully-synced Lisa version so same-version installs skip the
 # marketplace pulls and forced reinstalls above. Written last so any earlier
 # failure exits (set -e) without recording a sync that did not finish.
+# Always the project's OWN marker: a full sync run from a linked worktree only
+# reinstalled plugins for the worktree's projectPath, so recording it against
+# the primary checkout would let the primary skip the forced reinstall it
+# still needs after a version bump.
 if [ -n "$LISA_VERSION" ]; then
   mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
     && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \

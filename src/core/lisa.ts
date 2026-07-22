@@ -46,6 +46,7 @@ import {
 import { StrategyRegistry, type StrategyContext } from "../strategies/index.js";
 import type { IBackupService } from "../transaction/index.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
+import { resolvePrimaryWorktreeRoot } from "../utils/linked-worktree.js";
 import {
   loadIgnorePatterns,
   type IgnorePatterns,
@@ -710,12 +711,16 @@ export class Lisa {
   ): Promise<void> {
     const { logger } = this.deps;
     const validPluginName = /^[\w@./-]+$/;
-    const { fullSync, toInstall, version } = await this.computePluginSyncPlan(
-      execAsync,
-      plugins
-    );
+    const { fullSync, toInstall, version, isLinkedWorktree } =
+      await this.computePluginSyncPlan(execAsync, plugins);
 
     if (!fullSync && toInstall.length === 0) {
+      if (isLinkedWorktree) {
+        // Record the settled state on the worktree's own marker so repeat
+        // applies (and health's root-confined marker probe) do not have to
+        // re-derive it from the primary checkout.
+        await this.writePluginSyncMarker(version);
+      }
       logger.info(
         pc.gray(`Plugins already in sync for Lisa ${version}; skipping`)
       );
@@ -744,6 +749,11 @@ export class Lisa {
     await this.updateLisaMarketplace(execAsync, true);
 
     if (fullSync) {
+      // Always the project's OWN marker (destDir): a full sync run from a
+      // linked worktree only reinstalled plugins for the worktree's
+      // projectPath, so recording it against the primary checkout would let
+      // the primary skip the forced reinstall it still needs after a
+      // version bump.
       await this.writePluginSyncMarker(version);
     }
   }
@@ -751,10 +761,23 @@ export class Lisa {
   /**
    * Decide whether this apply needs a full plugin sync and which plugins to
    * install.
+   *
+   * Linked worktrees inherit the primary checkout's sync state: the marker is
+   * gitignored (it records this machine's `~/.claude` plugin state), so a
+   * fresh agent worktree is always marker-less and would otherwise pay the
+   * full sync — marketplace pulls plus a Claude CLI spawn per plugin — on
+   * every ticket. When the primary checkout is already synced for this Lisa
+   * version, the worktree has nothing left to do: the marketplace cache is
+   * machine-global and per-worktree plugin registration is handled by the
+   * coding agent's own startup (Claude Code auto-installs the committed
+   * `enabledPlugins` for a new projectPath; Codex uses the project-local
+   * `.codex-plugin` pointer instead of Claude project-scope registrations).
+   * The #320 defense (refresh marketplace whenever installs happened) holds:
+   * the skip path performs no installs.
    * @param execAsync - Promisified exec function for running shell commands
    * @param plugins - Plugin identifiers from enabledPlugins
-   * @returns Sync plan: fullSync (version changed), plugins to install, and
-   *   the current Lisa version
+   * @returns Sync plan: fullSync (version changed), plugins to install, the
+   *   current Lisa version, and whether destDir is a linked worktree
    */
   private async computePluginSyncPlan(
     execAsync: PluginExecAsync,
@@ -763,12 +786,28 @@ export class Lisa {
     readonly fullSync: boolean;
     readonly toInstall: readonly string[];
     readonly version: string;
+    readonly isLinkedWorktree: boolean;
   }> {
     const version = getPackageVersion();
-    const syncedVersion = await readFile(this.pluginSyncMarkerPath(), "utf-8")
-      .then(content => content.trim())
-      .catch(() => null);
+    const primaryRoot = await resolvePrimaryWorktreeRoot(this.config.destDir);
+    const isLinkedWorktree = primaryRoot !== null;
+    const readMarker = async (markerPath: string): Promise<string | null> =>
+      readFile(markerPath, "utf-8")
+        .then(content => content.trim())
+        .catch(() => null);
+    const ownMarker = await readMarker(this.pluginSyncMarkerPath());
+    const syncedVersion =
+      ownMarker === version || primaryRoot === null
+        ? ownMarker
+        : await readMarker(
+            path.join(primaryRoot, ".claude", ".lisa-plugins-synced")
+          );
     const fullSync = syncedVersion !== version;
+    if (isLinkedWorktree && !fullSync) {
+      // Skip the `claude plugin list` probe too — registration for this
+      // worktree's projectPath is deferred to the coding agent's startup.
+      return { fullSync: false, toInstall: [], version, isLinkedWorktree };
+    }
     const installed = fullSync
       ? null
       : await this.readInstalledPluginIds(execAsync);
@@ -776,7 +815,7 @@ export class Lisa {
       installed === null
         ? plugins
         : plugins.filter(plugin => !installed.has(plugin));
-    return { fullSync, toInstall, version };
+    return { fullSync, toInstall, version, isLinkedWorktree };
   }
 
   /**
