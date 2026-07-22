@@ -164,6 +164,8 @@ The committed verdict carries the machine-readable half:
 evidence/<ticket>/verdict.json
   not_established: []            # what was NOT proved; may be empty
   not_established_reviewed: true # attests the list was reviewed; may NEVER be omitted
+  drift: none                    # live-environment baseline-vs-now drift classification:
+                                 # none | progress | regression | unrelated_churn
   artifact: { repository, base_sha, head_sha, build_id, environment, observed_at }
   evidence: [ { evidence_id, kind, locator,
                 artifact_head_sha,   # the head_sha in force when THIS artifact was captured
@@ -204,6 +206,8 @@ Verification happens at two stages in the workflow:
 - **Remote verification** (part of the Verify flow): After the PR is merged and deployed, repeat the same empirical verification against the target environment. This proves the change works in production, not just locally. If remote verification fails, fix and re-deploy.
 
 Both levels use the same verification types table above. The difference is the environment, not the rigor.
+
+Remote verification must be **drift-aware**: the target environment may legitimately change between the local baseline and the remote run (its own deploy, out-of-band infra changes, data churn). Assert invariants — shape, exact paths, forbidden values, internal coherence — rather than equality with the local evidence snapshot; when observed state differs from the baseline, classify the drift and record it in the verdict's canonical `drift` field (`none | progress | regression | unrelated_churn`, defined in the `verdict.json` contract above). Only a broken invariant is a failure; never encode "the environment held still" as an implicit assumption.
 
 ---
 
