@@ -21,7 +21,7 @@ Callers (planning skills, lifecycle skills) invoke this skill at:
 | Plan created | Plan contents (sections + ordered tasks) as a comment, suggest transition `Backlog → Todo` (label: `status:ready`) |
 | Implementation in progress | Branch URL + first commit, suggest transition `Todo → In Progress` (label: `status:in-progress`) |
 | PR ready for review | PR URL + summary, the implementation handoff comment, suggest transition `In Progress → In Review` (label: `status:code-review`) |
-| PR merged | Merge SHA + deploy environment (if known), suggest transition `In Review → Done` (label: `status:done`) |
+| PR merged | Merge SHA + deploy environment (if known), suggest transition `In Review → Done` (label: `status:done`), **then run Phase 4b — mandatory when the merge target is a non-terminal env branch** |
 
 This skill **suggests** transitions but does not auto-transition the native Linear `state` field. It DOES update the `status:*` label set when the caller asks (the build queue is keyed off labels). Native state transitions remain a human / triage decision.
 
@@ -94,7 +94,7 @@ Without `--update-label`, this skill posts the comment only and does NOT touch l
 
 ## Phase 4b — Reconcile Native Auto-Close (Linear-specific)
 
-Linear's GitHub integration completes a linked Issue on merge to **any branch** — unlike GitHub's default-branch-scoped `Closes` auto-close — so a magic word (`Closes`/`Fixes`/`Resolves ENG-123`) or branch-name linkage can natively move the Issue to a Done/Completed workflow `state` at a **non-terminal** env merge, front-running the env-keyed `status:*` label ladder. `git-submit-pr` prevents the magic-word case; this phase is the required post-merge repair for the residual (branch-linkage) case we cannot suppress server-side. Run it on a `pr-merged` sync whose resolved env is **intermediate** (below the production terminal `done`):
+Linear's GitHub integration completes a linked Issue on merge to **any branch** — unlike GitHub's default-branch-scoped `Closes` auto-close — so a magic word (`Closes`/`Fixes`/`Resolves ENG-123`) or branch-name linkage can natively move the Issue to a Done/Completed workflow `state` at a **non-terminal** env merge, front-running the env-keyed `status:*` label ladder. `git-submit-pr` prevents the magic-word case; this phase is the required post-merge repair for the residual (branch-linkage) case we cannot suppress server-side — branch linkage completes the Issue even when the PR body carries only the non-closing `Linear: <ID>` form. This phase is a **mandatory** numbered step of every `pr-merged` sync, not an optional backstop; run it whenever the resolved env is **intermediate** (below the production terminal `done`):
 
 1. Resolve the merged PR's base branch to its env via `.lisa.config.json` `deploy.branches` (`config-resolution`). If it maps to the production/terminal `done`, this phase is a **no-op** — native completion is correct there.
 2. **Uniform / single-environment no-op.** When the project's env-keyed `done` map is uniform — every environment resolves to the same `status:done`, as in this repo (`production: main` only) and TunnlAI/frontend — dev-merge == terminal, so native completion is correct. Do nothing. Only a **non-uniform** env→`done` map (distinct `status:on-dev`/`status:on-stg`/`status:done` rungs) can desync.
