@@ -391,7 +391,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/github-prd-intake.md":
       "d8d4cb8d246b0da7b70c98adb6305451be35f3ba4e3ea384aa086e8ed3d15b46",
     "plugins/src/base/agents/jira-agent.md":
-      "0aff33624ae535692c278f5649dbe47e98d70e91d9764f7b0fa8277d77202c32",
+      "954faadefb231c3db6b51a50bc0320d5d49d1533eac05e12c60468156cbe6f40",
     "plugins/src/base/agents/jira-build-intake.md":
       "51397c08fe09380f53bd630fb81ff28905a532ea71336a424e944c28a0c2db55",
     "plugins/src/base/agents/learner.md":
@@ -617,7 +617,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "2689c1f47903a5f6c84677fbfd2f1f148096faf122b7498b21d3b0f2345c6c87",
+      "8d292784056d0cc62d78cc079286a2fdd6381e14452615b7aa8db0d31c3ff2ca",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "634f09dbd2654af070be393f5fd41e8d7fedee7437be2890e54d47ec59258539",
+      "6271b8c4dd34efb630020a63e03d8df813d4faccb81517dfb3637ef2433d968d",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -895,7 +895,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-read-ticket/scripts/download-attachment.sh":
       "f0a9b3c5bd82f0f86edb0ad86db5a9501cced9ec4a2a3bfa644bdff01c8eb460",
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
-      "51f640adce2fc6f2d8ddbf6edcd05f3d0ab86e4848fd54cb566c64c2692f2faf",
+      "92e5eba405b5848224d96515f2375ceeff80732dd039c4da8336e4d505e82bff",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
       "7a318a0ef623430c40f462ae1181c88f44ec0ee945c200dcb2fa73c13c451880",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
