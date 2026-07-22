@@ -91,7 +91,7 @@ function isTemplatedPackageManagerBuild(run: string): boolean {
     if (
       (expression.includes("package_manager") ||
         expression.includes("package-manager")) &&
-      tail.startsWith("run build")
+      /^run\s+build(?:\s|$)/.test(tail)
     ) {
       return true;
     }
