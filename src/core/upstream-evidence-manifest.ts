@@ -895,7 +895,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-read-ticket/scripts/download-attachment.sh":
       "f0a9b3c5bd82f0f86edb0ad86db5a9501cced9ec4a2a3bfa644bdff01c8eb460",
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
-      "92e5eba405b5848224d96515f2375ceeff80732dd039c4da8336e4d505e82bff",
+      "9f2e6709c2ac9279e510b99e53acd2075c915619dec69446029715b5045c1bf1",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
       "7a318a0ef623430c40f462ae1181c88f44ec0ee945c200dcb2fa73c13c451880",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
