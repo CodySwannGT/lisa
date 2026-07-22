@@ -66,6 +66,8 @@ For a user-visible Fix, or a Build change that affects user-visible behavior, th
 
 The lead cannot waive, defer, or demote this regression spec as optional, "if cheap", or equivalent. The only acceptable exits are a recorded absence of an end-to-end harness for the platform, or a genuine technical blocker that is captured before merge as a linked build-ready follow-up ticket referenced from the PR and source work item.
 
+A claim that the change is "behavior-preserving", a "no-visual-regression" refactor, or "mechanical" does NOT narrow the verification plan — it widens it to the states that can change. Static, resting-state evidence (a default-mount render, even captured at multiple breakpoints) cannot prove that a scroll-bounded, overflowing, expandable, or otherwise stateful surface is unbroken. Plan to drive the surface *into* the state that would reveal the regression — expand the tallest section, overflow the container past its bounded height, open the sheet at a short viewport, scroll to the pinned edge — and observe it there. If the state that could break cannot be reached with available tooling, record that gap explicitly; never certify parity from the resting state alone.
+
 ### 6. Execute
 
 After implementation, run the verification plan. Execute each verification type in order.
