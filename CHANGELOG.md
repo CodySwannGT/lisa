@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.8](https://github.com/CodySwannGT/lisa/compare/v2.286.7...v2.286.8) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** address templated build review ([f43aa84](https://github.com/CodySwannGT/lisa/commit/f43aa84a3420e59c4562e8d3ee8fe050d545b113)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** detect templated release builds ([e70fe5b](https://github.com/CodySwannGT/lisa/commit/e70fe5b3d5e511ceb9e8b9ddccece6f2d70b09e9)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.286.7](https://github.com/CodySwannGT/lisa/compare/v2.286.6...v2.286.7) (2026-07-22)
 
 
