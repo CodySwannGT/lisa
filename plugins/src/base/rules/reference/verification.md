@@ -205,6 +205,8 @@ Verification happens at two stages in the workflow:
 
 Both levels use the same verification types table above. The difference is the environment, not the rigor.
 
+Remote verification must be **drift-aware**: the target environment may legitimately change between the local baseline and the remote run (its own deploy, out-of-band infra changes, data churn). Assert invariants — shape, exact paths, forbidden values, internal coherence — rather than equality with the local evidence snapshot; when observed state differs from the baseline, classify the drift as progress, regression, or unrelated churn and record the classification in the verdict. Only a broken invariant is a failure; never encode "the environment held still" as an implicit assumption.
+
 ---
 
 ## Credential-Gated Verification
