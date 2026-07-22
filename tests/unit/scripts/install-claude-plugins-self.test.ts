@@ -233,6 +233,74 @@ exit 0
   );
 }
 
+/**
+ * Environment for spawning git in test fixtures: hook-set GIT_DIR /
+ * GIT_WORK_TREE / GIT_INDEX_FILE poison git commands aimed at a different
+ * repository, so strip every GIT_* key.
+ * @returns process.env minus GIT_* keys.
+ */
+function gitCleanEnv(): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
+  );
+}
+
+/**
+ * Create a real primary git checkout with a linked worktree.
+ * @param root - Fixture root.
+ * @param primaryMarkerVersion - Version recorded in the primary checkout's
+ *   plugin sync marker.
+ * @returns Absolute primary and worktree roots.
+ */
+async function writeLinkedWorktreeFixture(
+  root: string,
+  primaryMarkerVersion: string
+): Promise<{ primaryRoot: string; worktreeRoot: string }> {
+  const primaryRoot = path.join(root, "primary");
+  const worktreeRoot = path.join(root, "wt");
+  await mkdir(primaryRoot, { recursive: true });
+  const env = { ...gitCleanEnv(), HOME: root };
+  const git = async (...args: string[]): Promise<void> => {
+    await execFileAsync(
+      "git",
+      ["-c", "user.email=test@example.com", "-c", "user.name=Test", ...args],
+      { cwd: primaryRoot, env }
+    );
+  };
+  await git("init", "--template=", "-q");
+  await git("commit", "--allow-empty", "-m", "init", "-q", "--no-verify");
+  await git("worktree", "add", worktreeRoot, "-q");
+  await mkdir(path.join(primaryRoot, CLAUDE_DIR), { recursive: true });
+  await writeFile(
+    path.join(primaryRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+    primaryMarkerVersion,
+    "utf8"
+  );
+  return { primaryRoot, worktreeRoot };
+}
+
+/**
+ * Stamp the fake installed Lisa package with the fixture version.
+ * @param root - Downstream fixture root.
+ */
+async function writeVersionedLisaPackageJson(root: string): Promise<void> {
+  await writeFile(
+    path.join(
+      root,
+      "node_modules",
+      CODYSWANN_SCOPE,
+      LISA_PACKAGE_DIR_NAME,
+      PACKAGE_JSON_FILE
+    ),
+    `${JSON.stringify(
+      { name: LISA_PACKAGE_NAME, version: FAKE_LISA_VERSION },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+}
+
 afterEach(async () => {
   await Promise.all(
     tempRoots.map(root => rm(root, { recursive: true, force: true }))
@@ -565,6 +633,94 @@ describe("install-claude-plugins self postinstall path", () => {
       "utf8"
     );
     expect(marker).toBe(FAKE_LISA_VERSION);
+  });
+
+  it("inherits the primary checkout's sync marker in a linked worktree and skips all Claude plugin work", async () => {
+    const root = await makeTempRoot();
+    const { primaryRoot, worktreeRoot } = await writeLinkedWorktreeFixture(
+      root,
+      FAKE_LISA_VERSION
+    );
+    const fakeBin = path.join(root, "bin");
+    const commandLog = path.join(root, COMMAND_LOG);
+    await writeDownstreamProject(worktreeRoot);
+    const installedScriptPath = await writeInstalledLisaScript(worktreeRoot);
+    await writeVersionedLisaPackageJson(worktreeRoot);
+    await writeFakeAgentBins(fakeBin);
+
+    const result = await execFileAsync("bash", [installedScriptPath], {
+      env: {
+        ...gitCleanEnv(),
+        HOME: root,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8").catch(() => "");
+    expect(result.stdout).toContain(
+      "deferring worktree plugin registration to the coding agent's startup"
+    );
+    expect(log).not.toContain("claude plugin");
+    // The worktree records its own marker so repeat installs (and health's
+    // root-confined marker probe) see the settled state.
+    const worktreeMarker = await readFile(
+      path.join(worktreeRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      "utf8"
+    );
+    expect(worktreeMarker.trim()).toBe(FAKE_LISA_VERSION);
+    // The primary marker is untouched.
+    const primaryMarker = await readFile(
+      path.join(primaryRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      "utf8"
+    );
+    expect(primaryMarker.trim()).toBe(FAKE_LISA_VERSION);
+  });
+
+  it("runs a full sync from a linked worktree with a stale primary marker without recording the primary's marker", async () => {
+    const root = await makeTempRoot();
+    const { primaryRoot, worktreeRoot } = await writeLinkedWorktreeFixture(
+      root,
+      "1.0.0"
+    );
+    const fakeBin = path.join(root, "bin");
+    const commandLog = path.join(root, COMMAND_LOG);
+    await writeDownstreamProject(worktreeRoot);
+    const installedScriptPath = await writeInstalledLisaScript(worktreeRoot);
+    await writeVersionedLisaPackageJson(worktreeRoot);
+    await writeFakeAgentBins(fakeBin);
+
+    await execFileAsync("bash", [installedScriptPath], {
+      env: {
+        ...gitCleanEnv(),
+        HOME: root,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8");
+    // Version changed: the worktree still performs its own full sync.
+    expect(log).toContain(CLAUDE_INSTALL_BASE);
+    expect(log).toContain("claude plugin marketplace update lisa");
+    // The worktree records its own marker...
+    const worktreeMarker = await readFile(
+      path.join(worktreeRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      "utf8"
+    );
+    expect(worktreeMarker.trim()).toBe(FAKE_LISA_VERSION);
+    // ...but never the primary's: this run only reinstalled plugins for the
+    // worktree's projectPath, so the primary still needs its own forced
+    // reinstall after the version bump.
+    const primaryMarker = await readFile(
+      path.join(primaryRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      "utf8"
+    );
+    expect(primaryMarker.trim()).toBe("1.0.0");
   });
 
   it("does not probe codex again once the retire marker exists", async () => {
