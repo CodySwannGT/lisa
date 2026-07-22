@@ -28,6 +28,10 @@ class Marker:
     end: int
     delimiter: str
     strip_tabs: bool
+    # True ONLY when the whole delimiter token was wrapped in one full single-
+    # or double-quote pair (<<'EOF' / <<"EOF") with nothing word-like attached
+    # after the closing quote. That is the only form whose body this parser can
+    # PROVE bash treats as non-expanding literal data (issue #1958).
     quoted: bool
 
 
@@ -343,6 +347,7 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
     if index >= len(line):
         return None
     quote = line[index] if line[index] in "'\"" else None
+    quoted = False
     if quote:
         index += 1
         end = line.find(quote, index)
@@ -350,6 +355,18 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
             return None
         delimiter = line[index:end]
         final = end + 1
+        # Deliberate POSIX divergence, fail-safe: POSIX makes the body
+        # non-expanding when ANY part of the delimiter is quoted — including
+        # `<<\EOF` (invisible to this parser: backslash is not a quote char and
+        # the identifier regex rejects it, so no Marker is recorded and the
+        # body stays raw-visible to every guard) and partial forms like
+        # `<<EO'F'` (mis-tokenized as delimiter EO, so the terminator never
+        # matches and the command fails closed as MALFORMED). Only a delimiter
+        # this parser can PROVE was one full quote pair earns quoted=True, and
+        # trailing word characters after the closing quote (`<<'EOF'X` — real
+        # bash delimiter EOFX) keep it conservative too: the next character
+        # must end the token.
+        quoted = final >= len(line) or line[final] in " \t;&|)<>#"
     else:
         match = re.match(r"[A-Za-z_][A-Za-z0-9_]*", line[index:])
         if match is None:
@@ -358,7 +375,32 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
         final = index + len(delimiter)
     if not delimiter:
         return None
-    return Marker(offset + start, offset + final, delimiter, strip_tabs, quote is not None)
+    return Marker(offset + start, offset + final, delimiter, strip_tabs, quoted)
+
+
+def strip_provably_literal_body(command: str, markers: list[Marker]) -> str:
+    """Drop the body window of a single fully-quoted, closed heredoc.
+
+    A fully-quoted delimiter (Marker.quoted) makes the body literal data to
+    bash, so substitution tokens inside it must not flip the classification to
+    MALFORMED (issue #1958). The exclusion is deliberately narrow: EXACTLY one
+    marker, provably quoted, and provably closed — anything else returns the
+    command unchanged so the scan stays fail-closed. Only the body lines are
+    removed; the header line, terminator line, and everything after remain,
+    so a substitution on the command line proper is still detected. The raw
+    payload itself still reaches every content guard because this classifier
+    returns UNSUPPORTED (raw pass-through) for the target class, never SAFE.
+    """
+    if len(markers) != 1 or not markers[0].quoted:
+        return command
+    marker = markers[0]
+    lines = command.splitlines()
+    marker_line = command.count("\n", 0, marker.start)
+    for index in range(marker_line + 1, len(lines)):
+        candidate = lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
+        if candidate == marker.delimiter:
+            return "\n".join(lines[: marker_line + 1] + lines[index:])
+    return command
 
 
 def marker_is_closed(command: str, marker: Marker) -> bool:
@@ -422,8 +464,12 @@ def main() -> int:
         return UNSUPPORTED
 
     # Nested substitution plus a heredoc is executable shell syntax unless it
-    # matched the one exact quoted `--body "$(cat ...)"` form above.
-    if has_active_command_substitution(logical_command):
+    # matched the one exact quoted `--body "$(cat ...)"` form above. The body
+    # of a single provably-literal heredoc is excluded from this scan (its
+    # tokens are inert data); the text outside that window is still scanned.
+    if has_active_command_substitution(
+        strip_provably_literal_body(logical_command, markers)
+    ):
         return MALFORMED
     if len(markers) > 1:
         return MALFORMED

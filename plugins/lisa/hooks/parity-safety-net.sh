@@ -96,11 +96,17 @@ EOF
 # remain visible to every built-in and custom rule. Ambiguous or malformed
 # heredocs fail closed instead of guessing which text the shell would execute.
 #
-# block_heredoc() teaches the remediation the moment the wall is hit. Commit
-# heredocs need commit-message-file guidance; other heredocs should point agents
-# at script/payload files instead of implying every denial was a commit attempt.
+# block_heredoc() teaches the remediation the moment the wall is hit: a bare
+# denial strands the agent with no path forward (gardener #1789). The remedy
+# depends on the command shape (issue #1958): `git commit -m "$(cat <<EOF …)"`
+# attempts get the commit -F text; every other heredoc denial gets the
+# file-based execution guidance instead — the commit text is misleading there.
+# The git-commit detection inlines the GIT_GLOBAL_OPTS shape (defined later in
+# this file, after the heredoc dispatch runs) so `git -C <path> commit` and
+# `git -c k=v commit` spellings are still recognized.
 block_heredoc() {
-  if printf '%s' "$command_str" | grep -Eq '(^|[^[:alnum:]_-])git[[:space:]]+([^;&|[:space:]]+[[:space:]]+)*commit([^[:alnum:]_-]|$)'; then
+  if printf '%s' "$command_str" \
+    | grep -Eq -- '(^|[^[:alnum:]_-])git[[:space:]]+(-[^;&|[:space:]]+([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*)?[[:space:]]+)*commit([^[:alnum:]_-]|$)'; then
     block "$1
 Heredoc commit invocations are blocked (the payload is executable shell).
 Fix: write the commit message to a file and run \`git commit -F <file>\`.
@@ -108,9 +114,9 @@ Every commit must also carry a Co-authored-by trailer for a supported agent
 (Claude/Codex/OpenCode) — the commit-msg hook enforces this."
   fi
   block "$1
-Heredoc command invocations are blocked when Lisa cannot prove the payload is
-non-executable text.
-Fix: write the payload to a file and execute or pass that file explicitly."
+Heredoc payloads are blocked here (the payload is executable shell).
+Fix: write the payload to a file with the Write tool, then execute that file
+directly (for example \`python3 <file>\` or \`bash <file>\`)."
 }
 
 command_for_guards="$command_str"
