@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.10](https://github.com/CodySwannGT/lisa/compare/v2.286.9...v2.286.10) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** respect configured default branch for B2 ([f147662](https://github.com/CodySwannGT/lisa/commit/f147662485040bfd38bc653562746781e1d2231d)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.286.9](https://github.com/CodySwannGT/lisa/compare/v2.286.8...v2.286.9) (2026-07-22)
 
 
