@@ -9,7 +9,7 @@
     "code-simplifier@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
-    "sentry@claude-plugins-official": true,
+    "sentry@claude-plugins-official": false,
     "lisa-rails@lisa": true,
     "impeccable@impeccable": true
   },
