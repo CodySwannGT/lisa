@@ -245,6 +245,14 @@ export async function extractWorkItemRefs(
   options: ExtractRefsOptions,
   deps: RefExtractionDeps = defaultRefExtractionDeps(options.cwd)
 ): Promise<ExtractedRefs> {
+  // Library-level guard (the cmd layer has its own): without it, the
+  // dot-stripped head would give rev-parse two-dot semantics while rev-list
+  // received the raw three-dot range — two git calls disagreeing silently.
+  if (options.range.includes("...")) {
+    throw new Error(
+      `Invalid range "${options.range}": three-dot "..." selects the symmetric difference, which is never a deploy range. Pass the deployed range as <base>..<head> (two dots).`
+    );
+  }
   const separator = options.range.indexOf("..");
   if (separator === -1) {
     throw new Error(
@@ -252,7 +260,7 @@ export async function extractWorkItemRefs(
     );
   }
   const base = options.range.slice(0, separator);
-  const head = options.range.slice(separator + 2).replace(/^\./, "");
+  const head = options.range.slice(separator + 2);
   // Charset gate + --end-of-options below: a revision must never be able to
   // smuggle option-like or shell-meta payloads into the git argv.
   if (!REVISION_PATTERN.test(base) || !REVISION_PATTERN.test(head)) {

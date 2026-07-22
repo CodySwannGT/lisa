@@ -222,6 +222,77 @@ describe("jira adapter managed comment", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("returns unchanged when the server normalized the stored ADF shape", async () => {
+    // Jira round-trips ADF with its own key order and extra fields (attrs,
+    // text marks defaults). Same TEXT must compare unchanged — comparison is
+    // on the plain-text projection, never raw JSON.stringify.
+    const normalized = {
+      comments: [
+        {
+          id: "5001",
+          body: {
+            version: 1,
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                attrs: {},
+                content: [
+                  { type: "text", text: DEPLOY_STATUS_SYNC_MARKER, marks: [] },
+                ],
+              },
+              {
+                type: "paragraph",
+                attrs: {},
+                content: [
+                  {
+                    type: "text",
+                    text: "Deploy status sync: body.",
+                    marks: [],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const { adapter, calls } = recordingAdapter([normalized]);
+    await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
+      "unchanged"
+    );
+    expect(calls).toHaveLength(1);
+  });
+
+  it("still updates when any line's text actually changed", async () => {
+    const existing = {
+      comments: [
+        {
+          id: "5001",
+          body: {
+            version: 1,
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "text", text: DEPLOY_STATUS_SYNC_MARKER }],
+              },
+              {
+                type: "paragraph",
+                content: [{ type: "text", text: "Deploy status sync: OLD." }],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const { adapter, calls } = recordingAdapter([existing, {}]);
+    await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
+      "updated"
+    );
+    expect(calls[1]?.method).toBe("PUT");
+  });
+
   it("updates the existing marker comment when the body changed", async () => {
     const existing = {
       comments: [

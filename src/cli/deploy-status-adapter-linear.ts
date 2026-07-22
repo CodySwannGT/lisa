@@ -31,8 +31,10 @@ export interface LinearAdapterOptions {
 const GRAPHQL_URL = "https://api.linear.app/graphql";
 const TERMINAL_STATE_TYPES = new Set(["completed", "canceled", "cancelled"]);
 
+// children is bounded explicitly — Linear's default connection page size
+// (50) would silently under-count openChildren on large containers.
 const ISSUE_STATE_QUERY =
-  "query($id:String!){issue(id:$id){id identifier state{name type} labels{nodes{name}} children{nodes{state{type}}}}}";
+  "query($id:String!){issue(id:$id){id identifier state{name type} labels{nodes{name}} children(first:100){nodes{state{type}}}}}";
 const ISSUE_ID_QUERY = "query($id:String!){issue(id:$id){id}}";
 const LABEL_ID_QUERY =
   "query($name:String!){issueLabels(filter:{name:{eq:$name}}){nodes{id name}}}";

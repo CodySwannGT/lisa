@@ -35,7 +35,7 @@ INCLUDE - general-purpose - fallback for bounded transactional chores (input-res
 EXCLUDE - lisa:bug-fixer - work type is Build, not Fix; no reproduction sub-flow needed.
 EXCLUDE - lisa:debug-specialist - no defect to root-cause.
 EXCLUDE - lisa:performance-specialist - config resolver is trivial-scale; no perf surface.
-EXCLUDE - lisa:security-specialist - no auth/secrets/input-trust surface in a local config resolver; PR-level scanners still run in CI.
+SUPERSEDED for dss-2 (INCLUDE — see "DSS-2 amendments" above; dss-1-only rationale follows) - lisa:security-specialist - no auth/secrets/input-trust surface in a local config resolver; PR-level scanners still run in CI.
 EXCLUDE - lisa:product-specialist - no user-facing UX; operator-readable error text is covered by AC + quality review.
 EXCLUDE - lisa:spec-conformance-specialist - single-story scope; spec conformance is covered by AC-driven verification here, full-PRD conformance belongs to DSS-9.
 EXCLUDE - lisa:git-history-analyzer - context bundle already carries the needed history (#1953/#1954).
