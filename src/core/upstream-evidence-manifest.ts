@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "4c263fef48c03b3b6c623ea8a6cd55505bfaf28197e5072226ea35f9f3d26885",
+      "f2ff7f23bb2f886d27bf042fea67ffa3e7ecb62657ae393bff84802faf7255e0",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
