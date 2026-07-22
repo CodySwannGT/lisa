@@ -46,6 +46,24 @@ function git(args, options = {}) {
   return run("git", args, options).stdout.trim();
 }
 
+function curlConfigValue(value) {
+  return `"${String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")}"`;
+}
+
+function secureCurl(args, entries, options = {}) {
+  const input = `${entries
+    .map(([name, value]) => `${name} = ${curlConfigValue(value)}`)
+    .join("\n")}\n`;
+  return run("curl", ["-fsS", "--config", "-", ...args], {
+    ...options,
+    input,
+  });
+}
+
 function projectRoot() {
   return git(["rev-parse", "--show-toplevel"]);
 }
@@ -536,15 +554,11 @@ function jiraIssue(ref, contract) {
   const credentials = jiraCredentials(contract);
   if (credentials) {
     const url = `${credentials.baseUrl}/rest/api/3/issue/${encodeURIComponent(ref)}?fields=project,status,labels,components,issuetype,subtasks,comment`;
-    const result = run(
-      "curl",
+    const result = secureCurl(
+      [url],
       [
-        "-fsS",
-        "-u",
-        `${credentials.login}:${credentials.token}`,
-        "-H",
-        "Accept: application/json",
-        url,
+        ["user", `${credentials.login}:${credentials.token}`],
+        ["header", "Accept: application/json"],
       ],
       { allowFailure: true }
     );
@@ -680,19 +694,13 @@ function linearIssue(ref, contract) {
   const query =
     "query($id:String!){issue(id:$id){id identifier team{key} state{type} labels{nodes{name}} children{nodes{state{type}}} attachments{nodes{url}} comments{nodes{body}}}}";
   const payload = JSON.stringify({ query, variables: { id: ref } });
-  const result = run(
-    "curl",
+  const result = secureCurl(
+    ["https://api.linear.app/graphql"],
     [
-      "-fsS",
-      "-X",
-      "POST",
-      "-H",
-      "Content-Type: application/json",
-      "-H",
-      `Authorization: ${token}`,
-      "--data-binary",
-      payload,
-      "https://api.linear.app/graphql",
+      ["request", "POST"],
+      ["header", "Content-Type: application/json"],
+      ["header", `Authorization: ${token}`],
+      ["data-binary", payload],
     ],
     { allowFailure: true }
   );
@@ -790,15 +798,11 @@ function assertBacklink(
   const credentials = jiraCredentials(contract);
   if (credentials) {
     const url = `${credentials.baseUrl}/rest/api/3/issue/${encodeURIComponent(ref)}/remotelink`;
-    const result = run(
-      "curl",
+    const result = secureCurl(
+      [url],
       [
-        "-fsS",
-        "-u",
-        `${credentials.login}:${credentials.token}`,
-        "-H",
-        "Accept: application/json",
-        url,
+        ["user", `${credentials.login}:${credentials.token}`],
+        ["header", "Accept: application/json"],
       ],
       { allowFailure: true }
     );
@@ -1092,7 +1096,7 @@ function main() {
 }
 
 try {
-  await main();
+  main();
 } catch (error) {
   const detail = error instanceof Error ? error.message : String(error);
   console.error(

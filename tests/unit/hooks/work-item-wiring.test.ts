@@ -44,6 +44,7 @@ describe("work-item Git enforcement wiring", () => {
       expect(installed).toContain(`command === "${command}"`);
     }
     expect(installed).toContain("WORK_ITEM_TRACKING_OK");
+    expect(installed).not.toContain("await main()");
   });
 
   it("gives Rails the same gates and a single stdin consumer", () => {
