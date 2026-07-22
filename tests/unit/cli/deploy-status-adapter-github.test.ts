@@ -187,6 +187,30 @@ describe("github adapter managed comment", () => {
   });
 });
 
+describe("github adapter gh failure shape", () => {
+  it("surfaces a nonzero gh exit as a decision-readable error", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "lisa-dss-ghfail-"));
+    try {
+      const script = `#!/bin/sh\necho "gh: boom" >&2\nexit 3\n`;
+      await writeFile(path.join(dir, "gh"), script, "utf8");
+      await chmod(path.join(dir, "gh"), 0o755);
+      const execGh = createExecGh(dir, {
+        ...process.env,
+        PATH: `${dir}${path.delimiter}${process.env.PATH ?? ""}`,
+      });
+      const adapter = createGithubAdapter(
+        { repository: REPOSITORY, doneStatuses: [DONE_LABEL] },
+        { execGh }
+      );
+      await expect(adapter.closeNatively(REF)).rejects.toThrow(
+        /gh issue failed \(exit 3\): gh: boom/
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("github adapter argv fidelity via PATH-faked gh", () => {
   it("passes the exact argv to the gh executable", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "lisa-dss-gh-"));

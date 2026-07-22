@@ -162,6 +162,8 @@ describe("linear adapter managed comment", () => {
     await expect(adapter.upsertManagedComment(REF, BODY)).resolves.toBe(
       "created"
     );
+    // Paging pin: bounded first page — live pagination is DSS-6 scope.
+    expect(calls[0]?.body).toContain("comments(first:100)");
     expect(calls[1]?.body).toContain("commentCreate");
   });
 
@@ -228,6 +230,36 @@ describe("linear adapter credential sourcing", () => {
     });
     await adapter.fetchItemState(REF);
     expect(calls[0]?.headers["Authorization"]).toBe("ws-key");
+  });
+
+  it("falls back to the injected keychain reader when env is empty", async () => {
+    const seen: string[][] = [];
+    const calls: RecordedCall[] = [];
+    const fetchImpl = ((url: string | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(url),
+        method: init?.method ?? "GET",
+        headers: { ...(init?.headers as Record<string, string>) },
+        body: String(init?.body ?? ""),
+      });
+      return Promise.resolve(
+        new Response(JSON.stringify(ISSUE_STATE), { status: 200 })
+      );
+    }) as typeof fetch;
+    const adapter = createLinearAdapter(
+      { workspace: "acme", doneStatuses: DONE_STATUSES },
+      {
+        fetchImpl,
+        env: {},
+        readSecret: (service, account) => {
+          seen.push([service, account]);
+          return Promise.resolve("kc-key");
+        },
+      }
+    );
+    await adapter.fetchItemState(REF);
+    expect(seen).toEqual([["lisa-linear", "acme"]]);
+    expect(calls[0]?.headers["Authorization"]).toBe("kc-key");
   });
 
   it("fails decision-readably when no credential source resolves", async () => {

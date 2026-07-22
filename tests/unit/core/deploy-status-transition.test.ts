@@ -267,4 +267,24 @@ describe("planTransitions unconfigured env and alias", () => {
     if (plan.kind !== "plan") return;
     expect(plan.actions[0]).toMatchObject({ kind: "promote", close: true });
   });
+
+  it("matches a production rung when the requested env says prod (alias mirror)", () => {
+    const aliased: DeployLadder = {
+      rungs: [
+        { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
+      ],
+      terminalOnly: true,
+      terminalEnv: "production",
+    };
+    const plan = planTransitions(
+      input({ ladder: aliased, env: "prod", branch: "main" })
+    );
+    expect(plan.kind).toBe("plan");
+    if (plan.kind !== "plan") return;
+    expect(plan.actions[0]).toMatchObject({
+      kind: "promote",
+      doneStatus: PRODUCTION_LABEL,
+      close: true,
+    });
+  });
 });

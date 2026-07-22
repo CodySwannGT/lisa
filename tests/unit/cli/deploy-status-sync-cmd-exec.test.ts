@@ -203,6 +203,25 @@ describe("deploy-status-sync command execution", () => {
     expect(errors.join("\n")).toContain(REF_101);
   });
 
+  it("tolerates a per-item fetch failure: other item promoted, exit 1, ref named", async () => {
+    const failing = "acme/app#999";
+    const adapter = adapterOf({
+      [REF_101]: { ref: REF_101, openChildren: 0, closed: false },
+      // no state for #999 → fetchItemState rejects for it
+    });
+    const code = await runDeployStatusSync(
+      { environment: "dev", range: RANGE },
+      deps(adapter, [REF_101, failing])
+    );
+    expect(code).toBe(1);
+    expect(writes.filter(write => write.method === TRANSITION)).toHaveLength(1);
+    expect(writes.find(write => write.method === TRANSITION)?.ref).toBe(
+      REF_101
+    );
+    expect(errors.join("\n")).toContain(failing);
+    expect(logs.join("\n")).toContain(`promoted ${REF_101}`);
+  });
+
   it("emits the machine-readable plan with --json", async () => {
     const adapter = adapterOf({
       [REF_101]: { ref: REF_101, openChildren: 0, closed: false },

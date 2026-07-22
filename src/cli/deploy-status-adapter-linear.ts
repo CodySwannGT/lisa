@@ -35,8 +35,9 @@ const LABEL_ID_QUERY =
   "query($name:String!){issueLabels(filter:{name:{eq:$name}}){nodes{id name}}}";
 const ADD_LABEL_MUTATION =
   "mutation($issueId:String!,$labelId:String!){issueAddLabel(id:$issueId,labelId:$labelId){success}}";
+// Bounded first page — live pagination is DSS-6 acceptance scope.
 const COMMENTS_QUERY =
-  "query($id:String!){issue(id:$id){id comments{nodes{id body}}}}";
+  "query($id:String!){issue(id:$id){id comments(first:100){nodes{id body}}}}";
 const COMMENT_CREATE_MUTATION =
   "mutation($issueId:String!,$body:String!){commentCreate(input:{issueId:$issueId,body:$body}){success}}";
 const COMMENT_UPDATE_MUTATION =

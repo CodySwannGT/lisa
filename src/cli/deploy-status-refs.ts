@@ -201,16 +201,59 @@ async function collectPrTokens(
     pull => pull.merged_at !== null && pull.merged_at !== undefined
   );
   const unique = [...new Map(merged.map(pull => [pull.number, pull])).values()];
-  return unique.flatMap(pull =>
-    (pull.body ?? "").split("\n").flatMap(line => {
-      const match = REF_LINE_PATTERN.exec(line.trim());
-      if (match === null) return [];
-      return (match[1] ?? "")
+  return unique.flatMap(pull => prBodyTokens(pull.body ?? ""));
+}
+
+/** Loose candidate shapes: contains a "#" or looks like KEY-N. A candidate
+ * that later fails canonicalization is reported in `skipped`, never dropped
+ * silently; plain prose words are not candidates. */
+const CANDIDATE_PATTERN = /#|^[A-Za-z][A-Za-z0-9]*-\d/;
+
+/** Punctuation stripped from the end of candidate tokens. */
+const TRAILING_PUNCTUATION = new Set([".", ",", ";", ":", ")"]);
+
+/**
+ * Strip trailing punctuation from a word in linear time (a quantified
+ * end-anchored regex would be flagged as super-linear).
+ * @param word - Raw word
+ * @returns The word without its trailing punctuation run
+ */
+function stripTrailingPunctuation(word: string): string {
+  const characters = [...word];
+  const cutoff = characters.reduce(
+    (keep, character, index) =>
+      TRAILING_PUNCTUATION.has(character) ? keep : index + 1,
+    0
+  );
+  return word.slice(0, cutoff);
+}
+
+/**
+ * Collect candidate tokens from one PR body: Refs/Closes lines outside
+ * fenced code regions (triple-backtick blocks), with trailing punctuation
+ * stripped from each word so `Closes #102.` names #102.
+ * @param body - Raw PR body markdown
+ * @returns Candidate tokens in appearance order
+ */
+function prBodyTokens(body: string): readonly string[] {
+  const scanned = body.split("\n").reduce(
+    (state: { inFence: boolean; tokens: readonly string[] }, rawLine) => {
+      const line = rawLine.trim();
+      if (line.startsWith("```")) {
+        return { ...state, inFence: !state.inFence };
+      }
+      const match = state.inFence ? null : REF_LINE_PATTERN.exec(line);
+      if (match === null) return state;
+      const words = (match[1] ?? "")
         .replace(/^[\s:]+/, "")
         .split(/[\s,]+/)
-        .filter(word => /#\d+$/.test(word) || KEY_TOKEN_PATTERN.test(word));
-    })
+        .map(stripTrailingPunctuation)
+        .filter(word => CANDIDATE_PATTERN.test(word));
+      return { ...state, tokens: [...state.tokens, ...words] };
+    },
+    { inFence: false, tokens: [] }
   );
+  return scanned.tokens;
 }
 
 /**

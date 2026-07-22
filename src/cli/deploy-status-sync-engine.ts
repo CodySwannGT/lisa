@@ -90,10 +90,19 @@ function resolveEnvironment(
     };
   }
   const branches = getAtPath(config, "deploy.branches");
-  const rawEnv = isJsonObject(branches)
-    ? Object.keys(branches).find(env => branches[env] === branch)
-    : undefined;
-  if (rawEnv !== undefined) return { env: rawEnv };
+  const rawEnvs = isJsonObject(branches)
+    ? Object.keys(branches).filter(env => branches[env] === branch)
+    : [];
+  if (rawEnvs.length === 1 && rawEnvs[0] !== undefined) {
+    return { env: rawEnvs[0] };
+  }
+  if (rawEnvs.length > 1) {
+    // Name ALL candidates — silently picking the first would report a
+    // misleading no-op for an env the operator never meant.
+    return {
+      problem: `Branch "${branch}" deploys to multiple environments (${rawEnvs.join(", ")}); pass --environment to disambiguate.`,
+    };
+  }
   return {
     problem: `Branch "${branch}" is not a value of deploy.branches in .lisa.config.json.`,
   };

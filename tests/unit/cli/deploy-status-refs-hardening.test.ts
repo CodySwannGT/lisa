@@ -6,6 +6,9 @@ import {
 } from "../../../src/cli/deploy-status-refs.js";
 
 const REPOSITORY = "acme/app";
+const RANGE = "abc..def";
+const CWD = "/tmp";
+const REF_103 = "acme/app#103";
 
 /**
  * Build fully-scripted deps recording git/gh argv.
@@ -36,7 +39,7 @@ describe("extractWorkItemRefs revision hardening", () => {
   it("passes --end-of-options before every revision argument (argv pin)", async () => {
     const gitCalls: string[][] = [];
     const result = await extractWorkItemRefs(
-      { range: "abc..def", tracker: "github", cwd: "/tmp" },
+      { range: RANGE, tracker: "github", cwd: CWD },
       scriptedDeps(["deadbeef\n", ""], gitCalls, [])
     );
     expect(result.refs).toEqual([]);
@@ -50,7 +53,7 @@ describe("extractWorkItemRefs revision hardening", () => {
       "rev-list",
       "--reverse",
       "--end-of-options",
-      "abc..def",
+      RANGE,
     ]);
   });
 
@@ -58,7 +61,7 @@ describe("extractWorkItemRefs revision hardening", () => {
     const gitCalls: string[][] = [];
     await expect(
       extractWorkItemRefs(
-        { range: "abc..$(reboot)", tracker: "github", cwd: "/tmp" },
+        { range: "abc..$(reboot)", tracker: "github", cwd: CWD },
         scriptedDeps([], gitCalls, [])
       )
     ).rejects.toThrow(/Invalid range .*revision/);
@@ -68,10 +71,65 @@ describe("extractWorkItemRefs revision hardening", () => {
   it("rejects an empty range side decision-readably", async () => {
     await expect(
       extractWorkItemRefs(
-        { range: "..def", tracker: "github", cwd: "/tmp" },
+        { range: "..def", tracker: "github", cwd: CWD },
         scriptedDeps([], [], [])
       )
     ).rejects.toThrow(/Invalid range/);
+  });
+});
+
+describe("PR-body token edges", () => {
+  const MERGED_AT = "2026-07-01T00:00:00Z";
+
+  /**
+   * Run extraction over a scripted single-commit range with one merged PR.
+   * @param body - The PR body
+   * @returns Extraction result
+   */
+  function extractWithPrBody(
+    body: string
+  ): ReturnType<typeof extractWorkItemRefs> {
+    const pr = JSON.stringify([{ number: 7, merged_at: MERGED_AT, body }]);
+    const deps: RefExtractionDeps = {
+      execGit: args =>
+        Promise.resolve(
+          args[0] === "rev-parse"
+            ? "headsha\n"
+            : args[0] === "rev-list"
+              ? "sha1\n"
+              : ""
+        ),
+      execGh: () => Promise.resolve(pr),
+    };
+    return extractWorkItemRefs(
+      {
+        range: RANGE,
+        tracker: "github",
+        repository: REPOSITORY,
+        cwd: CWD,
+      },
+      deps
+    );
+  }
+
+  it("strips trailing punctuation from candidate tokens", async () => {
+    const result = await extractWithPrBody("Closes #102.\nRefs #103,\n");
+    expect(result.refs).toEqual(["acme/app#102", REF_103]);
+  });
+
+  it("ignores Refs lines inside fenced code regions", async () => {
+    const result = await extractWithPrBody(
+      "Refs #103\n```\nCloses #500\n```\nSome prose\n"
+    );
+    expect(result.refs).toEqual([REF_103]);
+    expect(result.skipped.map(entry => entry.token)).not.toContain("#500");
+  });
+
+  it("reports a dropped candidate in skipped with a reason, never silently", async () => {
+    const result = await extractWithPrBody("Refs abc#xyz\nRefs #103\n");
+    expect(result.refs).toEqual([REF_103]);
+    const dropped = result.skipped.find(entry => entry.token === "abc#xyz");
+    expect(dropped?.reason).toBeTruthy();
   });
 });
 
@@ -116,10 +174,10 @@ describe("gh fan-out bounding", () => {
     };
     await extractWorkItemRefs(
       {
-        range: "abc..def",
+        range: RANGE,
         tracker: "github",
         repository: REPOSITORY,
-        cwd: "/tmp",
+        cwd: CWD,
       },
       deps
     );
