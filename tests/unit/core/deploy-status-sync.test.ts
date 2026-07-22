@@ -163,19 +163,43 @@ describe("resolveDeployLadder", () => {
     });
   });
 
-  it("keeps alias resolution ahead of the fallback test (materialized production beside prod)", () => {
-    // Per the Option A ruling the union/alias resolves FIRST: the materialized
-    // "production" entry still blocks the sole alias, then falls back without
-    // erroring — prod has no vocabulary left, so the ladder is empty.
+  it("strips materialized defaults BEFORE the union so they never block the alias", () => {
+    // Corrected ruling: a materialized "production" entry is invisible for
+    // ALL purposes — the sole prod alias still applies and the default
+    // production vocabulary reaches the prod rung.
     const config: JsonValue = {
       deploy: { branches: { prod: "main" } },
       github: {
-        labels: { build: { done: { production: PRODUCTION_LABEL } } },
+        labels: {
+          build: {
+            done: {
+              dev: DEV_LABEL,
+              staging: STAGING_LABEL,
+              production: PRODUCTION_LABEL,
+            },
+          },
+        },
       },
     };
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
-      rungs: [],
-      terminalOnly: false,
+      rungs: [{ env: "prod", branch: "main", doneStatus: PRODUCTION_LABEL }],
+      terminalOnly: true,
+      terminalEnv: "prod",
+    });
+  });
+
+  it("strips materialized jira defaults before the union likewise", () => {
+    const config: JsonValue = {
+      deploy: { branches: { prod: "main" } },
+      jira: {
+        workflow: {
+          done: { dev: "On Dev", staging: "On Stg", production: "Done" },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
+      rungs: [{ env: "prod", branch: "main", doneStatus: "Done" }],
+      terminalOnly: true,
       terminalEnv: "prod",
     });
   });
