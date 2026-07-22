@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "4c263fef48c03b3b6c623ea8a6cd55505bfaf28197e5072226ea35f9f3d26885",
+      "e41e9534988ce69a836664437a78f3a3f3dc7ebbe396c86cdab0ea63fb7c19da",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
@@ -23,7 +23,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "f53702d4a1af4f3bd45082ca8bd9645591f77e1743025bf617cd6b7a699a064b",
+      "1d4a4d33d4a5f26a33560df21f9ad9ba97511c15a1c952dd2fe941679a0f1f9e",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -59,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/deletions.json":
       "b1d07e463f52deaa5f9958060de40d369f4f256b898563efb83911abf39a62a5",
     "cdk/merge/.claude/settings.json":
-      "d590b3d3c1cd639fa6316f75e1a7fe477acbe27705b3e41e950cf13fa618f175",
+      "6f938fdc9c808ee4dda9d605815788dda384197065aac6793c7549d8811a6224",
     "cdk/merge/.oxlintrc.json":
       "e74885a33fdb7b5d565e13ebd781a3dd2fd02409a2a059deed851645630a6985",
     "cdk/package-lisa/package.lisa.json":
@@ -181,7 +181,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/github-rulesets/playwright.json":
       "b57ccd12f768a1466a9681528858e59764bd0efedcbcb3a96c2fb40719bbd579",
     "expo/merge/.claude/settings.json":
-      "38afc4841039f05be92303cfd7ed36b600d4af5af2fd07335542b5ceeda29147",
+      "e97b33d7ad86b71abba94ab957d725e34c3cafca455e92fba0b29ebabc3b73d1",
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
@@ -223,7 +223,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "harper-fabric/merge/.claude/settings.json":
-      "f376c8083e1ec7595c99b23c737cf643906b05792581425790e274400f925977",
+      "278c48f1af3a6aa23b7f5dcf55aa0d2737baf809942b1d4ef6831cdfc144581a",
     "harper-fabric/merge/.oxlintrc.json":
       "43bd2a48954e15fbd1fe89b1a4f7b84cf93706d7de7b84ec120d63906bfde31b",
     "harper-fabric/package-lisa/package.lisa.json":
@@ -309,7 +309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/deletions.json":
       "037a64f96b76670326bc61921f4484e864e02c09786adabbd1cfdf886183cad5",
     "nestjs/merge/.claude/settings.json":
-      "4f9d9440fd208520c4be96edde19e84160f25e3bba3ac9505d95b7653ad34666",
+      "d0ce50361a1f3868d15728646e66b9e1cdb8373688eb22459adbdb176e342aca",
     "nestjs/merge/.oxlintrc.json":
       "3743a1e2bcfc879f5250f35206f413b10815f34e20b1d0afce67824579813b5d",
     "nestjs/package-lisa/package.lisa.json":
@@ -367,7 +367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "phaser/merge/.claude/settings.json":
-      "13336547df466d2aa4600aaf025d813c0189709776c8ed16de4f30e80be1ca63",
+      "296b8d5e3c197cd4526a99454aee1dc7f5ce9a25a729a957f392b71be3e8cfb6",
     "phaser/merge/.oxlintrc.json":
       "4ac4bca00bef4b32810f3759a914ab2b8148e6fad3e329417a497e36df9e810c",
     "phaser/package-lisa/package.lisa.json":
@@ -589,7 +589,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "388cf8847581d96a1ff8ea98290a33a5f96d67cdd502ea807a0b8d88efe90e19",
+      "b83c5043a0f29b2d8851258acfe6906aab7922cd80f486e25220e55f26a8c0a5",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "6271b8c4dd34efb630020a63e03d8df813d4faccb81517dfb3637ef2433d968d",
+      "cb3a0587907321301e6662480af0d333aee4a3e0d29e9bdc851c225be2c220d7",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -961,7 +961,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
-      "7126b7dbda7205922a7825eba47164954267ff65ef9f414182aab51889b9a7d8",
+      "2515b016f3a1c80163aaf097c3f530e884e59e2070d072a6cb5c7b9d2658c946",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "ed52b0273f6b535d26d561c80ae6c0bedb84c67fcf4321f688c05fe3ee3af575",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
@@ -1819,7 +1819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/github-rulesets/quality-checks.json":
       "ea42f2bb938881bc6ec129e7300a2b824313951031d4720f46e944c4dfe1a9da",
     "rails/merge/.claude/settings.json":
-      "37a06617452435eec44afdd430c0375d14ad59458ddd48bf6c1115315748acb5",
+      "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
       "d26321ea10bc3ed8cf096f900622cb4cf7a37117fabf9730f0fe5c9d949582fc",
     "scripts/check-duplicate-versions.mjs":
@@ -1867,7 +1867,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "876914c369c5bd58f4a5f3c41d0c1264c6923f329a644f90640d15b434a0fbd1",
     "scripts/install-claude-plugins.sh":
-      "2fcee140e86bcc213a6959b4b0eae533cc102c91948d47fe87e62cb29f795ed1",
+      "5f4bedb983900dc17f8843f73876fc7c445909eb12792b3330728ff03842f50b",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -2067,7 +2067,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/github-rulesets/quality-checks.json":
       "89b9e09267cdb65865728d0e873de9c1225b8ca796e67f06fa8b72ccf6d4515e",
     "typescript/merge/.claude/settings.json":
-      "bad82c215aca3102e1fd41cce7205b59029c74cfce0f416ce0a95177fc2b0c54",
+      "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
@@ -7700,6 +7700,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/deploy-status-cmd-fixture.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
+    "tests/helpers/safety-net-guard-fixtures.ts": true,
+    "tests/helpers/safety-net-guard-harness.ts": true,
     "tests/helpers/test-utils.ts": true,
     "tests/helpers/verification-gate-fixtures.ts": true,
     "tests/helpers/verification-gate-harness.ts": true,
@@ -7914,6 +7916,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
