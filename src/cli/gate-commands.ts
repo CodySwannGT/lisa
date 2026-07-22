@@ -1,18 +1,21 @@
 /** Registrars for non-project gate commands shipped to host projects. */
 import type { Command } from "commander";
 
+import type { DeployStatusSyncOptions } from "./deploy-status-sync-cmd.js";
 import type { FileUpstreamOptions } from "./file-upstream-cmd.js";
 
 /** Gate runners kept structural to avoid importing the whole CLI dependency record. */
 export interface GateCommandDependencies {
   runCheckLearningsBudget: (path: string | undefined) => Promise<number>;
   runFileUpstream: (options: FileUpstreamOptions) => Promise<number>;
+  runDeployStatusSync: (options: DeployStatusSyncOptions) => Promise<number>;
 }
 
 /** Gate commands skip the root npm update check. */
 export const GATE_COMMAND_NAMES = [
   "check-learnings-budget",
   "file-upstream",
+  "deploy-status-sync",
 ] as const;
 
 /**
@@ -61,6 +64,35 @@ function addFileUpstreamCommand(
 }
 
 /**
+ * Register the deploy-status-sync transition engine (DSS-2). Runs in host
+ * project CI after a deploy, so it must skip the root npm update check.
+ * @param program - Commander program
+ * @param dependencies - Gate runners
+ */
+function addDeployStatusSyncCommand(
+  program: Command,
+  dependencies: GateCommandDependencies
+): void {
+  program
+    .command("deploy-status-sync")
+    .description(
+      "Move the work items a deployed commit range shipped to the environment's configured done status"
+    )
+    .option("--environment <env>", "Environment the deploy landed in")
+    .option("--branch <branch>", "Deployed branch (resolved to an environment)")
+    .option("--range <range>", "Deployed commit range as <base>..<head>")
+    .option("--before <sha>", "Range base SHA (with --after)")
+    .option("--after <sha>", "Range head SHA (with --before)")
+    .option("--dry-run", "Plan and print without any tracker writes")
+    .option("--json", "Emit the machine-readable plan/result JSON")
+    .option("--config <path>", "Config path (default: .lisa.config.json)")
+    .action(async (options: DeployStatusSyncOptions) => {
+      const code = await dependencies.runDeployStatusSync(options);
+      if (code !== 0) process.exitCode = code;
+    });
+}
+
+/**
  * Register all non-project gate commands.
  * @param program - Commander program
  * @param dependencies - Gate runners
@@ -71,4 +103,5 @@ export function addGateCommands(
 ): void {
   addCheckLearningsBudgetCommand(program, dependencies);
   addFileUpstreamCommand(program, dependencies);
+  addDeployStatusSyncCommand(program, dependencies);
 }
