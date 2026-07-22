@@ -3,8 +3,8 @@
   "plugin": "safety-net@cc-marketplace",
   "pluginName": "safety-net",
   "marketplace": "cc-marketplace",
-  "upstreamVersion": "0.9.0",
-  "analyzedAt": "2026-05-30",
+  "upstreamVersion": "1.0.6",
+  "analyzedAt": "2026-07-22",
   "status": "approved",
   "components": [
     {
