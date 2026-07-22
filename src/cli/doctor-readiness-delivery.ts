@@ -30,7 +30,7 @@ import {
 } from "./doctor-readiness-credentials.js";
 import { informationalFindings } from "./doctor-readiness-shared.js";
 import {
-  assessReleasePath,
+  assessReleasePaths,
   PROMOTION_ACTION,
   type ReleasePathOutcome,
 } from "./doctor-readiness-release-path.js";
@@ -54,7 +54,7 @@ interface ReleasePathSummary {
   readonly violations: readonly string[];
   readonly unresolved: readonly string[];
   readonly cleanCount: number;
-  readonly publishJobCount: number;
+  readonly publishStepCount: number;
 }
 
 /**
@@ -66,10 +66,7 @@ function summarizeReleasePaths(
   workflows: readonly ParsedWorkflow[]
 ): ReleasePathSummary {
   const outcomes: readonly ReleasePathOutcome[] = workflows.flatMap(workflow =>
-    workflow.jobs.flatMap(job => {
-      const outcome = assessReleasePath(workflow, job);
-      return outcome ? [outcome] : [];
-    })
+    workflow.jobs.flatMap(job => assessReleasePaths(workflow, job))
   );
   return {
     violations: outcomes.flatMap(outcome =>
@@ -79,7 +76,7 @@ function summarizeReleasePaths(
       outcome.kind === "unresolved" ? [outcome.reason] : []
     ),
     cleanCount: outcomes.filter(outcome => outcome.kind === "clean").length,
-    publishJobCount: outcomes.length,
+    publishStepCount: outcomes.length,
   };
 }
 
@@ -178,7 +175,7 @@ function cleanRecord(
     findings: [
       {
         evidence:
-          `Inspected ${summary.publishJobCount} publishing job(s) across ` +
+          `Inspected ${summary.publishStepCount} publishing step(s) across ` +
           `${workflows.length} workflow file(s): each is preceded by a test ` +
           `run or promotes the CI-built artifact via \`${PROMOTION_ACTION}\`. ` +
           "No workflow declares blanket permissions, inherited secrets, or " +
@@ -294,7 +291,7 @@ export async function assessDeliveryAuthorityDimension(
   if (summary.unresolved.length > 0) {
     return unresolvedRecord(summary.unresolved, credentials);
   }
-  if (summary.publishJobCount === 0) {
+  if (summary.publishStepCount === 0) {
     return noReleasePathRecord(workflows, credentials);
   }
   return cleanRecord(summary, workflows, credentials);
