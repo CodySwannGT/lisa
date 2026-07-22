@@ -805,7 +805,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "1702485809533a2e546a590b9d2f67cbb420c8f0cb0eac8609b0287b05122ad3",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "e8680c65da64351580658e423d2e30f565e9df52079f4deec44df84d4ab82982",
+      "cd692a3343f2306a3d5b96a1cb9662e3abdc557df24d733138b23fde2aa8bad9",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md":
@@ -927,7 +927,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
       "a6b8241648ba4b7b9f1196a37e9924ffaccc5461f3ac2ee8ae283c58559e9717",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
-      "178b6dd6d766ba1503d32903d40019b9788dd1051d3988e6bc7c18ed2121407f",
+      "85fbf548b9d7972912fde717d1d6ca82c0350ad82f6d779d08c831b23b90ebd3",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "6a096c6818c6a6b3938ed3b52f6e9be8416de3b61b0b5e23fabf0ae32a9756d8",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
