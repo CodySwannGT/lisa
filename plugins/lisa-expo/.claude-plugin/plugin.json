@@ -8,5 +8,17 @@
   "dependencies": [
     "lisa-typescript"
   ],
-  "hooks": {}
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/register-maestro-mcp.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
