@@ -469,11 +469,15 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
 - **What it would take to replace (replacement cost):** Low to moderate. One
   call site. In-housing a narrow patcher for the specific keys Lisa sets is
   plausible; a general-purpose one is not.
-- **What would catch a bad update (detection evidence):** `_Not yet decided_` —
-  and this is the real gap, not an unexamined one. The Codex settings-installer
-  unit tests assert the values Lisa sets, but **no test asserts that a user's
-  pre-existing comments and formatting survive the rewrite**, which is the only
-  reason this dependency exists. Tracked in #1918.
+- **What would catch a bad update (detection evidence):**
+  `tests/unit/codex/settings-installer.test.ts` — the case *"preserves a host
+  inline comment while overwriting the value via toml-patch"* feeds
+  `project_doc_max_bytes = 1024  # keep this comment` (a value different from
+  Lisa's 65536, which forces the toml-patch in-place update path) and asserts
+  the output **both** carries Lisa's winning value **and still contains the
+  host's `# keep this comment`**. A comment-dropping regression in this library
+  now fails that named test instead of silently corrupting a user's config —
+  the exact gap this entry used to record.
 - **Who owns this and how often we recheck (owner / review cadence):**
   Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
 - **Last reviewed:** 2026-07-21
@@ -502,10 +506,13 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
 - **What it would take to replace (replacement cost):** About a day. It is one
   function behind one helper, which is exactly why this class applies.
 - **What would catch a bad update (detection evidence):**
-  `tests/unit/utils/json-utils.test.ts`, plus `tests/integration/lisa.test.ts`,
-  which asserts the merged `package.json` a real apply produces. Whether those
-  tests pin the exact array-merge semantics — the failure mode that would be
-  silent — is itself unconfirmed; tracked in #1918.
+  `tests/unit/utils/json-utils.test.ts` now pins the exact `deepMerge`
+  semantics a bad `lodash.merge` update would silently break: override-wins on
+  scalars, recursive merge of nested objects, and index-by-index array merging
+  (`deepMerge({a:[1,2,3]},{a:[9]})` → `{a:[9,2,3]}`, which is neither array
+  union nor wholesale replacement — the silent failure mode this entry warned
+  about). Backed by `tests/integration/lisa.test.ts`, which asserts the merged
+  `package.json` a real apply produces.
 - **Who owns this and how often we recheck (owner / review cadence):**
   Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
 - **Last reviewed:** 2026-07-21
@@ -587,12 +594,15 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
 - **What it would take to replace (replacement cost):** Low. All prompts go
   through the single `src/cli/prompts.ts` boundary, so a swap is a rewrite of
   that file.
-- **What would catch a bad update (detection evidence):** Nothing would catch
-  it, and that is worth saying plainly. `src/cli/prompts.ts` has no unit test of
-  its own; the only test that references it is
-  `tests/integration/lisa.test.ts`, which drives the non-interactive path where
-  prompts are skipped. The interactive path is proven only by a human running
-  setup. Tracked in #1918.
+- **What would catch a bad update (detection evidence):**
+  `tests/unit/cli/prompts.test.ts` — it mocks `@inquirer/prompts` and asserts
+  that `InteractivePrompter`'s `promptOverwrite`, `confirmProjectTypes`, and
+  `confirmDirtyGit` actually invoke the library's `select`/`confirm` and map
+  their answers to the documented outputs (e.g. an `OverwriteDecision`), that
+  `AutoAcceptPrompter` auto-accepts without ever prompting, and that
+  `createPrompter` picks the interactive vs. auto-accept implementation by
+  yes-mode and TTY. A break in the interactive path now fails a unit test
+  instead of surfacing only when a human runs setup.
 - **Who owns this and how often we recheck (owner / review cadence):**
   Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
 - **Last reviewed:** 2026-07-21
