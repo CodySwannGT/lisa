@@ -27,9 +27,13 @@ the upstream skill. Pinned to `sentry@claude-plugins-official@1.2.0` via
 Decide what you are actually doing before touching code; default to the
 smallest scope (adapted from upstream 1.2.0's scope gate):
 
-- **First error** — no Sentry yet: install the SDK with its recommended default
-  `init` (**errors + tracing**), verify a real captured event, and stop. Do not
-  wire up further signals unasked.
+- **First error** — no Sentry yet: install the SDK, initialize it for **error
+  capture plus tracing** — noting that tracing is **opt-in** in every Sentry
+  SDK: it only activates when you set `tracesSampleRate`/`tracesSampler` (and,
+  in browsers, add the tracing integration, e.g.
+  `browserTracingIntegration()`), exactly as the Step 3 snippets do — then
+  verify a real captured event and stop. Do not wire up further signals
+  unasked.
 - **Add a signal** — Sentry already installed and the user wants one more signal
   (logging, profiling, session replay, metrics, cron check-ins, AI/LLM
   monitoring): skip install/provisioning and configure just that signal per the
