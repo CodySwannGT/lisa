@@ -151,15 +151,17 @@ Run this gate **before** the claim relabel, starting with the oldest/highest-pri
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an Issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa-linear-read-issue` uses — Linear's native parentage: an Issue groups **sub-issues** via `parentId`, and a **Project** (the Epic equivalent) groups Issues via `projectId`. Relations (`save_issue_relation` — `blocks` / `is blocked by`) express dependencies and are **not** parentage — do not count them as children.
 
-Fetch the Issue's sub-issues via `lisa-linear-access operation: get-issue` (which returns the children) or `lisa-linear-access operation: list-issues({parentId: <issueId>})`, then count those still open (Linear `state.type` not in the completed/canceled set):
+Fetch the Issue's sub-issues via `lisa-linear-access operation: get-issue` (which returns the children) or `lisa-linear-access operation: list-issues({parentId: <issueId>})`, then count those still open (Linear `state.type` not in the completed/canceled/duplicate set):
 
 ```text
 # Children of <issueId>: native sub-issues via parentId.
-# Count children whose Linear state.type is NOT terminal ("completed" / "canceled").
-# A parent whose children are all completed is no longer holding open work and
+# Count children whose Linear state.type is NOT terminal ("completed" / "canceled" / "duplicate").
+# "duplicate" is a first-class Linear state.type (distinct from "canceled"): an Issue marked
+# as a duplicate is closed and must NOT be counted as open, or the parent never rolls up.
+# A parent whose children are all terminal is no longer holding open work and
 # rolls up via leaf-only-lifecycle's rollup, not here.
 OPEN_CHILDREN = count(list_issues({parentId: <issueId>})
-                       where state.type not in {"completed", "canceled"})
+                       where state.type not in {"completed", "canceled", "duplicate"})
 ```
 
 For a Project-level parent (an Issue that itself anchors a `projectId` grouping rather than a `parentId` tree), resolve membership the same way `lisa-linear-read-issue` does and treat the parent as a container if any grouped Issue is still open. If sub-issue resolution is unavailable, fall back to the parentage `lisa-linear-read-issue` derives and treat the Issue as a container if any derived child is open. Note "sub-issues unavailable — parentage derived" so the operator knows how children were resolved.
