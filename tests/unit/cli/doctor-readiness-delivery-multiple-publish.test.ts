@@ -66,11 +66,14 @@ describe("assessDeliveryAuthorityDimension — multiple publish steps", () => {
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
+    const findings = asFindings(record.findings);
+    const evidence = String(findings[0].evidence);
 
     expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers).toHaveLength(1);
     expect(assessReadiness([record]).blockers[0].id).toBe("B2");
-    expect(String(asFindings(record.findings)[0].evidence)).toContain(
-      "docker push ghcr.io/acme/app:latest"
-    );
+    expect(findings).toHaveLength(1);
+    expect(evidence).toContain("docker push ghcr.io/acme/app:latest");
+    expect(evidence).not.toContain("npm publish --provenance");
   });
 });

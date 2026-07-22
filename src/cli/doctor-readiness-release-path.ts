@@ -1,22 +1,6 @@
 /**
  * Release-path assessment for the delivery/authority readiness dimension — ship
  * blocker B2 (PRD #1739, #1896).
- *
- * B2 asks whether the thing that ships equals the thing that was validated. The
- * question is answered offline, from the workflow files alone, which imposes a
- * hard discipline: **absence of evidence is not evidence of a bypass.** A
- * reusable `workflow_call` publish workflow has no validating job of its own
- * because validation is the caller's obligation; a `workflow_run`-triggered
- * deploy is gated by the upstream workflow that fired it; a default-branch push
- * may be gated by branch protection. None of those are visible here, so none of
- * them may be reported as a violation.
- *
- * The rule is therefore: stand B2 only when the bypass is provable from the file
- * alone — a job that self-builds AND publishes with no validating ancestor, in a
- * workflow whose trigger makes in-file validation the expected place for it
- * (a tag push, `workflow_dispatch`, `schedule`, a non-default-branch push, or an
- * unstated trigger). Everything else that cannot be settled offline returns a
- * stated-reason SKIP, never a FAIL.
  * @module cli/doctor-readiness-release-path
  */
 import type {
@@ -25,7 +9,6 @@ import type {
   ParsedWorkflowStep,
 } from "./doctor-readiness-workflows.js";
 
-/** Commands that put an artifact in front of users. */
 const PUBLISH_VERBS = [
   "npm publish",
   "docker push",
@@ -35,17 +18,11 @@ const PUBLISH_VERBS = [
   "eas submit",
 ];
 
-/** Publish actions that put release artifacts in front of users. */
 const DOCKER_BUILD_PUSH_ACTION = "docker/build-push-action";
 const PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish";
 const GITHUB_RELEASE_ACTION = "softprops/action-gh-release";
 
-/**
- * Commands that actually run a test suite. Deliberately narrow: the invariant B2
- * protects is "this artifact was *tested*", and a loose substring match (`echo
- * "test the release notes"`, or a lint step) would manufacture false
- * reassurance — the wrong direction to err for a gate.
- */
+/** Commands that actually run a test suite. */
 const VALIDATING_COMMANDS: readonly RegExp[] = [
   /\b(npm|yarn|pnpm|bun|npx|bunx)\s+(run\s+)?test\b/,
   /\btest:[\w:-]+/,
@@ -112,28 +89,20 @@ function isLocalBuildCommand(run: string): boolean {
   );
 }
 
-/** A publish argument naming a local path rather than a registry coordinate. */
 const LOCAL_PATH_ARGUMENT = /\s\.{0,2}\//;
 
-/** A publish argument naming a packaged artifact file on disk. */
 const LOCAL_ARTIFACT_FILE = /\.(tgz|tar\.gz|zip|whl)\b/;
 
-/** The action that promotes the artifact CI already built and validated. */
 export const PROMOTION_ACTION = "actions/download-artifact";
 
-/** Branch names treated as the repository's default branch. */
 const DEFAULT_BRANCHES = new Set(["main", "master"]);
 
-/** Longest step description carried into persisted evidence. */
 const MAX_STEP_LABEL = 80;
 
-/** What assessing one publishing job established. */
+/** What assessing one publishing step established. */
 export type ReleasePathOutcome =
-  /** The bypass is provable from this file alone. */
   | { readonly kind: "violation"; readonly evidence: string }
-  /** The proof, if any, lives somewhere not resolvable offline. */
   | { readonly kind: "unresolved"; readonly reason: string }
-  /** Validation provably precedes the publish, or the artifact is promoted. */
   | { readonly kind: "clean" };
 
 /**
@@ -323,10 +292,14 @@ function shipsSelfBuiltArtifact(
   }
   const publishIndex = job.steps.indexOf(publishStep);
   const stepsThroughPublish = job.steps.slice(0, publishIndex + 1);
-  const downloadIndex = job.steps.findIndex(step =>
-    step.uses.includes(PROMOTION_ACTION)
-  );
-  if (downloadIndex >= 0 && downloadIndex < publishIndex) {
+  const downloadIndex = job.steps
+    .slice(0, publishIndex)
+    .reduce(
+      (latest, step, index) =>
+        step.uses.includes(PROMOTION_ACTION) ? index : latest,
+      -1
+    );
+  if (downloadIndex >= 0) {
     const rebuildsAfterDownload = stepsThroughPublish
       .slice(downloadIndex + 1)
       .some(step => isLocalBuildCommand(step.run));
@@ -417,7 +390,7 @@ export function assessReleasePaths(
         ? rebuildPastValidation(where)
         : unvalidatedSelfBuild(where, workflow);
     }
-    if (validated || promotesValidatedArtifact(job)) {
+    if (validated || promotesValidatedArtifact(job, publishStep)) {
       return { kind: "clean" };
     }
     // Neither built here nor promoted from CI, and nothing validating precedes it:
@@ -486,8 +459,14 @@ function unvalidatedSelfBuild(
 /**
  * Whether the job promotes the artifact CI already built and validated.
  * @param job - The publishing job
+ * @param publishStep - The step that ships
  * @returns True when a download-artifact step is present
  */
-function promotesValidatedArtifact(job: ParsedWorkflowJob): boolean {
-  return job.steps.some(step => step.uses.includes(PROMOTION_ACTION));
+function promotesValidatedArtifact(
+  job: ParsedWorkflowJob,
+  publishStep: ParsedWorkflowStep
+): boolean {
+  return job.steps
+    .slice(0, job.steps.indexOf(publishStep))
+    .some(step => step.uses.includes(PROMOTION_ACTION));
 }
