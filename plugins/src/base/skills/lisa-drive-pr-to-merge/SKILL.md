@@ -335,15 +335,20 @@ Linear's GitHub integration completes a linked Issue on merge to **any** branch
 — branch-name linkage alone triggers it, even when the PR body carries only the
 non-closing `Linear: <ID>` reference form (incident of record: TunnlAI backend
 PR #207 merged to `dev`; TUN-256 auto-completed and had to be manually
-reverted). When the driven PR's work item is a Linear Issue and `<baseRefName>`
-is **not** the production/terminal branch (resolve via `.lisa.config.json`
-`deploy.branches`, falling back to the repo default branch), re-read the
-Issue's native workflow `state` after `MERGED`. If Linear moved it to a
+reverted). Run this step **as soon as the PR reports `MERGED`**, before the
+deploy-run verification above can terminate the flow — a `blocked:deploy`
+outcome must never leave the merged Issue unreconciled. When the driven PR's
+work item is a Linear Issue and `<baseRefName>` **successfully resolves** via
+`.lisa.config.json` `deploy.branches` to an env below the production terminal,
+re-read the Issue's native workflow `state`. If Linear moved it to a
 `completed`-type state, revert it to the team's started/In Progress state and
 post a one-line reconciliation comment — per the `leaf-only-lifecycle` rule
-(native closure fires only at the production terminal). The full procedure is
-`lisa-linear-sync` Phase 4b; when the caller's flow already runs a `pr-merged`
-sync for this merge, confirming that sync ran satisfies this step.
+(native closure fires only at the production terminal). If the base branch
+cannot be resolved (unmapped or ambiguous), do **not** mutate the native
+`state` — post a reconciliation-suggestion comment and leave it untouched,
+matching Phase 4b's safe default. The full procedure is `lisa-linear-sync`
+Phase 4b; when the caller's flow already runs a `pr-merged` sync for this
+merge, confirming that sync ran satisfies this step.
 
 ## 4. Terminal states
 
