@@ -2,7 +2,7 @@
 name: lisa-parity-safety-net-rules
 description: "View, set, and verify the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: safety-net@cc-marketplace@0.9.0
+synced-from: safety-net@cc-marketplace@1.0.6
 ---
 
 # Parity Safety-Net Rules
@@ -13,13 +13,18 @@ Bash command. The hook (`hooks/parity-safety-net.sh`, registered as a
 commands; this skill lets a project **view**, **set**, and **verify** *additional*
 project-specific rules on top of those built-ins.
 
-> **Lisa-native reimplementation.** This consolidates the upstream
-> `safety-net@cc-marketplace` plugin's two rule-management skills
-> (`set-custom-rules` + `verify-custom-rules`) into one. It is reimplemented from
-> scratch against Lisa conventions — it does **not** port or invoke upstream
-> plugin code.
+> **Lisa-native reimplementation.** Upstream 0.9.0 shipped two rule-management
+> skills (`set-custom-rules` + `verify-custom-rules`), which this skill
+> consolidates. Upstream 1.0.6 consolidated them too (into `cc-safety-net`) and
+> moved custom rules to a JSON rulebook system driven by the
+> `npx cc-safety-net rule` CLI. Lisa **deliberately keeps** its simpler
+> ERE-lines-file design: the Lisa hook must run identically on Codex, agy,
+> Copilot, Cursor, and Claude without an npx dependency, and a flat regex file
+> is auditable in any of those runtimes. It is reimplemented from scratch
+> against Lisa conventions — it does **not** port or invoke upstream plugin
+> code.
 >
-> **Drift tracking.** Pinned to `safety-net@cc-marketplace@0.9.0`.
+> **Drift tracking.** Pinned to `safety-net@cc-marketplace@1.0.6`.
 > `scripts/plugin-parity-drift.mjs` compares this pin against the upstream
 > version in the plugin cache and flags staleness. **Do not port or copy upstream
 > plugin code.**
