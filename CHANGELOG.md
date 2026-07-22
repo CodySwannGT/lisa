@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.293.0](https://github.com/CodySwannGT/lisa/compare/v2.292.0...v2.293.0) (2026-07-22)
+
+
+### Features
+
+* **hooks:** conditional git rebase --abort/--quit guard in the safety net ([15d5ee8](https://github.com/CodySwannGT/lisa/commit/15d5ee8fbff65fe67520abd021d0702fa9b0e35a)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+
+### Bug Fixes
+
+* **tests:** align docs-guard pins and prose with the new branch-sync contract ([0e0b565](https://github.com/CodySwannGT/lisa/commit/0e0b56561b9519ffb8e7c8677e2bd236aeccd8a8)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [pre-#1956](https://github.com/CodySwannGT/pre-/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+* **work-item:** support rebase and merge sync lanes in bound worktrees ([bdedff6](https://github.com/CodySwannGT/lisa/commit/bdedff6e423f1fb6388de76b667f311e8e7711ee)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+
+### Documentation
+
+* **skills:** document both sanctioned branch-sync lanes in lisa-implement ([5192d48](https://github.com/CodySwannGT/lisa/commit/5192d489d1c268244b30e2804cedbcd4bd6d66fd)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+## [2.292.0](https://github.com/CodySwannGT/lisa/compare/v2.291.0...v2.292.0) (2026-07-22)
+
+
+### Features
+
+* **hooks:** absorb upstream safety-net 1.0.6 guards into parity-safety-net.sh ([f02715f](https://github.com/CodySwannGT/lisa/commit/f02715fa7f40be3e5dcaf37e54bdcab22ab31388)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+
+
+### Bug Fixes
+
+* **hooks:** close git global-option and path-prefixed rm safety-net bypasses ([8ab54c7](https://github.com/CodySwannGT/lisa/commit/8ab54c7e6aff965b7544c84cfa69a036a4b6c883)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+* **hooks:** pair any recursive form with any force form in the rm split gate ([29818e2](https://github.com/CodySwannGT/lisa/commit/29818e25f9c39ce83ff09ae68106b4ef9d77758e)), closes [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+* **plugins:** retire upstream safety-net plugin — the Lisa hook is canonical ([eeb8f8f](https://github.com/CodySwannGT/lisa/commit/eeb8f8faf7bd7a12cd5cc0be6b642ba4474f9fc5)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+
 ## [2.291.0](https://github.com/CodySwannGT/lisa/compare/v2.290.0...v2.291.0) (2026-07-22)
 
 
