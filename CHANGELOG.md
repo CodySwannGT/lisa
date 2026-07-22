@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.6](https://github.com/CodySwannGT/lisa/compare/v2.286.5...v2.286.6) (2026-07-22)
+
+
+### Bug Fixes
+
+* **doctor:** detect round-2 static credential authority ([146fcdb](https://github.com/CodySwannGT/lisa/commit/146fcdbb8ea3c27fddc5e43446051df6ea38ebac)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.286.5](https://github.com/CodySwannGT/lisa/compare/v2.286.4...v2.286.5) (2026-07-22)
 
 
