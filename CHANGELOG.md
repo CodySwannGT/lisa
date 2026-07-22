@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.287.0](https://github.com/CodySwannGT/lisa/compare/v2.286.12...v2.287.0) (2026-07-22)
+
+
+### Features
+
+* **expo:** add opt-in Maestro MCP setup skill + safe SessionStart auto-register ([7dc074e](https://github.com/CodySwannGT/lisa/commit/7dc074e9d093b465d7ce82a5af5cab6480f87855)), closes [CodySwannGT/lisa#1940](https://github.com/CodySwannGT/lisa/issues/1940)
+
+
+### Bug Fixes
+
+* **expo:** robust Java resolution (SDKMAN + JVM java.home) and guarded Maestro registration ([b3b70c3](https://github.com/CodySwannGT/lisa/commit/b3b70c372edeab98474fd172c08429964584c555)), closes [#1941](https://github.com/CodySwannGT/lisa/issues/1941) [CodySwannGT/lisa#1940](https://github.com/CodySwannGT/lisa/issues/1940)
+* **package-lisa:** normalize direct-dep overrides to $name to prevent EOVERRIDE ([6bd6e6f](https://github.com/CodySwannGT/lisa/commit/6bd6e6fbc74428a8c7d78983cb0b3f2c401e45e4)), closes [CodySwannGT/lisa#1940](https://github.com/CodySwannGT/lisa/issues/1940)
+
 ### [2.286.12](https://github.com/CodySwannGT/lisa/compare/v2.286.11...v2.286.12) (2026-07-22)
 
 
