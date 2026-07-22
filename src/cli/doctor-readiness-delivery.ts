@@ -30,7 +30,7 @@ import {
 } from "./doctor-readiness-credentials.js";
 import { informationalFindings } from "./doctor-readiness-shared.js";
 import {
-  assessReleasePath,
+  assessReleasePaths,
   PROMOTION_ACTION,
   type ReleasePathOutcome,
 } from "./doctor-readiness-release-path.js";
@@ -66,10 +66,7 @@ function summarizeReleasePaths(
   workflows: readonly ParsedWorkflow[]
 ): ReleasePathSummary {
   const outcomes: readonly ReleasePathOutcome[] = workflows.flatMap(workflow =>
-    workflow.jobs.flatMap(job => {
-      const outcome = assessReleasePath(workflow, job);
-      return outcome ? [outcome] : [];
-    })
+    workflow.jobs.flatMap(job => assessReleasePaths(workflow, job))
   );
   return {
     violations: outcomes.flatMap(outcome =>
