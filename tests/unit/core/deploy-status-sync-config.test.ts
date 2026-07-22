@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  doneMapPath,
   ENV_DONE_LABEL_DEFAULTS,
   JIRA_DONE_STATUS_DEFAULTS,
   validateDeployStatusSyncConfig,
@@ -22,6 +23,12 @@ describe("default done vocabularies", () => {
       staging: "On Stg",
       production: "Done",
     });
+  });
+
+  it("exposes each tracker's done-map config path", () => {
+    expect(doneMapPath("github")).toBe("github.labels.build.done");
+    expect(doneMapPath("linear")).toBe("linear.labels.build.done");
+    expect(doneMapPath("jira")).toBe("jira.workflow.done");
   });
 });
 
