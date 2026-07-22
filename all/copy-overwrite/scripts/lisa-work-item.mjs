@@ -76,6 +76,26 @@ function currentBranch() {
   return git(["branch", "--show-current"]);
 }
 
+/**
+ * Branch an in-progress rebase is rewriting, or empty when no rebase is in
+ * progress. During a rebase HEAD is detached, but git records the branch being
+ * rebased in `<rebase-state-dir>/head-name` (issue #1956) — resolved via
+ * `git rev-parse --git-path` so linked worktrees find their private state dir.
+ */
+function rebaseBranch() {
+  for (const stateDir of ["rebase-merge", "rebase-apply"]) {
+    const file = resolve(
+      git(["rev-parse", "--git-path", `${stateDir}/head-name`])
+    );
+    if (!existsSync(file)) continue;
+    const headName = readFileSync(file, "utf8").trim();
+    if (headName.startsWith("refs/heads/")) {
+      return headName.slice("refs/heads/".length);
+    }
+  }
+  return "";
+}
+
 function deepMerge(base, override) {
   if (Array.isArray(base) || Array.isArray(override)) return override;
   if (
@@ -301,7 +321,11 @@ function readState(optional = true) {
 }
 
 function assertStateBranch(state) {
-  const branch = currentBranch();
+  // Mid-rebase HEAD is detached, but the binding must validate against the
+  // branch the rebase is rewriting (its head-name) so rebase picks and
+  // `git rebase --continue` commits are not wedged (issue #1956). A detached
+  // HEAD with NO rebase in progress still fails closed below.
+  const branch = currentBranch() || rebaseBranch();
   if (!branch)
     throw new TrackingError(
       "Cannot use a work-item binding from detached HEAD"
@@ -888,15 +912,52 @@ function validateCommits(commits) {
   };
 }
 
+/**
+ * Fully qualified remote default-branch ref (e.g. refs/remotes/origin/main),
+ * or undefined when it cannot be resolved offline. Reads the LOCAL
+ * `refs/remotes/<remote>/HEAD` symref only — never the network. Resolution
+ * failure means the exclusion is skipped (fail-safe strict, issue #1956).
+ * Security: only the remote DEFAULT branch is ever excluded — never
+ * `--remotes=<remote>`, whose ref set includes the branch being (force-)pushed
+ * and would let a pusher exempt arbitrary commits.
+ */
+function remoteDefaultRef(remote) {
+  const symref = run(
+    "git",
+    ["symbolic-ref", "--quiet", `refs/remotes/${remote}/HEAD`],
+    { allowFailure: true }
+  );
+  if (symref.status !== 0) return undefined;
+  const target = symref.stdout.trim();
+  if (!target.startsWith(`refs/remotes/${remote}/`)) return undefined;
+  const exists = run("git", ["rev-parse", "-q", "--verify", target], {
+    allowFailure: true,
+  });
+  return exists.status === 0 ? target : undefined;
+}
+
 function parsePushLines(input, remote) {
   const commits = [];
+  // Commits already reachable from the remote default branch are the base's
+  // history (a merge-sync brings them along); excluding them keeps validation
+  // scoped to branch-authored commits (issue #1956).
+  const defaultRef = remoteDefaultRef(remote);
   for (const line of input.trim().split(/\r?\n/).filter(Boolean)) {
     const [, localOid, , remoteOid] = line.trim().split(/\s+/);
     if (!localOid || ZERO_OID.test(localOid)) continue;
     const args =
       remoteOid && !ZERO_OID.test(remoteOid)
-        ? ["rev-list", `${remoteOid}..${localOid}`]
-        : ["rev-list", localOid, "--not", `--remotes=${remote}`];
+        ? [
+            "rev-list",
+            `${remoteOid}..${localOid}`,
+            ...(defaultRef ? ["--not", defaultRef] : []),
+          ]
+        : // New-branch lane: `--remotes=<remote>` is safe HERE because the branch
+          // being pushed has no remote-tracking ref yet — the exclusion set can
+          // only contain refs that already passed validation on earlier pushes.
+          // The existing-branch lane above must NOT use it (its tracking ref is
+          // pusher-controlled); it excludes only the remote default branch.
+          ["rev-list", localOid, "--not", `--remotes=${remote}`];
     commits.push(...git(args).split("\n").filter(Boolean));
   }
   if (commits.length === 0 && input.trim() === "") {

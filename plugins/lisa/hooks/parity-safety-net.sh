@@ -24,6 +24,11 @@
 #     divergence: upstream blocks unconditionally; Lisa allows clean-tree resets.
 #     Residual risk (documented, accepted): the dirty check runs in the hook's
 #     cwd at hook time, so a `cd elsewhere && git reset --hard` evades it.
+#   - `git rebase --abort`/`--quit` while the in-progress rebase holds
+#     human-made conflict resolutions (AUTO_MERGE discriminator; issue #1956).
+#     Clean or untouched rebase state stays abortable; the apply backend and a
+#     missing AUTO_MERGE ref fail closed. Deliberate divergence: upstream
+#     blocks `rebase --abort` unconditionally, which strands agents mid-rebase.
 #   - `git checkout` discards (`--`, `-f/--force`, `--pathspec-from-file`,
 #     bare `.` — the bare-`.` block exceeds upstream)
 #   - `git switch --discard-changes` / `-f/--force`
@@ -309,6 +314,42 @@ if matches "${GIT_CMD}"'reset\b.*--(hard|merge)\b'; then
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
     block "git reset --hard/--merge on a dirty working tree would discard uncommitted changes (stash or commit first)"
+  fi
+fi
+
+# 3b. `git rebase --abort` / `--quit` ONLY while human/agent conflict
+#     resolutions exist (issue #1956). `--abort` restores the pre-rebase branch
+#     and discards every resolution; `--quit` deletes the rebase bookkeeping
+#     (head-name, todo) while stranding a detached HEAD, making recovery
+#     ambiguous — both are treated the same, conditionally. A rebase state with
+#     nothing human-made in it (a clean-pick wedge, or a conflict stop nobody
+#     has touched) is agent-recoverable, so aborting it stays ALLOWED.
+#     Discriminator (empirical, git 2.53): diff the worktree/index against the
+#     AUTO_MERGE ref (the merge-ort recorded conflicted tree). Abort-safe ⇔
+#     worktree diff is quiet AND (the cached diff is quiet OR unmerged index
+#     entries exist — an untouched conflict stop has unmerged entries that make
+#     the cached diff non-quiet without any human edit). Fail CLOSED on the
+#     rebase-apply backend (no AUTO_MERGE contract) and on a missing AUTO_MERGE
+#     ref while rebase-merge state exists. Same accepted residual risk as
+#     guard 3: the probes run in the hook's cwd at hook time.
+if matches "${GIT_CMD}"'rebase'"${GIT_TOKENS}"'--(abort|quit)([[:space:]]|$)'; then
+  rebase_apply_dir="$(git rev-parse --git-path rebase-apply 2>/dev/null || true)"
+  rebase_merge_dir="$(git rev-parse --git-path rebase-merge 2>/dev/null || true)"
+  if [ -n "$rebase_apply_dir" ] && [ -d "$rebase_apply_dir" ]; then
+    block "git rebase --abort/--quit on an apply-backend rebase cannot prove no conflict resolutions would be lost (fail closed; finish or continue the rebase instead)"
+  fi
+  if [ -n "$rebase_merge_dir" ] && [ -d "$rebase_merge_dir" ]; then
+    if ! git rev-parse -q --verify AUTO_MERGE >/dev/null 2>&1; then
+      block "git rebase --abort/--quit with an unresolvable AUTO_MERGE ref cannot prove no conflict resolutions would be lost (fail closed)"
+    fi
+    if ! git diff --quiet AUTO_MERGE 2>/dev/null; then
+      block "git rebase --abort/--quit would discard conflict resolutions in the working tree (finish resolving and run git rebase --continue instead)"
+    fi
+    unmerged_entries="$(git ls-files -u 2>/dev/null || true)"
+    if [ -z "$unmerged_entries" ] \
+      && ! git diff --cached --quiet AUTO_MERGE 2>/dev/null; then
+      block "git rebase --abort/--quit would discard staged conflict resolutions (finish resolving and run git rebase --continue instead)"
+    fi
   fi
 fi
 
