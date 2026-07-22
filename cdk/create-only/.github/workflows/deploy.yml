@@ -68,6 +68,9 @@ jobs:
     # Reference to the quality checks workflow
     uses: CodySwannGT/lisa/.github/workflows/release.yml@main
     needs: [determine_environment]
+    permissions:
+      contents: write
+      pull-requests: read
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
