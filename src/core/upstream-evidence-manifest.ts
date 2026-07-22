@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "4c263fef48c03b3b6c623ea8a6cd55505bfaf28197e5072226ea35f9f3d26885",
+      "e41e9534988ce69a836664437a78f3a3f3dc7ebbe396c86cdab0ea63fb7c19da",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
@@ -589,7 +589,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "64546813f168fb446f39e34bc674fd3af85b15bd5e7f4f6bf4503463e701a7b9",
+      "b83c5043a0f29b2d8851258acfe6906aab7922cd80f486e25220e55f26a8c0a5",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "6271b8c4dd34efb630020a63e03d8df813d4faccb81517dfb3637ef2433d968d",
+      "cb3a0587907321301e6662480af0d333aee4a3e0d29e9bdc851c225be2c220d7",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -961,7 +961,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
-      "d338796d10498bd660c36f7f66c6b5be54cf7e281d19b9df44b0d2a01e398b68",
+      "2515b016f3a1c80163aaf097c3f530e884e59e2070d072a6cb5c7b9d2658c946",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "ed52b0273f6b535d26d561c80ae6c0bedb84c67fcf4321f688c05fe3ee3af575",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":

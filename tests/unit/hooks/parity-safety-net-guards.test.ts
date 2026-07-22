@@ -17,6 +17,7 @@ import path from "node:path";
 import {
   GIT_STATE_FIXTURES,
   PROJECT_DIR_TOKEN,
+  REBASE_STATE_FIXTURES,
   RM_RF_ROOT,
   STATELESS_FIXTURES,
 } from "../../helpers/safety-net-guard-fixtures";
@@ -28,7 +29,9 @@ import {
 } from "../../helpers/safety-net-guard-harness";
 
 const HEREDOC_TERMINATOR = "EOF";
-const { runHook, runHookRaw, makeRepo } = createGuardHarness(process.env);
+const { runHook, runHookRaw, makeRepo, makeRebaseRepo } = createGuardHarness(
+  process.env
+);
 
 describe("parity-safety-net.sh — guard parity matrix (#1960)", () => {
   let workRoot: string;
@@ -93,6 +96,35 @@ describe("parity-safety-net.sh — guard parity matrix (#1960)", () => {
         ).toBe(expectedStatus(fixture.expected));
       }
     );
+  });
+
+  describe("rebase --abort/--quit recovery guard (#1956 Fix 4)", () => {
+    const repos = new Map<string, string>();
+
+    beforeAll(() => {
+      for (const kind of new Set(REBASE_STATE_FIXTURES.map(f => f.repo))) {
+        repos.set(kind, makeRebaseRepo(workRoot, `rebase-${kind}`, kind));
+      }
+    });
+
+    it.each(REBASE_STATE_FIXTURES)(
+      "$id [$expected] $command in $repo repo",
+      fixture => {
+        const cwd = repos.get(fixture.repo);
+        if (!cwd) throw new Error(`missing rebase repo ${fixture.repo}`);
+        const { status, stderr } = runHook(fixture.command, { cwd });
+        expect(
+          status,
+          `${fixture.id} in ${fixture.repo} repo expected ${fixture.expected}; stderr: ${stderr}`
+        ).toBe(expectedStatus(fixture.expected));
+      }
+    );
+
+    it("RB-A4 allows git rebase --abort when no rebase is in progress", () => {
+      const cwd = makeRepo(workRoot, "rebase-none", false);
+      const { status } = runHook("git rebase --abort", { cwd });
+      expect(status).toBe(EXIT_ALLOWED);
+    });
   });
 
   describe("project-local custom rules file (guard 14)", () => {
