@@ -1119,7 +1119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/cdk/skills/setup-aws-accounts/SKILL.md":
       "a2eee104aecc34716137661f6f47c6e18105b3eadae84fddd29cbaf6ed756874",
     "plugins/src/expo/THIRD-PARTY-NOTICES.md":
-      "9946b7908c6223466e63136c943e469efdfd9814e039db0cc476b19d5ecc618d",
+      "cc441c72d5f52d8878ea883169c56c6da678f6a5793f33b9df861aa93698cc0f",
     "plugins/src/expo/agents/ops-specialist.md":
       "43346dcd0761d2812b09054d47b488e7eeaac111897d17bd8f14f33356dfeb9f",
     "plugins/src/expo/commands/e2e-coverage-gaps.md":
