@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.288.1](https://github.com/CodySwannGT/lisa/compare/v2.288.0...v2.288.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **cdk:** grant the release job the token permissions its nested workflows request ([5d2cf4d](https://github.com/CodySwannGT/lisa/commit/5d2cf4de2801cbb7459e166577d89ce6d7f86672))
+
 ## [2.288.0](https://github.com/CodySwannGT/lisa/compare/v2.287.1...v2.288.0) (2026-07-22)
 
 
