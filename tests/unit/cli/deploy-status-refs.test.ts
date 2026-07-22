@@ -20,17 +20,15 @@ const REF_103 = "acme/app#103";
  * @param cwd - Fixture repo path
  * @param command - Executable name
  * @param args - Argv after the executable
- * @param input - Optional stdin payload
  * @returns Trimmed stdout
  */
 function run(
   cwd: string,
   command: string,
-  args: readonly string[],
-  input?: string
+  args: readonly string[]
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = execFile(
+    execFile(
       command,
       [...args],
       { cwd, env: cleanGitEnv(process.env), encoding: "utf8" },
@@ -39,9 +37,6 @@ function run(
         else resolve(stdout.trim());
       }
     );
-    if (input !== undefined) {
-      child.stdin?.end(input);
-    }
   });
 }
 
@@ -59,7 +54,7 @@ function fixtureDeps(
 ): RefExtractionDeps {
   const queue = [...ghResponses];
   return {
-    execGit: (args, options) => run(cwd, "git", args, options?.input),
+    execGit: args => run(cwd, "git", args),
     execGh: args => {
       ghCalls.push([...args]);
       return Promise.resolve(queue.shift() ?? "[]");

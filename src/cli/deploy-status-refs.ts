@@ -10,17 +10,13 @@
  * Out-of-scope tokens are skipped with a reason, never an error.
  * @module cli/deploy-status-refs
  */
-import { runKaneCommand } from "../core/kane-cli-process.js";
 import type { Tracker } from "../core/deploy-status-sync.js";
-import { getProcessEnv } from "./update-check.js";
+import { createExec } from "./deploy-status-adapter.js";
 
 /** Injectable git/gh executors used by the extractor. */
 export interface RefExtractionDeps {
   /** Run git with fixed argv and return stdout */
-  readonly execGit: (
-    args: readonly string[],
-    options?: { readonly input?: string }
-  ) => Promise<string>;
+  readonly execGit: (args: readonly string[]) => Promise<string>;
   /** Run gh with fixed argv and return stdout */
   readonly execGh: (args: readonly string[]) => Promise<string>;
 }
@@ -55,8 +51,7 @@ export interface ExtractedRefs {
   readonly headSha: string;
 }
 
-const GITHUB_TOKEN_PATTERN =
-  /^(?:([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+))?#([1-9]\d*)$/;
+const GITHUB_TOKEN_PATTERN = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)?#([1-9]\d*)$/;
 /** Git revision charset: branch names, SHAs, HEAD^/~ suffixes — nothing that
  * could smuggle shell metacharacters or option-like payloads into argv. */
 const REVISION_PATTERN = /^[\w./^~@-]+$/;
@@ -90,30 +85,14 @@ interface TokenResult {
 }
 
 /**
- * Build production deps over the shared fixed-argv process runner.
+ * Build production deps over the shared fixed-argv executor factory.
  * @param cwd - Repository working directory
  * @returns Real git/gh executors
  */
 export function defaultRefExtractionDeps(cwd: string): RefExtractionDeps {
-  const exec = async (
-    executable: string,
-    args: readonly string[]
-  ): Promise<string> => {
-    const result = await runKaneCommand(executable, [...args], {
-      cwd,
-      timeoutMs: 120_000,
-      env: getProcessEnv(),
-    });
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `${executable} ${args[0] ?? ""} failed (exit ${String(result.exitCode)}): ${result.stderr.trim()}`
-      );
-    }
-    return result.stdout;
-  };
   return {
-    execGit: args => exec("git", args),
-    execGh: args => exec("gh", args),
+    execGit: createExec("git", cwd),
+    execGh: createExec("gh", cwd),
   };
 }
 
@@ -323,9 +302,7 @@ export async function extractWorkItemRefs(
   const canonical = results.flatMap(result =>
     result.ref === undefined ? [] : [result.ref]
   );
-  const refs = canonical.filter(
-    (ref, index) => canonical.indexOf(ref) === index
-  );
+  const refs = [...new Set(canonical)];
   const allSkipped = results.flatMap(result =>
     result.reason === undefined
       ? []

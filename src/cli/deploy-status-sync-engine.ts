@@ -213,6 +213,9 @@ async function runPlanned(
     headSha: extracted.headSha,
     items: fetched.items,
   });
+  // The if-guard is load-bearing for code-organization/enforce-statement-
+  // order: `if` statements are exempt from the definitions-before-side-
+  // effects ordering, a bare forEach here is not.
   if (fetched.failures.length > 0) {
     fetched.failures.forEach(failure => {
       sinks.error(`failed ${failure.ref}: ${failure.detail ?? ""}`);

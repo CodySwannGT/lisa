@@ -4,12 +4,15 @@
  * (ambient `gh` / `GITHUB_TOKEN` auth; credentials never in argv).
  * @module cli/deploy-status-adapter-github
  */
-import { DEPLOY_STATUS_SYNC_MARKER } from "../core/deploy-status-transition.js";
-import type { TrackerItemState } from "../core/deploy-status-transition.js";
-import type {
-  CommentUpsertResult,
-  ExecGh,
-  TrackerAdapter,
+import {
+  DEPLOY_STATUS_SYNC_MARKER,
+  type TrackerItemState,
+} from "../core/deploy-status-transition.js";
+import {
+  deriveLabelState,
+  type CommentUpsertResult,
+  type ExecGh,
+  type TrackerAdapter,
 } from "./deploy-status-adapter.js";
 
 /** Construction options for {@link createGithubAdapter}. */
@@ -111,17 +114,10 @@ async function fetchState(
     "-F",
     `number=${number}`,
   ]);
-  const labels = labelNames(issue);
-  const type = labels.find(name => name.toLowerCase().startsWith("type:"));
-  // Highest-rung done label wins so at-or-beyond compares conservatively.
-  const currentStatus = [...context.doneStatuses]
-    .reverse()
-    .find(status => labels.includes(status));
   return {
     ref,
-    ...(type === undefined ? {} : { type }),
+    ...deriveLabelState(labelNames(issue), context.doneStatuses),
     openChildren: openChildrenOf(JSON.parse(hierarchyRaw)),
-    ...(currentStatus === undefined ? {} : { currentStatus }),
     closed: issue.state === "CLOSED",
   };
 }

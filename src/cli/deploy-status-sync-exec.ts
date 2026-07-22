@@ -68,9 +68,13 @@ export async function fetchStates(
   const settled = await Promise.all(
     refs.map(async ref => {
       try {
-        return { state: await adapter.fetchItemState(ref) };
+        return {
+          kind: "ok" as const,
+          state: await adapter.fetchItemState(ref),
+        };
       } catch (cause) {
         return {
+          kind: "failed" as const,
           failure: {
             ref,
             outcome: "failed" as const,
@@ -81,11 +85,9 @@ export async function fetchStates(
     })
   );
   return {
-    items: settled.flatMap(entry =>
-      "state" in entry && entry.state !== undefined ? [entry.state] : []
-    ),
+    items: settled.flatMap(entry => (entry.kind === "ok" ? [entry.state] : [])),
     failures: settled.flatMap(entry =>
-      "failure" in entry && entry.failure !== undefined ? [entry.failure] : []
+      entry.kind === "failed" ? [entry.failure] : []
     ),
   };
 }

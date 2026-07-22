@@ -9,8 +9,10 @@
  * the terminal done-category status IS closure.
  * @module cli/deploy-status-adapter-jira
  */
-import { DEPLOY_STATUS_SYNC_MARKER } from "../core/deploy-status-transition.js";
-import type { TrackerItemState } from "../core/deploy-status-transition.js";
+import {
+  DEPLOY_STATUS_SYNC_MARKER,
+  type TrackerItemState,
+} from "../core/deploy-status-transition.js";
 import type {
   CommentUpsertResult,
   TrackerAdapter,
