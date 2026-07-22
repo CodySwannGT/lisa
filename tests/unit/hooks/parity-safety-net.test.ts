@@ -81,7 +81,12 @@ describe("parity-safety-net.sh — force-push guard", () => {
           DESTRUCTIVE_DELETE,
           HEREDOC_TERMINATOR,
         ].join("\n");
-        expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+        const result = runHook("Bash", cmd);
+        expect(result.status).toBe(EXIT_BLOCKED);
+        // The quoted payload is literal data to bash, so the block must come
+        // from the content guard scanning the raw payload — not the heredoc
+        // wall (issue #1958 F2).
+        expect(result.stderr).toContain("recursive forced delete");
       }
     });
 
