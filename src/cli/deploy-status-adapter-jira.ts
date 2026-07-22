@@ -34,7 +34,7 @@ type JiraRequest = (
   init?: { readonly method?: string; readonly body?: string }
 ) => Promise<unknown>;
 
-/** Jira ADF document wrapping one paragraph of plain text. */
+/** Jira ADF document: one paragraph node per comment line. */
 interface AdfDoc {
   readonly type: "doc";
   readonly version: 1;
@@ -48,15 +48,21 @@ interface AdfDoc {
 }
 
 /**
- * Build the single-paragraph ADF document for a managed comment body.
- * @param text - Plain comment text
+ * Build the ADF document for a managed comment body: one paragraph node per
+ * line — ADF text nodes must not carry raw newline characters (Jira rejects
+ * or mangles them), so the body is split on `\n` and a blank line becomes an
+ * empty paragraph.
+ * @param text - Plain comment text (may span multiple lines)
  * @returns ADF document
  */
-function adfParagraph(text: string): AdfDoc {
+function adfDocument(text: string): AdfDoc {
   return {
     type: "doc",
     version: 1,
-    content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    content: text.split("\n").map(line => ({
+      type: "paragraph" as const,
+      content: line.length === 0 ? [] : [{ type: "text" as const, text: line }],
+    })),
   };
 }
 
@@ -84,6 +90,34 @@ function isDoneCategory(status: unknown): boolean {
   return key === "done";
 }
 
+/** The only host shape the site fallback may target. */
+const SITE_HOST_PATTERN = /^[a-z0-9-]+\.atlassian\.net$/i;
+
+/**
+ * Resolve the REST base URL: the cloudId gateway when configured, else the
+ * `atlassian.site` fallback — which must be a bare `*.atlassian.net` host.
+ * Anything else (paths, foreign hosts) is rejected decision-readably before
+ * any request is made, so a poisoned config value cannot steer credentialed
+ * requests to an attacker-chosen server.
+ * @param options - Cloud id / site fallback
+ * @returns Base URL, or undefined when neither source is configured
+ */
+function resolveBaseUrl(options: JiraAdapterOptions): string | undefined {
+  if (options.cloudId !== undefined) {
+    return `https://api.atlassian.com/ex/jira/${encodeURIComponent(options.cloudId)}`;
+  }
+  const site = (options.site ?? "")
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+  if (site.length === 0) return undefined;
+  if (!SITE_HOST_PATTERN.test(site)) {
+    throw new Error(
+      `Invalid atlassian.site "${options.site ?? ""}" in .lisa.config.json: expected a bare "<site>.atlassian.net" host. Set atlassian.cloudId (preferred) or fix atlassian.site.`
+    );
+  }
+  return `https://${site}`;
+}
+
 /**
  * Build the authenticated REST transport (Basic auth header only — the
  * token never reaches argv or the URL).
@@ -100,15 +134,7 @@ function createRequest(
     const env = deps.env ?? getProcessEnv();
     const token = env.JIRA_API_TOKEN ?? env.ATLASSIAN_API_TOKEN;
     const login = env.JIRA_LOGIN ?? options.email;
-    const site = (options.site ?? "")
-      .replace(/^https?:\/\//, "")
-      .replace(/\/$/, "");
-    const baseUrl =
-      options.cloudId !== undefined
-        ? `https://api.atlassian.com/ex/jira/${encodeURIComponent(options.cloudId)}`
-        : site.length > 0
-          ? `https://${site}`
-          : undefined;
+    const baseUrl = resolveBaseUrl(options);
     if (token === undefined || login === undefined || baseUrl === undefined) {
       throw new Error(
         "Jira credentials not found: set JIRA_API_TOKEN or ATLASSIAN_API_TOKEN (plus JIRA_LOGIN or atlassian.email) and configure atlassian.cloudId"
@@ -216,7 +242,7 @@ async function upsertComment(
   const existing = (payload.comments ?? []).find(comment =>
     adfFirstText(comment.body).startsWith(DEPLOY_STATUS_SYNC_MARKER)
   );
-  const doc = adfParagraph(body);
+  const doc = adfDocument(body);
   if (existing === undefined) {
     await request(`/rest/api/3/issue/${ref}/comment`, {
       method: "POST",

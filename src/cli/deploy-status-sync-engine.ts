@@ -12,12 +12,7 @@ import {
   type DeployLadder,
   type Tracker,
 } from "../core/deploy-status-sync.js";
-import {
-  planTransitions,
-  type ItemAction,
-  type TrackerItemState,
-  type TransitionPlan,
-} from "../core/deploy-status-transition.js";
+import { planTransitions } from "../core/deploy-status-transition.js";
 import { getAtPath, isJsonObject, type JsonValue } from "../sync/json-path.js";
 import {
   createTrackerAdapter,
@@ -30,26 +25,18 @@ import {
   type ExtractedRefs,
   type ExtractRefsOptions,
 } from "./deploy-status-refs.js";
+import {
+  emitNoOp,
+  executePlan,
+  fetchStates,
+  type DeployStatusSyncOptions,
+  type Sinks,
+} from "./deploy-status-sync-exec.js";
 
-/** CLI options for the deploy-status-sync engine. */
-export interface DeployStatusSyncOptions {
-  /** Environment the deploy landed in (exclusive with `branch`) */
-  readonly environment?: string;
-  /** Deployed branch, reverse-mapped to an env (exclusive with `environment`) */
-  readonly branch?: string;
-  /** Commit range as `base..head` */
-  readonly range?: string;
-  /** Range base SHA (used with `after`) */
-  readonly before?: string;
-  /** Range head SHA (used with `before`) */
-  readonly after?: string;
-  /** Plan and print without any tracker writes */
-  readonly dryRun?: boolean;
-  /** Emit the machine-readable plan/result JSON */
-  readonly json?: boolean;
-  /** Config path (default `.lisa.config.json` in the working directory) */
-  readonly config?: string;
-}
+export type {
+  DeployStatusSyncOptions,
+  Sinks,
+} from "./deploy-status-sync-exec.js";
 
 /** Injectable collaborators for the engine. */
 export interface DeployStatusSyncDependencies {
@@ -67,13 +54,6 @@ export interface DeployStatusSyncDependencies {
   readonly adapterFactory?: (options: TrackerAdapterOptions) => TrackerAdapter;
 }
 
-/** Output sinks bound to the run's json mode. */
-export interface Sinks {
-  readonly log: (message: string) => void;
-  readonly error: (message: string) => void;
-  readonly human: (message: string) => void;
-}
-
 /** Resolved run context shared by the engine stages. */
 export interface RunContext {
   readonly config: JsonValue;
@@ -81,18 +61,6 @@ export interface RunContext {
   readonly ladder: DeployLadder;
   readonly env: string;
   readonly branch: string;
-}
-
-/** One executed (or attempted) item outcome. */
-interface ItemResult {
-  readonly ref: string;
-  readonly outcome:
-    | "promoted"
-    | "skipped-at-or-beyond"
-    | "skipped-container"
-    | "skipped-unrecognized-status"
-    | "failed";
-  readonly detail?: string;
 }
 
 const VALID_TRACKERS = new Set<string>(["github", "jira", "linear"]);
@@ -200,107 +168,6 @@ function extractRefsForRun(
 }
 
 /**
- * Fetch item states, tolerating per-item failures.
- * @param refs - Canonical refs
- * @param adapter - Tracker adapter
- * @returns Fetched states and per-ref failures
- */
-async function fetchStates(
-  refs: readonly string[],
-  adapter: TrackerAdapter
-): Promise<{
-  readonly items: readonly TrackerItemState[];
-  readonly failures: readonly ItemResult[];
-}> {
-  const settled = await Promise.all(
-    refs.map(async ref => {
-      try {
-        return { state: await adapter.fetchItemState(ref) };
-      } catch (cause) {
-        return {
-          failure: {
-            ref,
-            outcome: "failed" as const,
-            detail: cause instanceof Error ? cause.message : String(cause),
-          },
-        };
-      }
-    })
-  );
-  return {
-    items: settled.flatMap(entry =>
-      "state" in entry && entry.state !== undefined ? [entry.state] : []
-    ),
-    failures: settled.flatMap(entry =>
-      "failure" in entry && entry.failure !== undefined ? [entry.failure] : []
-    ),
-  };
-}
-
-/**
- * Execute one planned action through the adapter.
- * @param action - Planned item action
- * @param adapter - Tracker adapter (possibly dry-run wrapped)
- * @param log - Output sink
- * @returns The item outcome
- */
-async function executeAction(
-  action: ItemAction,
-  adapter: TrackerAdapter,
-  log: (message: string) => void
-): Promise<ItemResult> {
-  if (action.kind === "promote") {
-    // Comment FIRST: the upsert is idempotent (byte-identical body →
-    // `unchanged`), so any partial-failure prefix — comment ok + transition
-    // failed, or transition ok + close failed — heals on retry. Transition
-    // or closure first would strand evidence-less state changes.
-    await adapter.upsertManagedComment(action.ref, action.commentBody);
-    await adapter.transitionToDone(action.ref, action.doneStatus);
-    if (action.close) await adapter.closeNatively(action.ref);
-    log(
-      `promoted ${action.ref} → ${action.doneStatus}${action.close ? " (closed natively)" : ""}`
-    );
-    return { ref: action.ref, outcome: "promoted", detail: action.doneStatus };
-  }
-  if (action.kind === "skip-container") {
-    await adapter.upsertManagedComment(action.ref, action.commentBody);
-    log(`skipped ${action.ref} (container, leaf-only-lifecycle)`);
-    return { ref: action.ref, outcome: "skipped-container" };
-  }
-  const outcome =
-    action.kind === "skip-at-or-beyond"
-      ? ("skipped-at-or-beyond" as const)
-      : ("skipped-unrecognized-status" as const);
-  log(`skipped ${action.ref} (${action.reason})`);
-  return { ref: action.ref, outcome, detail: action.reason };
-}
-
-/**
- * Execute the planned actions, tolerating per-item failures.
- * @param plan - Per-item action plan
- * @param adapter - Tracker adapter (possibly dry-run wrapped)
- * @param sinks - Output sinks
- * @returns Item results including failures
- */
-async function executePlan(
-  plan: Extract<TransitionPlan, { kind: "plan" }>,
-  adapter: TrackerAdapter,
-  sinks: Sinks
-): Promise<readonly ItemResult[]> {
-  return Promise.all(
-    plan.actions.map(async action => {
-      try {
-        return await executeAction(action, adapter, sinks.human);
-      } catch (cause) {
-        const detail = cause instanceof Error ? cause.message : String(cause);
-        sinks.error(`failed ${action.ref}: ${detail}`);
-        return { ref: action.ref, outcome: "failed" as const, detail };
-      }
-    })
-  );
-}
-
-/**
  * Fetch states, plan, and execute for the extracted refs.
  * @param context - Resolved run context
  * @param extracted - Extraction result
@@ -343,7 +210,7 @@ async function runPlanned(
     });
   }
   if (plan.kind === "no-op") {
-    sinks.human(plan.reason);
+    emitNoOp(sinks, options, plan);
     return fetched.failures.length > 0 ? 1 : 0;
   }
   const results = await executePlan(plan, adapter, sinks);
@@ -386,7 +253,7 @@ export async function runResolved(
     items: [],
   });
   if (preflight.kind === "no-op") {
-    sinks.human(preflight.reason);
+    emitNoOp(sinks, options, preflight);
     return 0;
   }
   const extracted = await extractRefsForRun(
@@ -399,7 +266,11 @@ export async function runResolved(
     sinks.human(`skipped token ${entry.token} (${entry.reason})`);
   });
   if (extracted.refs.length === 0) {
-    sinks.human(`no work-item refs found in ${range}`);
+    emitNoOp(sinks, options, {
+      kind: "no-op",
+      env: context.env,
+      reason: `no work-item refs found in ${range}`,
+    });
     return 0;
   }
   return runPlanned(context, extracted, options, deps, sinks);
