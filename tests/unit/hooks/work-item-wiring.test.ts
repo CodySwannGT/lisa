@@ -26,6 +26,7 @@ describe("work-item Git enforcement wiring", () => {
     }
   );
 
+  // Test hardened to kill mutant M001 (Risk Factor: Correctness / executable entrypoint).
   it("ships the validator to Lisa itself and downstream projects", () => {
     expect(read("scripts/lisa-work-item.mjs")).toContain(
       "../all/copy-overwrite/scripts/lisa-work-item.mjs"
@@ -44,6 +45,7 @@ describe("work-item Git enforcement wiring", () => {
       expect(installed).toContain(`command === "${command}"`);
     }
     expect(installed).toContain("WORK_ITEM_TRACKING_OK");
+    expect(installed).not.toContain("await main()");
   });
 
   it("gives Rails the same gates and a single stdin consumer", () => {

@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import * as fse from "fs-extra";
+import { gte, minVersion, valid } from "semver";
 import type { ProjectType } from "../core/config.js";
 import { readJson, readJsonOrNull, writeJson } from "../utils/json-utils.js";
 import type {
@@ -10,6 +11,8 @@ import type {
 
 const AUDIT_CONFIG = "audit.ignore.config.json";
 const AUDIT_LOCAL = "audit.ignore.local.json";
+const ESBUILD_ADVISORY = "GHSA-gv7w-rqvm-qjhr";
+const ESBUILD_PATCHED_VERSION = "0.28.1";
 
 /**
  * One exclusion entry (partial — we only read `id` to detect duplicates).
@@ -31,6 +34,12 @@ interface Exclusion {
 interface AuditIgnoreLike {
   readonly exclusions?: readonly Exclusion[];
   readonly [key: string]: unknown;
+}
+
+/** Package-manager constraints relevant to the esbuild advisory cleanup. */
+interface PackageJsonLike {
+  readonly overrides?: Readonly<Record<string, unknown>>;
+  readonly resolutions?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -99,6 +108,41 @@ async function readLocalJson<T>(filePath: string): Promise<T | null> {
     return null;
   }
   return readJson<T>(filePath);
+}
+
+/**
+ * Report whether the host both enforces and has installed a patched esbuild.
+ * Requiring both signals prevents removal while the dependency tree is stale or
+ * a permissive package-manager constraint could still select a vulnerable build.
+ * @param projectDir - Host project receiving the migration
+ * @returns Whether constraints and installed package are both patched
+ */
+async function hasPatchedEsbuild(projectDir: string): Promise<boolean> {
+  const packageJson = await readJsonOrNull<PackageJsonLike>(
+    path.join(projectDir, "package.json")
+  );
+  const installed = await readJsonOrNull<{ readonly version?: string }>(
+    path.join(projectDir, "node_modules", "esbuild", "package.json")
+  );
+  const ranges = [
+    packageJson?.overrides?.esbuild,
+    packageJson?.resolutions?.esbuild,
+  ].filter((range): range is string => typeof range === "string");
+  if (ranges.length === 0 || !valid(installed?.version)) {
+    return false;
+  }
+  const constraintsArePatched = ranges.every(range => {
+    try {
+      const minimum = minVersion(range);
+      return minimum !== null && gte(minimum, ESBUILD_PATCHED_VERSION);
+    } catch {
+      return false;
+    }
+  });
+  return (
+    constraintsArePatched &&
+    gte(installed?.version ?? "0.0.0", ESBUILD_PATCHED_VERSION)
+  );
 }
 
 /**
@@ -177,13 +221,23 @@ export class EnsureAuditIgnoreLocalExclusionsMigration implements Migration {
    * @returns True when there is work to do
    */
   async applies(ctx: MigrationContext): Promise<boolean> {
-    if (this.snapshot.length === 0) {
-      return false;
-    }
     const localPath = path.join(ctx.projectDir, AUDIT_LOCAL);
     const local = await readLocalJson<AuditIgnoreLike>(localPath);
+    const patchedEsbuild = await hasPatchedEsbuild(ctx.projectDir);
+    if (
+      patchedEsbuild &&
+      local?.exclusions?.some(entry => entry.id === ESBUILD_ADVISORY)
+    ) {
+      return true;
+    }
+    const snapshot = patchedEsbuild
+      ? this.snapshot.filter(entry => entry.id !== ESBUILD_ADVISORY)
+      : this.snapshot;
+    if (snapshot.length === 0) {
+      return false;
+    }
     const localIds = collectIds(local);
-    return this.snapshot.some(entry => {
+    return snapshot.some(entry => {
       const id = entry.id;
       return typeof id === "string" && !localIds.has(id);
     });
@@ -200,34 +254,49 @@ export class EnsureAuditIgnoreLocalExclusionsMigration implements Migration {
     const localPath = path.join(ctx.projectDir, AUDIT_LOCAL);
     const local = await readLocalJson<AuditIgnoreLike>(localPath);
     const existing = Array.isArray(local?.exclusions) ? local.exclusions : [];
-    const localIds = collectIds(local);
+    const patchedEsbuild = await hasPatchedEsbuild(ctx.projectDir);
+    const retained = patchedEsbuild
+      ? existing.filter(entry => entry.id !== ESBUILD_ADVISORY)
+      : existing;
+    const removed = existing.length - retained.length;
+    const localIds = collectIds({ exclusions: retained });
 
     const seenIds = new Set(localIds);
     const additions = this.snapshot.filter(entry => {
       const id = entry.id;
-      if (typeof id !== "string" || seenIds.has(id)) {
+      if (
+        typeof id !== "string" ||
+        seenIds.has(id) ||
+        (patchedEsbuild && id === ESBUILD_ADVISORY)
+      ) {
         return false;
       }
       seenIds.add(id);
       return true;
     });
 
-    if (additions.length === 0) {
+    if (additions.length === 0 && removed === 0) {
       return { name: this.name, action: "noop" };
     }
 
     const merged: AuditIgnoreLike = {
       ...(local ?? {}),
-      exclusions: [...existing, ...additions],
+      exclusions: [...retained, ...additions],
     };
 
     const addedIds = additions
       .map(entry => entry.id)
       .filter((id): id is string => typeof id === "string");
-    const message = `Relocated ${additions.length} exclusion(s) into audit.ignore.local.json (${addedIds.join(", ")})`;
+    const actions = [
+      additions.length > 0
+        ? `relocated ${additions.length} exclusion(s) (${addedIds.join(", ")})`
+        : "",
+      removed > 0 ? `removed ${removed} patched esbuild exclusion(s)` : "",
+    ].filter(Boolean);
+    const message = `${actions.join(" and ")} in audit.ignore.local.json`;
 
     if (ctx.dryRun) {
-      ctx.logger.dry(`Would relocate exclusions: ${addedIds.join(", ")}`);
+      ctx.logger.dry(`Would ${actions.join(" and ")}`);
       return {
         name: this.name,
         action: "applied",

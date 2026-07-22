@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "06b56376465d5421db55d0b04958bbc79fdbf33b42f0559fe5ef6875ced1160f",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "f88f69d44693084428f44e3f2b80afecda08c7ee8747588f40277fdc9396fd8f",
+      "4c263fef48c03b3b6c623ea8a6cd55505bfaf28197e5072226ea35f9f3d26885",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
@@ -7866,6 +7866,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
+    "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
     "tests/unit/migrations/ensure-jest-rn-mock-accessibility-manager.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
