@@ -169,9 +169,13 @@ readonly GIT_CMD='(^|[^[:alnum:]_-])git[[:space:]]+'"$GIT_GLOBAL_OPTS"
 # `--rm`-style flags and `foo.rm` names out.
 readonly RM_CMD='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?rm'
 # rm invoked with BOTH a recursive and a force flag — clustered (-rf/-fr, any
-# extra letters) or split (-r … -f / long forms), in either order.
+# extra letters) or split, in either order. The split gate pairs ANY recursive
+# form (short cluster containing r, or --recursive) with ANY force form (short
+# cluster containing f, or --force), so mixed spellings like `rm -r --force /`
+# and `rm --recursive -f /` cannot slip between the short/short and long/long
+# alternations (PR #1976 review).
 readonly RM_RF_CLUSTER="$RM_CMD"'([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)'
-readonly RM_RF_SPLIT="$RM_CMD"'[[:space:]].*(-r\b.*[[:space:]]-f\b|-f\b.*[[:space:]]-r\b|--recursive\b.*--force\b|--force\b.*--recursive\b)'
+readonly RM_RF_SPLIT="$RM_CMD"'(([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]]|$)|([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)([[:space:]]|$))'
 
 # 1. Recursive forced delete (`rm -rf`) of a filesystem root, home, or top-level
 #    wildcard. Two gates ANDed: the statement must invoke `rm` with BOTH a
