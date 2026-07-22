@@ -20,7 +20,7 @@
   },
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
-    "safety-net@cc-marketplace": true,
+    "safety-net@cc-marketplace": false,
     "code-simplifier@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,

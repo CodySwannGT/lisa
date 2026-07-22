@@ -586,6 +586,7 @@ describe("install-claude-plugins self postinstall path", () => {
     // Retirement of curated plugins is version-gated: a same-version run must
     // not spawn the CLI to re-uninstall an already-retired plugin.
     expect(log).not.toContain("claude plugin uninstall sentry");
+    expect(log).not.toContain("claude plugin uninstall safety-net");
   });
 
   it("performs a full plugin sync and records the marker when the Lisa version changes", async () => {
@@ -638,6 +639,15 @@ describe("install-claude-plugins self postinstall path", () => {
     );
     expect(log).toContain(
       "claude plugin uninstall sentry@claude-plugins-official --scope project"
+    );
+    // The Lisa-native parity-safety-net.sh hook absorbed the upstream
+    // safety-net plugin's material guards, so the upstream plugin is retired
+    // on sync instead of installed (issue #1960).
+    expect(log).not.toContain(
+      "claude plugin install safety-net@cc-marketplace"
+    );
+    expect(log).toContain(
+      "claude plugin uninstall safety-net@cc-marketplace --scope project"
     );
     const marker = await readFile(
       path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
