@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.286.5](https://github.com/CodySwannGT/lisa/compare/v2.286.4...v2.286.5) (2026-07-22)
+
+
+### Bug Fixes
+
+* **migrations:** retire stale esbuild exclusion securely ([8df8de3](https://github.com/CodySwannGT/lisa/commit/8df8de3b1cae33f02f923060f8c50a544f6cda62)), closes [CodySwannGT/lisa#1929](https://github.com/CodySwannGT/lisa/issues/1929)
+
 ### [2.286.4](https://github.com/CodySwannGT/lisa/compare/v2.286.3...v2.286.4) (2026-07-22)
 
 ### [2.286.3](https://github.com/CodySwannGT/lisa/compare/v2.286.2...v2.286.3) (2026-07-21)
