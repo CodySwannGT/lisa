@@ -107,6 +107,48 @@ describe("resolveDeployLadder", () => {
     });
   });
 
+  it("treats a materialized default done map as fallback for a single-env project", () => {
+    // The Lisa shape: sync writes the full default map into config while
+    // deploy.branches only names production — must resolve, not error.
+    const config: JsonValue = {
+      deploy: { branches: { production: "main" } },
+      github: {
+        labels: {
+          build: {
+            done: {
+              dev: DEV_LABEL,
+              staging: STAGING_LABEL,
+              production: PRODUCTION_LABEL,
+            },
+          },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [
+        { env: "production", branch: "main", doneStatus: PRODUCTION_LABEL },
+      ],
+      terminalOnly: true,
+      terminalEnv: "production",
+    });
+  });
+
+  it("treats materialized jira workflow defaults as fallback likewise", () => {
+    const config: JsonValue = {
+      deploy: { branches: { production: "main" } },
+      jira: {
+        workflow: {
+          done: { dev: "On Dev", staging: "On Stg", production: "Done" },
+        },
+      },
+    };
+    expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
+      rungs: [{ env: "production", branch: "main", doneStatus: "Done" }],
+      terminalOnly: true,
+      terminalEnv: "production",
+    });
+  });
+
   it("joins branches.prod with the default production done entry via the sole alias", () => {
     const config: JsonValue = { deploy: { branches: { prod: "main" } } };
     expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
@@ -117,6 +159,23 @@ describe("resolveDeployLadder", () => {
     expect(resolveDeployLadder(config, "jira", SOURCE)).toEqual({
       rungs: [{ env: "prod", branch: "main", doneStatus: "Done" }],
       terminalOnly: true,
+      terminalEnv: "prod",
+    });
+  });
+
+  it("keeps alias resolution ahead of the fallback test (materialized production beside prod)", () => {
+    // Per the Option A ruling the union/alias resolves FIRST: the materialized
+    // "production" entry still blocks the sole alias, then falls back without
+    // erroring — prod has no vocabulary left, so the ladder is empty.
+    const config: JsonValue = {
+      deploy: { branches: { prod: "main" } },
+      github: {
+        labels: { build: { done: { production: PRODUCTION_LABEL } } },
+      },
+    };
+    expect(resolveDeployLadder(config, "github", SOURCE)).toEqual({
+      rungs: [],
+      terminalOnly: false,
       terminalEnv: "prod",
     });
   });

@@ -91,7 +91,8 @@ forward cherry-picked down to the integration branch via a linked follow-up.
 `deployStatusSync` is an optional machine-written config block (`tier`, `provisioned` ids,
 `linearBinding: labels|states`, `verifiedAt`). The deploy ladder is `deploy.order` (else canonical
 `dev < staging < production`) over `deploy.branches` joined with the tracker's env-keyed done map;
-a configured done status whose env has no branch is a config error, and the sole
-`prod` ↔ `production` alias applies to the join.
+a configured done status whose env has no branch is a config error — unless its value is exactly
+the built-in default (a sync-materialized fallback, silently absent from the ladder) — and the
+sole `prod` ↔ `production` alias applies to the join.
 
 Full reference: [reference/config-resolution.md](../reference/config-resolution.md).

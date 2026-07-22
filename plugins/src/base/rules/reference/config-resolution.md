@@ -636,9 +636,18 @@ configured surfaces (`deploy.branches`, the configured done map,
 configured spelling. When both spellings appear they are distinct environments
 and no aliasing occurs. No other alias exists.
 
+**Materialized defaults are fallbacks.** `lisa sync` writes the full default
+done map into config, so a configured done-map entry whose value is EXACTLY
+the default table's value for that env is treated as a materialized fallback,
+not operator intent: it never raises the done-without-branch error and the env
+is simply absent from the ladder, the same as if it were unconfigured. The
+equivalence is tested per env AFTER union/alias resolution, with the same
+default table the join uses. Only a value that DIFFERS from the default is
+deliberate configuration and stays protected by the error below.
+
 **Error catalog** (verbatim):
 
-- `Invalid deploy configuration in <source>: a done status ("<status>") is configured for environment "<env>", but deploy.branches has no "<env>" entry. Add deploy.branches.<env> (the git branch that deploys to <env>) or remove "<env>" from the done map.`
+- `Invalid deploy configuration in <source>: a done status ("<status>") is configured for environment "<env>", but deploy.branches has no "<env>" entry. Add deploy.branches.<env> (the git branch that deploys to <env>) or remove "<env>" from the done map.` (custom values only — default-identical entries fall back silently)
 - `Invalid deploy.order in <source>: its environment names must exactly match the keys of deploy.branches. deploy.order has [<order-envs>]; deploy.branches has [<branch-envs>].` (also raised for duplicate `deploy.order` entries)
 - `Invalid deploy.order in <source>: every entry must be an environment name string; found <entry>.`
 - `Invalid deploy configuration in <source>: cannot order environment "<env>". Set deploy.order (environments listed lowest first, e.g. ["dev","staging","production"]) so Lisa knows the promotion order.`
