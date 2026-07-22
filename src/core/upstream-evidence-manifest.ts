@@ -963,7 +963,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
       "7126b7dbda7205922a7825eba47164954267ff65ef9f414182aab51889b9a7d8",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
-      "ebc6c9731697ad71801d88b61e9735f787a52698f0afc4f9b5a676f60cfd923b",
+      "ed52b0273f6b535d26d561c80ae6c0bedb84c67fcf4321f688c05fe3ee3af575",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
       "f44216fa7c8f0c3c3371c65ff73bbeadd1717579502a5603f16b3b33291cab7a",
     "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":

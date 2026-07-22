@@ -30,22 +30,37 @@ elif [ "$PARITY_DRIFT_EXIT" -eq 2 ]; then
     rm -f "$PARITY_DRIFT_ERR"
     exit 1
   fi
-else
+elif [ "$PARITY_DRIFT_EXIT" -eq 1 ]; then
+  # Fail closed: any parser failure below blocks the push. An empty blocking
+  # list allows only when the parser itself confirms (exit 0) that every
+  # non-ok row is a cache-visibility status, not real drift.
   PARITY_BLOCKING="$(printf '%s' "$PARITY_DRIFT_JSON" | node -e '
     let raw = "";
     process.stdin.on("data", c => (raw += c));
     process.stdin.on("end", () => {
+      let report;
+      try {
+        report = JSON.parse(raw);
+      } catch (error) {
+        console.log(`  - (unreadable drift report: ${error.message})`);
+        process.exitCode = 1;
+        return;
+      }
       const gate = new Set(["stale", "ahead", "unparseable"]);
-      const rows = JSON.parse(raw).results.filter(r => gate.has(r.status));
+      const rows = (report.results ?? []).filter(r => gate.has(r.status));
       for (const r of rows) {
         console.log(
           `  - ${r.skillPath}: ${r.plugin} pinned ${r.pinnedVersion ?? "?"}, upstream ${r.currentVersion ?? "?"} (${r.status})`
         );
       }
+      if (rows.length > 0) {
+        process.exitCode = 1;
+      }
     });
   ')"
-  if [ -n "$PARITY_BLOCKING" ]; then
-    echo "❌ Push blocked: parity skills have drifted from their upstream plugins:"
+  PARITY_PARSE_EXIT=$?
+  if [ "$PARITY_PARSE_EXIT" -ne 0 ]; then
+    echo "❌ Push blocked: parity skills have drifted from their upstream plugins (or the drift report was unreadable):"
     echo "$PARITY_BLOCKING"
     echo ""
     echo "Fix now and include it in this push: review each upstream's changes,"
@@ -55,5 +70,11 @@ else
     exit 1
   fi
   echo "⚠️  Parity pins could not be fully evaluated on this machine (plugin not in local cache) — not blocking"
+else
+  # Unexpected detector exit code (crash, signal): fail closed.
+  echo "❌ Push blocked: parity drift detector exited with unexpected code $PARITY_DRIFT_EXIT:"
+  cat "$PARITY_DRIFT_ERR"
+  rm -f "$PARITY_DRIFT_ERR"
+  exit 1
 fi
 rm -f "$PARITY_DRIFT_ERR"

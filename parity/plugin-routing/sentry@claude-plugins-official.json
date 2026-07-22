@@ -10,226 +10,79 @@
     {
       "kind": "mcp",
       "id": "sentry",
-      "path": ".mcp.json",
+      "path": ".claude-plugin/plugin.json",
       "classification": "mcp-server",
-      "notes": "HTTP MCP server (https://mcp.sentry.dev/mcp). Declared in .mcp.json, root mcp.json, and plugin.json mcpServers — deduped to one logical MCP component."
-    },
-    {
-      "kind": "command",
-      "id": "seer",
-      "path": "commands/seer.md",
-      "classification": "claude-command",
-      "notes": "Sentry Seer slash command."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-android-sdk",
-      "path": "skills/sentry-android-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-browser-sdk",
-      "path": "skills/sentry-browser-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-cloudflare-sdk",
-      "path": "skills/sentry-cloudflare-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-cocoa-sdk",
-      "path": "skills/sentry-cocoa-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-code-review",
-      "path": "skills/sentry-code-review/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "HTTP MCP server (https://mcp.sentry.dev/mcp?utm_source=plugin). As of 1.2.0 declared inline in plugin.json mcpServers only \u2014 one logical MCP component."
     },
     {
       "kind": "skill",
       "id": "sentry-create-alert",
       "path": "skills/sentry-create-alert/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
-      "id": "sentry-dotnet-sdk",
-      "path": "skills/sentry-dotnet-sdk/SKILL.md",
+      "id": "sentry-debug-issue",
+      "path": "skills/sentry-debug-issue/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-elixir-sdk",
-      "path": "skills/sentry-elixir-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
       "id": "sentry-feature-setup",
       "path": "skills/sentry-feature-setup/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
-      "id": "sentry-fix-issues",
-      "path": "skills/sentry-fix-issues/SKILL.md",
+      "id": "sentry-get-started",
+      "path": "skills/sentry-get-started/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
-      "id": "sentry-flutter-sdk",
-      "path": "skills/sentry-flutter-sdk/SKILL.md",
+      "id": "sentry-instrument",
+      "path": "skills/sentry-instrument/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-go-sdk",
-      "path": "skills/sentry-go-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-nestjs-sdk",
-      "path": "skills/sentry-nestjs-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-nextjs-sdk",
-      "path": "skills/sentry-nextjs-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-node-sdk",
-      "path": "skills/sentry-node-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
       "id": "sentry-otel-exporter-setup",
       "path": "skills/sentry-otel-exporter-setup/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-php-sdk",
-      "path": "skills/sentry-php-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-pr-code-review",
-      "path": "skills/sentry-pr-code-review/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-python-sdk",
-      "path": "skills/sentry-python-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-react-native-sdk",
-      "path": "skills/sentry-react-native-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-react-router-framework-sdk",
-      "path": "skills/sentry-react-router-framework-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-react-sdk",
-      "path": "skills/sentry-react-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-ruby-sdk",
-      "path": "skills/sentry-ruby-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-sdk-setup",
-      "path": "skills/sentry-sdk-setup/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-sdk-skill-creator",
-      "path": "skills/sentry-sdk-skill-creator/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
       "id": "sentry-sdk-upgrade",
       "path": "skills/sentry-sdk-upgrade/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
       "id": "sentry-setup-ai-monitoring",
       "path": "skills/sentry-setup-ai-monitoring/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
-      "id": "sentry-svelte-sdk",
-      "path": "skills/sentry-svelte-sdk/SKILL.md",
+      "id": "sentry-snapshots-cocoa",
+      "path": "skills/sentry-snapshots-cocoa/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
-    },
-    {
-      "kind": "skill",
-      "id": "sentry-tanstack-start-sdk",
-      "path": "skills/sentry-tanstack-start-sdk/SKILL.md",
-      "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     },
     {
       "kind": "skill",
       "id": "sentry-workflow",
       "path": "skills/sentry-workflow/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Sentry SDK/workflow skill."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
     }
   ],
   "routing": {
@@ -237,16 +90,16 @@
       "outcome": "re-point-mcp-lsp",
       "actions": [
         "emit the sentry HTTP MCP into Codex's .codex-plugin MCP pointer",
-        "reimplement the 30 SDK skills as Lisa-native skills stamped synced-from: sentry@claude-plugins-official@1.0.0 (or claude-only where a skill is Claude-specific)",
-        "reimplement the seer command as a Lisa-native skill stamped synced-from: sentry@claude-plugins-official@1.0.0"
+        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.2.0 (or claude-only where a skill is Claude-specific)",
+        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.2.0"
       ],
-      "rationale": "The dominant component is the sentry HTTP MCP, re-pointed into Codex's .codex-plugin pointer; the seer command and the SDK skills are reimplemented as Lisa skills so no component group is dropped."
+      "rationale": "The dominant component is the sentry HTTP MCP, re-pointed into Codex's .codex-plugin pointer; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills so no component group is dropped."
     },
     "cursor": {
       "outcome": "already-native",
       "actions": [
         "Cursor's variant emits mcp.json from .mcp.json, so the sentry MCP is already native",
-        "the 30 SDK skills and the seer command load via Cursor's native .claude-plugin/ reading"
+        "the 10 consolidated skills load via Cursor's native .claude-plugin/ reading"
       ],
       "rationale": "Cursor reads .claude-plugin/ natively and its variant emits mcp.json from .mcp.json, so all component groups are already covered with no action."
     },
@@ -254,19 +107,19 @@
       "outcome": "re-point-mcp-lsp",
       "actions": [
         "emit the sentry HTTP MCP via agy's user-global mcp-installer (src/agy/mcp-installer.ts)",
-        "reimplement the 30 SDK skills as Lisa-native skills stamped synced-from: sentry@claude-plugins-official@1.0.0 (or claude-only where Claude-specific)",
-        "reimplement the seer command as a Lisa-native skill stamped synced-from: sentry@claude-plugins-official@1.0.0"
+        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.2.0 (or claude-only where Claude-specific)",
+        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.2.0"
       ],
-      "rationale": "The dominant component is the sentry HTTP MCP, re-pointed via agy's mcp-installer; the seer command and the SDK skills are reimplemented as Lisa skills (agy's fan-out does not carry curated third-party plugins)."
+      "rationale": "The dominant component is the sentry HTTP MCP, re-pointed via agy's mcp-installer; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills (agy's fan-out does not carry curated third-party plugins)."
     },
     "copilot": {
       "outcome": "re-point-mcp-lsp",
       "actions": [
         "emit the sentry HTTP MCP as an inline mcpServers entry on Copilot's manifest",
-        "reimplement the 30 SDK skills as Lisa-native skills stamped synced-from: sentry@claude-plugins-official@1.0.0 (or enable Copilot's native equivalent where applicable)",
-        "reimplement the seer command as a Lisa-native skill stamped synced-from: sentry@claude-plugins-official@1.0.0"
+        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.2.0 (or enable Copilot's native equivalent where applicable)",
+        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.2.0"
       ],
-      "rationale": "The dominant component is the sentry HTTP MCP, emitted inline on Copilot's manifest; the seer command and the SDK skills are reimplemented as Lisa skills so no component group is dropped."
+      "rationale": "The dominant component is the sentry HTTP MCP, emitted inline on Copilot's manifest; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills so no component group is dropped."
     }
   }
 }
