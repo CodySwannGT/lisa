@@ -35,6 +35,11 @@ const PUBLISH_VERBS = [
   "eas submit",
 ];
 
+/** Publish actions that put release artifacts in front of users. */
+const DOCKER_BUILD_PUSH_ACTION = "docker/build-push-action";
+const PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish";
+const GITHUB_RELEASE_ACTION = "softprops/action-gh-release";
+
 /**
  * Commands that actually run a test suite. Deliberately narrow: the invariant B2
  * protects is "this artifact was *tested*", and a loose substring match (`echo
@@ -102,7 +107,7 @@ export function describeStep(step: ParsedWorkflowStep): string {
       : (step.run
           .split("\n")
           .find(line => line.trim() !== "")
-          ?.trim() ?? "");
+          ?.trim() ?? step.uses.trim());
   return source.length > MAX_STEP_LABEL
     ? `${source.slice(0, MAX_STEP_LABEL).trimEnd()}…`
     : source;
@@ -114,6 +119,41 @@ export function describeStep(step: ParsedWorkflowStep): string {
 const DRY_RUN_FLAG = /--dry[-_]?run\b/;
 
 /**
+ * Normalize an action reference to its owner/repo component.
+ * @param uses - Raw `uses:` value
+ * @returns Lowercase action id without an `@ref`
+ */
+function actionId(uses: string): string {
+  return (uses.split("@")[0] ?? "").trim().toLowerCase();
+}
+
+/**
+ * Whether a serialized `with:` block sets a boolean option to true.
+ * @param inputs - Flattened step inputs
+ * @param name - Input name to read
+ * @returns True when the option is explicitly true
+ */
+function hasTrueInput(inputs: string, name: string): boolean {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\n)${escaped}:\\s*['"]?true['"]?(\\s|$)`, "i").test(
+    inputs
+  );
+}
+
+/**
+ * Whether an action step publishes something externally.
+ * @param step - The step to classify
+ * @returns True when the action is a known publishing action
+ */
+function isPublishAction(step: ParsedWorkflowStep): boolean {
+  const id = actionId(step.uses);
+  if (id === DOCKER_BUILD_PUSH_ACTION) {
+    return hasTrueInput(step.inputs, "push");
+  }
+  return id === PYPI_PUBLISH_ACTION || id === GITHUB_RELEASE_ACTION;
+}
+
+/**
  * Whether a step actually puts an artifact in front of users. A `--dry-run`
  * invocation names a publish verb but ships nothing, so faulting its release
  * path would be a finding about something that cannot reach anyone.
@@ -122,8 +162,9 @@ const DRY_RUN_FLAG = /--dry[-_]?run\b/;
  */
 function isPublishStep(step: ParsedWorkflowStep): boolean {
   return (
-    PUBLISH_VERBS.some(verb => step.run.includes(verb)) &&
-    !DRY_RUN_FLAG.test(step.run)
+    (PUBLISH_VERBS.some(verb => step.run.includes(verb)) &&
+      !DRY_RUN_FLAG.test(step.run)) ||
+    isPublishAction(step)
   );
 }
 
@@ -223,6 +264,9 @@ function shipsSelfBuiltArtifact(
   job: ParsedWorkflowJob,
   publishStep: ParsedWorkflowStep
 ): boolean {
+  if (actionId(publishStep.uses) === DOCKER_BUILD_PUSH_ACTION) {
+    return true;
+  }
   const downloadIndex = job.steps.findIndex(step =>
     step.uses.includes(PROMOTION_ACTION)
   );
