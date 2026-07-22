@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.293.0](https://github.com/CodySwannGT/lisa/compare/v2.292.0...v2.293.0) (2026-07-22)
+
+
+### Features
+
+* **hooks:** conditional git rebase --abort/--quit guard in the safety net ([15d5ee8](https://github.com/CodySwannGT/lisa/commit/15d5ee8fbff65fe67520abd021d0702fa9b0e35a)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+
+### Bug Fixes
+
+* **tests:** align docs-guard pins and prose with the new branch-sync contract ([0e0b565](https://github.com/CodySwannGT/lisa/commit/0e0b56561b9519ffb8e7c8677e2bd236aeccd8a8)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [pre-#1956](https://github.com/CodySwannGT/pre-/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+* **work-item:** support rebase and merge sync lanes in bound worktrees ([bdedff6](https://github.com/CodySwannGT/lisa/commit/bdedff6e423f1fb6388de76b667f311e8e7711ee)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+
+### Documentation
+
+* **skills:** document both sanctioned branch-sync lanes in lisa-implement ([5192d48](https://github.com/CodySwannGT/lisa/commit/5192d489d1c268244b30e2804cedbcd4bd6d66fd)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
 ## [2.292.0](https://github.com/CodySwannGT/lisa/compare/v2.291.0...v2.292.0) (2026-07-22)
 
 
