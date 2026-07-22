@@ -1,0 +1,59 @@
+# Third-party plugin parity drift gate (issue #1955).
+#
+# Repo-local (this file is the .husky/pre-push extension slot, so it survives
+# template syncs and is NOT distributed to host projects — parity pins only
+# exist in the Lisa repo). Blocks the push when a `synced-from` parity skill
+# has drifted from its upstream plugin so the drift gets fixed in the same
+# session that hits it, instead of rotting in a backlog.
+#
+# Gate semantics (deliberately narrower than the script's exit code):
+#   - stale / ahead / unparseable  → BLOCK: the pin is wrong on any machine.
+#   - not-installed / unresolved / missing cache root → WARN only: those mean
+#     THIS machine cannot evaluate the pin (fresh clone, CI runner, no plugin
+#     cache) — not that the pin is wrong. Blocking there would make the repo
+#     unpushable from any machine without a Claude plugin cache.
+
+echo "🧭 Checking third-party plugin parity drift..."
+
+PARITY_DRIFT_ERR="$(mktemp)"
+PARITY_DRIFT_JSON="$(node scripts/plugin-parity-drift.mjs --json 2>"$PARITY_DRIFT_ERR")"
+PARITY_DRIFT_EXIT=$?
+
+if [ "$PARITY_DRIFT_EXIT" -eq 0 ]; then
+  echo "✅ Plugin parity pins are current"
+elif [ "$PARITY_DRIFT_EXIT" -eq 2 ]; then
+  if grep -q "cache-root is not a directory" "$PARITY_DRIFT_ERR"; then
+    echo "⚠️  Skipping parity drift gate: no Claude plugin cache on this machine"
+  else
+    echo "❌ Parity drift detector failed to run:"
+    cat "$PARITY_DRIFT_ERR"
+    rm -f "$PARITY_DRIFT_ERR"
+    exit 1
+  fi
+else
+  PARITY_BLOCKING="$(printf '%s' "$PARITY_DRIFT_JSON" | node -e '
+    let raw = "";
+    process.stdin.on("data", c => (raw += c));
+    process.stdin.on("end", () => {
+      const gate = new Set(["stale", "ahead", "unparseable"]);
+      const rows = JSON.parse(raw).results.filter(r => gate.has(r.status));
+      for (const r of rows) {
+        console.log(
+          `  - ${r.skillPath}: ${r.plugin} pinned ${r.pinnedVersion ?? "?"}, upstream ${r.currentVersion ?? "?"} (${r.status})`
+        );
+      }
+    });
+  ')"
+  if [ -n "$PARITY_BLOCKING" ]; then
+    echo "❌ Push blocked: parity skills have drifted from their upstream plugins:"
+    echo "$PARITY_BLOCKING"
+    echo ""
+    echo "Fix now and include it in this push: review each upstream's changes,"
+    echo "update the Lisa reimplementation, and bump its synced-from pin."
+    echo "Details: node scripts/plugin-parity-drift.mjs"
+    rm -f "$PARITY_DRIFT_ERR"
+    exit 1
+  fi
+  echo "⚠️  Parity pins could not be fully evaluated on this machine (plugin not in local cache) — not blocking"
+fi
+rm -f "$PARITY_DRIFT_ERR"
