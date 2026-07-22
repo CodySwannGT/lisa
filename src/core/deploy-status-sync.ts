@@ -162,23 +162,33 @@ function readConfiguredDone(
 
 /**
  * Reject a configured done entry whose environment has no deploy branch.
- * Only explicitly-configured entries can trigger this — default-table
- * entries are fallbacks and never error.
+ * A configured value that is EXACTLY the default table's value for that env
+ * is a materialized fallback (`lisa sync` writes the default map into
+ * config), not operator intent: it never errors and the env is simply
+ * absent from the ladder, the same as if it were unconfigured. The fallback
+ * equivalence is tested per env AFTER union/alias resolution, using the
+ * same default table the join uses. Only a value that DIFFERS from the
+ * default raises the decision-ready error.
  * @param doneMap - Configured env-keyed done map
  * @param branchEnvs - Environments present in `deploy.branches`
+ * @param defaults - Tracker default done vocabulary
+ * @param canonical - Alias-aware canonical name resolver
  * @param source - Config source shown in errors
  */
 function assertDoneEnvsHaveBranches(
   doneMap: Readonly<Record<string, string>>,
   branchEnvs: readonly string[],
+  defaults: Readonly<Record<string, string>>,
+  canonical: (env: string) => string,
   source: string
 ): void {
   for (const [env, status] of Object.entries(doneMap)) {
-    if (!branchEnvs.includes(env)) {
-      throw new Error(
-        `Invalid deploy configuration in ${source}: a done status ("${status}") is configured for environment "${env}", but deploy.branches has no "${env}" entry. Add deploy.branches.${env} (the git branch that deploys to ${env}) or remove "${env}" from the done map.`
-      );
+    if (branchEnvs.includes(env) || status === defaults[canonical(env)]) {
+      continue;
     }
+    throw new Error(
+      `Invalid deploy configuration in ${source}: a done status ("${status}") is configured for environment "${env}", but deploy.branches has no "${env}" entry. Add deploy.branches.${env} (the git branch that deploys to ${env}) or remove "${env}" from the done map.`
+    );
   }
 }
 
@@ -329,7 +339,13 @@ export function resolveDeployLadder(
   const canonical = (env: string): string =>
     soleProdAlias && env === "prod" ? "production" : env;
   if (done.map !== undefined) {
-    assertDoneEnvsHaveBranches(done.map, branchEnvs, source);
+    assertDoneEnvsHaveBranches(
+      done.map,
+      branchEnvs,
+      DONE_DEFAULTS[tracker],
+      canonical,
+      source
+    );
   }
   const ordered = orderEnvironments(branchEnvs, order, canonical, source);
   const terminalEnv = ordered.at(-1);
