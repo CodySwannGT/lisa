@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.1](https://github.com/CodySwannGT/lisa/compare/v2.297.0...v2.297.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **ci:** update learnings budget gate pin ([e0cd702](https://github.com/CodySwannGT/lisa/commit/e0cd702e8c2b4004d1b7344b1f3378e50f42cd73)), closes [CodySwannGT/lisa#2003](https://github.com/CodySwannGT/lisa/issues/2003)
+* **sonar:** use SONARQUBE_CLI_* env vars for the CLI-wrapped MCP path ([aad472f](https://github.com/CodySwannGT/lisa/commit/aad472f5e273e9c86e2b15b6955edbb18ab11f2b)), closes [#2000](https://github.com/CodySwannGT/lisa/issues/2000) [CodySwannGT/lisa#2003](https://github.com/CodySwannGT/lisa/issues/2003)
+
 ## [2.297.0](https://github.com/CodySwannGT/lisa/compare/v2.296.1...v2.297.0) (2026-07-23)
 
 
