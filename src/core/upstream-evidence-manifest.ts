@@ -591,7 +591,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "d12583803e8ff5e4b64e68eafc8d3c377af4c400d8b7ecd1c7fe699d8f92784a",
+      "772202ddd42d626625ff719666afbbe83445d8bae1bc7c0fb5ffdcb402be83f8",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
@@ -963,7 +963,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
-      "2515b016f3a1c80163aaf097c3f530e884e59e2070d072a6cb5c7b9d2658c946",
+      "ce2fae102752b37df94abfa5a5cb602c1dad06766c450c9fbb3acf20be51420e",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "ed52b0273f6b535d26d561c80ae6c0bedb84c67fcf4321f688c05fe3ee3af575",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
@@ -7708,6 +7708,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
+    "tests/helpers/safety-net-subst-fixtures.ts": true,
     "tests/helpers/test-utils.ts": true,
     "tests/helpers/verification-gate-fixtures.ts": true,
     "tests/helpers/verification-gate-harness.ts": true,
