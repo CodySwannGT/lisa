@@ -14,22 +14,23 @@ const QUALITY_YML = path.join(WORKFLOWS_DIR, "quality.yml");
 const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, "quality-rails.yml");
 const RELEASE_YML = path.join(WORKFLOWS_DIR, "release.yml");
 const DEPLOY_YML = path.join(WORKFLOWS_DIR, DEPLOY_WORKFLOW_FILE);
-const NESTJS_DEPLOY_YML = path.join(
-  REPO_ROOT,
-  "nestjs",
-  "create-only",
-  ".github",
-  "workflows",
-  DEPLOY_WORKFLOW_FILE
-);
-const EXPO_DEPLOY_YML = path.join(
-  REPO_ROOT,
-  "expo",
-  "create-only",
-  ".github",
-  "workflows",
-  DEPLOY_WORKFLOW_FILE
-);
+/**
+ * Absolute path of a stack template's create-only deploy workflow.
+ * @param stack Stack template directory name.
+ * @returns Path to `<stack>/create-only/.github/workflows/deploy.yml`.
+ */
+function stackDeployPath(stack: string): string {
+  return path.join(
+    REPO_ROOT,
+    stack,
+    "create-only",
+    ".github",
+    "workflows",
+    DEPLOY_WORKFLOW_FILE
+  );
+}
+const NESTJS_DEPLOY_YML = stackDeployPath("nestjs");
+const EXPO_DEPLOY_YML = stackDeployPath("expo");
 const EAS_BUILD_YML = path.join(WORKFLOWS_DIR, "build.yml");
 const CREATE_ISSUE_ON_FAILURE_YML = path.join(
   WORKFLOWS_DIR,
@@ -737,6 +738,190 @@ describe("release and deploy workflows", () => {
       contents: "read",
       issues: "write",
     });
+  });
+});
+
+describe("DSS-3 deploy environment declarations", () => {
+  /** Stack templates whose create-only deploy.yml is under contract. */
+  const STACKS = ["expo", "nestjs", "rails", "cdk", "harper-fabric"] as const;
+  const RELEASE_RAILS_YML = path.join(WORKFLOWS_DIR, "release-rails.yml");
+
+  /**
+   * Gated deploy env expression (mitigation A, DSS-3 §4): approval-gated
+   * runs route the deploy job to `<env>-deploy` so it never re-gates the
+   * env release_approval already gates (per-job GitHub approvals would
+   * otherwise prompt twice); ungated runs use the bare env.
+   */
+  const GATED_ENV_EXPR =
+    "${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}";
+  /** Exact env expression for stacks without determine_environment. */
+  const REF_TERNARY_EXPR =
+    "${{ github.ref_name == 'main' && 'production' || github.ref_name }}";
+
+  let stackRaw: Record<(typeof STACKS)[number], string>;
+  let stackDeploy: Record<(typeof STACKS)[number], DeployWorkflow>;
+  let releaseWf: ReleaseWorkflow;
+  let releaseRailsWf: ReusableWorkflow;
+  let buildWf: ReusableWorkflow;
+  let lisaDeployWf: DeployWorkflow;
+
+  /**
+   * Read and parse a workflow file.
+   * @param workflowPath Absolute workflow path.
+   * @returns Parsed workflow.
+   */
+  function loadWorkflow<T>(workflowPath: string): T {
+    return yaml.load(fs.readFileSync(workflowPath, "utf8")) as T;
+  }
+
+  beforeAll(() => {
+    stackRaw = Object.fromEntries(
+      STACKS.map(stack => [
+        stack,
+        fs.readFileSync(stackDeployPath(stack), "utf8"),
+      ])
+    ) as Record<(typeof STACKS)[number], string>;
+    stackDeploy = Object.fromEntries(
+      STACKS.map(stack => [stack, yaml.load(stackRaw[stack]) as DeployWorkflow])
+    ) as Record<(typeof STACKS)[number], DeployWorkflow>;
+    releaseWf = loadWorkflow<ReleaseWorkflow>(RELEASE_YML);
+    releaseRailsWf = loadWorkflow<ReusableWorkflow>(RELEASE_RAILS_YML);
+    buildWf = loadWorkflow<ReusableWorkflow>(EAS_BUILD_YML);
+    lisaDeployWf = loadWorkflow<DeployWorkflow>(DEPLOY_YML);
+  });
+
+  /**
+   * Collect the names of jobs declaring an `environment` key.
+   * @param workflow Parsed workflow.
+   * @param workflow.jobs Parsed jobs map.
+   * @returns Job names with an environment declaration.
+   */
+  function jobsWithEnvironment(workflow: {
+    jobs?: Record<string, WorkflowJob>;
+  }): string[] {
+    return Object.entries(workflow.jobs ?? {})
+      .filter(([, job]) => job.environment !== undefined)
+      .map(([name]) => name);
+  }
+
+  /**
+   * Assert exactly one job declares the given scalar environment expression.
+   * @param workflow Parsed deploy workflow.
+   * @param jobName The single job expected to declare the environment.
+   * @param expression Exact expected environment expression.
+   */
+  function expectSoleEnvironment(
+    workflow: DeployWorkflow,
+    jobName: string,
+    expression: string
+  ): void {
+    expect(workflow.jobs?.[jobName]?.environment).toBe(expression);
+    expect(jobsWithEnvironment(workflow)).toEqual([jobName]);
+  }
+
+  it("expo: only the deploy job declares the gated deploy-env expression", () => {
+    expectSoleEnvironment(stackDeploy.expo, "deploy", GATED_ENV_EXPR);
+    // The expression depends on determine_environment's outputs — the needs
+    // coupling must hold or the env name silently resolves empty.
+    expect(needsList(stackDeploy.expo.jobs?.deploy)).toContain(
+      "determine_environment"
+    );
+  });
+
+  it("nestjs: only the deploy job declares environment, gated mapping form with url", () => {
+    expect(stackDeploy.nestjs.jobs?.deploy.environment).toEqual({
+      name: GATED_ENV_EXPR,
+      url: "${{ steps.deployment_outputs.outputs.environment_url }}",
+    });
+    expect(jobsWithEnvironment(stackDeploy.nestjs)).toEqual(["deploy"]);
+  });
+
+  it("mitigation A: gated branch yields <env>-deploy, ungated yields the bare env", () => {
+    // js-yaml sees the whole ${{ }} as one plain string, so assert the two
+    // branch behaviors structurally: the gated arm wraps the env in
+    // format('{0}-deploy', …) (substring kept for Jira classification), the
+    // ungated fallback is the bare approval_environment output.
+    const nestjsEnv = stackDeploy.nestjs.jobs?.deploy.environment as
+      | { name?: string }
+      | undefined;
+    for (const expr of [
+      stackDeploy.expo.jobs?.deploy.environment,
+      nestjsEnv?.name,
+    ]) {
+      expect(expr).toContain(
+        "needs.determine_environment.outputs.require_approval == 'true'"
+      );
+      expect(expr).toContain(
+        "format('{0}-deploy', needs.determine_environment.outputs.approval_environment)"
+      );
+      expect(expr).toContain(
+        "|| needs.determine_environment.outputs.approval_environment }}"
+      );
+    }
+  });
+
+  it("rails: only deploy_rails declares the ref-name ternary expression", () => {
+    expectSoleEnvironment(stackDeploy.rails, "deploy_rails", REF_TERNARY_EXPR);
+  });
+
+  it("harper-fabric: only the deploy job declares the ref-name ternary expression", () => {
+    expectSoleEnvironment(
+      stackDeploy["harper-fabric"],
+      "deploy",
+      REF_TERNARY_EXPR
+    );
+  });
+
+  it("cdk: no job declares environment; the downstream snippet ships commented", () => {
+    // cdk has no deploy job (determine_environment + release call only) —
+    // downstream projects declare the environment on their project-owned
+    // deploy job, per the commented snippet appended to the template.
+    expect(jobsWithEnvironment(stackDeploy.cdk)).toEqual([]);
+    // Gated expression (mitigation A): the snippet's deploy job needs:
+    // release, which carries the protected approval env, so a gated CDK
+    // project would double-prompt with the bare env — the snippet ships the
+    // same `-deploy` gating expo/nestjs use.
+    expect(stackRaw.cdk).toContain(
+      "#     environment: ${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}"
+    );
+  });
+
+  it("cdk: the commented snippet uncomments into a valid jobs-level deploy job", () => {
+    const lines = stackRaw.cdk.split("\n");
+    const start = lines.findIndex(line => line === "#   deploy:");
+    expect(start).toBeGreaterThan(-1);
+    const snippet = lines
+      .slice(start)
+      .filter(line => line.startsWith("#"))
+      .map(line => line.replace(/^# ?/, ""))
+      .join("\n");
+    const parsed = yaml.load(snippet) as Record<string, WorkflowJob>;
+    expect(parsed.deploy?.environment).toBe(GATED_ENV_EXPR);
+    expect(needsList(parsed.deploy)).toEqual([
+      "determine_environment",
+      "release",
+    ]);
+  });
+
+  it("release.yml: release_approval keeps its exact environment expression; no other job gains one", () => {
+    expect(releaseWf.jobs.release_approval.environment).toEqual({
+      name: "${{ inputs.approval_environment || inputs.environment }}",
+    });
+    expect(jobsWithEnvironment(releaseWf)).toEqual(["release_approval"]);
+  });
+
+  it("release-rails.yml, build.yml, and Lisa's own deploy.yml declare no environments", () => {
+    expect(jobsWithEnvironment(releaseRailsWf)).toEqual([]);
+    expect(jobsWithEnvironment(buildWf)).toEqual([]);
+    // Lisa's own deploy.yml has no inline deploy job (release local-call +
+    // publish_npm workflow-call) and deliberately gains no declaration.
+    expect(jobsWithEnvironment(lisaDeployWf)).toEqual([]);
+  });
+
+  it("no stack deploy template introduces secrets: inherit", () => {
+    for (const [stack, raw] of Object.entries(stackRaw)) {
+      expect(raw, stack).not.toContain("secrets: inherit");
+    }
   });
 });
 
