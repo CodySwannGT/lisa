@@ -66,14 +66,74 @@ export async function persistConsolidatedLearning(
   const relativeFile = resolveProjectLearningsFile(config);
   const { root, target } = resolveSafeLearningTarget(projectRoot, relativeFile);
   // Fast budget fail on the lone entry before any directory is created.
-  buildNextDocument([], entry, []);
+  buildNextDocument([], entry, [], new Set());
   await assertSafeLearningParents(root, path.dirname(target));
   await fse.ensureDir(path.dirname(target));
+  return writeLearningEntriesAfterSafeParent(root, target, entry, supersede);
+}
+
+/**
+ * Snapshot any supersede targets after parent safety is proven, then write.
+ * @param root - Resolved project root
+ * @param target - Absolute learnings file path
+ * @param entry - New validated entry
+ * @param supersede - Ids of existing entries the new entry replaces
+ * @returns Absolute path to the persisted learnings file
+ */
+async function writeLearningEntriesAfterSafeParent(
+  root: string,
+  target: string,
+  entry: LearningEntry,
+  supersede: readonly string[]
+): Promise<string> {
+  if (supersede.length === 0) {
+    return writeLearningEntriesWithLock(
+      root,
+      target,
+      entry,
+      supersede,
+      new Set()
+    );
+  }
+  const preLockSupersedeIds = await readSupersedeIdsPresentBeforeLock(
+    target,
+    supersede
+  );
+  return writeLearningEntriesWithLock(
+    root,
+    target,
+    entry,
+    supersede,
+    preLockSupersedeIds
+  );
+}
+
+/**
+ * Perform the locked read-validate-write transaction for a learnings update.
+ * @param root - Resolved project root
+ * @param target - Absolute learnings file path
+ * @param entry - New validated entry
+ * @param supersede - Ids of existing entries the new entry replaces
+ * @param preLockSupersedeIds - Supersede ids observed before lock acquisition
+ * @returns Absolute path to the persisted learnings file
+ */
+function writeLearningEntriesWithLock(
+  root: string,
+  target: string,
+  entry: LearningEntry,
+  supersede: readonly string[],
+  preLockSupersedeIds: ReadonlySet<string>
+): Promise<string> {
   return withLearningTargetLock(target, async () => {
     await assertSafeLearningParents(root, path.dirname(target));
     const existing = await readExistingLearnings(target);
     const entries = existing === undefined ? [] : parseLearningsFile(existing);
-    const rendered = buildNextDocument(entries, entry, supersede);
+    const rendered = buildNextDocument(
+      entries,
+      entry,
+      supersede,
+      preLockSupersedeIds
+    );
     const temporary = path.join(
       path.dirname(target),
       `.${path.basename(target)}.${process.pid}.${crypto.randomUUID()}.tmp`
@@ -205,19 +265,22 @@ function renderConfirmedDocument(entries: readonly LearningEntry[]): string {
  * @param entries - Existing validated entries
  * @param entry - New validated entry
  * @param supersede - Ids of existing entries the new entry replaces
+ * @param preLockSupersedeIds - Supersede ids observed before lock acquisition
  * @returns Next canonical document
  */
 function buildNextDocument(
   entries: readonly LearningEntry[],
   entry: LearningEntry,
-  supersede: readonly string[]
+  supersede: readonly string[],
+  preLockSupersedeIds: ReadonlySet<string>
 ): string {
   const missing = supersede.filter(
     id => !entries.some(current => current.id === id)
   );
-  if (missing.length > 0) {
+  const unknown = missing.filter(id => !preLockSupersedeIds.has(id));
+  if (unknown.length > 0) {
     throw new Error(
-      `Cannot supersede unknown learning id(s): ${missing.join(", ")}`
+      `Cannot supersede unknown learning id(s): ${unknown.join(", ")}`
     );
   }
   const supersededIds = new Set(supersede);
@@ -231,6 +294,29 @@ function buildNextDocument(
   const rendered = renderLearningsFile(nextEntries);
   assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
   return rendered;
+}
+
+/**
+ * Snapshot supersede ids that existed before waiting on the writer lock. When a
+ * concurrent writer removes one of those ids first, the later writer should
+ * still preserve its candidate instead of dropping the learning as stale.
+ * @param target - Resolved learnings file path
+ * @param supersede - Validated supersede ids requested by the caller
+ * @returns Supersede ids observed in the file before lock acquisition
+ */
+async function readSupersedeIdsPresentBeforeLock(
+  target: string,
+  supersede: readonly string[]
+): Promise<ReadonlySet<string>> {
+  if (supersede.length === 0) {
+    return new Set();
+  }
+  const existing = await readExistingLearnings(target);
+  if (existing === undefined) {
+    return new Set();
+  }
+  const existingIds = new Set(parseLearningsFile(existing).map(({ id }) => id));
+  return new Set(supersede.filter(id => existingIds.has(id)));
 }
 
 /**
