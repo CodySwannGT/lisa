@@ -58,8 +58,16 @@ const MAX_EVIDENCE_COMMANDS = 10;
  * would fire on nearly every repository that cleans a `dist/` directory.
  */
 const IRREVERSIBLE_DATA_OPS: readonly RegExp[] = [
+  /\brails\s+db:(drop|reset)\b/,
+  /\bprisma\s+migrate\s+reset\b[^\n]*--force\b/,
+  /\bredis-cli\b[^\n]*\bflushall\b/,
+  /\bkubectl\s+delete\s+(namespace|pvc)\b/,
+  /\bgcloud\s+sql\s+instances\s+delete\b/,
+  /\baz\s+group\s+delete\b/,
+  /\b(mongo|mongosh)\b[^\n]*\bdropdatabase\s*\(/,
   /\bdrop\s+database\b/,
   /\bdrop\s+schema\b/,
+  /\bdrop\s+table\b/,
   /\btruncate\s+table\b/,
   /\baws\s+s3\s+rm\b[^\n]*--recursive\b/,
   /\baws\s+s3\s+rb\b[^\n]*--force\b/,

@@ -140,6 +140,41 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
       )
     ).toBe(true);
   });
+
+  it.each([
+    ["Rails database drop", "rails db:drop"],
+    ["Prisma forced reset", "prisma migrate reset --force"],
+    ["Redis flushall", "redis-cli -u $REDIS_URL FLUSHALL"],
+    ["Kubernetes namespace delete", "kubectl delete namespace prod"],
+    ["Kubernetes persistent-volume-claim delete", "kubectl delete pvc data"],
+    [
+      "Google Cloud SQL instance delete",
+      "gcloud sql instances delete app-prod",
+    ],
+    ["Azure resource-group delete", "az group delete --name prod-rg --yes"],
+    ["Mongo database drop", "mongosh prod --eval 'db.dropDatabase()'"],
+    ["SQL table drop", 'psql "$DATABASE_URL" -c "DROP TABLE users"'],
+  ])("stands B1 for %s", async (_label, command) => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      `      - run: ${command}`,
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
 });
 
 describe("assessDomainOwnershipDimension — reports silence as silence", () => {
