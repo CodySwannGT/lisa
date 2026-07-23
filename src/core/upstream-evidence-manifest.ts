@@ -547,7 +547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/setup/notion.md":
       "2d705679db0dbb6c77728592a020430a529af9d0ef24ac7c434969d590d9f5a6",
     "plugins/src/base/commands/setup/sonar.md":
-      "d79ffe15f5fc340a5c5ffcaff4c9a7893391b4129df592a45d2b0c7e508e8c44",
+      "1d2e94fd9f21988ce6d4be2ce4268b8c0bb020eb7cd7baf8ca65def7d8a4f5bc",
     "plugins/src/base/commands/sync-down.md":
       "4e974cb9745a4fd680f4a55f859d31fa8cf3cb28afa739b40a2e1a99de31e034",
     "plugins/src/base/commands/tear-down-automations.md":
@@ -701,7 +701,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
-      "be38ab7dd57eeda554f1d984c719516badef496b8a228a74144ff4d63bdfcd71",
+      "8b0a0fc0e63492efce79c58a0fc1f112748b17ad59383cfdb9c25300b29a2c8b",
     "plugins/src/base/rules/reference/intent-routing.md":
       "8d2750f30b82ff9a84c5273954b0055e37bc305e3e83e4aef50f5ce47942df45",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
@@ -777,7 +777,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-agent-ready/SKILL.md":
       "13f2e0f50287a04ed9a036ef1c547563b5f6f6325b2b35f6746d46a5ed4d15df",
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
-      "661ddf014a60ff4bf16b2ef6582cb5eb94d14fddcdeeeb69ca1f1fabe269e347",
+      "a5863836b8fa9d67825d048e1c2fc086d3df95de33cf110129488959b83cb4b5",
     "plugins/src/base/skills/lisa-atlassian-access/SKILL.md":
       "f58707d8689764ac68c79dbe5b6c548e2933cc656c5f4df03ae71c863f61b022",
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
@@ -815,7 +815,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
-      "632ed5f64c4014d9f2d1baebdb63f7a2e0e75e285f5eab1187805c8afe7ffe07",
+      "9ae66050b046b3d5bcf4acb582928cb56f295d4d869b712e85b6e0717b67dc7b",
     "plugins/src/base/skills/lisa-git-commit/SKILL.md":
       "56320566e9278fb43b4d51c00854f3714dc61edc960292d51962a6f49116ac0f",
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
@@ -1057,9 +1057,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "7a134f6ce7857152076c2a85e0777d88f1f22b0ecfe607dd2fc6f8a286547910",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
-      "a00ec455df6aeb6e5b436acc0265fcfa4659a546dec2e8ae2b1c8eca488bf9d7",
+      "53fbd8acce4b5e47e88195a7b90d5be424fa6ef7ad872f52c50467c690664c3b",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
-      "e0124aab451021f39dc3b4edfa74f5f9e32ef01d020b317531827a544150fb16",
+      "031acb01195ae59010a65335da98d46a1d6080e749823d6f6d157938d9e96648",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
       "3bcaf6d3b47917d00732542e30a8a302c3e293a9957faf79cac5b1d75cc538a2",
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
