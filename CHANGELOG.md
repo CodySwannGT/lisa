@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.5](https://github.com/CodySwannGT/lisa/compare/v2.297.4...v2.297.5) (2026-07-23)
+
+
+### Bug Fixes
+
+* tolerate learnings snapshot replacement race ([ce4e72e](https://github.com/CodySwannGT/lisa/commit/ce4e72eda2c57e4f4a484167c9fd4774b7db7df3)), closes [#1995](https://github.com/CodySwannGT/lisa/issues/1995) [CodySwannGT/lisa#1995](https://github.com/CodySwannGT/lisa/issues/1995)
+
 ### [2.297.4](https://github.com/CodySwannGT/lisa/compare/v2.297.3...v2.297.4) (2026-07-23)
 
 
