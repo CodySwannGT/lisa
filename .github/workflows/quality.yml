@@ -612,18 +612,44 @@ jobs:
         with:
           bun-version: '1.3.8'
 
-      # Pinned for reproducibility: the gate must not change behavior under
-      # unchanged host commits. Bump deliberately when the learnings contract
-      # changes. (Publishing npm and pushing this @main workflow are the same
-      # trust domain; the pin buys determinism, not a trust boundary.) The pin
-      # must be >= 2.243.0: earlier CLIs lack the relocated .lisa/ resolver or
-      # this subcommand, and pre-2.237.0 CLIs self-skip in non-interactive
-      # environments with exit 0, silently voiding the gate — which is why the
-      # marker grep below asserts the check actually ran.
+      # Host projects: pinned for reproducibility — the gate must not change
+      # behavior under unchanged host commits. Bump deliberately when the
+      # learnings contract changes. (Publishing npm and pushing this @main
+      # workflow are the same trust domain; the pin buys determinism, not a
+      # trust boundary.) The pin must be >= 2.243.0: earlier CLIs lack the
+      # relocated .lisa/ resolver or this subcommand, and pre-2.237.0 CLIs
+      # self-skip in non-interactive environments with exit 0, silently voiding
+      # the gate — which is why the marker grep below asserts the check ran.
+      #
+      # Lisa's own source repo: check against ITS OWN source contract instead of
+      # a previously-published pin. The pin necessarily lags by at least one
+      # release, so a commit that changes the budget and migrates the ledger in
+      # the same breath would be judged by the OLD budget — exactly the skew that
+      # failed the #2001 deploy (ledger already at 11577 for the derived 12000
+      # budget, pin still enforcing the flat 4000). Detection is content-based
+      # (not a repo-name match) so forks of the Lisa source behave identically;
+      # the checker imports only node: builtins and local sources, so it needs no
+      # `bun install`.
       - name: 📚 Check learnings budget
         run: |
           set -o pipefail
-          bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out
+          if [ -f scripts/check-learnings-budget.ts ] && [ -f src/core/learnings-budget-check.ts ]; then
+            # Resolve the ledger the way the contract does. The bare script
+            # defaults to the shipped all/create-only TEMPLATE (0 entries, always
+            # passes) — passing the real path explicitly is what keeps this a gate
+            # and not a silent no-op.
+            ledger="$(jq -r '.learnings.file // ".lisa/PROJECT_LEARNINGS.md"' .lisa.config.json 2>/dev/null || echo '.lisa/PROJECT_LEARNINGS.md')"
+            [ -n "$ledger" ] && [ "$ledger" != "null" ] || ledger='.lisa/PROJECT_LEARNINGS.md'
+            echo "ℹ️ Lisa source repo — checking $ledger against the in-tree contract"
+            bun scripts/check-learnings-budget.ts "$ledger" | tee learnings-budget.out
+            # When the ledger exists, demand a real pass: "no learnings file"
+            # here would mean we resolved the wrong path and voided the gate.
+            if [ -f "$ledger" ]; then
+              grep -q "learnings budget passed" learnings-budget.out
+            fi
+          else
+            bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out
+          fi
           grep -qE "learnings budget passed|no learnings file" learnings-budget.out
         working-directory: ${{ inputs.working_directory || '.' }}
 
