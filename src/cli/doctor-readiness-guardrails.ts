@@ -196,16 +196,22 @@ function skipRecord(
   inspected: number,
   runbook: boolean
 ): ReadinessDimensionRecord {
+  const reason =
+    inspected === 0
+      ? `No GitHub Actions workflow files were found under \`.github/workflows/\`, ` +
+        `so no irreversible or expensive operations could be assessed from ` +
+        `workflow declarations (recovery runbook ` +
+        `${runbook ? "present" : "absent"}). ${PROTECTION_RULES_SKIP_REASON}`
+      : `Read ${inspected} workflow file(s) for irreversible or expensive ` +
+        "operations and found none that this file alone proves runs " +
+        `unattended with no gate and no way back (recovery runbook ` +
+        `${runbook ? "present" : "absent"}). ${PROTECTION_RULES_SKIP_REASON}`;
   return {
     id: FEEDBACK_GUARDRAILS_DIMENSION_ID,
     status: "SKIP",
     findings: [
       {
-        reason:
-          `Read ${inspected} workflow file(s) for irreversible or expensive ` +
-          "operations and found none that this file alone proves runs " +
-          `unattended with no gate and no way back (recovery runbook ` +
-          `${runbook ? "present" : "absent"}). ${PROTECTION_RULES_SKIP_REASON}`,
+        reason,
         skip: true,
       },
       ...informationalFindings([
