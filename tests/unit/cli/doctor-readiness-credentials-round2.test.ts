@@ -131,7 +131,7 @@ describe("assessDeliveryAuthorityDimension — B3 round-2 credentials", () => {
     expect(finding?.evidence).not.toContain("aws-access-key-id");
   });
 
-  it("FAILs with B3 when a reusable workflow call maps a static credential", async () => {
+  it("FAILs with B3 when a reusable workflow call maps a static credential via with:", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, DEPLOY_YML, [
       DEPLOY_NAME,
@@ -141,6 +141,30 @@ describe("assessDeliveryAuthorityDimension — B3 round-2 credentials", () => {
       "    uses: ./.github/workflows/publish.yml",
       "    with:",
       "      registry-token: ${{ secrets.NPM_TOKEN }}",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === "B3"
+    );
+    expect(finding?.evidence).toContain("NPM_TOKEN");
+    expect(finding?.evidence).toContain("job `publish`");
+  });
+
+  // Covers the secrets:-only path CodeRabbit flagged as untested on PR #1990:
+  // jobText() previously omitted job-level `secrets:` mappings entirely, so a
+  // reusable-workflow call that only passes a static credential through
+  // `secrets:` (no `with:`) went undetected.
+  it("FAILs with B3 when a reusable workflow call maps a static credential via secrets:", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON_PUSH,
+      JOBS,
+      "  publish:",
+      "    uses: ./.github/workflows/publish.yml",
       "    secrets:",
       "      npm-token: ${{ secrets.NPM_TOKEN }}",
     ]);
