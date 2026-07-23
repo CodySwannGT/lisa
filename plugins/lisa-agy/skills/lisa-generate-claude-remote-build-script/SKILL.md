@@ -69,9 +69,9 @@ tracker/source, plus the host project's own package manager and tooling — not 
    sibling repos reachable through the routine's GitHub proxy.
    For OPTIONAL non-tracker MCP recovery entries discovered by
    `/lisa:analyze-claude-remote`, preserve the same names-only behavior:
-   include `JAM_PAT`, `SONAR_TOKEN`, or similar documented substrate env vars
-   only as optional secrets, with their acquire/scope comments when the analysis
-   supplied them. Never invent values or promote dormant substrates to required.
+   include `JAM_PAT`, `SONARQUBE_TOKEN` (+ `SONARQUBE_ORG`/`SONARQUBE_URL`), or
+   similar documented substrate env vars only as optional secrets, with their
+   acquire/scope comments when the analysis supplied them. Never invent values or promote dormant substrates to required.
    When AWS entries are present, list only `LISA_AWS_BOOTSTRAP_JSON` as the
    required secret and `LISA_REMOTE_AGENT=claude` as plain configuration. Never
    emit standard `AWS_ACCESS_KEY_ID` variables and never recommend `aws sso login`.
@@ -84,9 +84,17 @@ tracker/source, plus the host project's own package manager and tooling — not 
      `export PATH="$HOME/.local/bin:$PATH"`, `printf '%s' "$JAM_PAT" | jam auth login --token`,
      and `jam skills install`, all inside `[ -n "${JAM_PAT:-}" ] && ...` guards so missing
      optional secrets do not fail the environment build.
-   - REST substitute substrates: do not install an MCP. Emit comments naming the
-     REST host and env var (for example `SONAR_TOKEN` with `https://sonarcloud.io/api/`) and
-     rely on the access skill or generated consumer to call the API.
+   - Container-backed MCP substrates (e.g. the official SonarQube MCP): the MCP
+     runs headless as-is in a cloud routine — Docker is preinstalled — so wire the
+     real MCP rather than substituting REST. Emit, guarded on the optional env
+     token, the vendor CLI install (`curl -o- https://raw.githubusercontent.com/SonarSource/sonarqube-cli/refs/heads/master/user-scripts/install.sh | bash`),
+     `sonar integrate <agent>`, and a `sonar run mcp`-image pre-pull so the first
+     run fits the ~5-min cache budget. Provide `SONARQUBE_TOKEN`
+     (+ `SONARQUBE_ORG`/`SONARQUBE_URL`); never emit `sonar auth login` (keychain
+     does not exist headless).
+   - REST-only substitute substrates: for a vendor whose MCP genuinely cannot run
+     headless, do not install an MCP — emit comments naming the REST host and env
+     var, and rely on the access skill or generated consumer to call the API.
    - PAT-bearer MCP substrates: print a commented `.mcp.json` `headers` snippet from the
      inventory's `mcpHeaders`. Use this only when the analysis explicitly says the same MCP
      transport supports static-token auth. Do not print a Jam `.mcp.json` header snippet because
