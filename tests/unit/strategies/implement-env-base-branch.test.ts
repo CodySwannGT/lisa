@@ -111,7 +111,11 @@ describe("lisa-implement environment resolution", () => {
       expect(content).toContain(DEPLOY_MAP);
       expect(content).toMatch(/mapped branch must exist on the remote/i);
       expect(content).toContain(
-        "Rebase the feature branch onto `origin/<base>`"
+        "Sync the feature branch onto the latest `origin/<base>`"
+      );
+      expect(content).toMatch(/rebase head-name/i);
+      expect(content).toMatch(
+        /exempts commits already reachable from the remote default branch/i
       );
       expect(content).toMatch(/resolve any merge conflicts/i);
       expect(content).toContain("target_branch=<base>");

@@ -504,11 +504,16 @@ jobs:
 
       - name: Determine Version
         id: version
+        env:
+          RELEASE_CUSTOM_VERSION: ${{ inputs.custom_version }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          RELEASE_PRERELEASE: ${{ inputs.prerelease }}
+          RELEASE_STRATEGY: ${{ inputs.release_strategy }}
         run: |
           source ./release-logger.sh
 
           # Version determination logic (same as v3)
-          case "${{ inputs.release_strategy }}" in
+          case "$RELEASE_STRATEGY" in
             "standard-version")
               VERSION=$(npx standard-version --dry-run | grep "tagging release" | awk '{print $4}')
               ;;
@@ -526,12 +531,12 @@ jobs:
               ;;
             "calendar")
               VERSION=$(date +%Y.%m.%d)
-              if [ -n "${{ inputs.prerelease }}" ]; then
-                VERSION="${VERSION}-${{ inputs.prerelease }}.$(date +%H%M)"
+              if [ -n "$RELEASE_PRERELEASE" ]; then
+                VERSION="${VERSION}-${RELEASE_PRERELEASE}.$(date +%H%M)"
               fi
               ;;
             "custom")
-              VERSION="${{ inputs.custom_version }}"
+              VERSION="$RELEASE_CUSTOM_VERSION"
               if [ -z "$VERSION" ]; then
                 log_release_event "version_error" "failed" "Custom version not provided"
                 exit 1
@@ -542,32 +547,57 @@ jobs:
           # Normalize any leading "v" regardless of strategy so "tag=v$VERSION" never yields "vv"
           VERSION="${VERSION#v}"
 
-          # Guard against tag collisions. Version counters are branch-local
-          # (standard-version reads package.json; semantic reads the nearest
-          # reachable tag) but tags are repo-global, so two long-lived release
-          # branches (e.g. dev and staging) can compute the same next version
-          # and the Create GitHub Release step would 422 (already_exists) and
-          # skip deployment. Bump patch until the tag is free. Skipped for the
-          # "custom" strategy — an explicitly pinned version must not be
-          # silently changed (a collision there fails loudly at release time).
-          if [ "${{ inputs.release_strategy }}" != "custom" ]; then
-            while git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; do
-              echo "::warning::Tag v$VERSION already exists (released from another branch); bumping patch"
-              VERSION=$(npx semver -i patch "$VERSION")
-            done
+          # Environment-scoped release tags (standard-version strategy).
+          # Tags are repo-global but version counters are branch-local, so
+          # before this a version created by one env's release — and carried
+          # onto another env's branch by a promote or main->staging sync merge —
+          # would 422 (already_exists) at the Create GitHub Release step and SKIP
+          # deployment. Fix: only prod (main/master/prod/production) cuts a clean
+          # `vX.Y.Z`; every non-prod environment cuts a PRE-RELEASE tag
+          # `vX.Y.Z-<env>.<ts>`, so each branch has its own tag namespace and
+          # cross-branch collisions are impossible regardless of promote/sync
+          # timing. The package.json/changelog version stays CLEAN on every
+          # branch (only the git tag carries the suffix), so standard-version's
+          # next-version computation — which reads package.json — is never fed a
+          # prerelease string. An explicit `prerelease` input still wins.
+          # Only standard-version is scoped in here; semantic/calendar/custom
+          # keep their prior behavior (below).
+          PRERELEASE_LABEL="$RELEASE_PRERELEASE"
+          if [ -z "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" == "standard-version" ]; then
+            case "$RELEASE_ENVIRONMENT" in
+              main|master|prod|production) PRERELEASE_LABEL="" ;;
+              *) PRERELEASE_LABEL="$RELEASE_ENVIRONMENT" ;;
+            esac
           fi
 
-          # Add prerelease suffix if specified
-          if [ -n "${{ inputs.prerelease }}" ] && [ "${{ inputs.release_strategy }}" != "calendar" ]; then
-            VERSION="${VERSION}-${{ inputs.prerelease }}.$(date +%s)"
+          if [ -n "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" != "calendar" ]; then
+            # Non-prod (or explicit prerelease): unique timestamped tag, clean
+            # package.json version. The timestamp guarantees tag uniqueness, so
+            # no collision guard is needed.
+            TAG="v${VERSION}-${PRERELEASE_LABEL}.$(date +%s)"
             echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            # Prod (clean tag) / calendar: guard against cross-branch collisions
+            # on the clean tag — fetch fresh tags (they are repo-global and a
+            # sibling branch may have just created one) and bump patch until the
+            # tag is free. Skipped for "custom" — an explicitly pinned version
+            # must not be silently changed.
+            if [ "$RELEASE_STRATEGY" != "custom" ]; then
+              git fetch --tags --force origin >/dev/null 2>&1 || true
+              while git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; do
+                echo "::warning::Tag v$VERSION already exists (released from another branch); bumping patch"
+                VERSION=$(npx semver -i patch "$VERSION")
+              done
+            fi
+            TAG="v$VERSION"
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "bump_type=${BUMP_TYPE:-custom}" >> $GITHUB_OUTPUT
 
-          export VERSION TAG="v$VERSION"
+          export VERSION TAG
 
           log_release_event "version_determination" "completed" "Version determined successfully" \
             "version" "$VERSION" \

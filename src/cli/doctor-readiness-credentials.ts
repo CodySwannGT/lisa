@@ -69,15 +69,41 @@ interface SecretEnvironmentPair {
 }
 
 /**
- * Flatten every string a job declares — step commands, actions, `env`, and
- * `with` — into one searchable blob so a credential reference is found wherever
- * it is stated.
+ * Flatten a job's `secrets:` block to `key: value` lines for text search.
+ *
+ * The `inherit` scalar is deliberately excluded: it carries no secret names to
+ * search for, and is already reported on its own by
+ * {@link inheritedSecretViolations}.
+ * @param secrets - The job's `secrets` block
+ * @returns Newline-joined `key: value` lines (empty when there is nothing to flatten)
+ */
+function secretsBlockText(secrets: WorkflowBlock): string {
+  if (typeof secrets !== "object" || secrets === null) {
+    return "";
+  }
+  return Object.entries(secrets)
+    .map(
+      ([name, entry]) =>
+        `${name}: ${typeof entry === "string" ? entry : String(entry)}`
+    )
+    .join("\n");
+}
+
+/**
+ * Flatten every string a job declares — step commands, actions, `env`,
+ * `with`, and reusable-call `secrets:` mappings — into one searchable blob so
+ * a credential reference is found wherever it is stated.
  * @param job - The parsed job
  * @returns Newline-joined declared text
  */
 function jobText(job: ParsedWorkflowJob): string {
-  return job.steps
-    .flatMap(step => [step.run, step.uses, step.inputs])
+  return [
+    job.uses,
+    job.env,
+    job.inputs,
+    secretsBlockText(job.secrets),
+    ...job.steps.flatMap(step => [step.run, step.uses, step.inputs]),
+  ]
     .filter(part => part !== "")
     .join("\n");
 }
