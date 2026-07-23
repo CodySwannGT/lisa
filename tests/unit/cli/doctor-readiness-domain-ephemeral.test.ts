@@ -8,7 +8,8 @@
  * 1. **The evidence that a target is throwaway is routinely outside the
  *    command.** `psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE"` reads as
  *    production destruction until you see the job's `env:` block pointing at
- *    `127.0.0.1`, or the `services:` container the job booted moments earlier.
+ *    `127.0.0.1`, or the concrete service hostname the job booted moments
+ *    earlier.
  * 2. **An empty runbook directory is not a recovery procedure.** Treating one
  *    as a way back would make `mkdir docs/runbooks` a one-command switch for
  *    turning this blocker off repository-wide.
@@ -103,6 +104,8 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
       "    services:",
       "      postgres:",
       "        image: postgres:16",
+      "    env:",
+      "      DATABASE_URL: postgres://postgres@postgres:5432/app",
       STEPS,
       RUN_SCHEMA_RESET,
     ]);
@@ -113,6 +116,101 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
     for (const finding of asFindings(record.findings)) {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
+  });
+
+  it("stands B1 when a job service is unrelated to the durable destructive target", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      "    services:",
+      "      redis:",
+      "        image: redis:7",
+      STEPS,
+      RUN_S3_WIPE,
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.reason).includes("services:")
+      )
+    ).toBe(false);
+  });
+
+  it("stands B1 when a database command does not prove it targets the local service", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      "    services:",
+      "      postgres:",
+      "        image: postgres:16",
+      "    env:",
+      "      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}",
+      STEPS,
+      RUN_SCHEMA_RESET,
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.reason).includes("services:")
+      )
+    ).toBe(false);
+  });
+
+  it("stands B1 when the job's only service is a different database technology that merely names-collides on `db`", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      "    services:",
+      "      dynamodb-local:",
+      "        image: amazon/dynamodb-local",
+      STEPS,
+      '      - run: psql "$PROD_DATABASE_URL" -c "DROP TABLE users"',
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    // `dynamodb-local` is a NoSQL service; `psql`/`DROP TABLE` can never target
+    // it. The service name merely containing the substring `db` must not
+    // excuse the command as plausibly local.
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.reason).includes("services:")
+      )
+    ).toBe(false);
   });
 
   it("does not stand B1 for the AWS CLI's own `--dryrun` rehearsal spelling", async () => {

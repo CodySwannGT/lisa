@@ -62,6 +62,16 @@ export interface ScanOptions {
    * when it can. Used for a job that boots its own `services:` containers.
    */
   readonly unresolvedJob?: (job: ParsedWorkflowJob) => string | null;
+  /**
+   * A step-level reason the match cannot be settled offline, returning `null`
+   * when it can. Used when the same job-level evidence only applies to some
+   * matching commands.
+   */
+  readonly unresolvedStep?: (
+    workflow: ParsedWorkflow,
+    job: ParsedWorkflowJob,
+    step: ParsedWorkflowStep
+  ) => string | null;
 }
 
 /**
@@ -215,11 +225,19 @@ function classifyJob(
     return [{ kind: "unresolved", reason: deferred }];
   }
   const jobGated = jobIsGated(job) || (options.exemptJob?.(job) ?? false);
-  return hits.map(step => ({
-    kind:
-      jobGated || stepIsGated(step) ? ("gated" as const) : ("ungated" as const),
-    command: { workflow: workflow.file, jobId: job.id, command: step.run },
-  }));
+  return hits.map(step => {
+    const stepDeferred = options.unresolvedStep?.(workflow, job, step);
+    if (stepDeferred !== undefined && stepDeferred !== null) {
+      return { kind: "unresolved" as const, reason: stepDeferred };
+    }
+    return {
+      kind:
+        jobGated || stepIsGated(step)
+          ? ("gated" as const)
+          : ("ungated" as const),
+      command: { workflow: workflow.file, jobId: job.id, command: step.run },
+    };
+  });
 }
 
 /**
