@@ -115,6 +115,36 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
     }
   });
 
+  it("stands B1 when a job service is unrelated to the durable destructive target", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      "    services:",
+      "      redis:",
+      "        image: redis:7",
+      STEPS,
+      RUN_S3_WIPE,
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.reason).includes("services:")
+      )
+    ).toBe(false);
+  });
+
   it("does not stand B1 for the AWS CLI's own `--dryrun` rehearsal spelling", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, CLEANUP_YML, [
