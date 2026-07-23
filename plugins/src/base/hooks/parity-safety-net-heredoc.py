@@ -378,22 +378,76 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
     return Marker(offset + start, offset + final, delimiter, strip_tabs, quoted)
 
 
+def cross_line_quote_state(command: str, offset: int) -> str:
+    """Return the single/double/plain quote state bash sees at ``offset``.
+
+    Unlike ``top_level_markers`` (which re-initialises quote state at the start
+    of every line), this walks the whole command with a SINGLE cross-line state
+    machine — the same quote/escape/comment model ``has_active_command_substitution``
+    uses. It answers "is this position inside an open single- or double-quoted
+    string?" so a heredoc-shaped token can be checked against bash's real parse.
+    """
+    state = "plain"
+    escaped = False
+    index = 0
+    limit = min(offset, len(command))
+    while index < limit:
+        char = command[index]
+        if escaped:
+            escaped = False
+        elif state == "single":
+            if char == "'":
+                state = "plain"
+        elif state == "double":
+            if char == '"':
+                state = "plain"
+            elif char == "\\":
+                escaped = True
+        elif char == "'":
+            state = "single"
+        elif char == '"':
+            state = "double"
+        elif char == "\\":
+            escaped = True
+        elif char == "#" and (index == 0 or command[index - 1].isspace()):
+            newline = command.find("\n", index)
+            if newline < 0 or newline >= limit:
+                return state
+            index = newline
+            continue
+        index += 1
+    return state
+
+
 def strip_provably_literal_body(command: str, markers: list[Marker]) -> str:
     """Drop the body window of a single fully-quoted, closed heredoc.
 
     A fully-quoted delimiter (Marker.quoted) makes the body literal data to
     bash, so substitution tokens inside it must not flip the classification to
     MALFORMED (issue #1958). The exclusion is deliberately narrow: EXACTLY one
-    marker, provably quoted, and provably closed — anything else returns the
-    command unchanged so the scan stays fail-closed. Only the body lines are
-    removed; the header line, terminator line, and everything after remain,
-    so a substitution on the command line proper is still detected. The raw
-    payload itself still reaches every content guard because this classifier
-    returns UNSUPPORTED (raw pass-through) for the target class, never SAFE.
+    marker, provably quoted, provably closed, and — critically — a marker bash
+    actually treats as a top-level heredoc redirection. ``top_level_markers``
+    resets quote state per line, so a ``<<'DELIM'`` line nested inside an open
+    multi-line single/double-quoted string is mis-recorded as a top-level
+    quoted heredoc. To bash there is NO heredoc there — the whole thing is one
+    string, and a ``$(...)`` inside a double-quoted string is EXECUTED. Excluding
+    that fake "body" window would delete the live substitution before the scan
+    runs, smuggling arbitrary command execution past the wall (issue #1958
+    Finding 1). So before excluding, re-verify the marker sits at bash top level
+    (quote state ``plain``) under CROSS-LINE quote tracking; if it is inside an
+    open quote, strip nothing and let ``has_active_command_substitution`` see the
+    real substitution. Anything else returns the command unchanged so the scan
+    stays fail-closed. Only the body lines are removed; the header line,
+    terminator line, and everything after remain, so a substitution on the
+    command line proper is still detected. The raw payload itself still reaches
+    every content guard because this classifier returns UNSUPPORTED (raw
+    pass-through) for the target class, never SAFE.
     """
     if len(markers) != 1 or not markers[0].quoted:
         return command
     marker = markers[0]
+    if cross_line_quote_state(command, marker.start) != "plain":
+        return command
     lines = command.splitlines()
     marker_line = command.count("\n", 0, marker.start)
     for index in range(marker_line + 1, len(lines)):
