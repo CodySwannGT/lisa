@@ -174,6 +174,20 @@ No learning content is ever committed without a PR — there is no other write p
    - **Related entry found** → consolidate via `persistConsolidatedLearning(projectRoot, entry, { supersede: [<related ids>] })`, merging the old entry's still-true content into the new rule. Never append a near-duplicate sibling — a sibling is a bug that fails review.
    - **No related entry** → append via `persistLearningEntry(projectRoot, entry)` and state in the PR body why appending was correct.
    - Entry mapping: `id` = the fingerprint; `rule`/`why`/`provenance` from the candidate; `first_learned` = `last_confirmed` = today (ISO date; on consolidation keep the superseded entry's earliest `first_learned`); `confidence` = the judge's `high`/`low`. The writer re-asserts the entry and token budgets — an over-budget failure means consolidate harder or drop, never truncate by hand.
+   - **On a budget-forced drop, signal saturation once (never silent).** When the writer's budget re-assertion cannot fit the entry even after consolidating harder — a durable capture has to be DROPPED for budget — the ledger is saturated, and that pressure must be visible to an operator instead of swallowed. Emit **exactly one** tracker signal via `lisa-tracker-write` (`issue_type: Task`; GitHub trackers carry the `type:Task` label), then continue — dropping the capture never blocks the build. Follow the same marker-dedupe discipline as every other comment here (match on the **marker, never the title**; **exactly one marker per body**; the eventual-consistency guard when the search index is stale), with **one deliberate difference: dedupe against OPEN signals only.** A *closed* saturation ticket means room was already reclaimed, so a fresh saturation is a new actionable event — searching closed tickets too (as the drop/upstream markers do) would permanently suppress every later saturation.
+
+     The saturation fingerprint keys on the **ledger, not the candidate**, so the signal fires once per saturation episode — never once per capture:
+
+     ```text
+     saturation-fingerprint = "sat-" + first 12 hex chars of sha1(<resolved learnings-file path>)
+     ```
+
+     ```markdown
+     <!-- [lisa-ledger-saturated] key=<saturation-fingerprint> -->
+     Learnings ledger saturated — a durable capture was dropped for budget. The projection is now omitting entries; promote or retire a learning to reclaim room. This records budget pressure for the gardener's next audit — it is not itself a new learning.
+     ```
+
+     The `[lisa-ledger-saturated]` marker sits **outside the `[lisa-learning-*]` namespace** that the gardener (`lisa-learnings-audit`) auto-excludes from candidacy — chosen so the gardener reads it as budget-pressure evidence (its `projectLearnings` omission / promote-or-retire axis) rather than skipping it as learning-machinery noise. **Do not reuse a `[lisa-learning-*]` marker here** — that would make the gardener blind to the very pressure it exists to relieve. The candidate itself is still dropped; this signal records the saturation, it does not persist the rule.
 4. **Branch + commit.** Work on branch `learning/<fingerprint>`. Commit only the learnings file; verify with `git diff --name-only` that the diff touches nothing else.
 5. **PR body.** Exactly one marker line plus the reviewable story:
 
