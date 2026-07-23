@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.2](https://github.com/CodySwannGT/lisa/compare/v2.297.1...v2.297.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* **ci:** check Lisa's own learnings ledger against its in-tree contract ([6477cc3](https://github.com/CodySwannGT/lisa/commit/6477cc3a1f43d2cde20c214c4f88199af676dc1f)), closes [#2001](https://github.com/CodySwannGT/lisa/issues/2001) [#1959](https://github.com/CodySwannGT/lisa/issues/1959) [CodySwannGT/lisa#2005](https://github.com/CodySwannGT/lisa/issues/2005)
+
 ### [2.297.1](https://github.com/CodySwannGT/lisa/compare/v2.297.0...v2.297.1) (2026-07-23)
 
 

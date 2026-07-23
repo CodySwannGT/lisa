@@ -1,6 +1,6 @@
 {
   "name": "lisa-rails",
-  "version": "2.297.1",
+  "version": "2.297.2",
   "description": "Ruby on Rails-specific skills and hooks for RuboCop and ast-grep scanning on edit.",
   "author": {
     "name": "Cody Swann"
