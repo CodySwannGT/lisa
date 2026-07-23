@@ -74,7 +74,7 @@ describe("probeSonarReadiness", () => {
       runnerFor({ "--version": true, auth: false })
     );
     expect(readiness.status).toBe("fail");
-    expect(readiness.detail).toContain("SONARQUBE_TOKEN");
+    expect(readiness.detail).toContain("SONARQUBE_CLI_TOKEN");
   });
 
   it("prefers the project key in the ready detail", async () => {

@@ -69,7 +69,7 @@ tracker/source, plus the host project's own package manager and tooling — not 
    sibling repos reachable through the routine's GitHub proxy.
    For OPTIONAL non-tracker MCP recovery entries discovered by
    `/lisa:analyze-claude-remote`, preserve the same names-only behavior:
-   include `JAM_PAT`, `SONARQUBE_TOKEN` (+ `SONARQUBE_ORG`/`SONARQUBE_URL`), or
+   include `JAM_PAT`, `SONARQUBE_CLI_TOKEN` (+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`), or
    similar documented substrate env vars only as optional secrets, with their
    acquire/scope comments when the analysis supplied them. Never invent values or promote dormant substrates to required.
    When AWS entries are present, list only `LISA_AWS_BOOTSTRAP_JSON` as the
@@ -89,8 +89,8 @@ tracker/source, plus the host project's own package manager and tooling — not 
      real MCP rather than substituting REST. Emit, guarded on the optional env
      token, the vendor CLI install (`curl -o- https://raw.githubusercontent.com/SonarSource/sonarqube-cli/refs/heads/master/user-scripts/install.sh | bash`),
      `sonar integrate <agent>`, and a `sonar run mcp`-image pre-pull so the first
-     run fits the ~5-min cache budget. Provide `SONARQUBE_TOKEN`
-     (+ `SONARQUBE_ORG`/`SONARQUBE_URL`); never emit `sonar auth login` (keychain
+     run fits the ~5-min cache budget. Provide `SONARQUBE_CLI_TOKEN`
+     (+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`); never emit `sonar auth login` (keychain
      does not exist headless).
    - REST-only substitute substrates: for a vendor whose MCP genuinely cannot run
      headless, do not install an MCP — emit comments naming the REST host and env
