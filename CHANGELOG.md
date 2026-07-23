@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.295.6](https://github.com/CodySwannGT/lisa/compare/v2.295.5...v2.295.6) (2026-07-23)
+
+
+### Bug Fixes
+
+* keep preview substrings from hiding durable operations ([60036ed](https://github.com/CodySwannGT/lisa/commit/60036ed673d4fa932646960f53abad9077164bab)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.295.5](https://github.com/CodySwannGT/lisa/compare/v2.295.4...v2.295.5) (2026-07-23)
 
 
