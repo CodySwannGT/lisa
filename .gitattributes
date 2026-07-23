@@ -6,4 +6,10 @@
 # command is machine-local — run `lisa install-merge-driver` to register it.
 .lisa/PROJECT_LEARNINGS.md merge=lisa-learnings
 
+# The overflow buffer holds captures the ledger had no budget for, until
+# the gardener drains them. Same writers, same branches, same format — so
+# it needs the same union merge, or a merge could destroy the very content
+# it exists to preserve.
+.lisa/PROJECT_LEARNINGS.overflow.md merge=lisa-learnings
+
 # END: AI GUARDRAILS

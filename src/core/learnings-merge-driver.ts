@@ -31,6 +31,7 @@
  * register it by hand in a clone that apply has not touched.
  * @module core/learnings-merge-driver
  */
+import { resolveLearningsOverflowFile } from "./learnings-overflow.js";
 
 /** Git merge-driver name shared by `.gitattributes` and the local git config. */
 export const LEARNINGS_MERGE_DRIVER_NAME = "lisa-learnings";
@@ -88,6 +89,14 @@ export function buildLearningsAttributeLine(ledgerPath: string): string {
  * Wrapped in the same guardrail markers the `.gitignore` template uses, so the
  * `copy-contents` strategy replaces exactly this block on re-apply and leaves
  * every host-authored rule outside it untouched.
+ *
+ * Both halves of the learnings surface are bound. The overflow file
+ * (CodySwannGT/lisa#1996) is written by the same concurrent learner passes, on
+ * the same per-fingerprint branches, in the same canonical document format — so
+ * it has the ledger's exact merge problem and the exact same union-by-id
+ * resolution. Binding only the ledger would leave the overflow on git's default
+ * text merge, silently re-introducing the corruption this driver exists to
+ * remove, on the one file whose whole job is not losing content.
  * @param ledgerPath - Project-relative learnings file path
  * @returns Managed block, newline-terminated
  */
@@ -100,6 +109,12 @@ export function renderLearningsGitattributesBlock(ledgerPath: string): string {
     "# conflict markers; this driver unions entries by id instead. The driver",
     "# command is machine-local — run `lisa install-merge-driver` to register it.",
     buildLearningsAttributeLine(ledgerPath),
+    "",
+    "# The overflow buffer holds captures the ledger had no budget for, until",
+    "# the gardener drains them. Same writers, same branches, same format — so",
+    "# it needs the same union merge, or a merge could destroy the very content",
+    "# it exists to preserve.",
+    buildLearningsAttributeLine(resolveLearningsOverflowFile(ledgerPath)),
     "",
     GITATTRIBUTES_END_MARKER,
     "",
