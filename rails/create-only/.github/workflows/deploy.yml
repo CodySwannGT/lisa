@@ -32,6 +32,11 @@ jobs:
     if: ${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Declaring the environment makes GitHub emit deployment /
+    # deployment_status events for this run — the substrate that
+    # deploy-status-sync listens to. No determine_environment job exists in
+    # this workflow; the ternary mirrors the APP_STAGE branch logic below.
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name }}
     permissions:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint.
       contents: read
