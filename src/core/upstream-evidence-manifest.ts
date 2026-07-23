@@ -971,7 +971,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "1881564dd554ae5c2e0fd5f8b88add929726a2d257a79e68e970448f191f84a3",
+      "d682b944ae099cdad8c91762b6665b8ef613b58bb8b041335841c116c94dd891",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "9c372e106afd53ff988046119cf36b0f6519c4426775dd8ad3c9d9baeee5d3e2",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":

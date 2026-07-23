@@ -184,10 +184,10 @@ No learning content is ever committed without a PR — there is no other write p
 
      ```markdown
      <!-- [lisa-ledger-saturated] key=<saturation-fingerprint> -->
-     Learnings ledger saturated — a durable capture was dropped for budget. The projection is now omitting entries; promote or retire a learning to reclaim room. This records budget pressure for the gardener's next audit — it is not itself a new learning.
+     Learnings ledger saturated — a durable capture was dropped for budget. The projection is now omitting entries; promote or retire a learning to reclaim room. This is an operator-visible budget-pressure signal, not itself a new learning.
      ```
 
-     The `[lisa-ledger-saturated]` marker sits **outside the `[lisa-learning-*]` namespace** that the gardener (`lisa-learnings-audit`) auto-excludes from candidacy — chosen so the gardener reads it as budget-pressure evidence (its `projectLearnings` omission / promote-or-retire axis) rather than skipping it as learning-machinery noise. **Do not reuse a `[lisa-learning-*]` marker here** — that would make the gardener blind to the very pressure it exists to relieve. The candidate itself is still dropped; this signal records the saturation, it does not persist the rule.
+     The `[lisa-ledger-saturated]` marker sits **outside the `[lisa-learning-*]` namespace** that the gardener (`lisa-learnings-audit`) auto-excludes from candidacy. The gardener already derives budget pressure independently — it measures the entries its `projectLearnings` projection has to omit — so this ticket does not feed that measurement mechanically; its job is an idempotent, operator-visible notification that saturation happened. Keeping it outside `[lisa-learning-*]` matters so the audit tooling does not silently filter it as learning-machinery noise before an operator sees it. **Do not reuse a `[lisa-learning-*]` marker here.** The candidate itself is still dropped; this signal records the saturation, it does not persist the rule.
 4. **Branch + commit.** Work on branch `learning/<fingerprint>`. Commit only the learnings file; verify with `git diff --name-only` that the diff touches nothing else.
 5. **PR body.** Exactly one marker line plus the reviewable story:
 
