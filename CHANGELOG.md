@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.4](https://github.com/CodySwannGT/lisa/compare/v2.297.3...v2.297.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* harden learnings ledger concurrent writes ([a267c69](https://github.com/CodySwannGT/lisa/commit/a267c693cdcb3e92f73d0cca950f2ff87f492bb0)), closes [CodySwannGT/lisa#1995](https://github.com/CodySwannGT/lisa/issues/1995)
+
 ### [2.297.3](https://github.com/CodySwannGT/lisa/compare/v2.297.2...v2.297.3) (2026-07-23)
 
 
