@@ -65,6 +65,14 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      # `update-branch` merges on GitHub's servers, which never run a local
+      # merge driver — that path stays uncovered by design. This registers the
+      # driver for the fallback case where the server merge conflicts and the
+      # agent resolves it locally in this clone (CodySwannGT/lisa#1995).
+      - name: Register the learnings union merge driver
+        continue-on-error: true
+        run: npx --no-install lisa install-merge-driver . || true
       - name: Read plugins from project settings
         id: plugins
         run: |
@@ -125,6 +133,14 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      # `update-branch` merges on GitHub's servers, which never run a local
+      # merge driver — that path stays uncovered by design. This registers the
+      # driver for the fallback case where the server merge conflicts and the
+      # agent resolves it locally in this clone (CodySwannGT/lisa#1995).
+      - name: Register the learnings union merge driver
+        continue-on-error: true
+        run: npx --no-install lisa install-merge-driver . || true
 
       - name: Update PR branch
         uses: anthropics/claude-code-action@v1

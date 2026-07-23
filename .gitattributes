@@ -1,0 +1,9 @@
+# BEGIN: AI GUARDRAILS
+
+# The project learnings ledger is written by concurrent learner passes that
+# each run on their own branch. Git's default line merge corrupts it with
+# conflict markers; this driver unions entries by id instead. The driver
+# command is machine-local — run `lisa install-merge-driver` to register it.
+.lisa/PROJECT_LEARNINGS.md merge=lisa-learnings
+
+# END: AI GUARDRAILS

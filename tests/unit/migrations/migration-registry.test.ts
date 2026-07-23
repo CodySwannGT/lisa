@@ -67,6 +67,8 @@ describe("MigrationRegistry", () => {
     expect(names).toContain("ensure-audit-ignore-local-exclusions");
     expect(names).toContain("ensure-jest-rn-mock-accessibility-manager");
     expect(names).toContain("ensure-lisa-postinstall");
+    expect(names).toContain("ensure-learnings-gitattributes");
+    expect(names).toContain("ensure-learnings-merge-driver");
     expect(names).toContain("untrack-codex-marketplace");
   });
 
