@@ -72,7 +72,11 @@ jobs:
       # agent resolves it locally in this clone (CodySwannGT/lisa#1995).
       - name: Register the learnings union merge driver
         continue-on-error: true
-        run: npx --no-install lisa install-merge-driver . || true
+        run: |
+          if npx --no-install lisa install-merge-driver .; then
+            exit 0
+          fi
+          echo "::warning title=Learnings merge driver not registered::Could not register the union merge driver. If the server-side branch update conflicts and this run resolves it locally, the learnings ledger falls back to git's line merge, which produces conflict markers instead of a union by entry id (CodySwannGT/lisa#1995)."
       - name: Read plugins from project settings
         id: plugins
         run: |
@@ -140,7 +144,11 @@ jobs:
       # agent resolves it locally in this clone (CodySwannGT/lisa#1995).
       - name: Register the learnings union merge driver
         continue-on-error: true
-        run: npx --no-install lisa install-merge-driver . || true
+        run: |
+          if npx --no-install lisa install-merge-driver .; then
+            exit 0
+          fi
+          echo "::warning title=Learnings merge driver not registered::Could not register the union merge driver. If the server-side branch update conflicts and this run resolves it locally, the learnings ledger falls back to git's line merge, which produces conflict markers instead of a union by entry id (CodySwannGT/lisa#1995)."
 
       - name: Update PR branch
         uses: anthropics/claude-code-action@v1
