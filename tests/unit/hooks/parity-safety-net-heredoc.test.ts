@@ -152,13 +152,16 @@ describe("parity-safety-net heredoc grammar", () => {
   });
 
   describe("delimiter-quoting conservatism (issue #1958 F4)", () => {
-    // POSIX says ANY quoting of ANY part of a heredoc delimiter (including a
-    // backslash escape, `<<\EOF`) makes the body non-expanding. The parser
-    // cannot PROVE that for backslash or partially-quoted forms — parse_marker
-    // records no Marker for `<<\EOF` and mis-tokenizes `<<EO'F'` — so only a
-    // delimiter wrapped in one full single- or double-quote pair earns the
-    // literal-body exclusion. These pins make that deliberate fail-safe
-    // divergence from POSIX visible if it ever drifts.
+    // POSIX says ANY quoting of ANY part of a heredoc delimiter makes the body
+    // non-expanding. `<<\EOF` is now MODELLED as exactly that — a quoted
+    // delimiter (issue #1993 R5c) — because bash agrees, measured directly:
+    // `cat <<\EOF` with body `x = "`ls`"` prints that text VERBATIM (backticks
+    // never run), byte-identical to `<<'EOF'`, while unquoted `<<EOF` prints
+    // `x = ""` because it really did expand them. Leaving it unmodelled was not
+    // merely conservative: an apostrophe in the invisible body still poisoned
+    // the flat scanner's quote state and hid a live `$(...)` on a line AFTER
+    // the terminator. Partially-quoted forms like `<<EO'F'` remain unmodelled
+    // and fail closed. These pins keep `<<\EOF` in lockstep with `<<'EOF'`.
     it("allows a backslash-quoted delimiter with a harmless payload", () => {
       const command = [
         BACKSLASH_QUOTED_HEREDOC,
@@ -169,14 +172,19 @@ describe("parity-safety-net heredoc grammar", () => {
       expect(runHook(command).status).toBe(EXIT_ALLOWED);
     });
 
-    it("still fails closed on substitution tokens under a backslash-quoted delimiter", () => {
+    it("treats substitution tokens under a backslash-quoted delimiter as the literal data bash makes them", () => {
+      // Was BLOCKED while `<<\EOF` was unmodelled. Bash does NOT execute these
+      // backticks, so blocking was a false positive; `<<'EOF'` with the same
+      // body has always been allowed. The classifier returns UNSUPPORTED, which
+      // passes the RAW command to the content guards — the next test proves a
+      // destructive payload in this exact position is still caught.
       const command = [
         BACKSLASH_QUOTED_HEREDOC,
         'x = "`ls`"',
         HEREDOC_TERMINATOR,
       ].join("\n");
 
-      expect(runHook(command).status).toBe(EXIT_BLOCKED);
+      expect(runHook(command).status).toBe(EXIT_ALLOWED);
     });
 
     it("keeps destructive payloads behind a backslash-quoted delimiter visible to guards", () => {
