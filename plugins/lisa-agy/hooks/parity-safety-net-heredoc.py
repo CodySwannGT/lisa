@@ -1,5 +1,64 @@
 #!/usr/bin/env python3
-"""Classify the only heredoc forms whose payload is non-executable text."""
+"""Classify the only heredoc forms whose payload is non-executable text.
+
+SCOPE — read this before hardening anything here (issue #1993).
+
+This module is a HEURISTIC RE-IMPLEMENTATION of bash's here-doc lexing, not an
+adversary-resistant control. Every divergence between this Python model and real
+bash is, by construction, a potential mis-classification, and five rounds of
+fix-then-re-attack on issue #1958 plus three more here (#1993) established that
+enumerating those divergences is an open-ended arms race. Treat the class as
+CLOSED: a newly found member is documented, not chased, unless someone first
+demonstrates it defeats the CONTENT GUARDS, which are the layer that matters.
+
+The one hard guarantee, and the reason a mis-classification is survivable:
+
+    Exit SAFE(0) is the ONLY path that strips payload text, and it requires the
+    narrow, fully-quoted `gh issue|pr create/edit/comment` + `<<'EOF'` grammar in
+    ``classify_safe``. EVERY other path — UNSUPPORTED(10) and MALFORMED(20) —
+    hands the RAW, unmodified command to the content guards. So a here-doc the
+    classifier mis-reads degrades to the guards; it does not bypass them. Any
+    change here must preserve that property: widen ``classify_safe`` only with
+    proof, and keep every other exit raw-pass-through.
+
+Known accepted bypass class (measured, deliberately not chased further):
+R5a — a trailing backslash on the last body line is a bash continuation that
+swallows the terminator; R5b — an odd apostrophe in an unquoted body poisons a
+flat quote scanner past the terminator; R5c — `<<\\DELIM` is a quoted delimiter
+this parser did not model. All three are FIXED below, but they are members of a
+family, not the family itself. Each requires deliberately-crafted input; none is
+a shape an agent emits by accident; and post-#1982 every destructive class the
+safety net exists to stop is independently blocked by the content guards on the
+raw text.
+
+The two bash invariants this file relies on — both measured directly against
+/bin/bash, not inferred — so a future round starts from a spec:
+
+1. UNQUOTED delimiter (`<<EOF`): the body performs NO quote or comment
+   processing (`'`, `"`, `#` are literal data bytes) but STILL expands `$(...)`,
+   backticks and parameters, and bash removes `\\<newline>` continuations BEFORE
+   matching the delimiter. Measured: `cat <<EOF` / `foo\\` / `EOF` / `bar` emits
+   `fooEOF\\nbar` — the here-doc never terminated.
+2. QUOTED delimiter in any spelling (`<<'EOF'`, `<<"EOF"`, `<<\\EOF`): the body is
+   fully literal, no expansion of any kind, and backslash is DATA rather than an
+   escape — so the delimiter IS matched per physical line there. Measured: the
+   same trailing-backslash shape under `<<'EOF'` emits `foo\\` and then fails on
+   `bar: command not found`.
+
+That asymmetry is why the continuation handling in ``terminator_line_index`` is
+conditioned on ``Marker.quoted`` rather than applied uniformly.
+
+``Marker.quoted`` means "bash makes this BODY literal" and nothing more. The
+three spellings above are interchangeable for body semantics ONLY — they are NOT
+interchangeable on the writer path. ``classify_safe`` still demands the literal
+``<<'DELIM'`` spelling, so `<<"EOF"` and `<<\\EOF` can never reach SAFE(0); since
+#1993 they additionally record a Marker, which arms the writer-owns-a-real-marker
+and multi-marker rules and lands a `gh … <<\\EOF` writer on MALFORMED(20) where it
+used to be UNSUPPORTED(10). That is a deliberate, test-pinned over-block: the
+documented payload-strip workaround is spelled `<<'EOF'`. Widening
+``classify_safe`` to admit other spellings is a separate change needing its own
+proof — do not do it as a side effect of body-semantics work.
+"""
 
 from __future__ import annotations
 
@@ -494,6 +553,105 @@ def collapse_body_continuations(body: str) -> str:
     return "".join(result)
 
 
+def trailing_continuation(line: str) -> str | None:
+    """Strip a bash ``\\<newline>`` continuation backslash, or ``None``.
+
+    A here-doc body line ends in a continuation exactly when it ends in an ODD
+    run of backslashes: each pair is one escaped literal backslash, so a leftover
+    single backslash is the one that escapes the following newline. Parity of the
+    TRAILING run is sufficient — any backslash earlier in the line is separated
+    from the run by a non-backslash byte, which ends that escape.
+    """
+    stripped = line.rstrip("\\")
+    if (len(line) - len(stripped)) % 2 == 0:
+        return None
+    return line[:-1]
+
+
+def terminator_line_index(command: str, marker: Marker) -> int | None:
+    """Index of the physical line that closes ``marker``, or ``None``.
+
+    THE single home of "where does this here-doc body end", consulted by the
+    closure check, the body scanner, the literal-body strip and the body
+    neutraliser so no two of them can ever disagree about the window (issue
+    #1993 R5a).
+
+    Bash removes ``\\<newline>`` continuations from an UNQUOTED here-doc body
+    BEFORE it matches the delimiter, so a trailing backslash on the last body
+    line JOINS that line to the delimiter line and the here-doc is NOT closed
+    there — the real body swallows the apparent terminator and keeps consuming
+    following lines, where a ``$(...)`` the classifier believed was ordinary
+    post-here-doc text is expanded and EXECUTED. Matching the delimiter per
+    PHYSICAL line therefore under-reads the body window for unquoted delimiters.
+    Measured ground truth: ``cat <<EOF`` / ``foo\\`` / ``EOF`` / ``bar`` prints
+    ``fooEOF\\nbar`` (never terminated), while the same shape with ``<<'EOF'``
+    prints ``foo\\`` and then fails on ``bar: command not found``.
+
+    A QUOTED (or backslash-quoted) delimiter makes the body fully literal —
+    backslash is DATA there, not an escape — so those markers keep the exact
+    per-physical-line match, which the same measurement proves correct.
+    """
+    lines = bash_lines(command)
+    marker_line = command.count("\n", 0, marker.start)
+    pending: list[str] = []
+    for index in range(marker_line + 1, len(lines)):
+        line = lines[index]
+        if not marker.quoted:
+            continued = trailing_continuation(line)
+            if continued is not None:
+                pending.append(continued)
+                continue
+        candidate = "".join(pending) + line
+        pending = []
+        if marker.strip_tabs:
+            candidate = candidate.lstrip("\t")
+        if candidate == marker.delimiter:
+            return index
+    return None
+
+
+def neutralize_heredoc_bodies(command: str, markers: list[Marker]) -> str:
+    """Blank every real here-doc body window, preserving offsets.
+
+    ``has_active_command_substitution`` runs ONE flat single/double-quote state
+    machine across the whole command — including here-doc bodies, where bash
+    applies NO quote processing at all. An odd apostrophe in an unquoted body
+    (``it's fine``) therefore opens a phantom single-quoted string in the flat
+    scanner that persists PAST the terminator, hiding a live ``$(...)`` on a
+    FOLLOWING command line that bash happily executes (issue #1993 R5b). The
+    trigger is precisely an odd ``'`` count: an even ``''``, an odd ``"``, a
+    ``#``, an ANSI-C ``$'a`` and a lone trailing backslash all leave the flat
+    state correct, which is what pins the defect to this one branch.
+
+    ``strip_provably_literal_body`` cannot fix this: it bails whenever the marker
+    is unquoted, so the poisoning body is exactly the one it never touches. So
+    blank the body window of EVERY marker bash really treats as a here-doc
+    redirection before the flat scan runs. Bytes are replaced with spaces and
+    newlines are preserved, so marker offsets and line numbering stay valid for
+    every later walker.
+
+    Blanking loses nothing: a substitution INSIDE an unquoted body is still
+    caught by ``unquoted_heredoc_body_has_substitution`` (scanned with correct
+    here-doc-body semantics), and a quoted body is genuinely inert to bash. A
+    marker that is not closed blanks to end of command — that command is
+    MALFORMED on the closure check regardless, and its trailing region is still
+    body-scanned. As everywhere else, a marker nested inside an open quoted
+    string is NOT a here-doc to bash and is skipped, so its "body" stays fully
+    visible to the flat scan (issue #1958 Finding 1).
+    """
+    lines = bash_lines(command)
+    blanked = list(lines)
+    for marker in markers:
+        if cross_line_quote_state(command, marker.start) != "plain":
+            continue
+        marker_line = command.count("\n", 0, marker.start)
+        end = terminator_line_index(command, marker)
+        stop = len(lines) if end is None else end
+        for index in range(marker_line + 1, stop):
+            blanked[index] = " " * len(lines[index])
+    return "\n".join(blanked)
+
+
 def body_line_has_substitution(line: str) -> bool:
     """True if an unquoted-heredoc-body line contains an active substitution.
 
@@ -553,22 +711,22 @@ def unquoted_heredoc_body_has_substitution(
         if cross_line_quote_state(command, marker.start) != "plain":
             continue
         marker_line = command.count("\n", 0, marker.start)
-        body_lines: list[str] = []
-        for index in range(marker_line + 1, len(lines)):
-            candidate = (
-                lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
-            )
-            if candidate == marker.delimiter:
-                break
-            body_lines.append(lines[index])
+        end = terminator_line_index(command, marker)
+        stop = len(lines) if end is None else end
+        body_lines = lines[marker_line + 1 : stop]
         # Join the raw body window under bash's unquoted-here-doc ``\<newline>``
         # removal BEFORE scanning, so a ``$(`` a caller split across a line
         # continuation is seen as the one contiguous token bash executes. The
-        # terminator was matched per physical line above (bash matches the
-        # delimiter before continuation processing), so continuations are joined
-        # only WITHIN the body window, never across the delimiter. This does not
-        # rely on ``collapse_line_continuations`` — whose flat quote state a body
-        # apostrophe corrupts — which is the whole point of Finding R4.
+        # window itself comes from ``terminator_line_index``, which applies that
+        # SAME removal before matching the delimiter — because bash does (issue
+        # #1993 R5a). An earlier revision matched the terminator per physical
+        # line here on the belief that bash matches the delimiter before
+        # continuation processing; that is false for an unquoted delimiter, and
+        # it let a trailing backslash on the last body line swallow the
+        # terminator so this scan stopped short of the region bash still treats
+        # as body. This does not rely on ``collapse_line_continuations`` — whose
+        # flat quote state a body apostrophe corrupts — which is the whole point
+        # of Finding R4.
         body = collapse_body_continuations("\n".join(body_lines))
         if body_line_has_substitution(body):
             return True
@@ -595,16 +753,42 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
         delimiter = line[index:end]
         final = end + 1
         # Deliberate POSIX divergence, fail-safe: POSIX makes the body
-        # non-expanding when ANY part of the delimiter is quoted — including
-        # `<<\EOF` (invisible to this parser: backslash is not a quote char and
-        # the identifier regex rejects it, so no Marker is recorded and the
-        # body stays raw-visible to every guard) and partial forms like
-        # `<<EO'F'` (mis-tokenized as delimiter EO, so the terminator never
-        # matches and the command fails closed as MALFORMED). Only a delimiter
-        # this parser can PROVE was one full quote pair earns quoted=True, and
-        # trailing word characters after the closing quote (`<<'EOF'X` — real
-        # bash delimiter EOFX) keep it conservative too: the next character
-        # must end the token.
+        # non-expanding when ANY part of the delimiter is quoted. Partial forms
+        # like `<<EO'F'` stay unmodelled (mis-tokenized as delimiter EO, so the
+        # terminator never matches and the command fails closed as MALFORMED).
+        # Only a delimiter this parser can PROVE was one full quote pair earns
+        # quoted=True, and trailing word characters after the closing quote
+        # (`<<'EOF'X` — real bash delimiter EOFX) keep it conservative too: the
+        # next character must end the token.
+        quoted = final >= len(line) or line[final] in " \t;&|)<>#"
+    elif line[index] == "\\":
+        # `<<\DELIM` is a BACKSLASH-quoted delimiter: bash and POSIX make its
+        # body fully literal, exactly like `<<'DELIM'` (measured: `cat <<\EOF`
+        # with body `it's $(echo RAN)` prints that text verbatim, unexpanded).
+        # This spelling used to record NO Marker at all, on the rationale that an
+        # unmodelled body stays raw-visible to every content guard. That covers
+        # the body's own contents but NOT the body's ability to corrupt the flat
+        # scanner's quote state for text AFTER the terminator: an apostrophe in
+        # an invisible body still opened a phantom string that hid a live
+        # `$(...)` on a following line (issue #1993 R5c). Recording it as the
+        # quoted marker bash actually treats it as is both more faithful and
+        # what brings it under `neutralize_heredoc_bodies`. The same
+        # token-must-end discipline as the quote-pair branch applies, so exotic
+        # spellings (`<<\EOF'x'` — real bash delimiter EOFx) stay conservative.
+        # quoted=True here is a statement about BODY semantics only. Recording a
+        # Marker where there was none also arms the writer-owns-a-real-marker and
+        # multi-marker rules, so `gh issue create --body-file - <<\EOF` and
+        # `cat <<\A <<B` now fail closed at MALFORMED instead of passing through
+        # at UNSUPPORTED. Both are valid, harmless bash, so that is a real
+        # over-block — accepted and test-pinned, because `classify_safe` requires
+        # the literal `<<'DELIM'` spelling and `<<\EOF` can never reach SAFE
+        # anyway. The documented payload-strip workaround is `<<'EOF'`.
+        index += 1
+        match = re.match(r"[A-Za-z_][A-Za-z0-9_]*", line[index:])
+        if match is None:
+            return None
+        delimiter = match.group(0)
+        final = index + len(delimiter)
         quoted = final >= len(line) or line[final] in " \t;&|)<>#"
     else:
         match = re.match(r"[A-Za-z_][A-Za-z0-9_]*", line[index:])
@@ -698,21 +882,22 @@ def strip_provably_literal_body(command: str, markers: list[Marker]) -> str:
         return command
     lines = bash_lines(command)
     marker_line = command.count("\n", 0, marker.start)
-    for index in range(marker_line + 1, len(lines)):
-        candidate = lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
-        if candidate == marker.delimiter:
-            return "\n".join(lines[: marker_line + 1] + lines[index:])
-    return command
+    end = terminator_line_index(command, marker)
+    if end is None:
+        return command
+    return "\n".join(lines[: marker_line + 1] + lines[end:])
 
 
 def marker_is_closed(command: str, marker: Marker) -> bool:
-    marker_line = command.count("\n", 0, marker.start)
-    lines = bash_lines(command)
-    for line in lines[marker_line + 1 :]:
-        candidate = line.lstrip("\t") if marker.strip_tabs else line
-        if candidate == marker.delimiter:
-            return True
-    return False
+    """True when bash really terminates this here-doc inside the command.
+
+    Delegates to ``terminator_line_index`` so the closure verdict and the body
+    window are decided by one rule. For an unquoted delimiter that rule removes
+    ``\\<newline>`` continuations first, so a trailing backslash on the last body
+    line correctly reads as NOT closed — which is what bash does, and what makes
+    the swallowed-terminator shape fail closed as MALFORMED (issue #1993 R5a).
+    """
+    return terminator_line_index(command, marker) is not None
 
 
 def main() -> int:
@@ -748,11 +933,18 @@ def main() -> int:
         return MALFORMED
 
     # Nested substitution plus a heredoc is executable shell syntax unless it
-    # matched the one exact quoted `--body "$(cat ...)"` form above. The body
-    # of a single provably-literal heredoc is excluded from this scan (its
-    # tokens are inert data); the text outside that window is still scanned.
+    # matched the one exact quoted `--body "$(cat ...)"` form above. Here-doc
+    # bodies are neutralised before the flat scan: bash applies NO quote
+    # processing inside a body, so leaving those bytes in a flat quote state
+    # machine let an odd body apostrophe poison the scanner PAST the terminator
+    # and hide a live substitution on a following command line (issue #1993
+    # R5b). Neutralising preserves offsets, so the narrower literal-body strip
+    # still applies on top; the text outside every body window is still scanned,
+    # and in-body substitutions are covered by the body-semantics scan below.
     if has_active_command_substitution(
-        strip_provably_literal_body(logical_command, markers)
+        strip_provably_literal_body(
+            neutralize_heredoc_bodies(logical_command, markers), markers
+        )
     ) or unquoted_heredoc_body_has_substitution(logical_command, markers):
         return MALFORMED
     if len(markers) > 1:

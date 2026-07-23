@@ -103,7 +103,44 @@ same reason the rm guard treats substitution-wrapping as verdict-neutral (issue
 #1982): an executable `echo "$(rm -rf /)"` is blocked, and so are inert twins the
 shell would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
 `echo "\$(rm -rf /)"` — since the scan has no quote-context awareness. The same
-quote-break or heredoc workaround applies.
+quote-break or heredoc workaround applies. Spell that heredoc workaround with a
+**quote-pair** delimiter (`gh issue create --body-file - <<'EOF'`) — only that
+spelling reaches the payload-strip path. `<<"EOF"` and `<<\EOF` do not, and a
+`gh … <<\EOF` writer now fails closed instead.
+
+## What this does and does not defend against
+
+Read this before treating the safety net as a wall.
+
+**What it is for:** stopping *accidental* catastrophic commands — an agent (or a
+human) that reaches for `rm -rf /`, force-pushes `main`, drops a table, or writes
+to a raw device by mistake. Within that job the guards above are the floor and
+they are always on.
+
+**What it is not:** a security boundary against a deliberate adversary. Two
+structural reasons, both accepted rather than open bugs:
+
+- **It is a text scan, not a shell engine.** It has no quote-context awareness,
+  which produces the false positives described above and means an operation
+  spelled in a way the patterns do not anticipate is not matched.
+- **The here-doc classifier re-implements bash's lexer in Python** to decide
+  which payload text is inert data. Every divergence from real bash is a shape it
+  mis-classifies. Eight distinct divergences were found and fixed across issues
+  #1958 and #1993; the class is open-ended, so it is now closed as an accepted
+  limitation rather than chased indefinitely.
+
+**Why that is tolerable:** a here-doc mis-classification degrades to the content
+guards rather than bypassing them. Only the narrow `gh issue|pr` writer form ever
+strips payload text; every other path passes the **raw** command to the guards,
+and since issue #1982 those guards see through substitution wrappers. So a
+mis-read here-doc costs no guard coverage for any destructive class listed above.
+
+**The honest bottom line:** an agent that is actively trying to run something
+destructive has many paths that never involve a here-doc at all — the safety net
+does not claim to close them. Do not rely on it as the only control over what an
+agent may execute; treat it as the last line of defence against mistakes, and
+keep the real boundary (credentials, permissions, environment isolation) outside
+the agent.
 
 ## View the current rules
 
