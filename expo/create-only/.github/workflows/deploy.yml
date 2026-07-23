@@ -177,19 +177,6 @@ jobs:
   deploy:
     name: 🚀 Deploy to EAS
     runs-on: ubuntu-latest
-    # Declaring the environment makes GitHub emit deployment /
-    # deployment_status events for this run — the substrate that
-    # deploy-status-sync listens to. Friendly name resolution (dev/staging/
-    # production) comes from determine_environment; unconfigured branches
-    # degrade to the branch name, same as the approval gate.
-    # Mitigation A (double-approval): GitHub environment approvals are
-    # per-job, so if this job named the same protected env release_approval
-    # already gated, the operator would be prompted twice. On approval-gated
-    # runs the deploy job routes to `<env>-deploy` (host projects leave it
-    # unprotected — no required reviewers), giving exactly one prompt while
-    # still recording a deployment with a Jira-classifiable env name (the
-    # dev/staging/production substring is preserved).
-    environment: ${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}
     needs:
       [
         determine_environment,
