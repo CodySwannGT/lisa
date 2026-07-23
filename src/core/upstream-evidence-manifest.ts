@@ -585,7 +585,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/install-pkgs.sh":
       "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "67462f19a27da1ed39fcb6232e0f73ddd50e664b6ce1337aa32f9979e216fc7f",
+      "7bbfa6c37cd1ccc09c1c9567cdc461fdf583369fc9b5fd5a6364fbda51e90d80",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
