@@ -134,6 +134,28 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
   });
+
+  it("stands B1 for a durable bucket whose name only contains `preview`", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: aws s3 rm s3://acme-customer-preview-recordings --recursive",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
 });
 
 describe("assessDomainOwnershipDimension — an empty runbook directory suppresses nothing", () => {
