@@ -1,7 +1,7 @@
 /** Cross-process contention regression tests for the learnings writer. */
 import * as fs from "fs-extra";
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, unlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -21,6 +21,17 @@ if (projectRoot === undefined || serializedEntry === undefined) {
   throw new Error("Missing cross-process writer input");
 }
 await persistLearningEntry(projectRoot, JSON.parse(serializedEntry));
+`;
+const CROSS_PROCESS_CONSOLIDATING_WRITER = `
+import { persistConsolidatedLearning } from "./src/core/learnings-writer.ts";
+const projectRoot = process.env.LEARNINGS_PROJECT_ROOT;
+const serializedEntry = process.env.LEARNINGS_ENTRY_JSON;
+if (projectRoot === undefined || serializedEntry === undefined) {
+  throw new Error("Missing cross-process writer input");
+}
+await persistConsolidatedLearning(projectRoot, JSON.parse(serializedEntry), {
+  supersede: ["learning-base"],
+});
 `;
 
 /**
@@ -78,5 +89,63 @@ describe("learnings writer cross-process concurrency", () => {
     expect(persisted.map(entry => entry.id)).toEqual(
       entries.map(entry => entry.id)
     );
+  });
+
+  it("preserves concurrent supersede candidates when the shared target was already consumed", async () => {
+    const projectRoot = path.join(tempDir, "cross-process-supersede");
+    await fs.ensureDir(projectRoot);
+    await execFileAsync("bun", ["--eval", CROSS_PROCESS_WRITER], {
+      cwd: path.resolve("."),
+      env: {
+        ...process.env,
+        LEARNINGS_PROJECT_ROOT: projectRoot,
+        LEARNINGS_ENTRY_JSON: JSON.stringify({
+          ...numberedEntry(0),
+          id: "learning-base",
+        }),
+      },
+    });
+    const lockPath = path.join(
+      projectRoot,
+      ".lisa",
+      `${LEARNINGS_FILENAME}.lock`
+    );
+    await writeFile(
+      lockPath,
+      JSON.stringify({
+        token: "test-barrier",
+        pid: process.pid,
+        createdAt: Date.now(),
+      }),
+      "utf8"
+    );
+    const replacements = Array.from({ length: 2 }, (_unused, index) => ({
+      ...numberedEntry(index + 1),
+      id: `learning-consolidated-${index + 1}`,
+      rule: `Consolidated rule ${index + 1}.`,
+    }));
+    const writers = replacements.map(entry =>
+      execFileAsync("bun", ["--eval", CROSS_PROCESS_CONSOLIDATING_WRITER], {
+        cwd: path.resolve("."),
+        env: {
+          ...process.env,
+          LEARNINGS_PROJECT_ROOT: projectRoot,
+          LEARNINGS_ENTRY_JSON: JSON.stringify(entry),
+        },
+      })
+    );
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await unlink(lockPath);
+    await Promise.all(writers);
+    const persisted = parseLearningsFile(
+      await readFile(
+        path.join(projectRoot, ".lisa", LEARNINGS_FILENAME),
+        "utf8"
+      )
+    );
+    expect(persisted.map(entry => entry.id)).toEqual([
+      "learning-consolidated-1",
+      "learning-consolidated-2",
+    ]);
   });
 });

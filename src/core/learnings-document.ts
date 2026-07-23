@@ -13,6 +13,7 @@ const FILE_HEADER = `# Project Learnings
 `;
 const JSON_FENCE_START = "```jsonl\n";
 const JSON_FENCE_END = "\n```\n";
+const CONFLICT_MARKER_PATTERN = /^(<<<<<<<|=======|>>>>>>>)(?: .*)?$/mu;
 
 /**
  * Render the complete file in one stable, machine-readable Markdown form.
@@ -33,6 +34,11 @@ export function parseLearningsFile(content: string): LearningEntry[] {
   if (estimateLearningTokens(content) > LEARNINGS_CONTRACT.maxTokens) {
     throw new Error(
       `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
+    );
+  }
+  if (CONFLICT_MARKER_PATTERN.test(content)) {
+    throw new Error(
+      "Project learnings ledger corrupted by concurrent write: embedded conflict markers found; restore or recompact the ledger before writing"
     );
   }
   if (
