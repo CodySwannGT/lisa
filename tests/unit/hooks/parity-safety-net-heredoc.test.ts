@@ -13,7 +13,10 @@ import path from "node:path";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const EXIT_BLOCKED = 2;
+const EXIT_ALLOWED = 0;
 const HEREDOC_TERMINATOR = "EOF";
+const DESTRUCTIVE_DELETE = "rm -rf /";
+const BACKSLASH_QUOTED_HEREDOC = "python3 <<\\EOF";
 const COMMENTED_MARKER = "gh issue create --body-file - # <<'EOF'";
 const HARMLESS_PROSE = "harmless prose";
 const OBFUSCATED_DELETE = "r''m -rf /";
@@ -146,5 +149,56 @@ describe("parity-safety-net heredoc grammar", () => {
     expect(script.status).toBe(EXIT_BLOCKED);
     expect(script.stderr).toContain("write the payload to a file");
     expect(script.stderr).not.toContain("git commit -F <file>");
+  });
+
+  describe("delimiter-quoting conservatism (issue #1958 F4)", () => {
+    // POSIX says ANY quoting of ANY part of a heredoc delimiter (including a
+    // backslash escape, `<<\EOF`) makes the body non-expanding. The parser
+    // cannot PROVE that for backslash or partially-quoted forms — parse_marker
+    // records no Marker for `<<\EOF` and mis-tokenizes `<<EO'F'` — so only a
+    // delimiter wrapped in one full single- or double-quote pair earns the
+    // literal-body exclusion. These pins make that deliberate fail-safe
+    // divergence from POSIX visible if it ever drifts.
+    it("allows a backslash-quoted delimiter with a harmless payload", () => {
+      const command = [
+        BACKSLASH_QUOTED_HEREDOC,
+        HARMLESS_PROSE,
+        HEREDOC_TERMINATOR,
+      ].join("\n");
+
+      expect(runHook(command).status).toBe(EXIT_ALLOWED);
+    });
+
+    it("still fails closed on substitution tokens under a backslash-quoted delimiter", () => {
+      const command = [
+        BACKSLASH_QUOTED_HEREDOC,
+        'x = "`ls`"',
+        HEREDOC_TERMINATOR,
+      ].join("\n");
+
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("keeps destructive payloads behind a backslash-quoted delimiter visible to guards", () => {
+      const command = [
+        BACKSLASH_QUOTED_HEREDOC,
+        DESTRUCTIVE_DELETE,
+        HEREDOC_TERMINATOR,
+      ].join("\n");
+
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("fails closed for a partially-quoted delimiter", () => {
+      const command = ["python3 <<EO'F'", HARMLESS_PROSE, "EOF"].join("\n");
+
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("fails closed for a fully-quoted delimiter followed by trailing junk", () => {
+      const command = ["python3 <<'EOF'X", 'x = "`ls`"', "EOFX"].join("\n");
+
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
+    });
   });
 });
