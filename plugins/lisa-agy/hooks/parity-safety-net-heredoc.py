@@ -28,7 +28,93 @@ class Marker:
     end: int
     delimiter: str
     strip_tabs: bool
+    # True ONLY when the whole delimiter token was wrapped in one full single-
+    # or double-quote pair (<<'EOF' / <<"EOF") with nothing word-like attached
+    # after the closing quote. That is the only form whose body this parser can
+    # PROVE bash treats as non-expanding literal data (issue #1958).
     quoted: bool
+
+
+def is_bash_blank(char: str) -> bool:
+    """True only for a byte bash treats as a word separator here: space, tab,
+    newline.
+
+    Python ``str.isspace()`` is a strict SUPERSET of bash's word-separator set —
+    it is also True for NBSP (``\\xa0``), the C0 separators FS/GS/RS/US
+    (``\\x1c``–``\\x1f``), NEL (``\\x85``), VT/FF (``\\x0b``/``\\x0c``), CR
+    (``\\r``), and the Unicode spaces (ideographic space ``\\u3000``, the
+    ``\\u2000``–``\\u200a`` run, ``\\u202f``, ``\\u205f``, ``\\u2028``/``\\u2029``).
+    Bash (C locale) treats NONE of these as a blank or a metacharacter, so a
+    ``#`` preceded by one stays INSIDE the current word — it does NOT start a
+    comment — and any ``$(...)`` / `` `...` `` in that word is still expanded and
+    EXECUTED. Every comment-boundary walker here must therefore match bash's
+    actual blank set, not Python's: using ``str.isspace()`` let the scanner call
+    ``#`` a comment where bash does not, skip to the newline, and go blind to a
+    live substitution — smuggling arbitrary command execution past the wall
+    (issue #1958 Finding R2). This is the single shared home of that predicate so
+    every walker stays in lockstep with bash's word-boundary rule; fail-closed on
+    ambiguity means narrowing (fewer bytes counted as blank), never widening.
+    """
+    return char in " \t\n"
+
+
+def bash_lines(text: str) -> list[str]:
+    """Split into bash's notion of lines: on ``\\n`` ONLY.
+
+    Python ``str.splitlines()`` is the same over-broad classifier as
+    ``str.isspace()`` in disguise — it ALSO breaks on ``\\r``, VT/FF
+    (``\\x0b``/``\\x0c``), the C0 separators FS/GS/RS (``\\x1c``–``\\x1e``), NEL
+    (``\\x85``), and the Unicode line separators (``\\u2028``/``\\u2029``). Bash
+    ends a line only at an unquoted ``\\n``, so ``splitlines()`` invents line
+    breaks bash never sees. The concrete hole: ``strip_provably_literal_body``
+    splits with ``splitlines()`` then rejoins with ``\\n``, so a ``echo X\\x1c#$(…)``
+    argument gets normalised into ``echo X`` / ``#$(…)`` on separate lines — now
+    the ``#`` sits at a real line start, is treated as a comment, and the live
+    ``$(…)`` is smuggled past the wall exactly as the ``str.isspace()`` desync
+    did (issue #1958 Finding R2, FS/ideographic-space variant). Splitting on
+    ``\\n`` alone keeps this parser's lines in lockstep with bash and with the
+    ``command.count("\\n", …)`` offset arithmetic the markers already rely on.
+    """
+    return text.split("\n")
+
+
+def ansi_c_quote_end(text: str, dollar_index: int) -> int | None:
+    """Index one past a bash ANSI-C ``$'...'`` token, or ``None``.
+
+    When an *unquoted* ``$`` is immediately followed by ``'`` bash opens an
+    ANSI-C-quoted string that ends at the first *unescaped* ``'``: a backslash
+    escapes the next single character, so ``\\'`` is a literal quote (does NOT
+    close the string) and ``\\\\`` is a literal backslash. Only literal
+    single quotes act as delimiters — value-only escapes like ``\\x27`` /
+    ``\\047`` / ``\\uHHHH`` decode to a quote *character* but never terminate
+    the token, so scanning for the first unescaped ``'`` yields exactly bash's
+    token boundary for every spelling.
+
+    A naive single-quote scanner that ignores ``$'...'`` desyncs from bash on an
+    odd number of ``\\'`` escapes: it reads three bare quotes as
+    single→plain→single and ends in a phantom open single-quote, going blind to
+    everything after it — including a live ``$(...)`` the following ``"`` really
+    exposes (issue #1958 Finding R1). Consuming the whole inert token here keeps
+    every shared walker in lockstep with bash.
+
+    Returns the index just past the closing quote, or ``None`` for a
+    non-``$'`` position or an unterminated token so callers fail closed. This is
+    the single shared home of ANSI-C token boundaries; every quote-state walker
+    consults it rather than re-deriving the rule.
+    """
+    if not text.startswith("$'", dollar_index):
+        return None
+    index = dollar_index + 2
+    length = len(text)
+    while index < length:
+        char = text[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == "'":
+            return index + 1
+        index += 1
+    return None
 
 
 def shell_tokens(prefix: str) -> list[str] | None:
@@ -53,13 +139,19 @@ def shell_tokens(prefix: str) -> list[str] | None:
                 and index + 1 < len(prefix)
                 and prefix[index + 1] in "([{"):
                 return None
+        elif prefix.startswith("$'", index):
+            end = ansi_c_quote_end(prefix, index)
+            if end is None:
+                return None
+            index = end
+            continue
         elif char == "'":
             state = "single"
         elif char == '"':
             state = "double"
         elif char == "\\":
             escaped = True
-        elif char == "#" and (index == 0 or prefix[index - 1].isspace()):
+        elif char == "#" and (index == 0 or is_bash_blank(prefix[index - 1])):
             return None
         elif char in ";|&()<>`\n\r":
             return None
@@ -118,7 +210,7 @@ def only_whitespace(lines: list[str], start: int) -> bool:
 
 
 def classify_safe(command: str) -> str | None:
-    lines = command.splitlines()
+    lines = bash_lines(command)
     if len(lines) < 2 or "\x00" in command or "\r" in command:
         return None
 
@@ -159,7 +251,7 @@ def classify_safe(command: str) -> str | None:
 def top_level_markers(command: str) -> list[Marker]:
     """Find conservative top-level markers for malformed/duplicate detection."""
     markers: list[Marker] = []
-    lines = command.splitlines()
+    lines = bash_lines(command)
     offset = 0
     for line in lines:
         state = "plain"
@@ -177,13 +269,19 @@ def top_level_markers(command: str) -> list[Marker]:
                     state = "plain"
                 elif char == "\\":
                     escaped = True
+            elif line.startswith("$'", index):
+                end = ansi_c_quote_end(line, index)
+                if end is None:
+                    break
+                index = end
+                continue
             elif char == "'":
                 state = "single"
             elif char == '"':
                 state = "double"
             elif char == "\\":
                 escaped = True
-            elif char == "#" and (index == 0 or line[index - 1].isspace()):
+            elif char == "#" and (index == 0 or is_bash_blank(line[index - 1])):
                 break
             elif line.startswith("<<", index) and not line.startswith("<<<", index):
                 marker = parse_marker(line, index, offset)
@@ -216,6 +314,15 @@ def unquoted_code_and_comment(line: str) -> tuple[str, str]:
                 state = "plain"
             elif char == "\\":
                 escaped = True
+        elif line.startswith("$'", index):
+            end = ansi_c_quote_end(line, index)
+            if end is None:
+                code.append(" ")
+                index += 1
+                continue
+            code.append(" " * (end - index))
+            index = end
+            continue
         elif char == "'":
             code.append(" ")
             state = "single"
@@ -225,7 +332,7 @@ def unquoted_code_and_comment(line: str) -> tuple[str, str]:
         elif char == "\\":
             code.append(" ")
             escaped = True
-        elif char == "#" and (index == 0 or line[index - 1].isspace()):
+        elif char == "#" and (index == 0 or is_bash_blank(line[index - 1])):
             return "".join(code), line[index + 1 :]
         else:
             code.append(char)
@@ -254,6 +361,18 @@ def collapse_line_continuations(command: str) -> str:
         elif char == "\\":
             result.append(char)
             escaped = True
+        elif state == "plain" and command.startswith("$'", index):
+            end = ansi_c_quote_end(command, index)
+            if end is None:
+                result.append(char)
+            else:
+                # Preserve the whole inert ANSI-C token verbatim so its bytes
+                # stay a single quoted unit to every downstream walker; a
+                # backslash-newline inside it is part of the token, not a line
+                # continuation to strip.
+                result.append(command[index:end])
+                index = end
+                continue
         elif char == "'" and state == "plain":
             result.append(char)
             state = "single"
@@ -272,7 +391,7 @@ def writer_owns_real_marker(command: str, markers: list[Marker]) -> bool:
     logical_markers = (
         markers if logical_command == command else top_level_markers(logical_command)
     )
-    lines = logical_command.splitlines()
+    lines = bash_lines(logical_command)
     for marker in logical_markers:
         line_index = logical_command.count("\n", 0, marker.start)
         if line_has_allowed_writer(lines[line_index]):
@@ -282,7 +401,7 @@ def writer_owns_real_marker(command: str, markers: list[Marker]) -> bool:
 
 def writer_has_commented_marker_and_following_code(command: str) -> bool:
     """Reject fake writer markers whose following lines would execute."""
-    lines = command.splitlines()
+    lines = bash_lines(command)
     for index, line in enumerate(lines):
         _code, comment = unquoted_code_and_comment(line)
         if (
@@ -313,6 +432,12 @@ def has_active_command_substitution(command: str) -> bool:
                 escaped = True
             elif char == "`" or command.startswith("$(", index):
                 return True
+        elif command.startswith("$'", index):
+            end = ansi_c_quote_end(command, index)
+            if end is None:
+                return True
+            index = end
+            continue
         elif char == "'":
             state = "single"
         elif char == '"':
@@ -320,7 +445,7 @@ def has_active_command_substitution(command: str) -> bool:
         elif char == "\\":
             escaped = True
         elif char == "#" and (
-            index == 0 or command[index - 1].isspace()
+            index == 0 or is_bash_blank(command[index - 1])
         ):
             newline = command.find("\n", index)
             if newline < 0:
@@ -329,6 +454,124 @@ def has_active_command_substitution(command: str) -> bool:
         elif char == "`" or command.startswith("$(", index):
             return True
         index += 1
+    return False
+
+
+def collapse_body_continuations(body: str) -> str:
+    """Remove bash ``\\<newline>`` line continuations under heredoc-body rules.
+
+    An UNQUOTED here-doc body performs NO quote processing (``'``/``"``/``#`` are
+    literal bytes), but bash STILL removes an unescaped ``\\<newline>`` — the
+    bash manual: for an unquoted here-doc "the character sequence ``\\newline`` is
+    ignored". The whole-command ``collapse_line_continuations`` applies a FLAT
+    shell quote state, so a single body apostrophe flips it into a phantom
+    single-quoted string and it REFUSES to join a ``$\\<newline>(`` continuation,
+    leaving ``$`` and ``(`` on separate lines where the per-line substitution
+    scan sees neither — smuggling a live ``$(...)`` past the wall (issue #1958
+    Finding R4). The body window has no quote state to get wrong, so this joins
+    continuations with backslash-only semantics: a backslash escapes the next
+    single byte (so ``\\\\`` is a literal backslash whose following newline is
+    real, and ``\\$`` cannot start a substitution), and a backslash directly
+    before a newline is dropped together with that newline. Feed the joined body
+    to ``body_line_has_substitution`` so a split ``$(`` is scanned as the one
+    contiguous token bash will execute. Fail-closed: a trailing lone backslash is
+    kept verbatim (it can start no substitution).
+    """
+    result: list[str] = []
+    index = 0
+    length = len(body)
+    while index < length:
+        char = body[index]
+        if char == "\\":
+            if index + 1 < length and body[index + 1] == "\n":
+                index += 2
+                continue
+            result.append(body[index : index + 2])
+            index += 2
+            continue
+        result.append(char)
+        index += 1
+    return "".join(result)
+
+
+def body_line_has_substitution(line: str) -> bool:
+    """True if an unquoted-heredoc-body line contains an active substitution.
+
+    In an unquoted-delimiter heredoc body bash suppresses ALL quote and comment
+    processing — ``'``, ``"`` and ``#`` are literal bytes — but keeps
+    parameter/command/arithmetic expansion active, so ``$(...)`` and `` `...` ``
+    still EXECUTE. The only in-body metacharacter is the backslash, which escapes
+    the following ``$``, `` ` ``, ``\\`` or newline; every other byte (including
+    the quotes and ``#`` that blind the flat scanner) is inert text. So scan the
+    body raw, honouring only that escaping, and flag a bare ``$(`` or backtick —
+    the same command-substitution tokens ``has_active_command_substitution``
+    detects elsewhere, just without the quote/comment state machine that is wrong
+    for this region (issue #1958 Finding R3).
+    """
+    index = 0
+    length = len(line)
+    while index < length:
+        char = line[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == "`" or line.startswith("$(", index):
+            return True
+        index += 1
+    return False
+
+
+def unquoted_heredoc_body_has_substitution(
+    command: str, markers: list[Marker]
+) -> bool:
+    """Detect a live substitution inside an unquoted top-level heredoc body.
+
+    ``has_active_command_substitution`` applies flat shell quote/comment
+    semantics to the whole command, but an UNQUOTED ``<<EOF`` body follows
+    different rules (see ``body_line_has_substitution``): a lone apostrophe or
+    ``#`` in the body flips the flat scanner's state and hides a live
+    ``$(...)``/backtick that bash nonetheless expands, smuggling execution past
+    the wall (issue #1958 Finding R3). This complements the flat scan by walking
+    only the body window of each unquoted, top-level, closed heredoc with
+    heredoc-body semantics.
+
+    A quoted-delimiter body (``Marker.quoted``) is genuinely inert to bash and is
+    skipped — that is the whole point of the Finding-1 literal-payload win.
+    Before scanning, the marker is re-verified to sit at bash top level under
+    CROSS-LINE quote tracking (mirroring ``strip_provably_literal_body``): a
+    heredoc-shaped ``<<EOF`` nested inside an open single-quoted string is not a
+    real heredoc — its body is literal string data bash never expands — so
+    scanning it would over-block ordinary quoted prose; and one nested inside an
+    open double-quoted string has its ``$(...)`` already caught by the flat scan.
+    Either way, only markers bash actually treats as top-level heredoc
+    redirections get the body scan.
+    """
+    lines = bash_lines(command)
+    for marker in markers:
+        if marker.quoted:
+            continue
+        if cross_line_quote_state(command, marker.start) != "plain":
+            continue
+        marker_line = command.count("\n", 0, marker.start)
+        body_lines: list[str] = []
+        for index in range(marker_line + 1, len(lines)):
+            candidate = (
+                lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
+            )
+            if candidate == marker.delimiter:
+                break
+            body_lines.append(lines[index])
+        # Join the raw body window under bash's unquoted-here-doc ``\<newline>``
+        # removal BEFORE scanning, so a ``$(`` a caller split across a line
+        # continuation is seen as the one contiguous token bash executes. The
+        # terminator was matched per physical line above (bash matches the
+        # delimiter before continuation processing), so continuations are joined
+        # only WITHIN the body window, never across the delimiter. This does not
+        # rely on ``collapse_line_continuations`` — whose flat quote state a body
+        # apostrophe corrupts — which is the whole point of Finding R4.
+        body = collapse_body_continuations("\n".join(body_lines))
+        if body_line_has_substitution(body):
+            return True
     return False
 
 
@@ -343,6 +586,7 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
     if index >= len(line):
         return None
     quote = line[index] if line[index] in "'\"" else None
+    quoted = False
     if quote:
         index += 1
         end = line.find(quote, index)
@@ -350,6 +594,18 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
             return None
         delimiter = line[index:end]
         final = end + 1
+        # Deliberate POSIX divergence, fail-safe: POSIX makes the body
+        # non-expanding when ANY part of the delimiter is quoted — including
+        # `<<\EOF` (invisible to this parser: backslash is not a quote char and
+        # the identifier regex rejects it, so no Marker is recorded and the
+        # body stays raw-visible to every guard) and partial forms like
+        # `<<EO'F'` (mis-tokenized as delimiter EO, so the terminator never
+        # matches and the command fails closed as MALFORMED). Only a delimiter
+        # this parser can PROVE was one full quote pair earns quoted=True, and
+        # trailing word characters after the closing quote (`<<'EOF'X` — real
+        # bash delimiter EOFX) keep it conservative too: the next character
+        # must end the token.
+        quoted = final >= len(line) or line[final] in " \t;&|)<>#"
     else:
         match = re.match(r"[A-Za-z_][A-Za-z0-9_]*", line[index:])
         if match is None:
@@ -358,30 +614,105 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
         final = index + len(delimiter)
     if not delimiter:
         return None
-    return Marker(offset + start, offset + final, delimiter, strip_tabs, quote is not None)
+    return Marker(offset + start, offset + final, delimiter, strip_tabs, quoted)
+
+
+def cross_line_quote_state(command: str, offset: int) -> str:
+    """Return the single/double/plain quote state bash sees at ``offset``.
+
+    Unlike ``top_level_markers`` (which re-initialises quote state at the start
+    of every line), this walks the whole command with a SINGLE cross-line state
+    machine — the same quote/escape/comment model ``has_active_command_substitution``
+    uses. It answers "is this position inside an open single- or double-quoted
+    string?" so a heredoc-shaped token can be checked against bash's real parse.
+    """
+    state = "plain"
+    escaped = False
+    index = 0
+    limit = min(offset, len(command))
+    while index < limit:
+        char = command[index]
+        if escaped:
+            escaped = False
+        elif state == "single":
+            if char == "'":
+                state = "plain"
+        elif state == "double":
+            if char == '"':
+                state = "plain"
+            elif char == "\\":
+                escaped = True
+        elif command.startswith("$'", index):
+            end = ansi_c_quote_end(command, index)
+            if end is None or end > limit:
+                # The offset sits inside (or an unterminated) ANSI-C token: bash
+                # is not at plain top level there, so any heredoc-shaped marker
+                # is inert. Report a non-plain state so the strip gate refuses.
+                return "single"
+            index = end
+            continue
+        elif char == "'":
+            state = "single"
+        elif char == '"':
+            state = "double"
+        elif char == "\\":
+            escaped = True
+        elif char == "#" and (index == 0 or is_bash_blank(command[index - 1])):
+            newline = command.find("\n", index)
+            if newline < 0 or newline >= limit:
+                return state
+            index = newline
+            continue
+        index += 1
+    return state
+
+
+def strip_provably_literal_body(command: str, markers: list[Marker]) -> str:
+    """Drop the body window of a single fully-quoted, closed heredoc.
+
+    A fully-quoted delimiter (Marker.quoted) makes the body literal data to
+    bash, so substitution tokens inside it must not flip the classification to
+    MALFORMED (issue #1958). The exclusion is deliberately narrow: EXACTLY one
+    marker, provably quoted, provably closed, and — critically — a marker bash
+    actually treats as a top-level heredoc redirection. ``top_level_markers``
+    resets quote state per line, so a ``<<'DELIM'`` line nested inside an open
+    multi-line single/double-quoted string is mis-recorded as a top-level
+    quoted heredoc. To bash there is NO heredoc there — the whole thing is one
+    string, and a ``$(...)`` inside a double-quoted string is EXECUTED. Excluding
+    that fake "body" window would delete the live substitution before the scan
+    runs, smuggling arbitrary command execution past the wall (issue #1958
+    Finding 1). So before excluding, re-verify the marker sits at bash top level
+    (quote state ``plain``) under CROSS-LINE quote tracking; if it is inside an
+    open quote, strip nothing and let ``has_active_command_substitution`` see the
+    real substitution. Anything else returns the command unchanged so the scan
+    stays fail-closed. Only the body lines are removed; the header line,
+    terminator line, and everything after remain, so a substitution on the
+    command line proper is still detected. The raw payload itself still reaches
+    every content guard because this classifier returns UNSUPPORTED (raw
+    pass-through) for the target class, never SAFE.
+    """
+    if len(markers) != 1 or not markers[0].quoted:
+        return command
+    marker = markers[0]
+    if cross_line_quote_state(command, marker.start) != "plain":
+        return command
+    lines = bash_lines(command)
+    marker_line = command.count("\n", 0, marker.start)
+    for index in range(marker_line + 1, len(lines)):
+        candidate = lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
+        if candidate == marker.delimiter:
+            return "\n".join(lines[: marker_line + 1] + lines[index:])
+    return command
 
 
 def marker_is_closed(command: str, marker: Marker) -> bool:
     marker_line = command.count("\n", 0, marker.start)
-    lines = command.splitlines()
+    lines = bash_lines(command)
     for line in lines[marker_line + 1 :]:
         candidate = line.lstrip("\t") if marker.strip_tabs else line
         if candidate == marker.delimiter:
             return True
     return False
-
-
-def single_closed_quoted_nonwriter_heredoc(command: str, marker: Marker) -> bool:
-    """Allow guard scanning for inert quoted heredoc payloads outside gh writers."""
-    if not marker.quoted or not marker_is_closed(command, marker):
-        return False
-    line_end = command.find("\n", marker.start)
-    if line_end < 0:
-        line_end = len(command)
-    header = command[:line_end]
-    if has_active_command_substitution(header):
-        return False
-    return True
 
 
 def main() -> int:
@@ -411,19 +742,18 @@ def main() -> int:
     # A supported writer that failed the exact safe grammar is ambiguous: do
     # not let chaining, alternate redirects, or an expanding delimiter turn a
     # would-be payload exemption into a bypass.
-    if logical_command.splitlines() and line_has_allowed_writer(
-        logical_command.splitlines()[0]
+    if bash_lines(logical_command) and line_has_allowed_writer(
+        bash_lines(logical_command)[0]
     ):
         return MALFORMED
 
-    if len(markers) == 1 and single_closed_quoted_nonwriter_heredoc(
-        logical_command, markers[0]
-    ):
-        return UNSUPPORTED
-
     # Nested substitution plus a heredoc is executable shell syntax unless it
-    # matched the one exact quoted `--body "$(cat ...)"` form above.
-    if has_active_command_substitution(logical_command):
+    # matched the one exact quoted `--body "$(cat ...)"` form above. The body
+    # of a single provably-literal heredoc is excluded from this scan (its
+    # tokens are inert data); the text outside that window is still scanned.
+    if has_active_command_substitution(
+        strip_provably_literal_body(logical_command, markers)
+    ) or unquoted_heredoc_body_has_substitution(logical_command, markers):
         return MALFORMED
     if len(markers) > 1:
         return MALFORMED

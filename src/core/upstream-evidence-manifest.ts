@@ -585,11 +585,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/install-pkgs.sh":
       "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "5acc70d65304d8ef01bf3837cbf0fdc77aae6d6e47c0fec824692fe7091da20b",
+      "4be511d0e325e1df09983feb33023c1feb3b492fc92c16cbb48a08c3aaa5f540",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "f740f600b255742a50f28e5c9d09427c5783c4084e84052dca46bc1f0c94a187",
+      "d12583803e8ff5e4b64e68eafc8d3c377af4c400d8b7ecd1c7fe699d8f92784a",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
@@ -7891,6 +7891,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
     "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-heredoc-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
