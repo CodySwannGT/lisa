@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.295.2](https://github.com/CodySwannGT/lisa/compare/v2.295.1...v2.295.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* **release:** address review on env-scoped tags ([d46bc6a](https://github.com/CodySwannGT/lisa/commit/d46bc6a2d3991fc7645bb4be9addc84374316c08)), closes [CodySwannGT/lisa#1988](https://github.com/CodySwannGT/lisa/issues/1988)
+
 ### [2.295.1](https://github.com/CodySwannGT/lisa/compare/v2.295.0...v2.295.1) (2026-07-23)
 
 ## [2.295.0](https://github.com/CodySwannGT/lisa/compare/v2.294.0...v2.295.0) (2026-07-23)
