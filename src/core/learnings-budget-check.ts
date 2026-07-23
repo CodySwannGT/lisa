@@ -21,6 +21,9 @@ import {
   estimateLearningTokens,
 } from "./learnings-contract.js";
 import {
+  CONFLICT_MARKER_DIAGNOSIS,
+  conflictMarkerError,
+  findConflictMarkerInBytes,
   parseLearningsFile,
   renderLearningsFile,
 } from "./learnings-document.js";
@@ -111,6 +114,12 @@ function withRemediation(detail: string, file: string): string {
     return detail;
   }
   const target = formatDiagnosticPath(file);
+  // Checked before the budget clauses: a conflicted merge duplicates the JSONL
+  // block, so this failure often ALSO breaches a budget, and "shorten entries"
+  // is the wrong instruction for it.
+  if (detail.includes(CONFLICT_MARKER_DIAGNOSIS)) {
+    return `${detail} — recompact ${target} from both conflicting versions, then register the union merge driver (\`lisa install-merge-driver\`) so concurrent learning branches merge instead of conflicting`;
+  }
   if (detail.includes("maxEntries")) {
     return `${detail} — consolidate or remove entries in ${target} to fit the learnings budget`;
   }
@@ -217,14 +226,25 @@ async function readBoundedRegularFile(
     if (!before.isFile()) {
       throw new Error("unsafe input: expected a regular file");
     }
+
+    // Read the bounded prefix BEFORE judging size. A git-conflicted ledger is
+    // roughly double size, so the size guard used to win this race and report
+    // "shorten or remove entries" for a file whose problem is duplication —
+    // advice that has an operator deleting good learnings. The read is capped
+    // by the buffer either way, so an oversized file is still never slurped.
+    const buffer = Buffer.allocUnsafe(maximumBytes + 1);
+    const bytesRead = await fillBuffer(handle, buffer, 0);
+    const conflictLine = findConflictMarkerInBytes(
+      buffer.subarray(0, bytesRead)
+    );
+    if (conflictLine !== undefined) {
+      throw conflictMarkerError(conflictLine);
+    }
     if (before.size > BigInt(maximumBytes)) {
       throw new Error(
         `maxTokens exceeded: measured ${before.size}, allowed ${maximumBytes}`
       );
     }
-
-    const buffer = Buffer.allocUnsafe(maximumBytes + 1);
-    const bytesRead = await fillBuffer(handle, buffer, 0);
     if (bytesRead > maximumBytes) {
       throw new Error(
         `maxTokens exceeded: measured at least ${bytesRead}, allowed ${maximumBytes}`

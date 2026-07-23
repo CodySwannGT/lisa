@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type DirectorySyncHandle,
   syncContainingDirectory,
-} from "../../../src/health/directory-sync.js";
+} from "../../../src/utils/directory-sync.js";
 
 const codedError = (code: string): NodeJS.ErrnoException =>
   Object.assign(new Error(code), { code });

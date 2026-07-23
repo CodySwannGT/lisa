@@ -1,5 +1,7 @@
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
+import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
+import { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
@@ -21,6 +23,8 @@ export type {
 } from "./migration.interface.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
+export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
+export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
@@ -45,6 +49,8 @@ export class MigrationRegistry {
       new EnsureTsconfigLocalFilesFallbackMigration(),
       new EnsureAuditIgnoreLocalExclusionsMigration(),
       new EnsureJestRnMockAccessibilityManagerMigration(),
+      new EnsureLearningsGitattributesMigration(),
+      new EnsureLearningsMergeDriverMigration(),
       new EnsureLisaPostinstallMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureWikiSourceDeclaredMigration(),

@@ -133,7 +133,10 @@ describe("checkLearningsBudget", () => {
     expect(result.kind).toBe("violation");
     if (result.kind === "violation") {
       expect(result.detail).toMatch(/corrupted by concurrent write/i);
-      expect(result.detail).toMatch(/conflict markers/i);
+      // Singular, and pinned to a line: the guard reports the FIRST marker it
+      // finds rather than the set, so an operator is sent to a specific line.
+      expect(result.detail).toMatch(/conflict marker on line \d+/i);
+      expect(result.detail).toMatch(/recompact/i);
     }
   });
 
