@@ -17,8 +17,8 @@ available.
 
 Some MCPs authenticate headlessly from an env token and need no separate REST
 tier — the MCP **is** the headless substrate on both developer machines and cloud
-routines. The official SonarQube MCP is one such case (`SONARQUBE_TOKEN`
-[+ `SONARQUBE_ORG`/`SONARQUBE_URL`]): `lisa-sonarcloud-access` resolves it as a
+routines. The official SonarQube MCP is one such case (`SONARQUBE_CLI_TOKEN`
+[+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`]): `lisa-sonarcloud-access` resolves it as a
 single substrate with no hand-rolled REST fallback. Reserve the two-tier
 MCP-then-REST shape for vendors whose MCP is browser-OAuth or keychain-bound and
 therefore dead headless.
@@ -31,7 +31,7 @@ therefore dead headless.
 | Notion | `lisa-notion-access` | `NOTION_API_TOKEN` | Notion REST |
 | Linear | `lisa-linear-access` | `LINEAR_API_KEY` | Linear GraphQL |
 | Jam | `lisa-jam-access` | `JAM_PAT` | Jam CLI |
-| SonarCloud | `lisa-sonarcloud-access` | `SONARQUBE_TOKEN` (+ `SONARQUBE_ORG`/`SONARQUBE_URL`) | Official SonarQube MCP (headless via token) |
+| SonarCloud | `lisa-sonarcloud-access` | `SONARQUBE_CLI_TOKEN` (+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`) | Official SonarQube MCP (headless via token) |
 | Sentry | `lisa-sentry-access` | `SENTRY_AUTH_TOKEN` | Sentry REST API |
 | PostHog | `lisa-posthog-access` | `POSTHOG_PERSONAL_API_KEY` | PostHog REST API |
 | Google Play | `lisa-expo:play-store-access` | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` or `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_BASE64` | Google Play Developer API |

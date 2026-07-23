@@ -49,7 +49,7 @@ describe("analyze-claude-remote non-tracker MCP substrate guidance", () => {
 
     it("seeds SonarQube as the official token-authed MCP, not a REST substitute", () => {
       expect(content).toContain("Official SonarQube MCP");
-      expect(content).toContain("SONARQUBE_TOKEN");
+      expect(content).toContain("SONARQUBE_CLI_TOKEN");
       // The MCP runs headless as-is; the bespoke REST substrate is gone.
       expect(content).not.toContain("SonarCloud Web API");
       expect(content).not.toContain("https://sonarcloud.io/api/");
@@ -68,7 +68,7 @@ describe("generate-claude-remote-build-script substrate output", () => {
     it("renders optional substrate env vars without promoting them to required", () => {
       expect(content).toMatch(/OPTIONAL non-tracker MCP recovery entries/i);
       expect(content).toContain("JAM_PAT");
-      expect(content).toContain("SONARQUBE_TOKEN");
+      expect(content).toContain("SONARQUBE_CLI_TOKEN");
       expect(content).toMatch(
         /Never invent values or promote dormant substrates to required/i
       );

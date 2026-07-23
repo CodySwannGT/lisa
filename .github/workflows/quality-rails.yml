@@ -435,7 +435,7 @@ jobs:
       - name: 📚 Check learnings budget
         run: |
           set -o pipefail
-          bunx @codyswann/lisa@2.243.0 check-learnings-budget | tee learnings-budget.out
+          bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out
           grep -qE "learnings budget passed|no learnings file" learnings-budget.out
 
   license_compliance:
