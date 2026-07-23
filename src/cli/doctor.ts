@@ -5,8 +5,10 @@ import { AGENTS_MD_FILENAME } from "../codex/agents-md-installer.js";
 import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
+import { probeSonarReadiness } from "../core/sonar-integration.js";
 import { createDetectorRegistry } from "../detection/index.js";
 import { checkKaneProvider } from "./doctor-kane.js";
+import { checkSonarProvider } from "./doctor-sonar.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { checkRepositoryReadiness } from "./doctor-readiness.js";
@@ -53,6 +55,7 @@ export interface DoctorDependencies {
   setExitCode: (code: number) => void;
   write: (message: string) => void;
   probeKaneReadiness: typeof probeKaneReadiness;
+  probeSonarReadiness: typeof probeSonarReadiness;
 }
 
 const DEFAULT_DEPENDENCIES: DoctorDependencies = {
@@ -63,6 +66,7 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
   },
   write: message => console.log(message),
   probeKaneReadiness,
+  probeSonarReadiness,
 };
 
 /**
@@ -323,6 +327,7 @@ export async function runDoctor(
     await checkVersion(deps, options.offline === true),
     await checkProjectConfig(resolvedTarget),
     await checkKaneProvider(resolvedTarget, deps),
+    await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
