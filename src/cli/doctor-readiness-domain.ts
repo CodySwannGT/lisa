@@ -40,6 +40,7 @@ import {
   type ParsedWorkflow,
   type ParsedWorkflowJob,
   parseRepositoryWorkflows,
+  type ParsedWorkflowStep,
 } from "./doctor-readiness-workflows.js";
 
 /** The domain-ownership readiness dimension id (readiness-rubric, RRR-1). */
@@ -104,15 +105,55 @@ function destroysData(command: string, job: ParsedWorkflowJob): boolean {
 }
 
 /**
- * State why a job that boots its own `services:` containers cannot be settled.
- * A job that starts its own database is operating on state it created moments
- * earlier, so destroying it is not data loss — but proving *which* store the
- * command targets is beyond an offline read, so this is deferred, not cleared.
+ * Whether the command plausibly targets one of the job's own `services:`
+ * containers. A service only defers the step it can explain; an unrelated
+ * container in the same job must not hide a durable destructive target.
  * @param job - The job to consider
- * @returns A stated reason, or null when the job starts no services
+ * @param step - The destructive step being classified
+ * @returns True when the command plausibly points at a job-local service
  */
-function servicesDeferral(job: ParsedWorkflowJob): string | null {
+function commandTargetsOwnedService(
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
   if (job.services.length === 0) {
+    return false;
+  }
+  const command = `${step.run}\n${job.env}`.toLowerCase();
+  return job.services.some(service => {
+    const normalized = service.toLowerCase();
+    return (
+      command.includes(normalized) ||
+      (/(postgres|postgresql|database|db)/.test(normalized) &&
+        /\b(psql|postgres|database_url|drop\s+(schema|database|table))\b/.test(
+          command
+        )) ||
+      (/(mysql|mariadb|database|db)/.test(normalized) &&
+        /\b(mysql|database_url|drop\s+(schema|database|table))\b/.test(
+          command
+        )) ||
+      (/redis/.test(normalized) && /\bredis-cli\b/.test(command)) ||
+      (/mongo/.test(normalized) && /\b(mongo|mongosh)\b/.test(command))
+    );
+  });
+}
+
+/**
+ * State why a service-targeted command cannot be settled. A job that starts its
+ * own database is operating on state it created moments earlier, so destroying
+ * it is not data loss — but proving that the command targets that service is
+ * still beyond an offline read, so this is deferred, not cleared.
+ * @param _workflow - The workflow declaring the job; unused for this deferral
+ * @param job - The job to consider
+ * @param step - The destructive step being classified
+ * @returns A stated reason, or null when the service does not explain the step
+ */
+function servicesDeferral(
+  _workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): string | null {
+  if (!commandTargetsOwnedService(job, step)) {
     return null;
   }
   return (
@@ -248,7 +289,7 @@ export async function assessDomainOwnershipDimension(
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
   const scan = scanCommands(workflows, destroysData, {
     exemptJob: jobTakesBackup,
-    unresolvedJob: servicesDeferral,
+    unresolvedStep: servicesDeferral,
   });
   // A checked-in runbook is a way back, so it clears the "no recovery" half of
   // B1 for the whole repository — the blocker asks for BOTH halves at once.
