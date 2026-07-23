@@ -155,6 +155,28 @@ describe("assessFeedbackGuardrailsDimension — ephemeral environments stay clea
     expectNoBlocker(record.findings);
   });
 
+  it("stands B4 for a durable stack whose name only contains `preview`", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: cdk destroy CustomerPreviewStack --force",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
+
   it("does not stand B4 for an integration job applying test tfvars", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, DEPLOY_YML, [
