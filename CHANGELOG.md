@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.3](https://github.com/CodySwannGT/lisa/compare/v2.297.2...v2.297.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* **safety-net:** close command-substitution blind spot in the rm content guard ([03af88d](https://github.com/CodySwannGT/lisa/commit/03af88d7fdcc947593b420f26775456528d9f1a7)), closes [#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1982](https://github.com/CodySwannGT/lisa/issues/1982)
+
 ### [2.297.2](https://github.com/CodySwannGT/lisa/compare/v2.297.1...v2.297.2) (2026-07-23)
 
 
