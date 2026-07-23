@@ -91,3 +91,22 @@ jobs:
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 # Trigger staging deployment after CDK trust fix
+#
+# DSS-3 (deploy-status-sync substrate): this template ships NO deploy job —
+# CDK deploys are project-owned. When you add your deploy job, declare the
+# GitHub environment on it so deploy runs emit deployment/deployment_status
+# events with the resolved friendly name (dev/staging/production).
+# The snippet is indented to drop in under this file's `jobs:` key as-is:
+#
+#   deploy:
+#     needs: [determine_environment, release]
+#     runs-on: ubuntu-latest
+#     # Mitigation A (double-approval): this job needs: release, which carries
+#     # the protected approval env; on approval-gated runs route the deploy job
+#     # to `<env>-deploy` (leave it unprotected) so the gate fires once at
+#     # release_approval, not again here. The suffix keeps the
+#     # dev/staging/production substring for GitHub-for-Jira classification.
+#     environment: ${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}
+#     steps:
+#       - uses: actions/checkout@v6
+#       - run: npx cdk deploy --all --require-approval never
