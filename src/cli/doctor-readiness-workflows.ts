@@ -86,6 +86,12 @@ export interface ParsedWorkflowJob {
    */
   readonly env: string;
   /**
+   * The job-level `with:` block for reusable workflow calls, flattened to
+   * `key: value` lines. Reusable calls often map deployment credentials here
+   * rather than inside ordinary step inputs.
+   */
+  readonly inputs: string;
+  /**
    * Ids of the `services:` containers the job starts. A job that boots its own
    * database is operating on throwaway state by construction.
    */
@@ -255,6 +261,7 @@ function parseJobs(
         environment: asEnvironments(job.environment),
         ifCondition: asCondition(job.if),
         env: serializeBlock(job.env).join("\n"),
+        inputs: serializeBlock(job.with).join("\n"),
         services: isJsonObject(job.services) ? Object.keys(job.services) : [],
       },
     ];

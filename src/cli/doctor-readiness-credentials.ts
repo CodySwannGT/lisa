@@ -76,8 +76,12 @@ interface SecretEnvironmentPair {
  * @returns Newline-joined declared text
  */
 function jobText(job: ParsedWorkflowJob): string {
-  return job.steps
-    .flatMap(step => [step.run, step.uses, step.inputs])
+  return [
+    job.uses,
+    job.env,
+    job.inputs,
+    ...job.steps.flatMap(step => [step.run, step.uses, step.inputs]),
+  ]
     .filter(part => part !== "")
     .join("\n");
 }
