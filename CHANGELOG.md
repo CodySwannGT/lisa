@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.299.0](https://github.com/CodySwannGT/lisa/compare/v2.298.1...v2.299.0) (2026-07-23)
+
+
+### Features
+
+* **learnings:** preserve dropped captures and keep references alive across consolidation ([78b54fb](https://github.com/CodySwannGT/lisa/commit/78b54fb0e4963d8f6da6f20511ba268f5d07f280)), closes [CodySwannGT/lisa#1996](https://github.com/CodySwannGT/lisa/issues/1996)
+
+
+### Bug Fixes
+
+* **learnings:** re-establish overflow path containment after the lock wait ([48a065e](https://github.com/CodySwannGT/lisa/commit/48a065e62b32c20be57a96ad6a1fa9f5195b25a6)), closes [CodySwannGT/lisa#1996](https://github.com/CodySwannGT/lisa/issues/1996)
+
 ### [2.298.1](https://github.com/CodySwannGT/lisa/compare/v2.298.0...v2.298.1) (2026-07-23)
 
 
