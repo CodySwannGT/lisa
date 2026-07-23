@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.299.3](https://github.com/CodySwannGT/lisa/compare/v2.299.2...v2.299.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* **readiness:** require local evidence for service deferral ([994f15f](https://github.com/CodySwannGT/lisa/commit/994f15f034ddb1e21f796d8cfcb4edca5ca4a12e)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* require word-boundary match for db/database service-name corroboration ([a92fd6e](https://github.com/CodySwannGT/lisa/commit/a92fd6e515826fff239b94cd333bfa44fe9af69c)), closes [#2020](https://github.com/CodySwannGT/lisa/issues/2020) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* tighten B1 service deferral scope ([2d76b6c](https://github.com/CodySwannGT/lisa/commit/2d76b6cc2e5a6445caeb08ddb1b178960c66c79c)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.299.2](https://github.com/CodySwannGT/lisa/compare/v2.299.1...v2.299.2) (2026-07-23)
 
 
