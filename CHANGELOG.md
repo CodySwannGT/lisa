@@ -2,6 +2,183 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.296.0](https://github.com/CodySwannGT/lisa/compare/v2.295.6...v2.296.0) (2026-07-23)
+
+
+### Features
+
+* pass literal quoted-heredoc payloads through to the content guards ([0874737](https://github.com/CodySwannGT/lisa/commit/0874737cac166f1414d08fbd6d4d2a304fa07670)), closes [#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+
+
+### Bug Fixes
+
+* join unquoted-heredoc-body line continuations before the substitution scan ([#1958](https://github.com/CodySwannGT/lisa/issues/1958) R4) ([9aac14e](https://github.com/CodySwannGT/lisa/commit/9aac14ec12f99cac9a26592803d48ed5df3dda7e))
+* make the heredoc quote model aware of unquoted-body semantics ([#1958](https://github.com/CodySwannGT/lisa/issues/1958) R3) ([43aae6c](https://github.com/CodySwannGT/lisa/commit/43aae6c01fb9423008b422fb27137eeca4e3893b))
+* match heredoc comment/line predicates to bash's blank set ([#1958](https://github.com/CodySwannGT/lisa/issues/1958) R2) ([f8764da](https://github.com/CodySwannGT/lisa/commit/f8764da210de546fe2e74e6c172f4b2f4c0a5b98))
+* preserve heredoc RCE scans after rebase ([77d8ea7](https://github.com/CodySwannGT/lisa/commit/77d8ea7c60c2a05b42381be95cdd97ff81189368)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+* reject fake heredocs nested in open quotes (RCE regression) ([864340b](https://github.com/CodySwannGT/lisa/commit/864340bc712f9c8ef1e90544e3b75aa1b128392a)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+* teach the shared heredoc quote model ANSI-C $'...' quoting ([78ec60b](https://github.com/CodySwannGT/lisa/commit/78ec60b84b82acc8a09fd92d9f3ea531aabd1167)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+
+### [2.295.6](https://github.com/CodySwannGT/lisa/compare/v2.295.5...v2.295.6) (2026-07-23)
+
+
+### Bug Fixes
+
+* keep preview substrings from hiding durable operations ([60036ed](https://github.com/CodySwannGT/lisa/commit/60036ed673d4fa932646960f53abad9077164bab)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.295.5](https://github.com/CodySwannGT/lisa/compare/v2.295.4...v2.295.5) (2026-07-23)
+
+
+### Bug Fixes
+
+* catch durable-trigger guardrail bypass ([0f81cfd](https://github.com/CodySwannGT/lisa/commit/0f81cfd9aa3723dfe928ef043ecd365d0013c050)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.295.4](https://github.com/CodySwannGT/lisa/compare/v2.295.3...v2.295.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* **readiness:** include job-level secrets: mappings in credential text scan ([9f41099](https://github.com/CodySwannGT/lisa/commit/9f410992b0b1d6fee42683ba37f2154073548a33)), closes [#1990](https://github.com/CodySwannGT/lisa/issues/1990) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** scan reusable workflow credential mappings ([b64cc75](https://github.com/CodySwannGT/lisa/commit/b64cc75d5b1aa39a2a2d48291d6c792603028d04)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** scan reusable workflow credential mappings ([34bdc57](https://github.com/CodySwannGT/lisa/commit/34bdc5725a0d512ae296baa8376e0aeecc7058f3)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
+### [2.295.3](https://github.com/CodySwannGT/lisa/compare/v2.295.2...v2.295.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* **hooks:** relax quoted heredoc classification ([31b3f6c](https://github.com/CodySwannGT/lisa/commit/31b3f6c72acca9e74839e1cfa7dda3a116f2c714)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+
+### [2.295.2](https://github.com/CodySwannGT/lisa/compare/v2.295.1...v2.295.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* **release:** address review on env-scoped tags ([d46bc6a](https://github.com/CodySwannGT/lisa/commit/d46bc6a2d3991fc7645bb4be9addc84374316c08)), closes [CodySwannGT/lisa#1988](https://github.com/CodySwannGT/lisa/issues/1988)
+
+### [2.295.1](https://github.com/CodySwannGT/lisa/compare/v2.295.0...v2.295.1) (2026-07-23)
+
+## [2.295.0](https://github.com/CodySwannGT/lisa/compare/v2.294.0...v2.295.0) (2026-07-23)
+
+
+### Features
+
+* **workflows:** declare GitHub environments on stack deploy jobs ([38a1fa6](https://github.com/CodySwannGT/lisa/commit/38a1fa667062aab2d44a708aca73ab7980bd1e63)), closes [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+
+
+### Bug Fixes
+
+* **workflows:** apply DSS-3 review batch — docs parity, cdk snippet, test dedup ([ccd921e](https://github.com/CodySwannGT/lisa/commit/ccd921e3e241160204f20b7c463a15d5f027ce42)), closes [#1969](https://github.com/CodySwannGT/lisa/issues/1969) [#1969](https://github.com/CodySwannGT/lisa/issues/1969) [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+* **workflows:** gate the CDK downstream snippet env (CodeRabbit PR [#1983](https://github.com/CodySwannGT/lisa/issues/1983)) ([93a2690](https://github.com/CodySwannGT/lisa/commit/93a2690d43675a150c4341cda5047da81340120b)), closes [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+* **workflows:** route gated deploy jobs to <env>-deploy (mitigation A) ([4279551](https://github.com/CodySwannGT/lisa/commit/42795513d6541967dfd8753a288bada3a2814e63)), closes [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+
+## [2.294.0](https://github.com/CodySwannGT/lisa/compare/v2.293.1...v2.294.0) (2026-07-22)
+
+
+### Features
+
+* **cli:** add deploy-status ref extraction and tracker adapters ([62baa8e](https://github.com/CodySwannGT/lisa/commit/62baa8e0f87c58757f72fec745ff1b8768a6d55e)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** register lisa deploy-status-sync gate command ([cda7c60](https://github.com/CodySwannGT/lisa/commit/cda7c607fb680b646217cce217e796018e096ace)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **core:** add pure deploy-status transition planner ([b6099ab](https://github.com/CodySwannGT/lisa/commit/b6099ab6ffdec7d66cd84e346b9eda6d43f34d16)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+
+
+### Bug Fixes
+
+* **cli:** address CodeRabbit review on PR [#1980](https://github.com/CodySwannGT/lisa/issues/1980) deploy-status modules ([fd625b4](https://github.com/CodySwannGT/lisa/commit/fd625b485b66c884565aa1da5c683b5dd6a25c35)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** harden deploy-status transports and git argv handling ([b3b908e](https://github.com/CodySwannGT/lisa/commit/b3b908eafed383b2bf1b55c9d786dc06e5748088)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** json no-op payloads, three-dot range reject, jira site guard and ADF ([fa8d6df](https://github.com/CodySwannGT/lisa/commit/fa8d6df090b9229ccf8dffc8a638788cf7e7fc3f)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** slurp gh comment pages and reorder promote comment-first ([6c066fb](https://github.com/CodySwannGT/lisa/commit/6c066fb53136d3a4c10316d8d3b51c0d0708fd36)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **core:** strip materialized default done entries before union assembly ([ab79980](https://github.com/CodySwannGT/lisa/commit/ab79980a13158d8967a41a65b8ea9f4a4581eee1)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **core:** treat materialized default done-map entries as fallbacks ([a73b7b8](https://github.com/CodySwannGT/lisa/commit/a73b7b8ffaa9c1168a1f104c85938de59bd8bdfd)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+
+
+### Code Refactoring
+
+* **cli:** apply T3 simplifier batch to deploy-status modules ([992b6f7](https://github.com/CodySwannGT/lisa/commit/992b6f7e6894d1e3af58c1e462aadcce80eaf04b)), closes [#7](https://github.com/CodySwannGT/lisa/issues/7) [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+* **cli:** break adapter import cycle with leaf contract module ([cc8103a](https://github.com/CodySwannGT/lisa/commit/cc8103a4a535cc0e08ee6a33b57991380422057c)), closes [CodySwannGT/lisa#1968](https://github.com/CodySwannGT/lisa/issues/1968)
+
+### [2.293.1](https://github.com/CodySwannGT/lisa/compare/v2.293.0...v2.293.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **work-item:** accept bare repo-name labels as repository scope ([b105218](https://github.com/CodySwannGT/lisa/commit/b1052186f7dbafa18bad49e125c86fa86a4ced55)), closes [#1957](https://github.com/CodySwannGT/lisa/issues/1957) [CodySwannGT/lisa#1957](https://github.com/CodySwannGT/lisa/issues/1957)
+
+
+### Documentation
+
+* **work-item:** correct the config-resolution line citation in the scope comment ([5cade7e](https://github.com/CodySwannGT/lisa/commit/5cade7e91415420b283931f7a40d6682ded509dc)), closes [CodySwannGT/lisa#1957](https://github.com/CodySwannGT/lisa/issues/1957) [CodySwannGT/lisa#1957](https://github.com/CodySwannGT/lisa/issues/1957)
+
+## [2.293.0](https://github.com/CodySwannGT/lisa/compare/v2.292.0...v2.293.0) (2026-07-22)
+
+
+### Features
+
+* **hooks:** conditional git rebase --abort/--quit guard in the safety net ([15d5ee8](https://github.com/CodySwannGT/lisa/commit/15d5ee8fbff65fe67520abd021d0702fa9b0e35a)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+
+### Bug Fixes
+
+* **tests:** align docs-guard pins and prose with the new branch-sync contract ([0e0b565](https://github.com/CodySwannGT/lisa/commit/0e0b56561b9519ffb8e7c8677e2bd236aeccd8a8)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [pre-#1956](https://github.com/CodySwannGT/pre-/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+* **work-item:** support rebase and merge sync lanes in bound worktrees ([bdedff6](https://github.com/CodySwannGT/lisa/commit/bdedff6e423f1fb6388de76b667f311e8e7711ee)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+
+### Documentation
+
+* **skills:** document both sanctioned branch-sync lanes in lisa-implement ([5192d48](https://github.com/CodySwannGT/lisa/commit/5192d489d1c268244b30e2804cedbcd4bd6d66fd)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1956](https://github.com/CodySwannGT/lisa/issues/1956)
+
+## [2.292.0](https://github.com/CodySwannGT/lisa/compare/v2.291.0...v2.292.0) (2026-07-22)
+
+
+### Features
+
+* **hooks:** absorb upstream safety-net 1.0.6 guards into parity-safety-net.sh ([f02715f](https://github.com/CodySwannGT/lisa/commit/f02715fa7f40be3e5dcaf37e54bdcab22ab31388)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+
+
+### Bug Fixes
+
+* **hooks:** close git global-option and path-prefixed rm safety-net bypasses ([8ab54c7](https://github.com/CodySwannGT/lisa/commit/8ab54c7e6aff965b7544c84cfa69a036a4b6c883)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+* **hooks:** pair any recursive form with any force form in the rm split gate ([29818e2](https://github.com/CodySwannGT/lisa/commit/29818e25f9c39ce83ff09ae68106b4ef9d77758e)), closes [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+* **plugins:** retire upstream safety-net plugin — the Lisa hook is canonical ([eeb8f8f](https://github.com/CodySwannGT/lisa/commit/eeb8f8faf7bd7a12cd5cc0be6b642ba4474f9fc5)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+
+## [2.291.0](https://github.com/CodySwannGT/lisa/compare/v2.290.0...v2.291.0) (2026-07-22)
+
+
+### Features
+
+* **core:** add deploy-status-sync ladder resolver and config schema ([a8bc399](https://github.com/CodySwannGT/lisa/commit/a8bc3991c1b881842b9cf8f5da7f5d150997ec54)), closes [CodySwannGT/lisa#1967](https://github.com/CodySwannGT/lisa/issues/1967)
+
+
+### Bug Fixes
+
+* **core:** harden deploy ladder resolution per T3 review ([e67dcbe](https://github.com/CodySwannGT/lisa/commit/e67dcbeb23111ef7752a93ad61e83c2d235caf40)), closes [CodySwannGT/lisa#1967](https://github.com/CodySwannGT/lisa/issues/1967)
+
+
+### Documentation
+
+* **rules:** document deployStatusSync schema and deploy ladder resolution ([03eab13](https://github.com/CodySwannGT/lisa/commit/03eab138feaac95caa878aee23f24eeb65365d6d)), closes [CodySwannGT/lisa#1967](https://github.com/CodySwannGT/lisa/issues/1967)
+
+## [2.290.0](https://github.com/CodySwannGT/lisa/compare/v2.289.2...v2.290.0) (2026-07-22)
+
+
+### Features
+
+* **parity:** hard-gate parity drift in pre-push ([9c562b7](https://github.com/CodySwannGT/lisa/commit/9c562b70756047a542567b344db18ace3150881f)), closes [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+* **parity:** refresh drifted parity pins to current upstreams ([2e5a7aa](https://github.com/CodySwannGT/lisa/commit/2e5a7aacb2c7a588411d9fb08ee19c6b3438870e)), closes [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+
+
+### Bug Fixes
+
+* **parity:** address review — fail-closed gate, 1.2.0 routing inventory, opt-in tracing wording ([fe72ae7](https://github.com/CodySwannGT/lisa/commit/fe72ae771b7c8eb25b653363cf4336d1957fb2d6)), closes [#1961](https://github.com/CodySwannGT/lisa/issues/1961) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+* **plugins:** retire upstream sentry plugin — the bundled MCP is canonical ([1b92d60](https://github.com/CodySwannGT/lisa/commit/1b92d6073fcc35586a776f990f7b64e8d7b22ff6)), closes [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955) [CodySwannGT/lisa#1955](https://github.com/CodySwannGT/lisa/issues/1955)
+
+### [2.289.2](https://github.com/CodySwannGT/lisa/compare/v2.289.1...v2.289.2) (2026-07-22)
+
+
+### Performance Improvements
+
+* **postinstall:** inherit primary checkout plugin-sync state in linked worktrees ([5549ab3](https://github.com/CodySwannGT/lisa/commit/5549ab3ef9035ed34d6f4f62181badf923597c19)), closes [#320](https://github.com/CodySwannGT/lisa/issues/320) [#320](https://github.com/CodySwannGT/lisa/issues/320) [#1017](https://github.com/CodySwannGT/lisa/issues/1017) [CodySwannGT/lisa#1962](https://github.com/CodySwannGT/lisa/issues/1962)
+
 ### [2.289.1](https://github.com/CodySwannGT/lisa/compare/v2.289.0...v2.289.1) (2026-07-22)
 
 

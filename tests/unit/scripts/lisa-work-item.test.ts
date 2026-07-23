@@ -121,6 +121,8 @@ case "\${1:-} \${2:-}" in
   "issue view")
     if [ "\${3:-}" = "43" ]; then
       printf '%s\\n' '{"number":43,"state":"OPEN","labels":[{"name":"status:in-progress"},{"name":"type:Bug"}],"comments":[],"closedByPullRequestsReferences":[]}'
+    elif [ "\${3:-}" = "99" ]; then
+      printf '%s\\n' '{"number":99,"state":"CLOSED","labels":[{"name":"status:done"},{"name":"type:Task"}],"comments":[],"closedByPullRequestsReferences":[]}'
     else
       printf '%s\\n' "$FAKE_GH_ISSUE_JSON"
     fi
@@ -167,6 +169,24 @@ function githubConfig(repository = "widgets"): object {
   return { tracker: "github", github: { org: "acme", repo: repository } };
 }
 
+/** Build a claimed, leaf Linear issue payload carrying the given labels. */
+function linearIssueResponse(labels: string[]): string {
+  return JSON.stringify({
+    data: {
+      issue: {
+        id: "id-12",
+        identifier: "LIN-12",
+        team: { key: "LIN" },
+        state: { type: "started" },
+        labels: { nodes: labels.map(name => ({ name })) },
+        children: { nodes: [] },
+        attachments: { nodes: [] },
+        comments: { nodes: [] },
+      },
+    },
+  });
+}
+
 /** Add one empty fixture commit and return its object ID. */
 function commit(fixture: Fixture, message: string): string {
   git(
@@ -175,6 +195,106 @@ function commit(fixture: Fixture, message: string): string {
     fixture.env
   );
   return git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+}
+
+/** Read the head-name ref recorded by the in-progress rebase. */
+function rebaseHeadName(fixture: Fixture): string {
+  const stateDir = git(
+    fixture.root,
+    ["rev-parse", "--git-path", "rebase-merge"],
+    fixture.env
+  );
+  return readFileSync(
+    path.resolve(fixture.root, stateDir, "head-name"),
+    "utf8"
+  ).trim();
+}
+
+/**
+ * Drive a REAL `git rebase main` of the given branch into a conflicted stop:
+ * the branch and main both rewrite shared.txt, so the rebase wedges mid-flight
+ * with `.git/rebase-merge/head-name` = the branch and HEAD detached — the
+ * exact #1956 rebase-lane state.
+ */
+function wedgeRebase(fixture: Fixture, branch: string): void {
+  const shared = path.join(fixture.root, "shared.txt");
+  writeFileSync(shared, `${branch} change\n`);
+  git(fixture.root, ["add", "shared.txt"], fixture.env);
+  git(
+    fixture.root,
+    ["commit", "-q", "-m", "feat: branch change\n\nWork-Item: acme/widgets#42"],
+    fixture.env
+  );
+  git(fixture.root, ["switch", "-q", "main"], fixture.env);
+  writeFileSync(shared, "main change\n");
+  git(fixture.root, ["add", "shared.txt"], fixture.env);
+  git(fixture.root, ["commit", "-q", "-m", "chore: base change"], fixture.env);
+  git(fixture.root, ["switch", "-q", branch], fixture.env);
+  if (
+    spawnSync(GIT, ["rebase", "main"], {
+      cwd: fixture.root,
+      encoding: "utf8",
+      env: fixture.env,
+    }).status === 0
+  )
+    throw new Error("expected the rebase to stop on a conflict");
+  if (rebaseHeadName(fixture) !== `refs/heads/${branch}`)
+    throw new Error("unexpected rebase head-name");
+}
+
+/** Bind the work item on the current branch and add one tracked commit. */
+function bindThenCommitTracked(fixture: Fixture): string {
+  if (command(fixture, ["bind", "acme/widgets#42"]).status !== 0)
+    throw new Error("expected the bind to succeed");
+  return commit(fixture, "feat: tracked change\n\nWork-Item: acme/widgets#42");
+}
+
+/**
+ * Advance main with a foreign CLOSED-item commit, mark it as origin/main,
+ * merge it into the bound branch, and add one more tracked commit.
+ */
+function mergeAdvancedBaseThenFollowUp(fixture: Fixture): string {
+  git(fixture.root, ["switch", "-q", "main"], fixture.env);
+  git(
+    fixture.root,
+    [
+      "update-ref",
+      "refs/remotes/origin/main",
+      commit(fixture, "feat: foreign base work\n\nWork-Item: acme/widgets#99"),
+    ],
+    fixture.env
+  );
+  git(fixture.root, ["switch", "-q", "feature/tracked"], fixture.env);
+  git(
+    fixture.root,
+    ["merge", "-q", "--no-ff", "-m", "Merge branch 'main'", "main"],
+    fixture.env
+  );
+  return commit(
+    fixture,
+    "feat: follow-up after merge\n\nWork-Item: acme/widgets#42"
+  );
+}
+
+/**
+ * Merge-sync scenario for the #1956 merge lane: the bound branch has a
+ * previously pushed tip, the base advances with a foreign commit whose trailer
+ * references a CLOSED issue, and the branch merges the base then adds one more
+ * tracked commit.
+ */
+function setupMergeLane(fixture: Fixture): { head: string; pushedTip: string } {
+  const pushedTip = bindThenCommitTracked(fixture);
+  const head = mergeAdvancedBaseThenFollowUp(fixture);
+  return { head, pushedTip };
+}
+
+/** Point the fixture's origin/HEAD symref at the fake default branch. */
+function setOriginHead(fixture: Fixture): void {
+  git(
+    fixture.root,
+    ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
+    fixture.env
+  );
 }
 
 describe("work-item binding and commit messages", () => {
@@ -345,6 +465,30 @@ describe("work-item binding and commit messages", () => {
     });
     expect(parent.status).toBe(1);
     expect(parent.stderr).toContain("is a container");
+  });
+
+  it("accepts a GitHub issue scoped by the bare repo-name label (#1957)", () => {
+    const fixture = createFixture({
+      tracker: "github",
+      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+    });
+    const bare = command(fixture, ["bind", "acme/widgets#42"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: JSON.stringify({
+          number: 42,
+          url: "https://github.com/acme/widgets/issues/42",
+          state: "OPEN",
+          labels: [
+            { name: "identity" },
+            { name: "status:in-progress" },
+            { name: "type:Bug" },
+          ],
+          comments: [],
+          closedByPullRequestsReferences: [],
+        }),
+      },
+    });
+    expect(bare.status).toBe(0);
   });
 
   it("exempts only the exact release subject", () => {
@@ -726,5 +870,234 @@ describe("provider liveness", () => {
     });
     expect(parent.status).toBe(1);
     expect(parent.stderr).toContain("is a container");
+  });
+
+  it("accepts a Linear issue scoped by the bare repo-name label (#1957)", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+
+    const bare = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "widgets",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(bare.status).toBe(0);
+
+    const mixedCase = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "Widgets",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(mixedCase.status).toBe(0);
+  });
+
+  it("still rejects Linear issues whose bare labels do not name this repository (#1957 controls)", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+
+    const unscoped = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(unscoped.status).toBe(1);
+    expect(unscoped.stderr).toContain("not scoped to repository widgets");
+
+    const wrongRepo = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "backend",
+          "repo:backend",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(wrongRepo.status).toBe(1);
+    expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
+
+    const unrelated = command(fixture, ["bind", "LIN-12"], {
+      env: {
+        FAKE_CURL_JSON: linearIssueResponse([
+          "sentry",
+          "status:in-progress",
+          "type:Task",
+        ]),
+      },
+    });
+    expect(unrelated.status).toBe(1);
+    expect(unrelated.stderr).toContain("not scoped to repository widgets");
+  });
+});
+
+describe("rebase lane (#1956 R1): mid-rebase binding validation", () => {
+  it("prepare-commit-msg validates against the rebase head-name instead of throwing on detached HEAD", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    wedgeRebase(fixture, "feature/tracked");
+
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(messageFile, "feat: rebased pick\n");
+    const prepared = command(fixture, [
+      "prepare-commit-msg",
+      messageFile,
+      "message",
+    ]);
+    expect(prepared.stderr).not.toContain("detached HEAD");
+    expect(prepared.status).toBe(0);
+    expect(readFileSync(messageFile, "utf8")).toContain(
+      "Work-Item: acme/widgets#42"
+    );
+  });
+
+  it("validate-commit (rebase --continue path) accepts the bound branch mid-rebase", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    wedgeRebase(fixture, "feature/tracked");
+
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(
+      messageFile,
+      "feat: resolved pick\n\nWork-Item: acme/widgets#42\n"
+    );
+    const validated = command(fixture, ["validate-commit", messageFile]);
+    expect(validated.stderr).not.toContain("detached HEAD");
+    expect(validated.status).toBe(0);
+    expect(validated.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
+  });
+
+  it("still rejects a mid-rebase branch that does not match the binding", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    git(fixture.root, ["switch", "-q", "-c", "feature/other"], fixture.env);
+    wedgeRebase(fixture, "feature/other");
+
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(messageFile, "feat: wrong branch pick\n");
+    const prepared = command(fixture, [
+      "prepare-commit-msg",
+      messageFile,
+      "message",
+    ]);
+    expect(prepared.status).toBe(1);
+    expect(prepared.stderr).toContain(
+      "belongs to branch 'feature/tracked', not 'feature/other'"
+    );
+  });
+});
+
+describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
+  it("pushes a merge-synced branch when the foreign closed-item commit is reachable from the remote default branch", () => {
+    const fixture = createFixture();
+    const { head, pushedTip } = setupMergeLane(fixture);
+    setOriginHead(fixture);
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
+    });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 1 commit(s)");
+  });
+
+  it("stays strict when the remote default branch cannot be resolved (no origin/HEAD symref)", () => {
+    const fixture = createFixture();
+    const { head, pushedTip } = setupMergeLane(fixture);
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("is closed");
+  });
+
+  it("still rejects a branch-authored commit referencing a closed work item", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: branch work\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON:
+          '{"number":42,"state":"CLOSED","comments":[],"closedByPullRequestsReferences":[]}',
+        FAKE_GH_PR_MISSING: "1",
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("is closed");
+  });
+
+  it("still rejects mixed branch-authored references with the exemption active", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    commit(fixture, "feat: first ticket\n\nWork-Item: acme/widgets#42");
+    const head = commit(
+      fixture,
+      "fix: second ticket\n\nWork-Item: acme/widgets#43"
+    );
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("mixed Work-Item references");
+  });
+
+  it("still rejects a branch-authored commit with no Work-Item trailer", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(fixture, "feat: untracked change");
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Mention the ticket");
   });
 });
