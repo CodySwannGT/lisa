@@ -35,6 +35,49 @@ class Marker:
     quoted: bool
 
 
+def is_bash_blank(char: str) -> bool:
+    """True only for a byte bash treats as a word separator here: space, tab,
+    newline.
+
+    Python ``str.isspace()`` is a strict SUPERSET of bash's word-separator set —
+    it is also True for NBSP (``\\xa0``), the C0 separators FS/GS/RS/US
+    (``\\x1c``–``\\x1f``), NEL (``\\x85``), VT/FF (``\\x0b``/``\\x0c``), CR
+    (``\\r``), and the Unicode spaces (ideographic space ``\\u3000``, the
+    ``\\u2000``–``\\u200a`` run, ``\\u202f``, ``\\u205f``, ``\\u2028``/``\\u2029``).
+    Bash (C locale) treats NONE of these as a blank or a metacharacter, so a
+    ``#`` preceded by one stays INSIDE the current word — it does NOT start a
+    comment — and any ``$(...)`` / `` `...` `` in that word is still expanded and
+    EXECUTED. Every comment-boundary walker here must therefore match bash's
+    actual blank set, not Python's: using ``str.isspace()`` let the scanner call
+    ``#`` a comment where bash does not, skip to the newline, and go blind to a
+    live substitution — smuggling arbitrary command execution past the wall
+    (issue #1958 Finding R2). This is the single shared home of that predicate so
+    every walker stays in lockstep with bash's word-boundary rule; fail-closed on
+    ambiguity means narrowing (fewer bytes counted as blank), never widening.
+    """
+    return char in " \t\n"
+
+
+def bash_lines(text: str) -> list[str]:
+    """Split into bash's notion of lines: on ``\\n`` ONLY.
+
+    Python ``str.splitlines()`` is the same over-broad classifier as
+    ``str.isspace()`` in disguise — it ALSO breaks on ``\\r``, VT/FF
+    (``\\x0b``/``\\x0c``), the C0 separators FS/GS/RS (``\\x1c``–``\\x1e``), NEL
+    (``\\x85``), and the Unicode line separators (``\\u2028``/``\\u2029``). Bash
+    ends a line only at an unquoted ``\\n``, so ``splitlines()`` invents line
+    breaks bash never sees. The concrete hole: ``strip_provably_literal_body``
+    splits with ``splitlines()`` then rejoins with ``\\n``, so a ``echo X\\x1c#$(…)``
+    argument gets normalised into ``echo X`` / ``#$(…)`` on separate lines — now
+    the ``#`` sits at a real line start, is treated as a comment, and the live
+    ``$(…)`` is smuggled past the wall exactly as the ``str.isspace()`` desync
+    did (issue #1958 Finding R2, FS/ideographic-space variant). Splitting on
+    ``\\n`` alone keeps this parser's lines in lockstep with bash and with the
+    ``command.count("\\n", …)`` offset arithmetic the markers already rely on.
+    """
+    return text.split("\n")
+
+
 def ansi_c_quote_end(text: str, dollar_index: int) -> int | None:
     """Index one past a bash ANSI-C ``$'...'`` token, or ``None``.
 
@@ -108,7 +151,7 @@ def shell_tokens(prefix: str) -> list[str] | None:
             state = "double"
         elif char == "\\":
             escaped = True
-        elif char == "#" and (index == 0 or prefix[index - 1].isspace()):
+        elif char == "#" and (index == 0 or is_bash_blank(prefix[index - 1])):
             return None
         elif char in ";|&()<>`\n\r":
             return None
@@ -167,7 +210,7 @@ def only_whitespace(lines: list[str], start: int) -> bool:
 
 
 def classify_safe(command: str) -> str | None:
-    lines = command.splitlines()
+    lines = bash_lines(command)
     if len(lines) < 2 or "\x00" in command or "\r" in command:
         return None
 
@@ -208,7 +251,7 @@ def classify_safe(command: str) -> str | None:
 def top_level_markers(command: str) -> list[Marker]:
     """Find conservative top-level markers for malformed/duplicate detection."""
     markers: list[Marker] = []
-    lines = command.splitlines()
+    lines = bash_lines(command)
     offset = 0
     for line in lines:
         state = "plain"
@@ -238,7 +281,7 @@ def top_level_markers(command: str) -> list[Marker]:
                 state = "double"
             elif char == "\\":
                 escaped = True
-            elif char == "#" and (index == 0 or line[index - 1].isspace()):
+            elif char == "#" and (index == 0 or is_bash_blank(line[index - 1])):
                 break
             elif line.startswith("<<", index) and not line.startswith("<<<", index):
                 marker = parse_marker(line, index, offset)
@@ -289,7 +332,7 @@ def unquoted_code_and_comment(line: str) -> tuple[str, str]:
         elif char == "\\":
             code.append(" ")
             escaped = True
-        elif char == "#" and (index == 0 or line[index - 1].isspace()):
+        elif char == "#" and (index == 0 or is_bash_blank(line[index - 1])):
             return "".join(code), line[index + 1 :]
         else:
             code.append(char)
@@ -348,7 +391,7 @@ def writer_owns_real_marker(command: str, markers: list[Marker]) -> bool:
     logical_markers = (
         markers if logical_command == command else top_level_markers(logical_command)
     )
-    lines = logical_command.splitlines()
+    lines = bash_lines(logical_command)
     for marker in logical_markers:
         line_index = logical_command.count("\n", 0, marker.start)
         if line_has_allowed_writer(lines[line_index]):
@@ -358,7 +401,7 @@ def writer_owns_real_marker(command: str, markers: list[Marker]) -> bool:
 
 def writer_has_commented_marker_and_following_code(command: str) -> bool:
     """Reject fake writer markers whose following lines would execute."""
-    lines = command.splitlines()
+    lines = bash_lines(command)
     for index, line in enumerate(lines):
         _code, comment = unquoted_code_and_comment(line)
         if (
@@ -402,7 +445,7 @@ def has_active_command_substitution(command: str) -> bool:
         elif char == "\\":
             escaped = True
         elif char == "#" and (
-            index == 0 or command[index - 1].isspace()
+            index == 0 or is_bash_blank(command[index - 1])
         ):
             newline = command.find("\n", index)
             if newline < 0:
@@ -496,7 +539,7 @@ def cross_line_quote_state(command: str, offset: int) -> str:
             state = "double"
         elif char == "\\":
             escaped = True
-        elif char == "#" and (index == 0 or command[index - 1].isspace()):
+        elif char == "#" and (index == 0 or is_bash_blank(command[index - 1])):
             newline = command.find("\n", index)
             if newline < 0 or newline >= limit:
                 return state
@@ -535,7 +578,7 @@ def strip_provably_literal_body(command: str, markers: list[Marker]) -> str:
     marker = markers[0]
     if cross_line_quote_state(command, marker.start) != "plain":
         return command
-    lines = command.splitlines()
+    lines = bash_lines(command)
     marker_line = command.count("\n", 0, marker.start)
     for index in range(marker_line + 1, len(lines)):
         candidate = lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
@@ -546,7 +589,7 @@ def strip_provably_literal_body(command: str, markers: list[Marker]) -> str:
 
 def marker_is_closed(command: str, marker: Marker) -> bool:
     marker_line = command.count("\n", 0, marker.start)
-    lines = command.splitlines()
+    lines = bash_lines(command)
     for line in lines[marker_line + 1 :]:
         candidate = line.lstrip("\t") if marker.strip_tabs else line
         if candidate == marker.delimiter:
@@ -594,8 +637,8 @@ def main() -> int:
     # A supported writer that failed the exact safe grammar is ambiguous: do
     # not let chaining, alternate redirects, or an expanding delimiter turn a
     # would-be payload exemption into a bypass.
-    if logical_command.splitlines() and line_has_allowed_writer(
-        logical_command.splitlines()[0]
+    if bash_lines(logical_command) and line_has_allowed_writer(
+        bash_lines(logical_command)[0]
     ):
         return MALFORMED
 
