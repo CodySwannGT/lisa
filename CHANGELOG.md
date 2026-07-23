@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.295.0](https://github.com/CodySwannGT/lisa/compare/v2.294.0...v2.295.0) (2026-07-23)
+
+
+### Features
+
+* **workflows:** declare GitHub environments on stack deploy jobs ([38a1fa6](https://github.com/CodySwannGT/lisa/commit/38a1fa667062aab2d44a708aca73ab7980bd1e63)), closes [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+
+
+### Bug Fixes
+
+* **workflows:** apply DSS-3 review batch — docs parity, cdk snippet, test dedup ([ccd921e](https://github.com/CodySwannGT/lisa/commit/ccd921e3e241160204f20b7c463a15d5f027ce42)), closes [#1969](https://github.com/CodySwannGT/lisa/issues/1969) [#1969](https://github.com/CodySwannGT/lisa/issues/1969) [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+* **workflows:** gate the CDK downstream snippet env (CodeRabbit PR [#1983](https://github.com/CodySwannGT/lisa/issues/1983)) ([93a2690](https://github.com/CodySwannGT/lisa/commit/93a2690d43675a150c4341cda5047da81340120b)), closes [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+* **workflows:** route gated deploy jobs to <env>-deploy (mitigation A) ([4279551](https://github.com/CodySwannGT/lisa/commit/42795513d6541967dfd8753a288bada3a2814e63)), closes [CodySwannGT/lisa#1969](https://github.com/CodySwannGT/lisa/issues/1969)
+
 ## [2.294.0](https://github.com/CodySwannGT/lisa/compare/v2.293.1...v2.294.0) (2026-07-22)
 
 
