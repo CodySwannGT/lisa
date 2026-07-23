@@ -585,7 +585,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/install-pkgs.sh":
       "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "225b17d7d25fd327cb2e23f2608e4eb070d37d1e0388e2380475119d9823c2a8",
+      "fb9364b31d656779cf3eb9de28320964ebfdb3bdb1d445bb8e7fc6f2f9706239",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
@@ -7891,6 +7891,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
     "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-heredoc-continuation.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,

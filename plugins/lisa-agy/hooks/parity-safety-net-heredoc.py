@@ -457,6 +457,43 @@ def has_active_command_substitution(command: str) -> bool:
     return False
 
 
+def collapse_body_continuations(body: str) -> str:
+    """Remove bash ``\\<newline>`` line continuations under heredoc-body rules.
+
+    An UNQUOTED here-doc body performs NO quote processing (``'``/``"``/``#`` are
+    literal bytes), but bash STILL removes an unescaped ``\\<newline>`` — the
+    bash manual: for an unquoted here-doc "the character sequence ``\\newline`` is
+    ignored". The whole-command ``collapse_line_continuations`` applies a FLAT
+    shell quote state, so a single body apostrophe flips it into a phantom
+    single-quoted string and it REFUSES to join a ``$\\<newline>(`` continuation,
+    leaving ``$`` and ``(`` on separate lines where the per-line substitution
+    scan sees neither — smuggling a live ``$(...)`` past the wall (issue #1958
+    Finding R4). The body window has no quote state to get wrong, so this joins
+    continuations with backslash-only semantics: a backslash escapes the next
+    single byte (so ``\\\\`` is a literal backslash whose following newline is
+    real, and ``\\$`` cannot start a substitution), and a backslash directly
+    before a newline is dropped together with that newline. Feed the joined body
+    to ``body_line_has_substitution`` so a split ``$(`` is scanned as the one
+    contiguous token bash will execute. Fail-closed: a trailing lone backslash is
+    kept verbatim (it can start no substitution).
+    """
+    result: list[str] = []
+    index = 0
+    length = len(body)
+    while index < length:
+        char = body[index]
+        if char == "\\":
+            if index + 1 < length and body[index + 1] == "\n":
+                index += 2
+                continue
+            result.append(body[index : index + 2])
+            index += 2
+            continue
+        result.append(char)
+        index += 1
+    return "".join(result)
+
+
 def body_line_has_substitution(line: str) -> bool:
     """True if an unquoted-heredoc-body line contains an active substitution.
 
@@ -516,14 +553,25 @@ def unquoted_heredoc_body_has_substitution(
         if cross_line_quote_state(command, marker.start) != "plain":
             continue
         marker_line = command.count("\n", 0, marker.start)
+        body_lines: list[str] = []
         for index in range(marker_line + 1, len(lines)):
             candidate = (
                 lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
             )
             if candidate == marker.delimiter:
                 break
-            if body_line_has_substitution(lines[index]):
-                return True
+            body_lines.append(lines[index])
+        # Join the raw body window under bash's unquoted-here-doc ``\<newline>``
+        # removal BEFORE scanning, so a ``$(`` a caller split across a line
+        # continuation is seen as the one contiguous token bash executes. The
+        # terminator was matched per physical line above (bash matches the
+        # delimiter before continuation processing), so continuations are joined
+        # only WITHIN the body window, never across the delimiter. This does not
+        # rely on ``collapse_line_continuations`` — whose flat quote state a body
+        # apostrophe corrupts — which is the whole point of Finding R4.
+        body = collapse_body_continuations("\n".join(body_lines))
+        if body_line_has_substitution(body):
+            return True
     return False
 
 
