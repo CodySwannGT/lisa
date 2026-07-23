@@ -245,7 +245,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     # Declaring the environment makes GitHub emit deployment /
-    # deployment_status events for this run — the substrate
+    # deployment_status events for this run — the substrate that
     # deploy-status-sync listens to. url surfaces the deployed API in the
     # GitHub deployments UI.
     environment:

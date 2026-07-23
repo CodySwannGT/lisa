@@ -178,7 +178,7 @@ jobs:
     name: 🚀 Deploy to EAS
     runs-on: ubuntu-latest
     # Declaring the environment makes GitHub emit deployment /
-    # deployment_status events for this run — the substrate
+    # deployment_status events for this run — the substrate that
     # deploy-status-sync listens to. Friendly name resolution (dev/staging/
     # production) comes from determine_environment; unconfigured branches
     # degrade to the branch name, same as the approval gate.

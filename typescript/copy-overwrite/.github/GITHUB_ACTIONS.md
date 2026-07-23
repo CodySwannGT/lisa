@@ -149,6 +149,23 @@ an unprovisioned gate blocks nothing. Not yet wired for rails
 (`release-rails.yml` doesn't thread approval inputs) or harper-fabric (no
 release.yml call).
 
+**Your deploy job declares a GitHub environment** (deploy-status-sync
+substrate): the deploy job in this project's `deploy.yml` carries an
+`environment:` declaration so every deploy run emits `deployment` /
+`deployment_status` events — the substrate that deploy-status-sync (and
+GitHub-for-Jira) listens to. Stacks with a `determine_environment` job reuse
+its friendly-name resolution
+(`needs.determine_environment.outputs.approval_environment`; unconfigured
+branches degrade to the branch name, same as the approval gate); stacks
+without one use the branch ternary
+`github.ref_name == 'main' && 'production' || github.ref_name`. CDK projects
+own their deploy job — declare the environment on it per the commented
+snippet in the template `deploy.yml`. Exactly one deploy job per workflow
+declares an environment (the job that mutates the target); release/build
+bookkeeping jobs never do, so each run records exactly one deploy-job
+deployment; approval-gated runs additionally record the gate job's deployment
+against the same environment (to be confirmed empirically in #1969 T4).
+
 **Blackout Periods** (configurable):
 - Production: No weekends, no late nights (10 PM - 6 AM)
 - Holiday blackouts: Dec 24 - Jan 2, Jul 3-5, Nov 27-29
