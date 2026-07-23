@@ -43,6 +43,10 @@ const INFRA_JOB = "  infra:";
 /** An irreversible infrastructure apply with the human confirmation removed. */
 const RUN_TERRAFORM_APPLY = "      - run: terraform apply -auto-approve";
 
+/** A production terraform destroy that should remain visible to B4. */
+const RUN_TERRAFORM_DESTROY =
+  "      - run: terraform destroy -auto-approve -var-file=prod.tfvars";
+
 /**
  * Every finding in a record, asserted to name no blocker.
  * @param findings - The record's raw findings
@@ -175,6 +179,64 @@ describe("assessFeedbackGuardrailsDimension — ephemeral environments stay clea
         finding => finding.blocker === BLOCKER_ID
       )
     ).toBe(true);
+  });
+
+  it("does not stand B4 when a migration targets the job's own `services:` container", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      "    services:",
+      "      postgres:",
+      "        image: postgres:16",
+      "    env:",
+      "      DATABASE_URL: postgres://postgres@postgres:5432/app",
+      STEPS,
+      "      - run: RAILS_ENV=production bundle exec rails db:migrate",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(SKIP);
+    expectNoBlocker(record.findings);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.observation).includes("services:")
+      )
+    ).toBe(true);
+  });
+
+  it("stands B4 when a job service is unrelated to a durable infrastructure target", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      "    services:",
+      "      redis:",
+      "        image: redis:7",
+      STEPS,
+      RUN_TERRAFORM_DESTROY,
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.observation).includes("services:")
+      )
+    ).toBe(false);
   });
 
   it("does not stand B4 for an integration job applying test tfvars", async () => {
