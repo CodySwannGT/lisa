@@ -177,6 +177,10 @@ export async function drainLearningsOverflow(
   const { root, target } = await resolveOverflowTarget(projectRoot);
   await assertSafeLearningParents(root, path.dirname(target));
   return withFileTargetLock(target, async () => {
+    // The pre-lock check can go stale while waiting on the lock, so the
+    // containment guarantee has to be re-established once the read is
+    // actually about to happen. Same discipline as the ledger writer.
+    await assertSafeLearningParents(root, path.dirname(target));
     const entries = await readOverflowEntries(target);
     const drained = entries
       .filter(entry => requested.has(entry.id))
@@ -238,6 +242,8 @@ export async function preserveDroppedLearning(
   const { root, target } = await resolveOverflowTarget(projectRoot);
   await assertSafeLearningParents(root, path.dirname(target));
   const preserved = await withFileTargetLock(target, async () => {
+    // Re-establish containment after the lock wait; see drainLearningsOverflow.
+    await assertSafeLearningParents(root, path.dirname(target));
     const entries = await readOverflowEntries(target);
     if (entries.some(current => current.id === entry.id)) {
       return true;
