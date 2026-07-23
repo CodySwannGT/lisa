@@ -457,6 +457,76 @@ def has_active_command_substitution(command: str) -> bool:
     return False
 
 
+def body_line_has_substitution(line: str) -> bool:
+    """True if an unquoted-heredoc-body line contains an active substitution.
+
+    In an unquoted-delimiter heredoc body bash suppresses ALL quote and comment
+    processing — ``'``, ``"`` and ``#`` are literal bytes — but keeps
+    parameter/command/arithmetic expansion active, so ``$(...)`` and `` `...` ``
+    still EXECUTE. The only in-body metacharacter is the backslash, which escapes
+    the following ``$``, `` ` ``, ``\\`` or newline; every other byte (including
+    the quotes and ``#`` that blind the flat scanner) is inert text. So scan the
+    body raw, honouring only that escaping, and flag a bare ``$(`` or backtick —
+    the same command-substitution tokens ``has_active_command_substitution``
+    detects elsewhere, just without the quote/comment state machine that is wrong
+    for this region (issue #1958 Finding R3).
+    """
+    index = 0
+    length = len(line)
+    while index < length:
+        char = line[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == "`" or line.startswith("$(", index):
+            return True
+        index += 1
+    return False
+
+
+def unquoted_heredoc_body_has_substitution(
+    command: str, markers: list[Marker]
+) -> bool:
+    """Detect a live substitution inside an unquoted top-level heredoc body.
+
+    ``has_active_command_substitution`` applies flat shell quote/comment
+    semantics to the whole command, but an UNQUOTED ``<<EOF`` body follows
+    different rules (see ``body_line_has_substitution``): a lone apostrophe or
+    ``#`` in the body flips the flat scanner's state and hides a live
+    ``$(...)``/backtick that bash nonetheless expands, smuggling execution past
+    the wall (issue #1958 Finding R3). This complements the flat scan by walking
+    only the body window of each unquoted, top-level, closed heredoc with
+    heredoc-body semantics.
+
+    A quoted-delimiter body (``Marker.quoted``) is genuinely inert to bash and is
+    skipped — that is the whole point of the Finding-1 literal-payload win.
+    Before scanning, the marker is re-verified to sit at bash top level under
+    CROSS-LINE quote tracking (mirroring ``strip_provably_literal_body``): a
+    heredoc-shaped ``<<EOF`` nested inside an open single-quoted string is not a
+    real heredoc — its body is literal string data bash never expands — so
+    scanning it would over-block ordinary quoted prose; and one nested inside an
+    open double-quoted string has its ``$(...)`` already caught by the flat scan.
+    Either way, only markers bash actually treats as top-level heredoc
+    redirections get the body scan.
+    """
+    lines = bash_lines(command)
+    for marker in markers:
+        if marker.quoted:
+            continue
+        if cross_line_quote_state(command, marker.start) != "plain":
+            continue
+        marker_line = command.count("\n", 0, marker.start)
+        for index in range(marker_line + 1, len(lines)):
+            candidate = (
+                lines[index].lstrip("\t") if marker.strip_tabs else lines[index]
+            )
+            if candidate == marker.delimiter:
+                break
+            if body_line_has_substitution(lines[index]):
+                return True
+    return False
+
+
 def parse_marker(line: str, start: int, offset: int) -> Marker | None:
     index = start + 2
     strip_tabs = False
@@ -653,7 +723,7 @@ def main() -> int:
     # tokens are inert data); the text outside that window is still scanned.
     if has_active_command_substitution(
         strip_provably_literal_body(logical_command, markers)
-    ):
+    ) or unquoted_heredoc_body_has_substitution(logical_command, markers):
         return MALFORMED
     if len(markers) > 1:
         return MALFORMED

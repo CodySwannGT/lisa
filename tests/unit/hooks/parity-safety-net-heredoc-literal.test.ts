@@ -21,6 +21,12 @@ const EXIT_ALLOWED = 0;
 const HEREDOC_TERMINATOR = "EOF";
 const QUOTED_PYTHON_HEREDOC = "python3 <<'EOF'";
 const UNQUOTED_PYTHON_HEREDOC = "python3 <<EOF";
+// An UNQUOTED `cat <<EOF` header: bash performs NO quote/comment processing on
+// the body, yet still expands `$(...)` / backticks inside it (issue #1958
+// Finding R3). `unquotedCat` wraps arbitrary body lines in that header/EOF pair.
+const UNQUOTED_CAT_HEREDOC = "cat <<EOF";
+const unquotedCat = (...body: string[]): string =>
+  [UNQUOTED_CAT_HEREDOC, ...body, HEREDOC_TERMINATOR].join("\n");
 const OBFUSCATED_EXPANDING_DELETE = "$(rm${IFS}-rf${IFS}/)";
 const HEREDOC_WALL_REASON = "malformed or ambiguous heredoc";
 const COMMIT_REMEDIATION = "git commit -F <file>";
@@ -285,6 +291,74 @@ describe("ANSI-C $'...' desync does not smuggle a live substitution (issue #1958
     ].join("\n");
 
     expect(runHook(cmd).status).toBe(EXIT_ALLOWED);
+  });
+});
+
+describe("unquoted-heredoc-body quote/comment desync does not smuggle a live substitution (issue #1958 Finding R3)", () => {
+  // `has_active_command_substitution` runs a FLAT single/double-quote + `#`
+  // comment scanner over the whole command. Inside an UNQUOTED `<<EOF` heredoc
+  // body bash does NO quote/comment processing — `'`, `"`, `#` are literal — but
+  // STILL expands `$(...)` / backticks. A single apostrophe (`it's`) or a `#` in
+  // the body flips the flat scanner's quote/comment state and blinds it to the
+  // live substitution: parser UNSUPPORTED → hook ALLOW → proven RCE (the sentinel
+  // is created under real bash). The fix scans every unquoted-delimiter heredoc
+  // body with heredoc-body semantics (`'`/`"`/`#` inert, `$(`/backtick still
+  // active), so each kill-shot is BLOCKED at the heredoc wall. The positive
+  // controls prove ordinary prose heredocs (no substitution) are NOT over-blocked
+  // and quoted-delimiter bodies stay inert.
+
+  it("blocks a $(touch) hidden behind an apostrophe in an unquoted heredoc body (R3 apostrophe)", () => {
+    const result = runHook(
+      unquotedCat("it's $(touch heredoc-1958-fp-R3a-sentinel)")
+    );
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("blocks a $(touch) hidden behind a leading # in an unquoted heredoc body (R3 hash)", () => {
+    const result = runHook(
+      unquotedCat("# $(touch heredoc-1958-fp-R3b-sentinel)")
+    );
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("blocks an arbitrary-exec $(… && id) smuggled in unquoted prose (R3 weaponized prose)", () => {
+    const result = runHook(
+      unquotedCat(
+        "docs: it's the plan $(touch heredoc-1958-fp-R3c-sentinel && id)"
+      )
+    );
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("blocks an obfuscated destructive $(rm) behind an apostrophe — only the wall can stop it (R3 rm)", () => {
+    // The `$(rm${IFS}-rf${IFS}/)` payload is obfuscated so no content guard
+    // matches it raw (the `/)` boundary defeats the rm guard) — ONLY the heredoc
+    // wall stands between it and execution, proving the classifier closes it.
+    const result = runHook(unquotedCat(`it's ${OBFUSCATED_EXPANDING_DELETE}`));
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("still allows an ordinary unquoted heredoc whose apostrophe prose has NO substitution (R3 prose control)", () => {
+    // The single most common heredoc shape an agent emits — a `cat <<EOF`
+    // file-write of plain prose with an apostrophe. Narrowing the scanner must
+    // NOT start blocking ordinary prose heredocs.
+    expect(runHook(unquotedCat("it's the plan")).status).toBe(EXIT_ALLOWED);
+  });
+
+  it("still allows an unquoted heredoc body that only parameter-expands $HOME (R3 param-only control)", () => {
+    // `$HOME` is parameter expansion, not command substitution — bash runs no
+    // command, so this must stay classified as today.
+    expect(runHook(unquotedCat("it's $HOME here")).status).toBe(EXIT_ALLOWED);
+  });
+
+  it("still allows an unquoted heredoc body mixing an apostrophe and a # comment with no substitution (R3 over-block guard)", () => {
+    expect(
+      runHook(unquotedCat("# release notes", "it's a plan, don't worry")).status
+    ).toBe(EXIT_ALLOWED);
   });
 });
 
