@@ -185,7 +185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
-      "77447ae1b386c6ee11dd48a5232ef7fe68a7d5e321b0fe2b2c796c5d58ada9c6",
+      "c0b971d10d40215ea0c0fa1bf1635322ed20ede330306e47e028bae8af03444d",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -2071,7 +2071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
-      "5875a07df669ae692bea6b574b95aed74d8080785991c438afc0d4a457b3da0c",
+      "e661329de6f19550953e3522c0dfbc643397ca9a27e975f23437b64bd50b475c",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
