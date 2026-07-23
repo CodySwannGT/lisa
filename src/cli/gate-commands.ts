@@ -4,6 +4,10 @@ import type { Command } from "commander";
 import type { FileUpstreamOptions } from "./file-upstream-cmd.js";
 import { runInstallMergeDriver } from "./install-merge-driver-cmd.js";
 import {
+  runLearningsOverflow,
+  type LearningsOverflowOptions,
+} from "./learnings-overflow-cmd.js";
+import {
   runMergeLearnings,
   type MergeLearningsOptions,
 } from "./merge-learnings-cmd.js";
@@ -12,11 +16,13 @@ import {
  * Gate runners kept structural to avoid importing the whole CLI dependency
  * record.
  *
- * `merge-learnings` and `install-merge-driver` are deliberately NOT members.
- * They are invoked by git and by an operator repairing a repository, never
- * substituted by the root CLI, and both mutate real state — the merge driver
- * overwrites the file git hands it, and the installer writes local git config.
- * An optional, defaulted field would be the worst shape here: a caller that
+ * `merge-learnings`, `install-merge-driver`, and `learnings-overflow` are
+ * deliberately NOT members. They are invoked by git, by an operator repairing a
+ * repository, or by the gardener draining its buffer — never substituted by the
+ * root CLI — and all three mutate real state: the merge driver overwrites the
+ * file git hands it, the installer writes local git config, and the drain
+ * removes entries from the only durable copy of a dropped capture. An optional,
+ * defaulted field would be the worst shape here: a caller that
  * believed it had stubbed every gate command would silently run the real driver
  * against real files. Leaving them off the record makes non-injectability
  * explicit; they are covered directly by unit tests and by end-to-end tests
@@ -37,6 +43,7 @@ export interface GateCommandDependencies {
 export const GATE_COMMAND_NAMES = [
   "check-learnings-budget",
   "file-upstream",
+  "learnings-overflow",
   "merge-learnings",
   "install-merge-driver",
 ] as const;
@@ -82,6 +89,29 @@ function addFileUpstreamCommand(
     .option("--input <file>", "JSON filing event (default: read stdin)")
     .action(async (options: FileUpstreamOptions) => {
       const code = await dependencies.runFileUpstream(options);
+      if (code !== 0) process.exitCode = code;
+    });
+}
+
+/**
+ * Register the overflow inspect/drain handle the gardener uses.
+ *
+ * Not injectable: the drain removes entries from the only durable copy of a
+ * budget-dropped capture, so a caller must never be able to stub it away.
+ * @param program - Commander program
+ */
+function addLearningsOverflowCommand(program: Command): void {
+  program
+    .command("learnings-overflow")
+    .description(
+      "List or drain learnings the ledger had no budget to accept (JSON output)"
+    )
+    .option(
+      "--drain <ids...>",
+      "Entry ids to remove once they have a durable home elsewhere"
+    )
+    .action(async (options: LearningsOverflowOptions) => {
+      const code = await runLearningsOverflow(options);
       if (code !== 0) process.exitCode = code;
     });
 }
@@ -137,6 +167,7 @@ export function addGateCommands(
 ): void {
   addCheckLearningsBudgetCommand(program, dependencies);
   addFileUpstreamCommand(program, dependencies);
+  addLearningsOverflowCommand(program);
   addMergeLearningsCommand(program);
   addInstallMergeDriverCommand(program);
 }

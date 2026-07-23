@@ -15,6 +15,7 @@ import {
   buildLearningsAttributeLine,
   renderLearningsGitattributesBlock,
 } from "../../../src/core/learnings-merge-driver.js";
+import { resolveLearningsOverflowFile } from "../../../src/core/learnings-overflow.js";
 import { mergeCopyContents } from "../../../src/strategies/copy-contents.js";
 
 const DEFAULT_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
@@ -36,6 +37,15 @@ describe("shipped .gitattributes", () => {
   it.each(SHIPPED)("%s binds the ledger to the union driver", async file => {
     expect(await shipped(file)).toContain(
       buildLearningsAttributeLine(DEFAULT_LEDGER)
+    );
+  });
+
+  it.each(SHIPPED)("%s binds the overflow to the union driver", async file => {
+    // The overflow is written by the same concurrent learner passes on the same
+    // per-fingerprint branches, so it has the ledger's exact merge problem and
+    // must not be left on git's default text merge (CodySwannGT/lisa#1996).
+    expect(await shipped(file)).toContain(
+      buildLearningsAttributeLine(resolveLearningsOverflowFile(DEFAULT_LEDGER))
     );
   });
 

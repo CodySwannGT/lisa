@@ -40,17 +40,25 @@ memorized list:
    exemption from projection-only serving) plus `projectLearnings` for the
    bounded projection (to measure **budget pressure**: how many entries the
    projection omits). Never hand-parse or hand-edit the raw file.
-2. **Rules trees** — the plugin `rules/eager/` + `rules/reference/` pairs AND
+2. **The overflow buffer** — captures the ledger had no budget to accept, held
+   in `PROJECT_LEARNINGS.overflow.md` beside the resolved ledger. Read it ONLY
+   through the executable contract: `bunx @codyswann/lisa learnings-overflow`,
+   which prints `{ file, pending, entries }` as JSON. Never hand-parse or
+   hand-edit it. These are judged-durable learnings with nowhere to live, so a
+   non-empty overflow is the single strongest budget-pressure evidence there is
+   — stronger than an omission count, because room was not merely tight, a real
+   capture was turned away. Drain it every run (see The audit cycle).
+3. **Rules trees** — the plugin `rules/eager/` + `rules/reference/` pairs AND
    the host project's `.claude/rules/` (e.g. `PROJECT_RULES.md`, which is
    human-authored only — its existing sections are still audit candidates;
    first-run candidates come from exactly there).
-3. **Skills** — `.claude/skills/` and the plugin skill roots the runtime
+4. **Skills** — `.claude/skills/` and the plugin skill roots the runtime
    exposes (descriptions are eager context; bodies load on invoke).
-4. **The wiki index** — `wiki/index.md` when the project has a wiki.
-5. **Mechanical-control surfaces** — lint configs (ESLint/oxlint), ast-grep
+5. **The wiki index** — `wiki/index.md` when the project has a wiki.
+6. **Mechanical-control surfaces** — lint configs (ESLint/oxlint), ast-grep
    rules, git hooks, test suites, and `package.lisa.json` force sections:
    the surfaces that answer "does a mechanical owner already exist?".
-6. **The tracker** — prior gardener tickets (open, done, and closed-rejected)
+7. **The tracker** — prior gardener tickets (open, done, and closed-rejected)
    are its memory; see Idempotency.
 
 ## Candidate-selection rules
@@ -64,7 +72,7 @@ Gather, per item, the five evidence axes:
 | **Staleness** | Does the item reference files, flags, versions, or tools that no longer exist? | Glob/Grep the referenced paths and configs. |
 | **Redundancy** | Does a mechanical owner already enforce the invariant? (The double-payment hunter.) | Check lint/ast-grep/hook/test/force surfaces for the same invariant. |
 | **Contradiction** | Does the item contradict another rule, skill, config, or observed current behavior? | Cross-reference the inventoried surfaces. |
-| **Budget pressure** | Is the ledger projection omitting entries, or the eager tier growing? | `projectLearnings` omission count; eager-tree token/size trend. |
+| **Budget pressure** | Is the ledger projection omitting entries, captures landing in the overflow, or the eager tier growing? | `projectLearnings` omission count; `learnings-overflow` pending count; eager-tree token/size trend. |
 
 Selection outcomes per candidate: **PROMOTE** (up the ladder), **DEMOTE**
 (down the ladder), **CONFIRM** (evidence the entry demonstrably applied —
@@ -117,6 +125,34 @@ audits the auditor without re-running it.
 ## The audit cycle
 
 1. **Inventory** the sources of truth above.
+1.5. **Drain the overflow** — before anything else, because these captures are
+   the only knowledge in the system with no durable home at all. For each entry
+   `bunx @codyswann/lisa learnings-overflow` reports:
+
+   - **File its durable home first.** Route the entry through the ladder router
+     like any other candidate and file the resulting ticket, carrying the
+     entry's `rule`, `why`, `provenance`, and `confidence` verbatim so nothing
+     is paraphrased away. Use the ordinary `[lisa-gardener]` marker dedupe, so a
+     re-run never files the same overflowed capture twice.
+   - **Drain it only after that ticket exists**, one call naming exactly the ids
+     that now have a home:
+
+     ```bash
+     bunx @codyswann/lisa learnings-overflow --drain <id> [<id>...]
+     ```
+
+     Never drain first and file second, and never drain ids in bulk "to clean
+     up": the buffer is the only copy, so an entry removed before its ticket
+     exists is gone. Filing first makes a partial run — a rate limit, a network
+     failure — safely resumable, because everything unfiled is still in the
+     buffer for the next run. An id the command reports as `absent` was already
+     drained by an earlier run; that is expected, not an error.
+   - **Report the drain in the run proof**: how many were pending, which ids
+     were re-homed to which tickets, and how many remain.
+
+   A non-empty overflow also means the ledger turned a judged-durable capture
+   away, so treat it as top-priority budget-pressure evidence when selecting
+   RETIRE/PROMOTE candidates this run — the room has to come from somewhere.
 2. **Evidence** — gather the five axes per item; drop items with none.
 3. **Classify** — pass each candidate (`rule`, `why`, `provenance`,
    `evidence`) to the ladder router (the `skill-evaluator` agent). The router
