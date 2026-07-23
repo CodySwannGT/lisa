@@ -1,10 +1,10 @@
 /** Confined, bounded, atomic storage for standards-conformance proof. */
 import * as fse from "fs-extra";
 import { constants as fsConstants } from "node:fs";
-import { lstat, open, realpath, rename, rm } from "node:fs/promises";
+import { lstat, open, realpath } from "node:fs/promises";
 import path from "node:path";
 import { withFileTargetLock } from "../core/learnings-lock.js";
-import { syncContainingDirectory } from "../health/directory-sync.js";
+import { writeFileAtomically } from "../utils/atomic-file-write.js";
 import {
   STANDARDS_PROOF_PATH,
   type StandardsProof,
@@ -125,27 +125,13 @@ export async function writeStandardsProof(
 ): Promise<{ readonly path: string; readonly proof: StandardsProof }> {
   const proof = validateStandardsProof(candidate, now);
   const serialized = serialize(proof);
-  const { directory, target } = await resolveWriteTarget(projectRoot);
+  const { target } = await resolveWriteTarget(projectRoot);
   return await withFileTargetLock(target, async () => {
     await assertSafeTarget(target);
-    const temporary = path.join(
-      directory,
-      `.${path.basename(target)}.${process.pid}.${crypto.randomUUID()}.tmp`
-    );
-    try {
-      const handle = await open(temporary, "wx", 0o600);
-      try {
-        await handle.writeFile(serialized, "utf8");
-        await handle.sync();
-      } finally {
-        await handle.close();
-      }
-      await assertSafeTarget(target);
-      await rename(temporary, target);
-      await syncContainingDirectory(directory);
-    } finally {
-      await rm(temporary, { force: true });
-    }
+    await writeFileAtomically(target, serialized, {
+      mode: 0o600,
+      beforeRename: () => assertSafeTarget(target),
+    });
     return Object.freeze({ path: target, proof });
   });
 }
