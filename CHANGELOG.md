@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.6](https://github.com/CodySwannGT/lisa/compare/v2.297.5...v2.297.6) (2026-07-23)
+
+
+### Bug Fixes
+
+* **learnings:** stop concurrent passes corrupting and losing ledger work ([a675fc1](https://github.com/CodySwannGT/lisa/commit/a675fc11b4fb08ef67de1adeb2a0cd7d9532356a)), closes [CodySwannGT/lisa#1995](https://github.com/CodySwannGT/lisa/issues/1995)
+
 ### [2.297.5](https://github.com/CodySwannGT/lisa/compare/v2.297.4...v2.297.5) (2026-07-23)
 
 

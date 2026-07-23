@@ -1,6 +1,6 @@
 {
   "name": "lisa-openclaw",
-  "version": "2.297.5",
+  "version": "2.297.6",
   "description": "Connect staff roles to Telegram or Slack via OpenClaw — facilitator/specialist hub-and-spoke routing and repo-coding topics, for Claude Code and Codex",
   "author": {
     "name": "Cody Swann"
