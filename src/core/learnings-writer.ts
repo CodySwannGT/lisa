@@ -311,12 +311,40 @@ async function readSupersedeIdsPresentBeforeLock(
   if (supersede.length === 0) {
     return new Set();
   }
-  const existing = await readExistingLearnings(target);
+  const existing = await readSupersedeSnapshot(target);
   if (existing === undefined) {
     return new Set();
   }
+  if (existing === "changed-during-open") {
+    return new Set(supersede);
+  }
   const existingIds = new Set(parseLearningsFile(existing).map(({ id }) => id));
   return new Set(supersede.filter(id => existingIds.has(id)));
+}
+
+/**
+ * Read the advisory pre-lock supersede snapshot. If another writer swaps the
+ * file during this best-effort read, treat the requested supersede ids as
+ * plausibly observed so the later locked write preserves the candidate.
+ * @param target - Resolved learnings file path
+ * @returns Existing file content, a sentinel for indeterminate content, or
+ * undefined when the file does not exist
+ */
+async function readSupersedeSnapshot(
+  target: string
+): Promise<string | "changed-during-open" | undefined> {
+  try {
+    return await readExistingLearnings(target);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "Unsafe project learnings path: target changed during open"
+    ) {
+      return "changed-during-open";
+    }
+    throw error;
+  }
 }
 
 /**
