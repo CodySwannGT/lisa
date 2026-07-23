@@ -2,7 +2,7 @@
 name: lisa-parity-safety-net-rules
 description: "View, set, and verify the custom guard rules enforced by Lisa's safety-net PreToolUse Bash hook (parity-safety-net.sh). The consolidated cross-agent equivalent of the upstream safety-net plugin's set-custom-rules + verify-custom-rules skills — manages a project-local list of extended-regex patterns that block destructive shell commands, on Codex, agy, Copilot, Cursor, and Claude."
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: safety-net@cc-marketplace@0.9.0
+synced-from: safety-net@cc-marketplace@1.0.6
 ---
 
 # Parity Safety-Net Rules
@@ -13,13 +13,18 @@ Bash command. The hook (`hooks/parity-safety-net.sh`, registered as a
 commands; this skill lets a project **view**, **set**, and **verify** *additional*
 project-specific rules on top of those built-ins.
 
-> **Lisa-native reimplementation.** This consolidates the upstream
-> `safety-net@cc-marketplace` plugin's two rule-management skills
-> (`set-custom-rules` + `verify-custom-rules`) into one. It is reimplemented from
-> scratch against Lisa conventions — it does **not** port or invoke upstream
-> plugin code.
+> **Lisa-native reimplementation.** Upstream 0.9.0 shipped two rule-management
+> skills (`set-custom-rules` + `verify-custom-rules`), which this skill
+> consolidates. Upstream 1.0.6 consolidated them too (into `cc-safety-net`) and
+> moved custom rules to a JSON rulebook system driven by the
+> `npx cc-safety-net rule` CLI. Lisa **deliberately keeps** its simpler
+> ERE-lines-file design: the Lisa hook must run identically on Codex, agy,
+> Copilot, Cursor, and Claude without an npx dependency, and a flat regex file
+> is auditable in any of those runtimes. It is reimplemented from scratch
+> against Lisa conventions — it does **not** port or invoke upstream plugin
+> code.
 >
-> **Drift tracking.** Pinned to `safety-net@cc-marketplace@0.9.0`.
+> **Drift tracking.** Pinned to `safety-net@cc-marketplace@1.0.6`.
 > `scripts/plugin-parity-drift.mjs` compares this pin against the upstream
 > version in the plugin cache and flags staleness. **Do not port or copy upstream
 > plugin code.**
@@ -48,11 +53,52 @@ RULES_FILE="${SAFETY_NET_RULES_FILE:-${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-
 
 ### Built-in guards (always on)
 
-1. `rm -rf` of a filesystem root, `$HOME`/`~`, or a top-level wildcard.
-2. Force-pushing a protected branch (`main`/`master`/`production`/`release`).
-   `--force-with-lease` is intentionally allowed.
-3. `git reset --hard` while the working tree is **dirty** (would discard work).
-4. Destructive SQL — `DROP DATABASE/SCHEMA/TABLE`, `TRUNCATE TABLE`.
+1. `rm -rf` of a filesystem root, `$HOME`/`~`, or a top-level wildcard — with
+   quote-aware boundaries, so wrapper/interpreter forms like
+   `bash -c "rm -rf /"` and `python -c "… os.system('rm -rf /')"` match too.
+   Path-prefixed spellings (`/bin/rm`, `./rm`) count as `rm` for every rm
+   guard.
+2. `rm -rf` target hardening: the cwd itself (`.`/`./`), `..`-traversal paths,
+   home-anchored `~/…` paths, absolute paths outside the project (`/tmp`,
+   `/var/tmp`, and `$TMPDIR` are allowed), `$VAR` targets other than `$TMPDIR`,
+   and **any** recursive forced delete while the working directory is `$HOME`.
+3. Force-pushing a protected branch
+   (`main`/`master`/`production`/`prod`/`release`). `--force-with-lease` is
+   intentionally allowed, and so is force-pushing a feature branch (sanctioned
+   rebase workflow). Acceptable parity divergence: a refspec force-push
+   (`git push origin +main`) is not blocked — upstream 1.0.6 allows it too.
+4. `git reset --hard` / `git reset --merge` while the working tree is **dirty**
+   (would discard work). Clean-tree resets are intentionally allowed.
+5. `git rebase --abort` / `git rebase --quit` while the in-progress rebase
+   holds human-made conflict resolutions (they would be discarded). A clean or
+   untouched rebase state stays abortable — an agent-recoverable wedge; the
+   apply backend and a missing `AUTO_MERGE` ref fail closed. Deliberate
+   divergence: upstream blocks `rebase --abort` unconditionally.
+6. `git checkout` discards: the `--` pathspec form (with or without a ref),
+   `-f`/`--force`, `--pathspec-from-file`, and bare `git checkout .`.
+   Branch switching and `-b`/`-B` creation stay allowed.
+7. `git switch --discard-changes` / `-f`/`--force`.
+8. `git restore` touching the worktree — only `git restore --staged <path>`
+   without `--worktree` is allowed (unstaging is safe).
+9. `git stash drop` / `git stash clear` (push/pop/list/apply stay allowed).
+10. `git clean` with a force flag and no dry-run — `-n`/`--dry-run` anywhere
+    makes it a safe preview.
+11. `git branch -D` (or `-d` combined with `-f`, clustered or split);
+    safe `-d` and rename `-m` stay allowed.
+12. `git tag -d`, `git reflog delete`, `git worktree remove --force`.
+13. Deletion via `find … -delete`, `find … -exec rm -rf`, and `xargs … rm -rf`
+    (plain non-recursive `rm` on find/xargs output stays allowed).
+14. Disk destroyers: `dd of=/dev/…`, `mkfs … /dev/…`, `shred`.
+15. Destructive SQL — `DROP DATABASE/SCHEMA/TABLE`, `TRUNCATE TABLE`.
+
+Every git guard sees through leading git **global options** (`-C <path>`,
+`-c <k>=<v>`, `--git-dir[=…]`, `--no-pager`, …), so `git -C /path <destructive>`
+is screened the same as `git <destructive>`.
+
+Malformed hook input fails **closed** (exit 2 denies the command). A text-scan
+hook cannot exempt display commands, so prose like
+`echo "docs about rm -rf /"` can false-positive — quote-break the string or use
+the gh-writer heredoc form (payload is stripped before the guards run).
 
 ## View the current rules
 

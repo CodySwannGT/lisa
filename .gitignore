@@ -234,3 +234,6 @@ expo-env.d.ts
 
 
 .lisa.config.local.json
+
+# Playwright MCP scratch output (never committed; keep out of the evidence manifest)
+.playwright-mcp/

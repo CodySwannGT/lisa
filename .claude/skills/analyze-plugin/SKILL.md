@@ -12,8 +12,13 @@ Lisa curates a small set of third-party Claude plugins in `enabledPlugins`
 ```
 lisa@lisa, safety-net@cc-marketplace, code-simplifier@claude-plugins-official,
 code-review@claude-plugins-official, coderabbit@claude-plugins-official,
-sentry@claude-plugins-official, skill-creator@claude-plugins-official
+skill-creator@claude-plugins-official
 ```
+
+(`sentry@claude-plugins-official` was curated until issue #1955: the base lisa
+plugin bundles the Sentry MCP server for every agent, so the upstream plugin was
+retired — its `enabledPlugins` entry is now pinned `false` — and Lisa's parity
+skills own the Sentry workflows.)
 
 (+ `typescript-lsp@claude-plugins-official` in stack settings.) These reach
 Claude — and Cursor, which reads `.claude-plugin/` natively — but **not**

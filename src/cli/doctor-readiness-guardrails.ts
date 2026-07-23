@@ -143,7 +143,7 @@ function lifecycleDeferral(workflow: ParsedWorkflow): string | null {
   const events = workflow.on.events.filter(event =>
     EPHEMERAL_LIFECYCLE_EVENTS.includes(event)
   );
-  if (events.length === 0) {
+  if (events.length === 0 || events.length < workflow.on.events.length) {
     return null;
   }
   return (

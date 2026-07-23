@@ -612,5 +612,9 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  process.exit(main(process.argv.slice(2)));
+  // exitCode (not process.exit): when stdout is a pipe, writes are async and
+  // process.exit() truncates the report mid-flush (observed: a consumer's
+  // $(...) capture stopped at the first 512-byte chunk). Setting exitCode lets
+  // Node drain the streams before exiting with the same code.
+  process.exitCode = main(process.argv.slice(2));
 }

@@ -543,17 +543,36 @@ describe("release and deploy workflows", () => {
     // Version counters are branch-local but tags are repo-global (dev and
     // staging can compute the same next version); custom pins never bump.
     const steps = releaseWorkflow.jobs.version.steps ?? [];
-    const run = steps.find(s => s.name === "Determine Version")?.run ?? "";
+    const determineVersion = steps.find(s => s.name === "Determine Version");
+    const run = determineVersion?.run ?? "";
 
     expect(run).toContain("awk '{print $4}'");
     expect(run).toContain('npx semver -i patch "$VERSION"');
     expect(run).toContain('!= "custom"');
 
     expect(run).toContain('VERSION="${VERSION#v}"');
+
+    // Environment-scoped release tags (standard-version): prod cuts a clean
+    // vX.Y.Z; non-prod cuts a vX.Y.Z-<env>.<ts> pre-release tag so tag
+    // namespaces never collide across branches. package.json version stays
+    // clean; only the git tag carries the suffix.
+    expect(determineVersion?.env).toMatchObject({
+      RELEASE_ENVIRONMENT: "${{ inputs.environment }}",
+      RELEASE_PRERELEASE: "${{ inputs.prerelease }}",
+      RELEASE_STRATEGY: "${{ inputs.release_strategy }}",
+    });
+    expect(run).toContain('PRERELEASE_LABEL="$RELEASE_PRERELEASE"');
+    expect(run).toContain("main|master|prod|production) PRERELEASE_LABEL=");
+    expect(run).toContain('TAG="v${VERSION}-${PRERELEASE_LABEL}.$(date +%s)"');
+    expect(run).toContain('echo "prerelease=true"');
+    expect(run).toContain('echo "prerelease=false"');
+    expect(run).toContain("git fetch --tags --force origin");
+    expect(run).toContain('TAG="v$VERSION"');
+
     const guardIndex = run.indexOf("git rev-parse -q --verify");
     expect(guardIndex).toBeGreaterThan(run.indexOf('VERSION="${VERSION#v}"'));
     expect(run.indexOf('echo "version=$VERSION"')).toBeGreaterThan(guardIndex);
-    expect(run.indexOf('echo "tag=v$VERSION"')).toBeGreaterThan(guardIndex);
+    expect(run.indexOf('echo "tag=$TAG"')).toBeGreaterThan(guardIndex);
   });
 
   it("fails release creation on API errors but reuses an existing release on rerun", () => {
