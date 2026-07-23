@@ -104,6 +104,57 @@ export function looksEphemeral(text: string): boolean {
   return EPHEMERAL_TARGETS.some(pattern => pattern.test(normalized));
 }
 
+/** Local endpoints that corroborate a command targets job-owned CI state. */
+const LOCAL_SERVICE_TARGETS: readonly RegExp[] = [
+  /\blocalhost\b/,
+  /\b127\.0\.0\.1\b/,
+];
+
+/**
+ * Escape a literal string for use inside a regular expression.
+ * @param value - Literal value to escape
+ * @returns Regex-safe literal
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whether a command/env blob names the concrete service hostname.
+ * @param command - Lower-cased command and environment text
+ * @param service - Lower-cased service id
+ * @returns True when the service appears as its own host/token
+ */
+function namesServiceHost(command: string, service: string): boolean {
+  return new RegExp(
+    `(^|[\\s:/@="'(,])${escapeRegExp(service)}($|[\\s:/;),'"?])`
+  ).test(command);
+}
+
+/**
+ * Whether the command plausibly targets one of the job's own `services:`
+ * containers. A service only defers the step it can explain; an unrelated
+ * container in the same job must not hide a durable target.
+ * @param job - The job to consider
+ * @param step - The step being classified
+ * @returns True when the command plausibly points at a job-local service
+ */
+export function commandTargetsOwnedService(
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
+  if (job.services.length === 0) {
+    return false;
+  }
+  const command = `${step.run}\n${job.env}`.toLowerCase();
+  return (
+    LOCAL_SERVICE_TARGETS.some(pattern => pattern.test(command)) ||
+    job.services.some(service =>
+      namesServiceHost(command, service.toLowerCase())
+    )
+  );
+}
+
 /**
  * Whether one command is the kind of operation a producer is looking for. The
  * job travels with the command because the evidence that settles the question
