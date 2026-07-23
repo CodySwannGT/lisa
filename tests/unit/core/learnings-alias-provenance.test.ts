@@ -18,10 +18,7 @@
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  buildSupersedesReference,
-  resolveLearningReference,
-} from "../../../src/core/learnings-alias.js";
+import { resolveLearningReference } from "../../../src/core/learnings-alias.js";
 import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
 import {
   parseLearningsFile,
@@ -34,6 +31,10 @@ const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const ORIGINAL_ID = "learner-aaaa1111";
 const SECOND_ID = "learner-bbbb2222";
 const THIRD_ID = "learner-cccc3333";
+// Literal on purpose: deriving these from buildSupersedesReference would
+// mirror a format change instead of catching it.
+const ORIGINAL_ALIAS = "supersedes:learner-aaaa1111";
+const SECOND_ALIAS = "supersedes:learner-bbbb2222";
 const FIRST_DATE = "2026-07-01";
 const SECOND_DATE = "2026-07-02";
 const THIRD_DATE = "2026-07-03";
@@ -102,7 +103,7 @@ describe("supersede alias provenance economics", () => {
     expect(entries[0]?.provenance).toHaveLength(
       LEARNINGS_CONTRACT.maxProvenanceReferences
     );
-    expect(dropped).toEqual([[buildSupersedesReference(ORIGINAL_ID)]]);
+    expect(dropped).toEqual([[ORIGINAL_ALIAS]]);
   });
 
   it("never evicts caller evidence to fit an alias, and keeps the OLDEST alias", async () => {
@@ -147,14 +148,14 @@ describe("supersede alias provenance economics", () => {
     // thing that gets sacrificed.
     expect(entries[0]?.provenance).toEqual([
       ...callerReferences,
-      buildSupersedesReference(ORIGINAL_ID),
+      ORIGINAL_ALIAS,
     ]);
     // The OLDEST alias is the survivor: a months-old tracker comment citing
     // `ORIGINAL_ID` has no other way home, while `SECOND_ID` churned in this
     // very consolidation and is still discoverable from the branch.
     expect(resolveLearningReference(entries, ORIGINAL_ID)?.id).toBe(THIRD_ID);
     expect(resolveLearningReference(entries, SECOND_ID)).toBeUndefined();
-    expect(dropped).toEqual([[buildSupersedesReference(SECOND_ID)]]);
+    expect(dropped).toEqual([[SECOND_ALIAS]]);
   });
 
   it("rejects a caller-minted supersedes reference so aliases stay writer-owned", async () => {
@@ -165,7 +166,7 @@ describe("supersede alias provenance economics", () => {
     await expect(
       persistLearningEntry(tempDir, {
         ...entryOf(THIRD_ID, THIRD_DATE, "Hijacking rule."),
-        provenance: ["issue:#1997", buildSupersedesReference(ORIGINAL_ID)],
+        provenance: ["issue:#1997", ORIGINAL_ALIAS],
       })
     ).rejects.toThrow(/references are added by the writer, not the caller/);
     // The hijack attempt changed nothing: the original still owns its own id.
@@ -191,8 +192,6 @@ describe("supersede alias provenance economics", () => {
     );
     const raw = await readFile(learningsPath, "utf8");
     expect(() => parseLearningsFile(raw)).not.toThrow();
-    expect(parseLearningsFile(raw)[0]?.provenance).toContain(
-      buildSupersedesReference(ORIGINAL_ID)
-    );
+    expect(parseLearningsFile(raw)[0]?.provenance).toContain(ORIGINAL_ALIAS);
   });
 });

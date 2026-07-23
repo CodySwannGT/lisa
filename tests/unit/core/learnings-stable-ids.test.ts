@@ -18,7 +18,6 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  buildSupersedesReference,
   resolveLearningReference,
   resolveLearningReferences,
 } from "../../../src/core/learnings-alias.js";
@@ -94,9 +93,7 @@ describe("learnings reference survival across supersede", () => {
     const entries = await readEntries();
     expect(entries).toHaveLength(1);
     expect(entries[0]?.id).toBe(SECOND_ID);
-    expect(entries[0]?.provenance).toContain(
-      buildSupersedesReference(ORIGINAL_ID)
-    );
+    expect(entries[0]?.provenance).toContain("supersedes:learner-aaaa1111");
   });
 
   it("resolves a superseded id to the entry that now carries its content", async () => {
@@ -223,14 +220,10 @@ describe("learnings reference survival across supersede", () => {
     const entries = await readEntries();
     expect(entries).toHaveLength(1);
     expect(entries[0]?.rule).toBe("Sharper in-place rewrite.");
-    expect(entries[0]?.provenance).not.toContain(
-      buildSupersedesReference(SECOND_ID)
-    );
+    expect(entries[0]?.provenance).not.toContain("supersedes:learner-bbbb2222");
     // The inherited ancestor still carries, so the in-place edit does not drop
     // the lineage that already resolves through it.
-    expect(entries[0]?.provenance).toContain(
-      buildSupersedesReference(ORIGINAL_ID)
-    );
+    expect(entries[0]?.provenance).toContain("supersedes:learner-aaaa1111");
     expect(resolveLearningReference(entries, ORIGINAL_ID)?.id).toBe(SECOND_ID);
   });
 
