@@ -14,6 +14,7 @@ import type {
   RebaseStateFixture,
   Verdict,
 } from "./safety-net-guard-harness";
+import { SUBST_BOUNDARY_FIXTURES } from "./safety-net-subst-fixtures";
 
 /** Replaced at runtime with the temp project dir (for in-project absolute rm). */
 export const PROJECT_DIR_TOKEN = "__PROJECT_DIR__";
@@ -250,6 +251,10 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("MX-B3", "rm --recursive -v -f /", BLOCK, RM_ROOT),
   fx("MX-A1", "rm -r --verbose /", ALLOW, RM_ROOT),
   fx("MX-A2", "rm --force -v file.txt", ALLOW, RM_ROOT),
+  // I5. command-substitution boundary (issue #1982). Rows live in
+  // safety-net-subst-fixtures.ts (kept separate for the max-lines budget) and
+  // are spread in here so the guards test consumes them with no change.
+  ...SUBST_BOUNDARY_FIXTURES,
   // J. find / xargs deletion (absorb 11)
   fx("FX-B1", "find . -delete", BLOCK, FIND_DELETE),
   fx("FX-B2", "find . -name '*.tmp' -delete", BLOCK, FIND_DELETE),

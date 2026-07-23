@@ -98,7 +98,12 @@ is screened the same as `git <destructive>`.
 Malformed hook input fails **closed** (exit 2 denies the command). A text-scan
 hook cannot exempt display commands, so prose like
 `echo "docs about rm -rf /"` can false-positive — quote-break the string or use
-the gh-writer heredoc form (payload is stripped before the guards run).
+the gh-writer heredoc form (payload is stripped before the guards run). For the
+same reason the rm guard treats substitution-wrapping as verdict-neutral (issue
+#1982): an executable `echo "$(rm -rf /)"` is blocked, and so are inert twins the
+shell would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
+`echo "\$(rm -rf /)"` — since the scan has no quote-context awareness. The same
+quote-break or heredoc workaround applies.
 
 ## View the current rules
 
