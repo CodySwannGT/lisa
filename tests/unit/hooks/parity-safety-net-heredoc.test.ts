@@ -166,7 +166,7 @@ describe("parity-safety-net heredoc grammar", () => {
         HEREDOC_TERMINATOR,
       ].join("\n");
 
-      expect(runHook(command)).toBe(EXIT_ALLOWED);
+      expect(runHook(command).status).toBe(EXIT_ALLOWED);
     });
 
     it("still fails closed on substitution tokens under a backslash-quoted delimiter", () => {
@@ -176,7 +176,7 @@ describe("parity-safety-net heredoc grammar", () => {
         HEREDOC_TERMINATOR,
       ].join("\n");
 
-      expect(runHook(command)).toBe(EXIT_BLOCKED);
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
     });
 
     it("keeps destructive payloads behind a backslash-quoted delimiter visible to guards", () => {
@@ -186,19 +186,19 @@ describe("parity-safety-net heredoc grammar", () => {
         HEREDOC_TERMINATOR,
       ].join("\n");
 
-      expect(runHook(command)).toBe(EXIT_BLOCKED);
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
     });
 
     it("fails closed for a partially-quoted delimiter", () => {
       const command = ["python3 <<EO'F'", HARMLESS_PROSE, "EOF"].join("\n");
 
-      expect(runHook(command)).toBe(EXIT_BLOCKED);
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
     });
 
     it("fails closed for a fully-quoted delimiter followed by trailing junk", () => {
       const command = ["python3 <<'EOF'X", 'x = "`ls`"', "EOFX"].join("\n");
 
-      expect(runHook(command)).toBe(EXIT_BLOCKED);
+      expect(runHook(command).status).toBe(EXIT_BLOCKED);
     });
   });
 });
