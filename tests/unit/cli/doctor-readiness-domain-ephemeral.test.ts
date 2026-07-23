@@ -145,6 +145,39 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
     ).toBe(false);
   });
 
+  it("stands B1 when the job's only service is a different database technology that merely names-collides on `db`", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      "    services:",
+      "      dynamodb-local:",
+      "        image: amazon/dynamodb-local",
+      STEPS,
+      '      - run: psql "$PROD_DATABASE_URL" -c "DROP TABLE users"',
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    // `dynamodb-local` is a NoSQL service; `psql`/`DROP TABLE` can never target
+    // it. The service name merely containing the substring `db` must not
+    // excuse the command as plausibly local.
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.reason).includes("services:")
+      )
+    ).toBe(false);
+  });
+
   it("does not stand B1 for the AWS CLI's own `--dryrun` rehearsal spelling", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, CLEANUP_YML, [
