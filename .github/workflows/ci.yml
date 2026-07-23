@@ -19,6 +19,111 @@ jobs:
       package_manager: 'bun'
       skip_jobs: ''
     secrets: inherit
+  # -----------------------------------------------------------------------------
+  # Server-side backstop for work-item traceability (#1978)
+  # -----------------------------------------------------------------------------
+  # The pre-push `validate-push` gate is client-side and fail-safe: since #1956
+  # it subtracts commits reachable from the remote default branch so a
+  # merge-sync does not drag the base branch's history into validation. #1956's
+  # security review proved that exclusion is locally bypassable — an agent owns
+  # its `.git`, so it can `update-ref refs/remotes/origin/<anything> <branch-tip>`
+  # and repoint the `refs/remotes/origin/HEAD` symref at it, which empties the
+  # branch-authored range and launders commits carrying a missing, mixed, or
+  # closed-issue Work-Item trailer past the hook.
+  #
+  # `validate-pr` is the designed backstop: it recomputes `rev-list base..head`
+  # from SHAs supplied by the GitHub event payload, with no exclusion logic and
+  # without ever reading a symref, so nothing in the pusher's repository can
+  # shrink the range. Impact of the bypass is bounded to traceability integrity
+  # (wrong/closed-issue attribution), not code execution — this job closes it
+  # anyway, because a client-side-only gate is not a gate.
+  #
+  # The gate fails safe by construction: an EMPTY range is a failure, not a
+  # pass. `validatePrData` throws "Pull request has no non-merge commit linked
+  # to a work item" when nothing survives, so the #1956 outcome that slips past
+  # the pre-push hook (range emptied to zero commits) is exactly the outcome
+  # that reddens here. There is no way to widen an exclusion into a green run.
+  #
+  # Not airtight, and deliberately so: this job inherits the validator's
+  # exemptions, so merge commits and `chore(release): x.y.z [skip ci]` subjects
+  # skip work-item validation entirely. It proves branch-authored commits are
+  # traceable — it does not prove every commit in the range was inspected.
+  work_item_traceability:
+    name: 🔗 Work-Item Traceability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only meaningful on pull_request: the range and the PR number both come
+    # from the event payload. workflow_dispatch runs report success.
+    if: ${{ github.event_name == 'pull_request' }}
+    # `gh pr view` needs pull-requests:read and `gh issue view` needs
+    # issues:read. The validator writes nothing — never grant more.
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # `rev-list base..head` needs both endpoints and everything between
+          # them. A shallow clone would make the range error out or silently
+          # under-report, which would void the gate. fetch-depth: 0 also brings
+          # every branch down as refs/remotes/origin/*, which the next step uses.
+          fetch-depth: 0
+          persist-credentials: false
+          # Check out the PR head itself, not the default synthetic
+          # refs/pull/N/merge: that ref does not exist while the PR has
+          # conflicts, and it can lag head.sha immediately after a push. Either
+          # would redden this job for a reason unrelated to traceability.
+          # Base resolution is unaffected — fetch-depth: 0 still fetches
+          # refs/remotes/origin/<base.ref> regardless of which ref is checked out.
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # Read the pin from the canonical manifest (engines.node) rather than
+          # duplicating the literal — see the Duplicate Versions workflow.
+          node-version-file: 'package.json'
+
+      - name: 🔗 Resolve the branch-authored commit range
+        id: range
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Default to the payload's base.sha. Prefer the base branch's CURRENT
+          # tip when it descends from it: a PR that merge-synced the base branch
+          # carries the base's own commits (whose trailers reference other, often
+          # closed, work items) inside base.sha..head, and those are not
+          # branch-authored. Starting the range at the tip drops them by plain
+          # set subtraction — no exclusion logic, nothing for a pusher to steer.
+          # The tip is whatever CI fetched from GitHub, NOT the agent-repointable
+          # local origin/HEAD symref that #1956's bypass abused.
+          base="$PR_BASE_SHA"
+          tip="$(git rev-parse -q --verify "refs/remotes/origin/${PR_BASE_REF}" || true)"
+          # The ancestry check keeps this monotonic: if the base branch was
+          # rewritten or the ref is missing, fall back to base.sha rather than
+          # widening the exclusion to an unrelated history.
+          if [ -n "$tip" ] && git merge-base --is-ancestor "$base" "$tip"; then
+            base="$tip"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "Validating ${base}..${PR_HEAD_SHA}"
+
+      - name: 🔗 Validate Work-Item traceability
+        # Env-var form (equivalent to --base/--head/--pr-number) keeps event
+        # payload values out of the shell command entirely.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LISA_PR_BASE_SHA: ${{ steps.range.outputs.base }}
+          LISA_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LISA_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/lisa-work-item.mjs validate-pr
+
   bin_smoke:
     name: Lisa CLI bin smoke
     runs-on: ubuntu-latest

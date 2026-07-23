@@ -2160,6 +2160,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".entire/settings.json": true,
     ".github/GITHUB_ACTIONS.md": true,
     ".github/dependabot.yml": true,
+    ".github/pull_request_template.md": true,
     ".github/workflows/auto-update-pr-branches-dispatch.yml": true,
     ".github/workflows/auto-update-pr-branches.yml": true,
     ".github/workflows/build.yml": true,
