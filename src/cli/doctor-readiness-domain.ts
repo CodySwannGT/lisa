@@ -85,6 +85,33 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
   /\baws\s+s3\s+sync\b/,
 ];
 
+/** Local endpoints that corroborate a command targets job-owned CI state. */
+const LOCAL_SERVICE_TARGETS: readonly RegExp[] = [
+  /\blocalhost\b/,
+  /\b127\.0\.0\.1\b/,
+];
+
+/**
+ * Escape a literal string for use inside a regular expression.
+ * @param value - Literal value to escape
+ * @returns Regex-safe literal
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whether a command/env blob names the concrete service hostname.
+ * @param command - Lower-cased command and environment text
+ * @param service - Lower-cased service id
+ * @returns True when the service appears as its own host/token
+ */
+function namesServiceHost(command: string, service: string): boolean {
+  return new RegExp(
+    `(^|[\\s:/@="'(,])${escapeRegExp(service)}($|[\\s:/;),'"?])`
+  ).test(command);
+}
+
 /**
  * Whether a command irreversibly destroys data that is not obviously throwaway.
  *
@@ -120,22 +147,12 @@ function commandTargetsOwnedService(
     return false;
   }
   const command = `${step.run}\n${job.env}`.toLowerCase();
-  return job.services.some(service => {
-    const normalized = service.toLowerCase();
-    return (
-      command.includes(normalized) ||
-      (/\b(postgres|postgresql|database|db)\b/.test(normalized) &&
-        /\b(psql|postgres|database_url|drop\s+(schema|database|table))\b/.test(
-          command
-        )) ||
-      (/\b(mysql|mariadb|database|db)\b/.test(normalized) &&
-        /\b(mysql|database_url|drop\s+(schema|database|table))\b/.test(
-          command
-        )) ||
-      (/redis/.test(normalized) && /\bredis-cli\b/.test(command)) ||
-      (/mongo/.test(normalized) && /\b(mongo|mongosh)\b/.test(command))
-    );
-  });
+  return (
+    LOCAL_SERVICE_TARGETS.some(pattern => pattern.test(command)) ||
+    job.services.some(service =>
+      namesServiceHost(command, service.toLowerCase())
+    )
+  );
 }
 
 /**
