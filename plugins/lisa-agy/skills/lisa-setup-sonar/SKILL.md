@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-sonar
-description: "Configure the official SonarQube plugin + MCP as Lisa's single Sonar substrate across every supported coding agent. Installs/updates the SonarQube CLI, authenticates (browser login on a dev machine, or SONARQUBE_TOKEN headless), selects the Test Manager target, runs `sonar integrate <agent>` for each supported agent (Claude, Codex, Cursor, Copilot, Antigravity) and wires the MCP for OpenCode, then writes only non-secret policy to .lisa.config.json. Separate from the CI SonarCloud scan gate, which is unchanged."
+description: "Configure the official SonarQube plugin + MCP as Lisa's single Sonar substrate across every supported coding agent. Installs/updates the SonarQube CLI, authenticates (browser login on a dev machine, or SONARQUBE_CLI_TOKEN headless), selects the Test Manager target, runs `sonar integrate <agent>` for each supported agent (Claude, Codex, Cursor, Copilot, Antigravity) and wires the MCP for OpenCode, then writes only non-secret policy to .lisa.config.json. Separate from the CI SonarCloud scan gate, which is unchanged."
 allowed-tools: ["Bash", "Read", "Write", "Edit", "AskUserQuestion", "Skill"]
 ---
 
@@ -46,15 +46,15 @@ The MCP authenticates from environment variables — this is the headless path a
 the one factories use. **Never** write credentials to `.lisa.config.json` or
 `.lisa.config.local.json`; provide them as environment variables / CI secrets:
 
-- `SONARQUBE_TOKEN` — required.
-- `SONARQUBE_ORG` — for SonarQube Cloud.
-- `SONARQUBE_URL` — for a self-hosted SonarQube Server.
+- `SONARQUBE_CLI_TOKEN` — required.
+- `SONARQUBE_CLI_ORG` — for SonarQube Cloud.
+- `SONARQUBE_CLI_SERVER` — for a self-hosted SonarQube Server.
 
 On an interactive developer machine you may instead run `sonar auth login`
 (browser flow; token stored in the OS keychain). Do **not** use the keychain flow
 for headless/cloud-routine environments — provision the env token there instead
 (see `/lisa:generate-claude-remote-build-script`, which now installs the CLI,
-pre-pulls the MCP image, and sets `SONARQUBE_TOKEN`). Verify with `sonar auth
+pre-pulls the MCP image, and sets `SONARQUBE_CLI_TOKEN`). Verify with `sonar auth
 status`; record the identity label only, never token material.
 
 ## 3. Select the Test Manager target

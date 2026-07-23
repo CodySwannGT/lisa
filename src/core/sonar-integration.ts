@@ -41,7 +41,7 @@ export const runSonarCommand: SonarCommandRunner = async args => {
  *
  * Disabled (no `verification.sonar.enabled`) is healthy — the provider is
  * optional. When enabled, prove the `sonar` CLI is installed and authenticated
- * (`sonar auth status`, which honors either a login session or `SONARQUBE_TOKEN`).
+ * (`sonar auth status`, which honors either a login session or `SONARQUBE_CLI_TOKEN`).
  * @param projectRoot - Downstream project root
  * @param runner - Injectable process runner
  * @returns Readiness status for doctor and setup
@@ -70,7 +70,7 @@ export async function probeSonarReadiness(
     return {
       status: "fail",
       detail:
-        "SonarQube CLI not authenticated; run `sonar auth login` or set SONARQUBE_TOKEN (+ SONARQUBE_ORG for Cloud / SONARQUBE_URL for Server)",
+        "SonarQube CLI not authenticated; run `sonar auth login` or set SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud / SONARQUBE_CLI_SERVER for Server)",
     };
   }
   const target =

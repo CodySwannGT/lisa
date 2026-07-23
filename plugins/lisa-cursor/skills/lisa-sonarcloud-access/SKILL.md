@@ -1,6 +1,6 @@
 ---
 name: lisa-sonarcloud-access
-description: "Vendor-neutral access layer for SonarQube Cloud/Server. Sonar triage skills MUST delegate through this skill rather than calling the SonarQube MCP tools directly. Single substrate: the official SonarQube MCP server (mcp__sonarqube__*), authenticated headlessly from SONARQUBE_TOKEN (+ SONARQUBE_ORG for Cloud, SONARQUBE_URL for Server)."
+description: "Vendor-neutral access layer for SonarQube Cloud/Server. Sonar triage skills MUST delegate through this skill rather than calling the SonarQube MCP tools directly. Single substrate: the official SonarQube MCP server (mcp__sonarqube__*), authenticated headlessly from SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud, SONARQUBE_CLI_SERVER for Server)."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -17,9 +17,16 @@ the `sonarqube` plugin and launched by the `sonar` CLI (`sonar run mcp`). It
 authenticates headlessly from environment variables — no browser, no OS keychain —
 so it is the same substrate on a developer machine and in a headless cloud routine:
 
-- `SONARQUBE_TOKEN` — required (Sonar user/analysis token).
-- `SONARQUBE_ORG` — required for SonarQube Cloud.
-- `SONARQUBE_URL` — required for a self-hosted SonarQube Server.
+- `SONARQUBE_CLI_TOKEN` — required (Sonar user/analysis token).
+- `SONARQUBE_CLI_ORG` — required for SonarQube Cloud.
+- `SONARQUBE_CLI_SERVER` — required for a self-hosted SonarQube Server.
+
+These are the **SonarQube CLI** variable names (`SONARQUBE_CLI_*`), which the
+`sonar run mcp` wrapper forwards into the MCP container — verified against a live
+SonarQube Cloud org. Do **not** substitute the raw MCP-image names
+(`SONARQUBE_TOKEN`/`SONARQUBE_ORG`/`SONARQUBE_URL`): those are read only when
+running the Docker image directly, and the `sonar` CLI ignores them (auth exits
+non-zero). The CI scan gate's `SONAR_TOKEN` is a third, separate name.
 
 Wiring is performed once by `/lisa:setup:sonar` (which drives `sonar integrate
 <agent>`); this access layer assumes the MCP is already wired. This is distinct
@@ -37,7 +44,7 @@ always enabled):
   loudly and do not improvise a substitute:
 
 ```text
-Error: no SonarQube access. Run /lisa:setup:sonar (or `sonar integrate <agent>`), and set SONARQUBE_TOKEN (+ SONARQUBE_ORG for Cloud / SONARQUBE_URL for Server).
+Error: no SonarQube access. Run /lisa:setup:sonar (or `sonar integrate <agent>`), and set SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud / SONARQUBE_CLI_SERVER for Server).
 ```
 
 There is no hand-rolled REST fallback: the official MCP is headless-capable via the
@@ -69,7 +76,7 @@ tool accepts them.
 ## Invariants
 
 - The official SonarQube MCP is the only substrate; there is no REST fallback.
-- Auth is env-var only (`SONARQUBE_TOKEN` [+ `SONARQUBE_ORG` | `SONARQUBE_URL`]);
+- Auth is env-var only (`SONARQUBE_CLI_TOKEN` [+ `SONARQUBE_CLI_ORG` | `SONARQUBE_CLI_SERVER`]);
   never the interactive `sonar auth login` keychain flow inside a factory.
 - Sonar host access requires the host (`sonarcloud.io`, `sonarqube.us`, or the
   Server URL) in any custom remote-network allowlist.

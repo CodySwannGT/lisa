@@ -481,7 +481,7 @@ describe("learnings-budget gate (#1730)", () => {
       const workflow = fs.readFileSync(file, "utf8");
 
       expect(workflow).toContain(
-        "bunx @codyswann/lisa@2.243.0 check-learnings-budget | tee learnings-budget.out"
+        "bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out"
       );
       expect(
         workflow.match(/grep -qE "learnings budget passed\|no learnings file"/g)
