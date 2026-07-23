@@ -156,6 +156,20 @@ describe("check:learnings-budget", () => {
 
     expect(result.status).toBe(0);
     expect(result.output).not.toContain("maxTokens exceeded");
+
+    // Boundary: maxTokens gates the WHOLE rendered document (entries + jsonl
+    // framing), not just summed entry bytes, and it is an average allowance,
+    // not a per-entry cap. Pad one entry's why so the document lands on exactly
+    // maxTokens and confirm it still passes — the paired "over maxTokens" test
+    // below proves one byte more fails. This exercises the ceiling itself,
+    // closing the earlier ~2.7 KB-of-slack gap.
+    const pad = LEARNINGS_CONTRACT.maxTokens - measured;
+    entries[0] = { ...entries[0], why: `${entries[0].why}${"x".repeat(pad)}` };
+    const atLimit = renderLearningsFile(entries);
+    expect(Buffer.byteLength(atLimit, "utf8")).toBe(
+      LEARNINGS_CONTRACT.maxTokens
+    );
+    expect(runCheck(writeFixture("at-token-limit.md", atLimit)).status).toBe(0);
   });
 
   it("rejects malformed JSONL with a path-specific diagnostic", () => {
