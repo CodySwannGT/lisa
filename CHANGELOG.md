@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.299.1](https://github.com/CodySwannGT/lisa/compare/v2.299.0...v2.299.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **readiness:** clarify no-workflow skip reasons ([ca63891](https://github.com/CodySwannGT/lisa/commit/ca63891f5e7ca521ab5f39a53fa77fa46cc2c16e)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ## [2.299.0](https://github.com/CodySwannGT/lisa/compare/v2.298.1...v2.299.0) (2026-07-23)
 
 
