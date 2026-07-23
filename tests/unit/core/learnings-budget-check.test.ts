@@ -119,6 +119,24 @@ describe("checkLearningsBudget", () => {
     }
   });
 
+  it("returns a clear corruption violation for embedded conflict markers", async () => {
+    const fixture = writeFixture(
+      "conflicted.md",
+      renderLearningsFile([createEntry("conflicted-entry")]).replace(
+        '"rule":"r"',
+        '<<<<<<< HEAD\n"rule":"r"\n=======\n"rule":"other"\n>>>>>>> branch'
+      )
+    );
+
+    const result = await checkLearningsBudget(fixture);
+
+    expect(result.kind).toBe("violation");
+    if (result.kind === "violation") {
+      expect(result.detail).toMatch(/corrupted by concurrent write/i);
+      expect(result.detail).toMatch(/conflict markers/i);
+    }
+  });
+
   it("returns a violation for a non-regular file without blocking", async () => {
     const directory = createTemporaryDirectory();
 
