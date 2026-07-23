@@ -162,12 +162,22 @@ harper-fabric have no `determine_environment` job and use the branch ternary
 template ships no deploy job — a commented snippet in its `deploy.yml` shows
 downstream projects how to declare the environment on their project-owned
 deploy job. Exactly one deploy job per workflow declares an environment (the
-job that mutates the target); release/build bookkeeping jobs never do, so each
-run records exactly one deploy-job deployment; approval-gated runs additionally
-record the gate job's deployment against the same environment (to be confirmed
-empirically in #1969 T4). Whether an approval-gated run re-prompts when the
-deploy job reaches the same protected environment is resolved in the same
-verification.
+job that mutates the target); release/build bookkeeping jobs never do.
+
+GitHub environment approvals are **per-job**, so an approval-gated run confirmed
+in verification (#1969 T4) that a deploy job naming the same protected env as
+`release_approval` would prompt the operator **twice**. Mitigation A avoids
+this: on approval-gated runs (`determine_environment` sets `require_approval`),
+the expo/nestjs deploy job routes its environment to `<env>-deploy`
+(`format('{0}-deploy', <env>)`) instead of the bare env. Host projects leave
+`<env>-deploy` unprotected (no required reviewers), so the gate fires once — at
+`release_approval` — and the deploy job proceeds without a second prompt. Each
+gated run therefore records two deployments (the gate job against `<env>`, the
+deploy job against `<env>-deploy`); the `-deploy` suffix keeps the
+`dev`/`staging`/`production` substring so GitHub-for-Jira env classification
+still recognizes it. Ungated runs use the bare env. Rails and harper-fabric have
+no `determine_environment` / approval wiring, so `require_approval` is never true
+for them and their branch-ternary env needs no suffix.
 
 **Blackout Periods** (configurable):
 - Production: No weekends, no late nights (10 PM - 6 AM)

@@ -162,9 +162,20 @@ without one use the branch ternary
 own their deploy job — declare the environment on it per the commented
 snippet in the template `deploy.yml`. Exactly one deploy job per workflow
 declares an environment (the job that mutates the target); release/build
-bookkeeping jobs never do, so each run records exactly one deploy-job
-deployment; approval-gated runs additionally record the gate job's deployment
-against the same environment (to be confirmed empirically in #1969 T4).
+bookkeeping jobs never do.
+
+GitHub environment approvals are **per-job**. If your deploy job named the same
+protected environment as the `release_approval` gate, an approval-gated run
+would prompt you **twice**. To avoid that, on approval-gated runs
+(`determine_environment` sets `require_approval`) the deploy job routes its
+environment to `<env>-deploy` (`format('{0}-deploy', <env>)`) rather than the
+bare env. Leave `<env>-deploy` **unprotected** (no required reviewers): the gate
+fires once at `release_approval`, and the deploy job proceeds without a second
+prompt. A gated run records two deployments — the gate against `<env>` and the
+deploy job against `<env>-deploy` — and the `-deploy` suffix keeps the
+`dev`/`staging`/`production` substring so GitHub-for-Jira still classifies it.
+Ungated runs use the bare env; stacks without a `determine_environment` job
+(rails, harper-fabric) are never gated and need no suffix.
 
 **Blackout Periods** (configurable):
 - Production: No weekends, no late nights (10 PM - 6 AM)

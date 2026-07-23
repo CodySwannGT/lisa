@@ -746,9 +746,17 @@ describe("DSS-3 deploy environment declarations", () => {
   const STACKS = ["expo", "nestjs", "rails", "cdk", "harper-fabric"] as const;
   const RELEASE_RAILS_YML = path.join(WORKFLOWS_DIR, "release-rails.yml");
 
-  /** Exact env expression for stacks with determine_environment. */
+  /** Bare approval_environment expression (cdk downstream snippet). */
   const APPROVAL_ENV_EXPR =
     "${{ needs.determine_environment.outputs.approval_environment }}";
+  /**
+   * Gated deploy env expression (mitigation A, DSS-3 §4): approval-gated
+   * runs route the deploy job to `<env>-deploy` so it never re-gates the
+   * env release_approval already gates (per-job GitHub approvals would
+   * otherwise prompt twice); ungated runs use the bare env.
+   */
+  const GATED_ENV_EXPR =
+    "${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}";
   /** Exact env expression for stacks without determine_environment. */
   const REF_TERNARY_EXPR =
     "${{ github.ref_name == 'main' && 'production' || github.ref_name }}";
@@ -814,8 +822,8 @@ describe("DSS-3 deploy environment declarations", () => {
     expect(jobsWithEnvironment(workflow)).toEqual([jobName]);
   }
 
-  it("expo: only the deploy job declares the approval_environment expression", () => {
-    expectSoleEnvironment(stackDeploy.expo, "deploy", APPROVAL_ENV_EXPR);
+  it("expo: only the deploy job declares the gated deploy-env expression", () => {
+    expectSoleEnvironment(stackDeploy.expo, "deploy", GATED_ENV_EXPR);
     // The expression depends on determine_environment's outputs — the needs
     // coupling must hold or the env name silently resolves empty.
     expect(needsList(stackDeploy.expo.jobs?.deploy)).toContain(
@@ -823,12 +831,33 @@ describe("DSS-3 deploy environment declarations", () => {
     );
   });
 
-  it("nestjs: only the deploy job declares environment, mapping form with url", () => {
+  it("nestjs: only the deploy job declares environment, gated mapping form with url", () => {
     expect(stackDeploy.nestjs.jobs?.deploy.environment).toEqual({
-      name: APPROVAL_ENV_EXPR,
+      name: GATED_ENV_EXPR,
       url: "${{ steps.deployment_outputs.outputs.environment_url }}",
     });
     expect(jobsWithEnvironment(stackDeploy.nestjs)).toEqual(["deploy"]);
+  });
+
+  it("mitigation A: gated branch yields <env>-deploy, ungated yields the bare env", () => {
+    // js-yaml sees the whole ${{ }} as one plain string, so assert the two
+    // branch behaviors structurally: the gated arm wraps the env in
+    // format('{0}-deploy', …) (substring kept for Jira classification), the
+    // ungated fallback is the bare approval_environment output.
+    for (const expr of [
+      stackDeploy.expo.jobs?.deploy.environment,
+      (stackDeploy.nestjs.jobs?.deploy.environment as { name?: string }).name,
+    ]) {
+      expect(expr).toContain(
+        "needs.determine_environment.outputs.require_approval == 'true'"
+      );
+      expect(expr).toContain(
+        "format('{0}-deploy', needs.determine_environment.outputs.approval_environment)"
+      );
+      expect(expr).toContain(
+        "|| needs.determine_environment.outputs.approval_environment }}"
+      );
+    }
   });
 
   it("rails: only deploy_rails declares the ref-name ternary expression", () => {
