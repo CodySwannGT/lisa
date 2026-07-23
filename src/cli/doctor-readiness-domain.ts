@@ -40,6 +40,7 @@ import {
   type ParsedWorkflow,
   type ParsedWorkflowJob,
   parseRepositoryWorkflows,
+  type ParsedWorkflowStep,
 } from "./doctor-readiness-workflows.js";
 
 /** The domain-ownership readiness dimension id (readiness-rubric, RRR-1). */
@@ -84,6 +85,33 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
   /\baws\s+s3\s+sync\b/,
 ];
 
+/** Local endpoints that corroborate a command targets job-owned CI state. */
+const LOCAL_SERVICE_TARGETS: readonly RegExp[] = [
+  /\blocalhost\b/,
+  /\b127\.0\.0\.1\b/,
+];
+
+/**
+ * Escape a literal string for use inside a regular expression.
+ * @param value - Literal value to escape
+ * @returns Regex-safe literal
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whether a command/env blob names the concrete service hostname.
+ * @param command - Lower-cased command and environment text
+ * @param service - Lower-cased service id
+ * @returns True when the service appears as its own host/token
+ */
+function namesServiceHost(command: string, service: string): boolean {
+  return new RegExp(
+    `(^|[\\s:/@="'(,])${escapeRegExp(service)}($|[\\s:/;),'"?])`
+  ).test(command);
+}
+
 /**
  * Whether a command irreversibly destroys data that is not obviously throwaway.
  *
@@ -104,15 +132,45 @@ function destroysData(command: string, job: ParsedWorkflowJob): boolean {
 }
 
 /**
- * State why a job that boots its own `services:` containers cannot be settled.
- * A job that starts its own database is operating on state it created moments
- * earlier, so destroying it is not data loss — but proving *which* store the
- * command targets is beyond an offline read, so this is deferred, not cleared.
+ * Whether the command plausibly targets one of the job's own `services:`
+ * containers. A service only defers the step it can explain; an unrelated
+ * container in the same job must not hide a durable destructive target.
  * @param job - The job to consider
- * @returns A stated reason, or null when the job starts no services
+ * @param step - The destructive step being classified
+ * @returns True when the command plausibly points at a job-local service
  */
-function servicesDeferral(job: ParsedWorkflowJob): string | null {
+function commandTargetsOwnedService(
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
   if (job.services.length === 0) {
+    return false;
+  }
+  const command = `${step.run}\n${job.env}`.toLowerCase();
+  return (
+    LOCAL_SERVICE_TARGETS.some(pattern => pattern.test(command)) ||
+    job.services.some(service =>
+      namesServiceHost(command, service.toLowerCase())
+    )
+  );
+}
+
+/**
+ * State why a service-targeted command cannot be settled. A job that starts its
+ * own database is operating on state it created moments earlier, so destroying
+ * it is not data loss — but proving that the command targets that service is
+ * still beyond an offline read, so this is deferred, not cleared.
+ * @param _workflow - The workflow declaring the job; unused for this deferral
+ * @param job - The job to consider
+ * @param step - The destructive step being classified
+ * @returns A stated reason, or null when the service does not explain the step
+ */
+function servicesDeferral(
+  _workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): string | null {
+  if (!commandTargetsOwnedService(job, step)) {
     return null;
   }
   return (
@@ -248,7 +306,7 @@ export async function assessDomainOwnershipDimension(
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
   const scan = scanCommands(workflows, destroysData, {
     exemptJob: jobTakesBackup,
-    unresolvedJob: servicesDeferral,
+    unresolvedStep: servicesDeferral,
   });
   // A checked-in runbook is a way back, so it clears the "no recovery" half of
   // B1 for the whole repository — the blocker asks for BOTH halves at once.
