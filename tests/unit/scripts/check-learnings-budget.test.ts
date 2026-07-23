@@ -112,11 +112,16 @@ describe("check:learnings-budget", () => {
   });
 
   it("reports measured and allowed maxTokens values", () => {
-    const content = renderLearningsFile([
-      createEntry("token-heavy-one", { why: "x".repeat(2000) }),
-      createEntry("token-heavy-two", { why: "y".repeat(2000) }),
-    ]);
-    const measuredTokens = 4355;
+    // Overrun the byte budget without tripping the entry cap first: a handful
+    // of within-entry-cap entries whose bytes exceed the derived maxTokens.
+    const content = renderLearningsFile(
+      Array.from({ length: 5 }, (_unused, index) =>
+        createEntry(`token-heavy-${index}`, { why: "x".repeat(3000) })
+      )
+    );
+    const measuredTokens = Buffer.byteLength(content, "utf8");
+    // Guard the fixture stays a maxTokens case (over bytes, under entry cap).
+    expect(measuredTokens).toBeGreaterThan(LEARNINGS_CONTRACT.maxTokens);
     const fixture = writeFixture("over-tokens.md", content);
 
     const result = runCheck(fixture);
@@ -126,6 +131,45 @@ describe("check:learnings-budget", () => {
     expect(result.output).toContain("maxTokens");
     expect(result.output).toContain(String(measuredTokens));
     expect(result.output).toContain(String(LEARNINGS_CONTRACT.maxTokens));
+  });
+
+  it("fits a full ledger of real-sized entries once the byte budget derives from the entry cap (#1959 R1)", () => {
+    // A full ledger (maxEntries) of realistic ~466 B entries totals ~9.3 KB:
+    // above the retired flat 4000 B cap but below the derived budget
+    // (maxEntries * PER_ENTRY_BYTE_ALLOWANCE = 12000 B). On HEAD's flat cap
+    // this FAILS maxTokens though entry count == maxEntries; once the byte
+    // budget derives from the entry cap, a full ledger of real entries fits.
+    const RETIRED_FLAT_BUDGET = 4000;
+    const DERIVED_BUDGET = 12000; // maxEntries(20) * PER_ENTRY_BYTE_ALLOWANCE(600)
+    const entries = Array.from(
+      { length: LEARNINGS_CONTRACT.maxEntries },
+      (_unused, index) => realisticEntry(index)
+    );
+    const content = renderLearningsFile(entries);
+    const measured = Buffer.byteLength(content, "utf8");
+    expect(entries.length).toBe(LEARNINGS_CONTRACT.maxEntries);
+    expect(measured).toBeGreaterThan(RETIRED_FLAT_BUDGET);
+    expect(measured).toBeLessThan(DERIVED_BUDGET);
+    const fixture = writeFixture("full-real-ledger.md", content);
+
+    const result = runCheck(fixture);
+
+    expect(result.status).toBe(0);
+    expect(result.output).not.toContain("maxTokens exceeded");
+
+    // Boundary: maxTokens gates the WHOLE rendered document (entries + jsonl
+    // framing), not just summed entry bytes, and it is an average allowance,
+    // not a per-entry cap. Pad one entry's why so the document lands on exactly
+    // maxTokens and confirm it still passes — the paired "over maxTokens" test
+    // below proves one byte more fails. This exercises the ceiling itself,
+    // closing the earlier ~2.7 KB-of-slack gap.
+    const pad = LEARNINGS_CONTRACT.maxTokens - measured;
+    entries[0] = { ...entries[0], why: `${entries[0].why}${"x".repeat(pad)}` };
+    const atLimit = renderLearningsFile(entries);
+    expect(Buffer.byteLength(atLimit, "utf8")).toBe(
+      LEARNINGS_CONTRACT.maxTokens
+    );
+    expect(runCheck(writeFixture("at-token-limit.md", atLimit)).status).toBe(0);
   });
 
   it("rejects malformed JSONL with a path-specific diagnostic", () => {
@@ -284,6 +328,31 @@ function createEntry(
     last_confirmed: "2026-07-16",
     confidence: "low",
     ...overrides,
+  };
+}
+
+/**
+ * Build one schema-valid entry sized like a real captured learning (~466 B):
+ * a near-cap single-line rule, a causal `why`, and two provenance refs. Twenty
+ * of these total ~9.3 KB — the #1959 repro band above the retired flat cap and
+ * below the derived budget.
+ * @param index - Position used to keep ids and one provenance ref unique
+ * @returns Realistic learning entry for the full-ledger fixture
+ */
+function realisticEntry(index: number): LearningEntry {
+  const suffix = String(index).padStart(2, "0");
+  return {
+    id: `learning-realistic-${suffix}`,
+    rule:
+      "prefer a derived learnings byte budget over a flat hardcoded cap so the " +
+      "entry count and the byte ceiling can never contradict one another",
+    why:
+      "the two independently hardcoded caps bound the ledger near eight entries, " +
+      "stranding valid captures far under the twenty-entry ceiling",
+    provenance: ["CodySwannGT/lisa#1959", `CodySwannGT/lisa#${1500 + index}`],
+    first_learned: "2026-07-01",
+    last_confirmed: "2026-07-23",
+    confidence: "high",
   };
 }
 
