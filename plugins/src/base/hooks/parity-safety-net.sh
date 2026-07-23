@@ -48,8 +48,13 @@
 # Known accepted false-positive class: this is a text scan, not a shell engine,
 # so display commands quoting a destructive string (`echo "docs about rm -rf /"`)
 # can match. Upstream exempts those via an engine-only DISPLAY_COMMANDS list a
-# grep hook cannot replicate. Workaround: quote-break the string or use the
-# gh-writer heredoc form, whose payload is stripped before the guards run.
+# grep hook cannot replicate. The same text-scan limit means the rm guard treats
+# a substitution-wrapped catastrophic delete as verdict-neutral (issue #1982): an
+# executable `echo "$(rm -rf /)"` is blocked, but so are inert twins the shell
+# would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
+# `echo "\$(rm -rf /)"` — because the scan has no quote-context awareness. That
+# over-block stays inside this accepted class. Workaround: quote-break the string
+# or use the gh-writer heredoc form, whose payload is stripped before the guards run.
 #
 # Operators extend the built-in rules with a project-local rule file — one
 # extended-regex (ERE) per line, blank lines and `#` comments ignored — managed
@@ -206,7 +211,17 @@ readonly RM_RF_SPLIT="$RM_CMD"'(([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[
 #    review S1): a harmless `/` in a LATER statement (`rm -rf build && cd /`)
 #    is never attributed to the rm in an earlier one.
 qc="'\""
-readonly RM_CATASTROPHIC_TARGET='([[:space:]='"$qc"'])(/|/\*|/\.\*?|~|~/\*?|\$HOME\b|\$\{HOME\}|\*)([[:space:]'"$qc"']|/?\*?['"$qc"']?$)'
+# Path/home targets also accept the command-substitution closers `)` and backtick
+# as a trailing boundary (issue #1982): in `echo "$(rm -rf /)"` the target `/` is
+# followed by `)`, not a space or quote, so without them an executable
+# substitution-wrapped `rm -rf <root>` slips past this gate. Leading boundary is
+# unchanged — the target is always space-separated from the recursive+force flag.
+tc="'\"\`)"
+# The bare-`*` wildcard deliberately KEEPS the narrow (space/quote/end) boundary:
+# admitting `)` there would misread a shell `case … in *)` default arm as a
+# catastrophic `rm -rf *` (T4b F1). A genuinely substitution-wrapped bare `*`
+# (`echo "$(rm -rf *)"`) is instead caught by the token-walk (guard 1b) below.
+readonly RM_CATASTROPHIC_TARGET='([[:space:]='"$qc"'])((/|/\*|/\.\*?|~|~/\*?|\$HOME\b|\$\{HOME\})([[:space:]'"$tc"']|/?\*?['"$tc"']?$)|\*([[:space:]'"$qc"']|/?\*?['"$qc"']?$))'
 
 # 1b. rm target hardening (issue #1960). For every statement that invokes rm
 #     with recursive+force flags, additionally block when:
@@ -224,6 +239,45 @@ project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 tmp_dir_allow="${TMPDIR:-/tmp}"
 tmp_dir_allow="${tmp_dir_allow%/}"
 [ -n "$tmp_dir_allow" ] || tmp_dir_allow="/tmp"
+# Peel command-substitution wrappers off a token so an rm nested in `$(…)`,
+# backticks, `<(…)`/`>(…)`, a `"…"`/`'…'` quote, or a leading `\` alias-bypass
+# (`\rm`) is recognized and its target classified as if the token were unwrapped
+# (issue #1982) — substitution-wrapping is verdict-neutral for the rm guard.
+# Leading wrappers (\ $( ` ( <( >( and quotes) and trailing closers () ` and
+# quotes) are stripped in runs, so `"$(\rm` → `rm` and `/etc)"` → `/etc`. `$((`
+# is ARITHMETIC, never command substitution: the LEADING peel stops at it (its
+# case is ordered first), so the inner expression is never exposed as a command
+# or a target. The trailing loop may still trim a closing `))`, but that is
+# harmless — an arithmetic token like `$((10/2))` still keeps its `$` for the
+# variable-target guard and can never be mis-normalized into an rm or a `/`-target.
+strip_subst_wrappers() {
+  local t="$1" prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      '$(('*) break ;;
+      '\'*) t="${t#\\}" ;;
+      '$('*) t="${t#'$('}" ;;
+      '<('*) t="${t#'<('}" ;;
+      '>('*) t="${t#'>('}" ;;
+      '"'*) t="${t#'"'}" ;;
+      "'"*) t="${t#\'}" ;;
+      '`'*) t="${t#'`'}" ;;
+      '('*) t="${t#(}" ;;
+    esac
+  done
+  prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      *')') t="${t%)}" ;;
+      *'`') t="${t%'`'}" ;;
+      *'"') t="${t%'"'}" ;;
+      *"'") t="${t%\'}" ;;
+    esac
+  done
+  printf '%s' "$t"
+}
 while IFS= read -r rm_stmt; do
   if ! printf '%s' "$rm_stmt" | grep -Eiq -- "$RM_RF_CLUSTER" \
     && ! printf '%s' "$rm_stmt" | grep -Eiq -- "$RM_RF_SPLIT"; then
@@ -242,10 +296,7 @@ while IFS= read -r rm_stmt; do
   set -f
   seen_rm=0
   for raw_token in $rm_stmt; do
-    token="${raw_token#\"}"
-    token="${token#\'}"
-    token="${token%\"}"
-    token="${token%\'}"
+    token="$(strip_subst_wrappers "$raw_token")"
     if [ "$seen_rm" -eq 0 ]; then
       # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
       case "$token" in
@@ -275,6 +326,13 @@ while IFS= read -r rm_stmt; do
             block "recursive forced delete of an absolute path outside the project (only the project, /tmp, /var/tmp, and \$TMPDIR are allowed)"
             ;;
         esac
+        ;;
+      '*')
+        # Bare top-level wildcard expands to every entry in the cwd. Guard 1a no
+        # longer bounds `*)` (T4b F1), so a substitution-wrapped `rm -rf *` is
+        # caught here after the trailing-closer strip peels `*)"` down to `*`.
+        set +f
+        block "recursive forced delete of a top-level wildcard (rm -rf *)"
         ;;
       *'$'*)
         case "$token" in
