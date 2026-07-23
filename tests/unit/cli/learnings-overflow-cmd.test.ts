@@ -9,6 +9,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runLearningsOverflow } from "../../../src/cli/learnings-overflow-cmd.js";
 import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
+import { readLearningsOverflow } from "../../../src/core/learnings-overflow.js";
 import { persistLearningEntry } from "../../../src/core/learnings-writer.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -47,9 +48,12 @@ describe("lisa learnings-overflow", () => {
    * @param index - Suffix of the capture to drop
    */
   async function dropOne(index: number): Promise<void> {
-    await persistLearningEntry(tempDir, numberedEntry(index)).catch(
-      () => undefined
-    );
+    // The write is expected to reject with the budget breach that triggers
+    // preservation. Asserting that specific rejection keeps a locking,
+    // permission, or validation failure from masquerading as a clean drop.
+    await expect(
+      persistLearningEntry(tempDir, numberedEntry(index))
+    ).rejects.toThrow(/was preserved/);
   }
 
   /**
@@ -112,6 +116,16 @@ describe("lisa learnings-overflow", () => {
       { cwd: tempDir, log: message => out.push(message) }
     );
     expect(code).toBe(0);
-    expect(JSON.parse(out.join("\n")).absent).toEqual(["learner-absent"]);
+    const result = JSON.parse(out.join("\n"));
+    expect(result.absent).toEqual(["learner-absent"]);
+    // An unknown id must be inert: without this, an implementation that
+    // deleted the real entry while reporting the unknown one as absent
+    // would still pass.
+    expect(result.drained).toEqual([]);
+    const remaining = await readLearningsOverflow(tempDir);
+    expect(remaining.entries).toHaveLength(1);
+    expect(remaining.entries[0]?.id).toBe(
+      numberedEntry(LEARNINGS_CONTRACT.maxEntries).id
+    );
   });
 });
