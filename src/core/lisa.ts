@@ -15,6 +15,7 @@ import {
   resolveAgyMcpConfigPath,
 } from "../agy/mcp-installer.js";
 import { installCopilotPlugin } from "../copilot/plugin-installer.js";
+import { installSonarIntegrations } from "../sonar/sonar-installer.js";
 import { installCopilotInstructions } from "../copilot/copilot-instructions-installer.js";
 import {
   readManagedManifest as readOpencodeManifest,
@@ -994,6 +995,7 @@ export class Lisa {
       await this.processAgyEmit();
       await this.processCopilotEmit();
       await this.processOpencodeEmit();
+      await this.processSonarIntegration();
       await this.processInstructionFilesMigration();
       await this.registerPlugins();
       await this.finalize();
@@ -1234,6 +1236,55 @@ export class Lisa {
         }${mcpMessage}`
       )
     );
+  }
+
+  /**
+   * Wire the official SonarQube MCP into each harness agent via the vendor's
+   * `sonar integrate <agent>`.
+   *
+   * Hard-gated inside {@link installSonarIntegrations}: a no-op unless the project
+   * opted in (`verification.sonar.enabled`) AND the `sonar` CLI is on PATH, so it
+   * never touches a project that only wants the CI SonarCloud gate. Kiro and
+   * Gemini are never wired — they are not Lisa-supported agents. Only the
+   * apply-time emit agents with a vendor integrate path are wired here (claude,
+   * codex, copilot, antigravity). Cursor (consumed natively, no apply-time emit)
+   * and OpenCode (no vendor integrate path) are wired by `/lisa:setup:sonar`.
+   */
+  private async processSonarIntegration(): Promise<void> {
+    const { harness } = this.config;
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("Sonar integrate: skipped during postinstall-safe apply")
+      );
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("Sonar integrate: skipped (dry-run mode)"));
+      return;
+    }
+    // Map Lisa harness emit agents to the vendor's integrate agent names.
+    const candidates: readonly (readonly [boolean, string])[] = [
+      [harnessIncludesAgent(harness, "claude"), "claude"],
+      [harnessIncludesAgent(harness, "codex"), "codex"],
+      [harnessIncludesAgent(harness, "copilot"), "copilot"],
+      [harnessIncludesAgent(harness, "agy"), "antigravity"],
+    ];
+    const vendorAgents = candidates
+      .filter(([included]) => included)
+      .map(([, name]) => name);
+    const result = await installSonarIntegrations(
+      this.config.destDir,
+      vendorAgents
+    );
+    if (!result.enabled) {
+      return;
+    }
+    const failure =
+      result.failed.length > 0 ? ` (failed: ${result.failed.join(", ")})` : "";
+    const message = result.attempted
+      ? `${result.integrated.length}/${vendorAgents.length} agent(s) wired${failure}`
+      : "skipped (sonar CLI not on PATH)";
+    this.deps.logger.info(pc.cyan(`Sonar integrate: ${message}`));
   }
 
   /**

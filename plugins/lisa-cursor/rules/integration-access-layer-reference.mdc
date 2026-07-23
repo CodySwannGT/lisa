@@ -20,6 +20,14 @@ Do not blind-retry a failed or absent MCP. Fall back only after checking the
 documented env var for that vendor, and never silently no-op when neither tier is
 available.
 
+Some MCPs authenticate headlessly from an env token and need no separate REST
+tier — the MCP **is** the headless substrate on both developer machines and cloud
+routines. The official SonarQube MCP is one such case (`SONARQUBE_TOKEN`
+[+ `SONARQUBE_ORG`/`SONARQUBE_URL`]): `lisa-sonarcloud-access` resolves it as a
+single substrate with no hand-rolled REST fallback. Reserve the two-tier
+MCP-then-REST shape for vendors whose MCP is browser-OAuth or keychain-bound and
+therefore dead headless.
+
 ## Access Skills
 
 | Vendor | Access skill | Headless env var | REST/token substrate |
@@ -28,7 +36,7 @@ available.
 | Notion | `lisa-notion-access` | `NOTION_API_TOKEN` | Notion REST |
 | Linear | `lisa-linear-access` | `LINEAR_API_KEY` | Linear GraphQL |
 | Jam | `lisa-jam-access` | `JAM_PAT` | Jam CLI |
-| SonarCloud | `lisa-sonarcloud-access` | `SONAR_TOKEN` | SonarCloud Web API |
+| SonarCloud | `lisa-sonarcloud-access` | `SONARQUBE_TOKEN` (+ `SONARQUBE_ORG`/`SONARQUBE_URL`) | Official SonarQube MCP (headless via token) |
 | Sentry | `lisa-sentry-access` | `SENTRY_AUTH_TOKEN` | Sentry REST API |
 | PostHog | `lisa-posthog-access` | `POSTHOG_PERSONAL_API_KEY` | PostHog REST API |
 | Google Play | `lisa-expo:play-store-access` | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` or `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_BASE64` | Google Play Developer API |
@@ -44,7 +52,7 @@ Source audit date: 2026-06-23. Scope: `plugins/src/**/skills/**` and
 | Notion | setup-only references | `notion-access` | Done. |
 | Linear | Multiple base queue/read/write/verify skills | Raw Linear MCP | Access layer added; consumers still need migration to `linear-access`. |
 | Jam | None in `plugins/src` at audit time | No access layer | Access layer added for host rules that include Jam triage. |
-| SonarCloud | None in `plugins/src` at audit time | No access layer | Access layer added for host rules that include SonarCloud gate triage. |
+| SonarCloud | Routed through `sonarcloud-access` | Official SonarQube MCP (single substrate) | Migrated to the official token-authed SonarQube MCP; bespoke REST dispatch removed. |
 | Sentry | No Sentry MCP references in `plugins/src`; CLI/REST mentions only | CLI/REST scattered in observability docs | Access layer added for future MCP-backed consumers. |
 | PostHog | No PostHog MCP references in `plugins/src`; observability docs mention PostHog detection | No access layer | Access layer added for future MCP-backed consumers. |
 | Google Play | No MCP surface; EAS submit docs only | `play-store-access` for Expo post-submit release visibility | Done for Expo stack. |

@@ -16,9 +16,19 @@ export interface BrowserVerificationConfig {
   readonly kane?: KaneBrowserConfig;
 }
 
+/** Official SonarQube MCP provider configuration (single Sonar substrate). */
+export interface SonarVerificationConfig {
+  readonly enabled?: boolean;
+  readonly edition?: "cloud" | "server";
+  readonly organization?: string;
+  readonly projectKey?: string;
+  readonly serverUrl?: string;
+}
+
 /** Empirical verification provider configuration. */
 export interface VerificationConfig {
   readonly browser?: BrowserVerificationConfig;
+  readonly sonar?: SonarVerificationConfig;
 }
 
 const PRODUCTION_ENVIRONMENTS = new Set(["prod", "production"]);
@@ -214,6 +224,62 @@ function validateKaneConfig(
 }
 
 /**
+ * Validate the optional SonarQube MCP provider config (single Sonar substrate).
+ * @param value - Untrusted sonar value
+ * @param source - Config source shown in errors
+ * @returns Valid sonar config or undefined
+ */
+function validateSonarConfig(
+  value: unknown,
+  source: string
+): SonarVerificationConfig | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      `Invalid verification.sonar in ${source}: expected an object`
+    );
+  }
+  const input = value as Record<string, unknown>;
+  const enabled = optionalBoolean(
+    input.enabled,
+    source,
+    "verification.sonar.enabled"
+  );
+  const edition = optionalString(
+    input.edition,
+    source,
+    "verification.sonar.edition"
+  );
+  if (edition !== undefined && edition !== "cloud" && edition !== "server") {
+    throw new Error(
+      `Invalid verification.sonar.edition in ${source}: expected "cloud" or "server"`
+    );
+  }
+  const organization = optionalString(
+    input.organization,
+    source,
+    "verification.sonar.organization"
+  );
+  const projectKey = optionalString(
+    input.projectKey,
+    source,
+    "verification.sonar.projectKey"
+  );
+  const serverUrl = optionalString(
+    input.serverUrl,
+    source,
+    "verification.sonar.serverUrl"
+  );
+  return {
+    ...(enabled === undefined ? {} : { enabled }),
+    ...(edition === undefined ? {} : { edition }),
+    ...(organization === undefined ? {} : { organization }),
+    ...(projectKey === undefined ? {} : { projectKey }),
+    ...(serverUrl === undefined ? {} : { serverUrl }),
+  };
+}
+
+/**
  * Validate the optional verification tree.
  * @param value - Untrusted verification value
  * @param source - Config source shown in errors
@@ -227,8 +293,11 @@ export function validateVerificationConfig(
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`Invalid verification in ${source}: expected an object`);
   }
-  const browser = (value as Record<string, unknown>).browser;
-  if (browser === undefined) return {};
+  const record = value as Record<string, unknown>;
+  const sonar = validateSonarConfig(record.sonar, source);
+  const sonarPart = sonar === undefined ? {} : { sonar };
+  const browser = record.browser;
+  if (browser === undefined) return sonarPart;
   if (
     browser === null ||
     typeof browser !== "object" ||
@@ -242,5 +311,5 @@ export function validateVerificationConfig(
     (browser as Record<string, unknown>).kane,
     source
   );
-  return { browser: kane === undefined ? {} : { kane } };
+  return { browser: kane === undefined ? {} : { kane }, ...sonarPart };
 }

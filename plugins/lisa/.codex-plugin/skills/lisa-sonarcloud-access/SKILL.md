@@ -6,66 +6,71 @@ allowed-tools: ["Bash", "Read", "Skill"]
 
 # SonarCloud Access: $ARGUMENTS
 
-Single chokepoint for SonarCloud operations. Caller skills MUST NOT call
-`mcp__sonarqube__*` tools directly or curl `https://sonarcloud.io/api/`
-themselves.
+Single chokepoint for Sonar quality and security data. Caller skills MUST NOT
+invoke `mcp__sonarqube__*` tools directly; they ask for data by operation name and
+this skill owns the tool selection.
 
-## Invocation Contract
+## Substrate
 
-```text
-operation: gate-status project_key:<KEY> [branch:<BRANCH>] [pull_request:<N>]
-operation: issues project_key:<KEY> [branch:<BRANCH>] [pull_request:<N>] [types:<csv>] [severities:<csv>]
-operation: hotspots project_key:<KEY> [branch:<BRANCH>] [pull_request:<N>]
-operation: rule-detail key:<RULE_KEY>
-operation: source-snippet component:<COMPONENT_KEY> from:<N> to:<N>
-```
+There is exactly one substrate: the **official SonarQube MCP server**, provided by
+the `sonarqube` plugin and launched by the `sonar` CLI (`sonar run mcp`). It
+authenticates headlessly from environment variables — no browser, no OS keychain —
+so it is the same substrate on a developer machine and in a headless cloud routine:
 
-Return parsed JSON in a `<result>` block.
+- `SONARQUBE_TOKEN` — required (Sonar user/analysis token).
+- `SONARQUBE_ORG` — required for SonarQube Cloud.
+- `SONARQUBE_URL` — required for a self-hosted SonarQube Server.
 
-## Substrate Selection
+Wiring is performed once by `/lisa:setup:sonar` (which drives `sonar integrate
+<agent>`); this access layer assumes the MCP is already wired. This is distinct
+from the CI `SONAR_TOKEN` secret that authenticates the SonarCloud scan job in
+`quality.yml` — that gate is separate and unchanged.
 
-Probe in order:
+## Probe (tool-access-gate)
 
-1. Sonar MCP, if available and authenticated.
-2. `SONAR_TOKEN` against the SonarCloud Web API.
+Prove access with a cheap read-only MCP call before relying on it — the `sonar` CLI
+being on PATH is not access. Probe by searching projects (the `projects` toolset is
+always enabled):
 
-SonarCloud documents bearer-token authentication for the Web API. Use:
-
-```bash
-sonar_api() {
-  local path="$1"
-  [ -n "$SONAR_TOKEN" ] || {
-    echo "Error: SONAR_TOKEN is not set." >&2
-    return 1
-  }
-  curl -sS "https://sonarcloud.io/api${path}" \
-    -H "Authorization: Bearer $SONAR_TOKEN"
-}
-```
-
-If a host still requires the legacy token-as-basic-auth form, make that an
-explicit adapter branch in this skill; consumers do not choose auth style.
-
-If neither tier works, fail with:
+- If a `mcp__sonarqube__*` project-search tool returns, access is proven.
+- If no `mcp__sonarqube__*` tool is present, or the call fails authentication, fail
+  loudly and do not improvise a substitute:
 
 ```text
-Error: no SonarCloud access substrate available. Authenticate the Sonar MCP or set SONAR_TOKEN.
+Error: no SonarQube access. Run /lisa:setup:sonar (or `sonar integrate <agent>`), and set SONARQUBE_TOKEN (+ SONARQUBE_ORG for Cloud / SONARQUBE_URL for Server).
 ```
 
-## REST Dispatch
+There is no hand-rolled REST fallback: the official MCP is headless-capable via the
+token env vars, so it is the only sanctioned substrate. A missing MCP is a
+tool-access-gate failure to surface, not a reason to curl the Web API.
 
-| Operation | REST path |
+## Operation → toolset map
+
+Consumers pass a coarse, vendor-native operation; resolve it with the matching
+`mcp__sonarqube__*` tool from the named toolset and return parsed JSON in a
+`<result>` block.
+
+| Operation | SonarQube MCP toolset |
 |---|---|
-| `gate-status` | `/qualitygates/project_status?projectKey=<KEY>[&branch=<BRANCH>][&pullRequest=<N>]` |
-| `issues` | `/issues/search?componentKeys=<KEY>[&branch=<BRANCH>][&pullRequest=<N>]...` |
-| `hotspots` | `/hotspots/search?projectKey=<KEY>[&branch=<BRANCH>][&pullRequest=<N>]` |
-| `rule-detail` | `/rules/show?key=<RULE_KEY>` |
-| `source-snippet` | `/sources/lines?key=<COMPONENT_KEY>&from=<N>&to=<N>` |
+| `gate-status` | `quality-gates` |
+| `issues` | `issues` |
+| `hotspots` | `security-hotspots` |
+| `rule-detail` | `rules` |
+| `source-snippet` | `cag` (context augmentation) / component source |
+| `coverage` | `coverage` |
+| `duplication` | `duplications` |
+| `dependency-risks` | `dependency-risks` |
+| `projects` | `projects` |
+
+Pass the project key through the tool's `projectKey` argument (or rely on a
+server-configured `SONARQUBE_PROJECT_KEY`); pass `branch` / `pullRequest` where the
+tool accepts them.
 
 ## Invariants
 
-- Fallback is gated on `SONAR_TOKEN`.
-- SonarCloud host access requires `sonarcloud.io` in any custom remote network
-  allowlist.
-- Consumers ask for analysis data by operation name; this skill owns the Web API
-  path shape.
+- The official SonarQube MCP is the only substrate; there is no REST fallback.
+- Auth is env-var only (`SONARQUBE_TOKEN` [+ `SONARQUBE_ORG` | `SONARQUBE_URL`]);
+  never the interactive `sonar auth login` keychain flow inside a factory.
+- Sonar host access requires the host (`sonarcloud.io`, `sonarqube.us`, or the
+  Server URL) in any custom remote-network allowlist.
+- Consumers ask for data by operation name; this skill owns tool selection.
