@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "04cca8fbcb7a5c6da1aeb2b2d00d7a328d15618e4252f1d9dd495052d264d0f5",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "49c68a12c197b750fc7d7d953a190cfecf3028c60a10ca1f18e148eb9a153ebf",
+      "2746e78fb0fbe7b23b30bbcb0f83171e16f6804fd467b3d41d3c69970572af3f",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/tsconfig.local.json":
@@ -147,7 +147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "ba73a3d8c9195b6823525a396aef50809bbb3cab5cbdd24ce9ccf6e5efaf3d35",
     "expo/create-only/.github/workflows/deploy.yml":
-      "7307c772b0b841ad67102499b9ba86afc9ee925c55fb4eb0a6b0b520e8d62f92",
+      "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
     "expo/create-only/.zap/baseline.conf":
@@ -213,7 +213,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "d24cd8d91b9942d8e0bd205ac41e103d49f2cb1e961bcdab259a56f5112e0151",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "dc44723ac2ca6e5b2ba2c8ba1e07d06ef0772ba7a31232c861c1556e893bf5ba",
+      "37cf03c11e892f58c8fb818bbf35242af0e0e920f5d6a5f4716defccbb8d064d",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
       "0315cd74dbe463da373b6a2fb75d48f46959df4232a31573fb84b1a4ed8e4e36",
     "harper-fabric/create-only/.zap/baseline.conf":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "1cbe153a37e61cef21b0af8d7b2d41e6b59adbf8a4c289475439852896a531fc",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "0dc60efd66776bd86b365a7d956db6902f709ded4f06e034f9e9a1c4f510ca07",
+      "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -617,7 +617,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "19eb8edca6913eff5b1a32cbfbca9e3c6ec85310781b425ecc4694610e884712",
+      "8d292784056d0cc62d78cc079286a2fdd6381e14452615b7aa8db0d31c3ff2ca",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "ee6b1f8e92954546181a6b36b61d0a32501ad5aea89b5b258e2eeb223047a8f7",
+      "071b2c91f3b661ee493ea6f37d78f0fdea8004b4e4e7b5e94dcf232df7eceda7",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -1785,7 +1785,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/claude-sync-down-branches.yml":
       "072cc8290eec15ef6d55c2583e94ae49cda4a56a0fea252556a8fce8170cc540",
     "rails/create-only/.github/workflows/deploy.yml":
-      "b24144ffa1b4dbb5087f48d4240e524aad850eb72d7c9c15fdfad8b582677fe5",
+      "e87c9f59fe653b29cb8a1a4d78b5d433f051366fe985035d56bd922fbd9603f8",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
@@ -1963,7 +1963,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "0185adc91889a7c2a41b3609fe529ac89ff8149600f8d00aa8065ea3c397c0d1",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "02f71566d0995c95db5ea0d34a74b71fdc95bd0337a97670f1d8abd25e3cc2b7",
+      "eb70191370c5481c8e1ec30bc1c19dac4611f678219c46012f5a32e49989af90",
     "typescript/copy-overwrite/.github/dependabot.yml":
       "6db1f1e6469845da81d2d724a446cc3feb42c970907796d3a1dee1eabfc7ba6b",
     "typescript/copy-overwrite/.lintstagedrc.json":
@@ -7346,15 +7346,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/check-learnings-budget-cmd.ts": true,
     "src/cli/cross-pollinate-cmd.ts": true,
     "src/cli/cross-pollinate-nudge.ts": true,
-    "src/cli/deploy-status-adapter-github.ts": true,
-    "src/cli/deploy-status-adapter-jira.ts": true,
-    "src/cli/deploy-status-adapter-linear.ts": true,
-    "src/cli/deploy-status-adapter-shared.ts": true,
-    "src/cli/deploy-status-adapter.ts": true,
-    "src/cli/deploy-status-refs.ts": true,
-    "src/cli/deploy-status-sync-cmd.ts": true,
-    "src/cli/deploy-status-sync-engine.ts": true,
-    "src/cli/deploy-status-sync-exec.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-legacy-overlay.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
@@ -7387,7 +7378,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/health-cmd.ts": true,
     "src/cli/index.ts": true,
     "src/cli/kane-cmd.ts": true,
-    "src/cli/kane-commands.ts": true,
     "src/cli/print-update-warning.ts": true,
     "src/cli/prompts.ts": true,
     "src/cli/remote-environment-catalog.ts": true,
@@ -7483,10 +7473,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
     "src/core/bootstrap-environment.ts": true,
-    "src/core/config-field-validation.ts": true,
     "src/core/config.ts": true,
-    "src/core/deploy-status-sync.ts": true,
-    "src/core/deploy-status-transition.ts": true,
     "src/core/git-service.ts": true,
     "src/core/index.ts": true,
     "src/core/instruction-files-migration.ts": true,
@@ -7698,7 +7685,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
-    "tests/helpers/deploy-status-cmd-fixture.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
@@ -7728,14 +7714,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/claude/claude-md-installer.test.ts": true,
     "tests/unit/cli/apply.test.ts": true,
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
-    "tests/unit/cli/deploy-status-adapter-github.test.ts": true,
-    "tests/unit/cli/deploy-status-adapter-jira.test.ts": true,
-    "tests/unit/cli/deploy-status-adapter-linear.test.ts": true,
-    "tests/unit/cli/deploy-status-refs-hardening.test.ts": true,
-    "tests/unit/cli/deploy-status-refs.test.ts": true,
-    "tests/unit/cli/deploy-status-sync-cmd-exec.test.ts": true,
-    "tests/unit/cli/deploy-status-sync-cmd-output.test.ts": true,
-    "tests/unit/cli/deploy-status-sync-cmd.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
@@ -7862,10 +7840,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
-    "tests/unit/core/deploy-status-sync-config.test.ts": true,
-    "tests/unit/core/deploy-status-sync-errors.test.ts": true,
-    "tests/unit/core/deploy-status-sync.test.ts": true,
-    "tests/unit/core/deploy-status-transition.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,

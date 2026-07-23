@@ -86,13 +86,4 @@ A non-integration environment bug is fixed, merged, and verified on that
 environment branch first, then
 forward cherry-picked down to the integration branch via a linked follow-up.
 
-## Deploy status sync
-
-`deployStatusSync` is an optional machine-written config block (`tier`, `provisioned` ids,
-`linearBinding: labels|states`, `verifiedAt`). The deploy ladder is `deploy.order` (else canonical
-`dev < staging < production`) over `deploy.branches` joined with the tracker's env-keyed done map;
-a configured done status whose env has no branch is a config error — unless its value is exactly
-the built-in default (a sync-materialized fallback, invisible everywhere: stripped before the
-union, never blocking the alias) — and the sole `prod` ↔ `production` alias applies to the join.
-
 Full reference: [reference/config-resolution.md](../reference/config-resolution.md).

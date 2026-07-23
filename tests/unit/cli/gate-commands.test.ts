@@ -1,13 +1,9 @@
 /** CLI wiring contract for Lisa's non-project gate commands. */
 import { describe, expect, it, vi } from "vitest";
 
-import { GATE_COMMAND_NAMES } from "../../../src/cli/gate-commands.js";
 import { createProgram } from "../../../src/cli/index.js";
 
 const FILE_UPSTREAM_COMMAND = "file-upstream";
-const COMMAND = "deploy-status-sync";
-const ENV_FLAG = "--environment";
-const RANGE = "abc..def";
 
 /**
  * Create a program with observable filing and update-check boundaries.
@@ -73,42 +69,6 @@ describe("file-upstream invocation", () => {
 
     await program.parseAsync([FILE_UPSTREAM_COMMAND], { from: "user" });
 
-    expect(runUpdateCheck).not.toHaveBeenCalled();
-    expect(printUpdateWarning).not.toHaveBeenCalled();
-  });
-});
-
-describe("gate-command registration", () => {
-  it("lists deploy-status-sync among the gate commands", () => {
-    expect(GATE_COMMAND_NAMES).toContain(COMMAND);
-  });
-
-  it("registers the command and skips the update check", async () => {
-    const runDeployStatusSyncSpy = vi.fn(async () => 0);
-    const runUpdateCheck = vi.fn(async () => ({
-      current: "0.0.0",
-      isOutdated: false,
-      latest: null,
-      reason: "skipped" as const,
-    }));
-    const printUpdateWarning = vi.fn();
-    const program = createProgram({
-      printUpdateWarning,
-      runDeployStatusSync: runDeployStatusSyncSpy,
-      runUpdateCheck,
-    }).exitOverride();
-    await program.parseAsync(
-      [COMMAND, ENV_FLAG, "staging", "--range", RANGE, "--dry-run"],
-      { from: "user" }
-    );
-    expect(runDeployStatusSyncSpy).toHaveBeenCalledOnce();
-    expect(runDeployStatusSyncSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        environment: "staging",
-        range: RANGE,
-        dryRun: true,
-      })
-    );
     expect(runUpdateCheck).not.toHaveBeenCalled();
     expect(printUpdateWarning).not.toHaveBeenCalled();
   });
