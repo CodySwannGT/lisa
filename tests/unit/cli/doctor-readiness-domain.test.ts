@@ -153,7 +153,9 @@ describe("assessDomainOwnershipDimension — reports silence as silence", () => 
     const findings = asFindings(record.findings);
     expect(findings.length).toBeGreaterThan(0);
     expect(typeof findings[0].reason).toBe("string");
-    expect(String(findings[0].reason)).not.toBe("");
+    expect(String(findings[0].reason)).toContain(
+      "No GitHub Actions workflow files were found"
+    );
     expect(findings[0].skip).toBe(true);
     expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
   });
