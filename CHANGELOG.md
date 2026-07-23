@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.299.2](https://github.com/CodySwannGT/lisa/compare/v2.299.1...v2.299.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* **readiness:** expand B1 destructive command coverage ([af18ba5](https://github.com/CodySwannGT/lisa/commit/af18ba5c1e065e92128fe326a9f344e741b56ec7)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** satisfy B1 case-insensitive review ([314d191](https://github.com/CodySwannGT/lisa/commit/314d191e08457806a1547f7631f53f54213d6f5a)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.299.1](https://github.com/CodySwannGT/lisa/compare/v2.299.0...v2.299.1) (2026-07-23)
 
 
