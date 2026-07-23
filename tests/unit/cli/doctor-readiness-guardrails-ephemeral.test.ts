@@ -94,6 +94,31 @@ describe("assessFeedbackGuardrailsDimension — ephemeral environments stay clea
     expectNoBlocker(record.findings);
   });
 
+  it("stands B4 when the same destructive operation is also reachable from a durable push trigger", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      "on:",
+      "  push:",
+      "    branches: [main]",
+      "  pull_request:",
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: terraform destroy -auto-approve -var-file=prod.tfvars",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
+
   it("does not stand B4 for a `serverless remove` of a per-PR stage", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, DEPLOY_YML, [
