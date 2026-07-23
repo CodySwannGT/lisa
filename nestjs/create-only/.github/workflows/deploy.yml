@@ -248,8 +248,15 @@ jobs:
     # deployment_status events for this run — the substrate that
     # deploy-status-sync listens to. url surfaces the deployed API in the
     # GitHub deployments UI.
+    # Mitigation A (double-approval): GitHub environment approvals are
+    # per-job, so if this job named the same protected env release_approval
+    # already gated, the operator would be prompted twice. On approval-gated
+    # runs the deploy job routes to `<env>-deploy` (host projects leave it
+    # unprotected — no required reviewers), giving exactly one prompt while
+    # still recording a deployment with a Jira-classifiable env name (the
+    # dev/staging/production substring is preserved).
     environment:
-      name: ${{ needs.determine_environment.outputs.approval_environment }}
+      name: ${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}
       url: ${{ steps.deployment_outputs.outputs.environment_url }}
     outputs:
       environment_url: ${{ steps.deployment_outputs.outputs.environment_url }}
