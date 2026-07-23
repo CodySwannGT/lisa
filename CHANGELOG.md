@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.297.0](https://github.com/CodySwannGT/lisa/compare/v2.296.1...v2.297.0) (2026-07-23)
+
+
+### Features
+
+* **sonar:** replace hand-rolled SonarCloud access with the official SonarQube MCP ([c625b88](https://github.com/CodySwannGT/lisa/commit/c625b88640e9ea8b51447b01a359652909473787))
+
 ### [2.296.1](https://github.com/CodySwannGT/lisa/compare/v2.296.0...v2.296.1) (2026-07-23)
 
 
