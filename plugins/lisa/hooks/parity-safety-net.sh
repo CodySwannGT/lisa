@@ -54,7 +54,27 @@
 # would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
 # `echo "\$(rm -rf /)"` — because the scan has no quote-context awareness. That
 # over-block stays inside this accepted class. Workaround: quote-break the string
-# or use the gh-writer heredoc form, whose payload is stripped before the guards run.
+# or use the gh-writer heredoc form, whose payload is stripped before the guards
+# run — spelled with a QUOTE-PAIR delimiter (`<<'EOF'`). That exact spelling is
+# what the SAFE path recognises; `<<"EOF"` and `<<\EOF` do not reach it, and
+# since #1993 a `gh … <<\EOF` writer fails closed instead (see parse_marker).
+#
+# Known accepted BYPASS class (the symmetric error direction, issue #1993): the
+# heredoc classifier in parity-safety-net-heredoc.py re-implements bash's
+# here-doc lexing in Python, and any divergence from real bash is a shape it
+# mis-classifies. Five rounds on #1958 and three more on #1993 (R5a swallowed
+# terminator, R5b body-apostrophe quote-state poisoning, R5c backslash-quoted
+# delimiter) established that enumerating those divergences is an open-ended
+# arms race, so the class is CLOSED as accepted rather than chased further. This
+# is survivable because of where a mis-classification lands: ONLY the narrow
+# gh-writer SAFE path strips payload text, and every other classifier exit hands
+# the RAW command to the guards below. A missed here-doc therefore degrades to
+# the content guards; it does not bypass them. Since #1982 taught those guards to
+# see through substitution wrappers, every destructive class this net exists to
+# stop is blocked on the raw text regardless of how the here-doc was read. The
+# net catches ACCIDENTAL catastrophic commands; it is not a wall against an
+# adversary who knows bash's lexer, and it was never the only thing standing
+# between an agent and arbitrary execution.
 #
 # Operators extend the built-in rules with a project-local rule file — one
 # extended-regex (ERE) per line, blank lines and `#` comments ignored — managed
