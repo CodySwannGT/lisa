@@ -742,9 +742,8 @@ describe("release and deploy workflows", () => {
 });
 
 describe("DSS-3 deploy environment declarations", () => {
-  const RAILS_DEPLOY_YML = stackDeployPath("rails");
-  const CDK_DEPLOY_YML = stackDeployPath("cdk");
-  const HARPER_DEPLOY_YML = stackDeployPath("harper-fabric");
+  /** Stack templates whose create-only deploy.yml is under contract. */
+  const STACKS = ["expo", "nestjs", "rails", "cdk", "harper-fabric"] as const;
   const RELEASE_RAILS_YML = path.join(WORKFLOWS_DIR, "release-rails.yml");
 
   /** Exact env expression for stacks with determine_environment. */
@@ -754,40 +753,36 @@ describe("DSS-3 deploy environment declarations", () => {
   const REF_TERNARY_EXPR =
     "${{ github.ref_name == 'main' && 'production' || github.ref_name }}";
 
-  let expoRaw: string;
-  let nestjsRaw: string;
-  let railsRaw: string;
-  let cdkRaw: string;
-  let harperRaw: string;
-  let expoDeploy: DeployWorkflow;
-  let nestjsDeploy: DeployWorkflow;
-  let railsDeploy: DeployWorkflow;
-  let cdkDeploy: DeployWorkflow;
-  let harperDeploy: DeployWorkflow;
+  let stackRaw: Record<(typeof STACKS)[number], string>;
+  let stackDeploy: Record<(typeof STACKS)[number], DeployWorkflow>;
   let releaseWf: ReleaseWorkflow;
   let releaseRailsWf: ReusableWorkflow;
   let buildWf: ReusableWorkflow;
+  let lisaDeployWf: DeployWorkflow;
+
+  /**
+   * Read and parse a workflow file.
+   * @param workflowPath Absolute workflow path.
+   * @returns Parsed workflow.
+   */
+  function loadWorkflow<T>(workflowPath: string): T {
+    return yaml.load(fs.readFileSync(workflowPath, "utf8")) as T;
+  }
 
   beforeAll(() => {
-    expoRaw = fs.readFileSync(EXPO_DEPLOY_YML, "utf8");
-    nestjsRaw = fs.readFileSync(NESTJS_DEPLOY_YML, "utf8");
-    railsRaw = fs.readFileSync(RAILS_DEPLOY_YML, "utf8");
-    cdkRaw = fs.readFileSync(CDK_DEPLOY_YML, "utf8");
-    harperRaw = fs.readFileSync(HARPER_DEPLOY_YML, "utf8");
-    expoDeploy = yaml.load(expoRaw) as DeployWorkflow;
-    nestjsDeploy = yaml.load(nestjsRaw) as DeployWorkflow;
-    railsDeploy = yaml.load(railsRaw) as DeployWorkflow;
-    cdkDeploy = yaml.load(cdkRaw) as DeployWorkflow;
-    harperDeploy = yaml.load(harperRaw) as DeployWorkflow;
-    releaseWf = yaml.load(
-      fs.readFileSync(RELEASE_YML, "utf8")
-    ) as ReleaseWorkflow;
-    releaseRailsWf = yaml.load(
-      fs.readFileSync(RELEASE_RAILS_YML, "utf8")
-    ) as ReusableWorkflow;
-    buildWf = yaml.load(
-      fs.readFileSync(EAS_BUILD_YML, "utf8")
-    ) as ReusableWorkflow;
+    stackRaw = Object.fromEntries(
+      STACKS.map(stack => [
+        stack,
+        fs.readFileSync(stackDeployPath(stack), "utf8"),
+      ])
+    ) as Record<(typeof STACKS)[number], string>;
+    stackDeploy = Object.fromEntries(
+      STACKS.map(stack => [stack, yaml.load(stackRaw[stack]) as DeployWorkflow])
+    ) as Record<(typeof STACKS)[number], DeployWorkflow>;
+    releaseWf = loadWorkflow<ReleaseWorkflow>(RELEASE_YML);
+    releaseRailsWf = loadWorkflow<ReusableWorkflow>(RELEASE_RAILS_YML);
+    buildWf = loadWorkflow<ReusableWorkflow>(EAS_BUILD_YML);
+    lisaDeployWf = loadWorkflow<DeployWorkflow>(DEPLOY_YML);
   });
 
   /**
@@ -804,37 +799,75 @@ describe("DSS-3 deploy environment declarations", () => {
       .map(([name]) => name);
   }
 
+  /**
+   * Assert exactly one job declares the given scalar environment expression.
+   * @param workflow Parsed deploy workflow.
+   * @param jobName The single job expected to declare the environment.
+   * @param expression Exact expected environment expression.
+   */
+  function expectSoleEnvironment(
+    workflow: DeployWorkflow,
+    jobName: string,
+    expression: string
+  ): void {
+    expect(workflow.jobs?.[jobName]?.environment).toBe(expression);
+    expect(jobsWithEnvironment(workflow)).toEqual([jobName]);
+  }
+
   it("expo: only the deploy job declares the approval_environment expression", () => {
-    expect(expoDeploy.jobs?.deploy.environment).toBe(APPROVAL_ENV_EXPR);
-    expect(jobsWithEnvironment(expoDeploy)).toEqual(["deploy"]);
+    expectSoleEnvironment(stackDeploy.expo, "deploy", APPROVAL_ENV_EXPR);
+    // The expression depends on determine_environment's outputs — the needs
+    // coupling must hold or the env name silently resolves empty.
+    expect(needsList(stackDeploy.expo.jobs?.deploy)).toContain(
+      "determine_environment"
+    );
   });
 
   it("nestjs: only the deploy job declares environment, mapping form with url", () => {
-    expect(nestjsDeploy.jobs?.deploy.environment).toEqual({
+    expect(stackDeploy.nestjs.jobs?.deploy.environment).toEqual({
       name: APPROVAL_ENV_EXPR,
       url: "${{ steps.deployment_outputs.outputs.environment_url }}",
     });
-    expect(jobsWithEnvironment(nestjsDeploy)).toEqual(["deploy"]);
+    expect(jobsWithEnvironment(stackDeploy.nestjs)).toEqual(["deploy"]);
   });
 
   it("rails: only deploy_rails declares the ref-name ternary expression", () => {
-    expect(railsDeploy.jobs?.deploy_rails.environment).toBe(REF_TERNARY_EXPR);
-    expect(jobsWithEnvironment(railsDeploy)).toEqual(["deploy_rails"]);
+    expectSoleEnvironment(stackDeploy.rails, "deploy_rails", REF_TERNARY_EXPR);
   });
 
   it("harper-fabric: only the deploy job declares the ref-name ternary expression", () => {
-    expect(harperDeploy.jobs?.deploy.environment).toBe(REF_TERNARY_EXPR);
-    expect(jobsWithEnvironment(harperDeploy)).toEqual(["deploy"]);
+    expectSoleEnvironment(
+      stackDeploy["harper-fabric"],
+      "deploy",
+      REF_TERNARY_EXPR
+    );
   });
 
   it("cdk: no job declares environment; the downstream snippet ships commented", () => {
     // cdk has no deploy job (determine_environment + release call only) —
     // downstream projects declare the environment on their project-owned
     // deploy job, per the commented snippet appended to the template.
-    expect(jobsWithEnvironment(cdkDeploy)).toEqual([]);
-    expect(cdkRaw).toContain(
-      "#   environment: ${{ needs.determine_environment.outputs.approval_environment }}"
+    expect(jobsWithEnvironment(stackDeploy.cdk)).toEqual([]);
+    expect(stackRaw.cdk).toContain(
+      "#     environment: ${{ needs.determine_environment.outputs.approval_environment }}"
     );
+  });
+
+  it("cdk: the commented snippet uncomments into a valid jobs-level deploy job", () => {
+    const lines = stackRaw.cdk.split("\n");
+    const start = lines.findIndex(line => line === "#   deploy:");
+    expect(start).toBeGreaterThan(-1);
+    const snippet = lines
+      .slice(start)
+      .filter(line => line.startsWith("#"))
+      .map(line => line.replace(/^# ?/, ""))
+      .join("\n");
+    const parsed = yaml.load(snippet) as Record<string, WorkflowJob>;
+    expect(parsed.deploy?.environment).toBe(APPROVAL_ENV_EXPR);
+    expect(needsList(parsed.deploy)).toEqual([
+      "determine_environment",
+      "release",
+    ]);
   });
 
   it("release.yml: release_approval keeps its exact environment expression; no other job gains one", () => {
@@ -844,20 +877,17 @@ describe("DSS-3 deploy environment declarations", () => {
     expect(jobsWithEnvironment(releaseWf)).toEqual(["release_approval"]);
   });
 
-  it("release-rails.yml and build.yml declare no environments", () => {
+  it("release-rails.yml, build.yml, and Lisa's own deploy.yml declare no environments", () => {
     expect(jobsWithEnvironment(releaseRailsWf)).toEqual([]);
     expect(jobsWithEnvironment(buildWf)).toEqual([]);
+    // Lisa's own deploy.yml has no inline deploy job (release local-call +
+    // publish_npm workflow-call) and deliberately gains no declaration.
+    expect(jobsWithEnvironment(lisaDeployWf)).toEqual([]);
   });
 
   it("no stack deploy template introduces secrets: inherit", () => {
-    for (const [name, raw] of [
-      ["expo", expoRaw],
-      ["nestjs", nestjsRaw],
-      ["rails", railsRaw],
-      ["cdk", cdkRaw],
-      ["harper-fabric", harperRaw],
-    ] as const) {
-      expect(raw, name).not.toContain("secrets: inherit");
+    for (const [stack, raw] of Object.entries(stackRaw)) {
+      expect(raw, stack).not.toContain("secrets: inherit");
     }
   });
 });
