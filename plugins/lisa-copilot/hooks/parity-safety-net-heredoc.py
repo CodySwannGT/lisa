@@ -28,6 +28,7 @@ class Marker:
     end: int
     delimiter: str
     strip_tabs: bool
+    quoted: bool
 
 
 def shell_tokens(prefix: str) -> list[str] | None:
@@ -357,7 +358,7 @@ def parse_marker(line: str, start: int, offset: int) -> Marker | None:
         final = index + len(delimiter)
     if not delimiter:
         return None
-    return Marker(offset + start, offset + final, delimiter, strip_tabs)
+    return Marker(offset + start, offset + final, delimiter, strip_tabs, quote is not None)
 
 
 def marker_is_closed(command: str, marker: Marker) -> bool:
@@ -368,6 +369,19 @@ def marker_is_closed(command: str, marker: Marker) -> bool:
         if candidate == marker.delimiter:
             return True
     return False
+
+
+def single_closed_quoted_nonwriter_heredoc(command: str, marker: Marker) -> bool:
+    """Allow guard scanning for inert quoted heredoc payloads outside gh writers."""
+    if not marker.quoted or not marker_is_closed(command, marker):
+        return False
+    line_end = command.find("\n", marker.start)
+    if line_end < 0:
+        line_end = len(command)
+    header = command[:line_end]
+    if has_active_command_substitution(header):
+        return False
+    return True
 
 
 def main() -> int:
@@ -401,6 +415,11 @@ def main() -> int:
         logical_command.splitlines()[0]
     ):
         return MALFORMED
+
+    if len(markers) == 1 and single_closed_quoted_nonwriter_heredoc(
+        logical_command, markers[0]
+    ):
+        return UNSUPPORTED
 
     # Nested substitution plus a heredoc is executable shell syntax unless it
     # matched the one exact quoted `--body "$(cat ...)"` form above.
