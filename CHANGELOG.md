@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.298.1](https://github.com/CodySwannGT/lisa/compare/v2.298.0...v2.298.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **safety-net:** close the residual heredoc-classifier lexer divergences ([209ffc8](https://github.com/CodySwannGT/lisa/commit/209ffc82f1a82004cf4c7a2a310321292fe6f3e2)), closes [CodySwannGT/lisa#1993](https://github.com/CodySwannGT/lisa/issues/1993)
+
 ## [2.298.0](https://github.com/CodySwannGT/lisa/compare/v2.297.6...v2.298.0) (2026-07-23)
 
 
