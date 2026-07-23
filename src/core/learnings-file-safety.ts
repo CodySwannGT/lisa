@@ -1,8 +1,12 @@
 /** Filesystem containment and safe reads for project learnings. */
 import * as fse from "fs-extra";
-import { lstat, open, realpath } from "node:fs/promises";
+import { lstat, open, realpath, type FileHandle } from "node:fs/promises";
 import * as path from "node:path";
 import { LEARNINGS_CONTRACT } from "./learnings-contract.js";
+import {
+  conflictMarkerError,
+  findConflictMarkerInBytes,
+} from "./learnings-document.js";
 
 /**
  * Resolve the configured target without permitting project-root escape.
@@ -52,6 +56,12 @@ export async function readExistingLearnings(
         );
       }
       if (opened.size > LEARNINGS_CONTRACT.maxTokens) {
+        // Diagnose conflict corruption before reporting size. A conflicted
+        // merge roughly doubles the ledger, so this branch is exactly where a
+        // real corruption lands — reporting "exceeds maxTokens" here would
+        // send the writer's caller off shortening entries instead of
+        // recompacting the duplicated block.
+        await assertNoConflictMarkerPrefix(handle);
         throw new Error(
           `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
         );
@@ -65,6 +75,22 @@ export async function readExistingLearnings(
       return undefined;
     }
     throw error;
+  }
+}
+
+/**
+ * Throw the shared conflict diagnosis when an over-budget file is corrupted.
+ *
+ * Reads only a bounded prefix from the already-verified handle, so an oversized
+ * ledger is diagnosed without ever being fully loaded.
+ * @param handle - Open handle to the verified regular file
+ */
+async function assertNoConflictMarkerPrefix(handle: FileHandle): Promise<void> {
+  const buffer = Buffer.allocUnsafe(LEARNINGS_CONTRACT.maxTokens + 1);
+  const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+  const conflictLine = findConflictMarkerInBytes(buffer.subarray(0, bytesRead));
+  if (conflictLine !== undefined) {
+    throw conflictMarkerError(conflictLine);
   }
 }
 

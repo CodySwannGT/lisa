@@ -187,6 +187,23 @@ jobs:
           git config --global user.email "claude[bot]@users.noreply.github.com"
           git config --global user.name "claude[bot]"
 
+      # The merge below is a REAL local git merge, so the union merge driver
+      # applies here. `.gitattributes` is committed, but git deliberately never
+      # reads a driver command from a repository, and nothing else in a fresh
+      # Actions clone registers it — without this step the learnings ledger
+      # falls back to git's line merge and conflicts (CodySwannGT/lisa#1995).
+      # Non-fatal: a missing binary must never break a sync. But it must not be
+      # silent either — an unregistered driver corrupts the ledger invisibly,
+      # which is the exact failure this step exists to prevent.
+      - name: Register the learnings union merge driver
+        if: steps.target.outputs.skip != 'true'
+        continue-on-error: true
+        run: |
+          if npx --no-install lisa install-merge-driver .; then
+            exit 0
+          fi
+          echo "::warning title=Learnings merge driver not registered::Could not register the union merge driver. A ledger merge in this run falls back to git's line merge, which produces conflict markers instead of a union by entry id (CodySwannGT/lisa#1995)."
+
       - name: Check if there is anything to sync
         if: steps.target.outputs.skip != 'true'
         id: diff

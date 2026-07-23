@@ -1,7 +1,7 @@
 /** Deterministic persistence for project-local learnings. */
 import * as fse from "fs-extra";
-import { rename, writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { writeFileAtomically } from "../utils/atomic-file-write.js";
 import { type LearningEntry } from "./learnings-contract.js";
 import {
   assertDocumentBudget,
@@ -24,6 +24,12 @@ import {
 export interface ConsolidatedLearningOptions {
   /** Ids of existing entries the new entry merges or replaces. */
   readonly supersede?: readonly string[];
+  /**
+   * Called when a supersede target was already absent at write time — almost
+   * always because a concurrent pass consolidated it first. The write still
+   * succeeds; this is a diagnostic, not a failure hook.
+   */
+  readonly onAbsentSupersede?: (ids: readonly string[]) => void;
 }
 
 /**
@@ -66,45 +72,15 @@ export async function persistConsolidatedLearning(
   const relativeFile = resolveProjectLearningsFile(config);
   const { root, target } = resolveSafeLearningTarget(projectRoot, relativeFile);
   // Fast budget fail on the lone entry before any directory is created.
-  buildNextDocument([], entry, [], new Set());
+  buildNextDocument([], entry, []);
   await assertSafeLearningParents(root, path.dirname(target));
   await fse.ensureDir(path.dirname(target));
-  return writeLearningEntriesAfterSafeParent(root, target, entry, supersede);
-}
-
-/**
- * Snapshot any supersede targets after parent safety is proven, then write.
- * @param root - Resolved project root
- * @param target - Absolute learnings file path
- * @param entry - New validated entry
- * @param supersede - Ids of existing entries the new entry replaces
- * @returns Absolute path to the persisted learnings file
- */
-async function writeLearningEntriesAfterSafeParent(
-  root: string,
-  target: string,
-  entry: LearningEntry,
-  supersede: readonly string[]
-): Promise<string> {
-  if (supersede.length === 0) {
-    return writeLearningEntriesWithLock(
-      root,
-      target,
-      entry,
-      supersede,
-      new Set()
-    );
-  }
-  const preLockSupersedeIds = await readSupersedeIdsPresentBeforeLock(
-    target,
-    supersede
-  );
   return writeLearningEntriesWithLock(
     root,
     target,
     entry,
     supersede,
-    preLockSupersedeIds
+    options.onAbsentSupersede
   );
 }
 
@@ -114,7 +90,7 @@ async function writeLearningEntriesAfterSafeParent(
  * @param target - Absolute learnings file path
  * @param entry - New validated entry
  * @param supersede - Ids of existing entries the new entry replaces
- * @param preLockSupersedeIds - Supersede ids observed before lock acquisition
+ * @param onAbsentSupersede - Diagnostic sink for already-consolidated targets
  * @returns Absolute path to the persisted learnings file
  */
 function writeLearningEntriesWithLock(
@@ -122,29 +98,20 @@ function writeLearningEntriesWithLock(
   target: string,
   entry: LearningEntry,
   supersede: readonly string[],
-  preLockSupersedeIds: ReadonlySet<string>
+  onAbsentSupersede?: (ids: readonly string[]) => void
 ): Promise<string> {
   return withLearningTargetLock(target, async () => {
     await assertSafeLearningParents(root, path.dirname(target));
     const existing = await readExistingLearnings(target);
     const entries = existing === undefined ? [] : parseLearningsFile(existing);
-    const rendered = buildNextDocument(
-      entries,
-      entry,
-      supersede,
-      preLockSupersedeIds
+    const absent = supersede.filter(
+      id => !entries.some(current => current.id === id)
     );
-    const temporary = path.join(
-      path.dirname(target),
-      `.${path.basename(target)}.${process.pid}.${crypto.randomUUID()}.tmp`
-    );
-    try {
-      await writeFile(temporary, rendered, { encoding: "utf8", flag: "wx" });
-      await assertSafeLearningParents(root, path.dirname(target));
-      await rename(temporary, target);
-    } finally {
-      await fse.remove(temporary);
-    }
+    if (absent.length > 0) onAbsentSupersede?.(absent);
+    const rendered = buildNextDocument(entries, entry, supersede);
+    await writeFileAtomically(target, rendered, {
+      beforeRename: () => assertSafeLearningParents(root, path.dirname(target)),
+    });
     return target;
   });
 }
@@ -220,17 +187,9 @@ export async function confirmLearningEntry(
       entry.id === id ? confirmed : entry
     );
     const rendered = renderConfirmedDocument(nextEntries);
-    const temporary = path.join(
-      path.dirname(target),
-      `.${path.basename(target)}.${process.pid}.${crypto.randomUUID()}.tmp`
-    );
-    try {
-      await writeFile(temporary, rendered, { encoding: "utf8", flag: "wx" });
-      await assertSafeLearningParents(root, path.dirname(target));
-      await rename(temporary, target);
-    } finally {
-      await fse.remove(temporary);
-    }
+    await writeFileAtomically(target, rendered, {
+      beforeRename: () => assertSafeLearningParents(root, path.dirname(target)),
+    });
     return {
       status: "confirmed",
       id,
@@ -262,27 +221,32 @@ function renderConfirmedDocument(entries: readonly LearningEntry[]): string {
  * Build and budget-check the next canonical document, dropping superseded
  * entries before the new entry is added so consolidation and the budget
  * re-assertion happen in one deterministic step.
+ *
+ * A supersede target that is already absent is NOT an error. "Replace X with Y"
+ * is already satisfied when X is gone, and at write time a concurrently
+ * consolidated id is indistinguishable from a bogus one — so an error here
+ * cannot mean what it claims. The costs are wildly asymmetric: throwing
+ * discards the writer's ENTIRE learning (the CodySwannGT/lisa#1995 data-loss
+ * symptom, just pointed the other way), while proceeding leaves at worst two
+ * entries where one consolidation was intended — visible, bounded, and exactly
+ * what the gardener and the entry budget already handle. Callers that care are
+ * told through `onAbsentSupersede`.
+ *
+ * This replaces PR #2008's pre-lock snapshot, which tried to tell those two
+ * cases apart by reading the file before acquiring the lock. That read is
+ * itself a TOCTOU: it only rescues writers whose snapshot predates the removal,
+ * so it narrowed the window rather than closing it and failed intermittently in
+ * CI under precisely the contention it was written for.
  * @param entries - Existing validated entries
  * @param entry - New validated entry
  * @param supersede - Ids of existing entries the new entry replaces
- * @param preLockSupersedeIds - Supersede ids observed before lock acquisition
  * @returns Next canonical document
  */
 function buildNextDocument(
   entries: readonly LearningEntry[],
   entry: LearningEntry,
-  supersede: readonly string[],
-  preLockSupersedeIds: ReadonlySet<string>
+  supersede: readonly string[]
 ): string {
-  const missing = supersede.filter(
-    id => !entries.some(current => current.id === id)
-  );
-  const unknown = missing.filter(id => !preLockSupersedeIds.has(id));
-  if (unknown.length > 0) {
-    throw new Error(
-      `Cannot supersede unknown learning id(s): ${unknown.join(", ")}`
-    );
-  }
   const supersededIds = new Set(supersede);
   const retained = entries.filter(current => !supersededIds.has(current.id));
   if (retained.some(current => current.id === entry.id)) {
@@ -294,57 +258,6 @@ function buildNextDocument(
   const rendered = renderLearningsFile(nextEntries);
   assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
   return rendered;
-}
-
-/**
- * Snapshot supersede ids that existed before waiting on the writer lock. When a
- * concurrent writer removes one of those ids first, the later writer should
- * still preserve its candidate instead of dropping the learning as stale.
- * @param target - Resolved learnings file path
- * @param supersede - Validated supersede ids requested by the caller
- * @returns Supersede ids observed in the file before lock acquisition
- */
-async function readSupersedeIdsPresentBeforeLock(
-  target: string,
-  supersede: readonly string[]
-): Promise<ReadonlySet<string>> {
-  if (supersede.length === 0) {
-    return new Set();
-  }
-  const existing = await readSupersedeSnapshot(target);
-  if (existing === undefined) {
-    return new Set();
-  }
-  if (existing === "changed-during-open") {
-    return new Set(supersede);
-  }
-  const existingIds = new Set(parseLearningsFile(existing).map(({ id }) => id));
-  return new Set(supersede.filter(id => existingIds.has(id)));
-}
-
-/**
- * Read the advisory pre-lock supersede snapshot. If another writer swaps the
- * file during this best-effort read, treat the requested supersede ids as
- * plausibly observed so the later locked write preserves the candidate.
- * @param target - Resolved learnings file path
- * @returns Existing file content, a sentinel for indeterminate content, or
- * undefined when the file does not exist
- */
-async function readSupersedeSnapshot(
-  target: string
-): Promise<string | "changed-during-open" | undefined> {
-  try {
-    return await readExistingLearnings(target);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message ===
-        "Unsafe project learnings path: target changed during open"
-    ) {
-      return "changed-during-open";
-    }
-    throw error;
-  }
 }
 
 /**

@@ -19,6 +19,8 @@ const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const CONSOLIDATED_ID = "learning-consolidated";
 const FIRST_ID = "learning-1";
 const SECOND_ID = "learning-2";
+const NEW_ID = "learning-new";
+const MISSING_ID = "learning-missing";
 const BASE_ENTRY = {
   id: "learning-base",
   rule: "Always resolve the learnings path via the executable contract.",
@@ -139,17 +141,43 @@ describe("learnings consolidation writer", () => {
     expect(await readFile(learningsPath, "utf8")).toBe(before);
   });
 
-  it("rejects superseding an unknown id without changing the file", async () => {
+  it("persists the learning even when the supersede target is absent", async () => {
+    // Semantics changed deliberately (CodySwannGT/lisa#1995): this previously
+    // threw `Cannot supersede unknown learning id(s)`. Under concurrency an
+    // already-consolidated target is indistinguishable from a bogus one, and
+    // throwing discarded the writer's ENTIRE learning — the data loss this
+    // issue is about. "Replace X with Y" is satisfied when X is already gone,
+    // so the write proceeds and the absence is reported instead.
     await persistLearningEntry(tempDir, BASE_ENTRY);
-    const before = await readFile(learningsPath, "utf8");
-    await expect(
-      persistConsolidatedLearning(
-        tempDir,
-        { ...BASE_ENTRY, id: "learning-new" },
-        { supersede: ["learning-missing"] }
-      )
-    ).rejects.toThrow(/unknown.*learning-missing/i);
-    expect(await readFile(learningsPath, "utf8")).toBe(before);
+    const absent: string[][] = [];
+    await persistConsolidatedLearning(
+      tempDir,
+      { ...BASE_ENTRY, id: NEW_ID },
+      {
+        supersede: [MISSING_ID],
+        onAbsentSupersede: ids => absent.push([...ids]),
+      }
+    );
+    const persisted = parseLearningsFile(
+      await readFile(learningsPath, "utf8")
+    ).map(entry => entry.id);
+    expect(persisted).toEqual(
+      [BASE_ENTRY.id, NEW_ID].sort((left, right) => left.localeCompare(right))
+    );
+    expect(absent).toEqual([[MISSING_ID]]);
+  });
+
+  it("leaves unrelated entries untouched when the supersede target is absent", async () => {
+    await persistLearningEntry(tempDir, BASE_ENTRY);
+    await persistConsolidatedLearning(
+      tempDir,
+      { ...BASE_ENTRY, id: NEW_ID },
+      { supersede: [MISSING_ID] }
+    );
+    const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
+    expect(persisted.find(entry => entry.id === BASE_ENTRY.id)?.rule).toBe(
+      BASE_ENTRY.rule
+    );
   });
 
   it("frees entry-budget room by superseding at maxEntries", async () => {
@@ -203,7 +231,7 @@ describe("learnings consolidation writer", () => {
     await expect(
       persistConsolidatedLearning(
         tempDir,
-        { ...BASE_ENTRY, id: "learning-new" },
+        { ...BASE_ENTRY, id: NEW_ID },
         { supersede: ["", BASE_ENTRY.id] }
       )
     ).rejects.toThrow(/supersede/i);

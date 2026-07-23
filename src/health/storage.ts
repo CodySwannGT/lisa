@@ -1,11 +1,11 @@
 /** Confined, bounded, atomic storage for the latest completed Health v1 run. */
 import * as fse from "fs-extra";
-import { lstat, open, realpath, rename, rm } from "node:fs/promises";
+import { lstat, open, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import { withFileTargetLock } from "../core/learnings-lock.js";
+import { writeFileAtomically } from "../utils/atomic-file-write.js";
 import { type HealthResult, validateHealthResult } from "./contract.js";
-import { syncContainingDirectory } from "./directory-sync.js";
 
 export const HEALTH_RESULT_PATH = ".lisa/health/latest.json";
 export const MAX_HEALTH_RESULT_BYTES = 256 * 1024;
@@ -73,7 +73,7 @@ export async function writeLatestHealthResult(
 ): Promise<HealthWriteResult> {
   const result = validateHealthResult(candidate);
   const serialized = serializeValidatedHealthResult(result);
-  const { directory, target } = await resolveWriteTarget(projectRoot);
+  const { target } = await resolveWriteTarget(projectRoot);
   return withFileTargetLock(target, async () => {
     await assertSafeTarget(target);
     const current = await readLatestHealthResult(projectRoot);
@@ -95,24 +95,10 @@ export async function writeLatestHealthResult(
         return unchanged(target, current.result);
       }
     }
-    const temporary = path.join(
-      directory,
-      `.${path.basename(target)}.${process.pid}.${crypto.randomUUID()}.tmp`
-    );
-    try {
-      const handle = await open(temporary, "wx", 0o600);
-      try {
-        await handle.writeFile(serialized, "utf8");
-        await handle.sync();
-      } finally {
-        await handle.close();
-      }
-      await assertSafeTarget(target);
-      await rename(temporary, target);
-      await syncContainingDirectory(directory);
-    } finally {
-      await rm(temporary, { force: true });
-    }
+    await writeFileAtomically(target, serialized, {
+      mode: 0o600,
+      beforeRename: () => assertSafeTarget(target),
+    });
     return Object.freeze({ status: "written", path: target, result });
   });
 }
