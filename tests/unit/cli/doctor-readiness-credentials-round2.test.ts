@@ -130,4 +130,28 @@ describe("assessDeliveryAuthorityDimension — B3 round-2 credentials", () => {
     expect(finding?.evidence).toContain("NPM_TOKEN");
     expect(finding?.evidence).not.toContain("aws-access-key-id");
   });
+
+  it("FAILs with B3 when a reusable workflow call maps a static credential", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON_PUSH,
+      JOBS,
+      "  publish:",
+      "    uses: ./.github/workflows/publish.yml",
+      "    with:",
+      "      registry-token: ${{ secrets.NPM_TOKEN }}",
+      "    secrets:",
+      "      npm-token: ${{ secrets.NPM_TOKEN }}",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === "B3"
+    );
+    expect(finding?.evidence).toContain("NPM_TOKEN");
+    expect(finding?.evidence).toContain("job `publish`");
+  });
 });
