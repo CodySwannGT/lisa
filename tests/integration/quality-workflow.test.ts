@@ -492,6 +492,34 @@ describe("learnings-budget gate (#1730)", () => {
       expect(workflow).not.toContain("learnings-budget-relocated.out");
     }
   );
+
+  // The Lisa source repo must check its ledger against its OWN in-tree contract:
+  // the published pin necessarily lags a release, so a commit that raises the
+  // budget and migrates the ledger together would be judged by the stale budget
+  // (the #2001 deploy failure). Rails hosts never carry Lisa source, so only the
+  // TypeScript quality workflow grows the self-check branch.
+  it("checks the Lisa source repo against its in-tree contract, not the pin", () => {
+    const workflow = fs.readFileSync(QUALITY_YML, "utf8");
+
+    expect(workflow).toContain("scripts/check-learnings-budget.ts");
+    expect(workflow).toContain("src/core/learnings-budget-check.ts");
+    // Must pass an explicit resolved ledger: the bare no-arg form defaults to
+    // the shipped all/create-only TEMPLATE (0 entries) and would silently void
+    // the gate for Lisa itself.
+    expect(workflow).toContain(
+      'bun scripts/check-learnings-budget.ts "$ledger"'
+    );
+    expect(workflow).not.toMatch(
+      /bun scripts\/check-learnings-budget\.ts\s*\|/
+    );
+    // When the ledger exists, a real pass is required — "no learnings file"
+    // there would mean the path resolved wrong and the gate went vacuous.
+    expect(workflow).toContain('grep -q "learnings budget passed"');
+    // Host projects keep the deliberate, reproducible pin.
+    expect(workflow).toContain(
+      "bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out"
+    );
+  });
 });
 
 describe("release and deploy workflows", () => {
