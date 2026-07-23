@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.295.3](https://github.com/CodySwannGT/lisa/compare/v2.295.2...v2.295.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* **hooks:** relax quoted heredoc classification ([31b3f6c](https://github.com/CodySwannGT/lisa/commit/31b3f6c72acca9e74839e1cfa7dda3a116f2c714)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+
 ### [2.295.2](https://github.com/CodySwannGT/lisa/compare/v2.295.1...v2.295.2) (2026-07-23)
 
 
