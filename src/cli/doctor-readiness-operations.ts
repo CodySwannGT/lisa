@@ -79,7 +79,6 @@ const EPHEMERAL_TARGETS: readonly RegExp[] = [
   /\b127\.0\.0\.1\b/,
   /(^|[^a-z0-9])(tmp|temp)([^a-z0-9]|$)/,
   /(^|[^a-z0-9])pr-/,
-  /\bpreview\b/,
   /github\.event\.number/,
   /\bpull_request\b/,
 ];
