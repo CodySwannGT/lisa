@@ -18,6 +18,11 @@ jobs:
     name: Build, deploy, and verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Declaring the environment makes GitHub emit deployment /
+    # deployment_status events for this run — the substrate that
+    # deploy-status-sync listens to. No determine_environment job exists in
+    # this workflow; main deploys to production, other refs use the branch name.
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name }}
     env:
       HARPER_PROJECT: ${{ vars.HARPER_PROJECT || github.event.repository.name }}
       HARPER_PACKAGE: ${{ vars.HARPER_PACKAGE || 'harper-app' }}
