@@ -195,7 +195,7 @@ Group the findings as:
    | Match | Substrate | Env | Setup / wiring | Domains |
    |---|---|---|---|---|
    | `mcp.jam.dev`, `jam`, or Jam MCP entries | Jam CLI (`jam`) authenticated by PAT | `JAM_PAT` | install with `curl -fsSL https://native.jam.dev/install | bash`; export `~/.local/bin`; run `printf '%s' "$JAM_PAT" | jam auth login --token`; optionally `jam skills install` | `native.jam.dev`, `api.jam.dev` |
-   | `mcp/sonarqube`, `sonarqube`, or SonarQube/SonarCloud MCP entries | Official SonarQube MCP (`sonar run mcp`), token-authed — runs headless as-is, no REST substitute | `SONARQUBE_TOKEN` (+ `SONARQUBE_ORG` for Cloud / `SONARQUBE_URL` for Server) | install the SonarQube CLI (`curl -o- https://raw.githubusercontent.com/SonarSource/sonarqube-cli/refs/heads/master/user-scripts/install.sh \| bash`) and `sonar integrate <agent>`; pre-pull the MCP container image in the setup script so it fits the cache budget; the MCP authenticates from the env token — never `sonar auth login` | `sonarcloud.io`, `sonarqube.us` (or the Server URL) |
+   | `mcp/sonarqube`, `sonarqube`, or SonarQube/SonarCloud MCP entries | Official SonarQube MCP (`sonar run mcp`), token-authed — runs headless as-is, no REST substitute | `SONARQUBE_CLI_TOKEN` (+ `SONARQUBE_CLI_ORG` for Cloud / `SONARQUBE_CLI_SERVER` for Server) | install the SonarQube CLI (`curl -o- https://raw.githubusercontent.com/SonarSource/sonarqube-cli/refs/heads/master/user-scripts/install.sh \| bash`) and `sonar integrate <agent>`; pre-pull the MCP container image in the setup script so it fits the cache budget; the MCP authenticates from the env token — never `sonar auth login` | `sonarcloud.io`, `sonarqube.us` (or the Server URL) |
 
    For PAT-bearer MCP substrates that really use the same MCP transport, include `mcpHeaders` in
    the inventory with a snippet such as `headers: { "Authorization": "Bearer ${VAR}" }` so the
@@ -353,11 +353,11 @@ so the generator can render acquisition comments into its template:
       "setupSnippet": "curl -fsSL https://native.jam.dev/install | bash; export PATH=\"$HOME/.local/bin:$PATH\"; printf '%s' \"$JAM_PAT\" | jam auth login --token; jam skills install"
     },
     {
-      "name": "SONARQUBE_TOKEN", "required": false, "secret": true, "integration": "sonarcloud",
+      "name": "SONARQUBE_CLI_TOKEN", "required": false, "secret": true, "integration": "sonarcloud",
       "reason": "authenticates the official SonarQube MCP headlessly; the MCP runs as-is in a cloud routine (Docker is preinstalled), so no REST substitute is needed",
       "headlessSubstrate": "Official SonarQube MCP (token-authed)",
       "acquireUrl": "https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/managing-tokens",
-      "accessScope": "token must be able to read the target Sonar organization/project quality gate, issues, hotspots, rules, coverage, duplications, and dependency risks; add SONARQUBE_ORG (Cloud) or SONARQUBE_URL (Server)"
+      "accessScope": "token must be able to read the target Sonar organization/project quality gate, issues, hotspots, rules, coverage, duplications, and dependency risks; add SONARQUBE_CLI_ORG (Cloud) or SONARQUBE_CLI_SERVER (Server)"
     }
   ],
   "mcp": [
