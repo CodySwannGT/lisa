@@ -124,11 +124,11 @@ function commandTargetsOwnedService(
     const normalized = service.toLowerCase();
     return (
       command.includes(normalized) ||
-      (/(postgres|postgresql|database|db)/.test(normalized) &&
+      (/\b(postgres|postgresql|database|db)\b/.test(normalized) &&
         /\b(psql|postgres|database_url|drop\s+(schema|database|table))\b/.test(
           command
         )) ||
-      (/(mysql|mariadb|database|db)/.test(normalized) &&
+      (/\b(mysql|mariadb|database|db)\b/.test(normalized) &&
         /\b(mysql|database_url|drop\s+(schema|database|table))\b/.test(
           command
         )) ||
