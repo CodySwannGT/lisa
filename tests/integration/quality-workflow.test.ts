@@ -746,9 +746,6 @@ describe("DSS-3 deploy environment declarations", () => {
   const STACKS = ["expo", "nestjs", "rails", "cdk", "harper-fabric"] as const;
   const RELEASE_RAILS_YML = path.join(WORKFLOWS_DIR, "release-rails.yml");
 
-  /** Bare approval_environment expression (cdk downstream snippet). */
-  const APPROVAL_ENV_EXPR =
-    "${{ needs.determine_environment.outputs.approval_environment }}";
   /**
    * Gated deploy env expression (mitigation A, DSS-3 §4): approval-gated
    * runs route the deploy job to `<env>-deploy` so it never re-gates the
@@ -844,9 +841,12 @@ describe("DSS-3 deploy environment declarations", () => {
     // branch behaviors structurally: the gated arm wraps the env in
     // format('{0}-deploy', …) (substring kept for Jira classification), the
     // ungated fallback is the bare approval_environment output.
+    const nestjsEnv = stackDeploy.nestjs.jobs?.deploy.environment as
+      | { name?: string }
+      | undefined;
     for (const expr of [
       stackDeploy.expo.jobs?.deploy.environment,
-      (stackDeploy.nestjs.jobs?.deploy.environment as { name?: string }).name,
+      nestjsEnv?.name,
     ]) {
       expect(expr).toContain(
         "needs.determine_environment.outputs.require_approval == 'true'"
@@ -877,8 +877,12 @@ describe("DSS-3 deploy environment declarations", () => {
     // downstream projects declare the environment on their project-owned
     // deploy job, per the commented snippet appended to the template.
     expect(jobsWithEnvironment(stackDeploy.cdk)).toEqual([]);
+    // Gated expression (mitigation A): the snippet's deploy job needs:
+    // release, which carries the protected approval env, so a gated CDK
+    // project would double-prompt with the bare env — the snippet ships the
+    // same `-deploy` gating expo/nestjs use.
     expect(stackRaw.cdk).toContain(
-      "#     environment: ${{ needs.determine_environment.outputs.approval_environment }}"
+      "#     environment: ${{ needs.determine_environment.outputs.require_approval == 'true' && format('{0}-deploy', needs.determine_environment.outputs.approval_environment) || needs.determine_environment.outputs.approval_environment }}"
     );
   });
 
@@ -892,7 +896,7 @@ describe("DSS-3 deploy environment declarations", () => {
       .map(line => line.replace(/^# ?/, ""))
       .join("\n");
     const parsed = yaml.load(snippet) as Record<string, WorkflowJob>;
-    expect(parsed.deploy?.environment).toBe(APPROVAL_ENV_EXPR);
+    expect(parsed.deploy?.environment).toBe(GATED_ENV_EXPR);
     expect(needsList(parsed.deploy)).toEqual([
       "determine_environment",
       "release",
