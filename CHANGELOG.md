@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.296.1](https://github.com/CodySwannGT/lisa/compare/v2.296.0...v2.296.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **learnings:** clarify the average-allowance semantics and pin the byte ceiling ([8c29c24](https://github.com/CodySwannGT/lisa/commit/8c29c249c4086f6597ed61dd9a6d45c473549ac4)), closes [#1959](https://github.com/CodySwannGT/lisa/issues/1959) [CodySwannGT/lisa#1959](https://github.com/CodySwannGT/lisa/issues/1959) [CodySwannGT/lisa#1959](https://github.com/CodySwannGT/lisa/issues/1959)
+* **learnings:** derive ledger byte budget from entry cap and signal saturation ([#1959](https://github.com/CodySwannGT/lisa/issues/1959)) ([2827d69](https://github.com/CodySwannGT/lisa/commit/2827d69ed184203e7558ad433302e9248cbd3b38))
+
+
+### Documentation
+
+* **persist-learning:** correct the gardener-linkage wording on the saturation signal ([27cdc0d](https://github.com/CodySwannGT/lisa/commit/27cdc0d9436cef9cd29c0720519b844e435c11bb)), closes [CodySwannGT/lisa#1959](https://github.com/CodySwannGT/lisa/issues/1959) [CodySwannGT/lisa#1959](https://github.com/CodySwannGT/lisa/issues/1959)
+
 ## [2.296.0](https://github.com/CodySwannGT/lisa/compare/v2.295.6...v2.296.0) (2026-07-23)
 
 
