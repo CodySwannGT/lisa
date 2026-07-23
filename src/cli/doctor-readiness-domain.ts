@@ -162,6 +162,18 @@ function domainFinding(scan: OperationScan): Record<string, unknown> {
  * @returns The SKIP reason
  */
 function skipReason(inspected: number, runbook: boolean): string {
+  if (inspected === 0) {
+    return (
+      "No GitHub Actions workflow files were found under `.github/workflows/`, " +
+      "so no irreversible data-destroying operations could be assessed from " +
+      "workflow declarations (recovery runbook " +
+      `${runbook ? "present" : "absent"}). Whether this ` +
+      "repository's business rules, glossary, and danger zones are genuinely " +
+      "owned and written down cannot be established by reading files offline — " +
+      "that needs the agent-ready domain phase — so domain ownership is not " +
+      "established either way."
+    );
+  }
   return (
     `Read ${inspected} workflow file(s) for irreversible data-destroying ` +
     "operations and found none that this file alone proves runs unattended, " +
