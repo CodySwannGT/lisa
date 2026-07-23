@@ -297,6 +297,75 @@ function setOriginHead(fixture: Fixture): void {
   );
 }
 
+/**
+ * Reproduce finding F1 of #1956's security review: an agent with local repo
+ * control creates a tracking ref that already contains the branch tip and
+ * repoints `refs/remotes/origin/HEAD` at it. The guard's own checks still pass
+ * (the target is under `refs/remotes/origin/` and resolves), so `validate-push`
+ * subtracts the whole branch and the pushed range comes back EMPTY.
+ * @param fixture - Disposable repository
+ * @param tip - Commit the crafted "default branch" is made to contain
+ */
+function launderPushRange(fixture: Fixture, tip: string): void {
+  git(
+    fixture.root,
+    ["update-ref", "refs/remotes/origin/attacker", tip],
+    fixture.env
+  );
+  git(
+    fixture.root,
+    [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/attacker",
+    ],
+    fixture.env
+  );
+}
+
+/** Seed a bound branch whose base is already published as origin/main. */
+function publishedBase(fixture: Fixture): string {
+  const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+  git(
+    fixture.root,
+    ["update-ref", "refs/remotes/origin/main", base],
+    fixture.env
+  );
+  if (command(fixture, ["bind", "acme/widgets#42"]).status !== 0)
+    throw new Error("expected the bind to succeed");
+  return base;
+}
+
+/** Run `validate-push` for an existing-branch push of base..head. */
+function pushRange(
+  fixture: Fixture,
+  base: string,
+  head: string,
+  env: NodeJS.ProcessEnv = {}
+): CommandResult {
+  return command(fixture, ["validate-push", "origin"], {
+    env: { FAKE_GH_PR_MISSING: "1", ...env },
+    input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+  });
+}
+
+/** Run `validate-pr` the way Lisa's CI job does — env-var form, numbered PR. */
+function prRange(
+  fixture: Fixture,
+  base: string,
+  head: string,
+  env: NodeJS.ProcessEnv = {}
+): CommandResult {
+  return command(fixture, ["validate-pr"], {
+    env: {
+      LISA_PR_BASE_SHA: base,
+      LISA_PR_HEAD_SHA: head,
+      LISA_PR_NUMBER: "7",
+      ...env,
+    },
+  });
+}
+
 describe("work-item binding and commit messages", () => {
   it("merges local config, writes worktree-private state atomically, and preserves the subject", () => {
     const fixture = createFixture(githubConfig("identity"));
@@ -1099,5 +1168,145 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Mention the ticket");
+  });
+});
+
+/**
+ * #1978: `validate-push` is a client-side, fail-safe gate and #1956's security
+ * review (finding F1) proved an agent can launder branch-authored commits past
+ * it by repointing `refs/remotes/origin/HEAD`. `validate-pr` is the designed
+ * server-side backstop: it recomputes `rev-list base..head` with no exclusion
+ * and never reads a symref, so the launder cannot survive it. Each case here
+ * asserts BOTH halves of that claim on the same repository state — the push
+ * gate is laundered, the PR gate still fails.
+ */
+describe("server-side backstop (#1978): validate-pr defeats the #1956 symref launder", () => {
+  const CLOSED_ISSUE =
+    '{"number":42,"state":"CLOSED","labels":[{"name":"status:in-progress"},{"name":"type:Bug"}],"comments":[],"closedByPullRequestsReferences":[]}';
+
+  it("catches a branch-authored commit with no Work-Item trailer", () => {
+    const fixture = createFixture();
+    const base = publishedBase(fixture);
+    const head = commit(fixture, "feat: untracked change");
+    launderPushRange(fixture, head);
+
+    const pushed = pushRange(fixture, base, head);
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+
+    const validated = prRange(fixture, base, head);
+    expect(validated.status).toBe(1);
+    expect(validated.stderr).toContain("Mention the ticket");
+  });
+
+  it("catches a branch-authored commit referencing a closed work item", () => {
+    const fixture = createFixture();
+    const base = publishedBase(fixture);
+    const head = commit(
+      fixture,
+      "feat: branch work\n\nWork-Item: acme/widgets#42"
+    );
+    launderPushRange(fixture, head);
+
+    const pushed = pushRange(fixture, base, head, {
+      FAKE_GH_ISSUE_JSON: CLOSED_ISSUE,
+    });
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+
+    const validated = prRange(fixture, base, head, {
+      FAKE_GH_ISSUE_JSON: CLOSED_ISSUE,
+    });
+    expect(validated.status).toBe(1);
+    expect(validated.stderr).toContain("is closed");
+  });
+
+  it("catches mixed branch-authored Work-Item references", () => {
+    const fixture = createFixture();
+    const base = publishedBase(fixture);
+    commit(fixture, "feat: first ticket\n\nWork-Item: acme/widgets#42");
+    const head = commit(
+      fixture,
+      "fix: second ticket\n\nWork-Item: acme/widgets#43"
+    );
+    launderPushRange(fixture, head);
+
+    const pushed = pushRange(fixture, base, head);
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+
+    const validated = prRange(fixture, base, head);
+    expect(validated.status).toBe(1);
+    expect(validated.stderr).toContain("mixed Work-Item references");
+  });
+
+  it("ignores a crafted origin/HEAD symref even when it is present in CI", () => {
+    const fixture = createFixture();
+    const base = publishedBase(fixture);
+    const head = commit(fixture, "feat: untracked change");
+    // Belt and braces: the symref lands in the checkout AND names the head.
+    // validate-pr must not consult it at all.
+    launderPushRange(fixture, head);
+    setOriginHead(fixture);
+    launderPushRange(fixture, head);
+
+    const validated = prRange(fixture, base, head);
+    expect(validated.status).toBe(1);
+    expect(validated.stderr).toContain("Mention the ticket");
+  });
+});
+
+/**
+ * The other half of #1978's acceptance criteria: the backstop must not punish
+ * legitimate work. A merge-synced PR carries foreign base commits (whose
+ * trailers reference other, often closed, work items) inside the branch, and
+ * they must stay out of the validated range — not through exclusion logic, but
+ * because the range starts at the CURRENT base-branch tip.
+ */
+describe("server-side backstop (#1978): merge-synced pull requests still pass", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+  const BACKLINKED_ISSUE = JSON.stringify({
+    number: 42,
+    state: "OPEN",
+    labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+    comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
+    closedByPullRequestsReferences: [],
+  });
+
+  it("validates only branch-authored commits when the base tip is the range start", () => {
+    const fixture = createFixture();
+    const { head } = setupMergeLane(fixture);
+    const baseTip = git(
+      fixture.root,
+      ["rev-parse", "refs/remotes/origin/main"],
+      fixture.env
+    );
+
+    const validated = prRange(fixture, baseTip, head, {
+      FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE,
+    });
+    expect(validated.stderr).toBe("");
+    expect(validated.status).toBe(0);
+    // The merge commit is exempt; the two #42 commits are the branch's work.
+    expect(validated.stdout).toContain("WORK_ITEM_TRACKING_OK 2 commit(s)");
+  });
+
+  it("would fail against a stale pre-merge base, which is why CI resolves the base-branch tip", () => {
+    const fixture = createFixture();
+    const { head } = setupMergeLane(fixture);
+    const staleBase = git(
+      fixture.root,
+      ["rev-parse", "refs/remotes/origin/main^"],
+      fixture.env
+    );
+
+    // Documents the trap the CI job's base resolution exists to avoid: from a
+    // base predating the merge-sync, the foreign commit is inside base..head,
+    // so the gate blocks this branch over someone else's already-closed item.
+    const validated = prRange(fixture, staleBase, head, {
+      FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE,
+    });
+    expect(validated.status).toBe(1);
+    expect(validated.stderr).toContain("acme/widgets#99 is closed");
   });
 });
