@@ -585,11 +585,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/install-pkgs.sh":
       "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "c5301958ed8ca29b0de7b8521d299cdbc8c1c402df8d8fada6b5f173b6cf5dbe",
+      "5acc70d65304d8ef01bf3837cbf0fdc77aae6d6e47c0fec824692fe7091da20b",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "b83c5043a0f29b2d8851258acfe6906aab7922cd80f486e25220e55f26a8c0a5",
+      "f740f600b255742a50f28e5c9d09427c5783c4084e84052dca46bc1f0c94a187",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
