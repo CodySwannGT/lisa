@@ -2,7 +2,10 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
+import {
+  LEARNINGS_CONTRACT,
+  PER_ENTRY_BYTE_ALLOWANCE,
+} from "../../../src/core/learnings-contract.js";
 import {
   DEFAULT_PROJECT_LEARNINGS_FILE,
   DEFAULT_PROJECT_RULES_FILE,
@@ -58,9 +61,20 @@ describe("learnings contract", () => {
       maxRuleLines: 2,
       maxProvenanceReferences: 20,
       maxEntries: 20,
-      maxTokens: 4000,
+      maxTokens: 12000,
       measurement: "utf8-bytes-upper-bound",
     });
+  });
+
+  it("derives the byte budget from the entry cap so the two caps can never diverge", () => {
+    // #1959: maxTokens is DERIVED (maxEntries * PER_ENTRY_BYTE_ALLOWANCE), never
+    // an independently hardcoded number that could re-contradict the entry cap.
+    // Pin both the concrete allowance and the derivation relationship: a future
+    // edit that re-hardcodes maxTokens (e.g. back to a flat 4000) breaks this.
+    expect(PER_ENTRY_BYTE_ALLOWANCE).toBe(600);
+    expect(LEARNINGS_CONTRACT.maxTokens).toBe(
+      LEARNINGS_CONTRACT.maxEntries * PER_ENTRY_BYTE_ALLOWANCE
+    );
   });
 
   it("publishes the contract for the future CI budget reader", async () => {
