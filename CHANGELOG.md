@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.296.0](https://github.com/CodySwannGT/lisa/compare/v2.295.6...v2.296.0) (2026-07-23)
+
+
+### Features
+
+* pass literal quoted-heredoc payloads through to the content guards ([0874737](https://github.com/CodySwannGT/lisa/commit/0874737cac166f1414d08fbd6d4d2a304fa07670)), closes [#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+
+
+### Bug Fixes
+
+* join unquoted-heredoc-body line continuations before the substitution scan ([#1958](https://github.com/CodySwannGT/lisa/issues/1958) R4) ([9aac14e](https://github.com/CodySwannGT/lisa/commit/9aac14ec12f99cac9a26592803d48ed5df3dda7e))
+* make the heredoc quote model aware of unquoted-body semantics ([#1958](https://github.com/CodySwannGT/lisa/issues/1958) R3) ([43aae6c](https://github.com/CodySwannGT/lisa/commit/43aae6c01fb9423008b422fb27137eeca4e3893b))
+* match heredoc comment/line predicates to bash's blank set ([#1958](https://github.com/CodySwannGT/lisa/issues/1958) R2) ([f8764da](https://github.com/CodySwannGT/lisa/commit/f8764da210de546fe2e74e6c172f4b2f4c0a5b98))
+* preserve heredoc RCE scans after rebase ([77d8ea7](https://github.com/CodySwannGT/lisa/commit/77d8ea7c60c2a05b42381be95cdd97ff81189368)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+* reject fake heredocs nested in open quotes (RCE regression) ([864340b](https://github.com/CodySwannGT/lisa/commit/864340bc712f9c8ef1e90544e3b75aa1b128392a)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+* teach the shared heredoc quote model ANSI-C $'...' quoting ([78ec60b](https://github.com/CodySwannGT/lisa/commit/78ec60b84b82acc8a09fd92d9f3ea531aabd1167)), closes [CodySwannGT/lisa#1958](https://github.com/CodySwannGT/lisa/issues/1958)
+
 ### [2.295.6](https://github.com/CodySwannGT/lisa/compare/v2.295.5...v2.295.6) (2026-07-23)
 
 
