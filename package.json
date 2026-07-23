@@ -115,7 +115,7 @@
     "brace-expansion": ">=5.0.6"
   },
   "name": "@codyswann/lisa",
-  "version": "2.297.6",
+  "version": "2.298.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

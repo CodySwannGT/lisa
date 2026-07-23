@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.298.0](https://github.com/CodySwannGT/lisa/compare/v2.297.6...v2.298.0) (2026-07-23)
+
+
+### Features
+
+* **ci:** add the server-side work-item traceability gate ([4b71cd5](https://github.com/CodySwannGT/lisa/commit/4b71cd543349b2048844a6dbf2992e23fce6c5f8)), closes [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [CodySwannGT/lisa#1978](https://github.com/CodySwannGT/lisa/issues/1978)
+
 ### [2.297.6](https://github.com/CodySwannGT/lisa/compare/v2.297.5...v2.297.6) (2026-07-23)
 
 
