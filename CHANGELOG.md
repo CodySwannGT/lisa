@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.297.4](https://github.com/CodySwannGT/lisa/compare/v2.297.3...v2.297.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* harden learnings ledger concurrent writes ([a267c69](https://github.com/CodySwannGT/lisa/commit/a267c693cdcb3e92f73d0cca950f2ff87f492bb0)), closes [CodySwannGT/lisa#1995](https://github.com/CodySwannGT/lisa/issues/1995)
+
+### [2.297.3](https://github.com/CodySwannGT/lisa/compare/v2.297.2...v2.297.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* **safety-net:** close command-substitution blind spot in the rm content guard ([03af88d](https://github.com/CodySwannGT/lisa/commit/03af88d7fdcc947593b420f26775456528d9f1a7)), closes [#1958](https://github.com/CodySwannGT/lisa/issues/1958) [CodySwannGT/lisa#1982](https://github.com/CodySwannGT/lisa/issues/1982)
+
+### [2.297.2](https://github.com/CodySwannGT/lisa/compare/v2.297.1...v2.297.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* **ci:** check Lisa's own learnings ledger against its in-tree contract ([6477cc3](https://github.com/CodySwannGT/lisa/commit/6477cc3a1f43d2cde20c214c4f88199af676dc1f)), closes [#2001](https://github.com/CodySwannGT/lisa/issues/2001) [#1959](https://github.com/CodySwannGT/lisa/issues/1959) [CodySwannGT/lisa#2005](https://github.com/CodySwannGT/lisa/issues/2005)
+
 ### [2.297.1](https://github.com/CodySwannGT/lisa/compare/v2.297.0...v2.297.1) (2026-07-23)
 
 
