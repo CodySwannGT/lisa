@@ -504,11 +504,16 @@ jobs:
 
       - name: Determine Version
         id: version
+        env:
+          RELEASE_CUSTOM_VERSION: ${{ inputs.custom_version }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          RELEASE_PRERELEASE: ${{ inputs.prerelease }}
+          RELEASE_STRATEGY: ${{ inputs.release_strategy }}
         run: |
           source ./release-logger.sh
 
           # Version determination logic (same as v3)
-          case "${{ inputs.release_strategy }}" in
+          case "$RELEASE_STRATEGY" in
             "standard-version")
               VERSION=$(npx standard-version --dry-run | grep "tagging release" | awk '{print $4}')
               ;;
@@ -526,12 +531,12 @@ jobs:
               ;;
             "calendar")
               VERSION=$(date +%Y.%m.%d)
-              if [ -n "${{ inputs.prerelease }}" ]; then
-                VERSION="${VERSION}-${{ inputs.prerelease }}.$(date +%H%M)"
+              if [ -n "$RELEASE_PRERELEASE" ]; then
+                VERSION="${VERSION}-${RELEASE_PRERELEASE}.$(date +%H%M)"
               fi
               ;;
             "custom")
-              VERSION="${{ inputs.custom_version }}"
+              VERSION="$RELEASE_CUSTOM_VERSION"
               if [ -z "$VERSION" ]; then
                 log_release_event "version_error" "failed" "Custom version not provided"
                 exit 1
@@ -557,27 +562,28 @@ jobs:
           # prerelease string. An explicit `prerelease` input still wins.
           # Only standard-version is scoped in here; semantic/calendar/custom
           # keep their prior behavior (below).
-          PRERELEASE_LABEL="${{ inputs.prerelease }}"
-          if [ -z "$PRERELEASE_LABEL" ] && [ "${{ inputs.release_strategy }}" == "standard-version" ]; then
-            case "${{ inputs.environment }}" in
+          PRERELEASE_LABEL="$RELEASE_PRERELEASE"
+          if [ -z "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" == "standard-version" ]; then
+            case "$RELEASE_ENVIRONMENT" in
               main|master|prod|production) PRERELEASE_LABEL="" ;;
-              *) PRERELEASE_LABEL="${{ inputs.environment }}" ;;
+              *) PRERELEASE_LABEL="$RELEASE_ENVIRONMENT" ;;
             esac
           fi
 
-          if [ -n "$PRERELEASE_LABEL" ] && [ "${{ inputs.release_strategy }}" != "calendar" ]; then
+          if [ -n "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" != "calendar" ]; then
             # Non-prod (or explicit prerelease): unique timestamped tag, clean
             # package.json version. The timestamp guarantees tag uniqueness, so
             # no collision guard is needed.
             TAG="v${VERSION}-${PRERELEASE_LABEL}.$(date +%s)"
             echo "prerelease=true" >> $GITHUB_OUTPUT
           else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
             # Prod (clean tag) / calendar: guard against cross-branch collisions
             # on the clean tag — fetch fresh tags (they are repo-global and a
             # sibling branch may have just created one) and bump patch until the
             # tag is free. Skipped for "custom" — an explicitly pinned version
             # must not be silently changed.
-            if [ "${{ inputs.release_strategy }}" != "custom" ]; then
+            if [ "$RELEASE_STRATEGY" != "custom" ]; then
               git fetch --tags --force origin >/dev/null 2>&1 || true
               while git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; do
                 echo "::warning::Tag v$VERSION already exists (released from another branch); bumping patch"
