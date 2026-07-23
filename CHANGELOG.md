@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.295.4](https://github.com/CodySwannGT/lisa/compare/v2.295.3...v2.295.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* **readiness:** include job-level secrets: mappings in credential text scan ([9f41099](https://github.com/CodySwannGT/lisa/commit/9f410992b0b1d6fee42683ba37f2154073548a33)), closes [#1990](https://github.com/CodySwannGT/lisa/issues/1990) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** scan reusable workflow credential mappings ([b64cc75](https://github.com/CodySwannGT/lisa/commit/b64cc75d5b1aa39a2a2d48291d6c792603028d04)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** scan reusable workflow credential mappings ([34bdc57](https://github.com/CodySwannGT/lisa/commit/34bdc5725a0d512ae296baa8376e0aeecc7058f3)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.295.3](https://github.com/CodySwannGT/lisa/compare/v2.295.2...v2.295.3) (2026-07-23)
 
 
