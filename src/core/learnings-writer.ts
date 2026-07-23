@@ -2,8 +2,13 @@
 import * as fse from "fs-extra";
 import * as path from "node:path";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
+import {
+  applySupersedeAliases,
+  findCallerMintedAliasError,
+} from "./learnings-alias.js";
 import { type LearningEntry } from "./learnings-contract.js";
 import {
+  LearningsBudgetError,
   assertDocumentBudget,
   parseLearningsFile,
   renderLearningsFile,
@@ -15,6 +20,7 @@ import {
   resolveSafeLearningTarget,
 } from "./learnings-file-safety.js";
 import { withLearningTargetLock } from "./learnings-lock.js";
+import { preserveDroppedLearning } from "./learnings-overflow.js";
 import {
   readProjectConfig,
   resolveProjectLearningsFile,
@@ -30,6 +36,12 @@ export interface ConsolidatedLearningOptions {
    * succeeds; this is a diagnostic, not a failure hook.
    */
   readonly onAbsentSupersede?: (ids: readonly string[]) => void;
+  /**
+   * Called when a `supersedes:` alias reference did not fit inside the entry's
+   * provenance cap and was dropped. A reference that is about to stop resolving
+   * must never disappear silently; the write still succeeds.
+   */
+  readonly onAliasesDropped?: (references: readonly string[]) => void;
 }
 
 /**
@@ -67,6 +79,10 @@ export async function persistConsolidatedLearning(
   options: ConsolidatedLearningOptions = {}
 ): Promise<string> {
   const entry = validateLearningEntry(candidate);
+  const mintedAlias = findCallerMintedAliasError(entry);
+  if (mintedAlias !== undefined) {
+    throw mintedAlias;
+  }
   const supersede = validateSupersedeIds(options.supersede);
   const config = await readProjectConfig(projectRoot);
   const relativeFile = resolveProjectLearningsFile(config);
@@ -75,30 +91,39 @@ export async function persistConsolidatedLearning(
   buildNextDocument([], entry, []);
   await assertSafeLearningParents(root, path.dirname(target));
   await fse.ensureDir(path.dirname(target));
-  return writeLearningEntriesWithLock(
-    root,
-    target,
-    entry,
-    supersede,
-    options.onAbsentSupersede
-  );
+  try {
+    return await writeLearningEntriesWithLock(
+      { root, target },
+      entry,
+      supersede,
+      options
+    );
+  } catch (error) {
+    if (!(error instanceof LearningsBudgetError)) {
+      throw error;
+    }
+    // The ledger lock is fully released by now — `withLearningTargetLock`
+    // releases in a `finally` — so the overflow lock below is taken with no
+    // other learnings lock held. The two are never nested.
+    return preserveDroppedLearning(projectRoot, entry, error);
+  }
 }
 
 /**
  * Perform the locked read-validate-write transaction for a learnings update.
- * @param root - Resolved project root
- * @param target - Absolute learnings file path
+ * @param location - Resolved project root and absolute learnings file path
+ * @param location.root - Resolved project root
+ * @param location.target - Absolute learnings file path
  * @param entry - New validated entry
  * @param supersede - Ids of existing entries the new entry replaces
- * @param onAbsentSupersede - Diagnostic sink for already-consolidated targets
+ * @param options - Caller diagnostics for absent targets and dropped aliases
  * @returns Absolute path to the persisted learnings file
  */
 function writeLearningEntriesWithLock(
-  root: string,
-  target: string,
+  { root, target }: { readonly root: string; readonly target: string },
   entry: LearningEntry,
   supersede: readonly string[],
-  onAbsentSupersede?: (ids: readonly string[]) => void
+  options: ConsolidatedLearningOptions
 ): Promise<string> {
   return withLearningTargetLock(target, async () => {
     await assertSafeLearningParents(root, path.dirname(target));
@@ -107,13 +132,49 @@ function writeLearningEntriesWithLock(
     const absent = supersede.filter(
       id => !entries.some(current => current.id === id)
     );
-    if (absent.length > 0) onAbsentSupersede?.(absent);
-    const rendered = buildNextDocument(entries, entry, supersede);
+    if (absent.length > 0) options.onAbsentSupersede?.(absent);
+    const aliased = aliasSupersededEntries(entries, entry, supersede, options);
+    const rendered = buildNextDocument(entries, aliased, supersede);
     await writeFileAtomically(target, rendered, {
       beforeRename: () => assertSafeLearningParents(root, path.dirname(target)),
     });
     return target;
   });
+}
+
+/**
+ * Record, in the new entry's provenance, which entries this write replaced.
+ *
+ * Only targets that are genuinely PRESENT contribute an alias. A supersede
+ * naming an already-consolidated id removed nothing, so claiming its reference
+ * would hijack a pointer the earlier writer legitimately owns — see
+ * `learnings-alias.ts` for why that distinction is what keeps the #1995
+ * losing-writer guarantee intact.
+ *
+ * The rewritten entry is pushed back through `validateLearningEntry` rather than
+ * spread-and-trusted, so the added references are held to the same schema as any
+ * caller-supplied one and the persisted object stays a frozen, exactly-seven-field
+ * entry.
+ * @param entries - Entries currently in the document
+ * @param entry - New validated entry as the caller composed it
+ * @param supersede - Validated supersede ids
+ * @param options - Caller diagnostics
+ * @returns The entry to persist, carrying its supersede aliases
+ */
+function aliasSupersededEntries(
+  entries: readonly LearningEntry[],
+  entry: LearningEntry,
+  supersede: readonly string[],
+  options: ConsolidatedLearningOptions
+): LearningEntry {
+  const superseded = new Set(supersede);
+  const removed = entries.filter(current => superseded.has(current.id));
+  if (removed.length === 0) {
+    return entry;
+  }
+  const aliased = applySupersedeAliases(entry, removed);
+  if (aliased.dropped.length > 0) options.onAliasesDropped?.(aliased.dropped);
+  return validateLearningEntry({ ...entry, provenance: aliased.provenance });
 }
 
 /** Outcome vocabulary for {@link confirmLearningEntry}. */

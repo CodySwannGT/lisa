@@ -89,6 +89,28 @@ export function parseLearningsFile(content: string): LearningEntry[] {
 }
 
 /**
+ * A document that does not fit the hard entry-count or token budget.
+ *
+ * Typed so the writer can tell "this capture has nowhere to go" apart from every
+ * other write failure. That distinction is load-bearing: a budget breach is the
+ * one failure whose dropped CONTENT is still worth preserving in the overflow
+ * file (CodySwannGT/lisa#1996), whereas an unsafe path or a corrupted document
+ * must fail outright rather than have content salvaged out of it. The messages
+ * are unchanged from the plain-`Error` era so existing diagnostics and their
+ * assertions still read the same.
+ */
+export class LearningsBudgetError extends Error {
+  /**
+   * Build a budget breach carrying the caller-facing diagnosis.
+   * @param message - Single-line budget diagnosis
+   */
+  constructor(message: string) {
+    super(message);
+    this.name = "LearningsBudgetError";
+  }
+}
+
+/**
  * Enforce the shared entry-count and model-agnostic token upper bounds.
  * @param content - Canonical document
  * @param entryCount - Number of entries in the document
@@ -100,13 +122,13 @@ export function assertDocumentBudget(
   context: string
 ): void {
   if (entryCount > LEARNINGS_CONTRACT.maxEntries) {
-    throw new Error(
+    throw new LearningsBudgetError(
       `${context} exceeds maxEntries: measured ${entryCount}, allowed ${LEARNINGS_CONTRACT.maxEntries}`
     );
   }
   const estimatedTokens = estimateLearningTokens(content);
   if (estimatedTokens > LEARNINGS_CONTRACT.maxTokens) {
-    throw new Error(
+    throw new LearningsBudgetError(
       `${context} exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens} (measured ${estimatedTokens})`
     );
   }
