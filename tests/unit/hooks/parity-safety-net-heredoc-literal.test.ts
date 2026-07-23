@@ -28,6 +28,27 @@ const WRITE_TOOL_REMEDIATION = "Write tool";
 // A `<<'EOF'` header line reused inside the multi-line quoted-string wrappers
 // that drive the Finding-1 fake-heredoc kill-shots (A2/A3/A4).
 const NESTED_QUOTED_HEREDOC_LINE = "cat <<'EOF'";
+// A bash ANSI-C `$'\''` token: `\'` is a C-escaped literal quote, so the string
+// closes at the SECOND quote leaving bash in the `plain` state — then the
+// trailing `"` opens a real double-quoted string that spans the following
+// heredoc-shaped lines, executing any `$(...)` inside them. A quote scanner
+// that does not model `$'...'` reads three bare quotes instead and desyncs into
+// a phantom single-quote, going blind to the live substitution (issue #1958
+// Finding R1). `\x27` / `\047` spellings stay balanced and already fail closed;
+// only this odd-`\'`-count spelling smuggles execution past the wall.
+const ANSIC_BREAKOUT_ASSIGN = "x=$'\\''\"";
+const ANSIC_BREAKOUT_ECHO = "echo $'\\''\"";
+const CLOSING_DQUOTE = '"';
+const NESTED_TOUCH_SUB = "$(touch heredoc-1958-fp-R1-sentinel)";
+// Obfuscated so no raw content guard matches — only the heredoc wall can stop
+// it, proving the classifier itself (not a downstream guard) closes the hole.
+const NESTED_OBFUSCATED_RM = "$(rm${IFS}-rf${IFS}/)";
+// A legitimate, balanced ANSI-C string (escaped quote, NO smuggled expansion,
+// no fake heredoc) in front of a real quoted heredoc. The fix must keep correct
+// token boundaries without over-blocking ordinary ANSI-C usage.
+const ANSIC_LEGIT_ESCAPED_QUOTE = "echo $'it\\'s'";
+// A single fully-quoted heredoc marker (`<<'EOF'`) with nothing word-like after.
+const QUOTED_HEREDOC_MARKER = "<<'EOF'";
 
 const runHook = (
   command: string
@@ -166,6 +187,71 @@ describe("fake-heredoc-in-open-quote does not smuggle a live substitution (issue
     const result = runHook(cmd);
     expect(result.status).toBe(EXIT_BLOCKED);
     expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+});
+
+describe("ANSI-C $'...' desync does not smuggle a live substitution (issue #1958 Finding R1)", () => {
+  // `x=$'\''"` closes a complete ANSI-C string (net quote state PLAIN to bash)
+  // then opens a real double quote that spans the following heredoc-shaped
+  // lines, so `$(...)` inside them EXECUTES. A scanner blind to `$'...'` reads a
+  // phantom open single-quote and goes blind to the substitution, classifying
+  // the command UNSUPPORTED → the hook ALLOWS it (proven RCE: sentinel created
+  // under real bash). The shared quote model must consume the ANSI-C token so
+  // the wall sees the live `$(...)` and BLOCKS every form.
+
+  it("blocks a $(touch) smuggled via an ANSI-C assignment breakout (R1 assign)", () => {
+    const cmd = [
+      ANSIC_BREAKOUT_ASSIGN,
+      NESTED_QUOTED_HEREDOC_LINE,
+      NESTED_TOUCH_SUB,
+      HEREDOC_TERMINATOR,
+      CLOSING_DQUOTE,
+    ].join("\n");
+
+    const result = runHook(cmd);
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("blocks a $(touch) smuggled via an ANSI-C echo breakout, no assignment (R1 echo)", () => {
+    const cmd = [
+      ANSIC_BREAKOUT_ECHO,
+      NESTED_QUOTED_HEREDOC_LINE,
+      NESTED_TOUCH_SUB,
+      HEREDOC_TERMINATOR,
+      CLOSING_DQUOTE,
+    ].join("\n");
+
+    const result = runHook(cmd);
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("blocks an obfuscated destructive $(rm) at the substitution position (R1 rm)", () => {
+    const cmd = [
+      ANSIC_BREAKOUT_ASSIGN,
+      NESTED_QUOTED_HEREDOC_LINE,
+      NESTED_OBFUSCATED_RM,
+      HEREDOC_TERMINATOR,
+      CLOSING_DQUOTE,
+    ].join("\n");
+
+    const result = runHook(cmd);
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(HEREDOC_WALL_REASON);
+  });
+
+  it("still allows a balanced ANSI-C string in front of a real quoted heredoc (R1 positive control)", () => {
+    // Same `\'` spelling, but no breakout `"` and no smuggled substitution: an
+    // ordinary heredoc whose body is inert literal data. Correct token
+    // boundaries must NOT turn ordinary ANSI-C usage into a false block.
+    const cmd = [
+      `${ANSIC_LEGIT_ESCAPED_QUOTE} ${QUOTED_HEREDOC_MARKER}`,
+      "hello world",
+      HEREDOC_TERMINATOR,
+    ].join("\n");
+
+    expect(runHook(cmd).status).toBe(EXIT_ALLOWED);
   });
 });
 

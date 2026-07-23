@@ -35,6 +35,45 @@ class Marker:
     quoted: bool
 
 
+def ansi_c_quote_end(text: str, dollar_index: int) -> int | None:
+    """Index one past a bash ANSI-C ``$'...'`` token, or ``None``.
+
+    When an *unquoted* ``$`` is immediately followed by ``'`` bash opens an
+    ANSI-C-quoted string that ends at the first *unescaped* ``'``: a backslash
+    escapes the next single character, so ``\\'`` is a literal quote (does NOT
+    close the string) and ``\\\\`` is a literal backslash. Only literal
+    single quotes act as delimiters — value-only escapes like ``\\x27`` /
+    ``\\047`` / ``\\uHHHH`` decode to a quote *character* but never terminate
+    the token, so scanning for the first unescaped ``'`` yields exactly bash's
+    token boundary for every spelling.
+
+    A naive single-quote scanner that ignores ``$'...'`` desyncs from bash on an
+    odd number of ``\\'`` escapes: it reads three bare quotes as
+    single→plain→single and ends in a phantom open single-quote, going blind to
+    everything after it — including a live ``$(...)`` the following ``"`` really
+    exposes (issue #1958 Finding R1). Consuming the whole inert token here keeps
+    every shared walker in lockstep with bash.
+
+    Returns the index just past the closing quote, or ``None`` for a
+    non-``$'`` position or an unterminated token so callers fail closed. This is
+    the single shared home of ANSI-C token boundaries; every quote-state walker
+    consults it rather than re-deriving the rule.
+    """
+    if not text.startswith("$'", dollar_index):
+        return None
+    index = dollar_index + 2
+    length = len(text)
+    while index < length:
+        char = text[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == "'":
+            return index + 1
+        index += 1
+    return None
+
+
 def shell_tokens(prefix: str) -> list[str] | None:
     """Return literal simple-command tokens, rejecting executable shell syntax."""
     state = "plain"
@@ -57,6 +96,12 @@ def shell_tokens(prefix: str) -> list[str] | None:
                 and index + 1 < len(prefix)
                 and prefix[index + 1] in "([{"):
                 return None
+        elif prefix.startswith("$'", index):
+            end = ansi_c_quote_end(prefix, index)
+            if end is None:
+                return None
+            index = end
+            continue
         elif char == "'":
             state = "single"
         elif char == '"':
@@ -181,6 +226,12 @@ def top_level_markers(command: str) -> list[Marker]:
                     state = "plain"
                 elif char == "\\":
                     escaped = True
+            elif line.startswith("$'", index):
+                end = ansi_c_quote_end(line, index)
+                if end is None:
+                    break
+                index = end
+                continue
             elif char == "'":
                 state = "single"
             elif char == '"':
@@ -220,6 +271,15 @@ def unquoted_code_and_comment(line: str) -> tuple[str, str]:
                 state = "plain"
             elif char == "\\":
                 escaped = True
+        elif line.startswith("$'", index):
+            end = ansi_c_quote_end(line, index)
+            if end is None:
+                code.append(" ")
+                index += 1
+                continue
+            code.append(" " * (end - index))
+            index = end
+            continue
         elif char == "'":
             code.append(" ")
             state = "single"
@@ -258,6 +318,18 @@ def collapse_line_continuations(command: str) -> str:
         elif char == "\\":
             result.append(char)
             escaped = True
+        elif state == "plain" and command.startswith("$'", index):
+            end = ansi_c_quote_end(command, index)
+            if end is None:
+                result.append(char)
+            else:
+                # Preserve the whole inert ANSI-C token verbatim so its bytes
+                # stay a single quoted unit to every downstream walker; a
+                # backslash-newline inside it is part of the token, not a line
+                # continuation to strip.
+                result.append(command[index:end])
+                index = end
+                continue
         elif char == "'" and state == "plain":
             result.append(char)
             state = "single"
@@ -317,6 +389,12 @@ def has_active_command_substitution(command: str) -> bool:
                 escaped = True
             elif char == "`" or command.startswith("$(", index):
                 return True
+        elif command.startswith("$'", index):
+            end = ansi_c_quote_end(command, index)
+            if end is None:
+                return True
+            index = end
+            continue
         elif char == "'":
             state = "single"
         elif char == '"':
@@ -403,6 +481,15 @@ def cross_line_quote_state(command: str, offset: int) -> str:
                 state = "plain"
             elif char == "\\":
                 escaped = True
+        elif command.startswith("$'", index):
+            end = ansi_c_quote_end(command, index)
+            if end is None or end > limit:
+                # The offset sits inside (or an unterminated) ANSI-C token: bash
+                # is not at plain top level there, so any heredoc-shaped marker
+                # is inert. Report a non-plain state so the strip gate refuses.
+                return "single"
+            index = end
+            continue
         elif char == "'":
             state = "single"
         elif char == '"':
