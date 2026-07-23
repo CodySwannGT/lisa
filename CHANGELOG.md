@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.295.5](https://github.com/CodySwannGT/lisa/compare/v2.295.4...v2.295.5) (2026-07-23)
+
+
+### Bug Fixes
+
+* catch durable-trigger guardrail bypass ([0f81cfd](https://github.com/CodySwannGT/lisa/commit/0f81cfd9aa3723dfe928ef043ecd365d0013c050)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.295.4](https://github.com/CodySwannGT/lisa/compare/v2.295.3...v2.295.4) (2026-07-23)
 
 
