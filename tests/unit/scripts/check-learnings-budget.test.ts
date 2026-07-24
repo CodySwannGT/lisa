@@ -65,7 +65,7 @@ describe("check:learnings-budget", () => {
       ])
     );
 
-    const result = runCheck(fixture);
+    const result = runCheckerDirect(fixture);
 
     expect(result.status).not.toBe(0);
     expect(result.output).toContain(fixture);
@@ -84,7 +84,7 @@ describe("check:learnings-budget", () => {
       renderLearningsFile([createEntry(id, { rule })])
     );
 
-    const result = runCheck(fixture);
+    const result = runCheckerDirect(fixture);
 
     expect(result.status).not.toBe(0);
     expect(result.output).toContain(fixture);
