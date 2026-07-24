@@ -99,6 +99,28 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
     }
   });
 
+  it("does not stand B1 when the step's own `env:` resolves the target to an ephemeral one", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      RUN_SCHEMA_RESET,
+      "        env:",
+      "          DATABASE_URL: postgres://postgres@127.0.0.1:5432/app",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(SKIP);
+    for (const finding of asFindings(record.findings)) {
+      expect(Object.hasOwn(finding, "blocker")).toBe(false);
+    }
+  });
+
   it("does not stand B1 when the job runs against its own `services:` container", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, CLEANUP_YML, [

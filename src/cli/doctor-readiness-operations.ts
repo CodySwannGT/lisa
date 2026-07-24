@@ -243,7 +243,8 @@ export function commandTargetsOwnedService(
  */
 export type CommandPredicate = (
   command: string,
-  job: ParsedWorkflowJob
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
 ) => boolean;
 
 /** One classified match, before the buckets are assembled. */
@@ -342,7 +343,7 @@ function classifyJob(
   options: ScanOptions
 ): readonly ScanOutcome[] {
   const hits = job.steps.filter(
-    step => step.run !== "" && matches(step.run.toLowerCase(), job)
+    step => step.run !== "" && matches(step.run.toLowerCase(), job, step)
   );
   if (hits.length === 0) {
     return [];

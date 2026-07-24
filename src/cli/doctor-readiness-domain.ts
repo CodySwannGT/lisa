@@ -96,12 +96,17 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
  * question outright.
  * @param command - The lower-cased `run` command
  * @param job - The job the command runs in
+ * @param step - The step the command runs in
  * @returns True when the command is an unambiguous data-destroying operation
  */
-function destroysData(command: string, job: ParsedWorkflowJob): boolean {
+function destroysData(
+  command: string,
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
   return (
     IRREVERSIBLE_DATA_OPS.some(pattern => pattern.test(command)) &&
-    !looksEphemeral(`${command}\n${job.env}`)
+    !looksEphemeral(`${command}\n${step.env}\n${job.env}`)
   );
 }
 
