@@ -95,7 +95,7 @@ const MIGRATION_COMMANDS: readonly RegExp[] = [
  * the two alike is the false positive that would discredit this whole check.
  */
 const PRODUCTION_MARKERS: readonly RegExp[] = [
-  /\b(rails_env|node_env|app_env|django_settings_module|environment)=[^\s]*prod/,
+  /\b(rails_env|node_env|app_env|django_settings_module|environment)\s*[:=]\s*[^\s]*prod/,
   /--env(ironment)?[= ]prod/,
   /\bprod(uction)?\.tfvars\b/,
 ];
@@ -110,16 +110,22 @@ const PRODUCTION_MARKERS: readonly RegExp[] = [
  * is read alongside the command, since the stage name usually lives there.
  * @param command - The lower-cased `run` command
  * @param job - The job the command runs in
+ * @param step - The step the command runs in
  * @returns True when the command is consequential on its face
  */
-function isConsequential(command: string, job: ParsedWorkflowJob): boolean {
-  if (looksEphemeral(`${command}\n${job.env}`)) {
+function isConsequential(
+  command: string,
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
+  const targetEvidence = `${command}\n${step.env}\n${job.env}`.toLowerCase();
+  if (looksEphemeral(targetEvidence)) {
     return false;
   }
   return (
     CONSEQUENTIAL_OPS.some(pattern => pattern.test(command)) ||
     (MIGRATION_COMMANDS.some(pattern => pattern.test(command)) &&
-      PRODUCTION_MARKERS.some(pattern => pattern.test(command)))
+      PRODUCTION_MARKERS.some(pattern => pattern.test(targetEvidence)))
   );
 }
 
