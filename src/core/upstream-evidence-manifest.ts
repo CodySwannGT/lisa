@@ -7951,6 +7951,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
+    "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
