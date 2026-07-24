@@ -147,7 +147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/workflows/ci.yml":
-      "ba73a3d8c9195b6823525a396aef50809bbb3cab5cbdd24ce9ccf6e5efaf3d35",
+      "3ade267cca43e33c68e56b8c4f5d821ed03f642e5a11aa8b70b79e76ec41b96f",
     "expo/create-only/.github/workflows/deploy.yml":
       "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "1cbe153a37e61cef21b0af8d7b2d41e6b59adbf8a4c289475439852896a531fc",
+      "8db7de7f2e3eb2a1605539849a346b55281cfcd9951526f9d5a1757a210da3c6",
     "nestjs/create-only/.github/workflows/deploy.yml":
       "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
     "nestjs/create-only/.zap/baseline.conf":
