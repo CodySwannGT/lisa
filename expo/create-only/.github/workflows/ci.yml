@@ -34,7 +34,7 @@ jobs:
     with:
       node_version: '22.21.1'
       package_manager: 'bun'
-      skip_jobs: 'test,test:integration,test:e2e'
+      skip_jobs: 'test:e2e,zap_baseline,playwright_e2e'
       # Forward SE-4551 / SE-4552 inputs. `|| fromJSON('...')` falls back to
       # the unchanged defaults when the workflow is triggered by pull_request
       # (which doesn't supply workflow_dispatch inputs), keeping behavior

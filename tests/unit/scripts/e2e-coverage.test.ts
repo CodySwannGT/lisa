@@ -338,7 +338,9 @@ describe("check-e2e-coverage", () => {
       const workflow = read(".github/workflows/quality.yml");
       expect(workflow).toContain("e2e_coverage:");
       expect(workflow).toContain("check-e2e-coverage.mjs");
-      expect(workflow).toContain("!contains(inputs.skip_jobs, 'e2e_coverage')");
+      expect(workflow).toContain(
+        "!contains(format(',{0},', inputs.skip_jobs), ',e2e_coverage,')"
+      );
     });
 
     it("registers the thresholds artifact in the sync registry", () => {
