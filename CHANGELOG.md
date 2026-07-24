@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.299.4](https://github.com/CodySwannGT/lisa/compare/v2.299.3...v2.299.4) (2026-07-24)
+
+
+### Bug Fixes
+
+* **readiness:** scope B4 service deferrals ([83e9ab5](https://github.com/CodySwannGT/lisa/commit/83e9ab513eaacfc921e905ceacea7bab163a6769)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** tighten services target evidence ([bc76ffd](https://github.com/CodySwannGT/lisa/commit/bc76ffd4f56885e07c85fe3bc160c33bdd26cc26)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.299.3](https://github.com/CodySwannGT/lisa/compare/v2.299.2...v2.299.3) (2026-07-23)
 
 
