@@ -110,13 +110,91 @@ const LOCAL_SERVICE_TARGETS: readonly RegExp[] = [
   /\b127\.0\.0\.1\b/,
 ];
 
+/** Keys whose values are allowed to establish host-level service evidence. */
+const SERVICE_HOST_KEYS = new Set([
+  "addr",
+  "address",
+  "database_url",
+  "db_url",
+  "endpoint",
+  "host",
+  "hostname",
+  "jdbc_url",
+  "redis_url",
+  "url",
+]);
+
+/** Hostname separators accepted inside URLs and connection strings. */
+const HOST_BOUNDARY_CHARS = new Set([
+  "",
+  ":",
+  "/",
+  "?",
+  "#",
+  "&",
+  ")",
+  "'",
+  '"',
+]);
+
+/** Hostname prefixes accepted inside URLs and connection strings. */
+const HOST_PREFIX_CHARS = new Set(["/", "@"]);
+
 /**
- * Escape a literal string for use inside a regular expression.
- * @param value - Literal value to escape
- * @returns Regex-safe literal
+ * Whether the value has a URL or user-info host reference to a service.
+ * @param value - Lower-cased command or environment text
+ * @param service - Lower-cased service id
+ * @param offset - Current search offset, used by the recursive scan
+ * @returns True when the service appears in URL/user-host position
  */
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function hasConnectionHost(
+  value: string,
+  service: string,
+  offset = value.indexOf(service)
+): boolean {
+  if (offset === -1) {
+    return false;
+  }
+  const previous = value[offset - 1] ?? "";
+  const next = value[offset + service.length] ?? "";
+  return (
+    (HOST_PREFIX_CHARS.has(previous) && HOST_BOUNDARY_CHARS.has(next)) ||
+    hasConnectionHost(
+      value,
+      service,
+      value.indexOf(service, offset + service.length)
+    )
+  );
+}
+
+/**
+ * Whether a line such as `HOST=postgres` or `DATABASE_URL: postgres://...`
+ * provides host-target evidence.
+ * @param line - Lower-cased serialized command/env line
+ * @param service - Lower-cased service id
+ * @returns True when the line has a host-like key and service host value
+ */
+function lineNamesServiceHost(line: string, service: string): boolean {
+  const trimmed = line.trim();
+  const colonIndex = trimmed.indexOf(":");
+  const equalsIndex = trimmed.indexOf("=");
+  const separatorIndexes = [colonIndex, equalsIndex].filter(
+    index => index !== -1
+  );
+  const separatorIndex = Math.min(...separatorIndexes);
+  if (!Number.isFinite(separatorIndex)) {
+    return false;
+  }
+  const rawKey = trimmed.slice(0, separatorIndex).trim();
+  const rawValue = trimmed.slice(separatorIndex + 1).trim();
+  const key = rawKey.replace(/[^a-z0-9]+/gu, "_");
+  const value = rawValue.trim();
+  return (
+    SERVICE_HOST_KEYS.has(key) &&
+    (value === service ||
+      value.startsWith(`${service}:`) ||
+      hasConnectionHost(value, service))
+  );
 }
 
 /**
@@ -126,9 +204,11 @@ function escapeRegExp(value: string): string {
  * @returns True when the service appears as its own host/token
  */
 function namesServiceHost(command: string, service: string): boolean {
-  return new RegExp(
-    `(^|[\\s:/@="'(,])${escapeRegExp(service)}($|[\\s:/;),'"?])`
-  ).test(command);
+  const lines = command.split(/\r?\n/u);
+  return lines.some(
+    line =>
+      hasConnectionHost(line, service) || lineNamesServiceHost(line, service)
+  );
 }
 
 /**
@@ -146,7 +226,7 @@ export function commandTargetsOwnedService(
   if (job.services.length === 0) {
     return false;
   }
-  const command = `${step.run}\n${job.env}`.toLowerCase();
+  const command = `${step.run}\n${step.env}\n${job.env}`.toLowerCase();
   return (
     LOCAL_SERVICE_TARGETS.some(pattern => pattern.test(command)) ||
     job.services.some(service =>

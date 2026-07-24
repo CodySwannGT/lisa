@@ -47,6 +47,13 @@ const RUN_TERRAFORM_APPLY = "      - run: terraform apply -auto-approve";
 const RUN_TERRAFORM_DESTROY =
   "      - run: terraform destroy -auto-approve -var-file=prod.tfvars";
 
+/** A local Postgres service declaration reused across service-target fixtures. */
+const POSTGRES_SERVICE = [
+  "    services:",
+  "      postgres:",
+  "        image: postgres:16",
+];
+
 /**
  * Every finding in a record, asserted to name no blocker.
  * @param findings - The record's raw findings
@@ -189,9 +196,7 @@ describe("assessFeedbackGuardrailsDimension — ephemeral environments stay clea
       JOBS,
       INFRA_JOB,
       RUNS_ON,
-      "    services:",
-      "      postgres:",
-      "        image: postgres:16",
+      ...POSTGRES_SERVICE,
       "    env:",
       "      DATABASE_URL: postgres://postgres@postgres:5432/app",
       STEPS,
@@ -237,6 +242,60 @@ describe("assessFeedbackGuardrailsDimension — ephemeral environments stay clea
         String(finding.observation).includes("services:")
       )
     ).toBe(false);
+  });
+
+  it("stands B4 when a service name only appears as a generic terraform variable value", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      ...POSTGRES_SERVICE,
+      STEPS,
+      "      - run: terraform destroy -auto-approve -var database=postgres",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.observation).includes("services:")
+      )
+    ).toBe(false);
+  });
+
+  it("does not stand B4 when a step `env:` URL targets the job's own service", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      ...POSTGRES_SERVICE,
+      STEPS,
+      "      - run: RAILS_ENV=production bundle exec rails db:migrate",
+      "        env:",
+      "          DATABASE_URL: postgres://postgres@postgres:5432/app",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(SKIP);
+    expectNoBlocker(record.findings);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.observation).includes("services:")
+      )
+    ).toBe(true);
   });
 
   it("does not stand B4 for an integration job applying test tfvars", async () => {
