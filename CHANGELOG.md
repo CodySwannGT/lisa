@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.5](https://github.com/CodySwannGT/lisa/compare/v2.300.4...v2.300.5) (2026-07-24)
+
+
+### Bug Fixes
+
+* **readiness:** bound production env markers ([816ea23](https://github.com/CodySwannGT/lisa/commit/816ea23ab95387b239d36514c8464dfe09babc33)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** inspect step env for destructive workflows ([ffbc8be](https://github.com/CodySwannGT/lisa/commit/ffbc8be3221fc275cf476468f61dcb9017fa0cc4)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.4](https://github.com/CodySwannGT/lisa/compare/v2.300.3...v2.300.4) (2026-07-24)
 
 
