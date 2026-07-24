@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.6](https://github.com/CodySwannGT/lisa/compare/v2.300.5...v2.300.6) (2026-07-24)
+
+
+### Bug Fixes
+
+* patch brace expansion release gate ([e73de90](https://github.com/CodySwannGT/lisa/commit/e73de905dafb9e5e5fe7cf3b61daab704874bf6e)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** flag poisoned pull_request_target pipelines ([43ccb54](https://github.com/CodySwannGT/lisa/commit/43ccb5420f5e711a0ea95972740479d9a498ed3a)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.5](https://github.com/CodySwannGT/lisa/compare/v2.300.4...v2.300.5) (2026-07-24)
 
 
