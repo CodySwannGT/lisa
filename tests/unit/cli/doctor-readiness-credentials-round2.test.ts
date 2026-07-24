@@ -109,8 +109,8 @@ describe("assessDeliveryAuthorityDimension — B3 round-2 credentials", () => {
       ON_PUSH,
       JOBS,
       "  ship:",
-      "    permissions:",
-      "      contents: read",
+      PERMISSIONS,
+      CONTENTS_READ,
       "      id-token: write",
       STEPS,
       "      - uses: aws-actions/configure-aws-credentials@v4",
@@ -177,5 +177,56 @@ describe("assessDeliveryAuthorityDimension — B3 round-2 credentials", () => {
     );
     expect(finding?.evidence).toContain("NPM_TOKEN");
     expect(finding?.evidence).toContain("job `publish`");
+  });
+
+  it("FAILs with B3 on pull_request_target executing PR-head code with write authority", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      "on: [pull_request_target]",
+      JOBS,
+      "  privileged:",
+      PERMISSIONS,
+      "      contents: write",
+      STEPS,
+      "      - uses: actions/checkout@v4",
+      "        with:",
+      "          ref: ${{ github.event.pull_request.head.sha }}",
+      "      - run: npm test",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate =>
+        candidate.blocker === "B3" &&
+        String(candidate.evidence).includes("CICD-SEC-4")
+    );
+    expect(finding?.evidence).toContain("pull_request_target");
+    expect(finding?.evidence).toContain("github.event.pull_request.head");
+  });
+
+  it("does not stand poisoned-pipeline B3 when pull_request_target only checks out trusted base code", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      "on: [pull_request_target]",
+      JOBS,
+      "  label:",
+      PERMISSIONS,
+      CONTENTS_READ,
+      "      pull-requests: write",
+      STEPS,
+      "      - uses: actions/checkout@v4",
+      "      - run: npm test",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    const poisonedFinding = asFindings(record.findings).find(finding =>
+      String(finding.evidence).includes("CICD-SEC-4")
+    );
+    expect(poisonedFinding).toBeUndefined();
   });
 });
