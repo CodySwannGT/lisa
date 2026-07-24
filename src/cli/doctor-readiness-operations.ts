@@ -104,6 +104,137 @@ export function looksEphemeral(text: string): boolean {
   return EPHEMERAL_TARGETS.some(pattern => pattern.test(normalized));
 }
 
+/** Local endpoints that corroborate a command targets job-owned CI state. */
+const LOCAL_SERVICE_TARGETS: readonly RegExp[] = [
+  /\blocalhost\b/,
+  /\b127\.0\.0\.1\b/,
+];
+
+/** Keys whose values are allowed to establish host-level service evidence. */
+const SERVICE_HOST_KEYS = new Set([
+  "addr",
+  "address",
+  "database_url",
+  "db_url",
+  "endpoint",
+  "host",
+  "hostname",
+  "jdbc_url",
+  "redis_url",
+  "url",
+]);
+
+/** Hostname separators accepted inside URLs and connection strings. */
+const HOST_BOUNDARY_CHARS = new Set([
+  "",
+  ":",
+  "/",
+  "?",
+  "#",
+  "&",
+  ")",
+  "'",
+  '"',
+]);
+
+/** Hostname prefixes accepted inside URLs and connection strings. */
+const HOST_PREFIX_CHARS = new Set(["/", "@"]);
+
+/**
+ * Whether the value has a URL or user-info host reference to a service.
+ * @param value - Lower-cased command or environment text
+ * @param service - Lower-cased service id
+ * @param offset - Current search offset, used by the recursive scan
+ * @returns True when the service appears in URL/user-host position
+ */
+function hasConnectionHost(
+  value: string,
+  service: string,
+  offset = value.indexOf(service)
+): boolean {
+  if (offset === -1) {
+    return false;
+  }
+  const previous = value[offset - 1] ?? "";
+  const next = value[offset + service.length] ?? "";
+  return (
+    (HOST_PREFIX_CHARS.has(previous) && HOST_BOUNDARY_CHARS.has(next)) ||
+    hasConnectionHost(
+      value,
+      service,
+      value.indexOf(service, offset + service.length)
+    )
+  );
+}
+
+/**
+ * Whether a line such as `HOST=postgres` or `DATABASE_URL: postgres://...`
+ * provides host-target evidence.
+ * @param line - Lower-cased serialized command/env line
+ * @param service - Lower-cased service id
+ * @returns True when the line has a host-like key and service host value
+ */
+function lineNamesServiceHost(line: string, service: string): boolean {
+  const trimmed = line.trim();
+  const colonIndex = trimmed.indexOf(":");
+  const equalsIndex = trimmed.indexOf("=");
+  const separatorIndexes = [colonIndex, equalsIndex].filter(
+    index => index !== -1
+  );
+  const separatorIndex = Math.min(...separatorIndexes);
+  if (!Number.isFinite(separatorIndex)) {
+    return false;
+  }
+  const rawKey = trimmed.slice(0, separatorIndex).trim();
+  const rawValue = trimmed.slice(separatorIndex + 1).trim();
+  const key = rawKey.replace(/[^a-z0-9]+/gu, "_");
+  const value = rawValue.trim();
+  return (
+    SERVICE_HOST_KEYS.has(key) &&
+    (value === service ||
+      value.startsWith(`${service}:`) ||
+      hasConnectionHost(value, service))
+  );
+}
+
+/**
+ * Whether a command/env blob names the concrete service hostname.
+ * @param command - Lower-cased command and environment text
+ * @param service - Lower-cased service id
+ * @returns True when the service appears as its own host/token
+ */
+function namesServiceHost(command: string, service: string): boolean {
+  const lines = command.split(/\r?\n/u);
+  return lines.some(
+    line =>
+      hasConnectionHost(line, service) || lineNamesServiceHost(line, service)
+  );
+}
+
+/**
+ * Whether the command plausibly targets one of the job's own `services:`
+ * containers. A service only defers the step it can explain; an unrelated
+ * container in the same job must not hide a durable target.
+ * @param job - The job to consider
+ * @param step - The step being classified
+ * @returns True when the command plausibly points at a job-local service
+ */
+export function commandTargetsOwnedService(
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
+  if (job.services.length === 0) {
+    return false;
+  }
+  const command = `${step.run}\n${step.env}\n${job.env}`.toLowerCase();
+  return (
+    LOCAL_SERVICE_TARGETS.some(pattern => pattern.test(command)) ||
+    job.services.some(service =>
+      namesServiceHost(command, service.toLowerCase())
+    )
+  );
+}
+
 /**
  * Whether one command is the kind of operation a producer is looking for. The
  * job travels with the command because the evidence that settles the question
