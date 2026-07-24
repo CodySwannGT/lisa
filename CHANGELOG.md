@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.299.5](https://github.com/CodySwannGT/lisa/compare/v2.299.4...v2.299.5) (2026-07-24)
+
+
+### Documentation
+
+* **implement:** require observing a new regression spec green before shipping ([32ddcae](https://github.com/CodySwannGT/lisa/commit/32ddcaefcf7137152994034e9cd8d091529d5c0a)), closes [CodySwannGT/lisa#2022](https://github.com/CodySwannGT/lisa/issues/2022)
+
 ### [2.299.4](https://github.com/CodySwannGT/lisa/compare/v2.299.3...v2.299.4) (2026-07-24)
 
 
