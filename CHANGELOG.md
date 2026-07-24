@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.3](https://github.com/CodySwannGT/lisa/compare/v2.300.2...v2.300.3) (2026-07-24)
+
+
+### Bug Fixes
+
+* **ci:** address skip_jobs review coverage ([abd879c](https://github.com/CodySwannGT/lisa/commit/abd879cc90c12dc46ff5adac2edf24aff02e08af)), closes [CodySwannGT/lisa#2028](https://github.com/CodySwannGT/lisa/issues/2028)
+* **ci:** match skipped quality jobs by token ([1ced328](https://github.com/CodySwannGT/lisa/commit/1ced328b7b688e58f48d13004401b2846e4f965a)), closes [CodySwannGT/lisa#2028](https://github.com/CodySwannGT/lisa/issues/2028) [CodySwannGT/lisa#2028](https://github.com/CodySwannGT/lisa/issues/2028)
+* **ci:** raise postcss audit floor ([49f30fe](https://github.com/CodySwannGT/lisa/commit/49f30fe37bac5134e789b1d5e24b06b2fe795c9c)), closes [CodySwannGT/lisa#2028](https://github.com/CodySwannGT/lisa/issues/2028) [CodySwannGT/lisa#2028](https://github.com/CodySwannGT/lisa/issues/2028)
+
 ### [2.300.2](https://github.com/CodySwannGT/lisa/compare/v2.300.1...v2.300.2) (2026-07-24)
 
 
