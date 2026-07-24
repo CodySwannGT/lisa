@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.300.0](https://github.com/CodySwannGT/lisa/compare/v2.299.5...v2.300.0) (2026-07-24)
+
+
+### Features
+
+* **ui:** add factory, signals, credentials and environments console pages ([daea2f8](https://github.com/CodySwannGT/lisa/commit/daea2f878f6b97c2578fc3e9d30f9ce764f727ce)), closes [CodySwannGT/lisa#2025](https://github.com/CodySwannGT/lisa/issues/2025)
+
 ### [2.299.5](https://github.com/CodySwannGT/lisa/compare/v2.299.4...v2.299.5) (2026-07-24)
 
 
