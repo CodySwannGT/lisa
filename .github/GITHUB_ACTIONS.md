@@ -107,7 +107,9 @@ Comprehensive quality validation with 20+ configurable jobs. Called by other wor
 ```
 lint, typecheck, test, test:unit, test:integration, test:e2e,
 maestro_e2e, playwright_e2e, format, build, npm_security_scan,
-sonarcloud, snyk, secret_scanning, license_compliance
+sonarcloud, snyk, secret_scanning, license_compliance, zap_baseline,
+e2e_coverage, test:mutation, learnings_budget, threshold_ratchet,
+dead_code, sg_scan
 ```
 
 `skip_jobs` entries are exact comma-delimited job ids. For example,

@@ -12,8 +12,10 @@ const GITHUB_WORKFLOWS_PARTS = [".github", "workflows"] as const;
 const CREATE_ONLY_DIR = "create-only";
 const WORKFLOWS_DIR = path.join(REPO_ROOT, ...GITHUB_WORKFLOWS_PARTS);
 const DEPLOY_WORKFLOW_FILE = "deploy.yml";
-const QUALITY_YML = path.join(WORKFLOWS_DIR, "quality.yml");
-const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, "quality-rails.yml");
+const QUALITY_WORKFLOW_FILE = "quality.yml";
+const QUALITY_RAILS_WORKFLOW_FILE = "quality-rails.yml";
+const QUALITY_YML = path.join(WORKFLOWS_DIR, QUALITY_WORKFLOW_FILE);
+const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, QUALITY_RAILS_WORKFLOW_FILE);
 const RELEASE_YML = path.join(WORKFLOWS_DIR, "release.yml");
 const DEPLOY_YML = path.join(WORKFLOWS_DIR, DEPLOY_WORKFLOW_FILE);
 const NESTJS_DEPLOY_YML = path.join(
@@ -86,6 +88,7 @@ interface WorkflowJob {
   permissions?: Record<string, unknown>;
   strategy?: { matrix?: Record<string, unknown>; "fail-fast"?: boolean };
   steps?: WorkflowStep[];
+  with?: Record<string, unknown>;
 }
 
 /** Root shape of the parsed `quality.yml` reusable workflow. */
@@ -137,6 +140,7 @@ function needsList(job: WorkflowJob | undefined): string[] {
 
 describe("quality.yml reusable workflow", () => {
   let workflow: QualityWorkflow;
+  let railsWorkflow: QualityWorkflow;
   let qualityRaw: string;
   let qualityRailsRaw: string;
 
@@ -144,22 +148,31 @@ describe("quality.yml reusable workflow", () => {
     qualityRaw = fs.readFileSync(QUALITY_YML, "utf8");
     qualityRailsRaw = fs.readFileSync(QUALITY_RAILS_YML, "utf8");
     workflow = yaml.load(qualityRaw) as QualityWorkflow;
+    railsWorkflow = yaml.load(qualityRailsRaw) as QualityWorkflow;
   });
 
   describe("skip_jobs token matching", () => {
+    // Test hardened to kill mutant M001 (Risk Factor: CI gate correctness / exact skip token matching).
     it("matches every skipped job as an exact comma-delimited token", () => {
       expect(qualityRaw).not.toContain("contains(inputs.skip_jobs");
       expect(qualityRailsRaw).not.toContain("contains(inputs.skip_jobs");
-      for (const [jobName, job] of Object.entries(workflow.jobs)) {
-        if (!job.if?.includes("skip_jobs")) {
-          continue;
+      for (const [workflowName, parsedWorkflow] of [
+        [QUALITY_WORKFLOW_FILE, workflow],
+        [QUALITY_RAILS_WORKFLOW_FILE, railsWorkflow],
+      ] as const) {
+        for (const [jobName, job] of Object.entries(parsedWorkflow.jobs)) {
+          if (!job.if?.includes("skip_jobs")) {
+            continue;
+          }
+          expect(
+            job.if,
+            `${workflowName} ${jobName} should use token matching`
+          ).toContain("contains(format(',{0},', inputs.skip_jobs), ',");
         }
-        expect(job.if, `${jobName} should use token matching`).toContain(
-          "contains(format(',{0},', inputs.skip_jobs), ',"
-        );
       }
     });
 
+    // Test hardened to kill mutant M002 (Risk Factor: CI gate correctness / substring skip collision).
     it("does not let test:e2e skip the plain test job", () => {
       expect(workflow.jobs.test?.if).toBe(
         "${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') }}"
@@ -171,12 +184,12 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("template skip_jobs defaults", () => {
+    // Test hardened to kill mutant M003 (Risk Factor: Release confidence / promotion branch test coverage).
     it("keeps promotion-branch test jobs enabled in JS templates", () => {
       for (const file of [NESTJS_CI_YML, EXPO_CI_YML]) {
-        const ci = fs.readFileSync(file, "utf8");
-        expect(ci).not.toContain("skip_jobs: 'test,test:integration,test:e2e'");
-        expect(ci).toContain(
-          "skip_jobs: 'test:e2e,zap_baseline,playwright_e2e'"
+        const ci = yaml.load(fs.readFileSync(file, "utf8")) as QualityWorkflow;
+        expect(ci.jobs.quality?.with?.skip_jobs).toBe(
+          "test:e2e,zap_baseline,playwright_e2e"
         );
       }
     });
