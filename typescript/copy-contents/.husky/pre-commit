@@ -126,14 +126,6 @@ if [ -f "scripts/check-threshold-ratchet.mjs" ] && command -v node >/dev/null 2>
   fi
 fi
 
-# Run type check on entire project (can't be done incrementally)
-echo "🔍 Running type check..."
-$RUNNER typecheck
-if [ $? -ne 0 ]; then
-  echo "❌ Type check failed. Please fix TypeScript errors before committing."
-  exit 1
-fi
-
 # Run lint-staged for incremental lint and format checks
 echo "🚀 Running lint-staged..."
 $EXECUTOR lint-staged --config .lintstagedrc.json

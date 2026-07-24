@@ -95,7 +95,7 @@ describe("pre-push Git environment isolation", () => {
       fixture.root
     );
     expect(await readFile(fixture.commandLog, "utf8")).toBe(
-      "run test:cov\nrun test:integration\n"
+      "run typecheck\nrun test:cov\nrun test:integration\n"
     );
   });
 

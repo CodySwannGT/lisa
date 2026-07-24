@@ -1961,9 +1961,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
-      "30fbbff4fc0f3a6188958ce49cf202ec072ea3fd5965acca7cd12923ed03412d",
+      "0a2274ae48d9cccad9bf32afdce757113776814dbc1fa1221b50c933e616ab3b",
     "typescript/copy-contents/.husky/pre-push":
-      "001b5c2a779cf242c8d49029651f92ebddebf4ab706d58269d46e2be88a9df5b",
+      "bb929b9fa108586e5591e80e5d3682d6540fc681543f1e02d7a626022bbffb15",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -7951,6 +7951,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
+    "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
