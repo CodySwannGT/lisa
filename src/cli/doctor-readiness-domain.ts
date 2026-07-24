@@ -27,6 +27,7 @@
  * @module cli/doctor-readiness-domain
  */
 import {
+  commandTargetsOwnedService,
   describeCommands,
   hasCheckedInRunbook,
   looksEphemeral,
@@ -85,33 +86,6 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
   /\baws\s+s3\s+sync\b/,
 ];
 
-/** Local endpoints that corroborate a command targets job-owned CI state. */
-const LOCAL_SERVICE_TARGETS: readonly RegExp[] = [
-  /\blocalhost\b/,
-  /\b127\.0\.0\.1\b/,
-];
-
-/**
- * Escape a literal string for use inside a regular expression.
- * @param value - Literal value to escape
- * @returns Regex-safe literal
- */
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * Whether a command/env blob names the concrete service hostname.
- * @param command - Lower-cased command and environment text
- * @param service - Lower-cased service id
- * @returns True when the service appears as its own host/token
- */
-function namesServiceHost(command: string, service: string): boolean {
-  return new RegExp(
-    `(^|[\\s:/@="'(,])${escapeRegExp(service)}($|[\\s:/;),'"?])`
-  ).test(command);
-}
-
 /**
  * Whether a command irreversibly destroys data that is not obviously throwaway.
  *
@@ -128,30 +102,6 @@ function destroysData(command: string, job: ParsedWorkflowJob): boolean {
   return (
     IRREVERSIBLE_DATA_OPS.some(pattern => pattern.test(command)) &&
     !looksEphemeral(`${command}\n${job.env}`)
-  );
-}
-
-/**
- * Whether the command plausibly targets one of the job's own `services:`
- * containers. A service only defers the step it can explain; an unrelated
- * container in the same job must not hide a durable destructive target.
- * @param job - The job to consider
- * @param step - The destructive step being classified
- * @returns True when the command plausibly points at a job-local service
- */
-function commandTargetsOwnedService(
-  job: ParsedWorkflowJob,
-  step: ParsedWorkflowStep
-): boolean {
-  if (job.services.length === 0) {
-    return false;
-  }
-  const command = `${step.run}\n${job.env}`.toLowerCase();
-  return (
-    LOCAL_SERVICE_TARGETS.some(pattern => pattern.test(command)) ||
-    job.services.some(service =>
-      namesServiceHost(command, service.toLowerCase())
-    )
   );
 }
 

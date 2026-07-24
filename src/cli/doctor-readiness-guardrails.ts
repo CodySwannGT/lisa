@@ -23,6 +23,7 @@
  * @module cli/doctor-readiness-guardrails
  */
 import {
+  commandTargetsOwnedService,
   describeCommands,
   hasCheckedInRunbook,
   looksEphemeral,
@@ -34,6 +35,7 @@ import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
   type ParsedWorkflow,
   type ParsedWorkflowJob,
+  type ParsedWorkflowStep,
   parseRepositoryWorkflows,
 } from "./doctor-readiness-workflows.js";
 
@@ -155,6 +157,31 @@ function lifecycleDeferral(workflow: ParsedWorkflow): string | null {
 }
 
 /**
+ * State why a service-targeted consequential operation cannot be settled. A job
+ * may run against service containers it created for that same CI run, but an
+ * unrelated service must not excuse a durable infrastructure operation.
+ * @param _workflow - The workflow declaring the job; unused for this deferral
+ * @param job - The job to consider
+ * @param step - The consequential step being classified
+ * @returns A stated reason, or null when the service does not explain the step
+ */
+function servicesDeferral(
+  _workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): string | null {
+  if (!commandTargetsOwnedService(job, step)) {
+    return null;
+  }
+  return (
+    `Job \`${job.id}\` runs a consequential operation while starting its own ` +
+    `\`services:\` container(s) (${job.services.join(", ")}), which are created ` +
+    "and thrown away inside the run, so whether the operation targets a durable " +
+    "environment is not established either way"
+  );
+}
+
+/**
  * Build the rubric-shaped B4 finding from the operations it cites.
  * @param scan - The consequential-operation scan
  * @returns The B4 finding
@@ -247,6 +274,7 @@ export async function assessFeedbackGuardrailsDimension(
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
   const scan = scanCommands(workflows, isConsequential, {
     unresolvedWorkflow: lifecycleDeferral,
+    unresolvedStep: servicesDeferral,
   });
   const runbook = await hasCheckedInRunbook(root);
   if (scan.ungated.length === 0 || runbook) {
