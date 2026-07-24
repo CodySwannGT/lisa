@@ -43,6 +43,13 @@ const CLEANUP_NAME = "name: Cleanup";
 /** A destructive job header reused across fixtures. */
 const WIPE_JOB = "  wipe:";
 
+/** A local Postgres service declaration reused across service-target fixtures. */
+const POSTGRES_SERVICE = [
+  "    services:",
+  "      postgres:",
+  "        image: postgres:16",
+];
+
 /** An irreversible bucket-emptying command against a production bucket. */
 const RUN_S3_WIPE =
   "      - run: aws s3 rm s3://acme-prod-user-uploads --recursive";
@@ -101,9 +108,7 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
       JOBS,
       WIPE_JOB,
       RUNS_ON,
-      "    services:",
-      "      postgres:",
-      "        image: postgres:16",
+      ...POSTGRES_SERVICE,
       "    env:",
       "      DATABASE_URL: postgres://postgres@postgres:5432/app",
       STEPS,
@@ -156,13 +161,39 @@ describe("assessDomainOwnershipDimension — ephemeral CI evidence outside the c
       JOBS,
       WIPE_JOB,
       RUNS_ON,
-      "    services:",
-      "      postgres:",
-      "        image: postgres:16",
+      ...POSTGRES_SERVICE,
       "    env:",
       "      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}",
       STEPS,
       RUN_SCHEMA_RESET,
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+    expect(
+      asFindings(record.findings).some(finding =>
+        String(finding.reason).includes("services:")
+      )
+    ).toBe(false);
+  });
+
+  it("stands B1 when a service name only appears as a generic assignment value", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      ...POSTGRES_SERVICE,
+      STEPS,
+      '      - run: psql "$PROD_DATABASE_URL" --set database=postgres -c "DROP TABLE users"',
     ]);
 
     const record = await assessDomainOwnershipDimension(root);

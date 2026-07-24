@@ -51,6 +51,8 @@ export interface ParsedWorkflowStep {
   readonly run: string;
   /** The action the step uses, or `""` for a `run` step. */
   readonly uses: string;
+  /** Raw serialized step-level `env` text, used for target evidence. */
+  readonly env: string;
   /** Raw serialized `env` + `with` text, used for credential evidence. */
   readonly inputs: string;
   /**
@@ -225,6 +227,7 @@ function parseSteps(value: unknown): readonly ParsedWorkflowStep[] {
     name: typeof step.name === "string" ? step.name : "",
     run: typeof step.run === "string" ? step.run.trim() : "",
     uses: typeof step.uses === "string" ? step.uses.trim() : "",
+    env: serializeBlock(step.env).join("\n"),
     inputs: serializeStepInputs(step as Record<string, unknown>),
     ifCondition: asCondition(step.if),
   }));

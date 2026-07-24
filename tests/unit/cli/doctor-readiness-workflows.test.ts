@@ -101,7 +101,14 @@ describe("parseRepositoryWorkflows", () => {
     const test = workflow.jobs[0];
     expect(test.needs).toEqual([]);
     expect(test.steps).toEqual([
-      { ifCondition: "", inputs: "", name: "", run: "npm run test", uses: "" },
+      {
+        env: "",
+        ifCondition: "",
+        inputs: "",
+        name: "",
+        run: "npm run test",
+        uses: "",
+      },
     ]);
 
     const publish = workflow.jobs[1];
@@ -114,6 +121,7 @@ describe("parseRepositoryWorkflows", () => {
     expect(publish.secrets).toBe("inherit");
     expect(publish.steps).toEqual([
       {
+        env: "",
         ifCondition: "",
         inputs: "",
         name: "",
@@ -121,6 +129,7 @@ describe("parseRepositoryWorkflows", () => {
         uses: "actions/download-artifact@v4",
       },
       {
+        env: "",
         ifCondition: "",
         inputs: "",
         name: "",
