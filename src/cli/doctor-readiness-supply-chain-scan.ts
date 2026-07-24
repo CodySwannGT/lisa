@@ -159,12 +159,18 @@ export function isFloatingSpec(spec: string): boolean {
 const AUDIT_GATE_PATTERN =
   /\b(npm|bun|yarn|pnpm)\s+audit\b|audit-ci|osv-scanner|dependency-review-action|\bsnyk\b|\btrivy\b|\bgrype\b/i;
 
-/**
- * Install commands that prove CI will honor the committed lockfile instead of
- * silently updating it or accepting a different dependency tree.
- */
-const LOCKFILE_INSTALL_PATTERN =
-  /\bnpm\s+ci\b|\b(?:bun|pnpm)\s+install\b[^\n\r]*(?:--frozen-lockfile|--immutable)\b|\byarn\s+install\b[^\n\r]*(?:--frozen-lockfile|--immutable)\b/i;
+/** Package managers whose install command can enforce a committed lockfile. */
+const FROZEN_INSTALL_MANAGERS: ReadonlySet<string> = new Set([
+  "bun",
+  "pnpm",
+  "yarn",
+]);
+
+/** Install flags that prove the committed lockfile is enforced. */
+const LOCKFILE_INSTALL_FLAGS: ReadonlySet<string> = new Set([
+  "--frozen-lockfile",
+  "--immutable",
+]);
 
 /**
  * An update bot covering the JavaScript dependency tree. A `dependabot.yml`
@@ -349,6 +355,84 @@ function coversJavaScriptTree(botFile: string, source: string): boolean {
 }
 
 /**
+ * Remove one layer of YAML quoting from a command scalar.
+ * @param value - Potentially quoted YAML scalar text
+ * @returns The command text without balanced outer quotes
+ */
+function unquoteCommand(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+  const first = trimmed.at(0);
+  const last = trimmed.at(-1);
+  return (first === '"' && last === '"') || (first === "'" && last === "'")
+    ? trimmed.slice(1, -1)
+    : trimmed;
+}
+
+/**
+ * Strip a leading YAML list marker from a possibly indented step line.
+ * @param trimmed - A source line after outer whitespace was removed
+ * @returns The line without a leading `- ` marker
+ */
+function stripYamlListMarker(trimmed: string): string {
+  return trimmed.startsWith("- ") ? trimmed.slice(2).trimStart() : trimmed;
+}
+
+/**
+ * Extract a command-shaped line from CI/hook text. This intentionally accepts
+ * direct hook commands and GitHub Actions `run:` scalars, while rejecting
+ * comments and quoted mentions such as `run: echo "npm ci"`.
+ * @param line - One source line
+ * @returns The executable command candidate, or null
+ */
+function executableCommandCandidate(line: string): string | null {
+  const trimmed = line.trim();
+  if (trimmed === "" || trimmed.startsWith("#")) {
+    return null;
+  }
+  const commandish = stripYamlListMarker(trimmed);
+  if (commandish.toLowerCase().startsWith("run:")) {
+    const command = unquoteCommand(commandish.slice("run:".length));
+    return command === "|" || command === ">" ? null : command;
+  }
+  return commandish;
+}
+
+/**
+ * Whether a command starts with a package-manager install that enforces the
+ * committed lockfile.
+ * @param command - Candidate executable command
+ * @returns True when the command enforces the committed lockfile
+ */
+function isLockfileInstallCommand(command: string): boolean {
+  const tokens = command.trim().toLowerCase().split(/\s+/);
+  const [manager, subcommand] = tokens;
+  if (manager === "npm" && subcommand === "ci") {
+    return true;
+  }
+  return (
+    manager !== undefined &&
+    FROZEN_INSTALL_MANAGERS.has(manager) &&
+    subcommand === "install" &&
+    tokens.some(token => LOCKFILE_INSTALL_FLAGS.has(token))
+  );
+}
+
+/**
+ * Whether CI/hook text contains a real lockfile-enforcing install command.
+ * @param source - File text
+ * @returns True when an executable command enforces the committed lockfile
+ */
+function hasLockfileInstallCommand(source: string): boolean {
+  return source.split(/\r?\n/).some(line => {
+    const command = executableCommandCandidate(line);
+    return command !== null && isLockfileInstallCommand(command);
+  });
+}
+
+/**
  * Find where the repository audits its dependency tree: a CI job, a git hook, a
  * lefthook declaration, or an update bot.
  * @param root - Repository root
@@ -393,7 +477,7 @@ export async function findLockfileInstallGate(
   ];
   for (const file of scanned) {
     const source = await readFileOrNull(root, file);
-    if (source !== null && LOCKFILE_INSTALL_PATTERN.test(source)) {
+    if (source !== null && hasLockfileInstallCommand(source)) {
       return file.split(path.sep).join("/");
     }
   }
