@@ -28,6 +28,18 @@ export interface WorkspaceMembers {
   readonly declared: boolean;
   /** Names of the local packages the workspaces resolve to. */
   readonly names: ReadonlySet<string>;
+  /** Parsed package manifests resolved from workspace children. */
+  readonly members: readonly WorkspaceMember[];
+}
+
+/** One workspace child manifest that could be parsed offline. */
+export interface WorkspaceMember {
+  /** Repo-relative path to the child package manifest. */
+  readonly manifestPath: string;
+  /** Child package name when the manifest declares one. */
+  readonly name: string | null;
+  /** Parsed child package manifest. */
+  readonly manifest: Record<string, unknown>;
 }
 
 /**
@@ -78,25 +90,35 @@ export async function resolveWorkspaceMembers(
   const directories = (
     await Promise.all(globs.map(async glob => await expandGlob(root, glob)))
   ).flat();
-  const names = (
+  const uniqueDirectories = [...new Set(directories)];
+  const members = (
     await Promise.all(
-      directories.map(async directory => {
-        const source = await readFileOrNull(root, `${directory}/package.json`);
+      uniqueDirectories.map(async directory => {
+        const manifestPath = `${directory}/package.json`;
+        const source = await readFileOrNull(root, manifestPath);
         if (source === null) {
           return [];
         }
         try {
           const parsed: unknown = JSON.parse(source);
-          return isRecord(parsed) && typeof parsed.name === "string"
-            ? [parsed.name]
-            : [];
+          if (!isRecord(parsed)) {
+            return [];
+          }
+          const name = typeof parsed.name === "string" ? parsed.name : null;
+          return [{ manifestPath, name, manifest: parsed }];
         } catch {
           return [];
         }
       })
     )
   ).flat();
-  return { declared: globs.length > 0, names: new Set(names) };
+  return {
+    declared: globs.length > 0,
+    names: new Set(
+      members.flatMap(member => (member.name === null ? [] : [member.name]))
+    ),
+    members,
+  };
 }
 
 /**

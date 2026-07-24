@@ -280,6 +280,7 @@ export async function readManifest(root: string): Promise<ManifestOutcome> {
 
 /** One declared dependency spec, flattened out of the manifest blocks. */
 export interface DependencySpec {
+  readonly manifestPath: string;
   readonly block: string;
   readonly name: string;
   readonly spec: string;
@@ -291,12 +292,14 @@ export interface DependencySpec {
  * installs exactly as loosely as one at the top.
  * @param block - Block name, e.g. `dependencies`
  * @param value - The block's raw value
+ * @param manifestPath - Repo-relative manifest path the block came from
  * @param prefix - Accumulated name path for nested overrides
  * @returns Flattened specs
  */
 function flattenBlock(
   block: string,
   value: unknown,
+  manifestPath: string,
   prefix = ""
 ): readonly DependencySpec[] {
   if (!isRecord(value)) {
@@ -305,22 +308,24 @@ function flattenBlock(
   return Object.entries(value).flatMap(([name, spec]) => {
     const qualified = prefix === "" ? name : `${prefix}.${name}`;
     if (typeof spec === "string") {
-      return [{ block, name: qualified, spec }];
+      return [{ manifestPath, block, name: qualified, spec }];
     }
-    return flattenBlock(block, spec, qualified);
+    return flattenBlock(block, spec, manifestPath, qualified);
   });
 }
 
 /**
  * Flatten every versioned manifest block into one list of specs.
  * @param manifest - Parsed `package.json`
+ * @param manifestPath - Repo-relative manifest path the specs came from
  * @returns Every declared spec across the versioned blocks
  */
 export function collectSpecs(
-  manifest: Record<string, unknown>
+  manifest: Record<string, unknown>,
+  manifestPath = "package.json"
 ): readonly DependencySpec[] {
   return VERSIONED_BLOCKS.flatMap(block =>
-    flattenBlock(block, manifest[block])
+    flattenBlock(block, manifest[block], manifestPath)
   );
 }
 
