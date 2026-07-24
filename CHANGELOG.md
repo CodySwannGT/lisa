@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.4](https://github.com/CodySwannGT/lisa/compare/v2.300.3...v2.300.4) (2026-07-24)
+
+
+### Bug Fixes
+
+* **readiness:** address workspace manifest review ([4825dcb](https://github.com/CodySwannGT/lisa/commit/4825dcb7a53ff7f145d804f8f9338b50ab8e8595)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** inspect workspace dependency manifests ([295ae95](https://github.com/CodySwannGT/lisa/commit/295ae953ebd84f85f754fbe04676968724e10be7)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.3](https://github.com/CodySwannGT/lisa/compare/v2.300.2...v2.300.3) (2026-07-24)
 
 
