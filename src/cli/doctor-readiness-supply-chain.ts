@@ -62,10 +62,10 @@ const MAX_EVIDENCE_LINES = 12;
  */
 function lockfileEvidence(specCount: number): string {
   return (
-    `\`package.json\` declares ${specCount} dependency spec(s) but no lockfile ` +
-    `is committed (looked for ${LOCKFILES.join(", ")}) — two installs can ` +
-    "resolve to different trees, so what was validated is not provably what " +
-    "gets installed"
+    `package manifest(s), starting with \`package.json\`, declare ${specCount} ` +
+    `dependency spec(s) but no lockfile is committed (looked for ` +
+    `${LOCKFILES.join(", ")}) — two installs can resolve to different trees, ` +
+    "so what was validated is not provably what gets installed"
   );
 }
 
@@ -132,7 +132,8 @@ async function collectFindings(
         : []),
       ...floating.map(
         spec =>
-          `\`package.json\` \`${spec.block}.${spec.name}\` is \`${spec.spec}\`, ` +
+          `\`${spec.manifestPath}\` \`${spec.block}.${spec.name}\` is ` +
+          `\`${spec.spec}\`, ` +
           "which resolves to whatever is newest at install time rather than to " +
           "a version anything was ever validated against"
       ),
@@ -220,6 +221,32 @@ function supplyChainFinding(
 }
 
 /**
+ * Count workspace manifests that contributed dependency specs.
+ * @param specs - The dependency specs under assessment
+ * @returns Number of non-root package manifests represented by the specs
+ */
+function workspaceManifestCount(specs: readonly DependencySpec[]): number {
+  return new Set(
+    specs
+      .map(spec => spec.manifestPath)
+      .filter(manifestPath => manifestPath !== "package.json")
+  ).size;
+}
+
+/**
+ * Describe the manifest scope B5 actually inspected.
+ * @param specs - The dependency specs under assessment
+ * @returns One clause for operator-facing evidence
+ */
+function describeManifestScope(specs: readonly DependencySpec[]): string {
+  const workspaceCount = workspaceManifestCount(specs);
+  return workspaceCount === 0
+    ? `the root \`package.json\``
+    : `the root \`package.json\` and ${workspaceCount} workspace child ` +
+        `manifest(s)`;
+}
+
+/**
  * Describe what the spec check established, without overstating the bare-`*`
  * workspace fallback as a resolved link.
  * @param workspaces - What resolving the workspace members established
@@ -261,15 +288,20 @@ export async function assessDependenciesSupplyChainDimension(
   if (outcome.kind === "unassessable") {
     return skipRecord(outcome.reason);
   }
-  const specs = collectSpecs(outcome.manifest);
+  const workspaces = await resolveWorkspaceMembers(root, outcome.manifest);
+  const specs = [
+    ...collectSpecs(outcome.manifest),
+    ...workspaces.members.flatMap(member =>
+      collectSpecs(member.manifest, member.manifestPath)
+    ),
+  ];
   if (specs.length === 0) {
     return skipRecord(
-      "`package.json` declares no dependencies, so this repository owns no " +
-        "third-party surface a confidence model could cover; supply-chain " +
-        "confidence is not established either way"
+      "No resolved package manifest declares dependencies, so this repository " +
+        "owns no third-party surface a confidence model could cover; " +
+        "supply-chain confidence is not established either way"
     );
   }
-  const workspaces = await resolveWorkspaceMembers(root, outcome.manifest);
   const { violations, observations } = await collectFindings(
     root,
     specs,
@@ -291,12 +323,12 @@ export async function assessDependenciesSupplyChainDimension(
     findings: [
       {
         evidence:
-          `Inspected ${specs.length} dependency spec(s) in the root ` +
-          `\`package.json\`: ${describeSpecCleanliness(workspaces)}, a ` +
+          `Inspected ${specs.length} dependency spec(s) in ` +
+          `${describeManifestScope(specs)}: ` +
+          `${describeSpecCleanliness(workspaces)}, a ` +
           "lockfile is committed, a dependency-audit gate covering the " +
           "JavaScript tree is declared, and every active audit exception " +
-          "carries a written decision. Workspace child manifests are not " +
-          "walked, so this speaks only to the root manifest.",
+          "carries a written decision.",
         checked: [SUPPLY_CHAIN_BLOCKER_ID],
       },
       ...informationalFindings(observations),
