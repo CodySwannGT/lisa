@@ -319,7 +319,7 @@ jobs:
     name: 🧹 Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !contains(inputs.skip_jobs, 'lint') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -375,7 +375,7 @@ jobs:
     name: 🐢 Slow Lint Rules
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'lint_slow') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint_slow,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -416,7 +416,7 @@ jobs:
     name: 🔍 Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !contains(inputs.skip_jobs, 'typecheck') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',typecheck,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -457,7 +457,7 @@ jobs:
     name: 🧪 Run Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'test') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -537,7 +537,7 @@ jobs:
     # at least one Playwright spec / Maestro flow, thresholds from
     # e2e.thresholds.json (default 80% per runner). Auto-enabled by the
     # presence of the Lisa-managed script (expo projects); a no-op elsewhere.
-    if: ${{ !contains(inputs.skip_jobs, 'e2e_coverage') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',e2e_coverage,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -600,7 +600,7 @@ jobs:
     # the build when the file grows past budget. The check reads the learnings
     # file resolved from .lisa.config.json; a project that has never recorded a
     # learning has no file and passes silently.
-    if: ${{ !contains(inputs.skip_jobs, 'learnings_budget') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',learnings_budget,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -657,7 +657,7 @@ jobs:
     name: 🧪 Run Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: ${{ !contains(inputs.skip_jobs, 'test:unit') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -724,7 +724,7 @@ jobs:
     name: 🧬 Mutation Testing Gate
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    if: ${{ !contains(inputs.skip_jobs, 'test:mutation') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:mutation,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -792,7 +792,7 @@ jobs:
     name: 🧪 Run Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ !contains(inputs.skip_jobs, 'test:integration') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -859,7 +859,7 @@ jobs:
     name: 🧪 Run E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    if: ${{ !contains(inputs.skip_jobs, 'test:e2e') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:e2e,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -945,7 +945,7 @@ jobs:
     name: 📱 Maestro Cloud E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ !contains(inputs.skip_jobs, 'maestro_e2e') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',maestro_e2e,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1032,7 +1032,7 @@ jobs:
     runs-on: ubuntu-latest
     # Pure shell arithmetic — no checkout, no API. Needs no token at all.
     permissions: {}
-    if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',playwright_e2e,') }}
     outputs:
       shards: ${{ steps.matrix.outputs.shards }}
     steps:
@@ -1061,7 +1061,7 @@ jobs:
     # retries). Raise back down once downstream projects address their
     # backend-side root causes.
     timeout-minutes: 60
-    if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',playwright_e2e,') }}
     strategy:
       fail-fast: false
       matrix:
@@ -1213,7 +1213,7 @@ jobs:
     needs: playwright_e2e
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ always() && !contains(inputs.skip_jobs, 'playwright_e2e') }}
+    if: ${{ always() && !contains(format(',{0},', inputs.skip_jobs), ',playwright_e2e,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1315,7 +1315,7 @@ jobs:
     name: 📐 Check Formatting
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(inputs.skip_jobs, 'format') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',format,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1356,7 +1356,7 @@ jobs:
     name: 🏗️ Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'build') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',build,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1447,7 +1447,7 @@ jobs:
     name: 📐 Threshold Ratchet
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ !contains(inputs.skip_jobs, 'threshold_ratchet') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',threshold_ratchet,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1480,7 +1480,7 @@ jobs:
     name: 🗑️ Dead Code Detection
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(inputs.skip_jobs, 'dead_code') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',dead_code,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1527,7 +1527,7 @@ jobs:
     name: 🔎 AST Grep Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(inputs.skip_jobs, 'sg_scan') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1607,7 +1607,7 @@ jobs:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !contains(inputs.skip_jobs, 'npm_security_scan') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',npm_security_scan,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1794,7 +1794,7 @@ jobs:
     name: 🔍 SonarCloud SAST
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'sonarcloud') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sonarcloud,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1884,7 +1884,7 @@ jobs:
     name: 🛡️ Snyk Dependency Scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'snyk') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',snyk,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1955,7 +1955,7 @@ jobs:
     name: 🔐 GitGuardian Secret Detection
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'secret_scanning') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -2012,7 +2012,7 @@ jobs:
     name: 📜 FOSSA License Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'license_compliance') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -2050,7 +2050,7 @@ jobs:
     name: 🕷️ OWASP ZAP Baseline
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'zap_baseline') && inputs.zap_target_url != '' }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',zap_baseline,') && inputs.zap_target_url != '' }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6

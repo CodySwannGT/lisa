@@ -65,7 +65,7 @@ Runs on every pull request to validate code quality:
 # In ci.yml, modify these inputs:
 node_version: '22.21.1'
 package_manager: 'bun'
-skip_jobs: 'test,test:integration,test:e2e'  # Comma-separated list
+skip_jobs: 'test:e2e,zap_baseline,playwright_e2e'  # Exact comma-separated job ids
 ```
 
 ### Release and Deploy (`deploy.yml`)
@@ -109,6 +109,15 @@ lint, typecheck, test, test:unit, test:integration, test:e2e,
 maestro_e2e, playwright_e2e, format, build, npm_security_scan,
 sonarcloud, snyk, secret_scanning, license_compliance
 ```
+
+`skip_jobs` entries are exact comma-delimited job ids. For example,
+`test:e2e` skips only the E2E job; it does not skip `test`, `test:unit`, or
+`test:integration`.
+
+Migration note: NestJS and Expo CI templates now default to
+`test:e2e,zap_baseline,playwright_e2e`, so unit and integration jobs run on
+promotion PRs as well as ordinary feature PRs. Projects that intentionally
+disable those jobs must list `test` or `test:integration` explicitly.
 
 ### Release (`release.yml`)
 

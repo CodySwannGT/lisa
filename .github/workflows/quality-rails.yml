@@ -72,7 +72,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    if: ${{ !contains(inputs.skip_jobs, 'lint') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -94,7 +94,7 @@ jobs:
     name: 📐 Threshold Ratchet
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ !contains(inputs.skip_jobs, 'threshold_ratchet') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',threshold_ratchet,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -125,7 +125,7 @@ jobs:
   security:
     name: Security
     runs-on: ubuntu-latest
-    if: ${{ !contains(inputs.skip_jobs, 'security') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',security,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -144,7 +144,7 @@ jobs:
   test-postgres:
     name: Test (PostgreSQL)
     runs-on: ubuntu-latest
-    if: ${{ !contains(inputs.skip_jobs, 'test') && inputs.database_type == 'postgres' }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
     services:
       postgres:
         image: postgres:16
@@ -180,7 +180,7 @@ jobs:
   test-mysql:
     name: Test (MySQL)
     runs-on: ubuntu-latest
-    if: ${{ !contains(inputs.skip_jobs, 'test') && inputs.database_type == 'mysql' }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'mysql' }}
     services:
       mysql:
         image: mysql:8.0
@@ -223,7 +223,7 @@ jobs:
     # Diff-only mutation gate. Self-skips instantly when disabled
     # (mutation.gate.yml: enabled: false). PostgreSQL-based; MySQL projects can
     # adapt the service block or skip via skip_jobs: mutation.
-    if: ${{ !contains(inputs.skip_jobs, 'mutation') && inputs.database_type == 'postgres' }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',mutation,') && inputs.database_type == 'postgres' }}
     services:
       postgres:
         image: postgres:16
@@ -269,7 +269,7 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    if: ${{ !contains(inputs.skip_jobs, 'code_quality') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',code_quality,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -292,7 +292,7 @@ jobs:
     name: 🔐 GitGuardian Secret Detection
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'secret_scanning') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -348,7 +348,7 @@ jobs:
     name: 🔎 AST Grep Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(inputs.skip_jobs, 'sg_scan') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -412,7 +412,7 @@ jobs:
     # inherited checks:write / pull-requests:write.
     permissions:
       contents: read
-    if: ${{ !contains(inputs.skip_jobs, 'learnings_budget') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',learnings_budget,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -442,7 +442,7 @@ jobs:
     name: 📜 FOSSA License Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'license_compliance') }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -476,7 +476,7 @@ jobs:
     name: 🕷️ OWASP ZAP Baseline
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(inputs.skip_jobs, 'zap_baseline') && inputs.zap_target_url != '' }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',zap_baseline,') && inputs.zap_target_url != '' }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6

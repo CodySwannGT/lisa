@@ -8,7 +8,9 @@ import { fileURLToPath } from "node:url";
 // portable across worktrees and CI working directories.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const WORKFLOWS_DIR = path.join(REPO_ROOT, ".github", "workflows");
+const GITHUB_WORKFLOWS_PARTS = [".github", "workflows"] as const;
+const CREATE_ONLY_DIR = "create-only";
+const WORKFLOWS_DIR = path.join(REPO_ROOT, ...GITHUB_WORKFLOWS_PARTS);
 const DEPLOY_WORKFLOW_FILE = "deploy.yml";
 const QUALITY_YML = path.join(WORKFLOWS_DIR, "quality.yml");
 const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, "quality-rails.yml");
@@ -17,18 +19,30 @@ const DEPLOY_YML = path.join(WORKFLOWS_DIR, DEPLOY_WORKFLOW_FILE);
 const NESTJS_DEPLOY_YML = path.join(
   REPO_ROOT,
   "nestjs",
-  "create-only",
-  ".github",
-  "workflows",
+  CREATE_ONLY_DIR,
+  ...GITHUB_WORKFLOWS_PARTS,
   DEPLOY_WORKFLOW_FILE
+);
+const NESTJS_CI_YML = path.join(
+  REPO_ROOT,
+  "nestjs",
+  CREATE_ONLY_DIR,
+  ...GITHUB_WORKFLOWS_PARTS,
+  "ci.yml"
 );
 const EXPO_DEPLOY_YML = path.join(
   REPO_ROOT,
   "expo",
-  "create-only",
-  ".github",
-  "workflows",
+  CREATE_ONLY_DIR,
+  ...GITHUB_WORKFLOWS_PARTS,
   DEPLOY_WORKFLOW_FILE
+);
+const EXPO_CI_YML = path.join(
+  REPO_ROOT,
+  "expo",
+  CREATE_ONLY_DIR,
+  ...GITHUB_WORKFLOWS_PARTS,
+  "ci.yml"
 );
 const EAS_BUILD_YML = path.join(WORKFLOWS_DIR, "build.yml");
 const CREATE_ISSUE_ON_FAILURE_YML = path.join(
@@ -123,10 +137,49 @@ function needsList(job: WorkflowJob | undefined): string[] {
 
 describe("quality.yml reusable workflow", () => {
   let workflow: QualityWorkflow;
+  let qualityRaw: string;
+  let qualityRailsRaw: string;
 
   beforeAll(() => {
-    const raw = fs.readFileSync(QUALITY_YML, "utf8");
-    workflow = yaml.load(raw) as QualityWorkflow;
+    qualityRaw = fs.readFileSync(QUALITY_YML, "utf8");
+    qualityRailsRaw = fs.readFileSync(QUALITY_RAILS_YML, "utf8");
+    workflow = yaml.load(qualityRaw) as QualityWorkflow;
+  });
+
+  describe("skip_jobs token matching", () => {
+    it("matches every skipped job as an exact comma-delimited token", () => {
+      expect(qualityRaw).not.toContain("contains(inputs.skip_jobs");
+      expect(qualityRailsRaw).not.toContain("contains(inputs.skip_jobs");
+      for (const [jobName, job] of Object.entries(workflow.jobs)) {
+        if (!job.if?.includes("skip_jobs")) {
+          continue;
+        }
+        expect(job.if, `${jobName} should use token matching`).toContain(
+          "contains(format(',{0},', inputs.skip_jobs), ',"
+        );
+      }
+    });
+
+    it("does not let test:e2e skip the plain test job", () => {
+      expect(workflow.jobs.test?.if).toBe(
+        "${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') }}"
+      );
+      expect(workflow.jobs.test_e2e?.if).toBe(
+        "${{ !contains(format(',{0},', inputs.skip_jobs), ',test:e2e,') }}"
+      );
+    });
+  });
+
+  describe("template skip_jobs defaults", () => {
+    it("keeps promotion-branch test jobs enabled in JS templates", () => {
+      for (const file of [NESTJS_CI_YML, EXPO_CI_YML]) {
+        const ci = fs.readFileSync(file, "utf8");
+        expect(ci).not.toContain("skip_jobs: 'test,test:integration,test:e2e'");
+        expect(ci).toContain(
+          "skip_jobs: 'test:e2e,zap_baseline,playwright_e2e'"
+        );
+      }
+    });
   });
 
   describe("SE-4551 + SE-4552 new inputs", () => {
