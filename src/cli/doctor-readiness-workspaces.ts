@@ -90,9 +90,10 @@ export async function resolveWorkspaceMembers(
   const directories = (
     await Promise.all(globs.map(async glob => await expandGlob(root, glob)))
   ).flat();
+  const uniqueDirectories = [...new Set(directories)];
   const members = (
     await Promise.all(
-      directories.map(async directory => {
+      uniqueDirectories.map(async directory => {
         const manifestPath = `${directory}/package.json`;
         const source = await readFileOrNull(root, manifestPath);
         if (source === null) {
