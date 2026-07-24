@@ -62,6 +62,18 @@ const OIDC_REPLACEABLE_KEYS = new Set([
 /** Matches a repository-token reference in either of its spellings. */
 const REPOSITORY_TOKEN = /\b(?:GITHUB_TOKEN|GH_TOKEN)\b|github\.token/;
 
+/** A checkout ref that replaces trusted base code with untrusted PR-head code. */
+const PULL_REQUEST_HEAD_REF =
+  /github\.event\.pull_request\.head\.(?:sha|ref)|github\.head_ref/;
+
+/** Commands that execute code from the checkout rather than only inspecting metadata. */
+const CHECKED_OUT_CODE_EXECUTION: readonly RegExp[] = [
+  /\b(?:npm|yarn|pnpm|bun|npx|bunx)\s+(?:install|ci|test|run|exec|x)\b/,
+  /\b(?:make|pytest|rspec|bundle|cargo|go|mvn|gradle)\s+(?:test|build|run|install)\b/,
+  /\b(?:bash|sh)\s+\.\//,
+  /(?:^|\s)\.\/(?:scripts\/)?[\w./-]+/,
+];
+
 /** One secret referenced by one deployment environment. */
 interface SecretEnvironmentPair {
   readonly secret: string;
@@ -120,6 +132,21 @@ function grantsOidc(permissions: WorkflowBlock): boolean {
     permissions !== null &&
     permissions["id-token"] === "write"
   );
+}
+
+/**
+ * Whether a permissions block grants write authority to the repository token.
+ * @param permissions - A job- or workflow-level permissions block
+ * @returns True when at least one declared scope is writable
+ */
+function grantsWriteAuthority(permissions: WorkflowBlock): boolean {
+  if (permissions === "write-all") {
+    return true;
+  }
+  if (typeof permissions !== "object" || permissions === null) {
+    return false;
+  }
+  return Object.values(permissions).some(value => value === "write");
 }
 
 /**
@@ -220,6 +247,97 @@ function staticKeyViolations(
 }
 
 /**
+ * Whether the job maps any secret material into the run.
+ * @param job - Parsed workflow job
+ * @param text - Flattened job text
+ * @returns True when secret authority is declared in YAML
+ */
+function hasDeclaredSecretAuthority(
+  job: ParsedWorkflowJob,
+  text: string
+): boolean {
+  return (
+    job.secrets !== null ||
+    text.includes("secrets.") ||
+    STATIC_CREDENTIAL_KEYS.some(key => text.includes(key))
+  );
+}
+
+/**
+ * Whether the job checks out attacker-controlled PR-head code.
+ * @param job - Parsed workflow job
+ * @returns True when actions/checkout is aimed at the PR head
+ */
+function checksOutPullRequestHead(job: ParsedWorkflowJob): boolean {
+  return job.steps.some(
+    step =>
+      step.uses.toLowerCase().split("@")[0] === "actions/checkout" &&
+      PULL_REQUEST_HEAD_REF.test(step.inputs)
+  );
+}
+
+/**
+ * Whether checked-out code runs after the PR-head checkout step.
+ * @param job - Parsed workflow job
+ * @returns True when a later shell step executes project code
+ */
+function runsCheckedOutCodeAfterPullRequestCheckout(
+  job: ParsedWorkflowJob
+): boolean {
+  const checkoutIndex = job.steps.findIndex(
+    step =>
+      step.uses.toLowerCase().split("@")[0] === "actions/checkout" &&
+      PULL_REQUEST_HEAD_REF.test(step.inputs)
+  );
+  return (
+    checkoutIndex >= 0 &&
+    job.steps
+      .slice(checkoutIndex + 1)
+      .some(step =>
+        CHECKED_OUT_CODE_EXECUTION.some(pattern => pattern.test(step.run))
+      )
+  );
+}
+
+/**
+ * Report CICD-SEC-4 poisoned-pipeline execution that runs untrusted PR code
+ * inside a privileged `pull_request_target` context.
+ * @param where - Evidence location label
+ * @param workflow - The workflow declaring the job
+ * @param job - The parsed job
+ * @param text - Flattened job text
+ * @returns Evidence lines (empty when the provable dangerous shape is absent)
+ */
+function poisonedPipelineViolations(
+  where: string,
+  workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob,
+  text: string
+): readonly string[] {
+  if (!workflow.on.events.includes("pull_request_target")) {
+    return [];
+  }
+  if (
+    !checksOutPullRequestHead(job) ||
+    !runsCheckedOutCodeAfterPullRequestCheckout(job)
+  ) {
+    return [];
+  }
+  const authority =
+    grantsWriteAuthority(job.permissions) ||
+    grantsWriteAuthority(workflow.permissions) ||
+    hasDeclaredSecretAuthority(job, text);
+  if (!authority) {
+    return [];
+  }
+  return [
+    `${where} runs under \`pull_request_target\`, checks out ` +
+      "`github.event.pull_request.head` code, then executes that checked-out " +
+      "code while write permissions or secrets are declared in scope (CICD-SEC-4)",
+  ];
+}
+
+/**
  * Detect per-job credential over-authority inside one workflow.
  * @param workflow - The parsed workflow
  * @param job - The job to inspect
@@ -236,6 +354,7 @@ function jobCredentialViolations(
     ...inheritedSecretViolations(where, job),
     ...unscopedTokenViolations(where, workflow, job, text),
     ...staticKeyViolations(where, workflow, job, text),
+    ...poisonedPipelineViolations(where, workflow, job, text),
   ];
 }
 
