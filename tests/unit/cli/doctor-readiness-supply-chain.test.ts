@@ -52,6 +52,9 @@ const LOCKFILE_BODY = '{"lockfileVersion": 1}\n';
 /** The update-bot config most fixtures use as their audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
 
+/** The CI workflow path used by dependency-confidence fixtures. */
+const QUALITY_WORKFLOW_PATH = ".github/workflows/quality.yml";
+
 /** A manifest whose dependency specs are all exactly pinned or caret-ranged. */
 const PINNED_MANIFEST = {
   name: "scratch",
@@ -70,6 +73,22 @@ const DEPENDABOT_YML = [
   "      interval: weekly",
   "",
 ].join("\n");
+
+/**
+ * Render a minimal GitHub Actions workflow with caller-supplied step lines.
+ * @param steps - Step declarations already indented under `steps:`
+ * @returns Workflow YAML text
+ */
+function qualityWorkflow(...steps: readonly string[]): string {
+  return ["name: Quality", "jobs:", "  test:", "    steps:", ...steps, ""].join(
+    "\n"
+  );
+}
+
+/** Minimal CI install step that proves the committed lockfile is honored. */
+const LOCKFILE_INSTALL_WORKFLOW = qualityWorkflow(
+  "      - run: bun install --frozen-lockfile"
+);
 
 let tempDir: string | undefined;
 
@@ -91,6 +110,7 @@ async function writeCleanRepo(root: string): Promise<void> {
   await writeRepoJson(root, PACKAGE_JSON, PINNED_MANIFEST);
   await writeRepoFile(root, BUN_LOCK, LOCKFILE_BODY);
   await writeRepoFile(root, DEPENDABOT_PATH, DEPENDABOT_YML);
+  await writeRepoFile(root, QUALITY_WORKFLOW_PATH, LOCKFILE_INSTALL_WORKFLOW);
 }
 
 afterEach(async () => {
@@ -197,6 +217,30 @@ describe("assessDependenciesSupplyChainDimension — B5 violations", () => {
     expect(finding?.evidence).toContain("audit");
   });
 
+  it("FAILs with B5 when CI installs without enforcing the committed lockfile", async () => {
+    const cwd = await getTempDir();
+    await writeRepoJson(cwd, PACKAGE_JSON, PINNED_MANIFEST);
+    await writeRepoFile(cwd, BUN_LOCK, LOCKFILE_BODY);
+    await writeRepoFile(cwd, DEPENDABOT_PATH, DEPENDABOT_YML);
+    await writeRepoFile(
+      cwd,
+      QUALITY_WORKFLOW_PATH,
+      qualityWorkflow(
+        "      - run: npm install",
+        "      - run: npm audit --audit-level=high"
+      )
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain("no CI or hook install");
+    expect(finding?.evidence).toContain("npm ci");
+  });
+
   it("FAILs with B5 when an audit exclusion carries no decision record", async () => {
     const cwd = await getTempDir();
     await writeCleanRepo(cwd);
@@ -245,15 +289,11 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
     await writeRepoFile(cwd, "package-lock.json", '{"lockfileVersion": 3}\n');
     await writeRepoFile(
       cwd,
-      ".github/workflows/quality.yml",
-      [
-        "name: Quality",
-        "jobs:",
-        "  scan:",
-        "    steps:",
-        "      - run: npm audit --audit-level=high",
-        "",
-      ].join("\n")
+      QUALITY_WORKFLOW_PATH,
+      qualityWorkflow(
+        "      - run: npm ci",
+        "      - run: npm audit --audit-level=high"
+      )
     );
 
     const record = await assessDependenciesSupplyChainDimension(cwd);
@@ -269,7 +309,7 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
     await writeRepoFile(
       cwd,
       ".husky/pre-push",
-      "#!/bin/sh\nnpm audit --audit-level=moderate\n"
+      "#!/bin/sh\npnpm install --frozen-lockfile\nnpm audit --audit-level=moderate\n"
     );
 
     const record = await assessDependenciesSupplyChainDimension(cwd);

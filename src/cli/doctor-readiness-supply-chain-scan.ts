@@ -160,6 +160,13 @@ const AUDIT_GATE_PATTERN =
   /\b(npm|bun|yarn|pnpm)\s+audit\b|audit-ci|osv-scanner|dependency-review-action|\bsnyk\b|\btrivy\b|\bgrype\b/i;
 
 /**
+ * Install commands that prove CI will honor the committed lockfile instead of
+ * silently updating it or accepting a different dependency tree.
+ */
+const LOCKFILE_INSTALL_PATTERN =
+  /\bnpm\s+ci\b|\b(?:bun|pnpm)\s+install\b[^\n\r]*(?:--frozen-lockfile|--immutable)\b|\byarn\s+install\b[^\n\r]*(?:--frozen-lockfile|--immutable)\b/i;
+
+/**
  * An update bot covering the JavaScript dependency tree. A `dependabot.yml`
  * that only watches `github-actions` never looks at `package.json`, so its mere
  * presence is not a confidence model for the dependencies.
@@ -363,6 +370,30 @@ export async function findAuditGate(root: string): Promise<string | null> {
   for (const file of scanned) {
     const source = await readFileOrNull(root, file);
     if (source !== null && AUDIT_GATE_PATTERN.test(source)) {
+      return file.split(path.sep).join("/");
+    }
+  }
+  return null;
+}
+
+/**
+ * Find where the repository installs dependencies in a way that must honor the
+ * committed lockfile.
+ * @param root - Repository root
+ * @returns The repo-relative path of the first enforcing install gate found, or null
+ */
+export async function findLockfileInstallGate(
+  root: string
+): Promise<string | null> {
+  const scanned = [
+    ...(
+      await Promise.all(GATE_DIRECTORIES.map(dir => listDirectory(root, dir)))
+    ).flat(),
+    ...GATE_FILES,
+  ];
+  for (const file of scanned) {
+    const source = await readFileOrNull(root, file);
+    if (source !== null && LOCKFILE_INSTALL_PATTERN.test(source)) {
       return file.split(path.sep).join("/");
     }
   }

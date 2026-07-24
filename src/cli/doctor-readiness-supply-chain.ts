@@ -34,6 +34,7 @@ import {
   type DependencySpec,
   findAuditGate,
   findLockfile,
+  findLockfileInstallGate,
   isFloatingSpec,
   LOCKFILES,
   readManifest,
@@ -111,6 +112,8 @@ async function collectFindings(
   readonly observations: readonly string[];
 }> {
   const lockfile = await findLockfile(root);
+  const lockfileInstallGate =
+    lockfile === null ? null : await findLockfileInstallGate(root);
   const auditGate = await findAuditGate(root);
   const floating = specs.filter(
     spec => isFloatingSpec(spec.spec) && !linksWorkspaceMember(spec, workspaces)
@@ -118,6 +121,15 @@ async function collectFindings(
   return {
     violations: [
       ...(lockfile === null ? [lockfileEvidence(specs.length)] : []),
+      ...(lockfile !== null && lockfileInstallGate === null
+        ? [
+            `lockfile \`${lockfile}\` is committed, but no CI or hook install ` +
+              "step was found that enforces it with `npm ci`, " +
+              "`bun install --frozen-lockfile`, `pnpm install --frozen-lockfile`, " +
+              "or `yarn install --immutable`; a workflow can silently rewrite " +
+              "or bypass the tree that was validated",
+          ]
+        : []),
       ...floating.map(
         spec =>
           `\`package.json\` \`${spec.block}.${spec.name}\` is \`${spec.spec}\`, ` +
@@ -137,6 +149,11 @@ async function collectFindings(
     ],
     observations: [
       ...(lockfile === null ? [] : [`Lockfile in use: \`${lockfile}\`.`]),
+      ...(lockfileInstallGate === null
+        ? []
+        : [
+            `Lockfile-enforcing install declared in \`${lockfileInstallGate}\`.`,
+          ]),
       ...(auditGate === null
         ? []
         : [`Dependency-audit gate declared in \`${auditGate}\`.`]),

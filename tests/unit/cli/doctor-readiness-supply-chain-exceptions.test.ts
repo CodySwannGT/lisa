@@ -49,6 +49,13 @@ const WORKSPACE_GLOB = "packages/*";
 /** The update-bot config most fixtures use as their audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
 
+/** The CI workflow path used by dependency-confidence fixtures. */
+const QUALITY_WORKFLOW_PATH = ".github/workflows/quality.yml";
+
+/** Minimal CI install step that proves the committed lockfile is honored. */
+const LOCKFILE_INSTALL_WORKFLOW =
+  "jobs:\n  test:\n    steps:\n      - run: npm ci\n";
+
 /** A manifest whose dependency specs are all exactly pinned or caret-ranged. */
 const PINNED_MANIFEST = {
   name: "scratch",
@@ -88,6 +95,7 @@ async function writeCleanRepo(root: string): Promise<void> {
   await writeRepoJson(root, PACKAGE_JSON, PINNED_MANIFEST);
   await writeRepoFile(root, BUN_LOCK, LOCKFILE_BODY);
   await writeRepoFile(root, DEPENDABOT_PATH, DEPENDABOT_YML);
+  await writeRepoFile(root, QUALITY_WORKFLOW_PATH, LOCKFILE_INSTALL_WORKFLOW);
 }
 
 afterEach(async () => {
@@ -156,6 +164,7 @@ describe("assessDependenciesSupplyChainDimension — evidence states what it act
     const cwd = await getTempDir();
     await writeRepoFile(cwd, BUN_LOCK, LOCKFILE_BODY);
     await writeRepoFile(cwd, DEPENDABOT_PATH, DEPENDABOT_YML);
+    await writeRepoFile(cwd, QUALITY_WORKFLOW_PATH, LOCKFILE_INSTALL_WORKFLOW);
     await writeRepoJson(cwd, PACKAGE_JSON, {
       name: MONOREPO_NAME,
       version: "1.0.0",
