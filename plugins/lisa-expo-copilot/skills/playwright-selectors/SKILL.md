@@ -271,6 +271,22 @@ export default defineConfig({
 });
 ```
 
+> **Run local verification with `CI=1`.** In a config shaped like the one above,
+> `webServer` exists only when `CI` is set and `baseURL` otherwise points at the
+> **deployed** environment. So a plain `npx playwright test <spec>` does not test your
+> working tree at all — it tests whatever is deployed. A pass proves nothing about your
+> change, and a failure may be the deployed app failing rather than your code. Use
+> `CI=1 npx playwright test <spec>` whenever you are verifying uncommitted work.
+>
+> **Use a control spec before concluding anything from a red run.** If a spec fails
+> locally, re-run a **known-good sibling spec, unmodified, in the same mode**. If the
+> control fails too, that surface is not exercisable in your environment and the run
+> says nothing about your spec — don't "fix" a spec that was never broken. If the
+> control passes, the defect is genuinely yours.
+>
+> Also read reporter totals carefully: `setup` / auth projects count as passing tests.
+> "2 passed" can mean two auth setups and zero assertions.
+
 ---
 
 ## Writing Robust Tests
