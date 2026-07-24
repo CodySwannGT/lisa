@@ -62,7 +62,7 @@ const MAX_EVIDENCE_LINES = 12;
  */
 function lockfileEvidence(specCount: number): string {
   return (
-    `\`package.json\` and workspace package manifest(s) declare ${specCount} ` +
+    `package manifest(s), starting with \`package.json\`, declare ${specCount} ` +
     `dependency spec(s) but no lockfile is committed (looked for ` +
     `${LOCKFILES.join(", ")}) — two installs can resolve to different trees, ` +
     "so what was validated is not provably what gets installed"

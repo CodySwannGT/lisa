@@ -145,4 +145,55 @@ describe("assessDependenciesSupplyChainDimension — workspace child manifests",
       "1 workspace child manifest"
     );
   });
+
+  it("deduplicates workspace manifests resolved through overlapping globs", async () => {
+    const cwd = await getTempDir();
+    await writeConfidenceGates(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: MONOREPO_NAME,
+      version: "1.0.0",
+      workspaces: [WORKSPACE_GLOB, "packages/utils"],
+      dependencies: { [WORKSPACE_PACKAGE_NAME]: "*" },
+    });
+    await writeRepoJson(cwd, WORKSPACE_MANIFEST, {
+      name: WORKSPACE_PACKAGE_NAME,
+      version: "1.0.0",
+      dependencies: { "left-pad": "*" },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(
+      Array.from(
+        finding?.evidence.matchAll(new RegExp(WORKSPACE_MANIFEST, "g")) ?? []
+      )
+    ).toHaveLength(1);
+  });
+
+  it("counts an overlapping workspace manifest once in PASS evidence", async () => {
+    const cwd = await getTempDir();
+    await writeConfidenceGates(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: MONOREPO_NAME,
+      version: "1.0.0",
+      workspaces: [WORKSPACE_GLOB, "packages/utils"],
+      dependencies: { [WORKSPACE_PACKAGE_NAME]: "*" },
+    });
+    await writeRepoJson(cwd, WORKSPACE_MANIFEST, {
+      name: WORKSPACE_PACKAGE_NAME,
+      version: "1.0.0",
+      dependencies: { "left-pad": "1.3.0" },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(PASS);
+    const evidence = asFindings(record.findings)[0].evidence;
+    expect(evidence).toContain("2 dependency spec(s)");
+    expect(evidence).toContain("1 workspace child manifest");
+  });
 });
