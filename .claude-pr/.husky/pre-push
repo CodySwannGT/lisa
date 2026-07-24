@@ -27,6 +27,16 @@ fi
 
 echo "📦 Using package manager: $PACKAGE_MANAGER"
 
+# Run the whole-project type check once before code leaves the machine. It is
+# intentionally not a pre-commit gate because TypeScript cannot check only the
+# staged files and rebuilding the full program makes small commits too slow.
+echo "🔍 Running type check..."
+$RUNNER typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed. Please fix TypeScript errors before pushing."
+  exit 1
+fi
+
 # Run security audit
 echo "🔒 Running security audit..."
 
