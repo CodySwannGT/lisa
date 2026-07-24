@@ -300,6 +300,15 @@ describe("assessDependenciesSupplyChainDimension — clean and unassessable repo
 
     expect(record.status).toBe(PASS);
     expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(
+      asFindings(record.findings).some(
+        finding =>
+          typeof finding.observation === "string" &&
+          finding.observation.includes(
+            "Lockfile-enforcing install declared in `.github/workflows/quality.yml`."
+          )
+      )
+    ).toBe(true);
   });
 
   it("accepts an audit gate declared only in a git hook", async () => {
