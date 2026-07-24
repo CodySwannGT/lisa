@@ -259,6 +259,26 @@ describe("assessFeedbackGuardrailsDimension — ordinary operations stay clear",
     expectNoBlocker(record.findings);
   });
 
+  it("does not stand B4 when step env names a non-production environment", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: bundle exec rails db:migrate",
+      "        env:",
+      "          RAILS_ENV: nonprod",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(SKIP);
+    expectNoBlocker(record.findings);
+  });
+
   it("does not stand B4 when a checked-in runbook provides the way back", async () => {
     const root = await getTempDir();
     await writeRepoFile(

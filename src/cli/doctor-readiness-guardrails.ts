@@ -95,7 +95,7 @@ const MIGRATION_COMMANDS: readonly RegExp[] = [
  * the two alike is the false positive that would discredit this whole check.
  */
 const PRODUCTION_MARKERS: readonly RegExp[] = [
-  /\b(rails_env|node_env|app_env|django_settings_module|environment)\s*[:=]\s*[^\s]*prod/,
+  /\b(rails_env|node_env|app_env|django_settings_module|environment)\s*[:=]\s*["']?prod(?:uction)?["']?(?=\s|$)/,
   /--env(ironment)?[= ]prod/,
   /\bprod(uction)?\.tfvars\b/,
 ];
