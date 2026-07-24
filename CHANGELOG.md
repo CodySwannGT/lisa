@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.1](https://github.com/CodySwannGT/lisa/compare/v2.300.0...v2.300.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* **readiness:** ignore quoted lockfile install mentions ([47c10f9](https://github.com/CodySwannGT/lisa/commit/47c10f9c86ba7da33c0c01ba522361c6032515ae)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** require lockfile-enforced installs ([348c2b0](https://github.com/CodySwannGT/lisa/commit/348c2b03f967289dc601515c70e79cc4b37ed179)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ## [2.300.0](https://github.com/CodySwannGT/lisa/compare/v2.299.5...v2.300.0) (2026-07-24)
 
 
