@@ -302,6 +302,10 @@
         background: var(--surface2);
         border-bottom: 1px solid var(--line);
       }
+      /* display:flex above would otherwise beat the `hidden` attribute. */
+      .live-status-panel[hidden] {
+        display: none;
+      }
       .live-status-panel h2 {
         margin: 0;
         font-size: 12px;
@@ -630,6 +634,11 @@
         background: var(--accent-soft);
         color: var(--accent);
       }
+      .badge.na {
+        background: transparent;
+        color: var(--faint);
+        border: 1px dashed var(--line-strong);
+      }
 
       .switch {
         position: relative;
@@ -649,29 +658,59 @@
         position: absolute;
         inset: 0;
         border-radius: 99px;
-        background: var(--line-strong);
-        transition: background 0.15s;
+        /* Off reads as an empty, recessed well; on reads as a filled accent
+           track. Border + inset shadow are what make the off state legible
+           against the card background instead of looking like a flat pill. */
+        background: var(--surface2);
+        border: 1px solid var(--line-strong);
+        box-shadow: inset 0 1px 2px rgba(22, 35, 38, 0.12);
+        transition:
+          background 0.15s,
+          border-color 0.15s;
       }
       .switch .trk::after {
         content: "";
         position: absolute;
         top: 2px;
         left: 2px;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
-        background: #fff;
+        background: var(--faint);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-        transition: transform 0.15s;
+        transition:
+          transform 0.15s,
+          background 0.15s;
       }
       .switch input:checked + .trk {
         background: var(--accent);
+        border-color: var(--accent);
+        box-shadow: none;
       }
       .switch input:checked + .trk::after {
         transform: translateX(16px);
+        background: #fff;
       }
       .switch input:focus-visible + .trk {
         box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      /* The state word is what actually makes on/off unambiguous — the track
+         alone reads as decoration at a glance. */
+      .switch-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .switch-state {
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--faint);
+        min-width: 22px;
+      }
+      .switch-state.on {
+        color: var(--accent);
       }
 
       select.ctl,
@@ -1261,6 +1300,293 @@
           animation: none !important;
         }
       }
+
+      /* --- "how do I connect this?" modal --- */
+      .badge-btn {
+        border: 0;
+        padding: 0;
+        background: none;
+        font: inherit;
+        cursor: pointer;
+        border-radius: 99px;
+      }
+      .badge-btn .badge {
+        text-decoration: underline dotted currentColor;
+        text-underline-offset: 3px;
+      }
+      .badge-btn:hover .badge,
+      .badge-btn:focus-visible .badge {
+        text-decoration: underline solid currentColor;
+        outline: none;
+      }
+      .badge-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .howto {
+        width: min(560px, calc(100vw - 32px));
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--ink);
+        padding: 0;
+        box-shadow: var(--shadow);
+      }
+      .howto::backdrop {
+        background: rgba(22, 35, 38, 0.42);
+      }
+      .howto-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 18px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .howto-head h2 {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.35;
+      }
+      .howto-head .sub {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .howto-close {
+        margin-left: auto;
+        flex: none;
+        border: 1px solid var(--line);
+        background: var(--surface2);
+        color: var(--muted);
+        border-radius: 6px;
+        width: 26px;
+        height: 26px;
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .howto-close:hover {
+        color: var(--ink);
+        border-color: var(--line-strong);
+      }
+      .howto-body {
+        padding: 14px 18px 18px;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .howto-body p {
+        margin: 0 0 12px;
+        color: var(--muted);
+      }
+      .howto-body ol {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 10px;
+      }
+      .howto-body li {
+        padding-left: 2px;
+      }
+      .howto-body code {
+        display: block;
+        margin-top: 6px;
+        padding: 7px 9px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12px;
+        overflow-x: auto;
+        white-space: pre;
+      }
+      .howto-foot {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* --- gate matrix: clickable obligation + per-layer status dots --- */
+      .linklike {
+        border: 0;
+        padding: 0;
+        background: none;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        text-align: left;
+        text-decoration: underline dotted var(--line-strong);
+        text-underline-offset: 3px;
+      }
+      .linklike:hover,
+      .linklike:focus-visible {
+        text-decoration: underline solid var(--accent);
+        color: var(--accent);
+        outline: none;
+      }
+      .grid th.center,
+      .grid td.gate-cell {
+        text-align: center;
+      }
+      .gate-cell .dot {
+        display: inline-block;
+      }
+      .dot.warn {
+        background: var(--warn);
+      }
+      /* --- staff picker: which coding agent a factory page is read for --- */
+      .staff-card {
+        padding: 12px 16px;
+      }
+      .staff-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .staff-label {
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .staff-opts {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 3px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .staff-opt {
+        border: 0;
+        background: none;
+        font: inherit;
+        font-size: 12px;
+        color: var(--muted);
+        padding: 5px 11px;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .staff-opt:hover {
+        color: var(--ink);
+      }
+      .staff-opt.active {
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      /* The three environment cards are siblings of every other card on the
+         page — display:contents keeps them in the section's own flow rather
+         than nesting them in a box that would read as one grouped thing. */
+      .env-cards {
+        display: contents;
+      }
+      .card.env-gap {
+        border-left: 3px solid var(--warn);
+      }
+      .staff-warn {
+        margin-top: 8px;
+        padding: 8px 11px;
+        border-radius: 7px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .howto-meta {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 14px;
+        margin: 0 0 14px;
+        padding: 10px 12px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 12px;
+      }
+      .howto-meta .hm-k {
+        color: var(--muted);
+      }
+      .howto-meta .hm-v {
+        color: var(--ink);
+        font-family: var(--mono);
+      }
+
+      /* --- multi-select provider control --- */
+      .ms {
+        position: relative;
+        display: inline-block;
+      }
+      .ms-summary {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 6px;
+        padding: 4px 22px 4px 8px;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        text-align: left;
+        max-width: 220px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background-image:
+          linear-gradient(45deg, transparent 50%, var(--faint) 50%),
+          linear-gradient(135deg, var(--faint) 50%, transparent 50%);
+        background-position:
+          calc(100% - 12px) 50%,
+          calc(100% - 8px) 50%;
+        background-size:
+          4px 4px,
+          4px 4px;
+        background-repeat: no-repeat;
+      }
+      .ms-summary:hover {
+        border-color: var(--line-strong);
+      }
+      .ms-summary.ms-empty {
+        color: var(--faint);
+      }
+      .ms-pop {
+        display: none;
+        position: absolute;
+        z-index: 40;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: 100%;
+        max-height: 240px;
+        overflow-y: auto;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 4px;
+      }
+      .ms.open .ms-pop {
+        display: block;
+      }
+      .ms-opt {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .ms-opt:hover {
+        background: var(--surface2);
+      }
     </style>
   </head>
   <body>
@@ -1308,12 +1634,19 @@
         ◐
       </button>
     </header>
+    <!-- Live status strip: HIDDEN for now. The probe fetch still runs and still
+         paints the pages that consume it (Monitoring providers, CI quality
+         jobs, Automations) — only this summary strip is hidden, because it
+         renders raw probe payloads as unreadable JSON blobs. Unhide by removing
+         the `hidden` attribute once each probe result has a human-readable
+         rendering. -->
     <section
       class="live-status-panel"
       aria-labelledby="liveStatusHeading"
       aria-live="polite"
       aria-atomic="true"
       role="status"
+      hidden
     >
       <h2 id="liveStatusHeading">Live status</h2>
       <div class="live-status-list" id="liveStatusList" role="list">
@@ -1324,6 +1657,20 @@
       <nav class="sidebar" id="nav" aria-label="Settings sections"></nav>
       <main class="main" id="main"></main>
     </div>
+    <dialog class="howto" id="howto" aria-labelledby="howtoTitle">
+      <div class="howto-head">
+        <h2 id="howtoTitle"></h2>
+        <button
+          class="howto-close"
+          id="howtoClose"
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+      <div class="howto-body" id="howtoBody"></div>
+    </dialog>
     <div class="savebar" id="savebar" role="status">
       <span class="msg"
         ><b id="dirtyCount">0</b> unsaved change<span id="dirtyPlural"
@@ -1385,8 +1732,22 @@
               "general",
               "stacks",
               "starters",
-              "agents",
               "remote",
+            ],
+          },
+          {
+            label: "Factories",
+            sections: [
+              "factory-research",
+              "factory-plan",
+              "factory-implement",
+              "factory-verify",
+              "signals",
+              "credentials",
+              "environments",
+              // The staff that run the factories — every factory page picks
+              // one of these, and its capabilities change what that page shows.
+              "agents",
             ],
           },
           {
@@ -1509,6 +1870,3095 @@
         ],
       };
 
+      /* ---------------------------------- Factories ---------------------------------- */
+      /* MOCK ONLY. The factory pages illustrate the readiness model —
+               obligation × provider × enforcement point, then the same obligations
+               re-asked across staff (which coding agent) and environment (where it
+               runs). None of these cells are wired to a probe yet; every value below
+               is illustrative. Wiring them means replacing the literal rows with
+               probe-painted cells, the way Monitoring's "Connected providers" table
+               already works. */
+
+      /* ===================================================================
+               PROPOSED-CAPABILITY MARKER — read this before implementing anything
+               these pages describe.
+               ===================================================================
+               Some of this UI shows Lisa capabilities that DO NOT EXIST YET. The
+               mock is the spec for them. Every such spot is marked with a comment
+               beginning `PROPOSED:` so they can all be found with one grep:
+
+                   rg "PROPOSED:" ui/index.html
+
+               A PROPOSED block always states four things, in this order:
+                 1. What to build   — the command/behaviour the UI implies.
+                 2. Why             — the problem it solves that today's surface
+                                      does not.
+                 3. Today           — what actually exists right now, so the
+                                      implementer can see the delta.
+                 4. Replaces        — existing skills/commands that should be
+                                      folded in or retired, if any.
+
+               Rule: never quietly "fix" the UI to match what Lisa can do today.
+               The gap is deliberate. Build the capability, then delete the marker.
+               =================================================================== */
+
+      /* Cell states are deliberately tri-state-plus: green means proven, amber
+               means partial, red means a real gap, grey means either not-applicable
+               or never-exercised. Grey is NOT a pass — an obligation that has never
+               been run must never render as green. */
+      function fCell(v, how) {
+        const cls =
+          v === "yes" || v === "ready" || v === "proven"
+            ? "pass"
+            : v === "partial"
+              ? "warn"
+              : v === "no" || v === "gap"
+                ? "fail"
+                : "default";
+        return how ? { t: "badge", v, cls, how } : { t: "badge", v, cls };
+      }
+
+      /* Bypassability is its own vocabulary because "no" is the good answer:
+               only server-side enforcement is unskippable, everything earlier is a
+               fast-feedback mirror of the same rule. */
+      function fBypass(v, how) {
+        const cls =
+          v === "blocked" ? "pass" : v === "possible" ? "warn" : "fail";
+        return how ? { t: "badge", v, cls, how } : { t: "badge", v, cls };
+      }
+
+      /* Gate matrix cells. gObl = the obligation name (clickable when the gate
+               has a gap). gGate = one enforcement layer's status: true enforced,
+               "warn" runs-but-does-not-gate, false not-here. Bypassability is not a
+               column any more — it is read off the row: the rightmost server-side
+               layer being green is what makes an obligation unskippable. */
+      function gObl(v, how) {
+        return how ? { t: "obl", v, how } : { t: "obl", v };
+      }
+      function gGate(on) {
+        return { t: "gate", on };
+      }
+      function gProv(values, options) {
+        return { t: "multiselect", values, options, mono: true };
+      }
+
+      /* A single enforcement layer as a clickable yes/no. Setup and verify
+               commands default per layer kind; the caller supplies the event binding
+               (and, for CI, whether the check is required to merge) plus any
+               obligation-specific note. When a wired version replaces this, these
+               defaults become whatever the probe reports about the installed hook. */
+      const LAYER_DEFS = {
+        agent: {
+          name: "Agent hook",
+          setup: "/lisa:apply",
+          verify: "/lisa:doctor",
+        },
+        git: {
+          name: "Git hook",
+          setup: "/lisa:apply",
+          verify: "/lisa:doctor",
+        },
+        ci: {
+          name: "CI",
+          setup: "/lisa:apply",
+          verify: "/lisa:verify:workflow-change",
+          note: null,
+        },
+      };
+      function layerCell(kind, on, opts) {
+        opts = opts || {};
+        const d = LAYER_DEFS[kind];
+        // Per-gate setup/verify commands when a slug is supplied; the generic
+        // apply/doctor commands otherwise.
+        const setup = opts.slug ? "/lisa:setup:gate:" + opts.slug : d.setup;
+        const verify = opts.slug ? "/lisa:verify:gate:" + opts.slug : d.verify;
+        const enabled = on === true;
+        const na = on === "na";
+        const meta = [];
+        if (enabled && opts.event) meta.push({ k: "Event", v: opts.event });
+        if (kind === "ci" && enabled) {
+          meta.push({
+            k: "Required to merge",
+            v: opts.required ? "Yes" : "No",
+          });
+        }
+        let steps;
+        if (na) {
+          steps = [
+            {
+              text: "Not applicable to this project — there is no deployed web or API surface to scan. It becomes a gate on a stack that has one.",
+              cmd: setup,
+            },
+          ];
+        } else if (enabled) {
+          steps = [
+            {
+              text: "Set up this gate — the command asks which layers to enforce it at, and with which provider.",
+              cmd: setup,
+            },
+            { text: "Verify it fires.", cmd: verify },
+          ];
+        } else {
+          steps = [
+            {
+              text: "Not enforced at this layer. Set the gate up and enable it here.",
+              cmd: setup,
+            },
+          ];
+        }
+        const subState = enabled
+          ? " — enforced here"
+          : na
+            ? " — not applicable"
+            : " — not enforced here";
+        return {
+          t: "layer",
+          kind, // read at render time so the cell can defer to the selected agent
+          on,
+          how: {
+            title: opts.for || d.name,
+            sub: d.name + subState,
+            intro: opts.intro,
+            meta,
+            steps,
+            foot: opts.foot || (na ? null : d.note) || undefined,
+          },
+        };
+      }
+
+      /* An agent-layer cell is only as real as the agent running the factory.
+               Where the selected agent has no working hook surface, the cell reports
+               n/a with the capability reason — never "no", which would imply the
+               operator forgot to turn something on. */
+      function resolveLayerCell(cell) {
+        if (cell.kind !== "agent") return cell;
+        const caps = currentCaps();
+        if (caps.agentHooks === true) return cell;
+
+        // Unproven. Never rendered as enforced, never as a flat capability gap.
+        if (caps.agentHooks === "unverified") {
+          return {
+            ...cell,
+            on: "na",
+            how: {
+              title: cell.how ? cell.how.title : "Agent hook",
+              sub: caps.label + " — unverified",
+              intro: caps.hookWhy,
+              meta: [
+                { k: "Agent", v: caps.label },
+                { k: "Agent-layer hooks", v: "unproven" },
+              ],
+              steps: [
+                {
+                  text: "Prove it either way by tripping the rule in a real headless run for this agent.",
+                  cmd: "/lisa:verify:gate:<name>",
+                },
+              ],
+              foot: "Unverified is not the same as unsupported. Rendering it as enforced would be a lie; rendering it as a capability gap would be a different lie.",
+            },
+          };
+        }
+
+        return {
+          ...cell,
+          on: "na",
+          how: {
+            title: cell.how ? cell.how.title : "Agent hook",
+            sub: caps.label + " — capability gap",
+            intro:
+              caps.hookWhy +
+              " This is a property of the agent, not of your configuration, so there is nothing here to switch on.",
+            meta: [
+              { k: "Agent", v: caps.label },
+              { k: "Agent-layer hooks", v: "unsupported" },
+            ],
+            steps: [
+              {
+                text: "Nothing to set up for this agent. The rule still holds — it is enforced at the layers below, which every agent shares.",
+                cmd: "the Git hook and CI columns",
+              },
+            ],
+            foot: "Lisa's parity rule: where a capability cannot be represented on an agent, the gap is documented rather than silently dropped. This cell is that documentation.",
+          },
+        };
+      }
+      /* Build a full gate row. layers = {agent, git, ci}, each an opts object
+               carrying at least {on}. The obligation string is threaded into every
+               cell's modal title so each layer modal names what it enforces. */
+      function gateRow(obl, slug, provider, layers) {
+        // o.on is tri-state: true | false | "na" — pass it through raw.
+        const withFor = (kind, o) =>
+          layerCell(kind, o.on, Object.assign({ for: obl, slug }, o));
+        return [
+          { t: "text", v: obl },
+          provider,
+          withFor("agent", layers.agent),
+          withFor("git", layers.git),
+          withFor("ci", layers.ci),
+        ];
+      }
+
+      function fGates(rows) {
+        return {
+          type: "table",
+          card: "Flows and gates",
+          note: "The obligation is fixed; the provider is swappable. Change the tool, not the rule.",
+          cols: [
+            {
+              v: "Obligation",
+              tip: "What must be true. This does not change when you change tools.",
+            },
+            {
+              v: "Provider",
+              tip: "The tool currently satisfying the obligation. Swappable.",
+            },
+            {
+              v: "Enforced at",
+              tip: "Where the gate actually fires. Only server-side enforcement cannot be skipped.",
+            },
+            {
+              v: "Bypass",
+              tip: "blocked = the worker cannot skip it · possible = local-only, skippable · unenforced = nothing stops it",
+            },
+            { v: "State" },
+          ],
+          rows: rows.map(r => [
+            { t: "text", v: r[0] },
+            { t: "mono", v: r[1] },
+            { t: "text", v: r[2] },
+            fBypass(r[3]),
+            fCell(r[4]),
+          ]),
+        };
+      }
+
+      function fStaff(rows) {
+        return {
+          type: "table",
+          card: "Staff readiness — is this factory ready for each agent?",
+          note: "A red cell here is sometimes not fixable by config: if the agent lacks the surface entirely, the gap is declared, never silently dropped.",
+          cols: [
+            { v: "Agent", tip: "The staff that runs the factory." },
+            {
+              v: "Commands",
+              tip: "Native slash-command surface for this factory's flows.",
+            },
+            { v: "Skills", tip: "The factory's skills are installed." },
+            {
+              v: "Hooks enforce",
+              tip: "Agent-level hooks actually fire for this agent in this factory.",
+            },
+            {
+              v: "Unattended",
+              tip: "Proven to complete a work item with no human in the loop.",
+            },
+            { v: "Verdict" },
+          ],
+          rows: rows.map(r => [
+            { t: "mono", v: r[0] },
+            fCell(r[1]),
+            fCell(r[2]),
+            fCell(r[3]),
+            fCell(r[4]),
+            fCell(r[5]),
+          ]),
+        };
+      }
+
+      function fEnv(rows) {
+        return {
+          type: "table",
+          card: "Environment readiness — where can this factory run?",
+          note: "Interactive OAuth is the usual killer: a factory that is green locally can be red headless for reasons no config inspection reveals.",
+          cols: [
+            { v: "Where it runs" },
+            {
+              v: "Credentials",
+              tip: "The factory's tokens and keys are present in this environment.",
+            },
+            {
+              v: "Interactive auth",
+              tip: "Integrations that require a human OAuth session are reachable here.",
+            },
+            {
+              v: "Gate enforcement",
+              tip: "The gates for this factory still fire in this environment.",
+            },
+            { v: "Tooling", tip: "Every provider above is reachable here." },
+            { v: "Verdict" },
+          ],
+          rows: rows.map(r => [
+            { t: "text", v: r[0] },
+            fCell(r[1]),
+            fCell(r[2]),
+            fCell(r[3]),
+            fCell(r[4]),
+            fCell(r[5]),
+          ]),
+        };
+      }
+
+      function fLegend(text) {
+        return { type: "callout", text: text };
+      }
+
+      /* ===== Staff: which coding agent runs this factory =====================
+               PROPOSED: per-agent factory readiness.
+               1. What to build — every factory page is read FOR A PARTICULAR AGENT.
+                  The factories are the production line; the coding agents are the
+                  staff that run them. A factory that is fully wired for Claude can
+                  be partly unusable for Codex, because the agent lacks a surface —
+                  not because anything is misconfigured. Selecting an agent must
+                  repaint the page against that agent's real capabilities.
+               2. Why — "is this factory ready?" is not answerable without naming the
+                  staff. Today the console implies one universal answer, which is
+                  wrong in a fleet: a green agent-hook cell is a lie for an agent
+                  whose hooks never fire.
+               3. Today — the harness setting installs surfaces for every agent, and
+                  the parity subsystem knows which capabilities each one lacks, but
+                  none of that is surfaced as readiness. Nothing tells an operator
+                  that a gate they are relying on is inert for the agent that will
+                  actually run tonight.
+               4. Replaces — nothing. This reads the same parity knowledge that
+                  already governs artifact generation.
+               DISTINCTION worth preserving: a capability GAP (this agent cannot do
+               this at all) is not a configuration gap (this is not set up yet). The
+               first is never actionable by the operator, so it renders n/a with the
+               reason — never red, which would imply something to fix. */
+      const AGENTS = [
+        "claude",
+        "codex",
+        "cursor",
+        "agy",
+        "copilot",
+        "opencode",
+      ];
+      /* agentHooks is tri-state:
+                 true        — hooks fire. Whatever invocation flags that requires are
+                               Lisa's problem, not the operator's, so they live in
+                               code comments rather than on screen.
+                 "unverified"— docs neither confirm nor deny; last empirical check
+                               showed no fire. Never claim either way without proof.
+                 false       — genuinely unsupported by the agent.
+               Verified against vendor docs 2026-07-24. Codex and Copilot both moved:
+               they previously appeared to have no headless hook support, and both now
+               document it. Re-check on a cadence — this is the fastest-moving surface
+               in the whole console, and a stale "false" here silently tells an
+               operator a gate is inert when it is not. */
+      const AGENT_CAPS = {
+        claude: {
+          label: "Claude Code",
+          agentHooks: true,
+          commands: true,
+        },
+        codex: {
+          // Hooks fire in `codex exec`, but only when the invocation passes
+          // `--dangerously-bypass-hook-trust` (hook trust is granted
+          // interactively, so an unattended run without the flag silently runs
+          // zero hooks while still reporting success). That is Lisa's job to
+          // get right in how it invokes Codex — not something to surface to an
+          // operator, who has no action to take. Kept here as an
+          // implementation note for whoever wires the invocation.
+          label: "Codex",
+          agentHooks: true,
+          commands: false,
+        },
+        cursor: {
+          label: "Cursor",
+          agentHooks: true,
+          commands: true,
+        },
+        agy: {
+          label: "Antigravity",
+          agentHooks: "unverified",
+          commands: true,
+          hookWhy:
+            "Antigravity documents plugin hooks (hooks.json) and a headless mode, but nothing states whether hooks fire in a non-TTY run, and the last empirical check showed they did not. Treat as unproven until a run proves otherwise.",
+        },
+        copilot: {
+          label: "Copilot",
+          agentHooks: true,
+          commands: true,
+        },
+        opencode: {
+          label: "OpenCode",
+          agentHooks: true,
+          commands: true,
+        },
+      };
+      /* The currently-selected staff. Every factory page renders against it. */
+      DATA.staff = "claude";
+      function currentCaps() {
+        return AGENT_CAPS[DATA.staff] || AGENT_CAPS.claude;
+      }
+      function fStaffPicker() {
+        return { type: "staff" };
+      }
+
+      DATA.sections["factory-research"] = {
+        title: "Research factory",
+        desc: "Turns a problem or an idea into a PRD, and files it in the project's PRD source. Everything downstream starts here, so this factory needs two connections to be useful: somewhere to write the PRD, and enough project knowledge to write a good one.",
+        src: ".lisa.config.json prd.* · source.*",
+        blocks: [
+          fStaffPicker(),
+          /* PROPOSED: command renames — /lisa:setup:automations and
+                   /lisa:verify:automation  (canonical marker; the console uses the
+                   new names EVERYWHERE, including on otherwise-real pages)
+                   ------------------------------------------------------------
+                   1. What to build — rename two commands onto the standard
+                      <namespace>:<verb>:<noun> shape:
+                        /lisa:setup-automations  →  /lisa:setup:automations
+                        /lisa:automation-status  →  /lisa:verify:automation
+                      Ship the new names with the old ones kept as deprecated
+                      aliases that warn once, then retire the aliases.
+                   2. Why — every other surface is verb-scoped and colon-separated
+                      (/lisa:setup:jira, /lisa:setup:github, /lisa:improve:tests).
+                      These two are the odd ones out: one uses a hyphen where a
+                      colon belongs, the other is a bare noun-phrase with no verb,
+                      which makes it unguessable and sorts it away from its siblings.
+                   3. Today — both ship under their old names, and the old names are
+                      what the skills, docs and runbooks reference. Renaming means
+                      updating every caller, not just the skill directory: grep for
+                      both strings across .claude/, .agents/, plugins/ and wiki/.
+                   4. Replaces — nothing new is being built here; this is purely a
+                      rename plus alias-and-retire.
+                   VERB (decided): `verify` is the verb for proving that something
+                   works by exercising it; `validate` stays reserved for conformance
+                   checks on documents and config (ticket/PRD gates). Every
+                   connection- and automation-proving command in this console uses
+                   verify. The full rule is written out in the PROPOSED marker on the
+                   PRD-source row of the Connections table below. */
+          {
+            type: "table",
+            card: "How to run it",
+            note: "Start the scheduled loop with /lisa:setup:automations — it registers lisa-auto-<project>-exploratory-prds and writes its runbook to .lisa/automations/. Nothing here runs on a schedule until that happens.",
+            cols: [
+              { v: "Mode" },
+              { v: "Command" },
+              { v: "Cadence" },
+              {
+                v: "Registered",
+                tip: "Whether a scheduler is actually invoking this. Manual runs are never registered — you invoke them.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Scheduled (automation)" },
+                { t: "mono", v: "/lisa:project-ideation prd_ready=false" },
+                { t: "text", v: "once a day" },
+                fCell("no", {
+                  title: "Register the daily ideation loop",
+                  sub: "Nothing is scheduling this factory today",
+                  intro:
+                    "The loop exists and the command works — no scheduler is invoking it. Until it is registered, this factory only runs when a human asks it to.",
+                  steps: [
+                    {
+                      text: "Run setup and register this loop.",
+                      cmd: "/lisa:setup:automations",
+                    },
+                    {
+                      text: "Confirm the registration took, and see when it last ran.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "Registering a loop puts it under the automation runbook contract: every run must end in exactly one of the six named outcomes, so a silent failure is itself a contract violation.",
+                }),
+              ],
+              [
+                { t: "text", v: "Manual" },
+                { t: "mono", v: "/lisa:research <problem>" },
+                { t: "text", v: "on demand" },
+                fCell("n/a"),
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "What a run takes",
+            cols: [{ v: "Input" }, { v: "Required" }, { v: "What it is" }],
+            rows: [
+              [
+                { t: "mono", v: "problem" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "The problem statement or feature idea — free text, a feasibility card, or a URL.",
+                },
+              ],
+              [
+                { t: "mono", v: "prd_ready" },
+                { t: "badge", v: "optional", cls: "default" },
+                {
+                  t: "text",
+                  v: "Default false — files the PRD as a draft for a human to review. True files it ready, so PRD intake claims it without anyone looking.",
+                },
+              ],
+              [
+                { t: "mono", v: "dedupe_key" },
+                { t: "badge", v: "optional", cls: "default" },
+                {
+                  t: "text",
+                  v: "A stable marker so a re-run updates the existing PRD instead of filing a duplicate.",
+                },
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Connections — is the factory wired up?",
+            note: "Local is your workstation. Headless is a CI runner or a scheduled cloud run, where no human is present to complete an OAuth prompt.",
+            cols: [
+              { v: "What it needs" },
+              { v: "Provider" },
+              { v: "Local", tip: "Reachable from your workstation." },
+              {
+                v: "Headless",
+                tip: "Reachable from CI or a scheduled run, with no human to authenticate.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Somewhere to write the PRD" },
+                {
+                  t: "select",
+                  v: "Notion",
+                  mono: true,
+                  syncKey: "source.provider",
+                  options: [
+                    "Notion",
+                    "Confluence",
+                    "Linear",
+                    "GitHub",
+                    "Google Docs",
+                  ],
+                },
+                /* PROPOSED: /lisa:setup:prd-source and /lisa:verify:prd-source
+                         ------------------------------------------------------------
+                         1. What to build — ONE vendor-neutral setup command per
+                            connection type, and a matching verify command. Each is
+                            a two-question flow:
+                              Q1 "which provider?"  → Notion | Confluence | Linear |
+                                                       GitHub | Google Docs
+                              Q2 "where should this be set up?" → local |
+                                   github-actions | claude-remote | codex-remote | …
+                            Q2 is the important half and has no equivalent today. The
+                            chosen target decides WHICH credential kind is
+                            provisioned (interactive OAuth vs. non-interactive
+                            integration token) and WHERE it is installed (OS keychain,
+                            repo secret, remote-runtime secret store). Verify takes
+                            the same target and must EXECUTE FROM it — a local pass
+                            says nothing about a headless target.
+                            The same two-question shape applies to every connection
+                            Lisa owns, so build it as one shared flow with a
+                            connection-type parameter, not five copies:
+                              /lisa:setup:prd-source · /lisa:setup:tracker ·
+                              /lisa:setup:wiki · /lisa:setup:deploy …
+                         2. Why — today setup is per-vendor and implicitly local-only,
+                            which is exactly why a factory can be green locally and
+                            red headless with nothing in config to reveal it. Making
+                            the target an explicit answer turns that silent failure
+                            into a question the operator has to answer.
+                         3. Today — per-vendor skills exist (/lisa:setup:notion,
+                            :confluence, :linear, :github, :jira) and they assume the
+                            local workstation. Verification is a differently-named,
+                            tracker-only skill (/lisa:validate-tracker-mapping) with
+                            no target concept at all.
+                         4. Replaces — fold the per-vendor setup skills in behind Q1,
+                            and rename/absorb validate-tracker-mapping as
+                            /lisa:verify:tracker so setup and verify are symmetric
+                            across every connection type.
+                         VERB (decided): `verify`, never `validate`, for anything that
+                         proves a connection. The two words are not synonyms in Lisa's
+                         vocabulary — validate inspects a spec or a config for
+                         conformance, verify proves a thing works by exercising it.
+                         A connection can only be proven by using it, so it is always
+                         verify. Keep `validate` for what it already means elsewhere:
+                         gate checks on tickets and PRDs (lisa-tracker-validate,
+                         intake's PRD validation), which examine a document rather
+                         than exercise a system. Do not sweep those.
+                         NOTE ON NAMING: this row connects the PRD *source*, which
+                         Lisa configures separately from the work *tracker*, so the
+                         command here is :prd-source. If those two concepts should
+                         merge into one "tracker" notion, do that deliberately in
+                         config first — do not just rename the command. */
+                fCell("yes", {
+                  title: "Notion — connected locally",
+                  sub: "Reachable from your workstation",
+                  intro:
+                    "Setup and verification are the same two commands for every provider and every target — the command walks you through the rest.",
+                  steps: [
+                    {
+                      text: "Run setup and choose this workstation when it asks where.",
+                      cmd: "/lisa:setup:prd-source",
+                    },
+                    {
+                      text: "Verify from the same target.",
+                      cmd: "/lisa:verify:prd-source",
+                    },
+                  ],
+                  foot: "Config holds IDs and role names only — the token itself lives in an env var or the OS keychain, never in .lisa.config.json.",
+                }),
+                fCell("no", {
+                  title: "Notion — not reachable headless",
+                  sub: "Fails in CI and on a schedule",
+                  intro:
+                    "The local connection is an interactive OAuth session tied to your desktop. A CI runner or a scheduled cloud run has no browser and no human to approve the prompt, so the same factory that works here fails there — and no config inspection would reveal it.",
+                  steps: [
+                    {
+                      text: "Run setup again and choose a headless target when it asks where.",
+                      cmd: "/lisa:setup:prd-source",
+                    },
+                    {
+                      text: "Verify from that target, not from your laptop — a local pass proves nothing about a headless one.",
+                      cmd: "/lisa:verify:prd-source",
+                    },
+                  ],
+                  foot: "This is the single most common reason a factory is green locally and red in production. Interactively-authenticated integrations are simply absent in headless runs.",
+                }),
+              ],
+              [
+                { t: "text", v: "Project knowledge to write it from" },
+                { t: "mono", v: "Lisa LLM Wiki" },
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "The PRD writer only has the code",
+                  intro:
+                    "Without a wiki, the factory re-derives project context on every run and cannot know what was already decided, what was tried and rejected, or why. The PRDs it writes will be plausible and uninformed.",
+                  steps: [
+                    {
+                      text: "Build the wiki from everything the agent can already reach — repository, git history, connected systems.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                    {
+                      text: "Answer the questions it could not resolve itself. It writes them to a gaps file for a human.",
+                      cmd: "wiki/gaps.md",
+                    },
+                    {
+                      text: "Re-run in a fresh session so the answers are absorbed. Repeat until zero gaps remain.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "The framing that makes this work: starting tomorrow you maintain this project with zero human input — today is your only chance to ask questions.",
+                }),
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "Same gap, headless",
+                  intro:
+                    "The wiki lives in the repository, so once it exists it is reachable everywhere the repo is — including CI and scheduled runs. This cell turns green at the same moment the local one does.",
+                  steps: [
+                    {
+                      text: "Connect it once; there is no separate headless step.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "A git-native knowledge source is the reason this row has no local/headless split in practice — unlike every hosted integration above it.",
+                }),
+              ],
+              [
+                { t: "text", v: "The codebase as ground truth" },
+                { t: "mono", v: "CodySwannGT/lisa" },
+                fCell("yes", {
+                  title: "Repository — connected locally",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "The factory reads the working tree directly. This is the one input that is always available and always current.",
+                  steps: [
+                    {
+                      text: "Nothing to connect — the factory runs inside the checkout.",
+                    },
+                  ],
+                }),
+                fCell("yes", {
+                  title: "Repository — connected headless",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "CI and scheduled runs check the repository out before the factory starts, so the code is present with no credential beyond the checkout itself.",
+                  steps: [
+                    {
+                      text: "Nothing to connect. Note that a scheduled run sees the default branch, not your local branch.",
+                    },
+                  ],
+                }),
+              ],
+            ],
+          },
+          fLegend(
+            '<b>Without a context source, the PRDs are guesses.</b> The factory can reach the code but not the project\'s accumulated knowledge, so it re-derives context every run and cannot know what was already decided and why. Connect a wiki with <span class="mono">/lisa:agent-ready</span>, or point this factory at another knowledge source. Switching the PRD destination above changes where every PRD this factory produces is filed — the lifecycle roles for the new provider are configured on the <b>PRD source</b> page.'
+          ),
+        ],
+      };
+
+      DATA.sections["factory-plan"] = {
+        title: "Plan factory",
+        desc: "Turns one PRD into ordered work items the Implement factory can dispatch without a human re-reading the PRD. It reads from the PRD source and writes to the tracker, so it is the one factory that needs both connected at once.",
+        src: ".lisa.config.json tracker.* · source.*",
+        blocks: [
+          fStaffPicker(),
+          {
+            type: "table",
+            card: "How to run it",
+            note: "The scheduled mode is the PRD-side intake loop: each cycle claims one PRD marked ready — by a human, or by the Product Planning loop — and decomposes it. Register it with /lisa:setup:automations.",
+            cols: [
+              { v: "Mode" },
+              { v: "Command" },
+              { v: "Cadence" },
+              {
+                v: "Registered",
+                tip: "Whether a scheduler is actually invoking this. Manual runs are never registered — you invoke them.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Scheduled (automation)" },
+                { t: "mono", v: "/lisa:intake <queue>" },
+                { t: "text", v: "every 60 minutes" },
+                fCell("no", {
+                  title: "Register the PRD intake loop",
+                  sub: "Nothing is claiming ready PRDs today",
+                  intro:
+                    "Each cycle takes one PRD marked ready — by a human promoting a draft, or by the Product Planning loop filing one — and runs it through this factory. Until it is registered, a ready PRD sits there until someone notices.",
+                  steps: [
+                    {
+                      text: "Run setup and register this loop.",
+                      cmd: "/lisa:setup:automations",
+                    },
+                    {
+                      text: "Confirm the registration took, and see when it last ran.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "Registering will not be enough on its own here: the loop runs headless, and this factory cannot read the PRD source headless yet. Fix that row in Connections below or every cycle will fail the same way.",
+                }),
+              ],
+              [
+                { t: "text", v: "Manual" },
+                { t: "mono", v: "/lisa:plan <source>" },
+                { t: "text", v: "on demand" },
+                fCell("n/a"),
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "What a run takes",
+            note: "Each name below is the placeholder you see in the commands above. The scheduled loop takes a queue and resolves one PRD from it; the manual command takes that PRD directly.",
+            cols: [{ v: "Input" }, { v: "Required" }, { v: "What it is" }],
+            rows: [
+              [
+                { t: "mono", v: "source" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "Manual runs. A URL to a PRD living in the PRD provider.",
+                },
+              ],
+              [
+                { t: "mono", v: "queue" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "Scheduled runs. A queue of PRDs in the PRD provider.",
+                },
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Connections — is the factory wired up?",
+            note: "This factory reads from one system and writes to another, so it needs both. Local is your workstation; headless is a CI runner or a scheduled cloud run, where no human is present to complete an OAuth prompt.",
+            cols: [
+              { v: "What it needs" },
+              { v: "Provider" },
+              { v: "Local", tip: "Reachable from your workstation." },
+              {
+                v: "Headless",
+                tip: "Reachable from CI or a scheduled run, with no human to authenticate.",
+              },
+            ],
+            rows: [
+              [
+                /* Same config value as the Research factory's output — bound
+                         through syncKey so the two dropdowns are one setting and
+                         cannot drift apart. Changing it here changes it there. */
+                { t: "text", v: "The PRD to decompose" },
+                {
+                  t: "select",
+                  v: "Notion",
+                  mono: true,
+                  syncKey: "source.provider",
+                  options: [
+                    "Notion",
+                    "Confluence",
+                    "Linear",
+                    "GitHub",
+                    "Google Docs",
+                  ],
+                },
+                fCell("yes", {
+                  title: "Notion — readable locally",
+                  sub: "Reachable from your workstation",
+                  intro:
+                    "Plan reads the PRD from the same source the Research factory writes it to. One connection, two factories — set it up once.",
+                  steps: [
+                    {
+                      text: "Run setup and choose this workstation when it asks where.",
+                      cmd: "/lisa:setup:prd-source",
+                    },
+                    {
+                      text: "Verify from the same target.",
+                      cmd: "/lisa:verify:prd-source",
+                    },
+                  ],
+                  foot: "This is the same setting as the Research factory's output, not a second copy of it — changing it here changes it there. One provider holds the PRDs; one factory writes them and this one reads them.",
+                }),
+                fCell("no", {
+                  title: "Notion — not readable headless",
+                  sub: "This is what keeps Plan manual-only",
+                  intro:
+                    "The scheduled loop runs with no human present, so it cannot complete an OAuth prompt — which means it can never claim a ready PRD. Registering the automation will not help until this is fixed; it will just fail every hour instead of never running.",
+                  steps: [
+                    {
+                      text: "Run setup again and choose a headless target when it asks where.",
+                      cmd: "/lisa:setup:prd-source",
+                    },
+                    {
+                      text: "Verify from that target, not from your laptop — a local pass proves nothing about a headless one.",
+                      cmd: "/lisa:verify:prd-source",
+                    },
+                  ],
+                  foot: "Red here has a bigger blast radius than on the Research page: Research can still be run by hand, but an unattended pipeline stalls at this exact point.",
+                }),
+              ],
+              [
+                /* PROPOSED: /lisa:setup:tracker and /lisa:verify:tracker —
+                         the same two-question (provider, then target) flow specified
+                         in the canonical marker on the Research factory page. The
+                         tracker instance also absorbs today's
+                         validate-tracker-mapping, so verifying a tracker must check
+                         the status-name mapping AND exercise the connection from the
+                         chosen target. */
+                { t: "text", v: "Somewhere to write the work items" },
+                {
+                  t: "select",
+                  v: "JIRA",
+                  mono: true,
+                  syncKey: "tracker.provider",
+                  options: ["JIRA", "GitHub", "Linear"],
+                },
+                fCell("yes", {
+                  title: "JIRA — connected locally",
+                  sub: "Reachable from your workstation",
+                  intro:
+                    "Work items written from this machine reach the configured JIRA project, with the status names mapped onto Lisa's lifecycle roles.",
+                  steps: [
+                    {
+                      text: "Run setup and choose this workstation when it asks where.",
+                      cmd: "/lisa:setup:tracker",
+                    },
+                    {
+                      text: "Verify from the same target.",
+                      cmd: "/lisa:verify:tracker",
+                    },
+                  ],
+                  foot: "Verifying the tracker also checks the status-name mapping, which drifts silently: JQL matches case-insensitively, so a config that says Done and a project that says DONE will look fine right up until a transition fails.",
+                }),
+                fCell("yes", {
+                  title: "JIRA — connected headless",
+                  sub: "Works in CI and on a schedule",
+                  intro:
+                    "The tracker connection uses an API token rather than an interactive session, so it survives in an environment with no human. This is what the PRD source row above still needs.",
+                  steps: [
+                    {
+                      text: "Run setup and choose the headless target you want.",
+                      cmd: "/lisa:setup:tracker",
+                    },
+                    {
+                      text: "Verify from that target.",
+                      cmd: "/lisa:verify:tracker",
+                    },
+                  ],
+                  foot: "Config holds the site, project key and role mapping only — the token itself lives in that target's secret store.",
+                }),
+              ],
+              [
+                { t: "text", v: "Project knowledge to size and sequence" },
+                { t: "mono", v: "Lisa LLM Wiki" },
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "Decomposition is guesswork without it",
+                  intro:
+                    "Splitting a PRD into the right work items depends on knowing how this project is actually built — what exists, what is shared, what was already tried. Without a wiki the factory re-derives that every run and produces plausible tickets that cut across the wrong seams.",
+                  steps: [
+                    {
+                      text: "Build the wiki from everything the agent can already reach — repository, git history, connected systems.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                    {
+                      text: "Answer the questions it could not resolve itself. It writes them to a gaps file for a human.",
+                      cmd: "wiki/gaps.md",
+                    },
+                    {
+                      text: "Re-run in a fresh session so the answers are absorbed. Repeat until zero gaps remain.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "The framing that makes this work: starting tomorrow you maintain this project with zero human input — today is your only chance to ask questions.",
+                }),
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "Same gap, headless",
+                  intro:
+                    "The wiki lives in the repository, so once it exists it is reachable everywhere the repo is — including CI and scheduled runs. This cell turns green at the same moment the local one does.",
+                  steps: [
+                    {
+                      text: "Connect it once; there is no separate headless step.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "A git-native knowledge source is the reason this row has no local/headless split in practice — unlike every hosted integration above it.",
+                }),
+              ],
+              [
+                { t: "text", v: "The codebase as ground truth" },
+                { t: "mono", v: "CodySwannGT/lisa" },
+                fCell("yes", {
+                  title: "Repository — connected locally",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "The factory reads the working tree directly. This is the one input that is always available and always current.",
+                  steps: [
+                    {
+                      text: "Nothing to connect — the factory runs inside the checkout.",
+                    },
+                  ],
+                }),
+                fCell("yes", {
+                  title: "Repository — connected headless",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "CI and scheduled runs check the repository out before the factory starts, so the code is present with no credential beyond the checkout itself.",
+                  steps: [
+                    {
+                      text: "Nothing to connect. Note that a scheduled run sees the default branch, not your local branch.",
+                    },
+                  ],
+                }),
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "PRD lifecycle roles",
+            note: "How a PRD's state is represented in the source. Lisa reasons in roles; each provider spells them differently — Notion uses a status property, Confluence uses parent pages, Linear and GitHub use labels. Created idempotently by the provider's setup command.",
+            cols: [
+              { v: "Role", tip: "Lisa's vendor-neutral name for the state." },
+              {
+                v: "As stored",
+                tip: "What the configured provider actually records. Changes with the PRD source.",
+              },
+              { v: "What it means" },
+              { v: "Advanced by" },
+            ],
+            rows: [
+              [
+                { t: "mono", v: "draft" },
+                { t: "mono", v: "prd-draft" },
+                {
+                  t: "text",
+                  v: "Being written. No factory touches it — this is the human's workspace.",
+                },
+                { t: "text", v: "a human" },
+              ],
+              [
+                { t: "mono", v: "ready" },
+                { t: "mono", v: "prd-ready" },
+                {
+                  t: "text",
+                  v: "The gate. Whoever set it is asserting the PRD is ready to be built from; the Plan factory may now claim it. Set by a human promoting a draft, or by the Product Planning loop filing an ideated PRD ready.",
+                },
+                { t: "text", v: "a human or a loop" },
+              ],
+              [
+                { t: "mono", v: "in_review" },
+                { t: "mono", v: "prd-in-review" },
+                {
+                  t: "text",
+                  v: "This factory has claimed it and is validating. Prevents a second cycle claiming the same PRD.",
+                },
+                { t: "text", v: "Plan" },
+              ],
+              [
+                { t: "mono", v: "blocked" },
+                { t: "mono", v: "prd-blocked" },
+                {
+                  t: "text",
+                  v: "Validation failed — the PRD is ambiguous, or the factory cannot prove access to tooling it needs. Clarifying questions are posted for a human.",
+                },
+                { t: "text", v: "Plan" },
+              ],
+              [
+                { t: "mono", v: "ticketed" },
+                { t: "mono", v: "prd-ticketed" },
+                {
+                  t: "text",
+                  v: "Decomposed into work items. This factory is done with it; the Implement factory takes over from the tickets.",
+                },
+                { t: "text", v: "Plan" },
+              ],
+              [
+                { t: "mono", v: "shipped" },
+                { t: "mono", v: "prd-shipped" },
+                {
+                  t: "text",
+                  v: "Every work item is done. Awaiting verification.",
+                },
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "mono", v: "verified" },
+                { t: "mono", v: "prd-verified" },
+                {
+                  t: "text",
+                  v: "UAT passed. The terminal state — the only one that means the PRD actually happened.",
+                },
+                { t: "text", v: "Verify" },
+              ],
+              [
+                { t: "mono", v: "sentinel" },
+                { t: "mono", v: "prd-sentinel" },
+                {
+                  t: "text",
+                  v: "Marks the feedback item that carries blocked comments back to a human, on providers with nowhere else to put them.",
+                },
+                { t: "text", v: "Plan" },
+              ],
+            ],
+          },
+          fLegend(
+            "<b>The failure nobody sees is a requirement that never became a ticket.</b> Every other gate here checks the quality of the work items that exist; none of them notices one that is missing. Coverage — every PRD requirement traceable to at least one work item — is the only check that catches it, and it currently runs as an advisory audit rather than a gate."
+          ),
+        ],
+      };
+
+      DATA.sections["factory-implement"] = {
+        title: "Implement factory",
+        desc: "Turns one work item into merged, deployed software. This is where the gates live: almost everything Lisa enforces fires somewhere in this factory, and the thresholds below are the numbers those gates compare against.",
+        src: ".lisa.config.json quality.* · ci.* · hooks.*",
+        blocks: [
+          fStaffPicker(),
+          {
+            type: "table",
+            card: "How to run it",
+            note: "The scheduled mode is the build-side intake loop: each cycle claims one work item marked ready — by a human, or by another factory or loop — and builds it end to end. Register it with /lisa:setup:automations.",
+            cols: [
+              { v: "Mode" },
+              { v: "Command" },
+              { v: "Cadence" },
+              {
+                v: "Registered",
+                tip: "Whether a scheduler is actually invoking this. Manual runs are never registered — you invoke them.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Scheduled (automation)" },
+                { t: "mono", v: "/lisa:intake <queue>" },
+                { t: "text", v: "every 10 minutes" },
+                fCell("no", {
+                  title: "Register the build intake loop",
+                  sub: "Nothing is claiming ready work items today",
+                  intro:
+                    "Each cycle takes one work item marked ready and runs it through this factory. Most of them are filed by other factories and loops rather than by a person. Until it is registered, a ready ticket sits there until someone notices.",
+                  steps: [
+                    {
+                      text: "Run setup and register this loop.",
+                      cmd: "/lisa:setup:automations",
+                    },
+                    {
+                      text: "Confirm the registration took, and see when it last ran.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "This is the fastest loop in the pipeline for a reason: it is the only one whose input queue humans and every other factory feed continuously.",
+                }),
+              ],
+              [
+                { t: "text", v: "Manual" },
+                { t: "mono", v: "/lisa:implement <work-item>" },
+                { t: "text", v: "on demand" },
+                fCell("n/a"),
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "What a run takes",
+            note: "Each name below is the placeholder you see in the commands above.",
+            cols: [{ v: "Input" }, { v: "Required" }, { v: "What it is" }],
+            rows: [
+              [
+                { t: "mono", v: "work-item" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "Manual runs. A URL to a work item living in the tracker, or a plain description of the work.",
+                },
+              ],
+              [
+                { t: "mono", v: "queue" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "Scheduled runs. A queue of work items in the tracker.",
+                },
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Connections — is the factory wired up?",
+            note: "Local is your workstation. Headless is a CI runner or a scheduled cloud run, where no human is present to complete an OAuth prompt.",
+            cols: [
+              { v: "What it needs" },
+              { v: "Provider" },
+              { v: "Local", tip: "Reachable from your workstation." },
+              {
+                v: "Headless",
+                tip: "Reachable from CI or a scheduled run, with no human to authenticate.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "The work item to build" },
+                {
+                  t: "select",
+                  v: "JIRA",
+                  mono: true,
+                  syncKey: "tracker.provider",
+                  options: ["JIRA", "GitHub", "Linear"],
+                },
+                fCell("yes", {
+                  title: "JIRA — connected locally",
+                  sub: "Reachable from your workstation",
+                  intro:
+                    "This factory reads the work item the Plan factory wrote, and posts progress and evidence back to it. Same connection, both directions.",
+                  steps: [
+                    {
+                      text: "Run setup and choose this workstation when it asks where.",
+                      cmd: "/lisa:setup:tracker",
+                    },
+                    {
+                      text: "Verify from the same target.",
+                      cmd: "/lisa:verify:tracker",
+                    },
+                  ],
+                  foot: "This is the same setting as the Plan factory's output, not a second copy of it — changing it here changes it there.",
+                }),
+                fCell("yes", {
+                  title: "JIRA — connected headless",
+                  sub: "Works in CI and on a schedule",
+                  intro:
+                    "The tracker connection uses an API token rather than an interactive session, so the build loop can claim and close work items with no human present.",
+                  steps: [
+                    {
+                      text: "Run setup and choose the headless target you want.",
+                      cmd: "/lisa:setup:tracker",
+                    },
+                    {
+                      text: "Verify from that target.",
+                      cmd: "/lisa:verify:tracker",
+                    },
+                  ],
+                  foot: "Config holds the site, project key and role mapping only — the token itself lives in that target's secret store.",
+                }),
+              ],
+              [
+                {
+                  t: "text",
+                  v: "The codebase, and somewhere to open the pull request",
+                },
+                { t: "mono", v: "CodySwannGT/lisa" },
+                fCell("yes", {
+                  title: "Repository — connected locally",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "The factory works in a branch off the checkout it is running in, and opens the pull request against this repository.",
+                  steps: [
+                    {
+                      text: "Nothing to connect for the code itself. Opening and merging pull requests needs the GitHub CLI authenticated as you.",
+                      cmd: "gh auth status",
+                    },
+                  ],
+                }),
+                fCell("yes", {
+                  title: "Repository — connected headless",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "Scheduled and CI runs check the repository out and use a token-scoped identity to open pull requests, so no interactive login is involved.",
+                  steps: [
+                    {
+                      text: "Nothing to connect. Note that a scheduled run branches from the default branch, not your local branch.",
+                    },
+                  ],
+                }),
+              ],
+              [
+                /* PROPOSED: CI provider is swappable — /lisa:setup:ci should
+                         generate the gate workflows for the chosen system, not just
+                         GitHub Actions. The gate obligations below are identical
+                         whichever CI runs them; only the workflow syntax differs.
+                         syncKey ci.provider ties this to the "CI" column in Gates. */
+                { t: "text", v: "Somewhere to run the gates" },
+                {
+                  t: "select",
+                  v: "GitHub Actions",
+                  mono: true,
+                  syncKey: "ci.provider",
+                  options: [
+                    "GitHub Actions",
+                    "GitLab CI",
+                    "Jenkins",
+                    "CircleCI",
+                    "Buildkite",
+                  ],
+                },
+                fCell("partial", {
+                  title: "Gates run, but not all of them locally",
+                  sub: "Local runs mirror CI — they do not replace it",
+                  intro:
+                    "The fast checks run on your machine through git hooks, but the authoritative gates run in CI. A green local run is feedback, not a verdict, and the two can disagree if the mirrors drift.",
+                  steps: [
+                    {
+                      text: "Run the same suite CI runs, to catch drift before you push.",
+                      cmd: "bun run lint && bun run typecheck && bun run test",
+                    },
+                    {
+                      text: "See which gates are actually required to merge, and which only warn.",
+                      cmd: "the Gates table below",
+                    },
+                  ],
+                  foot: "Anything a local hook can enforce, a developer can skip with --no-verify. That is why the local tier is a mirror and the server-side tier is the gate.",
+                }),
+                fCell("yes", {
+                  title: "GitHub Actions — connected",
+                  sub: "The authoritative tier",
+                  intro:
+                    "Every gate marked blocked below fires here and cannot be skipped by the worker, whether that worker is a person or an agent.",
+                  steps: [
+                    {
+                      text: "Provision the secrets the scanners need, or their gates degrade to skipped.",
+                      cmd: "gh secret set …",
+                    },
+                  ],
+                  foot: "A gate whose credential is missing usually does not fail loudly — it skips, and a skipped gate renders identically to a passing one unless the job is required.",
+                }),
+              ],
+              [
+                { t: "text", v: "Project knowledge to build from" },
+                { t: "mono", v: "Lisa LLM Wiki" },
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "The builder only has the code",
+                  intro:
+                    "Without a wiki the factory re-derives how this project is built on every run — which conventions are load-bearing, what was already tried, why a thing is the way it is. The code shows what, never why.",
+                  steps: [
+                    {
+                      text: "Build the wiki from everything the agent can already reach — repository, git history, connected systems.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                    {
+                      text: "Answer the questions it could not resolve itself. It writes them to a gaps file for a human.",
+                      cmd: "wiki/gaps.md",
+                    },
+                    {
+                      text: "Re-run in a fresh session so the answers are absorbed. Repeat until zero gaps remain.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "The framing that makes this work: starting tomorrow you maintain this project with zero human input — today is your only chance to ask questions.",
+                }),
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "Same gap, headless",
+                  intro:
+                    "The wiki lives in the repository, so once it exists it is reachable everywhere the repo is — including CI and scheduled runs. This cell turns green at the same moment the local one does.",
+                  steps: [
+                    {
+                      text: "Connect it once; there is no separate headless step.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "A git-native knowledge source is the reason this row has no local/headless split in practice — unlike every hosted integration above it.",
+                }),
+              ],
+            ],
+          },
+          {
+            /* PROPOSED: per-gate setup and verify — /lisa:setup:gate:<name>
+                     and /lisa:verify:gate:<name>
+                     ------------------------------------------------------------
+                     1. What to build — one setup and one verify command PER GATE,
+                        slug-named after the obligation:
+                          /lisa:setup:gate:unit-tests · :integration-tests ·
+                          :e2e-tests · :coverage · :mutation · :secret-scanning …
+                        setup:gate is the same two-question flow as setup:tracker —
+                        (a) which provider(s), (b) which layers to enforce it at
+                        (agent hook / git hook / CI, and whether the CI check is
+                        required to merge) — and it writes the hooks + workflow jobs
+                        for the chosen layers. verify:gate exercises the gate: it
+                        makes the gate fire on a known-bad input and confirms it
+                        actually blocks, rather than only checking that config exists.
+                     2. Why — today a gate is configured by editing several files at
+                        once (a hook entry, a workflow job, a threshold, a required-
+                        check setting) with nothing that owns the whole gate. A gate
+                        the operator can name is a gate the operator can turn on,
+                        move a layer of, or prove — without knowing which files back
+                        it. It also makes "is this gate real?" answerable by running
+                        one command instead of reading four config surfaces.
+                     3. Today — gates are assembled by /lisa:apply (installs hooks
+                        and workflows wholesale) plus manual branch-protection and
+                        threshold edits. There is no per-gate command and no gate
+                        that verifies by being tripped.
+                     4. Replaces — nothing is deleted; setup:gate/verify:gate sit on
+                        top of apply as the per-gate control surface. The gate roster
+                        is not hardcoded — it is derived from the obligations Lisa
+                        knows how to enforce, so adding an obligation adds its
+                        commands automatically.
+                     VERB: verify, not validate — a gate is proven by being tripped,
+                     not by inspecting its config. Same rule as the rest of the
+                     console. */
+            type: "table",
+            card: "Gates",
+            note: "The obligation is fixed; the provider is swappable — pick one or more per row. Each layer is a yes/no you can click for its event binding, its setup and verify commands, and (for CI) whether the check is required to merge. The two local layers are mirrors a worker can skip; an obligation is only unskippable when its CI check is required.",
+            cols: [
+              {
+                v: "Enforcement",
+                tip: "What must be true. This does not change when you change tools.",
+              },
+              {
+                v: "Provider",
+                tip: "The tool(s) satisfying it. Multi-select — swap or stack them.",
+              },
+              {
+                v: "Agent hook",
+                center: true,
+                tip: "Fires inside the coding agent. Advisory — one harness only, and never in a headless run. Click for the event and commands.",
+              },
+              {
+                v: "Git hook",
+                center: true,
+                tip: "Fires on commit or push. Advisory — skippable with --no-verify. Click for the event and commands.",
+              },
+              {
+                v: "CI",
+                center: true,
+                tip: "Runs in the pipeline. Click to see the event, the commands, and whether the check is required to merge — that last is what makes the obligation unskippable.",
+              },
+            ],
+            rows: [
+              gateRow(
+                "Unit testing enforcement",
+                "unit-tests",
+                gProv(["vitest"], ["vitest", "jest", "bun test", "mocha"]),
+                {
+                  agent: { on: false },
+                  git: { on: true, event: "pre-push" },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Integration testing enforcement",
+                "integration-tests",
+                gProv(
+                  ["vitest", "Testcontainers"],
+                  ["vitest", "jest", "Testcontainers", "RSpec"]
+                ),
+                {
+                  agent: { on: false },
+                  git: {
+                    on: false,
+                    intro:
+                      "Integration tests stand up real dependencies (a database, a container), which is too heavy for a local hook — so they wait for CI.",
+                  },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "E2E testing enforcement",
+                "e2e-tests",
+                gProv(
+                  ["Playwright"],
+                  ["Playwright", "Cypress", "Selenium", "Maestro", "Detox"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "pull_request",
+                    required: true,
+                    foot: "Web journeys run headless in CI and gate the merge. Native journeys (Maestro / Detox) are too heavy to gate and run nightly on a device instead — a route-coverage floor, not a per-PR check.",
+                  },
+                }
+              ),
+              gateRow(
+                "Property-based testing enforcement",
+                "property-tests",
+                gProv(["fast-check"], ["fast-check", "Hypothesis", "PropEr"]),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "pull_request",
+                    required: true,
+                    intro:
+                      "Property tests run inside the unit-test job, so when they exist they gate the merge like any other test.",
+                    foot: "What is NOT enforced is that you write them: nothing requires a given module to have a property test. This row is green because the runner is wired, not because coverage of properties is measured.",
+                  },
+                }
+              ),
+              gateRow(
+                "Contract testing enforcement",
+                "contract-tests",
+                gProv(
+                  [],
+                  ["Pact", "Spring Cloud Contract", "Schemathesis", "Dredd"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: false,
+                    intro:
+                      "No contract testing is configured. Unit tests prove one service in isolation and e2e proves the whole system, but neither catches two services drifting out of agreement at their shared boundary — that is the gap a contract test fills.",
+                    foot: "Pick a provider to add it. Most valuable the moment this repo talks to a service it does not deploy in lockstep with.",
+                  },
+                }
+              ),
+              gateRow(
+                "Coverage enforcement",
+                "coverage",
+                gProv(
+                  ["vitest thresholds"],
+                  ["vitest thresholds", "c8", "nyc", "SimpleCov"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Mutation testing enforcement",
+                "mutation",
+                gProv(["Stryker"], ["Stryker", "PIT", "mutmut"]),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "schedule (nightly)",
+                    required: false,
+                    intro:
+                      "Mutation runs nightly, so it does not gate a merge — a pull request can lower the score and nobody finds out until tomorrow. Coverage proves a line ran; mutation proves a test would have failed if that line were wrong.",
+                    foot: "Turn on the diff-scoped gate (quality.mutation.gate.enabled) so only changed code is scored, which is fast enough to run on pull_request and be required.",
+                  },
+                }
+              ),
+              gateRow(
+                "Format enforcement",
+                "format",
+                gProv(["prettier"], ["prettier", "biome", "dprint"]),
+                {
+                  agent: {
+                    on: true,
+                    event: "PostToolUse — after Edit / Write",
+                  },
+                  git: { on: true, event: "pre-commit" },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Lint: correctness rules",
+                "lint-correctness",
+                gProv(["oxlint"], ["oxlint", "eslint", "biome"]),
+                {
+                  agent: {
+                    on: true,
+                    event: "PostToolUse — after Edit / Write",
+                    intro:
+                      "The fast correctness pass (oxlint) runs on every edit inside the agent, so a mistake is caught before the next tool call.",
+                  },
+                  git: { on: true, event: "pre-commit" },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Lint: complexity & size budgets",
+                "lint-complexity",
+                gProv(["eslint"], ["eslint", "oxlint"]),
+                {
+                  agent: {
+                    on: false,
+                    intro:
+                      "The complexity and size rules are eslint's, not oxlint's, and are too slow to run on every keystroke — so they wait for pre-push rather than firing in the agent.",
+                  },
+                  git: { on: true, event: "pre-push" },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Lint: structure & docs rules",
+                "lint-structure",
+                gProv(["eslint"], ["eslint"]),
+                {
+                  agent: { on: false },
+                  git: {
+                    on: false,
+                    intro:
+                      "These are the type-aware and cross-file rules (component structure, import order, JSDoc). They need the whole project in memory, which is too expensive for a local hook — so CI is the only place they run.",
+                  },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Type-safety enforcement",
+                "typecheck",
+                gProv(["tsc"], ["tsc", "mypy", "pyright"]),
+                {
+                  agent: { on: false },
+                  git: { on: true, event: "pre-push" },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Structural-rule enforcement",
+                "structural-rules",
+                gProv(["ast-grep"], ["ast-grep", "Semgrep", "Comby"]),
+                {
+                  agent: {
+                    on: true,
+                    event: "PreToolUse — before Bash",
+                    intro:
+                      "The Safety Net rules also run as an agent guard, blocking dangerous commands (rm -rf, force-push, hard-reset) before the tool call executes.",
+                  },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "pull_request",
+                    required: true,
+                    foot: "ast-grep enforces the project's custom structural rules — the ones a general linter cannot express — as a required CI job.",
+                  },
+                }
+              ),
+              gateRow(
+                "Dead-code enforcement",
+                "dead-code",
+                gProv(["knip"], ["knip", "ts-prune", "depcheck"]),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Secret-scanning enforcement",
+                "secret-scanning",
+                gProv(
+                  ["GitGuardian"],
+                  ["GitGuardian", "gitleaks", "trufflehog"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "pull_request",
+                    required: true,
+                    foot: "Also enforced by GitHub push protection, which blocks the push server-side before the secret ever reaches a pull request.",
+                  },
+                }
+              ),
+              gateRow(
+                "Dependency-audit enforcement",
+                "dependency-audit",
+                gProv(
+                  ["npm audit", "Dependabot"],
+                  ["npm audit", "Dependabot", "Snyk", "Trivy"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: true, event: "pre-push" },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Static-analysis enforcement",
+                "static-analysis",
+                gProv(
+                  ["SonarCloud"],
+                  ["SonarCloud", "CodeQL", "Semgrep", "Snyk Code"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              /* Running-app scans. These need a deployed target, so they run in
+                       CI against an ephemeral preview — never at a local layer. This
+                       project is a CLI with no web or API surface, so all three are
+                       n/a here (n/a, not a gap): they become real gates on a
+                       frontend or service stack. They are Implement gates, NOT Verify
+                       — Verify is human UAT, and an automated scanner is not a human
+                       using the product. */
+              gateRow(
+                "Dynamic security scan (DAST)",
+                "dast",
+                gProv(
+                  ["OWASP ZAP"],
+                  ["OWASP ZAP", "Burp Suite", "Nuclei", "StackHawk"]
+                ),
+                {
+                  agent: { on: "na" },
+                  git: { on: "na" },
+                  ci: {
+                    on: "na",
+                    intro:
+                      "A dynamic scan drives a running app looking for common web vulnerabilities. In CI it runs against an ephemeral preview deploy, and only when a target URL is configured. This project has no deployed surface, so there is nothing to scan.",
+                  },
+                }
+              ),
+              gateRow(
+                "Accessibility enforcement",
+                "accessibility",
+                gProv(
+                  ["axe-core"],
+                  ["axe-core", "Pa11y", "Lighthouse a11y", "IBM Equal Access"]
+                ),
+                {
+                  agent: { on: "na" },
+                  git: { on: "na" },
+                  ci: {
+                    on: "na",
+                    intro:
+                      "Accessibility checks run against the rendered UI. They apply to frontend stacks; this project renders no UI, so the gate has nothing to measure.",
+                  },
+                }
+              ),
+              gateRow(
+                "Performance-budget enforcement",
+                "performance",
+                gProv(
+                  ["Lighthouse CI"],
+                  ["Lighthouse CI", "SpeedCurve", "WebPageTest"]
+                ),
+                {
+                  agent: { on: "na" },
+                  git: { on: "na" },
+                  ci: {
+                    on: "na",
+                    intro:
+                      "A performance budget holds the built site to Core Web Vitals thresholds. Frontend stacks only — there is no site to measure here.",
+                    foot: "On a stack where it applies, a performance budget is usually advisory rather than required: the right number is a judgement call, like cost.",
+                  },
+                }
+              ),
+              gateRow(
+                "License-compliance enforcement",
+                "license-compliance",
+                gProv(
+                  ["license-checker"],
+                  ["license-checker", "FOSSA", "ScanCode", "Black Duck"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "pull_request",
+                    required: true,
+                    foot: "Fails the build when a dependency arrives under a license outside the project's allowlist — a legal gate, not a quality one.",
+                  },
+                }
+              ),
+              gateRow(
+                "Infrastructure-scanning enforcement",
+                "infra-scanning",
+                gProv([], ["cdk-nag", "checkov", "tfsec", "Terrascan"]),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: false,
+                    intro:
+                      "No scanner is selected, so infrastructure merges unscanned — an over-permissive policy or an unencrypted bucket passes as easily as a typo fix, while application code goes through several security gates.",
+                    foot: "Pick a scanner in the Provider column, then make its job a required check. A scanner that runs but is not required is indistinguishable from one that is not installed.",
+                  },
+                }
+              ),
+              gateRow(
+                "Code-review enforcement",
+                "code-review",
+                gProv(
+                  ["CodeRabbit", "/code-review"],
+                  ["CodeRabbit", "Greptile", "Qodo", "/code-review"]
+                ),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: { on: true, event: "pull_request", required: true },
+                }
+              ),
+              gateRow(
+                "Review-resolution enforcement",
+                "review-resolution",
+                gProv(["GitHub thread check"], ["GitHub thread check"]),
+                {
+                  agent: { on: false },
+                  git: { on: false },
+                  ci: {
+                    on: true,
+                    event: "pull_request",
+                    required: true,
+                    foot: "There is no local mirror for this one — whether every review thread is resolved is only knowable server-side, so branch protection is the only place it can be enforced.",
+                  },
+                }
+              ),
+            ],
+          },
+          {
+            card: "Thresholds — coverage",
+            note: "The floors the coverage gate compares against, for this project's stack. Same settings as the Testing page — change them here and they change there. Thresholds may only tighten: loosening one requires its own reviewed change.",
+            rows: [
+              {
+                key: "quality.testCoverage.global.statements",
+                label: "Statements",
+                desc: "Statement coverage below this fails the build.",
+                control: num(70, "%"),
+              },
+              {
+                key: "quality.testCoverage.global.branches",
+                label: "Branches",
+                desc: "The floor that usually bites first — a branch is only covered when both sides are taken.",
+                control: num(70, "%"),
+              },
+              {
+                key: "quality.testCoverage.global.functions",
+                label: "Functions",
+                desc: "Share of functions entered by at least one test.",
+                control: num(70, "%"),
+              },
+              {
+                key: "quality.testCoverage.global.lines",
+                label: "Lines",
+                desc: "Share of executable lines run by the suite.",
+                control: num(70, "%"),
+              },
+            ],
+          },
+          {
+            card: "Thresholds — test depth",
+            note: "How hard the tests are made to work. Coverage says code ran; these say whether running it proved anything.",
+            rows: [
+              {
+                key: "quality.e2eCoverage.playwright.routes",
+                label: "E2E route coverage (web)",
+                desc: "Share of user-facing routes that must be exercised by a Playwright journey.",
+                control: num(80, "%"),
+              },
+              {
+                key: "quality.e2eCoverage.maestro.routes",
+                label: "E2E route coverage (native)",
+                desc: "Same floor for native journeys. Applies to Expo stacks; ignored where there is no native surface.",
+                control: num(80, "%"),
+              },
+              {
+                key: "quality.mutation.strykerThresholds.break",
+                label: "Mutation score — break",
+                desc: "Below this the mutation run fails. The only one of the three that can fail a build.",
+                control: num(60, "%"),
+              },
+              {
+                key: "quality.mutation.strykerThresholds.low",
+                label: "Mutation score — low",
+                desc: "Reporting boundary: scores under this are flagged red in the report without failing anything.",
+                control: num(60, "%"),
+              },
+              {
+                key: "quality.mutation.strykerThresholds.high",
+                label: "Mutation score — high",
+                desc: "Reporting boundary: at or above this the report reads green.",
+                control: num(80, "%"),
+              },
+              {
+                key: "quality.mutation.gate.enabled",
+                label: "Mutation gates merges",
+                desc: "Off means the score is measured nightly but never blocks a pull request — the gap flagged in the Gates table above.",
+                control: tog(false),
+              },
+              {
+                key: "quality.mutation.gate.since",
+                label: "Mutation diff base",
+                desc: "The ref changed code is measured against, so only the diff is scored rather than the whole codebase.",
+                control: txt("main", { mono: true }),
+              },
+            ],
+          },
+          {
+            card: "Thresholds — code budgets",
+            note: "Per-unit ceilings enforced by the lint gates. Same settings as the Linting page.",
+            rows: [
+              {
+                key: "quality.lintBudgets.cognitiveComplexity",
+                label: "Cognitive complexity",
+                desc: "Per-function ceiling. The most common reason a build goes red on otherwise working code.",
+                control: num(10),
+              },
+              {
+                key: "quality.lintBudgets.maxLines",
+                label: "Max lines per file",
+                desc: "Files above this must be split.",
+                control: num(300),
+              },
+              {
+                key: "quality.lintBudgets.maxLinesPerFunction",
+                label: "Max lines per function",
+                desc: "Functions above this must be decomposed.",
+                control: num(75),
+              },
+              {
+                key: "body-max-line-length",
+                label: "Commit body line length",
+                desc: "Enforced by commitlint at the commit hook, not by a merge gate.",
+                control: num(300, "chars"),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Work-unit lifecycle roles",
+            note: "How a work item's state is represented in the tracker. Lisa reasons in roles; each tracker spells them differently — JIRA uses workflow statuses, GitHub and Linear use labels. Created idempotently by the tracker's setup command.",
+            cols: [
+              { v: "Role", tip: "Lisa's vendor-neutral name for the state." },
+              {
+                v: "As stored",
+                tip: "What the configured tracker actually records. Changes with the tracker.",
+              },
+              { v: "What it means" },
+              { v: "Advanced by" },
+            ],
+            rows: [
+              [
+                { t: "mono", v: "ready" },
+                { t: "mono", v: "status:ready" },
+                {
+                  t: "text",
+                  v: "The gate. Whoever set it is asserting the work item is ready to build; the build loop may now claim it. Set by a human, by Plan decomposing a PRD, by Verify filing a UAT failure, or by the QA and Monitoring loops filing a bug or regression.",
+                },
+                { t: "text", v: "a human or a factory" },
+              ],
+              [
+                { t: "mono", v: "claimed" },
+                { t: "mono", v: "status:in-progress" },
+                {
+                  t: "text",
+                  v: "This factory has it. Prevents a second cycle dispatching the same item.",
+                },
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "mono", v: "blocked" },
+                { t: "mono", v: "status:blocked" },
+                {
+                  t: "text",
+                  v: "Triage rejected it, or the build could not finish. Needs an answer before it can move.",
+                },
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "mono", v: "human_needed" },
+                { t: "mono", v: "status:human-needed" },
+                {
+                  t: "text",
+                  v: "The factory reached a boundary it may not cross alone and is waiting on a person — an approval, not a failure.",
+                },
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "mono", v: "done" },
+                { t: "mono", v: "status:done" },
+                {
+                  t: "text",
+                  v: "Merged and deployed. Environment-aware: a project with a deploy chain marks done per environment.",
+                },
+                { t: "text", v: "Implement" },
+              ],
+            ],
+          },
+          fLegend(
+            '<b>The CI column is the one that gates.</b> Agent-hook and git-hook are fast-feedback mirrors a worker can skip; whether an obligation is actually unskippable is inside its CI cell — click it and read <i>Required to merge</i>. Three rows fall short: mutation testing runs in CI but nightly and unrequired, and infrastructure scanning and contract testing have no provider selected at all. Those are the honest gaps — each is one choice away from being a real gate. The <span class="mono">n/a</span> rows are different: those gates need a deployed web or API surface, and this project is a CLI, so they do not apply here rather than being gaps — they become real gates on a frontend or service stack. The agent-hook and git-hook mirrors must be generated from the same config as CI, or they drift and people learn to distrust them.'
+          ),
+        ],
+      };
+
+      DATA.sections["factory-verify"] = {
+        title: "Verify factory",
+        desc: "User acceptance testing, run by an agent. It drives the shipped software the way a human would, reaches a go/no-go decision, and files every failure as a build-ready ticket straight back into Implement. No scanners live here — an automated check is not a human using the product; those are Implement gates.",
+        src: ".lisa.config.json verify.* · qa.*",
+        blocks: [
+          fStaffPicker(),
+          {
+            type: "table",
+            card: "How to run it",
+            note: "The scheduled driver is the same PRD intake loop as the Plan factory — a later phase of it. Once a PRD's work is shipped, the loop dispatches verification for it: shipped → verified on pass, or re-opened with build-ready fix tickets on fail.",
+            cols: [
+              { v: "Mode" },
+              { v: "Command" },
+              { v: "Cadence" },
+              {
+                v: "Registered",
+                tip: "Whether a scheduler is actually invoking this. Manual runs are never registered — you invoke them.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Scheduled (automation)" },
+                { t: "mono", v: "/lisa:intake <queue>" },
+                { t: "text", v: "every 60 minutes" },
+                fCell("no", {
+                  title: "Register the PRD intake loop",
+                  sub: "Nothing is verifying shipped work today",
+                  intro:
+                    "Verification runs as a phase of the PRD intake loop — the same loop the Plan factory uses. Until it is registered, shipped work is never checked, and a regression can sit in production until a human notices.",
+                  steps: [
+                    {
+                      text: "Run setup and register this loop.",
+                      cmd: "/lisa:setup:automations",
+                    },
+                    {
+                      text: "Confirm the registration took, and see when it last ran.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "On a fail the loop does not block — it re-opens the PRD and files build-ready fix tickets that flow straight back into Implement, then re-verifies. A no-go is never a dead end.",
+                }),
+              ],
+              [
+                { t: "text", v: "Manual" },
+                { t: "mono", v: "/lisa:verify <target>" },
+                { t: "text", v: "on demand" },
+                fCell("n/a"),
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "What a run takes",
+            note: "Each name below is the placeholder you see in the commands above. Use /lisa:verify-prd instead to verify a whole PRD's shipped work in one pass.",
+            cols: [{ v: "Input" }, { v: "Required" }, { v: "What it is" }],
+            rows: [
+              [
+                { t: "mono", v: "target" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "Manual runs. A URL to a shipped work item or PRD to put through UAT.",
+                },
+              ],
+              [
+                { t: "mono", v: "queue" },
+                { t: "badge", v: "required", cls: "required" },
+                {
+                  t: "text",
+                  v: "Scheduled runs. A queue of shipped PRDs awaiting verification.",
+                },
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Connections — is the factory wired up?",
+            note: "Verify needs a running copy of the software to drive — that is what makes it different from every other factory. Local is your workstation; headless is a CI runner or a scheduled cloud run, where no human is present to complete an OAuth prompt.",
+            cols: [
+              { v: "What it needs" },
+              { v: "Provider" },
+              { v: "Local", tip: "Reachable from your workstation." },
+              {
+                v: "Headless",
+                tip: "Reachable from CI or a scheduled run, with no human to authenticate.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "A running copy of the software to drive" },
+                { t: "mono", v: "build output · CodySwannGT/lisa" },
+                fCell("yes", {
+                  title: "Build output — runnable locally",
+                  sub: "What you get from building the repo",
+                  intro:
+                    "UAT needs something to actually use. For this project that is the built CLI from this repo; for a web or service stack it is a deployed URL or an ephemeral preview built from the same repo. Without a running copy there is nothing to verify.",
+                  steps: [
+                    {
+                      text: "Build the repo, then point verification at the copy to exercise.",
+                      cmd: "verify.target",
+                    },
+                    {
+                      text: "Confirm the copy is reachable and is the build you think it is, before a run.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "Verifying against a stale or wrong build is the quiet failure here — a green run that proved something you did not ship. The target is recorded in config so a run cannot silently drift onto the wrong copy.",
+                }),
+                fCell("partial", {
+                  title: "Build output — partial headless",
+                  sub: "Depends where the build can run",
+                  intro:
+                    "A scheduled run can build the repo and drive the output, or reach a copy already deployed from it, with no human present. It cannot reach anything that only exists on your workstation — a copy behind your desktop session, or a build you never pushed.",
+                  steps: [
+                    {
+                      text: "Verify against a build the headless runner can produce or reach, not one only on your machine.",
+                      cmd: "verify.target",
+                    },
+                  ],
+                  foot: "This is the Verify-specific version of the interactive-auth trap: a run that is green locally can be meaningless headless if the only reachable copy was on your machine.",
+                }),
+              ],
+              [
+                {
+                  t: "text",
+                  v: "A way to drive it the way a human would",
+                },
+                {
+                  t: "multiselect",
+                  values: ["CLI harness"],
+                  options: [
+                    "CLI harness",
+                    "Playwright",
+                    "Cypress",
+                    "Maestro",
+                    "Detox",
+                    "manual walkthrough",
+                  ],
+                  mono: true,
+                },
+                fCell("yes", {
+                  title: "Driver — present locally",
+                  sub: "How UAT actually touches the product",
+                  intro:
+                    "The driver is what stands in for a human's hands. Web journeys use Playwright, native journeys use Maestro, and a CLI is driven through its own harness. Pick whatever matches the product's surface — more than one where it has several.",
+                  steps: [
+                    {
+                      text: "Installed with the project's E2E tooling.",
+                      cmd: "/lisa:apply",
+                    },
+                    {
+                      text: "Confirm the driver can reach the target.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "The driver is swappable and stackable — it does not change what Verify proves, only how it touches the product.",
+                }),
+                fCell("yes", {
+                  title: "Driver — present headless",
+                  sub: "Runs in CI and on a schedule",
+                  intro:
+                    "The E2E drivers run headless by design, so a scheduled UAT pass drives the product with no human present.",
+                  steps: [
+                    {
+                      text: "Nothing extra — the driver ships with the E2E tooling.",
+                      cmd: "/lisa:apply",
+                    },
+                  ],
+                  foot: "Native drivers (Maestro / Detox) need a device or emulator, which is why native UAT usually runs nightly on a device farm rather than on every cycle.",
+                }),
+              ],
+              [
+                /* Same tracker setting as Plan and Implement — bound through
+                         syncKey so all three factory pages show one value. */
+                {
+                  t: "text",
+                  v: "The work item, and where to file failures",
+                },
+                {
+                  t: "select",
+                  v: "JIRA",
+                  mono: true,
+                  syncKey: "tracker.provider",
+                  options: ["JIRA", "GitHub", "Linear"],
+                },
+                fCell("yes", {
+                  title: "JIRA — connected locally",
+                  sub: "Reachable from your workstation",
+                  intro:
+                    "Verify reads the acceptance criteria from the work item, posts the go/no-go decision back to it with evidence, and — on a no-go — files the failure as a new build-ready ticket.",
+                  steps: [
+                    {
+                      text: "Run setup and choose this workstation when it asks where.",
+                      cmd: "/lisa:setup:tracker",
+                    },
+                    {
+                      text: "Verify from the same target.",
+                      cmd: "/lisa:verify:tracker",
+                    },
+                  ],
+                  foot: "Same setting as the Plan and Implement factories — changing it here changes it there.",
+                }),
+                fCell("yes", {
+                  title: "JIRA — connected headless",
+                  sub: "Works in CI and on a schedule",
+                  intro:
+                    "Token auth, so the scheduled loop can read the work item and file failure tickets with no human present.",
+                  steps: [
+                    {
+                      text: "Run setup and choose the headless target you want.",
+                      cmd: "/lisa:setup:tracker",
+                    },
+                    {
+                      text: "Verify from that target.",
+                      cmd: "/lisa:verify:tracker",
+                    },
+                  ],
+                  foot: "Config holds the site, project key and role mapping only — the token lives in that target's secret store.",
+                }),
+              ],
+              [
+                {
+                  t: "text",
+                  v: "The spec to check the result against",
+                },
+                {
+                  t: "select",
+                  v: "Notion",
+                  mono: true,
+                  syncKey: "source.provider",
+                  options: [
+                    "Notion",
+                    "Confluence",
+                    "Linear",
+                    "GitHub",
+                    "Google Docs",
+                  ],
+                },
+                fCell("yes", {
+                  title: "Notion — readable locally",
+                  sub: "The PRD, for spec conformance",
+                  intro:
+                    "Beyond acceptance criteria, Verify checks the shipped result against the original PRD section by section — Out of Scope, Technical Approach, the Validation Journey. That needs the PRD, from the same source the Research factory wrote it to.",
+                  steps: [
+                    {
+                      text: "Run setup and choose this workstation when it asks where.",
+                      cmd: "/lisa:setup:prd-source",
+                    },
+                    {
+                      text: "Verify from the same target.",
+                      cmd: "/lisa:verify:prd-source",
+                    },
+                  ],
+                  foot: "Same setting as the Research factory's output — one provider holds the PRDs, and three factories touch it.",
+                }),
+                fCell("no", {
+                  title: "Notion — not readable headless",
+                  sub: "Spec conformance degrades without it",
+                  intro:
+                    "A scheduled run cannot complete an OAuth prompt, so it cannot open the PRD — which means the spec-conformance check is skipped and verification falls back to acceptance criteria alone.",
+                  steps: [
+                    {
+                      text: "Run setup again and choose a headless target when it asks where.",
+                      cmd: "/lisa:setup:prd-source",
+                    },
+                    {
+                      text: "Verify from that target, not from your laptop.",
+                      cmd: "/lisa:verify:prd-source",
+                    },
+                  ],
+                  foot: "Unlike the tracker, losing this does not stop a run — it narrows it. That is worth knowing: a headless go/no-go may be a weaker verdict than a local one.",
+                }),
+              ],
+              [
+                {
+                  t: "text",
+                  v: "Project knowledge for what correct looks like",
+                },
+                { t: "mono", v: "Lisa LLM Wiki" },
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "UAT is guesswork without it",
+                  intro:
+                    "To judge whether the product behaves correctly, the agent has to know what correct means here — the intended flows, the edge cases that matter, the decisions already made. Without a wiki it verifies against the ticket alone and misses everything the ticket assumed you already knew.",
+                  steps: [
+                    {
+                      text: "Build the wiki from everything the agent can already reach — repository, git history, connected systems.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                    {
+                      text: "Answer the questions it could not resolve itself. It writes them to a gaps file for a human.",
+                      cmd: "wiki/gaps.md",
+                    },
+                    {
+                      text: "Re-run in a fresh session so the answers are absorbed. Repeat until zero gaps remain.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "The framing that makes this work: starting tomorrow you maintain this project with zero human input — today is your only chance to ask questions.",
+                }),
+                fCell("no", {
+                  title: "No knowledge source connected",
+                  sub: "Same gap, headless",
+                  intro:
+                    "The wiki lives in the repository, so once it exists it is reachable everywhere the repo is. This cell turns green at the same moment the local one does.",
+                  steps: [
+                    {
+                      text: "Connect it once; there is no separate headless step.",
+                      cmd: "/lisa:agent-ready",
+                    },
+                  ],
+                  foot: "A git-native knowledge source is the reason this row has no local/headless split in practice.",
+                }),
+              ],
+              [
+                { t: "text", v: "The codebase as ground truth" },
+                { t: "mono", v: "CodySwannGT/lisa" },
+                fCell("yes", {
+                  title: "Repository — connected locally",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "Verify reads the code to write regression tests that pin each passing check, and to know what shipped in the first place.",
+                  steps: [
+                    {
+                      text: "Nothing to connect — the factory runs inside the checkout.",
+                    },
+                  ],
+                }),
+                fCell("yes", {
+                  title: "Repository — connected headless",
+                  sub: "CodySwannGT/lisa",
+                  intro:
+                    "CI and scheduled runs check the repository out before the factory starts.",
+                  steps: [
+                    {
+                      text: "Nothing to connect. A scheduled run sees the default branch.",
+                    },
+                  ],
+                }),
+              ],
+            ],
+          },
+          fLegend(
+            "<b>Verify and the QA loop are the same competence in two positions.</b> Verify drives the product to produce a bounded go/no-go on one work item at a gate; the QA loop drives it continuously to produce unbounded exploratory signal. Both re-enter the pipeline through intake — a finding from either gets no privileged path around the adversarial gate. And neither is a scanner: an automated check that inspects a diff or a running app is an Implement gate, not UAT."
+          ),
+        ],
+      };
+      /* ---------------------------------- Signals (Observe) ---------------------------------- */
+      /* Observe is deliberately NOT a factory — it transforms no work unit and
+               has no gate of its own. It is the sensor layer that watches deployed
+               software and turns what it sees into inputs that re-enter the factories
+               at whichever gate matches the signal. It lives under Factories in the
+               nav because that is where an operator looks for it, not because it is
+               one. */
+      DATA.sections.signals = {
+        title: "Signals",
+        desc: "The Observe layer — not a factory. It watches the deployed software and turns what it sees into inputs that re-enter the factories at the gate that matches the signal: a crash becomes an Implement ticket, a usage pattern becomes Research material. Every finding submits to the same adversarial intake as any other work; sensing earns no privileged path around the gate.",
+        src: ".lisa.config.json monitor.* · qa.*",
+        blocks: [
+          {
+            type: "table",
+            card: "How it senses",
+            note: "Two ways to sense, both scheduled loops. Reading telemetry catches what the software reports about itself; using the product catches what it does not.",
+            cols: [
+              { v: "Sensor" },
+              { v: "Command" },
+              { v: "Cadence" },
+              {
+                v: "Registered",
+                tip: "Whether a scheduler is actually invoking this. Manual runs are never registered — you invoke them.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Reading telemetry (Monitoring)" },
+                { t: "mono", v: "/lisa:monitor" },
+                { t: "text", v: "once a day" },
+                fCell("no", {
+                  title: "Register the monitoring loop",
+                  sub: "Nothing is watching telemetry today",
+                  intro:
+                    "The monitoring loop scans errors, latency and fault rates across every connected provider and files a regression ticket when a threshold is crossed. Until it is registered, a production regression waits for a human to notice.",
+                  steps: [
+                    {
+                      text: "Run setup and register this loop.",
+                      cmd: "/lisa:setup:automations",
+                    },
+                    {
+                      text: "Confirm the registration took, and see when it last ran.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "A sensor that is not running produces no findings — which looks exactly like a healthy system with nothing to report. That ambiguity is the whole risk of this layer.",
+                }),
+              ],
+              [
+                { t: "text", v: "Using the product (Exploratory QA)" },
+                { t: "mono", v: "/lisa:exploratory-qa" },
+                { t: "text", v: "once a day" },
+                fCell("no", {
+                  title: "Register the exploratory-QA loop",
+                  sub: "Nothing is exercising the product today",
+                  intro:
+                    "The QA loop drives the product the way a curious user would, hunting for bugs no acceptance criterion named. It is the same competence as the Verify factory, but continuous and unbounded rather than a bounded go/no-go.",
+                  steps: [
+                    {
+                      text: "Run setup and register this loop.",
+                      cmd: "/lisa:setup:automations",
+                    },
+                    {
+                      text: "Confirm the registration took, and see when it last ran.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "Whatever it finds is filed straight to the build-ready role and enters intake like any other work — no human promotes it first. Autonomy is the default; the adversarial gate is the quality control, not a person's approval.",
+                }),
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Signal coverage",
+            note: "Whether the deployed software actually emits each signal, and which gate the signal re-enters the pipeline at. Provider is swappable; instrumentation is what makes the signal real. Click a red instrumented cell for how to close it.",
+            cols: [
+              { v: "Signal" },
+              {
+                v: "Provider",
+                tip: "The tool that carries this signal. Swappable — the pipeline is provider-neutral.",
+              },
+              {
+                v: "Instrumented",
+                tip: "Does the deployed software actually emit this signal? A provider with no instrumentation carries nothing.",
+              },
+              {
+                v: "Routes back to",
+                tip: "Which factory this signal re-enters the pipeline at when it fires — through that factory’s intake gate.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Errors & crashes" },
+                {
+                  t: "select",
+                  v: "Sentry",
+                  mono: true,
+                  options: ["Sentry", "Rollbar", "Bugsnag", "Crashlytics"],
+                },
+                fCell("yes"),
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "text", v: "Logs" },
+                {
+                  t: "select",
+                  v: "CloudWatch Logs",
+                  mono: true,
+                  options: [
+                    "CloudWatch Logs",
+                    "Datadog",
+                    "Splunk",
+                    "Loki",
+                    "Axiom",
+                  ],
+                },
+                fCell("yes"),
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "text", v: "Metrics & alarms" },
+                {
+                  t: "select",
+                  v: "CloudWatch Alarms",
+                  mono: true,
+                  options: [
+                    "CloudWatch Alarms",
+                    "Datadog",
+                    "Prometheus",
+                    "Grafana Cloud",
+                  ],
+                },
+                fCell("yes"),
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "text", v: "Traces" },
+                {
+                  t: "select",
+                  v: "AWS X-Ray",
+                  mono: true,
+                  options: ["AWS X-Ray", "Datadog", "Honeycomb", "Jaeger"],
+                },
+                fCell("no", {
+                  title: "Traces are not instrumented",
+                  sub: "Provider connected, nothing emitting",
+                  intro:
+                    "X-Ray is available but the code emits no spans, so trace fault rates and latency percentiles are invisible. A connected provider with no instrumentation is the sensor version of a gate that never fires — it looks configured and reports nothing.",
+                  steps: [
+                    {
+                      text: "Instrument the code to emit spans — ideally through OpenTelemetry, so the backend stays swappable.",
+                      cmd: "OTel SDK · X-Ray",
+                    },
+                    {
+                      text: "Confirm traces are arriving before trusting the silence.",
+                      cmd: "/lisa:verify:automation",
+                    },
+                  ],
+                  foot: "OpenTelemetry is the Observe layer's version of the control/provider split: instrument once, swap the backend freely.",
+                }),
+                { t: "text", v: "Implement" },
+              ],
+              [
+                { t: "text", v: "Frontend real-user monitoring" },
+                { t: "mono", v: "—" },
+                fCell("n/a", {
+                  title: "RUM — not applicable",
+                  sub: "No frontend in this stack",
+                  intro:
+                    "Real-user monitoring measures a rendered UI. This project is a CLI, so there is nothing to instrument. It becomes a real signal on a frontend stack, routing to the Implement gate for perf and error regressions.",
+                  steps: [
+                    {
+                      text: "On a frontend stack, connect a RUM provider.",
+                      cmd: "Datadog RUM · Sentry · PostHog",
+                    },
+                  ],
+                }),
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "text", v: "Uptime & synthetics" },
+                { t: "mono", v: "—" },
+                fCell("n/a", {
+                  title: "Synthetics — not applicable",
+                  sub: "No served endpoint to probe",
+                  intro:
+                    "Synthetic checks ping a running endpoint on a schedule. A CLI has none. On a service or web stack this is one of the highest-value sensors — it catches an outage before any user reports it.",
+                  steps: [
+                    {
+                      text: "On a service stack, add a synthetic monitor for the key journeys.",
+                      cmd: "Checkly · Datadog Synthetics · Pingdom",
+                    },
+                  ],
+                }),
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "text", v: "Product analytics" },
+                { t: "mono", v: "—" },
+                fCell("n/a", {
+                  title: "Product analytics — not applicable",
+                  sub: "No product surface to measure",
+                  intro:
+                    "Usage analytics show what people try to do and where they give up — the richest Research input there is, and the one that routes to the Research gate rather than Implement. It needs a product surface this CLI does not have.",
+                  steps: [
+                    {
+                      text: "On a product stack, connect an analytics provider.",
+                      cmd: "PostHog · Amplitude · Mixpanel",
+                    },
+                  ],
+                  foot: "This is the sensor that closes the whole loop: usage becomes PRDs, which become work, which becomes software, which is observed again.",
+                }),
+                { t: "text", v: "Research" },
+              ],
+            ],
+          },
+          fLegend(
+            "<b>Factories fail loudly; sensors fail silently.</b> A factory that cannot run emits a recovery-required outcome. A dead sensor emits nothing — which is pixel-identical to a healthy system with no problems. So a sensor needs a liveness signal independent of its findings: “no bugs this week” and “the bug pipe is broken” must never render the same. The disagreement between sensors is itself a signal — a crash a customer reported that never appeared in errors means the instrumentation has a hole; a spike no customer felt means you are alerting on something users do not."
+          ),
+        ],
+      };
+      /* ---------------------------------- Credentials ---------------------------------- */
+      /* PROPOSED: the credential map — /lisa:setup:credentials and
+               /lisa:verify:credentials, plus per-connection identity provisioning
+               ------------------------------------------------------------------
+               1. What to build — a central inventory of every credential the
+                  factories use, keyed by (connection × surface), recording: does the
+                  AGENT have its own identity for this connection, which store holds
+                  it, which identity path each surface uses (OIDC federation /
+                  human session / service-account token), and when it was last
+                  PROVEN by being exercised from that surface. Plus the two
+                  infrastructure choices below: which credential store, and whether
+                  an egress proxy substitutes values so the agent never reads them.
+               2. Why — Lisa already refuses to put secret values in config, but it
+                  has no idea whether a given surface can actually authenticate. That
+                  gap is the whole "green locally, red headless" failure class, and
+                  it is what makes intake's "provable access to tooling" gate
+                  aspirational rather than real. A vault can tell you a secret
+                  exists; only exercising it from the surface tells you the factory
+                  can run there.
+               3. Today — credentials live in env vars, the OS keychain, and CI
+                  secrets, provisioned by hand per vendor. Nothing enumerates them,
+                  nothing knows which surface each serves, and nothing proves them.
+               4. Replaces — nothing. Lisa does NOT become a vault; storage stays
+                  with whatever store is chosen below. Lisa owns the map and the
+                  proof, not the secrets.
+               DEFAULT STANCE (load-bearing): the agent gets its own identity for
+               every connection, on EVERY surface including the local workstation.
+               The human's credentials are not the agent's ambient authority.
+               "Driving" — the agent acting as the human — is an explicit, bounded
+               elevation, never the default. This is what makes a local run predict a
+               headless run: same identity, same path, same result. */
+      DATA.sections.credentials = {
+        title: "Credentials",
+        desc: "Where every credential the factories use lives, and whether each surface can actually authenticate with it. Lisa stores no secret values — only which identity is used where, and when it was last proven by being exercised. The agent gets its own identity by default, everywhere; borrowing yours is the exception, not the baseline.",
+        src: ".lisa.config.json credentials.*",
+        blocks: [
+          {
+            card: "Where secrets live",
+            note: "Lisa never stores a secret value — config holds IDs, slugs and references only. These two choices decide where the values actually live and whether the agent can ever read them.",
+            rows: [
+              {
+                key: "credentials.store",
+                label: "Credential store",
+                desc: "The vault of record. Everything below fetches from here rather than from a copy pasted per surface.",
+                control: sel("1Password", [
+                  "1Password",
+                  "Bitwarden Secrets Manager",
+                  "Doppler",
+                  "Infisical",
+                  "HashiCorp Vault",
+                  "AWS Secrets Manager",
+                  "Azure Key Vault",
+                  "GCP Secret Manager",
+                ]),
+              },
+              {
+                key: "credentials.rotation",
+                label: "Rotation window",
+                desc: "How long a static credential may live before it must be replaced. Short-lived credentials matter more than hidden ones: a token that expires on its own has a small blast radius whether or not it leaked.",
+                control: num(90, "days"),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Agent identities",
+            note: "One row per connection. Identity answers whether the agent authenticates as itself; the three surface columns answer whether that identity is provisioned and proven from each place a factory runs. Click a surface cell for its identity path and commands.",
+            cols: [
+              { v: "Connection" },
+              {
+                v: "Identity",
+                tip: "own = the agent authenticates as itself · yours = it borrows your credential, which is a gap · human only = deliberately not delegable.",
+              },
+              {
+                v: "Stored in",
+                tip: "Where the value lives. OIDC means no stored secret at all — the runtime's own identity is the credential.",
+              },
+              {
+                v: "Local",
+                center: true,
+                tip: "Provisioned and proven from your workstation. Local is not privileged — it is just another runner.",
+              },
+              {
+                v: "CI",
+                center: true,
+                tip: "Provisioned and proven from the pipeline. This is the surface that can usually be made keyless via OIDC federation.",
+              },
+              {
+                v: "Remote headless",
+                center: true,
+                tip: "Provisioned and proven from a scheduled cloud run. Structurally the weakest — no human, and usually no federation, so a static token.",
+              },
+            ],
+            rows: [
+              [
+                { t: "text", v: "Tracker — JIRA" },
+                { t: "badge", v: "own", cls: "pass" },
+                { t: "mono", v: "1Password" },
+                fCell("yes", {
+                  title: "JIRA — agent identity, local",
+                  sub: "Bot user, not your account",
+                  intro:
+                    "The agent authenticates as its own JIRA bot user, so every transition and comment is attributable to it rather than smeared into your account — and its permissions can be cut to what the factories need instead of inheriting your admin rights.",
+                  meta: [
+                    { k: "Identity", v: "service account (bot user)" },
+                    { k: "Path", v: "API token from the store" },
+                    { k: "Last proven", v: "never" },
+                  ],
+                  steps: [
+                    {
+                      text: "Provision the agent's own identity for this connection and surface.",
+                      cmd: "/lisa:setup:credentials",
+                    },
+                    {
+                      text: "Prove it by exercising it from this surface.",
+                      cmd: "/lisa:verify:credentials",
+                    },
+                  ],
+                  foot: "Per-seat licensing is the real cost of agent identity on JIRA, Linear and Notion — a bot user may consume a seat. Worth deciding deliberately rather than discovering at renewal.",
+                }),
+                fCell("yes"),
+                fCell("yes"),
+              ],
+              [
+                { t: "text", v: "PRD source — Notion" },
+                {
+                  t: "badge",
+                  v: "yours",
+                  cls: "warn",
+                  how: {
+                    title: "The agent is borrowing your credential",
+                    sub: "This is the gap behind every red headless cell",
+                    intro:
+                      "Notion is reached through an OAuth session that authenticates as you. That is why it works at your desk and fails everywhere else — and why every PRD the factory files is attributed to you rather than to the agent.",
+                    meta: [
+                      { k: "Identity", v: "human session (yours)" },
+                      {
+                        k: "Should be",
+                        v: "internal integration (agent's own)",
+                      },
+                    ],
+                    steps: [
+                      {
+                        text: "Give the agent its own Notion integration and share the PRD database with it.",
+                        cmd: "/lisa:setup:credentials",
+                      },
+                      {
+                        text: "Prove it from each surface — a local pass no longer implies the others once identities differ.",
+                        cmd: "/lisa:verify:credentials",
+                      },
+                    ],
+                    foot: "Fixing this turns three cells green at once: same identity, same path, every surface. That is the whole argument for agent-identity-by-default.",
+                  },
+                },
+                { t: "mono", v: "— your session —" },
+                fCell("yes"),
+                fCell("no"),
+                fCell("no"),
+              ],
+              [
+                { t: "text", v: "Repository & pull requests — GitHub" },
+                { t: "badge", v: "own", cls: "pass" },
+                { t: "mono", v: "GitHub App · OIDC in CI" },
+                fCell("yes", {
+                  title: "GitHub — agent identity, local",
+                  sub: "GitHub App installation token",
+                  intro:
+                    "A GitHub App is the right primitive here: scoped per repository, tokens that expire in an hour, and commits and pull requests attributable to the app rather than to a machine user wearing a person's name.",
+                  meta: [
+                    { k: "Identity", v: "GitHub App installation" },
+                    { k: "Path", v: "short-lived installation token" },
+                    { k: "Last proven", v: "never" },
+                  ],
+                  steps: [
+                    {
+                      text: "Provision the app installation for this surface.",
+                      cmd: "/lisa:setup:credentials",
+                    },
+                    {
+                      text: "Prove it by opening and closing a scratch pull request.",
+                      cmd: "/lisa:verify:credentials",
+                    },
+                  ],
+                  foot: "This also lets the agent be the actual committer rather than a Co-authored-by trailer on your commit.",
+                }),
+                fCell("yes", {
+                  title: "GitHub — agent identity, CI",
+                  sub: "No stored secret at all",
+                  intro:
+                    "In the pipeline the runtime federates: it mints a short-lived OIDC token the provider already trusts. Nothing is stored, so there is nothing to rotate and nothing to leak. This is the strongest of the three surfaces.",
+                  meta: [
+                    { k: "Identity", v: "OIDC federation" },
+                    { k: "Stored secret", v: "none" },
+                    { k: "Last proven", v: "never" },
+                  ],
+                  steps: [
+                    {
+                      text: "Nothing to provision — federation is configured once at the provider.",
+                      cmd: "/lisa:setup:credentials",
+                    },
+                    {
+                      text: "Prove the federation is trusted from the pipeline.",
+                      cmd: "/lisa:verify:credentials",
+                    },
+                  ],
+                  foot: "Where a surface can federate, it should. Keyless beats hidden.",
+                }),
+                fCell("yes"),
+              ],
+              [
+                { t: "text", v: "Cloud & deploys — AWS" },
+                { t: "badge", v: "own", cls: "pass" },
+                { t: "mono", v: "IAM role · OIDC in CI" },
+                fCell("partial", {
+                  title: "AWS — role assumption incomplete locally",
+                  sub: "The agent can authenticate, but not assume the role",
+                  intro:
+                    "The agent has its own IAM identity, but the local trust policy does not yet let it assume the deploy role — so it can read but not ship from this surface. CI can, because federation is already trusted there.",
+                  meta: [
+                    { k: "Identity", v: "IAM role (assumed)" },
+                    { k: "Path", v: "role assumption from agent principal" },
+                    { k: "Last proven", v: "never" },
+                  ],
+                  steps: [
+                    {
+                      text: "Add this surface's principal to the role's trust policy.",
+                      cmd: "/lisa:setup:credentials",
+                    },
+                    {
+                      text: "Prove it by assuming the role and calling a read-only API.",
+                      cmd: "/lisa:verify:credentials",
+                    },
+                  ],
+                }),
+                fCell("yes"),
+                fCell("no"),
+              ],
+              [
+                { t: "text", v: "Observability — Sentry" },
+                { t: "badge", v: "own", cls: "pass" },
+                { t: "mono", v: "1Password" },
+                fCell("yes"),
+                fCell("yes"),
+                fCell("yes"),
+              ],
+              [
+                { t: "text", v: "Package registry — npm" },
+                { t: "badge", v: "own", cls: "pass" },
+                { t: "mono", v: "1Password" },
+                fCell("yes"),
+                fCell("yes"),
+                fCell("no", {
+                  title: "npm publish — not provisioned headless",
+                  sub: "Deliberate, for now",
+                  intro:
+                    "The publish token is not available to scheduled runs, so a cron cannot cut a release. Whether that is a gap or a boundary is a decision: releases may be something you want a proven pipeline to do and an unattended loop not to.",
+                  meta: [
+                    { k: "Identity", v: "service account (automation token)" },
+                    { k: "Path", v: "token from the store" },
+                  ],
+                  steps: [
+                    {
+                      text: "Provision it for this surface if unattended releases are intended.",
+                      cmd: "/lisa:setup:credentials",
+                    },
+                  ],
+                  foot: "A missing credential is a weak way to enforce a policy — it looks like a gap. If this is intentional, say so with an approval gate instead.",
+                }),
+              ],
+              [
+                { t: "text", v: "Protected deploy approval" },
+                { t: "badge", v: "human only", cls: "na" },
+                { t: "mono", v: "—" },
+                fCell("n/a", {
+                  title: "Human authority — not delegable",
+                  sub: "By design, on every surface",
+                  intro:
+                    "Approving a protected deploy is not a credential the agent should ever hold. The point of the gate is that a person accepted the risk — an agent approving on your behalf would make the gate ceremonial.",
+                  meta: [
+                    { k: "Identity", v: "human, always" },
+                    { k: "Delegable", v: "no" },
+                  ],
+                  steps: [
+                    {
+                      text: "Nothing to provision. The agent requests approval and waits.",
+                      cmd: "approval-requested",
+                    },
+                  ],
+                  foot: "This is also where driving belongs: if you want the agent to act with your authority, that is a deliberate, bounded elevation — never ambient.",
+                }),
+                fCell("n/a"),
+                fCell("n/a"),
+              ],
+            ],
+          },
+          fLegend(
+            '<b>The agent has its own identity by default — everywhere, including your workstation.</b> Your laptop is not a privileged environment; it is just another runner with better latency and worse uptime. When the agent authenticates as itself on every surface, a local pass genuinely predicts a headless pass, because it is the same identity taking the same path. The <span class="mono">yours</span> row above is the exception that proves it: borrowing your session is exactly why that connection works at your desk and nowhere else. Where a surface can federate (CI, via OIDC) it should — keyless beats hidden. The remote-headless static token is the structural weak link, so scope it narrowly and rotate it often; a short-lived credential is worth more than a well-hidden one.'
+          ),
+        ],
+      };
+      /* ---------------------------------- Environments ---------------------------------- */
+      /* PROPOSED: environments as a first-class, per-agent concept.
+               1. What to build — a roster of the places a factory can run, where
+                  "Remote" is NOT one thing: every coding agent ships its own hosted
+                  runtime, so the remote row changes identity with the staff. Lisa
+                  needs to know which environments are provisioned, how credentials
+                  reach each one, and which scheduler drives unattended work there.
+               2. Why — the console keeps asking "local or headless?" as if headless
+                  were a single place. It is not: Claude's hosted runtime, Codex's,
+                  and a GitHub Actions runner are different substrates with different
+                  credential paths and different schedulers. Collapsing them hides the
+                  question an operator actually has — "will tonight's run work, on the
+                  thing that will actually run it?"
+               3. Today — `harness` picks which agents get surfaces installed, and CI
+                  is configured per workflow. Nothing models the vendor remotes at
+                  all, and nothing records which environments are proven.
+               4. Replaces — nothing. This is the axis the factory Connections tables
+                  already imply with their Local/Headless columns; those columns
+                  should eventually be generated from this roster.
+               NOTE: OpenCode has no vendor cloud — it is self-hosted, so its remote
+               row is whatever infrastructure you provide. That is a real difference
+               in kind, not a gap, and the page must say so rather than showing a
+               missing product as a red cell. */
+      const REMOTE_ENVS = {
+        claude: {
+          name: "Claude Code on the web",
+          manual: "Run now",
+          scheduled: "routine schedule (1 hour minimum)",
+          event: "GitHub PR / release · API POST /fire",
+          state: "ready",
+          blurb:
+            "Anthropic-hosted sessions, each a fresh isolated run with no prior context. Routines are the scheduler, and they take all three trigger types — a single routine can run nightly, fire from a deploy script, and react to every new PR.",
+        },
+        codex: {
+          name: "Codex cloud",
+          manual: "dispatch a task",
+          scheduled: "cloud automations",
+          event: "— none —",
+          state: "ready",
+          blurb:
+            "OpenAI-hosted container provisioned per task, checked out from the repository. Codex has both local and cloud automations — the cloud ones are the set-and-forget kind that do not need your machine running.",
+        },
+        cursor: {
+          name: "Cursor Cloud Agents",
+          manual: "dispatch a cloud agent",
+          scheduled: "— none —",
+          event: "— none —",
+          state: "gap",
+          blurb:
+            "Cursor's hosted agents, with a self-hosted variant on Enterprise for codebases that must stay on your own infrastructure. Not provisioned for this project.",
+        },
+        agy: {
+          name: "Antigravity background tasks",
+          manual: "dispatch a task",
+          scheduled: "Antigravity schedules",
+          event: "— none —",
+          state: "gap",
+          blurb:
+            "Antigravity 2.0 added scheduled background tasks. Not provisioned for this project, and its agent-layer enforcement is unproven — see the picker above.",
+        },
+        copilot: {
+          name: "Copilot coding agent",
+          manual: "assign an issue to the agent",
+          scheduled: "— none —",
+          event: "issue assignment",
+          state: "gap",
+          blurb:
+            "GitHub-hosted. Runs in an ephemeral Linux sandbox provisioned per job, non-interactive with constrained network, destroyed when the job ends. Not provisioned for this project.",
+        },
+        opencode: {
+          name: "— no vendor cloud —",
+          manual: "yours to provide",
+          scheduled: "cron you run",
+          event: "yours to provide",
+          state: "na",
+          blurb:
+            "OpenCode is self-hosted and provider-agnostic, so there is no vendor remote to provision. Remote here means whatever infrastructure you stand up — which is a difference in kind, not a gap.",
+        },
+      };
+
+      /* Each environment gets its own card, because each one is independently
+         configured — most importantly its own credential gateway. A gateway
+         deployed locally but not in the remote leaves the remote unprotected,
+         and a single shared setting would hide exactly that.
+
+         Every environment is described by the same three trigger types, because
+         "where it runs" and "what starts it" are independent questions that get
+         conflated constantly. Local is NOT manual-only: every agent can be
+         scheduled on your workstation, it just needs the machine awake. And the
+         vendor remotes are not schedule-only: Claude routines, for instance,
+         also fire on GitHub events and on an authenticated POST.
+         Verified against vendor docs 2026-07-24. */
+      const GATEWAYS = [
+        "none — direct injection",
+        "Vault Agent",
+        "1Password Connect",
+        "Infisical Agent",
+        "custom egress proxy",
+      ];
+      /* Local schedulers are per-agent: some ship a native one, and cron always
+         works. All of them share one constraint — the machine has to be awake. */
+      const LOCAL_SCHED = {
+        claude: "Local routines · /loop · cron",
+        codex: "local automations (~/.codex/automations) · cron",
+        agy: "Antigravity schedules · cron",
+        cursor: "cron",
+        copilot: "cron",
+        opencode: "cron",
+      };
+      function buildEnvironments() {
+        const caps = currentCaps();
+        const remote = REMOTE_ENVS[DATA.staff] || REMOTE_ENVS.claude;
+        const wrap = el("div", "env-cards");
+        const trig = (label, desc, value) => ({
+          key: "",
+          label,
+          desc,
+          control: stat(value, "mono"),
+        });
+        const gatewayRows = (scope, gatewayDesc, egressDesc) => [
+          {
+            key: "environments." + scope + ".gateway",
+            label: "Credential gateway",
+            desc: gatewayDesc,
+            control: sel("none — direct injection", GATEWAYS),
+          },
+          {
+            key: "environments." + scope + ".egressLock",
+            label: "Restrict egress to the gateway",
+            desc: egressDesc,
+            control: tog(false),
+          },
+        ];
+
+        wrap.appendChild(
+          buildCard({
+            card: "Local — your workstation",
+            note: "Not a privileged environment. The same factories, the same agent identity — just better latency, worse uptime, and a human nearby who could intervene.",
+            rows: [
+              trig(
+                "Manual runs",
+                "You invoke a factory in a session.",
+                "a CLI session"
+              ),
+              trig(
+                "Scheduled runs",
+                "Local scheduling is a first-class feature, not a workaround — Claude creates these from the same Routines page, choosing Local instead of Cloud. It only runs while the app is open and the machine is awake; a run that falls during sleep is skipped, then caught up once on wake. In exchange it gets access to local files and a 1-minute minimum interval.",
+                LOCAL_SCHED[DATA.staff] || "cron"
+              ),
+              trig(
+                "Event-driven runs",
+                "Local routines take a schedule only. Anything that has to start from an API call or a repository event needs the hosted runtime instead — that is the documented reason to reach for a remote routine rather than a local one.",
+                "— none —"
+              ),
+              {
+                key: "",
+                label: "Credential path",
+                desc: "The agent authenticates as itself, not as you. That is what makes a local pass predict a headless pass.",
+                control: stat("agent service account", "mono"),
+              },
+              ...gatewayRows(
+                "local",
+                "Substitutes real values into outbound requests so the agent only handles placeholders. None means secrets land in the agent's environment where it — and anything reaching its context — can read them.",
+                "A gateway only protects what passes through it. Without this, an agent that can run shell reaches the network directly and bypasses it."
+              ),
+            ],
+          })
+        );
+
+        wrap.appendChild(
+          buildCard({
+            card: "CI — the authoritative tier",
+            note: "Where the gates actually gate: every check marked required to merge fires here, server-side, where the worker cannot skip it. Also the one environment that can usually hold no secret at all.",
+            rows: [
+              {
+                key: "ci.provider",
+                label: "Provider",
+                desc: "The gate workflows are generated for whichever system is selected.",
+                control: sel("GitHub Actions", [
+                  "GitHub Actions",
+                  "GitLab CI",
+                  "Jenkins",
+                  "CircleCI",
+                  "Buildkite",
+                ]),
+              },
+              trig(
+                "Manual runs",
+                "A workflow can be dispatched by hand from the UI or the CLI, with inputs.",
+                "workflow_dispatch"
+              ),
+              trig(
+                "Scheduled runs",
+                "Cron in the workflow itself. Runs against the default branch, not your local one.",
+                "schedule (cron)"
+              ),
+              trig(
+                "Event-driven runs",
+                "The common case — repository activity starts the run. This is what makes CI the tier that can gate a merge.",
+                "push · pull_request · release"
+              ),
+              {
+                key: "",
+                label: "Credential path",
+                desc: "Federation mints a short-lived token the provider already trusts — nothing stored, nothing to rotate, nothing to leak.",
+                control: stat("OIDC federation", "mono"),
+              },
+              ...gatewayRows(
+                "ci",
+                "Less load-bearing here than elsewhere: where federation is in use there is no long-lived secret for a gateway to hide.",
+                "Runners have broad network access by default. Locking egress is what turns a gateway from advisory into enforcement."
+              ),
+            ],
+          })
+        );
+
+        const remoteCard = buildCard({
+          card: "Remote — " + remote.name,
+          note: remote.blurb,
+          rows: [
+            {
+              key: "",
+              label: "Provider",
+              desc:
+                "Vendor-provided by " +
+                caps.label +
+                ". This is the card that changes with the agent selected above.",
+              control: stat(remote.name, "mono"),
+            },
+            trig(
+              "Manual runs",
+              "Dispatching a one-off run to the hosted runtime without waiting for a trigger.",
+              remote.manual
+            ),
+            trig(
+              "Scheduled runs",
+              remote.scheduled === "— none —"
+                ? "No vendor scheduler for this runtime."
+                : "Runs on the vendor's own scheduler, so it keeps working with your laptop closed — the thing local scheduling cannot do. The tradeoff runs the other way on granularity: hosted schedulers impose a floor that local scheduling does not.",
+              remote.scheduled
+            ),
+            trig(
+              "Event-driven runs",
+              remote.event === "— none —"
+                ? "Nothing external can start a run here."
+                : "External systems can start a run. This is what lets a monitor or a deploy pipeline hand work to a factory directly.",
+              remote.event
+            ),
+            {
+              key: "",
+              label: "Credential path",
+              desc:
+                remote.state === "na"
+                  ? "No vendor runtime, so no vendor secret store — the identity is whatever your own infrastructure provides."
+                  : "The structural weak link: no human to authenticate and usually no federation, so a long-lived token in the runtime's secret store. Scope it narrowly and rotate it often.",
+              control: stat(
+                remote.state === "na"
+                  ? "yours to provide"
+                  : "service account token",
+                "mono"
+              ),
+            },
+            ...gatewayRows(
+              "remote",
+              "Matters most here, precisely because this is where the long-lived credentials live. A gateway configured locally does nothing for this environment.",
+              "Vendor sandboxes vary in how much network they allow. Without a restriction the gateway is advisory."
+            ),
+          ],
+        });
+        if (remote.state === "gap") remoteCard.classList.add("env-gap");
+        wrap.appendChild(remoteCard);
+        return wrap;
+      }
+
+      DATA.sections.environments = {
+        title: "Environments",
+        desc: "The places a factory can run. Local and CI are the same wherever you look; Remote is not — each coding agent ships its own hosted runtime, so pick the agent first and the remote card becomes whatever that vendor provides. Each environment is configured independently — most importantly its own credential gateway.",
+        src: ".lisa.config.json environments.*",
+        blocks: [
+          fStaffPicker(),
+          { type: "environments" },
+          fLegend(
+            "<b>Remote is not one place, and local is not manual-only.</b> Every agent ships its own hosted runtime with its own credential store and its own scheduler, so “does this work headless?” has a different answer per agent — which is why this page and the factory pages share one staff selector. Every environment can be scheduled; what differs is durability and granularity. A hosted scheduler survives a closed laptop but imposes a floor on how often it can fire — <b>which is why a loop specified at every 10 minutes cannot run as a Claude cloud routine at all</b>, and has to live locally or in CI. On credentials the ranking is: CI is strongest because it can federate and hold no secret at all; local is next because a human is nearby; the vendor remotes are weakest, since they have neither a human nor federation and fall back to a long-lived token. Scope those narrowly, rotate them often, and put a gateway in front of them — a short-lived credential is worth more than a well-hidden one."
+          ),
+        ],
+      };
+
       /* ---------------------------------- General ---------------------------------- */
       /* ---------------------------------- Health ---------------------------------- */
       /* ---------------------------------- Setup checklist ---------------------------------- */
@@ -1574,7 +5024,9 @@
                 id: "setup.automations",
                 label: "Schedule the automations",
                 desc: "Creates the six-automation fleet — intake, repair, and the QA / Product Planning / Monitoring loops — on the harness’s native scheduler.",
-                command: "/lisa:setup-automations",
+                // Renamed from /lisa:setup-automations — see the PROPOSED
+                // command-renames marker on the Research factory page.
+                command: "/lisa:setup:automations",
               },
               {
                 id: "setup.exploration",
@@ -1616,7 +5068,7 @@
       // the column carries a hover tooltip defining it.
       const AUTOMATION_COL = {
         v: "Automation",
-        tip: "The scheduled automation (created by /lisa:setup-automations) that already runs this command on a cadence. — means manual-only; “via intake” / “via implement” means it runs inside that command’s cycle. Invoke the command yourself to force a cycle now.",
+        tip: "The scheduled automation (created by /lisa:setup:automations) that already runs this command on a cadence. — means manual-only; “via intake” / “via implement” means it runs inside that command’s cycle. Invoke the command yourself to force a cycle now.",
       };
       DATA.sections.workflow = {
         title: "Core workflow",
@@ -2360,54 +5812,31 @@
           {
             type: "table",
             card: "Fleet targets",
-            cols: ["Agent", "What Lisa installs", "Enabled"],
+            note: "Which agents Lisa installs governance into. Enabling one does not make every factory work for it — see the capability row on each factory page, which changes with the agent selected there.",
+            cols: ["Agent", "Enabled"],
             rows: [
               [
                 { t: "mono", v: "claude" },
-                {
-                  t: "text",
-                  v: ".claude/, .claude-plugin/, CLAUDE.md; plugins installed from the lisa marketplace at project scope",
-                },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "codex" },
-                {
-                  t: "text",
-                  v: ".codex/, .codex-plugin/, .agents/, AGENTS.md; hooks merged into ~/.codex/hooks.json",
-                },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "cursor" },
-                {
-                  t: "text",
-                  v: "No per-project writes — Cursor natively reads the .claude-plugin loader via lisa-cursor variants",
-                },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "agy" },
-                {
-                  t: "text",
-                  v: "Antigravity: lisa-agy plugin variants; MCP mirrored user-globally; rules baked into AGENTS.md",
-                },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "copilot" },
-                {
-                  t: "text",
-                  v: ".github/copilot-instructions.md; agents emitted as *.agent.md with camelCase hook events",
-                },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "opencode" },
-                {
-                  t: "text",
-                  v: ".opencode/skills/lisa/ + AGENTS.md, read natively; project plugin hooks",
-                },
                 { t: "toggle", v: true },
               ],
             ],
@@ -3316,11 +6745,13 @@
         desc: "All agent work that runs on a schedule, whichever machine fires it: the fleet that runs the factories \u2014 pipeline movers (intake, repair) and the three feeding loops (QA, Product Planning, Monitoring) \u2014 on the harness\u2019s native scheduler, plus the nightly improvement agents that run on the pipeline host. Harness names carry a stable lisa-auto-<project>- prefix so teardown is precise.",
         src: "plugins/src/base/skills/lisa-setup-automations \u00b7 claude-nightly-*.yml",
         blocks: [
+          // Both command names below were renamed — see the PROPOSED
+          // command-renames marker on the Research factory page.
           {
             type: "table",
             card: "Scheduled jobs",
             id: "automations-scheduled-jobs",
-            note: "Live from the harness scheduler (Codex automations or Claude /schedule). Only lisa-auto-<project>-* jobs are listed. Cadence is read-only in this phase \u2014 change jobs with /lisa:setup-automations. Nightly agents are pipeline files, inventoried under Pipelines.",
+            note: "Live from the harness scheduler (Codex automations or Claude /schedule). Only lisa-auto-<project>-* jobs are listed. Cadence is read-only in this phase \u2014 change jobs with /lisa:setup:automations. Nightly agents are pipeline files, inventoried under Pipelines.",
             cols: ["Automation", "Runs on", "Cadence", "Last run", "Status"],
             rows: [],
             empty: {
@@ -3334,7 +6765,7 @@
               {
                 key: "",
                 label: "Fleet health",
-                desc: "From /lisa:automation-status \u2014 whether every expected automation exists, matches the setup contract, and shows healthy recent activity.",
+                desc: "From /lisa:verify:automation \u2014 whether every expected automation exists, matches the setup contract, and shows healthy recent activity.",
                 control: stat(
                   "6 of 6 present \u00b7 healthy \u00b7 checked 12:58",
                   "mono"
@@ -4764,44 +8195,6 @@
           },
           {
             type: "table",
-            card: "Lifecycle labels",
-            note: "Created idempotently by /lisa:setup:github",
-            cols: ["Label", "Role", "Color"],
-            rows: [
-              [
-                { t: "mono", v: "status:ready" },
-                { t: "text", v: "build · ready" },
-                { t: "color", v: "#FBCA04" },
-              ],
-              [
-                { t: "mono", v: "status:in-progress" },
-                { t: "text", v: "build · claimed" },
-                { t: "color", v: "#0E8A16" },
-              ],
-              [
-                { t: "mono", v: "status:blocked" },
-                { t: "text", v: "build · blocked" },
-                { t: "color", v: "#D93F0B" },
-              ],
-              [
-                { t: "mono", v: "status:on-dev / status:on-stg" },
-                { t: "text", v: "build · done (dev/staging)" },
-                { t: "color", v: "#1D76DB" },
-              ],
-              [
-                { t: "mono", v: "status:done" },
-                { t: "text", v: "build · done (production)" },
-                { t: "color", v: "#0E8A16" },
-              ],
-              [
-                { t: "mono", v: "prd-draft → prd-verified" },
-                { t: "text", v: "PRD lifecycle (8 labels)" },
-                { t: "color", v: "#5319E7" },
-              ],
-            ],
-          },
-          {
-            type: "table",
             card: "Secrets",
             note: "DEPLOY_KEY is the only secret Lisa creates; the rest are expected by workflows",
             cols: ["Secret", "Purpose", "Status"],
@@ -4877,7 +8270,7 @@
 
       /* ---------------------------------- Plugins ---------------------------------- */
       /* Catalog copy only — enablement comes from the enabled-plugins probe.
-         Demo toggles are never rendered as a fallback. */
+               Demo toggles are never rendered as a fallback. */
       DATA.sections.plugins = {
         title: "Plugins & MCP",
         desc: "Lisa’s own plugin set (base + one per detected stack), curated third-party plugins, and the MCP servers each one carries. Non-Claude agents receive generated equivalents of everything here.",
@@ -5063,18 +8456,18 @@
       const dirty = new Set();
 
       /* Live enabled-plugins state, hydrated from GET /api/status. Starts as
-         "loading" so the Plugins section never presents demo toggles as truth. */
+               "loading" so the Plugins section never presents demo toggles as truth. */
       let pluginsLive = {
         status: "loading",
         settingsPresent: false,
         plugins: [],
       };
       /* Live detected-stacks state, hydrated from GET /api/status. Starts as
-         "detecting" so the Stacks section never presents the metadata catalog
-         as if it were the detection result. */
+               "detecting" so the Stacks section never presents the metadata catalog
+               as if it were the detection result. */
       let stackDetection = { status: "detecting", ids: [] };
       /* Version context and Health v1 verdict are painted together. Health
-         takes priority once measured without erasing the update context. */
+               takes priority once measured without erasing the update context. */
       let lisaVersionChipState = {
         dotClass: "",
         label: "@codyswann/lisa · checking…",
@@ -5113,6 +8506,42 @@
         if (html !== undefined) node.innerHTML = html;
         return node;
       }
+
+      /* Connection cells carry a `how` payload: the steps that would turn a
+               red cell green. Shape: {title, sub, intro, steps:[{text, cmd}], foot}.
+               Mock content for now — a wired version would generate these from the
+               same probe that decided the cell's colour, so the instructions can
+               never drift from the verdict they explain. */
+      function openHowto(how) {
+        const dlg = document.getElementById("howto");
+        if (!dlg || !how) return;
+        document.getElementById("howtoTitle").innerHTML =
+          esc(how.title) +
+          (how.sub ? '<span class="sub">' + esc(how.sub) + "</span>" : "");
+        const body = document.getElementById("howtoBody");
+        body.innerHTML = "";
+        if (how.intro) body.appendChild(el("p", "", esc(how.intro)));
+        if (Array.isArray(how.meta) && how.meta.length > 0) {
+          const dl = el("div", "howto-meta");
+          how.meta.forEach(m => {
+            dl.appendChild(el("span", "hm-k", esc(m.k)));
+            dl.appendChild(el("span", "hm-v", esc(m.v)));
+          });
+          body.appendChild(dl);
+        }
+        if (Array.isArray(how.steps) && how.steps.length > 0) {
+          const ol = el("ol");
+          how.steps.forEach(step => {
+            const li = el("li", "", esc(step.text));
+            if (step.cmd) li.appendChild(el("code", "", esc(step.cmd)));
+            ol.appendChild(li);
+          });
+          body.appendChild(ol);
+        }
+        if (how.foot) body.appendChild(el("div", "howto-foot", esc(how.foot)));
+        if (typeof dlg.showModal === "function") dlg.showModal();
+        else dlg.setAttribute("open", "");
+      }
       function esc(s) {
         return String(s)
           .replace(/&/g, "&amp;")
@@ -5148,6 +8577,48 @@
       }
 
       let ctlSeq = 0;
+      /* Propagate a shared setting to every control bound to the same syncKey:
+               first into DATA so a re-render keeps the new value, then into any
+               matching control already on screen. A setting surfaced on more than
+               one page (the PRD provider, the tracker, the quality thresholds) is
+               ONE setting — the surfaces must never be able to disagree. Covers both
+               table cells ({t, v, syncKey}) and card rows ({control:{value,
+               syncKey}}). */
+      function syncControlValue(syncKey, value) {
+        Object.values(DATA.sections).forEach(section => {
+          (section.blocks || []).forEach(block => {
+            if (!Array.isArray(block.rows)) return;
+            block.rows.forEach(row => {
+              if (Array.isArray(row)) {
+                row.forEach(cell => {
+                  if (cell && cell.syncKey === syncKey) cell.v = value;
+                });
+              } else if (
+                row &&
+                row.control &&
+                (row.control.syncKey === syncKey || row.key === syncKey)
+              ) {
+                row.control.value = value;
+              }
+            });
+          });
+        });
+        document
+          .querySelectorAll('[data-sync-key="' + syncKey + '"]')
+          .forEach(node => {
+            if (node.value !== String(value)) node.value = value;
+          });
+      }
+
+      /* Mark a control as one surface of a shared setting. */
+      function bindSync(input, control) {
+        if (!control || !control.syncKey) return;
+        input.dataset.syncKey = control.syncKey;
+        input.addEventListener("change", () =>
+          syncControlValue(control.syncKey, input.value)
+        );
+      }
+
       function buildControl(control, dirtyId) {
         const id = dirtyId || "ctl-" + ++ctlSeq;
         const wrap = el("div", "control");
@@ -5161,14 +8632,25 @@
         };
         if (!control) return wrap;
         if (control.type === "toggle") {
+          const box = el("div", "switch-wrap");
           const label = el("label", "switch");
           const input = document.createElement("input");
           input.type = "checkbox";
           input.checked = !!control.value;
           label.appendChild(input);
           label.appendChild(el("span", "trk"));
+          // Spell the state out — a bare track is ambiguous at a glance.
+          const state = el("span", "switch-state");
+          const paintState = () => {
+            state.textContent = input.checked ? "on" : "off";
+            state.classList.toggle("on", input.checked);
+          };
+          paintState();
+          input.addEventListener("change", paintState);
           bind(input, i => i.closest(".row") || i.closest("tr"));
-          wrap.appendChild(label);
+          box.appendChild(label);
+          box.appendChild(state);
+          wrap.appendChild(box);
         } else if (control.type === "select") {
           const s = document.createElement("select");
           s.className = "ctl" + (control.mono ? " mono" : "");
@@ -5180,6 +8662,7 @@
             s.appendChild(opt);
           });
           bind(s, i => i.closest(".row") || i.closest("tr"));
+          bindSync(s, control);
           wrap.appendChild(s);
         } else if (control.type === "text") {
           const i = document.createElement("input");
@@ -5198,9 +8681,57 @@
           i.className = "ctl num";
           i.value = control.value;
           bind(i);
+          bindSync(i, control);
           wrap.appendChild(i);
           if (control.unit)
             wrap.appendChild(el("span", "unit", esc(control.unit)));
+        } else if (control.type === "multiselect") {
+          // Pick one or more providers for a single obligation. Summary shows
+          // the current selection; the popover is the checklist of options.
+          const box = el("div", "ms");
+          const values = new Set(control.values || []);
+          const summary = el(
+            "button",
+            "ms-summary" + (control.mono ? " mono" : "")
+          );
+          summary.type = "button";
+          const paint = () => {
+            summary.textContent = values.size ? [...values].join(", ") : "none";
+            summary.classList.toggle("ms-empty", values.size === 0);
+          };
+          paint();
+          const pop = el("div", "ms-pop");
+          (control.options || []).forEach(o => {
+            const lab = el("label", "ms-opt");
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = values.has(o);
+            cb.addEventListener("change", () => {
+              if (cb.checked) values.add(o);
+              else values.delete(o);
+              paint();
+              markDirty(id + "·" + ++ctlSeq, box.closest("tr"));
+            });
+            lab.appendChild(cb);
+            lab.appendChild(el("span", "", esc(o)));
+            pop.appendChild(lab);
+          });
+          summary.addEventListener("click", e => {
+            e.stopPropagation();
+            const open = box.classList.toggle("open");
+            if (open) {
+              const close = ev => {
+                if (!box.contains(ev.target)) {
+                  box.classList.remove("open");
+                  document.removeEventListener("click", close);
+                }
+              };
+              document.addEventListener("click", close);
+            }
+          });
+          box.appendChild(summary);
+          box.appendChild(pop);
+          wrap.appendChild(box);
         } else if (control.type === "tags") {
           const box = el("div", "tagbox");
           (control.values || []).forEach(v => {
@@ -5326,7 +8857,14 @@
         if (row.desc) left.appendChild(el("div", "desc", row.desc));
         if (row.key) left.appendChild(el("span", "keychip", esc(row.key)));
         r.appendChild(left);
-        r.appendChild(buildControl(row.control, row.key));
+        // A row's config key IS its sync key: the same setting surfaced on two
+        // pages (a factory page and its owning settings page) stays in step
+        // without either surface having to know about the other.
+        const control =
+          row.key && row.control && !row.control.syncKey
+            ? { ...row.control, syncKey: row.key }
+            : row.control;
+        r.appendChild(buildControl(control, row.key));
         return r;
       }
 
@@ -5439,6 +8977,7 @@
           }
           const th = el("th", c.tip ? "th-help" : "", esc(c.v));
           if (c.tip) th.title = c.tip;
+          if (c.center) th.classList.add("center");
           trh.appendChild(th);
         });
         thead.appendChild(trh);
@@ -5458,10 +8997,78 @@
             if (cell.t === "mono") td.className = "mono";
             if (cell.t === "text" || cell.t === "mono") {
               td.textContent = cell.v;
+            } else if (cell.t === "obl") {
+              // An obligation cell. Clickable only when the gate has a gap —
+              // clicking opens "how to close it". Fully-enforced rows are
+              // plain text with nothing to act on.
+              if (cell.how) {
+                const btn = el("button", "linklike");
+                btn.type = "button";
+                btn.title = "How to close this gap";
+                btn.textContent = cell.v;
+                btn.addEventListener("click", () => openHowto(cell.how));
+                td.appendChild(btn);
+              } else {
+                td.textContent = cell.v;
+              }
+            } else if (cell.t === "gate") {
+              // One enforcement layer for one obligation. The dot says whether
+              // the rule fires here; the rightmost such column being green is
+              // what makes an obligation unskippable.
+              td.className = "gate-cell";
+              const cls =
+                cell.on === true ? " ok" : cell.on === "warn" ? " warn" : "";
+              const dot = el("span", "dot" + cls);
+              dot.title =
+                cell.title ||
+                (cell.on === true
+                  ? "enforced here"
+                  : cell.on === "warn"
+                    ? "runs here, but does not gate the merge"
+                    : "not enforced here");
+              td.appendChild(dot);
+            } else if (cell.t === "layer") {
+              // One enforcement layer, as a clickable yes / no / n-a. The modal
+              // carries the event it is bound to, the setup and verify
+              // commands, and — for CI — whether the check is required to
+              // merge. n/a is distinct from no: no is a fixable gap, n/a means
+              // the gate does not apply to this project's stack — or to the
+              // coding agent currently selected as this factory's staff.
+              td.className = "gate-cell";
+              const shown = resolveLayerCell(cell);
+              const label =
+                shown.on === true ? "yes" : shown.on === "na" ? "n/a" : "no";
+              const bcls =
+                shown.on === true
+                  ? "pass"
+                  : shown.on === "na"
+                    ? "na"
+                    : "default";
+              const chip = el("span", "badge " + bcls, label);
+              const btn = el("button", "badge-btn");
+              btn.type = "button";
+              btn.title = "Setup, verify and details";
+              btn.appendChild(chip);
+              btn.addEventListener("click", () => openHowto(shown.how));
+              td.appendChild(btn);
             } else if (cell.t === "badge") {
-              td.appendChild(
-                el("span", "badge " + (cell.cls || "default"), esc(cell.v))
+              const chip = el(
+                "span",
+                "badge " + (cell.cls || "default"),
+                esc(cell.v)
               );
+              if (cell.how) {
+                // Clickable verdict: the badge answers "is it connected?",
+                // the modal answers "so how do I connect it?"
+                const btn = el("button", "badge-btn");
+                btn.type = "button";
+                btn.title = "How to connect this";
+                btn.appendChild(chip);
+                btn.addEventListener("click", () => openHowto(cell.how));
+                td.appendChild(btn);
+              } else {
+                td.appendChild(chip);
+              }
             } else if (cell.t === "color") {
               const chip = el("span", "colorchip");
               const sw = el("span", "swatch");
@@ -5500,8 +9107,13 @@
               if (cell.reason) {
                 td.appendChild(el("span", "status-why", esc(cell.reason)));
               }
-            } else if (cell.t === "toggle" || cell.t === "select") {
+            } else if (
+              cell.t === "toggle" ||
+              cell.t === "select" ||
+              cell.t === "multiselect"
+            ) {
               // Table cells use {t, v}; buildControl expects {type, value}.
+              // multiselect carries {values, options} which spread through.
               td.appendChild(
                 buildControl({ ...cell, type: cell.t, value: cell.v }, null)
               );
@@ -5545,8 +9157,8 @@
       }
 
       /* The 8-entry stack metadata, keyed by id. This is a catalog of what each
-         stack installs — NOT the detection result; only ids the probe reports
-         are rendered from it. */
+               stack installs — NOT the detection result; only ids the probe reports
+               are rendered from it. */
       function stackCatalog(block) {
         const catalog = new Map();
         block.items.forEach(s => {
@@ -5556,7 +9168,7 @@
       }
 
       /* A detected id with no catalog entry still gets a card (id as name) so
-         detection truth is never dropped just because copy is missing. */
+               detection truth is never dropped just because copy is missing. */
       function minimalStackMeta(id) {
         return {
           id,
@@ -5933,7 +9545,63 @@
         if (block.type === "tabs") return buildTabs(block);
         if (block.type === "checklist") return buildChecklist(block);
         if (block.type === "plugins-live") return buildPluginsLive(block);
+        if (block.type === "staff") return buildStaff(block);
+        if (block.type === "environments") return buildEnvironments();
         return buildCard(block);
+      }
+
+      /* The staff picker: which coding agent this factory page is read for.
+               Single-select — a factory is run by one agent at a time, and its
+               readiness is only meaningful with that agent named. */
+      function buildStaff() {
+        const card = el("div", "card staff-card");
+        const head = el("div", "staff-head");
+        head.appendChild(el("span", "staff-label", "Run by"));
+        const group = el("div", "staff-opts");
+        group.setAttribute("role", "radiogroup");
+        group.setAttribute("aria-label", "Coding agent running this factory");
+        AGENTS.forEach(id => {
+          const caps = AGENT_CAPS[id];
+          const btn = el("button", "staff-opt");
+          btn.type = "button";
+          btn.setAttribute("role", "radio");
+          const selected = DATA.staff === id;
+          btn.setAttribute("aria-checked", selected ? "true" : "false");
+          if (selected) btn.classList.add("active");
+          btn.textContent = caps.label;
+          btn.addEventListener("click", () => {
+            if (DATA.staff === id) return;
+            DATA.staff = id;
+            renderAll();
+            showSection(activeSection);
+          });
+          group.appendChild(btn);
+        });
+        head.appendChild(group);
+        card.appendChild(head);
+        // No per-agent "how it works" blurb: how the surface is installed is
+        // implementation detail, not something the operator acts on. Only a
+        // capability gap earns a line here, because it changes what the page
+        // below actually means.
+        const caps = currentCaps();
+        if (caps.agentHooks !== true) {
+          const warn = el("div", "staff-warn");
+          if (caps.agentHooks === "unverified") {
+            warn.textContent =
+              caps.label +
+              " has unproven agent-layer enforcement. " +
+              caps.hookWhy +
+              " Those cells read n/a below — unproven, which is not the same as unsupported.";
+          } else {
+            warn.textContent =
+              caps.label +
+              " cannot enforce anything at the agent layer. " +
+              caps.hookWhy +
+              " Those cells read n/a below — a capability gap, not something to fix.";
+          }
+          card.appendChild(warn);
+        }
+        return card;
       }
 
       function renderAll() {
@@ -7175,8 +10843,8 @@
         }
       }
       /* Map the detected-stacks probe into stackDetection. A missing probe or a
-         non-value/non-array result becomes an explicit unknown state — never a
-         false empty and never the metadata catalog. */
+               non-value/non-array result becomes an explicit unknown state — never a
+               false empty and never the metadata catalog. */
       function applyDetectedStacks(probes) {
         const raw =
           probes && Object.hasOwn(probes, "detected-stacks")
@@ -7407,6 +11075,16 @@
         clearDirty();
         renderAll();
         showSection(activeSection);
+      });
+
+      document.getElementById("howtoClose").addEventListener("click", () => {
+        document.getElementById("howto").close();
+      });
+
+      // Clicking the backdrop closes: on a <dialog> the click target is the
+      // dialog itself only when the press landed outside its content box.
+      document.getElementById("howto").addEventListener("click", event => {
+        if (event.target === event.currentTarget) event.currentTarget.close();
       });
 
       document.getElementById("healthChip").addEventListener("click", () => {
