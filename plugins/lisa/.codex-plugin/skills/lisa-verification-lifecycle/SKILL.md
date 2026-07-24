@@ -76,6 +76,15 @@ Evidence output must explicitly label each verification result as either `verifi
 
 For a required user-visible regression spec, evidence must prove execution, not only existence. Record a CI log line, reporter output, or equivalent artifact that names the new spec and shows it ran and passed in the PR. A green CI run without named execution proof is not enough; explicitly check for `test.skip`, suite-level environment gates, shard filters, and "0 tests" passes.
 
+Prefer observing the new spec green **locally, before it ships**; CI execution proof is the fallback, not the first resort. A spec never seen passing anywhere is an untested artifact rather than coverage, and it can fail later on a branch whose gates differ from this one.
+
+Before trusting or blaming any local run of a browser/device spec, establish two things:
+
+- **Which artifact is under test.** Harnesses often target a deployed environment unless a CI-only flag is set (e.g. a Playwright config defining `webServer` only when `process.env.CI` is set). A pass obtained that way describes deployed code, not the working tree.
+- **Whether the surface is exercisable at all**, by running a **known-good sibling spec unmodified as a control** in the same mode. Control fails too → the environment cannot exercise that surface and the run carries no information about the new spec. Control passes and the new spec fails → the defect is in the new spec.
+
+Record the control result alongside the verdict. A browser-boundary claim marked `not-established` for environmental reasons is only credible with that control; without it the claim is an assumption. When a verdict is later found to rest on one of these traps, state the retraction explicitly in the verdict rather than silently revising it.
+
 If auto-merge is enabled while the regression spec is still in flight, disable auto-merge or apply an equivalent merge gate until the spec commit is pushed and its CI execution proof is available. Do not let the PR merge before the required regression deliverable is satisfied or formally blocked through the linked follow-up path.
 
 ### 7. Codify

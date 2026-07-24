@@ -857,7 +857,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "cb3a0587907321301e6662480af0d333aee4a3e0d29e9bdc851c225be2c220d7",
+      "d01ce8e1af7f4e857810b0c9039481b717ea013bca18e2dc75102a47076d89a0",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1111,7 +1111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
       "ab45fdc00294c4ca9698093cb294a2aaf39a73d714fe1aa6ad686c6c34e157ba",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
-      "6302896b70d8211e2f412deea8be3e42e68cf36d566759af3c937ccf5287b91c",
+      "93c5a31e51a7eb7924a2e019660f94d0de60c88247846bb545f291e5d48f5a72",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
       "a9deea13d2c201e9b265ee3d36f6dd17358fc35e82ae801e72dd1a3145e6fef8",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
@@ -1345,7 +1345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/playwright-ci-debugging/SKILL.md":
       "5160df3f83df8ff469fa51e384564e5264f493ec90a85e75eff5839bb0bd7157",
     "plugins/src/expo/skills/playwright-selectors/SKILL.md":
-      "705e555a00ebaf8217bce874bb3383cff18663c5478be3b7598ef4ca041aef79",
+      "2fbc6b2d0b5765a60dad30dfdbd88abaa6916ff442e32ff638fec9508a8c29d8",
     "plugins/src/expo/skills/reduce-complexity/SKILL.md":
       "301a43335f398507652b1c37198d76f693b180519c90f379d6e53121a695a38e",
     "plugins/src/expo/skills/reduce-complexity/references/extraction-strategies.md":
