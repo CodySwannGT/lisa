@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.2](https://github.com/CodySwannGT/lisa/compare/v2.300.1...v2.300.2) (2026-07-24)
+
+
+### Bug Fixes
+
+* **hooks:** run whole-project typecheck on push ([bb31989](https://github.com/CodySwannGT/lisa/commit/bb319897d959775d07b3e13ed5c5703af47605d8)), closes [CodySwannGT/lisa#2030](https://github.com/CodySwannGT/lisa/issues/2030)
+* **security:** require patched PostCSS ([4ab77b5](https://github.com/CodySwannGT/lisa/commit/4ab77b57ab707c488a91f0cae564b5d2440f2df1)), closes [CodySwannGT/lisa#2030](https://github.com/CodySwannGT/lisa/issues/2030)
+
 ### [2.300.1](https://github.com/CodySwannGT/lisa/compare/v2.300.0...v2.300.1) (2026-07-24)
 
 
