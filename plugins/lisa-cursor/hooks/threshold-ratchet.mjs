@@ -12,8 +12,11 @@
  * Tier 1 — designed tunables: vitest/jest/simplecov/e2e thresholds
  * (minimums) and eslint/rubocop thresholds (maximums). Tier 2 — stryker's
  * break score and k6 expression bounds. Tier 3 — exemption additions
- * (audit-ignore entries, stryker mutate exclusions, thresholdRatchet.allow
- * entries) which weaken a gate without touching a number.
+ * (stryker mutate exclusions, thresholdRatchet.allow entries) which weaken
+ * a gate without touching a number. Audit ignore lists are deliberately NOT
+ * watched: the security-audit-handling ladder authorizes agents to add
+ * documented entries autonomously, and doctor readiness (B5) audits that
+ * every entry carries a written decision.
  *
  * Human override: `.lisa.config.json` → `thresholdRatchet.allow` entries
  * ({ file, key, reason }). Honored ONLY from the baseline side (HEAD /

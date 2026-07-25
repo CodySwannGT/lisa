@@ -8,7 +8,6 @@
  */
 import {
   extractAllowEntries,
-  extractExemptionEntries,
   extractK6Constraints,
   extractNumericLeaves,
   extractRubocopThresholds,
@@ -20,7 +19,7 @@ import {
 
 /** Finding type: a numeric bound or boolean gate moved the weakening way. */
 const TYPE_WEAKENED = "weakened";
-/** Finding type: an exemption entry was added (Tier 3). */
+/** Finding type: a gate-shrinking exemption was added (Tier 3). */
 const TYPE_EXEMPTION_ADDED = "exemption-added";
 /** Family kind for .lisa.config.json (the thresholdRatchet.allow carrier). */
 const KIND_ALLOW_LIST = "allow-list";
@@ -161,29 +160,6 @@ function compareK6(relPath, base, current) {
 }
 
 /**
- * Compare an exemption-list pair (audit ignore files): report added entries.
- * @param {string} relPath Repo-relative path
- * @param {unknown} base Parsed baseline list
- * @param {unknown} current Parsed current list
- * @returns {Finding[]} One finding per newly added ignore entry
- */
-function compareExemptions(relPath, base, current) {
-  const baseEntries = extractExemptionEntries(base);
-  const findings = [];
-  for (const entry of extractExemptionEntries(current)) {
-    if (!baseEntries.has(entry)) {
-      findings.push({
-        file: relPath,
-        key: entry,
-        type: TYPE_EXEMPTION_ADDED,
-        message: `${relPath}: new security-audit ignore entry "${entry}" — ignoring a finding weakens the gate and needs a human's sign-off.`,
-      });
-    }
-  }
-  return findings;
-}
-
-/**
  * Compare .lisa.config.json allow lists: report added exception entries so a
  * change can never grant itself an exception.
  * @param {string} relPath Repo-relative path
@@ -258,8 +234,6 @@ export function compareFile(relPath, baselineText, currentText) {
       return compareStryker(relPath, base, current);
     case "k6":
       return compareK6(relPath, base, current);
-    case "exemption-list":
-      return compareExemptions(relPath, base, current);
     case KIND_ALLOW_LIST:
       return compareAllowList(relPath, base, current);
     default:
