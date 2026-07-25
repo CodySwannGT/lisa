@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.7](https://github.com/CodySwannGT/lisa/compare/v2.300.6...v2.300.7) (2026-07-25)
+
+
+### Bug Fixes
+
+* **deps:** keep undici on Expo-compatible v6 ([4042011](https://github.com/CodySwannGT/lisa/commit/404201109f531b924e5b66beca223ac95ba81310)), closes [CodySwannGT/lisa#2036](https://github.com/CodySwannGT/lisa/issues/2036)
+
 ### [2.300.6](https://github.com/CodySwannGT/lisa/compare/v2.300.5...v2.300.6) (2026-07-24)
 
 
