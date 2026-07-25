@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.301.0](https://github.com/CodySwannGT/lisa/compare/v2.300.13...v2.301.0) (2026-07-25)
+
+
+### Features
+
+* **ci:** ship the work-item traceability backstop to the fleet ([8b8f8a5](https://github.com/CodySwannGT/lisa/commit/8b8f8a514068d4f022f0d6f2c34e3ad153d1f2a9)), closes [#1978](https://github.com/CodySwannGT/lisa/issues/1978) [#1956](https://github.com/CodySwannGT/lisa/issues/1956) [#2039](https://github.com/CodySwannGT/lisa/issues/2039) [CodySwannGT/lisa#2046](https://github.com/CodySwannGT/lisa/issues/2046)
+
+
+### Bug Fixes
+
+* **ci:** stop work_item_traceability escalating caller permissions ([0211e96](https://github.com/CodySwannGT/lisa/commit/0211e96dee073046b3a6f4d8feb7d2b90fbc22b4)), closes [#2047](https://github.com/CodySwannGT/lisa/issues/2047) [#2047](https://github.com/CodySwannGT/lisa/issues/2047) [CodySwannGT/lisa#2049](https://github.com/CodySwannGT/lisa/issues/2049)
+
 ### [2.300.13](https://github.com/CodySwannGT/lisa/compare/v2.300.12...v2.300.13) (2026-07-25)
 
 
