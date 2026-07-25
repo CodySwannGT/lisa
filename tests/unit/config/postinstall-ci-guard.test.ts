@@ -18,6 +18,8 @@ const CI_GUARD_PREFIX = '[ -n "$CI" ] ||';
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
 const LISA_BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 node";
 const EXPO_PACKAGE_TEMPLATE = "expo/package-lisa/package.lisa.json";
+const TYPESCRIPT_PACKAGE_TEMPLATE = "typescript/package-lisa/package.lisa.json";
+const UNDICI_V6_RANGE = "^6.27.0";
 
 /**
  * Minimal shape of a package.lisa.json for the assertions below.
@@ -49,7 +51,7 @@ function readTemplateJson(relativePath: string): unknown {
 
 const TEMPLATE_PATHS = [
   "package.lisa.json",
-  "typescript/package-lisa/package.lisa.json",
+  TYPESCRIPT_PACKAGE_TEMPLATE,
   EXPO_PACKAGE_TEMPLATE,
   "nestjs/package-lisa/package.lisa.json",
   "cdk/package-lisa/package.lisa.json",
@@ -140,10 +142,18 @@ describe("package.lisa.json templates carry force-governed CVE floors", () => {
 
   it("typescript template floors systeminformation (harperdb GHSA-5xpp-75jx-m839)", () => {
     const template = readTemplateJson(
-      "typescript/package-lisa/package.lisa.json"
+      TYPESCRIPT_PACKAGE_TEMPLATE
     ) as OverridesShape;
     expect(template.force?.overrides?.systeminformation).toBe(">=5.27.14");
     expect(template.force?.resolutions?.systeminformation).toBe(">=5.27.14");
+  });
+
+  it("typescript template keeps undici on the File-exporting v6 line", () => {
+    const template = readTemplateJson(
+      TYPESCRIPT_PACKAGE_TEMPLATE
+    ) as OverridesShape;
+    expect(template.force?.overrides?.undici).toBe(UNDICI_V6_RANGE);
+    expect(template.force?.resolutions?.undici).toBe(UNDICI_V6_RANGE);
   });
 
   it("expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6)", () => {
