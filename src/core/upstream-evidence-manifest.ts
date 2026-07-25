@@ -646,6 +646,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "270a7b071c0dfabd2c80417e6a63ab462a9ac630dc3d1ae36c68a2fbf6235578",
     "plugins/src/base/rules/eager/observability-audit.md":
       "eef7f612937db85e2fb685f262a651ac0fea195fb79363224281f057dc1a6ef7",
+    "plugins/src/base/rules/eager/prd-definition-of-ready.md":
+      "5d30476344425f78961ed1412b06edd5e7cde478c81e1b945860b55aecf56e1f",
     "plugins/src/base/rules/eager/prd-lifecycle-rollup.md":
       "b5c58148a0ed78989e21bc7789ecf1d5448077879be01ee342ddb46d8f105a1e",
     "plugins/src/base/rules/eager/pre-flight-autofill.md":
@@ -712,6 +714,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3d6d531fdca61a348fa1dd1bdb4c28fe66c85fb955238ef668a78cce4a36a7a1",
     "plugins/src/base/rules/reference/observability-audit.md":
       "98cf4c849baf0801bd2c46a90e7a072196649d506fbda577cc5c4019d2194551",
+    "plugins/src/base/rules/reference/prd-definition-of-ready.md":
+      "041a8f3c9b703b3921acc30fe92acfb9e2ab43da04cf019c102ebca98b2f4ba3",
     "plugins/src/base/rules/reference/prd-lifecycle-rollup.md":
       "f539e7b43918e173dd7491a139be078815d26098f992cd7fc86cd05878c90b9b",
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
@@ -801,9 +805,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a6a099abeb32940d44da7e9a6a62c3519f64efa85294c4b996789fa4fba97461",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
-      "71ab183ba9f14b83d2e940f4b5ec0e2282b75e30d9d452689d330b5345132bba",
+      "a52cf7c4361e43884574f2e8e273ddf8a90b707902c182efb2646b1787e10d8d",
     "plugins/src/base/skills/lisa-confluence-write-prd/SKILL.md":
-      "548c7f7da38372e3b39bc051d5f09417f5008c880caddb59bc6a8b6e05b0aa7b",
+      "29fce0dce5f3d1b9cbe8705c8fc002e5885675e1807cf948b166aef88ddfd73a",
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
       "d1d33a149cab2de0d0b4c7ddc6bb2f67f43a097e5f551f642b1cb076747a5a05",
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md":
@@ -849,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "c63c8bf7aeabc1ba5f6e5a3f982212e9903496c559ba035da303aa50fe4626e3",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
-      "ab2d38a49ff0444c6f7981269a8e63350bef6e7fd9a9759a489e573493b7ed4b",
+      "3b0e67ed50909d38249b9780052d97e66268990c8806aa271000c37716aafa06",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
       "bc285142bc2b83ef7e4be785308573c6102ef7460159c9b9fa1da1bded941ad0",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
@@ -857,7 +861,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
       "ee54b3d14cc5dd3a68a8c36590102dd02f49334c9493ad52fa8c7f35157073b1",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
-      "bc919c52e2f42129d41a3f40279d2def99486ec58bed2dab51ca7166b427a947",
+      "262f8a1bcfad4c5dd4456cfaaf1b71abf9697a0da588966e58ff491acd3c17e8",
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
@@ -937,7 +941,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
       "85fbf548b9d7972912fde717d1d6ca82c0350ad82f6d779d08c831b23b90ebd3",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
-      "6a096c6818c6a6b3938ed3b52f6e9be8416de3b61b0b5e23fabf0ae32a9756d8",
+      "13612749caa946ff1c318e26dbf40f0b87be682d8a40383ee7e143ac78baa5d3",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
       "da58b538723bd846060f7b0a1374aec13b8436ce6fd8ff8911e2d8d3449f68a9",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
@@ -945,7 +949,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
       "467092235285874cf21a75b2ad1fb13fddcb35253b09b1ffb9308c614ecadaa7",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
-      "d8499f92cfb683955fb3e0100c9ea6f267bd6b3ee457312af5e10c0192952401",
+      "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
       "e441767176da88484b8034df9589cb33240d5d895339ee96926917a52a103423",
     "plugins/src/base/skills/lisa-nightly-add-test-coverage/SKILL.md":
@@ -959,9 +963,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
       "cf9be0a2173782696e2c1d2fcbc2fc2ae29c0eefa3815ae951f5afef7d029c94",
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md":
-      "64da7698e1244b684541d33abf0090b9af19d780a431c26fd1f4b1c388b50319",
+      "0535fe6fc76c7c20aee2617a7b4e4b33aee82e57aea7dded17469d9ee0de5eea",
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md":
-      "53251bf1acab622d360a74cfff2ef41b4487ea77eddb4d9eb5c58693176b654b",
+      "d470ed077aa58e53f770c171c8409fa65a3411e15212333fd196237cdfdbf73e",
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
       "5805254747c4ed9081fd514236f06e078be86d41694bf74b480bf7592cd58c1f",
     "plugins/src/base/skills/lisa-parity-code-simplifier/SKILL.md":
@@ -1027,7 +1031,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "6304c848c64a00be230337d9e40770c3a09aa59c6241733e32060d0cce9a4f9b",
     "plugins/src/base/skills/lisa-research/SKILL.md":
-      "8af0479e6ba1a04398487eb9542dd9c5518d65d78cb0173e0b770f191dc362d3",
+      "19de7c5910b117c4b3b1bb7ae42cf9c8b6ff2a376b2e21961526bc7ebde18e85",
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
       "42134253cca50e384f36eaa085c0a1e6b8772e9f3e912a8d1231f1cd69199858",
     "plugins/src/base/skills/lisa-review-local/SKILL.md":
@@ -2085,7 +2089,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "ee615cb23b2073cef9d390acad64861583bae4a444e4148989026c7d252880fc",
+      "5dba7cf366d5d44fae3ac68bf65d63e931046cbce0f382e91eb85fa44d8d151d",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -3340,6 +3344,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/intent-routing.md": true,
     "plugins/lisa-copilot/rules/eager/leaf-only-lifecycle.md": true,
     "plugins/lisa-copilot/rules/eager/observability-audit.md": true,
+    "plugins/lisa-copilot/rules/eager/prd-definition-of-ready.md": true,
     "plugins/lisa-copilot/rules/eager/prd-lifecycle-rollup.md": true,
     "plugins/lisa-copilot/rules/eager/pre-flight-autofill.md": true,
     "plugins/lisa-copilot/rules/eager/project-learnings.md": true,
@@ -3373,6 +3378,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/intent-routing.md": true,
     "plugins/lisa-copilot/rules/reference/leaf-only-lifecycle.md": true,
     "plugins/lisa-copilot/rules/reference/observability-audit.md": true,
+    "plugins/lisa-copilot/rules/reference/prd-definition-of-ready.md": true,
     "plugins/lisa-copilot/rules/reference/prd-lifecycle-rollup.md": true,
     "plugins/lisa-copilot/rules/reference/pre-flight-autofill.md": true,
     "plugins/lisa-copilot/rules/reference/project-learnings.md": true,
@@ -3725,6 +3731,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/leaf-only-lifecycle.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit-reference.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit.mdc": true,
+    "plugins/lisa-cursor/rules/prd-definition-of-ready-reference.mdc": true,
+    "plugins/lisa-cursor/rules/prd-definition-of-ready.mdc": true,
     "plugins/lisa-cursor/rules/prd-lifecycle-rollup-reference.mdc": true,
     "plugins/lisa-cursor/rules/prd-lifecycle-rollup.mdc": true,
     "plugins/lisa-cursor/rules/pre-flight-autofill-reference.mdc": true,
@@ -6117,6 +6125,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/intent-routing.md": true,
     "plugins/lisa/rules/eager/leaf-only-lifecycle.md": true,
     "plugins/lisa/rules/eager/observability-audit.md": true,
+    "plugins/lisa/rules/eager/prd-definition-of-ready.md": true,
     "plugins/lisa/rules/eager/prd-lifecycle-rollup.md": true,
     "plugins/lisa/rules/eager/pre-flight-autofill.md": true,
     "plugins/lisa/rules/eager/project-learnings.md": true,
@@ -6150,6 +6159,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/intent-routing.md": true,
     "plugins/lisa/rules/reference/leaf-only-lifecycle.md": true,
     "plugins/lisa/rules/reference/observability-audit.md": true,
+    "plugins/lisa/rules/reference/prd-definition-of-ready.md": true,
     "plugins/lisa/rules/reference/prd-lifecycle-rollup.md": true,
     "plugins/lisa/rules/reference/pre-flight-autofill.md": true,
     "plugins/lisa/rules/reference/project-learnings.md": true,
@@ -6654,6 +6664,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/intent-routing.md": true,
     "plugins/src/base/rules/eager/leaf-only-lifecycle.md": true,
     "plugins/src/base/rules/eager/observability-audit.md": true,
+    "plugins/src/base/rules/eager/prd-definition-of-ready.md": true,
     "plugins/src/base/rules/eager/prd-lifecycle-rollup.md": true,
     "plugins/src/base/rules/eager/pre-flight-autofill.md": true,
     "plugins/src/base/rules/eager/project-learnings.md": true,
@@ -6687,6 +6698,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/intent-routing.md": true,
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md": true,
     "plugins/src/base/rules/reference/observability-audit.md": true,
+    "plugins/src/base/rules/reference/prd-definition-of-ready.md": true,
     "plugins/src/base/rules/reference/prd-lifecycle-rollup.md": true,
     "plugins/src/base/rules/reference/pre-flight-autofill.md": true,
     "plugins/src/base/rules/reference/project-learnings.md": true,

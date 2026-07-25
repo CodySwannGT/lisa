@@ -211,6 +211,30 @@ The register feeds three consumers: the `## Source Requirement` section on
 every created ticket (Phases 3–5), the dry-run report (above), and the
 requirement tokens in the PRD back-link (Phase 7).
 
+### Phase 1.45: Requirement Quality Gates (prd-definition-of-ready)
+
+Validate every Phase 1.4 register entry against the `prd-definition-of-ready` rule before
+planning proceeds. Per atom:
+
+- **Singular** — one behavior per entry. An entry welding multiple shall/when clauses together is
+  split in the register (R4 → R4a/R4b) when the split is mechanical and meaning-preserving; when
+  the split would change meaning, it is a product question, not a repair.
+- **Unambiguous** — FAIL on the vagueness lexicon ("as appropriate", "user-friendly", "fast",
+  "handle gracefully", "etc.", "and/or", unbounded "optimize"/"support"): phrasing no test can
+  check. The full lexicon lives in the rule's reference body.
+- **Verifiable** — a fit criterion (the measurable test of satisfaction) is present or
+  mechanically derivable from the text; a requirement no test could check is not admitted as a
+  requirement.
+- **Pattern shape (SHOULD)** — an EARS pattern (ubiquitous / When / While / If-then / Where) or an
+  equivalent single-behavior sentence; conforming shapes decompose into Gherkin mechanically.
+
+Failures here are **requirement-level product clarifications**, not internal errors: report each in
+the dry-run report as a `product-clarity` item quoting the atom verbatim, naming the defect, and
+offering 1–3 candidate rewrites (an EARS-shaped rewrite is the default recommendation). In intake
+flows these route to the PRD's `blocked` role with comments, exactly like ticket-validator
+failures. Mechanical splits and derived fit criteria are repaired in-register and recorded in the
+report — never silently.
+
 ### Phase 1.5: Extract Source Artifacts
 
 PRDs typically reference external design, UX, and data artifacts (Figma files, Lovable prototypes, Loom walkthroughs, screenshots, example payloads, peer Notion / Confluence / Linear pages). These MUST be preserved onto the resulting tickets — otherwise developers picking up a ticket lose the source of truth. This is the failure mode this step exists to prevent.
