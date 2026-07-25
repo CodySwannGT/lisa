@@ -76,6 +76,8 @@ Gates are grouped into **Specification** (spec-only checks, no GitHub lookups) a
 
 Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Categories are the same fixed set used by `lisa-jira-validate-ticket` so downstream PRD-intake comment-formatting policy is shared across vendors.
 
+Per-type content requirements are defined once in the vendor-neutral `work-item-definition-of-ready` rule (eager + reference); gates S4–S6 and S17 enforce them, and S18 enforces the stateless-pickup property directly.
+
 | Gate | Category | Product-relevant |
 |------|----------|------------------|
 | S1 Required core fields | `structural` | false |
@@ -94,6 +96,8 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S14 Evidence manifest binding (leaf work units) | `acceptance-criteria` | true |
 | S15 Leaf-only build-ready | `structural` | false |
 | S16 Source Requirement traceability | `product-clarity` | true |
+| S17 Improvement measurability | `acceptance-criteria` | true |
+| S18 Stateless-pickup dry-run | `product-clarity` | true |
 | F1 Issue type label exists in repo | `structural` | false |
 | F2 Parent sub-issue exists and is the right type | `structural` | false |
 | F3 Linked issues exist | `structural` | false |
@@ -135,18 +139,26 @@ The `## Acceptance Criteria` section must contain at least one `Scenario:` block
 
 #### S5 — Bug-specific content
 
-When `issue_type = Bug`, body must additionally include:
+When `issue_type = Bug`, body must additionally include the full bug anatomy from the `work-item-definition-of-ready` rule:
 
-- Reproduction steps
-- Expected vs. actual behavior
-- Environment where reproduced
+- **Agent-executable reproduction** — numbered steps a stateless agent can run mechanically: exact entry point, named account/role (consistent with Sign-in Required when authenticated), concrete data state, exact actions. Human-followable-only prose ("click around until it breaks") FAILs. A linked failing test satisfies this outright and is the preferred form.
+- **Expected vs. actual behavior**, naming or linking the *source* of "expected" (spec, PRD requirement, prior release behavior) — a fix target is a fact, not an opinion.
+- **Environment + version** — where reproduced and the build/commit observed; last-known-good when known (`unknown` must be stated, not omitted).
+- **Reproducibility rate** — always, or intermittent with observed frequency; intermittent invalidates run-once verification.
+- **Occurrence evidence** — at least one link/attachment: error-tracker issue, log excerpt, stack trace, screenshot/recording.
+
+A Bug's terminal state is its reproduction: the same steps (or test) fail before the fix and pass after — capture both as evidence: under the S14 manifest when `runtime_behavior_change = true`, or attached directly to the item for non-runtime Bugs (doc/config fixes), where S14 is N/A.
 
 #### S6 — Spike-specific content
 
 When `issue_type = Spike`, body must include:
 
-- The question being answered
-- Definition of done (decision doc / prototype / findings deliverable)
+- The **question** being answered
+- The **decision** the answer enables, and the options being weighed
+- A **timebox**
+- **Deliverable format and location** — decision doc / prototype / findings page, and where it will live, so the terminal state — a deliverable at that location that actually answers the question, with findings, decision and options — is checkable
+
+Gherkin AC is intentionally N/A for Spikes (S4).
 
 #### S7 — Parent sub-issue declared
 
@@ -189,6 +201,8 @@ Accept either placement:
 - A "Source Precedence" / "authoritative source" paragraph under `## Technical Approach`.
 
 Detect by scanning for the phrase `Source Precedence` (case-insensitive) AND verifying the four axes (business rules, visual, flow, data) are each named.
+
+If the spec doesn't set `artifacts_attached`, infer it the same way S9 infers sign-in: scan the body for design/mock/prototype/data-artifact references (design-tool links, "mock", "prototype", spreadsheet or API artifacts). If such artifacts are referenced and no source-precedence guidance exists: FAIL.
 
 #### S13 — Relationship Search documented
 
@@ -268,6 +282,22 @@ R-id with no quote: FAIL with remediation
 
 `product_relevant: true` — a issue whose requirement cannot be traced is
 a product-clarity problem: nobody can tell why the work exists.
+
+#### S17 — Improvement measurability
+
+When `issue_type = Improvement`, the body must define the improvement as a measured delta per `work-item-definition-of-ready`:
+
+- **Metric + measurement method** the agent can run (command, query, dashboard export)
+- **Baseline** — the current measured value (a number, not an adjective)
+- **Target** — the numeric value or bound that defines done
+
+Without a baseline and a target an Improvement has no verifiable terminal state and can never be autonomously closed. FAIL names the missing pieces; when no baseline exists yet, the remediation is to file measuring it as the first step. `N/A` for every other type.
+
+#### S18 — Stateless-pickup dry-run
+
+The autonomy gate, run last, on every build-ready leaf (use the S15 classification; `N/A` for containers and non-build-ready items). Simulate a stateless agent reading only this item and the links it can resolve — session knowledge about the codebase does not count, because the next claimant will not have it. List every question that agent would have to ask a human before starting work, before choosing between materially different implementations, or before declaring the work done.
+
+Zero questions → PASS. Any question → FAIL, with each question listed verbatim as its own remediation line — these are exactly the clarifying comments the caller posts to the source. The structure gates are proxies; this gate checks the readiness property itself: `ready` means a stateless agent can drive this item to its terminal state with zero human clarification (see `work-item-definition-of-ready`).
 
 ### Feasibility Gates (require GitHub lookups; skip in `--spec-only`)
 
@@ -423,6 +453,8 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S14 Evidence manifest binding — <one-line reason>
 - [PASS|FAIL|N/A] S15 Leaf-only build-ready — <one-line reason>
 - [PASS|FAIL|N/A] S16 Source Requirement traceability — <one-line reason>
+- [PASS|FAIL|N/A] S17 Improvement measurability — <one-line reason>
+- [PASS|FAIL|N/A] S18 Stateless-pickup dry-run — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type label exists in repo — <one-line reason>
@@ -449,7 +481,7 @@ The verdict is `PASS` if every applicable gate is `PASS`. Any `FAIL` makes the v
 
 Same shape and meaning as `lisa-jira-validate-ticket` so downstream PRD-intake skills (Notion, Confluence, Linear, GitHub) can format comments uniformly:
 
-- **gate**: the gate ID (`S1`–`S15`, `F1`–`F5`).
+- **gate**: the gate ID (`S1`–`S18`, `F1`–`F5`).
 - **category**: the gate's fixed category from the table.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem the caller should fix without bothering product.
 - **what**: plain-language, product-readable.

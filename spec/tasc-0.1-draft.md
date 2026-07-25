@@ -302,6 +302,19 @@ focus (non-authoritative guidance).
 - **AC4.4 Cross-sensor consistency.** Disagreement between sensors (e.g., a
   user-reported failure absent from error telemetry) SHOULD be surfaced as an
   instrumentation-gap finding.
+- **AC4.5 Learning promotion.** The ADS MUST convert its own mistakes, drift,
+  and near-misses into upstream controls so no agent repeats them. Deficiencies
+  discovered anywhere in the system MUST be captured as candidate learnings
+  with provenance; candidates MUST pass a skeptical validation gate before
+  persisting (see AC3.4); and validated learnings MUST be routed to the most
+  enforceable available home — executable control (lint rule, hook, gate),
+  eagerly-loaded rule, procedure/skill, or knowledge base — rather than
+  remaining prose. Promotion into enforcement SHOULD be human-gated; the
+  learning store MUST be bounded; and **recurrence of a captured mistake is a
+  monitoring finding** — evidence that the loop failed to promote or the
+  promoted control failed to fire. A lesson that stays prose is a lesson the
+  next agent never reads; a lesson promoted to a gate is one no agent can
+  repeat.
 
 ### AC5 — Enforcement Integrity *(mirrors CC5, Control Activities)*
 
@@ -379,6 +392,18 @@ focus (non-authoritative guidance).
   protected mechanism the deploying agent cannot self-approve (server-side
   environment protection and/or CHC approval). Progressive delivery SHOULD bound
   blast radius.
+- **AC8.6 Work-item readiness.** Work items MUST satisfy a type-keyed
+  definition of ready — validated mechanically, not by convention — before
+  carrying the build-ready role. The definition MUST be sufficient for a
+  stateless agent to drive the item to its terminal state without human
+  clarification. At minimum: defects carry machine-executable reproduction, an
+  expected-behavior source, environment and version, reproducibility rate, and
+  occurrence evidence; improvements carry a measured baseline and a numeric
+  target; investigations carry the question, the decision it enables, a
+  timebox, and the deliverable's location; every leaf defines its terminal
+  state as checkable evidence. The validator SHOULD include an adversarial
+  stateless-read check that fails the item on any question a fresh agent would
+  need answered.
 
 ### AC9 — Third Parties and Supply Chain *(mirrors CC9, Risk Mitigation)*
 
