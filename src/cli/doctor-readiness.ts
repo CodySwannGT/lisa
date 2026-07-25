@@ -39,6 +39,7 @@ import {
   assessExecutionProofDimension,
   assessProportionalityDimension,
 } from "./doctor-readiness-journey.js";
+import { sanitizeReadinessReportForPersistence } from "./doctor-readiness-report-redaction.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import { getPackageVersion } from "./version.js";
 
@@ -144,7 +145,7 @@ export const READINESS_DIMENSION_IDS: readonly string[] =
   READINESS_DIMENSIONS.map(dimension => dimension.id);
 
 /** The persisted `.lisa/readiness.json` shape (schema_version 1). */
-interface ReadinessReport {
+export interface ReadinessReport {
   readonly schema_version: number;
   readonly generated_at: string;
   readonly lisa_version: string;
@@ -207,7 +208,10 @@ export async function checkRepositoryReadiness(
 
   const reportPath = resolveReadinessReportPath(targetPath);
   try {
-    await persistReadinessReport(reportPath, report);
+    await persistReadinessReport(
+      reportPath,
+      sanitizeReadinessReportForPersistence(report)
+    );
   } catch (error) {
     return {
       name: REPOSITORY_READINESS_CHECK_NAME,
