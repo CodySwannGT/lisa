@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.304.0](https://github.com/CodySwannGT/lisa/compare/v2.303.0...v2.304.0) (2026-07-25)
+
+
+### Features
+
+* **prd:** requirement-atom definition of ready (29148/EARS/fit criteria) ([9fa5b8d](https://github.com/CodySwannGT/lisa/commit/9fa5b8dcac74db0ac3db04f9558784a45264aec5)), closes [CodySwannGT/lisa#2067](https://github.com/CodySwannGT/lisa/issues/2067)
+* **validators:** type-keyed definition of ready + stateless-pickup gate ([49de984](https://github.com/CodySwannGT/lisa/commit/49de984767bb84d8df89f934e65345742ccd9804)), closes [CodySwannGT/lisa#2065](https://github.com/CodySwannGT/lisa/issues/2065)
+
+
+### Bug Fixes
+
+* **validators:** address definition-of-ready review findings ([70be1b6](https://github.com/CodySwannGT/lisa/commit/70be1b67a13f00c56e7ad18e3d94692bdff16ba6)), closes [CodySwannGT/lisa#2065](https://github.com/CodySwannGT/lisa/issues/2065)
+
 ## [2.303.0](https://github.com/CodySwannGT/lisa/compare/v2.302.0...v2.303.0) (2026-07-25)
 
 
