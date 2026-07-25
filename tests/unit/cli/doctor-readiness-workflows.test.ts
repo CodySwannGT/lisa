@@ -22,6 +22,7 @@ import {
   makeScratchRepo,
   ON,
   ON_PUSH,
+  PINNED_DOWNLOAD_ARTIFACT,
   PUSH,
   RELEASE_NAME,
   RELEASE_YML,
@@ -126,7 +127,7 @@ describe("parseRepositoryWorkflows", () => {
         inputs: "",
         name: "",
         run: "",
-        uses: "actions/download-artifact@v4",
+        uses: PINNED_DOWNLOAD_ARTIFACT,
       },
       {
         env: "",

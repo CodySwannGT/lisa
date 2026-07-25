@@ -36,7 +36,9 @@ export const RUN_TEST = "      - run: npm run test";
 export const RUN_BUILD = "      - run: npm run build";
 export const RUN_PACK = "      - run: npm pack";
 export const RUN_PUBLISH = "      - run: npm publish --provenance";
-export const USES_DOWNLOAD = "      - uses: actions/download-artifact@v4";
+export const PINNED_DOWNLOAD_ARTIFACT =
+  "actions/download-artifact@0123456789abcdef0123456789abcdef01234567";
+export const USES_DOWNLOAD = `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`;
 
 /** Statuses and workflow file names reused across the fixtures. */
 export const PASS = "PASS";
