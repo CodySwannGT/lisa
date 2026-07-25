@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.12](https://github.com/CodySwannGT/lisa/compare/v2.300.11...v2.300.12) (2026-07-25)
+
+
+### Bug Fixes
+
+* **readiness:** surface opaque guardrail actions ([8019692](https://github.com/CodySwannGT/lisa/commit/8019692984aaa50157d68b1d298af27ed054cca0)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.11](https://github.com/CodySwannGT/lisa/compare/v2.300.10...v2.300.11) (2026-07-25)
 
 
