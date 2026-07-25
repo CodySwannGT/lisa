@@ -356,14 +356,14 @@ jobs:
   quality:
     name: 🔍 Quality Checks
     needs: [release_init, release_schedule]
+    # release.yml is ITSELF a called workflow (host deploy.yml invokes it), so a
+    # scope requested here must be granted by every one of those hosts or their
+    # whole run dies at startup with zero jobs. Keep this at the long-standing
+    # baseline: quality.yml's work_item_traceability job declares no permissions
+    # of its own (it inherits), and it never runs on this path anyway — it is
+    # pull_request-only and this is a push. Nothing here needs issues:read.
     permissions:
       contents: read
-      # A called workflow may only DOWNGRADE the caller's grant, and requesting
-      # a scope the caller never held is a startup_failure for the whole run —
-      # not a skipped job. quality.yml's work_item_traceability job requests
-      # issues:read, so every caller must grant it even when that job will not
-      # run (it is pull_request-only, and this path is a push).
-      issues: read
       pull-requests: read
     uses: ./.github/workflows/quality.yml
     with:
