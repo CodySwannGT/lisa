@@ -7411,6 +7411,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-readiness-journey.ts": true,
     "src/cli/doctor-readiness-operations.ts": true,
     "src/cli/doctor-readiness-release-path.ts": true,
+    "src/cli/doctor-readiness-report-redaction.ts": true,
     "src/cli/doctor-readiness-reusable-callers.ts": true,
     "src/cli/doctor-readiness-shared.ts": true,
     "src/cli/doctor-readiness-supply-chain-evidence.ts": true,

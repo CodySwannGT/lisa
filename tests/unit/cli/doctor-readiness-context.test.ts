@@ -227,4 +227,30 @@ describe("context-routing dimension identity", () => {
     );
     expect(dimension?.status).toBe(WARN);
   });
+
+  it("redacts B6 documentation excerpts from the persisted report", async () => {
+    const cwd = await getTempDir();
+    await writeRoutingArtifacts(cwd);
+    const sensitiveClaim =
+      "Every push is blocked by `.github/workflows/absent.yml` before " +
+      "customer Acme Private Rollout 713 can deploy.";
+    await writeRepoFile(cwd, "README.md", `# Scratch\n\n${sensitiveClaim}\n`);
+
+    await checkRepositoryReadiness(cwd);
+
+    const raw = await readFile(resolveReadinessReportPath(cwd), "utf8");
+    expect(raw).not.toContain(sensitiveClaim);
+    expect(raw).not.toContain("Acme Private Rollout 713");
+    expect(raw).toContain("[doc excerpt redacted sha256:");
+
+    const report = JSON.parse(raw) as {
+      readonly blockers: readonly {
+        readonly id: string;
+        readonly evidence: string;
+      }[];
+    };
+    const blocker = report.blockers.find(entry => entry.id === BLOCKER_ID);
+    expect(blocker?.evidence).not.toContain(sensitiveClaim);
+    expect(blocker?.evidence).toContain("[doc excerpt redacted sha256:");
+  });
 });
