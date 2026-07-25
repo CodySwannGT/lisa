@@ -66,7 +66,8 @@ instrument referenced by the spec's Annex B.
 
 ## Status And Open Items
 
-Draft 0.1.0. Open: outcome-vocabulary finalization (AC2.2), minimum Type II
-period for Level 2, governance venue, trademark diligence, re-keying the
+Draft 0.1.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
+crosswalk annexes, governance venue, trademark diligence, re-keying the
 readiness questionnaire to criterion IDs, and eventual extraction to a
-standalone neutrally-owned repository.
+standalone neutrally-owned repository. (Type II minimum period is settled: three
+months, §5, applied to Level 2.)

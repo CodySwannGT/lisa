@@ -30,8 +30,9 @@ complementary controls, and Type I / Type II attestation — extended with a
 continuous, machine-verified attestation type that SOC 2 cannot express.
 
 TASC does not replace SOC 2, ISO 27001, or SSDF. It governs the *production system
-for software* where the workers are autonomous agents; it composes with, and maps to,
-those frameworks (Annex A).
+for software* where the workers are autonomous agents, and composes with those
+frameworks. Annex A provides the SOC 2 crosswalk; ISO 27001 and SSDF crosswalks are
+planned as future annexes and are not yet provided.
 
 ### 2. Design principles
 
@@ -152,6 +153,10 @@ own configuration; a document generated from live state is preferred over prose 
   controls.
 - Every evidence item carries a freshness lifetime declared in the system
   description. Expired evidence degrades the control to *unknown* (P2).
+- Declared freshness lifetimes MUST be finite and MUST NOT exceed the shorter of
+  the attestation period or twelve months. The attestor MUST evaluate declared
+  lifetimes as reasonable for the control class; an unreasonable lifetime is an
+  exception, not a conformance.
 - Deliberate violation injection (tripping a gate on a known-bad input, killing a
   sensor to confirm liveness alerting) is a valid and encouraged evidence mechanism.
 - Inapplicability claims are evidence-bearing: each N/A MUST cite the system fact
@@ -189,7 +194,8 @@ CHC set counts as a human touch for autonomy-rate purposes.
   Humans may remain in the loop routinely. Attestable at Type I.
 - **Level 2 — Unattended.** Loops run unattended in at least one non-local
   environment; all authoritative gates enforce server-side (P4); named run outcomes
-  (AC2.2) and traceability (AC1.2) enforced. Attestable at Type II.
+  (AC2.2) and traceability (AC1.2) enforced. Attestable at Type II over the
+  minimum period defined in §5 (three months).
 - **Level 3 — Continuously attested.** Type C evidence for every authoritative gate
   and every sensor liveness mechanism; autonomy rate measured and published with its
   definition; public summary report available. This is the badge tier.
@@ -199,8 +205,9 @@ CHC set counts as a human touch for autonomy-rate purposes.
 A TASC report contains: management's assertion; the system description (§6); the
 applicable criteria with the controls mapped to each; tests or standing evidence and
 results; exceptions with dispositions. A **public summary report** (analogous to
-SOC 3) MAY be published, and for Level 3 SHOULD be machine-rendered from live
-evidence: level, criteria coverage, autonomy rate, and evidence freshness.
+SOC 3) MAY be published at any level; at Level 3 it MUST be published and SHOULD be
+machine-rendered from live evidence: level, criteria coverage, autonomy rate, and
+evidence freshness.
 
 ---
 
@@ -352,9 +359,10 @@ focus (non-authoritative guidance).
 ### AC8 — Change Management *(mirrors CC8, Change Management)*
 
 - **AC8.1 Lifecycle gates.** Every change MUST pass through the standard lifecycle
-  — validated intake, implementation, independent review (AC1.3), verification (SI5)
-  — with gates per AC5. Review findings MUST be resolved, not merely produced,
-  before merge.
+  — validated intake, implementation, independent review (AC1.3), and the pre-merge
+  integrity gates (SI1–SI4, as applicable) — with gates per AC5, followed by
+  post-deployment verification (SI5). Review findings MUST be resolved, not merely
+  produced, before merge.
 - **AC8.2 The agent program is code.** Prompts, skills, procedures, and workflow
   definitions MUST be version-controlled and MUST pass the same change gates as
   code. Production work MUST be driven by vetted procedures; free-form prompting
@@ -394,8 +402,10 @@ focus (non-authoritative guidance).
 
 - **SI1 Unit behavior.** Unit-level behavior MUST be proven by automated tests that
   block the change when failing.
-- **SI2 Coverage floors.** Minimum coverage thresholds MUST be enforced as gates and
-  are subject to the ratchet (AC5.4).
+- **SI2 Coverage floors.** Minimum coverage thresholds MUST be enforced as gates.
+  Floors are entity-declared but MUST be nonzero, MUST be disclosed in the
+  attestation report, and are subject to the ratchet (AC5.4) from first
+  declaration.
 - **SI3 Test efficacy.** The entity MUST measure whether its tests would detect
   defects (e.g., mutation testing) and SHOULD gate changed code on efficacy, not
   only on coverage.
@@ -493,6 +503,6 @@ MAY be cited in system descriptions; no specific product confers conformance.
 ---
 
 *End of draft 0.1.0. Known open items: outcome-vocabulary finalization (AC2.2);
-minimum Type II period for Level 2 (proposed: 3 months); quantitative floors (SI2)
-intentionally left to entity-declared, ratcheted values rather than fixed numbers;
+quantitative floors (SI2) intentionally entity-declared — nonzero, disclosed, and
+ratcheted — rather than fixed numbers; ISO 27001 and SSDF crosswalk annexes;
 trademark diligence on the name; governance venue.*
