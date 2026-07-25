@@ -149,7 +149,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
-      "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
+      "49a1ae719c1a917f7fee2fc9ef405397308d01b56d75d94a7d03e3dfadd4dce7",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
     "expo/create-only/.zap/baseline.conf":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "0985668e6d0478f1993bed8ccd398601d8e73376afd8775e1269ae129418152e",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
+      "d1b91b1de805c58602764f9041e3c9755682509d8d1de5c2ee1f0ada96665dca",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":

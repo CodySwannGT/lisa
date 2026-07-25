@@ -621,6 +621,14 @@ describe("release and deploy workflows", () => {
     ) as ReusableWorkflow;
   });
 
+  it("grants the reusable quality workflow every read permission it requests", () => {
+    expect(releaseWorkflow.jobs.quality.permissions).toEqual({
+      contents: "read",
+      issues: "read",
+      "pull-requests": "read",
+    });
+  });
+
   it("pushes signed release tags after creating them", () => {
     const steps = releaseWorkflow.jobs.release_signing.steps ?? [];
     const signTag = steps.find(s => s.name === "Create Signed Git Tag");
@@ -797,6 +805,7 @@ describe("release and deploy workflows", () => {
     });
     expect(nestjsDeployWorkflow.jobs?.release.permissions).toEqual({
       contents: "write",
+      issues: "read",
       "pull-requests": "read",
     });
   });
@@ -821,6 +830,7 @@ describe("release and deploy workflows", () => {
   it("grants reusable Expo release and deploy jobs the permissions they request", () => {
     expect(expoDeployWorkflow.jobs?.release.permissions).toEqual({
       contents: "write",
+      issues: "read",
       "pull-requests": "read",
     });
     expect(expoDeployWorkflow.jobs?.determine_environment.permissions).toEqual({

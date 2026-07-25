@@ -85,6 +85,7 @@ jobs:
     needs: [determine_environment]
     permissions:
       contents: write
+      issues: read
       pull-requests: read
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
