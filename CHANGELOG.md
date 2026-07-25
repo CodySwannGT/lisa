@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.301.7](https://github.com/CodySwannGT/lisa/compare/v2.301.6...v2.301.7) (2026-07-25)
+
+
+### Documentation
+
+* **spec:** address TASC draft review findings ([1a836b5](https://github.com/CodySwannGT/lisa/commit/1a836b5de0dc1f767a7e9af50858585a76eade65)), closes [CodySwannGT/lisa#2059](https://github.com/CodySwannGT/lisa/issues/2059)
+* **wiki:** ingest TASC specification draft ([c8fc6a0](https://github.com/CodySwannGT/lisa/commit/c8fc6a0367c32f6c8953e57f660bab8d617d333e)), closes [CodySwannGT/lisa#2059](https://github.com/CodySwannGT/lisa/issues/2059)
+
 ### [2.301.6](https://github.com/CodySwannGT/lisa/compare/v2.301.5...v2.301.6) (2026-07-25)
 
 
