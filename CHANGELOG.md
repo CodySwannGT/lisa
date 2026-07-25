@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.301.2](https://github.com/CodySwannGT/lisa/compare/v2.301.1...v2.301.2) (2026-07-25)
+
+
+### Bug Fixes
+
+* **ci:** stop release.yml escalating, migrate installed CI callers ([f842f4a](https://github.com/CodySwannGT/lisa/commit/f842f4a4227f27e2f9342de54a8b0d2b10bf7ee7)), closes [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2050](https://github.com/CodySwannGT/lisa/issues/2050) [#2049](https://github.com/CodySwannGT/lisa/issues/2049) [#2051](https://github.com/CodySwannGT/lisa/issues/2051) [#2050](https://github.com/CodySwannGT/lisa/issues/2050) [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [CodySwannGT/lisa#2052](https://github.com/CodySwannGT/lisa/issues/2052)
+
 ### [2.301.1](https://github.com/CodySwannGT/lisa/compare/v2.301.0...v2.301.1) (2026-07-25)
 
 
