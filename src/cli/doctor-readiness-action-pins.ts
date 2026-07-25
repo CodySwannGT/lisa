@@ -12,6 +12,7 @@ import {
 } from "./doctor-readiness-release-path.js";
 
 const PINNED_ACTION_REF = /^[a-f0-9]{40}$/i;
+const PINNED_DOCKER_ACTION_REF = /^docker:\/\/.+@sha256:[a-f0-9]{64}$/i;
 
 /**
  * Whether an action reference points at a mutable tag or branch instead of an
@@ -21,13 +22,11 @@ const PINNED_ACTION_REF = /^[a-f0-9]{40}$/i;
  */
 function isMutableActionRef(uses: string): boolean {
   const trimmed = uses.trim();
-  if (
-    trimmed === "" ||
-    trimmed.startsWith("./") ||
-    trimmed.startsWith("../") ||
-    trimmed.startsWith("docker://")
-  ) {
+  if (trimmed === "" || trimmed.startsWith("./") || trimmed.startsWith("../")) {
     return false;
+  }
+  if (trimmed.startsWith("docker://")) {
+    return !PINNED_DOCKER_ACTION_REF.test(trimmed);
   }
   const [, ref] = trimmed.split("@");
   return ref === undefined || !PINNED_ACTION_REF.test(ref);
