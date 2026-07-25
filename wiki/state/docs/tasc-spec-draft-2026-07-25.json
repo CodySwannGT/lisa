@@ -1,0 +1,14 @@
+{
+  "source": "tasc-spec-draft",
+  "tenant": null,
+  "ingested_at": "2026-07-25",
+  "mode": "document-ingest",
+  "artifact_path": "spec/tasc-0.1-draft.md",
+  "artifact_version": "0.1.0-draft",
+  "source_note": "wiki/sources/docs/2026-07-25-tasc-spec-draft.md",
+  "produced_by": "console design session 2026-07-23..25 (PR #2026 lineage)",
+  "synthesis_pages": [
+    "wiki/concepts/tasc-specification.md",
+    "wiki/decisions/2026-07-25-three-layer-trust-play.md"
+  ]
+}
