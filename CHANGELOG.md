@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.301.1](https://github.com/CodySwannGT/lisa/compare/v2.301.0...v2.301.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **release:** grant traceability issue read access ([5f1f668](https://github.com/CodySwannGT/lisa/commit/5f1f6687bed28dd5ff753183896842816b220b21)), closes [CodySwannGT/lisa#2048](https://github.com/CodySwannGT/lisa/issues/2048)
+* **release:** propagate issue read to host callers ([123558f](https://github.com/CodySwannGT/lisa/commit/123558f1904875c2a4a6db754ed438098c05ae3c)), closes [CodySwannGT/lisa#2048](https://github.com/CodySwannGT/lisa/issues/2048)
+
 ## [2.301.0](https://github.com/CodySwannGT/lisa/compare/v2.300.13...v2.301.0) (2026-07-25)
 
 
