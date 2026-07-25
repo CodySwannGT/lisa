@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.11](https://github.com/CodySwannGT/lisa/compare/v2.300.10...v2.300.11) (2026-07-25)
+
+
+### Bug Fixes
+
+* **readiness:** cover lifecycle-only install surfaces ([ad3f7d3](https://github.com/CodySwannGT/lisa/commit/ad3f7d32cbf266a6cfa32dcd8c93ddb534ff587e)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** flag install-time dependency execution ([a626620](https://github.com/CodySwannGT/lisa/commit/a626620ad0a7b20889ba7aa9f354c554bca64575)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** flag install-time dependency execution ([92fe559](https://github.com/CodySwannGT/lisa/commit/92fe559347fe1eafdf0001086c522d1b9dc91a5c)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.10](https://github.com/CodySwannGT/lisa/compare/v2.300.9...v2.300.10) (2026-07-25)
 
 
