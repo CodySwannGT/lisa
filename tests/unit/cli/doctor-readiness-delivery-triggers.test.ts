@@ -107,7 +107,7 @@ afterEach(async () => {
 });
 
 describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from absence", () => {
-  it("SKIPs a workflow_call publish workflow instead of failing it", async () => {
+  it("SKIPs a workflow_call publish workflow when no local caller is declared", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, "publish-to-npm.yml", [
       "name: Publish to npm",

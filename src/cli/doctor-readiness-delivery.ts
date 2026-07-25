@@ -72,7 +72,7 @@ function summarizeReleasePaths(
 ): ReleasePathSummary {
   const outcomes: readonly ReleasePathOutcome[] = workflows.flatMap(workflow =>
     workflow.jobs.flatMap(job =>
-      assessReleasePaths(workflow, job, defaultBranches)
+      assessReleasePaths(workflow, job, defaultBranches, workflows)
     )
   );
   return {
