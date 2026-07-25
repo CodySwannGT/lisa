@@ -19,7 +19,7 @@ Three-audience description · Gherkin acceptance criteria (except Spike) · Out 
 | **Story** | user-visible AC; SHOULD name non-happy-path states (error / empty / loading) for UI stories · design source precedence when artifacts exist | every AC exercised on the running product |
 | **Task** | an observable done-state and the command/check that proves it | the verification check passes |
 | **Improvement** | metric + measurement method the agent can run · measured baseline value · numeric target | measured value meets the target |
-| **Spike** | the question · the decision it enables + options weighed · a timebox · deliverable format **and location** | the deliverable exists at the named location |
+| **Spike** | the question · the decision it enables + options weighed · a timebox · deliverable format **and location** | a deliverable at the named location that answers the question — findings, decision, options weighed |
 | **Sub-task** | a parent, always · otherwise the bar of its own type | per its type |
 | **Epic / container** | never build-ready (`leaf-only-lifecycle`) · judged on decomposition completeness, not buildability | all required children terminal |
 
@@ -29,4 +29,4 @@ The final gate checks the property itself instead of proxies for it: read the it
 
 Sources this bar distills: INVEST (stories) · ISTQB / IEEE 1044 defect anatomy and minimal-reproducible-example practice (bugs) · SMART (improvements) · Scrum's Definition of Ready (the framing) · TASC AC8.6 (the normative criterion).
 
-Full rationale and worked examples: [reference/work-item-definition-of-ready.md](work-item-definition-of-ready-reference.mdc).
+Full rationale and worked examples: [the reference body of this rule](work-item-definition-of-ready-reference.mdc).

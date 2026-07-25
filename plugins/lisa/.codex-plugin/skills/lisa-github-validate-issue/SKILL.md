@@ -147,7 +147,7 @@ When `issue_type = Bug`, body must additionally include the full bug anatomy fro
 - **Reproducibility rate** — always, or intermittent with observed frequency; intermittent invalidates run-once verification.
 - **Occurrence evidence** — at least one link/attachment: error-tracker issue, log excerpt, stack trace, screenshot/recording.
 
-A Bug's terminal state is its reproduction: the same steps (or test) fail before the fix and pass after — capture both under the S14 evidence manifest.
+A Bug's terminal state is its reproduction: the same steps (or test) fail before the fix and pass after — capture both as evidence: under the S14 manifest when `runtime_behavior_change = true`, or attached directly to the item for non-runtime Bugs (doc/config fixes), where S14 is N/A.
 
 #### S6 — Spike-specific content
 
@@ -156,7 +156,7 @@ When `issue_type = Spike`, body must include:
 - The **question** being answered
 - The **decision** the answer enables, and the options being weighed
 - A **timebox**
-- **Deliverable format and location** — decision doc / prototype / findings page, and where it will live, so the terminal state (the deliverable exists at that location) is checkable
+- **Deliverable format and location** — decision doc / prototype / findings page, and where it will live, so the terminal state — a deliverable at that location that actually answers the question, with findings, decision and options — is checkable
 
 Gherkin AC is intentionally N/A for Spikes (S4).
 
