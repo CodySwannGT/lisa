@@ -621,10 +621,15 @@ describe("release and deploy workflows", () => {
     ) as ReusableWorkflow;
   });
 
-  it("grants the reusable quality workflow every read permission it requests", () => {
+  it("never requests a scope its own callers may not hold", () => {
+    // release.yml is ITSELF a called workflow (host deploy.yml invokes it), so
+    // a scope requested here must be granted by EVERY host or their whole run
+    // dies at startup with zero jobs — and host deploy.yml is create-only, so
+    // installed repos can never self-heal. quality.yml's work_item_traceability
+    // job declares no permissions of its own and is pull_request-only, so this
+    // push path needs nothing beyond the long-standing baseline.
     expect(releaseWorkflow.jobs.quality.permissions).toEqual({
       contents: "read",
-      issues: "read",
       "pull-requests": "read",
     });
   });

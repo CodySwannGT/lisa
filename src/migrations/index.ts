@@ -3,6 +3,7 @@ import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 import { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
+import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
@@ -26,6 +27,7 @@ export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
+export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
@@ -52,6 +54,7 @@ export class MigrationRegistry {
       new EnsureLearningsGitattributesMigration(),
       new EnsureLearningsMergeDriverMigration(),
       new EnsureLisaPostinstallMigration(),
+      new EnsureQualityCallerScopesMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureWikiSourceDeclaredMigration(),
       new ReconcileClaudeStackPluginsMigration(),
