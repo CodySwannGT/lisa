@@ -86,6 +86,8 @@ outcome: created | reused
 
 ## Rules
 
+- The PRD body's requirements MUST conform to `prd-definition-of-ready`: identified atoms (`R1`, `R2`, …), one behavior each in an EARS-pattern shape, each with a measurable fit criterion, plus the non-functional checklist. This governs factory-authored bodies; human-authored PRDs are validated at intake instead (`*-to-tracker` Phase 1.45).
+
 - Exactly one PRD lifecycle project-label at all times.
 - Match dedupe by marker, never by project name.
 - Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage

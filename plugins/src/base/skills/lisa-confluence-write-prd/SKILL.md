@@ -99,6 +99,8 @@ outcome: created | reused
 
 ## Rules
 
+- The PRD body's requirements MUST conform to `prd-definition-of-ready`: identified atoms (`R1`, `R2`, …), one behavior each in an EARS-pattern shape, each with a measurable fit criterion, plus the non-functional checklist. This governs factory-authored bodies; human-authored PRDs are validated at intake instead (`*-to-tracker` Phase 1.45).
+
 - All access via `lisa-atlassian-access`; never call Atlassian directly.
 - State is the parent page, not a label — never attempt Confluence label writes (they 401 on scoped
   tokens; see `config-resolution`).

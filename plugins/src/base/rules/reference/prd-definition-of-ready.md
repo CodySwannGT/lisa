@@ -1,0 +1,81 @@
+# PRD Definition of Ready — Reference
+
+The eager head carries the atom definition and enforcement points; this
+reference carries the rationale, the full vagueness lexicon, and worked
+rewrites. The companion rule `work-item-definition-of-ready` governs the next
+stage down (tickets); this rule governs what the Plan factory decomposes from.
+
+## Why requirement shape is the whole game
+
+The pipeline consumes requirements three times, and each consumer needs a
+different property that only shaped atoms provide:
+
+1. **Plan decomposes** — an EARS-shaped atom (*When X, the system shall Y*)
+   maps to a Gherkin scenario (*When X / Then Y*) nearly mechanically. Prose
+   paragraphs force the planner to invent the split, which is where scope
+   quietly drifts between the PRD and the backlog.
+2. **Tickets trace** — gate S16 quotes the requirement verbatim on every leaf.
+   A verbatim quote of a paragraph containing three requirements is an
+   ambiguous trace: which of the three does this ticket satisfy?
+3. **Verification checks conformance** — spec-conformance and `verify-prd`
+   read the PRD back against the shipped result. A fit criterion is a
+   conformance check waiting to run; an adjective is not.
+
+The standards being distilled: **ISO/IEC/IEEE 29148** (successor to IEEE 830)
+supplies the per-requirement quality characteristics — necessary, appropriate,
+unambiguous, complete, singular, feasible, verifiable, correct — and the
+practice of banning untestable phrasing. **EARS** (Mavin et al.) supplies the
+five sentence patterns. **Volere** supplies the fit criterion. **ISO 25010**
+supplies the non-functional axes for the completeness walk. None of these are
+imported wholesale; this rule takes exactly the parts a machine planner and a
+machine verifier consume.
+
+## The vagueness lexicon
+
+Presence of these (and their kin) in a requirement atom FAILs it as
+unverifiable — each is a phrase no test can check:
+
+> as appropriate · as needed · if necessary · user-friendly · intuitive ·
+> seamless · robust · flexible · fast · quickly · efficient · optimize ·
+> minimize / maximize (unbounded) · handle gracefully · support (unbounded) ·
+> etc. · and/or · TBD inside an atom (TBD belongs in Open Questions)
+
+The lexicon is a floor, not a ceiling — validators should flag any phrasing
+they cannot turn into a check.
+
+## Worked rewrites
+
+| Before (fails) | After (passes) |
+|---|---|
+| "Uploads should be fast and handle errors gracefully." | R4: *When a user uploads a file ≤ 25 MB, the system shall complete the upload within 4s at p95.* Fit: perf-trace on staging. R5: *If an upload fails, then the system shall show a retryable error naming the cause.* Fit: screenshot of the error state per failure class. |
+| "The dashboard should be user-friendly and support filtering, sorting, etc." | R7: *The dashboard shall filter by status, owner, and date range.* R8: *The dashboard shall sort by any visible column.* Fit: each verb exercised in an E2E journey. ("etc." is deleted — unnamed features are unbuilt features.) |
+| "Optimize the pipeline." | R2: *The nightly pipeline shall complete within 30 minutes for a 10k-item batch* (baseline: 47m measured 2026-07-01). Fit: pipeline duration metric. — note this is Improvement-shaped: baseline + target, per `work-item-definition-of-ready`. |
+
+## Singularity repair
+
+When an atom contains multiple behaviors, the register splits it (`R4` →
+`R4a`, `R4b`) — **mechanically when the split preserves meaning**, as a
+product clarification when it does not. The split is recorded in the dry-run
+report; it is never silent, because the PRD author's numbering is part of the
+traceability contract.
+
+## The non-functional walk
+
+A PRD is complete only when the ISO 25010 axes were each considered:
+performance, security, reliability, usability, compatibility,
+maintainability/operability. The required artifact is one line per axis —
+either an atom or an explicit "no requirement." The point is not ceremony; it
+is that **silence and "no requirement" are different facts**, and only one of
+them is a decision a verifier can hold the product to.
+
+## Relationship to the lifecycle
+
+- **Write** — `lisa-research` authors atoms; `*-write-prd` carries the body
+  rule. Factory-authored PRDs are born conforming.
+- **Intake** — `*-to-tracker` Phase 1.45 is the universal gate (human-authored
+  PRDs arrive here without passing any write path). Failures quote the atom
+  verbatim, name the defect, and offer 1–3 candidate rewrites — the
+  EARS-shaped rewrite is the default recommendation. Routed like every other
+  intake failure: PRD to `blocked`, product-readable comments.
+- **Verify** — fit criteria become the spec-conformance checks; the
+  requirement register ids appear in the PRD backlink and the coverage audit.
