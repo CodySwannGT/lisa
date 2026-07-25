@@ -59,6 +59,10 @@
           {
             "context": "🔍 Quality Checks / 🧪 Run Integration Tests",
             "integration_id": 15368
+          },
+          {
+            "context": "🔍 Quality Checks / 🔗 Work-Item Traceability",
+            "integration_id": 15368
           }
         ]
       }

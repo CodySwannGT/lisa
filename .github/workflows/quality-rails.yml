@@ -43,7 +43,7 @@ on:
         type: string
         default: 'test'
       skip_jobs:
-        description: 'Comma-separated list of jobs to skip (lint, security, test, mutation, code_quality, secret_scanning, sg_scan, learnings_budget, threshold_ratchet, license_compliance, zap_baseline)'
+        description: 'Comma-separated list of jobs to skip (lint, security, test, mutation, code_quality, secret_scanning, sg_scan, learnings_budget, threshold_ratchet, work_item_traceability, license_compliance, zap_baseline)'
         required: false
         type: string
         default: ''
@@ -61,6 +61,19 @@ on:
       GITGUARDIAN_API_KEY:
         required: false
       FOSSA_API_KEY:
+        required: false
+      # Work-item traceability reads the configured tracker to verify the PR's
+      # backlink. `tracker: github` needs nothing beyond github.token; jira and
+      # linear need their API credentials, and without them the job reports
+      # not-enforceable rather than a false traceability failure.
+      JIRA_API_TOKEN:
+        description: 'Atlassian/Jira API token (only when tracker is jira)'
+        required: false
+      JIRA_LOGIN:
+        description: 'Atlassian account email for the Jira API token (only when tracker is jira)'
+        required: false
+      LINEAR_API_KEY:
+        description: 'Linear API key (only when tracker is linear)'
         required: false
 
 permissions:
@@ -121,6 +134,93 @@ jobs:
             exit 1
           fi
           node scripts/check-threshold-ratchet.mjs --base "origin/$BASE_REF"
+
+  # ---------------------------------------------------------------------------
+  # Server-side backstop for work-item traceability (#1978, fleet rollout #2046)
+  # ---------------------------------------------------------------------------
+  # Rails counterpart of the quality.yml job — same validator, same rationale:
+  # the client-side lefthook gates (`validate-commit`, `validate-push`) are
+  # locally bypassable because an agent owns its `.git` and can repoint
+  # `refs/remotes/origin/HEAD` to empty the branch-authored range (#1956).
+  # `validate-pr` recomputes the range from event-payload SHAs and never reads a
+  # symref, so nothing local can shrink it. An EMPTY range is a failure.
+  work_item_traceability:
+    name: 🔗 Work-Item Traceability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') }}
+    # The validator writes nothing — never grant more. A reusable workflow can
+    # only DOWNGRADE the caller's grant, so a caller that does not grant
+    # issues:read leaves this job unable to read the tracker.
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # `rev-list base..head` needs both endpoints and everything between
+          # them; a shallow clone would void the gate.
+          fetch-depth: 0
+          persist-credentials: false
+          # The PR head itself, not refs/pull/N/merge: that ref does not exist
+          # while the PR has conflicts and can lag head.sha after a push.
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🔗 Resolve the branch-authored commit range
+        id: range
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Prefer the base branch's CURRENT tip when it descends from base.sha:
+          # a merge-synced PR carries the base's own commits (referencing other,
+          # often closed, work items) inside base.sha..head. Starting at the tip
+          # drops them by plain set subtraction — nothing for a pusher to steer.
+          base="$PR_BASE_SHA"
+          tip="$(git rev-parse -q --verify "refs/remotes/origin/${PR_BASE_REF}" || true)"
+          if [ -n "$tip" ] && git merge-base --is-ancestor "$base" "$tip"; then
+            base="$tip"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "Validating ${base}..${PR_HEAD_SHA}"
+
+      - name: 🔗 Validate Work-Item traceability
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LISA_PR_BASE_SHA: ${{ steps.range.outputs.base }}
+          LISA_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LISA_PR_NUMBER: ${{ github.event.pull_request.number }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          if [ ! -f scripts/lisa-work-item.mjs ]; then
+            echo "scripts/lisa-work-item.mjs not present — project not yet on the work-item template; skipping."
+            exit 0
+          fi
+          # A project mid-onboarding has no tracker configured yet; the
+          # validator hard-fails on a missing `tracker`, and a gate nobody can
+          # satisfy teaches people to ignore red checks.
+          if [ ! -f .lisa.config.json ] || \
+             ! node -e 'const c=require("./.lisa.config.json");process.exit(typeof c.tracker==="string"&&c.tracker?0:1)' 2>/dev/null; then
+            echo "No tracker configured in .lisa.config.json — work-item traceability is not enforceable here; skipping."
+            exit 0
+          fi
+          tracker="$(node -p 'require("./.lisa.config.json").tracker' 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+          if [ "$tracker" = "jira" ] && { [ -z "${JIRA_API_TOKEN:-}" ] || [ -z "${JIRA_LOGIN:-}" ]; }; then
+            echo "::warning::tracker is jira but JIRA_API_TOKEN/JIRA_LOGIN are not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map both secrets in the caller's ci.yml to enable it."
+            exit 0
+          fi
+          if [ "$tracker" = "linear" ] && [ -z "${LINEAR_API_KEY:-}" ]; then
+            echo "::warning::tracker is linear but LINEAR_API_KEY is not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map the secret in the caller's ci.yml to enable it."
+            exit 0
+          fi
+          node scripts/lisa-work-item.mjs validate-pr
 
   security:
     name: Security

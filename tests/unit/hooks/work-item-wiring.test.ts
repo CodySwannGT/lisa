@@ -15,6 +15,9 @@ const read = (file: string): string => readFileSync(path.resolve(file), "utf8");
 const BASH = "/bin/bash";
 const GIT = "/usr/bin/git";
 
+/** The validator invocation the backstop job must actually run. */
+const VALIDATE_PR = "scripts/lisa-work-item.mjs validate-pr";
+
 /** Disposable repositories created by the CI-range cases, removed after them. */
 const roots: string[] = [];
 
@@ -124,19 +127,18 @@ describe("work-item Git enforcement wiring", () => {
    * `rev-list base..head` server-side with no exclusion and no symref, so it is
    * the designed backstop; it only backstops anything if CI actually runs it.
    */
-  describe("server-side validate-pr backstop in Lisa's own CI (#1978)", () => {
-    const ci = loadYaml(read(".github/workflows/ci.yml")) as CiWorkflow;
+  describe.each([
+    ".github/workflows/quality.yml",
+    ".github/workflows/quality-rails.yml",
+  ])("server-side validate-pr backstop in %s (#1978, #2046)", workflow => {
+    const ci = loadYaml(read(workflow)) as CiWorkflow;
     const job = ci.jobs?.["work_item_traceability"];
     const steps = job?.steps ?? [];
 
     it("runs validate-pr on pull requests only", () => {
       expect(job).toBeDefined();
       expect(job?.if).toContain("github.event_name == 'pull_request'");
-      expect(
-        steps.some(step =>
-          step.run?.includes("scripts/lisa-work-item.mjs validate-pr")
-        )
-      ).toBe(true);
+      expect(steps.some(step => step.run?.includes(VALIDATE_PR))).toBe(true);
     });
 
     it("checks out enough history for rev-list base..head to resolve", () => {
@@ -170,9 +172,7 @@ describe("work-item Git enforcement wiring", () => {
     });
 
     it("passes the server-supplied range and PR number through the env-var form", () => {
-      const validate = steps.find(step =>
-        step.run?.includes("scripts/lisa-work-item.mjs validate-pr")
-      );
+      const validate = steps.find(step => step.run?.includes(VALIDATE_PR));
       // Env-var form (not shell-interpolated argv) keeps event payload values
       // out of the `run:` string entirely.
       expect(validate?.env?.["LISA_PR_BASE_SHA"]).toBeTruthy();
@@ -291,6 +291,76 @@ describe("work-item Git enforcement wiring", () => {
         "pull-requests": "read",
       });
     });
+
+    it("stays skippable so a repo can adopt tracked work on its own schedule", () => {
+      // The reusable workflows are consumed @main, so this job goes live
+      // fleet-wide the moment it merges. Without a skip token a repo mid
+      // standards-adoption has no way to land anything.
+      expect(job?.if).toContain("work_item_traceability,");
+    });
+
+    it("reports instead of failing when the gate is not enforceable", () => {
+      const validate = steps.find(step => step.run?.includes(VALIDATE_PR));
+      // A repo with no tracker configured, or a jira/linear repo whose
+      // credentials were never mapped, cannot satisfy this gate at all. Failing
+      // there would be a red check nobody can fix, which teaches people to
+      // ignore red checks — so those paths exit 0 with an explanation.
+      expect(validate?.run).toContain("No tracker configured");
+      expect(validate?.run).toContain("JIRA_API_TOKEN");
+      expect(validate?.run).toContain("LINEAR_API_KEY");
+    });
+  });
+
+  /**
+   * #2046: the job only backstops a downstream repo if that repo's caller
+   * grants the scopes it needs. A reusable workflow can only DOWNGRADE the
+   * caller's grant, so a caller missing `issues: read` silently produces a job
+   * that cannot read the tracker.
+   */
+  it.each([
+    "typescript/create-only/.github/workflows/ci.yml",
+    "expo/create-only/.github/workflows/ci.yml",
+    "nestjs/create-only/.github/workflows/ci.yml",
+    "cdk/create-only/.github/workflows/ci.yml",
+    "rails/create-only/.github/workflows/ci.yml",
+    "harper-fabric/copy-overwrite/.github/workflows/ci.yml",
+    "phaser/copy-overwrite/.github/workflows/ci.yml",
+  ])("%s grants the caller scopes the backstop needs", template => {
+    const caller = loadYaml(read(template)) as CiWorkflow;
+    const job = Object.values(caller.jobs ?? {}).find(candidate =>
+      String((candidate as { uses?: string }).uses ?? "").includes("/quality")
+    );
+
+    expect(job?.permissions?.["issues"]).toBe("read");
+    expect(job?.permissions?.["pull-requests"]).toMatch(/read|write/u);
+  });
+
+  it.each([
+    [
+      "typescript/github-rulesets/quality-checks.json",
+      "🔍 Quality Checks / 🔗 Work-Item Traceability",
+    ],
+    [
+      "rails/github-rulesets/quality-checks.json",
+      "Quality Checks / 🔗 Work-Item Traceability",
+    ],
+  ])("%s requires the backstop context", (ruleset, context) => {
+    // A job that reports red but is not a REQUIRED context does not gate
+    // anything — auto-merge sails past it. That was the #2039 gap.
+    const parsed = JSON.parse(read(ruleset)) as {
+      rules: {
+        parameters?: {
+          required_status_checks?: { context: string }[];
+        };
+        type: string;
+      }[];
+    };
+    const contexts = parsed.rules
+      .filter(rule => rule.type === "required_status_checks")
+      .flatMap(rule => rule.parameters?.required_status_checks ?? [])
+      .map(check => check.context);
+
+    expect(contexts).toContain(context);
   });
 
   it("gives Rails the same gates and a single stdin consumer", () => {

@@ -14,6 +14,10 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      # work_item_traceability reads the tracker issue to verify the PR
+      # backlink. A reusable workflow can only DOWNGRADE the caller's
+      # grant, so without issues:read that job cannot enforce anything.
+      issues: read
     uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
     with:
       node_version: '22.21.1'
@@ -25,3 +29,9 @@ jobs:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
       FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
       MAESTRO_API_KEY: ${{ secrets.MAESTRO_API_KEY }}
+      # Only the configured tracker's credentials are used. tracker:
+      # github needs none of these; jira/linear cannot verify the PR
+      # backlink without them and report not-enforceable instead.
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
