@@ -7761,6 +7761,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness-context-precision.test.ts": true,
     "tests/unit/cli/doctor-readiness-context.test.ts": true,
     "tests/unit/cli/doctor-readiness-credentials-round2.test.ts": true,
+    "tests/unit/cli/doctor-readiness-delivery-action-publish.test.ts": true,
     "tests/unit/cli/doctor-readiness-delivery-artifact.test.ts": true,
     "tests/unit/cli/doctor-readiness-delivery-multiple-publish.test.ts": true,
     "tests/unit/cli/doctor-readiness-delivery-triggers.test.ts": true,
