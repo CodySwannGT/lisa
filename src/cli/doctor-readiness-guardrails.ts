@@ -76,14 +76,17 @@ const CONSEQUENTIAL_OPS: readonly RegExp[] = [
 ];
 
 /** A Terraform apply command, consequential only when auto-approval is present. */
-const TERRAFORM_APPLY = /\bterraform\s+(\S+\s+)*apply\b/;
+const TERRAFORM_APPLY = /\bterraform(?:\s+\S+)*\s+apply\b/;
 
 /** Terraform's non-interactive approval flag. */
 const TERRAFORM_AUTO_APPROVE = /(^|\s)-auto-approve\b/;
 
 /** Terraform env vars that inject CLI args into every command. */
 const TERRAFORM_ARGS_AUTO_APPROVE =
-  /\b(tf_cli_args|tf_args)\s*[:=][^\n]*-auto-approve\b/;
+  /\b(tf_cli_args(?:_apply)?|tf_args)\s*[:=][^\n]*-auto-approve\b/;
+
+/** Separators that end one shell invocation for this conservative scan. */
+const SHELL_INVOCATION_SEPARATOR = /\n|;|&&|\|\|/;
 
 /**
  * Commands that apply schema migrations, in the ecosystems Lisa templates. The
@@ -110,6 +113,48 @@ const PRODUCTION_MARKERS: readonly RegExp[] = [
 ];
 
 /**
+ * Collapse only shell continuation newlines. Ordinary newlines remain command
+ * boundaries so unrelated invocations cannot combine into one Terraform apply.
+ * @param command - Shell command text
+ * @returns Command text with escaped newlines joined
+ */
+function normalizeShellContinuations(command: string): string {
+  return command.replace(/\\\r?\n\s*/g, " ");
+}
+
+/**
+ * Extract shell invocations that contain `terraform apply`.
+ * @param command - Shell command text
+ * @returns Invocation fragments that include Terraform apply
+ */
+function terraformApplyInvocations(command: string): string[] {
+  return normalizeShellContinuations(command)
+    .split(SHELL_INVOCATION_SEPARATOR)
+    .map(part => part.trim())
+    .filter(part => TERRAFORM_APPLY.test(part));
+}
+
+/**
+ * Check whether a Terraform apply invocation targets a saved plan file.
+ * @param invocation - Single shell invocation
+ * @returns True when `apply` has a positional plan-file argument
+ */
+function appliesSavedTerraformPlan(invocation: string): boolean {
+  const tokens = invocation.split(/\s+/).filter(Boolean);
+  const terraformIndex = tokens.findIndex(token => token === "terraform");
+  if (terraformIndex === -1) {
+    return false;
+  }
+  const applyIndex = tokens.indexOf("apply", terraformIndex + 1);
+  if (applyIndex === -1) {
+    return false;
+  }
+  return tokens
+    .slice(applyIndex + 1)
+    .some(token => token !== "\\" && !token.startsWith("-"));
+}
+
+/**
  * Whether a command is an irreversible or expensive operation.
  *
  * The ephemeral screen is the same one B1 uses, widened to the per-pull-request
@@ -131,9 +176,14 @@ function isConsequential(
   if (looksEphemeral(targetEvidence)) {
     return false;
   }
+  const terraformApplyInvocationsToAssess = terraformApplyInvocations(command);
   const terraformAutoApprovedApply =
-    TERRAFORM_APPLY.test(command) &&
-    (TERRAFORM_AUTO_APPROVE.test(command) ||
+    terraformApplyInvocationsToAssess.some(
+      invocation =>
+        TERRAFORM_AUTO_APPROVE.test(invocation) ||
+        appliesSavedTerraformPlan(invocation)
+    ) ||
+    (terraformApplyInvocationsToAssess.length > 0 &&
       TERRAFORM_ARGS_AUTO_APPROVE.test(targetEvidence));
   return (
     terraformAutoApprovedApply ||
