@@ -42,6 +42,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-07-25 — The Three-Layer Trust Play (TASC / Measurement SaaS / Lisa)](decisions/2026-07-25-three-layer-trust-play.md)
 - [2026-07-10 — Project-Scoped Codex Delivery](decisions/2026-05-28-codex-skills-canonical-path.md)
 - [2026-05-28 — Pattern B Per-Agent Plugin Variants](decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md)
 
@@ -55,6 +56,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Concepts
 
+- [TASC — Trust in Autonomous Software Criteria](concepts/tasc-specification.md)
+  - SOC 2-parity attestation spec for autonomous development; AC1–AC9 mirror CC1–CC9; Type C continuous attestation; draft source at [spec/tasc-0.1-draft.md](../spec/tasc-0.1-draft.md).
 - [Lisa Vocabulary](concepts/lisa-vocabulary.md)
   - Distinguishes installation readiness, repository readiness, and the ship blocker condition that produces a narrowed `NOT_READY` claim.
 - [Coding-Agent Feature Taxonomy](concepts/coding-agent-feature-taxonomy.md)

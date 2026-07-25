@@ -604,3 +604,10 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped project-scoped memory because no eligible project-scoped Claude memory directory exists for this automation checkout; global Codex memory remains out of scope.
 - Updated the monorepo snapshot, workflow playbook, and index for the prior wiki ingest merge, commit-message diagnostics, executable plugin hook scripts, lint-ignored edit-file handling, and release-history changes through `2.165.4`.
+
+## 2026-07-25 - TASC specification draft ingest
+
+- Created `wiki/ingest` branch `wiki/ingest-tasc-20260725` from synced `origin/main` because ingestion started on `main`.
+- Ingested the in-repo document `spec/tasc-0.1-draft.md` (TASC 0.1.0-draft), authored during the 2026-07-23→25 console design session; wrote the docs source note `wiki/sources/docs/2026-07-25-tasc-spec-draft.md`.
+- Synthesized `wiki/concepts/tasc-specification.md` (spec structure, seven principles, Type C attestation, levels, CHC) and `wiki/decisions/2026-07-25-three-layer-trust-play.md` (spec stays vendor-neutral, measurement SaaS is the commercial product, Lisa stays open source; decoupling discipline).
+- Updated the index Concepts and Decisions sections and advanced `wiki/state/docs/tasc-spec-draft-2026-07-25.json`.
