@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.303.0](https://github.com/CodySwannGT/lisa/compare/v2.302.0...v2.303.0) (2026-07-25)
+
+
+### Features
+
+* **ui:** key readiness intake to TASC criteria, close criterion gaps ([4f07fbe](https://github.com/CodySwannGT/lisa/commit/4f07fbe5856668e992daed45a4949dcbbf91a9c1)), closes [#2060](https://github.com/CodySwannGT/lisa/issues/2060) [CodySwannGT/lisa#2063](https://github.com/CodySwannGT/lisa/issues/2063)
+
 ## [2.302.0](https://github.com/CodySwannGT/lisa/compare/v2.301.7...v2.302.0) (2026-07-25)
 
 
