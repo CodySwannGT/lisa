@@ -1,8 +1,8 @@
 /**
  * Tests for the threshold ratchet, part 2: Tier 2 gate configs (stryker
- * break score, k6 bounds), Tier 3 exemption additions (audit ignores,
- * mutate exclusions, allow-list self-service), the baseline-side allow
- * list. Tier 1 comparator behavior lives in threshold-ratchet.test.ts;
+ * break score, k6 bounds), Tier 3 exemption additions (mutate exclusions,
+ * allow-list self-service), the baseline-side allow list, and the
+ * deliberately-unwatched audit ignore lists. Tier 1 comparator behavior lives in threshold-ratchet.test.ts;
  * enforcement-layer wiring lives in threshold-ratchet-wiring.test.ts.
  */
 import { beforeAll, describe, expect, it } from "vitest";
@@ -191,26 +191,18 @@ describe("threshold-ratchet tiers 2 and 3", () => {
   });
 
   describe("audit ignore lists", () => {
-    it("flags a newly ignored advisory", () => {
+    it("does not watch audit ignore files", () => {
       const base = JSON.stringify({ "GHSA-aaaa": "known, patched upstream" });
       const current = JSON.stringify({
         "GHSA-aaaa": "known, patched upstream",
-        "GHSA-bbbb": "new ignore",
+        "GHSA-bbbb": "new documented ignore",
       });
-      const findings = compareFile("audit.ignore.local.json", base, current);
-      expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatchObject({
-        key: "GHSA-bbbb",
-        type: TYPE_EXEMPTION,
-      });
-    });
-
-    it("allows removing an ignore (tightening)", () => {
-      const base = JSON.stringify({ "GHSA-aaaa": "x", "GHSA-bbbb": "y" });
-      const current = JSON.stringify({ "GHSA-aaaa": "x" });
       expect(
-        compareFile("audit.ignore.config.json", base, current)
+        compareFile("audit.ignore.local.json", base, current)
       ).toHaveLength(0);
+      expect(compareFile("audit.ignore.config.json", base, null)).toHaveLength(
+        0
+      );
     });
   });
 
