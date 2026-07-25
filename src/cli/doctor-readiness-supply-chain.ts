@@ -55,6 +55,34 @@ const SUPPLY_CHAIN_BLOCKER_ID = "B5";
 /** Most evidence lines carried into a single finding, to keep it readable. */
 const MAX_EVIDENCE_LINES = 12;
 
+/** Package lifecycle scripts that execute during dependency installation. */
+const INSTALL_TIME_SCRIPT_NAMES: ReadonlySet<string> = new Set([
+  "preinstall",
+  "install",
+  "postinstall",
+  "prepare",
+]);
+
+/** One package manifest B5 inspects. */
+interface ManifestUnderAssessment {
+  readonly manifestPath: string;
+  readonly manifest: Record<string, unknown>;
+}
+
+/**
+ * Render a bounded list for operator-facing evidence.
+ * @param values - Values to render
+ * @returns A comma-separated list
+ */
+function renderList(values: readonly string[]): string {
+  const shown = values.slice(0, 5);
+  const overflow = values.length - shown.length;
+  return (
+    shown.map(value => `\`${value}\``).join(", ") +
+    (overflow > 0 ? `, and ${overflow} more` : "")
+  );
+}
+
 /**
  * Build the evidence line for a manifest with no committed lockfile.
  * @param specCount - How many specs the manifest declares
@@ -97,15 +125,97 @@ function linksWorkspaceMember(
 }
 
 /**
+ * Lifecycle scripts that run while installing dependencies widen the
+ * supply-chain surface: install no longer only resolves packages, it executes
+ * repository-owned code. That is legitimate when intentional, but B5 should not
+ * silently treat it as the same confidence model as a pure dependency install.
+ * @param manifestPath - Repo-relative manifest path
+ * @param manifest - Parsed package manifest
+ * @returns Evidence line when install-time scripts exist
+ */
+function installTimeScriptEvidence(
+  manifestPath: string,
+  manifest: Record<string, unknown>
+): string | null {
+  const scripts = manifest.scripts;
+  if (
+    scripts === null ||
+    typeof scripts !== "object" ||
+    Array.isArray(scripts)
+  ) {
+    return null;
+  }
+  const scriptNames = Object.keys(scripts).filter(name =>
+    INSTALL_TIME_SCRIPT_NAMES.has(name)
+  );
+  if (scriptNames.length === 0) {
+    return null;
+  }
+  return (
+    `\`${manifestPath}\` declares install-time lifecycle script(s) ` +
+    `${renderList(scriptNames)}, so dependency installation executes project ` +
+    "code before the normal test/audit surface; B5 needs an explicit confidence " +
+    "decision for that install-time execution path"
+  );
+}
+
+/**
+ * Bun `trustedDependencies` opt third-party packages back into lifecycle script
+ * execution. That is a real install-time authority surface and should be named
+ * in B5 evidence instead of hidden behind an otherwise clean lockfile/audit
+ * model.
+ * @param manifestPath - Repo-relative manifest path
+ * @param manifest - Parsed package manifest
+ * @returns Evidence line when trusted dependencies are declared
+ */
+function trustedDependencyEvidence(
+  manifestPath: string,
+  manifest: Record<string, unknown>
+): string | null {
+  const trusted = manifest.trustedDependencies;
+  const names = Array.isArray(trusted)
+    ? trusted.filter((entry): entry is string => typeof entry === "string")
+    : [];
+  if (names.length === 0) {
+    return null;
+  }
+  return (
+    `\`${manifestPath}\` marks ${renderList(names)} as ` +
+    "`trustedDependencies`, allowing third-party install-time scripts to run; " +
+    "B5 needs a written confidence decision for each trusted package because " +
+    "a clean audit gate alone does not explain that execution authority"
+  );
+}
+
+/**
+ * Collect B5 evidence for install-time execution surfaces declared by package
+ * manifests.
+ * @param manifests - Manifests under assessment
+ * @returns Evidence lines for install-time execution surfaces
+ */
+function installTimeExecutionViolations(
+  manifests: readonly ManifestUnderAssessment[]
+): readonly string[] {
+  return manifests.flatMap(({ manifestPath, manifest }) =>
+    [
+      installTimeScriptEvidence(manifestPath, manifest),
+      trustedDependencyEvidence(manifestPath, manifest),
+    ].flatMap(evidence => (evidence === null ? [] : [evidence]))
+  );
+}
+
+/**
  * Assess a repository's dependency confidence model.
  * @param root - Repository root
  * @param specs - Declared dependency specs
+ * @param manifests - Parsed package manifests under assessment
  * @param workspaces - What resolving the workspace members established
  * @returns Evidence lines for violations, and non-blocking observations
  */
 async function collectFindings(
   root: string,
   specs: readonly DependencySpec[],
+  manifests: readonly ManifestUnderAssessment[],
   workspaces: WorkspaceMembers
 ): Promise<{
   readonly violations: readonly string[];
@@ -146,6 +256,7 @@ async function collectFindings(
               "would never be noticed by anything",
           ]
         : []),
+      ...installTimeExecutionViolations(manifests),
       ...(await auditExceptionViolations(root)),
     ],
     observations: [
@@ -289,6 +400,13 @@ export async function assessDependenciesSupplyChainDimension(
     return skipRecord(outcome.reason);
   }
   const workspaces = await resolveWorkspaceMembers(root, outcome.manifest);
+  const manifests = [
+    { manifestPath: "package.json", manifest: outcome.manifest },
+    ...workspaces.members.map(member => ({
+      manifestPath: member.manifestPath,
+      manifest: member.manifest,
+    })),
+  ];
   const specs = [
     ...collectSpecs(outcome.manifest),
     ...workspaces.members.flatMap(member =>
@@ -305,6 +423,7 @@ export async function assessDependenciesSupplyChainDimension(
   const { violations, observations } = await collectFindings(
     root,
     specs,
+    manifests,
     workspaces
   );
   if (violations.length > 0) {

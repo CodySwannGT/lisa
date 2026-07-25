@@ -7772,6 +7772,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness-journey.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain-install-gate.test.ts": true,
+    "tests/unit/cli/doctor-readiness-supply-chain-install-scripts.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain-precision.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain-workspaces.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain.test.ts": true,
