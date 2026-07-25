@@ -16,6 +16,7 @@ import {
   JOBS,
   makeScratchRepo,
   ON,
+  PINNED_DOWNLOAD_ARTIFACT,
   PUBLISH_JOB,
   PUSH,
   RELEASE_NAME,
@@ -26,7 +27,7 @@ import {
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
-const DOWNLOAD_ARTIFACT_STEP = "      - uses: actions/download-artifact@v4";
+const DOWNLOAD_ARTIFACT_STEP = `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`;
 
 let tempDir: string | undefined;
 

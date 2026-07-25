@@ -36,6 +36,7 @@ import {
   PROMOTION_ACTION,
   type ReleasePathOutcome,
 } from "./doctor-readiness-release-path.js";
+import { unpinnedPublishingActionViolations } from "./doctor-readiness-action-pins.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
   type ParsedWorkflow,
@@ -75,10 +76,18 @@ function summarizeReleasePaths(
       assessReleasePaths(workflow, job, defaultBranches, workflows)
     )
   );
+  const unpinnedActionViolations = workflows.flatMap(workflow =>
+    workflow.jobs.flatMap(job =>
+      unpinnedPublishingActionViolations(workflow, job)
+    )
+  );
   return {
-    violations: outcomes.flatMap(outcome =>
-      outcome.kind === "violation" ? [outcome.evidence] : []
-    ),
+    violations: [
+      ...outcomes.flatMap(outcome =>
+        outcome.kind === "violation" ? [outcome.evidence] : []
+      ),
+      ...unpinnedActionViolations,
+    ],
     unresolved: outcomes.flatMap(outcome =>
       outcome.kind === "unresolved" ? [outcome.reason] : []
     ),
