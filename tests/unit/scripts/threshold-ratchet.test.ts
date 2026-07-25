@@ -63,12 +63,16 @@ describe("threshold-ratchet tier 1", () => {
       expect(familyFor(RUBOCOP_FILE)?.id).toBe("rubocop");
       expect(familyFor("stryker.conf.json")?.id).toBe("stryker");
       expect(familyFor(".github/k6/thresholds/normal.json")?.id).toBe("k6");
-      expect(familyFor("audit.ignore.local.json")?.id).toBe("audit-ignore");
       expect(familyFor(".lisa.config.json")?.id).toBe("lisa-config");
     });
 
     it("ignores unrelated files", () => {
       expect(familyFor("package.json")).toBeUndefined();
+      // Audit ignore lists are deliberately unwatched: the
+      // security-audit-handling ladder authorizes documented additions, and
+      // doctor readiness (B5) audits that each entry carries a decision.
+      expect(familyFor("audit.ignore.local.json")).toBeUndefined();
+      expect(familyFor("audit.ignore.config.json")).toBeUndefined();
       expect(familyFor("src/thresholds.json.ts")).toBeUndefined();
       expect(familyFor("docs/e2e.thresholds.json.md")).toBeUndefined();
     });

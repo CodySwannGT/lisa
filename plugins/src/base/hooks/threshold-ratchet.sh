@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse hook for Edit|Write|NotebookEdit|Bash: the threshold ratchet.
 # Quality thresholds (coverage minimums, complexity maximums, mutation break
-# score, e2e route floors, k6 bounds, audit-ignore lists) may tighten but never
+# score, e2e route floors, k6 bounds) may tighten but never
 # weaken. The deterministic comparator lives in threshold-ratchet.mjs and is
 # shared with the pre-commit (husky/lefthook --staged) and CI (--base) layers,
 # so this hook is fast feedback — not the only line of defense.

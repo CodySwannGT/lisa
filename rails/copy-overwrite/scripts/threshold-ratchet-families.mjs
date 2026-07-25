@@ -49,11 +49,6 @@ export const FAMILIES = [
     kind: "k6",
   },
   {
-    id: "audit-ignore",
-    match: /(^|\/)audit\.ignore\.(config|local)\.json$/,
-    kind: "exemption-list",
-  },
-  {
     id: "lisa-config",
     match: /(^|\/)\.lisa\.config\.json$/,
     kind: "allow-list",
@@ -249,35 +244,6 @@ export function extractK6Constraints(conf) {
     }
   }
   return { numeric, booleans };
-}
-
-/**
- * Flatten an exemption file (audit ignore list) into a set of entry tokens.
- * Arrays contribute their string items; objects contribute their keys.
- * @param {unknown} conf Parsed JSON
- * @returns {Set<string>} One token per exemption entry
- */
-export function extractExemptionEntries(conf) {
-  const out = new Set();
-  if (Array.isArray(conf)) {
-    for (const item of conf) {
-      if (typeof item === "string") out.add(item);
-      else if (item && typeof item === "object") out.add(JSON.stringify(item));
-    }
-  } else if (conf && typeof conf === "object") {
-    for (const [key, value] of Object.entries(conf)) {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          out.add(
-            `${key}:${typeof item === "string" ? item : JSON.stringify(item)}`
-          );
-        }
-      } else {
-        out.add(key);
-      }
-    }
-  }
-  return out;
 }
 
 /**
