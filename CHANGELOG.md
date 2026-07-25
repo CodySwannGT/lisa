@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.10](https://github.com/CodySwannGT/lisa/compare/v2.300.9...v2.300.10) (2026-07-25)
+
+
+### Bug Fixes
+
+* **doctor:** detect terraform auto approve env args ([63f9711](https://github.com/CodySwannGT/lisa/commit/63f9711d978309c5c28a210448a17aeda1b728e5)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **doctor:** tighten terraform apply guardrails ([67c9b36](https://github.com/CodySwannGT/lisa/commit/67c9b36631ccff0bc33be77c725d9201941ea606)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.9](https://github.com/CodySwannGT/lisa/compare/v2.300.8...v2.300.9) (2026-07-25)
 
 
