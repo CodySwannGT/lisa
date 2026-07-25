@@ -21,7 +21,6 @@ import {
   RUNS_ON,
   STEPS,
   TEST_JOB,
-  USES_DOWNLOAD,
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
@@ -30,6 +29,7 @@ const REUSABLE_PATH = "./.github/workflows/publish-to-npm.yml";
 const WORKFLOW_NAME = "name: Publish to npm";
 const WORKFLOW_CALL = "  workflow_call:";
 const VALIDATING_STEP = "      - run: npm test";
+const INSTALL_STEP = "      - run: npm ci";
 const BUILD_STEP = "      - run: bun run build:dist";
 const CALLER_JOB = "  publish:";
 const CALLER_USES = `    uses: ${REUSABLE_PATH}`;
@@ -77,9 +77,9 @@ afterEach(async () => {
 });
 
 describe("assessDeliveryAuthorityDimension — B2 reusable workflow callers", () => {
-  it("PASSes when every local caller validates before publishing a promoted artifact", async () => {
+  it("PASSes when every local caller validates before a non-building publisher", async () => {
     const cwd = await getTempDir();
-    await writeReusablePublisher(cwd, USES_DOWNLOAD);
+    await writeReusablePublisher(cwd, INSTALL_STEP);
     await writeWorkflow(cwd, CI_YML, [
       "name: CI",
       ON_PUSH,
