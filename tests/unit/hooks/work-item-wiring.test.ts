@@ -282,14 +282,23 @@ describe("work-item Git enforcement wiring", () => {
       });
     });
 
-    it("grants the tracker reads the validator performs, and nothing more", () => {
-      // `gh pr view` needs pull-requests:read and `gh issue view` needs
-      // issues:read; the job writes nothing anywhere.
-      expect(job?.permissions).toEqual({
-        contents: "read",
-        issues: "read",
-        "pull-requests": "read",
-      });
+    it("never escalates permissions above the caller's grant", () => {
+      // Regression guard for the #2046 startup_failure. A called workflow may
+      // only DOWNGRADE the caller's grant: requesting a scope the caller never
+      // held fails the ENTIRE run at startup, not just this job — and it does
+      // so even on push paths where this job never runs. These workflows are
+      // consumed @main by repos whose ci.yml is create-only and can never
+      // self-heal, so an escalation here breaks the whole fleet at once.
+      // Inheriting keeps the blast radius inside this job.
+      expect(job?.permissions).toBeUndefined();
+    });
+
+    it("reports rather than blocks when the inherited token cannot read the tracker", () => {
+      const validate = steps.find(step => step.run?.includes(VALIDATE_PR));
+      // Without issues:read the validator cannot read the issue at all. That
+      // is a caller-configuration gap, not a traceability failure — blocking
+      // there would wedge every PR in a repo nobody can unwedge.
+      expect(validate?.run).toContain("issues:read");
     });
 
     it("stays skippable so a repo can adopt tracked work on its own schedule", () => {
