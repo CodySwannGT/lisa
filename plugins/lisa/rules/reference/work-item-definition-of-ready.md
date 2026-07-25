@@ -101,7 +101,10 @@ checkable:
    page, and *where it will live* (wiki page, decision record, attachment).
 
 Gherkin AC is intentionally N/A for Spikes (S4 already exempts them).
-**Terminal state:** the deliverable exists at the named location.
+**Terminal state:** a deliverable exists at the named location **and answers the
+question** — it records the findings, the recommended decision, and the
+options weighed. An empty or placeholder document at the right path is not
+terminal.
 
 ## Sub-task
 
@@ -129,10 +132,12 @@ executable.*
 
 ## Relationship to the lifecycle
 
-- **Write time** — `*-write-*` runs the validator pre-write; a spec failing
-  the type-keyed bar is repaired or rejected before it exists.
-- **Ready time** — the bar is what the build-ready role asserts; S18 makes the
-  assertion checked rather than hoped.
+- **Write time** — `*-write-*` runs the applicable pre-write gates; a spec
+  failing the type-keyed bar is repaired or rejected before it exists. S18 is
+  not a write-time gate — most specs are not yet build-ready when written.
+- **Ready time** — the bar is what the build-ready role asserts, and S18 runs
+  here, on build-ready leaves only, making the assertion checked rather than
+  hoped.
 - **Claim time** — `ticket-triage` remains the analytical deep-check against
   the codebase (edge cases, duplicate work, rework classification). With this
   bar enforced upstream, triage's ambiguity phase should find nothing a
