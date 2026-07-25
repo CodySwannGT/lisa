@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.13](https://github.com/CodySwannGT/lisa/compare/v2.300.12...v2.300.13) (2026-07-25)
+
+
+### Bug Fixes
+
+* **readiness:** honor git default branch in delivery checks ([7315ec4](https://github.com/CodySwannGT/lisa/commit/7315ec41838cec4355e9bc0c573274bf9588b96c)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.12](https://github.com/CodySwannGT/lisa/compare/v2.300.11...v2.300.12) (2026-07-25)
 
 
