@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.301.5](https://github.com/CodySwannGT/lisa/compare/v2.301.4...v2.301.5) (2026-07-25)
+
+
+### Bug Fixes
+
+* resolve B2 reusable workflow callers ([b471e11](https://github.com/CodySwannGT/lisa/commit/b471e11f1d85ebb0c99fa64143d6cd4e534477c8)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.301.4](https://github.com/CodySwannGT/lisa/compare/v2.301.3...v2.301.4) (2026-07-25)
 
 ### [2.301.3](https://github.com/CodySwannGT/lisa/compare/v2.301.2...v2.301.3) (2026-07-25)
