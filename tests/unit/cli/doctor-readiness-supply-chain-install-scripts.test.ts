@@ -89,6 +89,28 @@ afterEach(async () => {
 });
 
 describe("assessDependenciesSupplyChainDimension — install-time execution", () => {
+  // Test hardened to kill mutant M001 (Risk Factor: Supply-chain / lifecycle-only install authority).
+  it("FAILs with B5 when lifecycle scripts are the only package surface", async () => {
+    const cwd = await getTempDir();
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      name: "scratch",
+      version: "1.0.0",
+      scripts: {
+        prepare: "node scripts/prepare.js",
+      },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain("prepare");
+    expect(finding?.evidence).toContain("install-time lifecycle");
+  });
+
+  // Test hardened to kill mutant M002 (Risk Factor: Supply-chain / package lifecycle execution).
   it("FAILs with B5 when dependency install runs package lifecycle code", async () => {
     const cwd = await getTempDir();
     await writeCleanRepo(cwd);
@@ -111,6 +133,7 @@ describe("assessDependenciesSupplyChainDimension — install-time execution", ()
     expect(finding?.evidence).not.toContain("`build`");
   });
 
+  // Test hardened to kill mutant M003 (Risk Factor: Supply-chain / trusted dependency execution).
   it("FAILs with B5 when trustedDependencies allow dependency lifecycle scripts", async () => {
     const cwd = await getTempDir();
     await writeCleanRepo(cwd);

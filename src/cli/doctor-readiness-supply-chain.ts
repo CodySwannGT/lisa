@@ -35,10 +35,14 @@ import {
   findAuditGate,
   findLockfile,
   findLockfileInstallGate,
-  isFloatingSpec,
-  LOCKFILES,
   readManifest,
 } from "./doctor-readiness-supply-chain-scan.js";
+import {
+  dependencyConfidenceObservations,
+  dependencyConfidenceViolations,
+  installTimeExecutionViolations,
+  type ManifestUnderAssessment,
+} from "./doctor-readiness-supply-chain-evidence.js";
 import {
   resolveWorkspaceMembers,
   type WorkspaceMembers,
@@ -54,155 +58,6 @@ const SUPPLY_CHAIN_BLOCKER_ID = "B5";
 
 /** Most evidence lines carried into a single finding, to keep it readable. */
 const MAX_EVIDENCE_LINES = 12;
-
-/** Package lifecycle scripts that execute during dependency installation. */
-const INSTALL_TIME_SCRIPT_NAMES: ReadonlySet<string> = new Set([
-  "preinstall",
-  "install",
-  "postinstall",
-  "prepare",
-]);
-
-/** One package manifest B5 inspects. */
-interface ManifestUnderAssessment {
-  readonly manifestPath: string;
-  readonly manifest: Record<string, unknown>;
-}
-
-/**
- * Render a bounded list for operator-facing evidence.
- * @param values - Values to render
- * @returns A comma-separated list
- */
-function renderList(values: readonly string[]): string {
-  const shown = values.slice(0, 5);
-  const overflow = values.length - shown.length;
-  return (
-    shown.map(value => `\`${value}\``).join(", ") +
-    (overflow > 0 ? `, and ${overflow} more` : "")
-  );
-}
-
-/**
- * Build the evidence line for a manifest with no committed lockfile.
- * @param specCount - How many specs the manifest declares
- * @returns One evidence line
- */
-function lockfileEvidence(specCount: number): string {
-  return (
-    `package manifest(s), starting with \`package.json\`, declare ${specCount} ` +
-    `dependency spec(s) but no lockfile is committed (looked for ` +
-    `${LOCKFILES.join(", ")}) — two installs can resolve to different trees, ` +
-    "so what was validated is not provably what gets installed"
-  );
-}
-
-/**
- * Whether a floating-looking spec is really a link to a package in this
- * repository. `"@acme/utils": "*"` against a workspace member resolves to the
- * local package, which is the workspace idiom rather than a floating install —
- * so faulting it would fail every correctly configured monorepo.
- *
- * When workspaces are declared but no member name could be resolved (an
- * unreadable child manifest, an unsupported glob), a bare `*` is exempted
- * anyway: the repository has told us it links locally, and absence of proof is
- * not proof of a violation.
- * @param spec - The declared spec
- * @param workspaces - What resolving the workspace members established
- * @returns True when the spec links to a workspace member
- */
-function linksWorkspaceMember(
-  spec: DependencySpec,
-  workspaces: WorkspaceMembers
-): boolean {
-  if (!workspaces.declared) {
-    return false;
-  }
-  return (
-    workspaces.names.has(spec.name) ||
-    (workspaces.names.size === 0 && spec.spec.trim() === "*")
-  );
-}
-
-/**
- * Lifecycle scripts that run while installing dependencies widen the
- * supply-chain surface: install no longer only resolves packages, it executes
- * repository-owned code. That is legitimate when intentional, but B5 should not
- * silently treat it as the same confidence model as a pure dependency install.
- * @param manifestPath - Repo-relative manifest path
- * @param manifest - Parsed package manifest
- * @returns Evidence line when install-time scripts exist
- */
-function installTimeScriptEvidence(
-  manifestPath: string,
-  manifest: Record<string, unknown>
-): string | null {
-  const scripts = manifest.scripts;
-  if (
-    scripts === null ||
-    typeof scripts !== "object" ||
-    Array.isArray(scripts)
-  ) {
-    return null;
-  }
-  const scriptNames = Object.keys(scripts).filter(name =>
-    INSTALL_TIME_SCRIPT_NAMES.has(name)
-  );
-  if (scriptNames.length === 0) {
-    return null;
-  }
-  return (
-    `\`${manifestPath}\` declares install-time lifecycle script(s) ` +
-    `${renderList(scriptNames)}, so dependency installation executes project ` +
-    "code before the normal test/audit surface; B5 needs an explicit confidence " +
-    "decision for that install-time execution path"
-  );
-}
-
-/**
- * Bun `trustedDependencies` opt third-party packages back into lifecycle script
- * execution. That is a real install-time authority surface and should be named
- * in B5 evidence instead of hidden behind an otherwise clean lockfile/audit
- * model.
- * @param manifestPath - Repo-relative manifest path
- * @param manifest - Parsed package manifest
- * @returns Evidence line when trusted dependencies are declared
- */
-function trustedDependencyEvidence(
-  manifestPath: string,
-  manifest: Record<string, unknown>
-): string | null {
-  const trusted = manifest.trustedDependencies;
-  const names = Array.isArray(trusted)
-    ? trusted.filter((entry): entry is string => typeof entry === "string")
-    : [];
-  if (names.length === 0) {
-    return null;
-  }
-  return (
-    `\`${manifestPath}\` marks ${renderList(names)} as ` +
-    "`trustedDependencies`, allowing third-party install-time scripts to run; " +
-    "B5 needs a written confidence decision for each trusted package because " +
-    "a clean audit gate alone does not explain that execution authority"
-  );
-}
-
-/**
- * Collect B5 evidence for install-time execution surfaces declared by package
- * manifests.
- * @param manifests - Manifests under assessment
- * @returns Evidence lines for install-time execution surfaces
- */
-function installTimeExecutionViolations(
-  manifests: readonly ManifestUnderAssessment[]
-): readonly string[] {
-  return manifests.flatMap(({ manifestPath, manifest }) =>
-    [
-      installTimeScriptEvidence(manifestPath, manifest),
-      trustedDependencyEvidence(manifestPath, manifest),
-    ].flatMap(evidence => (evidence === null ? [] : [evidence]))
-  );
-}
 
 /**
  * Assess a repository's dependency confidence model.
@@ -225,50 +80,21 @@ async function collectFindings(
   const lockfileInstallGate =
     lockfile === null ? null : await findLockfileInstallGate(root);
   const auditGate = await findAuditGate(root);
-  const floating = specs.filter(
-    spec => isFloatingSpec(spec.spec) && !linksWorkspaceMember(spec, workspaces)
-  );
+  const inputs = {
+    auditGate,
+    lockfile,
+    lockfileInstallGate,
+    specs,
+    workspaces,
+  };
   return {
     violations: [
-      ...(lockfile === null ? [lockfileEvidence(specs.length)] : []),
-      ...(lockfile !== null && lockfileInstallGate === null
-        ? [
-            `lockfile \`${lockfile}\` is committed, but no CI or hook install ` +
-              "step was found that enforces it with `npm ci`, " +
-              "`bun install --frozen-lockfile`, `pnpm install --frozen-lockfile`, " +
-              "or `yarn install --immutable`; a workflow can silently rewrite " +
-              "or bypass the tree that was validated",
-          ]
-        : []),
-      ...floating.map(
-        spec =>
-          `\`${spec.manifestPath}\` \`${spec.block}.${spec.name}\` is ` +
-          `\`${spec.spec}\`, ` +
-          "which resolves to whatever is newest at install time rather than to " +
-          "a version anything was ever validated against"
-      ),
-      ...(auditGate === null
-        ? [
-            "no dependency-audit gate covering the JavaScript tree was found " +
-              "anywhere — no `npm`/`bun` audit step in `.github/workflows/*.yml`, " +
-              "none in a git hook, and no `dependabot.yml` npm entry or " +
-              "`renovate.json` — so a newly disclosed advisory in this tree " +
-              "would never be noticed by anything",
-          ]
-        : []),
+      ...dependencyConfidenceViolations(inputs),
       ...installTimeExecutionViolations(manifests),
       ...(await auditExceptionViolations(root)),
     ],
     observations: [
-      ...(lockfile === null ? [] : [`Lockfile in use: \`${lockfile}\`.`]),
-      ...(lockfileInstallGate === null
-        ? []
-        : [
-            `Lockfile-enforcing install declared in \`${lockfileInstallGate}\`.`,
-          ]),
-      ...(auditGate === null
-        ? []
-        : [`Dependency-audit gate declared in \`${auditGate}\`.`]),
+      ...dependencyConfidenceObservations(inputs),
       ...(workspaces.declared ? [workspaceObservation(workspaces)] : []),
     ],
   };
@@ -413,7 +239,8 @@ export async function assessDependenciesSupplyChainDimension(
       collectSpecs(member.manifest, member.manifestPath)
     ),
   ];
-  if (specs.length === 0) {
+  const installTimeViolations = installTimeExecutionViolations(manifests);
+  if (specs.length === 0 && installTimeViolations.length === 0) {
     return skipRecord(
       "No resolved package manifest declares dependencies, so this repository " +
         "owns no third-party surface a confidence model could cover; " +
