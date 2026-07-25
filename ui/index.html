@@ -1437,6 +1437,138 @@
       .dot.warn {
         background: var(--warn);
       }
+      /* --- readiness intake: a Vanta-style answer-the-questions checklist --- */
+      .intake-progress {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        /* .card has no padding of its own — it relies on .card-head/.card-body
+           wrappers this block bypasses, so pad here directly. */
+        padding: 16px 18px;
+      }
+      .intake-progress .ip-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .intake-progress .ip-pct {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .intake-progress .ip-count {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .intake-bar {
+        margin-top: 10px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--surface2);
+        overflow: hidden;
+      }
+      .intake-bar-fill {
+        height: 100%;
+        border-radius: 99px;
+        background: var(--accent);
+        transition: width 0.25s ease;
+      }
+      .intake-group .card-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .intake-gcount {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 650;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        padding: 2px 8px;
+        border-radius: 99px;
+        background: var(--chip-bg);
+      }
+      .intake-group[data-complete="yes"] .intake-gcount {
+        color: var(--good);
+        background: var(--good-soft);
+      }
+      .intake-item {
+        display: grid;
+        grid-template-columns: 22px 1fr minmax(150px, 240px);
+        /* Align to the top so the dot and the control track the question's
+           first line rather than floating to the middle of a two-line row. */
+        align-items: start;
+        gap: 12px;
+        /* Horizontal padding matches .card-head (18px); .card itself has none. */
+        padding: 12px 18px;
+        border-top: 1px solid var(--line);
+      }
+      .intake-item:first-of-type {
+        border-top: 0;
+      }
+      .intake-dot {
+        width: 18px;
+        height: 18px;
+        /* Nudge onto the cap-height of the question's first line. */
+        margin-top: 1px;
+        flex: none;
+        border-radius: 50%;
+        border: 1.5px solid var(--line-strong);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        line-height: 1;
+        color: transparent;
+      }
+      .intake-item[data-answered="yes"] .intake-dot {
+        background: var(--good);
+        border-color: var(--good);
+        color: #fff;
+      }
+      .intake-item[data-answered="yes"] .intake-dot::after {
+        content: "✓";
+      }
+      .intake-q {
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .intake-help {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        color: var(--muted);
+        max-width: 60ch;
+      }
+      .intake-item .control {
+        justify-content: flex-end;
+      }
+      .intake-ctls {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: stretch;
+      }
+      .intake-via select {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .intake-item .control select,
+      .intake-item .control input.num {
+        width: 100%;
+      }
+      @media (max-width: 720px) {
+        .intake-item {
+          grid-template-columns: 22px 1fr;
+        }
+        .intake-item .control {
+          grid-column: 2;
+          justify-content: flex-start;
+        }
+      }
+
       /* --- staff picker: which coding agent a factory page is read for --- */
       .staff-card {
         padding: 12px 16px;
@@ -1723,6 +1855,10 @@
 
       const DATA = {
         groups: [
+          {
+            label: "Get started",
+            sections: ["readiness"],
+          },
           {
             label: "Project",
             sections: [
@@ -4955,6 +5091,978 @@
           { type: "environments" },
           fLegend(
             "<b>Remote is not one place, and local is not manual-only.</b> Every agent ships its own hosted runtime with its own credential store and its own scheduler, so “does this work headless?” has a different answer per agent — which is why this page and the factory pages share one staff selector. Every environment can be scheduled; what differs is durability and granularity. A hosted scheduler survives a closed laptop but imposes a floor on how often it can fire — <b>which is why a loop specified at every 10 minutes cannot run as a Claude cloud routine at all</b>, and has to live locally or in CI. On credentials the ranking is: CI is strongest because it can federate and hold no secret at all; local is next because a human is nearby; the vendor remotes are weakest, since they have neither a human nor federation and fall back to a long-lived token. Scope those narrowly, rotate them often, and put a gateway in front of them — a short-lived credential is worth more than a well-hidden one."
+          ),
+        ],
+      };
+      /* ---------------------------------- Readiness (intake) ---------------------------------- */
+      DATA.sections.readiness = {
+        title: "Readiness",
+        desc: "The onboarding questionnaire — Vanta, but for agent-run software. Answer what you use for each thing an autonomous factory depends on, and the meter shows how ready you are. Every question here has a detailed home elsewhere in the console; this is the flat version you fill out first. Nothing is required all at once — an unanswered question is a known gap, not a failure.",
+        src: "intake · maps onto .lisa.config.json",
+        blocks: [
+          {
+            type: "intake",
+            groups: [
+              {
+                label: "The bottom line",
+                note: "The one number the rest of this questionnaire exists to predict.",
+                items: [
+                  {
+                    q: "What fraction of work ships with zero human touches?",
+                    help: "Autonomy rate. Not measuring it is the first gap — every control below is in service of moving this number up without lowering the bar, and you cannot improve what nothing counts.",
+                    kind: "select",
+                    options: [
+                      "We measure it — above 75%",
+                      "We measure it — 25–75%",
+                      "We measure it — below 25%",
+                      "We don't measure it",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Credentials & access",
+                items: [
+                  {
+                    q: "Where do your agents' secrets live?",
+                    help: "The vault of record. Everything else should fetch from here rather than a copy pasted per environment.",
+                    kind: "select",
+                    value: "1Password",
+                    mono: true,
+                    options: [
+                      "1Password",
+                      "Bitwarden Secrets Manager",
+                      "Doppler",
+                      "Infisical",
+                      "HashiCorp Vault",
+                      "AWS Secrets Manager",
+                      "Azure Key Vault",
+                      "GCP Secret Manager",
+                      "env vars / .env files",
+                    ],
+                  },
+                  {
+                    q: "What sits between the agent and the network?",
+                    help: "A credential gateway substitutes real values into outbound requests so the agent only ever handles placeholders — nothing to leak from its context.",
+                    kind: "select",
+                    mono: true,
+                    options: [
+                      "none — direct injection",
+                      "Vault Agent",
+                      "1Password Connect",
+                      "Infisical Agent",
+                      "custom egress proxy",
+                    ],
+                  },
+                  {
+                    q: "Do agents authenticate as themselves, or borrow a human login?",
+                    help: "An agent with its own identity is attributable, least-privilege, and revocable without touching yours. Borrowing a human session is why a factory works at a desk and fails unattended.",
+                    kind: "select",
+                    options: [
+                      "Agent has its own identity everywhere",
+                      "Agent has its own identity in CI only",
+                      "Agent borrows a human session",
+                      "Mixed across connections",
+                    ],
+                  },
+                  {
+                    q: "How often are static credentials rotated?",
+                    help: "A short-lived credential is worth more than a well-hidden one: it has a small blast radius whether or not it leaks.",
+                    kind: "number",
+                    value: 90,
+                    unit: "days",
+                  },
+                ],
+              },
+              {
+                label: "Where agents run",
+                items: [
+                  {
+                    q: "What sandbox do unattended agents run in?",
+                    help: "Where work executes when no human is present. This decides the credential path and what the agent can reach.",
+                    kind: "select",
+                    options: [
+                      "Local workstation (scheduled)",
+                      "CI runner",
+                      "Vendor hosted cloud",
+                      "Self-hosted container (E2B / Daytona / Modal)",
+                      "Bare metal / VM",
+                    ],
+                  },
+                  {
+                    q: "Which coding agents operate this project?",
+                    help: "The staff that run the factories. More than one is normal — parity is maintained across all of them.",
+                    kind: "multiselect",
+                    values: ["claude", "codex"],
+                    mono: true,
+                    options: [
+                      "claude",
+                      "codex",
+                      "cursor",
+                      "agy",
+                      "copilot",
+                      "opencode",
+                    ],
+                  },
+                  {
+                    q: "Do all of those agents get the same guardrails?",
+                    help: "A fleet where hooks and rules only exist for one agent is uneven enforcement wearing a uniform. Equal governance means every agent's surface is generated from one source, with drift detection when they diverge.",
+                    kind: "select",
+                    value: "Generated from one source + drift-checked",
+                    options: [
+                      "Generated from one source + drift-checked",
+                      "Manually mirrored",
+                      "Uneven — one agent is governed, the rest ride along",
+                    ],
+                  },
+                  {
+                    q: "Is agent network egress restricted?",
+                    help: "A gateway only protects what passes through it. Without an egress lock, an agent that can run shell reaches the network directly and bypasses every control.",
+                    kind: "select",
+                    options: [
+                      "Locked to an allowlist / gateway",
+                      "Open — any host reachable",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "The agent's program",
+                note: "Prompts, skills and models are the factory's own source code and runtime. This group asks whether that layer is under change control — or improvised per run.",
+                items: [
+                  {
+                    q: "Is production work driven by pre-vetted skills, or free-form prompts?",
+                    help: "A skill is a reviewed, versioned procedure; a free-form prompt is an improvised one. Free-prompting production work is editing in production.",
+                    kind: "select",
+                    value: "Version-controlled skills / commands",
+                    options: [
+                      "Version-controlled skills / commands",
+                      "Mostly skills — ad-hoc allowed",
+                      "Free-form prompting",
+                    ],
+                  },
+                  {
+                    q: "Do prompt and skill changes go through the same gates as code?",
+                    help: "If the prompt is the program, a skill edit is a code change — it should ride the same PR review and CI the code does.",
+                    kind: "select",
+                    value: "Same PR review + gates",
+                    options: [
+                      "Same PR review + gates",
+                      "Version-controlled, unreviewed",
+                      "Edited live",
+                    ],
+                  },
+                  {
+                    q: "How is a model upgrade qualified before agents use it?",
+                    help: "A model swap changes every factory at once. Unless something regression-tests the agent layer itself — golden tasks, canary runs — the upgrade ships unreviewed.",
+                    kind: "select",
+                    options: [
+                      "Eval suite on golden tasks",
+                      "Canary on real work items",
+                      "Manual spot-check",
+                      "We just upgrade",
+                    ],
+                    via: [
+                      "promptfoo",
+                      "Braintrust",
+                      "Langfuse / LangSmith",
+                      "In-house evals",
+                      "None",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Work intake",
+                items: [
+                  {
+                    q: "Where do product requirements (PRDs) live?",
+                    help: "The source the Research factory writes to and the Plan factory reads from.",
+                    kind: "select",
+                    mono: true,
+                    value: "Notion",
+                    options: [
+                      "Notion",
+                      "Confluence",
+                      "Linear",
+                      "GitHub",
+                      "Google Docs",
+                    ],
+                  },
+                  {
+                    q: "What tracks work items?",
+                    help: "Where PRDs decompose into tickets, and where the build loop claims and closes them.",
+                    kind: "select",
+                    mono: true,
+                    value: "JIRA",
+                    options: ["JIRA", "GitHub", "Linear"],
+                  },
+                  {
+                    q: "Is there a knowledge source agents read for project context?",
+                    help: "Without one, every factory re-derives how the project is built on each run and cannot know what was already decided and why.",
+                    kind: "select",
+                    options: [
+                      "Lisa LLM Wiki",
+                      "Other wiki / docs site",
+                      "None — code only",
+                    ],
+                  },
+                  {
+                    q: "Is that knowledge source maintained, or rotting?",
+                    help: "A wiki written once decays into confident misinformation — worse than nothing, because agents believe it. Maintenance means a convergence loop: open questions tracked as gaps, answered by humans, absorbed, repeated until zero remain.",
+                    kind: "select",
+                    options: [
+                      "Convergence loop — gaps tracked to zero",
+                      "Updated ad-hoc",
+                      "Written once",
+                    ],
+                  },
+                  {
+                    q: "Is incoming work validated before agents build it?",
+                    help: "The gate itself. An adversarial intake rejects work that is ambiguous or that the factory cannot prove it has the tooling to execute — and raises what it cannot resolve to a human. Building work as-written means every unclear ticket becomes an improvised guess at scale.",
+                    kind: "select",
+                    value: "Adversarial gate — ambiguous work rejected",
+                    options: [
+                      "Adversarial gate — ambiguous work rejected",
+                      "Light triage",
+                      "Built as written",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Correctness gates",
+                items: [
+                  {
+                    q: "Is unit behaviour proven on every change?",
+                    help: "Not that a test runner exists — that tests actually run and must pass before a merge. A runner nobody's failures block is decoration.",
+                    kind: "select",
+                    value: "Required to pass in CI",
+                    options: [
+                      "Required to pass in CI",
+                      "Runs but does not block a merge",
+                      "Local / manual only",
+                      "No automated unit tests",
+                    ],
+                    via: [
+                      "vitest",
+                      "jest",
+                      "bun test",
+                      "mocha",
+                      "pytest",
+                      "RSpec",
+                      "go test",
+                      "In-house harness",
+                    ],
+                    viaValue: "vitest",
+                  },
+                  {
+                    q: "Minimum unit-test coverage you enforce?",
+                    help: "Below this the build fails. Thresholds should only ratchet up.",
+                    kind: "number",
+                    value: 74,
+                    unit: "%",
+                  },
+                  {
+                    q: "What drives end-to-end journeys?",
+                    help: "Proof the product works for a person, not just that units pass.",
+                    kind: "select",
+                    mono: true,
+                    options: [
+                      "Playwright",
+                      "Cypress",
+                      "Selenium",
+                      "Maestro",
+                      "Detox",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Do you run mutation testing?",
+                    help: "Coverage proves a line ran; mutation proves a test would fail if that line were wrong — it keeps coverage honest.",
+                    kind: "select",
+                    options: ["Yes — gates merges", "Yes — nightly only", "No"],
+                    value: "Yes — nightly only",
+                  },
+                  {
+                    q: "Can a quality threshold be quietly lowered?",
+                    help: "The ratchet: thresholds may only tighten, and loosening one requires its own reviewed change. A bar anyone can edit downward in passing is a suggestion, not a bar — and an agent under pressure to go green will find it.",
+                    kind: "select",
+                    value:
+                      "No — ratcheted; loosening needs its own reviewed change",
+                    options: [
+                      "No — ratcheted; loosening needs its own reviewed change",
+                      "Reviewable like any other change",
+                      "Anyone can edit the config",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Security gates",
+                items: [
+                  {
+                    q: "What blocks a committed secret?",
+                    kind: "select",
+                    mono: true,
+                    value: "GitGuardian",
+                    options: [
+                      "GitGuardian",
+                      "gitleaks",
+                      "trufflehog",
+                      "GitHub push protection",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "What does static security analysis?",
+                    kind: "select",
+                    mono: true,
+                    value: "SonarCloud",
+                    options: [
+                      "SonarCloud",
+                      "CodeQL",
+                      "Semgrep",
+                      "Snyk Code",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "What audits dependency vulnerabilities?",
+                    kind: "select",
+                    mono: true,
+                    value: "npm audit + Dependabot",
+                    options: [
+                      "npm audit + Dependabot",
+                      "Snyk",
+                      "Trivy",
+                      "OSV-Scanner",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "What scans your infrastructure code?",
+                    help: "Application code passes several security gates; infrastructure often passes none.",
+                    kind: "select",
+                    mono: true,
+                    options: [
+                      "cdk-nag",
+                      "checkov",
+                      "tfsec",
+                      "Terrascan",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Are dependency licenses checked against an allowlist?",
+                    help: "The legal gate: an agent adding a copyleft dependency to a proprietary codebase is a liability no test suite notices. Agents add dependencies faster than humans ever did.",
+                    kind: "select",
+                    value: "Enforced in CI",
+                    options: [
+                      "Enforced in CI",
+                      "Audited occasionally",
+                      "Not checked",
+                    ],
+                    via: [
+                      "license-checker",
+                      "FOSSA",
+                      "ScanCode",
+                      "Black Duck",
+                      "None",
+                    ],
+                    viaValue: "license-checker",
+                  },
+                ],
+              },
+              {
+                label: "Agent attack surface",
+                note: "The group above secures the code; this one secures the agent. Inbound, the risk is untrusted content steering it; outbound, exfiltration — which is governed by the egress lock and credential gateway you answered earlier.",
+                items: [
+                  {
+                    q: "What stops fetched content from becoming instructions?",
+                    help: "Prompt injection: a web page, README, or issue comment the agent reads is untrusted input that may try to steer it. Mitigation means labeling it as data and gating risky tools while it is in context.",
+                    kind: "select",
+                    options: [
+                      "Labeled untrusted + risky tools gated",
+                      "Partial mitigations",
+                      "Nothing specific",
+                    ],
+                  },
+                  {
+                    q: "What can agents read on the open internet?",
+                    help: "The inbound counterpart of the egress question — reading the web is the injection surface. Scoping per factory is the sophisticated answer: Research needs the web; a build loop mostly does not.",
+                    kind: "select",
+                    options: [
+                      "Nothing — no web access",
+                      "Allowlisted domains only",
+                      "Scoped per factory",
+                      "Anything",
+                    ],
+                  },
+                  {
+                    q: "Can an agent add a new dependency unreviewed?",
+                    help: "Models hallucinate plausible package names and attackers register them (slopsquatting), alongside classic typosquats. An agent that can install unreviewed is the softest supply-chain target there is.",
+                    kind: "select",
+                    options: [
+                      "No — review gate + lockfile discipline",
+                      "Scanned at install",
+                      "Yes — unreviewed",
+                    ],
+                    via: [
+                      "Socket.dev",
+                      "Registry allowlist",
+                      "Lockfile-only installs",
+                      "In-house policy",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Are destructive operations blocked at the tool layer?",
+                    help: "Guard hooks that refuse rm -rf, force-push, and history rewrites before they execute — the seatbelt for a fast-typing agent, injected or merely wrong.",
+                    kind: "select",
+                    value: "Guard hooks block them",
+                    options: [
+                      "Guard hooks block them",
+                      "Sandbox contains them",
+                      "Neither",
+                    ],
+                  },
+                  {
+                    q: "How are MCP servers and connectors vetted?",
+                    help: "A connector is an executable dependency with tool access. A malicious or squatted one is supply chain straight into the agent loop.",
+                    kind: "select",
+                    options: [
+                      "Pinned + reviewed like dependencies",
+                      "Ad-hoc — team judgment",
+                      "Unvetted",
+                    ],
+                  },
+                  {
+                    q: "Are instruction files from cloned repos trusted automatically?",
+                    help: "CLAUDE.md, AGENTS.md, hooks and skills in a repo the agent clones are executable instructions somebody else wrote. Obeying them on sight is running unreviewed code — hook-trust prompts exist for exactly this.",
+                    kind: "select",
+                    options: [
+                      "Untrusted until reviewed / trust-gated",
+                      "Trusted from known repos only",
+                      "Trusted automatically",
+                    ],
+                  },
+                  {
+                    q: "Can a bad learning persist and steer future runs?",
+                    help: "Agents that keep memory or a learnings ledger can be poisoned slowly — one planted learning today steers every run after it. It is the injection question extended over time; the mitigation is a skeptical gate in front of anything that persists.",
+                    kind: "select",
+                    value: "Judged gate before anything persists",
+                    options: [
+                      "Judged gate before anything persists",
+                      "Persisted, reviewed occasionally",
+                      "Persisted unreviewed",
+                      "No persistent memory",
+                    ],
+                  },
+                  {
+                    q: "If an agent escapes its sandbox, what can it reach?",
+                    help: "The joint test of everything above: scoped credentials, the egress lock and the gateway together decide whether a compromised runtime is an incident or a catastrophe.",
+                    kind: "select",
+                    options: [
+                      "Only what its scoped identity allows",
+                      "Some shared infrastructure",
+                      "Everything — broad credentials in reach",
+                      "Unknown",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Code health",
+                note: "The bar for this whole group: authorless code. A reviewer with the author hidden should not be able to tell who — or what — wrote a change. Anything that gives the author away is an uncodified opinion, and each row below is one class of opinion made enforceable.",
+                items: [
+                  {
+                    q: "Are file and function size limits enforced?",
+                    help: "Bounds on how long a file or a function may get, so nothing grows past what a person — or an agent — can hold in their head.",
+                    kind: "select",
+                    value: "Enforced in CI",
+                    options: [
+                      "Enforced in CI",
+                      "Advisory (local only)",
+                      "Not enforced",
+                    ],
+                  },
+                  {
+                    q: "What is your per-function complexity ceiling?",
+                    help: "The most common reason a build goes red on otherwise-working code — and the cheapest guard against code an agent can't safely change.",
+                    kind: "number",
+                    value: 10,
+                  },
+                  {
+                    q: "Is project and module structure enforced?",
+                    help: "Architectural rules — import boundaries, required file layouts, where things are allowed to live — so the codebase keeps its shape as agents add to it.",
+                    kind: "select",
+                    options: [
+                      "Enforced in CI",
+                      "Advisory (local only)",
+                      "Not enforced",
+                    ],
+                  },
+                  {
+                    q: "Is your house coding style enforced automatically?",
+                    help: "Whatever conventions you've chosen — immutability, functional patterns, error handling, naming. This is elective: having no house style is a valid answer. But a style you've decided on and don't enforce is the exposed case, because an agent will drift from what it was never made to follow.",
+                    kind: "select",
+                    options: [
+                      "Codified and enforced",
+                      "Documented but not enforced",
+                      "No prescribed house style",
+                    ],
+                  },
+                  {
+                    q: "Is dead code detected and removed?",
+                    help: "Unused exports and files accumulate fastest under automated authorship, because an agent rarely deletes what it didn't write.",
+                    kind: "select",
+                    value: "Enforced in CI",
+                    options: [
+                      "Enforced in CI",
+                      "Advisory (local only)",
+                      "Not enforced",
+                    ],
+                  },
+                  /* PROPOSED: the authorship probe — /lisa:verify:standards
+                     ------------------------------------------------------
+                     1. What to build — an automated version of the question
+                        below: take the last N merged diffs, strip authorship,
+                        and have a model guess which agent (or person) wrote
+                        each. Report accuracy vs chance, and — the useful part
+                        — the distinguishing features it keyed on. Each feature
+                        is an uncodified opinion and a candidate lint rule.
+                     2. Why — "are our standards complete?" is otherwise
+                        unanswerable except by taste. Indistinguishability is
+                        the completeness criterion: standards are done when the
+                        author disappears from the diff. It is also the
+                        stopping rule — it says when to STOP adding rules, not
+                        just when to add more.
+                     3. Today — nothing measures this. The house-style question
+                        above records whether chosen conventions are enforced;
+                        this probe finds the conventions nobody chose.
+                     4. Replaces — nothing; feeds the gardener candidate rules
+                        with evidence attached. */
+                  {
+                    q: "With the author hidden, could a reviewer tell who — or what — wrote a change?",
+                    help: "The completeness test for everything above. When output is authorless, agents are interchangeable and a model swap is invisible in the diff. Every tell a reviewer can name is the next rule to codify.",
+                    kind: "select",
+                    options: [
+                      "No — output is indistinguishable",
+                      "Usually not",
+                      "Yes — authors are recognizable",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Design & UI",
+                note: "The determinism story for anything with a screen — a design system is the linter for UI. Without one an agent improvises every screen; with one it assembles from known parts. A backend or CLI answers “no UI” to each, which counts as answered.",
+                items: [
+                  {
+                    q: "Do agents build UI from a design system, or style ad-hoc?",
+                    help: "A component library plus tokens gives an agent known parts to assemble. Without them, every screen it builds is subtly different — the UI equivalent of no lint rules.",
+                    kind: "select",
+                    value: "Component library + design tokens",
+                    options: [
+                      "Component library + design tokens",
+                      "A loose set of shared components",
+                      "Styled ad-hoc, screen by screen",
+                      "No UI in this project",
+                    ],
+                  },
+                  {
+                    q: "Are design tokens the source of truth for style?",
+                    help: "Spacing, color and type defined once as tokens and consumed everywhere, so an agent cannot hardcode an off-brand value.",
+                    kind: "select",
+                    options: [
+                      "Tokens drive the theme",
+                      "Partial — some values hardcoded",
+                      "Hardcoded throughout",
+                      "No UI in this project",
+                    ],
+                  },
+                  {
+                    q: "Is your design tool connected for agents to read?",
+                    help: "A live connection — Figma via MCP, say — lets an agent read the real design, its tokens and its assets, instead of working from a screenshot or a description.",
+                    kind: "select",
+                    options: [
+                      "Figma — connected via MCP",
+                      "Figma — manual handoff",
+                      "Penpot / other tool",
+                      "No design tool",
+                      "No UI in this project",
+                    ],
+                  },
+                  {
+                    q: "Are design components mapped to code components?",
+                    help: "Figma Code Connect (or an equivalent) tells the agent which code component a design element actually is, so it reaches for your existing Button instead of rebuilding one. This is the piece that makes design-to-code a lookup rather than a fresh guess every time.",
+                    kind: "select",
+                    options: [
+                      "Mapped via Code Connect",
+                      "Documented by hand",
+                      "No mapping",
+                      "No UI in this project",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Review & merge",
+                items: [
+                  {
+                    q: "What reviews every diff before merge?",
+                    help: "An independent adversarial pass over the change. Provider choice is real here — a tool with resolution semantics can block a merge on unresolved findings; one that only prints cannot.",
+                    kind: "multiselect",
+                    mono: true,
+                    values: ["CodeRabbit", "/code-review"],
+                    options: [
+                      "CodeRabbit",
+                      "Greptile",
+                      "Qodo",
+                      "/code-review",
+                      "Human approval",
+                    ],
+                  },
+                  {
+                    q: "Must review findings be resolved before merge?",
+                    help: "Review that produces findings nobody must address is commentary. Resolution enforcement means every thread answered — fixed, or replied-to and closed — with the merge blocked server-side until then.",
+                    kind: "select",
+                    value: "Every thread resolved — server-enforced",
+                    options: [
+                      "Every thread resolved — server-enforced",
+                      "Author's discretion",
+                      "Findings are advisory",
+                    ],
+                  },
+                  {
+                    q: "Are your quality gates unskippable server-side?",
+                    help: "A gate a worker can bypass with --no-verify is advisory. Only branch/push protection cannot be skipped — and an autonomous agent is exactly the worker that will route around a skippable one.",
+                    kind: "select",
+                    options: [
+                      "Yes — required via branch protection",
+                      "Partial",
+                      "No — advisory only",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Ship & rollback",
+                note: "Change management — the human-shaped hole. In a human SDLC a person approved the deploy and reverted the bad one; every row here is that person's named replacement.",
+                items: [
+                  {
+                    q: "What stands between a merged PR and production?",
+                    kind: "select",
+                    value: "Auto-deploy on merge",
+                    options: [
+                      "Auto-deploy on merge",
+                      "Promotion chain (dev → staging → prod)",
+                      "Human approval required",
+                      "Manual deploys",
+                    ],
+                  },
+                  {
+                    q: "Is production deploy gated by a protected environment?",
+                    help: "A server-side gate the deploying agent cannot skip — the deploy-time analog of branch protection.",
+                    kind: "select",
+                    options: [
+                      "Protected — human approval",
+                      "Protected — automated checks",
+                      "Not protected",
+                    ],
+                  },
+                  {
+                    q: "Can you roll back a bad deploy?",
+                    help: "The Type II question: a rollback that has never been exercised is a hypothesis, not a control.",
+                    kind: "select",
+                    options: [
+                      "Yes — proven by exercise",
+                      "In theory — never exercised",
+                      "No",
+                    ],
+                    via: [
+                      "Argo Rollouts",
+                      "Spinnaker",
+                      "Platform-native (Vercel / Amplify)",
+                      "git revert + redeploy",
+                      "In-house",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "How do changes reach users?",
+                    help: "Progressive delivery bounds the blast radius of an agent's mistake to a fraction of traffic.",
+                    kind: "select",
+                    options: [
+                      "Feature flags + canary",
+                      "Feature flags only",
+                      "All-at-once",
+                    ],
+                    via: [
+                      "LaunchDarkly",
+                      "Unleash",
+                      "Flagsmith",
+                      "Statsig",
+                      "GrowthBook",
+                      "In-house flags",
+                      "None",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Verify & acceptance",
+                note: "Processing integrity: green CI proves the tests passed, not that the product works. Something has to use it.",
+                items: [
+                  {
+                    q: "After a change ships, does anything use the product?",
+                    help: "Agent-run UAT — driving real journeys against the deployed build the way a person would.",
+                    kind: "select",
+                    options: [
+                      "Agent-run UAT on every ship",
+                      "Smoke tests only",
+                      "Green CI is the last check",
+                    ],
+                  },
+                  {
+                    q: "Is shipped work checked against its original spec?",
+                    help: "Section-by-section conformance against the PRD — the check that catches scope creep and quiet omissions the acceptance criteria miss.",
+                    kind: "select",
+                    options: ["Every PRD, before it closes", "Sometimes", "No"],
+                  },
+                  {
+                    q: "Does each passing verification become a regression test?",
+                    help: "Without codifying, UAT proves the present and protects nothing about the future.",
+                    kind: "select",
+                    options: [
+                      "Yes — codified automatically",
+                      "Sometimes",
+                      "No",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Observe",
+                items: [
+                  {
+                    q: "What captures production errors?",
+                    help: "The sensor that turns a crash into a build-ready ticket.",
+                    kind: "select",
+                    mono: true,
+                    value: "Sentry",
+                    options: [
+                      "Sentry",
+                      "Rollbar",
+                      "Bugsnag",
+                      "Crashlytics",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "What holds your logs and metrics?",
+                    kind: "select",
+                    mono: true,
+                    value: "AWS CloudWatch",
+                    options: [
+                      "AWS CloudWatch",
+                      "Datadog",
+                      "New Relic",
+                      "Grafana Cloud",
+                      "Splunk",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "What tells you what users actually do?",
+                    help: "Product analytics is the richest Research input there is — it routes usage patterns back to the Research gate as PRD material.",
+                    kind: "select",
+                    mono: true,
+                    options: [
+                      "PostHog",
+                      "Amplitude",
+                      "Mixpanel",
+                      "GA4",
+                      "None",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Operate & recover",
+                note: "Availability — the who-notices-at-3am group. Factories fail loudly; sensors and schedulers fail silently, and silence is ambiguous.",
+                items: [
+                  {
+                    q: "How would you learn a scheduled loop died?",
+                    help: "A dead sensor produces nothing — which is pixel-identical to a healthy system with nothing to report. Liveness has to be a signal independent of findings.",
+                    kind: "select",
+                    options: [
+                      "Liveness signal independent of findings",
+                      "We'd notice eventually",
+                      "We wouldn't",
+                    ],
+                    via: [
+                      "Healthchecks.io",
+                      "Cronitor",
+                      "Dead Man's Snitch",
+                      "In-house heartbeat",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "An agent breaks production — what happens?",
+                    kind: "select",
+                    options: [
+                      "Auto-rollback + incident filed",
+                      "Alert → a human rolls back",
+                      "Ad-hoc — whoever notices",
+                    ],
+                    via: [
+                      "PagerDuty",
+                      "Opsgenie",
+                      "incident.io",
+                      "FireHydrant",
+                      "Rootly",
+                      "In-house",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "When the pipeline itself cannot proceed, does it escalate?",
+                    help: "The recovery-required outcome: a decision-ready packet naming the broken capability, not a generic failure alert — and never a silent stall.",
+                    kind: "select",
+                    options: [
+                      "Decision-ready escalation packet",
+                      "Generic failure alert",
+                      "Silent stall",
+                    ],
+                    via: [
+                      "PagerDuty",
+                      "Slack / Teams alert",
+                      "ntfy / webhook",
+                      "Email",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Does every scheduled loop end each run in a named outcome?",
+                    help: "A runbook contract: each run terminates in exactly one of a fixed outcome set (nothing needed, work proposed, change proved, approval requested, recovery required, policy obsolete) with an operator-readable summary. A run that just stops is illegible — and illegible runs are how dead loops hide.",
+                    kind: "select",
+                    value: "Contract — fixed outcome set + checked-in runbook",
+                    options: [
+                      "Contract — fixed outcome set + checked-in runbook",
+                      "Logs only",
+                      "No convention",
+                    ],
+                  },
+                ],
+              },
+              {
+                label: "Governance & accountability",
+                note: "The audit-trail cluster: everything a human used to vouch for by being in the room.",
+                items: [
+                  {
+                    q: "Is every agent action attributable to the agent?",
+                    help: "Its own identity on commits, tickets and deploys — plus a reconstructable chain from ticket to PR to evidence. Actions appearing as a human is how you lose the audit trail.",
+                    kind: "select",
+                    options: [
+                      "Agent identity + full evidence chain",
+                      "Partially",
+                      "Actions appear as a human",
+                    ],
+                  },
+                  {
+                    q: "Can you answer why any given line of code was written?",
+                    help: "The regulated-industry question, and attribution's other half — who is above; this is why. It takes an unbroken chain: line → commit → PR → ticket → PRD → the signal that started it. Every hop that is a convention rather than an enforced link is where the trail goes cold.",
+                    kind: "select",
+                    value: "Full chain, enforced at commit time",
+                    options: [
+                      "Full chain, enforced at commit time",
+                      "Partial — commits reference tickets",
+                      "git blame is the end of the trail",
+                    ],
+                  },
+                  {
+                    q: "Does the agent that wrote a change approve its own work?",
+                    help: "Segregation of duties, agent edition: review, verification and deploy approval should come from something the author cannot influence.",
+                    kind: "select",
+                    value: "Never — independent review and verify",
+                    options: [
+                      "Never — independent review and verify",
+                      "Sometimes",
+                      "Same agent end to end",
+                    ],
+                  },
+                  {
+                    q: "Are agent permissions periodically reviewed?",
+                    help: "Access accumulates. In a human org this is the quarterly access review; nothing about removing the human removed the need.",
+                    kind: "select",
+                    options: [
+                      "Scheduled access review",
+                      "Ad-hoc",
+                      "Never — they accumulate",
+                    ],
+                  },
+                  {
+                    q: "Are models pinned, with a plan for vendor outage?",
+                    help: "The AI vendor is an availability dependency no human SDLC ever had. An unpinned model is an unreviewed change to every factory at once.",
+                    kind: "select",
+                    options: [
+                      "Pinned + fallback plan",
+                      "Pinned only",
+                      "Neither",
+                    ],
+                  },
+                  {
+                    q: "Are there spend caps and runaway-loop protection?",
+                    help: "Agents spend money autonomously. A loop with no budget ceiling is an unbounded liability with a scheduler.",
+                    kind: "select",
+                    options: [
+                      "Per-run and per-loop caps",
+                      "Account-level cap only",
+                      "None",
+                    ],
+                    via: [
+                      "Vendor usage caps",
+                      "LLM gateway metering (LiteLLM / Helicone)",
+                      "In-house metering",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Can production data or PII enter an agent's context?",
+                    help: "Whatever enters context reaches the model vendor and may persist in transcripts. Confidentiality needs a policy boundary, not good intentions.",
+                    kind: "select",
+                    options: [
+                      "Blocked — policy + redaction",
+                      "Limited / case-by-case",
+                      "Yes, or unknown",
+                    ],
+                    via: [
+                      "Presidio / redaction pipeline",
+                      "Nightfall",
+                      "Skyflow",
+                      "In-house filters",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Are agent transcripts retained, with an access boundary?",
+                    help: "The transcript is the working record of every decision the agent made — audit evidence for the traceability chain, but also a copy of everything it saw. It needs a retention policy and an access boundary like any other sensitive record.",
+                    kind: "select",
+                    options: [
+                      "Retained — policy + access control",
+                      "Retained ad-hoc",
+                      "Not retained",
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          fLegend(
+            "<b>This is a readiness assessment, not a grade.</b> Like Vanta, it earns its value by measuring something you actually feel — the autonomy rate the first question asks for. An unanswered row is a named gap you can go fix on its detail page; a red one somewhere downstream is a control that is not yet real. And note the shape of the back half: ship, verify, operate, govern are exactly the places a person used to be the control. A no-human SDLC is not one with the humans deleted — it is one where every human-shaped hole has a named, exercised replacement."
           ),
         ],
       };
@@ -9547,7 +10655,139 @@
         if (block.type === "plugins-live") return buildPluginsLive(block);
         if (block.type === "staff") return buildStaff(block);
         if (block.type === "environments") return buildEnvironments();
+        if (block.type === "intake") return buildIntake(block);
         return buildCard(block);
+      }
+
+      /* The readiness intake: one flat, answerable question per row, grouped by
+         area, with a live completion meter. It is the same ground the factory
+         pages cover, asked as a Vanta-style questionnaire for someone
+         onboarding — answer the questions, watch the bar fill.
+         PROPOSED: each answer should populate the matching config key, so
+         completing the intake configures the detail pages (and vice versa).
+         Not wired here to avoid the option-list mismatch between an intake
+         select — which carries an explicit "not answered" sentinel — and the
+         detail-page selects, which do not. */
+      const INTAKE_UNSET = "— not answered —";
+      function buildIntake(block) {
+        const wrap = el("div", "intake-wrap");
+        const prog = el("div", "card intake-progress");
+        prog.innerHTML =
+          '<div class="ip-head"><span class="ip-pct intake-pct">0%</span>' +
+          '<span class="ip-count intake-count">0 of 0 answered</span></div>' +
+          '<div class="intake-bar"><div class="intake-bar-fill"></div></div>';
+        wrap.appendChild(prog);
+
+        (block.groups || []).forEach(group => {
+          const card = el("div", "card intake-group");
+          const head = el("div", "card-head");
+          head.appendChild(el("h2", "", esc(group.label)));
+          if (group.note) head.appendChild(el("span", "note", esc(group.note)));
+          head.appendChild(el("span", "intake-gcount", "0/0"));
+          card.appendChild(head);
+          (group.items || []).forEach(item => {
+            const row = el("div", "intake-item");
+            row.dataset.kind = item.kind;
+            row.appendChild(el("span", "intake-dot"));
+            const text = el("div");
+            text.appendChild(el("div", "intake-q", esc(item.q)));
+            if (item.help)
+              text.appendChild(el("span", "intake-help", esc(item.help)));
+            row.appendChild(text);
+            // Reuse buildControl so the answer widgets match the rest of the
+            // console and pick up dirty-state tracking.
+            let control;
+            if (item.kind === "multiselect") {
+              control = {
+                type: "multiselect",
+                values: item.values || [],
+                options: item.options,
+                mono: item.mono,
+              };
+            } else if (item.kind === "number") {
+              control = { type: "number", value: item.value, unit: item.unit };
+            } else {
+              control = {
+                type: "select",
+                value: item.value || INTAKE_UNSET,
+                options: [INTAKE_UNSET, ...item.options],
+                mono: item.mono,
+              };
+            }
+            const ctls = el("div", "intake-ctls");
+            ctls.appendChild(buildControl(control, null));
+            // Outcome + mechanism pairing. The outcome select is the claim;
+            // the via select names what implements it — the evidence source a
+            // probe would point at. A claim with no named mechanism is
+            // unverifiable, so a row with a via only counts as answered when
+            // both halves are.
+            if (item.via) {
+              const via = buildControl(
+                {
+                  type: "select",
+                  value: item.viaValue || INTAKE_UNSET,
+                  options: [INTAKE_UNSET, ...item.via],
+                  mono: true,
+                },
+                null
+              );
+              via.classList.add("intake-via");
+              ctls.appendChild(via);
+            }
+            row.appendChild(ctls);
+            card.appendChild(row);
+          });
+          wrap.appendChild(card);
+        });
+
+        // Recompute on any answer change, and once now for the initial state.
+        wrap.addEventListener("change", () => refreshIntake(wrap));
+        refreshIntake(wrap);
+        return wrap;
+      }
+
+      function refreshIntake(wrap) {
+        let total = 0;
+        let answered = 0;
+        wrap.querySelectorAll(".intake-group").forEach(group => {
+          let gt = 0;
+          let ga = 0;
+          group.querySelectorAll(".intake-item").forEach(item => {
+            total += 1;
+            gt += 1;
+            const kind = item.dataset.kind;
+            let ok = false;
+            if (kind === "multiselect") {
+              const s = item.querySelector(".ms-summary");
+              ok = !!s && s.textContent.trim() !== "none";
+            } else if (kind === "number") {
+              const i = item.querySelector("input");
+              ok = !!i && i.value.trim() !== "";
+            } else {
+              ok = !!item.querySelector("select");
+            }
+            // Every select in the row — the outcome and any via mechanism —
+            // must be answered. A claim without its named mechanism is not an
+            // answer.
+            const selects = [...item.querySelectorAll("select")];
+            if (selects.some(s => s.value === INTAKE_UNSET)) ok = false;
+            item.dataset.answered = ok ? "yes" : "no";
+            if (ok) {
+              answered += 1;
+              ga += 1;
+            }
+          });
+          const gc = group.querySelector(".intake-gcount");
+          if (gc) gc.textContent = ga + "/" + gt;
+          group.dataset.complete = ga === gt ? "yes" : "no";
+        });
+        const pctVal = total ? Math.round((answered / total) * 100) : 0;
+        const fill = wrap.querySelector(".intake-bar-fill");
+        if (fill) fill.style.width = pctVal + "%";
+        const count = wrap.querySelector(".intake-count");
+        if (count) count.textContent = answered + " of " + total + " answered";
+        const pct = wrap.querySelector(".intake-pct");
+        if (pct) pct.textContent = pctVal + "%";
       }
 
       /* The staff picker: which coding agent this factory page is read for.
