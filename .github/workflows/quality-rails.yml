@@ -149,13 +149,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: ${{ github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') }}
-    # The validator writes nothing — never grant more. A reusable workflow can
-    # only DOWNGRADE the caller's grant, so a caller that does not grant
-    # issues:read leaves this job unable to read the tracker.
-    permissions:
-      contents: read
-      issues: read
-      pull-requests: read
+    # DELIBERATELY no `permissions:` block — see the quality.yml counterpart.
+    # Requesting a scope the caller never held is a startup_failure for the
+    # ENTIRE run, and these workflows are consumed @main by repos whose ci.yml
+    # is create-only and can never self-heal.
 
     steps:
       - name: 📥 Checkout repository
@@ -218,6 +215,17 @@ jobs:
           fi
           if [ "$tracker" = "linear" ] && [ -z "${LINEAR_API_KEY:-}" ]; then
             echo "::warning::tracker is linear but LINEAR_API_KEY is not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map the secret in the caller's ci.yml to enable it."
+            exit 0
+          fi
+          # Token-scope readiness (github tracker): the inherited caller token
+          # may lack issues:read, in which case the validator cannot read the
+          # tracker issue at all. That is a caller-configuration gap, not a
+          # traceability failure, so name it and skip rather than blocking a PR
+          # nobody can unblock. Repos whose ci.yml grants issues:read enforce
+          # for real.
+          if [ "$tracker" = "github" ] && \
+             ! gh api "repos/${GITHUB_REPOSITORY}/issues?per_page=1" >/dev/null 2>&1; then
+            echo "::warning::The caller workflow does not grant issues:read, so the tracker issue cannot be read and work-item traceability is NOT enforced. Add 'issues: read' to the quality job's permissions in this repo's .github/workflows/ci.yml to enable it."
             exit 0
           fi
           node scripts/lisa-work-item.mjs validate-pr
