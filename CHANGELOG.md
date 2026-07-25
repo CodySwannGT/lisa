@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.8](https://github.com/CodySwannGT/lisa/compare/v2.300.7...v2.300.8) (2026-07-25)
+
+
+### Bug Fixes
+
+* **ratchet:** stop watching audit ignore lists ([7729897](https://github.com/CodySwannGT/lisa/commit/77298970149deb756f9c040a9d531f44e3266aac)), closes [CodySwannGT/lisa#2037](https://github.com/CodySwannGT/lisa/issues/2037)
+
 ### [2.300.7](https://github.com/CodySwannGT/lisa/compare/v2.300.6...v2.300.7) (2026-07-25)
 
 
