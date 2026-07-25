@@ -387,7 +387,11 @@ focus (non-authoritative guidance).
 - **AC8.4 Intake validation.** Work MUST be admitted to implementation only through
   an adversarial intake gate that rejects ambiguity and verifies the system has
   provable access to the tooling the work requires; rejections MUST be raised to a
-  human legibly (AC2.1).
+  human legibly (AC2.1). Requirements admitted from a requirements document MUST be
+  singular, identified, unambiguous, verifiable atoms, each carrying a fit
+  criterion — a measurable test of satisfaction — with untestable phrasing rejected
+  at the gate. (Non-normative: ISO/IEC/IEEE 29148's quality characteristics define
+  the bar; the EARS patterns are a conforming syntax.)
 - **AC8.5 Deployment protection.** Production deployment MUST be gated by a
   protected mechanism the deploying agent cannot self-approve (server-side
   environment protection and/or CHC approval). Progressive delivery SHOULD bound
