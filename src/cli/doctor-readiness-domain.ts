@@ -53,6 +53,13 @@ const DOMAIN_BLOCKER_ID = "B1";
 /** Most destructive commands quoted in one finding before summarizing. */
 const MAX_EVIDENCE_COMMANDS = 10;
 
+/** Shared tail for SKIP reasons that cannot establish domain ownership offline. */
+const DOMAIN_OWNERSHIP_OFFLINE_TAIL =
+  "Whether this repository's business rules, glossary, and danger zones are " +
+  "genuinely owned and written down cannot be established by reading files " +
+  "offline — that needs the agent-ready domain phase — so domain ownership is " +
+  "not established either way.";
+
 /**
  * Commands that irreversibly destroy stored data. Every entry is a whole
  * operation, not a keyword: `rm -rf` is deliberately absent because build
@@ -180,30 +187,36 @@ function domainFinding(scan: OperationScan): Record<string, unknown> {
  * operator can tell "nothing to report" from "never looked".
  * @param inspected - How many workflow files were read
  * @param runbook - Whether a runbook is checked in
+ * @param recoverableDestructiveOps - Ungated destructive commands cleared by a runbook
  * @returns The SKIP reason
  */
-function skipReason(inspected: number, runbook: boolean): string {
+function skipReason(
+  inspected: number,
+  runbook: boolean,
+  recoverableDestructiveOps: number
+): string {
   if (inspected === 0) {
     return (
       "No GitHub Actions workflow files were found under `.github/workflows/`, " +
       "so no irreversible data-destroying operations could be assessed from " +
       "workflow declarations (recovery runbook " +
-      `${runbook ? "present" : "absent"}). Whether this ` +
-      "repository's business rules, glossary, and danger zones are genuinely " +
-      "owned and written down cannot be established by reading files offline — " +
-      "that needs the agent-ready domain phase — so domain ownership is not " +
-      "established either way."
+      `${runbook ? "present" : "absent"}). ${DOMAIN_OWNERSHIP_OFFLINE_TAIL}`
+    );
+  }
+  if (runbook && recoverableDestructiveOps > 0) {
+    return (
+      `Read ${inspected} workflow file(s) and found ` +
+      `${recoverableDestructiveOps} irreversible data-destroying operation(s) ` +
+      "that this file alone proves can run unattended and ungated, but the " +
+      "repository checks in a recovery runbook, so the no-way-back half of B1 " +
+      `is not established (recovery runbook present). ${DOMAIN_OWNERSHIP_OFFLINE_TAIL}`
     );
   }
   return (
     `Read ${inspected} workflow file(s) for irreversible data-destroying ` +
     "operations and found none that this file alone proves runs unattended, " +
     `ungated, and with no way back (recovery runbook ` +
-    `${runbook ? "present" : "absent"}). Whether this ` +
-    "repository's business rules, glossary, and danger zones are genuinely " +
-    "owned and written down cannot be established by reading files offline — " +
-    "that needs the agent-ready domain phase — so domain ownership is not " +
-    "established either way."
+    `${runbook ? "present" : "absent"}). ${DOMAIN_OWNERSHIP_OFFLINE_TAIL}`
   );
 }
 
@@ -215,19 +228,24 @@ function skipReason(inspected: number, runbook: boolean): string {
  * @param scan - The destructive-operation scan
  * @param inspected - How many workflow files were read
  * @param runbook - Whether a runbook is checked in
+ * @param recoverableDestructiveOps - Ungated destructive commands cleared by a runbook
  * @returns The SKIP dimension record
  */
 function skipRecord(
   guarded: readonly ScannedCommand[],
   scan: OperationScan,
   inspected: number,
-  runbook: boolean
+  runbook: boolean,
+  recoverableDestructiveOps = 0
 ): ReadinessDimensionRecord {
   return {
     id: DOMAIN_OWNERSHIP_DIMENSION_ID,
     status: "SKIP",
     findings: [
-      { reason: skipReason(inspected, runbook), skip: true },
+      {
+        reason: skipReason(inspected, runbook, recoverableDestructiveOps),
+        skip: true,
+      },
       ...informationalFindings([
         ...guarded.map(
           entry =>
@@ -271,7 +289,8 @@ export async function assessDomainOwnershipDimension(
       recoverable ? [...scan.gated, ...scan.ungated] : scan.gated,
       scan,
       workflows.length,
-      recoverable
+      recoverable,
+      recoverable ? scan.ungated.length : 0
     );
   }
   return {
