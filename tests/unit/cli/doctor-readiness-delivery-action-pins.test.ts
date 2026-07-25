@@ -27,6 +27,11 @@ import {
 } from "../../helpers/readiness-workflow-fixtures.js";
 
 const RUN_NPM_TEST = "      - run: npm test";
+const ID_TOKEN_WRITE = "      id-token: write";
+const RUN_NPM_PUBLISH = "      - run: npm publish --provenance";
+const PINNED_DOCKER_IMAGE =
+  "docker://ghcr.io/acme/releaser@sha256:" +
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 let tempDir: string | undefined;
 
@@ -64,7 +69,7 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
       RUNS_ON,
       PERMISSIONS,
       CONTENTS_READ,
-      "      id-token: write",
+      ID_TOKEN_WRITE,
       STEPS,
       "      - uses: actions/download-artifact@v4",
       "      - uses: softprops/action-gh-release@main",
@@ -99,10 +104,61 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
       RUNS_ON,
       PERMISSIONS,
       CONTENTS_READ,
-      "      id-token: write",
+      ID_TOKEN_WRITE,
       STEPS,
       `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
-      "      - run: npm publish --provenance",
+      RUN_NPM_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(PASS);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("FAILs when a publishing job uses a tagged Docker action ref", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      ID_TOKEN_WRITE,
+      STEPS,
+      '      - uses: "docker://ghcr.io/acme/releaser:v1"',
+      RUN_NPM_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+    const evidence = String(asFindings(record.findings)[0].evidence);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(evidence).toContain("docker://ghcr.io/acme/releaser:v1");
+  });
+
+  it("PASSes a publishing job whose Docker action ref is digest pinned", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      ID_TOKEN_WRITE,
+      STEPS,
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      `      - uses: "${PINNED_DOCKER_IMAGE}"`,
+      RUN_NPM_PUBLISH,
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
