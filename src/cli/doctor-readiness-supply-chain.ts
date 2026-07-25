@@ -35,10 +35,14 @@ import {
   findAuditGate,
   findLockfile,
   findLockfileInstallGate,
-  isFloatingSpec,
-  LOCKFILES,
   readManifest,
 } from "./doctor-readiness-supply-chain-scan.js";
+import {
+  dependencyConfidenceObservations,
+  dependencyConfidenceViolations,
+  installTimeExecutionViolations,
+  type ManifestUnderAssessment,
+} from "./doctor-readiness-supply-chain-evidence.js";
 import {
   resolveWorkspaceMembers,
   type WorkspaceMembers,
@@ -56,56 +60,17 @@ const SUPPLY_CHAIN_BLOCKER_ID = "B5";
 const MAX_EVIDENCE_LINES = 12;
 
 /**
- * Build the evidence line for a manifest with no committed lockfile.
- * @param specCount - How many specs the manifest declares
- * @returns One evidence line
- */
-function lockfileEvidence(specCount: number): string {
-  return (
-    `package manifest(s), starting with \`package.json\`, declare ${specCount} ` +
-    `dependency spec(s) but no lockfile is committed (looked for ` +
-    `${LOCKFILES.join(", ")}) — two installs can resolve to different trees, ` +
-    "so what was validated is not provably what gets installed"
-  );
-}
-
-/**
- * Whether a floating-looking spec is really a link to a package in this
- * repository. `"@acme/utils": "*"` against a workspace member resolves to the
- * local package, which is the workspace idiom rather than a floating install —
- * so faulting it would fail every correctly configured monorepo.
- *
- * When workspaces are declared but no member name could be resolved (an
- * unreadable child manifest, an unsupported glob), a bare `*` is exempted
- * anyway: the repository has told us it links locally, and absence of proof is
- * not proof of a violation.
- * @param spec - The declared spec
- * @param workspaces - What resolving the workspace members established
- * @returns True when the spec links to a workspace member
- */
-function linksWorkspaceMember(
-  spec: DependencySpec,
-  workspaces: WorkspaceMembers
-): boolean {
-  if (!workspaces.declared) {
-    return false;
-  }
-  return (
-    workspaces.names.has(spec.name) ||
-    (workspaces.names.size === 0 && spec.spec.trim() === "*")
-  );
-}
-
-/**
  * Assess a repository's dependency confidence model.
  * @param root - Repository root
  * @param specs - Declared dependency specs
+ * @param manifests - Parsed package manifests under assessment
  * @param workspaces - What resolving the workspace members established
  * @returns Evidence lines for violations, and non-blocking observations
  */
 async function collectFindings(
   root: string,
   specs: readonly DependencySpec[],
+  manifests: readonly ManifestUnderAssessment[],
   workspaces: WorkspaceMembers
 ): Promise<{
   readonly violations: readonly string[];
@@ -115,49 +80,21 @@ async function collectFindings(
   const lockfileInstallGate =
     lockfile === null ? null : await findLockfileInstallGate(root);
   const auditGate = await findAuditGate(root);
-  const floating = specs.filter(
-    spec => isFloatingSpec(spec.spec) && !linksWorkspaceMember(spec, workspaces)
-  );
+  const inputs = {
+    auditGate,
+    lockfile,
+    lockfileInstallGate,
+    specs,
+    workspaces,
+  };
   return {
     violations: [
-      ...(lockfile === null ? [lockfileEvidence(specs.length)] : []),
-      ...(lockfile !== null && lockfileInstallGate === null
-        ? [
-            `lockfile \`${lockfile}\` is committed, but no CI or hook install ` +
-              "step was found that enforces it with `npm ci`, " +
-              "`bun install --frozen-lockfile`, `pnpm install --frozen-lockfile`, " +
-              "or `yarn install --immutable`; a workflow can silently rewrite " +
-              "or bypass the tree that was validated",
-          ]
-        : []),
-      ...floating.map(
-        spec =>
-          `\`${spec.manifestPath}\` \`${spec.block}.${spec.name}\` is ` +
-          `\`${spec.spec}\`, ` +
-          "which resolves to whatever is newest at install time rather than to " +
-          "a version anything was ever validated against"
-      ),
-      ...(auditGate === null
-        ? [
-            "no dependency-audit gate covering the JavaScript tree was found " +
-              "anywhere — no `npm`/`bun` audit step in `.github/workflows/*.yml`, " +
-              "none in a git hook, and no `dependabot.yml` npm entry or " +
-              "`renovate.json` — so a newly disclosed advisory in this tree " +
-              "would never be noticed by anything",
-          ]
-        : []),
+      ...dependencyConfidenceViolations(inputs),
+      ...installTimeExecutionViolations(manifests),
       ...(await auditExceptionViolations(root)),
     ],
     observations: [
-      ...(lockfile === null ? [] : [`Lockfile in use: \`${lockfile}\`.`]),
-      ...(lockfileInstallGate === null
-        ? []
-        : [
-            `Lockfile-enforcing install declared in \`${lockfileInstallGate}\`.`,
-          ]),
-      ...(auditGate === null
-        ? []
-        : [`Dependency-audit gate declared in \`${auditGate}\`.`]),
+      ...dependencyConfidenceObservations(inputs),
       ...(workspaces.declared ? [workspaceObservation(workspaces)] : []),
     ],
   };
@@ -289,13 +226,21 @@ export async function assessDependenciesSupplyChainDimension(
     return skipRecord(outcome.reason);
   }
   const workspaces = await resolveWorkspaceMembers(root, outcome.manifest);
+  const manifests = [
+    { manifestPath: "package.json", manifest: outcome.manifest },
+    ...workspaces.members.map(member => ({
+      manifestPath: member.manifestPath,
+      manifest: member.manifest,
+    })),
+  ];
   const specs = [
     ...collectSpecs(outcome.manifest),
     ...workspaces.members.flatMap(member =>
       collectSpecs(member.manifest, member.manifestPath)
     ),
   ];
-  if (specs.length === 0) {
+  const installTimeViolations = installTimeExecutionViolations(manifests);
+  if (specs.length === 0 && installTimeViolations.length === 0) {
     return skipRecord(
       "No resolved package manifest declares dependencies, so this repository " +
         "owns no third-party surface a confidence model could cover; " +
@@ -305,6 +250,7 @@ export async function assessDependenciesSupplyChainDimension(
   const { violations, observations } = await collectFindings(
     root,
     specs,
+    manifests,
     workspaces
   );
   if (violations.length > 0) {
