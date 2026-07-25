@@ -113,6 +113,28 @@ const PRODUCTION_MARKERS: readonly RegExp[] = [
 ];
 
 /**
+ * Action/reusable-workflow evidence that may hide consequential behavior behind
+ * an opaque implementation this offline scanner cannot inspect.
+ */
+const OPAQUE_CONSEQUENTIAL_ACTIONS: readonly RegExp[] = [
+  /\bterraform\b/,
+  /\bpulumi\b/,
+  /\bserverless\b/,
+  /\bdeploy\b/,
+  /\bdestroy\b/,
+  /\bmigrat(e|ion)\b/,
+];
+
+/** Inputs that make an opaque action/reusable workflow look consequential. */
+const OPAQUE_CONSEQUENTIAL_INPUTS: readonly RegExp[] = [
+  /\bdestroy\b/,
+  /\bremove\b/,
+  /\bdelete\b/,
+  /\bapply\b[^\n]*-auto-approve\b/,
+  /\bprod(uction)?\b/,
+];
+
+/**
  * Collapse only shell continuation newlines. Ordinary newlines remain command
  * boundaries so unrelated invocations cannot combine into one Terraform apply.
  * @param command - Shell command text
@@ -252,6 +274,74 @@ function servicesDeferral(
 }
 
 /**
+ * Whether an opaque action/reusable call has enough local text to be named as
+ * an unassessed consequential surface.
+ * @param id - The `uses:` target
+ * @param inputs - Serialized `with:`/`env:` text adjacent to the call
+ * @returns True when the call should be surfaced as unresolved
+ */
+function looksLikeOpaqueConsequentialCall(id: string, inputs: string): boolean {
+  const evidence = `${id}\n${inputs}`.toLowerCase();
+  return (
+    OPAQUE_CONSEQUENTIAL_ACTIONS.some(pattern => pattern.test(evidence)) &&
+    OPAQUE_CONSEQUENTIAL_INPUTS.some(pattern => pattern.test(evidence)) &&
+    !looksEphemeral(evidence)
+  );
+}
+
+/**
+ * State why a reusable workflow call may hide consequential behavior this file
+ * cannot inspect.
+ * @param workflow - The workflow declaring the job
+ * @param job - The reusable workflow job
+ * @returns A stated reason, or null when the call does not look consequential
+ */
+function reusableCallDeferral(
+  workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob
+): string | null {
+  if (
+    job.uses === "" ||
+    !looksLikeOpaqueConsequentialCall(job.uses, job.inputs)
+  ) {
+    return null;
+  }
+  return (
+    `\`${workflow.file}\` job \`${job.id}\` calls reusable workflow ` +
+    `\`${job.uses}\` with consequential-looking inputs; this offline read ` +
+    "cannot inspect the called workflow implementation, so whether it runs an " +
+    "irreversible or expensive operation is not established either way"
+  );
+}
+
+/**
+ * State why an action step may hide consequential behavior this file cannot
+ * inspect.
+ * @param workflow - The workflow declaring the job
+ * @param job - The job declaring the action step
+ * @param step - The action step
+ * @returns A stated reason, or null when the action does not look consequential
+ */
+function actionStepDeferral(
+  workflow: ParsedWorkflow,
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): string | null {
+  if (
+    step.uses === "" ||
+    !looksLikeOpaqueConsequentialCall(step.uses, step.inputs)
+  ) {
+    return null;
+  }
+  return (
+    `\`${workflow.file}\` job \`${job.id}\` uses action ` +
+    `\`${step.uses}\` with consequential-looking inputs; this offline read ` +
+    "cannot inspect the action implementation, so whether it runs an " +
+    "irreversible or expensive operation is not established either way"
+  );
+}
+
+/**
  * Build the rubric-shaped B4 finding from the operations it cites.
  * @param scan - The consequential-operation scan
  * @returns The B4 finding
@@ -345,6 +435,8 @@ export async function assessFeedbackGuardrailsDimension(
   const scan = scanCommands(workflows, isConsequential, {
     unresolvedWorkflow: lifecycleDeferral,
     unresolvedStep: servicesDeferral,
+    unresolvedJobCall: reusableCallDeferral,
+    unresolvedActionStep: actionStepDeferral,
   });
   const runbook = await hasCheckedInRunbook(root);
   if (scan.ungated.length === 0 || runbook) {

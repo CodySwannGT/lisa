@@ -72,6 +72,23 @@ export interface ScanOptions {
     job: ParsedWorkflowJob,
     step: ParsedWorkflowStep
   ) => string | null;
+  /**
+   * A job-level reusable workflow call reason the scan cannot settle offline,
+   * returning `null` when the call carries no relevant evidence.
+   */
+  readonly unresolvedJobCall?: (
+    workflow: ParsedWorkflow,
+    job: ParsedWorkflowJob
+  ) => string | null;
+  /**
+   * An action step reason the scan cannot settle offline, returning `null` when
+   * the action carries no relevant evidence.
+   */
+  readonly unresolvedActionStep?: (
+    workflow: ParsedWorkflow,
+    job: ParsedWorkflowJob,
+    step: ParsedWorkflowStep
+  ) => string | null;
 }
 
 /**
@@ -342,34 +359,50 @@ function classifyJob(
   matches: CommandPredicate,
   options: ScanOptions
 ): readonly ScanOutcome[] {
+  const unresolvedCalls = [
+    options.unresolvedJobCall?.(workflow, job),
+    ...job.steps.map(step =>
+      options.unresolvedActionStep?.(workflow, job, step)
+    ),
+  ].flatMap(reason =>
+    reason === undefined || reason === null
+      ? []
+      : [{ kind: "unresolved" as const, reason }]
+  );
   const hits = job.steps.filter(
     step => step.run !== "" && matches(step.run.toLowerCase(), job, step)
   );
   if (hits.length === 0) {
-    return [];
+    return unresolvedCalls;
   }
   if (!runsUnattended(workflow)) {
-    return [{ kind: "unresolved", reason: unresolvedReason(workflow, job) }];
+    return [
+      { kind: "unresolved", reason: unresolvedReason(workflow, job) },
+      ...unresolvedCalls,
+    ];
   }
   const deferred =
     options.unresolvedWorkflow?.(workflow) ?? options.unresolvedJob?.(job);
   if (deferred !== undefined && deferred !== null) {
-    return [{ kind: "unresolved", reason: deferred }];
+    return [{ kind: "unresolved", reason: deferred }, ...unresolvedCalls];
   }
   const jobGated = jobIsGated(job) || (options.exemptJob?.(job) ?? false);
-  return hits.map(step => {
-    const stepDeferred = options.unresolvedStep?.(workflow, job, step);
-    if (stepDeferred !== undefined && stepDeferred !== null) {
-      return { kind: "unresolved" as const, reason: stepDeferred };
-    }
-    return {
-      kind:
-        jobGated || stepIsGated(step)
-          ? ("gated" as const)
-          : ("ungated" as const),
-      command: { workflow: workflow.file, jobId: job.id, command: step.run },
-    };
-  });
+  return [
+    ...hits.map(step => {
+      const stepDeferred = options.unresolvedStep?.(workflow, job, step);
+      if (stepDeferred !== undefined && stepDeferred !== null) {
+        return { kind: "unresolved" as const, reason: stepDeferred };
+      }
+      return {
+        kind:
+          jobGated || stepIsGated(step)
+            ? ("gated" as const)
+            : ("ungated" as const),
+        command: { workflow: workflow.file, jobId: job.id, command: step.run },
+      };
+    }),
+    ...unresolvedCalls,
+  ];
 }
 
 /**
