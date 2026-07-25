@@ -805,6 +805,7 @@ describe("release and deploy workflows", () => {
     });
     expect(nestjsDeployWorkflow.jobs?.release.permissions).toEqual({
       contents: "write",
+      issues: "read",
       "pull-requests": "read",
     });
   });
@@ -829,6 +830,7 @@ describe("release and deploy workflows", () => {
   it("grants reusable Expo release and deploy jobs the permissions they request", () => {
     expect(expoDeployWorkflow.jobs?.release.permissions).toEqual({
       contents: "write",
+      issues: "read",
       "pull-requests": "read",
     });
     expect(expoDeployWorkflow.jobs?.determine_environment.permissions).toEqual({
