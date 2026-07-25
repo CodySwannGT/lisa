@@ -808,9 +808,10 @@ describe("release and deploy workflows", () => {
     expect(nestjsDeployWorkflow.jobs?.verify_vpn.permissions).toEqual({
       contents: "read",
     });
+    // No issues scope: release.yml requests none, and a host granting a scope
+    // its callee never asks for is dead weight, not defense in depth.
     expect(nestjsDeployWorkflow.jobs?.release.permissions).toEqual({
       contents: "write",
-      issues: "read",
       "pull-requests": "read",
     });
   });
@@ -835,7 +836,6 @@ describe("release and deploy workflows", () => {
   it("grants reusable Expo release and deploy jobs the permissions they request", () => {
     expect(expoDeployWorkflow.jobs?.release.permissions).toEqual({
       contents: "write",
-      issues: "read",
       "pull-requests": "read",
     });
     expect(expoDeployWorkflow.jobs?.determine_environment.permissions).toEqual({
