@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.300.9](https://github.com/CodySwannGT/lisa/compare/v2.300.8...v2.300.9) (2026-07-25)
+
+
+### Bug Fixes
+
+* **readiness:** clarify B1 runbook skip reason ([af112df](https://github.com/CodySwannGT/lisa/commit/af112df1b74d3c26aa157cb5859c2d0b8090b2d4)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.300.8](https://github.com/CodySwannGT/lisa/compare/v2.300.7...v2.300.8) (2026-07-25)
 
 
