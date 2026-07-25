@@ -1,0 +1,145 @@
+# Work-Item Definition of Ready — Reference
+
+The eager head carries the table; this reference carries the reasoning, the
+failure modes each requirement prevents, and worked examples. The enforcing
+gates live in the three tracker validators (`lisa-jira-validate-ticket`,
+`lisa-github-validate-issue`, `lisa-linear-validate-issue`), which cite this
+rule so the bar cannot drift per vendor.
+
+## The design principle
+
+A readiness gate is justified by exactly one thing: **its absence forces a
+human question.** The goal state is that a stateless agent — fresh session, no
+memory of any prior conversation — claims any ready item and drives it to its
+terminal state with zero human clarification. Every requirement below is an
+answer to a question agents otherwise ask mid-flight, which is the most
+expensive time to ask it: the item is claimed, the human is absent, and the
+choice is stall (blocked, human round-trip) or guess (rework when wrong).
+
+The bar is **type-keyed** because work types break autonomy differently. A
+Story with perfect Gherkin but no design source makes the agent guess visuals.
+A Bug with perfect prose but no executable repro makes the agent guess whether
+it even fixed anything. One generic checklist over-asks some types (Gherkin on
+a Spike is noise) and under-asks others (three bullets on a Bug).
+
+## Bug — the defect anatomy
+
+Modeled on the ISTQB defect-report content list, IEEE 1044, and
+minimal-reproducible-example practice, tightened for a machine executor:
+
+1. **Agent-executable reproduction.** Numbered steps a stateless agent can run
+   mechanically: exact entry point, named account/role (consistent with the
+   Sign-in Required section when authenticated), concrete data state, exact
+   actions. "Open the dashboard and click around until it breaks" is
+   human-followable, not agent-executable — it FAILs. A linked failing test
+   satisfies this requirement outright and is the preferred form.
+2. **Expected vs. actual, with the source of "expected."** Name or link where
+   the expected behavior comes from — spec, PRD requirement, prior release. A
+   fix target must be a fact, not an opinion, or the agent can confidently fix
+   to the wrong behavior.
+3. **Environment and version.** Where reproduced, and the build/commit
+   observed. Include last-known-good when known — that regression window is
+   what makes bisection possible. `unknown` is acceptable but must be stated.
+4. **Reproducibility rate.** Always vs. intermittent (with observed
+   frequency). An intermittent bug invalidates run-the-repro-once as a
+   verification plan; the verifier needs to know to run it N times or
+   instrument instead.
+5. **Occurrence evidence.** At least one link or attachment proving the bug
+   happened: error-tracker issue, log excerpt, stack trace, screenshot or
+   recording. Input evidence, distinct from the output evidence manifest.
+
+**Terminal state:** the reproduction (or failing test) fails before the fix
+and passes after — both runs captured under the evidence manifest. This is
+what makes a Bug autonomously closable: done-ness is a mechanical check, not a
+judgment.
+
+## Story
+
+The generic gates (three audiences, Gherkin, Out of Scope, source precedence)
+were designed around Stories, so Stories are the best-covered type already.
+The additional expectations:
+
+- UI-touching stories SHOULD name the non-happy-path states — error, empty,
+  loading — in the AC. These are the states product-walkthroughs flag as
+  missing after the fact; naming them up front converts a review finding into
+  a requirement.
+- Keep stories INVEST-small: a story too large to hold in one session is the
+  leading cause of mid-flight questions. Prefer decomposition over heroics.
+
+**Terminal state:** every AC scenario exercised against the running product.
+
+## Task
+
+A Task is "do this specific thing" — its risk is a fuzzy finish line, not a
+fuzzy user. It must carry an observable done-state and the command or check
+that proves it ("`bun run verify:x` exits 0", "the workflow file validates and
+the job appears in CI"). **Terminal state:** that check passes.
+
+## Improvement — the measured delta
+
+An Improvement without numbers has no verifiable terminal state by
+construction: "make it faster" can never be autonomously closed. Required:
+
+1. **Metric + measurement method** the agent can run (command, query,
+   dashboard export — something mechanical).
+2. **Baseline** — the current measured value. A number, not an adjective.
+3. **Target** — the numeric value or bound that defines done.
+
+If no baseline exists yet, measuring it is the first task — file it as such.
+**Terminal state:** the measurement method reports a value meeting the target.
+
+## Spike — the investigation contract
+
+A Spike's output is knowledge, so its readiness is about making knowledge
+checkable:
+
+1. **The question** being answered.
+2. **The decision it enables**, and the options being weighed — so the answer
+   is written to be decidable against, not merely interesting.
+3. **A timebox** — spikes without one become open-ended research.
+4. **Deliverable format and location** — decision doc, prototype, findings
+   page, and *where it will live* (wiki page, decision record, attachment).
+
+Gherkin AC is intentionally N/A for Spikes (S4 already exempts them).
+**Terminal state:** a deliverable exists at the named location **and answers the
+question** — it records the findings, the recommended decision, and the
+options weighed. An empty or placeholder document at the right path is not
+terminal.
+
+## Sub-task
+
+Always has a parent (no stranded-leaf exception), and otherwise carries the
+bar of its own nature — a bug-shaped sub-task carries the bug anatomy.
+
+## Epic and containers
+
+Containers are never build-ready (`leaf-only-lifecycle`); their readiness
+question is decomposition completeness — does every PRD requirement trace to a
+leaf (`prd-ticket-coverage`) — not buildability.
+
+## The stateless-pickup dry-run (gate S18)
+
+Structure gates are proxies; this gate checks the property directly. The
+validator simulates a stateless read of the item plus its resolvable links —
+session knowledge deliberately excluded, because the next claimant will not
+have it — and lists every question it would need answered before starting,
+before choosing between materially different implementations, or before
+declaring done. Zero questions = PASS. Each question found is emitted verbatim
+as its own remediation line; those lines are exactly the clarifying comments
+the caller posts to the source. This is the enforcement of the intake
+contract's core promise, and of TASC AC8.6: *ready means zero-clarification
+executable.*
+
+## Relationship to the lifecycle
+
+- **Write time** — `*-write-*` runs the applicable pre-write gates; a spec
+  failing the type-keyed bar is repaired or rejected before it exists. S18 is
+  not a write-time gate — most specs are not yet build-ready when written.
+- **Ready time** — the bar is what the build-ready role asserts, and S18 runs
+  here, on build-ready leaves only, making the assertion checked rather than
+  hoped.
+- **Claim time** — `ticket-triage` remains the analytical deep-check against
+  the codebase (edge cases, duplicate work, rework classification). With this
+  bar enforced upstream, triage's ambiguity phase should find nothing a
+  validator could have caught — its findings become a monitoring signal for
+  gaps in this rule.
