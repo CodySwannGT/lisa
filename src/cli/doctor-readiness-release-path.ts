@@ -8,6 +8,10 @@ import type {
   ParsedWorkflowJob,
   ParsedWorkflowStep,
 } from "./doctor-readiness-workflows.js";
+import {
+  ancestorJobs,
+  reusableCallerValidation,
+} from "./doctor-readiness-reusable-callers.js";
 
 const PUBLISH_VERBS = [
   "npm publish",
@@ -203,53 +207,26 @@ function isValidatingJob(job: ParsedWorkflowJob): boolean {
 }
 
 /**
- * Walk a job's transitive `needs:` closure within its workflow. The `seen` list
- * makes a `needs:` cycle terminate instead of recursing forever.
- * @param workflow - The workflow declaring the job
- * @param job - The job whose ancestors to resolve
- * @returns Every job the given job transitively depends on
- */
-function ancestorJobs(
-  workflow: ParsedWorkflow,
-  job: ParsedWorkflowJob
-): readonly ParsedWorkflowJob[] {
-  const byId = new Map(workflow.jobs.map(entry => [entry.id, entry]));
-  const walk = (
-    ids: readonly string[],
-    seen: readonly string[]
-  ): readonly ParsedWorkflowJob[] => {
-    const fresh = ids.filter(id => !seen.includes(id));
-    if (fresh.length === 0) {
-      return [];
-    }
-    const jobs = fresh.flatMap(id => {
-      const ancestor = byId.get(id);
-      return ancestor ? [ancestor] : [];
-    });
-    return [
-      ...jobs,
-      ...walk(
-        jobs.flatMap(ancestor => ancestor.needs),
-        [...seen, ...fresh]
-      ),
-    ];
-  };
-  return walk(job.needs, []);
-}
-
-/**
  * Whether validation provably precedes the publish: either an ancestor job
  * validated, or a step earlier in this same job did.
  * @param workflow - The workflow declaring the job
  * @param job - The publishing job
  * @param publishStep - The step that ships
+ * @param allWorkflows - Every parsed workflow in the repository
  * @returns True when something was proved before the artifact left
  */
 function validationPrecedesPublish(
   workflow: ParsedWorkflow,
   job: ParsedWorkflowJob,
-  publishStep: ParsedWorkflowStep
+  publishStep: ParsedWorkflowStep,
+  allWorkflows?: readonly ParsedWorkflow[]
 ): boolean {
+  if (
+    reusableCallerValidation(workflow, allWorkflows, isValidatingJob) ===
+    "validated"
+  ) {
+    return true;
+  }
   if (ancestorJobs(workflow, job).some(isValidatingJob)) {
     return true;
   }
@@ -303,14 +280,22 @@ function shipsSelfBuiltArtifact(
  * place for it — the only case where absent validation proves a bypass.
  * @param workflow - The workflow to classify
  * @param defaultBranches - Project-local default-like branch names
+ * @param allWorkflows - Every parsed workflow in the repository
  * @returns The reason validation may live elsewhere, or null when it must be here
  */
 function offlineUnresolvableTrigger(
   workflow: ParsedWorkflow,
-  defaultBranches?: readonly string[]
+  defaultBranches?: readonly string[],
+  allWorkflows?: readonly ParsedWorkflow[]
 ): string | null {
   const events = workflow.on.events;
   if (events.length > 0 && events.every(event => event === "workflow_call")) {
+    if (
+      reusableCallerValidation(workflow, allWorkflows, isValidatingJob) ===
+      "unvalidated"
+    ) {
+      return null;
+    }
     return (
       "it is a reusable `workflow_call` workflow, so validation is the calling " +
       "workflow's obligation and callers are not resolved offline"
@@ -356,20 +341,27 @@ function offlineUnresolvableTrigger(
  * @param workflow - The workflow declaring the job
  * @param job - The job to assess
  * @param defaultBranches - Project-local default-like branch names
+ * @param allWorkflows - Every parsed workflow in the repository
  * @returns One outcome per publishing step, or an empty list when it ships nothing
  */
 export function assessReleasePaths(
   workflow: ParsedWorkflow,
   job: ParsedWorkflowJob,
-  defaultBranches?: readonly string[]
+  defaultBranches?: readonly string[],
+  allWorkflows?: readonly ParsedWorkflow[]
 ): readonly ReleasePathOutcome[] {
   return findPublishSteps(job).map(publishStep => {
     const where = `${workflow.file} job \`${job.id}\` step \`${describeStep(publishStep)}\``;
-    const validated = validationPrecedesPublish(workflow, job, publishStep);
+    const validated = validationPrecedesPublish(
+      workflow,
+      job,
+      publishStep,
+      allWorkflows
+    );
     if (shipsSelfBuiltArtifact(job, publishStep)) {
       return validated
         ? rebuildPastValidation(where)
-        : unvalidatedSelfBuild(where, workflow, defaultBranches);
+        : unvalidatedSelfBuild(where, workflow, defaultBranches, allWorkflows);
     }
     if (validated || promotesValidatedArtifact(job, publishStep)) {
       return { kind: "clean" };
@@ -413,14 +405,20 @@ function rebuildPastValidation(where: string): ReleasePathOutcome {
  * @param where - Evidence location label
  * @param workflow - The workflow declaring the job
  * @param defaultBranches - Project-local default-like branch names
+ * @param allWorkflows - Every parsed workflow in the repository
  * @returns The violation or unresolved outcome
  */
 function unvalidatedSelfBuild(
   where: string,
   workflow: ParsedWorkflow,
-  defaultBranches?: readonly string[]
+  defaultBranches?: readonly string[],
+  allWorkflows?: readonly ParsedWorkflow[]
 ): ReleasePathOutcome {
-  const unresolvable = offlineUnresolvableTrigger(workflow, defaultBranches);
+  const unresolvable = offlineUnresolvableTrigger(
+    workflow,
+    defaultBranches,
+    allWorkflows
+  );
   if (unresolvable !== null) {
     return {
       kind: "unresolved",
