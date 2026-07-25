@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.301.6](https://github.com/CodySwannGT/lisa/compare/v2.301.5...v2.301.6) (2026-07-25)
+
+
+### Bug Fixes
+
+* **readiness:** flag mutable release action refs ([987d5cf](https://github.com/CodySwannGT/lisa/commit/987d5cf0bf7f62f632df0ccf10836b73f7f5284e)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** require docker action digests ([a9993a8](https://github.com/CodySwannGT/lisa/commit/a9993a876c3f5aa2fd1ffc59719955a2bf0527f9)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.301.5](https://github.com/CodySwannGT/lisa/compare/v2.301.4...v2.301.5) (2026-07-25)
 
 
