@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/vitest.config.ts":
       "ce14179d4ab31011bb012ee1669af7d86b5189bdf2934e0bd9dd666a30e3d01e",
     "cdk/create-only/.github/workflows/ci.yml":
-      "04cca8fbcb7a5c6da1aeb2b2d00d7a328d15618e4252f1d9dd495052d264d0f5",
+      "dc384ef9bd46af723cafd8d140f6d58d2630cfa8a7b07104254d8ecd4a556636",
     "cdk/create-only/.github/workflows/deploy.yml":
       "2746e78fb0fbe7b23b30bbcb0f83171e16f6804fd467b3d41d3c69970572af3f",
     "cdk/create-only/cdk.json":
@@ -147,7 +147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/workflows/ci.yml":
-      "3ade267cca43e33c68e56b8c4f5d821ed03f642e5a11aa8b70b79e76ec41b96f",
+      "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
       "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
@@ -195,7 +195,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/.github/dependabot.yml":
       "e28fde0d906478b3fb7d6b7fc16f7fc5a4a0a20d8160f547f2b4be97c90578b7",
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml":
-      "6823d87b989f1fbeb2f471552a041f5c9476e67ece8f6ec7ba75e97738afe2f9",
+      "d8227671ebec99255c2adac8ef76ec29cdfa5b8f4c56fe376a37dab08accc0cc",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-early-return-in-search-loop.yml":
       "c25106e1d4ee3566c70824ba4ecbc2ee0345014008aedb4fac56d0be23029264",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-empty-conditions-with-sort.yml":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "8db7de7f2e3eb2a1605539849a346b55281cfcd9951526f9d5a1757a210da3c6",
+      "0985668e6d0478f1993bed8ccd398601d8e73376afd8775e1269ae129418152e",
     "nestjs/create-only/.github/workflows/deploy.yml":
       "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
     "nestjs/create-only/.zap/baseline.conf":
@@ -339,7 +339,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-contents/gitignore":
       "4b8d1a5817d35f64f5d4859f9184ebe2e1dc42e63f8e9269fff233e2ec258d6c",
     "phaser/copy-overwrite/.github/workflows/ci.yml":
-      "02b7fa8ceb9950b72d000fa1688177e747ef549d1b49d2cb4b1db97ec94a3a61",
+      "7b037b5961569a09e8407e6b9bf9a91377208f76bc309680870c2b56ff2f4813",
     "phaser/copy-overwrite/.husky/pre-push.verify":
       "fef6694c2fde6178f46c62936d2b19515adce4fc8ac694ea66d8342aa1474ee7",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
@@ -1779,7 +1779,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/sgconfig.yml":
       "0ffe058c791d4d323f98104cf78c763bb0356d88739042060ceb86b6b1cb78d7",
     "rails/create-only/.github/workflows/ci.yml":
-      "599805266a47b5c0039145a11df225d4db6c59d35b2ecc582a44d55ab7f4b1f0",
+      "ad53014bdd6cf15bfadfaef7740b6094c3c7bd044f9d176c4938154da983529d",
     "rails/create-only/.github/workflows/claude-code-review-response.yml":
       "bfbe3127c4941c35886d324d439ae0302fbccd74a11cb4decf05a21195efa0e9",
     "rails/create-only/.github/workflows/claude-nightly-code-complexity.yml":
@@ -1823,7 +1823,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/deletions.json":
       "eeadf9a2b1677913199a235091a8d6190477f3e2a5fd598d62cf658cb59a8099",
     "rails/github-rulesets/quality-checks.json":
-      "ea42f2bb938881bc6ec129e7300a2b824313951031d4720f46e944c4dfe1a9da",
+      "0ec1c366589edbaa6b8f45f940cef3ada5ed7b1a956d98d3fa6034b0f78fbc7c",
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
@@ -2029,7 +2029,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
       "cf185555bcbe8e9957333abcae2e0c20e00875f8d867f70134efbd2a5c974ee5",
     "typescript/create-only/.github/workflows/ci.yml":
-      "d8c7f65e408a21e344b3a518ddf088d5ada4b08eb24d6b2cfa38ec6755ca8b5a",
+      "dac98b7ab5a7397461e459b2553101bfdc6451d28b42f3b0115056b62cfb8b1d",
     "typescript/create-only/.github/workflows/claude-ci-auto-fix.yml":
       "a9155c10d0c28eba0f77ec5bc2a2d99b0eeb5d499218aac81948d3f27e6aa4fb",
     "typescript/create-only/.github/workflows/claude-code-review-response.yml":
@@ -2071,7 +2071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/deletions.json":
       "fe5f44b7a02148eacc429782e948b1c4aee302d1d56524cc16adec5489bbc308",
     "typescript/github-rulesets/quality-checks.json":
-      "89b9e09267cdb65865728d0e873de9c1225b8ca796e67f06fa8b72ccf6d4515e",
+      "d92599b203071b99b8fac1422b8493d2546138961ef04ba98176bc400af60945",
     "typescript/merge/.claude/settings.json":
       "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":
