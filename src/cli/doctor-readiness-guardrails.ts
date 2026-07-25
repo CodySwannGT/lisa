@@ -68,13 +68,22 @@ const PROTECTION_RULES_SKIP_REASON =
  * blocker that fires on normal delivery is a blocker nobody will believe.
  */
 const CONSEQUENTIAL_OPS: readonly RegExp[] = [
-  /\bterraform\s+(\S+\s+)*apply\b[^\n]*-auto-approve\b/,
   /\bterraform\s+(\S+\s+)*destroy\b/,
   /\bcdk\s+destroy\b/,
   /\bpulumi\s+destroy\b/,
   /\bpulumi\s+up\b[^\n]*--yes\b/,
   /\bserverless\s+remove\b/,
 ];
+
+/** A Terraform apply command, consequential only when auto-approval is present. */
+const TERRAFORM_APPLY = /\bterraform\s+(\S+\s+)*apply\b/;
+
+/** Terraform's non-interactive approval flag. */
+const TERRAFORM_AUTO_APPROVE = /(^|\s)-auto-approve\b/;
+
+/** Terraform env vars that inject CLI args into every command. */
+const TERRAFORM_ARGS_AUTO_APPROVE =
+  /\b(tf_cli_args|tf_args)\s*[:=][^\n]*-auto-approve\b/;
 
 /**
  * Commands that apply schema migrations, in the ecosystems Lisa templates. The
@@ -122,7 +131,12 @@ function isConsequential(
   if (looksEphemeral(targetEvidence)) {
     return false;
   }
+  const terraformAutoApprovedApply =
+    TERRAFORM_APPLY.test(command) &&
+    (TERRAFORM_AUTO_APPROVE.test(command) ||
+      TERRAFORM_ARGS_AUTO_APPROVE.test(targetEvidence));
   return (
+    terraformAutoApprovedApply ||
     CONSEQUENTIAL_OPS.some(pattern => pattern.test(command)) ||
     (MIGRATION_COMMANDS.some(pattern => pattern.test(command)) &&
       PRODUCTION_MARKERS.some(pattern => pattern.test(targetEvidence)))
