@@ -88,8 +88,94 @@ function summarizeReleasePaths(
 }
 
 /**
- * Read the local production branch hint Lisa writes into project config. This
- * stays offline and best-effort: unreadable or unusual config falls back to the
+ * Resolve the repository's local `.git` directory. Worktrees store this as a
+ * pointer file, while ordinary checkouts use a directory.
+ * @param root - Project root to inspect
+ * @returns The resolved git directory path, or null when it cannot be read
+ */
+async function localGitDir(root: string): Promise<string | null> {
+  const dotGit = path.join(root, ".git");
+  try {
+    const marker = await readFile(dotGit, "utf8");
+    const trimmed = marker.trim();
+    const prefix = "gitdir:";
+    if (!trimmed.toLowerCase().startsWith(prefix)) {
+      return null;
+    }
+    const target = trimmed.slice(prefix.length).trim();
+    return path.isAbsolute(target) ? target : path.resolve(root, target);
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EISDIR" ? dotGit : null;
+  }
+}
+
+/**
+ * Resolve where shared refs live for a gitdir. Linked worktrees keep refs in
+ * the common directory named by `commondir`; ordinary repositories do not.
+ * @param gitDir - The resolved `.git` or per-worktree gitdir
+ * @returns The directory that owns shared refs
+ */
+async function commonGitDir(gitDir: string): Promise<string> {
+  try {
+    const raw = await readFile(path.join(gitDir, "commondir"), "utf8");
+    const target = raw.trim();
+    return path.isAbsolute(target) ? target : path.resolve(gitDir, target);
+  } catch {
+    return gitDir;
+  }
+}
+
+/**
+ * Read the default branch cached by git's local `origin/HEAD` symbolic ref.
+ * This is best-effort and does not fetch; if the ref is absent, callers fall
+ * back to Lisa config and built-in branch names.
+ * @param root - Project root to inspect
+ * @returns The local remote-default branch name when available
+ */
+async function gitDefaultBranch(root: string): Promise<string | null> {
+  const gitDir = await localGitDir(root);
+  if (!gitDir) {
+    return null;
+  }
+  const refsGitDir = await commonGitDir(gitDir);
+  try {
+    const raw = await readFile(
+      path.join(refsGitDir, "refs", "remotes", "origin", "HEAD"),
+      "utf8"
+    );
+    const trimmed = raw.trim();
+    const prefix = "ref: refs/remotes/origin/";
+    return trimmed.startsWith(prefix) ? trimmed.slice(prefix.length) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read Lisa's configured production branch hint.
+ * @param root - Project root to inspect
+ * @returns A one-item branch list, or empty when no hint exists
+ */
+async function configDefaultBranches(root: string): Promise<readonly string[]> {
+  try {
+    const raw = await readFile(path.join(root, ".lisa.config.json"), "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (!isJsonObject(parsed) || !isJsonObject(parsed.deploy)) {
+      return [];
+    }
+    const deployBranches = parsed.deploy.branches;
+    return isJsonObject(deployBranches) &&
+      typeof deployBranches.production === "string"
+      ? [deployBranches.production]
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Read local default-branch hints Lisa can establish offline. This stays
+ * best-effort: unreadable or unusual config/git metadata falls back to the
  * built-in `main`/`master` defaults in the release-path assessor.
  * @param root - Project root to inspect
  * @returns Configured default-like branch names
@@ -97,20 +183,10 @@ function summarizeReleasePaths(
 async function configuredDefaultBranches(
   root: string
 ): Promise<readonly string[]> {
-  try {
-    const raw = await readFile(path.join(root, ".lisa.config.json"), "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (!isJsonObject(parsed) || !isJsonObject(parsed.deploy)) {
-      return [];
-    }
-    const branches = parsed.deploy.branches;
-    if (!isJsonObject(branches)) {
-      return [];
-    }
-    return typeof branches.production === "string" ? [branches.production] : [];
-  } catch {
-    return [];
-  }
+  const configBranches = await configDefaultBranches(root);
+  const gitBranch = await gitDefaultBranch(root);
+  const branches = gitBranch ? [...configBranches, gitBranch] : configBranches;
+  return [...new Set(branches.map(branch => branch.trim()).filter(Boolean))];
 }
 
 /**
