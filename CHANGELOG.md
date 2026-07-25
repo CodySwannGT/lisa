@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.302.0](https://github.com/CodySwannGT/lisa/compare/v2.301.7...v2.302.0) (2026-07-25)
+
+
+### Features
+
+* **ui:** add TASC readiness intake questionnaire to console ([05fdeda](https://github.com/CodySwannGT/lisa/commit/05fdeda2fdc7980263c97d55c5621363b88a0204)), closes [#2059](https://github.com/CodySwannGT/lisa/issues/2059) [CodySwannGT/lisa#2061](https://github.com/CodySwannGT/lisa/issues/2061)
+
 ### [2.301.7](https://github.com/CodySwannGT/lisa/compare/v2.301.6...v2.301.7) (2026-07-25)
 
 
