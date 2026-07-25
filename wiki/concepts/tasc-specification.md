@@ -20,10 +20,10 @@ provisional pending trademark diligence.
   argument is made structurally, so a SOC 2 auditor can navigate on sight:
   governance/accountability (incl. traceability of intent and agent
   segregation of duties), operator legibility (named run outcomes, runbooks),
-  the agent threat model, sensor integrity, enforcement integrity (server-side
+  the agent threat model, sensor integrity and learning promotion (mistakes captured, judged, and promoted upstream into enforcement — AC4.5), enforcement integrity (server-side
   authority, staff parity, the threshold ratchet), identity & credentials,
   operations & recovery (incl. autonomy-rate measurement), change management
-  (incl. "the agent program is code" and "model change is system change"), and
+  (incl. "the agent program is code" and "model change is system change", plus type-keyed work-item readiness with the stateless-pickup check — AC8.6), and
   supply chain (model vendors as subservice organizations).
 - **Supplemental categories**: SI (Software Integrity — mandatory for
   production software, unlike SOC 2's optional Processing Integrity), DP (Data

@@ -5227,7 +5227,7 @@
                 ],
               },
               {
-                label: "The agent's program (AC8.2–8.3)",
+                label: "The agent's program (AC8.2–8.3 · AC4.5)",
                 note: "Prompts, skills and models are the factory's own source code and runtime. This group asks whether that layer is under change control — or improvised per run.",
                 items: [
                   {
@@ -5270,10 +5270,22 @@
                       "None",
                     ],
                   },
+                  {
+                    q: "When an agent makes a mistake, what stops the next agent repeating it?",
+                    help: "TASC AC4.5 — the self-learning loop. Mistakes and drift are captured with provenance, pass a skeptical gate, and get promoted upstream into lint rules, hooks, gates and skills. A lesson that stays prose is one the next agent never reads; recurrence of a captured mistake means the loop failed.",
+                    kind: "select",
+                    value: "Captured, judged, promoted to enforcement",
+                    options: [
+                      "Captured, judged, promoted to enforcement",
+                      "Captured in docs / notes",
+                      "Fixed locally, lesson lost",
+                      "Nothing",
+                    ],
+                  },
                 ],
               },
               {
-                label: "Work intake (AC8.4)",
+                label: "Work intake (AC8.4 · AC8.6)",
                 items: [
                   {
                     q: "Where do product requirements (PRDs) live?",
@@ -5326,6 +5338,18 @@
                       "Adversarial gate — ambiguous work rejected",
                       "Light triage",
                       "Built as written",
+                    ],
+                  },
+                  {
+                    q: "Is there a definition of ready, enforced per work-item type?",
+                    help: "TASC AC8.6. A bug needs machine-executable reproduction; an improvement needs a measured baseline and a numeric target; a spike needs its question, timebox and deliverable location. One generic checklist cannot guarantee a stateless agent finishes without asking a human.",
+                    kind: "select",
+                    value: "Type-keyed gates, machine-validated",
+                    options: [
+                      "Type-keyed gates, machine-validated",
+                      "One generic checklist",
+                      "Reviewer judgment",
+                      "None",
                     ],
                   },
                 ],
