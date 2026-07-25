@@ -10,7 +10,8 @@
  * silence must not be read as a bypass.
  * @module tests/unit/cli/doctor-readiness-delivery-triggers
  */
-import { rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { assessDeliveryAuthorityDimension } from "../../../src/cli/doctor-readiness-delivery.js";
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
@@ -41,6 +42,8 @@ import {
 const RUN_CDK_DEPLOY = "      - run: cdk deploy";
 const WORKFLOW_RUN = "  workflow_run:";
 const WORKFLOWS_CI = "    workflows: [CI]";
+const TRUNK_BRANCH = "trunk";
+const DEFAULT_BRANCH_REASON = "default branch";
 
 let tempDir: string | undefined;
 
@@ -51,6 +54,49 @@ let tempDir: string | undefined;
 async function getTempDir(): Promise<string> {
   tempDir ??= await makeScratchRepo("triggers");
   return tempDir;
+}
+
+/**
+ * Seed the local git remote-default symbolic ref without invoking git.
+ * @param root - Scratch repository root
+ * @param branch - Remote default branch name
+ */
+async function writeOriginHead(root: string, branch: string): Promise<void> {
+  const refsDir = path.join(root, ".git", "refs", "remotes", "origin");
+  await mkdir(refsDir, { recursive: true });
+  await writeFile(
+    path.join(refsDir, "HEAD"),
+    `ref: refs/remotes/origin/${branch}\n`,
+    "utf8"
+  );
+}
+
+/**
+ * Seed git metadata as a linked worktree would: `.git` points at a per-worktree
+ * gitdir, and that gitdir's `commondir` points at the shared refs directory.
+ * @param root - Scratch repository root
+ * @param branch - Remote default branch name
+ */
+async function writeWorktreeOriginHead(
+  root: string,
+  branch: string
+): Promise<void> {
+  const commonDir = path.join(root, "common.git");
+  const worktreeGitDir = path.join(commonDir, "worktrees", "fixture");
+  const refsDir = path.join(commonDir, "refs", "remotes", "origin");
+  await mkdir(worktreeGitDir, { recursive: true });
+  await mkdir(refsDir, { recursive: true });
+  await writeFile(
+    path.join(root, ".git"),
+    `gitdir: ${worktreeGitDir}\n`,
+    "utf8"
+  );
+  await writeFile(path.join(worktreeGitDir, "commondir"), "../..\n", "utf8");
+  await writeFile(
+    path.join(refsDir, "HEAD"),
+    `ref: refs/remotes/origin/${branch}\n`,
+    "utf8"
+  );
 }
 
 afterEach(async () => {
@@ -166,7 +212,57 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
 
     expect(record.status).toBe(SKIP);
     expect(assessReadiness([record]).blockers).toEqual([]);
-    expect(JSON.stringify(record.findings)).toContain("default branch");
+    expect(JSON.stringify(record.findings)).toContain(DEFAULT_BRANCH_REASON);
+  });
+
+  it("uses git origin/HEAD when config does not name the default branch", async () => {
+    const cwd = await getTempDir();
+    await writeOriginHead(cwd, TRUNK_BRANCH);
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON,
+      "  push:",
+      `    branches: [${TRUNK_BRANCH}]`,
+      JOBS,
+      SHIP_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      RUN_BUILD,
+      RUN_CDK_DEPLOY,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(SKIP);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).toContain(DEFAULT_BRANCH_REASON);
+  });
+
+  it("uses linked-worktree origin/HEAD from git commondir", async () => {
+    const cwd = await getTempDir();
+    await writeWorktreeOriginHead(cwd, TRUNK_BRANCH);
+    await writeWorkflow(cwd, DEPLOY_YML, [
+      DEPLOY_NAME,
+      ON,
+      "  push:",
+      `    branches: [${TRUNK_BRANCH}]`,
+      JOBS,
+      SHIP_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      RUN_BUILD,
+      RUN_CDK_DEPLOY,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(SKIP);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).toContain(DEFAULT_BRANCH_REASON);
   });
 
   it("SKIPs with a stated reason when workflows exist but nothing publishes", async () => {
