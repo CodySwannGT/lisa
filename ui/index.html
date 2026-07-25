@@ -5097,14 +5097,14 @@
       /* ---------------------------------- Readiness (intake) ---------------------------------- */
       DATA.sections.readiness = {
         title: "Readiness",
-        desc: "The onboarding questionnaire — Vanta, but for agent-run software. Answer what you use for each thing an autonomous factory depends on, and the meter shows how ready you are. Every question here has a detailed home elsewhere in the console; this is the flat version you fill out first. Nothing is required all at once — an unanswered question is a known gap, not a failure.",
+        desc: "The onboarding questionnaire — and the working Annex B self-assessment instrument of TASC (spec/tasc-0.1-draft.md). Answer what you use for each thing an autonomous factory depends on, and the meter shows how ready you are; each group cites the TASC criteria it evidences. Every question has a detailed home elsewhere in the console; this is the flat version you fill out first. Nothing is required all at once — an unanswered question is a known gap, not a failure.",
         src: "intake · maps onto .lisa.config.json",
         blocks: [
           {
             type: "intake",
             groups: [
               {
-                label: "The bottom line",
+                label: "The bottom line (AC7.4)",
                 note: "The one number the rest of this questionnaire exists to predict.",
                 items: [
                   {
@@ -5121,7 +5121,7 @@
                 ],
               },
               {
-                label: "Credentials & access",
+                label: "Credentials & access (AC6)",
                 items: [
                   {
                     q: "Where do your agents' secrets live?",
@@ -5175,7 +5175,7 @@
                 ],
               },
               {
-                label: "Where agents run",
+                label: "Where agents run (AC6 · AC9.5)",
                 items: [
                   {
                     q: "What sandbox do unattended agents run in?",
@@ -5227,7 +5227,7 @@
                 ],
               },
               {
-                label: "The agent's program",
+                label: "The agent's program (AC8.2–8.3)",
                 note: "Prompts, skills and models are the factory's own source code and runtime. This group asks whether that layer is under change control — or improvised per run.",
                 items: [
                   {
@@ -5273,7 +5273,7 @@
                 ],
               },
               {
-                label: "Work intake",
+                label: "Work intake (AC8.4)",
                 items: [
                   {
                     q: "Where do product requirements (PRDs) live?",
@@ -5331,7 +5331,7 @@
                 ],
               },
               {
-                label: "Correctness gates",
+                label: "Correctness gates (SI1–SI3 · AC5.4)",
                 items: [
                   {
                     q: "Is unit behaviour proven on every change?",
@@ -5358,7 +5358,7 @@
                   },
                   {
                     q: "Minimum unit-test coverage you enforce?",
-                    help: "Below this the build fails. Thresholds should only ratchet up.",
+                    help: "Below this the build fails. TASC SI2: the floor must be nonzero and disclosed, and it only ratchets up — zero is not a floor.",
                     kind: "number",
                     value: 74,
                     unit: "%",
@@ -5399,7 +5399,7 @@
                 ],
               },
               {
-                label: "Security gates",
+                label: "Security gates (AC5 · AC9)",
                 items: [
                   {
                     q: "What blocks a committed secret?",
@@ -5475,9 +5475,19 @@
                 ],
               },
               {
-                label: "Agent attack surface",
+                label: "Agent attack surface (AC3)",
                 note: "The group above secures the code; this one secures the agent. Inbound, the risk is untrusted content steering it; outbound, exfiltration — which is governed by the egress lock and credential gateway you answered earlier.",
                 items: [
+                  {
+                    q: "Is there a written threat model for your agents?",
+                    help: "TASC AC3.1. The rows below are mitigations; this asks whether the model itself exists as a document — revisited when the system changes — so the mitigations are answers to named threats rather than folklore.",
+                    kind: "select",
+                    options: [
+                      "Yes — revisited on system change",
+                      "Written once, going stale",
+                      "No",
+                    ],
+                  },
                   {
                     q: "What stops fetched content from becoming instructions?",
                     help: "Prompt injection: a web page, README, or issue comment the agent reads is untrusted input that may try to steer it. Mitigation means labeling it as data and gating risky tools while it is in context.",
@@ -5573,7 +5583,7 @@
                 ],
               },
               {
-                label: "Code health",
+                label: "Code health (SI7)",
                 note: "The bar for this whole group: authorless code. A reviewer with the author hidden should not be able to tell who — or what — wrote a change. Anything that gives the author away is an uncodified opinion, and each row below is one class of opinion made enforceable.",
                 items: [
                   {
@@ -5656,7 +5666,7 @@
                 ],
               },
               {
-                label: "Design & UI",
+                label: "Design & UI (UX)",
                 note: "The determinism story for anything with a screen — a design system is the linter for UI. Without one an agent improvises every screen; with one it assembles from known parts. A backend or CLI answers “no UI” to each, which counts as answered.",
                 items: [
                   {
@@ -5708,7 +5718,7 @@
                 ],
               },
               {
-                label: "Review & merge",
+                label: "Review & merge (AC8.1 · AC5)",
                 items: [
                   {
                     q: "What reviews every diff before merge?",
@@ -5745,10 +5755,21 @@
                       "No — advisory only",
                     ],
                   },
+                  {
+                    q: "When did a gate last actually block a change?",
+                    help: "TASC AC5.5, and the exercised-evidence principle in one question: a gate that has never fired is indistinguishable from one that was never wired up. Being able to point at a recent block is the strongest evidence a control exists.",
+                    kind: "select",
+                    value: "Recently — we can point to it",
+                    options: [
+                      "Recently — we can point to it",
+                      "It has blocked before",
+                      "Never — or we can't tell",
+                    ],
+                  },
                 ],
               },
               {
-                label: "Ship & rollback",
+                label: "Ship & rollback (AC8.5 · AC7.2)",
                 note: "Change management — the human-shaped hole. In a human SDLC a person approved the deploy and reverted the bad one; every row here is that person's named replacement.",
                 items: [
                   {
@@ -5812,7 +5833,7 @@
                 ],
               },
               {
-                label: "Verify & acceptance",
+                label: "Verify & acceptance (SI5–SI6)",
                 note: "Processing integrity: green CI proves the tests passed, not that the product works. Something has to use it.",
                 items: [
                   {
@@ -5844,7 +5865,7 @@
                 ],
               },
               {
-                label: "Observe",
+                label: "Observe (AC4)",
                 items: [
                   {
                     q: "What captures production errors?",
@@ -5875,6 +5896,16 @@
                     ],
                   },
                   {
+                    q: "Does a production threshold crossing become a work item automatically?",
+                    help: "TASC AC4.3 — the routing half of observability. Sensing without filing means a human still stands between the signal and the fix. Findings enter through the same validated intake as any other work; no privileged path.",
+                    kind: "select",
+                    options: [
+                      "Yes — filed through validated intake",
+                      "Alerts a human, who files",
+                      "Dashboards only",
+                    ],
+                  },
+                  {
                     q: "What tells you what users actually do?",
                     help: "Product analytics is the richest Research input there is — it routes usage patterns back to the Research gate as PRD material.",
                     kind: "select",
@@ -5890,7 +5921,7 @@
                 ],
               },
               {
-                label: "Operate & recover",
+                label: "Operate & recover (AC7 · AC2)",
                 note: "Availability — the who-notices-at-3am group. Factories fail loudly; sensors and schedulers fail silently, and silence is ambiguous.",
                 items: [
                   {
@@ -5946,6 +5977,16 @@
                     ],
                   },
                   {
+                    q: "Could a non-technical operator understand what the system tells them?",
+                    help: "TASC AC2.1. Blocked reasons, clarifying questions, verdicts and escalations are read by whoever stands at the gate — often not an engineer. A boundary message that reads like a stack trace is a control that fails its audience.",
+                    kind: "select",
+                    options: [
+                      "Yes — plain language is the contract at every boundary",
+                      "Mixed",
+                      "It reads like stack traces",
+                    ],
+                  },
+                  {
                     q: "Does every scheduled loop end each run in a named outcome?",
                     help: "A runbook contract: each run terminates in exactly one of a fixed outcome set (nothing needed, work proposed, change proved, approval requested, recovery required, policy obsolete) with an operator-readable summary. A run that just stops is illegible — and illegible runs are how dead loops hide.",
                     kind: "select",
@@ -5959,7 +6000,7 @@
                 ],
               },
               {
-                label: "Governance & accountability",
+                label: "Governance & accountability (AC1 · AC9.1 · DP)",
                 note: "The audit-trail cluster: everything a human used to vouch for by being in the room.",
                 items: [
                   {
