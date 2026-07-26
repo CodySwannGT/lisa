@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.309.5](https://github.com/CodySwannGT/lisa/compare/v2.309.4...v2.309.5) (2026-07-26)
+
 ### [2.309.4](https://github.com/CodySwannGT/lisa/compare/v2.309.3...v2.309.4) (2026-07-26)
 
 
