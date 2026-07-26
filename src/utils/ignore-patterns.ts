@@ -1,20 +1,15 @@
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-// minimatch is imported as a namespace to support both v3 (CJS) and v9+ (ESM)
-// interoperably. In downstream projects, bun may hoist whichever version a
-// transitive dependency requires (e.g. @ts-morph/common pulls v10), so Lisa
-// cannot assume a specific export shape:
-//   - v3: CJS `module.exports = fn` — ESM interop exposes as `.default`
-//   - v9+: Native ESM with a named `minimatch` export and no default
-// The `minimatchFn` local below picks whichever callable the resolved version
-// provides so Lisa works regardless of which minimatch is hoisted top-level.
+// minimatch v9+ exposes the matcher as a named ESM export. Keep the legacy
+// default fallback so Lisa still runs in projects whose package manager hoists
+// an older CJS minimatch for another tool.
 import * as minimatchModule from "minimatch";
 import { pathExists } from "./file-operations.js";
 
 /**
- * Resolve the minimatch predicate across v3 (CJS default export) and v9+
- * (native ESM named export). Throws if neither is available so callers see
- * a clear error instead of "undefined is not a function" at match time.
+ * Resolve the minimatch predicate across v9+ named exports and legacy CJS
+ * default exports. Throws if neither is available so callers see a clear error
+ * instead of "undefined is not a function" at match time.
  */
 const minimatchFn: (
   p: string,
@@ -29,7 +24,7 @@ const minimatchFn: (
     typeof mod.default === "function" ? mod.default : mod.minimatch;
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "minimatch module did not expose a callable export; expected v3 default or v9+ named export"
+      "minimatch module did not expose a callable export; expected v9+ named export or legacy default"
     );
   }
   return candidate as (
