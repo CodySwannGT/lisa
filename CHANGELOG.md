@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.305.1](https://github.com/CodySwannGT/lisa/compare/v2.305.0...v2.305.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **readiness:** flag production wrapper guardrails ([3cb3c5a](https://github.com/CodySwannGT/lisa/commit/3cb3c5a23ca91152d5cee4eb895477cd11a6bb3e)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ## [2.305.0](https://github.com/CodySwannGT/lisa/compare/v2.304.1...v2.305.0) (2026-07-26)
 
 
