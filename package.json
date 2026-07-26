@@ -227,7 +227,7 @@
     "knip": "^5.0.0",
     "lint-staged": "^16.2.7",
     "lodash.merge": "^4.6.2",
-    "minimatch": "^3.1.2",
+    "minimatch": "^10.2.5",
     "picocolors": "^1.0.0",
     "prettier": "^3.3.3",
     "semver": "^7.8.1",

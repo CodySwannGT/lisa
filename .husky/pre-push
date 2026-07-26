@@ -179,7 +179,26 @@ else
     # devDependencies too and the gate fails on dev-only CVEs that never ship —
     # the SE-5221 false positive. bun honours `--production` even though
     # `bun audit --help` omits it from the flag list.
-    AUDIT_JSON=$(bun audit --production --json 2>/dev/null || true)
+    AUDIT_OUTPUT="$(mktemp)"
+    bun audit --production --json > "$AUDIT_OUTPUT" 2>/dev/null || true
+    if [ ! -s "$AUDIT_OUTPUT" ]; then
+      AUDIT_JSON="{}"
+    elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
+      AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+    else
+      # Bun can return gzip-compressed JSON on stdout while still reporting a
+      # parse error on stderr. Normalize that transport shape before applying
+      # Lisa's advisory allowlist.
+      DECOMPRESSED_AUDIT_OUTPUT="$(mktemp)"
+      gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
+      if jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
+        AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
+      else
+        AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+      fi
+      rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
+    fi
+    rm -f "$AUDIT_OUTPUT"
     UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq -r --arg ids "$AUDIT_EXCLUSIONS" '
       ($ids | split(" ") | map(select(length > 0))) as $ex
       | [ .[]? | .[]?
