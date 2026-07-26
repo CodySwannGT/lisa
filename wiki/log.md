@@ -1,5 +1,21 @@
 # Lisa Wiki Log
 
+## 2026-07-26 - TASC 0.2.0 evidence-integrity revision
+
+- Revised the canonical TASC draft at `spec/tasc-0.1-draft.md` to version
+  0.2.0-draft without renaming the history-bearing file.
+- Added evidence authenticity and artifact adjudication requirements, new
+  stochastic-evidence principles, finding and measurement integrity criteria,
+  root-cause closure, instruction-level residual-risk review, distributional
+  prompt/model qualification, observed rollout promotion, defect replay, and
+  generative testing governance.
+- Extended the console Readiness Annex B instrument to 93 questions by adding 12
+  criterion-mapped rows for the new 0.2.0 requirements.
+- Updated `wiki/concepts/tasc-specification.md`,
+  `wiki/sources/docs/2026-07-25-tasc-spec-draft.md`, and `wiki/index.md` so the
+  wiki synthesis reflects the current draft.
+- Provenance: build-intake issue CodySwannGT/lisa#2077.
+
 ## 2026-07-21 - Dependency-ownership operator walkthrough
 
 - Created `wiki/playbooks/dependency-ownership-operator-guide.md`, the operator-facing walkthrough for the dependency-ownership layer shipped by PRD CodySwannGT/lisa#1741 (stories #1886-#1891).
