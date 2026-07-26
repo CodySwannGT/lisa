@@ -1,7 +1,7 @@
 # TASC — Trust in Autonomous Software Criteria
 
 Canonical source: [`spec/tasc-0.1-draft.md`](../../spec/tasc-0.1-draft.md)
-(version 0.3.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
+(version 0.4.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
 references stay valid). This page is the wiki synthesis; the spec file is
 authoritative.
 
@@ -26,7 +26,8 @@ provisional pending trademark diligence.
   sensor integrity and learning promotion (mistakes captured, judged, and promoted upstream into enforcement — AC4.5), finding integrity with measured false-positive rates (AC4.6), measurement integrity for the numbers that gate decisions (AC4.7), root-cause closure (AC4.8), enforcement integrity (server-side
   authority, staff parity, the threshold ratchet, instruction-level residual risk
   — AC5.6, and advisory-control adherence — AC5.7), identity & credentials,
-  operations & recovery (incl. autonomy-rate measurement), change management
+  operations & recovery (incl. autonomy-rate and delivery-effectiveness
+  measurement — AC7.4, AC7.5), change management
   (incl. "the agent program is code" and "model change is system change", distributional qualification, observed rollout promotion, plus type-keyed work-item readiness with the stateless-pickup check — AC8.6, and requirement-atom intake validation with fit criteria under AC8.4), and
   supply chain (model vendors as subservice organizations).
 - **Supplemental categories**: SI (Software Integrity — mandatory for
@@ -78,8 +79,43 @@ stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
 The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 102 questions across 16 groups,
+instrument referenced by the spec's Annex B — 105 questions across 16 groups,
 each group citing the criteria it evidences.
+
+## Revision 0.4.0 — standing measurement
+
+Prompted by a review question about what agents are measured against. The
+literal question was already answered: AC8.3 makes third-party benchmark
+rankings, vendor claims, and single successful runs **inadmissible** as
+qualification evidence, because they measure a task mix that is not the
+entity's at a precision their own run-to-run variance cannot support. The real
+gap was that TASC measured agents *only at the moment you changed them*.
+
+- **AC8.7 Evaluation suite.** AC8.3 required qualification over entity-owned
+  representative tasks without ever requiring such a suite to exist between
+  changes. It must now be maintained, reviewed for representativeness as the work
+  mix drifts, and **contamination-controlled** — suite tasks and expected
+  outcomes unreachable by the agents under evaluation, in instruction surfaces,
+  skills, retrievable context, or vendor feedback. An agent optimizing against a
+  suite it can read produces a score, not a measurement. Suite results may not be
+  generalized beyond the task classes they cover (P10, P11).
+- **AC4.9 Agent-capability monitoring.** Qualification fires on the entity's own
+  changes; capability also moves when the entity changes nothing — a vendor
+  reroutes a pinned alias, instruction surfaces accrete, tool behavior shifts.
+  The suite is now sampled on a declared cadence against a recorded **capability
+  baseline**, a statistically distinguishable decline is a finding entering
+  intake, and the entity must be able to attribute a decline to a vendor-side
+  change or to its own accumulated change.
+- **AC7.5 Delivery effectiveness.** Autonomy rate (AC7.4) measures *how much*
+  ran without humans and says nothing about whether it was worth shipping — a
+  factory can post a high autonomy rate while producing work the gates keep
+  rejecting, and reporting autonomy alone would conceal exactly that. Gate
+  rejection rate, rework rate, escape rate, first-pass yield, and cost per
+  delivered item are now measured, with entity-declared targets that ratchet.
+
+Level 3 and the public summary report now carry delivery effectiveness alongside
+autonomy rate, and Annex D gains an evaluation-suite statement with the
+capability-baseline history.
 
 ## Revision 0.3.0 — responsibility
 
@@ -163,7 +199,7 @@ survived. The load-bearing additions:
 
 ## Status And Open Items
 
-Draft 0.3.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
+Draft 0.4.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
 crosswalk annexes, governance venue, trademark diligence, full re-keying of
 legacy readiness groups to criterion IDs, and eventual extraction to a
 standalone neutrally-owned repository. Deliberately *not* addressed: legal and

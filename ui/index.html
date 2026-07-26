@@ -5104,7 +5104,7 @@
             type: "intake",
             groups: [
               {
-                label: "The bottom line (AC7.4)",
+                label: "The bottom line (AC7.4 · AC7.5)",
                 note: "The one number the rest of this questionnaire exists to predict.",
                 items: [
                   {
@@ -5116,6 +5116,24 @@
                       "We measure it — 25–75%",
                       "We measure it — below 25%",
                       "We don't measure it",
+                    ],
+                  },
+                  {
+                    q: "Besides autonomy rate, do you measure whether the delivered work was any good?",
+                    help: "TASC AC7.5 — autonomy rate says how much shipped without a human, not whether it was worth shipping. A factory can post 95% autonomy while producing work the gates keep rejecting. Measure gate rejection, rework, escape to production, first-pass yield and cost per delivered item, with declared targets that only tighten.",
+                    kind: "select",
+                    options: [
+                      "Rejection, rework, escape, first-pass yield and cost — with targets",
+                      "Some of those, no declared targets",
+                      "Autonomy rate only",
+                      "Neither",
+                    ],
+                    via: [
+                      "Tracker analytics",
+                      "CI history",
+                      "Metric warehouse",
+                      "In-house dashboard",
+                      "None",
                     ],
                   },
                 ],
@@ -5227,7 +5245,8 @@
                 ],
               },
               {
-                label: "The agent's program (AC8.2–8.3 · AC4.5 · P10–P11)",
+                label:
+                  "The agent's program (AC8.2–8.3 · AC8.7 · AC4.5 · P10–P11)",
                 note: "Prompts, skills and models are the factory's own source code and runtime. This group asks whether that layer is under change control — or improvised per run.",
                 items: [
                   {
@@ -5308,6 +5327,24 @@
                       "Model, effort and tool config all pinned",
                       "Model version pinned only",
                       "Neither pinned",
+                    ],
+                  },
+                  {
+                    q: "Do you have your own task suite for judging agents — and can the agents see it?",
+                    help: "TASC AC8.7 — public leaderboards measure someone else's task mix, so qualification runs on tasks you own. That suite has to exist between changes, stay representative as the work drifts, and stay unreachable by the agents being judged: a suite in an instruction file, a skill, retrievable context or vendor feedback produces a score, not a measurement.",
+                    kind: "select",
+                    options: [
+                      "Maintained suite, representativeness reviewed, agents cannot reach it",
+                      "Maintained suite, contamination not controlled",
+                      "Assembled per change",
+                      "No suite — public benchmarks or judgement",
+                    ],
+                    via: [
+                      "In-house golden tasks",
+                      "promptfoo",
+                      "Braintrust",
+                      "Langfuse / LangSmith",
+                      "None",
                     ],
                   },
                 ],
@@ -6127,7 +6164,7 @@
                 ],
               },
               {
-                label: "Observe (AC4.1 · AC4.3–AC4.8)",
+                label: "Observe (AC4.1 · AC4.3–AC4.9)",
                 items: [
                   {
                     q: "What captures production errors?",
@@ -6228,6 +6265,24 @@
                       "Telemetry warehouse",
                       "CI history",
                       "Tracker history",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Would you notice if your agents got worse without you changing anything?",
+                    help: "TASC AC4.9 — qualification fires on your changes; capability also moves when you change nothing. A vendor reroutes a pinned alias, instruction surfaces accrete, tool behavior shifts. Sample the suite on a cadence against a recorded baseline, and be able to say whether a decline came from the vendor or from your own accumulated change.",
+                    kind: "select",
+                    options: [
+                      "Suite sampled on a cadence against a recorded baseline",
+                      "Occasional spot checks",
+                      "We would find out from incidents",
+                      "No",
+                    ],
+                    via: [
+                      "Scheduled eval runs",
+                      "Canary work items",
+                      "Metric dashboards",
+                      "In-house",
                       "None",
                     ],
                   },

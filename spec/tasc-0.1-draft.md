@@ -1,6 +1,6 @@
 # TASC — Trust in Autonomous Software Criteria
 
-**Version:** 0.3.0-draft · **Date:** 2026-07-26 · **Status:** Working draft for circulation
+**Version:** 0.4.0-draft · **Date:** 2026-07-26 · **Status:** Working draft for circulation
 
 **License:** CC BY 4.0 (intended). **Governance:** This document is intended for open,
 vendor-neutral governance (working group or foundation). No conforming tool vendor may
@@ -134,6 +134,11 @@ are used per RFC 2119.
   for a given scope of autonomous operation — the ADS as a whole, a registered
   loop, a deployment target, or a Complementary Human Control. An agent MUST NOT
   be an accountable party: agents are attributable (AC1.1), not answerable.
+- **Evaluation suite.** The entity's own corpus of representative tasks with
+  known-good outcomes, used to qualify changes (AC8.3) and to detect capability
+  drift (AC4.9). Owned by the entity, not by a vendor or a public leaderboard.
+- **Capability baseline.** The recorded distribution of evaluation-suite outcomes
+  for a pinned configuration, against which later samples are compared.
 - **Standing.** The declared authority of a named human to dispose of a control
   obligation — to accept a risk, loosen a threshold, claim inapplicability, or
   dismiss a class of finding (AC1.8).
@@ -260,8 +265,10 @@ CHC set counts as a human touch for autonomy-rate purposes.
   (AC2.2) and traceability (AC1.2) enforced. Attestable at Type II over the
   minimum period defined in §5 (three months).
 - **Level 3 — Continuously attested.** Type C evidence for every authoritative gate
-  and every sensor liveness mechanism; autonomy rate measured and published with its
-  definition; public summary report available. This is the badge tier.
+  and every sensor liveness mechanism; autonomy rate and delivery effectiveness
+  (AC7.5) measured and published with their definitions; capability monitored
+  against a baseline (AC4.9); public summary report available. This is the badge
+  tier.
 
 ### 11. Reporting
 
@@ -270,8 +277,8 @@ accountable party (AC1.7); the system description (§6); the
 applicable criteria with the controls mapped to each; tests or standing evidence and
 results; exceptions with dispositions. A **public summary report** (analogous to
 SOC 3) MAY be published at any level; at Level 3 it MUST be published and SHOULD be
-machine-rendered from live evidence: level, criteria coverage, autonomy rate, and
-evidence freshness.
+machine-rendered from live evidence: level, criteria coverage, autonomy rate,
+delivery effectiveness (AC7.5), and evidence freshness.
 
 ---
 
@@ -463,6 +470,19 @@ focus (non-authoritative guidance).
   observable, so the remaining instances stay in place and stop being findable.
   The regression check (SI6) MUST target the cause, and a recurring finding
   after closure is evidence that the closure control failed.
+- **AC4.9 Agent-capability monitoring.** Agent capability MUST be monitored as a
+  standing condition, not only at change time. The entity MUST sample its
+  evaluation suite (AC8.7) against the deployed configuration on a declared
+  cadence, MUST compare results to the recorded capability baseline (§4) using
+  the distributional discipline of P10, and MUST treat a statistically
+  distinguishable decline as a finding entering intake (AC4.3). Qualification
+  under AC8.3 fires on the entity's *own* changes; this criterion exists because
+  capability also moves when the entity changes nothing — a vendor reroutes a
+  pinned alias or alters a served model, context and instruction surfaces
+  accrete, tool behavior shifts. Where a decline is detected the entity MUST be
+  able to distinguish a vendor-side change (AC9.1) from its own accumulated
+  change, and MUST record which. An unmonitored fleet has no evidence it is as
+  good as it was the day it was qualified (P9).
 
 ### AC5 — Enforcement Integrity *(mirrors CC5, Control Activities)*
 
@@ -542,6 +562,19 @@ focus (non-authoritative guidance).
   autonomy rate over a trailing window, and report it internally; Level 3 systems
   MUST publish it in the summary report, with CHC boundary actions reported
   separately.
+- **AC7.5 Delivery effectiveness.** Autonomy rate measures *how much* work ran
+  without humans; it says nothing about whether that work was any good. The
+  entity MUST additionally measure the quality of what the ADS delivers, over a
+  trailing window and per the definition discipline of AC4.7, across at minimum:
+  **gate rejection rate** (work the pipeline refused), **rework rate** (items
+  returned for a further attempt after being declared complete), **escape rate**
+  (defects reaching production, from AC4.1 signals), **first-pass yield** (items
+  reaching their terminal state without rework), and **cost per delivered work
+  item** (AC1.6). The metric set and its targets are entity-declared, MUST be
+  disclosed in the attestation report, and are subject to the ratchet (AC5.4).
+  A high autonomy rate over poor delivery is not conformance — it is an
+  unattended process producing rejected work faster, and reporting autonomy
+  alone would conceal exactly that.
 
 ### AC8 — Change Management *(mirrors CC8, Change Management)*
 
@@ -623,6 +656,23 @@ focus (non-authoritative guidance).
   state as checkable evidence. The validator SHOULD include an adversarial
   stateless-read check that fails the item on any question a fresh agent would
   need answered.
+- **AC8.7 Evaluation suite.** AC8.3 requires qualification over tasks the entity
+  owns and that represent its own work mix; this criterion requires that suite to
+  exist as a maintained asset rather than as something assembled per change. The
+  entity MUST maintain an evaluation suite (§4) whose representativeness of the
+  current work mix is reviewed on a declared cadence and re-established when the
+  work mix materially changes — a suite that stops resembling the work stops
+  being evidence about it. The suite MUST record, per task, the outcome measured
+  and how it is judged, so results are comparable across runs and
+  configurations. **Contamination MUST be controlled**: suite tasks and expected
+  outcomes MUST NOT be reachable by the agents under evaluation — not in
+  instruction surfaces, skills, retrievable context, or training/feedback
+  submitted to a vendor — and any suspected exposure MUST retire the affected
+  tasks. An agent optimizing against a suite it can read produces a score, not a
+  measurement. Where the suite is used to compare agents or models for
+  assignment, the comparison MUST satisfy P10 and P11; capability is
+  heterogeneous across task classes, so a suite result MUST NOT be generalized
+  beyond the classes it covers.
 
 ### AC9 — Third Parties and Supply Chain *(mirrors CC9, Risk Mitigation)*
 
@@ -742,11 +792,11 @@ focus (non-authoritative guidance).
 | AC1 Governance & Accountability | CC1 Control Environment | + traceability of intent, segregation of duties for agents, named accountable party, standing to accept risk |
 | AC2 Communication & Legibility | CC2 Information & Communication | operator legibility; named run outcomes |
 | AC3 Agent Threat Model | CC3 Risk Assessment | agent-native threat classes |
-| AC4 Monitoring, Sensors & Finding Integrity | CC4 Monitoring Activities | sensor liveness ≠ findings; finding, measurement, and root-cause integrity |
+| AC4 Monitoring, Sensors & Finding Integrity | CC4 Monitoring Activities | sensor liveness ≠ findings; finding, measurement, and root-cause integrity; agent-capability drift |
 | AC5 Enforcement Integrity | CC5 Control Activities | server-side authority, parity, ratchet, instruction residual risk, advisory-control adherence |
 | AC6 Identity & Credentials | CC6 Logical & Physical Access | agent-own identity, gateways, federation |
-| AC7 Operations & Recovery | CC7 System Operations | + autonomy measurement, incident answerability |
-| AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification, review capacity, observed promotion |
+| AC7 Operations & Recovery | CC7 System Operations | + autonomy measurement, delivery effectiveness, incident answerability |
+| AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification, the evaluation suite, review capacity, observed promotion |
 | AC9 Third Parties & Supply Chain | CC9 Risk Mitigation | model vendors as subservice orgs |
 | SI | Processing Integrity (PI) | mandatory for production software, unlike PI; adds generative testing and defect replay |
 | DP | Confidentiality (C) + Privacy (P) | merged; context boundary is the novel control |
@@ -776,7 +826,8 @@ replay frameworks (SI3); property-based and coverage-guided fuzzing frameworks
 with persistent corpora (SI9); incident and cron-liveness monitors (AC4.2,
 AC7.2); false-positive adjudication queues (AC4.6); billing and telemetry
 reconciliation (AC1.6, AC4.7); distributional eval harnesses with per-condition
-repetition (AC8.2, AC8.3); canary analysis services (AC8.5). Open-source
+repetition (AC8.2, AC8.3, AC8.7); scheduled capability-regression sampling
+(AC4.9); delivery-metric warehouses (AC7.5); canary analysis services (AC8.5). Open-source
 reference implementations of end-to-end conformance exist and MAY be cited in
 system descriptions; no specific product confers conformance.
 
@@ -792,15 +843,31 @@ system descriptions; no specific product confers conformance.
 7. Accountability register (AC1.7) and risk-acceptance log (AC1.8: accepting
    party, scope, reason, expiry, re-review status)
 8. Autonomy-rate statement (definition, window, result, CHC boundary actions)
+   and delivery-effectiveness statement (AC7.5: metric set, definitions,
+   window, results, declared targets)
 9. Evidence-authenticity register: artifact adjudications, rejected evidence, and
    any ADS-produced proof reclassified as asserted
 10. Finding and measurement integrity register: finding-source false-positive
     rates, metric reconciliation results, and distributional qualification
     results
+11. Evaluation-suite statement (AC8.7): representativeness review date,
+    contamination controls, retired tasks; and the capability-baseline history
+    with any detected drift and its attribution (AC4.9)
 
 ---
 
-*End of draft 0.3.0. Changes from 0.2.0: the named accountable party (AC1.7),
+*End of draft 0.4.0. Changes from 0.3.0: standing measurement of the agents
+themselves. AC8.7 makes the evaluation suite a maintained, contamination-
+controlled asset rather than something assembled per change; AC4.9 monitors
+capability against a recorded baseline, because capability also moves when the
+entity changes nothing; AC7.5 measures whether delivered work was any good,
+since autonomy rate alone would let an unattended process conform while shipping
+rejected work. Level 3 and the public summary now carry delivery effectiveness.
+Third-party benchmark rankings remain inadmissible (AC8.3): the answer to "what
+do you measure your agents against" is the entity's own work, not a
+leaderboard.*
+
+*Changes in 0.3.0 from 0.2.0: the named accountable party (AC1.7),
 standing to accept risk (AC1.8), incident answerability (AC7.2), the
 accountability register (§6), named CHC holders and backups (§9), and the
 report's risk-acceptance log (Annex D). 0.2.0 introduced four accepted-risk
