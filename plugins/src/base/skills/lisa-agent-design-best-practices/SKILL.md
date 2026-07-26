@@ -94,7 +94,30 @@ Grant only the tools necessary for the agent's domain. This enforces focus and p
 | Implementer | `Read, Write, Edit, Bash, Grep, Glob` | Needs to modify code |
 | Planner | `Read, Grep, Glob` | Research only, no execution |
 
-Read-only agents cannot implement code. Do not assign implementation tasks to agents without `Write` and `Edit` tools.
+Do not assign implementation tasks to agents without `Write` and `Edit`.
+
+#### `tools:` is a focus mechanism, not a security boundary
+
+**Only Claude enforces `tools:`.** Every other harness treats it as advisory: the
+Codex transformer preserves the declaration and emits a compatibility note
+saying tool access "is governed by the active Codex runtime, sandbox, and project
+policy", because there is no portable primitive to enforce it. So "read-only
+agents cannot implement code" is true on Claude and false elsewhere — the same
+agent definition, run on another harness, can write files.
+
+Treat the field accordingly:
+
+- **Do** use it to keep an agent in its lane, to make its intent legible to a
+  reader, and to reduce accidental scope creep on the harness that honours it.
+- **Do not** rely on it to contain a compromised or prompt-injected agent, to
+  keep credentials out of reach, or to satisfy any control that has to hold
+  under attack. A boundary one runtime ignores is a suggestion everywhere.
+
+The controls that actually hold are outside the agent definition: the execution
+sandbox, network egress restriction, the credential scope the agent authenticates
+with, and — because an agent can ask a peer to act for it — which other agents it
+can reach. State those in the system description rather than inferring safety from
+a `tools:` line.
 
 ### 6. No Hardcoded Interaction Patterns
 

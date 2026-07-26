@@ -783,7 +783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "b4289ec04de657f0eeefaed56939fa171c2f8a11086bd225db39130f4a609e95",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
-      "5c7414198d5c747d2cda554c85784164afb2f6fe04fd28fb4d7674857dfd4801",
+      "2c487df59f54682d744e71f78a2bccccf9e3a6510705b4ff6be7edfa4be2d43b",
     "plugins/src/base/skills/lisa-agent-ready/SKILL.md":
       "13f2e0f50287a04ed9a036ef1c547563b5f6f6325b2b35f6746d46a5ed4d15df",
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
@@ -8064,6 +8064,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/agent-ready-ingest-boundary.test.ts": true,
     "tests/unit/strategies/agent-ready-readiness-consumption.test.ts": true,
+    "tests/unit/strategies/agent-skill-layer-contract.test.ts": true,
     "tests/unit/strategies/artifact-identity-contract.test.ts": true,
     "tests/unit/strategies/atlassian-access-acli-profile.test.ts": true,
     "tests/unit/strategies/atlassian-access-changelog.test.ts": true,
