@@ -57,7 +57,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 ## Concepts
 
 - [TASC — Trust in Autonomous Software Criteria](concepts/tasc-specification.md)
-  - SOC 2-parity attestation spec for autonomous development; AC1–AC9 mirror CC1–CC9; Type C continuous attestation; 0.2.0-draft adds evidence authenticity, finding and measurement integrity, generative testing, and distributional model qualification; 0.3.0-draft adds the named accountable party, standing to accept risk, and incident answerability; draft source at [spec/tasc-0.1-draft.md](../spec/tasc-0.1-draft.md).
+  - SOC 2-parity attestation spec for autonomous development; AC1–AC9 mirror CC1–CC9; Type C continuous attestation; 0.2.0-draft adds evidence authenticity, finding and measurement integrity, generative testing, and distributional model qualification; 0.3.0-draft adds the named accountable party, standing to accept risk, and incident answerability; 0.4.0-draft adds the maintained evaluation suite, capability-drift monitoring, and delivery-effectiveness measurement; draft source at [spec/tasc-0.1-draft.md](../spec/tasc-0.1-draft.md).
 - [Lisa Vocabulary](concepts/lisa-vocabulary.md)
   - Distinguishes installation readiness, repository readiness, and the ship blocker condition that produces a narrowed `NOT_READY` claim.
 - [Coding-Agent Feature Taxonomy](concepts/coding-agent-feature-taxonomy.md)
