@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.305.5](https://github.com/CodySwannGT/lisa/compare/v2.305.4...v2.305.5) (2026-07-26)
+
+
+### Documentation
+
+* revise TASC evidence integrity ([c7c64d7](https://github.com/CodySwannGT/lisa/commit/c7c64d77508cd82ff0ded6579207a7cc4cf98b69)), closes [#2077](https://github.com/CodySwannGT/lisa/issues/2077) [CodySwannGT/lisa#2077](https://github.com/CodySwannGT/lisa/issues/2077) [CodySwannGT/lisa#2077](https://github.com/CodySwannGT/lisa/issues/2077)
+
 ### [2.305.4](https://github.com/CodySwannGT/lisa/compare/v2.305.3...v2.305.4) (2026-07-26)
 
 
