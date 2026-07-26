@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.306.0](https://github.com/CodySwannGT/lisa/compare/v2.305.5...v2.306.0) (2026-07-26)
+
+
+### Features
+
+* **spec:** revise TASC to 0.2.0 — evidence authenticity, finding integrity, generative testing ([5e4a2eb](https://github.com/CodySwannGT/lisa/commit/5e4a2ebb3696b3b7c45b3158aabfb63dcfaba0a9)), closes [CodySwannGT/lisa#2077](https://github.com/CodySwannGT/lisa/issues/2077)
+
+
+### Bug Fixes
+
+* **spec:** tighten TASC 0.2.0 criteria after review ([9ff33ab](https://github.com/CodySwannGT/lisa/commit/9ff33abe609772753aba0bb89c85327cccdc9365)), closes [CodySwannGT/lisa#2077](https://github.com/CodySwannGT/lisa/issues/2077)
+
 ### [2.305.5](https://github.com/CodySwannGT/lisa/compare/v2.305.4...v2.305.5) (2026-07-26)
 
 
