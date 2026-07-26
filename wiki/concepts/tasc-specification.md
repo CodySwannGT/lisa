@@ -40,7 +40,7 @@ provisional pending trademark diligence.
   protected deploy approval, escalation response) each carry a response-time
   SLA — the human is a dependency with an SLA.
 
-## The Seven Principles
+## The Eight Principles
 
 1. **Exercised evidence** — a control is proven by firing, not by existing.
 2. **Unknown is never conforming** — evidence expires; stale degrades to
@@ -53,6 +53,8 @@ provisional pending trademark diligence.
    non-technical operators.
 7. **Monotonic quality** — thresholds only tighten; loosening is an isolated,
    reviewed exception.
+8. **Author-agnostic enforcement** — the same gates for human- and
+   agent-authored work; the pipeline judges the artifact, never the author.
 
 ## Relationship To Lisa
 
