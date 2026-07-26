@@ -418,12 +418,25 @@ describe("quality.yml reusable workflow", () => {
       );
       expect(serviceStep?.run).toContain("docker rm -f");
       expect(serviceStep?.run).toContain("docker inspect");
+      expect(serviceStep?.run).toContain(
+        "options must be an array of docker flags"
+      );
+      expect(serviceStep?.run).toContain(
+        "Math.trunc(Number(service.healthTimeoutSeconds ?? 60))"
+      );
+      expect(serviceStep?.run).not.toContain("optionSuffix");
 
       const envStep = steps[envIndex];
       expect(envStep?.if).toBe(
         "steps.check_script.outputs.exists == 'true' && inputs.coverage_env != ''"
       );
       expect(envStep?.env?.COVERAGE_ENV).toBe("${{ inputs.coverage_env }}");
+      expect(envStep?.run).toContain(
+        'const { randomUUID } = require("node:crypto");'
+      );
+      expect(envStep?.run).toContain("randomUUID().replace");
+      expect(envStep?.run).toContain("JSON.stringify(value)");
+      expect(envStep?.run).not.toContain('lines.push("LISA_COVERAGE_ENV")');
       expect(envStep?.run).toContain(
         "fs.appendFileSync(process.env.GITHUB_ENV"
       );
