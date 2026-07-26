@@ -1,7 +1,7 @@
 # TASC — Trust in Autonomous Software Criteria
 
 Canonical source: [`spec/tasc-0.1-draft.md`](../../spec/tasc-0.1-draft.md)
-(version 0.2.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
+(version 0.3.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
 references stay valid). This page is the wiki synthesis; the spec file is
 authoritative.
 
@@ -19,8 +19,9 @@ provisional pending trademark diligence.
 
 - **Common criteria AC1–AC9 mirror SOC 2's CC1–CC9 one-for-one** — the parity
   argument is made structurally, so a SOC 2 auditor can navigate on sight:
-  governance/accountability (incl. traceability of intent and agent
-  segregation of duties), operator legibility (named run outcomes, runbooks),
+  governance/accountability (incl. traceability of intent, agent segregation of
+  duties, the named accountable party — AC1.7 — and standing to accept risk —
+  AC1.8), operator legibility (named run outcomes, runbooks),
   the agent threat model (now including misreporting and fabricated evidence),
   sensor integrity and learning promotion (mistakes captured, judged, and promoted upstream into enforcement — AC4.5), finding integrity with measured false-positive rates (AC4.6), measurement integrity for the numbers that gate decisions (AC4.7), root-cause closure (AC4.8), enforcement integrity (server-side
   authority, staff parity, the threshold ratchet, instruction-level residual risk
@@ -43,7 +44,8 @@ provisional pending trademark diligence.
 - **Complementary Human Controls (CHC)** invert SOC 2's CUECs: the enumerated
   duties that deliberately remain human (ready-promotion, gap answers,
   protected deploy approval, escalation response, loop stewardship) each carry
-  a response-time SLA — the human is a dependency with an SLA.
+  a named holder, a named backup, and a response-time SLA — the human is a
+  dependency with an SLA, and a duty with no holder is unassigned.
 
 ## The Eleven Principles
 
@@ -76,8 +78,49 @@ stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
 The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 99 questions across 16 groups,
+instrument referenced by the spec's Annex B — 102 questions across 16 groups,
 each group citing the criteria it evidences.
+
+## Revision 0.3.0 — responsibility
+
+0.2.0 made accountability worse before it made it better: it introduced four
+accepted-risk escape hatches (AC4.8, AC5.7, SI3, SI9) without saying who may use
+them, so an agent could satisfy any of them by writing its own accepted-risk
+record. Raised in review, and closed here.
+
+Before 0.3.0, accountability in TASC was entirely technical. AC1 was titled
+"Governance and Accountability" but every criterion under it attributed actions
+to *agents*; "Operator" — "the human accountable for an ADS's outputs" — was a
+definition with no obligation behind it, the System Description never named a
+human, and CHCs enumerated human duties without saying who held them. The spec
+named buyers, regulators and insurers as its audience in §1 and never answered
+their first question.
+
+- **AC1.7 Accountable party.** A named human or role, recorded in the System
+  Description and named per registered loop, per deployment target, and per CHC.
+  Attribution (AC1.1, which agent acted) and accountability (which human answers)
+  are separate obligations and neither substitutes for the other. An agent may
+  not hold it; accountability may not be vacant, so every party carries a backup
+  or succession path; and names must be legible to a non-technical reader, which
+  a team alias with nobody behind it is not.
+- **AC1.8 Standing to accept risk.** Any decision that *disposes* of a control
+  obligation rather than satisfying it — accepted-risk records, loosening a
+  threshold (AC5.4), claiming inapplicability (P3), dismissing a class of finding
+  (AC4.6) — must be made by a named human with declared standing, and must state
+  scope, reason and an expiry that forces re-review. Agents may neither accept
+  risk nor author the record that accepts it.
+- **AC7.2 incident answerability.** An agent-caused failure's record must name
+  the accountable party, the generation lineage that produced the change, and
+  *the control that should have prevented it*; a missing control becomes a
+  learning-promotion candidate. "An agent did it" describes the mechanism and
+  disposes of nothing.
+- **P5** now says the converse of what it always implied: replacing a human
+  control does not transfer answerability. Automation moves the work, never the
+  accountability.
+
+Also: the System Description gains an accountability register (§6 item 10), §11
+ties management's assertion to the accountable party, and Annex D's report
+skeleton gains a risk-acceptance log.
 
 ## Revision 0.2.0
 
@@ -120,11 +163,13 @@ survived. The load-bearing additions:
 
 ## Status And Open Items
 
-Draft 0.2.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
+Draft 0.3.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
 crosswalk annexes, governance venue, trademark diligence, full re-keying of
 legacy readiness groups to criterion IDs, and eventual extraction to a
-standalone neutrally-owned repository. The specification fixes no numbers by
-design: coverage floors (SI2), false-positive tolerances (AC4.6),
+standalone neutrally-owned repository. Deliberately *not* addressed: legal and
+financial liability — insurance, indemnity, and whose balance sheet absorbs an
+agent-caused loss — which sits outside what SOC 2 attests and is left to the
+governance venue to decide. The specification fixes no numbers by design: coverage floors (SI2), false-positive tolerances (AC4.6),
 advisory-control violation tolerances (AC5.7), qualification run counts and
 thresholds (AC8.3), and SLOs (SI8) are entity-declared, disclosed, and
 ratcheted. (Type II minimum period is settled: three months, §5, applied to
