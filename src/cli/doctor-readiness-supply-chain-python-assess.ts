@@ -2,8 +2,12 @@
  * Python/Poetry B5 readiness record construction.
  * @module cli/doctor-readiness-supply-chain-python-assess
  */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed record helpers are self-describing */
 import { informationalFindings } from "./doctor-readiness-shared.js";
+import {
+  DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
+  MAX_EVIDENCE_LINES,
+  SUPPLY_CHAIN_BLOCKER_ID,
+} from "./doctor-readiness-supply-chain-constants.js";
 import {
   findPythonAuditGate,
   findPythonLockfile,
@@ -13,21 +17,29 @@ import {
 } from "./doctor-readiness-supply-chain-python.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 
-const DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID = "dependencies-supply-chain";
-const SUPPLY_CHAIN_BLOCKER_ID = "B5";
 const PYPROJECT_TOML = "pyproject.toml";
 const POETRY_LOCK = "poetry.lock";
 
-/** Build the rubric-shaped B5 finding from evidence lines. */
+/**
+ * Build the rubric-shaped B5 finding from evidence lines.
+ * @param violations - Evidence lines
+ * @returns The B5 finding
+ */
 function supplyChainFinding(
   violations: readonly string[]
 ): Record<string, unknown> {
+  const shown = violations.slice(0, MAX_EVIDENCE_LINES);
+  const overflow = violations.length - shown.length;
   return {
     blocker: SUPPLY_CHAIN_BLOCKER_ID,
     invariant_violated:
       "belief that the owned surface still works rests on a repeatable install " +
       "and a standing audit, not on hope",
-    evidence: violations.join(" | "),
+    evidence:
+      shown.join(" | ") +
+      (overflow > 0
+        ? ` | (+${overflow} further finding(s) of the same kind)`
+        : ""),
     why_proof_missed:
       "the test suite proves things about the code in the tree it happened to " +
       "install, so a tree that drifts — or one carrying a known advisory nobody " +
@@ -41,7 +53,11 @@ function supplyChainFinding(
   };
 }
 
-/** Build a stated-reason SKIP record. */
+/**
+ * Build a stated-reason SKIP record.
+ * @param reason - Why the dimension was not assessed
+ * @returns The SKIP dimension record
+ */
 function skipRecord(reason: string): ReadinessDimensionRecord {
   return {
     id: DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
@@ -50,7 +66,13 @@ function skipRecord(reason: string): ReadinessDimensionRecord {
   };
 }
 
-/** Build B5 evidence lines for a Python/Poetry project. */
+/**
+ * Build B5 evidence lines for a Python/Poetry project.
+ * @param specs - Poetry dependency specs under assessment
+ * @param lockfile - Committed lockfile path, or null when absent
+ * @param auditGate - Audit gate path, or null when absent
+ * @returns Evidence lines for B5 violations
+ */
 function pythonSupplyChainViolations(
   specs: readonly PythonDependencySpec[],
   lockfile: string | null,
@@ -79,7 +101,7 @@ function pythonSupplyChainViolations(
     ...(auditGate === null
       ? [
           "no Python dependency-audit gate was found anywhere — no " +
-            "`pip-audit`/`safety check`/`osv-scanner` step in " +
+            "`pip-audit`/`safety check`/`safety scan`/`osv-scanner` step in " +
             "`.github/workflows/*.yml`, none in a git hook, and no " +
             "`dependabot.yml` pip entry or Python Renovate manager — so a " +
             "newly disclosed advisory in this Python tree would never be " +
@@ -150,5 +172,3 @@ export async function assessPythonDependenciesSupplyChainDimension(
     ],
   };
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- restore repository documentation defaults */

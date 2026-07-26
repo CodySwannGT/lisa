@@ -2,8 +2,11 @@
  * Ruby/Bundler B5 readiness record construction.
  * @module cli/doctor-readiness-supply-chain-ruby-assess
  */
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns -- typed record helpers are self-describing */
 import { informationalFindings } from "./doctor-readiness-shared.js";
+import {
+  DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
+  SUPPLY_CHAIN_BLOCKER_ID,
+} from "./doctor-readiness-supply-chain-constants.js";
 import {
   findRubyAuditGate,
   findRubyLockfile,
@@ -12,10 +15,11 @@ import {
 } from "./doctor-readiness-supply-chain-ruby.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 
-const DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID = "dependencies-supply-chain";
-const SUPPLY_CHAIN_BLOCKER_ID = "B5";
-
-/** Build the rubric-shaped B5 finding from evidence lines. */
+/**
+ * Build the rubric-shaped B5 finding from evidence lines.
+ * @param violations - Evidence lines
+ * @returns The B5 finding
+ */
 function supplyChainFinding(
   violations: readonly string[]
 ): Record<string, unknown> {
@@ -38,7 +42,11 @@ function supplyChainFinding(
   };
 }
 
-/** Build a stated-reason SKIP record. */
+/**
+ * Build a stated-reason SKIP record.
+ * @param reason - Why the dimension was not assessed
+ * @returns The SKIP dimension record
+ */
 function skipRecord(reason: string): ReadinessDimensionRecord {
   return {
     id: DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
@@ -47,7 +55,13 @@ function skipRecord(reason: string): ReadinessDimensionRecord {
   };
 }
 
-/** Build B5 evidence lines for a Ruby/Bundler project. */
+/**
+ * Build B5 evidence lines for a Ruby/Bundler project.
+ * @param specs - Ruby dependency specs under assessment
+ * @param lockfile - Committed lockfile path, or null when absent
+ * @param auditGate - Audit gate path, or null when absent
+ * @returns Evidence lines for B5 violations
+ */
 function rubySupplyChainViolations(
   specs: readonly RubyDependencySpec[],
   lockfile: string | null,
@@ -141,5 +155,3 @@ export async function assessRubyDependenciesSupplyChainDimension(
     ],
   };
 }
-
-/* eslint-enable jsdoc/require-param, jsdoc/require-returns -- restore repository documentation defaults */
