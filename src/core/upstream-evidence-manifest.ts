@@ -419,7 +419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/quality-specialist.md":
       "e923aec97457390c6c9c529137a81563a6f452a7d6791ab56b97e40b6e85f039",
     "plugins/src/base/agents/security-specialist.md":
-      "08660526367c257e417ce1f059963a9162cfca427f304f321ba4b2f827cd6ab9",
+      "0952dee7bf1c04f978b0f8125a91425bf639e9b645de1a4b05ad945b9041bea7",
     "plugins/src/base/agents/skill-evaluator.md":
       "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
     "plugins/src/base/agents/spec-conformance-specialist.md":
