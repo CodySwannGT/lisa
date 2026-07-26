@@ -2003,7 +2003,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep":
       "6792ca57f00ff5a84a4713a08308a8ab3144858b0b0d9f8251b8c26c48948fb7",
     "typescript/copy-overwrite/audit.ignore.config.json":
-      "5484b8bd1a2d5d882fc89662f7a3ea02c1526e152a77b9d3c849dd3b46c4c724",
+      "84ad811f25a9a309994153e1eb6117f9db90432f8e79e48065adec36494835bf",
     "typescript/copy-overwrite/commitlint.config.cjs":
       "72f3c0ac2e14929938f358f59d4932687107a9bd389a90aa8d9c100d7cb450f7",
     "typescript/copy-overwrite/eslint.config.ts":
@@ -7658,7 +7658,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/transaction/backup.ts": true,
     "src/transaction/index.ts": true,
     "src/transaction/transaction.ts": true,
-    "src/types/minimatch.d.ts": true,
     "src/utils/atomic-file-write.ts": true,
     "src/utils/decimal-sum.ts": true,
     "src/utils/directory-sync.ts": true,

@@ -1904,10 +1904,26 @@ jobs:
             # local/CI split. Dev-dependency / supply-chain coverage is owned by
             # the dedicated Snyk step (`--all-projects`), not this ship-scope gate.
             # bun honours `--production` even though `bun audit --help` omits it.
-            AUDIT_JSON=$(bun audit --production --json 2>/dev/null || true)
-            if [ -z "$AUDIT_JSON" ]; then
+            AUDIT_OUTPUT="$(mktemp)"
+            bun audit --production --json > "$AUDIT_OUTPUT" 2>/dev/null || true
+            if [ ! -s "$AUDIT_OUTPUT" ]; then
               AUDIT_JSON="{}"
+            elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
+              AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+            else
+              # Bun can return gzip-compressed JSON on stdout while still
+              # reporting a parse error on stderr. Normalize that transport
+              # shape before applying Lisa's advisory allowlist.
+              DECOMPRESSED_AUDIT_OUTPUT="$(mktemp)"
+              gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
+              if jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
+                AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
+              else
+                AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+              fi
+              rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
             fi
+            rm -f "$AUDIT_OUTPUT"
 
             BUN_HIGH_VULNS=$(echo "$AUDIT_JSON" | jq \
               --argjson ghsa_ids "$GHSA_IDS_JSON" \
@@ -1925,8 +1941,8 @@ jobs:
                   }
                 | select(
                     (
-                      ([.ghsa_id, .advisory_id] | map(select(. != "")) | any(. as $id | $ghsa_ids | index($id)))
-                      or (.cves | any(. as $cve | $cve_ids | index($cve)))
+                      ([.ghsa_id, .advisory_id] | map(select(. != "")) | any(.[]; . as $id | $ghsa_ids | index($id)))
+                      or (.cves | any(.[]; . as $cve | $cve_ids | index($cve)))
                     )
                     | not
                   )
