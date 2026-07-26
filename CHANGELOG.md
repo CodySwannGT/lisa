@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.309.3](https://github.com/CodySwannGT/lisa/compare/v2.309.2...v2.309.3) (2026-07-26)
+
+
+### Code Refactoring
+
+* **skills:** rewrite the debug artifacts for the current prompting rules ([f8c610e](https://github.com/CodySwannGT/lisa/commit/f8c610e7a3329ce7409cef1ce630b05077cb3fbe)), closes [CodySwannGT/lisa#2093](https://github.com/CodySwannGT/lisa/issues/2093)
+
 ### [2.309.2](https://github.com/CodySwannGT/lisa/compare/v2.309.1...v2.309.2) (2026-07-26)
 
 
