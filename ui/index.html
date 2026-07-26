@@ -6475,9 +6475,11 @@
                     help: "TASC AC1.7 — attribution and accountability are different obligations. AC1.1 tells you which agent acted; this tells you which human answers for it. Recorded per system, per loop, per deploy target and per human control, before anything goes wrong — with a backup, because accountability must never be vacant. An agent cannot hold it, and a team alias with no person behind it does not count.",
                     kind: "select",
                     options: [
-                      "A named person or role per scope, with a backup",
+                      "A named person or role per scope, with a backup or succession path",
+                      "A named person or role per scope, no backup or succession",
                       "One name for the whole system",
                       "A team alias owns it",
+                      "An agent or automation is named as accountable",
                       "Nobody named",
                     ],
                   },
