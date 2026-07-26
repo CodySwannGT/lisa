@@ -190,6 +190,18 @@ describe("maestro-native-e2e reusable workflow", () => {
     );
     expect(emulator).toBeDefined();
     const script = String(emulator?.with?.script ?? "");
+    const killAdb = script.indexOf("adb kill-server");
+    const startAdb = script.indexOf("adb start-server");
+    const waitForDevice = script.indexOf("adb wait-for-device");
+    const verifyBoot = script.indexOf(
+      "adb shell getprop sys.boot_completed | grep -q 1"
+    );
+    const installApp = script.indexOf("adb install app-android.apk");
+    expect(killAdb).toBeGreaterThanOrEqual(0);
+    expect(startAdb).toBeGreaterThan(killAdb);
+    expect(waitForDevice).toBeGreaterThan(startAdb);
+    expect(verifyBoot).toBeGreaterThan(waitForDevice);
+    expect(installApp).toBeGreaterThan(verifyBoot);
     expect(script).toContain("adb install app-android.apk");
     // android-emulator-runner runs each line as its own `sh -c`; a
     // backslash-continued maestro command breaks. The whole invocation —
