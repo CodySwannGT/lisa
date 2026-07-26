@@ -5422,8 +5422,10 @@
                   {
                     q: "Is the system load-tested against SLOs before release?",
                     help: "TASC SI8. Functional correctness without performance is insufficient — an endpoint returning correct data in 30 seconds fails a 200ms SLO. Stress, spike, or soak per the risk of the change; no service surface is a valid answer.",
+                    // No prefill: per P3, "no service surface" must be derived
+                    // from a verified system fact, never self-declared — a wired
+                    // version answers this from stack detection.
                     kind: "select",
-                    value: "No service surface in this project",
                     options: [
                       "SLO conformance gates release",
                       "Load-tested occasionally",
@@ -5438,7 +5440,6 @@
                       "In-house",
                       "None",
                     ],
-                    viaValue: "None",
                   },
                   {
                     q: "Can a quality threshold be quietly lowered?",
