@@ -5366,7 +5366,7 @@
                 ],
               },
               {
-                label: "Correctness gates (SI1–SI3 · AC5.4)",
+                label: "Correctness gates (SI1–SI3 · SI8 · AC5.4)",
                 items: [
                   {
                     q: "Is unit behaviour proven on every change?",
@@ -5418,6 +5418,28 @@
                     kind: "select",
                     options: ["Yes — gates merges", "Yes — nightly only", "No"],
                     value: "Yes — nightly only",
+                  },
+                  {
+                    q: "Is the system load-tested against SLOs before release?",
+                    help: "TASC SI8. Functional correctness without performance is insufficient — an endpoint returning correct data in 30 seconds fails a 200ms SLO. Stress, spike, or soak per the risk of the change; no service surface is a valid answer.",
+                    // No prefill: per P3, "no service surface" must be derived
+                    // from a verified system fact, never self-declared — a wired
+                    // version answers this from stack detection.
+                    kind: "select",
+                    options: [
+                      "SLO conformance gates release",
+                      "Load-tested occasionally",
+                      "Not load-tested",
+                      "No service surface in this project",
+                    ],
+                    via: [
+                      "k6",
+                      "Gatling",
+                      "Locust",
+                      "Artillery",
+                      "In-house",
+                      "None",
+                    ],
                   },
                   {
                     q: "Can a quality threshold be quietly lowered?",
@@ -5485,6 +5507,24 @@
                       "checkov",
                       "tfsec",
                       "Terrascan",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Do you produce an SBOM and sign released artifacts?",
+                    help: "TASC AC9.6. A software bill of materials plus cryptographic provenance lets a consumer verify what was built, from what inputs, by what pipeline — the supply-chain answer a procurement review increasingly demands.",
+                    kind: "select",
+                    options: [
+                      "SBOM + signed provenance",
+                      "SBOM only",
+                      "Neither",
+                    ],
+                    via: [
+                      "Syft / CycloneDX",
+                      "Sigstore / cosign",
+                      "SLSA provenance",
+                      "npm provenance",
+                      "In-house",
                       "None",
                     ],
                   },
@@ -5781,6 +5821,17 @@
                     ],
                   },
                   {
+                    q: "When a gate rejects agent output, what happens?",
+                    help: "TASC AC8.1. The published ideal is regenerate-from-spec — a hand-patched artifact has mixed provenance nobody can cleanly attribute. Agents iterating on their own output is the common middle ground; humans quietly patching agent work is the provenance leak.",
+                    kind: "select",
+                    value: "The agent patches its own output",
+                    options: [
+                      "Regenerated from the spec",
+                      "The agent patches its own output",
+                      "A human patches it by hand",
+                    ],
+                  },
+                  {
                     q: "Are your quality gates unskippable server-side?",
                     help: "A gate a worker can bypass with --no-verify is advisory. Only branch/push protection cannot be skipped — and an autonomous agent is exactly the worker that will route around a skippable one.",
                     kind: "select",
@@ -6057,6 +6108,16 @@
                       "Full chain, enforced at commit time",
                       "Partial — commits reference tickets",
                       "git blame is the end of the trail",
+                    ],
+                  },
+                  {
+                    q: "Can you trace an artifact to the prompt and model that produced it?",
+                    help: "TASC AC1.2 generation lineage — the audit question beyond 'why was this written': which instruction and which model wrote it. Transcripts that exist but aren't linked to the change answer this only partially.",
+                    kind: "select",
+                    options: [
+                      "Lineage recorded per change",
+                      "Transcripts exist, unlinked",
+                      "No",
                     ],
                   },
                   {

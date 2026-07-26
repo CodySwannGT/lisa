@@ -63,6 +63,11 @@ The criteria embody a small number of normative principles, referenced throughou
   a non-technical operator.
 - **P7 — Monotonic quality.** Quality thresholds may only tighten in the ordinary
   course. Loosening a threshold is an exceptional, isolated, reviewed change.
+- **P8 — Author-agnostic enforcement.** No artifact is trusted by default,
+  whatever authored it. The same gates, with the same configurations, apply to
+  human-authored and agent-authored work alike: the pipeline evaluates the
+  artifact against the standard, never the author against a reputation. A
+  bypass that exists for one class of author exists for every attacker.
 
 ### 3. Scope and applicability
 
@@ -233,6 +238,11 @@ focus (non-authoritative guidance).
   machine-followable chain MUST exist: line → change → change request → work item →
   requirement → originating intent or signal. At Level 2+, at least one hop
   (change → work item) MUST be enforced mechanically at commit or merge time.
+  The chain SHOULD extend to generation lineage — the producing procedure and
+  prompt version (AC8.2) and the pinned model version (AC8.3), recorded per
+  change — so a defect is traceable to the instruction and runtime that
+  produced it, not only to the intent it served. At Level 3, generation
+  lineage is MUST.
   *Focus: enforced work-item references; requirement backlinks; the chain survives
   refactors via history.*
 - **AC1.3 Segregation of duties.** The agent that authored a change MUST NOT be the
@@ -375,7 +385,10 @@ focus (non-authoritative guidance).
   — validated intake, implementation, independent review (AC1.3), and the pre-merge
   integrity gates (SI1–SI4, as applicable) — with gates per AC5, followed by
   post-deployment verification (SI5). Review findings MUST be resolved, not merely
-  produced, before merge.
+  produced, before merge. When a gate rejects agent-produced work, remediation
+  SHOULD be regeneration from the specification rather than manual patching of
+  the artifact: a hand-patched artifact has mixed provenance that AC1.2 cannot
+  cleanly attribute.
 - **AC8.2 The agent program is code.** Prompts, skills, procedures, and workflow
   definitions MUST be version-controlled and MUST pass the same change gates as
   code. Production work MUST be driven by vetted procedures; free-form prompting
@@ -426,6 +439,10 @@ focus (non-authoritative guidance).
 - **AC9.5 Hosted runtimes.** Vendor-hosted agent runtimes MUST be assessed for
   sandbox properties, network posture, secret storage, and scheduler semantics
   before production use.
+- **AC9.6 Artifact provenance.** Released artifacts SHOULD carry a software
+  bill of materials and cryptographic provenance (signing or attestation) so a
+  consumer can verify what was built, from what inputs, by what pipeline. At
+  Level 3 the provenance chain MUST be machine-verifiable end to end.
 
 ### SI — Software Integrity *(supplemental; applies to all production software output — analogous to Processing Integrity)*
 
@@ -452,6 +469,13 @@ focus (non-authoritative guidance).
   indistinguishability: with authorship hidden, a reviewer (or classifier) should
   not reliably identify which agent or person wrote a change; distinguishing
   features found are candidate rules.
+- **SI8 Load and SLO conformance.** Where the software exposes a service
+  surface, changes MUST be validated under load before release: the system
+  meets its declared Service Level Objectives for latency and throughput, and
+  the change introduces no scaling regression (stress, spike, or soak testing
+  selected by the declared risk of the change). SLOs are entity-declared but
+  MUST be stated, and are subject to the ratchet (AC5.4). Inapplicability is
+  earned (P3) only by the absence of a service surface.
 
 ### DP — Data Protection *(supplemental; applies where sensitive or regulated data is in scope — analogous to Confidentiality/Privacy)*
 
