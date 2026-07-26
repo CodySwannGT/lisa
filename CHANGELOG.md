@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.305.0](https://github.com/CodySwannGT/lisa/compare/v2.304.1...v2.305.0) (2026-07-26)
+
+
+### Features
+
+* **spec:** absorb published governance invariants into TASC ([51687d2](https://github.com/CodySwannGT/lisa/commit/51687d232557dec298d16f4e02faf46a622f9e91)), closes [CodySwannGT/lisa#2071](https://github.com/CodySwannGT/lisa/issues/2071)
+
+
+### Bug Fixes
+
+* **spec:** address TASC invariants review findings ([be79b30](https://github.com/CodySwannGT/lisa/commit/be79b308908848805aa4743e4397541a4ac50c7a)), closes [CodySwannGT/lisa#2071](https://github.com/CodySwannGT/lisa/issues/2071)
+
 ### [2.304.1](https://github.com/CodySwannGT/lisa/compare/v2.304.0...v2.304.1) (2026-07-26)
 
 
