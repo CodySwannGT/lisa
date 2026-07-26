@@ -134,6 +134,14 @@ const OPAQUE_CONSEQUENTIAL_INPUTS: readonly RegExp[] = [
   /\bprod(uction)?\b/,
 ];
 
+/** Local wrapper names that are explicit enough to count as consequential. */
+const LOCAL_CONSEQUENTIAL_WRAPPERS: readonly RegExp[] = [
+  /(?:^|\s)(?:\.\/|bash\s+|sh\s+)(?:scripts\/)?[a-z0-9._/-]*(?:destroy|delete|remove|teardown|migrate|reset)[a-z0-9._/-]*(?:prod|production)[a-z0-9._/-]*/,
+  /(?:^|\s)(?:\.\/|bash\s+|sh\s+)(?:scripts\/)?[a-z0-9._/-]*(?:prod|production)[a-z0-9._/-]*(?:destroy|delete|remove|teardown|migrate|reset)[a-z0-9._/-]*/,
+  /\b(?:npm|yarn|pnpm|bun)\s+run\s+[a-z0-9:_-]*(?:destroy|delete|remove|teardown|migrate|reset)[a-z0-9:_-]*(?:prod|production)[a-z0-9:_-]*/,
+  /\b(?:npm|yarn|pnpm|bun)\s+run\s+[a-z0-9:_-]*(?:prod|production)[a-z0-9:_-]*(?:destroy|delete|remove|teardown|migrate|reset)[a-z0-9:_-]*/,
+];
+
 /**
  * Collapse only shell continuation newlines. Ordinary newlines remain command
  * boundaries so unrelated invocations cannot combine into one Terraform apply.
@@ -210,6 +218,7 @@ function isConsequential(
   return (
     terraformAutoApprovedApply ||
     CONSEQUENTIAL_OPS.some(pattern => pattern.test(command)) ||
+    LOCAL_CONSEQUENTIAL_WRAPPERS.some(pattern => pattern.test(command)) ||
     (MIGRATION_COMMANDS.some(pattern => pattern.test(command)) &&
       PRODUCTION_MARKERS.some(pattern => pattern.test(targetEvidence)))
   );
