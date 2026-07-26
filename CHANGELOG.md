@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.309.0](https://github.com/CodySwannGT/lisa/compare/v2.308.0...v2.309.0) (2026-07-26)
+
+
+### Features
+
+* **spec:** revise TASC to 0.5.0 with agent boundaries and graduated autonomy ([86498fa](https://github.com/CodySwannGT/lisa/commit/86498fafe42b1bdabced540f94976713ce364c23)), closes [CodySwannGT/lisa#2085](https://github.com/CodySwannGT/lisa/issues/2085)
+
+
+### Bug Fixes
+
+* **spec:** correct the AC3.6 delegation rule and tighten Annex B answers ([5ac6653](https://github.com/CodySwannGT/lisa/commit/5ac66538121bf68cfccb1475ec655fa5785a60c2)), closes [CodySwannGT/lisa#2085](https://github.com/CodySwannGT/lisa/issues/2085)
+
 ## [2.308.0](https://github.com/CodySwannGT/lisa/compare/v2.307.0...v2.308.0) (2026-07-26)
 
 
