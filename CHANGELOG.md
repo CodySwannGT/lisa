@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.310.0](https://github.com/CodySwannGT/lisa/compare/v2.309.5...v2.310.0) (2026-07-26)
+
+
+### Features
+
+* **agents:** add the evaluation specialist and start Lisa's accountability record ([f401fd6](https://github.com/CodySwannGT/lisa/commit/f401fd65d6fd38d474a9296f7c042c9795083ee1)), closes [CodySwannGT/lisa#2100](https://github.com/CodySwannGT/lisa/issues/2100)
+
 ### [2.309.5](https://github.com/CodySwannGT/lisa/compare/v2.309.4...v2.309.5) (2026-07-26)
 
 ### [2.309.4](https://github.com/CodySwannGT/lisa/compare/v2.309.3...v2.309.4) (2026-07-26)
