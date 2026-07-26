@@ -1,5 +1,21 @@
 # Lisa Wiki Log
 
+## 2026-07-26 - TASC 0.2.0 evidence-integrity revision
+
+- Revised the canonical TASC draft at `spec/tasc-0.1-draft.md` to version
+  0.2.0-draft without renaming the history-bearing file.
+- Added evidence authenticity and artifact adjudication requirements, new
+  stochastic-evidence principles, finding and measurement integrity criteria,
+  root-cause closure, instruction-level residual-risk review, distributional
+  prompt/model qualification, observed rollout promotion, defect replay, and
+  generative testing governance.
+- Extended the console Readiness Annex B instrument to 93 questions by adding 12
+  criterion-mapped rows for the new 0.2.0 requirements.
+- Updated `wiki/concepts/tasc-specification.md`,
+  `wiki/sources/docs/2026-07-25-tasc-spec-draft.md`, and `wiki/index.md` so the
+  wiki synthesis reflects the current draft.
+- Provenance: build-intake issue CodySwannGT/lisa#2077.
+
 ## 2026-07-21 - Dependency-ownership operator walkthrough
 
 - Created `wiki/playbooks/dependency-ownership-operator-guide.md`, the operator-facing walkthrough for the dependency-ownership layer shipped by PRD CodySwannGT/lisa#1741 (stories #1886-#1891).
@@ -615,6 +631,7 @@
 ## 2026-07-26 - Dan Luu agentic-test-processes ingest and TASC 0.2.0 revision
 
 - Ingested the external article <https://danluu.com/ai-coding/> ("Agentic test processes, LLM benchmarks, and other notes on agentic coding", retrieved 2026-07-26), read as an adversarial review of TASC 0.1.0; wrote the reader-safe docs source note `wiki/sources/docs/2026-07-26-danluu-agentic-test-processes.md`.
-- Revised `spec/tasc-0.1-draft.md` to 0.2.0-draft: principles P9 (unconstrained quality degrades) and P10 (stochastic evidence); evidence authenticity and artifact adjudication (§7); agent misreporting as a threat class (AC3.1); billing-boundary spend metering (AC1.6); user-reported problems as a required signal class (AC4.1); finding integrity with measured false-positive rates (AC4.6); measurement integrity (AC4.7); root-cause closure (AC4.8); instruction-level residual risk (AC5.6); review-capacity limits (AC8.1); distributional qualification of agent-program, model and configuration changes (AC8.2–8.3); promotion on observed signal (AC8.5); defect replay (SI3); generative testing (SI9); loop stewardship as a Complementary Human Control (§9). The 0.1 file name is retained so existing references and ingestion records stay valid.
-- Extended the Annex B self-assessment instrument in the Lisa console (`ui/index.html`, Readiness section) from 81 to 93 questions, adding one or more questions for each new criterion and re-keying seven group labels to the criteria they now evidence.
-- Updated `wiki/concepts/tasc-specification.md` (0.2.0 revision section, ten principles, SI scope) and the index Concepts entry; refreshed `src/core/upstream-evidence-manifest.ts` for the spec content hash.
+- Revised `spec/tasc-0.1-draft.md` to 0.2.0-draft: principles P9 (unconstrained quality degrades) and P10 (stochastic evidence); evidence authenticity and artifact adjudication (§7); agent misreporting as a threat class (AC3.1); billing-boundary spend metering (AC1.6); user-reported problems as a required signal class (AC4.1); finding integrity with measured false-positive rates (AC4.6); measurement integrity (AC4.7); root-cause closure (AC4.8); instruction-level residual risk (AC5.6) and advisory-control adherence (AC5.7); review-capacity limits (AC8.1); distributional qualification of agent-program, model and configuration changes (AC8.2–8.3); promotion on observed signal (AC8.5); defect replay (SI3); generative testing (SI9); loop stewardship as a Complementary Human Control (§9). The 0.1 file name is retained so existing references and ingestion records stay valid.
+- Extended the Annex B self-assessment instrument in the Lisa console (`ui/index.html`, Readiness section) from 81 to 99 questions, adding one or more questions per new criterion and re-keying group labels to the criteria they now evidence.
+- Updated `wiki/concepts/tasc-specification.md` (0.2.0 revision section, eleven principles, SI scope) and the index Concepts entry; refreshed `src/core/upstream-evidence-manifest.ts` for the spec content hash.
+- Reconciled two independent 0.2.0 passes over the same source: PR `#2079` merged first, and this change (PR `#2078`) fused the two criterion-by-criterion rather than replacing either. Where both passes wrote the same criterion the stronger obligation survived (§7 gained both representativeness and evidence binding; AC4.6 gained the declared tolerance and the independence rule; AC4.7 gained plausibility validation alongside numerator/denominator discipline; SI9 now both requires generation and governs the generator as a finding source; SI3 carries replay-test creation and replay-efficacy measurement). Where the two meant different things by one label, both survived under distinct IDs: AC5.6 keeps instruction-change residual risk and the advisory-control adherence rate became AC5.7. Main's `P9 — scale changes quality` became P11, keeping P9 as unconstrained-quality-degrades. Four duplicated questionnaire rows were dropped in favor of the better-formed variant, keeping the outcome-plus-mechanism pairing.
