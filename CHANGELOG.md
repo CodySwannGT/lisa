@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.304.1](https://github.com/CodySwannGT/lisa/compare/v2.304.0...v2.304.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **readiness:** harden report excerpt redaction ([8e0262f](https://github.com/CodySwannGT/lisa/commit/8e0262f6d663691bb4d94309fe081f7b797c2615)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** redact persisted doc excerpts ([9cdc042](https://github.com/CodySwannGT/lisa/commit/9cdc0420a0202ed9e972773baec03d458df442cf)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ## [2.304.0](https://github.com/CodySwannGT/lisa/compare/v2.303.0...v2.304.0) (2026-07-25)
 
 
