@@ -1,155 +1,135 @@
 ---
 name: lisa-root-cause-analysis
-description: "Root cause analysis methodology"
+description: "Prove what causes a defect…"
 ---
 
 # Root Cause Analysis
 
-Definitively prove what is causing a problem. Do not guess. Do not theorize without evidence. Trace the actual execution path, read real logs, and produce irrefutable proof of root cause.
+Produce a proof, not an explanation. Every link in the chain rests on something observed — a log line, a stack frame, an exit code, a bisect verdict.
 
-**Core principle: "Show me the proof."** Every conclusion must be backed by concrete evidence -- a log line, a stack trace, a reproducible sequence, or a failing test.
+## Confirm by executing, not by reasoning
 
-## Phase 1: Gather Evidence from Logs
+The characteristic failure of this work is a fluent wrong answer: a plausible story assembled from reading code and delivered with confidence. Reading is how a hypothesis is formed. Running something is how it is confirmed. **Do not report a cause you have not executed against.**
 
-### Local Logs
+## Surviving a disproof is not proof
 
-- Search application logs in the project directory (`logs/`, `tmp/`, stdout/stderr output)
-- Run tests with verbose logging enabled to capture execution flow
-- Check framework-specific log locations (e.g., `.next/`, `dist/`, build output)
+A candidate that no observation has killed is **still standing**, not confirmed. Elimination narrows the field; it does not establish a cause. Closing requires a **positive confirmation**: an execution whose output is what the cause predicts and would not be what it produces if the cause were something else.
 
-### Remote Logs (AWS CloudWatch, etc.)
+That leaves three honest verdicts, and the output has to be able to say each:
 
-- Discover existing scripts and tools in the project for tailing logs:
-  - Check `package.json` scripts for log-related commands
-  - Search for shell scripts: `scripts/*log*`, `scripts/*tail*`, `scripts/*watch*`
-  - Look for AWS CLI wrappers, CloudWatch log group configurations
-  - Check for `.env` files referencing log groups or log streams
-- Use discovered tools first before falling back to raw CLI commands
-- When using AWS CLI directly:
-  ```bash
-  # Discover available log groups
-  aws logs describe-log-groups --query 'logGroups[].logGroupName' --output text
+- **confirmed** — a positive confirmation was executed and is recorded.
+- **inconclusive** — one candidate is standing, nothing killed it, nothing confirmed it. Say so; do not promote it.
+- **unresolved / blocked** — the investigation stopped before reaching a cause. See the stopping rule.
 
-  # Tail recent logs with filter
-  aws logs filter-log-events \
-    --log-group-name "/aws/lambda/function-name" \
-    --start-time $(date -d '30 minutes ago' +%s000) \
-    --filter-pattern "ERROR" \
-    --query 'events[].message' --output text
+Only *confirmed* justifies a fix. An inconclusive verdict can still be useful — it narrows the next attempt — but it must be labelled.
 
-  # Follow live logs
-  aws logs tail "/aws/lambda/function-name" --follow --since 10m
-  ```
+## Write the hypotheses down first
 
-## Phase 2: Trace the Execution Path
+Before gathering evidence, list the candidate causes — two or three is normal — and beside each, the observation that would **kill** it. Then go looking for the killing observations rather than for support.
 
-- Start from the error and work backward through the call stack
-- Read every function in the chain -- do not skip intermediate code
-- Identify the exact line where behavior diverges from expectation
-- Map the data flow: what value was expected vs. what value was actually present
+A candidate you cannot state a disproof for is not a hypothesis; it is a hunch, and it will survive any amount of evidence. Keep the list updated as you work, and ship the eliminated candidates in the output: they are how a reader knows you looked.
 
-## Phase 3: Strategic Log Placement
+## Pick the technique from the symptom
 
-When existing logs are insufficient, add targeted log statements to prove or disprove hypotheses.
+| What you know | Reach for |
+| --- | --- |
+| **It used to work**, and a good commit can be named | `git bisect` — preconditions below |
+| A stack trace or error location | Work backward from the throw; read the frames that carry the value, skip the plumbing |
+| Only that the result is wrong, no location | Instrument first. Reading code to localize an unlocalized defect is the slowest move available |
+| Intermittent | Loop it. Log timestamps and identity either side of async boundaries; look for overlap, staleness, out-of-order completion |
+| Works locally, fails deployed | Diff the environments — version, config, data, permissions, network — before touching code |
+| Wrong shape, missing field, unexpected null | Log the actual value at each transformation, not the type you expect |
+| Possibly a dependency | Pin the exact installed version; read its changelog and issues before blaming local code |
 
-### Log Statement Guidelines
+### git bisect
 
-- **Be surgical** -- add the minimum number of log statements needed to confirm the root cause
-- **Include context** -- log the actual values, not just "reached here"
-- **Use structured format** -- make logs easy to find and parse
+The highest-leverage move available for a regression, and consistently underused: it answers *which change* in log₂(n) steps instead of log₂(n) hours of reading. It needs three things and wastes time without them.
+
+1. **A known-good commit** — from the last release, the last green run, or the reporter's "it worked on…".
+2. **A deterministic, non-interactive check** that exits non-zero on the defect. The failing test from `reproduce-bug` usually is one.
+3. **A runnable checkout at every step.** Where a fresh checkout needs a dependency install or build before tests run, fold that into the bisect command. Otherwise every step fails for the wrong reason and the verdict is noise.
+
+```bash
+git bisect start <bad> <good>
+git bisect run <cmd>   # <cmd> must install/build if the checkout needs it
+```
+
+Read the blamed commit before believing it. Bisect names the change that *surfaced* the defect, which is not always the change that introduced it.
+
+## Find the logs the project already has
+
+Look for existing tooling before reaching for a raw CLI: `package.json` scripts, `scripts/*log*`, `scripts/*tail*`, AWS CLI wrappers, log-group names in `.env`. Project tooling already encodes the credentials, regions, and group names you would otherwise guess at.
+
+Where no wrapper exists:
+
+```bash
+aws logs describe-log-groups --query 'logGroups[].logGroupName' --output text
+aws logs tail "/aws/lambda/<name>" --follow --since 30m
+```
+
+If remote logs are unreachable, name the log group and the time window needed rather than proceeding without them.
+
+## Instrument surgically
+
+Add the fewest statements that decide between live hypotheses, and make each carry values rather than announce arrival. Guard the access — instrumentation that throws while reading its own subject tells you nothing about the defect.
 
 ```typescript
-// Bad: Vague, unhelpful
-console.log("here");
-console.log("data:", data);
+// Useless: proves a line ran.
+console.log("here", data);
 
-// Good: Precise, searchable, includes context
+// Useful: decides a hypothesis, and survives the shape it is investigating.
 console.log("[DEBUG:issue-123] processOrder entry", {
-  orderId: order.id,
-  status: order.status,
-  itemCount: order.items.length,
-  timestamp: new Date().toISOString(),
+  orderId: order?.id,
+  status: order?.status,
+  itemCount: order?.items?.length ?? null,
 });
 ```
 
-### Placement Strategy
+Highest-yield placements: function entry (called at all, with what), either side of a branch (which way, on what value), either side of an `await` (timing, staleness), around transformations (where the shape changes), and inside `catch` blocks (what is being swallowed).
 
-| Placement | Purpose |
-|-----------|---------|
-| Function entry | Confirm the function is called and with what arguments |
-| Before conditional branches | Verify which branch is taken and why |
-| Before/after async operations | Detect timing issues, race conditions, failed awaits |
-| Before/after data transformations | Catch where data becomes corrupted or unexpected |
-| Error handlers and catch blocks | Ensure errors are not silently swallowed |
+The `[DEBUG:<issue>]` prefix exists so cleanup is mechanical rather than remembered. Once the verdict is recorded, remove every one — keeping only logging that belongs in the product permanently — and verify across every source root the project has, not just one:
 
-### Hypothesis Elimination
-
-When multiple hypotheses exist, design a log placement strategy that eliminates all but one. Each log statement should be placed to confirm or rule out a specific hypothesis.
-
-## Phase 4: Prove the Root Cause
-
-Build an evidence chain that is irrefutable:
-
-1. **The symptom** -- what the user observes (error message, wrong output, crash)
-2. **The proximate cause** -- the line of code that directly produces the symptom
-3. **The root cause** -- the underlying reason the proximate cause occurs
-4. **The proof** -- log output, test result, or reproduction steps that confirm each link
-
-### Evidence Chain Format
-
-```text
-Symptom: [exact error message or behavior]
-    |
-    v
-Proximate cause: [file:line] -- [the line that directly produces the error]
-    |
-    v
-Root cause: [file:line] -- [the underlying reason]
-    |
-    v
-Proof: [log output / test result / reproduction that confirms the chain]
-```
-
-## Phase 5: Clean Up
-
-After root cause is confirmed, **remove all debug log statements** added during investigation. Leave only:
-
-- Log statements that belong in the application permanently (error logging, audit trails)
-- Statements explicitly requested by the user
-
-Verify cleanup:
 ```bash
-# Search for any remaining debug markers
-grep -rn "\[DEBUG:" src/ --include="*.ts" --include="*.tsx" --include="*.js"
+git grep -n "\[DEBUG:"
 ```
 
-## Output Format
+## Stop before you drift
+
+Declare a budget before starting: a number of instrumentation rounds, or a wall-clock box. Two signatures mean stop now rather than push on.
+
+- **Two consecutive hypotheses falsified with no new information gained.** Widening the search against the same evidence is not progress.
+- **The budget is spent.**
+
+Stopping is a legitimate outcome and not a silent one. Record the verdict as **unresolved / blocked** and escalate a decision-ready report: the symptom, the hypotheses tried and how each was killed, the evidence collected, and the single thing that would unblock the work — an access grant, a log group, a reproduction on the real path. A blocked investigation reported clearly is worth more than a confident guess, and costs the next agent far less.
+
+## Output
+
+`Cause` and `Fix` are required only for a **confirmed** verdict. For *inconclusive* or *unresolved*, record what is known and name the unblocker instead — an unresolved investigation must be representable without inventing a cause to fill the field.
 
 ```text
 ## Root Cause Analysis
 
-### Evidence Trail
-| Step | Location | Evidence | Conclusion |
-|------|----------|----------|------------|
-| 1 | file:line | Log output or observed value | What this proves |
-| 2 | file:line | Log output or observed value | What this proves |
+**Verdict:** confirmed | inconclusive | unresolved
 
-### Root Cause
-**Proximate cause:** The line that directly produces the error.
-**Root cause:** The underlying reason this line behaves incorrectly.
-**Proof:** The specific evidence that confirms this beyond doubt.
+### Hypotheses
+| Candidate | Would be killed by | Status |
+|---|---|---|
+| ... | the observation that would disprove it | eliminated / standing / confirmed |
 
-### Recommended Fix
-What needs to change and why. Include file:line references.
+### Evidence trail
+| Step | Location | Observed | Proves |
+|---|---|---|---|
+| 1 | file:line | log output, value, exit code | what this establishes |
+
+### Cause — confirmed verdicts only
+**Proximate:** file:line — the line that directly produces the symptom.
+**Root:** file:line — why that line behaves that way.
+**Confirmation:** the command run and its output, and why that output would differ
+  if the cause were something else. Not an argument.
+
+### Fix — confirmed verdicts only
+What changes and why, with file:line references. Anything that must not change.
+
+### Unblocker — inconclusive or unresolved verdicts
+The single thing that would let the next attempt proceed, and who can grant it.
 ```
-
-## Rules
-
-- Never guess at root cause -- prove it with evidence
-- Read the actual code in the execution path -- do not rely on function names or comments to infer behavior
-- When adding debug logs, use a consistent prefix (e.g., `[DEBUG:issue-name]`) so they are easy to find and clean up
-- Remove all temporary debug log statements after investigation is complete
-- If remote log access is unavailable, report what logs would be needed and from where
-- Prefer project-specific tooling and scripts over raw CLI commands for log access
-- If the root cause is in a third-party dependency, identify the exact version and known issue
-- Always verify the fix resolves the issue -- do not mark investigation complete without proof

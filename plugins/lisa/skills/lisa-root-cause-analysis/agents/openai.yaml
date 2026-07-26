@@ -1,4 +1,4 @@
 display_name: "Root Cause Analysis"
-short_description: "Root cause analysis methodology"
+short_description: "Prove what causes a defect: hypotheses written down before evidence is gathered, positive confirmation by execution rather than by…"
 default_prompt:
-  - "Use $lisa-root-cause-analysis: Root cause analysis methodology."
+  - "Use $lisa-root-cause-analysis: Prove what causes a defect: hypotheses written down before evidence is gathered, positive confirmation by execution rather than by…."
