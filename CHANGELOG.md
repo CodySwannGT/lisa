@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.305.2](https://github.com/CodySwannGT/lisa/compare/v2.305.1...v2.305.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* **readiness:** flag production secret migrations ([7c4cb4d](https://github.com/CodySwannGT/lisa/commit/7c4cb4d1b2c83410d8710e1e3280d3a30fecf7f8)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** require prod secret tokens ([51f3b51](https://github.com/CodySwannGT/lisa/commit/51f3b51add8f30c290730b576741430784f8d0bf)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.305.1](https://github.com/CodySwannGT/lisa/compare/v2.305.0...v2.305.1) (2026-07-26)
 
 
