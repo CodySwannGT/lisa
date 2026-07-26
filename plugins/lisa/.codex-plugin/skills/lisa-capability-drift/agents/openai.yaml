@@ -1,0 +1,4 @@
+display_name: "Capability Drift"
+short_description: "Detect the fleet getting worse…"
+default_prompt:
+  - "Use $lisa-capability-drift: Detect the fleet getting worse…."
