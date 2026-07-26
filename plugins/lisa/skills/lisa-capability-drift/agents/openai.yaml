@@ -1,0 +1,4 @@
+display_name: "Capability Drift"
+short_description: "Detect the fleet getting worse when nobody changed anything — sample the evaluation suite against a recorded baseline on a cadence, decide…"
+default_prompt:
+  - "Use $lisa-capability-drift: Detect the fleet getting worse when nobody changed anything — sample the evaluation suite against a recorded baseline on a cadence, decide…."

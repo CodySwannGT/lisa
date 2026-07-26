@@ -41,6 +41,7 @@ const EXPECTED_BASE_CODEX_MANAGED_FILES = [
   "agents/lisa/builder.toml",
   "agents/lisa/confluence-prd-intake.toml",
   "agents/lisa/debug-specialist.toml",
+  "agents/lisa/eval-specialist.toml",
   "agents/lisa/git-history-analyzer.toml",
   "agents/lisa/github-agent.toml",
   "agents/lisa/github-build-intake.toml",
