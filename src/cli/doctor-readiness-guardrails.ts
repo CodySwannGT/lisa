@@ -109,6 +109,7 @@ const MIGRATION_COMMANDS: readonly RegExp[] = [
 const PRODUCTION_MARKERS: readonly RegExp[] = [
   /\b(rails_env|node_env|app_env|django_settings_module|environment)\s*[:=]\s*["']?prod(?:uction)?["']?(?=\s|$)/,
   /--env(ironment)?[= ]prod/,
+  /\b(?:database_url|db_url|url)\s*[:=]\s*\$\{\{\s*secrets\.(?:[a-z0-9]+_)*(?:prod|production)(?:_[a-z0-9]+)*\s*\}\}/,
   /\bprod(uction)?\.tfvars\b/,
 ];
 
