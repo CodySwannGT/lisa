@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.305.3](https://github.com/CodySwannGT/lisa/compare/v2.305.2...v2.305.3) (2026-07-26)
+
+
+### Bug Fixes
+
+* move lisa minimatch off vulnerable brace path ([7d76deb](https://github.com/CodySwannGT/lisa/commit/7d76deb40dcd1a36f34863d97b16dd804171e8ed)), closes [CodySwannGT/lisa#2045](https://github.com/CodySwannGT/lisa/issues/2045)
+
 ### [2.305.2](https://github.com/CodySwannGT/lisa/compare/v2.305.1...v2.305.2) (2026-07-26)
 
 
