@@ -1,0 +1,4 @@
+display_name: "Evaluation Suite"
+short_description: "Build and maintain the entity's…"
+default_prompt:
+  - "Use $lisa-evaluation-suite: Build and maintain the entity's…."
