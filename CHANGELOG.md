@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.309.2](https://github.com/CodySwannGT/lisa/compare/v2.309.1...v2.309.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* reconnect Android emulator before Maestro ([54b3436](https://github.com/CodySwannGT/lisa/commit/54b3436e6901167d685c7ab8418621a393b092b6)), closes [CodySwannGT/lisa#2091](https://github.com/CodySwannGT/lisa/issues/2091)
+
 ### [2.309.1](https://github.com/CodySwannGT/lisa/compare/v2.309.0...v2.309.1) (2026-07-26)
 
 
