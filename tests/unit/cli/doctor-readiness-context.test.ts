@@ -231,26 +231,49 @@ describe("context-routing dimension identity", () => {
   it("redacts B6 documentation excerpts from the persisted report", async () => {
     const cwd = await getTempDir();
     await writeRoutingArtifacts(cwd);
+    const sensitiveCustomer = "Acme Private Rollout 713";
     const sensitiveClaim =
       "Every push is blocked by `.github/workflows/absent.yml` before " +
-      "customer Acme Private Rollout 713 can deploy.";
+      `the "Deploy" label for customer ${sensitiveCustomer} can deploy.`;
+    const expectedMarker =
+      "[doc excerpt redacted sha256:" +
+      "df458609e0672ebf3d634fac3f691cb123d5118f0003671f113477191c240dcc" +
+      "]";
     await writeRepoFile(cwd, "README.md", `# Scratch\n\n${sensitiveClaim}\n`);
 
     await checkRepositoryReadiness(cwd);
 
     const raw = await readFile(resolveReadinessReportPath(cwd), "utf8");
     expect(raw).not.toContain(sensitiveClaim);
-    expect(raw).not.toContain("Acme Private Rollout 713");
-    expect(raw).toContain("[doc excerpt redacted sha256:");
+    expect(raw).not.toContain('the "Deploy" label');
+    expect(raw).not.toContain(sensitiveCustomer);
+    expect(raw).toContain(expectedMarker);
 
     const report = JSON.parse(raw) as {
       readonly blockers: readonly {
         readonly id: string;
         readonly evidence: string;
       }[];
+      readonly dimensions: readonly {
+        readonly id: string;
+        readonly findings: readonly { readonly evidence?: string }[];
+      }[];
     };
     const blocker = report.blockers.find(entry => entry.id === BLOCKER_ID);
+    expect(blocker).toBeDefined();
     expect(blocker?.evidence).not.toContain(sensitiveClaim);
-    expect(blocker?.evidence).toContain("[doc excerpt redacted sha256:");
+    expect(blocker?.evidence).not.toContain(sensitiveCustomer);
+    expect(blocker?.evidence).toContain(expectedMarker);
+
+    const dimension = report.dimensions.find(
+      entry => entry.id === DIMENSION_ID
+    );
+    const finding = dimension?.findings.find(entry =>
+      entry.evidence?.includes(expectedMarker)
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.evidence).not.toContain(sensitiveClaim);
+    expect(finding?.evidence).not.toContain(sensitiveCustomer);
+    expect(finding?.evidence).toContain(expectedMarker);
   });
 });

@@ -7,7 +7,7 @@ import { CONTEXT_ROUTING_DIMENSION_ID } from "./doctor-readiness-context.js";
 import type { ReadinessReport } from "./doctor-readiness.js";
 
 /** Evidence strings for B6 include source-doc excerpts; persist hashes instead. */
-const DOC_EXCERPT_PATTERN = /: "([^"]+)"/g;
+const DOC_EXCERPT_PATTERN = /: "([\s\S]*?)"(?=(?: \| `| \| \(\+\d|$))/g;
 
 /**
  * Remove source-document prose excerpts from the persisted report while keeping
@@ -59,16 +59,13 @@ function sanitizeContextFinding(value: unknown): unknown {
 }
 
 /**
- * Replace quoted documentation excerpts with a short stable digest.
+ * Replace quoted documentation excerpts with a stable digest.
  * @param text - Evidence text
  * @returns Evidence text without the raw excerpt
  */
 function redactDocExcerpts(text: string): string {
   return text.replace(DOC_EXCERPT_PATTERN, (_match, excerpt: string) => {
-    const digest = createHash("sha256")
-      .update(excerpt)
-      .digest("hex")
-      .slice(0, 12);
+    const digest = createHash("sha256").update(excerpt).digest("hex");
     return `: [doc excerpt redacted sha256:${digest}]`;
   });
 }
