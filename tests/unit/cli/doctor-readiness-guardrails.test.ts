@@ -283,7 +283,7 @@ describe("assessFeedbackGuardrailsDimension — ordinary operations stay clear",
     expectNoBlocker(record.findings);
   });
 
-  it("does not stand B4 when step env names a non-production environment", async () => {
+  it("does not stand B4 when step env names non-production evidence", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, DEPLOY_YML, [
       DEPLOY_NAME_LINE,
@@ -292,9 +292,11 @@ describe("assessFeedbackGuardrailsDimension — ordinary operations stay clear",
       INFRA_JOB,
       RUNS_ON,
       STEPS,
-      "      - run: bundle exec rails db:migrate",
+      "      - run: npx prisma migrate deploy",
       "        env:",
       "          RAILS_ENV: nonprod",
+      "          DATABASE_URL: ${{ secrets.NONPROD_DATABASE_URL }}",
+      "          DB_URL: ${{ secrets.PRODUCT_DATABASE_URL }}",
     ]);
 
     const record = await assessFeedbackGuardrailsDimension(root);
