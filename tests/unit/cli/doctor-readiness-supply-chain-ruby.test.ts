@@ -9,9 +9,8 @@ import { assessDependenciesSupplyChainDimension } from "../../../src/cli/doctor-
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
 import {
   asFindings,
-  FAIL,
   makeScratchRepo,
-  PASS,
+  SKIP,
   writeRepoFile,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
@@ -26,6 +25,18 @@ const GEMFILE_LOCK = "Gemfile.lock";
 
 /** The update-bot config path used as a Ruby dependency-audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
+
+/** Shared RubyGems source declaration used by fixture Gemfiles. */
+const RUBYGEMS_SOURCE = 'source "https://rubygems.org"';
+
+/** Constrained pg dependency used by passing and audit-gate fixtures. */
+const CONSTRAINED_PG_GEM = 'gem "pg", "~> 1.5"';
+
+/** Minimal Bundler lockfile body used by fixture repositories. */
+const MINIMAL_GEMFILE_LOCK = "GEM\n  specs:\n";
+
+/** Evidence text emitted when no Ruby dependency-audit gate is present. */
+const RUBY_AUDIT_GATE_EVIDENCE = "Ruby dependency-audit gate";
 
 /** A dependabot config that watches Bundler dependencies. */
 const BUNDLER_DEPENDABOT_YML = [
@@ -62,22 +73,17 @@ describe("assessDependenciesSupplyChainDimension — Ruby/Bundler repositories",
     await writeRepoFile(
       cwd,
       GEMFILE,
-      [
-        'source "https://rubygems.org"',
-        'gem "rails", "~> 7.2.0"',
-        'gem "pg"',
-        "",
-      ].join("\n")
+      [RUBYGEMS_SOURCE, 'gem "rails", "~> 7.2.0"', 'gem "pg"', ""].join("\n")
     );
 
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
-    expect(record.status).toBe(FAIL);
+    expect(record.status).toBe("FAIL");
     const finding = asFindings(record.findings).find(
       candidate => candidate.blocker === BLOCKER_ID
     );
     expect(finding?.evidence).toContain(GEMFILE_LOCK);
-    expect(finding?.evidence).toContain("Ruby dependency-audit gate");
+    expect(finding?.evidence).toContain(RUBY_AUDIT_GATE_EVIDENCE);
     expect(finding?.evidence).toContain("pg");
     expect(assessReadiness([record]).blockers[0].id).toBe(BLOCKER_ID);
   });
@@ -87,25 +93,84 @@ describe("assessDependenciesSupplyChainDimension — Ruby/Bundler repositories",
     await writeRepoFile(
       cwd,
       GEMFILE,
-      [
-        'source "https://rubygems.org"',
-        'gem "rails", "~> 7.2.0"',
-        'gem "pg", "~> 1.5"',
-        "",
-      ].join("\n")
+      [RUBYGEMS_SOURCE, 'gem "rails", "~> 7.2.0"', CONSTRAINED_PG_GEM, ""].join(
+        "\n"
+      )
     );
-    await writeRepoFile(cwd, GEMFILE_LOCK, "GEM\n  specs:\n");
+    await writeRepoFile(cwd, GEMFILE_LOCK, MINIMAL_GEMFILE_LOCK);
     await writeRepoFile(cwd, DEPENDABOT_PATH, BUNDLER_DEPENDABOT_YML);
 
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
-    expect(record.status).toBe(PASS);
+    expect(record.status).toBe("PASS");
     expect(assessReadiness([record]).blockers).toEqual([]);
     const findings = asFindings(record.findings);
     expect(findings[0].evidence).toContain(GEMFILE);
     expect(findings[0].evidence).toContain(GEMFILE_LOCK);
+    expect(findings[0].evidence).not.toContain("audit exception");
     for (const finding of findings) {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
+  });
+
+  it("SKIPs with an explicit reason when Gemfile delegates through gemspec", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(
+      cwd,
+      GEMFILE,
+      [RUBYGEMS_SOURCE, "gemspec", ""].join("\n")
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(SKIP);
+    const findings = asFindings(record.findings);
+    expect(findings[0].reason).toContain("gemspec");
+    expect(findings[0].reason).not.toContain(
+      "owns no Ruby third-party surface"
+    );
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("does not accept commented Bundler audit mentions as Ruby audit gates", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(
+      cwd,
+      GEMFILE,
+      [RUBYGEMS_SOURCE, CONSTRAINED_PG_GEM, ""].join("\n")
+    );
+    await writeRepoFile(cwd, GEMFILE_LOCK, MINIMAL_GEMFILE_LOCK);
+    await writeRepoFile(
+      cwd,
+      ".github/workflows/quality.yml",
+      "jobs:\n  test:\n    steps:\n      # - run: bundle audit\n"
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe("FAIL");
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain(RUBY_AUDIT_GATE_EVIDENCE);
+  });
+
+  it("does not accept Renovate unless it names Bundler coverage", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(
+      cwd,
+      GEMFILE,
+      [RUBYGEMS_SOURCE, CONSTRAINED_PG_GEM, ""].join("\n")
+    );
+    await writeRepoFile(cwd, GEMFILE_LOCK, MINIMAL_GEMFILE_LOCK);
+    await writeRepoFile(cwd, "renovate.json", '{"enabledManagers":["npm"]}\n');
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe("FAIL");
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain(RUBY_AUDIT_GATE_EVIDENCE);
   });
 });

@@ -14,6 +14,12 @@ const RUBY_ECOSYSTEM_PATTERN = /package-ecosystem:\s*["']?bundler\b/i;
 const RUBY_AUDIT_GATE_PATTERN =
   /\b(bundle\s+audit|bundler-audit|ruby-advisory-db)\b/i;
 
+/** Renovate manager spelling for Ruby/Bundler dependencies. */
+const RENOVATE_BUNDLER_PATTERN = /\bbundler\b/i;
+
+/** Gemfile directive that delegates dependency declarations into a gemspec. */
+const GEMSPEC_DIRECTIVE_PATTERN = /^\s*gemspec\b/u;
+
 /** Files that may declare an audit gate in their text. */
 const GATE_DIRECTORIES: readonly string[] = [
   path.join(".github", "workflows"),
@@ -47,6 +53,7 @@ export interface RubyDependencySpec {
 /** What reading a Ruby/Bundler manifest established. */
 export type RubyManifestOutcome =
   | { readonly kind: "absent" }
+  | { readonly kind: "unassessable"; readonly reason: string }
   | {
       readonly kind: "ok";
       readonly manifestPath: "Gemfile";
@@ -90,6 +97,62 @@ async function listDirectory(
 }
 
 /**
+ * Remove one layer of YAML quoting from a command scalar.
+ * @param value - Potentially quoted YAML scalar text
+ * @returns The command text without balanced outer quotes
+ */
+function unquoteCommand(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+  const first = trimmed.at(0);
+  const last = trimmed.at(-1);
+  return (first === '"' && last === '"') || (first === "'" && last === "'")
+    ? trimmed.slice(1, -1)
+    : trimmed;
+}
+
+/**
+ * Strip a leading YAML list marker from a possibly indented step line.
+ * @param trimmed - A source line after outer whitespace was removed
+ * @returns The line without a leading `- ` marker
+ */
+function stripYamlListMarker(trimmed: string): string {
+  return trimmed.startsWith("- ") ? trimmed.slice(2).trimStart() : trimmed;
+}
+
+/**
+ * Extract a command-shaped line from CI/hook text.
+ * @param line - One source line
+ * @returns The executable command candidate, or null
+ */
+function executableCommandCandidate(line: string): string | null {
+  const trimmed = line.trim();
+  if (trimmed === "" || trimmed.startsWith("#")) {
+    return null;
+  }
+  const commandish = stripYamlListMarker(trimmed);
+  if (commandish.toLowerCase().startsWith("run:")) {
+    const command = unquoteCommand(commandish.slice("run:".length));
+    return command === "|" || command === ">" ? null : command;
+  }
+  return commandish;
+}
+
+/**
+ * Whether CI/hook text contains a real Ruby dependency audit command.
+ * @param source - File text
+ * @returns True when an executable command audits Bundler dependencies
+ */
+function hasRubyAuditCommand(source: string): boolean {
+  return source.split(/\r?\n/).some(line => {
+    const command = executableCommandCandidate(line);
+    return command !== null && RUBY_AUDIT_GATE_PATTERN.test(command);
+  });
+}
+
+/**
  * Read the Ruby/Bundler dependency manifest when no JavaScript manifest exists.
  * @param root - Repository root
  * @returns Parsed Gemfile specs, or absent when this is not a Bundler project
@@ -101,6 +164,9 @@ export async function readRubyManifest(
   if (source === null) {
     return { kind: "absent" };
   }
+  const hasGemspecDirective = source
+    .split(/\r?\n/)
+    .some(line => GEMSPEC_DIRECTIVE_PATTERN.test(line.trim()));
   const specs = source.split(/\r?\n/).flatMap(line => {
     const trimmed = line.trim();
     if (trimmed === "" || trimmed.startsWith("#")) {
@@ -119,6 +185,15 @@ export async function readRubyManifest(
       },
     ];
   });
+  if (hasGemspecDirective) {
+    return {
+      kind: "unassessable",
+      reason:
+        "`Gemfile` delegates dependency declarations through `gemspec`; " +
+        "Ruby supply-chain confidence is not established because this " +
+        "offline pass does not parse gemspec dependency declarations yet",
+    };
+  }
   return { kind: "ok", manifestPath: "Gemfile", specs };
 }
 
@@ -140,7 +215,7 @@ export async function findRubyLockfile(root: string): Promise<string | null> {
 function coversRubyTree(botFile: string, source: string): boolean {
   return botFile.includes("dependabot")
     ? RUBY_ECOSYSTEM_PATTERN.test(source)
-    : true;
+    : RENOVATE_BUNDLER_PATTERN.test(source);
 }
 
 /**
@@ -163,7 +238,7 @@ export async function findRubyAuditGate(root: string): Promise<string | null> {
   ];
   for (const file of scanned) {
     const source = await readFileOrNull(root, file);
-    if (source !== null && RUBY_AUDIT_GATE_PATTERN.test(source)) {
+    if (source !== null && hasRubyAuditCommand(source)) {
       return file.split(path.sep).join("/");
     }
   }
