@@ -335,10 +335,13 @@ focus (non-authoritative guidance).
   error/crash signals, logs, operational metrics, and **user-reported problems**
   — support tickets, in-product reports, and whatever channel users actually
   reach for. Telemetry alone is a partial view: the defects users report are
-  systematically not the defects systems self-report, and the ratio of affected
-  users to reports is large enough that report volume MUST NOT be read as
-  impact. Additional signal classes (traces, real-user monitoring, synthetics,
-  product analytics) apply per P3.
+  systematically not the defects systems self-report. Report volume MUST NOT be
+  used as an impact measure on its own — the ratio of affected users to reports
+  varies by product, severity, and channel, and is not a constant the entity may
+  assume — so impact estimates MUST be triangulated from at least one
+  independent signal (severity classification, affected-user telemetry,
+  sampling, or session/journey data). Additional signal classes (traces,
+  real-user monitoring, synthetics, product analytics) apply per P3.
 - **AC4.2 Sensor liveness.** Every sensor MUST have a liveness mechanism
   independent of its findings. "No findings" and "sensor dead" MUST be
   distinguishable states (P1, P2).
@@ -364,11 +367,17 @@ focus (non-authoritative guidance).
 - **AC4.6 Finding integrity.** Every mechanism that produces findings — sensor,
   audit loop, test generator, reviewing agent — MUST have a rejection stage
   between the finding and intake (AC4.3), and its **false-positive rate MUST be
-  measured and reported** rather than assumed. Findings bearing artifacts are
-  subject to the adjudication rule in §7; independent re-examination (repeated
-  checks, distinct perspectives, or a differently-configured reviewer) is the
-  expected mechanism, and a single self-attested finding is *asserted*
-  evidence. False positives MUST be traced to a cause in the producing
+  measured and reported** rather than assumed. The entity MUST declare a
+  false-positive tolerance per finding source; it MUST be disclosed in the
+  attestation report and is subject to the ratchet (AC5.4). Findings bearing
+  artifacts are subject to the adjudication rule in §7, and a single
+  self-attested finding is *asserted* evidence. Independence MUST come from a
+  separately controlled actor or mechanism — a distinct perspective, a
+  differently-configured reviewer, or a different implementation. Re-running the
+  same mechanism is not independence: it reduces variance while reproducing
+  every blind spot the mechanism has, so repeated checks count toward
+  independence only where that independence is itself demonstrable. False
+  positives MUST be traced to a cause in the producing
   mechanism and fixed there — dismissing instances while leaving the generator
   unchanged converts a measurable defect into recurring operator toil. An
   unfiltered stream of findings, however capable the model that produced it,
@@ -413,10 +422,15 @@ focus (non-authoritative guidance).
   their expected violation count computed **at the entity's actual run
   volume**. Instruction adherence is a rate, not a property: a rule breached
   once per hundred agent-days is unremarkable across ten agents under human
-  review and unacceptable across a thousand agents shipping unattended. Any
-  advisory control whose expected violations exceed the declared tolerance
-  MUST be promoted to an authoritative gate (AC4.5) or have its residual risk
-  formally accepted.
+  review and unacceptable across a thousand agents shipping unattended. A rate
+  requires a stated denominator, so the system description MUST declare, per
+  advisory control, the **exposure unit** it is measured against (control
+  opportunities, eligible runs, or agent-days), the **observation window**, and
+  the **violation tolerance**; all three are disclosed in the attestation report
+  and the tolerance is subject to the ratchet (AC5.4). Any advisory control
+  whose expected violations over that window exceed its tolerance MUST be
+  promoted to an authoritative gate (AC4.5) or have its residual risk formally
+  accepted.
 
 ### AC6 — Identity, Credentials, and Access *(mirrors CC6, Logical Access)*
 
@@ -487,7 +501,14 @@ focus (non-authoritative guidance).
   or canary on real work — and MUST be revertible. Qualification MUST satisfy
   P10: repeated runs per condition with the **distribution reported** rather
   than a point estimate, over tasks the entity owns and that represent its own
-  work mix, against a decision rule stated before the runs. Third-party or
+  work mix, against a decision rule stated before the runs. To be auditable the
+  qualification protocol MUST declare, in advance, the minimum number of runs
+  per condition, the statistic used to express spread or uncertainty, and the
+  threshold that constitutes a pass. These values are entity-declared rather
+  than fixed by this specification, but MUST be disclosed in the attestation
+  report and are subject to the ratchet (AC5.4); a protocol whose run count
+  cannot distinguish the claimed effect from its own run-to-run spread is an
+  exception, not a qualification. Third-party or
   vendor benchmark rankings MUST NOT stand as qualification evidence — they
   measure a task mix that is not the entity's, at a precision their own
   run-to-run variance does not support. Vendor-forced changes MUST trigger the
@@ -588,9 +609,16 @@ focus (non-authoritative guidance).
   compute, re-running one suite against every change explores far less of the
   input space than generating new cases against a stable one, and under
   agent-scale throughput the unexplored space is where quality quietly goes
-  (P9). Every defect found by any means MUST be retained as a permanent
+  (P9). Every defect found by any means MUST be retained as a durable
   regression case, so the suite accumulates the system's actual failure history
-  rather than its authors' expectations. A generator is itself subject to SI3:
+  rather than its authors' expectations. The corpus is a governed artifact, not
+  an append-only dump: it MUST be deduplicated, minimized, and sanitized under
+  the context-boundary rule (DP1), and MUST carry a retention policy. Where a
+  faithful reproduction cannot be retained safely — it embeds secrets,
+  personal, or regulated data — a minimized or synthetic reproducer MUST be
+  substituted and the substitution recorded; where no safe reproducer exists,
+  the omission MUST be recorded as accepted residual risk rather than left
+  implicit. A generator is itself subject to SI3:
   it is evidence only to the extent its efficacy is measured.
 
 ### DP — Data Protection *(supplemental; applies where sensitive or regulated data is in scope — analogous to Confidentiality/Privacy)*
@@ -685,7 +713,9 @@ promotion on observed signal (AC8.5); defect replay (SI3); generative testing
 (SI9); loop stewardship as a Complementary Human Control (§9). The 0.1 file name
 is retained so existing references and ingestion records stay valid.*
 
-*Known open items: outcome-vocabulary finalization (AC2.2); quantitative floors
-(SI2) and false-positive tolerances (AC4.6) intentionally entity-declared —
-nonzero, disclosed, and ratcheted — rather than fixed numbers; ISO 27001 and
-SSDF crosswalk annexes; trademark diligence on the name; governance venue.*
+*Known open items: outcome-vocabulary finalization (AC2.2); ISO 27001 and SSDF
+crosswalk annexes; trademark diligence on the name; governance venue. By design
+rather than omission, the specification fixes no numbers: coverage floors (SI2),
+false-positive tolerances (AC4.6), advisory-control violation tolerances
+(AC5.6), qualification run counts and thresholds (AC8.3), and SLOs (SI8) are all
+entity-declared, disclosed in the report, and subject to the ratchet (AC5.4).*

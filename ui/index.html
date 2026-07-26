@@ -5284,7 +5284,7 @@
                   },
                   {
                     q: "Is a model, effort level, or prompt change adopted on one run or on a distribution?",
-                    help: "TASC AC8.3 / P10 — run-to-run variance inside one configuration routinely exceeds the gap between the configurations you are comparing, so a good first run is an anecdote. Qualify on repeated runs over your own representative tasks, with the spread reported and the decision rule fixed in advance. Public benchmark rankings measure someone else's task mix.",
+                    help: "TASC AC8.3 / P10 — run-to-run variance inside one configuration routinely exceeds the gap between the configurations you are comparing, so a good first run is an anecdote. Qualify on repeated runs over your own representative tasks, with the spread reported, and the run count, spread statistic and pass threshold all fixed in advance. Public benchmark rankings measure someone else's task mix.",
                     kind: "select",
                     options: [
                       "Repeated runs on our tasks, distribution reported",
@@ -5905,7 +5905,7 @@
                   },
                   {
                     q: "Which of your rules live only in agent instructions — and how often are they broken?",
-                    help: "TASC AC5.6 — instruction adherence is a rate, not a property. A rule broken once per hundred agent-days is invisible across ten supervised agents and routine across a thousand unattended ones. Inventory the prose-only rules, measure the breach rate, and promote anything over tolerance to a gate.",
+                    help: "TASC AC5.6 — instruction adherence is a rate, not a property. A rule broken once per hundred agent-days is invisible across ten supervised agents and routine across a thousand unattended ones. Inventory the prose-only rules, measure the breach rate against a declared exposure unit and window, and promote anything over tolerance to a gate.",
                     kind: "select",
                     options: [
                       "Inventoried, breach rate measured, over-tolerance rules promoted to gates",
@@ -6089,7 +6089,7 @@
                   },
                   {
                     q: "Do user-reported problems become work items?",
-                    help: "TASC AC4.1 — the defects users report are systematically not the defects systems self-report, and a ticket-to-PR loop is the feedback path that actually closes. Report counts are not impact either: hundreds of affected users per ticket is a normal ratio.",
+                    help: "TASC AC4.1 — the defects users report are systematically not the defects systems self-report, and a ticket-to-PR loop is the feedback path that actually closes. Report counts are not impact either: the affected-users-per-report ratio varies by product, severity and channel, so impact needs triangulating against an independent signal.",
                     kind: "select",
                     options: [
                       "Support tickets flow to build-ready work automatically",
@@ -6099,7 +6099,7 @@
                   },
                   {
                     q: "Who checks a finding before it becomes work — and what is the false-positive rate?",
-                    help: "TASC AC4.6 — an unfiltered stream of findings is not a gift to the recipient, it is work transferred to them. Every finding source needs a rejection stage, a measured false-positive rate, and fixes applied to the generator rather than dismissals applied to instances.",
+                    help: "TASC AC4.6 — an unfiltered stream of findings is not a gift to the recipient, it is work transferred to them. Every finding source needs a rejection stage, a declared and measured false-positive rate, and fixes applied to the generator rather than dismissals applied to instances. Independence means a separately controlled actor or mechanism: re-running the same one reproduces its blind spots.",
                     kind: "select",
                     options: [
                       "Independent adjudication, false-positive rate measured",

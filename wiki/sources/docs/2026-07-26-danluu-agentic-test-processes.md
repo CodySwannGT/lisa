@@ -72,9 +72,11 @@ Reader-safe summary; the post is the authority for its own claims.
     spend is unreliable (one goal-mode run reported \$60M, then \$200k). → §9
     loop stewardship CHC, AC1.6 billing-boundary metering.
 
-Also noted, not yet normative: support-ticket counts understate impact by
-roughly 100:1–1000:1 (typical 200:1), which is why AC4.1 now warns against
-reading report volume as impact.
+Also noted: the author's own join of incident data to tickets put affected users
+per report at roughly 100:1–1000:1 (typical 200:1) for one product. AC4.1 takes
+the durable half of that — report volume is not an impact measure and must be
+triangulated against an independent signal — without encoding the ratio, which
+varies by product, severity, and channel.
 
 ## Provenance Notes
 
