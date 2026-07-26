@@ -2089,7 +2089,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "18477ffd25c6cdcdf06147528c31498c317c2b8ede33a8e44a4a5d10e081a778",
+      "8c0e3a3e31ef900a35f181108e10aa2f4337684ccaa6b2aa41353d6fc152fab0",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
