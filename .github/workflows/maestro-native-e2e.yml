@@ -350,6 +350,15 @@ jobs:
           # trailing `\` as a flow path ("Flow path does not exist"). Keep
           # each command on ONE line.
           script: |
+            # android-emulator-runner can observe the AVD while it is still
+            # offline, leaving Maestro's dadb connection bound to that stale
+            # server state (mobile-dev-inc/Maestro#3451). Recreate adb only
+            # after the action's boot wait has completed, then prove the
+            # device is online before installing or starting Maestro.
+            adb kill-server
+            adb start-server
+            adb wait-for-device
+            adb shell getprop sys.boot_completed | grep -q 1
             adb install app-android.apk
             maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}
 
