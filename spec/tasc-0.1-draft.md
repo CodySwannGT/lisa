@@ -183,7 +183,9 @@ An attestation MUST include a system description containing, at minimum:
 8. **Complementary Human Controls** (§9), enumerated.
 9. **Subservice organizations** (§8) and the method of treatment.
 10. **Risk tiers** (AC8.8) with the autonomy permitted in each, and the
-    threat-to-control mapping (AC3.1).
+    bidirectional threat-to-control and control-to-threat mapping (AC3.1), so
+    neither an unmapped threat nor an unmapped control can hide in the
+    description.
 11. **Accountability register.** The accountable party (AC1.7) for the ADS and
     for each registered loop, deployment target, and Complementary Human
     Control; and, for each person or role holding standing to accept risk
@@ -420,12 +422,18 @@ focus (non-authoritative guidance).
   (§4) rather than its granted permissions alone: an agent that cannot deploy
   but can ask a peer that can deploy has deploy authority, and a permission
   boundary that a request to a peer can route around is advisory (P4).
-  Separation of duties (AC1.3) MUST hold against delegation — the authoring
-  agent MUST NOT be able to obtain approval, verification, or deployment by
-  asking another agent for it. Where agents do coordinate, they SHOULD do so
-  over the same channels as humans, so the exchange is observable and auditable
-  (AC1.5), and inter-agent requests MUST be attributable to the requesting agent
-  (AC1.1). *Focus: this criterion exists because the failure is documented, not
+  Separation of duties (AC1.3) MUST hold against delegation. Requesting work
+  from an independently authorized peer is the designed pattern, not the defect:
+  what MUST NOT be possible is for the authoring agent to **select, control,
+  configure, or override** the agent that approves, verifies, or deploys its
+  work, or to obtain that outcome from a peer whose authority derives from the
+  author's own. An approver an author can choose is an approver the author
+  controls. Every inter-agent request and its outcome MUST be recorded,
+  attributable to the requesting agent (AC1.1), and retained under AC1.5 — an
+  unlogged peer request is precisely the privilege path this criterion exists to
+  close. Agents SHOULD coordinate over the same channels as humans, which is one
+  way to satisfy that requirement; a dedicated audited bus satisfies it equally,
+  and an unaudited side channel satisfies it not at all. *Focus: this criterion exists because the failure is documented, not
   hypothetical — a constrained incident-response agent, unable to deploy by
   design, has been observed asking a peer over chat to push its fix; the request
   was caught only at a human gate.*
