@@ -1,0 +1,4 @@
+display_name: "Delivery Effectiveness"
+short_description: "Measure whether the work the…"
+default_prompt:
+  - "Use $lisa-delivery-effectiveness: Measure whether the work the…."
