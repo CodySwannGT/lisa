@@ -792,10 +792,11 @@ system descriptions; no specific product confers conformance.
 7. Accountability register (AC1.7) and risk-acceptance log (AC1.8: accepting
    party, scope, reason, expiry, re-review status)
 8. Autonomy-rate statement (definition, window, result, CHC boundary actions)
-8. Evidence-authenticity register: artifact adjudications, rejected evidence, and
+9. Evidence-authenticity register: artifact adjudications, rejected evidence, and
    any ADS-produced proof reclassified as asserted
-9. Finding and measurement integrity register: finding-source false-positive
-   rates, metric reconciliation results, and distributional qualification results
+10. Finding and measurement integrity register: finding-source false-positive
+    rates, metric reconciliation results, and distributional qualification
+    results
 
 ---
 
