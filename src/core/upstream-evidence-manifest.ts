@@ -7802,6 +7802,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness-guardrails-ephemeral.test.ts": true,
     "tests/unit/cli/doctor-readiness-guardrails-opaque-actions.test.ts": true,
     "tests/unit/cli/doctor-readiness-guardrails-terraform.test.ts": true,
+    "tests/unit/cli/doctor-readiness-guardrails-wrappers.test.ts": true,
     "tests/unit/cli/doctor-readiness-guardrails.test.ts": true,
     "tests/unit/cli/doctor-readiness-journey.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts": true,
