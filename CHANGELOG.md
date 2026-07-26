@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.309.1](https://github.com/CodySwannGT/lisa/compare/v2.309.0...v2.309.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **readiness:** address bundler review findings ([6661b93](https://github.com/CodySwannGT/lisa/commit/6661b9359e5ef7660f6d7a7fde80f7b543c8b135)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** assess bundler supply-chain confidence ([88b4697](https://github.com/CodySwannGT/lisa/commit/88b469734e49d128db9f2420facaf296fb848734)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ## [2.309.0](https://github.com/CodySwannGT/lisa/compare/v2.308.0...v2.309.0) (2026-07-26)
 
 
