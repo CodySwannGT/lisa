@@ -219,6 +219,9 @@ async function assessRubyDependenciesSupplyChainDimension(
   if (ruby.kind === "absent") {
     return null;
   }
+  if (ruby.kind === "unassessable") {
+    return skipRecord(ruby.reason);
+  }
   if (ruby.specs.length === 0) {
     return skipRecord(
       "`Gemfile` was found but declares no gem dependencies, so this " +
@@ -253,8 +256,7 @@ async function assessRubyDependenciesSupplyChainDimension(
         evidence:
           `Inspected ${ruby.specs.length} gem dependency spec(s) in ` +
           "`Gemfile`: each gem names a constraint, `Gemfile.lock` is " +
-          "committed, a Ruby dependency-audit gate is declared, and every " +
-          "active audit exception carries a written decision.",
+          "committed, and a Ruby dependency-audit gate is declared.",
         checked: [SUPPLY_CHAIN_BLOCKER_ID],
       },
       ...informationalFindings(observations),
