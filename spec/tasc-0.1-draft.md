@@ -239,9 +239,10 @@ focus (non-authoritative guidance).
   requirement → originating intent or signal. At Level 2+, at least one hop
   (change → work item) MUST be enforced mechanically at commit or merge time.
   The chain SHOULD extend to generation lineage — the producing procedure and
-  prompt version (AC8.2) and the pinned model version (AC8.3) — so a defect is
-  traceable to the instruction and runtime that produced it, not only to the
-  intent it served.
+  prompt version (AC8.2) and the pinned model version (AC8.3), recorded per
+  change — so a defect is traceable to the instruction and runtime that
+  produced it, not only to the intent it served. At Level 3, generation
+  lineage is MUST.
   *Focus: enforced work-item references; requirement backlinks; the chain survives
   refactors via history.*
 - **AC1.3 Segregation of duties.** The agent that authored a change MUST NOT be the
