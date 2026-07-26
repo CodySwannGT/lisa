@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.307.0](https://github.com/CodySwannGT/lisa/compare/v2.306.0...v2.307.0) (2026-07-26)
+
+
+### Features
+
+* **spec:** revise TASC to 0.3.0 with responsibility criteria ([7e08ce2](https://github.com/CodySwannGT/lisa/commit/7e08ce277f6e80071d01a4834ed6c22034111369)), closes [CodySwannGT/lisa#2081](https://github.com/CodySwannGT/lisa/issues/2081)
+
+
+### Bug Fixes
+
+* **spec:** correct Annex D numbering and the AC1.7 answer set ([2d656f0](https://github.com/CodySwannGT/lisa/commit/2d656f0422c5cb37724875beab34581f80f570c4)), closes [CodySwannGT/lisa#2081](https://github.com/CodySwannGT/lisa/issues/2081)
+
 ## [2.306.0](https://github.com/CodySwannGT/lisa/compare/v2.305.5...v2.306.0) (2026-07-26)
 
 
