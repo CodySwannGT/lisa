@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.308.0](https://github.com/CodySwannGT/lisa/compare/v2.307.0...v2.308.0) (2026-07-26)
+
+
+### Features
+
+* **spec:** revise TASC to 0.4.0 with standing measurement of agents ([ac0af8b](https://github.com/CodySwannGT/lisa/commit/ac0af8b452c697e4557a7e67a4f0c93911f15f94)), closes [CodySwannGT/lisa#2083](https://github.com/CodySwannGT/lisa/issues/2083)
+
 ## [2.307.0](https://github.com/CodySwannGT/lisa/compare/v2.306.0...v2.307.0) (2026-07-26)
 
 
