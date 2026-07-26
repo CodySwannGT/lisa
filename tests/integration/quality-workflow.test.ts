@@ -371,6 +371,65 @@ describe("quality.yml reusable workflow", () => {
     });
   });
 
+  describe("coverage job service inputs", () => {
+    it("declares inert coverage service and env inputs", () => {
+      const inputs = workflow.on.workflow_call?.inputs ?? {};
+
+      expect(inputs.coverage_services).toEqual({
+        description:
+          "Optional JSON service-container spec for the coverage job. Empty string preserves prior behavior. Accepts an object map or array with image plus optional name, ports, env, options, and healthTimeoutSeconds.",
+        required: false,
+        default: "",
+        type: "string",
+      });
+      expect(inputs.coverage_env).toEqual({
+        description:
+          "Optional JSON object of extra environment variables scoped to the coverage job before test:cov. Empty string preserves prior behavior.",
+        required: false,
+        default: "",
+        type: "string",
+      });
+    });
+
+    it("starts optional service containers and applies env before coverage", () => {
+      const steps = workflow.jobs.test_unit.steps ?? [];
+      const checkIndex = steps.findIndex(step => step.id === "check_script");
+      const serviceIndex = steps.findIndex(
+        step => step.name === "🧰 Start coverage service containers"
+      );
+      const envIndex = steps.findIndex(
+        step => step.name === "🧪 Apply coverage environment"
+      );
+      const coverageIndex = steps.findIndex(
+        step => step.name === "🧪 Run unit tests with coverage"
+      );
+
+      expect(checkIndex).toBeGreaterThanOrEqual(0);
+      expect(serviceIndex).toBeGreaterThan(checkIndex);
+      expect(envIndex).toBeGreaterThan(serviceIndex);
+      expect(coverageIndex).toBeGreaterThan(envIndex);
+
+      const serviceStep = steps[serviceIndex];
+      expect(serviceStep?.if).toBe(
+        "steps.check_script.outputs.exists == 'true' && inputs.coverage_services != ''"
+      );
+      expect(serviceStep?.env?.COVERAGE_SERVICES).toBe(
+        "${{ inputs.coverage_services }}"
+      );
+      expect(serviceStep?.run).toContain("docker rm -f");
+      expect(serviceStep?.run).toContain("docker inspect");
+
+      const envStep = steps[envIndex];
+      expect(envStep?.if).toBe(
+        "steps.check_script.outputs.exists == 'true' && inputs.coverage_env != ''"
+      );
+      expect(envStep?.env?.COVERAGE_ENV).toBe("${{ inputs.coverage_env }}");
+      expect(envStep?.run).toContain(
+        "fs.appendFileSync(process.env.GITHUB_ENV"
+      );
+    });
+  });
+
   describe("e2e route coverage dependencies", () => {
     it("installs host dependencies after detection and before route analysis", () => {
       const steps = workflow.jobs.e2e_coverage.steps ?? [];
