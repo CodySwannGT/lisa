@@ -5282,6 +5282,27 @@
                       "Nothing",
                     ],
                   },
+                  {
+                    q: "Is a model, effort level, or prompt change adopted on one run or on a distribution?",
+                    help: "TASC AC8.3 / P10 — run-to-run variance inside one configuration routinely exceeds the gap between the configurations you are comparing, so a good first run is an anecdote. Qualify on repeated runs over your own representative tasks, with the spread reported and the decision rule fixed in advance. Public benchmark rankings measure someone else's task mix.",
+                    kind: "select",
+                    options: [
+                      "Repeated runs on our tasks, distribution reported",
+                      "One eval run per candidate",
+                      "Vendor or public benchmark scores",
+                      "Vibes and recommendations",
+                    ],
+                  },
+                  {
+                    q: "Is the reasoning / effort level pinned alongside the model version?",
+                    help: "Effort is not monotonic — more thinking makes some tasks worse and costs more on all of them. It is part of the runtime configuration, so it belongs in the pin and in the qualification, not in whatever each agent happens to pass.",
+                    kind: "select",
+                    options: [
+                      "Model, effort and tool config all pinned",
+                      "Model version pinned only",
+                      "Neither pinned",
+                    ],
+                  },
                 ],
               },
               {
@@ -5366,7 +5387,7 @@
                 ],
               },
               {
-                label: "Correctness gates (SI1–SI3 · SI8 · AC5.4)",
+                label: "Correctness gates (SI1–SI3 · SI8–SI9 · AC5.4)",
                 items: [
                   {
                     q: "Is unit behaviour proven on every change?",
@@ -5451,6 +5472,36 @@
                       "No — ratcheted; loosening needs its own reviewed change",
                       "Reviewable like any other change",
                       "Anyone can edit the config",
+                    ],
+                  },
+                  {
+                    q: "Does anything generate new test inputs, or do you only re-run the same suite?",
+                    help: "TASC SI9 — generative testing. A fixed suite only ever checks the cases someone thought of. At equal compute, generating fresh cases against a stable build explores far more of the input space than replaying one suite per change, and under agent volume the unexplored space is where quality quietly goes.",
+                    kind: "select",
+                    options: [
+                      "Continuous generation, outside the per-change gate",
+                      "Property-based tests inside CI only",
+                      "A fuzzer someone ran once",
+                      "No — fixed suite only",
+                    ],
+                    via: [
+                      "fast-check",
+                      "Hypothesis",
+                      "jqwik",
+                      "libFuzzer / AFL++",
+                      "OSS-Fuzz",
+                      "In-house generator",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Can your tests still catch the bugs you have already fixed?",
+                    help: "TASC SI3 — defect replay. Point your generator at your own fixed-bug history: the classes it cannot re-discover are the classes it is not really covering. Agent-written tests read as thorough and are characteristically empty in the adversarial cases, so count and coverage prove nothing here.",
+                    kind: "select",
+                    options: [
+                      "Every fixed defect has a permanent case, replay measured",
+                      "Most fixes get a test — no systematic replay",
+                      "We do not know",
                     ],
                   },
                 ],
@@ -5793,7 +5844,7 @@
                 ],
               },
               {
-                label: "Review & merge (AC8.1 · AC5)",
+                label: "Review & merge (AC8.1 · AC5 · AC5.6)",
                 items: [
                   {
                     q: "What reviews every diff before merge?",
@@ -5850,6 +5901,16 @@
                       "Recently — we can point to it",
                       "It has blocked before",
                       "Never — or we can't tell",
+                    ],
+                  },
+                  {
+                    q: "Which of your rules live only in agent instructions — and how often are they broken?",
+                    help: "TASC AC5.6 — instruction adherence is a rate, not a property. A rule broken once per hundred agent-days is invisible across ten supervised agents and routine across a thousand unattended ones. Inventory the prose-only rules, measure the breach rate, and promote anything over tolerance to a gate.",
+                    kind: "select",
+                    options: [
+                      "Inventoried, breach rate measured, over-tolerance rules promoted to gates",
+                      "Inventoried, adherence not measured",
+                      "We assume the instructions are followed",
                     ],
                   },
                 ],
@@ -5916,10 +5977,21 @@
                       "None",
                     ],
                   },
+                  {
+                    q: "Is a canary promoted on observed signal, or on a timer?",
+                    help: "TASC AC8.5 — the fractional ship is the factory's main source of outside feedback, not just a blast-radius trick. If promotion happens on elapsed time, the canary bounds damage but teaches the system nothing.",
+                    kind: "select",
+                    options: [
+                      "On declared metrics, evaluated automatically",
+                      "A human eyeballs dashboards, then promotes",
+                      "On a timer",
+                      "No canary stage",
+                    ],
+                  },
                 ],
               },
               {
-                label: "Verify & acceptance (SI5–SI6)",
+                label: "Verify & acceptance (SI5–SI6 · §7)",
                 note: "Processing integrity: green CI proves the tests passed, not that the product works. Something has to use it.",
                 items: [
                   {
@@ -5948,10 +6020,21 @@
                       "No",
                     ],
                   },
+                  {
+                    q: "When an agent proves a bug or a fix, where does the proof run?",
+                    help: "TASC §7 — evidence authenticity. Asked to prove a regression, an agent will build a harness that produces the video you asked for, on a path that is not the one under claim. A convincing artifact from a self-built environment is an assertion, not observation: require the real path, and have something other than the producer check the artifact and the code that made it.",
+                    kind: "select",
+                    options: [
+                      "The real path, reproduced independently of the producer",
+                      "The real path, checked by the producing agent",
+                      "A harness the agent built for the proof",
+                      "We take the agent's word",
+                    ],
+                  },
                 ],
               },
               {
-                label: "Observe (AC4)",
+                label: "Observe (AC4 · AC4.6–4.8)",
                 items: [
                   {
                     q: "What captures production errors?",
@@ -6002,6 +6085,36 @@
                       "Mixpanel",
                       "GA4",
                       "None",
+                    ],
+                  },
+                  {
+                    q: "Do user-reported problems become work items?",
+                    help: "TASC AC4.1 — the defects users report are systematically not the defects systems self-report, and a ticket-to-PR loop is the feedback path that actually closes. Report counts are not impact either: hundreds of affected users per ticket is a normal ratio.",
+                    kind: "select",
+                    options: [
+                      "Support tickets flow to build-ready work automatically",
+                      "A human triages them into tickets",
+                      "Support and engineering do not connect",
+                    ],
+                  },
+                  {
+                    q: "Who checks a finding before it becomes work — and what is the false-positive rate?",
+                    help: "TASC AC4.6 — an unfiltered stream of findings is not a gift to the recipient, it is work transferred to them. Every finding source needs a rejection stage, a measured false-positive rate, and fixes applied to the generator rather than dismissals applied to instances.",
+                    kind: "select",
+                    options: [
+                      "Independent adjudication, false-positive rate measured",
+                      "Independent check, rate not measured",
+                      "Findings go straight to the queue",
+                    ],
+                  },
+                  {
+                    q: "When you fix a bug, do you go looking for its siblings?",
+                    help: "TASC AC4.8 — suppressing the symptom destroys the signal that made the whole defect class findable; the rest stay in place and stop being observable. Fix at the cause, sweep for siblings, and aim the regression test at the cause.",
+                    kind: "select",
+                    options: [
+                      "Fix at the cause, then sweep for siblings",
+                      "Fix at the cause",
+                      "Fix the symptom and move on",
                     ],
                   },
                 ],
@@ -6086,7 +6199,7 @@
                 ],
               },
               {
-                label: "Governance & accountability (AC1 · AC9.1 · DP)",
+                label: "Governance & accountability (AC1 · AC4.7 · AC9.1 · DP)",
                 note: "The audit-trail cluster: everything a human used to vouch for by being in the room.",
                 items: [
                   {
@@ -6192,6 +6305,26 @@
                       "Retained — policy + access control",
                       "Retained ad-hoc",
                       "Not retained",
+                    ],
+                  },
+                  {
+                    q: "Who computes the numbers your gates and dashboards depend on?",
+                    help: "TASC AC4.7 — autonomy rate, threshold compliance, canary verdicts and conformance state are all machine-computed claims. Agents are strikingly bad at data analysis and will publish impossible numbers with confidence, so the measurement path needs independence from the work it judges plus range and invariant checks. Beating your own previous version is not evidence either.",
+                    kind: "select",
+                    options: [
+                      "An independent mechanism, with range and invariant checks",
+                      "Agents compute them, a human spot-checks",
+                      "Agents compute and publish them",
+                    ],
+                  },
+                  {
+                    q: "Where is agent spend measured?",
+                    help: "TASC AC1.6 — an agent's account of what it spent is not evidence of what it spent; self-reported figures have been wrong by orders of magnitude. Meter at the billing or gateway boundary, where the ceiling can also be enforced.",
+                    kind: "select",
+                    options: [
+                      "At the billing or gateway boundary",
+                      "From agent-reported usage",
+                      "Not measured",
                     ],
                   },
                 ],
