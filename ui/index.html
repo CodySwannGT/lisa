@@ -5227,7 +5227,7 @@
                 ],
               },
               {
-                label: "The agent's program (AC8.2–8.3 · AC4.5)",
+                label: "The agent's program (AC8.2–8.3 · AC4.5 · P9–P10)",
                 note: "Prompts, skills and models are the factory's own source code and runtime. This group asks whether that layer is under change control — or improvised per run.",
                 items: [
                   {
@@ -5267,6 +5267,24 @@
                       "Braintrust",
                       "Langfuse / LangSmith",
                       "In-house evals",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Do agent-program and model qualifications report repeated-run distributions?",
+                    help: "TASC P9, P10, AC8.2 and AC8.3. A single lucky run does not qualify a prompt, model or effort-level change. The evidence names the condition tested, number of repetitions, and distribution of outcomes.",
+                    kind: "select",
+                    options: [
+                      "Repeated runs — distribution reported",
+                      "Some repeats, summarized informally",
+                      "One passing run",
+                      "Vendor benchmark only",
+                    ],
+                    via: [
+                      "Evaluation harness",
+                      "Canary work items",
+                      "Golden task suite",
+                      "In-house analysis",
                       "None",
                     ],
                   },
@@ -5366,7 +5384,7 @@
                 ],
               },
               {
-                label: "Correctness gates (SI1–SI3 · SI8 · AC5.4)",
+                label: "Correctness gates (SI1–SI3 · SI8–SI9 · AC5.4)",
                 items: [
                   {
                     q: "Is unit behaviour proven on every change?",
@@ -5420,6 +5438,23 @@
                     value: "Yes — nightly only",
                   },
                   {
+                    q: "Do escaped defects become replayable efficacy tests?",
+                    help: "TASC SI3. A production failure that disappears into a fix note does not improve the test suite. The defect should replay in automation, or carry an accepted-risk exception explaining why replay is infeasible.",
+                    kind: "select",
+                    options: [
+                      "Always replayed or risk-accepted",
+                      "Sometimes replayed",
+                      "Fixed without replay",
+                    ],
+                    via: [
+                      "Mutation testing",
+                      "Regression harness",
+                      "Incident replay suite",
+                      "In-house",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "Is the system load-tested against SLOs before release?",
                     help: "TASC SI8. Functional correctness without performance is insufficient — an endpoint returning correct data in 30 seconds fails a 200ms SLO. Stress, spike, or soak per the risk of the change; no service surface is a valid answer.",
                     // No prefill: per P3, "no service surface" must be derived
@@ -5438,6 +5473,24 @@
                       "Locust",
                       "Artillery",
                       "In-house",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Are generated tests and synthetic user findings measured before intake?",
+                    help: "TASC SI9 and AC4.6. Generative testing is a finding source, not an oracle. Its prompts or seeds, target selection, rejection stage, false-positive rate and regression-promotion path are part of the control.",
+                    kind: "select",
+                    options: [
+                      "Measured source with rejection stage",
+                      "Generated findings reviewed ad-hoc",
+                      "Generated findings enter intake directly",
+                      "No generative testing",
+                    ],
+                    via: [
+                      "Property-based tests",
+                      "Fuzzing",
+                      "Agent exploratory tests",
+                      "Synthetic users",
                       "None",
                     ],
                   },
@@ -5550,7 +5603,7 @@
                 ],
               },
               {
-                label: "Agent attack surface (AC3)",
+                label: "Agent attack surface (AC3 · §7)",
                 note: "The group above secures the code; this one secures the agent. Inbound, the risk is untrusted content steering it; outbound, exfiltration — which is governed by the egress lock and credential gateway you answered earlier.",
                 items: [
                   {
@@ -5642,6 +5695,16 @@
                       "Persisted, reviewed occasionally",
                       "Persisted unreviewed",
                       "No persistent memory",
+                    ],
+                  },
+                  {
+                    q: "Does the threat model cover agent misreporting and fabricated evidence?",
+                    help: "TASC AC3.1 and §7. The agent can be wrong about what it tested, where it ran, or whether it had access. Evidence fabrication and self-serving harness selection belong in the threat model explicitly.",
+                    kind: "select",
+                    options: [
+                      "Explicit threat class with controls",
+                      "Mentioned but not controlled",
+                      "Not covered",
                     ],
                   },
                   {
@@ -5821,6 +5884,23 @@
                     ],
                   },
                   {
+                    q: "What happens when review capacity is saturated?",
+                    help: "TASC AC8.1. A reviewer queue is a control with capacity. The system needs a timeout and escalation path; it must not merge through known unadjudicated findings because the reviewer is backed up.",
+                    kind: "select",
+                    options: [
+                      "Queue limit + timeout + escalation",
+                      "Waits indefinitely",
+                      "Merges after CI is green",
+                    ],
+                    via: [
+                      "CodeRabbit / review bot",
+                      "GitHub review rules",
+                      "Human review queue",
+                      "In-house reviewer",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "When a gate rejects agent output, what happens?",
                     help: "TASC AC8.1. The published ideal is regenerate-from-spec — a hand-patched artifact has mixed provenance nobody can cleanly attribute. Agents iterating on their own output is the common middle ground; humans quietly patching agent work is the provenance leak.",
                     kind: "select",
@@ -5855,7 +5935,7 @@
                 ],
               },
               {
-                label: "Ship & rollback (AC8.5 · AC7.2)",
+                label: "Ship & rollback (AC8.5 · AC7.2 · AC4.8)",
                 note: "Change management — the human-shaped hole. In a human SDLC a person approved the deploy and reverted the bad one; every row here is that person's named replacement.",
                 items: [
                   {
@@ -5916,10 +5996,28 @@
                       "None",
                     ],
                   },
+                  {
+                    q: "What evidence promotes a canary or staged rollout?",
+                    help: "TASC AC8.5. Promotion should depend on observed production or production-like signals inside declared thresholds, not the deploying agent saying the release looks healthy.",
+                    kind: "select",
+                    options: [
+                      "Observed signals within thresholds",
+                      "Manual spot-check",
+                      "Agent assertion",
+                      "No staged promotion",
+                    ],
+                    via: [
+                      "SLO dashboard",
+                      "Error budget checks",
+                      "Feature flag metrics",
+                      "Synthetic monitors",
+                      "None",
+                    ],
+                  },
                 ],
               },
               {
-                label: "Verify & acceptance (SI5–SI6)",
+                label: "Verify & acceptance (SI5–SI6 · §7)",
                 note: "Processing integrity: green CI proves the tests passed, not that the product works. Something has to use it.",
                 items: [
                   {
@@ -5939,6 +6037,23 @@
                     options: ["Every PRD, before it closes", "Sometimes", "No"],
                   },
                   {
+                    q: "Who adjudicates evidence produced by the ADS itself?",
+                    help: "TASC §7. A video, trace or report from a harness the agent selected or built is asserted evidence until an independent actor confirms it exercised the claimed path.",
+                    kind: "select",
+                    options: [
+                      "Independent actor adjudicates",
+                      "Authoring agent self-adjudicates",
+                      "No adjudication",
+                    ],
+                    via: [
+                      "Separate verifier agent",
+                      "CI artifact policy",
+                      "Human verifier",
+                      "Immutable evidence store",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "Does each passing verification become a regression test?",
                     help: "Without codifying, UAT proves the present and protects nothing about the future.",
                     kind: "select",
@@ -5951,7 +6066,7 @@
                 ],
               },
               {
-                label: "Observe (AC4)",
+                label: "Observe (AC4.1 · AC4.3–AC4.7)",
                 items: [
                   {
                     q: "What captures production errors?",
@@ -5992,6 +6107,40 @@
                     ],
                   },
                   {
+                    q: "Do user-reported problems enter the same signal pipeline?",
+                    help: "TASC AC4.1 and AC4.4. A user report is a first-class monitoring signal, and disagreement between user pain and quiet telemetry is itself an instrumentation gap.",
+                    kind: "select",
+                    options: [
+                      "Yes — routed through validated intake",
+                      "Humans triage separately",
+                      "Not connected",
+                    ],
+                    via: [
+                      "Support inbox",
+                      "GitHub issues",
+                      "Zendesk / Intercom",
+                      "PostHog feedback",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Are finding sources measured for false positives or rejection rate?",
+                    help: "TASC AC4.6. A sensor, audit loop, review agent or test generator that files work without a measured rejection stage is an uncalibrated source of churn.",
+                    kind: "select",
+                    options: [
+                      "Measured over a defined window",
+                      "Sampled occasionally",
+                      "Not measured",
+                    ],
+                    via: [
+                      "Triage labels",
+                      "Adjudication queue",
+                      "Review analytics",
+                      "In-house metrics",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "What tells you what users actually do?",
                     help: "Product analytics is the richest Research input there is — it routes usage patterns back to the Research gate as PRD material.",
                     kind: "select",
@@ -6001,6 +6150,23 @@
                       "Amplitude",
                       "Mixpanel",
                       "GA4",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Are cost and governance metrics reconciled against an independent source?",
+                    help: "TASC AC1.6 and AC4.7. Agent-reported spend, autonomy rate, pass rate, false-positive rate and coverage-like numbers need numerator, denominator, window, exclusions and a source-of-record check before they drive decisions.",
+                    kind: "select",
+                    options: [
+                      "Reconciled with source of record",
+                      "Metric definition only",
+                      "Agent-reported only",
+                    ],
+                    via: [
+                      "Provider billing",
+                      "Telemetry warehouse",
+                      "CI history",
+                      "Tracker history",
                       "None",
                     ],
                   },
@@ -6046,6 +6212,23 @@
                     ],
                   },
                   {
+                    q: "Do monitoring findings close on root cause instead of symptom silence?",
+                    help: "TASC AC4.8. Closing because the alert stopped is not enough; closure needs a root-cause correction or accepted-risk record, and recurrence after closure is a control failure.",
+                    kind: "select",
+                    options: [
+                      "Root-cause or accepted-risk closure",
+                      "Closed when alert clears",
+                      "Closed manually without rule",
+                    ],
+                    via: [
+                      "Incident review",
+                      "Problem-management ticket",
+                      "Runbook checklist",
+                      "In-house workflow",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "When the pipeline itself cannot proceed, does it escalate?",
                     help: "The recovery-required outcome: a decision-ready packet naming the broken capability, not a generic failure alert — and never a silent stall.",
                     kind: "select",
@@ -6086,7 +6269,8 @@
                 ],
               },
               {
-                label: "Governance & accountability (AC1 · AC9.1 · DP)",
+                label:
+                  "Governance & accountability (AC1.2 · AC1.6 · AC5.6 · AC9.1 · DP)",
                 note: "The audit-trail cluster: everything a human used to vouch for by being in the room.",
                 items: [
                   {
@@ -6192,6 +6376,16 @@
                       "Retained — policy + access control",
                       "Retained ad-hoc",
                       "Not retained",
+                    ],
+                  },
+                  {
+                    q: "Are instruction-level residual risks reviewed before promotion?",
+                    help: "TASC AC5.6. A prompt, skill, hook or workflow edit can broaden tool authority, weaken rejection behavior or lower evidence standards. Those residual risks need review and disposition like code risk.",
+                    kind: "select",
+                    options: [
+                      "Reviewed and tracked to disposition",
+                      "Mentioned in PR text",
+                      "Not reviewed",
                     ],
                   },
                 ],
