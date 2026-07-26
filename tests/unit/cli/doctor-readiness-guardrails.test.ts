@@ -178,6 +178,30 @@ describe("assessFeedbackGuardrailsDimension — B4 stands only on a file-provabl
       )
     ).toBe(true);
   });
+
+  it("stands B4 when a migration targets a production database secret", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: npx prisma migrate deploy",
+      "        env:",
+      "          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
 });
 
 describe("assessFeedbackGuardrailsDimension — the gate half is reasoned-SKIPped", () => {
