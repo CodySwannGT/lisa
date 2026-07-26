@@ -38,6 +38,12 @@ import {
   readManifest,
 } from "./doctor-readiness-supply-chain-scan.js";
 import {
+  findRubyAuditGate,
+  findRubyLockfile,
+  readRubyManifest,
+  type RubyDependencySpec,
+} from "./doctor-readiness-supply-chain-ruby.js";
+import {
   dependencyConfidenceObservations,
   dependencyConfidenceViolations,
   installTimeExecutionViolations,
@@ -158,6 +164,107 @@ function supplyChainFinding(
 }
 
 /**
+ * Build B5 evidence lines for a Ruby/Bundler project.
+ * @param specs - Gem declarations under assessment
+ * @param lockfile - Bundler lockfile path, if committed
+ * @param auditGate - Ruby dependency audit gate path, if declared
+ * @returns Evidence lines for Ruby dependency-confidence violations
+ */
+function rubySupplyChainViolations(
+  specs: readonly RubyDependencySpec[],
+  lockfile: string | null,
+  auditGate: string | null
+): readonly string[] {
+  if (specs.length === 0) {
+    return [];
+  }
+  return [
+    ...(lockfile === null
+      ? [
+          `\`Gemfile\` declares ${specs.length} gem dependency spec(s) but ` +
+            "no `Gemfile.lock` is committed — two Bundler installs can " +
+            "resolve to different gem versions, so what was validated is not " +
+            "provably what gets installed",
+        ]
+      : []),
+    ...specs
+      .filter(spec => spec.spec === null)
+      .map(
+        spec =>
+          `\`Gemfile\` gem \`${spec.name}\` names no version constraint, so ` +
+          "Bundler may resolve whatever satisfies the repository today rather " +
+          "than a version any run intentionally chose"
+      ),
+    ...(auditGate === null
+      ? [
+          "no Ruby dependency-audit gate was found anywhere — no `bundle " +
+            "audit`/`bundler-audit` step in `.github/workflows/*.yml`, none " +
+            "in a git hook, and no `dependabot.yml` bundler entry or " +
+            "`renovate.json` — so a newly disclosed advisory in this gem tree " +
+            "would never be noticed by anything",
+        ]
+      : []),
+  ];
+}
+
+/**
+ * Assess Ruby/Bundler dependencies when no JavaScript manifest exists.
+ * @param root - Repository root to assess
+ * @returns The B5 record, or null when no Ruby manifest exists
+ */
+async function assessRubyDependenciesSupplyChainDimension(
+  root: string
+): Promise<ReadinessDimensionRecord | null> {
+  const ruby = await readRubyManifest(root);
+  if (ruby.kind === "absent") {
+    return null;
+  }
+  if (ruby.kind === "unassessable") {
+    return skipRecord(ruby.reason);
+  }
+  if (ruby.specs.length === 0) {
+    return skipRecord(
+      "`Gemfile` was found but declares no gem dependencies, so this " +
+        "repository owns no Ruby third-party surface a confidence model could " +
+        "cover; supply-chain confidence is not established either way"
+    );
+  }
+  const lockfile = await findRubyLockfile(root);
+  const auditGate = await findRubyAuditGate(root);
+  const violations = rubySupplyChainViolations(ruby.specs, lockfile, auditGate);
+  const observations = [
+    ...(lockfile === null ? [] : [`Ruby lockfile in use: \`${lockfile}\`.`]),
+    ...(auditGate === null
+      ? []
+      : [`Ruby dependency-audit gate declared in \`${auditGate}\`.`]),
+  ];
+  if (violations.length > 0) {
+    return {
+      id: DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
+      status: "FAIL",
+      findings: [
+        supplyChainFinding(violations),
+        ...informationalFindings(observations),
+      ],
+    };
+  }
+  return {
+    id: DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
+    status: "PASS",
+    findings: [
+      {
+        evidence:
+          `Inspected ${ruby.specs.length} gem dependency spec(s) in ` +
+          "`Gemfile`: each gem names a constraint, `Gemfile.lock` is " +
+          "committed, and a Ruby dependency-audit gate is declared.",
+        checked: [SUPPLY_CHAIN_BLOCKER_ID],
+      },
+      ...informationalFindings(observations),
+    ],
+  };
+}
+
+/**
  * Count workspace manifests that contributed dependency specs.
  * @param specs - The dependency specs under assessment
  * @returns Number of non-root package manifests represented by the specs
@@ -223,6 +330,10 @@ export async function assessDependenciesSupplyChainDimension(
 ): Promise<ReadinessDimensionRecord> {
   const outcome = await readManifest(root);
   if (outcome.kind === "unassessable") {
+    const rubyRecord = await assessRubyDependenciesSupplyChainDimension(root);
+    if (rubyRecord !== null) {
+      return rubyRecord;
+    }
     return skipRecord(outcome.reason);
   }
   const workspaces = await resolveWorkspaceMembers(root, outcome.manifest);
