@@ -1,96 +1,67 @@
 ---
 name: lisa-reproduce-bug
-description: "How to create reliable bug…"
+description: "How to reproduce a bug reliably…"
 ---
 
 # Reproduce Bug
 
-Before investigating root cause, reproduce the issue empirically. A bug that cannot be reproduced cannot be verified as fixed.
+A bug that cannot be reproduced cannot be verified as fixed. Root cause analysis does not begin until a reliable reproduction exists.
 
-## Reproduction Process
+## The reproduction must exercise the real path
 
-### 1. Run the Failing Scenario
+Left alone, an agent asked to demonstrate a defect will build the environment in which the defect appears — a stub, a fake, a fresh harness — and present that as the reproduction. It looks like proof and it is not: a fix that satisfies it may never touch the path the user is on.
 
-- Execute the exact command, test, or request that triggers the bug
-- Capture the complete error output, stack trace, or unexpected behavior
-- Record the exact command used so it can be repeated
+Two kinds of setup get confused here, and only one is a problem:
 
-### 2. Capture Evidence
+- **Prerequisites** — state the real path genuinely needs: a seeded record, a logged-in user, a feature flag, a fixture recreating production-equivalent data. These are part of the reproduction. Removing them changes the precondition rather than testing anything, so do not remove them.
+- **Replacement scaffolding** — anything standing in for behaviour the real path would perform: a mocked service, a stubbed function, a fake clock, a bespoke harness that bypasses the normal entry point. This is what makes a reproduction suspect.
 
-- Save the full error output (not just a summary)
-- Note the timestamp and environment details (OS, runtime version, dependency versions)
-- Screenshot or log any visual/UI issues
-- Record the actual behavior vs. the expected behavior
+So the reproduction states, explicitly:
 
-### 3. Investigate Environment Differences (If Cannot Reproduce)
+- **The entry point the user actually hits** — the route, endpoint, command, or interaction.
+- **Prerequisites**, listed as setup.
+- **Replacement scaffolding**, each item with the real behaviour it substitutes.
+- **Whether the failure survives with prerequisites in place and replacement scaffolding removed.** If it does not, this is a lead rather than a reproduction. Say so and keep going.
 
-If the issue does not reproduce locally:
+If the real path is unreachable — no credentials, no environment, no data — that is a blocked reproduction. Report the missing access instead of substituting scaffolding and calling the bug reproduced.
 
-- Compare environment configurations (env vars, config files, feature flags)
-- Check runtime versions (Node.js, Python, Java, etc.)
-- Compare dependency versions (`package-lock.json`, `poetry.lock`, etc.)
-- Check data differences (database state, seed data, user roles)
-- Verify network conditions (DNS, proxies, firewalls, VPN)
-- Check for platform-specific behavior (OS, architecture, container vs. host)
+## Choose the method from the symptom
 
-### 4. Create a Minimal Reproduction
+| Symptom | Reach for |
+| --- | --- |
+| Wrong value, bad output, thrown error | Failing test at the narrowest layer that still crosses the real path |
+| Broken interface or journey | Browser or device driver against a running build (Playwright, Maestro) |
+| Service or API behaviour | Direct request to the running service — client script or `curl` |
+| Depends on particular data | Seeded fixture recreating that state, recorded as a prerequisite |
+| Intermittent or timing-shaped | Loop the trigger; capture timestamps around async boundaries |
+| Works locally, fails deployed | Do not chase it locally — reproduce against the environment that fails |
 
-Create the smallest possible reproduction that triggers the bug:
+**A failing test is the preferred form** wherever it can cross the real path: it runs in CI, it becomes the regression guard, and `codify-verification` expects it. A script is the fallback. Manual steps are the last resort and must carry their prerequisites.
 
-**Preferred: Failing test**
-- Write a test that exercises the exact code path and asserts the expected behavior
-- The test should fail with the same symptom as the reported bug
-- A failing test is the most reliable reproduction because it runs in CI and prevents regression
+## Report the failure rate, do not round it
 
-**Fallback: Reproduction script**
-- Write a standalone script that triggers the issue
-- Minimize dependencies -- remove anything not needed to reproduce
-- Include setup steps (data seeding, config) in the script itself
-- The script should be runnable by anyone with access to the repo
+Run the reproduction enough times to state a rate. A reproduction that fails half the time cannot prove a fix — one passing run afterwards means nothing at that rate. If the rate is too low to distinguish a fix from luck, say what would raise it: more iterations, a forced schedule, a narrowed trigger, a seeded clock.
 
-**Last resort: Manual steps**
-- Document exact click-by-click or command-by-command steps
-- Include prerequisite state (logged-in user, specific data, feature flags)
-- Note any timing-sensitive aspects (race conditions, timeouts)
+## When it will not reproduce
 
-### 5. Verify Reproduction Is Reliable
+The difference is nearly always one of: runtime version, configuration or feature flags, data state, credentials and permissions, network posture, or platform. Diff the two environments along those axes rather than guessing between them, and report which axes you compared and what you found. That comparison is the finding when the bug stays hidden.
 
-- Run the reproduction multiple times to confirm it consistently fails
-- For intermittent bugs, run enough iterations to establish the failure rate
-- If intermittent, note any patterns (timing, load, specific data)
-
-## Output Format
+## Output
 
 ```text
 ## Reproduction
 
-### Command/Steps
-The exact command or steps to trigger the bug.
-
-### Actual Behavior
-What happens (error message, wrong output, crash).
-
-### Expected Behavior
-What should happen instead.
-
-### Environment
-- Runtime: [version]
-- OS: [platform]
-- Dependencies: [relevant versions]
-
-### Reproduction Type
-[ ] Failing test: [path to test file]
-[ ] Script: [path to script]
-[ ] Manual steps: [documented above]
-
-### Reliability
-[Always / Intermittent (N/M runs) / Conditional (only when X)]
+**Entry point:** the route, command, or action the user hits
+**Command or steps:** exactly what to run
+**Actual:** what happens · **Expected:** what should happen
+**Prerequisites:** seeded data, auth state, flags the real path needs — or "none"
+**Replacement scaffolding:** each mock, stub, fake, or bespoke harness and the
+  real behaviour it substitutes — or "none"
+**Survives without replacement scaffolding:** yes / no — if no, this is a lead,
+  not a reproduction
+**Observed failure rate:** n failures in m runs
+**Form:** failing test `path` | script `path` | manual steps above
+**Environment:** runtime, platform, relevant dependency versions
 ```
 
-## Rules
-
-- Never skip reproduction. If you cannot reproduce, report what you tried and what you observed.
-- A failing test is always the preferred reproduction method.
-- Capture complete error output -- do not truncate or summarize.
-- If the bug is environment-specific, document exactly which environment triggers it.
-- Do not begin root cause analysis until you have a reliable reproduction.
+Capture output whole — a truncated stack trace loses the line that mattered. But evidence carries whatever the system was holding, so **redact secrets, tokens, credentials, and personal data before a reproduction is handed on or attached to a work item**, and keep any unredacted capture only where the data class it contains is already permitted to live.
