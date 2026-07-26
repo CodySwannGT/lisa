@@ -73,12 +73,17 @@ The criteria embody a small number of normative principles, referenced throughou
   throughput. An unconstrained dimension MUST be treated as degrading rather
   than stable, and the set of dimensions no gate protects MUST be known.
 - **P10 — Stochastic evidence.** Agents, models, and agent programs are
-  stochastic: a single run is an anecdote. Any claim that a model, effort
-  level, prompt, or workflow change improves outcomes MUST rest on repeated
-  observation with reported spread, over tasks representative of the entity's
-  own work. Run-to-run variance within one configuration routinely exceeds the
-  difference between the configurations being compared, so a favorable run
-  proves only that the configuration is capable of one.
+  stochastic: a single run is an anecdote. Evidence about agent behavior MUST
+  name the condition tested, the number of repetitions, and the observed
+  distribution; a single passing run is evidence of a possibility, not of
+  operating effectiveness. Run-to-run variance within one configuration
+  routinely exceeds the difference between the configurations being compared,
+  so a favorable run proves only that the configuration is capable of one.
+- **P11 — Scale is a condition.** Agentic quality is distributional, and
+  practices are not scale-invariant. A practice qualified on a lucky run, with
+  one agent, or at ten concurrent runs MUST NOT be generalized to the ADS until
+  it has been qualified at the scale, concurrency, model, prompt, and
+  environment where it will actually operate.
 
 ### 3. Scope and applicability
 
@@ -167,18 +172,24 @@ own configuration; a document generated from live state is preferred over prose 
 - Evidence carries a hierarchy: **exercised > observed > asserted.** Criteria state
   the minimum acceptable rung; Type C requires *exercised* for all authoritative
   controls.
-- Evidence MUST be authentic and representative. It reaches the *observed* or
-  *exercised* rung only if it is reproducible on the path it claims to
-  exercise, in an environment representative of that path. A harness built by
-  the producing agent around a code path that is not the one under claim yields
-  *asserted* evidence however convincing the artifact it emits; a fabricated
-  reproduction is an expected failure mode, not an exotic one.
+- Evidence MUST be authentic and representative of the claim it supports. It
+  reaches the *observed* or *exercised* rung only if it is reproducible on the
+  path it claims to exercise, in an environment representative of that path.
+  Where the ADS selected, built, or altered the harness, fixture, environment,
+  route, dataset, or replay path used as proof, the evidence is **asserted**
+  until an independent actor adjudicates that it exercised the claimed system
+  path — however convincing the artifact it emits. A fabricated reproduction is
+  an expected failure mode, not an exotic one.
 - Artifacts offered as evidence (recordings, traces, benchmark output, logs)
   MUST be adjudicated by an actor independent of the producer (AC1.3), and the
   artifact and the mechanism that produced it MUST be examined as separate
   checks. An agent's account of why it could not produce evidence — absent
   access, absent tooling — is itself a claim, and MUST be checked against the
   credential and tooling map (AC6.4, AC8.4) before being accepted.
+- Every evidence item MUST bind to the work item, criterion, system boundary,
+  environment, and artifact hash or immutable locator it supports. Screenshots,
+  videos, logs, traces, and generated reports that cannot be tied to the
+  claimed path are inadmissible above the *asserted* rung.
 - Every evidence item carries a freshness lifetime declared in the system
   description. Expired evidence degrades the control to *unknown* (P2).
 - Declared freshness lifetimes MUST be finite and MUST NOT exceed the shorter of
@@ -189,6 +200,10 @@ own configuration; a document generated from live state is preferred over prose 
   sensor to confirm liveness alerting) is a valid and encouraged evidence mechanism.
 - Inapplicability claims are evidence-bearing: each N/A MUST cite the system fact
   that earns it (P3).
+- Where a finding, measurement, or qualification depends on stochastic agent
+  behavior, evidence MUST report repeated runs per condition and the resulting
+  distribution (P10). Point estimates MAY be summarized, but the underlying
+  spread and sample size MUST remain reviewable.
 
 ### 8. Subservice organizations
 
@@ -282,10 +297,11 @@ focus (non-authoritative guidance).
   defined retention policy with an access boundary; they are audit evidence for
   AC1.2 and sensitive records under DP.
 - **AC1.6 Resource governance.** Agent expenditure MUST be bounded: per-run and
-  per-loop budget ceilings, runaway-process protection, and cost attribution to
-  work items SHOULD be maintained. Consumption MUST be metered at the billing
-  or gateway boundary; an agent's own account of what it spent is not evidence
-  of what it spent.
+  per-loop budget ceilings, runaway-process protection, billing-boundary
+  metering, and cost attribution to work items MUST be maintained for unattended
+  loops. An agent's own account of what it spent is not evidence of what it
+  spent: cost reports generated by an agent MUST be reconciled against provider
+  or gateway usage records before being used as evidence.
 
 ### AC2 — Communication and Operator Legibility *(mirrors CC2, Communication)*
 
@@ -310,9 +326,9 @@ focus (non-authoritative guidance).
   the ADS covering, at minimum: prompt injection; instruction-surface trust;
   dependency hallucination and typosquatting; data exfiltration; persistent-memory
   poisoning; sandbox escape and blast radius; and agent misreporting —
-  fabricated evidence, unfounded claims of blocked access, and self-serving
-  explanations of failure (§7, AC4.6). It MUST be revisited on material
-  system change.
+  fabricated evidence, self-serving tool or harness selection, unfounded claims
+  of blocked access, and self-serving explanations of failure (§7, AC4.6). It
+  MUST be revisited on material system change.
 - **AC3.2 Untrusted content.** Content fetched or received from outside the trust
   boundary (web pages, third-party repositories, external comments) MUST be treated
   as data, not instructions; high-risk tools SHOULD be gated while untrusted content
@@ -334,11 +350,12 @@ focus (non-authoritative guidance).
 - **AC4.1 Instrumentation.** Deployed software MUST emit, and the ADS MUST consume:
   error/crash signals, logs, operational metrics, and **user-reported problems**
   — support tickets, in-product reports, and whatever channel users actually
-  reach for. Telemetry alone is a partial view: the defects users report are
-  systematically not the defects systems self-report. Report volume MUST NOT be
-  used as an impact measure on its own — the ratio of affected users to reports
-  varies by product, severity, and channel, and is not a constant the entity may
-  assume — so impact estimates MUST be triangulated from at least one
+  reach for. A human-reported failure is a first-class signal, not anecdotal
+  evidence to be discounted when telemetry is quiet: the defects users report
+  are systematically not the defects systems self-report. Report volume MUST NOT
+  be used as an impact measure on its own — the ratio of affected users to
+  reports varies by product, severity, and channel, and is not a constant the
+  entity may assume — so impact estimates MUST be triangulated from at least one
   independent signal (severity classification, affected-user telemetry,
   sampling, or session/journey data). Additional signal classes (traces,
   real-user monitoring, synthetics, product analytics) apply per P3.
@@ -364,39 +381,46 @@ focus (non-authoritative guidance).
   promoted control failed to fire. A lesson that stays prose is a lesson the
   next agent never reads; a lesson promoted to a gate is one no agent can
   repeat.
-- **AC4.6 Finding integrity.** Every mechanism that produces findings — sensor,
-  audit loop, test generator, reviewing agent — MUST have a rejection stage
-  between the finding and intake (AC4.3), and its **false-positive rate MUST be
-  measured and reported** rather than assumed. The entity MUST declare a
-  false-positive tolerance per finding source; it MUST be disclosed in the
-  attestation report and is subject to the ratchet (AC5.4). Findings bearing
-  artifacts are subject to the adjudication rule in §7, and a single
-  self-attested finding is *asserted* evidence. Independence MUST come from a
-  separately controlled actor or mechanism — a distinct perspective, a
-  differently-configured reviewer, or a different implementation. Re-running the
-  same mechanism is not independence: it reduces variance while reproducing
-  every blind spot the mechanism has, so repeated checks count toward
-  independence only where that independence is itself demonstrable. False
-  positives MUST be traced to a cause in the producing
+- **AC4.6 Finding integrity.** Every source that produces findings for intake —
+  sensor, audit loop, test generator, reviewing agent, exploratory loop — MUST
+  have a rejection or adjudication stage before work admission (AC4.3), and its
+  **false-positive or rejection rate MUST be measured and reported over a
+  defined window** rather than assumed; an unmeasured finding source is an
+  instrumentation gap. The entity MUST declare a false-positive tolerance per
+  source; it MUST be disclosed in the attestation report and is subject to the
+  ratchet (AC5.4). Findings bearing artifacts are subject to the adjudication
+  rule in §7, and a single self-attested finding is *asserted* evidence.
+  Independence MUST come from a separately controlled actor or mechanism — a
+  distinct perspective, a differently-configured reviewer, or a different
+  implementation. Re-running the same mechanism is not independence: it reduces
+  variance while reproducing every blind spot the mechanism has, so repeated
+  checks count toward independence only where that independence is itself
+  demonstrable. False positives MUST be traced to a cause in the producing
   mechanism and fixed there — dismissing instances while leaving the generator
   unchanged converts a measurable defect into recurring operator toil. An
-  unfiltered stream of findings, however capable the model that produced it,
-  is not a benefit conferred on the recipient; it is work transferred to them.
+  unfiltered stream of findings, however capable the model that produced it, is
+  not a benefit conferred on the recipient; it is work transferred to them.
 - **AC4.7 Measurement integrity.** Numbers that gate a decision — conformance
-  state, autonomy rate (AC7.4), threshold compliance, canary promotion (AC8.5),
-  qualification results (AC8.3) — MUST be produced by a mechanism independent
-  of the agents whose work they judge, MUST carry plausibility validation
+  state, autonomy rate (AC7.4), cost (AC1.6), pass/fail and false-positive
+  rates, coverage-like measures, threshold compliance, canary promotion (AC8.5),
+  qualification results (AC8.3) — MUST be produced by a mechanism independent of
+  the agents whose work they judge, and MUST be reconciled against an
+  independent source of record when they drive claims, prioritization, or
+  governance decisions. Each MUST state its numerator, denominator, window,
+  exclusions, and collection mechanism, and MUST carry plausibility validation
   (declared ranges and invariants, so an impossible value fails rather than
-  publishes), and MUST NOT rest solely on comparison against prior versions of
-  the same system: a system can beat every previous version of itself while
-  getting no better against reality. Agent-generated analysis is *asserted*
-  evidence until its method and its arithmetic have been independently checked.
-- **AC4.8 Root-cause closure.** A defect MUST be closed at its cause, and the
-  entity MUST search for sibling defects sharing that cause. Symptom-only
-  remediation destroys the signal that made the defect class observable, so the
-  remaining instances stay in place and stop being findable; where a fix
-  suppresses a symptom without a stated cause it MUST be recorded as accepted
-  residual risk. The regression check (SI6) MUST target the cause.
+  publishes). No such number MAY rest solely on comparison against prior
+  versions of the same system: a system can beat every previous version of
+  itself while getting no better against reality. Agent-generated analysis is
+  *asserted* evidence until its method and its arithmetic have been
+  independently checked.
+- **AC4.8 Root-cause closure.** A defect or monitoring finding MUST close on
+  root-cause correction or an explicit accepted-risk record, never on symptom
+  suppression alone, and the entity MUST search for sibling defects sharing that
+  cause. Symptom-only remediation destroys the signal that made the defect class
+  observable, so the remaining instances stay in place and stop being findable.
+  The regression check (SI6) MUST target the cause, and a recurring finding
+  after closure is evidence that the closure control failed.
 
 ### AC5 — Enforcement Integrity *(mirrors CC5, Control Activities)*
 
@@ -415,22 +439,26 @@ focus (non-authoritative guidance).
 - **AC5.5 Gate exercise.** Each authoritative gate MUST be demonstrated to block a
   violation: at Type II, at least once in the period; at Type C, within the gate's
   declared freshness lifetime (P1).
-- **AC5.6 Instruction-level residual risk.** Controls existing only as
-  instructions to agents — prose rules in instruction files, procedural
-  reminders, conventions — MUST be inventoried as advisory (P4), MUST have
-  their adherence measured empirically rather than assumed, and MUST have
-  their expected violation count computed **at the entity's actual run
-  volume**. Instruction adherence is a rate, not a property: a rule breached
-  once per hundred agent-days is unremarkable across ten agents under human
-  review and unacceptable across a thousand agents shipping unattended. A rate
-  requires a stated denominator, so the system description MUST declare, per
-  advisory control, the **exposure unit** it is measured against (control
-  opportunities, eligible runs, or agent-days), the **observation window**, and
-  the **violation tolerance**; all three are disclosed in the attestation report
-  and the tolerance is subject to the ratchet (AC5.4). Any advisory control
-  whose expected violations over that window exceed its tolerance MUST be
-  promoted to an authoritative gate (AC4.5) or have its residual risk formally
-  accepted.
+- **AC5.6 Instruction-level residual risk.** Instruction, prompt, skill, hook, or
+  workflow changes MUST identify residual risk introduced at the instruction layer,
+  including new tool authority, weaker rejection behavior, broader autonomy, or
+  changed evidence standards. Residual risk MUST be reviewed before promotion and
+  tracked until accepted, mitigated, or rejected.
+- **AC5.7 Advisory-control adherence.** Controls existing only as instructions
+  to agents — prose rules in instruction files, procedural reminders,
+  conventions — MUST be inventoried as advisory (P4), MUST have their adherence
+  measured empirically rather than assumed, and MUST have their expected
+  violation count computed **at the entity's actual run volume** (P11).
+  Instruction adherence is a rate, not a property: a rule breached once per
+  hundred agent-days is unremarkable across ten agents under human review and
+  unacceptable across a thousand agents shipping unattended. A rate requires a
+  stated denominator, so the system description MUST declare, per advisory
+  control, the **exposure unit** it is measured against (control opportunities,
+  eligible runs, or agent-days), the **observation window**, and the **violation
+  tolerance**; all three are disclosed in the attestation report and the
+  tolerance is subject to the ratchet (AC5.4). Any advisory control whose
+  expected violations over that window exceed its tolerance MUST be promoted to
+  an authoritative gate (AC4.5) or have its residual risk formally accepted.
 
 ### AC6 — Identity, Credentials, and Access *(mirrors CC6, Logical Access)*
 
@@ -473,7 +501,10 @@ focus (non-authoritative guidance).
   — validated intake, implementation, independent review (AC1.3), and the pre-merge
   integrity gates (SI1–SI4, as applicable) — with gates per AC5, followed by
   post-deployment verification (SI5). Review findings MUST be resolved, not merely
-  produced, before merge. When a gate rejects agent-produced work, remediation
+  produced, before merge. Review capacity MUST be treated as a control limit:
+  automated review systems and humans MUST have a defined queue, timeout, and
+  escalation path, and the ADS MUST NOT merge through known unadjudicated findings
+  because the reviewer is saturated. When a gate rejects agent-produced work, remediation
   SHOULD be regeneration from the specification rather than manual patching of
   the artifact: a hand-patched artifact has mixed provenance that AC1.2 cannot
   cleanly attribute. Independent review MUST NOT be relied on as the primary
@@ -488,10 +519,12 @@ focus (non-authoritative guidance).
   code. Production work MUST be driven by vetted procedures; free-form prompting
   against production scope SHOULD be exceptional and MUST be logged. Code gates
   cannot measure a prompt's effect: a change to the agent program expected to
-  alter behavior or cost at scale — instruction-set rewrites, workflow
-  topology, context-reduction techniques — MUST additionally be qualified under
-  AC8.3's distributional standard before fleet adoption (P10). Testimonial,
-  popularity, and a single favorable run are not qualification.
+  alter behavior or cost at scale — instruction-set rewrites, workflow topology,
+  context-reduction techniques — MUST additionally be qualified under AC8.3's
+  distributional standard before fleet adoption (P10, P11). Any such
+  qualification MUST state the prompt or procedure version, model, runtime,
+  effort level, toolset, and task distribution tested. Testimonial, popularity,
+  and a single favorable run are not qualification.
 - **AC8.3 Model change is system change.** Models and runtimes MUST be
   version-pinned, and the pin MUST cover the operating configuration that
   changes behavior — reasoning/effort level, context and tool configuration —
@@ -502,17 +535,17 @@ focus (non-authoritative guidance).
   P10: repeated runs per condition with the **distribution reported** rather
   than a point estimate, over tasks the entity owns and that represent its own
   work mix, against a decision rule stated before the runs. To be auditable the
-  qualification protocol MUST declare, in advance, the minimum number of runs
-  per condition, the statistic used to express spread or uncertainty, and the
-  threshold that constitutes a pass. These values are entity-declared rather
-  than fixed by this specification, but MUST be disclosed in the attestation
-  report and are subject to the ratchet (AC5.4); a protocol whose run count
-  cannot distinguish the claimed effect from its own run-to-run spread is an
-  exception, not a qualification. Third-party or
-  vendor benchmark rankings MUST NOT stand as qualification evidence — they
-  measure a task mix that is not the entity's, at a precision their own
-  run-to-run variance does not support. Vendor-forced changes MUST trigger the
-  same qualification.
+  protocol MUST declare, in advance, the minimum number of runs per condition,
+  the statistic used to express spread or uncertainty, and the threshold that
+  constitutes a pass. These values are entity-declared rather than fixed by this
+  specification, but MUST be disclosed in the attestation report and are subject
+  to the ratchet (AC5.4); a protocol whose run count cannot distinguish the
+  claimed effect from its own run-to-run spread is an exception, not a
+  qualification. Third-party benchmark rankings, vendor claims, and single
+  successful runs are inadmissible as qualification evidence — they measure a
+  task mix that is not the entity's, at a precision their own run-to-run
+  variance does not support. Vendor-forced changes MUST trigger the same
+  qualification.
 - **AC8.4 Intake validation.** Work MUST be admitted to implementation only through
   an adversarial intake gate that rejects ambiguity and verifies the system has
   provable access to the tooling the work requires; rejections MUST be raised to a
@@ -524,10 +557,12 @@ focus (non-authoritative guidance).
 - **AC8.5 Deployment protection.** Production deployment MUST be gated by a
   protected mechanism the deploying agent cannot self-approve (server-side
   environment protection and/or CHC approval). Progressive delivery SHOULD bound
-  blast radius; where it is used, promotion between stages MUST be conditioned
-  on observed signal (AC4.1) evaluated per AC4.7, not on elapsed time alone.
-  The fractional ship is the ADS's principal source of outside feedback, not
-  merely a blast-radius control.
+  blast radius. Promotion from canary, staged rollout, or shadow mode MUST be
+  based on observed production or production-like signals (AC4.1) within declared
+  thresholds, evaluated per AC4.7 — not on elapsed time alone, and not on the
+  deploying agent's assertion that the release looks healthy. The fractional ship
+  is the ADS's principal source of outside feedback, not merely a blast-radius
+  control.
 - **AC8.6 Work-item readiness.** Work items MUST satisfy a type-keyed
   definition of ready — validated mechanically, not by convention — before
   carrying the build-ready role. The definition MUST be sufficient for a
@@ -573,12 +608,14 @@ focus (non-authoritative guidance).
   declaration.
 - **SI3 Test efficacy.** The entity MUST measure whether its tests would detect
   defects (e.g., mutation testing) and SHOULD gate changed code on efficacy, not
-  only on coverage. Efficacy MUST also be measured against the entity's own
-  corpus of previously fixed defects (**defect replay**): a suite or generator
-  is credited for a defect class only where it re-discovers that class.
-  Agent-authored tests are characteristically thorough in the obvious cases and
-  absent in the adversarial ones, so their existence, count, and coverage
-  percentage are not evidence of efficacy under this criterion.
+  only on coverage. Defect replay MUST be part of efficacy: escaped defects and
+  verified production failures MUST become replayable tests, or carry an
+  accepted-risk exception explaining why replay is infeasible. Efficacy MUST be
+  measured against that corpus of previously fixed defects — a suite or
+  generator is credited for a defect class only where it re-discovers that
+  class. Agent-authored tests are characteristically thorough in the obvious
+  cases and absent in the adversarial ones, so their existence, count, and
+  coverage percentage are not evidence of efficacy under this criterion.
 - **SI4 End-to-end proof.** For each user-facing surface, critical journeys MUST be
   exercised end-to-end against a running build before release.
 - **SI5 Independent verification.** After deployment, the shipped result MUST be
@@ -609,17 +646,21 @@ focus (non-authoritative guidance).
   compute, re-running one suite against every change explores far less of the
   input space than generating new cases against a stable one, and under
   agent-scale throughput the unexplored space is where quality quietly goes
-  (P9). Every defect found by any means MUST be retained as a durable
-  regression case, so the suite accumulates the system's actual failure history
-  rather than its authors' expectations. The corpus is a governed artifact, not
-  an append-only dump: it MUST be deduplicated, minimized, and sanitized under
-  the context-boundary rule (DP1), and MUST carry a retention policy. Where a
-  faithful reproduction cannot be retained safely — it embeds secrets,
-  personal, or regulated data — a minimized or synthetic reproducer MUST be
-  substituted and the substitution recorded; where no safe reproducer exists,
-  the omission MUST be recorded as accepted residual risk rather than left
-  implicit. A generator is itself subject to SI3:
-  it is evidence only to the extent its efficacy is measured.
+  (P9). Every generator — fuzzer, property-based suite, generated end-to-end
+  journey, synthetic user, or agent hunting defects — is a finding source
+  governed by AC4.6, and its prompts, seeds or policies, target selection,
+  rejection criteria, false-positive rate, and promotion path into durable
+  regression tests MUST be recorded; a generator is evidence only to the extent
+  its efficacy is measured (SI3). Every defect found by any means MUST be
+  retained as a durable regression case, so the suite accumulates the system's
+  actual failure history rather than its authors' expectations. That corpus is a
+  governed artifact, not an append-only dump: it MUST be deduplicated,
+  minimized, and sanitized under the context-boundary rule (DP1), and MUST carry
+  a retention policy. Where a faithful reproduction cannot be retained safely —
+  it embeds secrets, personal, or regulated data — a minimized or synthetic
+  reproducer MUST be substituted and the substitution recorded; where no safe
+  reproducer exists, the omission MUST be recorded as accepted residual risk
+  rather than left implicit.
 
 ### DP — Data Protection *(supplemental; applies where sensitive or regulated data is in scope — analogous to Confidentiality/Privacy)*
 
@@ -654,10 +695,10 @@ focus (non-authoritative guidance).
 | AC2 Communication & Legibility | CC2 Information & Communication | operator legibility; named run outcomes |
 | AC3 Agent Threat Model | CC3 Risk Assessment | agent-native threat classes |
 | AC4 Monitoring, Sensors & Finding Integrity | CC4 Monitoring Activities | sensor liveness ≠ findings; finding, measurement, and root-cause integrity |
-| AC5 Enforcement Integrity | CC5 Control Activities | server-side authority, parity, ratchet, instruction-level residual risk |
+| AC5 Enforcement Integrity | CC5 Control Activities | server-side authority, parity, ratchet, instruction residual risk, advisory-control adherence |
 | AC6 Identity & Credentials | CC6 Logical & Physical Access | agent-own identity, gateways, federation |
 | AC7 Operations & Recovery | CC7 System Operations | + autonomy measurement |
-| AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification |
+| AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification, review capacity, observed promotion |
 | AC9 Third Parties & Supply Chain | CC9 Risk Mitigation | model vendors as subservice orgs |
 | SI | Processing Integrity (PI) | mandatory for production software, unlike PI; adds generative testing and defect replay |
 | DP | Confidentiality (C) + Privacy (P) | merged; context boundary is the novel control |
@@ -681,12 +722,15 @@ coverage from its answers.
 
 Criteria are tool-neutral. Illustrative mechanism classes: secret stores and
 credential proxies (AC6); branch/push protection and protected deploy environments
-(AC5.1, AC8.5); supply-chain scanners and lockfile gates (AC9.2); mutation testing
-frameworks (SI3); property-based and coverage-guided fuzzing frameworks with
-persistent corpora (SI9); incident and cron-liveness monitors (AC4.2, AC7.2);
-eval harnesses with per-condition repetition (AC8.3); canary analysis services
-(AC8.5); billing- or gateway-side spend meters (AC1.6). Open-source reference implementations of end-to-end conformance exist and
-MAY be cited in system descriptions; no specific product confers conformance.
+(AC5.1, AC8.5); artifact signing and immutable evidence stores (§7, AC9.6);
+supply-chain scanners and lockfile gates (AC9.2); mutation testing and defect
+replay frameworks (SI3); property-based and coverage-guided fuzzing frameworks
+with persistent corpora (SI9); incident and cron-liveness monitors (AC4.2,
+AC7.2); false-positive adjudication queues (AC4.6); billing and telemetry
+reconciliation (AC1.6, AC4.7); distributional eval harnesses with per-condition
+repetition (AC8.2, AC8.3); canary analysis services (AC8.5). Open-source
+reference implementations of end-to-end conformance exist and MAY be cited in
+system descriptions; no specific product confers conformance.
 
 ### Annex D — Attestation report skeleton (non-normative)
 
@@ -698,24 +742,30 @@ MAY be cited in system descriptions; no specific product confers conformance.
 5. Exceptions and dispositions
 6. CHC register with response-time performance
 7. Autonomy-rate statement (definition, window, result, CHC boundary actions)
+8. Evidence-authenticity register: artifact adjudications, rejected evidence, and
+   any ADS-produced proof reclassified as asserted
+9. Finding and measurement integrity register: finding-source false-positive
+   rates, metric reconciliation results, and distributional qualification results
 
 ---
 
 *End of draft 0.2.0. Changes from 0.1.0: principles P9 (unconstrained quality
-degrades) and P10 (stochastic evidence); evidence authenticity and artifact
-adjudication (§7); agent misreporting as a threat class (AC3.1); billing-boundary
-spend metering (AC1.6); user-reported problems as a required signal class
+degrades), P10 (stochastic evidence), and P11 (scale is a condition); evidence
+authenticity, artifact adjudication, and evidence binding (§7); agent
+misreporting as a threat class (AC3.1); billing-boundary spend metering and
+reconciliation (AC1.6); user-reported problems as a first-class signal class
 (AC4.1); finding integrity with measured false-positive rates (AC4.6);
 measurement integrity (AC4.7); root-cause closure (AC4.8); instruction-level
-residual risk (AC5.6); review-capacity limits (AC8.1); distributional
-qualification of agent-program, model, and configuration changes (AC8.2–8.3);
-promotion on observed signal (AC8.5); defect replay (SI3); generative testing
-(SI9); loop stewardship as a Complementary Human Control (§9). The 0.1 file name
-is retained so existing references and ingestion records stay valid.*
+residual risk (AC5.6) and advisory-control adherence (AC5.7); review-capacity
+limits (AC8.1); distributional qualification of agent-program, model, and
+configuration changes (AC8.2–8.3); promotion on observed signal (AC8.5); defect
+replay (SI3); generative testing (SI9); loop stewardship as a Complementary
+Human Control (§9). The 0.1 file name is retained so existing references and
+ingestion records stay valid.*
 
 *Known open items: outcome-vocabulary finalization (AC2.2); ISO 27001 and SSDF
 crosswalk annexes; trademark diligence on the name; governance venue. By design
 rather than omission, the specification fixes no numbers: coverage floors (SI2),
 false-positive tolerances (AC4.6), advisory-control violation tolerances
-(AC5.6), qualification run counts and thresholds (AC8.3), and SLOs (SI8) are all
+(AC5.7), qualification run counts and thresholds (AC8.3), and SLOs (SI8) are all
 entity-declared, disclosed in the report, and subject to the ratchet (AC5.4).*
