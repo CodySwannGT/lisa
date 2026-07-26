@@ -20,7 +20,7 @@ const PYTHON_ECOSYSTEM_PATTERN = /package-ecosystem:\s*["']?pip\b/i;
 
 /** Commands and scanners that audit Python dependencies. */
 const PYTHON_AUDIT_GATE_PATTERN =
-  /\b(pip-audit|safety\s+check|osv-scanner|snyk|trivy|grype)\b/i;
+  /\b(pip-audit|safety\s+(?:check|scan)|osv-scanner|snyk|trivy|grype)\b/i;
 
 /** Renovate manager spellings for Python dependencies. */
 const RENOVATE_PYTHON_PATTERN =

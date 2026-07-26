@@ -26,13 +26,24 @@ const POETRY_LOCK = "poetry.lock";
 /** The update-bot config path used as a Python dependency-audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
 
-/** Minimal Poetry manifest with one constrained dependency. */
-const CONSTRAINED_PYPROJECT = [
+/** Shared Poetry package metadata used by pyproject fixtures. */
+const POETRY_PROJECT_HEADER = [
   "[tool.poetry]",
   'name = "scratch"',
   'version = "0.1.0"',
-  "[tool.poetry.dependencies]",
-  'python = "^3.11"',
+];
+
+/** Shared Python runtime constraint used by Poetry fixtures. */
+const POETRY_PYTHON_RUNTIME = 'python = "^3.11"';
+
+/** Poetry dependency table header used by pyproject fixtures. */
+const POETRY_DEPENDENCIES_TABLE = "[tool.poetry.dependencies]";
+
+/** Minimal Poetry manifest with one constrained dependency. */
+const CONSTRAINED_PYPROJECT = [
+  ...POETRY_PROJECT_HEADER,
+  POETRY_DEPENDENCIES_TABLE,
+  POETRY_PYTHON_RUNTIME,
   'requests = "^2.32.0"',
   "",
 ].join("\n");
@@ -80,8 +91,8 @@ describe("assessDependenciesSupplyChainDimension — Python/Poetry repositories"
       cwd,
       PYPROJECT,
       [
-        "[tool.poetry.dependencies]",
-        'python = "^3.11"',
+        POETRY_DEPENDENCIES_TABLE,
+        POETRY_PYTHON_RUNTIME,
         'requests = "*"',
         "",
       ].join("\n")
@@ -140,6 +151,49 @@ describe("assessDependenciesSupplyChainDimension — Python/Poetry repositories"
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
 
+  it("SKIPs with an explicit reason when Poetry tables contain no dependency specs", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(
+      cwd,
+      PYPROJECT,
+      [
+        ...POETRY_PROJECT_HEADER,
+        POETRY_DEPENDENCIES_TABLE,
+        POETRY_PYTHON_RUNTIME,
+        "",
+      ].join("\n")
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(SKIP);
+    const findings = asFindings(record.findings);
+    expect(findings[0].reason).toContain("declares no Poetry dependencies");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("SKIPs with an explicit reason when pyproject TOML cannot be parsed", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(
+      cwd,
+      PYPROJECT,
+      [
+        POETRY_DEPENDENCIES_TABLE,
+        POETRY_PYTHON_RUNTIME,
+        'requests = "',
+        "",
+      ].join("\n")
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(SKIP);
+    const findings = asFindings(record.findings);
+    expect(findings[0].reason).toContain("could not be parsed");
+    expect(findings[0].reason).toContain("Python dependency specs");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
   it("does not accept commented Python audit mentions as audit gates", async () => {
     const cwd = await getTempDir();
     await writeRepoFile(cwd, PYPROJECT, CONSTRAINED_PYPROJECT);
@@ -157,5 +211,41 @@ describe("assessDependenciesSupplyChainDimension — Python/Poetry repositories"
       candidate => candidate.blocker === BLOCKER_ID
     );
     expect(finding?.evidence).toContain(PYTHON_AUDIT_GATE_EVIDENCE);
+  });
+
+  it("accepts Safety CLI 3 scan commands as Python audit gates", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(cwd, PYPROJECT, CONSTRAINED_PYPROJECT);
+    await writeRepoFile(cwd, POETRY_LOCK, MINIMAL_POETRY_LOCK);
+    await writeRepoFile(
+      cwd,
+      ".github/workflows/quality.yml",
+      "jobs:\n  audit:\n    steps:\n      - run: safety scan\n"
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe("PASS");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("bounds Python B5 evidence when many dependencies violate the confidence model", async () => {
+    const cwd = await getTempDir();
+    const deps = Array.from({ length: 14 }, (_, index) => `dep${index} = "*"`);
+    await writeRepoFile(
+      cwd,
+      PYPROJECT,
+      [POETRY_DEPENDENCIES_TABLE, POETRY_PYTHON_RUNTIME, ...deps, ""].join("\n")
+    );
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe("FAIL");
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain("+4 further finding(s)");
+    expect(finding?.evidence).not.toContain("dep12");
+    expect(finding?.evidence).not.toContain("dep13");
   });
 });

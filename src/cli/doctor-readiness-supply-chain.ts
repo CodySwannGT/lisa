@@ -40,6 +40,11 @@ import {
 import { assessRubyDependenciesSupplyChainDimension } from "./doctor-readiness-supply-chain-ruby-assess.js";
 import { assessPythonDependenciesSupplyChainDimension } from "./doctor-readiness-supply-chain-python-assess.js";
 import {
+  DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
+  MAX_EVIDENCE_LINES,
+  SUPPLY_CHAIN_BLOCKER_ID,
+} from "./doctor-readiness-supply-chain-constants.js";
+import {
   dependencyConfidenceObservations,
   dependencyConfidenceViolations,
   installTimeExecutionViolations,
@@ -51,15 +56,7 @@ import {
 } from "./doctor-readiness-workspaces.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 
-/** The dependencies/supply-chain readiness dimension id (readiness-rubric). */
-export const DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID =
-  "dependencies-supply-chain";
-
-/** The ship blocker for an owned surface with no confidence model. */
-const SUPPLY_CHAIN_BLOCKER_ID = "B5";
-
-/** Most evidence lines carried into a single finding, to keep it readable. */
-const MAX_EVIDENCE_LINES = 12;
+export { DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID } from "./doctor-readiness-supply-chain-constants.js";
 
 /**
  * Assess a repository's dependency confidence model.
