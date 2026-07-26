@@ -6327,6 +6327,17 @@
                       "No convention",
                     ],
                   },
+                  {
+                    q: "When an agent breaks production, does the incident record say who answers for it — and which gate should have caught it?",
+                    help: 'TASC AC7.2 — "an agent did it" describes the mechanism, it does not dispose of the incident. The record names the accountable party, the generation lineage that produced the change (procedure, prompt version, pinned model), and the control that should have prevented it; where no such control existed, that absence becomes a learning-promotion candidate.',
+                    kind: "select",
+                    options: [
+                      "Names the party, the lineage and the missing control",
+                      "Names the party and the fix",
+                      "Records the fix only",
+                      "No incident record",
+                    ],
+                  },
                 ],
               },
               {
@@ -6457,6 +6468,28 @@
                       "Reviewed and tracked to disposition",
                       "Mentioned in PR text",
                       "Not reviewed",
+                    ],
+                  },
+                  {
+                    q: "Who is accountable when an agent breaks something?",
+                    help: "TASC AC1.7 — attribution and accountability are different obligations. AC1.1 tells you which agent acted; this tells you which human answers for it. Recorded per system, per loop, per deploy target and per human control, before anything goes wrong — with a backup, because accountability must never be vacant. An agent cannot hold it, and a team alias with no person behind it does not count.",
+                    kind: "select",
+                    options: [
+                      "A named person or role per scope, with a backup",
+                      "One name for the whole system",
+                      "A team alias owns it",
+                      "Nobody named",
+                    ],
+                  },
+                  {
+                    q: "Who can accept a risk the system decided not to fix?",
+                    help: "TASC AC1.8 — accepted-risk records are the escape hatch in four criteria (symptom-only closure, advisory controls over tolerance, infeasible replay, unsafe reproducers). If an agent can write its own, they are not controls, they are bypasses with better paperwork. Each acceptance names the human with standing, the scope, the reason and an expiry that forces re-review.",
+                    kind: "select",
+                    options: [
+                      "A named human with declared standing, time-bounded",
+                      "A named human, no expiry",
+                      "Whoever is around when it comes up",
+                      "The agent records its own accepted risk",
                     ],
                   },
                 ],
