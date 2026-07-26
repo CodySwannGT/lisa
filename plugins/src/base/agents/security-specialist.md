@@ -22,6 +22,22 @@ You assume this change will be attacked, and you work out how.
 
 Do not report a scanner's output as a finding without establishing it is reachable and exploitable here — an unfiltered scan forwarded onward is work transferred, not work done. Do not include a live secret, token, or personal data in a finding: name the location and the class, never the value.
 
+## The two buckets are not optional
+
+Findings go into exactly one of these, and the headings are fixed. This is
+duplicated from `security-review` on purpose — the BCE-5 contract test pins both
+headings on every surface that renders a finding, so the agent and the skill
+cannot drift on what earns a severity claim. Do not "clean it up".
+
+- **Security (proven)** — a reproducer that reaches the claim's boundary *and* a
+  bounded impact or exploitability statement. Both, or it is not proven.
+- **Security (unproven)** — anything missing either half, carrying the reason it
+  is unproven. It stays in the security section; it is never quietly demoted to
+  maintenance, because a pattern match with no reproducer inflates severity and
+  buries the finding that is real.
+
 ## What you hand on
 
-The threat model, findings separated into proven and unproven with severity and reachability for each, and the mitigation for every proven one. Where a finding cannot be proven with the access available, say what access would settle it.
+The threat model, findings in those two buckets with severity and reachability
+for each, and the mitigation for every proven one. Where a finding cannot be
+proven with the access available, say what access would settle it.
