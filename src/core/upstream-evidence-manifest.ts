@@ -2089,7 +2089,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "a7c6efca5ec19cbd193381f8be53dbec92ac1240fe92a5340c9ed384370e4bef",
+      "89169a33157de24a170c3e19ca3509a659f2150b170a67504e1cea85eab25fb7",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -8383,6 +8383,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/sources/docs/2026-05-14-documentation-migration.md": true,
     "wiki/sources/docs/2026-05-28-coding-agent-parity-research.md": true,
     "wiki/sources/docs/2026-07-25-tasc-spec-draft.md": true,
+    "wiki/sources/docs/2026-07-26-danluu-agentic-test-processes.md": true,
     "wiki/sources/git/2026-05-25-lisa-monorepo-git.md": true,
     "wiki/sources/git/2026-05-26-lisa-monorepo-git.md": true,
     "wiki/sources/git/2026-05-27-lisa-monorepo-git.md": true,
