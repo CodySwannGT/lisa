@@ -144,6 +144,16 @@ on:
         required: false
         default: false
         type: boolean
+      coverage_services:
+        description: 'Optional JSON service-container spec for the coverage job. Empty string preserves prior behavior. Accepts an object map or array with image plus optional name, ports, env, options, and healthTimeoutSeconds.'
+        required: false
+        default: ''
+        type: string
+      coverage_env:
+        description: 'Optional JSON object of extra environment variables scoped to the coverage job before test:cov. Empty string preserves prior behavior.'
+        required: false
+        default: ''
+        type: string
     secrets:
       SONAR_TOKEN:
         description: 'SonarCloud token for SAST analysis'
@@ -715,6 +725,86 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧰 Start coverage service containers
+        if: steps.check_script.outputs.exists == 'true' && inputs.coverage_services != ''
+        env:
+          COVERAGE_SERVICES: ${{ inputs.coverage_services }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const spec = JSON.parse(process.env.COVERAGE_SERVICES || "[]");
+          const services = Array.isArray(spec)
+            ? spec
+            : Object.entries(spec).map(([name, value]) => ({ name, ...value }));
+          const quote = value => `'${String(value).replace(/'/g, `'\\''`)}'`;
+          const lines = ["set -euo pipefail"];
+          const validateName = name => {
+            if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,62}$/.test(name)) {
+              throw new Error(`Invalid coverage service name: ${name}`);
+            }
+          };
+          for (const [index, service] of services.entries()) {
+            if (!service || typeof service !== "object") {
+              throw new Error(`coverage_services[${index}] must be an object`);
+            }
+            if (!service.image || typeof service.image !== "string") {
+              throw new Error(`coverage_services[${index}].image is required`);
+            }
+            const name = service.name || `lisa-coverage-service-${index + 1}`;
+            validateName(name);
+            lines.push(`docker rm -f ${quote(name)} >/dev/null 2>&1 || true`);
+            const args = ["run", "--detach", "--name", name];
+            for (const [key, value] of Object.entries(service.env || {})) {
+              args.push("--env", `${key}=${value}`);
+            }
+            for (const port of service.ports || []) {
+              args.push("--publish", port);
+            }
+            const optionText =
+              typeof service.options === "string" ? service.options.trim() : "";
+            if (Array.isArray(service.options)) {
+              args.push(...service.options);
+            }
+            const optionSuffix = optionText ? ` ${optionText}` : "";
+            lines.push(
+              `docker ${args.map(quote).join(" ")}${optionSuffix} ${quote(service.image)}`
+            );
+            const timeout = Number(service.healthTimeoutSeconds ?? 60);
+            lines.push(`if docker inspect --format='{{if .Config.Healthcheck}}yes{{end}}' ${quote(name)} | grep -q yes; then`);
+            lines.push(`  deadline=$((SECONDS + ${Number.isFinite(timeout) ? Math.max(1, timeout) : 60}))`);
+            lines.push("  until [ \"$(docker inspect --format='{{.State.Health.Status}}' " + quote(name) + ")\" = healthy ]; do");
+            lines.push("    if [ \"$SECONDS\" -ge \"$deadline\" ]; then docker logs " + quote(name) + "; exit 1; fi");
+            lines.push("    sleep 2");
+            lines.push("  done");
+            lines.push("fi");
+          }
+          fs.writeFileSync("/tmp/lisa-start-coverage-services.sh", `${lines.join("\n")}\n`);
+          NODE
+          bash /tmp/lisa-start-coverage-services.sh
+
+      - name: 🧪 Apply coverage environment
+        if: steps.check_script.outputs.exists == 'true' && inputs.coverage_env != ''
+        env:
+          COVERAGE_ENV: ${{ inputs.coverage_env }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const env = JSON.parse(process.env.COVERAGE_ENV || "{}");
+          if (!env || Array.isArray(env) || typeof env !== "object") {
+            throw new Error("coverage_env must be a JSON object");
+          }
+          const lines = [];
+          for (const [key, value] of Object.entries(env)) {
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+              throw new Error(`Invalid coverage_env key: ${key}`);
+            }
+            lines.push(`${key}<<LISA_COVERAGE_ENV`);
+            lines.push(String(value));
+            lines.push("LISA_COVERAGE_ENV");
+          }
+          fs.appendFileSync(process.env.GITHUB_ENV, `${lines.join("\n")}\n`);
+          NODE
 
       - name: 🧪 Run unit tests with coverage
         if: steps.check_script.outputs.exists == 'true'
