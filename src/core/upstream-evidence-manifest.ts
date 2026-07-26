@@ -375,7 +375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/package-lisa/package.lisa.json":
       "2e01b1ec402f6804a54402e22d02d63f1aa96d3f698e171885b0fff6eb25b271",
     "plugins/src/base/agents/architecture-specialist.md":
-      "5bbe86bd3a7661021f7c8e9c5396fa4c0f3b8a77606e7be868fb9a0e117d424d",
+      "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
       "e01e5d3678e464385105c9abf90e4b70ae262fd856f1e86b2ebe443dae9e17b1",
     "plugins/src/base/agents/builder.md":
@@ -411,21 +411,21 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/notion-prd-intake.md":
       "53df0fba395b10b17bafe1a82c8c2706e4ec029d2aee8f3a2e7d5afe38d9be98",
     "plugins/src/base/agents/performance-specialist.md":
-      "2d6c650e16fdb33ba45ba754dde9f62404ea805b5f5157a885f7b31b8a03b267",
+      "39c088eaf9347410988a82310e3a151034cbac28a756b1c7b28bb4c1c32a6a5d",
     "plugins/src/base/agents/pr-mining-specialist.md":
       "2bf5b933b43ddfbcc9c67f9b98bd68bc6c99ab0c47dca96dcd9e340960df8e55",
     "plugins/src/base/agents/product-specialist.md":
-      "9c342b1a1c5f8c0eb874db24547fe26d259a97a74e1df5cbc26ffb635025a2e6",
+      "c04cb5abdb077040bfc1a22c142841712473500bd6537853e40c94de25abf94c",
     "plugins/src/base/agents/quality-specialist.md":
-      "2a1b433fa1be1c8b23c2c83e5f247b851c61e3c253a79caf8a3eb7f326744a22",
+      "e923aec97457390c6c9c529137a81563a6f452a7d6791ab56b97e40b6e85f039",
     "plugins/src/base/agents/security-specialist.md":
-      "2d592b4c2666082ef84cae8878be99b9ebd07f75ab77656409beff306f17a6b4",
+      "08660526367c257e417ce1f059963a9162cfca427f304f321ba4b2f827cd6ab9",
     "plugins/src/base/agents/skill-evaluator.md":
       "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
     "plugins/src/base/agents/spec-conformance-specialist.md":
       "f589e4d543a617d3c421aa28d6583e1b25e0b18fc83412e6d544a389bdac225c",
     "plugins/src/base/agents/test-specialist.md":
-      "0e6f7137b8338f76d0302cb7a930f50821b4d66dd197977012f32ab5a0c38061",
+      "8f439c725863df84532504a57f64b9e4918acaa242de8c01cb6692553495dbd2",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "fef49c3ca8622c83a54d34b3f960471e0f2ad50e6889f691585b0f208180f6bd",
     "plugins/src/base/agents/verification-specialist.md":
