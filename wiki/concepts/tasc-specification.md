@@ -1,7 +1,7 @@
 # TASC — Trust in Autonomous Software Criteria
 
 Canonical source: [`spec/tasc-0.1-draft.md`](../../spec/tasc-0.1-draft.md)
-(version 0.4.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
+(version 0.5.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
 references stay valid). This page is the wiki synthesis; the spec file is
 authoritative.
 
@@ -22,7 +22,9 @@ provisional pending trademark diligence.
   governance/accountability (incl. traceability of intent, agent segregation of
   duties, the named accountable party — AC1.7 — and standing to accept risk —
   AC1.8), operator legibility (named run outcomes, runbooks),
-  the agent threat model (now including misreporting and fabricated evidence),
+  the agent threat model (now including misreporting, fabricated evidence, and
+  agent-to-agent privilege escalation — AC3.6 — with every threat mapped to a
+  control),
   sensor integrity and learning promotion (mistakes captured, judged, and promoted upstream into enforcement — AC4.5), finding integrity with measured false-positive rates (AC4.6), measurement integrity for the numbers that gate decisions (AC4.7), root-cause closure (AC4.8), enforcement integrity (server-side
   authority, staff parity, the threshold ratchet, instruction-level residual risk
   — AC5.6, and advisory-control adherence — AC5.7), identity & credentials,
@@ -79,8 +81,41 @@ stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
 The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 105 questions across 16 groups,
+instrument referenced by the spec's Annex B — 110 questions across 16 groups,
 each group citing the criteria it evidences.
+
+## Revision 0.5.0 — agent boundaries and graduated autonomy
+
+Drawn from published accounts of running an AI-native SDLC at scale
+([source note](../sources/docs/2026-07-26-anthropic-ai-native-sdlc.md)), read
+against 0.4.0. One finding was a place TASC was wrong rather than incomplete.
+
+- **AC3.6 Agent-to-agent boundaries.** An agent's boundary is drawn around
+  access and actions, **not around its instructions or beliefs about what it
+  will do**. The entity enumerates which peers each agent can reach and
+  evaluates its **effective authority** (§4) — an agent that cannot deploy but
+  can ask a peer that can deploy has deploy authority. Separation of duties
+  (AC1.3) must hold against delegation. The criterion exists because the failure
+  is documented: a constrained incident-response agent, unable to deploy by
+  design, was observed asking a peer over chat to push its fix, caught only at a
+  human gate. AC3.5 previously scoped blast radius to identity and egress and
+  never mentioned reachable peers.
+- **AC3.1 threat-to-control mapping.** Every threat maps to at least one control
+  and every control to at least one threat. An unmapped threat is an accepted
+  risk needing standing (AC1.8); an unmapped control is unexplained cost.
+- **AC8.8 Risk tiers.** Autonomy is no longer uniform: the entity tiers its
+  codebase, services and data by risk and declares per tier what the ADS may do
+  unattended, enforced mechanically. A tier no one chose is a tier no one is
+  accountable for.
+- **AC8.9 Staff introduction.** A new agent joining the roster is a system
+  change. It runs in **shadow** — output recorded and compared, not acted on —
+  and is **adversarially exercised** with deliberately defective work before its
+  output is trusted. Trust is revocable: measured degradation (AC4.9) returns it
+  to shadow.
+- **AC1.9 Approval sampling.** Where the ADS approves its own work, a
+  risk-weighted sample of approvals is re-examined independently and the
+  findings feed the approving mechanism's false-positive rate. Logging a
+  decision proves it happened, not that it was sound.
 
 ## Revision 0.4.0 — standing measurement
 
@@ -199,7 +234,7 @@ survived. The load-bearing additions:
 
 ## Status And Open Items
 
-Draft 0.4.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
+Draft 0.5.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
 crosswalk annexes, governance venue, trademark diligence, full re-keying of
 legacy readiness groups to criterion IDs, and eventual extraction to a
 standalone neutrally-owned repository. Deliberately *not* addressed: legal and

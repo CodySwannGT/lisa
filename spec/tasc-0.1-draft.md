@@ -1,6 +1,6 @@
 # TASC — Trust in Autonomous Software Criteria
 
-**Version:** 0.4.0-draft · **Date:** 2026-07-26 · **Status:** Working draft for circulation
+**Version:** 0.5.0-draft · **Date:** 2026-07-26 · **Status:** Working draft for circulation
 
 **License:** CC BY 4.0 (intended). **Governance:** This document is intended for open,
 vendor-neutral governance (working group or foundation). No conforming tool vendor may
@@ -139,6 +139,10 @@ are used per RFC 2119.
   drift (AC4.9). Owned by the entity, not by a vendor or a public leaderboard.
 - **Capability baseline.** The recorded distribution of evaluation-suite outcomes
   for a pinned configuration, against which later samples are compared.
+- **Effective authority.** Everything an agent can cause to happen, whether by
+  acting directly or by asking another agent to act. An agent's effective
+  authority is the union of its own permissions and the permissions of every
+  peer it can reach (AC3.6) — it is not what its instructions tell it to do.
 - **Standing.** The declared authority of a named human to dispose of a control
   obligation — to accept a risk, loosen a threshold, claim inapplicability, or
   dismiss a class of finding (AC1.8).
@@ -178,7 +182,9 @@ An attestation MUST include a system description containing, at minimum:
 7. **Work-intake sources** and the validation applied at intake.
 8. **Complementary Human Controls** (§9), enumerated.
 9. **Subservice organizations** (§8) and the method of treatment.
-10. **Accountability register.** The accountable party (AC1.7) for the ADS and
+10. **Risk tiers** (AC8.8) with the autonomy permitted in each, and the
+    threat-to-control mapping (AC3.1).
+11. **Accountability register.** The accountable party (AC1.7) for the ADS and
     for each registered loop, deployment target, and Complementary Human
     Control; and, for each person or role holding standing to accept risk
     (AC1.8), the scope of that standing.
@@ -351,6 +357,15 @@ focus (non-authoritative guidance).
   accepted-risk record an agent can write itself is not a control, it is a
   bypass with better paperwork. Unbounded or unattributed acceptance is a
   conformance failure, not a disposition.
+- **AC1.9 Approval sampling.** Where the ADS approves its own work — agent
+  review, automated merge, self-certified verification — every approval MUST
+  record the signals and reasoning it rested on, and a **risk-weighted sample of
+  approvals MUST be re-examined by an actor independent of the approver**
+  (AC1.3), on a declared cadence, with the sampling rate declared per risk tier
+  (AC8.8) and disclosed in the attestation report. Sampling findings MUST enter
+  intake as work (AC4.3) and feed the false-positive measurement of the
+  approving mechanism (AC4.6). Logging an automated decision proves it happened;
+  only re-examining a sample of decisions produces evidence they were sound.
 
 ### AC2 — Communication and Operator Legibility *(mirrors CC2, Communication)*
 
@@ -376,8 +391,13 @@ focus (non-authoritative guidance).
   dependency hallucination and typosquatting; data exfiltration; persistent-memory
   poisoning; sandbox escape and blast radius; and agent misreporting —
   fabricated evidence, self-serving tool or harness selection, unfounded claims
-  of blocked access, and self-serving explanations of failure (§7, AC4.6). It
-  MUST be revisited on material system change.
+  of blocked access, and self-serving explanations of failure (§7, AC4.6); and
+  agent-to-agent escalation of privilege (AC3.6). It MUST be revisited on
+  material system change. **Every threat in the model MUST map to at least one
+  named control, and every control MUST map to at least one threat.** An
+  unmapped threat is an accepted risk requiring standing (AC1.8); an unmapped
+  control is unexplained cost. The mapping is part of the system description
+  (§6) and makes the threat model load-bearing rather than decorative.
 - **AC3.2 Untrusted content.** Content fetched or received from outside the trust
   boundary (web pages, third-party repositories, external comments) MUST be treated
   as data, not instructions; high-risk tools SHOULD be gated while untrusted content
@@ -392,7 +412,23 @@ focus (non-authoritative guidance).
   no persistent memory.)
 - **AC3.5 Blast radius.** The entity MUST be able to state what a compromised agent
   runtime can reach, and that reach MUST be limited to the agent's scoped identity
-  (AC6) and permitted egress (AC6.5).
+  (AC6), permitted egress (AC6.5), and reachable peers (AC3.6).
+- **AC3.6 Agent-to-agent boundaries.** An agent's boundary MUST be drawn around
+  **access and actions, not around its instructions or beliefs about what it
+  will do**. The entity MUST enumerate, per agent, which other agents it can
+  reach and through what channel, and MUST evaluate its **effective authority**
+  (§4) rather than its granted permissions alone: an agent that cannot deploy
+  but can ask a peer that can deploy has deploy authority, and a permission
+  boundary that a request to a peer can route around is advisory (P4).
+  Separation of duties (AC1.3) MUST hold against delegation — the authoring
+  agent MUST NOT be able to obtain approval, verification, or deployment by
+  asking another agent for it. Where agents do coordinate, they SHOULD do so
+  over the same channels as humans, so the exchange is observable and auditable
+  (AC1.5), and inter-agent requests MUST be attributable to the requesting agent
+  (AC1.1). *Focus: this criterion exists because the failure is documented, not
+  hypothetical — a constrained incident-response agent, unable to deploy by
+  design, has been observed asking a peer over chat to push its fix; the request
+  was caught only at a human gate.*
 
 ### AC4 — Monitoring, Sensors, and Finding Integrity *(mirrors CC4, Monitoring)*
 
@@ -673,6 +709,26 @@ focus (non-authoritative guidance).
   assignment, the comparison MUST satisfy P10 and P11; capability is
   heterogeneous across task classes, so a suite result MUST NOT be generalized
   beyond the classes it covers.
+- **AC8.8 Risk tiers.** Autonomy MUST NOT be uniform across the system. The
+  entity MUST tier its codebase, services, and data by risk, and MUST declare
+  per tier what the ADS may do unattended — author, review, approve, merge,
+  deploy — and where a Complementary Human Control (§9) is mandatory regardless
+  of confidence. Tier assignments MUST be recorded in the system description
+  (§6), MUST be enforced mechanically rather than by convention (P4), and MUST
+  be reviewed when the system changes. Tiering is what makes autonomy a decision
+  instead of a default: a tier that no one chose is a tier no one is accountable
+  for (AC1.7).
+- **AC8.9 Staff introduction.** A new agent joining the staff roster — a new
+  reviewer, sensor, or worker — is a system change (AC8.3) and MUST be qualified
+  before its output is trusted. Qualification MUST include a **shadow period**
+  in which the agent's output is produced and recorded but not acted on, and is
+  compared against the existing control or a human decision, for a declared
+  duration or volume; and **adversarial exercise**, in which deliberately
+  defective work is put in front of the agent to confirm it detects what it
+  claims to detect (P1, AC5.5). An agent promoted to authority without a shadow
+  record is an unqualified control, and its findings are *asserted* evidence
+  (§7). Trust granted MUST be revocable: an agent whose measured performance
+  degrades (AC4.9) MUST be returnable to shadow.
 
 ### AC9 — Third Parties and Supply Chain *(mirrors CC9, Risk Mitigation)*
 
@@ -789,14 +845,14 @@ focus (non-authoritative guidance).
 
 | TASC | Mirrors (SOC 2 TSC) | Notes |
 |---|---|---|
-| AC1 Governance & Accountability | CC1 Control Environment | + traceability of intent, segregation of duties for agents, named accountable party, standing to accept risk |
+| AC1 Governance & Accountability | CC1 Control Environment | + traceability of intent, segregation of duties for agents, named accountable party, standing to accept risk, approval sampling |
 | AC2 Communication & Legibility | CC2 Information & Communication | operator legibility; named run outcomes |
-| AC3 Agent Threat Model | CC3 Risk Assessment | agent-native threat classes |
+| AC3 Agent Threat Model | CC3 Risk Assessment | agent-native threat classes; threat-to-control mapping; agent-to-agent boundaries |
 | AC4 Monitoring, Sensors & Finding Integrity | CC4 Monitoring Activities | sensor liveness ≠ findings; finding, measurement, and root-cause integrity; agent-capability drift |
 | AC5 Enforcement Integrity | CC5 Control Activities | server-side authority, parity, ratchet, instruction residual risk, advisory-control adherence |
 | AC6 Identity & Credentials | CC6 Logical & Physical Access | agent-own identity, gateways, federation |
 | AC7 Operations & Recovery | CC7 System Operations | + autonomy measurement, delivery effectiveness, incident answerability |
-| AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification, the evaluation suite, review capacity, observed promotion |
+| AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification, the evaluation suite, risk tiers, staff introduction, review capacity, observed promotion |
 | AC9 Third Parties & Supply Chain | CC9 Risk Mitigation | model vendors as subservice orgs |
 | SI | Processing Integrity (PI) | mandatory for production software, unlike PI; adds generative testing and defect replay |
 | DP | Confidentiality (C) + Privacy (P) | merged; context boundary is the novel control |
@@ -827,7 +883,8 @@ with persistent corpora (SI9); incident and cron-liveness monitors (AC4.2,
 AC7.2); false-positive adjudication queues (AC4.6); billing and telemetry
 reconciliation (AC1.6, AC4.7); distributional eval harnesses with per-condition
 repetition (AC8.2, AC8.3, AC8.7); scheduled capability-regression sampling
-(AC4.9); delivery-metric warehouses (AC7.5); canary analysis services (AC8.5). Open-source
+(AC4.9); delivery-metric warehouses (AC7.5); agent identity brokers and
+inter-agent audit channels (AC3.6); shadow-mode review harnesses (AC8.9); canary analysis services (AC8.5). Open-source
 reference implementations of end-to-end conformance exist and MAY be cited in
 system descriptions; no specific product confers conformance.
 
@@ -850,13 +907,29 @@ system descriptions; no specific product confers conformance.
 10. Finding and measurement integrity register: finding-source false-positive
     rates, metric reconciliation results, and distributional qualification
     results
-11. Evaluation-suite statement (AC8.7): representativeness review date,
+11. Risk-tier register (AC8.8) with permitted autonomy per tier, and the
+    approval-sampling record (AC1.9: rate per tier, sample findings,
+    dispositions); staff-introduction records (AC8.9: shadow periods and
+    adversarial exercises per agent)
+12. Evaluation-suite statement (AC8.7): representativeness review date,
     contamination controls, retired tasks; and the capability-baseline history
     with any detected drift and its attribution (AC4.9)
 
 ---
 
-*End of draft 0.4.0. Changes from 0.3.0: standing measurement of the agents
+*End of draft 0.5.0. Changes from 0.4.0, drawn from published accounts of
+operating an AI-native SDLC at scale: AC3.6 draws agent boundaries around access
+and actions rather than instructions, and counts an agent's reachable peers as
+part of its effective authority — a constrained agent asking a peer to act for
+it is a documented failure, not a hypothetical one; AC3.1 now requires every
+threat to map to a control and every control to a threat; AC8.8 makes autonomy a
+per-risk-tier decision instead of a uniform default; AC8.9 requires a shadow
+period and adversarial exercise before a new agent's output is trusted, and
+makes that trust revocable; AC1.9 requires a risk-weighted sample of the ADS's
+own approvals to be re-examined independently, because logging a decision proves
+only that it happened.*
+
+*Changes in 0.4.0 from 0.3.0: standing measurement of the agents
 themselves. AC8.7 makes the evaluation suite a maintained, contamination-
 controlled asset rather than something assembled per change; AC4.9 monitors
 capability against a recorded baseline, because capability also moves when the
