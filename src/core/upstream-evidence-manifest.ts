@@ -383,7 +383,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/confluence-prd-intake.md":
       "735df81802464abe79fa0f3878ad66dc13a8bf8a8420da28f31392c6e1e3693c",
     "plugins/src/base/agents/debug-specialist.md":
-      "8d8e3e15bb3cadcf39a9c6becb30d24e0d4ab5926abb123d9c144b824ee8c4aa",
+      "88266c25e03a3dbc110b6da8b6a5f7e47a5c3ba7d3b74b9c5a6fe613768df362",
     "plugins/src/base/agents/git-history-analyzer.md":
       "8c2b6ae31cec858647675b24425b8148d3f33f3145f5d423336c87bdd9266f78",
     "plugins/src/base/agents/github-agent.md":
@@ -797,7 +797,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "a283afab506d8e52970c6df566b4504a2ed015493cee4de6debe5b62a09782eb",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
-      "90b0f1388717f81c4e187ab714be01d02a9f41592a4c26487aeb9c26a0959493",
+      "bd5bae508a8f344d8b5cb46cfddcb178ff8368ca77936f9e2c63058e05f61af4",
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md":
       "77dbc2d7e86e5027df486294de315bb539a2ece84bd4b38e47ccc108f8c2875e",
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
@@ -1029,7 +1029,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "4f85ac1381631e9f250d9cf3239baba633ae0df9ba1959f8835ed662592e2d77",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
-      "6304c848c64a00be230337d9e40770c3a09aa59c6241733e32060d0cce9a4f9b",
+      "4d460993fac6021219ca23eee29b1b9afa7c37479dddc662b2fcfaca510edd68",
     "plugins/src/base/skills/lisa-research/SKILL.md":
       "19de7c5910b117c4b3b1bb7ae42cf9c8b6ff2a376b2e21961526bc7ebde18e85",
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
@@ -1039,7 +1039,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "3389740fc0f162be0b684625424e716a0a3e4c99c8cdb4317ec82dcfcf7b57c7",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
-      "2b1cb5bac2be7e8bb6b852efb0bd499cbcdca6299c342a54e0c8d872821c7364",
+      "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
