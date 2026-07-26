@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.305.4](https://github.com/CodySwannGT/lisa/compare/v2.305.3...v2.305.4) (2026-07-26)
+
+
+### Bug Fixes
+
+* allow coverage jobs to start service containers ([8765dfb](https://github.com/CodySwannGT/lisa/commit/8765dfb0b062a47014ed78c7718624246a3c58f2)), closes [CodySwannGT/lisa#2027](https://github.com/CodySwannGT/lisa/issues/2027) [CodySwannGT/lisa#2027](https://github.com/CodySwannGT/lisa/issues/2027)
+* harden coverage workflow inputs ([a24967e](https://github.com/CodySwannGT/lisa/commit/a24967eb736672af4b5c250a93d093ff0b04dfca)), closes [CodySwannGT/lisa#2027](https://github.com/CodySwannGT/lisa/issues/2027) [CodySwannGT/lisa#2027](https://github.com/CodySwannGT/lisa/issues/2027)
+
 ### [2.305.3](https://github.com/CodySwannGT/lisa/compare/v2.305.2...v2.305.3) (2026-07-26)
 
 
