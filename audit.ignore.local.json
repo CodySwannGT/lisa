@@ -1,3 +1,14 @@
 {
-  "exclusions": []
+  "exclusions": [
+    {
+      "id": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "reason": "DoS via unbounded expansion length causing an out-of-memory crash. No patched version is published upstream: the installed 5.0.7 is the newest that exists and the advisory covers <=5.0.7, so the existing `overrides` entry (>=5.0.6) already sits at the ceiling and a bump cannot resolve it. Not a declared dependency — transitive via minimatch under glob, @typescript-eslint/typescript-estree, @ts-morph/common and eslint-plugin-sonarjs, where the expanded patterns come from this repository's own lint and AST configuration rather than from user input. Risk accepted for this repository only; revisit when upstream publishes a fix."
+    },
+    {
+      "id": "GHSA-r28c-9q8g-f849",
+      "package": "postcss",
+      "reason": "Path traversal in previous-source-map auto-loading (sourceMappingURL) leading to arbitrary .map file disclosure. No patched version is published upstream, so a bump cannot resolve it. Not declared in package.json at all — transitive via tailwindcss, vite and eslint-plugin-tailwindcss, i.e. the console-UI build and lint tooling; the published CLI does not run postcss, and the CSS it processes is authored in this repository. Risk accepted for this repository only; revisit when upstream publishes a fix."
+    }
+  ]
 }
