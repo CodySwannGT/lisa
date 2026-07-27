@@ -197,11 +197,27 @@ describe("maestro-native-e2e reusable workflow", () => {
       "adb shell getprop sys.boot_completed | grep -q 1"
     );
     const installApp = script.indexOf("adb install app-android.apk");
+    const preventSleep = script.indexOf(
+      "adb shell settings put system screen_off_timeout 2147483647"
+    );
+    const stayAwake = script.indexOf("adb shell svc power stayon true");
+    const wakeDevice = script.indexOf(
+      "adb shell input keyevent KEYCODE_WAKEUP"
+    );
+    const dismissKeyguard = script.indexOf("adb shell wm dismiss-keyguard");
+    const unlockDevice = script.indexOf("adb shell input keyevent 82");
+    const runMaestro = script.indexOf("maestro test");
     expect(killAdb).toBeGreaterThanOrEqual(0);
     expect(startAdb).toBeGreaterThan(killAdb);
     expect(waitForDevice).toBeGreaterThan(startAdb);
     expect(verifyBoot).toBeGreaterThan(waitForDevice);
     expect(installApp).toBeGreaterThan(verifyBoot);
+    expect(preventSleep).toBeGreaterThan(installApp);
+    expect(stayAwake).toBeGreaterThan(preventSleep);
+    expect(wakeDevice).toBeGreaterThan(stayAwake);
+    expect(dismissKeyguard).toBeGreaterThan(wakeDevice);
+    expect(unlockDevice).toBeGreaterThan(dismissKeyguard);
+    expect(runMaestro).toBeGreaterThan(unlockDevice);
     expect(script).toContain("adb install app-android.apk");
     // android-emulator-runner runs each line as its own `sh -c`; a
     // backslash-continued maestro command breaks. The whole invocation —
