@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.310.3](https://github.com/CodySwannGT/lisa/compare/v2.310.2...v2.310.3) (2026-07-27)
+
+
+### Bug Fixes
+
+* normalize Android launcher before Maestro ([a3d2c0d](https://github.com/CodySwannGT/lisa/commit/a3d2c0d70c752058895a50ea56be29541a8dc05d)), closes [CodySwannGT/lisa#2091](https://github.com/CodySwannGT/lisa/issues/2091)
+
 ### [2.310.2](https://github.com/CodySwannGT/lisa/compare/v2.310.1...v2.310.2) (2026-07-27)
 
 
