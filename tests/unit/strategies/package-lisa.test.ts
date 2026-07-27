@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
 import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
 import type { LisaConfig } from "../../../src/core/config.js";
+import { PROJECT_TYPE_HIERARCHY } from "../../../src/core/config.js";
 import {
   createTempDir,
   cleanupTempDir,
@@ -1338,6 +1339,95 @@ describe("PackageLisaStrategy", () => {
       expect(template.force.overrides["vite"]).toBe(
         rootPackageJson.devDependencies.vite
       );
+    });
+  });
+
+  describe("TypeScript real template: SI9 generative-testing tooling", () => {
+    // Lisa asserts a criterion (SI9) that requires property-based testing with a
+    // declared inventory of invariants. A governed project cannot satisfy an
+    // obligation it has no tooling for, so the tooling is forced rather than
+    // offered — the same reasoning that puts the Stryker mutation runner in
+    // `force` beside it. Both exist to make a test suite honest rather than to
+    // add a feature, which is what makes them governance-critical.
+    //
+    // `fast-check` is deliberately runner-agnostic in effect: unlike
+    // @stryker-mutator/vitest-runner (which Expo has to strip in `remove` because
+    // it runs Jest), it works under both runners, so inheriting it into every
+    // TypeScript-descendant stack is correct rather than bleed.
+    const repoRoot = process.cwd();
+
+    /**
+     * Read the real shipped TypeScript template's forced devDependencies.
+     * @returns The parsed force.devDependencies map.
+     */
+    function readTsForcedDevDeps(): Record<string, string> {
+      return fs.readJsonSync(
+        path.join(repoRoot, "typescript", "package-lisa", "package.lisa.json")
+      ).force.devDependencies;
+    }
+
+    it("forces fast-check rather than merely offering it as a default", () => {
+      const template = fs.readJsonSync(
+        path.join(repoRoot, "typescript", "package-lisa", "package.lisa.json")
+      );
+
+      expect(template.force.devDependencies["fast-check"]).toBeDefined();
+      // A default would let a project silently not have it, which is exactly the
+      // state SI9 cannot be satisfied from.
+      expect(template.defaults.devDependencies?.["fast-check"]).toBeUndefined();
+    });
+
+    it("pins fast-check to the version Lisa itself runs", () => {
+      const rootPackageJson = fs.readJsonSync(
+        path.join(repoRoot, "package.json")
+      );
+
+      // Lisa's own property suite is the reference implementation of SI9 here.
+      // If Lisa upgrades fast-check without moving the template, governed
+      // projects run generative tests against a different library than the one
+      // the pattern was proven on.
+      expect(readTsForcedDevDeps()["fast-check"]).toBe(
+        rootPackageJson.devDependencies["fast-check"]
+      );
+    });
+
+    it("is stripped by no TypeScript-descendant stack", () => {
+      // Not vacuous: Expo's remove list is non-empty and does strip the Vitest
+      // mutation runner, so this asserts the de-inheritance mechanism was used
+      // there and deliberately not used for fast-check.
+      // The set under test is DERIVED from the hierarchy rather than hardcoded, so
+      // a stack added later is checked automatically the moment it declares
+      // `typescript` as its parent.
+      const descendants = Object.entries(PROJECT_TYPE_HIERARCHY)
+        .filter(([, parent]) => parent === "typescript")
+        .map(([stack]) => stack);
+
+      // The literal list is a tripwire, not the subject: it fails loudly when the
+      // hierarchy gains or loses a TypeScript child, so that arrival is a decision
+      // someone makes rather than something that happens quietly. `rails` is
+      // deliberately absent — it has no `typescript` parent and no npm template.
+      expect(new Set(descendants)).toEqual(
+        new Set([
+          "expo",
+          "cdk",
+          "nestjs",
+          "phaser",
+          "npm-package",
+          "harper-fabric",
+        ])
+      );
+
+      const removals = descendants.map(stack => ({
+        stack,
+        removed: (fs.readJsonSync(
+          path.join(repoRoot, stack, "package-lisa", "package.lisa.json")
+        ).remove?.devDependencies ?? []) as string[],
+      }));
+
+      expect(removals.some(entry => entry.removed.length > 0)).toBe(true);
+      for (const entry of removals) {
+        expect(entry.removed).not.toContain("fast-check");
+      }
     });
   });
 
