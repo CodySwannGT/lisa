@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.310.2](https://github.com/CodySwannGT/lisa/compare/v2.310.1...v2.310.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* **readiness:** address poetry review findings ([b8f1393](https://github.com/CodySwannGT/lisa/commit/b8f1393cd73a4d73cbbff2f6d144f2f034c65a6d)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** assess poetry supply-chain confidence ([8cdfd25](https://github.com/CodySwannGT/lisa/commit/8cdfd2556d350e2f6cfd47bb3811ca29329df97e)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.310.1](https://github.com/CodySwannGT/lisa/compare/v2.310.0...v2.310.1) (2026-07-27)
 
 
