@@ -97,14 +97,52 @@ export function deepMergeWithArrayUnion<T extends object>(
  */
 function mergeJsonValues(base: unknown, override: unknown): unknown {
   if (Array.isArray(base) && Array.isArray(override)) {
-    return dedupeArray([...base, ...override]);
+    // The override side is normalized before the union so that dedupe can see
+    // through to equality. Concatenating raw override elements let an
+    // already-normalized base element and its unnormalized twin both survive —
+    // deeply unequal, so nothing collapsed them — and the array grew by one on
+    // every `lisa apply`.
+    return dedupeArray([...base, ...override.map(cloneOverrideValue)]);
   }
 
   if (isJsonObject(base) && isJsonObject(override)) {
     return mergeJsonObjects(base, override);
   }
 
-  return cloneJsonValue(override);
+  return cloneOverrideValue(override);
+}
+
+/**
+ * Clone a value arriving from the override side, normalizing arrays as the
+ * union path would.
+ *
+ * Only the override is normalized. A base-only value is the host's own data and
+ * is preserved verbatim — deduping it would mean Lisa silently rewriting
+ * configuration it was never asked to touch, which is a worse defect than the
+ * one this fixes.
+ *
+ * Without this, an override array containing duplicates was cloned verbatim on
+ * the first merge and deduped by the second, because only then did both sides
+ * hold an array. The same template against the same host produced two different
+ * files on consecutive `lisa apply` runs.
+ * @param value Value taken from the higher-precedence object
+ * @returns A deep clone whose arrays are deduped at every depth
+ */
+function cloneOverrideValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return dedupeArray(value.map(cloneOverrideValue));
+  }
+
+  if (isJsonObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        cloneOverrideValue(entry),
+      ])
+    );
+  }
+
+  return value;
 }
 
 /**
@@ -124,7 +162,7 @@ function mergeJsonObjects(
       const value = Object.hasOwn(override, key)
         ? Object.hasOwn(base, key)
           ? mergeJsonValues(base[key], override[key])
-          : cloneJsonValue(override[key])
+          : cloneOverrideValue(override[key])
         : cloneJsonValue(base[key]);
       return [key, value];
     })

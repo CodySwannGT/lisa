@@ -8284,6 +8284,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/fibonacci.test.ts": true,
     "tests/unit/utils/file-operations.test.ts": true,
     "tests/unit/utils/ignore-patterns.test.ts": true,
+    "tests/unit/utils/json-merge.property.test.ts": true,
     "tests/unit/utils/json-utils.test.ts": true,
     "tests/unit/utils/linked-worktree.test.ts": true,
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
