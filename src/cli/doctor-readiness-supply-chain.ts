@@ -39,6 +39,7 @@ import {
 } from "./doctor-readiness-supply-chain-scan.js";
 import { assessRubyDependenciesSupplyChainDimension } from "./doctor-readiness-supply-chain-ruby-assess.js";
 import { assessPythonDependenciesSupplyChainDimension } from "./doctor-readiness-supply-chain-python-assess.js";
+import { assessGoDependenciesSupplyChainDimension } from "./doctor-readiness-supply-chain-go-assess.js";
 import {
   DEPENDENCIES_SUPPLY_CHAIN_DIMENSION_ID,
   MAX_EVIDENCE_LINES,
@@ -209,6 +210,25 @@ function skipRecord(reason: string): ReadinessDimensionRecord {
 }
 
 /**
+ * Try non-JavaScript dependency models after package.json is absent or unreadable.
+ * @param root - Project root to assess
+ * @returns A non-JS B5 record, or null when no supported manifest exists
+ */
+async function assessNonJavaScriptDependenciesSupplyChainDimension(
+  root: string
+): Promise<ReadinessDimensionRecord | null> {
+  const rubyRecord = await assessRubyDependenciesSupplyChainDimension(root);
+  if (rubyRecord !== null) {
+    return rubyRecord;
+  }
+  const pythonRecord = await assessPythonDependenciesSupplyChainDimension(root);
+  if (pythonRecord !== null) {
+    return pythonRecord;
+  }
+  return await assessGoDependenciesSupplyChainDimension(root);
+}
+
+/**
  * Assess the dependencies/supply-chain dimension: B5, "an owned compatibility or
  * security surface has no confidence model". Offline by construction — it reads
  * only the repository's manifest, lockfiles, CI declarations, git hooks, and
@@ -222,14 +242,10 @@ export async function assessDependenciesSupplyChainDimension(
 ): Promise<ReadinessDimensionRecord> {
   const outcome = await readManifest(root);
   if (outcome.kind === "unassessable") {
-    const rubyRecord = await assessRubyDependenciesSupplyChainDimension(root);
-    if (rubyRecord !== null) {
-      return rubyRecord;
-    }
-    const pythonRecord =
-      await assessPythonDependenciesSupplyChainDimension(root);
-    if (pythonRecord !== null) {
-      return pythonRecord;
+    const nonJavaScriptRecord =
+      await assessNonJavaScriptDependenciesSupplyChainDimension(root);
+    if (nonJavaScriptRecord !== null) {
+      return nonJavaScriptRecord;
     }
     return skipRecord(outcome.reason);
   }
