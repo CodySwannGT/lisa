@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.310.5](https://github.com/CodySwannGT/lisa/compare/v2.310.4...v2.310.5) (2026-07-27)
+
+
+### Bug Fixes
+
+* **readiness:** assess Go module supply-chain confidence ([cee1169](https://github.com/CodySwannGT/lisa/commit/cee11693a58b5fc63241250d7c78cc3a41c4e335)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** parse commented Go require blocks ([070854a](https://github.com/CodySwannGT/lisa/commit/070854ace99d55be69c4ffb0fc4d1374ee5b58ae)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.310.4](https://github.com/CodySwannGT/lisa/compare/v2.310.3...v2.310.4) (2026-07-27)
 
 
