@@ -29,6 +29,9 @@ import {
 const RUN_NPM_TEST = "      - run: npm test";
 const ID_TOKEN_WRITE = "      id-token: write";
 const RUN_NPM_PUBLISH = "      - run: npm publish --provenance";
+const NEEDS_TEST = "    needs: [test]";
+const CHECKOUT_V4_REF = "actions/checkout@v4";
+const CHECKOUT_V4_ACTION = `      - uses: ${CHECKOUT_V4_REF}`;
 const PINNED_DOCKER_IMAGE =
   "docker://ghcr.io/acme/releaser@sha256:" +
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -65,7 +68,7 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
       STEPS,
       RUN_NPM_TEST,
       PUBLISH_JOB,
-      "    needs: [test]",
+      NEEDS_TEST,
       RUNS_ON,
       PERMISSIONS,
       CONTENTS_READ,
@@ -100,7 +103,7 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
       STEPS,
       RUN_NPM_TEST,
       PUBLISH_JOB,
-      "    needs: [test]",
+      NEEDS_TEST,
       RUNS_ON,
       PERMISSIONS,
       CONTENTS_READ,
@@ -114,6 +117,39 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
 
     expect(record.status).toBe(PASS);
     expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
+  it("FAILs when a validating ancestor uses a mutable action ref", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      "  test:",
+      RUNS_ON,
+      STEPS,
+      CHECKOUT_V4_ACTION,
+      RUN_NPM_TEST,
+      PUBLISH_JOB,
+      NEEDS_TEST,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      ID_TOKEN_WRITE,
+      STEPS,
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      RUN_NPM_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+    const evidence = String(asFindings(record.findings)[0].evidence);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(evidence).toContain(CHECKOUT_V4_REF);
+    expect(evidence).toContain("validating ancestor");
   });
 
   it("FAILs when a publishing job uses a tagged Docker action ref", async () => {
@@ -178,15 +214,13 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
       "  quality:",
       RUNS_ON,
       STEPS,
-      "      - uses: actions/checkout@v4",
+      CHECKOUT_V4_ACTION,
       RUN_NPM_TEST,
     ]);
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).not.toBe(FAIL);
-    expect(JSON.stringify(record.findings)).not.toContain(
-      "actions/checkout@v4"
-    );
+    expect(JSON.stringify(record.findings)).not.toContain(CHECKOUT_V4_REF);
   });
 });
