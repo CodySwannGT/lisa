@@ -839,7 +839,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
       "11fad06d109538f1a8ee4ef8043bb0e083672e3c9a7cb7ae8a7233c5411d6dd2",
     "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md":
-      "e70da3ced1a233ff094f70284c5e2ff9ff238b8c59b3eee722414dfe8a668406",
+      "79ddd491880cf39f5232d0e33357470cc91a182ed27aa928ad3f9ea84c0fee5f",
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "6b3bbe8ff85c7cb20412dcfcab3d7506a3efc67907cb749622c329fb4130baf4",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
@@ -859,7 +859,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
       "9cf01c2b23a7f82a02e6cd935669de04345720ef9e01a5daadfdebbea040bd99",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
-      "c63c8bf7aeabc1ba5f6e5a3f982212e9903496c559ba035da303aa50fe4626e3",
+      "3a7082fe2456c0bdb743932872581ad57a00fd2bdf8881e072543d72c17f6cfb",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "3b0e67ed50909d38249b9780052d97e66268990c8806aa271000c37716aafa06",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
@@ -873,7 +873,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "d01ce8e1af7f4e857810b0c9039481b717ea013bca18e2dc75102a47076d89a0",
+      "3a6c6534e57d335f8f2b34a5afe6fd8a87506a392fb8bbe33ff06a9c432ab3d6",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
