@@ -167,8 +167,8 @@ function collectGoSpecLine(
   state: GoRequireParseState,
   rawLine: string
 ): GoRequireParseState {
-  const line = rawLine.trim();
-  if (line === "" || line.startsWith("//")) {
+  const line = stripGoComment(rawLine);
+  if (line === "") {
     return state;
   }
   if (state.inRequireBlock) {
