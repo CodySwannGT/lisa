@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.1](https://github.com/CodySwannGT/lisa/compare/v2.311.0...v2.311.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **git-submit-pr:** use non-closing GitHub issue refs ([f46f858](https://github.com/CodySwannGT/lisa/commit/f46f85841f8a554348d56aa1df6e824f603970ec)), closes [CodySwannGT/lisa#2109](https://github.com/CodySwannGT/lisa/issues/2109) [CodySwannGT/lisa#2109](https://github.com/CodySwannGT/lisa/issues/2109)
+
 ## [2.311.0](https://github.com/CodySwannGT/lisa/compare/v2.310.5...v2.311.0) (2026-07-27)
 
 
