@@ -12,6 +12,13 @@ import {
   ancestorJobs,
   reusableCallerValidation,
 } from "./doctor-readiness-reusable-callers.js";
+import {
+  promotesValidatedArtifact,
+  PROMOTION_ACTION,
+  unresolvedPromotedArtifact,
+} from "./doctor-readiness-promoted-artifact.js";
+
+export { PROMOTION_ACTION } from "./doctor-readiness-promoted-artifact.js";
 
 const PUBLISH_VERBS = [
   "npm publish",
@@ -96,7 +103,6 @@ function isLocalBuildCommand(run: string): boolean {
 const LOCAL_PATH_ARGUMENT = /\s\.{0,2}\//;
 
 const LOCAL_ARTIFACT_FILE = /\.(tgz|tar\.gz|zip|whl)\b/;
-export const PROMOTION_ACTION = "actions/download-artifact";
 const DEFAULT_BRANCHES = new Set(["main", "master"]);
 const MAX_STEP_LABEL = 80;
 
@@ -363,9 +369,11 @@ export function assessReleasePaths(
         ? rebuildPastValidation(where)
         : unvalidatedSelfBuild(where, workflow, defaultBranches, allWorkflows);
     }
-    if (validated || promotesValidatedArtifact(job, publishStep)) {
+    if (validated) {
       return { kind: "clean" };
     }
+    if (promotesValidatedArtifact(job, publishStep))
+      return unresolvedPromotedArtifact(where);
     // Neither built here nor promoted from CI, and nothing validating precedes it:
     // the link between what ships and what was validated is simply not observable
     // in this file. That is unestablished, not clean.
@@ -435,19 +443,4 @@ function unvalidatedSelfBuild(
       `its \`needs:\` closure and no \`${PROMOTION_ACTION}\` promotion of the ` +
       "CI-built one — nothing was proved about the bytes that reached users",
   };
-}
-
-/**
- * Whether the job promotes the artifact CI already built and validated.
- * @param job - The publishing job
- * @param publishStep - The step that ships
- * @returns True when a download-artifact step is present
- */
-function promotesValidatedArtifact(
-  job: ParsedWorkflowJob,
-  publishStep: ParsedWorkflowStep
-): boolean {
-  return job.steps
-    .slice(0, job.steps.indexOf(publishStep))
-    .some(step => step.uses.includes(PROMOTION_ACTION));
 }
