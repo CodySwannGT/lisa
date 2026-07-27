@@ -152,4 +152,43 @@ describe("assessDependenciesSupplyChainDimension — install-time execution", ()
     expect(finding?.evidence).toContain("@sentry/cli");
     expect(finding?.evidence).toContain("third-party install-time scripts");
   });
+
+  it("FAILs with B5 when pnpm onlyBuiltDependencies allows dependency build scripts", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      ...PINNED_MANIFEST,
+      onlyBuiltDependencies: ["esbuild"],
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain("trusted dependency build script");
+    expect(finding?.evidence).toContain("esbuild");
+    expect(finding?.evidence).toContain("third-party install-time scripts");
+  });
+
+  it("FAILs with B5 when pnpm nested onlyBuiltDependencies allows dependency build scripts", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, PACKAGE_JSON, {
+      ...PINNED_MANIFEST,
+      pnpm: {
+        onlyBuiltDependencies: ["@parcel/watcher"],
+      },
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    const finding = asFindings(record.findings).find(
+      candidate => candidate.blocker === BLOCKER_ID
+    );
+    expect(finding?.evidence).toContain("@parcel/watcher");
+    expect(finding?.evidence).toContain("trusted dependency build script");
+  });
 });
