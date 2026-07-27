@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.4](https://github.com/CodySwannGT/lisa/compare/v2.311.3...v2.311.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* **readiness:** flag mutable validation actions ([fd07d36](https://github.com/CodySwannGT/lisa/commit/fd07d366adf983753b9b100a8b31ddc9552d009c)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.3](https://github.com/CodySwannGT/lisa/compare/v2.311.2...v2.311.3) (2026-07-27)
 
 
