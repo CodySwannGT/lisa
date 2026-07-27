@@ -26,11 +26,17 @@ const GO_SUM = "go.sum";
 /** The update-bot config path used as a Go dependency-audit gate. */
 const DEPENDABOT_PATH = ".github/dependabot.yml";
 
+/** Minimal Go version line used by fixture manifests. */
+const GO_VERSION_LINE = "go 1.23";
+
+/** Minimal Go module declaration used by fixture manifests. */
+const GO_MODULE_LINE = "module example.com/scratch";
+
 /** Minimal Go module with one pinned requirement. */
 const CONSTRAINED_GO_MOD = [
-  "module example.com/scratch",
+  GO_MODULE_LINE,
   "",
-  "go 1.23",
+  GO_VERSION_LINE,
   "",
   "require github.com/stretchr/testify v1.10.0",
   "",
@@ -76,9 +82,9 @@ describe("assessDependenciesSupplyChainDimension — Go module repositories", ()
       cwd,
       GO_MOD,
       [
-        "module example.com/scratch",
+        GO_MODULE_LINE,
         "",
-        "go 1.23",
+        GO_VERSION_LINE,
         "",
         "require (",
         "  github.com/stretchr/testify latest",
@@ -118,9 +124,38 @@ describe("assessDependenciesSupplyChainDimension — Go module repositories", ()
     }
   });
 
+  it("parses require blocks with trailing Go comments on boundary lines", async () => {
+    const cwd = await getTempDir();
+    await writeRepoFile(
+      cwd,
+      GO_MOD,
+      [
+        GO_MODULE_LINE,
+        "",
+        GO_VERSION_LINE,
+        "",
+        "require ( // production dependencies",
+        "  github.com/stretchr/testify v1.10.0",
+        ") // end production dependencies",
+        "",
+      ].join("\n")
+    );
+    await writeRepoFile(cwd, GO_SUM, MINIMAL_GO_SUM);
+    await writeRepoFile(cwd, DEPENDABOT_PATH, GO_DEPENDABOT_YML);
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe("PASS");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+  });
+
   it("SKIPs with an explicit reason when go.mod declares no requirements", async () => {
     const cwd = await getTempDir();
-    await writeRepoFile(cwd, GO_MOD, "module example.com/scratch\n\ngo 1.23\n");
+    await writeRepoFile(
+      cwd,
+      GO_MOD,
+      `${GO_MODULE_LINE}\n\n${GO_VERSION_LINE}\n`
+    );
 
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
