@@ -45,11 +45,14 @@ export interface OperationScan {
 /** Optional refinements a caller layers onto a scan. */
 export interface ScanOptions {
   /**
-   * A job-level exemption, evaluated when a match is found. B1 uses it for a
-   * job that takes its own backup first: the destructive command is real, but
-   * the way back is right there in the same job.
+   * A step-level exemption, evaluated after a matching step is found. B1 uses it
+   * for a destructive command that has a preceding backup in the same job; a
+   * backup that runs later is not a way back for the already-executed command.
    */
-  readonly exemptJob?: (job: ParsedWorkflowJob) => boolean;
+  readonly exemptStep?: (
+    job: ParsedWorkflowJob,
+    step: ParsedWorkflowStep
+  ) => boolean;
   /**
    * A workflow-level reason the match cannot be settled offline, returning
    * `null` when it can. Used for triggers that make the operation obviously
@@ -386,7 +389,7 @@ function classifyJob(
   if (deferred !== undefined && deferred !== null) {
     return [{ kind: "unresolved", reason: deferred }, ...unresolvedCalls];
   }
-  const jobGated = jobIsGated(job) || (options.exemptJob?.(job) ?? false);
+  const jobGated = jobIsGated(job);
   return [
     ...hits.map(step => {
       const stepDeferred = options.unresolvedStep?.(workflow, job, step);
@@ -395,7 +398,9 @@ function classifyJob(
       }
       return {
         kind:
-          jobGated || stepIsGated(step)
+          jobGated ||
+          (options.exemptStep?.(job, step) ?? false) ||
+          stepIsGated(step)
             ? ("gated" as const)
             : ("ungated" as const),
         command: { workflow: workflow.file, jobId: job.id, command: step.run },

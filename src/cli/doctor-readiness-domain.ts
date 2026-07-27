@@ -144,15 +144,28 @@ function servicesDeferral(
 }
 
 /**
- * Whether a job takes its own copy before destroying anything — the way back,
- * sitting right beside the danger.
+ * Whether a job takes its own copy before this destructive step runs — the way
+ * back, sitting before the danger. A later backup-looking command cannot recover
+ * data that has already been deleted.
  * @param job - The parsed job
- * @returns True when any step in the job looks like a backup
+ * @param step - The destructive step being classified
+ * @returns True when an earlier step in the job looks like a backup
  */
-function jobTakesBackup(job: ParsedWorkflowJob): boolean {
-  return job.steps.some(step =>
-    RECOVERY_COMMANDS.some(pattern => pattern.test(step.run.toLowerCase()))
-  );
+function jobTakesBackupBeforeStep(
+  job: ParsedWorkflowJob,
+  step: ParsedWorkflowStep
+): boolean {
+  const stepIndex = job.steps.indexOf(step);
+  if (stepIndex <= 0) {
+    return false;
+  }
+  return job.steps
+    .slice(0, stepIndex)
+    .some(previousStep =>
+      RECOVERY_COMMANDS.some(pattern =>
+        pattern.test(previousStep.run.toLowerCase())
+      )
+    );
 }
 
 /**
@@ -278,7 +291,7 @@ export async function assessDomainOwnershipDimension(
   const workflows: readonly ParsedWorkflow[] =
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
   const scan = scanCommands(workflows, destroysData, {
-    exemptJob: jobTakesBackup,
+    exemptStep: jobTakesBackupBeforeStep,
     unresolvedStep: servicesDeferral,
   });
   // A checked-in runbook is a way back, so it clears the "no recovery" half of
