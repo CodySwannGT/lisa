@@ -56,11 +56,11 @@ Optional arguments include `pr_url=<url>` for the live pull request and `merge_s
 
 When `$ARGUMENTS` includes `pr_url=<url>` for `PR ready` or `PR merged`, ensure the GitHub Issue has a durable ticket -> PR link:
 
-1. Prefer GitHub's native development link by making sure the PR body contains `Refs #<n>` / `Closes #<n>` (or the fully qualified cross-repo form) and verify with `gh issue view <number> --json timelineItems` or an equivalent GitHub read that exposes the linked PR.
-2. If native linkage cannot be verified, post or update a single managed issue comment starting with `[lisa-pr-link]`. Include the PR URL, milestone (`pr-ready` or `pr-merged`), and merge SHA when available.
+1. Make sure the PR body contains `Refs #<n>` (or the fully qualified cross-repo form) — never a closing keyword, per the GitHub rule in `lisa-git-submit-pr`. Read the issue side with `gh api graphql` against `issue.timelineItems`, or `gh issue view <number> --json closedByPullRequestsReferences`. **Not** `gh issue view --json timelineItems`: `timelineItems` is not a supported field for that command, so the check silently returns nothing useful rather than failing loudly.
+2. Post or update a single managed issue comment starting with `[lisa-pr-link]`. Include the PR URL, milestone (`pr-ready` or `pr-merged`), and merge SHA when available. This is **unconditional**, not contingent on step 1 failing: under the non-closing rule GitHub never creates a native development link (that surface is the closing-reference mechanism), so this comment is the only ticket-side backlink there will be.
 3. Keep the fallback idempotent: search existing comments for `[lisa-pr-link]` and the PR URL; update/replace that managed comment where the provider allows updates, otherwise skip when the current body already matches. Do not append duplicate backlink comments on reruns.
 
-This fallback is required even though GitHub usually links PRs natively from PR body keywords; the issue must show the PR from at least one ticket-side surface.
+Native GitHub linkage cannot be verified under the non-closing rule because it is never created in the first place, so the managed comment is not a contingency here — it is the mechanism. The issue must show the PR from at least one ticket-side surface, and this is the only one available.
 
 ### Step 4: Suggest Status Transition
 
