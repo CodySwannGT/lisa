@@ -11,7 +11,10 @@ import {
   describeStep,
   findPublishSteps,
 } from "./doctor-readiness-release-path.js";
-import { ancestorJobs } from "./doctor-readiness-reusable-callers.js";
+import {
+  ancestorJobs,
+  reusableWorkflowCallers,
+} from "./doctor-readiness-reusable-callers.js";
 
 const PINNED_ACTION_REF = /^[a-f0-9]{40}$/i;
 const PINNED_DOCKER_ACTION_REF = /^docker:\/\/.+@sha256:[a-f0-9]{64}$/i;
@@ -84,11 +87,13 @@ function mutableActionViolations(
  * closure: their output is what makes the artifact trusted.
  * @param workflow - The workflow declaring the job
  * @param job - The job to assess
+ * @param allWorkflows - Every parsed workflow in the repository
  * @returns B2 evidence lines for unpinned action refs
  */
 export function unpinnedPublishingActionViolations(
   workflow: ParsedWorkflow,
-  job: ParsedWorkflowJob
+  job: ParsedWorkflowJob,
+  allWorkflows?: readonly ParsedWorkflow[]
 ): readonly string[] {
   if (findPublishSteps(job).length === 0) {
     return [];
@@ -100,6 +105,15 @@ export function unpinnedPublishingActionViolations(
         workflow,
         ancestor,
         "a validating ancestor of a publishing job"
+      )
+    ),
+    ...reusableWorkflowCallers(workflow, allWorkflows).flatMap(caller =>
+      ancestorJobs(caller.workflow, caller.job).flatMap(ancestor =>
+        mutableActionViolations(
+          caller.workflow,
+          ancestor,
+          "a validating local caller ancestor of a reusable publishing workflow"
+        )
       )
     ),
   ];
