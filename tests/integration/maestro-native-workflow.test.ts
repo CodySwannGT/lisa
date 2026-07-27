@@ -205,7 +205,15 @@ describe("maestro-native-e2e reusable workflow", () => {
       "adb shell input keyevent KEYCODE_WAKEUP"
     );
     const dismissKeyguard = script.indexOf("adb shell wm dismiss-keyguard");
-    const unlockDevice = script.indexOf("adb shell input keyevent 82");
+    const normalizeLauncher = script.indexOf(
+      "adb shell input keyevent KEYCODE_HOME"
+    );
+    const verifyAwake = script.indexOf(
+      "adb shell dumpsys power | grep -q 'mWakefulness=Awake'"
+    );
+    const verifyUnlocked = script.indexOf(
+      "adb shell dumpsys window | grep -q 'isKeyguardShowing=false'"
+    );
     const runMaestro = script.indexOf("maestro test");
     expect(killAdb).toBeGreaterThanOrEqual(0);
     expect(startAdb).toBeGreaterThan(killAdb);
@@ -216,8 +224,11 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(stayAwake).toBeGreaterThan(preventSleep);
     expect(wakeDevice).toBeGreaterThan(stayAwake);
     expect(dismissKeyguard).toBeGreaterThan(wakeDevice);
-    expect(unlockDevice).toBeGreaterThan(dismissKeyguard);
-    expect(runMaestro).toBeGreaterThan(unlockDevice);
+    expect(normalizeLauncher).toBeGreaterThan(dismissKeyguard);
+    expect(verifyAwake).toBeGreaterThan(normalizeLauncher);
+    expect(verifyUnlocked).toBeGreaterThan(verifyAwake);
+    expect(runMaestro).toBeGreaterThan(verifyUnlocked);
+    expect(script).not.toContain("adb shell input keyevent 82");
     expect(script).toContain("adb install app-android.apk");
     // android-emulator-runner runs each line as its own `sh -c`; a
     // backslash-continued maestro command breaks. The whole invocation —
