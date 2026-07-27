@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
 const ROOTS = [
   "plugins/src/base/skills",
   "plugins/lisa/skills",
+  "plugins/lisa/.codex-plugin/skills",
   "plugins/lisa-agy/skills",
   "plugins/lisa-copilot/skills",
   "plugins/lisa-cursor/skills",
@@ -113,17 +114,16 @@ describe("Linear native auto-close env gate contract", () => {
     });
   });
 
-  describe.each(ROOTS)(
-    "%s/lisa-git-submit-pr GitHub closing-keyword gate",
-    root => {
-      const content = readSkill(root, GIT_SUBMIT_PR);
+  describe.each(ROOTS)("%s/lisa-git-submit-pr GitHub issue refs", root => {
+    const content = readSkill(root, GIT_SUBMIT_PR);
 
-      it("uses Closes on production/default and Refs on non-terminal env branches", () => {
-        expect(content).toMatch(/Closes #<n>/);
-        expect(content).toMatch(/Refs #<n>/);
-      });
-    }
-  );
+    it("always uses non-closing GitHub references before terminal done", () => {
+      expect(content).toMatch(/Always use a non-closing reference/);
+      expect(content).toMatch(/Refs #<n>/);
+      expect(content).toMatch(/terminal `done` label/);
+      expect(content).not.toMatch(/Closes #<n>/);
+    });
+  });
 
   describe.each(ROOTS)(
     "%s/lisa-linear-sync native auto-close reconciliation",
