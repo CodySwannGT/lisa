@@ -2093,7 +2093,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
-      "bdd1766c2f327290207874b04fd3a577a8188bb57c2fd77d482bb7d6ecf17355",
+      "783e2a0a8d7463f4b32a68dae480f051b1814aa404fcbe10c713468d51727568",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
