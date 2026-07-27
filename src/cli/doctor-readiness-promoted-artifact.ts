@@ -12,6 +12,16 @@ import type { ReleasePathOutcome } from "./doctor-readiness-release-path.js";
 export const PROMOTION_ACTION = "actions/download-artifact";
 
 /**
+ * Whether an action reference is the trusted artifact-promotion action.
+ * @param uses - Raw action reference
+ * @returns True when the action id is exactly actions/download-artifact
+ */
+export function isPromotionAction(uses: string): boolean {
+  const actionId = uses.split("@")[0]?.trim();
+  return actionId === PROMOTION_ACTION;
+}
+
+/**
  * Whether the job promotes an artifact produced by another job.
  * @param job - The publishing job
  * @param publishStep - The step that ships
@@ -23,7 +33,7 @@ export function promotesValidatedArtifact(
 ): boolean {
   return job.steps
     .slice(0, job.steps.indexOf(publishStep))
-    .some(step => step.uses.includes(PROMOTION_ACTION));
+    .some(step => isPromotionAction(step.uses));
 }
 
 /**
