@@ -368,7 +368,14 @@ jobs:
             adb shell svc power stayon true
             adb shell input keyevent KEYCODE_WAKEUP
             adb shell wm dismiss-keyguard
-            adb shell input keyevent 82
+            # KEYCODE_MENU (82) opens the Pixel launcher's customization
+            # popup once the keyguard is already dismissed. That popup can
+            # consume every subsequent Maestro launchApp command and make all
+            # flows fail their first assertion. HOME instead normalizes the
+            # post-unlock surface and closes any boot-time launcher popup.
+            adb shell input keyevent KEYCODE_HOME
+            adb shell dumpsys power | grep -q 'mWakefulness=Awake'
+            adb shell dumpsys window | grep -q 'isKeyguardShowing=false'
             maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}
 
       - name: 📤 Upload Maestro debug output
