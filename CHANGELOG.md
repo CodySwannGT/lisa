@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.310.1](https://github.com/CodySwannGT/lisa/compare/v2.310.0...v2.310.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* keep Android awake for Maestro ([dc291d5](https://github.com/CodySwannGT/lisa/commit/dc291d555b34c0abd8cc13f2a38c8adcba80663d)), closes [CodySwannGT/lisa#2091](https://github.com/CodySwannGT/lisa/issues/2091)
+
 ## [2.310.0](https://github.com/CodySwannGT/lisa/compare/v2.309.5...v2.310.0) (2026-07-26)
 
 
