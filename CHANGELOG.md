@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.5](https://github.com/CodySwannGT/lisa/compare/v2.311.4...v2.311.5) (2026-07-27)
+
+
+### Bug Fixes
+
+* **readiness:** match promotion action exactly ([cfd4e50](https://github.com/CodySwannGT/lisa/commit/cfd4e508765c628069a788b87ec9a7d2ea67f68c)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** require validation for promoted artifacts ([ecd34ee](https://github.com/CodySwannGT/lisa/commit/ecd34eefaf787fee357ec3b9a451b013ed8ddbd7)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.4](https://github.com/CodySwannGT/lisa/compare/v2.311.3...v2.311.4) (2026-07-27)
 
 
