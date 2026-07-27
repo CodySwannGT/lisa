@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.7](https://github.com/CodySwannGT/lisa/compare/v2.311.6...v2.311.7) (2026-07-27)
+
+
+### Bug Fixes
+
+* **readiness:** require backup before data wipe ([e280b7c](https://github.com/CodySwannGT/lisa/commit/e280b7c3d7a66cdf0dec3886a1cb2d4585670c97)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.6](https://github.com/CodySwannGT/lisa/compare/v2.311.5...v2.311.6) (2026-07-27)
 
 
