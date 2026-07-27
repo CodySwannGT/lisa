@@ -97,7 +97,9 @@ describe("two-way PR/ticket linking contract", () => {
  * prematurely, desyncing the env-keyed `status:*` label ladder. `git-submit-pr`
  * must gate magic words on the production/default branch, and `linear-sync` must
  * carry a post-merge reconciliation step that re-opens a natively-completed
- * Issue whose derived env is intermediate. All 5 ROOTS stay in parity.
+ * Issue whose derived env is intermediate. All 6 ROOTS stay in parity — the count
+ * said 5 while `ROOTS` already listed the Codex skill root, so the comment
+ * understated the cohort it documents.
  */
 describe("Linear native auto-close env gate contract", () => {
   describe.each(ROOTS)("%s/lisa-git-submit-pr Linear magic-word gate", root => {
@@ -121,7 +123,14 @@ describe("Linear native auto-close env gate contract", () => {
       expect(content).toMatch(/Always use a non-closing reference/);
       expect(content).toMatch(/Refs #<n>/);
       expect(content).toMatch(/terminal `done` label/);
-      expect(content).not.toMatch(/Closes #<n>/);
+      // The whole closing-keyword family, not just `Closes`. The contract is
+      // "GitHub never emits a closing keyword"; asserting one spelling let a
+      // regression to `Fixes #<n>` or `Resolves #<n>` pass the gate while
+      // reintroducing the exact defect — close at merge, ahead of the deploy and
+      // remote verification the work item is actually terminal on.
+      expect(content).not.toMatch(
+        /\b(clos(e|es|ed)|fix(es|ed)?|resolv(e|es|ed)) #<n>/i
+      );
     });
   });
 
