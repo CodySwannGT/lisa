@@ -78,7 +78,7 @@ function summarizeReleasePaths(
   );
   const unpinnedActionViolations = workflows.flatMap(workflow =>
     workflow.jobs.flatMap(job =>
-      unpinnedPublishingActionViolations(workflow, job)
+      unpinnedPublishingActionViolations(workflow, job, workflows)
     )
   );
   return {
