@@ -178,7 +178,7 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
     expect(evidence).toContain("docker://ghcr.io/acme/releaser:v1");
   });
 
-  it("PASSes a publishing job whose Docker action ref is digest pinned", async () => {
+  it("SKIPs a digest-pinned publishing job when the artifact is not tied to validation", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, RELEASE_YML, [
       RELEASE_NAME,
@@ -199,8 +199,11 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
 
     const record = await assessDeliveryAuthorityDimension(cwd);
 
-    expect(record.status).toBe(PASS);
+    expect(record.status).toBe("SKIP");
     expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(String(asFindings(record.findings)[0].reason)).toContain(
+      "cannot be tied to anything that was validated"
+    );
   });
 
   it("does not report mutable refs in non-publishing jobs", async () => {
