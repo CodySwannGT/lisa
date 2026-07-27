@@ -119,6 +119,27 @@ describe("assessDomainOwnershipDimension — never manufactures RED from absence
     }
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Data loss / recovery-order correctness).
+  it("stands B1 when the only backup runs after the destructive command", async () => {
+    const root = await getTempDir();
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      RUN_S3_WIPE,
+      "      - run: aws s3 sync s3://acme-backup s3://acme-prod-user-uploads",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(
+      asFindings(record.findings).some(finding => finding.blocker === "B1")
+    ).toBe(true);
+  });
+
   it("does not stand B1 for a manually dispatched workflow", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, CLEANUP_YML, [
