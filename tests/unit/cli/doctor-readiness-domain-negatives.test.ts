@@ -119,6 +119,7 @@ describe("assessDomainOwnershipDimension — never manufactures RED from absence
     }
   });
 
+  // Test hardened to kill mutant M001 (Risk Factor: Data loss / recovery-order correctness).
   it("stands B1 when the only backup runs after the destructive command", async () => {
     const root = await getTempDir();
     await writeWorkflow(root, CLEANUP_YML, [
