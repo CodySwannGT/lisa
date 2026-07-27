@@ -13,6 +13,7 @@ import {
   reusableCallerValidation,
 } from "./doctor-readiness-reusable-callers.js";
 import {
+  isPromotionAction,
   promotesValidatedArtifact,
   PROMOTION_ACTION,
   unresolvedPromotedArtifact,
@@ -262,8 +263,7 @@ function shipsSelfBuiltArtifact(
   const downloadIndex = job.steps
     .slice(0, publishIndex)
     .reduce(
-      (latest, step, index) =>
-        step.uses.includes(PROMOTION_ACTION) ? index : latest,
+      (latest, step, index) => (isPromotionAction(step.uses) ? index : latest),
       -1
     );
   if (downloadIndex >= 0) {
