@@ -111,26 +111,49 @@ function installTimeScriptEvidence(
   );
 }
 
+/** Package-manager fields that explicitly allow dependency build scripts. */
+const BUILD_SCRIPT_ALLOWLIST_FIELDS: readonly string[] = [
+  "trustedDependencies",
+  "onlyBuiltDependencies",
+];
+
 /**
- * Build evidence when Bun trusted dependencies are declared.
+ * Read string values from a package-manager build-script allowlist.
+ * @param value - Candidate manifest field
+ * @returns Declared package names
+ */
+function stringArray(value: unknown): readonly string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
+}
+
+/**
+ * Build evidence when package managers are configured to trust dependency build scripts.
  * @param manifestPath - Repo-relative manifest path
  * @param manifest - Parsed package manifest
- * @returns Evidence line when trusted dependencies are declared
+ * @returns Evidence line when trusted dependency build scripts are declared
  */
 function trustedDependencyEvidence(
   manifestPath: string,
   manifest: Record<string, unknown>
 ): string | null {
-  const trusted = manifest.trustedDependencies;
-  const names = Array.isArray(trusted)
-    ? trusted.filter((entry): entry is string => typeof entry === "string")
-    : [];
+  const pnpm = manifest.pnpm;
+  const names = [
+    ...BUILD_SCRIPT_ALLOWLIST_FIELDS.flatMap(field =>
+      stringArray(manifest[field])
+    ),
+    ...(pnpm !== null && typeof pnpm === "object" && !Array.isArray(pnpm)
+      ? stringArray((pnpm as Record<string, unknown>).onlyBuiltDependencies)
+      : []),
+  ];
   if (names.length === 0) {
     return null;
   }
   return (
-    `\`${manifestPath}\` marks ${renderList(names)} as ` +
-    "`trustedDependencies`, allowing third-party install-time scripts to run; " +
+    `\`${manifestPath}\` marks ${renderList([...new Set(names)])} as ` +
+    "trusted dependency build script(s) through `trustedDependencies` or " +
+    "`onlyBuiltDependencies`, allowing third-party install-time scripts to run; " +
     "B5 needs a written confidence decision for each trusted package because " +
     "a clean audit gate alone does not explain that execution authority"
   );
