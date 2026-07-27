@@ -56,7 +56,7 @@ Optional arguments include `pr_url=<url>` for the live pull request and `merge_s
 
 When `$ARGUMENTS` includes `pr_url=<url>` for `PR ready` or `PR merged`, ensure the GitHub Issue has a durable ticket -> PR link:
 
-1. Prefer GitHub's native development link by making sure the PR body contains `Refs #<n>` / `Closes #<n>` (or the fully qualified cross-repo form) and verify with `gh issue view <number> --json timelineItems` or an equivalent GitHub read that exposes the linked PR.
+1. Prefer GitHub's native development link by making sure the PR body contains `Refs #<n>` (or the fully qualified cross-repo form) and verify with `gh issue view <number> --json timelineItems` or an equivalent GitHub read that exposes the linked PR. Use the non-closing form only — never add a closing keyword to reach the linkage, per the GitHub rule in `lisa-git-submit-pr`; `Refs` populates the same Development surface without closing the item at merge.
 2. If native linkage cannot be verified, post or update a single managed issue comment starting with `[lisa-pr-link]`. Include the PR URL, milestone (`pr-ready` or `pr-merged`), and merge SHA when available.
 3. Keep the fallback idempotent: search existing comments for `[lisa-pr-link]` and the PR URL; update/replace that managed comment where the provider allows updates, otherwise skip when the current body already matches. Do not append duplicate backlink comments on reruns.
 

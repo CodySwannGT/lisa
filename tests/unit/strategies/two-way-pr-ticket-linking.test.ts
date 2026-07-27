@@ -89,14 +89,18 @@ describe("two-way PR/ticket linking contract", () => {
 /**
  * Linear native auto-close gate (#1778).
  *
- * Unlike GitHub — whose `Closes #n` auto-close is scoped to the repository
- * default branch — Linear's GitHub integration completes a linked issue on
- * merge to ANY branch. A Linear magic word (`Closes`/`Fixes`/`Resolves ENG-x`)
- * on a merge into a non-terminal env branch therefore auto-closes the issue
- * prematurely, desyncing the env-keyed `status:*` label ladder. `git-submit-pr`
- * must gate magic words on the production/default branch, and `linear-sync` must
- * carry a post-merge reconciliation step that re-opens a natively-completed
- * Issue whose derived env is intermediate. All 5 ROOTS stay in parity.
+ * Linear's GitHub integration completes a linked issue on merge to ANY branch. A
+ * Linear magic word (`Closes`/`Fixes`/`Resolves ENG-x`) on a merge into a
+ * non-terminal env branch therefore auto-closes the issue prematurely, desyncing
+ * the env-keyed `status:*` label ladder. `git-submit-pr` must gate magic words on
+ * the production/default branch, and `linear-sync` must carry a post-merge
+ * reconciliation step that re-opens a natively-completed Issue whose derived env
+ * is intermediate. All 5 ROOTS stay in parity.
+ *
+ * GitHub is handled more strictly and separately below: it takes a non-closing
+ * reference on EVERY branch, production included, because merge precedes deploy
+ * and remote verification. Linear still permits the terminal-branch magic word,
+ * so it retains a narrower version of the same hole — tracked separately.
  */
 describe("Linear native auto-close env gate contract", () => {
   describe.each(ROOTS)("%s/lisa-git-submit-pr Linear magic-word gate", root => {
@@ -114,13 +118,26 @@ describe("Linear native auto-close env gate contract", () => {
   });
 
   describe.each(ROOTS)(
-    "%s/lisa-git-submit-pr GitHub closing-keyword gate",
+    "%s/lisa-git-submit-pr GitHub closing-keyword prohibition",
     root => {
       const content = readSkill(root, GIT_SUBMIT_PR);
 
-      it("uses Closes on production/default and Refs on non-terminal env branches", () => {
-        expect(content).toMatch(/Closes #<n>/);
+      // Merging to production is not terminal delivery: lisa-implement runs
+      // deploy monitoring, remote verification and a health check AFTER the
+      // merge, and the work item is terminal only on a passing remote verdict. A
+      // GitHub closing keyword closes the issue at merge — before the terminal
+      // `done` role, before anything observed the change running — which
+      // front-runs that gate. Closure belongs to terminal native closure.
+      //
+      // This gate previously required `Closes #<n>` on the production branch.
+      // The obligation is inverted, not relaxed.
+      it("mandates a non-closing GitHub reference", () => {
         expect(content).toMatch(/Refs #<n>/);
+      });
+
+      it("prohibits a GitHub closing keyword on every branch", () => {
+        expect(content).not.toMatch(/Closes #<n>/);
+        expect(content).toMatch(/non-closing/i);
       });
     }
   );
