@@ -1,0 +1,4 @@
+display_name: "Evaluation Suite"
+short_description: "Build and maintain the entity's own task suite for qualifying agent, model, prompt and effort-level changes — drawn from real work, kept…"
+default_prompt:
+  - "Use $lisa-evaluation-suite: Build and maintain the entity's own task suite for qualifying agent, model, prompt and effort-level changes — drawn from real work, kept…."

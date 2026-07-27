@@ -1,0 +1,4 @@
+display_name: "Delivery Effectiveness"
+short_description: "Measure whether the work the factory delivers was worth shipping — gate rejection, rework, escape, first-pass yield and cost per delivered…"
+default_prompt:
+  - "Use $lisa-delivery-effectiveness: Measure whether the work the factory delivers was worth shipping — gate rejection, rework, escape, first-pass yield and cost per delivered…."

@@ -375,7 +375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/package-lisa/package.lisa.json":
       "2e01b1ec402f6804a54402e22d02d63f1aa96d3f698e171885b0fff6eb25b271",
     "plugins/src/base/agents/architecture-specialist.md":
-      "5bbe86bd3a7661021f7c8e9c5396fa4c0f3b8a77606e7be868fb9a0e117d424d",
+      "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
       "e01e5d3678e464385105c9abf90e4b70ae262fd856f1e86b2ebe443dae9e17b1",
     "plugins/src/base/agents/builder.md":
@@ -383,7 +383,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/confluence-prd-intake.md":
       "735df81802464abe79fa0f3878ad66dc13a8bf8a8420da28f31392c6e1e3693c",
     "plugins/src/base/agents/debug-specialist.md":
-      "8d8e3e15bb3cadcf39a9c6becb30d24e0d4ab5926abb123d9c144b824ee8c4aa",
+      "88266c25e03a3dbc110b6da8b6a5f7e47a5c3ba7d3b74b9c5a6fe613768df362",
+    "plugins/src/base/agents/eval-specialist.md":
+      "9abdbf2b356ab1a5881bf993cf77ef6eb37c5e196693456e3f31f4557e43e4d0",
     "plugins/src/base/agents/git-history-analyzer.md":
       "8c2b6ae31cec858647675b24425b8148d3f33f3145f5d423336c87bdd9266f78",
     "plugins/src/base/agents/github-agent.md":
@@ -411,21 +413,21 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/notion-prd-intake.md":
       "53df0fba395b10b17bafe1a82c8c2706e4ec029d2aee8f3a2e7d5afe38d9be98",
     "plugins/src/base/agents/performance-specialist.md":
-      "2d6c650e16fdb33ba45ba754dde9f62404ea805b5f5157a885f7b31b8a03b267",
+      "39c088eaf9347410988a82310e3a151034cbac28a756b1c7b28bb4c1c32a6a5d",
     "plugins/src/base/agents/pr-mining-specialist.md":
       "2bf5b933b43ddfbcc9c67f9b98bd68bc6c99ab0c47dca96dcd9e340960df8e55",
     "plugins/src/base/agents/product-specialist.md":
-      "9c342b1a1c5f8c0eb874db24547fe26d259a97a74e1df5cbc26ffb635025a2e6",
+      "c04cb5abdb077040bfc1a22c142841712473500bd6537853e40c94de25abf94c",
     "plugins/src/base/agents/quality-specialist.md":
-      "2a1b433fa1be1c8b23c2c83e5f247b851c61e3c253a79caf8a3eb7f326744a22",
+      "e923aec97457390c6c9c529137a81563a6f452a7d6791ab56b97e40b6e85f039",
     "plugins/src/base/agents/security-specialist.md":
-      "2d592b4c2666082ef84cae8878be99b9ebd07f75ab77656409beff306f17a6b4",
+      "0952dee7bf1c04f978b0f8125a91425bf639e9b645de1a4b05ad945b9041bea7",
     "plugins/src/base/agents/skill-evaluator.md":
       "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
     "plugins/src/base/agents/spec-conformance-specialist.md":
       "f589e4d543a617d3c421aa28d6583e1b25e0b18fc83412e6d544a389bdac225c",
     "plugins/src/base/agents/test-specialist.md":
-      "0e6f7137b8338f76d0302cb7a930f50821b4d66dd197977012f32ab5a0c38061",
+      "8f439c725863df84532504a57f64b9e4918acaa242de8c01cb6692553495dbd2",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "fef49c3ca8622c83a54d34b3f960471e0f2ad50e6889f691585b0f208180f6bd",
     "plugins/src/base/agents/verification-specialist.md":
@@ -709,7 +711,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/integration-access-layer.md":
       "8b0a0fc0e63492efce79c58a0fc1f112748b17ad59383cfdb9c25300b29a2c8b",
     "plugins/src/base/rules/reference/intent-routing.md":
-      "8d2750f30b82ff9a84c5273954b0055e37bc305e3e83e4aef50f5ce47942df45",
+      "cc3f77c7b394645b89e0bf388a0db50544a2986af61d7a5646f4ef278e94d817",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "3d6d531fdca61a348fa1dd1bdb4c28fe66c85fb955238ef668a78cce4a36a7a1",
     "plugins/src/base/rules/reference/observability-audit.md":
@@ -783,7 +785,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "b4289ec04de657f0eeefaed56939fa171c2f8a11086bd225db39130f4a609e95",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
-      "5c7414198d5c747d2cda554c85784164afb2f6fe04fd28fb4d7674857dfd4801",
+      "2c487df59f54682d744e71f78a2bccccf9e3a6510705b4ff6be7edfa4be2d43b",
     "plugins/src/base/skills/lisa-agent-ready/SKILL.md":
       "13f2e0f50287a04ed9a036ef1c547563b5f6f6325b2b35f6746d46a5ed4d15df",
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
@@ -797,7 +799,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
       "a283afab506d8e52970c6df566b4504a2ed015493cee4de6debe5b62a09782eb",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
-      "90b0f1388717f81c4e187ab714be01d02a9f41592a4c26487aeb9c26a0959493",
+      "bd5bae508a8f344d8b5cb46cfddcb178ff8368ca77936f9e2c63058e05f61af4",
+    "plugins/src/base/skills/lisa-capability-drift/SKILL.md":
+      "9ef86e6caab6eaea87f6d32e67a77061ce8cccf09467bc5c36ee13a77a7f0199",
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md":
       "77dbc2d7e86e5027df486294de315bb539a2ece84bd4b38e47ccc108f8c2875e",
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
@@ -814,12 +818,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "90c5f01994bb0f8e71947e8a2f765ccf9a6aa3da47b8d7b8e2022150ef89c2b2",
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
       "47e4cda36b07994ff47ab15fb04a17dd6b0c310ad804f9cae9d69637edaaa72a",
+    "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
+      "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "1702485809533a2e546a590b9d2f67cbb420c8f0cb0eac8609b0287b05122ad3",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "c78ae2ba32c830d0b2cd7d24de91adf99e2b3cef4c7cab1c417580d86f41351f",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
+    "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
+      "96b5c2091ccd22a565935a7b0b917f67998881b81055ce3e4d518319472eac8b",
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md":
       "bc34dfc6418bff6eb5bc03f0c5cd98c7b6164ca3f4f80774d981f681321119b0",
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
@@ -1029,7 +1037,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "4f85ac1381631e9f250d9cf3239baba633ae0df9ba1959f8835ed662592e2d77",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
-      "6304c848c64a00be230337d9e40770c3a09aa59c6241733e32060d0cce9a4f9b",
+      "4d460993fac6021219ca23eee29b1b9afa7c37479dddc662b2fcfaca510edd68",
     "plugins/src/base/skills/lisa-research/SKILL.md":
       "19de7c5910b117c4b3b1bb7ae42cf9c8b6ff2a376b2e21961526bc7ebde18e85",
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
@@ -1039,7 +1047,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "3389740fc0f162be0b684625424e716a0a3e4c99c8cdb4317ec82dcfcf7b57c7",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
-      "2b1cb5bac2be7e8bb6b852efb0bd499cbcdca6299c342a54e0c8d872821c7364",
+      "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -2912,6 +2920,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/agents/builder.md": true,
     "plugins/lisa-agy/agents/confluence-prd-intake.md": true,
     "plugins/lisa-agy/agents/debug-specialist.md": true,
+    "plugins/lisa-agy/agents/eval-specialist.md": true,
     "plugins/lisa-agy/agents/git-history-analyzer.md": true,
     "plugins/lisa-agy/agents/github-agent.md": true,
     "plugins/lisa-agy/agents/github-build-intake.md": true,
@@ -3037,6 +3046,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-attribute-failure/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-automation-status/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-bug-triage/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-capability-drift/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-confluence-prd-intake/SKILL.md": true,
@@ -3045,9 +3055,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-cross-pollinate/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-debrief/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-epic-triage/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-exploratory-qa/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-fix-linter-error/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-generate-claude-remote-build-script/SKILL.md": true,
@@ -3221,6 +3233,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/agents/builder.agent.md": true,
     "plugins/lisa-copilot/agents/confluence-prd-intake.agent.md": true,
     "plugins/lisa-copilot/agents/debug-specialist.agent.md": true,
+    "plugins/lisa-copilot/agents/eval-specialist.agent.md": true,
     "plugins/lisa-copilot/agents/git-history-analyzer.agent.md": true,
     "plugins/lisa-copilot/agents/github-agent.agent.md": true,
     "plugins/lisa-copilot/agents/github-build-intake.agent.md": true,
@@ -3420,6 +3433,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-attribute-failure/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-automation-status/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-bug-triage/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-capability-drift/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-confluence-prd-intake/SKILL.md": true,
@@ -3428,9 +3442,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-cross-pollinate/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-debrief/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-epic-triage/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-exploratory-qa/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-fix-linter-error/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-generate-claude-remote-build-script/SKILL.md": true,
@@ -3589,6 +3605,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/agents/builder.md": true,
     "plugins/lisa-cursor/agents/confluence-prd-intake.md": true,
     "plugins/lisa-cursor/agents/debug-specialist.md": true,
+    "plugins/lisa-cursor/agents/eval-specialist.md": true,
     "plugins/lisa-cursor/agents/git-history-analyzer.md": true,
     "plugins/lisa-cursor/agents/github-agent.md": true,
     "plugins/lisa-cursor/agents/github-build-intake.md": true,
@@ -3789,6 +3806,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-attribute-failure/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-automation-status/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-bug-triage/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-capability-drift/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-confluence-prd-intake/SKILL.md": true,
@@ -3797,9 +3815,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-cross-pollinate/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-debrief/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-epic-triage/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-exploratory-qa/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-fix-linter-error/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-generate-claude-remote-build-script/SKILL.md": true,
@@ -5670,6 +5690,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-automation-status/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-bug-triage/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-bug-triage/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-capability-drift/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-capability-drift/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-codebase-research/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-codify-verification/SKILL.md": true,
@@ -5686,12 +5708,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-debrief-apply/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-debrief/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-doctor/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-drive-pr-to-merge/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-epic-triage/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-evaluation-suite/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-evaluation-suite/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-exploratory-qa/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-exploratory-qa/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-fix-linter-error/SKILL.md": true,
@@ -5994,6 +6020,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/agents/builder.md": true,
     "plugins/lisa/agents/confluence-prd-intake.md": true,
     "plugins/lisa/agents/debug-specialist.md": true,
+    "plugins/lisa/agents/eval-specialist.md": true,
     "plugins/lisa/agents/git-history-analyzer.md": true,
     "plugins/lisa/agents/github-agent.md": true,
     "plugins/lisa/agents/github-build-intake.md": true,
@@ -6209,6 +6236,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-automation-status/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-bug-triage/SKILL.md": true,
     "plugins/lisa/skills/lisa-bug-triage/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-capability-drift/SKILL.md": true,
+    "plugins/lisa/skills/lisa-capability-drift/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa/skills/lisa-codebase-research/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-codify-verification/SKILL.md": true,
@@ -6225,12 +6254,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-debrief-apply/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa/skills/lisa-debrief/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa/skills/lisa-doctor/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa/skills/lisa-drive-pr-to-merge/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-epic-triage/SKILL.md": true,
     "plugins/lisa/skills/lisa-epic-triage/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-evaluation-suite/SKILL.md": true,
+    "plugins/lisa/skills/lisa-evaluation-suite/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-exploratory-qa/SKILL.md": true,
     "plugins/lisa/skills/lisa-exploratory-qa/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-fix-linter-error/SKILL.md": true,
@@ -6533,6 +6566,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/agents/builder.md": true,
     "plugins/src/base/agents/confluence-prd-intake.md": true,
     "plugins/src/base/agents/debug-specialist.md": true,
+    "plugins/src/base/agents/eval-specialist.md": true,
     "plugins/src/base/agents/git-history-analyzer.md": true,
     "plugins/src/base/agents/github-agent.md": true,
     "plugins/src/base/agents/github-build-intake.md": true,
@@ -6740,6 +6774,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md": true,
     "plugins/src/base/skills/lisa-automation-status/SKILL.md": true,
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md": true,
+    "plugins/src/base/skills/lisa-capability-drift/SKILL.md": true,
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md": true,
@@ -6748,9 +6783,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md": true,
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/src/base/skills/lisa-debrief/SKILL.md": true,
+    "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/src/base/skills/lisa-doctor/SKILL.md": true,
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md": true,
+    "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md": true,
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md": true,
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md": true,
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md": true,
@@ -8069,6 +8106,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/agent-ready-ingest-boundary.test.ts": true,
     "tests/unit/strategies/agent-ready-readiness-consumption.test.ts": true,
+    "tests/unit/strategies/agent-skill-layer-contract.test.ts": true,
     "tests/unit/strategies/artifact-identity-contract.test.ts": true,
     "tests/unit/strategies/atlassian-access-acli-profile.test.ts": true,
     "tests/unit/strategies/atlassian-access-changelog.test.ts": true,
