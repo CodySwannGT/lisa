@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.311.0](https://github.com/CodySwannGT/lisa/compare/v2.310.5...v2.311.0) (2026-07-27)
+
+
+### Features
+
+* **governance:** force fast-check on every governed TypeScript project ([a21aa59](https://github.com/CodySwannGT/lisa/commit/a21aa597075f6eb7d7cb68de1342762513558694)), closes [CodySwannGT/lisa#2105](https://github.com/CodySwannGT/lisa/issues/2105) [CodySwannGT/lisa#2107](https://github.com/CodySwannGT/lisa/issues/2107)
+
 ### [2.310.5](https://github.com/CodySwannGT/lisa/compare/v2.310.4...v2.310.5) (2026-07-27)
 
 
