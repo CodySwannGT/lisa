@@ -360,6 +360,15 @@ jobs:
             adb wait-for-device
             adb shell getprop sys.boot_completed | grep -q 1
             adb install app-android.apk
+            # Installing a large APK can outlast the emulator's screen timeout.
+            # Reassert the awake/unlocked state immediately before Maestro;
+            # otherwise every flow can fail its first assertion behind the
+            # keyguard even though the app and selectors are healthy.
+            adb shell settings put system screen_off_timeout 2147483647
+            adb shell svc power stayon true
+            adb shell input keyevent KEYCODE_WAKEUP
+            adb shell wm dismiss-keyguard
+            adb shell input keyevent 82
             maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}
 
       - name: 📤 Upload Maestro debug output

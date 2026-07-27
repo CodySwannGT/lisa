@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.310.0](https://github.com/CodySwannGT/lisa/compare/v2.309.5...v2.310.0) (2026-07-26)
+
+
+### Features
+
+* **agents:** add the evaluation specialist and start Lisa's accountability record ([f401fd6](https://github.com/CodySwannGT/lisa/commit/f401fd65d6fd38d474a9296f7c042c9795083ee1)), closes [CodySwannGT/lisa#2100](https://github.com/CodySwannGT/lisa/issues/2100)
+
+### [2.309.5](https://github.com/CodySwannGT/lisa/compare/v2.309.4...v2.309.5) (2026-07-26)
+
+### [2.309.4](https://github.com/CodySwannGT/lisa/compare/v2.309.3...v2.309.4) (2026-07-26)
+
+
+### Bug Fixes
+
+* **agents:** restore the two-bucket headings the BCE-5 contract pins ([3f2b7ce](https://github.com/CodySwannGT/lisa/commit/3f2b7ce004658f0295aa2637d1cd95c4de563c79)), closes [CodySwannGT/lisa#2096](https://github.com/CodySwannGT/lisa/issues/2096)
+
+
+### Code Refactoring
+
+* **agents:** stop six specialists restating their own skills ([a32ae4b](https://github.com/CodySwannGT/lisa/commit/a32ae4ba61dd6efc676f2bb13921564414d44f5b)), closes [CodySwannGT/lisa#2096](https://github.com/CodySwannGT/lisa/issues/2096)
+
+### [2.309.3](https://github.com/CodySwannGT/lisa/compare/v2.309.2...v2.309.3) (2026-07-26)
+
+
+### Code Refactoring
+
+* **skills:** rewrite the debug artifacts for the current prompting rules ([f8c610e](https://github.com/CodySwannGT/lisa/commit/f8c610e7a3329ce7409cef1ce630b05077cb3fbe)), closes [CodySwannGT/lisa#2093](https://github.com/CodySwannGT/lisa/issues/2093)
+
 ### [2.309.2](https://github.com/CodySwannGT/lisa/compare/v2.309.1...v2.309.2) (2026-07-26)
 
 
