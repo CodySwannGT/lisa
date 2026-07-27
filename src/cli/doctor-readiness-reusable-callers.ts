@@ -10,6 +10,14 @@ import type {
 /** What local caller workflows prove about a reusable workflow invocation. */
 export type ReusableCallerValidation = "validated" | "unvalidated" | "unknown";
 
+/** One local workflow job that invokes a reusable workflow. */
+export interface ReusableWorkflowCaller {
+  /** Workflow declaring the caller job. */
+  readonly workflow: ParsedWorkflow;
+  /** Job whose `uses:` points at the reusable workflow. */
+  readonly job: ParsedWorkflowJob;
+}
+
 /**
  * Walk a job's transitive `needs:` closure within its workflow.
  * @param workflow - The workflow declaring the job
@@ -58,6 +66,31 @@ function localReusableWorkflowPath(uses: string): string | null {
 }
 
 /**
+ * Find local jobs that call the given reusable workflow.
+ * @param workflow - The reusable workflow being assessed
+ * @param allWorkflows - Every parsed workflow in the repository
+ * @returns Local caller jobs with their declaring workflows
+ */
+export function reusableWorkflowCallers(
+  workflow: ParsedWorkflow,
+  allWorkflows: readonly ParsedWorkflow[] | undefined
+): readonly ReusableWorkflowCaller[] {
+  if (
+    !(
+      workflow.on.events.length > 0 &&
+      workflow.on.events.includes("workflow_call")
+    )
+  ) {
+    return [];
+  }
+  return (allWorkflows ?? []).flatMap(candidate =>
+    candidate.jobs
+      .filter(job => localReusableWorkflowPath(job.uses) === workflow.file)
+      .map(job => ({ workflow: candidate, job }))
+  );
+}
+
+/**
  * Resolve whether known local callers validate before invoking a reusable
  * publishing workflow. Unknown external callers stay unresolved; known local
  * callers without a validating ancestor prove a bypass.
@@ -71,19 +104,7 @@ export function reusableCallerValidation(
   allWorkflows: readonly ParsedWorkflow[] | undefined,
   isValidatingJob: (job: ParsedWorkflowJob) => boolean
 ): ReusableCallerValidation {
-  if (
-    !(
-      workflow.on.events.length > 0 &&
-      workflow.on.events.every(event => event === "workflow_call")
-    )
-  ) {
-    return "unknown";
-  }
-  const callers = (allWorkflows ?? []).flatMap(candidate =>
-    candidate.jobs
-      .filter(job => localReusableWorkflowPath(job.uses) === workflow.file)
-      .map(job => ({ workflow: candidate, job }))
-  );
+  const callers = reusableWorkflowCallers(workflow, allWorkflows);
   if (callers.length === 0) {
     return "unknown";
   }

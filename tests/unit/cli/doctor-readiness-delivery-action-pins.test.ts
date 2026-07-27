@@ -152,6 +152,46 @@ describe("assessDeliveryAuthorityDimension — release action pinning", () => {
     expect(evidence).toContain("validating ancestor");
   });
 
+  it("FAILs when a local reusable-workflow caller validates through a mutable action ref", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, "publish-to-npm.yml", [
+      RELEASE_NAME,
+      ON,
+      "  workflow_call:",
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      ID_TOKEN_WRITE,
+      STEPS,
+      RUN_NPM_PUBLISH,
+    ]);
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      "  test:",
+      RUNS_ON,
+      STEPS,
+      CHECKOUT_V4_ACTION,
+      RUN_NPM_TEST,
+      PUBLISH_JOB,
+      "    needs: [test]",
+      "    uses: ./.github/workflows/publish-to-npm.yml",
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+    const evidence = String(asFindings(record.findings)[0].evidence);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(evidence).toContain(CHECKOUT_V4_REF);
+    expect(evidence).toContain("local caller ancestor");
+  });
+
   it("FAILs when a publishing job uses a tagged Docker action ref", async () => {
     const cwd = await getTempDir();
     await writeWorkflow(cwd, RELEASE_YML, [

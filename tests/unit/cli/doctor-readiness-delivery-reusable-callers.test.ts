@@ -33,6 +33,8 @@ const INSTALL_STEP = "      - run: npm ci";
 const BUILD_STEP = "      - run: bun run build:dist";
 const CALLER_JOB = "  publish:";
 const CALLER_USES = `    uses: ${REUSABLE_PATH}`;
+const CHECKOUT_V4_REF = "actions/checkout@v4";
+const CHECKOUT_V4_ACTION = `      - uses: ${CHECKOUT_V4_REF}`;
 
 let tempDir: string | undefined;
 
@@ -100,6 +102,45 @@ describe("assessDeliveryAuthorityDimension — B2 reusable workflow callers", ()
     expect(JSON.stringify(record.findings)).toContain(
       "Inspected 1 publishing step"
     );
+  });
+
+  it("FAILs when a dual-trigger reusable publisher is validated through a mutable caller ancestor", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, REUSABLE_WORKFLOW, [
+      WORKFLOW_NAME,
+      ON,
+      WORKFLOW_CALL,
+      "  workflow_dispatch:",
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      INSTALL_STEP,
+      RUN_PUBLISH,
+    ]);
+    await writeWorkflow(cwd, CI_YML, [
+      "name: CI",
+      ON_PUSH,
+      JOBS,
+      TEST_JOB,
+      RUNS_ON,
+      STEPS,
+      CHECKOUT_V4_ACTION,
+      VALIDATING_STEP,
+      CALLER_JOB,
+      "    needs: [test]",
+      CALLER_USES,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+    const evidence = String(asFindings(record.findings)[0].evidence);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(evidence).toContain(CHECKOUT_V4_REF);
+    expect(evidence).toContain("local caller ancestor");
   });
 
   it("FAILs when a known local caller invokes a self-building publisher without validation", async () => {

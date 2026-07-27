@@ -96,6 +96,35 @@ const snapshot = (value: unknown): string => JSON.stringify(value);
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/**
+ * True when two JSON-compatible values are equivalent under merge semantics.
+ * @param left First value.
+ * @param right Second value.
+ * @returns Whether the merge treats the values as equivalent.
+ */
+const isMergeEquivalent = (left: unknown, right: unknown): boolean => {
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return (
+      left.length === right.length &&
+      left.every((entry, index) => isMergeEquivalent(entry, right[index]))
+    );
+  }
+
+  if (isPlainObject(left) && isPlainObject(right)) {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every(
+        key =>
+          Object.hasOwn(right, key) && isMergeEquivalent(left[key], right[key])
+      )
+    );
+  }
+
+  return left === right;
+};
+
 describe("deepMergeWithArrayUnion — generative properties", () => {
   it("1. result keys are the union of both inputs' keys", () => {
     fc.assert(
@@ -155,7 +184,11 @@ describe("deepMergeWithArrayUnion — generative properties", () => {
             { list: right }
           ) as { list: unknown[] };
           for (const element of [...left, ...right]) {
-            expect(merged.list).toContainEqual(element);
+            expect(
+              merged.list.some(mergedElement =>
+                isMergeEquivalent(mergedElement, element)
+              )
+            ).toBe(true);
           }
         }
       )
