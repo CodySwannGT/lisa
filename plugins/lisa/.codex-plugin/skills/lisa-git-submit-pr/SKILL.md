@@ -11,7 +11,7 @@ Push current branch and create or update a pull request. Optional hint: $ARGUMEN
 Recognized optional hints:
 
 - `work_item_ref=<ref>` — source tracker item for native development linkage. Examples: `CodySwannGT/lisa#614`, `https://github.com/CodySwannGT/lisa/issues/614`, `ENG-123`, `PROJ-456`.
-- `target_branch=<branch>` or `base=<branch>` — intended PR base branch, used to decide whether a GitHub closing keyword is safe.
+- `target_branch=<branch>` or `base=<branch>` — intended PR base branch.
 - `tracker_provider=<github|linear|jira|none>` — explicit provider when the ref shape is ambiguous.
 - `pr_url=<url>` — live pull request URL, only needed when updating tracker backlinks from an existing PR context.
 - `auto_merge=<true|false>` — whether the PR should merge automatically. Default `true` (existing behavior for every current caller). With `auto_merge=false`, skip step 5 entirely (never run `gh pr merge --auto`) and pass `auto_merge=false` through to the `drive-pr-to-merge` delegation in step 6 so the PR is driven to a clean, green, OPEN state and then left awaiting a human.
@@ -46,9 +46,8 @@ Add provider-appropriate linkage to the PR title and/or body without changing th
 
 - **GitHub Issues**:
   - If `work_item_ref` is a GitHub issue URL, `org/repo#<n>`, or `#<n>`, add a dedicated issue reference line to the PR body.
-  - Use a closing keyword such as `Closes #<n>` only when merging this PR to the base branch represents terminal delivery for that issue. This is true when the target branch is the repository default branch or the configured production branch from `.lisa.config.json` `deploy.branches.production`.
-  - If the target branch is a non-terminal environment branch such as `dev` or `staging`, use a non-closing reference such as `Refs #<n>` so GitHub links the PR in the issue's Development / linked pull requests surface without prematurely closing the issue.
-  - For cross-repo issue refs, use the fully qualified form, for example `Closes CodySwannGT/lisa#614` or `Refs CodySwannGT/lisa#614`.
+  - Always use a non-closing reference such as `Refs #<n>` so GitHub links the PR in the issue's Development / linked pull requests surface without prematurely closing the issue before the post-merge deploy, remote verification, health check, and terminal `done` label.
+  - For cross-repo issue refs, use the fully qualified non-closing form, for example `Refs CodySwannGT/lisa#614`.
 - **Linear**:
   - Ensure the Linear issue identifier appears in the branch name when the branch is created upstream by `lisa-implement`.
   - Include the identifier as a **non-closing** attach token in the PR title or body, for example `Linear: ENG-123` or `Refs ENG-123`, so Linear's GitHub integration can attach the PR without completing the Issue.
