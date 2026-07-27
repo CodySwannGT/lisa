@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.310.4](https://github.com/CodySwannGT/lisa/compare/v2.310.3...v2.310.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* **merge:** make lisa apply idempotent, found by the first SI9 property test ([228c24c](https://github.com/CodySwannGT/lisa/commit/228c24cd0bafe897703568c3fb1e51b800165ee0)), closes [#1](https://github.com/CodySwannGT/lisa/issues/1) [#2](https://github.com/CodySwannGT/lisa/issues/2) [#1](https://github.com/CodySwannGT/lisa/issues/1) [#2](https://github.com/CodySwannGT/lisa/issues/2) [CodySwannGT/lisa#2105](https://github.com/CodySwannGT/lisa/issues/2105)
+
 ### [2.310.3](https://github.com/CodySwannGT/lisa/compare/v2.310.2...v2.310.3) (2026-07-27)
 
 
