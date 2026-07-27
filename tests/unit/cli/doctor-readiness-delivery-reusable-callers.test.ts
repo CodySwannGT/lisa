@@ -102,6 +102,44 @@ describe("assessDeliveryAuthorityDimension — B2 reusable workflow callers", ()
     );
   });
 
+  it("PASSes when a dual-trigger reusable publisher has a validated local caller", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, REUSABLE_WORKFLOW, [
+      WORKFLOW_NAME,
+      ON,
+      WORKFLOW_CALL,
+      "  workflow_dispatch:",
+      JOBS,
+      PUBLISH_JOB,
+      RUNS_ON,
+      PERMISSIONS,
+      CONTENTS_READ,
+      STEPS,
+      INSTALL_STEP,
+      RUN_PUBLISH,
+    ]);
+    await writeWorkflow(cwd, CI_YML, [
+      "name: CI",
+      ON_PUSH,
+      JOBS,
+      TEST_JOB,
+      RUNS_ON,
+      STEPS,
+      VALIDATING_STEP,
+      CALLER_JOB,
+      "    needs: [test]",
+      CALLER_USES,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe("PASS");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(JSON.stringify(record.findings)).toContain(
+      "Inspected 1 publishing step"
+    );
+  });
+
   it("FAILs when a known local caller invokes a self-building publisher without validation", async () => {
     const cwd = await getTempDir();
     await writeReusablePublisher(cwd, BUILD_STEP);

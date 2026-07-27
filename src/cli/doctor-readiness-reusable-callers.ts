@@ -78,7 +78,7 @@ export function reusableWorkflowCallers(
   if (
     !(
       workflow.on.events.length > 0 &&
-      workflow.on.events.every(event => event === "workflow_call")
+      workflow.on.events.includes("workflow_call")
     )
   ) {
     return [];
