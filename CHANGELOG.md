@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.6](https://github.com/CodySwannGT/lisa/compare/v2.311.5...v2.311.6) (2026-07-27)
+
+
+### Bug Fixes
+
+* **readiness:** flag reusable caller action pins ([4010189](https://github.com/CodySwannGT/lisa/commit/4010189414c40a32b1bd534e9ba042714a0c4a31)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** include dual-trigger reusable callers ([9fa7c7e](https://github.com/CodySwannGT/lisa/commit/9fa7c7e117d9d1d20a5cb02121787bddd853f536)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.5](https://github.com/CodySwannGT/lisa/compare/v2.311.4...v2.311.5) (2026-07-27)
 
 
