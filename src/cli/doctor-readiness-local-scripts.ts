@@ -14,11 +14,91 @@ import type {
 /** Most bytes read from one local wrapper script during offline expansion. */
 const MAX_LOCAL_SCRIPT_BYTES = 16_384;
 
+/** Most wrapper scripts expanded across one readiness scan. */
+const MAX_LOCAL_SCRIPT_EXPANSIONS = 64;
+
 /** Separators that end one shell invocation for this conservative scan. */
 const SHELL_INVOCATION_SEPARATOR = /\n|&&|\|\||[;&|]/;
 
 /** Shell commands that execute another shell script path. */
 const SHELL_SCRIPT_RUNNERS = new Set(["bash", "sh", "source", "."]);
+
+/** Shell runners that accept option flags before the script path. */
+const OPTIONED_SHELL_RUNNERS = new Set(["bash", "sh"]);
+
+/** Prefix assignments that set env only for the following shell invocation. */
+const SHELL_ENV_ASSIGNMENT = /^[A-Za-z_]\w*=.*$/u;
+
+/** Shared budget carried through one workflow expansion scan. */
+interface ExpansionContext {
+  readonly remainingScripts: number;
+}
+
+/** Expansion result plus the remaining aggregate script budget. */
+interface ExpansionResult<T> {
+  readonly value: T;
+  readonly remainingScripts: number;
+}
+
+/**
+ * Whether a word is a shell-runner option rather than the script path.
+ * @param word - Shell token
+ * @returns True when the token should be skipped after bash/sh
+ */
+function isShellRunnerOption(word: string): boolean {
+  return word.startsWith("-") && word !== "-";
+}
+
+/**
+ * Find the first non-assignment token in one shell invocation.
+ * @param words - Whitespace-split shell invocation
+ * @param index - Current scan index
+ * @returns Index of the command token
+ */
+function firstCommandIndex(words: readonly string[], index = 0): number {
+  return SHELL_ENV_ASSIGNMENT.test(words[index] ?? "")
+    ? firstCommandIndex(words, index + 1)
+    : index;
+}
+
+/**
+ * Find the first non-option script argument after a shell runner.
+ * @param words - Whitespace-split shell invocation
+ * @param index - Current scan index
+ * @returns Index of the script argument
+ */
+function firstShellScriptIndex(
+  words: readonly string[],
+  index: number
+): number {
+  return isShellRunnerOption(words[index] ?? "")
+    ? firstShellScriptIndex(words, index + 1)
+    : index;
+}
+
+/**
+ * Locate the word in one invocation that names the script to expand.
+ * @param words - Whitespace-split shell invocation
+ * @returns Script word and whether a shell runner selected it
+ */
+function scriptCandidate(
+  words: readonly string[]
+): { candidate: string; usesRunner: boolean } | null {
+  const index = firstCommandIndex(words);
+  const command = words[index];
+  if (command === undefined) {
+    return null;
+  }
+  const usesRunner = SHELL_SCRIPT_RUNNERS.has(command);
+  if (!usesRunner) {
+    return { candidate: command, usesRunner };
+  }
+  const candidateIndex = OPTIONED_SHELL_RUNNERS.has(command)
+    ? firstShellScriptIndex(words, index + 1)
+    : index + 1;
+  const candidate = words[candidateIndex];
+  return candidate === undefined ? null : { candidate, usesRunner };
+}
 
 /**
  * Extract repo-relative shell scripts named directly by a workflow run step.
@@ -35,8 +115,11 @@ function localScriptPaths(command: string): readonly string[] {
           if (words.length === 0 || words[0]?.startsWith("#")) {
             return [];
           }
-          const usesRunner = SHELL_SCRIPT_RUNNERS.has(words[0] ?? "");
-          const candidate = usesRunner ? words[1] : words[0];
+          const parsed = scriptCandidate(words);
+          if (parsed === null) {
+            return [];
+          }
+          const candidate = parsed?.candidate;
           if (
             candidate === undefined ||
             !candidate.endsWith(".sh") ||
@@ -45,7 +128,7 @@ function localScriptPaths(command: string): readonly string[] {
             return [];
           }
           if (
-            !usesRunner &&
+            !parsed.usesRunner &&
             !candidate.includes("/") &&
             !candidate.startsWith("./")
           ) {
@@ -98,40 +181,101 @@ async function readLocalScript(
  * Append any bounded local script bodies referenced by a workflow step.
  * @param root - Repository root
  * @param step - Parsed workflow step
+ * @param context - Shared expansion budget
  * @returns Step with script bodies appended to `run`, when present
  */
 async function expandLocalScriptStep(
   root: string,
-  step: ParsedWorkflowStep
-): Promise<ParsedWorkflowStep> {
-  const scripts = await Promise.all(
-    localScriptPaths(step.run).map(
-      async script => await readLocalScript(root, script)
-    )
+  step: ParsedWorkflowStep,
+  context: ExpansionContext
+): Promise<ExpansionResult<ParsedWorkflowStep>> {
+  const expanded = await expandLocalScriptBodies(
+    root,
+    localScriptPaths(step.run),
+    context.remainingScripts
   );
-  const scriptBodies = scripts.filter(
-    (content): content is string => content !== null
+  return {
+    remainingScripts: expanded.remainingScripts,
+    value:
+      expanded.value.length === 0
+        ? step
+        : { ...step, run: [step.run, ...expanded.value].join("\n") },
+  };
+}
+
+/**
+ * Read script bodies sequentially under the aggregate expansion budget.
+ * @param root - Repository root
+ * @param scripts - Candidate script paths
+ * @param remainingScripts - Remaining aggregate expansion budget
+ * @returns Expanded script bodies and updated budget
+ */
+async function expandLocalScriptBodies(
+  root: string,
+  scripts: readonly string[],
+  remainingScripts: number
+): Promise<ExpansionResult<readonly string[]>> {
+  const [script, ...rest] = scripts;
+  if (script === undefined || remainingScripts <= 0) {
+    return { value: [], remainingScripts };
+  }
+  const content = await readLocalScript(root, script);
+  const expanded = await expandLocalScriptBodies(
+    root,
+    rest,
+    remainingScripts - 1
   );
-  return scriptBodies.length === 0
-    ? step
-    : { ...step, run: [step.run, ...scriptBodies].join("\n") };
+  return {
+    remainingScripts: expanded.remainingScripts,
+    value: content === null ? expanded.value : [content, ...expanded.value],
+  };
 }
 
 /**
  * Expand directly invoked local shell scripts in one parsed job.
  * @param root - Repository root
  * @param job - Parsed workflow job
+ * @param context - Shared expansion budget
  * @returns Job with script-expanded steps
  */
 async function expandLocalScriptJob(
   root: string,
-  job: ParsedWorkflowJob
-): Promise<ParsedWorkflowJob> {
+  job: ParsedWorkflowJob,
+  context: ExpansionContext
+): Promise<ExpansionResult<ParsedWorkflowJob>> {
+  const expanded = await expandLocalScriptSteps(root, job.steps, context);
   return {
-    ...job,
-    steps: await Promise.all(
-      job.steps.map(async step => await expandLocalScriptStep(root, step))
-    ),
+    remainingScripts: expanded.remainingScripts,
+    value: {
+      ...job,
+      steps: expanded.value,
+    },
+  };
+}
+
+/**
+ * Expand local scripts across a job's steps under the shared budget.
+ * @param root - Repository root
+ * @param steps - Parsed workflow steps
+ * @param context - Shared expansion budget
+ * @returns Expanded steps and updated budget
+ */
+async function expandLocalScriptSteps(
+  root: string,
+  steps: readonly ParsedWorkflowStep[],
+  context: ExpansionContext
+): Promise<ExpansionResult<readonly ParsedWorkflowStep[]>> {
+  const [step, ...rest] = steps;
+  if (step === undefined) {
+    return { value: [], remainingScripts: context.remainingScripts };
+  }
+  const expandedStep = await expandLocalScriptStep(root, step, context);
+  const expandedRest = await expandLocalScriptSteps(root, rest, {
+    remainingScripts: expandedStep.remainingScripts,
+  });
+  return {
+    remainingScripts: expandedRest.remainingScripts,
+    value: [expandedStep.value, ...expandedRest.value],
   };
 }
 
@@ -145,12 +289,70 @@ export async function expandLocalScriptCommands(
   root: string,
   workflows: readonly ParsedWorkflow[]
 ): Promise<readonly ParsedWorkflow[]> {
-  return await Promise.all(
-    workflows.map(async workflow => ({
-      ...workflow,
-      jobs: await Promise.all(
-        workflow.jobs.map(async job => await expandLocalScriptJob(root, job))
-      ),
-    }))
+  const expanded = await expandLocalScriptWorkflows(root, workflows, {
+    remainingScripts: MAX_LOCAL_SCRIPT_EXPANSIONS,
+  });
+  return expanded.value;
+}
+
+/**
+ * Expand local scripts across workflows under the shared budget.
+ * @param root - Repository root
+ * @param workflows - Parsed workflow files
+ * @param context - Shared expansion budget
+ * @returns Expanded workflows and updated budget
+ */
+async function expandLocalScriptWorkflows(
+  root: string,
+  workflows: readonly ParsedWorkflow[],
+  context: ExpansionContext
+): Promise<ExpansionResult<readonly ParsedWorkflow[]>> {
+  const [workflow, ...rest] = workflows;
+  if (workflow === undefined) {
+    return { value: [], remainingScripts: context.remainingScripts };
+  }
+  const expandedJobs = await expandLocalScriptJobs(
+    root,
+    workflow.jobs,
+    context
   );
+  const expandedRest = await expandLocalScriptWorkflows(root, rest, {
+    remainingScripts: expandedJobs.remainingScripts,
+  });
+  return {
+    remainingScripts: expandedRest.remainingScripts,
+    value: [
+      {
+        ...workflow,
+        jobs: expandedJobs.value,
+      },
+      ...expandedRest.value,
+    ],
+  };
+}
+
+/**
+ * Expand local scripts across workflow jobs under the shared budget.
+ * @param root - Repository root
+ * @param jobs - Parsed workflow jobs
+ * @param context - Shared expansion budget
+ * @returns Expanded jobs and updated budget
+ */
+async function expandLocalScriptJobs(
+  root: string,
+  jobs: readonly ParsedWorkflowJob[],
+  context: ExpansionContext
+): Promise<ExpansionResult<readonly ParsedWorkflowJob[]>> {
+  const [job, ...rest] = jobs;
+  if (job === undefined) {
+    return { value: [], remainingScripts: context.remainingScripts };
+  }
+  const expandedJob = await expandLocalScriptJob(root, job, context);
+  const expandedRest = await expandLocalScriptJobs(root, rest, {
+    remainingScripts: expandedJob.remainingScripts,
+  });
+  return {
+    remainingScripts: expandedRest.remainingScripts,
+    value: [expandedJob.value, ...expandedRest.value],
+  };
 }
