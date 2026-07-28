@@ -14,6 +14,13 @@ const DOCKER_BUILD_PUSH_ACTION = "docker/build-push-action";
 const GITHUB_RELEASE_ACTION = "softprops/action-gh-release";
 const PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish";
 const UPLOAD_ARTIFACT_ACTION = "actions/upload-artifact";
+const ARTIFACT_INTEGRITY_COMMANDS: readonly RegExp[] = [
+  /\bgh\s+attestation\s+verify\b/i,
+  /\bcosign\s+verify\b/i,
+  /\bslsa-verifier\b/i,
+  /\bsha256sum\s+(?:--check|-c)\b/i,
+  /\bshasum\s+-a\s+256\s+(?:--check|-c)\b/i,
+];
 
 /**
  * Normalize an action reference to its owner/repo component.
@@ -149,6 +156,40 @@ export function hasArtifactNameMismatch(
 }
 
 /**
+ * Whether a named promotion verifies the downloaded artifact's identity before
+ * publication. A matching artifact name proves a useful link, but a digest or
+ * attestation check is the offline evidence that the bytes were not swapped.
+ * @param job - The publishing job
+ * @param publishStep - The step that ships
+ * @param ancestorJobs - Jobs in the publishing job's `needs:` closure
+ * @returns True when a named promotion lacks digest/attestation verification
+ */
+export function hasUnprovenArtifactIntegrity(
+  job: ParsedWorkflowJob,
+  publishStep: ParsedWorkflowStep,
+  ancestorJobs: readonly ParsedWorkflowJob[]
+): boolean {
+  const uploads = uploadedArtifactNames(ancestorJobs);
+  if (uploads.size === 0) {
+    return false;
+  }
+  const priorSteps = job.steps.slice(0, job.steps.indexOf(publishStep));
+  const matchingNamedDownload = priorSteps.some(step => {
+    if (!isPromotionAction(step.uses)) {
+      return false;
+    }
+    const downloadName = stepInput(step.inputs, "name");
+    return downloadName !== null && uploads.has(downloadName);
+  });
+  return (
+    matchingNamedDownload &&
+    !priorSteps.some(step =>
+      ARTIFACT_INTEGRITY_COMMANDS.some(command => command.test(step.run))
+    )
+  );
+}
+
+/**
  * The release job downloaded a named artifact different from anything a
  * validating ancestor uploaded, so the shipped bytes are not the tested bytes.
  * @param where - Evidence location label
@@ -160,6 +201,22 @@ export function artifactNameMismatch(where: string): ReleasePathOutcome {
     evidence:
       `${where} downloads a named artifact that no validating ancestor uploads, ` +
       "so the release path cannot prove the shipped artifact is the one CI tested",
+  };
+}
+
+/**
+ * A named artifact promotion exists, but no digest/attestation check proves the
+ * downloaded bytes are the same bytes the validating job uploaded.
+ * @param where - Evidence location label
+ * @returns The unresolved outcome
+ */
+export function unresolvedArtifactIntegrity(where: string): ReleasePathOutcome {
+  return {
+    kind: "unresolved",
+    reason:
+      `${where} promotes a named artifact from a validating job, but no ` +
+      "digest or attestation verification step before publication proves the " +
+      "downloaded bytes are the same bytes CI validated",
   };
 }
 
