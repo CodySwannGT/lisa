@@ -89,8 +89,7 @@ each group citing the criteria it evidences.
 
 ## Revision 0.6.0 — declared controls and output provenance
 
-From external practitioner review of 0.5.0 (contributor anonymous), plus a third
-gap raised in the same conversation. The first audit finding was structural: the
+An audit of 0.5.0 identified three gaps. The first was structural: the
 specification described at length what controls must *do* without ever requiring
 an entity to be able to **enumerate** them — `policy` appeared in 0.5.0 only
 incidentally (retention policy, the `policy-obsolete` run outcome, DP1).
@@ -294,7 +293,9 @@ survived. The load-bearing additions:
 
 ## Status And Open Items
 
-Draft 0.5.0. Open: outcome-vocabulary finalization (AC2.2), ISO 27001 / SSDF
+Draft 0.6.0. Open: outcome-vocabulary finalization (AC2.2), a non-normative
+schema for declared control obligations (AC5.8), a bounded
+retry-then-escalate rule for SI10 regeneration, ISO 27001 / SSDF
 crosswalk annexes, governance venue, trademark diligence, full re-keying of
 legacy readiness groups to criterion IDs, and eventual extraction to a
 standalone neutrally-owned repository. Deliberately *not* addressed: legal and
