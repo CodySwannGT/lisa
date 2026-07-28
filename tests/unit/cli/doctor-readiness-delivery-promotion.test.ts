@@ -92,4 +92,77 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
       "builds its own artifact and ships it"
     );
   });
+
+  it("FAILs when release downloads a different named artifact than CI uploaded", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      "  test:",
+      RUNS_ON,
+      STEPS,
+      "      - run: npm test",
+      "      - uses: actions/upload-artifact@0123456789abcdef0123456789abcdef01234567",
+      "        with:",
+      "          name: tested-package",
+      "          path: dist",
+      PUBLISH_JOB,
+      "    needs: [test]",
+      RUNS_ON,
+      STEPS,
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      "        with:",
+      "          name: untested-package",
+      RUN_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
+    expect(String(asFindings(record.findings)[0].evidence)).toContain(
+      "no validating ancestor uploads"
+    );
+  });
+
+  it("FAILs when only a non-validating ancestor uploaded the downloaded artifact", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      "  test:",
+      RUNS_ON,
+      STEPS,
+      "      - run: npm test",
+      "  package:",
+      RUNS_ON,
+      STEPS,
+      "      - uses: actions/upload-artifact@0123456789abcdef0123456789abcdef01234567",
+      "        with:",
+      "          name: app-package",
+      "          path: dist",
+      PUBLISH_JOB,
+      "    needs: [test, package]",
+      RUNS_ON,
+      STEPS,
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      "        with:",
+      "          name: app-package",
+      RUN_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe(FAIL);
+    expect(assessReadiness([record]).blockers[0]?.id).toBe("B2");
+    expect(String(asFindings(record.findings)[0].evidence)).toContain(
+      "no validating ancestor uploads"
+    );
+  });
 });
