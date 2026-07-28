@@ -194,6 +194,14 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
     ["Kubernetes namespace delete", "kubectl delete namespace prod"],
     ["Kubernetes persistent-volume-claim delete", "kubectl delete pvc data"],
     [
+      "Kubernetes full persistent-volume-claim delete",
+      "kubectl delete persistentvolumeclaim uploads-data",
+    ],
+    [
+      "Kubernetes plural persistent-volume-claims delete",
+      "kubectl delete persistentvolumeclaims uploads-data",
+    ],
+    [
       "Google Cloud SQL instance delete",
       "gcloud sql instances delete app-prod",
     ],
