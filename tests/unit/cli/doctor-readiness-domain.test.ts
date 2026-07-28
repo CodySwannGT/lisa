@@ -192,6 +192,8 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
     ["Prisma forced reset", "prisma migrate reset --force"],
     ["Redis flushall", "redis-cli -u $REDIS_URL FLUSHALL"],
     ["Kubernetes namespace delete", "kubectl delete namespace prod"],
+    // Test hardened to kill mutant M001 (Risk Factor: Data loss / Kubernetes namespace shorthand coverage).
+    ["Kubernetes namespace shorthand delete", "kubectl delete ns prod"],
     ["Kubernetes persistent-volume-claim delete", "kubectl delete pvc data"],
     [
       "Kubernetes full persistent-volume-claim delete",
