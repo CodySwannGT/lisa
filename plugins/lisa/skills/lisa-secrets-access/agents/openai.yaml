@@ -1,0 +1,4 @@
+display_name: "Secrets Access"
+short_description: "Vendor-neutral access layer for secrets"
+default_prompt:
+  - "Use $lisa-secrets-access: Vendor-neutral access layer for secrets."
