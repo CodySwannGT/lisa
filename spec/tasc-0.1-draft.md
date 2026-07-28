@@ -889,12 +889,16 @@ focus (non-authoritative guidance).
   from public corpora, from repositories and documents fetched into context
   (AC3.2), and from source belonging to another client, tenant, or engagement.
   Where a match is identified, the change MUST NOT merge until the source's
-  license is identified and permitted (AC9.3) and every obligation it carries is
+  license is identified and admitted, and every obligation it carries is
   discharged **mechanically** — notice and attribution retention, license-text
-  inclusion, copyleft assessment — or the code is regenerated. Attribution
-  obligations survive inlining: a permissive license on the allowlist is a
-  permission with conditions, not an absence of conditions, and a notice file
-  assembled by hand is a control nobody has measured.
+  inclusion, copyleft assessment — or the code is regenerated. Admission is
+  decided by **this criterion's gate**, against the same license allowlist the
+  entity maintains for AC9.3: the permitted-license policy is one policy, but
+  reproduced source has no dependency record for AC9.3's gate to act on, so
+  routing the decision there would apply a control to an artifact outside its
+  boundary. Attribution obligations survive inlining: a permissive license on
+  the allowlist is a permission with conditions, not an absence of conditions,
+  and a notice file assembled by hand is a control nobody has measured.
   The **permissible-source boundary MUST be declared and mechanically enforced**
   rather than left to instruction (P4): which repositories, corpora, and
   engagement contexts an agent may draw from, and which it MUST NOT. The
@@ -1017,11 +1021,13 @@ system descriptions; no specific product confers conformance.
 12. Evaluation-suite statement (AC8.7): representativeness review date,
     contamination controls, retired tasks; and the capability-baseline history
     with any detected drift and its attribution (AC4.9)
-13. Control register (AC5.9): declared obligations (AC5.8) with enforcement tier,
-    measuring mechanism and its independence basis, last exercised evidence and
-    freshness, advisory adherence against declared tolerance, and the
-    reconciliation result — obligations without enforcement points, and
-    enforcement points without declared obligations
+13. Control register (AC5.9): declared obligations (AC5.8) with enforcement
+    tier; every enforcement point, on every surface and for every agent in the
+    staff roster, with its authoritative status; measuring mechanism and its
+    independence basis; last exercised evidence and freshness; advisory
+    adherence against declared tolerance; the accountable party per obligation
+    (AC1.7); and the reconciliation result — obligations without enforcement
+    points, and enforcement points without declared obligations
 
 ---
 
