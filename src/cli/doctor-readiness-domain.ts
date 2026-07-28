@@ -94,7 +94,7 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
 ];
 
 /** Separators that end one shell invocation for this conservative scan. */
-const SHELL_INVOCATION_SEPARATOR = /\n|;|&&|\|\|/;
+const SHELL_INVOCATION_SEPARATOR = /\n|&&|\|\||[;&|]/;
 
 /**
  * Collapse only shell continuation newlines. Ordinary newlines remain command
