@@ -30,6 +30,7 @@ import {
   type OperationScan,
   scanCommands,
 } from "./doctor-readiness-operations.js";
+import { expandLocalScriptCommands } from "./doctor-readiness-local-scripts.js";
 import { informationalFindings } from "./doctor-readiness-shared.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
@@ -440,8 +441,9 @@ export async function assessFeedbackGuardrailsDimension(
   root: string,
   parsedWorkflows?: readonly ParsedWorkflow[]
 ): Promise<ReadinessDimensionRecord> {
-  const workflows: readonly ParsedWorkflow[] =
+  const parsed: readonly ParsedWorkflow[] =
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
+  const workflows = await expandLocalScriptCommands(root, parsed);
   const scan = scanCommands(workflows, isConsequential, {
     unresolvedWorkflow: lifecycleDeferral,
     unresolvedStep: servicesDeferral,
