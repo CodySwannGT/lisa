@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.9](https://github.com/CodySwannGT/lisa/compare/v2.311.8...v2.311.9) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** flag full pvc deletions ([2bb8e06](https://github.com/CodySwannGT/lisa/commit/2bb8e06e485081354f1e7d00983e062a99d60e16)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.8](https://github.com/CodySwannGT/lisa/compare/v2.311.7...v2.311.8) (2026-07-28)
 
 
