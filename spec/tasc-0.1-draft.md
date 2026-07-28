@@ -1,6 +1,6 @@
 # TASC — Trust in Autonomous Software Criteria
 
-**Version:** 0.5.0-draft · **Date:** 2026-07-26 · **Status:** Working draft for circulation
+**Version:** 0.6.0-draft · **Date:** 2026-07-28 · **Status:** Working draft for circulation
 
 **License:** CC BY 4.0 (intended). **Governance:** This document is intended for open,
 vendor-neutral governance (working group or foundation). No conforming tool vendor may
@@ -190,6 +190,10 @@ An attestation MUST include a system description containing, at minimum:
     for each registered loop, deployment target, and Complementary Human
     Control; and, for each person or role holding standing to accept risk
     (AC1.8), the scope of that standing.
+12. **Control register.** The declared control obligations (AC5.8) and their
+    reconciliation status against the running system (AC5.9), including any
+    declared obligation lacking an enforcement point and any enforcement point
+    implementing no declared obligation.
 
 A conforming implementation MAY render the system description live from the system's
 own configuration; a document generated from live state is preferred over prose (P2).
@@ -390,7 +394,9 @@ focus (non-authoritative guidance).
 
 - **AC3.1 Threat model.** The entity MUST maintain a documented threat model for
   the ADS covering, at minimum: prompt injection; instruction-surface trust;
-  dependency hallucination and typosquatting; data exfiltration; persistent-memory
+  dependency hallucination and typosquatting; reproduction of licensed or
+  proprietary material into the entity's own source (SI10); data
+  exfiltration; persistent-memory
   poisoning; sandbox escape and blast radius; and agent misreporting —
   fabricated evidence, self-serving tool or harness selection, unfounded claims
   of blocked access, and self-serving explanations of failure (§7, AC4.6); and
@@ -535,7 +541,8 @@ focus (non-authoritative guidance).
   (e.g., verification-skipping flags) MUST be unavailable to agents or MUST fail
   the change.
 - **AC5.2 Mirror consistency.** Local and agent-layer enforcement MUST be generated
-  from the same source of truth as the authoritative tier, with drift detection.
+  from the same source of truth as the authoritative tier (AC5.8), with drift
+  detection.
 - **AC5.3 Staff parity.** Enforcement MUST be equivalent across every agent in the
   staff roster. Where an agent's harness cannot represent a control, the gap MUST be
   documented and compensated at a shared layer — never silently dropped.
@@ -565,6 +572,51 @@ focus (non-authoritative guidance).
   tolerance is subject to the ratchet (AC5.4). Any advisory control whose
   expected violations over that window exceed its tolerance MUST be promoted to
   an authoritative gate (AC4.5) or have its residual risk formally accepted.
+- **AC5.8 Declared control obligations.** Every control obligation the entity
+  holds itself to MUST exist as a versioned, machine-readable artifact — not
+  only as prose in a policy document, and not only as the incidental
+  configuration of whatever tool happens to enforce it. Each declared obligation
+  MUST state: its identifier; the requirement or criterion it serves; its
+  **enforcement tier** — authoritative or advisory (P4); its enforcement
+  point(s); the **measuring mechanism** that determines whether it is satisfied,
+  together with the basis of that mechanism's independence from the agents whose
+  work it judges (AC4.7); and its current parameter values (thresholds,
+  tolerances, windows). Naming the measuring mechanism is what makes an
+  obligation checkable rather than aspirational: a coverage floor that does not
+  say which system computes coverage has declared an intention, not a control.
+  Enforcement points and agent-facing renderings MUST be **derived** from the
+  declared artifact rather than restated alongside it. An obligation separately
+  transcribed into a pipeline configuration, a lint rule, and an instruction
+  file has three sources of truth and therefore none, and AC5.2's drift
+  detection has nothing to detect against. Declared obligations are part of the
+  agent program (AC8.2) and pass the same change gates as code; parameter
+  changes are subject to the ratchet (AC5.4). A policy that exists only as prose
+  cannot be mirrored into agent context, cannot be diffed, and cannot be shown
+  to have fired.
+- **AC5.9 Control register.** The entity MUST maintain a register of its declared
+  obligations (AC5.8) covering every enforcement point, on every surface and for
+  every agent in the staff roster, and SHOULD render it from live system state
+  rather than maintain it by hand (§6). Each entry MUST carry: the enforcement
+  tier and, per enforcement point, whether it is authoritative; the measuring
+  mechanism; the most recent exercised evidence and its freshness (P1, P2); for
+  advisory controls, measured adherence against the declared tolerance (AC5.7);
+  and the accountable party for the obligation (AC1.7). The advisory inventory
+  AC5.7 requires is the advisory slice of this register, not a second list.
+  The register MUST be **reconciled bidirectionally against the running
+  system**: a declared obligation with no enforcement point, and an enforcement
+  point implementing no declared obligation, are each findings entering intake
+  (AC4.3) — the discipline AC3.1 applies to threats and controls, applied here
+  to obligations and their enforcement. Reconciliation is the criterion's whole
+  substance. An unreconciled register records what an entity believes it
+  enforces, and the distance between that and what it actually enforces is
+  invisible in precisely the direction that matters. The gate inventory (§6)
+  SHOULD be derived from the register, and staff parity (AC5.3) and the
+  unprotected-dimension obligation of P9 are evaluated from it.
+  *Focus: the register answers "what governs this system, where is each
+  obligation enforced, which independent mechanism measures it, who answers for
+  it, and when did it last fire" as a single artifact — the first question an
+  attestor asks, and the one an entity with control configuration scattered
+  across its pipeline cannot answer.*
 
 ### AC6 — Identity, Credentials, and Access *(mirrors CC6, Logical Access)*
 
@@ -743,12 +795,18 @@ focus (non-authoritative guidance).
 - **AC9.1 Model vendors as subservice organizations.** Availability posture, data
   retention, and training-use terms MUST be documented per model vendor; vendor
   outage MUST have a defined operational response (degrade, failover, or halt).
+  Where a vendor offers code-reproduction filtering, attribution facilities, or
+  intellectual-property indemnity, the terms and limits of each MUST be
+  documented; these are subservice controls and are treated under §8 like any
+  other (SI10).
 - **AC9.2 Dependency introduction.** Agents MUST NOT introduce new dependencies
   without a gate: lockfile discipline plus review and/or automated supply-chain
   scanning. The threat model MUST address hallucinated-package squatting and
   typosquatting explicitly.
 - **AC9.3 License compliance.** Dependency licenses MUST be checked against an
-  allowlist as a lifecycle gate.
+  allowlist as a lifecycle gate. This criterion reaches *declared* dependencies
+  only: licensed material reproduced directly into the entity's own source
+  carries no lockfile entry and no SBOM line, and is governed by SI10.
 - **AC9.4 Connector vetting.** Tool connectors (e.g., MCP servers) are executable
   dependencies with tool access: they MUST be pinned, vetted before use, and
   inventoried in the system description.
@@ -823,6 +881,43 @@ focus (non-authoritative guidance).
   reproducer MUST be substituted and the substitution recorded; where no safe
   reproducer exists, the omission MUST be recorded as accepted residual risk
   rather than left implicit.
+- **SI10 Output provenance and licensing.** The entity MUST be able to establish
+  that the code its ADS emits was either authored from the requirement or reused
+  lawfully with every surviving obligation discharged — and MUST NOT rely on
+  review to notice the difference. Changed code MUST pass a lifecycle gate that
+  detects reuse of external material: verbatim or near-verbatim reproduction
+  from public corpora, from repositories and documents fetched into context
+  (AC3.2), and from source belonging to another client, tenant, or engagement.
+  Where a match is identified, the change MUST NOT merge until the source's
+  license is identified and admitted, and every obligation it carries is
+  discharged **mechanically** — notice and attribution retention, license-text
+  inclusion, copyleft assessment — or the code is regenerated. Admission is
+  decided by **this criterion's gate**, against the same license allowlist the
+  entity maintains for AC9.3: the permitted-license policy is one policy, but
+  reproduced source has no dependency record for AC9.3's gate to act on, so
+  routing the decision there would apply a control to an artifact outside its
+  boundary. Attribution obligations survive inlining: a permissive license on
+  the allowlist is a permission with conditions, not an absence of conditions,
+  and a notice file assembled by hand is a control nobody has measured.
+  The **permissible-source boundary MUST be declared and mechanically enforced**
+  rather than left to instruction (P4): which repositories, corpora, and
+  engagement contexts an agent may draw from, and which it MUST NOT. The
+  cross-engagement and cross-tenant cases are the ones where the harm is
+  contractual rather than reputational, and persisted memory and learnings
+  (AC3.4, AC4.5) are a carrier for them exactly as context is. Sources admitted
+  to context during authoring MUST be recorded with the change as part of its
+  generation lineage (AC1.2), so a later licensing challenge is answerable from
+  the record instead of reconstructed from the model's behavior.
+  Reproduction of licensed or proprietary material is a threat class under
+  AC3.1; the detection mechanism is a finding source whose false-positive rate
+  MUST be measured (AC4.6), similarity matching being characteristically noisy;
+  and the gate MUST be exercised on a seeded known match (P1, AC5.5). Where the
+  model vendor offers reproduction filtering, attribution facilities, or
+  intellectual-property indemnity, the configuration and limits of each MUST be
+  documented per AC9.1 and MUST NOT be reported as controls the entity operates
+  — a vendor-side filter is a subservice control. Inapplicability is not
+  earnable: every ADS emits code, and an ADS that has never checked holds no
+  evidence rather than a clean record (P2).
 
 ### DP — Data Protection *(supplemental; applies where sensitive or regulated data is in scope — analogous to Confidentiality/Privacy)*
 
@@ -857,12 +952,12 @@ focus (non-authoritative guidance).
 | AC2 Communication & Legibility | CC2 Information & Communication | operator legibility; named run outcomes |
 | AC3 Agent Threat Model | CC3 Risk Assessment | agent-native threat classes; threat-to-control mapping; agent-to-agent boundaries |
 | AC4 Monitoring, Sensors & Finding Integrity | CC4 Monitoring Activities | sensor liveness ≠ findings; finding, measurement, and root-cause integrity; agent-capability drift |
-| AC5 Enforcement Integrity | CC5 Control Activities | server-side authority, parity, ratchet, instruction residual risk, advisory-control adherence |
+| AC5 Enforcement Integrity | CC5 Control Activities | server-side authority, parity, ratchet, instruction residual risk, advisory-control adherence, declared control obligations, the reconciled control register |
 | AC6 Identity & Credentials | CC6 Logical & Physical Access | agent-own identity, gateways, federation |
 | AC7 Operations & Recovery | CC7 System Operations | + autonomy measurement, delivery effectiveness, incident answerability |
 | AC8 Change Management | CC8 Change Management | + the agent program, model and configuration changes, distributional qualification, the evaluation suite, risk tiers, staff introduction, review capacity, observed promotion |
 | AC9 Third Parties & Supply Chain | CC9 Risk Mitigation | model vendors as subservice orgs |
-| SI | Processing Integrity (PI) | mandatory for production software, unlike PI; adds generative testing and defect replay |
+| SI | Processing Integrity (PI) | mandatory for production software, unlike PI; adds generative testing, defect replay, and output provenance |
 | DP | Confidentiality (C) + Privacy (P) | merged; context boundary is the novel control |
 | UX | — (no SOC 2 analog) | condition-scoped |
 | Type I / II | Type I / II | equivalent semantics |
@@ -884,8 +979,12 @@ coverage from its answers.
 
 Criteria are tool-neutral. Illustrative mechanism classes: secret stores and
 credential proxies (AC6); branch/push protection and protected deploy environments
-(AC5.1, AC8.5); artifact signing and immutable evidence stores (§7, AC9.6);
-supply-chain scanners and lockfile gates (AC9.2); mutation testing and defect
+(AC5.1, AC8.5); policy-as-code engines and declarative control definitions that
+generate their own enforcement points and agent-facing renderings (AC5.8);
+live-rendered control registers with enforcement reconciliation (AC5.9);
+artifact signing and immutable evidence stores (§7, AC9.6);
+supply-chain scanners and lockfile gates (AC9.2); code-similarity and snippet-
+provenance scanners with generated attribution notices (SI10); mutation testing and defect
 replay frameworks (SI3); property-based and coverage-guided fuzzing frameworks
 with persistent corpora (SI9); incident and cron-liveness monitors (AC4.2,
 AC7.2); false-positive adjudication queues (AC4.6); billing and telemetry
@@ -922,10 +1021,42 @@ system descriptions; no specific product confers conformance.
 12. Evaluation-suite statement (AC8.7): representativeness review date,
     contamination controls, retired tasks; and the capability-baseline history
     with any detected drift and its attribution (AC4.9)
+13. Control register (AC5.9): declared obligations (AC5.8) with enforcement
+    tier; every enforcement point, on every surface and for every agent in the
+    staff roster, with its authoritative status; measuring mechanism and its
+    independence basis; last exercised evidence and freshness; advisory
+    adherence against declared tolerance; the accountable party per obligation
+    (AC1.7); and the reconciliation result — obligations without enforcement
+    points, and enforcement points without declared obligations
 
 ---
 
-*End of draft 0.5.0. Changes from 0.4.0, drawn from published accounts of
+*End of draft 0.6.0. Changes from 0.5.0, drawn from practitioner review: the
+specification described at length what controls must do without ever requiring
+an entity to be able to enumerate them. AC5.8 closes the first half — every
+control obligation MUST exist as a versioned, machine-readable artifact naming
+its enforcement tier and the independent mechanism that measures it, with
+enforcement points and agent-facing renderings derived from that artifact rather
+than transcribed beside it. AC5.2 had named a source of truth that nothing
+obliged anyone to have. AC5.9 closes the second half with a control register
+reconciled bidirectionally against the running system, so an obligation with no
+enforcement point and an enforcement point with no obligation are both findings;
+§6 and Annex D carry it as an attestation deliverable. Together they make the
+prior criteria's scattered visibility requirements — the gate inventory, the
+advisory inventory (AC5.7), staff parity (AC5.3), and P9's set of unprotected
+dimensions — readings taken from one artifact instead of four.
+SI10 adds provenance of the ADS's own output. AC9.3 checked the licenses of
+declared dependencies, which reaches nothing a model reproduces directly into
+the entity's source and nothing an agent copies from a repository it fetched
+while researching; the new criterion requires a reuse-detection gate on changed
+code, a declared and mechanically enforced permissible-source boundary covering
+the cross-tenant case, mechanical discharge of attribution obligations that
+survive inlining, and the sources admitted to context recorded as generation
+lineage. AC3.1 carries the matching threat class, AC9.3 now states its own
+limit, and AC9.1 carries the vendor's filtering and indemnity posture — which
+is a subservice control and never the entity's own.*
+
+*Changes in 0.5.0 from 0.4.0, drawn from published accounts of
 operating an AI-native SDLC at scale: AC3.6 draws agent boundaries around access
 and actions rather than instructions, and counts an agent's reachable peers as
 part of its effective authority — a constrained agent asking a peer to act for
@@ -970,7 +1101,10 @@ Human Control (§9). The 0.1 file name is retained so existing references and
 ingestion records stay valid.*
 
 *Known open items: outcome-vocabulary finalization (AC2.2); ISO 27001 and SSDF
-crosswalk annexes; trademark diligence on the name; governance venue. By design
+crosswalk annexes; a non-normative schema for declared control obligations
+(AC5.8), deliberately unspecified here so the criterion does not bind an entity
+to one policy-as-code dialect; trademark diligence on the name; governance
+venue. By design
 rather than omission, the specification fixes no numbers: coverage floors (SI2),
 false-positive tolerances (AC4.6), advisory-control violation tolerances
 (AC5.7), qualification run counts and thresholds (AC8.3), and SLOs (SI8) are all

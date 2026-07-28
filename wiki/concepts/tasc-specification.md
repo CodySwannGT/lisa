@@ -81,7 +81,7 @@ stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
 The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 110 questions across 16 groups,
+instrument referenced by the spec's Annex B — 114 questions across 16 groups,
 each group citing the criteria it evidences.
 
 ## Revision 0.5.0 — agent boundaries and graduated autonomy
