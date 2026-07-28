@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.12](https://github.com/CodySwannGT/lisa/compare/v2.311.11...v2.311.12) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** match promoted artifact names ([4935739](https://github.com/CodySwannGT/lisa/commit/49357392eebeb73955c8aa6b201f77f57afd9156)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.11](https://github.com/CodySwannGT/lisa/compare/v2.311.10...v2.311.11) (2026-07-28)
 
 
