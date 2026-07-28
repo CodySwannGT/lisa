@@ -231,6 +231,38 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
       )
     ).toBe(true);
   });
+
+  // Test hardened to kill mutant M001 (Risk Factor: Data loss / wrapper script visibility).
+  it("stands B1 when a workflow hides the destructive command inside a local script", async () => {
+    const root = await getTempDir();
+    await writeRepoFile(
+      root,
+      "scripts/teardown-prod.sh",
+      [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        'psql "$DATABASE_URL" -c "DROP TABLE users"',
+      ].join("\n")
+    );
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: ./scripts/teardown-prod.sh",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
 });
 
 describe("assessDomainOwnershipDimension — reports silence as silence", () => {
