@@ -142,6 +142,52 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
   });
 
   it.each([
+    [
+      "newline",
+      [
+        "          npm test",
+        "          aws s3 rm s3://acme-prod-user-uploads --recursive",
+      ],
+    ],
+    [
+      "background operator",
+      [
+        "          npm test & aws s3 rm s3://acme-prod-user-uploads --recursive",
+      ],
+    ],
+    [
+      "pipeline operator",
+      [
+        "          npm test | aws s3 rm s3://acme-prod-user-uploads --recursive",
+      ],
+    ],
+  ])(
+    "stands B1 when an unrelated ephemeral %s precedes a production wipe",
+    async (_label, lines) => {
+      const root = await getTempDir();
+      await writeWorkflow(root, CLEANUP_YML, [
+        CLEANUP_NAME,
+        ON_PUSH,
+        JOBS,
+        WIPE_JOB,
+        RUNS_ON,
+        STEPS,
+        "      - run: |",
+        ...lines,
+      ]);
+
+      const record = await assessDomainOwnershipDimension(root);
+
+      expect(record.status).toBe(WARN);
+      expect(
+        asFindings(record.findings).some(
+          finding => finding.blocker === BLOCKER_ID
+        )
+      ).toBe(true);
+    }
+  );
+
+  it.each([
     ["Rails database drop", "rails db:drop"],
     ["Prisma forced reset", "prisma migrate reset --force"],
     ["Redis flushall", "redis-cli -u $REDIS_URL FLUSHALL"],
