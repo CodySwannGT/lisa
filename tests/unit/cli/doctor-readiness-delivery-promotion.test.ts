@@ -19,11 +19,20 @@ import {
   RELEASE_NAME,
   RELEASE_YML,
   RUN_PUBLISH,
+  RUN_TEST,
   RUNS_ON,
   STEPS,
   TAGS,
+  TEST_JOB,
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
+
+const PINNED_UPLOAD_ARTIFACT =
+  "      - uses: actions/upload-artifact@0123456789abcdef0123456789abcdef01234567";
+const ARTIFACT_WITH = "        with:";
+const ARTIFACT_PATH_DIST = "          path: dist";
+const NEEDS_TEST = "    needs: [test]";
+const APP_PACKAGE_NAME = "          name: app-package";
 
 let tempDir: string | undefined;
 
@@ -101,20 +110,20 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
       PUSH,
       TAGS,
       JOBS,
-      "  test:",
+      TEST_JOB,
       RUNS_ON,
       STEPS,
-      "      - run: npm test",
-      "      - uses: actions/upload-artifact@0123456789abcdef0123456789abcdef01234567",
-      "        with:",
+      RUN_TEST,
+      PINNED_UPLOAD_ARTIFACT,
+      ARTIFACT_WITH,
       "          name: tested-package",
-      "          path: dist",
+      ARTIFACT_PATH_DIST,
       PUBLISH_JOB,
-      "    needs: [test]",
+      NEEDS_TEST,
       RUNS_ON,
       STEPS,
       `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
-      "        with:",
+      ARTIFACT_WITH,
       "          name: untested-package",
       RUN_PUBLISH,
     ]);
@@ -136,24 +145,24 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
       PUSH,
       TAGS,
       JOBS,
-      "  test:",
+      TEST_JOB,
       RUNS_ON,
       STEPS,
-      "      - run: npm test",
+      RUN_TEST,
       "  package:",
       RUNS_ON,
       STEPS,
-      "      - uses: actions/upload-artifact@0123456789abcdef0123456789abcdef01234567",
-      "        with:",
-      "          name: app-package",
-      "          path: dist",
+      PINNED_UPLOAD_ARTIFACT,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      ARTIFACT_PATH_DIST,
       PUBLISH_JOB,
       "    needs: [test, package]",
       RUNS_ON,
       STEPS,
       `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
-      "        with:",
-      "          name: app-package",
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
       RUN_PUBLISH,
     ]);
 
@@ -164,5 +173,75 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
     expect(String(asFindings(record.findings)[0].evidence)).toContain(
       "no validating ancestor uploads"
     );
+  });
+
+  // Test hardened to kill mutant M001 (Risk Factor: Release artifact integrity).
+  it("SKIPs when a matching named artifact lacks digest or attestation verification", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      TEST_JOB,
+      RUNS_ON,
+      STEPS,
+      RUN_TEST,
+      PINNED_UPLOAD_ARTIFACT,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      ARTIFACT_PATH_DIST,
+      PUBLISH_JOB,
+      NEEDS_TEST,
+      RUNS_ON,
+      STEPS,
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      RUN_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe("SKIP");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(String(asFindings(record.findings)[0].reason)).toContain(
+      "no digest or attestation verification"
+    );
+  });
+
+  // Test hardened to kill mutant M002 (Risk Factor: Release artifact integrity).
+  it("PASSes a matching named artifact with attestation verification before publish", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      TEST_JOB,
+      RUNS_ON,
+      STEPS,
+      RUN_TEST,
+      PINNED_UPLOAD_ARTIFACT,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      ARTIFACT_PATH_DIST,
+      PUBLISH_JOB,
+      NEEDS_TEST,
+      RUNS_ON,
+      STEPS,
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      "      - run: gh attestation verify dist/app.tgz --repo acme/app",
+      RUN_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe("PASS");
+    expect(assessReadiness([record]).blockers).toEqual([]);
   });
 });

@@ -15,10 +15,12 @@ import {
 import {
   artifactNameMismatch,
   hasArtifactNameMismatch,
+  hasUnprovenArtifactIntegrity,
   isPublishAction,
   isPromotionAction,
   promotesValidatedArtifact,
   PROMOTION_ACTION,
+  unresolvedArtifactIntegrity,
   unresolvedPromotedArtifact,
 } from "./doctor-readiness-promoted-artifact.js";
 
@@ -345,6 +347,12 @@ export function assessReleasePaths(
       hasArtifactNameMismatch(job, publishStep, validatingAncestors)
     ) {
       return artifactNameMismatch(where);
+    }
+    if (
+      validated &&
+      hasUnprovenArtifactIntegrity(job, publishStep, validatingAncestors)
+    ) {
+      return unresolvedArtifactIntegrity(where);
     }
     if (validated) {
       return { kind: "clean" };
