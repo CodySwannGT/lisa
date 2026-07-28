@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.11](https://github.com/CodySwannGT/lisa/compare/v2.311.10...v2.311.11) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** address wrapper script review ([6be16a1](https://github.com/CodySwannGT/lisa/commit/6be16a18224732a355a09e4847057b6826266d25)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** harden B1 wrapper script expansion ([4b99c1c](https://github.com/CodySwannGT/lisa/commit/4b99c1ca58ba9b8e3da8629a76b18a41b265b370)), closes [#2122](https://github.com/CodySwannGT/lisa/issues/2122) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** scan B1 wrapper scripts ([d4ee02d](https://github.com/CodySwannGT/lisa/commit/d4ee02d75aecf2fbbfec4da700accdf3adfa3ee3)), closes [#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.10](https://github.com/CodySwannGT/lisa/compare/v2.311.9...v2.311.10) (2026-07-28)
 
 
