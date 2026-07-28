@@ -16,6 +16,7 @@ import {
   SKIP,
   STEPS,
   WARN,
+  writeRepoFile,
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
@@ -27,6 +28,9 @@ const DEPLOY_NAME_LINE = "name: Deploy";
 
 /** Shared infrastructure job header for wrapper fixtures. */
 const INFRA_JOB = "  infra:";
+
+/** Neutral script name whose contents carry the consequential operation. */
+const DEPLOY_SCRIPT = "scripts/deploy.sh";
 
 let tempDir: string | undefined;
 
@@ -72,6 +76,37 @@ afterEach(async () => {
 });
 
 describe("assessFeedbackGuardrailsDimension — local wrapper commands", () => {
+  // Test hardened to kill mutant M001 (Risk Factor: Ungated production deploy / neutral wrapper visibility).
+  it("stands B4 when a neutral local script hides an auto-approved Terraform apply", async () => {
+    const root = await getTempDir();
+    await writeRepoFile(
+      root,
+      DEPLOY_SCRIPT,
+      [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        "terraform apply -auto-approve prod.tfplan",
+      ].join("\n")
+    );
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: ./scripts/deploy.sh",
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+    const blocking = asFindings(record.findings).find(
+      finding => finding.blocker === BLOCKER_ID
+    );
+
+    expect(record.status).toBe(WARN);
+    expect(blocking?.evidence).toContain("terraform apply -auto-approve");
+  });
+
   it("stands B4 for an explicitly production local destroy wrapper", async () => {
     await expectB4ForCommand("./scripts/destroy-prod.sh");
   });
