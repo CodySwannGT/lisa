@@ -244,4 +244,43 @@ describe("assessDeliveryAuthorityDimension — promoted artifact integrity", () 
     expect(record.status).toBe("PASS");
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
+
+  // Test hardened to kill mutant M003 (Risk Factor: Release artifact integrity).
+  // An attestation check that runs BEFORE the artifact is downloaded cannot
+  // have verified the downloaded bytes, so it must not clear the finding.
+  it("SKIPs a matching named artifact with attestation verification only before the download", async () => {
+    const cwd = await getTempDir();
+    await writeWorkflow(cwd, RELEASE_YML, [
+      RELEASE_NAME,
+      ON,
+      PUSH,
+      TAGS,
+      JOBS,
+      TEST_JOB,
+      RUNS_ON,
+      STEPS,
+      RUN_TEST,
+      PINNED_UPLOAD_ARTIFACT,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      ARTIFACT_PATH_DIST,
+      PUBLISH_JOB,
+      NEEDS_TEST,
+      RUNS_ON,
+      STEPS,
+      "      - run: gh attestation verify dist/app.tgz --repo acme/app",
+      `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`,
+      ARTIFACT_WITH,
+      APP_PACKAGE_NAME,
+      RUN_PUBLISH,
+    ]);
+
+    const record = await assessDeliveryAuthorityDimension(cwd);
+
+    expect(record.status).toBe("SKIP");
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    expect(String(asFindings(record.findings)[0].reason)).toContain(
+      "no digest or attestation verification"
+    );
+  });
 });

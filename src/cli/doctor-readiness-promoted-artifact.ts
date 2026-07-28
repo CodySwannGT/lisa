@@ -174,18 +174,25 @@ export function hasUnprovenArtifactIntegrity(
     return false;
   }
   const priorSteps = job.steps.slice(0, job.steps.indexOf(publishStep));
-  const matchingNamedDownload = priorSteps.some(step => {
-    if (!isPromotionAction(step.uses)) {
-      return false;
-    }
-    const downloadName = stepInput(step.inputs, "name");
-    return downloadName !== null && uploads.has(downloadName);
-  });
+  const matchingNamedDownloadIndex = priorSteps.reduce(
+    (index, step, currentIndex) => {
+      if (!isPromotionAction(step.uses)) {
+        return index;
+      }
+      const downloadName = stepInput(step.inputs, "name");
+      return downloadName !== null && uploads.has(downloadName)
+        ? currentIndex
+        : index;
+    },
+    -1
+  );
   return (
-    matchingNamedDownload &&
-    !priorSteps.some(step =>
-      ARTIFACT_INTEGRITY_COMMANDS.some(command => command.test(step.run))
-    )
+    matchingNamedDownloadIndex >= 0 &&
+    !priorSteps
+      .slice(matchingNamedDownloadIndex + 1)
+      .some(step =>
+        ARTIFACT_INTEGRITY_COMMANDS.some(command => command.test(step.run))
+      )
   );
 }
 
