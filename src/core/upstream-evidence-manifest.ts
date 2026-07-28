@@ -1048,6 +1048,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3389740fc0f162be0b684625424e716a0a3e4c99c8cdb4317ec82dcfcf7b57c7",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
+    "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
+      "7a5e7661cda8561081e1a4f4f8fd27b18f2e3c62d65e500b840d2a4660cfae7c",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
+      "f8c16675d342c6e887dc54f35ae767f670c73669e3a4855a98a1512b855e07a0",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -6898,6 +6902,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-review-local/SKILL.md": true,
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md": true,
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md": true,
+    "plugins/src/base/skills/lisa-secrets-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/src/base/skills/lisa-security-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md": true,
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md": true,
