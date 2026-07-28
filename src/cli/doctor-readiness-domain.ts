@@ -70,7 +70,7 @@ const IRREVERSIBLE_DATA_OPS: readonly RegExp[] = [
   /\brails\s+db:(drop|reset)\b/,
   /\bprisma\s+migrate\s+reset\b[^\n]*--force\b/,
   /\bredis-cli\b[^\n]*\bflushall\b/i,
-  /\bkubectl\s+delete\s+(namespace|pvc|persistentvolumeclaims?)\b/,
+  /\bkubectl\s+delete\s+(namespace|ns|pvc|persistentvolumeclaims?)\b/,
   /\bgcloud\s+sql\s+instances\s+delete\b/,
   /\baz\s+group\s+delete\b/,
   /\b(mongo|mongosh)\b[^\n]*\bdropdatabase\s*\(/i,
