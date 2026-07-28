@@ -29,15 +29,18 @@ const OPTIONED_SHELL_RUNNERS = new Set(["bash", "sh"]);
 /** Prefix assignments that set env only for the following shell invocation. */
 const SHELL_ENV_ASSIGNMENT = /^[A-Za-z_]\w*=.*$/u;
 
-/** Shared budget carried through one workflow expansion scan. */
-interface ExpansionContext {
-  readonly remainingScripts: number;
-}
-
 /** Expansion result plus the remaining aggregate script budget. */
 interface ExpansionResult<T> {
   readonly value: T;
   readonly remainingScripts: number;
+  readonly unresolved: readonly string[];
+}
+
+/** Result of reading local script bodies from one workflow step. */
+interface BodyExpansion {
+  readonly value: readonly string[];
+  readonly remainingScripts: number;
+  readonly skippedScripts: readonly string[];
 }
 
 /**
@@ -180,22 +183,32 @@ async function readLocalScript(
 /**
  * Append any bounded local script bodies referenced by a workflow step.
  * @param root - Repository root
+ * @param job - Parsed workflow job
  * @param step - Parsed workflow step
- * @param context - Shared expansion budget
+ * @param remainingScripts - Remaining aggregate expansion budget
  * @returns Step with script bodies appended to `run`, when present
  */
 async function expandLocalScriptStep(
   root: string,
+  job: ParsedWorkflowJob,
   step: ParsedWorkflowStep,
-  context: ExpansionContext
+  remainingScripts: number
 ): Promise<ExpansionResult<ParsedWorkflowStep>> {
   const expanded = await expandLocalScriptBodies(
     root,
     localScriptPaths(step.run),
-    context.remainingScripts
+    remainingScripts
+  );
+  const unresolved = expanded.skippedScripts.map(
+    script =>
+      `\`${job.workflow}\` job \`${job.id}\` step \`${step.name}\` invokes ` +
+      "local " +
+      `script \`${script}\`, but the bounded wrapper expansion budget was ` +
+      "exhausted before that script could be inspected"
   );
   return {
     remainingScripts: expanded.remainingScripts,
+    unresolved,
     value:
       expanded.value.length === 0
         ? step
@@ -214,10 +227,13 @@ async function expandLocalScriptBodies(
   root: string,
   scripts: readonly string[],
   remainingScripts: number
-): Promise<ExpansionResult<readonly string[]>> {
+): Promise<BodyExpansion> {
   const [script, ...rest] = scripts;
-  if (script === undefined || remainingScripts <= 0) {
-    return { value: [], remainingScripts };
+  if (script === undefined) {
+    return { value: [], remainingScripts, skippedScripts: [] };
+  }
+  if (remainingScripts <= 0) {
+    return { value: [], remainingScripts, skippedScripts: scripts };
   }
   const content = await readLocalScript(root, script);
   const expanded = await expandLocalScriptBodies(
@@ -227,6 +243,7 @@ async function expandLocalScriptBodies(
   );
   return {
     remainingScripts: expanded.remainingScripts,
+    skippedScripts: expanded.skippedScripts,
     value: content === null ? expanded.value : [content, ...expanded.value],
   };
 }
@@ -235,17 +252,23 @@ async function expandLocalScriptBodies(
  * Expand directly invoked local shell scripts in one parsed job.
  * @param root - Repository root
  * @param job - Parsed workflow job
- * @param context - Shared expansion budget
+ * @param remainingScripts - Remaining aggregate expansion budget
  * @returns Job with script-expanded steps
  */
 async function expandLocalScriptJob(
   root: string,
   job: ParsedWorkflowJob,
-  context: ExpansionContext
+  remainingScripts: number
 ): Promise<ExpansionResult<ParsedWorkflowJob>> {
-  const expanded = await expandLocalScriptSteps(root, job.steps, context);
+  const expanded = await expandLocalScriptSteps(
+    root,
+    job,
+    job.steps,
+    remainingScripts
+  );
   return {
     remainingScripts: expanded.remainingScripts,
+    unresolved: expanded.unresolved,
     value: {
       ...job,
       steps: expanded.value,
@@ -256,25 +279,36 @@ async function expandLocalScriptJob(
 /**
  * Expand local scripts across a job's steps under the shared budget.
  * @param root - Repository root
+ * @param job - Parsed workflow job
  * @param steps - Parsed workflow steps
- * @param context - Shared expansion budget
+ * @param remainingScripts - Remaining aggregate expansion budget
  * @returns Expanded steps and updated budget
  */
 async function expandLocalScriptSteps(
   root: string,
+  job: ParsedWorkflowJob,
   steps: readonly ParsedWorkflowStep[],
-  context: ExpansionContext
+  remainingScripts: number
 ): Promise<ExpansionResult<readonly ParsedWorkflowStep[]>> {
   const [step, ...rest] = steps;
   if (step === undefined) {
-    return { value: [], remainingScripts: context.remainingScripts };
+    return { value: [], remainingScripts, unresolved: [] };
   }
-  const expandedStep = await expandLocalScriptStep(root, step, context);
-  const expandedRest = await expandLocalScriptSteps(root, rest, {
-    remainingScripts: expandedStep.remainingScripts,
-  });
+  const expandedStep = await expandLocalScriptStep(
+    root,
+    job,
+    step,
+    remainingScripts
+  );
+  const expandedRest = await expandLocalScriptSteps(
+    root,
+    job,
+    rest,
+    expandedStep.remainingScripts
+  );
   return {
     remainingScripts: expandedRest.remainingScripts,
+    unresolved: [...expandedStep.unresolved, ...expandedRest.unresolved],
     value: [expandedStep.value, ...expandedRest.value],
   };
 }
@@ -289,38 +323,59 @@ export async function expandLocalScriptCommands(
   root: string,
   workflows: readonly ParsedWorkflow[]
 ): Promise<readonly ParsedWorkflow[]> {
-  const expanded = await expandLocalScriptWorkflows(root, workflows, {
-    remainingScripts: MAX_LOCAL_SCRIPT_EXPANSIONS,
-  });
+  const expanded = await expandLocalScriptCommandsWithDiagnostics(
+    root,
+    workflows
+  );
   return expanded.value;
+}
+
+/**
+ * Inline local scripts and report wrapper calls that bounded expansion skipped.
+ * @param root - Repository root
+ * @param workflows - Parsed workflow files
+ * @returns Expanded workflows plus unresolved skipped-wrapper observations
+ */
+export async function expandLocalScriptCommandsWithDiagnostics(
+  root: string,
+  workflows: readonly ParsedWorkflow[]
+): Promise<ExpansionResult<readonly ParsedWorkflow[]>> {
+  return await expandLocalScriptWorkflows(
+    root,
+    workflows,
+    MAX_LOCAL_SCRIPT_EXPANSIONS
+  );
 }
 
 /**
  * Expand local scripts across workflows under the shared budget.
  * @param root - Repository root
  * @param workflows - Parsed workflow files
- * @param context - Shared expansion budget
+ * @param remainingScripts - Remaining aggregate expansion budget
  * @returns Expanded workflows and updated budget
  */
 async function expandLocalScriptWorkflows(
   root: string,
   workflows: readonly ParsedWorkflow[],
-  context: ExpansionContext
+  remainingScripts: number
 ): Promise<ExpansionResult<readonly ParsedWorkflow[]>> {
   const [workflow, ...rest] = workflows;
   if (workflow === undefined) {
-    return { value: [], remainingScripts: context.remainingScripts };
+    return { value: [], remainingScripts, unresolved: [] };
   }
   const expandedJobs = await expandLocalScriptJobs(
     root,
     workflow.jobs,
-    context
+    remainingScripts
   );
-  const expandedRest = await expandLocalScriptWorkflows(root, rest, {
-    remainingScripts: expandedJobs.remainingScripts,
-  });
+  const expandedRest = await expandLocalScriptWorkflows(
+    root,
+    rest,
+    expandedJobs.remainingScripts
+  );
   return {
     remainingScripts: expandedRest.remainingScripts,
+    unresolved: [...expandedJobs.unresolved, ...expandedRest.unresolved],
     value: [
       {
         ...workflow,
@@ -335,24 +390,27 @@ async function expandLocalScriptWorkflows(
  * Expand local scripts across workflow jobs under the shared budget.
  * @param root - Repository root
  * @param jobs - Parsed workflow jobs
- * @param context - Shared expansion budget
+ * @param remainingScripts - Remaining aggregate expansion budget
  * @returns Expanded jobs and updated budget
  */
 async function expandLocalScriptJobs(
   root: string,
   jobs: readonly ParsedWorkflowJob[],
-  context: ExpansionContext
+  remainingScripts: number
 ): Promise<ExpansionResult<readonly ParsedWorkflowJob[]>> {
   const [job, ...rest] = jobs;
   if (job === undefined) {
-    return { value: [], remainingScripts: context.remainingScripts };
+    return { value: [], remainingScripts, unresolved: [] };
   }
-  const expandedJob = await expandLocalScriptJob(root, job, context);
-  const expandedRest = await expandLocalScriptJobs(root, rest, {
-    remainingScripts: expandedJob.remainingScripts,
-  });
+  const expandedJob = await expandLocalScriptJob(root, job, remainingScripts);
+  const expandedRest = await expandLocalScriptJobs(
+    root,
+    rest,
+    expandedJob.remainingScripts
+  );
   return {
     remainingScripts: expandedRest.remainingScripts,
+    unresolved: [...expandedJob.unresolved, ...expandedRest.unresolved],
     value: [expandedJob.value, ...expandedRest.value],
   };
 }
