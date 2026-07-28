@@ -30,7 +30,7 @@ import {
   type OperationScan,
   scanCommands,
 } from "./doctor-readiness-operations.js";
-import { expandLocalScriptCommands } from "./doctor-readiness-local-scripts.js";
+import { expandLocalScriptCommandsWithDiagnostics } from "./doctor-readiness-local-scripts.js";
 import { informationalFindings } from "./doctor-readiness-shared.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
@@ -443,13 +443,18 @@ export async function assessFeedbackGuardrailsDimension(
 ): Promise<ReadinessDimensionRecord> {
   const parsed: readonly ParsedWorkflow[] =
     parsedWorkflows ?? (await parseRepositoryWorkflows(root));
-  const workflows = await expandLocalScriptCommands(root, parsed);
-  const scan = scanCommands(workflows, isConsequential, {
+  const expanded = await expandLocalScriptCommandsWithDiagnostics(root, parsed);
+  const workflows = expanded.value;
+  const scanned = scanCommands(workflows, isConsequential, {
     unresolvedWorkflow: lifecycleDeferral,
     unresolvedStep: servicesDeferral,
     unresolvedJobCall: reusableCallDeferral,
     unresolvedActionStep: actionStepDeferral,
   });
+  const scan: OperationScan = {
+    ...scanned,
+    unresolved: [...scanned.unresolved, ...expanded.unresolved],
+  };
   const runbook = await hasCheckedInRunbook(root);
   if (scan.ungated.length === 0 || runbook) {
     return skipRecord(
