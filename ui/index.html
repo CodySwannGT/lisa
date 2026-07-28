@@ -5688,6 +5688,25 @@
                     ],
                     viaValue: "license-checker",
                   },
+                  {
+                    q: "What catches licensed or proprietary code reproduced directly into your source?",
+                    help: "TASC SI10. The allowlist above governs declared dependencies — code a model reproduces from memory, or an agent copies out of a repository it fetched while researching, carries no lockfile entry and no SBOM line, so every scanner above is blind to it. This gate detects verbatim and near-verbatim reuse and holds the merge until the source's license is identified and its obligations discharged. Attribution survives inlining: a permissive license on the allowlist is a permission with conditions, not an absence of them, and a notice file assembled by hand is a control nobody has measured.",
+                    kind: "select",
+                    options: [
+                      "Similarity gate on changed code, with attribution notices generated mechanically",
+                      "Similarity scanning, attribution handled by hand",
+                      "We rely on the model vendor's filter",
+                      "Nothing — review would have to notice",
+                    ],
+                    via: [
+                      "SCANOSS",
+                      "FOSSA",
+                      "Black Duck",
+                      "ScanCode",
+                      "Vendor-side filter",
+                      "None",
+                    ],
+                  },
                 ],
               },
               {
@@ -5723,6 +5742,24 @@
                       "Allowlisted domains only",
                       "Scoped per factory",
                       "Anything",
+                    ],
+                  },
+                  {
+                    q: "Which codebases may an agent draw from — and what stops one client's source reaching another's?",
+                    help: "TASC SI10. Reading the web is an injection surface; reading source is a licensing and confidentiality one. The permissible-source boundary — which repositories, corpora and engagement contexts an agent may draw from — has to be enforced by mechanism rather than instruction, because an instruction not to reuse another client's code is a rule with an unmeasured breach rate (AC5.7). Persisted memory and learnings carry source across that boundary exactly as context does, and the harm here is contractual rather than reputational.",
+                    kind: "select",
+                    options: [
+                      "Declared boundary, enforced mechanically, sources recorded per change",
+                      "Declared boundary, enforced by instruction",
+                      "Isolation is per-repo by convention",
+                      "No declared boundary",
+                    ],
+                    via: [
+                      "Per-engagement workspace isolation",
+                      "Sandbox / container scoping",
+                      "Repository allowlist",
+                      "Context provenance log",
+                      "None",
                     ],
                   },
                   {
@@ -5966,7 +6003,7 @@
                 ],
               },
               {
-                label: "Review & merge (AC8.1 · AC5 · AC5.7 · AC8.8)",
+                label: "Review & merge (AC8.1 · AC5 · AC5.7–AC5.9 · AC8.8)",
                 items: [
                   {
                     q: "What reviews every diff before merge?",
@@ -6050,6 +6087,42 @@
                       "Inventoried, breach rate measured, over-tolerance rules promoted to gates",
                       "Inventoried, adherence not measured",
                       "We assume the instructions are followed",
+                    ],
+                  },
+                  {
+                    q: "Where do your control obligations live — and do the gates come from there?",
+                    help: "TASC AC5.8. A rule transcribed into a CI config, a lint rule and an instruction file has three sources of truth and therefore none, and nothing can detect drift between them. Each obligation should be one versioned, machine-readable artifact naming its enforcement tier and the independent mechanism that measures it — a coverage floor that doesn't say which system computes coverage has declared an intention, not a control — with every enforcement point and every agent-facing rendering generated from it.",
+                    kind: "select",
+                    options: [
+                      "Declared as machine-readable artifacts, with enforcement points and agent context generated from them",
+                      "Machine-readable, but each enforcement point is configured separately",
+                      "Written as prose policy documents",
+                      "Only as whatever each tool happens to be configured to do",
+                    ],
+                    via: [
+                      "Policy-as-code in the repo",
+                      "OPA / Rego",
+                      "Generated CI configuration",
+                      "In-house policy engine",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Can you enumerate every control, where it is enforced, and when it last fired?",
+                    help: "TASC AC5.9 — the first question an attestor asks, and the one a factory with its control configuration scattered across a pipeline cannot answer. The register carries each obligation's enforcement tier, its measuring mechanism, its last exercised evidence and freshness, measured adherence for the advisory ones, and who answers for it. It has to reconcile both ways against the running system: an obligation with no enforcement point and an enforcement point with no declared obligation are each findings. Unreconciled, a register records what you believe you enforce, and the gap from what you actually enforce is invisible in the direction that matters.",
+                    kind: "select",
+                    options: [
+                      "Live register, reconciled both ways against the running system",
+                      "A register exists, maintained by hand",
+                      "It's spread across CI config, branch rules and instruction files",
+                      "No — we would have to go and look",
+                    ],
+                    via: [
+                      "Generated from policy-as-code",
+                      "Compliance platform",
+                      "In-house control dashboard",
+                      "Spreadsheet",
+                      "None",
                     ],
                   },
                   {
