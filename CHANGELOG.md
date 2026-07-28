@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.10](https://github.com/CodySwannGT/lisa/compare/v2.311.9...v2.311.10) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** flag kubectl namespace shorthand deletes ([7d17a1b](https://github.com/CodySwannGT/lisa/commit/7d17a1bf8747361e1921168be9ed4c3a14b46b3a)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.9](https://github.com/CodySwannGT/lisa/compare/v2.311.8...v2.311.9) (2026-07-28)
 
 
