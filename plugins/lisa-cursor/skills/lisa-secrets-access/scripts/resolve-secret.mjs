@@ -203,23 +203,45 @@ function main() {
   if (op === "describe") {
     if (!name) throw new Error("usage: resolve-secret.mjs describe NAME");
     const hit = fetchAll(cfg).get(name);
-    if (!hit) throw new Error(`${name} not found`);
-    console.log(
-      hit.note || `(no note — purpose inferred from the name: ${name})`
-    );
-    return;
+    if (hit) {
+      console.log(
+        hit.note || `(no note — purpose inferred from the name: ${name})`
+      );
+      return;
+    }
+    // Environment-only is a legitimate state, not an error: CI injects secrets
+    // that never appear in the provider listing. Say so rather than claiming
+    // the secret does not exist, and never print the value.
+    if ((process.env[name] ?? "").trim()) {
+      console.log(
+        `(set in the environment; no provider entry, so no note is available)`
+      );
+      return;
+    }
+    throw new Error(`${name} not found in the environment or the provider`);
   }
   if (op === "verify") {
     const all = fetchAll(cfg);
     const names = cfg.require ?? [...all.keys()];
     let bad = 0;
     for (const n of names) {
-      const ok = Boolean(all.get(n)?.value);
+      // Mirror get()'s environment-first order. Checking only the provider
+      // reports MISSING for every secret in CI, where the pipeline injects
+      // them as environment variables — a false negative precisely where
+      // verification matters most.
+      const fromEnv = Boolean((process.env[n] ?? "").trim());
+      const entry = all.get(n);
+      const ok = fromEnv || Boolean(entry?.value);
       const named = /^[A-Z][A-Z0-9_]*$/.test(n);
-      const noted = Boolean(all.get(n)?.note);
+      const noted = Boolean(entry?.note);
       if (!ok || !named) bad += 1;
+      const source = fromEnv
+        ? "env     "
+        : entry?.value
+          ? "provider"
+          : "        ";
       console.log(
-        `  ${n.padEnd(30)} ${ok ? "resolves" : "MISSING "}  ` +
+        `  ${n.padEnd(30)} ${ok ? "resolves" : "MISSING "} ${source}  ` +
           `${named ? "name ok" : "NAME NOT UPPER_SNAKE"}  ${noted ? "noted" : "no note"}`
       );
     }
