@@ -89,7 +89,10 @@ each group citing the criteria it evidences.
 
 ## Revision 0.6.0 — declared controls and output provenance
 
-An audit of 0.5.0 identified three gaps. The first was structural: the
+Prompted by a review of 0.5.0 that asked how an organization makes its
+policies machine-readable, how it gets visibility into every policy and
+control, and — separately — what catches an agent reusing proprietary or
+improperly attributed code. The first exposed a structural gap: the
 specification described at length what controls must *do* without ever requiring
 an entity to be able to **enumerate** them — `policy` appeared in 0.5.0 only
 incidentally (retention policy, the `policy-obsolete` run outcome, DP1).
