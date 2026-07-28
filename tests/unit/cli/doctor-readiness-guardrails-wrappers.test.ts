@@ -134,4 +134,46 @@ describe("assessFeedbackGuardrailsDimension — local wrapper commands", () => {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
   });
+
+  it("reports local wrapper scripts skipped after the expansion budget is exhausted", async () => {
+    const root = await getTempDir();
+    const wrapperScripts = Array.from(
+      { length: 65 },
+      (_, index) => `scripts/wrapper-${index + 1}.sh`
+    );
+    await Promise.all(
+      wrapperScripts.map(async script => {
+        await writeRepoFile(root, script, "echo checked");
+      })
+    );
+    await writeRepoFile(
+      root,
+      wrapperScripts[64],
+      "terraform apply -auto-approve prod.tfplan"
+    );
+    await writeWorkflow(root, DEPLOY_YML, [
+      DEPLOY_NAME_LINE,
+      ON_PUSH,
+      JOBS,
+      INFRA_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: |",
+      ...wrapperScripts.map(script => `          ./${script}`),
+    ]);
+
+    const record = await assessFeedbackGuardrailsDimension(root);
+    const findings = asFindings(record.findings);
+
+    expect(record.status).toBe(SKIP);
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        blocking: false,
+        observation: expect.stringContaining("scripts/wrapper-65.sh"),
+      })
+    );
+    for (const finding of findings) {
+      expect(Object.hasOwn(finding, "blocker")).toBe(false);
+    }
+  });
 });
