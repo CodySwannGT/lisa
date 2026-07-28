@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.313.0](https://github.com/CodySwannGT/lisa/compare/v2.312.0...v2.313.0) (2026-07-28)
+
+
+### Features
+
+* **spec:** revise TASC to 0.6.0 with control declaration and output provenance ([e50edc3](https://github.com/CodySwannGT/lisa/commit/e50edc320dbf1497eaabe9229abf76ebaff64f4e)), closes [CodySwannGT/lisa#2128](https://github.com/CodySwannGT/lisa/issues/2128) [CodySwannGT/lisa#2128](https://github.com/CodySwannGT/lisa/issues/2128)
+
+
+### Bug Fixes
+
+* **spec:** address CodeRabbit findings on the 0.6.0 revision ([efe53a0](https://github.com/CodySwannGT/lisa/commit/efe53a058b6755ab250ebe341d6154b27dcdcd56)), closes [CodySwannGT/lisa#2128](https://github.com/CodySwannGT/lisa/issues/2128) [CodySwannGT/lisa#2128](https://github.com/CodySwannGT/lisa/issues/2128)
+
 ## [2.312.0](https://github.com/CodySwannGT/lisa/compare/v2.311.14...v2.312.0) (2026-07-28)
 
 
