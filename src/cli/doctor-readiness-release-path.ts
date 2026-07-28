@@ -9,10 +9,13 @@ import type {
   ParsedWorkflowStep,
 } from "./doctor-readiness-workflows.js";
 import {
-  ancestorJobs,
+  ancestorJobs as ancestors,
   reusableCallerValidation,
 } from "./doctor-readiness-reusable-callers.js";
 import {
+  artifactNameMismatch,
+  hasArtifactNameMismatch,
+  isPublishAction,
   isPromotionAction,
   promotesValidatedArtifact,
   PROMOTION_ACTION,
@@ -21,18 +24,10 @@ import {
 
 export { PROMOTION_ACTION } from "./doctor-readiness-promoted-artifact.js";
 
-const PUBLISH_VERBS = [
-  "npm publish",
-  "docker push",
-  "gh release upload",
-  "aws s3 sync",
-  "cdk deploy",
-  "eas submit",
-];
+const PUBLISH_VERB =
+  /(npm publish|docker push|gh release upload|aws s3 sync|cdk deploy|eas submit)/;
 
 const DOCKER_BUILD_PUSH_ACTION = "docker/build-push-action";
-const PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish";
-const GITHUB_RELEASE_ACTION = "softprops/action-gh-release";
 
 /** Commands that actually run a test suite. */
 const VALIDATING_COMMANDS: readonly RegExp[] = [
@@ -146,32 +141,6 @@ function actionId(uses: string): string {
 }
 
 /**
- * Whether a serialized `with:` block sets a boolean option to true.
- * @param inputs - Flattened step inputs
- * @param name - Input name to read
- * @returns True when the option is explicitly true
- */
-function hasTrueInput(inputs: string, name: string): boolean {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|\\n)${escaped}:\\s*['"]?true['"]?(\\s|$)`, "i").test(
-    inputs
-  );
-}
-
-/**
- * Whether an action step publishes something externally.
- * @param step - The step to classify
- * @returns True when the action is a known publishing action
- */
-function isPublishAction(step: ParsedWorkflowStep): boolean {
-  const id = actionId(step.uses);
-  if (id === DOCKER_BUILD_PUSH_ACTION) {
-    return hasTrueInput(step.inputs, "push");
-  }
-  return id === PYPI_PUBLISH_ACTION || id === GITHUB_RELEASE_ACTION;
-}
-
-/**
  * Whether a step actually puts an artifact in front of users. A `--dry-run`
  * invocation names a publish verb but ships nothing, so faulting its release
  * path would be a finding about something that cannot reach anyone.
@@ -180,8 +149,7 @@ function isPublishAction(step: ParsedWorkflowStep): boolean {
  */
 function isPublishStep(step: ParsedWorkflowStep): boolean {
   return (
-    (PUBLISH_VERBS.some(verb => step.run.includes(verb)) &&
-      !DRY_RUN_FLAG.test(step.run)) ||
+    (PUBLISH_VERB.test(step.run) && !DRY_RUN_FLAG.test(step.run)) ||
     isPublishAction(step)
   );
 }
@@ -234,7 +202,7 @@ function validationPrecedesPublish(
   ) {
     return true;
   }
-  if (ancestorJobs(workflow, job).some(isValidatingJob)) {
+  if (ancestors(workflow, job).some(isValidatingJob)) {
     return true;
   }
   return job.steps
@@ -358,6 +326,9 @@ export function assessReleasePaths(
 ): readonly ReleasePathOutcome[] {
   return findPublishSteps(job).map(publishStep => {
     const where = `${workflow.file} job \`${job.id}\` step \`${describeStep(publishStep)}\``;
+    const validatingAncestors = ancestors(workflow, job).filter(
+      isValidatingJob
+    );
     const validated = validationPrecedesPublish(
       workflow,
       job,
@@ -369,10 +340,16 @@ export function assessReleasePaths(
         ? rebuildPastValidation(where)
         : unvalidatedSelfBuild(where, workflow, defaultBranches, allWorkflows);
     }
+    if (
+      validated &&
+      hasArtifactNameMismatch(job, publishStep, validatingAncestors)
+    ) {
+      return artifactNameMismatch(where);
+    }
     if (validated) {
       return { kind: "clean" };
     }
-    if (promotesValidatedArtifact(job, publishStep))
+    if (promotesValidatedArtifact(job, publishStep, validatingAncestors))
       return unresolvedPromotedArtifact(where);
     // Neither built here nor promoted from CI, and nothing validating precedes it:
     // the link between what ships and what was validated is simply not observable
