@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.14](https://github.com/CodySwannGT/lisa/compare/v2.311.13...v2.311.14) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** require artifact integrity proof ([239b275](https://github.com/CodySwannGT/lisa/commit/239b275a506b564b40020c1fba548c10ff51632f)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** require integrity check after artifact download ([1410ef1](https://github.com/CodySwannGT/lisa/commit/1410ef17f908313d9d551116696360e0e5b4f752)), closes [#2125](https://github.com/CodySwannGT/lisa/issues/2125) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.13](https://github.com/CodySwannGT/lisa/compare/v2.311.12...v2.311.13) (2026-07-28)
 
 
