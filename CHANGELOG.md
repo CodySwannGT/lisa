@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.313.2](https://github.com/CodySwannGT/lisa/compare/v2.313.1...v2.313.2) (2026-07-28)
+
+
+### Documentation
+
+* **wiki:** fix the stale status line and the 0.6.0 attribution ([9db3c13](https://github.com/CodySwannGT/lisa/commit/9db3c1324705001bb333038b282423c3ede2a2b9)), closes [CodySwannGT/lisa#2132](https://github.com/CodySwannGT/lisa/issues/2132) [CodySwannGT/lisa#2132](https://github.com/CodySwannGT/lisa/issues/2132)
+
 ### [2.313.1](https://github.com/CodySwannGT/lisa/compare/v2.313.0...v2.313.1) (2026-07-28)
 
 
