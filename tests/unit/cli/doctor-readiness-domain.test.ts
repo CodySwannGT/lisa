@@ -53,6 +53,12 @@ const WIPE_JOB = "  wipe:";
 const RUN_S3_WIPE =
   "      - run: aws s3 rm s3://acme-prod-user-uploads --recursive";
 
+/** A repo-local wrapper script used by B1 script-expansion fixtures. */
+const TEARDOWN_SCRIPT = "scripts/teardown-prod.sh";
+
+/** A destructive SQL command used by B1 script-expansion fixtures. */
+const DROP_TABLE_COMMAND = 'psql "$DATABASE_URL" -c "DROP TABLE users"';
+
 let tempDir: string | undefined;
 
 /**
@@ -237,12 +243,10 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
     const root = await getTempDir();
     await writeRepoFile(
       root,
-      "scripts/teardown-prod.sh",
-      [
-        "#!/usr/bin/env bash",
-        "set -euo pipefail",
-        'psql "$DATABASE_URL" -c "DROP TABLE users"',
-      ].join("\n")
+      TEARDOWN_SCRIPT,
+      ["#!/usr/bin/env bash", "set -euo pipefail", DROP_TABLE_COMMAND].join(
+        "\n"
+      )
     );
     await writeWorkflow(root, CLEANUP_YML, [
       CLEANUP_NAME,
@@ -252,6 +256,81 @@ describe("assessDomainOwnershipDimension — B1 stands only on a provable path",
       RUNS_ON,
       STEPS,
       "      - run: ./scripts/teardown-prod.sh",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(WARN);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(true);
+  });
+
+  it("ignores oversized local wrapper scripts instead of decoding them", async () => {
+    const root = await getTempDir();
+    await writeRepoFile(
+      root,
+      TEARDOWN_SCRIPT,
+      `${"a".repeat(16_385)}\nDROP TABLE users`
+    );
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: ./scripts/teardown-prod.sh",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(SKIP);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(false);
+  });
+
+  it("does not expand local script paths that are only echoed or commented", async () => {
+    const root = await getTempDir();
+    await writeRepoFile(root, TEARDOWN_SCRIPT, DROP_TABLE_COMMAND);
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: |",
+      "          echo ./scripts/teardown-prod.sh",
+      "          # ./scripts/teardown-prod.sh",
+    ]);
+
+    const record = await assessDomainOwnershipDimension(root);
+
+    expect(record.status).toBe(SKIP);
+    expect(
+      asFindings(record.findings).some(
+        finding => finding.blocker === BLOCKER_ID
+      )
+    ).toBe(false);
+  });
+
+  it("expands top-level scripts when an explicit shell runner invokes them", async () => {
+    const root = await getTempDir();
+    await writeRepoFile(root, "teardown-prod.sh", DROP_TABLE_COMMAND);
+    await writeWorkflow(root, CLEANUP_YML, [
+      CLEANUP_NAME,
+      ON_PUSH,
+      JOBS,
+      WIPE_JOB,
+      RUNS_ON,
+      STEPS,
+      "      - run: bash teardown-prod.sh",
     ]);
 
     const record = await assessDomainOwnershipDimension(root);

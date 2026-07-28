@@ -26,8 +26,6 @@
  *    files; claiming PASS would be the same overstatement B6 exists to catch.
  * @module cli/doctor-readiness-domain
  */
-import { readFile } from "node:fs/promises";
-import * as path from "node:path";
 import {
   commandTargetsOwnedService,
   describeCommands,
@@ -37,6 +35,7 @@ import {
   scanCommands,
   type ScannedCommand,
 } from "./doctor-readiness-operations.js";
+import { expandLocalScriptCommands } from "./doctor-readiness-local-scripts.js";
 import { informationalFindings } from "./doctor-readiness-shared.js";
 import type { ReadinessDimensionRecord } from "./doctor-readiness-types.js";
 import {
@@ -61,13 +60,6 @@ const DOMAIN_OWNERSHIP_OFFLINE_TAIL =
   "genuinely owned and written down cannot be established by reading files " +
   "offline — that needs the agent-ready domain phase — so domain ownership is " +
   "not established either way.";
-
-/** Most bytes read from one local wrapper script during offline expansion. */
-const MAX_LOCAL_SCRIPT_BYTES = 16_384;
-
-/** Repo-local shell script invocations that a workflow can hide danger behind. */
-const LOCAL_SCRIPT_INVOCATION =
-  /(?:^|[\s;&|])(?:(?:bash|sh|source|\.)\s+)?((?:\.\/)?[\w./-]+\.sh)\b/g;
 
 /**
  * Commands that irreversibly destroy stored data. Every entry is a whole
@@ -125,109 +117,6 @@ function destructiveInvocations(command: string): string[] {
     .split(SHELL_INVOCATION_SEPARATOR)
     .map(part => part.trim())
     .filter(part => IRREVERSIBLE_DATA_OPS.some(pattern => pattern.test(part)));
-}
-
-/**
- * Extract repo-relative shell scripts named directly by a workflow run step.
- * @param command - Workflow step command
- * @returns Unique repo-relative script paths
- */
-function localScriptPaths(command: string): readonly string[] {
-  return [
-    ...new Set(
-      [...command.matchAll(LOCAL_SCRIPT_INVOCATION)].flatMap(match => {
-        const candidate = match[1];
-        if (candidate === undefined || candidate.includes("..")) {
-          return [];
-        }
-        return [candidate.replace(/^\.\//u, "")];
-      })
-    ),
-  ];
-}
-
-/**
- * Read one bounded repo-local script for offline command expansion.
- * @param root - Repository root
- * @param relativePath - Repo-relative script path
- * @returns Script content, or null when it cannot be safely read
- */
-async function readLocalScript(
-  root: string,
-  relativePath: string
-): Promise<string | null> {
-  const rootPath = path.resolve(root);
-  const target = path.resolve(rootPath, relativePath);
-  if (!target.startsWith(`${rootPath}${path.sep}`)) {
-    return null;
-  }
-  try {
-    const content = await readFile(target, "utf8");
-    return content.length > MAX_LOCAL_SCRIPT_BYTES ? null : content;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Append any bounded local script bodies referenced by a workflow step.
- * @param root - Repository root
- * @param step - Parsed workflow step
- * @returns Step with script bodies appended to `run`, when present
- */
-async function expandLocalScriptStep(
-  root: string,
-  step: ParsedWorkflowStep
-): Promise<ParsedWorkflowStep> {
-  const scripts = await Promise.all(
-    localScriptPaths(step.run).map(
-      async script => await readLocalScript(root, script)
-    )
-  );
-  const scriptBodies = scripts.filter(
-    (content): content is string => content !== null
-  );
-  return scriptBodies.length === 0
-    ? step
-    : { ...step, run: [step.run, ...scriptBodies].join("\n") };
-}
-
-/**
- * Expand directly invoked local shell scripts in one parsed job.
- * @param root - Repository root
- * @param job - Parsed workflow job
- * @returns Job with script-expanded steps
- */
-async function expandLocalScriptJob(
-  root: string,
-  job: ParsedWorkflowJob
-): Promise<ParsedWorkflowJob> {
-  return {
-    ...job,
-    steps: await Promise.all(
-      job.steps.map(async step => await expandLocalScriptStep(root, step))
-    ),
-  };
-}
-
-/**
- * Inline directly invoked local shell scripts into the parsed workflow commands.
- * @param root - Repository root
- * @param workflows - Parsed workflow files
- * @returns Workflows with bounded script content appended to matching steps
- */
-async function expandLocalScriptCommands(
-  root: string,
-  workflows: readonly ParsedWorkflow[]
-): Promise<readonly ParsedWorkflow[]> {
-  return await Promise.all(
-    workflows.map(async workflow => ({
-      ...workflow,
-      jobs: await Promise.all(
-        workflow.jobs.map(async job => await expandLocalScriptJob(root, job))
-      ),
-    }))
-  );
 }
 
 /**
