@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.312.0](https://github.com/CodySwannGT/lisa/compare/v2.311.14...v2.312.0) (2026-07-28)
+
+
+### Features
+
+* **skills:** add lisa-secrets-access ([e480c29](https://github.com/CodySwannGT/lisa/commit/e480c29a461f7490c6d819c88c3fbec90da17235)), closes [#2126](https://github.com/CodySwannGT/lisa/issues/2126) [CodySwannGT/lisa#2126](https://github.com/CodySwannGT/lisa/issues/2126)
+
+
+### Bug Fixes
+
+* **skills:** make describe and verify resolve environment-first ([a904915](https://github.com/CodySwannGT/lisa/commit/a9049152ba2343913ba662d2a7ebc66fea32e014)), closes [CodySwannGT/lisa#2126](https://github.com/CodySwannGT/lisa/issues/2126) [CodySwannGT/lisa#2126](https://github.com/CodySwannGT/lisa/issues/2126)
+
 ### [2.311.14](https://github.com/CodySwannGT/lisa/compare/v2.311.13...v2.311.14) (2026-07-28)
 
 
