@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.313.1](https://github.com/CodySwannGT/lisa/compare/v2.313.0...v2.313.1) (2026-07-28)
+
+
+### Documentation
+
+* **wiki:** synthesize the TASC 0.6.0 revision ([9d895c1](https://github.com/CodySwannGT/lisa/commit/9d895c1675f4f624139a37d4b2d9677095f36406)), closes [#2129](https://github.com/CodySwannGT/lisa/issues/2129) [CodySwannGT/lisa#2130](https://github.com/CodySwannGT/lisa/issues/2130) [CodySwannGT/lisa#2130](https://github.com/CodySwannGT/lisa/issues/2130)
+
 ## [2.313.0](https://github.com/CodySwannGT/lisa/compare/v2.312.0...v2.313.0) (2026-07-28)
 
 
