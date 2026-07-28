@@ -7446,6 +7446,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-readiness-guardrails.ts": true,
     "src/cli/doctor-readiness-journey-freshness.ts": true,
     "src/cli/doctor-readiness-journey.ts": true,
+    "src/cli/doctor-readiness-local-scripts.ts": true,
     "src/cli/doctor-readiness-operations.ts": true,
     "src/cli/doctor-readiness-promoted-artifact.ts": true,
     "src/cli/doctor-readiness-release-path.ts": true,
