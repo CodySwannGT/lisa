@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.13](https://github.com/CodySwannGT/lisa/compare/v2.311.12...v2.311.13) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** report skipped B4 wrapper expansion ([acddac1](https://github.com/CodySwannGT/lisa/commit/acddac166aac72512ac7abbfe4976c99d13d7615)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** scan B4 wrapper scripts ([3d785d8](https://github.com/CodySwannGT/lisa/commit/3d785d8bae4aae2d168b94f7f434b74cc0d76310)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903) [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.12](https://github.com/CodySwannGT/lisa/compare/v2.311.11...v2.311.12) (2026-07-28)
 
 
