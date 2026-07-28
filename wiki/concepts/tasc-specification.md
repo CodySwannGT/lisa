@@ -1,7 +1,7 @@
 # TASC — Trust in Autonomous Software Criteria
 
 Canonical source: [`spec/tasc-0.1-draft.md`](../../spec/tasc-0.1-draft.md)
-(version 0.5.0-draft, 2026-07-26 — the 0.1 file name is retained so existing
+(version 0.6.0-draft, 2026-07-28 — the 0.1 file name is retained so existing
 references stay valid). This page is the wiki synthesis; the spec file is
 authoritative.
 
@@ -27,7 +27,9 @@ provisional pending trademark diligence.
   control),
   sensor integrity and learning promotion (mistakes captured, judged, and promoted upstream into enforcement — AC4.5), finding integrity with measured false-positive rates (AC4.6), measurement integrity for the numbers that gate decisions (AC4.7), root-cause closure (AC4.8), enforcement integrity (server-side
   authority, staff parity, the threshold ratchet, instruction-level residual risk
-  — AC5.6, and advisory-control adherence — AC5.7), identity & credentials,
+  — AC5.6, advisory-control adherence — AC5.7, declared control obligations as
+  machine-readable artifacts — AC5.8, and the bidirectionally reconciled control
+  register — AC5.9), identity & credentials,
   operations & recovery (incl. autonomy-rate and delivery-effectiveness
   measurement — AC7.4, AC7.5), change management
   (incl. "the agent program is code" and "model change is system change", distributional qualification, observed rollout promotion, plus type-keyed work-item readiness with the stateless-pickup check — AC8.6, and requirement-atom intake validation with fit criteria under AC8.4), and
@@ -35,7 +37,8 @@ provisional pending trademark diligence.
 - **Supplemental categories**: SI (Software Integrity — mandatory for
   production software, unlike SOC 2's optional Processing Integrity, and
   covering generative/randomized testing and defect replay as well as unit
-  behavior, coverage, efficacy, E2E, load and independent verification), DP
+  behavior, coverage, efficacy, E2E, load, independent verification, and output
+  provenance and licensing — SI10), DP
   (Data Protection), UX (User-Facing Integrity), each condition-scoped by the
   earned inapplicability rule.
 - **Attestation types**: Type I (design) and Type II (operating effectiveness)
@@ -83,6 +86,63 @@ the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-
 The Lisa console's readiness questionnaire is the working self-assessment
 instrument referenced by the spec's Annex B — 114 questions across 16 groups,
 each group citing the criteria it evidences.
+
+## Revision 0.6.0 — declared controls and output provenance
+
+From external practitioner review of 0.5.0 (contributor anonymous), plus a third
+gap raised in the same conversation. The first audit finding was structural: the
+specification described at length what controls must *do* without ever requiring
+an entity to be able to **enumerate** them — `policy` appeared in 0.5.0 only
+incidentally (retention policy, the `policy-obsolete` run outcome, DP1).
+
+- **AC5.8 Declared control obligations.** Every obligation exists as a versioned,
+  machine-readable artifact naming its enforcement tier (authoritative or
+  advisory), its enforcement points, its parameters, and the measuring mechanism
+  together with the basis of that mechanism's independence from the agents whose
+  work it judges. Naming the mechanism is what makes an obligation checkable
+  rather than aspirational: a coverage floor that does not say which system
+  computes coverage has declared an intention, not a control. Enforcement points
+  and agent-facing renderings are **derived** from the artifact, not restated
+  beside it — an obligation transcribed into a pipeline config, a lint rule and
+  an instruction file has three sources of truth and therefore none, and AC5.2's
+  drift detection has nothing to detect against. AC5.2 had named a source of
+  truth that nothing obliged anyone to have.
+- **AC5.9 Control register.** Every declared obligation across every surface and
+  every agent in the staff roster, carrying tier, measuring mechanism, last
+  exercised evidence and freshness, measured adherence for advisory controls,
+  and the accountable party. Reconciled **bidirectionally** against the running
+  system: an obligation with no enforcement point and an enforcement point with
+  no declared obligation are each findings entering intake — the discipline
+  AC3.1 applies to threats and controls, applied to obligations and their
+  enforcement. It consolidates visibility requirements previously scattered
+  across §6's gate inventory, AC5.7's advisory inventory, AC5.3 staff parity and
+  P9's set of unprotected dimensions.
+- **SI10 Output provenance and licensing.** AC9.3 checked the licenses of
+  *declared dependencies*, and therefore reached nothing a model reproduces
+  directly into the entity's own source, nothing an agent copies from a
+  repository fetched while researching, and nothing crossing a client or tenant
+  boundary — none of which carries a lockfile entry or an SBOM line. SI10
+  requires a reuse-detection gate on changed code, a declared and mechanically
+  enforced permissible-source boundary (naming persisted memory and learnings as
+  a carrier alongside context), mechanical discharge of attribution obligations
+  that survive inlining, and sources admitted to context recorded as generation
+  lineage under AC1.2. A permissive license on the allowlist is a permission
+  with conditions, not an absence of them.
+- Supporting amendments: AC3.1 carries the matching threat class; AC9.3 states
+  its own limit so it cannot be misread as covering inlined code; AC9.1 carries
+  the model vendor's reproduction filtering, attribution facilities and IP
+  indemnity as subservice controls that must not be reported as the entity's
+  own. §6 gains the control register as a system-description item; Annexes A, C
+  and D updated.
+- **Corrected in review.** SI10 first routed its license-admission decision to
+  AC9.3, whose own amendment limits it to declared dependencies — a circular
+  boundary, applying a control to an artifact outside it. The decision now
+  belongs to SI10's gate, against the same permitted-license allowlist the
+  entity maintains for AC9.3. One policy, correct boundary.
+- **Open follow-up, recorded rather than invented.** SI10 permits regeneration as
+  a remedy, but AC8.1's regenerate-from-spec preference does not help when the
+  same model reproduces the same memorized snippet from the same specification.
+  A bounded retry-then-escalate rule is needed.
 
 ## Revision 0.5.0 — agent boundaries and graduated autonomy
 
