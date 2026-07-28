@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.311.8](https://github.com/CodySwannGT/lisa/compare/v2.311.7...v2.311.8) (2026-07-28)
+
+
+### Bug Fixes
+
+* **readiness:** scope B1 ephemeral screening per invocation ([6715264](https://github.com/CodySwannGT/lisa/commit/6715264416064a4c3910b38b92962ee299a45e92)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+* **readiness:** split B1 scans on shell pipes ([35a6ddc](https://github.com/CodySwannGT/lisa/commit/35a6ddc5f319dde20192a3a6fe4c8a18ce058e15)), closes [CodySwannGT/lisa#1903](https://github.com/CodySwannGT/lisa/issues/1903)
+
 ### [2.311.7](https://github.com/CodySwannGT/lisa/compare/v2.311.6...v2.311.7) (2026-07-27)
 
 
