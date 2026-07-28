@@ -93,6 +93,31 @@ const RECOVERY_COMMANDS: readonly RegExp[] = [
   /\baws\s+s3\s+sync\b/,
 ];
 
+/** Separators that end one shell invocation for this conservative scan. */
+const SHELL_INVOCATION_SEPARATOR = /\n|;|&&|\|\|/;
+
+/**
+ * Collapse only shell continuation newlines. Ordinary newlines remain command
+ * boundaries so unrelated invocations cannot hide a destructive one.
+ * @param command - Shell command text
+ * @returns Command text with escaped newlines joined
+ */
+function normalizeShellContinuations(command: string): string {
+  return command.replace(/\\\r?\n\s*/g, " ");
+}
+
+/**
+ * Extract command fragments that contain an irreversible data operation.
+ * @param command - Lower-cased shell command text
+ * @returns Invocation fragments that include data destruction
+ */
+function destructiveInvocations(command: string): string[] {
+  return normalizeShellContinuations(command)
+    .split(SHELL_INVOCATION_SEPARATOR)
+    .map(part => part.trim())
+    .filter(part => IRREVERSIBLE_DATA_OPS.some(pattern => pattern.test(part)));
+}
+
 /**
  * Whether a command irreversibly destroys data that is not obviously throwaway.
  *
@@ -111,9 +136,8 @@ function destroysData(
   job: ParsedWorkflowJob,
   step: ParsedWorkflowStep
 ): boolean {
-  return (
-    IRREVERSIBLE_DATA_OPS.some(pattern => pattern.test(command)) &&
-    !looksEphemeral(`${command}\n${step.env}\n${job.env}`)
+  return destructiveInvocations(command).some(
+    invocation => !looksEphemeral(`${invocation}\n${step.env}\n${job.env}`)
   );
 }
 
