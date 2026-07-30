@@ -635,7 +635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/documentation-source-paths.md":
       "3a7c2a6264654a3cc44dd326441ba211a39c1c267033cc189c1c635adb84b52b",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
-      "60d77a67cc0d3b6a0aad0ab8fe6de5dff0127b2a6c63fa46b021b7a711eb07d6",
+      "e638352e2426110eb831a2c4c7dbbd302f578009cdc5bc69258bddf3677c2f44",
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
@@ -668,6 +668,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a1702d6d0e9d80abc118b7c32a97ba9a988b195d86363b2d7a35e71752d9bd2e",
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
+    "plugins/src/base/rules/eager/stale-state-claims.md":
+      "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
     "plugins/src/base/rules/eager/tool-access-gate.md":
       "a5413a43ec353f768586e0a1cde3836db025cb5d8b80821020602995e71aa296",
     "plugins/src/base/rules/eager/tracked-work.md":
@@ -709,7 +711,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "e17b6700f3e5999059b030e5a66ac6250b93364efe8e6dcfb465e76e1edc571a",
+      "89015d3c21b38de5f6d871ef6d97f64820d0068cf93c5c3ab58927f65741944f",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -738,6 +740,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "209920b49dfae89460ef5366d5f2213e47d32ed3c2e23ed0b50e8283c37ad57c",
     "plugins/src/base/rules/reference/security-audit-handling.md":
       "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c",
+    "plugins/src/base/rules/reference/stale-state-claims.md":
+      "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
     "plugins/src/base/rules/reference/tool-access-gate.md":
       "70fcd6cd92dc003a40886b1bef02540e6401f5b70ba97308d42bbbddc0206eab",
     "plugins/src/base/rules/reference/tracked-work.md":
@@ -3377,6 +3381,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/eager/repo-scope-split.md": true,
     "plugins/lisa-copilot/rules/eager/security-audit-handling.md": true,
+    "plugins/lisa-copilot/rules/eager/stale-state-claims.md": true,
     "plugins/lisa-copilot/rules/eager/tool-access-gate.md": true,
     "plugins/lisa-copilot/rules/eager/tracked-work.md": true,
     "plugins/lisa-copilot/rules/eager/upstream-to-lisa.md": true,
@@ -3412,6 +3417,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/reference/repo-scope-split.md": true,
     "plugins/lisa-copilot/rules/reference/security-audit-handling.md": true,
+    "plugins/lisa-copilot/rules/reference/stale-state-claims.md": true,
     "plugins/lisa-copilot/rules/reference/tool-access-gate.md": true,
     "plugins/lisa-copilot/rules/reference/tracked-work.md": true,
     "plugins/lisa-copilot/rules/reference/upstream-to-lisa.md": true,
@@ -3782,6 +3788,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/repo-scope-split.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling-reference.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling.mdc": true,
+    "plugins/lisa-cursor/rules/stale-state-claims-reference.mdc": true,
+    "plugins/lisa-cursor/rules/stale-state-claims.mdc": true,
     "plugins/lisa-cursor/rules/tool-access-gate-reference.mdc": true,
     "plugins/lisa-cursor/rules/tool-access-gate.mdc": true,
     "plugins/lisa-cursor/rules/tracked-work-reference.mdc": true,
@@ -6183,6 +6191,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/rejection-detection.md": true,
     "plugins/lisa/rules/eager/repo-scope-split.md": true,
     "plugins/lisa/rules/eager/security-audit-handling.md": true,
+    "plugins/lisa/rules/eager/stale-state-claims.md": true,
     "plugins/lisa/rules/eager/tool-access-gate.md": true,
     "plugins/lisa/rules/eager/tracked-work.md": true,
     "plugins/lisa/rules/eager/upstream-to-lisa.md": true,
@@ -6218,6 +6227,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/rejection-detection.md": true,
     "plugins/lisa/rules/reference/repo-scope-split.md": true,
     "plugins/lisa/rules/reference/security-audit-handling.md": true,
+    "plugins/lisa/rules/reference/stale-state-claims.md": true,
     "plugins/lisa/rules/reference/tool-access-gate.md": true,
     "plugins/lisa/rules/reference/tracked-work.md": true,
     "plugins/lisa/rules/reference/upstream-to-lisa.md": true,
@@ -6734,6 +6744,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/rejection-detection.md": true,
     "plugins/src/base/rules/eager/repo-scope-split.md": true,
     "plugins/src/base/rules/eager/security-audit-handling.md": true,
+    "plugins/src/base/rules/eager/stale-state-claims.md": true,
     "plugins/src/base/rules/eager/tool-access-gate.md": true,
     "plugins/src/base/rules/eager/tracked-work.md": true,
     "plugins/src/base/rules/eager/upstream-to-lisa.md": true,
@@ -6769,6 +6780,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/rejection-detection.md": true,
     "plugins/src/base/rules/reference/repo-scope-split.md": true,
     "plugins/src/base/rules/reference/security-audit-handling.md": true,
+    "plugins/src/base/rules/reference/stale-state-claims.md": true,
     "plugins/src/base/rules/reference/tool-access-gate.md": true,
     "plugins/src/base/rules/reference/tracked-work.md": true,
     "plugins/src/base/rules/reference/upstream-to-lisa.md": true,
@@ -8287,6 +8299,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/setup-github-project-verification.test.ts": true,
     "tests/unit/strategies/setup-linear-prd-verified-label.test.ts": true,
     "tests/unit/strategies/setup-notion-prd-verified-status.test.ts": true,
+    "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
     "tests/unit/strategies/tagged-merge.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
     "tests/unit/strategies/two-way-pr-ticket-linking.test.ts": true,

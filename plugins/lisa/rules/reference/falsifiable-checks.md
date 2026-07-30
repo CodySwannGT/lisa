@@ -89,3 +89,4 @@ Concretely:
 - **`verification`** — proves the software behaves as a user needs. This rule proves the proof is real. Codified regression tests added under `codify-verification` are subject to this rule: a codified spec that cannot fail is not a regression gate.
 - **`empirical-inquiry`** — settles an uncertain fact with the cheapest probe. A probe is a check, so it inherits the falsification requirement, including deliberate bite controls (cases that MUST report a problem) when the probe's job is to detect problems.
 - **`claim-evidence-mapping`** — an unfalsified gate cannot back a claim.
+- **`stale-state-claims`** — the sibling failure from the opposite direction: an assertion of state that *could* fail but is never re-evaluated, because nothing re-runs prose. Binding a temporal claim to a check is the recommended fix there, which puts that check under this rule.
