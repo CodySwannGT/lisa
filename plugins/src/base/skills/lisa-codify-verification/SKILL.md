@@ -135,9 +135,22 @@ Run only the new test, using whatever per-test invocation the project supports:
 
 Confirm:
 1. The test PASSES against the current code (the change being shipped)
-2. The test would have FAILED before the change (sanity check by mentally reverting, or for bug fixes, by running against the pre-fix commit if cheap)
+2. The test ACTUALLY FAILS without the change — observed, not reasoned about
 
-For a bug fix, step 2 is mandatory and easy: check out the failing commit, run the new test, see it fail, return to the fix branch. This proves the test actually guards the regression.
+**Step 2 is mandatory for every codified test, and "mentally reverting" does not satisfy it.** Mental reversion is the exact mechanism by which non-functional guards ship: the author believes the assertion is load-bearing, and it is not. Break the guarded property for real, run the test, and read the failure. See `.claude/rules/falsifiable-checks.md` for the four observed ways a check passes while asserting nothing.
+
+Do it one of these ways, in order of preference:
+
+- **Run against the pre-fix commit** (bug fixes): check out the failing commit, run the new test, see it fail, return to the fix branch.
+- **Break the property in place**: delete the field, revert the line, flip the condition; run; restore. Prefer this when there is no single pre-fix commit.
+- **Unit-test the checker against synthetic bad input**: required when the input is generated, schema-validated, or cached — a revert can silently fail to change what the test reads (a generator that errors leaves the previous artifact in place, and the test then "passes" on stale input).
+
+Two properties the failure itself must have:
+
+- It must **name the right location**. A failure that does not localize is weak evidence the test is measuring the intended thing.
+- It must not be satisfiable by the test's own fixture. If the assertion can be met by data the test supplies rather than by the artifact under test, add an explicit assertion against the real artifact (the document, the config, the component's actual output) — or reuse an existing source-bound test.
+
+Record the falsification in the codification report (what you broke, how it failed). A codified test whose failure has not been observed is reported as **unvalidated**, not as a regression gate.
 
 ### 5. Wire it into the suite
 
@@ -162,13 +175,13 @@ Append to the verification report (or PR description):
 ```markdown
 ### Codified Verifications
 
-| # | Verification | Framework | Test file | Status |
-|---|--------------|-----------|-----------|--------|
-| 1 | <description> | Playwright | `e2e/checkout.spec.ts::displays order confirmation after checkout` | PASS |
-| 2 | <same journey, native surface> | Maestro | `.maestro/flows/checkout-confirmation.yaml` | PASS |
+| # | Verification | Framework | Test file | Status | Falsified by |
+|---|--------------|-----------|-----------|--------|--------------|
+| 1 | <description> | Playwright | `e2e/checkout.spec.ts::displays order confirmation after checkout` | PASS | removed the confirmation render → failed at `checkout.spec.ts:42` |
+| 2 | <same journey, native surface> | Maestro | `.maestro/flows/checkout-confirmation.yaml` | PASS | same break → flow failed on the confirmation assertion |
 ```
 
-This evidence shows the verification is now guarded.
+This evidence shows the verification is now guarded. **The `Falsified by` column is required** — it names the deliberate break and the observed failure. `UNVALIDATED` is the only permitted alternative, and it means the test is not yet a regression gate.
 
 ## Output
 
@@ -183,6 +196,9 @@ If codification was skipped, an explicit reason recorded in the report (one of t
 ## Rules
 
 - Never claim a verification is codified without running the new test and observing it pass
+- Never claim it is codified without observing it **FAIL** on a real break — mental reversion is not observation, and a test whose failure was never seen is unvalidated, not a gate (`.claude/rules/falsifiable-checks.md`)
+- Never let the assertion be satisfiable by the test's own fixture instead of the artifact under test — bind it to the real document/config/output
+- Never trust a revert-to-verify on generated, schema-validated, or cached input without confirming the input actually changed; a failed generator silently leaves the old artifact and the test "passes" on stale bytes
 - Never disable, skip, or `.skip()` the new test "temporarily" to make CI green — fix the test or fix the underlying change
 - Never use `expect(true).toBe(true)` placeholders or smoke-only assertions that don't actually exercise the verified behavior
 - Never reuse the verification's manual artifact (screenshot, curl output) as a "test" — those are evidence, not regression coverage

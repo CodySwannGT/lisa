@@ -427,11 +427,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/spec-conformance-specialist.md":
       "f589e4d543a617d3c421aa28d6583e1b25e0b18fc83412e6d544a389bdac225c",
     "plugins/src/base/agents/test-specialist.md":
-      "8f439c725863df84532504a57f64b9e4918acaa242de8c01cb6692553495dbd2",
+      "8dd7024ded5d4ec8f6428dc00270fb5eae96b1eb35cc39fc707c6c2752dc37e4",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "fef49c3ca8622c83a54d34b3f960471e0f2ad50e6889f691585b0f208180f6bd",
     "plugins/src/base/agents/verification-specialist.md":
-      "32d8a660ba486279fdbb6d0c6665bee36a9703e0cb05e1ab0629b82bc26ebd04",
+      "93e9c19321ef0afea81d4af421739192dbe9a89d8d5f24e61b88f7a95c80db44",
     "plugins/src/base/commands/agent-ready.md":
       "b1bc19c90330b9885b44f733e83cc6b44afa9b5e9fd2e9aba99995480e0829e1",
     "plugins/src/base/commands/analyze-claude-remote.md":
@@ -638,6 +638,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "60d77a67cc0d3b6a0aad0ab8fe6de5dff0127b2a6c63fa46b021b7a711eb07d6",
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
+    "plugins/src/base/rules/eager/falsifiable-checks.md":
+      "f26bb06e17f27e2b4d2e45657df6e5b0b3990124d5937a0701d8bf5a7e47d6f8",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -675,7 +677,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/usage-accounting.md":
       "b93fa782d61911579b25363e465bb1f4e9b7e4edb54465a346d52f74dffe5a97",
     "plugins/src/base/rules/eager/verification.md":
-      "c4276cf9bfd63ead636984b1eaadc294eca2ee2e7dd6ea0e846187e0bcdc6003",
+      "43f154f65e8ee1fa4fb33039f154855b569ab338902c86a8812e66715895cf7b",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "418c2f6e8fcf726a7ebfc7cc69210e37dc23cc8b20573e19e1de33cf0587dd17",
     "plugins/src/base/rules/eager/work-item-definition-of-ready.md":
@@ -706,6 +708,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "85f4552aa4c561677de40fd01bc6cccf5dbcf13865647db9df819d11f3cc3389",
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
+    "plugins/src/base/rules/reference/falsifiable-checks.md":
+      "e17b6700f3e5999059b030e5a66ac6250b93364efe8e6dcfb465e76e1edc571a",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -805,7 +809,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md":
       "77dbc2d7e86e5027df486294de315bb539a2ece84bd4b38e47ccc108f8c2875e",
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
-      "45cf7e74697fcc0b8769b31c674dbf0b18e19eb1ceab6a77f608b568512def15",
+      "edf35da6149ebc64ad598fec6b182e25a6f8b59842f8be2b09679fd64d5d22a2",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a6a099abeb32940d44da7e9a6a62c3519f64efa85294c4b996789fa4fba97461",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -3358,6 +3362,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/eager/empirical-inquiry.md": true,
     "plugins/lisa-copilot/rules/eager/factory-model.md": true,
+    "plugins/lisa-copilot/rules/eager/falsifiable-checks.md": true,
     "plugins/lisa-copilot/rules/eager/history-audit.md": true,
     "plugins/lisa-copilot/rules/eager/integration-access-layer.md": true,
     "plugins/lisa-copilot/rules/eager/intent-routing.md": true,
@@ -3392,6 +3397,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/reference/empirical-inquiry.md": true,
     "plugins/lisa-copilot/rules/reference/factory-model.md": true,
+    "plugins/lisa-copilot/rules/reference/falsifiable-checks.md": true,
     "plugins/lisa-copilot/rules/reference/history-audit.md": true,
     "plugins/lisa-copilot/rules/reference/integration-access-layer.md": true,
     "plugins/lisa-copilot/rules/reference/intent-routing.md": true,
@@ -3746,6 +3752,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/empirical-inquiry.mdc": true,
     "plugins/lisa-cursor/rules/factory-model-reference.mdc": true,
     "plugins/lisa-cursor/rules/factory-model.mdc": true,
+    "plugins/lisa-cursor/rules/falsifiable-checks-reference.mdc": true,
+    "plugins/lisa-cursor/rules/falsifiable-checks.mdc": true,
     "plugins/lisa-cursor/rules/history-audit-reference.mdc": true,
     "plugins/lisa-cursor/rules/history-audit.mdc": true,
     "plugins/lisa-cursor/rules/integration-access-layer-reference.mdc": true,
@@ -6160,6 +6168,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa/rules/eager/empirical-inquiry.md": true,
     "plugins/lisa/rules/eager/factory-model.md": true,
+    "plugins/lisa/rules/eager/falsifiable-checks.md": true,
     "plugins/lisa/rules/eager/history-audit.md": true,
     "plugins/lisa/rules/eager/integration-access-layer.md": true,
     "plugins/lisa/rules/eager/intent-routing.md": true,
@@ -6194,6 +6203,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa/rules/reference/empirical-inquiry.md": true,
     "plugins/lisa/rules/reference/factory-model.md": true,
+    "plugins/lisa/rules/reference/falsifiable-checks.md": true,
     "plugins/lisa/rules/reference/history-audit.md": true,
     "plugins/lisa/rules/reference/integration-access-layer.md": true,
     "plugins/lisa/rules/reference/intent-routing.md": true,
@@ -6709,6 +6719,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/documentation-source-paths.md": true,
     "plugins/src/base/rules/eager/empirical-inquiry.md": true,
     "plugins/src/base/rules/eager/factory-model.md": true,
+    "plugins/src/base/rules/eager/falsifiable-checks.md": true,
     "plugins/src/base/rules/eager/history-audit.md": true,
     "plugins/src/base/rules/eager/integration-access-layer.md": true,
     "plugins/src/base/rules/eager/intent-routing.md": true,
@@ -6743,6 +6754,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/documentation-source-paths.md": true,
     "plugins/src/base/rules/reference/empirical-inquiry.md": true,
     "plugins/src/base/rules/reference/factory-model.md": true,
+    "plugins/src/base/rules/reference/falsifiable-checks.md": true,
     "plugins/src/base/rules/reference/history-audit.md": true,
     "plugins/src/base/rules/reference/integration-access-layer.md": true,
     "plugins/src/base/rules/reference/intent-routing.md": true,
@@ -8192,6 +8204,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
     "tests/unit/strategies/evidence-ref-contract.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
+    "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
     "tests/unit/strategies/gardener-fingerprint-hash.test.ts": true,
     "tests/unit/strategies/git-discipline-force-lease-contract.test.ts": true,
     "tests/unit/strategies/github-linked-pr-project-membership.test.ts": true,
