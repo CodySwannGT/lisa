@@ -1,0 +1,26 @@
+# Falsifiable Checks — A Check That Cannot Fail Is Not Evidence (load-bearing)
+
+A passing test, a clean lint run, a zero-hit sweep, a green ratchet: each is evidence **only if that check is known to be capable of failing.** Otherwise it is a checkbox, and a green suite that protects nothing is worse than no suite — it actively suppresses the search for the defect.
+
+**Before reporting any clean, zero, or passing result from a check you authored or modified, prove it fails on known-bad input.** Break the thing being guarded, confirm the check fails *and names the right location*, then restore. That falsification is part of the deliverable, not an optional extra.
+
+This is the instrument-validity counterpart to the `verification` rule (which proves the *software* behaves) and `empirical-inquiry` (which proves a *fact*). All three reject "it looks correct." This one rejects "the check said so."
+
+## The four ways a check silently measures nothing
+
+Each has been observed in real runs; each reported success while asserting nothing:
+
+1. **Self-matching guard** — the check's own explanatory comment, docstring, or ticket prose contains the token it searches for, so it matches itself. It passes with the guarded field deleted.
+2. **Fixture-validated assertion** — the assertion reads the test's own fixture rather than the artifact under test. Common when the production path consumes a *raw* input the fixture supplies directly.
+3. **Stale-artifact pass** — the revert-to-verify step silently failed (generator errored, cache served old output, build skipped), so the check re-read unchanged input and "passed".
+4. **Wrong-baseline sweep** — the detector ran against already-fixed state, so its zero is uninformative. Validate detectors against a ref where the defect still exists.
+
+## Mandatory
+
+- **Falsify before reporting.** No clean result is reportable until the check has been shown to fail on a deliberate break. **"Mentally reverting" does not count** — reasoning that the assertion *would* fail is precisely the step that lets a non-functional guard ship, because the author already believes it is load-bearing. Run the break.
+- **Say how it was falsified.** "0 findings" alone is not a result; state what you broke and that the check caught it. A gate whose falsification is untested must be reported as *unvalidated*, not as passing.
+- **Prefer structural over textual checks.** Parse the AST/structure instead of matching source text: text matching cannot distinguish a field from a comment, an alias, or a nested occurrence, and it produces false positives that mask the real ones.
+- **A negative result is scoped to what the check can see.** State the blind spot. A presence check cannot see a wrong value; a per-file check cannot see a cross-file interaction; fixing one instance of a class is not fixing the class — sweep the class.
+- **When revert-to-verify is unreliable** (generated artifacts, schema-validated inputs, caches), unit-test the checker directly against synthetic known-bad input instead.
+
+Full prose, worked examples, and the reporting template: [reference/falsifiable-checks.md](../reference/falsifiable-checks.md).
