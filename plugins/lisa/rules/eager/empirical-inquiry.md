@@ -16,6 +16,7 @@ Do not reason your way to a confident-sounding answer from documentation, prior 
 - Presenting a guess, recollection, or doc summary as established fact when it was cheap to verify and you did not.
 - "Should work" / "probably" / "the docs say" as the basis for a load-bearing decision an experiment could have settled.
 - Skipping the probe because the answer "seems obvious" — those are exactly the ones that quietly drift from reality.
+- Treating a recorded "not yet" / "pending" / "blocked" / "human-gated" note as current state. It is a claim about the day it was written; probe the live state before planning around it, escalating it, or reporting it as a blocker (`stale-state-claims`).
 
 This is the inquiry counterpart to the `verification` rule (which proves completed work behaves correctly). Both reject "it looks correct" as evidence.
 

@@ -1,0 +1,26 @@
+# Stale State Claims — "Not Yet" Expires, the Note Does Not (load-bearing)
+
+A comment, docstring, config annotation, or work-item note that records a **temporary** state — "not yet", "pending", "waiting on X", "human-gated", "will flip once Y ships" — was accurate the day it was written and is believed long after it stopped being true. Nobody revisits prose when the condition clears.
+
+It then misdirects with full authority: work gets skipped as blocked when nothing blocks it, re-planned as undone when it already shipped, or escalated to a person who made that exact decision weeks ago.
+
+This is the sibling of `falsifiable-checks`. That rule is about **instruments that cannot fail**; this one is about **assertions of state that have expired**. Both read as authoritative and neither announces its own decay.
+
+## The four ways a recorded state outlives its truth
+
+Each has been observed; each was believed long after it went false:
+
+1. **Expired blocker note** — prose asserting a not-yet condition that has since cleared. An endpoint left unset under a comment saying its routing was "not yet promoted" had been serving live for days; an agent planned work to enable what was already enabled.
+2. **Stale gate marker** — a "pending human approval / not provisioned yet" annotation whose precondition is satisfied. One held for twelve days after the thing it waited on existed, and the decision was escalated to a person surprised to be asked.
+3. **Prediction buried by closure** — a warning recorded in a comment on an item that then closes. Closure deletes the warning: one correctly predicted a defect, the item closed 25 minutes later, and the defect sat unnoticed for eight days while a dependent item was parked waiting on it.
+4. **Silent waiting gate** — a queue or approval state with no surfacing mechanism, which holds work for exactly as long as nobody happens to look. One held a security-relevant fix undeployed for two days.
+
+## Mandatory
+
+- **A recorded blocker is a claim about the past — check the present before acting on it.** Before planning around it, escalating it, or reporting it as a blocker, probe the live state (`empirical-inquiry`). One command is cheap; inheriting a false premise is not.
+- **Whoever clears the condition deletes the claim.** Removing the block is not done until the note describing it is gone. A cleared gate whose comment survives is the next reader's false premise, and you are the last person who knows it is false.
+- **Prefer expiry-resistant forms.** State what **is** true rather than what is pending. Where a temporal claim is unavoidable, anchor it to something that fails when it goes stale — a check, a linked work item — never to prose nobody re-reads.
+- **A prediction on a closing item becomes tracked work or is retracted.** If the warning is real it is a work item with an explicit blocking link (`tracked-work`); if it is not real, retract it. Prose on a closed item is neither, and the one-way lifecycle means only `claim-archaeology` can recover it.
+- **A gate that can hold work silently is a defect in the gate.** Any waiting state needs a surfacing mechanism — notification, dashboard, scheduled sweep. Fix the gate; do not resolve to look more often.
+
+Full prose, worked examples, and the rewrite patterns: [reference/stale-state-claims.md](../reference/stale-state-claims.md).
