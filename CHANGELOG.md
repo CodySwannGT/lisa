@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.314.0](https://github.com/CodySwannGT/lisa/compare/v2.313.2...v2.314.0) (2026-07-30)
+
+
+### Features
+
+* **rules:** add falsifiable-checks — a check that cannot fail is not evidence ([a882904](https://github.com/CodySwannGT/lisa/commit/a882904dc5ecee416860b8e69e53114907bab05c)), closes [CodySwannGT/lisa#2138](https://github.com/CodySwannGT/lisa/issues/2138)
+
 ### [2.313.2](https://github.com/CodySwannGT/lisa/compare/v2.313.1...v2.313.2) (2026-07-28)
 
 
