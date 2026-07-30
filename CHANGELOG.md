@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.315.0](https://github.com/CodySwannGT/lisa/compare/v2.314.0...v2.315.0) (2026-07-30)
+
+
+### Features
+
+* **rules:** add stale-state-claims — "not yet" expires, the note does not ([6725b91](https://github.com/CodySwannGT/lisa/commit/6725b9168af8ad5e7ceb2853d9b1af2b5d73db71)), closes [CodySwannGT/lisa#2141](https://github.com/CodySwannGT/lisa/issues/2141)
+
 ## [2.314.0](https://github.com/CodySwannGT/lisa/compare/v2.313.2...v2.314.0) (2026-07-30)
 
 
