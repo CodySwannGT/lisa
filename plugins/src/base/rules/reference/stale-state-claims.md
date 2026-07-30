@@ -1,0 +1,88 @@
+# Stale State Claims — Reference
+
+Eager head: [eager/stale-state-claims.md](../eager/stale-state-claims.md).
+
+## Why this rule exists
+
+Most bad documentation is *wrong*. This kind was **right** — and that is what makes it dangerous. A note saying "not wired up yet" earned its credibility honestly, so the next reader has no reason to doubt it. There is no defect to find, no test that goes red, no reviewer who objects. The claim simply keeps being read after the world moved.
+
+The cost is not confusion, it is confident misdirection in a specific direction: **toward doing nothing**. An expired blocker never causes someone to break production. It causes work to be skipped, re-planned, or escalated — outcomes that look like caution and are indistinguishable from good judgment at the moment they happen.
+
+The `falsifiable-checks` rule covers instruments that cannot fail. This one covers assertions that *could* fail but are never re-evaluated, because nothing re-runs prose. Both produce the same end state — a confident answer with no live evidence behind it — from opposite directions.
+
+## The four failure modes, in detail
+
+### 1. Expired blocker note
+
+A comment, docstring, config value, or README line records that something is not available yet. The condition clears. The note does not.
+
+Observed: a deployment stage's endpoint was left unset with an adjacent comment explaining that its routing had "not yet been promoted." The routing had been live for days. An agent read the comment, believed it, and planned work to enable a capability that was already enabled — then reported the capability as pending.
+
+Countermeasures:
+- Treat any not-yet claim as a **hypothesis with an expiry you cannot see**. Resolve it with one live probe (a request, a query, a status read) before it enters a plan, a status report, or an escalation.
+- Cite the probe, not the comment: "verified live at <time>" is evidence; "the comment says" is hearsay about the past.
+- When you are the one who promotes/enables/provisions the thing, the note describing its absence is part of the change. Grep for it.
+
+### 2. Stale gate marker
+
+A config entry, flag, or checklist item is annotated as awaiting a human decision or an unfulfilled prerequisite. The prerequisite arrives, or the decision gets made elsewhere. The marker persists and keeps routing work to a gate that is no longer closed.
+
+Observed: an entry marked human-gated because no client had been provisioned. The client had existed for twelve days. The gate was honored anyway and the question escalated to a person who had already decided it and was surprised to be asked.
+
+This mode is corrosive twice over: it wastes the human's attention, and it teaches the agent that gates are noise — which is exactly the wrong lesson to carry into a gate that is still real.
+
+Countermeasures:
+- Before honoring a gate, verify the condition that justifies it still holds. A gate whose stated reason is falsifiable and false is not a gate.
+- Record gates as **conditions**, not as verdicts: "gated until <checkable condition>" can be evaluated; "human-gated" cannot.
+- When escalating, state the evidence that the gate is still live. If you cannot, you are escalating a comment.
+
+### 3. Prediction buried by closure
+
+Someone records a correct warning — "this will fail until X is fixed", "this leaves Y broken" — as a comment on a work item, and the item then closes. Closure is a filter: closed items are not read. The prediction is deleted in every practical sense while feeling like it was recorded.
+
+Observed: a comment correctly predicted a defect. The item closed 25 minutes later with no follow-up filed. The defect sat unnoticed for **eight days**, blocking a dependent item that was itself parked waiting for it — two items, both stalled, and the explanation was already written down in a place nobody would look.
+
+Countermeasures:
+- A prediction is either **real work or a retraction**. If real, it is a tracked leaf with an explicit blocking link to what it blocks (`tracked-work`), created **before** the parent item closes. If not real, say so in the same thread so the next reader is not left holding an unresolved warning.
+- Never let closing be the last action on an item that carries an open prediction. Check the comment thread as part of closing.
+- Blocking links are the mechanism that makes the parked dependent item legible. A prediction with no link is invisible from the side that is actually waiting.
+
+### 4. Silent waiting gate
+
+An approval, queue, or review state holds work and emits nothing. Its duration is therefore set by how often somebody happens to look, which is not a property of the work's urgency.
+
+Observed: a deploy approval gate held a security-relevant fix undeployed for two days. Nothing was broken, nobody was wrong, and nothing surfaced that the gate was waiting.
+
+Countermeasures:
+- Every waiting state needs a surfacing mechanism proportional to what it can hold: notification, dashboard row, scheduled sweep, or an automatic expiry.
+- **Fix the gate, not your habits.** "Remember to check" is not a mechanism; it is the same failure with a person's name on it.
+- When you add a gate, state how long it may silently hold work and what surfaces it. If the answer is "indefinitely" and "nothing", the gate is not finished.
+
+## Expiry-resistant forms
+
+Prefer, in order:
+
+1. **State what is true.** "Serves from <path>" outlives "not yet serving from <path>", because it stays wrong-detectably wrong instead of quietly-stale.
+2. **Bind the claim to a check.** A test, guard, or assertion that fails when the temporal claim goes false converts a silent expiry into a red build. (That check is itself subject to `falsifiable-checks` — a guard that cannot fail re-creates the problem it was added to solve.)
+3. **Bind the claim to a work item.** "Blocked by <ref>" is resolvable by anyone; "waiting on the migration" is resolvable only by whoever wrote it.
+4. **Timestamp and scope it.** If prose is genuinely the only option, write "as of <date>" and name the condition that ends it. A dated claim at least advertises its own age.
+
+Avoid: bare "not yet", "TODO once", "temporarily", "for now", "pending" with no owner, condition, date, or link. Each is a claim that can only be falsified by someone who already knows the truth — which is the one person who does not need to read it.
+
+## How to apply
+
+1. Reading a note that asserts a pending/blocked/not-yet state: **do not act on it yet.**
+2. Identify the cheapest live probe that settles the underlying fact.
+3. Run it. Report the observation, not the note.
+4. If the note is stale, **delete or correct it in the same change** — leaving it is handing the next reader the trap you just escaped.
+5. If the note is accurate, upgrade it while you are there: attach the condition, the link, or the check that will make it self-expiring.
+
+And when you are the one clearing a condition: sweep for the notes that described it. The change is not complete while the repository still asserts the old state.
+
+## Interaction with other rules
+
+- **`falsifiable-checks`** — the sibling failure. That rule prevents an instrument that cannot fail; this one prevents an assertion that never gets re-evaluated. A check bound to a temporal claim (form 2 above) sits under both rules at once.
+- **`empirical-inquiry`** — supplies the discipline this rule depends on: settle the fact with the cheapest probe rather than reasoning from what is written down. A stale note is exactly the "confident-sounding answer from a prior assumption" that rule forbids.
+- **`verification`** — a status derived from a comment is not runtime evidence. Reporting "still blocked" on the strength of a note is the same error as reporting "works" on the strength of the code looking correct.
+- **`tracked-work`** — the destination for any prediction that survives its item's closure: one live leaf, explicit blocking link, carried on the branch and PR.
+- **`claim-archaeology`** — the recovery path once mode 3 has already happened. Lifecycles are one-way, so a warning lost to closure resurfaces only as a fresh item whose ancestry has to be reconstructed. Archaeology is the cleanup; this rule is the prevention.
