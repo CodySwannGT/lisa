@@ -446,13 +446,29 @@ but gates 5, because the dispatcher itself holds a rotating credential.
    exposes only `exec | status | list | apply | diff`. B.4 tier 1 is unavailable for this surface, so
    setup starts at the console/emit tiers and says so rather than claiming an API that does not exist.
 2. **Does Codex Cloud cap concurrent tasks per account?** Still open. Bounds useful fan-out; a quota
-   question, not a dollar question. Needs a live account to answer.
-3. **Does `-c model=` propagate into the Cloud task,** or does the environment's own setting win?
-   Still open. The flag documents itself as overriding the *dispatching* machine's
-   `~/.codex/config.toml`. One real dispatch settles it; deferred rather than burn quota probing.
+   question, not a dollar question. Needs a live account under load to answer.
+3. ~~**Does `-c model=` propagate into the Cloud task?**~~ **Answered 2026-08-01 by live dispatch:
+   `-c model=` does not govern the Cloud task's model.**
 
-Neither remaining unknown blocks anything shipped: both concern tuning a dispatch, not whether one
-works.
+   Dispatched `-c model="not-a-real-model-probe-xyz"` to a real environment. The CLI accepted it
+   without local validation and submitted the task, which then ran to `READY` successfully. Had the
+   invalid value governed remote execution, the task could not have run.
+
+   State this as an observation, not a mechanism: it is not established whether the override fails
+   to propagate or propagates and is ignored. Both produce the same operational rule — **do not use
+   `-c model=` to select a Cloud task's model.** Set it on the environment instead.
+
+   Two further observations from the same probes:
+
+   - `codex cloud exec` prints **only the task URL** on success — no separate identifier line. Any
+     dispatcher must extract the identifier from that URL, which `lisa-remote-dispatch` does.
+   - `codex cloud status` surfaces status, environment label, and diff summary — **not the agent's
+     text reply**. A read-only "report X" task therefore cannot be read back through the CLI. This
+     reinforces the existing rule: reconcile through durable artifacts (PR, diff, external object),
+     never through agent chatter.
+
+The one remaining unknown does not block anything shipped: it concerns tuning fan-out volume, not
+whether a dispatch works.
 
 ## Repository constraints
 
@@ -468,4 +484,5 @@ works.
 | Session | Date | Phases | Notes |
 |---------|------|--------|-------|
 | 1 | 2026-08-01 | Research | Audited the proven gunnertech implementation (frontend PRs #119–#169, wiki PRs #250–#253) and Lisa's existing `lisa-secrets-access` (PR #2127); confirmed `codex cloud exec` is fire-and-forget (3–4s) and has no `--model` flag; plan created |
+| 3 | 2026-08-01 | Verify | Live-dispatched three read-only probes to a real Codex Cloud environment (`files=0` on all three, nothing touched). Settled unknown 3: `-c model=` does not govern the Cloud task's model. Also proved the shipped `lisa-remote-dispatch` end to end against that environment — precondition check, real CLI invocation, task-ID capture from live output, durable ledger write, exit without polling |
 | 2 | 2026-08-01 | A, A.6, B, C, D, E | Implemented all parts. Verified unknown 1 (no Codex provisioning API). Part A: surfaces/ladder/materialization + rotation with write-scope preflight and provider-held advisory lease. Part B: `lisa-setup-remote-env` with `require`/`install` manifest. Part C: `lisa-remote-dispatch` + `executionEnv` on `lisa-implement`. Part D: `scheduler: "github-actions"` workflow generator + stopped-clock detection. Part E: routed `lisa-atlassian-access` and `lisa-notion-access` through the chokepoint, added `doctor-secrets` and `validate-config`. 123 new tests; full suite green at 477 files / 8185 tests. Two unknowns deferred (concurrency cap, `-c model=` propagation) — both tuning questions, neither blocking |
