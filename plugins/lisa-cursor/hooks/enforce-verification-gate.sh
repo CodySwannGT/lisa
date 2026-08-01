@@ -132,6 +132,7 @@ STATE_DIR="${TMPDIR:-/tmp}/lisa-verification-gate"
 mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
 
 ARM_FLAG="${STATE_DIR}/${SESSION_ID}.armed"
+ARM_PLAN_FILE="${STATE_DIR}/${SESSION_ID}.plan"
 SUBAGENT_FLAG="${STATE_DIR}/${SESSION_ID}.subagent"
 COUNT_FILE="${STATE_DIR}/${SESSION_ID}.blocks"
 
@@ -149,6 +150,19 @@ arm_once() {
   [ -f "$ARM_FLAG" ] || touch "$ARM_FLAG" 2>/dev/null || true
 }
 
+record_current_plan() {
+  local plan="$1"
+  [ -n "$plan" ] || return 0
+  [ -f "$ARM_PLAN_FILE" ] && return 0
+  printf '%s\n' "$plan" > "$ARM_PLAN_FILE" 2>/dev/null || true
+}
+
+plan_from_prompt() {
+  printf '%s' "$1" |
+    sed -nE '1{s/^[[:space:]]*\/(lisa:implement|implement)[[:space:]]+([^[:space:]]+).*$/\2/p;}' |
+    tr '[:upper:]' '[:lower:]'
+}
+
 case "$HOOK_EVENT" in
   SubagentStart)
     touch "$SUBAGENT_FLAG" 2>/dev/null || true
@@ -162,6 +176,7 @@ case "$HOOK_EVENT" in
       case "$LEADING" in
         /lisa:implement*|/implement*)
           arm_once
+          record_current_plan "$(plan_from_prompt "$LEADING")"
           ;;
       esac
     fi
@@ -175,6 +190,8 @@ case "$HOOK_EVENT" in
       case "$SKILL_NAME" in
         lisa-implement|implement)
           arm_once
+          SKILL_ARGUMENTS=$(printf '%s' "$INPUT" | jq -r '.tool_input.arguments // .tool_input.input // empty' 2>/dev/null || true)
+          record_current_plan "$(printf '%s' "$SKILL_ARGUMENTS" | awk '{print tolower($1)}')"
           ;;
       esac
     fi
@@ -204,6 +221,39 @@ fi
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 VERDICT_FILE="${PROJECT_DIR}/.lisa/verification-status.json"
+
+# A completed flow's verdict is a shipped record. The next flow in the same
+# worktree writes the SAME path and destroys it — losing the evidence that
+# proved the earlier work, and gating the new run against a verdict whose
+# `plan` names something else entirely. Preserve any verdict belonging to a
+# different plan before this run can overwrite it.
+#
+# Keyed on `.plan`, so re-running the same plan still overwrites in place and
+# no archive accumulates.
+preserve_foreign_verdict() {
+  [ -f "$VERDICT_FILE" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local prior_plan current_plan archive
+  prior_plan=$(jq -r '.plan // empty' "$VERDICT_FILE" 2>/dev/null || true)
+  [ -n "$prior_plan" ] || return 0
+  case "$prior_plan" in
+    *[!A-Za-z0-9._-]*)
+      return 0
+      ;;
+  esac
+  current_plan=$(cat "$ARM_PLAN_FILE" 2>/dev/null || true)
+  [ -z "$current_plan" ] || [ "$prior_plan" != "$current_plan" ] || return 0
+
+  # Only archive a verdict written BEFORE this flow armed — anything newer
+  # belongs to the current run.
+  [ "$VERDICT_FILE" -ot "$ARM_FLAG" ] || return 0
+
+  archive="${PROJECT_DIR}/.lisa/verification-status.${prior_plan}.json"
+  [ -f "$archive" ] || cp -p "$VERDICT_FILE" "$archive" 2>/dev/null || true
+}
+
+preserve_foreign_verdict
 
 # Set by the v2 path when a claim/evidence violation is what closed the gate,
 # so the block message can state the real reason instead of the v1 fallback.
@@ -387,7 +437,7 @@ verdict_is_terminal() {
 if verdict_is_terminal; then
   # Gate satisfied — disarm so a follow-up stop in the same session is not
   # re-gated against the now-consumed verdict, and allow the stop.
-  rm -f "$ARM_FLAG" "$COUNT_FILE" 2>/dev/null || true
+  rm -f "$ARM_FLAG" "$ARM_PLAN_FILE" "$COUNT_FILE" 2>/dev/null || true
   exit 0
 fi
 
@@ -400,7 +450,7 @@ COUNT=$((COUNT + 1))
 echo "$COUNT" > "$COUNT_FILE" 2>/dev/null || true
 
 if [ "$COUNT" -gt "$MAX_BLOCKS" ]; then
-  rm -f "$ARM_FLAG" "$COUNT_FILE" 2>/dev/null || true
+  rm -f "$ARM_FLAG" "$ARM_PLAN_FILE" "$COUNT_FILE" 2>/dev/null || true
   cat >&2 <<EOF
 Verification gate: still no passing verdict after ${MAX_BLOCKS} attempts.
 Releasing the stop gate to avoid an infinite loop. The /lisa:implement Verify
