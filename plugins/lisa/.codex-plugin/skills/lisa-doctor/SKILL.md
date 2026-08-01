@@ -419,10 +419,43 @@ The verdict ladder is:
 - `READY_WITH_WARNINGS` — no `FAIL`, but one or more `WARN`.
 - `NOT_READY` — one or more `FAIL`.
 
+## Secrets configuration
+
+Run the secrets health checks through the skill that owns the contract, rather than reimplementing
+any part of it here:
+
+```sh
+node .claude/skills/lisa-secrets-access/scripts/validate-config.mjs   # shape
+node .claude/skills/lisa-secrets-access/scripts/doctor-secrets.mjs    # health
+```
+
+Run the validator first. It checks only the *shape* of the `secrets`, `remoteEnv`, and
+`automations` blocks — whether a declaration could ever be correct — and catches the failures that
+would otherwise surface somewhere unhelpful: a container failing mid-setup, a scheduled loop that
+never fires, a dispatch naming a surface nobody provisioned. The health check then asks whether the
+credentials actually resolve.
+
+It reports without ever printing a value, and compares two copies of the same credential by digest.
+Map its findings into the doctor's own verdicts: `error` → `FAIL`, `warn` → `WARN`.
+
+**A project with no credentials manager is `WARN`, never `FAIL`.** The `env` provider is a supported
+state — the environment *is* the provider. A manager is the preferred path because it gives one
+store, rotation, and an audit trail; it is not a requirement, and doctor must not act as though it
+were.
+
+The check worth understanding before triaging its output is the two-store one. A value present in
+both the provider and a local copy is **not a duplicate** — it is two live credentials, one of them
+untracked. Both authenticate, so the difference is invisible from either side, and "tidying up the
+duplicate" deletes a working credential that no record accounts for. Treat a mismatch as
+stop-and-ask, never as something to adjudicate automatically.
+
 ## Delegation and reuse
 
 - Reuse `config-resolution` for config and lifecycle role defaults instead of inventing a second
   schema.
+- Reuse `lisa-secrets-access` for every secrets check. Doctor must never read a keychain, parse a
+  `.env`, or invoke a provider CLI itself — one chokepoint is what makes the single-store rule
+  enforceable, and a diagnostic that bypasses it is exactly the second reader that creates drift.
 - Reuse the existing `github-project-v2` chokepoint for GitHub Project coordination checks instead
   of inlining bespoke access logic.
 - Reuse ideas from `lisa-wiki-doctor` for grouped verdict rendering where they fit, while keeping
