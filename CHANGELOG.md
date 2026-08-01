@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.317.0](https://github.com/CodySwannGT/lisa/compare/v2.316.2...v2.317.0) (2026-08-01)
+
+
+### Features
+
+* **automations:** add an unattended clock that survives a closed laptop ([8ee0800](https://github.com/CodySwannGT/lisa/commit/8ee080094aad4bd6718958a378553ac9a615104b)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+* **dispatch:** route work to a remote surface with executionEnv ([bffd58b](https://github.com/CodySwannGT/lisa/commit/bffd58b33a1e72c8fe34649368e887dd8c1136e4)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+* **remote-env:** provision remote environments from a repo-owned manifest ([74b961c](https://github.com/CodySwannGT/lisa/commit/74b961cddd03eae417eb87b5da8eb59cd3791fab)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+* **secrets:** model the surface axis and materialize where a lane must ([c8fe493](https://github.com/CodySwannGT/lisa/commit/c8fe493e9f6d47eafe2ecd7b9363a4ed0708b3f2)), closes [gunnertech/frontend#165](https://github.com/gunnertech/frontend/issues/165) [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+* **secrets:** route the callers, and check the config that reaches them ([08df8e2](https://github.com/CodySwannGT/lisa/commit/08df8e285abee5e361406d09389a896439437750)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+
+
+### Bug Fixes
+
+* **docs:** replace live high-entropy values with placeholders ([30627c7](https://github.com/CodySwannGT/lisa/commit/30627c728068109a185b7ebec9575fb78234159f)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+
+
+### Documentation
+
+* **plan:** record what shipped and which unknowns survived ([ddd6699](https://github.com/CodySwannGT/lisa/commit/ddd66991d5136ca72f0f7329a1dfaed2a04643ca)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+
 ### [2.316.2](https://github.com/CodySwannGT/lisa/compare/v2.316.1...v2.316.2) (2026-08-01)
 
 
