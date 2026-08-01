@@ -583,7 +583,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-team-first.sh":
       "51d2e929ea6c04e7c7851be7849dd7d3e7cd0c211b4c8fb856e858a51ddeeb58",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
-      "5c1bc7522643a9252c680fb5aafa71bc61c8e689476a3562809223c143ad540c",
+      "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -613,7 +613,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/track-plan-sessions.sh":
       "8bc47dcad3aed628df0c9efbe7b6f3df87635b94b0c54c71e0bd52eceace563a",
     "plugins/src/base/rules/eager/automation-runbook-contract.md":
-      "963fcdbfc65b1a1f983ddfacb5e76d18e562064d5b0681bdca7fcc2ddac00a45",
+      "3d082e2f9a980ccf1dd6b51cc7251dfb171a53f8dcc36c11b4d9fd1f3d89dec7",
     "plugins/src/base/rules/eager/base-rules.md":
       "d3a4bd518acf2c6f4e866042542f9155fdbf5b2fdad5747e1afd097bdef15351",
     "plugins/src/base/rules/eager/claim-archaeology.md":
@@ -742,6 +742,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "209920b49dfae89460ef5366d5f2213e47d32ed3c2e23ed0b50e8283c37ad57c",
     "plugins/src/base/rules/reference/security-audit-handling.md":
       "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c",
+    "plugins/src/base/rules/reference/settled-decisions.md":
+      "6c84f309a1f765eba1648d6ace836387bd96b924f245c16cf3629f501ef6bb18",
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
     "plugins/src/base/rules/reference/tool-access-gate.md":
@@ -3420,6 +3422,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/reference/repo-scope-split.md": true,
     "plugins/lisa-copilot/rules/reference/security-audit-handling.md": true,
+    "plugins/lisa-copilot/rules/reference/settled-decisions.md": true,
     "plugins/lisa-copilot/rules/reference/stale-state-claims.md": true,
     "plugins/lisa-copilot/rules/reference/tool-access-gate.md": true,
     "plugins/lisa-copilot/rules/reference/tracked-work.md": true,
@@ -3791,6 +3794,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/repo-scope-split.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling-reference.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling.mdc": true,
+    "plugins/lisa-cursor/rules/settled-decisions-reference.mdc": true,
     "plugins/lisa-cursor/rules/settled-decisions.mdc": true,
     "plugins/lisa-cursor/rules/stale-state-claims-reference.mdc": true,
     "plugins/lisa-cursor/rules/stale-state-claims.mdc": true,
@@ -6232,6 +6236,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/rejection-detection.md": true,
     "plugins/lisa/rules/reference/repo-scope-split.md": true,
     "plugins/lisa/rules/reference/security-audit-handling.md": true,
+    "plugins/lisa/rules/reference/settled-decisions.md": true,
     "plugins/lisa/rules/reference/stale-state-claims.md": true,
     "plugins/lisa/rules/reference/tool-access-gate.md": true,
     "plugins/lisa/rules/reference/tracked-work.md": true,
@@ -6786,6 +6791,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/rejection-detection.md": true,
     "plugins/src/base/rules/reference/repo-scope-split.md": true,
     "plugins/src/base/rules/reference/security-audit-handling.md": true,
+    "plugins/src/base/rules/reference/settled-decisions.md": true,
     "plugins/src/base/rules/reference/stale-state-claims.md": true,
     "plugins/src/base/rules/reference/tool-access-gate.md": true,
     "plugins/src/base/rules/reference/tracked-work.md": true,

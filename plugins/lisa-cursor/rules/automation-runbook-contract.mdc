@@ -27,8 +27,10 @@ asks of an interactive run exactly as often as of a scheduled one. Every Lisa fl
 is a member: `lisa-implement`, `lisa-verify`, `lisa-plan`, `lisa-git-submit-pr`,
 `lisa-drive-pr-to-merge`, `lisa-research`, and any skill invoked as a slash command.
 
-For an interactive flow the record is the **final user-facing message**, not a JSONL row. It opens
-with the outcome and the operator action, before any narrative:
+For an interactive flow the required run record is the **final user-facing message**, not a JSONL
+row written by `automation-run-record.mjs`. Interactive flows may also record local JSONL telemetry
+when a specific skill owns that surface, but this contract's mandatory record is the final answer.
+It opens with the outcome and the operator action, before any narrative:
 
 ```
 change-proved — nothing for you. PR #6393 open, auto-merge on, CI running.
