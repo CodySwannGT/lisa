@@ -12,7 +12,15 @@
  * @module tests/helpers/verification-gate-harness
  */
 import { spawnSync } from "child_process";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import path from "path";
 
@@ -57,6 +65,8 @@ export type GateScenario = {
   writeVerdict: (contents: string, options?: WriteVerdictOptions) => void;
   writeConfig: (enforceBoundaries: boolean) => void;
   writeEvidenceFile: (relativePath: string, contents: string) => void;
+  /** Reads a project-relative file, or null when it does not exist. */
+  readProjectFile: (relativePath: string) => string | null;
 };
 
 /**
@@ -146,6 +156,11 @@ export const createGateScenario = (
       const target = path.join(projectDir, relativePath);
       mkdirSync(path.dirname(target), { recursive: true });
       writeFileSync(target, contents);
+    },
+
+    readProjectFile: (relativePath: string): string | null => {
+      const target = path.join(projectDir, relativePath);
+      return existsSync(target) ? readFileSync(target, "utf8") : null;
     },
   };
 };
