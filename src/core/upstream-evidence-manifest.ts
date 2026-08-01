@@ -2231,6 +2231,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".entire/.gitignore": true,
     ".entire/settings.json": true,
     ".gitattributes": true,
+    ".gitguardian.yaml": true,
     ".github/GITHUB_ACTIONS.md": true,
     ".github/dependabot.yml": true,
     ".github/pull_request_template.md": true,
