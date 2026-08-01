@@ -666,6 +666,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c80771ce3b59230734e66e582b11b548b6da2498a2f822eca5db70379150ea66",
     "plugins/src/base/rules/eager/repo-scope-split.md":
       "a1702d6d0e9d80abc118b7c32a97ba9a988b195d86363b2d7a35e71752d9bd2e",
+    "plugins/src/base/rules/eager/report-actionability.md":
+      "7c4d5b2bea93b7cd5bb8694fa7c06f4ca8f94a19eb17832f1ccc5354b0207163",
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
     "plugins/src/base/rules/eager/settled-decisions.md":
@@ -740,6 +742,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9088ce1560c13a8753b44bab80d9f9101e8a59404a2df3fd80ff2ab539ae0aef",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "5df96b7a41a9c4102fd1f703f5ebf0f4dd86a07f142eb9b10088459c3d264ae6",
+    "plugins/src/base/rules/reference/report-actionability.md":
+      "42fa86bb189467c7bc7ee64f6ebccd3926bb2aaf512ee5a498c232025b8a364b",
     "plugins/src/base/rules/reference/security-audit-handling.md":
       "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c",
     "plugins/src/base/rules/reference/settled-decisions.md":
@@ -3384,6 +3388,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/readiness-rubric.md": true,
     "plugins/lisa-copilot/rules/eager/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/eager/repo-scope-split.md": true,
+    "plugins/lisa-copilot/rules/eager/report-actionability.md": true,
     "plugins/lisa-copilot/rules/eager/security-audit-handling.md": true,
     "plugins/lisa-copilot/rules/eager/settled-decisions.md": true,
     "plugins/lisa-copilot/rules/eager/stale-state-claims.md": true,
@@ -3421,6 +3426,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/readiness-rubric.md": true,
     "plugins/lisa-copilot/rules/reference/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/reference/repo-scope-split.md": true,
+    "plugins/lisa-copilot/rules/reference/report-actionability.md": true,
     "plugins/lisa-copilot/rules/reference/security-audit-handling.md": true,
     "plugins/lisa-copilot/rules/reference/settled-decisions.md": true,
     "plugins/lisa-copilot/rules/reference/stale-state-claims.md": true,
@@ -3792,6 +3798,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/rejection-detection.mdc": true,
     "plugins/lisa-cursor/rules/repo-scope-split-reference.mdc": true,
     "plugins/lisa-cursor/rules/repo-scope-split.mdc": true,
+    "plugins/lisa-cursor/rules/report-actionability-reference.mdc": true,
+    "plugins/lisa-cursor/rules/report-actionability.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling-reference.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling.mdc": true,
     "plugins/lisa-cursor/rules/settled-decisions-reference.mdc": true,
@@ -6198,6 +6206,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/readiness-rubric.md": true,
     "plugins/lisa/rules/eager/rejection-detection.md": true,
     "plugins/lisa/rules/eager/repo-scope-split.md": true,
+    "plugins/lisa/rules/eager/report-actionability.md": true,
     "plugins/lisa/rules/eager/security-audit-handling.md": true,
     "plugins/lisa/rules/eager/settled-decisions.md": true,
     "plugins/lisa/rules/eager/stale-state-claims.md": true,
@@ -6235,6 +6244,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/readiness-rubric.md": true,
     "plugins/lisa/rules/reference/rejection-detection.md": true,
     "plugins/lisa/rules/reference/repo-scope-split.md": true,
+    "plugins/lisa/rules/reference/report-actionability.md": true,
     "plugins/lisa/rules/reference/security-audit-handling.md": true,
     "plugins/lisa/rules/reference/settled-decisions.md": true,
     "plugins/lisa/rules/reference/stale-state-claims.md": true,
@@ -6753,6 +6763,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/readiness-rubric.md": true,
     "plugins/src/base/rules/eager/rejection-detection.md": true,
     "plugins/src/base/rules/eager/repo-scope-split.md": true,
+    "plugins/src/base/rules/eager/report-actionability.md": true,
     "plugins/src/base/rules/eager/security-audit-handling.md": true,
     "plugins/src/base/rules/eager/settled-decisions.md": true,
     "plugins/src/base/rules/eager/stale-state-claims.md": true,
@@ -6790,6 +6801,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/readiness-rubric.md": true,
     "plugins/src/base/rules/reference/rejection-detection.md": true,
     "plugins/src/base/rules/reference/repo-scope-split.md": true,
+    "plugins/src/base/rules/reference/report-actionability.md": true,
     "plugins/src/base/rules/reference/security-audit-handling.md": true,
     "plugins/src/base/rules/reference/settled-decisions.md": true,
     "plugins/src/base/rules/reference/stale-state-claims.md": true,
