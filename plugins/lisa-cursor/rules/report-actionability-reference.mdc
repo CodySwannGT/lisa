@@ -1,0 +1,66 @@
+---
+description: "Report Actionability — Reference"
+alwaysApply: false
+---
+
+# Report Actionability — Reference
+
+Long-form body for [eager/report-actionability.md](report-actionability.mdc).
+
+## The originating incident
+
+A pull request received six review findings. Three were fixed in the working session: a critical ordering defect, a major copy inaccuracy, and a test that asserted call counts where it needed to assert call order.
+
+The report to the owner described **two** of the six, in detail, with the reasoning behind each fix. It never said six existed. It never mentioned the three untouched, one of which was a Major finding that had not been opened at all.
+
+Nothing in the report was false. The owner's next message was: *"so the findings... did you fix them?"* — followed by *"why did you tell me about those findings? It seems like you fixed them."*
+
+Two distinct confusions, from one report:
+
+- **Ambiguous disposition.** Items were described without being labelled fixed or open, so the reader could not tell whether the message was a status update or a request for action.
+- **Implied completeness.** A subset was presented in the grammatical shape of a complete account ("the review caught…"), so the reader reasonably assumed the remainder did not exist.
+
+## Why "everything I said was true" is not a defence
+
+Accuracy per sentence and accuracy of the whole are different properties. A report is a claim about a **set**: reporting two members of a six-member set, in a frame that does not name the set's size, asserts something false about the set even when every individual sentence is true.
+
+This is the reporting analogue of a check that passes because it never ran. The output looks like the real thing and carries the same authority.
+
+## The temptation this rule resists
+
+The subset a report drifts toward is rarely random. It skews toward:
+
+- **items already fixed** (they make the report feel like progress),
+- **items understood well** (they are easier to write about),
+- **items that flatter** (a bug caught and fixed reads better than one not yet read).
+
+The three omitted in the originating incident were: one not yet read, one only partially addressed and for an unrelated reason, and two dismissed internally as trivial formatting nits without ever saying so. Each omission was individually defensible. Together they produced a false picture.
+
+## Worked example
+
+**Wrong** — true, and misleading:
+
+> The review caught a real bug. `stopAnalytics` called `opt_out_capturing()` then `reset(true)`, and reset clears the opt-out flag… [400 words] …Second finding: the banner said "nothing is stored" while we persist the refusal. Fixed both.
+
+**Right:**
+
+> **6 review findings: 3 fixed, 3 open. Nothing needed from you unless you want the open ones handled now.**
+>
+> Fixed — no action:
+> - 🔴 `posthog.ts` — withdrawal did not stick; reset wiped the opt-out. Order corrected, test now asserts order, mutation-proven.
+> - 🟠 `site.ts` — banner overstated what a refusal stores. Copy, privacy page and fixtures corrected.
+> - nitpick — test asserted call counts, now asserts order.
+>
+> Open:
+> - 🟠 `lib/consent/index.ts` — uses `localStorage` directly instead of the storage abstraction; consent will not persist on native. **I had not read this one until now.**
+> - 🟡 `audit.ignore.config.json` — obsolete advisory exclusion still present.
+> - 🟡 `CHANGELOG.md` ×2 — formatting.
+
+The second is shorter and answers "must I do anything?" in its first line.
+
+## Interaction with other rules
+
+- **`automation-runbook-contract`** — requires a terminating flow to open with its run outcome and the operator action. That contract binds the FINAL message of a flow. This rule covers everything else: mid-run updates, review summaries, CI reports. The originating incident was a mid-run report, which is exactly why the existing contract did not catch it. Where both apply, the runbook contract's outcome vocabulary wins for the opening line and this rule governs the body.
+- **`falsifiable-checks`** — that rule governs instruments that cannot fail. This one governs *accounts* that cannot be acted on. Both produce false confidence with no visible defect.
+- **`stale-state-claims`** — a disposition recorded in a report expires exactly like a "not yet" comment. A finding reported OPEN and fixed an hour later must be re-reported, not left standing.
+- **Corrections guidance** — reporting an error you made is required by this rule when it is one of the findings. Mark it fixed in the first sentence and move on; the rule demands completeness, never self-flagellation.
