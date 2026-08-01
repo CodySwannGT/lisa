@@ -369,4 +369,13 @@ Do not paraphrase substrate output beyond JSON normalization.
 
 ## Headless behavior
 
-In a headless / non-interactive context (no TTY, `CI=true`, or `-p` mode), the MCP tier is unavailable (its OAuth flow needs a browser). The substrate ladder collapses to: acli (if pre-authenticated, e.g., a CI image baked with a service-account token) → curl + `ATLASSIAN_API_TOKEN`. Never block on interactive prompts. If both fail readiness checks, exit non-zero with a deterministic error.
+In a headless / non-interactive context, the MCP tier is unavailable (its OAuth flow needs a browser). The substrate ladder collapses to: acli (if pre-authenticated, e.g., a CI image baked with a service-account token) → curl + `ATLASSIAN_API_TOKEN`. Never block on interactive prompts. If both fail readiness checks, exit non-zero with a deterministic error.
+
+Treat all four of these as headless:
+
+- no TTY
+- `CI=true`
+- `-p` mode
+- **a subagent / teammate session** — measured (#2148): a subagent sees only the OAuth bootstrap stubs (`…__authenticate`, `…__complete_authentication`), never the data tools, and a direct call returns `No such tool available` rather than an auth error. The request never leaves the harness. This is not a general MCP block — other MCP servers work fine from a subagent — it is specific to servers whose OAuth completed in the lead. Crucially **acli works normally in a subagent**, so the ladder already has a working tier; it just has to skip MCP to reach it.
+
+Detecting the subagent case: Lisa's Claude hooks already mark it — `SubagentStart` writes `"${STATE_DIR}/${SESSION_ID}.subagent"`, consumed by `enforce-verification-gate.sh` and `enforce-team-first.sh`. Where that flag is unavailable, probing the MCP tier and finding only `authenticate`-shaped tools is the same signal: treat it as unavailable and fall through rather than attempting a call that cannot succeed.

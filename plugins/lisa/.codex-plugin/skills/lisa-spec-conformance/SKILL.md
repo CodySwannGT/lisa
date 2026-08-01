@@ -1,7 +1,7 @@
 ---
 name: lisa-spec-conformance
 description: "Verifies that shipped work…"
-allowed-tools: ["Read", "Glob", "Grep", "Bash", "Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Skill"]
 ---
 
 # Spec Conformance: $ARGUMENTS
