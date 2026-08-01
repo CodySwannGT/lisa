@@ -583,7 +583,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-team-first.sh":
       "51d2e929ea6c04e7c7851be7849dd7d3e7cd0c211b4c8fb856e858a51ddeeb58",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
-      "120cec1795ad4cb49ab67a54fb0c3552185338bb0b8dda0f19f70dc1dac288f9",
+      "5c1bc7522643a9252c680fb5aafa71bc61c8e689476a3562809223c143ad540c",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -613,7 +613,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/track-plan-sessions.sh":
       "8bc47dcad3aed628df0c9efbe7b6f3df87635b94b0c54c71e0bd52eceace563a",
     "plugins/src/base/rules/eager/automation-runbook-contract.md":
-      "b9b4f4d82b366959e90451a2b425ac116953ac074ab6a192dc3909ec8a2be1d6",
+      "963fcdbfc65b1a1f983ddfacb5e76d18e562064d5b0681bdca7fcc2ddac00a45",
     "plugins/src/base/rules/eager/base-rules.md":
       "d3a4bd518acf2c6f4e866042542f9155fdbf5b2fdad5747e1afd097bdef15351",
     "plugins/src/base/rules/eager/claim-archaeology.md":
@@ -668,6 +668,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a1702d6d0e9d80abc118b7c32a97ba9a988b195d86363b2d7a35e71752d9bd2e",
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
+    "plugins/src/base/rules/eager/settled-decisions.md":
+      "f5339c81b8d29f628830e6147314cbb941b9d9e6d87c3834d8fe7adc4b46ef4c",
     "plugins/src/base/rules/eager/stale-state-claims.md":
       "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
     "plugins/src/base/rules/eager/tool-access-gate.md":
@@ -3381,6 +3383,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/rejection-detection.md": true,
     "plugins/lisa-copilot/rules/eager/repo-scope-split.md": true,
     "plugins/lisa-copilot/rules/eager/security-audit-handling.md": true,
+    "plugins/lisa-copilot/rules/eager/settled-decisions.md": true,
     "plugins/lisa-copilot/rules/eager/stale-state-claims.md": true,
     "plugins/lisa-copilot/rules/eager/tool-access-gate.md": true,
     "plugins/lisa-copilot/rules/eager/tracked-work.md": true,
@@ -3788,6 +3791,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/repo-scope-split.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling-reference.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling.mdc": true,
+    "plugins/lisa-cursor/rules/settled-decisions.mdc": true,
     "plugins/lisa-cursor/rules/stale-state-claims-reference.mdc": true,
     "plugins/lisa-cursor/rules/stale-state-claims.mdc": true,
     "plugins/lisa-cursor/rules/tool-access-gate-reference.mdc": true,
@@ -6191,6 +6195,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/rejection-detection.md": true,
     "plugins/lisa/rules/eager/repo-scope-split.md": true,
     "plugins/lisa/rules/eager/security-audit-handling.md": true,
+    "plugins/lisa/rules/eager/settled-decisions.md": true,
     "plugins/lisa/rules/eager/stale-state-claims.md": true,
     "plugins/lisa/rules/eager/tool-access-gate.md": true,
     "plugins/lisa/rules/eager/tracked-work.md": true,
@@ -6744,6 +6749,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/rejection-detection.md": true,
     "plugins/src/base/rules/eager/repo-scope-split.md": true,
     "plugins/src/base/rules/eager/security-audit-handling.md": true,
+    "plugins/src/base/rules/eager/settled-decisions.md": true,
     "plugins/src/base/rules/eager/stale-state-claims.md": true,
     "plugins/src/base/rules/eager/tool-access-gate.md": true,
     "plugins/src/base/rules/eager/tracked-work.md": true,
@@ -8066,6 +8072,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/commit-msg.test.ts": true,
     "tests/unit/hooks/enforce-config-extensions.test.ts": true,
     "tests/unit/hooks/enforce-team-first.test.ts": true,
+    "tests/unit/hooks/enforce-verification-gate-preserve.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,

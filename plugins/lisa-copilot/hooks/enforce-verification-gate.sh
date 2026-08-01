@@ -205,6 +205,32 @@ fi
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 VERDICT_FILE="${PROJECT_DIR}/.lisa/verification-status.json"
 
+# A completed flow's verdict is a shipped record. The next flow in the same
+# worktree writes the SAME path and destroys it — losing the evidence that
+# proved the earlier work, and gating the new run against a verdict whose
+# `plan` names something else entirely. Preserve any verdict belonging to a
+# different plan before this run can overwrite it.
+#
+# Keyed on `.plan`, so re-running the same plan still overwrites in place and
+# no archive accumulates.
+preserve_foreign_verdict() {
+  [ -f "$VERDICT_FILE" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local prior_plan archive
+  prior_plan=$(jq -r '.plan // empty' "$VERDICT_FILE" 2>/dev/null || true)
+  [ -n "$prior_plan" ] || return 0
+
+  # Only archive a verdict written BEFORE this flow armed — anything newer
+  # belongs to the current run.
+  [ "$VERDICT_FILE" -ot "$ARM_FLAG" ] || return 0
+
+  archive="${PROJECT_DIR}/.lisa/verification-status.${prior_plan}.json"
+  [ -f "$archive" ] || cp -p "$VERDICT_FILE" "$archive" 2>/dev/null || true
+}
+
+preserve_foreign_verdict
+
 # Set by the v2 path when a claim/evidence violation is what closed the gate,
 # so the block message can state the real reason instead of the v1 fallback.
 V2_BLOCK_REASON=""
