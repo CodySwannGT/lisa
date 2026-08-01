@@ -5,6 +5,23 @@ description: "any non-trivial request —…"
 
 # Implement: $ARGUMENTS
 
+## Routing: `executionEnv` (check this first)
+
+Before anything else — before team orchestration, before reading the input — check `$ARGUMENTS` for an `executionEnv=` parameter.
+
+| Value | What you do |
+| --- | --- |
+| absent, or `executionEnv=local` | Nothing changes. Continue to team orchestration below. |
+| `executionEnv=<surface>` | Invoke `lisa-remote-dispatch` with `$ARGUMENTS`, report what it returns, and **stop**. |
+
+This check comes first because dispatching is the whole job in that case: the remote runs this identical skill from this identical repository, so forming a team locally would duplicate the work you are about to send away.
+
+**Routing only.** `executionEnv` changes *where* the work happens and nothing about *what* happens. Do not vary the lifecycle, the gates, the review obligations, or the evidence requirements based on it. If a behaviour genuinely must differ, encode it here as an explicit branch — never as an unstated assumption in the dispatcher.
+
+`lisa-remote-dispatch` rejects an unknown surface rather than falling back to local. Do not catch that and continue: a silently ignored `executionEnv` runs work locally while the operator believes it went remote, and nothing downstream contradicts that belief.
+
+Dispatch is fire-and-record. It returns a task identifier and exits without polling; that identifier and the recorded ledger entry are the deliverable. Do not wait for the remote task, and do not report the work as complete — report it as dispatched.
+
 ## Orchestration: agent team
 
 Implement is a **team-first** flow. Bug, Build, Improve, and Investigate-Only all compose multiple specialists (Reproduce → debug → fix → review → verify). Single-agent mode is not permitted based on task complexity — the only exception is when no team creation or subagent delegation tool is available in the current runtime (see no-team fallback in the paragraph below).
