@@ -81,6 +81,19 @@ describe("enforce-verification-gate.sh — foreign verdict preservation", () => 
     expect(archived.status).toBe("pass");
   });
 
+  it("does not archive when the prior verdict belongs to the current plan", () => {
+    harness.writeVerdict(verdictForPlan("bce-2"), {
+      stale: true,
+    });
+
+    harness.armSession("s1");
+    harness.stop("s1");
+
+    expect(
+      harness.readProjectFile(".lisa/verification-status.bce-2.json")
+    ).toBeNull();
+  });
+
   it("does not archive when the verdict has no plan to key on", () => {
     harness.writeVerdict(v1Verdict("pass", [PASSING_CRITERION]), {
       stale: true,
@@ -94,6 +107,20 @@ describe("enforce-verification-gate.sh — foreign verdict preservation", () => 
     expect(
       harness.readProjectFile(".lisa/verification-status.undefined.json")
     ).toBeNull();
+  });
+
+  it("does not construct an archive path from an unsafe plan name", () => {
+    harness.writeVerdict(verdictForPlan("../outside"), {
+      stale: true,
+    });
+
+    harness.armSession("s1");
+    harness.stop("s1");
+
+    expect(
+      harness.readProjectFile(".lisa/verification-status.../outside.json")
+    ).toBeNull();
+    expect(harness.readProjectFile("../outside.json")).toBeNull();
   });
 
   it("leaves a fresh verdict alone — it belongs to the current run", () => {
