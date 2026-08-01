@@ -1,0 +1,4 @@
+display_name: "Remote Dispatch"
+short_description: "Route one unit of work to a remote execution surface"
+default_prompt:
+  - "Use $lisa-remote-dispatch: Route one unit of work to a remote execution surface."
