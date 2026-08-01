@@ -43,6 +43,29 @@ Branch on the active runtime and prefer the runtime's native automation listing 
 
 The report must stay repo-scoped: inspect only automations whose names belong to the current repo's Lisa fleet prefix, and do not absorb unrelated automations into the result.
 
+### GitHub Actions loops: check the clock itself
+
+Loops declared with `scheduler: "github-actions"` in `.lisa.config.json` are **not** visible to any runtime-native listing. Inspect them separately, and report a **stopped clock** as a finding in its own right — not merely the absence of recent work.
+
+Three distinct states, all of which look identical from the work side:
+
+| Observation | State | Remediation |
+| --- | --- | --- |
+| Workflow file exists, no `schedule:` trigger | **registered-disabled** | Expected until the production path is proven once. Prove it with a manual dispatch, then set `enabled: true` and regenerate. |
+| `schedule:` present, but no run in well over the declared cadence | **clock stopped** | GitHub **auto-disables scheduled workflows after 60 days of repository inactivity.** Re-enable it in the Actions UI, or push any commit. |
+| Runs firing, none dispatching | **idle** | Healthy. The queue is empty. |
+
+The middle row is the one worth building for. A quiet repository silently stops running its loops and *nothing announces it*, so an unattended factory can be dead for weeks while every individual signal still looks fine. Do not infer health from "no failures"; a clock that never fires produces no failures at all.
+
+```sh
+gh run list --workflow "lisa-<loop>.yml" --limit 5 \
+  --json createdAt,conclusion,event
+```
+
+Compare the newest `schedule`-event run against the declared cron. Absent or far older than the cadence means the clock is the problem, and no amount of inspecting the queue will reveal it.
+
+Also note that GitHub's scheduled triggers are **best-effort**: they are delayed under load, sometimes considerably. Judge against a generous multiple of the cadence rather than flagging a single late tick.
+
 ## What to report
 
 For each expected automation, report:

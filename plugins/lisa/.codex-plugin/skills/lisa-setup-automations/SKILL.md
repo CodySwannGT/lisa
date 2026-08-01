@@ -26,6 +26,75 @@ create them; invoke the runtime's automation tool with the spec below.
 - **Other runtimes** → use the runtime's native recurring-task mechanism. If the runtime has none,
   state that scheduling is unavailable and stop.
 
+## Unattended scheduling: `scheduler: "github-actions"`
+
+Every option above runs on the **workstation**. That is correct when the operator is present, and
+useless when the goal is "fire work off, close the laptop, go to sleep" — a native automation on a
+sleeping machine does not fire.
+
+When a loop declares `scheduler: "github-actions"`, generate a workflow instead of a local routine.
+This is the right shape only in combination with `executionEnv`: the scheduled job becomes a **thin
+dispatcher** that wakes, picks eligible work, submits it to a remote surface, records the identifier,
+and exits. The heavy lifting happens on the remote surface, so the clock needs availability rather
+than power.
+
+```json
+{
+  "automations": {
+    "intake": {
+      "scheduler": "github-actions",
+      "schedule": "17 * * * *",
+      "executionEnv": "codex-cloud",
+      "enabled": false
+    }
+  }
+}
+```
+
+`scheduler` is the pluggable seam. The same declaration generates a GitHub Actions workflow today and
+can register a different mechanism later without touching the loop itself. **Config is the source of
+truth; the workflow is generated from it** — regenerate rather than hand-edit.
+
+```sh
+scripts/generate-workflow.mjs intake --write
+```
+
+### Why GitHub Actions is the default unattended clock
+
+It is already present in every host project, already holds the bootstrap credential, and provides
+cron, concurrency groups, retries, manual dispatch, and an audit trail. Cost is negligible: billing is
+per minute rounded up, and a dispatch-only job finishes in well under one — a nightly loop runs a few
+dollars a year. Note the rounding is **per workflow run**, so batching N dispatches into one run is
+far cheaper than N triggers.
+
+The real cost is the remote task's own consumption, against which the clock is a rounding error.
+
+Rejected: workstation-native automation mechanisms for this purpose — they reintroduce exactly the
+sleeping-laptop problem this option exists to solve.
+
+### Registered disabled
+
+A recurring trigger goes live **only after the exact production path has been proven once for one
+real item.** Registration therefore writes a `workflow_dispatch`-only workflow; enabling adds the
+cron. The generator says so when it writes a disabled loop.
+
+**GitHub auto-disables scheduled workflows after 60 days of repository inactivity.** For an
+unattended factory that is a real trap — a quiet repository silently stops running its loops, and
+nothing announces it. `lisa-automation-status` must treat a stopped clock as a finding.
+
+### What the generated workflow guarantees
+
+- **Never cancels in progress.** Cancelling could kill a dispatch after the remote accepted a task
+  but before its identifier was recorded — irreversible work with nothing to reconcile against, where
+  a retry duplicates it.
+- **Asserts the bootstrap before installing anything**, so a misconfigured secret fails in seconds
+  rather than after a toolchain download.
+- **Persists credential rotation with `if: always()`.** The dispatcher authenticates with a
+  credential that rotates on use, so the replacement must be written back even when the dispatch
+  itself failed. That makes the very first artifact this produces an exercise of the rotating-credential
+  path in `lisa-secrets-access`, not a hypothetical one.
+- **Guards on the repository**, so a fork does not inherit a live clock.
+
 ## Parameters
 
 - `auto-start-prds` (default **true**) — passed as `prd_ready` to the **exploratory-prds**
