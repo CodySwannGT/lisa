@@ -1,0 +1,4 @@
+display_name: "Setup Remote Env"
+short_description: "Provision and verify a remote…"
+default_prompt:
+  - "Use $lisa-setup-remote-env: Provision and verify a remote…."
