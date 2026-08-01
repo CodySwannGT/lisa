@@ -46,8 +46,8 @@ Order matters. The toolchain comes first because the secrets step needs the prov
           "name": "bws",
           "version": "2.1.0",
           "install": "release-zip",
-          "url": "https://github.com/bitwarden/sdk-sm/releases/download/bws-v2.1.0/bws-x86_64-unknown-linux-gnu-2.1.0.zip",
-          "sha256": "ba8233c3a4aee5d43e3c73bbd04d99e9bc5aba13bbbfd06d89b073abe732b860"
+          "url": "https://<vendor>/releases/download/bws-v2.1.0/bws-<platform>-2.1.0.zip",
+          "sha256": "<sha256 published with that exact release>"
         },
         {
           "name": "codex",

@@ -158,14 +158,14 @@ describe("codex argument construction", () => {
 
 describe("task identifier capture", () => {
   it("finds an identifier in surrounding output", () => {
-    const out = "Submitted.\n  task_e_6a6e1cf4a0908321986d61a8c1f96938\nDone.";
-    expect(extractTaskId(out)).toBe("task_e_6a6e1cf4a0908321986d61a8c1f96938");
+    const out = "Submitted.\n  task_e_abababababababababababababababab\nDone.";
+    expect(extractTaskId(out)).toBe("task_e_abababababababababababababababab");
   });
 
   it("finds an identifier embedded in a URL", () => {
     const out =
-      "https://chatgpt.com/codex/tasks/task_e_6a6d73350cfc8321b32762fb";
-    expect(extractTaskId(out)).toBe("task_e_6a6d73350cfc8321b32762fb");
+      "https://chatgpt.com/codex/tasks/task_e_cdcdcdcdcdcdcdcdcdcdcdcd";
+    expect(extractTaskId(out)).toBe("task_e_cdcdcdcdcdcdcdcdcdcdcdcd");
   });
 
   it("returns null when none is present, so the caller can fail the dispatch", () => {
