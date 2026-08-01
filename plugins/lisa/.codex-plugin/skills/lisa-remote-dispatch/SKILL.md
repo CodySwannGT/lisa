@@ -55,6 +55,11 @@ It does **not** poll, wait, or hold anything open. The operator's machine is a l
 
 **A dispatch with no captured task identifier is a failed dispatch**, even when the command exited zero. The identifier is the only durable handle on work that outlives this process; an untracked remote task is worse than none, because nothing can reconcile it and a retry would duplicate it.
 
+Two things about the CLI surface, both verified live on 2026-08-01:
+
+- `codex cloud exec` prints **only the task URL** on success — there is no separate identifier line to parse. The identifier must be extracted from that URL.
+- `codex cloud status` returns status, environment label, and a diff summary — **not the agent's text reply**. So a task cannot report a result back through the CLI, only through an artifact. Reconcile through durable objects (the PR, the diff, the external record), never through what the agent said.
+
 ## Surface options
 
 ```json
@@ -75,7 +80,9 @@ It does **not** poll, wait, or hold anything open. The operator's machine is a l
 
 **`branch` is always passed explicitly.** `codex cloud exec` defaults to the *current* branch, and a dispatcher's incidental checkout state must never decide where work runs.
 
-**`model` goes through `-c`,** because the subcommand has no `--model` flag; the CLI's own help documents `-c model="..."`. Model is vendor-specific while `executionEnv` is routing, so it is scoped under the surface rather than hung off the top level. Resolution order: per-invocation override → project config → environment default.
+**`model` goes through `-c`,** because the subcommand has no `--model` flag; the CLI's own help documents `-c model="..."`. Model is vendor-specific while `executionEnv` is routing, so it is scoped under the surface rather than hung off the top level.
+
+**But do not rely on it to select a Codex Cloud task's model.** Verified by live dispatch on 2026-08-01: `-c model="not-a-real-model-probe-xyz"` was accepted without local validation, submitted, and the task then ran to `READY` successfully. Had the invalid value governed remote execution, the task could not have run. Whether the override fails to propagate or propagates and is ignored is not established — the operational rule is the same either way. **Set the model on the environment itself; treat this field as a hint the surface may disregard.**
 
 Do not invent an abstract tier (`fast` / `deep`) mapped per vendor. That produces confidently wrong mappings when a second surface arrives with an unrelated model lineup. A raw string scoped to the surface that owns it is honest.
 
