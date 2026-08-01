@@ -1,7 +1,7 @@
 ---
 name: lisa-spec-conformance
 description: "Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey assertions, and any explicit deliverables. Builds a coverage matrix mapping each requirement to evidence, flags scope creep separately from misses, and produces a verdict (CONFORMS / PARTIAL / DIVERGES). Runs during the verification phase alongside empirical system verification."
-allowed-tools: ["Read", "Glob", "Grep", "Bash", "Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Read", "Glob", "Grep", "Bash", "Skill"]
 ---
 
 # Spec Conformance: $ARGUMENTS

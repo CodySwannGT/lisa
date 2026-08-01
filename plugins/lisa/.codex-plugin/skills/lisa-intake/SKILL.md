@@ -1,7 +1,7 @@
 ---
 name: lisa-intake
 description: "Vendor-agnostic scanner for…"
-allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-search", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluenceSpaces", "mcp__atlassian__searchConfluenceUsingCql", "mcp__atlassian__getAccessibleAtlassianResources", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getJiraIssue"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Intake: $ARGUMENTS
