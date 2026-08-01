@@ -62,11 +62,11 @@ Dry-run output format:
 
 The `failures` array passes the validator's `Failure details` block through verbatim. Do not re-format `what` or `recommendation` here — those fields are already product-readable per the validator's contract, and re-summarizing risks losing concrete recommendations.
 
-The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJiraIssue`. It also never sets a Notion status — that is the orchestrating skill's responsibility.
+The dry-run mode never writes to JIRA and never writes through any vendor tool directly. It also never sets a Notion status — that is the orchestrating skill's responsibility.
 
 ## Hard Rule: All Writes Go Through `lisa-tracker-write`
 
-**Every JIRA ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa-tracker-write` skill. Never call `mcp__atlassian__createJiraIssue`, `mcp__atlassian__editJiraIssue`, `mcp__atlassian__createIssueLink`, or any other Atlassian write tool directly from this skill or from any sub-agent it spawns.**
+**Every JIRA ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa-tracker-write` skill. Never call a vendor MCP tool or REST endpoint directly from this skill or from any sub-agent it spawns.**
 
 `lisa-tracker-write` enforces gates this skill does not:
 - 3-audience description (Context / Technical Approach / Acceptance Criteria)
@@ -413,7 +413,7 @@ When delegating to agents, provide this context. **The "MUST invoke jira-write-t
 Create JIRA sub-tasks in the [PROJECT] project at [CLOUD_ID].
 
 CRITICAL: For each sub-task, invoke the `lisa-tracker-write` skill via the Skill tool.
-Do NOT call `mcp__atlassian__createJiraIssue` directly. The `lisa-tracker-write` skill
+Do NOT call a vendor MCP tool directly. The `lisa-tracker-write` skill
 enforces required quality gates (Gherkin acceptance criteria, 3-audience description,
 single-repo scope, sign-in/environment fields, post-create verification). Bypassing it
 produces broken tickets that downstream skills (triage, journey, evidence) cannot use.

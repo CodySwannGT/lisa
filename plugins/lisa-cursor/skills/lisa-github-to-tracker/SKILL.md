@@ -81,7 +81,7 @@ The dry-run mode never writes to the destination tracker. It also never modifies
 
 ## Hard Rule: All Writes Go Through `lisa-tracker-write`
 
-**Every ticket created by this skill — every Epic, Story, and Sub-task — MUST be created by invoking the `lisa-tracker-write` shim. Never call `lisa-jira-write-ticket`, `lisa-github-write-issue`, `mcp__atlassian__createJiraIssue`, or `gh issue create` directly from this skill or from any sub-agent it spawns.**
+**Every ticket created by this skill — every Epic, Story, and Sub-task — MUST be created by invoking the `lisa-tracker-write` shim. Never call `lisa-jira-write-ticket`, `lisa-github-write-issue`, any vendor MCP tool, or `gh issue create` directly from this skill or from any sub-agent it spawns.**
 
 `lisa-tracker-write` enforces:
 - Vendor-agnostic dispatch (so a project's destination is one config edit away).
