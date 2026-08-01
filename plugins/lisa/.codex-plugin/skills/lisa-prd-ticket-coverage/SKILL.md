@@ -1,7 +1,7 @@
 ---
 name: lisa-prd-ticket-coverage
 description: "Verifies that every requirement…"
-allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getConfluenceCommentChildren", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # PRD Ticket Coverage Audit: $ARGUMENTS
@@ -14,7 +14,7 @@ allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__cl
 The PRD URL can be a **Notion page URL**, a **Confluence page URL**, a **Linear project URL**, or a **GitHub issue URL**. Detect the vendor from the host:
 
 - `notion.so` / `notion.site` → Notion. Fetch with `mcp__claude_ai_Notion__notion-fetch` (`include_discussions: true`) and `mcp__claude_ai_Notion__notion-get-comments`.
-- Atlassian Confluence host (e.g. `*.atlassian.net/wiki/...`) → Confluence. Fetch with `mcp__atlassian__getConfluencePage`, `mcp__atlassian__getConfluencePageDescendants` (for child epic pages), `mcp__atlassian__getConfluencePageFooterComments`, `mcp__atlassian__getConfluencePageInlineComments`, and `mcp__atlassian__getConfluenceCommentChildren` for nested replies.
+- Atlassian Confluence host (e.g. `*.atlassian.net/wiki/...`) → Confluence. Through `lisa-atlassian-access`, fetch the page, its descendants (for child epic pages), and its footer + inline comments including nested replies. State the operation, not a vendor tool name — the access skill owns substrate selection (`integration-access-layer`).
 - `linear.app` host → Linear. Fetch with `lisa-linear-access operation: get-project` (capture description, labels, state, attached resources), `lisa-linear-access operation: list-documents({projectId})` + `lisa-linear-access operation: get-document` per attached document, `lisa-linear-access operation: list-issues({project})` for sub-issues that act as child epics / user stories, and `lisa-linear-access operation: list-comments({issueId})` per sub-issue for decisions and engineering notes. Comments do not exist on the project itself in the MCP surface — sub-issue comments are the substitute.
 - `github.com` host → GitHub Issues. Fetch with the `gh` CLI (no GitHub MCP — Lisa uses the CLI exclusively for GitHub):
   - `gh issue view <number> --repo <org>/<repo> --json number,title,body,labels,milestone,assignees,author,createdAt,comments,url` for the PRD body and comments.

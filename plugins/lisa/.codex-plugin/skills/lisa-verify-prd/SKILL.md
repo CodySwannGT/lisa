@@ -1,7 +1,7 @@
 ---
 name: lisa-verify-prd
 description: "Initiative-level PRD acceptance…"
-allowed-tools: ["Skill", "Bash", "Read", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
 # PRD-level Verification: $ARGUMENTS
@@ -39,9 +39,11 @@ Detect the vendor from `$ARGUMENTS` the same way `prd-ticket-coverage` / `prd-ba
 |---|---|---|
 | `github.com/<org>/<repo>/issues/<n>` or `<org>/<repo>#<n>` | **GitHub Issues** | `gh` CLI (Lisa uses the CLI exclusively for GitHub — no GitHub MCP) |
 | `linear.app/...` | **Linear** | `lisa-linear-access operation: get-project` / `lisa-linear-access operation: get-issue` |
-| `notion.so` / `notion.site` | **Notion** | `mcp__claude_ai_Notion__notion-fetch` (`include_discussions: true`) |
-| `*.atlassian.net/wiki/...` | **Confluence** | `mcp__atlassian__getConfluencePage` (+ descendants) |
-| JIRA issue key (e.g. `PROJ-123`) or `*.atlassian.net/browse/...` | **JIRA** | `mcp__atlassian__getJiraIssue` |
+| `notion.so` / `notion.site` | **Notion** | `lisa-notion-access` — fetch the page **with its discussions** |
+| `*.atlassian.net/wiki/...` | **Confluence** | `lisa-atlassian-access` — read the page and its descendants |
+| JIRA issue key (e.g. `PROJ-123`) or `*.atlassian.net/browse/...` | **JIRA** | `lisa-atlassian-access` — read the issue (and JQL-search when resolving a set) |
+
+State the operation you need, never a vendor tool name: the access skills own substrate selection, and a hardcoded MCP tool name is not portable. The same server registers under different prefixes depending on install path (`mcp__atlassian__*`, `mcp__claude_ai_Atlassian__*`, `mcp__plugin_atlassian_atlassian__*`), and its data tools register only once OAuth completes — so a named tool fails outright in a context that has the CLI or token substrate available and would otherwise have worked. See the `integration-access-layer` rule.
 
 Read the PRD body via the vendor-appropriate surface. The vendor that owns the PRD source is what Phase 2 reads the child set from; it is independent of which tracker hosts the generated tickets (a Notion PRD can own JIRA tickets — the cross-vendor case is handled by the documented generated-work section in Phase 2).
 
