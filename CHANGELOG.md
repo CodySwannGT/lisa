@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.316.0](https://github.com/CodySwannGT/lisa/compare/v2.315.0...v2.316.0) (2026-08-01)
+
+
+### Features
+
+* **rules:** make every flow report whether the operator is needed ([873af86](https://github.com/CodySwannGT/lisa/commit/873af869cbab58517991f4b0fc568c978f4d2a52)), closes [CodySwannGT/lisa#2144](https://github.com/CodySwannGT/lisa/issues/2144)
+
+
+### Bug Fixes
+
+* **rules:** address flow completion review gaps ([b713907](https://github.com/CodySwannGT/lisa/commit/b713907a44c852cf1ac2c5598422d577510d73c2)), closes [CodySwannGT/lisa#2144](https://github.com/CodySwannGT/lisa/issues/2144) [CodySwannGT/lisa#2144](https://github.com/CodySwannGT/lisa/issues/2144)
+
 ## [2.315.0](https://github.com/CodySwannGT/lisa/compare/v2.314.0...v2.315.0) (2026-07-30)
 
 
