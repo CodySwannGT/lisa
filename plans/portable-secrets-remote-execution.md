@@ -440,15 +440,19 @@ needing an API key MUST route through it; none do. It is referenced only by its 
 1 → 3 → 4 is the critical path to "fire it off and close the laptop." Item 2 can land in parallel
 but gates 5, because the dispatcher itself holds a rotating credential.
 
-## Open unknowns (verify first; none require the owner)
+## Open unknowns
 
-1. **Does Codex Cloud expose a provisioning API?** Determines whether B.4 tier 1 is real or whether
-   we start at computer-use/emit.
-2. **Does Codex Cloud cap concurrent tasks per account?** Bounds useful fan-out. A quota question,
-   not a dollar question.
+1. ~~**Does Codex Cloud expose a provisioning API?**~~ **Answered 2026-08-01: no.** `codex cloud`
+   exposes only `exec | status | list | apply | diff`. B.4 tier 1 is unavailable for this surface, so
+   setup starts at the console/emit tiers and says so rather than claiming an API that does not exist.
+2. **Does Codex Cloud cap concurrent tasks per account?** Still open. Bounds useful fan-out; a quota
+   question, not a dollar question. Needs a live account to answer.
 3. **Does `-c model=` propagate into the Cloud task,** or does the environment's own setting win?
-   The flag documents itself as overriding the *dispatching* machine's `~/.codex/config.toml`. One
-   dispatch settles it.
+   Still open. The flag documents itself as overriding the *dispatching* machine's
+   `~/.codex/config.toml`. One real dispatch settles it; deferred rather than burn quota probing.
+
+Neither remaining unknown blocks anything shipped: both concern tuning a dispatch, not whether one
+works.
 
 ## Repository constraints
 
@@ -464,3 +468,4 @@ but gates 5, because the dispatcher itself holds a rotating credential.
 | Session | Date | Phases | Notes |
 |---------|------|--------|-------|
 | 1 | 2026-08-01 | Research | Audited the proven gunnertech implementation (frontend PRs #119–#169, wiki PRs #250–#253) and Lisa's existing `lisa-secrets-access` (PR #2127); confirmed `codex cloud exec` is fire-and-forget (3–4s) and has no `--model` flag; plan created |
+| 2 | 2026-08-01 | A, A.6, B, C, D, E | Implemented all parts. Verified unknown 1 (no Codex provisioning API). Part A: surfaces/ladder/materialization + rotation with write-scope preflight and provider-held advisory lease. Part B: `lisa-setup-remote-env` with `require`/`install` manifest. Part C: `lisa-remote-dispatch` + `executionEnv` on `lisa-implement`. Part D: `scheduler: "github-actions"` workflow generator + stopped-clock detection. Part E: routed `lisa-atlassian-access` and `lisa-notion-access` through the chokepoint, added `doctor-secrets` and `validate-config`. 123 new tests; full suite green at 477 files / 8185 tests. Two unknowns deferred (concurrency cap, `-c model=` propagation) — both tuning questions, neither blocking |
