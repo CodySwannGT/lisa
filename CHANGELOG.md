@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.316.1](https://github.com/CodySwannGT/lisa/compare/v2.316.0...v2.316.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **skills:** state tracker intent instead of naming vendor MCP tools ([ce01b73](https://github.com/CodySwannGT/lisa/commit/ce01b732908524fdf659531236fe611a2bb91999)), closes [#2144](https://github.com/CodySwannGT/lisa/issues/2144) [CodySwannGT/lisa#2148](https://github.com/CodySwannGT/lisa/issues/2148)
+
 ## [2.316.0](https://github.com/CodySwannGT/lisa/compare/v2.315.0...v2.316.0) (2026-08-01)
 
 
