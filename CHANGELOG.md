@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.316.2](https://github.com/CodySwannGT/lisa/compare/v2.316.1...v2.316.2) (2026-08-01)
+
+
+### Documentation
+
+* **rules:** require reports to say what the reader must act on ([4ac6090](https://github.com/CodySwannGT/lisa/commit/4ac6090793c09e66f967c5c35b4cfdb90ed0b608)), closes [#2145](https://github.com/CodySwannGT/lisa/issues/2145) [CodySwannGT/lisa#2146](https://github.com/CodySwannGT/lisa/issues/2146)
+
 ### [2.316.1](https://github.com/CodySwannGT/lisa/compare/v2.316.0...v2.316.1) (2026-08-01)
 
 
