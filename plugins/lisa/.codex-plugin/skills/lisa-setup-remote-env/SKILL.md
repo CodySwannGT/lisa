@@ -10,16 +10,26 @@ Prepare a remote surface so a host project can execute there. Today that means *
 
 ## What lives where
 
-The remote environment's own configuration fields stay **two one-line calls into the repository**. Nothing is pasted into a vendor UI.
+The remote environment's own configuration fields stay **one line into the repository, preceded by the project's dependency install**. Nothing else is pasted into a vendor UI.
 
 ```text
-setup:       bash scripts/lisa-remote-env/setup.sh
-maintenance: bash scripts/lisa-remote-env/setup.sh
+setup:       <install> && bash scripts/lisa-remote-env/setup.sh
+maintenance: <install> && bash scripts/lisa-remote-env/setup.sh
 ```
 
-They are the same script. A container may be built fresh or resumed from cache; every step is idempotent and version-aware, so running it twice is correct, and running it on resume is what picks up a rotated value, an edited note, or a changed version pin.
+`<install>` is whatever the project already uses — `bun install`, `npm ci`, `pnpm install`. Substitute it; do not invent one.
+
+They are the same command. A container may be built fresh or resumed from cache; every step is idempotent and version-aware, so running it twice is correct, and running it on resume is what picks up a rotated value, an edited note, or a changed version pin.
 
 The complete logic is repository-owned so it is reviewed, versioned, tested, and reusable. A large inline installer in a settings field is none of those things.
+
+### Why the install has to come first
+
+**A clone does not contain the skills on the harnesses that matter here.** OpenCode and Antigravity have them written into the checkout by `lisa apply`. Claude and Codex receive them as an *installed plugin*, which lives in the user's home directory — so a container that has just cloned the repository has never seen it.
+
+`node_modules/@codyswann/lisa` is therefore the only copy present on a fresh container, and it is a good one: it is the version that project pins, which is the version its setup should run. The entrypoint searches the agent directories first and falls back to it.
+
+Omitting the install does not degrade gracefully. The entrypoint exits before the toolchain, secrets, and hook phases have done anything, so the environment looks provisioned and fails on first dispatch.
 
 ## The three phases
 
@@ -110,8 +120,11 @@ When emitting, produce exactly:
 ```text
 Environment name:  <project> remote executor
 Repository:        <org>/<repo>        (must be the default checkout)
-Setup script:      bash scripts/lisa-remote-env/setup.sh
-Maintenance:       bash scripts/lisa-remote-env/setup.sh
+Setup script:      <install> && bash scripts/lisa-remote-env/setup.sh
+Maintenance:       <install> && bash scripts/lisa-remote-env/setup.sh
+                   (<install> is the project's own: bun install, npm ci, ...
+                   It must precede the script — on a fresh container
+                   node_modules is the only copy of the skills present.)
 Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
                    BWS_ACCESS_TOKEN=<from the provider; an environment
                    variable, not a task secret — setup and cache-resume
