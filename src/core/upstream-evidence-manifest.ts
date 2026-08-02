@@ -187,7 +187,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
-      "c0b971d10d40215ea0c0fa1bf1635322ed20ede330306e47e028bae8af03444d",
+      "36ff218f50b41fc1a55d7477245e8554e241e6f42239dfa37083844a3c4183b7",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -315,7 +315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "3743a1e2bcfc879f5250f35206f413b10815f34e20b1d0afce67824579813b5d",
     "nestjs/package-lisa/package.lisa.json":
-      "2ef6fdb6751fcbfbb09d834104159111e4efef0938eca2c11e44539805c005e6",
+      "f54fbe079e12caa89f1b768a851e71cd1c30e37918ca309c50add4379102381d",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "c21af3c31626abfe4dcbfdd42917f7e01753045a1ba6eba87b014e7f8c18db10",
     "npm-package/package-lisa/package.lisa.json":
@@ -2147,7 +2147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
-      "783e2a0a8d7463f4b32a68dae480f051b1814aa404fcbe10c713468d51727568",
+      "f8a793afd505fa3631c1f4b94a360f6873f46c184d0bae103580e92020b1e9d3",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
