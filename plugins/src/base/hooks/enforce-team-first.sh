@@ -51,8 +51,14 @@ TEAM_FLAG="${STATE_DIR}/${SESSION_ID}.team"
 # Best-effort cleanup of stale state files. Errors are ignored.
 find "$STATE_DIR" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
 
+# Lifecycle skills are named with either separator depending on the call path:
+# the Skill tool invokes plugin skills as `lisa:implement` (plugin:skill), while
+# the skill's own slug is `lisa-implement`. Normalize `:` to `-` before matching
+# so BOTH forms resolve — matching only the hyphen form made the "skill load is
+# always allowed" branch below dead code for every real plugin-skill call, which
+# blocked the very Skill call that loads the orchestration preamble.
 is_lifecycle_skill() {
-  case "$1" in
+  case "${1//:/-}" in
     lisa-research|lisa-plan|lisa-implement|lisa-intake|lisa-debrief) return 0 ;;
     *) return 1 ;;
   esac
@@ -200,7 +206,15 @@ If you are running Lisa in a non-Claude harness, this Claude enforcement hook
 should not be installed; follow the runtime-aware orchestration preamble in the
 skill instead.
 
-Re-read the orchestration preamble in /${ACTIVE_SKILL} and start by spawning the
-bounded input-resolver with the \`Agent\` tool.
+Start by spawning the bounded input-resolver with the \`Agent\` tool.
+
+THEN CALL \`Skill\` FOR /${ACTIVE_SKILL} AGAIN. This block is a precondition, not a
+substitute for the skill — nothing in this message replaces its contents. If you
+proceed straight from the input-resolver into the work, you will improvise a
+lifecycle that only resembles the real one: the skill's own steps (auto-merge on
+the PR, driving it to merged, usage accounting, two-way tracker linkage,
+non-closing work-item refs, remote verification, config-bound status
+transitions) are nowhere in this text and will be silently skipped. That failure
+is invisible in the output — the work still looks finished.
 EOF
 exit 2
