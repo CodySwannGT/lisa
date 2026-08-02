@@ -13,7 +13,7 @@
  * token".
  * @module tests/unit/secrets/bootstrap-key-naming
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { providerEnv } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs";
 import { renderWorkflow } from "../../../plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs";
@@ -24,6 +24,9 @@ const SLUGGED = "BWS_ACCESS_TOKEN_tenant";
 /** A distinctive value, so a test can tell a real resolution from an error. */
 const TENANT_TOKEN = "tenant-token";
 
+/** Value used where the configured name is already the canonical one. */
+const DEFAULT_TOKEN = "default-token";
+
 /** The only name the Bitwarden CLI reads. */
 const CANONICAL = "BWS_ACCESS_TOKEN";
 
@@ -32,9 +35,24 @@ const cfgWith = (key: string): Record<string, unknown> => ({
   bootstrap: { sources: ["env"], key },
 });
 
+/**
+ * Variables these tests set, snapshotted so the suite restores whatever the
+ * runner had. Deleting unconditionally would destroy a legitimately-set
+ * BWS_ACCESS_TOKEN in CI and leak that damage into later tests.
+ */
+const MANAGED = [SLUGGED, CANONICAL, "DOPPLER_SLUG"] as const;
+let original: Record<string, string | undefined> = {};
+
+beforeEach(() => {
+  original = Object.fromEntries(MANAGED.map(k => [k, process.env[k]]));
+  for (const key of MANAGED) delete process.env[key];
+});
+
 afterEach(() => {
-  delete process.env[SLUGGED];
-  delete process.env[CANONICAL];
+  for (const key of MANAGED) {
+    if (original[key] === undefined) delete process.env[key];
+    else process.env[key] = original[key];
+  }
 });
 
 describe("provider environment", () => {
@@ -46,8 +64,8 @@ describe("provider environment", () => {
   });
 
   it("still works when the configured name is already the canonical one", () => {
-    process.env[CANONICAL] = "default-token";
-    expect(providerEnv(cfgWith(CANONICAL))[CANONICAL]).toBe("default-token");
+    process.env[CANONICAL] = DEFAULT_TOKEN;
+    expect(providerEnv(cfgWith(CANONICAL))[CANONICAL]).toBe(DEFAULT_TOKEN);
   });
 
   it("maps doppler to its own CLI variable, not Bitwarden's", () => {
@@ -70,13 +88,23 @@ describe("provider environment", () => {
   });
 
   it("does not leak the tenant-scoped name into the child environment", () => {
-    // Only the canonical name should be added. Passing both would let a
-    // consumer bind to the wrong one and mask this class of bug again.
+    // The child must hold exactly one bootstrap variable. Two would let a tool
+    // probing for a similarly-named credential bind to the wrong tenant on a
+    // workstation serving several — the bug this whole change exists to fix,
+    // reintroduced one layer down.
     process.env[SLUGGED] = TENANT_TOKEN;
     const before = { ...process.env };
     const env = providerEnv(cfgWith(SLUGGED));
-    const added = Object.keys(env).filter(k => !(k in before));
-    expect(added).toEqual([CANONICAL]);
+
+    expect(env[CANONICAL]).toBe(TENANT_TOKEN);
+    expect(env[SLUGGED]).toBeUndefined();
+    expect(Object.keys(env).filter(k => !(k in before))).toEqual([CANONICAL]);
+  });
+
+  it("keeps the canonical name when it is also the configured one", () => {
+    // The removal must not delete the very variable it just set.
+    process.env[CANONICAL] = DEFAULT_TOKEN;
+    expect(providerEnv(cfgWith(CANONICAL))[CANONICAL]).toBe(DEFAULT_TOKEN);
   });
 });
 
@@ -89,11 +117,20 @@ describe("generated workflow", () => {
   };
 
   it("templates a tenant-scoped bootstrap through every reference", () => {
+    // Counting matters. The workflow exports the bootstrap in four steps —
+    // assert, setup, dispatch, rotation-persist — and a mutant that leaves the
+    // canonical name in any ONE of them would pass a mere `toContain`, then
+    // fail at 3am on the step nobody checked.
     const yaml = renderWorkflow("intake", { ...loop, bootstrapKey: SLUGGED });
-    expect(yaml).toContain(`${SLUGGED}: \${{ secrets.${SLUGGED} }}`);
+    const mapping = `${SLUGGED}: \${{ secrets.${SLUGGED} }}`;
+    const occurrences = yaml.split(mapping).length - 1;
+
+    expect(occurrences).toBe(4);
     expect(yaml).toContain(`${SLUGGED} is not configured`);
-    // The hardcoded default must not survive anywhere in the rendered file.
+    expect(yaml).toContain(`test -n "\${${SLUGGED}}"`);
+    // The default must not survive anywhere, in any form.
     expect(yaml).not.toContain(`secrets.${CANONICAL} }}`);
+    expect(yaml).not.toContain(`${CANONICAL}:`);
   });
 
   it("falls back to the canonical name when none is configured", () => {
