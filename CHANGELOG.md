@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.4](https://github.com/CodySwannGT/lisa/compare/v2.317.3...v2.317.4) (2026-08-02)
+
+
+### Documentation
+
+* **remote-aws:** the bootstrap bundle belongs in the configured provider ([27db437](https://github.com/CodySwannGT/lisa/commit/27db437404e7a89b2bce6b9b5a86b5aee21bbbb0)), closes [CodySwannGT/lisa#2158](https://github.com/CodySwannGT/lisa/issues/2158)
+
 ### [2.317.3](https://github.com/CodySwannGT/lisa/compare/v2.317.2...v2.317.3) (2026-08-02)
 
 
