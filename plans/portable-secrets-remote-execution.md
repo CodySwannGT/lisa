@@ -445,8 +445,10 @@ but gates 5, because the dispatcher itself holds a rotating credential.
 1. ~~**Does Codex Cloud expose a provisioning API?**~~ **Answered 2026-08-01: no.** `codex cloud`
    exposes only `exec | status | list | apply | diff`. B.4 tier 1 is unavailable for this surface, so
    setup starts at the console/emit tiers and says so rather than claiming an API that does not exist.
-2. **Does Codex Cloud cap concurrent tasks per account?** Still open. Bounds useful fan-out; a quota
-   question, not a dollar question. Needs a live account under load to answer.
+2. ~~**Does Codex Cloud cap concurrent tasks per account?**~~ **Descoped by the owner on
+   2026-08-01 — not worth knowing right now.** It would bound useful fan-out volume, and answering
+   it needs a live account under load rather than a probe. Revisit only if fan-out is actually
+   throttled in practice.
 3. ~~**Does `-c model=` propagate into the Cloud task?**~~ **Answered 2026-08-01 by live dispatch:
    `-c model=` does not govern the Cloud task's model.**
 
@@ -467,8 +469,8 @@ but gates 5, because the dispatcher itself holds a rotating credential.
      reinforces the existing rule: reconcile through durable artifacts (PR, diff, external object),
      never through agent chatter.
 
-The one remaining unknown does not block anything shipped: it concerns tuning fan-out volume, not
-whether a dispatch works.
+No unknowns remain open. Neither of the two raised at planning time blocked anything shipped —
+one was answered by live dispatch, the other deliberately descoped.
 
 ## Repository constraints
 
