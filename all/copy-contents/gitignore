@@ -172,6 +172,22 @@ tasks.json
 **/.claude/scheduled_tasks.lock
 **/.claude/.lisa-plugins-synced
 **/.claude/.lisa-marketplace-heal-v2
+
+# Second agent worktree root. Sessions and loops park isolated checkouts under
+# a bare `.worktrees/` as well as under `.claude/worktrees/`, and each one
+# carries its own node_modules — measured at 102G across 39 worktrees in one
+# host project. Only `.claude/worktrees/` was ever listed here, so the bare root
+# survived on whatever a developer had hand-added to the machine-local,
+# uncommitted `.git/info/exclude` — invisible to every fresh clone.
+#
+# This entry MUST stay above the `### EASINCLUDE! ###` marker below. The Expo
+# `pre-build:eas` script (expo/package-lisa/package.lisa.json) builds .easignore
+# as `cat .gitignore > .easignore && cat .easignore.extra >> .easignore`, and
+# EAS reads .easignore EXCLUSIVELY — so this file is also what keeps agent
+# worktrees out of the build upload archive. Below the marker it would be
+# re-included, and the worktrees land in the tarball: one observed EAS build
+# compressed to a 1.8 GB archive and failed metadata upload with a 400.
+.worktrees/
 .roo
 .roo/
 .roomodes
