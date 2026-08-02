@@ -67,6 +67,14 @@ export function providerEnv(cfg) {
   if (!canonical) return env;
   const token = bootstrapToken(cfg.bootstrap);
   if (token) env[canonical] = token;
+  // Drop the tenant-scoped name once its value has been placed under the one
+  // the CLI reads. Inheriting it would leave two variables holding the same
+  // bootstrap in the child, which is how a tool that probes for a
+  // similarly-named credential binds to the wrong tenant on a workstation
+  // serving several. The child needs exactly one.
+  if (cfg.bootstrap.key && cfg.bootstrap.key !== canonical) {
+    delete env[cfg.bootstrap.key];
+  }
   return env;
 }
 
