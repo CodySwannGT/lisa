@@ -583,7 +583,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/debug-hook.sh":
       "50124ffc72d7914553b0ed259882f2202643cdccf238380675ac1ff6d8d27d05",
     "plugins/src/base/hooks/enforce-team-first.sh":
-      "51d2e929ea6c04e7c7851be7849dd7d3e7cd0c211b4c8fb856e858a51ddeeb58",
+      "104922ba5912b797bf9ce15881dcef76916ea1782ac1e669151265b7db9fb263",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
     "plugins/src/base/hooks/inject-flow-context.sh":
