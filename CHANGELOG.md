@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.7](https://github.com/CodySwannGT/lisa/compare/v2.317.6...v2.317.7) (2026-08-02)
+
+
+### Bug Fixes
+
+* **configs:** register the bare .worktrees/ root with eslint, jest and vitest ([2bf077f](https://github.com/CodySwannGT/lisa/commit/2bf077f75a00515ddc7233b62e93b15fab4838bf)), closes [CodySwannGT/lisa#2165](https://github.com/CodySwannGT/lisa/issues/2165) [CodySwannGT/lisa#2165](https://github.com/CodySwannGT/lisa/issues/2165)
+* **gitignore:** exclude the bare .worktrees/ root from git and EAS ([8724b40](https://github.com/CodySwannGT/lisa/commit/8724b401ab9105910b5cf5bc8a9ff4d52819305c)), closes [CodySwannGT/lisa#2165](https://github.com/CodySwannGT/lisa/issues/2165) [CodySwannGT/lisa#2165](https://github.com/CodySwannGT/lisa/issues/2165)
+
 ### [2.317.6](https://github.com/CodySwannGT/lisa/compare/v2.317.5...v2.317.6) (2026-08-02)
 
 
