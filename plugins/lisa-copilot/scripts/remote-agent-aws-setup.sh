@@ -3,8 +3,14 @@
 # source copied into every generated Lisa agent plugin.
 #
 # Required secret:
-#   LISA_AWS_BOOTSTRAP_JSON  Complete SecretString emitted by cdkstarter's
-#                            remote-agent IAM kit.
+#   LISA_AWS_BOOTSTRAP_JSON  The complete remote-agent bootstrap bundle, as one
+#                            JSON value. cdkstarter's IAM kit emits it, but this
+#                            script neither knows nor cares which store it came
+#                            from — resolve it through lisa-secrets-access like
+#                            any other secret. Note that a project whose
+#                            provider is AWS Secrets Manager cannot keep it
+#                            there: reading it would need the very credential it
+#                            contains.
 # Optional plain variables:
 #   LISA_REMOTE_AGENT       claude | codex | cursor | copilot | agy | opencode
 #   LISA_AWS_DEFAULT_PROFILE  Defaults to dev, then the first available profile.
