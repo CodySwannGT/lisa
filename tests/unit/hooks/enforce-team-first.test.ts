@@ -109,6 +109,40 @@ describe("enforce-team-first.sh", () => {
       preToolUse(LISA_GIT_COMMIT, "Skill", { skill: LISA_GIT_COMMIT });
       expect(existsSync(flagPath(LISA_GIT_COMMIT, "skill"))).toBe(false);
     });
+
+    // Regression: the Skill tool invokes PLUGIN skills as `lisa:implement`
+    // (plugin:skill), not as the `lisa-implement` slug. Matching only the
+    // hyphen form made the "skill load itself is allowed" branch dead code for
+    // every real invocation, so the hook blocked the one call that loads the
+    // orchestration preamble. An agent that hit this could satisfy the gate by
+    // spawning the input-resolver and then proceed to improvise the entire
+    // lifecycle, never having read the skill — a silent failure that looks
+    // exactly like success.
+    it.each([
+      ["lisa:implement", "colon (plugin:skill — what the Skill tool sends)"],
+      ["lisa-implement", "hyphen (skill slug)"],
+    ])("allows and arms the Skill load for %s — %s", skillName => {
+      const sid = `skill-arm-${skillName}`;
+      const { status } = preToolUse(sid, "Skill", { skill: skillName });
+      expect(status).toBe(EXIT_ALLOWED);
+      expect(existsSync(flagPath(sid, "skill"))).toBe(true);
+    });
+
+    // The colon form must survive the arming path too: a user typing
+    // /lisa:implement arms the flag with the colon spelling, so a later Skill
+    // call has to resolve against that same session without being blocked.
+    it("allows the Skill load even after UserPromptSubmit already armed", () => {
+      const sid = "armed-then-skill";
+      armSession(sid, IMPLEMENT_PROMPT);
+      const { status } = preToolUse(sid, "Skill", { skill: "lisa:implement" });
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("still does not arm for the single-agent debrief:apply variant", () => {
+      const sid = "debrief-apply";
+      preToolUse(sid, "Skill", { skill: "lisa:debrief:apply" });
+      expect(existsSync(flagPath(sid, "skill"))).toBe(false);
+    });
   });
 
   describe("blocks bypass tools when armed and team not yet created", () => {
@@ -147,6 +181,11 @@ describe("enforce-team-first.sh", () => {
       // against the implicit-team "one fat agent" collapse.
       expect(stderr).toContain("input-resolver");
       expect(stderr).toContain("Roster Decision");
+      // The block is a PRECONDITION, not a substitute for the skill. Without an
+      // explicit instruction to retry the Skill call, an agent reads the hook
+      // text as having replaced the skill and improvises the lifecycle from it.
+      expect(stderr).toContain("AGAIN");
+      expect(stderr).toContain("precondition, not a");
     });
   });
 
