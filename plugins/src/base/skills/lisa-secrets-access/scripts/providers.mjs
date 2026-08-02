@@ -29,6 +29,48 @@ export const ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export const LEASE_KEY = "LISA_ROTATION_LEASES";
 
 /**
+ * The environment variable each provider's CLI reads its own bootstrap from.
+ *
+ * This is deliberately *not* configurable, and separating it from
+ * `bootstrap.key` is the whole point. Two different questions were previously
+ * answered by one value:
+ *
+ * - **Where do we find the bootstrap?** A keychain service or environment
+ *   variable name. That must be configurable, because one workstation serves
+ *   several tenants and each needs its own token stored under its own name.
+ * - **What does the provider CLI call it?** Fixed by the vendor. `bws` reads
+ *   `BWS_ACCESS_TOKEN` and nothing else.
+ *
+ * Conflating them worked only while every project used the default name, where
+ * the two happen to coincide. The moment a project set
+ * `bootstrap.key: "BWS_ACCESS_TOKEN_<tenant>"` the CLI was handed a variable it
+ * has never heard of and failed with "Missing access token".
+ */
+const PROVIDER_BOOTSTRAP_ENV = {
+  bitwarden: "BWS_ACCESS_TOKEN",
+  doppler: "DOPPLER_TOKEN",
+};
+
+/**
+ * Build the child environment for a provider CLI, injecting the bootstrap under
+ * the name that CLI actually reads.
+ *
+ * Both the read path and the rotation write path need this, and they previously
+ * carried separate copies of the same line — which is how they would eventually
+ * have drifted. One helper, one place to be wrong.
+ * @param {object} cfg Resolved configuration.
+ * @returns {NodeJS.ProcessEnv} Environment for the child process.
+ */
+export function providerEnv(cfg) {
+  const env = { ...process.env };
+  const canonical = PROVIDER_BOOTSTRAP_ENV[cfg.provider];
+  if (!canonical) return env;
+  const token = bootstrapToken(cfg.bootstrap);
+  if (token) env[canonical] = token;
+  return env;
+}
+
+/**
  * Obtain the one credential that unlocks the provider.
  *
  * Walks `sources` in order, environment first, so a CI run where the pipeline
@@ -83,9 +125,7 @@ function fromKeychain(key) {
  * @returns {Array<{key: string, value: string, note: string, projectId: string|null}>} Rows.
  */
 export function fetchRaw(cfg) {
-  const env = { ...process.env };
-  const token = bootstrapToken(cfg.bootstrap);
-  if (cfg.bootstrap.key && token) env[cfg.bootstrap.key] = token;
+  const env = providerEnv(cfg);
 
   if (cfg.provider === "env") {
     return Object.entries(process.env)
@@ -225,9 +265,7 @@ export function rawByKey(cfg, key) {
  * @param {string} value Replacement value.
  */
 export function writeSecret(cfg, id, value) {
-  const env = { ...process.env };
-  const token = bootstrapToken(cfg.bootstrap);
-  if (cfg.bootstrap.key && token) env[cfg.bootstrap.key] = token;
+  const env = providerEnv(cfg);
 
   if (cfg.provider === "bitwarden") {
     run("bws", ["secret", "edit", id, "--value", value], env);

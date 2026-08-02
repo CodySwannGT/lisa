@@ -82,6 +82,18 @@ ${XDG_CONFIG_HOME:-$HOME/.config}/<secrets.namespace>/     # dir 0700
 
 **`bootstrap`** — how to obtain the one credential that unlocks the rest. `sources` is ordered, environment first. This is the **only** credential permitted in a keychain; it is a bootstrap, not a cache.
 
+`bootstrap.key` answers exactly one question: **where do we find it** — the environment variable name and keychain service to look under. It is *not* the name the provider CLI reads. That name is fixed by the vendor (`bws` reads `BWS_ACCESS_TOKEN` and nothing else) and lives in `PROVIDER_BOOTSTRAP_ENV` in `providers.mjs`, which translates one into the other before invoking the CLI.
+
+Keeping these separate is what makes **one workstation serve several tenants**. Give each its own name and each project points at its own:
+
+```json
+"bootstrap": { "sources": ["env", "keychain"], "key": "BWS_ACCESS_TOKEN_acme" }
+```
+
+Conflating them worked only while every project used the default, where the two coincide. The first project to slug its key handed the CLI a variable it had never heard of, and every read and rotation failed with `Missing access token`. If you add a provider, add its canonical variable to that table — do not reach for `bootstrap.key`.
+
+On the GitHub Actions surface the repository secret and the exported environment variable both carry the **configured** name, and the generated workflow templates it. Translating to the CLI's own variable stays in `providers.mjs`.
+
 **`require`** — optional. Omit it and every secret the provider grants is available, which is correct when the provider already scopes access per project. Present, it narrows to exactly those names **and asserts them**: a listed name that does not resolve is a startup error, not a late surprise.
 
 **`narrow`** — may only *narrow* the provider's own grant. There is deliberately no way to widen access from config; that boundary belongs to the provider.

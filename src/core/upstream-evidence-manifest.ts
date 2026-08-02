@@ -1071,7 +1071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "caf105ba5f6c368f60a62421d2ce6d10f6d9e0848e24979edfa8994ac997b9e7",
+      "e7ccac9b7c8e9a9ad61f267de3b121c916b69a495da95eb280f390c33f8e04f6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "aca23d562016bfda30d0ace0f77668edb91e5bcda1bf278036353671c53e9cbc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
       "4b4448cd680a8fe7b1f51bad840c2655f898e9bc08ca06c385cd1d21dca3c3d4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "98b6a21168b40c060a5b9936a67821319aa80f68ddfc4e7d99718df1229aaf73",
+      "83268080e7e5d7ff3726cd245bb4dd38832246360b99c4083e2046644d11430a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "1471d2108058f3059e242f9c71208c99fdbc212bde32de34b798eaa9a27ffbcc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -1101,7 +1101,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
       "3ad004148a54571a50df90f23abec71e8510ef3ea3562ac812f8e2e11beb157a",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
-      "5dbc1c1af852b0c0bd56364c22d9a8ade2637f1c8e8c024c25f2861f1f48856f",
+      "dd1a0999156bbbaf864fc0f1d85206db5ea2ada172ccac2ee11091303e06ff4d",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
@@ -8312,6 +8312,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
+    "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
