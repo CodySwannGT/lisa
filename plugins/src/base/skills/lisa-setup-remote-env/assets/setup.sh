@@ -23,13 +23,26 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-# The skill ships under whichever agent directory this project uses. Search
-# rather than hardcode, so one entrypoint serves every supported harness.
+# Where the skill lives depends on how this project's harness receives it, and
+# the two delivery models differ in a way that matters here.
+#
+# OpenCode and Antigravity get skills written INTO the checkout by `lisa apply`,
+# so a clone already carries them. Claude and Codex receive them as an installed
+# plugin, which lives in the user's home directory and is emphatically NOT part
+# of a clone. A fresh remote container is the second case every time: it clones
+# the repository and has never run a plugin install.
+#
+# So the agent directories are searched first — they are the cheapest hit and
+# need nothing installed — and the npm package is the fallback that makes the
+# plugin-delivered harnesses work at all. Lisa is a dependency of every project
+# it is applied to, so `node_modules` carries the same skill at the version that
+# project pins, which is the version its setup should run.
 runner=""
 for candidate in \
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".agents/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
-  ".codex/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs"; do
+  ".codex/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
+  "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs"; do
   if [ -f "$candidate" ]; then
     runner="$candidate"
     break
@@ -37,8 +50,19 @@ for candidate in \
 done
 
 if [ -z "$runner" ]; then
-  echo "Cannot find the lisa-setup-remote-env skill in this checkout." >&2
-  echo "Run 'lisa apply' so the skills are present, then re-run setup." >&2
+  echo "Cannot find the lisa-setup-remote-env skill." >&2
+  echo >&2
+  echo "Searched the agent skill directories and node_modules. On a remote" >&2
+  echo "container the usual cause is that dependencies have not been installed" >&2
+  echo "yet: Claude and Codex receive Lisa skills as an installed plugin, which" >&2
+  echo "is not part of a clone, so node_modules is the only copy present." >&2
+  echo >&2
+  echo "Install dependencies before this script runs. The environment's setup" >&2
+  echo "command should be the install and this script together, for example:" >&2
+  echo "  bun install && bash scripts/lisa-remote-env/setup.sh" >&2
+  echo >&2
+  echo "If dependencies are installed, run 'lisa apply' so the skills are" >&2
+  echo "present, then re-run setup." >&2
   exit 1
 fi
 
