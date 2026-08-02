@@ -149,7 +149,7 @@ Checked when setup runs, not at 3am:
 
 - the environment exists and is bound to **this** repository as its default checkout;
 - the bootstrap credential resolves;
-- Lisa has been applied to the repository, so its skills are present in that checkout.
+- either a checkout-local Lisa skill is present, or the project dependency install has made the pinned `@codyswann/lisa` package available under `node_modules`.
 
 Fail with a message naming what is missing. Never provision-and-hope.
 
