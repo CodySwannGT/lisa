@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.1](https://github.com/CodySwannGT/lisa/compare/v2.317.0...v2.317.1) (2026-08-01)
+
+
+### Documentation
+
+* **dispatch:** -c model= does not govern a Codex Cloud task model ([0724054](https://github.com/CodySwannGT/lisa/commit/0724054390bcbcfeab3aa9d80dc5cfd48a0f747b)), closes [CodySwannGT/lisa#2152](https://github.com/CodySwannGT/lisa/issues/2152)
+
 ## [2.317.0](https://github.com/CodySwannGT/lisa/compare/v2.316.2...v2.317.0) (2026-08-01)
 
 
