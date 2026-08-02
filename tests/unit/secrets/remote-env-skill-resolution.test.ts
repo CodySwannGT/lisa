@@ -1,0 +1,151 @@
+/**
+ * Regression tests for how the remote-env entrypoint locates its skill.
+ *
+ * The entrypoint originally searched only the three agent skill directories,
+ * on the assumption that a checkout carries the skills. That holds for OpenCode
+ * and Antigravity, where `lisa apply` writes them into the repository, and is
+ * false for Claude and Codex, which receive them as an installed plugin living
+ * in the user's home directory.
+ *
+ * A remote container is always the second case: it clones the repository and
+ * has never run a plugin install. So every Claude or Codex project hit "Cannot
+ * find the lisa-setup-remote-env skill in this checkout" on its first container
+ * and provisioned an environment that failed on first dispatch.
+ *
+ * `node_modules/@codyswann/lisa` is the copy that is present, at the version
+ * the project pins. These tests pin both that it is searched and that the
+ * agent directories still win when they exist.
+ * @module tests/unit/secrets/remote-env-skill-resolution
+ */
+import { spawnSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+const ENTRYPOINT_PATH =
+  "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh";
+
+/**
+ * Absolute, so the interpreter cannot be resolved through a writable PATH
+ * entry. These tests deliberately do not shim PATH, so there is no reason to
+ * take the lookup.
+ */
+const BASH = "/bin/bash";
+
+/** Where the npm package carries the skill on a fresh container. */
+const NODE_MODULES_RUNNER =
+  "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+
+/** The in-checkout location that must keep taking precedence. */
+const CLAUDE_RUNNER =
+  ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+
+/** Distinct markers, so a test can tell which runner actually executed. */
+const NODE_MODULES_MARKER = "ran-from-node-modules";
+const CLAUDE_MARKER = "ran-from-claude-skills";
+
+const temporaryDirectories: string[] = [];
+
+/**
+ * Create and register a disposable project directory.
+ * @returns Absolute path to the disposable directory
+ */
+function temporaryDirectory(): string {
+  const directory = mkdtempSync(path.join(os.tmpdir(), "lisa-remote-env-"));
+  temporaryDirectories.push(directory);
+  return directory;
+}
+
+/**
+ * Plant a stub runner that announces itself and echoes its arguments.
+ * @param root Project directory
+ * @param relativePath Runner location relative to root
+ * @param marker Text the stub prints on stdout
+ */
+function plantRunner(root: string, relativePath: string, marker: string): void {
+  const absolute = path.join(root, relativePath);
+  mkdirSync(path.dirname(absolute), { recursive: true });
+  writeFileSync(
+    absolute,
+    `console.log(${JSON.stringify(marker)});\n` +
+      `console.log(process.argv.slice(2).join(" "));\n`
+  );
+}
+
+/**
+ * Run the entrypoint in a project directory.
+ * @param root Project directory
+ * @param args Arguments forwarded to the entrypoint
+ * @returns The completed process
+ */
+function runEntrypoint(
+  root: string,
+  args: readonly string[] = []
+): ReturnType<typeof spawnSync> {
+  const script = path.join(root, "setup.sh");
+  writeFileSync(script, readFileSync(ENTRYPOINT_PATH, "utf8"));
+  return spawnSync(BASH, [script, ...args], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+describe("remote-env entrypoint skill resolution", () => {
+  it("resolves the runner from node_modules when no agent directory carries it", () => {
+    const root = temporaryDirectory();
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(NODE_MODULES_MARKER);
+  });
+
+  it("prefers an agent skill directory over node_modules", () => {
+    const root = temporaryDirectory();
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    plantRunner(root, CLAUDE_RUNNER, CLAUDE_MARKER);
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(CLAUDE_MARKER);
+    expect(result.stdout).not.toContain(NODE_MODULES_MARKER);
+  });
+
+  it("forwards its arguments to the resolved runner", () => {
+    const root = temporaryDirectory();
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+
+    const result = runEntrypoint(root, ["--dry-run"]);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("--dry-run");
+  });
+
+  it("names the missing dependency install when nothing resolves", () => {
+    const root = temporaryDirectory();
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(1);
+    // The operator's actual next action, not just the symptom. A bare "run
+    // lisa apply" sent them to fix a checkout that was never the problem.
+    expect(result.stderr).toContain("bash scripts/lisa-remote-env/setup.sh");
+    expect(result.stderr).toContain("node_modules");
+  });
+});
