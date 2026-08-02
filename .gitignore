@@ -164,6 +164,10 @@ tasks.json
 **/.claude/scheduled_tasks.lock
 **/.claude/.lisa-plugins-synced
 **/.claude/.lisa-marketplace-heal-v2
+
+# Second agent worktree root — see the full rationale on the same entry in
+# all/copy-contents/gitignore. Must stay above `### EASINCLUDE! ###`.
+.worktrees/
 .roo
 .roo/
 .roomodes

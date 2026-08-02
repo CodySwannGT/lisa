@@ -11,6 +11,7 @@
  * @module configs/vitest/base
  */
 import type { ViteUserConfig } from "vitest/config";
+import { isInsideWorktree } from "../worktrees.js";
 
 /** Vite UserConfig augmented with Vitest's `test` property */
 type UserConfig = ViteUserConfig;
@@ -91,25 +92,29 @@ export const defaultTestExclusions: readonly string[] = [
 ];
 
 /**
- * Returns the worktree exclusion glob a stack config should add to skip
- * test files / coverage that live inside `.claude/worktrees/`.
+ * Returns the worktree exclusion globs a stack config should add to skip
+ * test files / coverage that live inside an agent worktree.
  *
- * Lisa manages `.claude/worktrees/` as scratch worktrees for subagents.
+ * Lisa manages scratch worktrees for subagents under TWO roots —
+ * `.claude/worktrees/` and a bare `.worktrees/` — and both must be covered.
+ * Omitting the second one let sibling worktrees dominate test discovery from
+ * the primary checkout (one host project measured 13,821 of 14,277 collected
+ * files coming from other branches' worktrees), so the local suite reported
+ * other agents' in-flight failures instead of this checkout's.
+ *
  * When vitest runs from the primary checkout, tests inside those worktrees
  * should be skipped — each worktree has its own vitest run. When vitest runs
- * from INSIDE a worktree (the project root *is* the worktree), the same glob
- * matches every path under root and vitest finds zero tests. This returns the
- * glob only when the current working directory is outside a worktree, so each
- * stack factory can spread it into its `exclude` arrays without hand-rolling
+ * from INSIDE a worktree (the project root *is* the worktree), the same globs
+ * match every path under root and vitest finds zero tests. This returns the
+ * globs only when the current working directory is outside a worktree, so each
+ * stack factory can spread them into its `exclude` arrays without hand-rolling
  * the conditional. Mirrors jest's `worktreeTestPathIgnorePatterns()`.
- * @returns Single-entry array with the worktree exclude glob, or an empty array when already inside a worktree.
+ * @returns The worktree exclude globs, or an empty array when already inside a worktree.
  */
 export function worktreeExclusions(): readonly string[] {
-  const isInsideWorktree = /[/\\]\.claude[/\\]worktrees(?:[/\\]|$)/.test(
-    process.cwd()
-  );
-
-  return isInsideWorktree ? [] : ["**/.claude/worktrees/**"];
+  return isInsideWorktree()
+    ? []
+    : ["**/.claude/worktrees/**", "**/.worktrees/**"];
 }
 
 /**
