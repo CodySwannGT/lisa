@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.5](https://github.com/CodySwannGT/lisa/compare/v2.317.4...v2.317.5) (2026-08-02)
+
+
+### Bug Fixes
+
+* **remote-env:** clarify setup skill precondition ([f755cd2](https://github.com/CodySwannGT/lisa/commit/f755cd259d3cf8e0658910116972b1a190b55587)), closes [CodySwannGT/lisa#2160](https://github.com/CodySwannGT/lisa/issues/2160)
+* **remote-env:** resolve the skill from node_modules on a fresh container ([a8fa783](https://github.com/CodySwannGT/lisa/commit/a8fa783cad664ce694e111aede994d51bd4ec7e5)), closes [CodySwannGT/lisa#2160](https://github.com/CodySwannGT/lisa/issues/2160)
+
 ### [2.317.4](https://github.com/CodySwannGT/lisa/compare/v2.317.3...v2.317.4) (2026-08-02)
 
 
