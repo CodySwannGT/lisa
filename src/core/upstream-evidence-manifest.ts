@@ -799,7 +799,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "a0e35ed9222c78bce58097a761204f22d388296656c6f4b5043da547e4dad103",
+      "e3fc922d9b868e0f5a72c7a16a4c32e4a1b3f5278b7c8563648e4f05c49072c5",
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "b4289ec04de657f0eeefaed56939fa171c2f8a11086bd225db39130f4a609e95",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
@@ -1071,7 +1071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "e7ccac9b7c8e9a9ad61f267de3b121c916b69a495da95eb280f390c33f8e04f6",
+      "9d7346864b04304e5b4bbb90512c7f2e701d69ab012b4fcf3b7b687221fc76bd",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "aca23d562016bfda30d0ace0f77668edb91e5bcda1bf278036353671c53e9cbc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
@@ -1117,7 +1117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "f5a1e9290789fd1c33675168d30461fb24a11c98a433ef777c1f536bc2f905ef",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "7a134f6ce7857152076c2a85e0777d88f1f22b0ecfe607dd2fc6f8a286547910",
+      "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "cf0f54c4960c682c5135a5bc9db4701c2e95fec07faf4b041ede80b9cbc61072",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
