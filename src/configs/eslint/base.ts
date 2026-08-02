@@ -45,6 +45,11 @@ export const defaultIgnores = [
   "components/ui/**",
   ".lisabak/**",
   ".claude/worktrees/**",
+  // Second agent worktree root — sibling checkouts also land in a bare
+  // `.worktrees/`. Linting them from the primary checkout reports another
+  // branch's in-flight code as errors here (measured: 1122 in this repo),
+  // which turns the pre-push gate into noise developers push past.
+  ".worktrees/**",
   ".claude-active-project/**",
   ".claude-active-plan/**",
   "coverage/**",

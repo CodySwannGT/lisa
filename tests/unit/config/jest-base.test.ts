@@ -223,6 +223,8 @@ describe("jest.base", () => {
   });
 
   describe("worktreeTestPathIgnorePatterns", () => {
+    const WORKTREE_PATTERNS = ["/.claude/worktrees/", "/.worktrees/"];
+
     const originalCwd = process.cwd;
 
     afterEach(() => {
@@ -232,7 +234,7 @@ describe("jest.base", () => {
     it("returns the worktree ignore pattern when cwd is outside a worktree", () => {
       process.cwd = () => "/some/project";
 
-      expect(worktreeTestPathIgnorePatterns()).toEqual(["/.claude/worktrees/"]);
+      expect(worktreeTestPathIgnorePatterns()).toEqual(WORKTREE_PATTERNS);
     });
 
     it("returns an empty array when cwd is inside a .claude/worktrees path", () => {
@@ -260,10 +262,34 @@ describe("jest.base", () => {
       expect(worktreeTestPathIgnorePatterns()).toEqual([]);
     });
 
+    it("covers the bare .worktrees/ root, not just .claude/worktrees/", () => {
+      process.cwd = () => "/some/project";
+
+      expect(worktreeTestPathIgnorePatterns()).toContain("/.worktrees/");
+    });
+
+    it("returns an empty array when cwd is inside a bare .worktrees path", () => {
+      process.cwd = () => "/some/project/.worktrees/tun-401";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual([]);
+    });
+
+    it("returns an empty array for a Windows-style bare worktree path", () => {
+      process.cwd = () => "C:\\projects\\.worktrees\\tun-401";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual([]);
+    });
+
+    it("does not treat an ordinary directory named worktrees as a worktree", () => {
+      process.cwd = () => "/some/project/docs/worktrees";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual(WORKTREE_PATTERNS);
+    });
+
     it("returns the ignore pattern for a Windows-style path outside a worktree", () => {
       process.cwd = () => "C:\\projects\\my-app";
 
-      expect(worktreeTestPathIgnorePatterns()).toEqual(["/.claude/worktrees/"]);
+      expect(worktreeTestPathIgnorePatterns()).toEqual(WORKTREE_PATTERNS);
     });
   });
 });

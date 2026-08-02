@@ -45,6 +45,17 @@ const PACKAGE_LISA = path.join(
 );
 const EASINCLUDE_MARKER = "### EASINCLUDE! ###";
 
+/** Both the repo's own config and the copy shipped into host projects. */
+const ESLINT_IGNORE_CONFIGS = [
+  path.join(REPO_ROOT, "eslint.ignore.config.json"),
+  path.join(
+    REPO_ROOT,
+    "typescript",
+    "copy-overwrite",
+    "eslint.ignore.config.json"
+  ),
+];
+
 const WORKTREE_ROOTS = [".worktrees/", "**/.claude/worktrees/"];
 
 const BARE_WORKTREE_FILE = ".worktrees/tun-401/node_modules/a.js";
@@ -187,4 +198,17 @@ describe("agent worktree roots are excluded from git and EAS", () => {
     expect(ignored(KEPT_CONFIG)).toBe(false);
     expect(ignored(KEPT_SOURCE)).toBe(false);
   });
+
+  it.each(ESLINT_IGNORE_CONFIGS)(
+    "ignores both worktree roots in %s",
+    configPath => {
+      // Linting sibling worktrees from the primary checkout reports another
+      // branch's in-flight code as errors, which fails the pre-push gate on
+      // work the developer never touched. CI has no worktrees, so this is
+      // invisible there — the local gate is the only place it shows up.
+      const { ignores } = fs.readJsonSync(configPath);
+      expect(ignores).toContain(".claude/worktrees/**");
+      expect(ignores).toContain(".worktrees/**");
+    }
+  );
 });

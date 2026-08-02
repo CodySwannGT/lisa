@@ -2071,7 +2071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.config.ts":
       "2959e30c73c191279c1d68d816bb66654e3dd857cf871dcc265c3a0610fe502a",
     "typescript/copy-overwrite/eslint.ignore.config.json":
-      "54739e51ce09c314fe01d8a3919e6db5d48cbfb63dcba957f8aca6eba6229a9b",
+      "04dcd754829cf93bf0ba0d76e4031d28cb7149afa658575d02bb13bf73f7880e",
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "f66d04381940936544931d7f20ffd4e43c38b8a907d56ffa101e2236371d8c94",
     "typescript/copy-overwrite/knip.json":
@@ -7778,6 +7778,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/nestjs.ts": true,
     "src/configs/vitest/phaser.ts": true,
     "src/configs/vitest/typescript.ts": true,
+    "src/configs/worktrees.ts": true,
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
     "src/core/bootstrap-environment.ts": true,
@@ -8388,6 +8389,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-vendor-preflight.test.ts": true,
     "tests/unit/strategies/doctor-wiki-delegation.test.ts": true,
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
+    "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/evidence-ref-contract.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
