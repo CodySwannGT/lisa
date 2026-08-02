@@ -44,6 +44,10 @@ export function readAutomation(name, cwd = process.cwd()) {
   return {
     ...loop,
     repository: cfg.remoteEnv?.surfaces?.[loop.executionEnv]?.repository,
+    // Where this project keeps its bootstrap. A workstation serving several
+    // tenants gives each its own name, so the generated workflow must template
+    // it rather than assume the default.
+    bootstrapKey: cfg.secrets?.bootstrap?.key ?? "BWS_ACCESS_TOKEN",
   };
 }
 
@@ -70,6 +74,11 @@ export function readAutomation(name, cwd = process.cwd()) {
  */
 export function renderWorkflow(name, loop) {
   if (!loop.schedule) throw new Error(`automations["${name}"] has no schedule`);
+  // The repository secret and the environment variable carry the same name, so
+  // the value the workflow exports is the one `bootstrap.key` tells the resolver
+  // to look for. Translating it to the provider CLI's own variable is
+  // providers.mjs's job, not this workflow's.
+  const bootstrap = loop.bootstrapKey ?? "BWS_ACCESS_TOKEN";
   if (!loop.repository) {
     throw new Error(
       `automations["${name}"] targets executionEnv "${loop.executionEnv}", ` +
@@ -118,22 +127,22 @@ jobs:
       # seconds rather than after a toolchain download.
       - name: Check the bootstrap credential is configured
         env:
-          BWS_ACCESS_TOKEN: \${{ secrets.BWS_ACCESS_TOKEN }}
+          ${bootstrap}: \${{ secrets.${bootstrap} }}
         run: |
           set -euo pipefail
-          test -n "\${BWS_ACCESS_TOKEN}" || {
-            echo "BWS_ACCESS_TOKEN is not configured for this repository" >&2
+          test -n "\${${bootstrap}}" || {
+            echo "${bootstrap} is not configured for this repository" >&2
             exit 1
           }
 
       - name: Prepare the toolchain and secrets
         env:
-          BWS_ACCESS_TOKEN: \${{ secrets.BWS_ACCESS_TOKEN }}
+          ${bootstrap}: \${{ secrets.${bootstrap} }}
         run: bash scripts/lisa-remote-env/setup.sh
 
       - name: Run one ${name} cycle
         env:
-          BWS_ACCESS_TOKEN: \${{ secrets.BWS_ACCESS_TOKEN }}
+          ${bootstrap}: \${{ secrets.${bootstrap} }}
         run: |
           set -euo pipefail
           node .claude/skills/lisa-remote-dispatch/scripts/dispatch.mjs \\
@@ -145,7 +154,7 @@ jobs:
       - name: Persist any credential rotation
         if: \${{ always() }}
         env:
-          BWS_ACCESS_TOKEN: \${{ secrets.BWS_ACCESS_TOKEN }}
+          ${bootstrap}: \${{ secrets.${bootstrap} }}
         run: |
           set -euo pipefail
           node .claude/skills/lisa-secrets-access/scripts/rotate-secret.mjs leases
