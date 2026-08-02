@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.2](https://github.com/CodySwannGT/lisa/compare/v2.317.1...v2.317.2) (2026-08-02)
+
+
+### Documentation
+
+* **plan:** close out the last open unknown as descoped ([7b03239](https://github.com/CodySwannGT/lisa/commit/7b03239b38dca211fa90e9ee7d3240dfc1759d25)), closes [CodySwannGT/lisa#2154](https://github.com/CodySwannGT/lisa/issues/2154)
+
 ### [2.317.1](https://github.com/CodySwannGT/lisa/compare/v2.317.0...v2.317.1) (2026-08-01)
 
 
