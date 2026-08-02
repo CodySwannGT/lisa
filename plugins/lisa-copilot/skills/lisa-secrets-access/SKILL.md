@@ -198,6 +198,13 @@ Values never enter that process, so its output cannot leak one even if logged.
 | `aws` | `aws secretsmanager get-secret-value --secret-id <name>` | not implemented |
 | `vault` | `vault kv get -field=<name> <path>` | not implemented |
 
+**A provider cannot hold its own bootstrap.** With `provider: "aws"`, reading any
+secret needs AWS credentials — so the AWS bootstrap bundle
+(`LISA_AWS_BOOTSTRAP_JSON`, see `lisa-setup-remote-aws`) cannot live there:
+resolving it would require the very credential it contains. Keep that one in a
+different provider. The same applies to any provider whose own access key is a
+secret you would otherwise store inside it.
+
 Unimplemented providers fail with a message naming where to add them, rather than failing obscurely. Do not claim support that does not exist.
 
 Cache **in-process only**. Never write a resolved value to disk except through the materialization contract above.
