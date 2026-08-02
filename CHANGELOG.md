@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.3](https://github.com/CodySwannGT/lisa/compare/v2.317.2...v2.317.3) (2026-08-02)
+
+
+### Bug Fixes
+
+* **secrets:** give the child exactly one bootstrap variable ([c3a9e50](https://github.com/CodySwannGT/lisa/commit/c3a9e506b7d519bbad1db6dccc17b9f6b46b3cd2)), closes [CodySwannGT/lisa#2156](https://github.com/CodySwannGT/lisa/issues/2156)
+* **secrets:** separate where the bootstrap lives from what the CLI calls it ([d30df07](https://github.com/CodySwannGT/lisa/commit/d30df07901327afcc6e85aad2a25758d4ba7432d)), closes [CodySwannGT/lisa#2156](https://github.com/CodySwannGT/lisa/issues/2156)
+
 ### [2.317.2](https://github.com/CodySwannGT/lisa/compare/v2.317.1...v2.317.2) (2026-08-02)
 
 
