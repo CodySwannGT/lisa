@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.317.6](https://github.com/CodySwannGT/lisa/compare/v2.317.5...v2.317.6) (2026-08-02)
+
+
+### Bug Fixes
+
+* **hooks:** allow the Skill call that loads a lifecycle skill ([15abacb](https://github.com/CodySwannGT/lisa/commit/15abacba31dd40ef3515fe9d2d5521d80a9903e7)), closes [CodySwannGT/lisa#2163](https://github.com/CodySwannGT/lisa/issues/2163)
+
 ### [2.317.5](https://github.com/CodySwannGT/lisa/compare/v2.317.4...v2.317.5) (2026-08-02)
 
 
