@@ -32,6 +32,7 @@
     ".lisabak/**",
     ".codex/**",
     ".claude/worktrees/**",
+    ".worktrees/**",
     ".claude-active-project/**",
     ".claude-active-plan/**",
     "coverage/**",
