@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.321.0](https://github.com/CodySwannGT/lisa/compare/v2.320.0...v2.321.0) (2026-08-03)
+
+
+### Features
+
+* **remote-env:** pin the cloud environment per project ([eb65dfa](https://github.com/CodySwannGT/lisa/commit/eb65dfa351683bfc5e970bbbadb06b4b3e3d9cf3)), closes [CodySwannGT/lisa#2175](https://github.com/CodySwannGT/lisa/issues/2175)
+
+
+### Bug Fixes
+
+* **remote-env:** install the scripts a remote environment invokes ([58cb356](https://github.com/CodySwannGT/lisa/commit/58cb3567606f1e4e12ecd0110290602599a5d32e)), closes [CodySwannGT/lisa#2175](https://github.com/CodySwannGT/lisa/issues/2175)
+
+
+### Documentation
+
+* **plan:** record that no flag selects a cloud environment ([9366a32](https://github.com/CodySwannGT/lisa/commit/9366a32c5a4b9da1b919e4b401b9d3ccc9402b56)), closes [CodySwannGT/lisa#2175](https://github.com/CodySwannGT/lisa/issues/2175)
+
 ## [2.320.0](https://github.com/CodySwannGT/lisa/compare/v2.319.0...v2.320.0) (2026-08-03)
 
 
