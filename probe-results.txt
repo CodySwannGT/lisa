@@ -1,0 +1,62 @@
+Remote environment probe results
+Collected: 2026-08-03
+Diagnostic only — no project files were changed and no repairs were attempted.
+
+================================================================================
+(a) Entire contents of /tmp/lisa-probe.txt
+================================================================================
+PWD=/home/user
+--- cwd ---
+total 12
+drwxr-xr-x  3 root root 4096 Aug  3 16:51 .
+drwxr-xr-x  5 root root 4096 Aug  3 16:51 ..
+drwxr-xr-x 42 root root 4096 Aug  3 16:51 lisa
+--- /workspace ---
+
+(End of file. The "--- /workspace ---" section header is present with no
+content following it, verbatim as found.)
+
+================================================================================
+(b) Output of: uname -m
+================================================================================
+x86_64
+
+================================================================================
+(c) First 3 lines of /etc/os-release
+================================================================================
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+
+================================================================================
+(d) Environment variable values
+================================================================================
+CLAUDE_CODE_REMOTE=true
+GH_TOKEN=proxy-injected
+
+(Note: GH_TOKEN's literal value is the string "proxy-injected" — a placeholder,
+not a credential. Both variables are set.)
+
+================================================================================
+(e) Output of: command -v bun node bws git
+================================================================================
+/root/.bun/bin/bun
+/opt/node22/bin/node
+/usr/bin/git
+
+(Note: `bws` produced no line — it is NOT on PATH. `command -v` exited 1.
+bun, node, and git resolved as shown.)
+
+================================================================================
+(f) Current working directory
+================================================================================
+/home/user/lisa
+
+================================================================================
+(g) Output of: ls -la scripts/lisa-remote-env
+================================================================================
+total 16
+drwxr-xr-x 2 root root 4096 Aug  3 16:51 .
+drwxr-xr-x 5 root root 4096 Aug  3 16:51 ..
+-rwxr-xr-x 1 root root 1449 Aug  3 16:51 session-start.sh
+-rwxr-xr-x 1 root root 3325 Aug  3 16:51 setup.sh
