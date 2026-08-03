@@ -162,6 +162,18 @@ It reads the project's own install command from its lockfile and the bootstrap n
 - **`gh` is not pre-installed.** If the project's flows shell out to it, add it to `remoteEnv.tools.install`, pinned and checksummed like anything else.
 - **A proxied credential reads as the literal string `proxy-injected`.** Tools that authenticate through the GitHub proxy work; a script that reads the variable directly gets the placeholder. The read-back asserts this rather than leaving it to be discovered against a live service.
 
+### One environment per project, pinned locally
+
+An environment is **not** bound to a repository — the repository arrives per session, and one environment is technically reusable across all of them. Give each project its own anyway, because an environment's *contents* are project-shaped: its setup script is a repository-relative path and its bootstrap is scoped to that project's secrets. Pointing one project's session at another's environment runs a setup script that may not exist there, and a setup script that exits non-zero means the session never starts.
+
+`/remote-env` writes `remote.defaultEnvironmentId` into **user** settings, which is one value for the whole machine — wrong as soon as a developer has two projects. Pin it per project instead:
+
+```sh
+node scripts/setup-remote-env.mjs --install --pin-env=<environment-id>
+```
+
+That writes `.claude/settings.local.json`, which outranks user settings and is gitignored — correct on both counts, since an environment belongs to one developer's account and is meaningless in someone else's checkout. Existing keys in that file are merged, not replaced; it commonly holds permission grants worth keeping.
+
 **Only the bootstrap belongs in the environment-variable box.** Values there are stored as plain text and are readable by anyone who uses the environment — on an organization-shared environment, that is every member of the organization. Everything else is materialized by the session-start hook. There is no dedicated secrets store on this surface, and personal versus shared environments cannot be told apart programmatically, so this one is a rule the operator upholds rather than something the tooling can enforce.
 
 ## Verification is tier-independent

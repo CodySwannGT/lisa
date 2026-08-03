@@ -13,7 +13,9 @@
  */
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -27,6 +29,7 @@ import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/s
 import {
   detectInstallCommand,
   installAssets,
+  pinEnvironment,
   probe,
   emitClaudeWeb,
   selectPhases,
@@ -167,6 +170,55 @@ describe("asset installation", () => {
     writeFileSync(target, "#!/usr/bin/env bash\nexit 0\n");
     const written = installAssets(root);
     expect(written.find(w => w.name === SETUP)?.action).toBe("written");
+  });
+});
+
+describe("environment pinning", () => {
+  const LOCAL_SETTINGS = path.join(".claude", "settings.local.json");
+  let root: string;
+
+  const readSettings = (): Record<string, never> =>
+    JSON.parse(readFileSync(path.join(root, LOCAL_SETTINGS), "utf8"));
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), "lisa-pin-"));
+  });
+
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+  it("writes the id where it outranks the machine-wide default", () => {
+    // `/remote-env` stores one value for the whole machine, which is wrong the
+    // moment a developer has two projects: an environment's setup script is a
+    // repository-relative path, so the wrong one fails to start a session.
+    expect(pinEnvironment("env_abc123", root)).toContain(LOCAL_SETTINGS);
+    expect(readSettings()).toEqual({
+      remote: { defaultEnvironmentId: "env_abc123" },
+    });
+  });
+
+  it("preserves settings the developer already accumulated", () => {
+    mkdirSync(path.join(root, ".claude"), { recursive: true });
+    writeFileSync(
+      path.join(root, LOCAL_SETTINGS),
+      JSON.stringify({ permissions: { allow: ["Bash(ls:*)"] } })
+    );
+    pinEnvironment("env_xyz", root);
+    expect(readSettings()).toEqual({
+      permissions: { allow: ["Bash(ls:*)"] },
+      remote: { defaultEnvironmentId: "env_xyz" },
+    });
+  });
+
+  it("replaces only the environment id, leaving sibling remote keys", () => {
+    mkdirSync(path.join(root, ".claude"), { recursive: true });
+    writeFileSync(
+      path.join(root, LOCAL_SETTINGS),
+      JSON.stringify({ remote: { defaultEnvironmentId: "old", other: 1 } })
+    );
+    pinEnvironment("new", root);
+    expect(readSettings()).toEqual({
+      remote: { defaultEnvironmentId: "new", other: 1 },
+    });
   });
 });
 
