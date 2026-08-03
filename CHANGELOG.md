@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.318.0](https://github.com/CodySwannGT/lisa/compare/v2.317.7...v2.318.0) (2026-08-03)
+
+
+### Features
+
+* **ci:** audit force-pinned security floors against the advisory database ([86b972a](https://github.com/CodySwannGT/lisa/commit/86b972aaed98b7fef0f594d539251c5a4c2bec34)), closes [#2168](https://github.com/CodySwannGT/lisa/issues/2168) [CodySwannGT/lisa#2169](https://github.com/CodySwannGT/lisa/issues/2169)
+
+
+### Bug Fixes
+
+* **ci:** address security floor review ([3d3e4e3](https://github.com/CodySwannGT/lisa/commit/3d3e4e3b433a70152270bb6f0d07ce4cdcd767f3)), closes [CodySwannGT/lisa#2169](https://github.com/CodySwannGT/lisa/issues/2169) [CodySwannGT/lisa#2169](https://github.com/CodySwannGT/lisa/issues/2169)
+* **deps:** raise three stale force-pinned security floors ([3144284](https://github.com/CodySwannGT/lisa/commit/31442845722cc0fd810c887fe970aa3ef2009497)), closes [CodySwannGT/lisa#2167](https://github.com/CodySwannGT/lisa/issues/2167)
+
 ### [2.317.7](https://github.com/CodySwannGT/lisa/compare/v2.317.6...v2.317.7) (2026-08-02)
 
 
