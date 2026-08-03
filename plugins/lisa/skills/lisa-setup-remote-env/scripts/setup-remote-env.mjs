@@ -37,7 +37,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { assertPinned, extractVersion, planToolchain } from "./toolchain.mjs";
@@ -197,12 +197,41 @@ function applyToolchain(tools, dryRun) {
   mkdirSync(binDir, { recursive: true, mode: 0o755 });
   const byName = new Map((tools.install ?? []).map(t => [t.name, t]));
 
+  // Installing a binary somewhere nothing looks is the same as not installing
+  // it. `~/.local/bin` is on PATH by default on a developer workstation and is
+  // NOT on a minimal container, so the toolchain step reported `install bws`,
+  // the file landed at ~/.local/bin/bws mode 755, and the very next step died
+  // with `spawnSync bws ENOENT`.
+  //
+  // This was invisible in every local test because a workstation shell already
+  // exports the directory — the environment doing the hiding was the one used
+  // to verify the fix.
+  //
+  // Prepended, not appended: a pinned-and-checksummed binary must win over
+  // whatever an image happens to ship under the same name.
+  if (!pathContains(binDir)) {
+    process.env.PATH = `${binDir}${delimiter}${process.env.PATH ?? ""}`;
+  }
+
   for (const step of plan) {
     console.log(`  ${step.action.padEnd(8)} ${step.reason}`);
     if (step.action === "install" && !dryRun)
       installTool(byName.get(step.name), binDir);
   }
   return plan;
+}
+
+/**
+ * Whether a directory is already on PATH.
+ *
+ * Compared entry by entry rather than by substring: a substring test would
+ * consider `/root/.local/bin` present because `/root/.local/bin/extra` is, and
+ * would then skip the prepend that makes the tool findable.
+ * @param {string} dir Directory to look for.
+ * @returns {boolean} True when PATH already contains exactly that entry.
+ */
+export function pathContains(dir, path = process.env.PATH ?? "") {
+  return path.split(delimiter).filter(Boolean).includes(dir);
 }
 
 /**
