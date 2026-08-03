@@ -416,6 +416,28 @@ function resolveBearerToken(block) {
   }
 }
 
+/**
+ * How each agent spells "run this skill".
+ *
+ * Codex invokes a skill with `$name`, Claude with `/name`. The prefix is the
+ * whole invocation: get it wrong and the agent reads a sentence that merely
+ * mentions a skill rather than a command that runs one — and being a capable
+ * model it will often do *something*, which is worse than failing, because the
+ * run looks successful while executing none of the skill's contract.
+ *
+ * Nothing downstream catches it either. The routine accepts any text, so the
+ * dispatch succeeds, a session identifier is recorded, and the ledger says the
+ * work was handed off. Only reading the session shows otherwise.
+ * @param {string} surface Execution surface.
+ * @param {string} skill Skill slug, without a prefix.
+ * @param {string} rest The payload the skill is invoked with.
+ * @returns {string} The thin invocation to send.
+ */
+export function buildInvocation(surface, skill, rest) {
+  const prefix = surface === "claude-web" ? "/" : "$";
+  return `${prefix}${skill} ${rest}`.trim();
+}
+
 async function main() {
   const { skill, raw } = splitSkillFlag(process.argv.slice(2));
   const { params, rest } = parseInvocation(raw);
@@ -432,7 +454,7 @@ async function main() {
   // The invocation stays thin on purpose. Every durable instruction lives in
   // the repository-local skill, so an interactive run, a scheduled run, and a
   // recovery run all execute one contract.
-  const prompt = `$${skill} ${rest}`.trim();
+  const prompt = buildInvocation(surface, skill, rest);
 
   if (surface === "claude-web") {
     const { sessionId, url } = await dispatchClaudeWeb(block, prompt, rest);
