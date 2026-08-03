@@ -23,6 +23,18 @@ case "$script_dir" in
     ;;
 esac
 
+# Node is the one thing that cannot be installed by the installer, since the
+# installer is written in it. Checked before the dependency install rather than
+# after: every package manager below is itself a node program, so a missing node
+# would otherwise surface as that manager failing under `set -e`, and the script
+# would exit on a confusing error instead of this actionable one.
+if ! command -v node >/dev/null 2>&1; then
+  echo "node is required to prepare this environment but is not present." >&2
+  echo "It cannot be installed by the toolchain step, because that step runs" >&2
+  echo "on node. Pin a base image that provides it." >&2
+  exit 1
+fi
+
 # Install the project's dependencies, unless the caller already did.
 #
 # This lives here rather than in the vendor's settings field so that field can
@@ -40,7 +52,15 @@ esac
 if [ "${LISA_SKIP_INSTALL:-}" != "1" ] && [ ! -d node_modules ]; then
   if [ -f bun.lock ] || [ -f bun.lockb ]; then install_cmd="bun install"
   elif [ -f pnpm-lock.yaml ]; then install_cmd="pnpm install --frozen-lockfile"
-  elif [ -f yarn.lock ]; then install_cmd="yarn install --immutable"
+  elif [ -f yarn.lock ]; then
+    # Yarn Classic and Berry spell the same intent differently, and each
+    # rejects the other's flag. The lockfile itself says which is in use:
+    # Yarn 1 writes a "# yarn lockfile v1" header, Berry does not.
+    if head -5 yarn.lock | grep -q "yarn lockfile v1"; then
+      install_cmd="yarn install --frozen-lockfile"
+    else
+      install_cmd="yarn install --immutable"
+    fi
   elif [ -f package-lock.json ]; then install_cmd="npm ci"
   else install_cmd=""
   fi
@@ -69,16 +89,6 @@ if [ "${LISA_SKIP_INSTALL:-}" != "1" ] && [ ! -d node_modules ]; then
     # skill in a checkout directory, so let the resolver below decide.
     echo "No lockfile found; skipping dependency install." >&2
   fi
-fi
-
-# Node is the one thing that cannot be installed by the installer, since the
-# installer is written in it. Fail with an actionable message rather than a
-# "command not found" forty lines deep.
-if ! command -v node >/dev/null 2>&1; then
-  echo "node is required to prepare this environment but is not present." >&2
-  echo "It cannot be installed by the toolchain step, because that step runs" >&2
-  echo "on node. Pin a base image that provides it." >&2
-  exit 1
 fi
 
 # Where the skill lives depends on how this project's harness receives it, and
