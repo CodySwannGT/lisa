@@ -244,6 +244,45 @@ export function fetchAll(cfg) {
 }
 
 /**
+ * The provider view the rotation path reads.
+ *
+ * `excludeKeys` keeps a credential off a **surface's disk**. Applying it here
+ * too hid the provider record, making `rotating` and `excludeKeys` mutually
+ * exclusive — and a credential you cannot see is one you cannot write back to.
+ * That is backwards for a consumable credential: the kind you least want
+ * materialized is the kind that most needs a proven write path.
+ *
+ * Nothing here materializes anything. `fetchAll` remains the only view feeding
+ * a surface, so an excluded rotating credential still never reaches disk.
+ * @param {object} cfg Resolved configuration.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets by name.
+ */
+export function fetchRotatable(cfg) {
+  return normalizeRows(fetchRaw(cfg), rotationNarrow(cfg));
+}
+
+/**
+ * Narrowing for the rotation view: project grants intact, `excludeKeys` waived
+ * for declared rotating names only.
+ *
+ * The waiver reaches only names in `secrets.rotating` — config, and therefore
+ * reviewed, the same declared-never-inferred rule the write path enforces.
+ * Project narrowing is the provider's own boundary and is never widened. Split
+ * from {@link fetchRotatable} so the decision is testable without a provider.
+ * @param {object} cfg Resolved configuration.
+ * @returns {{projectIds: string[], excludeKeys: string[]}} Narrowing controls.
+ */
+export function rotationNarrow(cfg) {
+  const rotating = new Set(cfg.rotating ?? []);
+  return {
+    projectIds: cfg.narrow?.projectIds ?? [],
+    excludeKeys: (cfg.narrow?.excludeKeys ?? []).filter(
+      key => !rotating.has(key)
+    ),
+  };
+}
+
+/**
  * Find one raw row by exact key, bypassing the exposure boundary.
  *
  * Only the rotation path uses this, and only to reach the lease record, which

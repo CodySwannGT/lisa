@@ -30,7 +30,12 @@
 import { readFileSync } from "node:fs";
 import { hostname } from "node:os";
 
-import { LEASE_KEY, fetchAll, rawByKey, writeSecret } from "./providers.mjs";
+import {
+  LEASE_KEY,
+  fetchRotatable,
+  rawByKey,
+  writeSecret,
+} from "./providers.mjs";
 import { readConfig } from "./surfaces.mjs";
 
 /** How long a lease is honoured before it is treated as abandoned. */
@@ -63,7 +68,10 @@ function assertRotating(name, cfg) {
  * @returns {{value: string, id: string}} The current entry.
  */
 function entryFor(name, cfg) {
-  const hit = fetchAll(cfg).get(name);
+  // Rotation view, not the materialization view: a name may be excluded from
+  // every surface and still need its replacement persisted. assertRotating has
+  // already proved this name is declared in config.
+  const hit = fetchRotatable(cfg).get(name);
   if (!hit) throw new Error(`${name} is not available to this account`);
   if (!hit.id) {
     throw new Error(
