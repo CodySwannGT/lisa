@@ -161,6 +161,8 @@ It reads the project's own install command from its lockfile and the bootstrap n
 
 - **`gh` is not pre-installed.** If the project's flows shell out to it, add it to `remoteEnv.tools.install`, pinned and checksummed like anything else.
 - **A proxied credential reads as the literal string `proxy-injected`.** Tools that authenticate through the GitHub proxy work; a script that reads the variable directly gets the placeholder. The read-back asserts this rather than leaving it to be discovered against a live service.
+- **The setup field runs from `$HOME`, not from the checkout.** The emitted setup command starts with `cd <repo-name>` on purpose; without it the package install runs one directory above the clone and cannot find `package.json`.
+- **Trusted network access is not enough for provider CLIs.** Use Custom and include package registries, GitHub, cloud SDK hosts, and the bootstrap credential manager API.
 
 ### One environment per project, pinned locally
 

@@ -37,7 +37,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { assertPinned, extractVersion, planToolchain } from "./toolchain.mjs";
@@ -337,11 +337,12 @@ export function pinEnvironment(environmentId, cwd = process.cwd()) {
  * settings page, no direct URL, and no endpoint. Emit is not a degraded option
  * here, it is the only one — so the read-back in `verify-remote-env.mjs` is
  * what makes the result trustworthy, exactly as it would be at any other tier.
- * @param {{bootstrapKey: string|null, install: string}} options Project details.
+ * @param {{bootstrapKey: string|null, install: string, repoDir?: string}} options Project details.
  * @returns {string} Text to show the operator.
  */
-export function emitClaudeWeb({ bootstrapKey, install }) {
+export function emitClaudeWeb({ bootstrapKey, install, repoDir = "lisa" }) {
   const key = bootstrapKey ?? "<secrets.bootstrap.key is not configured>";
+  const setup = `cd ${shellQuote(repoDir)} && ${install} && bash scripts/lisa-remote-env/setup.sh`;
   return [
     "Provisioning tier: EMIT — and for this surface that is the only tier.",
     "  A Claude cloud environment is account-scoped configuration edited in the",
@@ -350,7 +351,8 @@ export function emitClaudeWeb({ bootstrapKey, install }) {
     "",
     "Paste into the environment dialog",
     "---------------------------------",
-    "  Network access:  Trusted, or Custom plus any host your project needs",
+    "  Network access:  Custom plus your package registries, GitHub, cloud SDK",
+    "                   hosts, and the bootstrap credential manager API",
     "",
     "  Environment variables:",
     `    ${key}=<read this from your credential manager>`,
@@ -362,11 +364,13 @@ export function emitClaudeWeb({ bootstrapKey, install }) {
     "    is why exactly one value needs to live here.",
     "",
     "  Setup script:",
-    `    ${install} && bash scripts/lisa-remote-env/setup.sh`,
+    `    ${setup}`,
     "",
-    "    The install must come first. On a fresh container node_modules is the",
-    "    only copy of the Lisa skills present, because Claude receives them as",
-    "    an installed plugin rather than as part of the clone.",
+    `    Claude runs this field from $HOME, while the checkout is $HOME/${repoDir}.`,
+    "    The `cd` must come first, and the install must run before the setup",
+    "    script. On a fresh container node_modules is the only copy of the Lisa",
+    "    skills present, because Claude receives them as an installed plugin",
+    "    rather than as part of the clone.",
     "",
     "Commit to the repository",
     "------------------------",
@@ -468,6 +472,35 @@ export function detectInstallCommand(cwd = process.cwd()) {
 }
 
 /**
+ * Name the directory Claude creates under $HOME when it clones this repository.
+ *
+ * Claude cloud runs the environment setup field from $HOME, not from the
+ * checkout. The setup line therefore has to `cd` into the clone before running
+ * the project install. Prefer the configured GitHub repo name because it is the
+ * thing Claude clones; fall back to the current directory for non-GitHub tests
+ * and local dry runs.
+ * @param {string} [cwd] Repository root.
+ * @returns {string} Directory name to place after `cd`.
+ */
+export function detectRepositoryDirectory(cwd = process.cwd()) {
+  const path = join(cwd, ".lisa.config.json");
+  if (existsSync(path)) {
+    const repo = JSON.parse(readFileSync(path, "utf8")).github?.repo;
+    if (repo && !repo.includes("/") && !repo.includes("\0")) return repo;
+  }
+  return basename(cwd);
+}
+
+/**
+ * Quote a value for POSIX shell usage.
+ * @param {string} value Raw value.
+ * @returns {string} Single-quoted shell literal.
+ */
+function shellQuote(value) {
+  return "'" + String(value).replaceAll("'", "'\\''") + "'";
+}
+
+/**
  * Read the bootstrap key name, which is the one value the operator must paste.
  * @param {string} [cwd] Repository root.
  * @returns {string|null} The configured key name, when there is one.
@@ -519,6 +552,7 @@ async function main() {
       emitClaudeWeb({
         bootstrapKey: readBootstrapKey(),
         install: detectInstallCommand(),
+        repoDir: detectRepositoryDirectory(),
       })
     );
     return;

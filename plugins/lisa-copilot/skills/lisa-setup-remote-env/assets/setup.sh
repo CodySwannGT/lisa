@@ -13,6 +13,16 @@
 # and emphatically not in a vendor settings field.
 set -euo pipefail
 
+# Claude Code web runs the environment setup field from $HOME, while the
+# checkout lives at $HOME/<repo>. If this installed copy is invoked by absolute
+# path, move back to the repository root before resolving project-local files.
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+case "$script_dir" in
+  */scripts/lisa-remote-env)
+    cd "$script_dir/../.."
+    ;;
+esac
+
 # Node is the one thing that cannot be installed by the installer, since the
 # installer is written in it. Fail with an actionable message rather than a
 # "command not found" forty lines deep.

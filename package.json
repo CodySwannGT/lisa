@@ -97,7 +97,7 @@
     "postcss": ">=8.5.18",
     "undici": "^6.27.0",
     "form-data": ">=4.0.6",
-    "brace-expansion": ">=5.0.8"
+    "brace-expansion": ">=5.0.9"
   },
   "overrides": {
     "@isaacs/brace-expansion": "^5.0.1",
@@ -112,7 +112,7 @@
     "postcss": ">=8.5.18",
     "undici": "^6.27.0",
     "form-data": ">=4.0.6",
-    "brace-expansion": ">=5.0.8"
+    "brace-expansion": ">=5.0.9"
   },
   "name": "@codyswann/lisa",
   "version": "2.321.0",
