@@ -7,7 +7,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "5eb31c284e820a51312d4484f0669128007326af55ee515923fec33700d003a1",
+      "96a87c131606b3edd43e52485e68f8ffbf5c528cb4beb7a1185263519a9632ce",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
@@ -1970,6 +1970,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
+    "scripts/lisa-enforcement-fallback.sh":
+      "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -1985,7 +1987,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
-      "acb359ed7a39150fd5e1e68f4c95144045e75d9d53b735da4a7a9271f063044e",
+      "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/migrate-deploy-order.sh":
       "77d909b4cbbfc05169a79168d7868600ea7f56f846feefb7d5121618c54800c3",
     "scripts/plugin-parity-drift.mjs":
@@ -7625,6 +7627,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
+    "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
@@ -8256,6 +8259,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforce-verification-gate-preserve.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
@@ -8334,6 +8338,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
