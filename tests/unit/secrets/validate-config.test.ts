@@ -111,6 +111,39 @@ describe("remoteEnv block", () => {
     expect(problems[0]).toMatch(/Supported: release-zip, npm-global/);
   });
 
+  it("requires a Claude surface to name its routine, not a repository", () => {
+    // A Claude cloud environment is account-scoped configuration and carries no
+    // repository at all — the repository arrives per session — so demanding one
+    // would ask for a field that cannot be true. The routine is the handle.
+    const problems = validateRemoteEnv({
+      surfaces: { "claude-web": { repository: "org/repo" } },
+    });
+    expect(problems).toHaveLength(2);
+    expect(problems.join("\n")).toMatch(/has no routineId/);
+    expect(problems.join("\n")).toMatch(/has no fireUrl/);
+  });
+
+  it("accepts a Claude surface bound to a routine", () => {
+    const problems = validateRemoteEnv({
+      surfaces: {
+        "claude-web": {
+          routineId: "trig_01ABC",
+          fireUrl: "https://api.anthropic.com/v1/claude_code/routines/x/fire",
+        },
+      },
+    });
+    expect(problems).toEqual([]);
+  });
+
+  it("knows every surface the resolver knows", () => {
+    // The two lists used to be restated independently, so a surface could be
+    // added to the resolver and still be called unknown by doctor.
+    const problems = validateRemoteEnv({
+      surfaces: { "claude-web": { routineId: "r", fireUrl: "u" } },
+    });
+    expect(problems.join("\n")).not.toMatch(/unknown surface/i);
+  });
+
   it("rejects a surface declared without a repository", () => {
     const problems = validateRemoteEnv({ surfaces: { "codex-cloud": {} } });
     expect(problems[0]).toMatch(/has no repository/i);
@@ -165,6 +198,36 @@ describe("automations block", () => {
 
   it("accepts a loop whose surface is provisioned", () => {
     expect(validateAutomations({ intake: loop }, PROVISIONED)).toEqual([]);
+  });
+
+  it("accepts a claude-web loop bound to a routine rather than a repository", () => {
+    // This is the path that actually gates dispatch, and it asks a different
+    // question of each surface: demanding a repository here would reject a
+    // correctly provisioned Claude surface, which has none to give.
+    const claudeLoop = { ...loop, executionEnv: "claude-web" };
+    const provisioned = {
+      surfaces: {
+        "claude-web": {
+          routineId: "trig_01ABC",
+          fireUrl: "https://api.anthropic.com/v1/claude_code/routines/x/fire",
+        },
+      },
+    };
+    expect(validateAutomations({ intake: claudeLoop }, provisioned)).toEqual(
+      []
+    );
+  });
+
+  it("rejects a claude-web loop whose routine was never recorded", () => {
+    const claudeLoop = { ...loop, executionEnv: "claude-web" };
+    const halfProvisioned = {
+      surfaces: { "claude-web": { routineId: "trig_01ABC" } },
+    };
+    const problems = validateAutomations(
+      { intake: claudeLoop },
+      halfProvisioned
+    );
+    expect(problems[0]).toMatch(/setup:remote-env claude-web/);
   });
 });
 

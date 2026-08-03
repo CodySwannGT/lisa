@@ -48,6 +48,16 @@ function fingerprint(value) {
 }
 
 /**
+ * The value a proxied credential reads as instead of a usable token.
+ *
+ * Some surfaces keep a credential outside the sandbox entirely and substitute
+ * the real value at egress. The variable is then present and non-empty, which
+ * is exactly what makes it dangerous: a presence check passes, and only a
+ * consumer that reads the variable *itself* discovers it holds a placeholder.
+ */
+const PROXY_PLACEHOLDER = "proxy-injected";
+
+/**
  * Assert every declared name actually resolves.
  * @param {object} cfg Resolved configuration.
  * @param {Map<string, object>} provider Provider view.
@@ -56,18 +66,36 @@ function fingerprint(value) {
  */
 export function checkRequired(cfg, provider, file, report) {
   for (const name of cfg.require ?? []) {
-    const resolves =
-      (process.env[name] ?? "").trim() ||
-      file.get(name) ||
-      provider.get(name)?.value;
-    if (resolves) report("ok", name, "resolves");
-    else
+    const fromEnv = (process.env[name] ?? "").trim();
+    const resolves = fromEnv || file.get(name) || provider.get(name)?.value;
+
+    if (!resolves) {
       report(
         "error",
         name,
         "declared in secrets.require but resolves nowhere — a startup error, " +
           "not a late surprise"
       );
+      continue;
+    }
+
+    // Reported separately from "resolves" because the two are not the same
+    // claim. A tool that authenticates through the proxy works; a script that
+    // reads this variable and puts it in an Authorization header sends the
+    // literal placeholder and gets a confusing auth failure far from here.
+    if (fromEnv === PROXY_PLACEHOLDER) {
+      report(
+        "warn",
+        name,
+        `reads as the literal string "${PROXY_PLACEHOLDER}" — the value is ` +
+          `substituted at egress and never enters this environment. Tools that ` +
+          `authenticate through the proxy work; anything reading this variable ` +
+          `directly gets the placeholder, not a credential`
+      );
+      continue;
+    }
+
+    report("ok", name, "resolves");
   }
 }
 
