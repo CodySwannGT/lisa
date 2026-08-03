@@ -244,23 +244,16 @@ export function fetchAll(cfg) {
 }
 
 /**
- * The provider view the rotation path sees: `excludeKeys` waived for declared
- * rotating names only.
+ * The provider view the rotation path reads.
  *
- * `excludeKeys` exists to keep a credential off a **surface's disk**. Applying it
- * to the rotation path conflated that with hiding the record from the provider,
- * which made `rotating` and `excludeKeys` mutually exclusive for the same name —
- * a credential you cannot see is one you cannot write back to, so `doctor`
- * correctly errored. That is exactly backwards for a consumable credential: the
- * kind you least want materialized onto an untrusted surface is the kind that
- * most needs a proven write path.
+ * `excludeKeys` keeps a credential off a **surface's disk**. Applying it here
+ * too hid the provider record, making `rotating` and `excludeKeys` mutually
+ * exclusive — and a credential you cannot see is one you cannot write back to.
+ * That is backwards for a consumable credential: the kind you least want
+ * materialized is the kind that most needs a proven write path.
  *
- * The waiver is deliberately narrow. It applies only to names listed in
- * `secrets.rotating`, which is config and therefore reviewed — the same
- * declared-never-inferred rule the write path already enforces. Project
- * narrowing still applies untouched, because that is the provider's own grant
- * boundary and this must never widen it. Nothing here materializes anything;
- * `fetchAll` remains the only view that feeds a surface.
+ * Nothing here materializes anything. `fetchAll` remains the only view feeding
+ * a surface, so an excluded rotating credential still never reaches disk.
  * @param {object} cfg Resolved configuration.
  * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets by name.
  */
@@ -269,12 +262,13 @@ export function fetchRotatable(cfg) {
 }
 
 /**
- * The narrowing the rotation view applies: project grants intact, `excludeKeys`
- * waived for declared rotating names only.
+ * Narrowing for the rotation view: project grants intact, `excludeKeys` waived
+ * for declared rotating names only.
  *
- * Split out from {@link fetchRotatable} so the decision is testable without a
- * provider, matching how the toolchain planner separates planning from
- * execution.
+ * The waiver reaches only names in `secrets.rotating` — config, and therefore
+ * reviewed, the same declared-never-inferred rule the write path enforces.
+ * Project narrowing is the provider's own boundary and is never widened. Split
+ * from {@link fetchRotatable} so the decision is testable without a provider.
  * @param {object} cfg Resolved configuration.
  * @returns {{projectIds: string[], excludeKeys: string[]}} Narrowing controls.
  */
