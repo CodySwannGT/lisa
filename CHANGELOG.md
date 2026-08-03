@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.321.3](https://github.com/CodySwannGT/lisa/compare/v2.321.2...v2.321.3) (2026-08-03)
+
+
+### Bug Fixes
+
+* **secrets:** let a rotating credential be excluded from a surface ([5b0adf6](https://github.com/CodySwannGT/lisa/commit/5b0adf67af484f8f0c18e6c09be8ac9753ac58a5)), closes [#2178](https://github.com/CodySwannGT/lisa/issues/2178) [CodySwannGT/lisa#2178](https://github.com/CodySwannGT/lisa/issues/2178)
+
 ### [2.321.2](https://github.com/CodySwannGT/lisa/compare/v2.321.1...v2.321.2) (2026-08-03)
 
 
