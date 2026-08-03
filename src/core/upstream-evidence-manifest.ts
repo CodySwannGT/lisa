@@ -1073,19 +1073,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "9d7346864b04304e5b4bbb90512c7f2e701d69ab012b4fcf3b7b687221fc76bd",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
-      "62cd565234b55c1d269d94103bc33bc4f9edb4077a76ab3b975d8989fa10ebc9",
+      "f203c71457da958cdb49637c87e4a9c43e964f98ecef3dd0e933b419d565f98e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
       "4b4448cd680a8fe7b1f51bad840c2655f898e9bc08ca06c385cd1d21dca3c3d4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "be748382c81440c1807d6d4101b0ee97c467f30e3976dc1561bc61c01fcb2e99",
+      "fec38ca937570c1e1c21e6e8f7314a9d8f4e9264779d0394b40d5158924da0da",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "1471d2108058f3059e242f9c71208c99fdbc212bde32de34b798eaa9a27ffbcc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
       "04ab89bc1f890526ba3b693cd3b022abc5a24e078b93c08fe7dfd586452b70b1",
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
-      "f896ef08c53c9f6a859c4ddb527f7e765c542e1fd8bb198c6d75c8f260185669",
+      "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "da3fdf62b88f77c6c2ae09f5352797818813fccb0dafe551c801b58f25de2711",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -8339,6 +8339,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-env-phases.test.ts": true,
     "tests/unit/secrets/remote-env-skill-resolution.test.ts": true,
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
+    "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
