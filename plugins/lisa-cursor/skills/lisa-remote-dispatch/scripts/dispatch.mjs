@@ -50,6 +50,18 @@ const SURFACE_PRECONDITIONS = {
  */
 const ROUTINE_BETA = "experimental-cc-routine-2026-04-01";
 
+/**
+ * How long to wait for the routine to accept the dispatch.
+ *
+ * `fetch` has no timeout of its own, so a routine endpoint that accepts the
+ * connection and then says nothing leaves dispatch waiting forever — the one
+ * failure mode that never reaches the error path below and never reaches the
+ * operator either. Generous, because the endpoint only has to *accept* the
+ * dispatch: the session's own work happens long after this call returns, so
+ * this bounds a handshake rather than a run.
+ */
+const FIRE_TIMEOUT_MS = 30_000;
+
 /** Where dispatched work is recorded so a later session can find it. */
 const LEDGER = join(".lisa", "remote-dispatch.json");
 
@@ -329,9 +341,18 @@ export async function dispatchClaudeWeb(block, prompt, payload, options = {}) {
         "content-type": "application/json",
       },
       body: JSON.stringify({ text: prompt }),
+      signal: AbortSignal.timeout(FIRE_TIMEOUT_MS),
     });
   } catch (err) {
-    throw new Error(`could not reach the routine endpoint: ${err.message}`);
+    // A timeout arrives here as an abort rather than a network error, and
+    // "could not reach" is the true and useful thing to say about both. It is
+    // named separately so the operator can tell a silent endpoint from a
+    // refused connection, since only one of those is worth retrying.
+    const reason =
+      err.name === "TimeoutError"
+        ? `no response within ${FIRE_TIMEOUT_MS / 1000}s`
+        : err.message;
+    throw new Error(`could not reach the routine endpoint: ${reason}`);
   }
 
   const body = await response.text();
