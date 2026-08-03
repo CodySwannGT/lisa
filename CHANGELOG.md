@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.4](https://github.com/CodySwannGT/lisa/compare/v2.322.3...v2.322.4) (2026-08-03)
+
+
+### Bug Fixes
+
+* **dispatch:** address each agent with the prefix it understands ([93ca62c](https://github.com/CodySwannGT/lisa/commit/93ca62c4d63c2d569625a03a94ddf1aff646a5a9)), closes [CodySwannGT/lisa#2205](https://github.com/CodySwannGT/lisa/issues/2205)
+* **dispatch:** stop a dashed executionEnv from silently running locally ([3053f6d](https://github.com/CodySwannGT/lisa/commit/3053f6dedc9d3cb55e8f72846400f97b886d690d)), closes [CodySwannGT/lisa#2209](https://github.com/CodySwannGT/lisa/issues/2209)
+* **remote-env:** prepare every checkout, not whichever one sorts first ([4c3caf8](https://github.com/CodySwannGT/lisa/commit/4c3caf8416e2cf62c118aaf0bb293856c668a958)), closes [#2206](https://github.com/CodySwannGT/lisa/issues/2206) [CodySwannGT/lisa#2206](https://github.com/CodySwannGT/lisa/issues/2206)
+
 ### [2.322.3](https://github.com/CodySwannGT/lisa/compare/v2.322.2...v2.322.3) (2026-08-03)
 
 
