@@ -167,6 +167,13 @@
           "sha256": "ba8233c3a4aee5d43e3c73bbd04d99e9bc5aba13bbbfd06d89b073abe732b860"
         }
       ]
+    },
+    "surfaces": {
+      "claude-web": {
+        "routineId": "trig_01Szp6mAMiK9V8dKWSJLJkRo",
+        "fireUrl": "https://api.anthropic.com/v1/claude_code/routines/trig_01Szp6mAMiK9V8dKWSJLJkRo/fire",
+        "tokenKey": "CLAUDE_ROUTINE_TOKEN"
+      }
     }
   }
 }

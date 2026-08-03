@@ -99,9 +99,13 @@ describe("executionEnv resolution", () => {
   it("rejects an unknown surface rather than falling back to local", () => {
     // Falling back would run the work locally while the operator believes it
     // went remote — a wrong outcome that looks exactly like a right one.
-    expect(() => resolveExecutionEnv({ executionEnv: "claude-web" })).toThrow(
-      /unknown executionEnv/i
-    );
+    //
+    // This case used "claude-web" as its unknown surface until that surface was
+    // implemented. A placeholder that can become real is a test which quietly
+    // stops asserting anything, so this one names a surface no vendor has.
+    expect(() =>
+      resolveExecutionEnv({ executionEnv: "nowhere-cloud" })
+    ).toThrow(/unknown executionEnv/i);
   });
 
   it("names the supported surfaces in the rejection", () => {
