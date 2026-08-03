@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.319.0](https://github.com/CodySwannGT/lisa/compare/v2.318.0...v2.319.0) (2026-08-03)
+
+
+### Features
+
+* **secrets:** make Claude Code web a first-class surface ([8d2c940](https://github.com/CodySwannGT/lisa/commit/8d2c940c29502d7085af9a496b5aa20f005eae9b)), closes [CodySwannGT/lisa#2173](https://github.com/CodySwannGT/lisa/issues/2173)
+
+
+### Bug Fixes
+
+* **secrets:** address review on the claude-web surface ([58ae4c0](https://github.com/CodySwannGT/lisa/commit/58ae4c00e8ef29f6c0ef31b452f8b70ca6aa5c2d)), closes [CodySwannGT/lisa#2173](https://github.com/CodySwannGT/lisa/issues/2173)
+
 ## [2.318.0](https://github.com/CodySwannGT/lisa/compare/v2.317.7...v2.318.0) (2026-08-03)
 
 
