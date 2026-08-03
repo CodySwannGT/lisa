@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.321.5](https://github.com/CodySwannGT/lisa/compare/v2.321.4...v2.321.5) (2026-08-03)
+
+
+### Bug Fixes
+
+* **automations:** generate a workflow for a surface with no repository ([663bcaf](https://github.com/CodySwannGT/lisa/commit/663bcafc4861c6afd38bfacf15804c3a39fe7a24)), closes [CodySwannGT/lisa#2190](https://github.com/CodySwannGT/lisa/issues/2190)
+
 ### [2.321.4](https://github.com/CodySwannGT/lisa/compare/v2.321.3...v2.321.4) (2026-08-03)
 
 
