@@ -27,8 +27,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import {
-  detectInstallCommand,
-  detectRepositoryDirectory,
   installAssets,
   pinEnvironment,
   probe,
@@ -43,7 +41,6 @@ type Finding = { ok: boolean; label: string; detail: string };
 /** The two moments a surface can materialize at, as the capability names them. */
 const AT_SETUP = "setup";
 const AT_SESSION_START = "session-start";
-const BUN_INSTALL = "bun install";
 
 /**
  * Collect findings without touching the module's own results array.
@@ -105,55 +102,6 @@ describe("phase selection", () => {
 
   it("rejects a phase name it does not know", () => {
     expect(() => selectPhases("secrts", AT_SETUP)).toThrow(/unknown --phase/i);
-  });
-});
-
-describe("install command detection", () => {
-  let root: string;
-
-  beforeEach(() => {
-    root = mkdtempSync(path.join(tmpdir(), "lisa-install-"));
-  });
-
-  afterEach(() => rmSync(root, { recursive: true, force: true }));
-
-  it.each([
-    ["bun.lock", BUN_INSTALL],
-    ["bun.lockb", BUN_INSTALL],
-    ["pnpm-lock.yaml", "pnpm install --frozen-lockfile"],
-    ["yarn.lock", "yarn install --immutable"],
-    ["package-lock.json", "npm ci"],
-  ])("reads %s as %s", (lockfile, expected) => {
-    writeFileSync(path.join(root, lockfile), "");
-    expect(detectInstallCommand(root)).toBe(expected);
-  });
-
-  it("refuses to guess when no lockfile identifies the manager", () => {
-    // A guessed package manager produces a container that fails on its very
-    // first command, with an error that blames the project rather than the guess.
-    expect(detectInstallCommand(root)).toBe("<your install command>");
-  });
-});
-
-describe("repository directory detection", () => {
-  let root: string;
-
-  beforeEach(() => {
-    root = mkdtempSync(path.join(tmpdir(), "lisa-repo-dir-"));
-  });
-
-  afterEach(() => rmSync(root, { recursive: true, force: true }));
-
-  it("uses the configured GitHub repo name", () => {
-    writeFileSync(
-      path.join(root, ".lisa.config.json"),
-      JSON.stringify({ github: { repo: "lisa" } })
-    );
-    expect(detectRepositoryDirectory(root)).toBe("lisa");
-  });
-
-  it("falls back to the checkout basename", () => {
-    expect(detectRepositoryDirectory(root)).toBe(path.basename(root));
   });
 });
 
@@ -301,10 +249,17 @@ describe("emitted Claude configuration", () => {
     expect(emitted).toMatch(/no API/i);
   });
 
-  it("enters the checkout before installing and running setup", () => {
+  it("emits one setup line that is identical for every project", () => {
+    // Previously this named the repository and the package manager, so a
+    // Claude environment for an npm project and one for a bun project differed
+    // by a string a human had to get right — in a settings box with no review,
+    // no version history and no test. The script finds the checkout itself and
+    // reads the package manager from the committed lockfile.
     expect(emitted).toContain(
-      "cd 'lisa' && bun install && bash scripts/lisa-remote-env/setup.sh"
+      'bash "$HOME"/*/scripts/lisa-remote-env/setup.sh'
     );
+    expect(emitted).not.toMatch(/cd '?lisa'?/);
+    expect(emitted).not.toContain("bun install &&");
   });
 
   it("uses custom network access so the credential manager can be reached", () => {

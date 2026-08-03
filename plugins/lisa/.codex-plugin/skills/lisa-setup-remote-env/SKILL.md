@@ -10,26 +10,28 @@ Prepare a remote surface so a host project can execute there. Today that means *
 
 ## What lives where
 
-The remote environment's own configuration fields stay **one line into the repository, preceded by the project's dependency install**. Nothing else is pasted into a vendor UI.
+The remote environment's own configuration fields stay **one line into the repository**. Nothing else is pasted into a vendor UI.
 
 ```text
-setup:       <install> && bash scripts/lisa-remote-env/setup.sh
-maintenance: <install> && bash scripts/lisa-remote-env/setup.sh
+setup:       bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
+maintenance: bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
 ```
 
-`<install>` is whatever the project already uses — `bun install`, `npm ci`, `pnpm install`. Substitute it; do not invent one.
+**That line is identical for every project.** Nothing in it names the repository or the package manager, so it can be pasted unchanged into any project's environment. The glob is what locates the checkout — Claude Code web runs this field from `$HOME` while the clone lands one level down — and the script then anchors itself on the repository root.
 
 They are the same command. A container may be built fresh or resumed from cache; every step is idempotent and version-aware, so running it twice is correct, and running it on resume is what picks up a rotated value, an edited note, or a changed version pin.
 
-The complete logic is repository-owned so it is reviewed, versioned, tested, and reusable. A large inline installer in a settings field is none of those things.
+The complete logic is repository-owned so it is reviewed, versioned, tested, and reusable. A large inline installer in a settings field is none of those things — and neither is a repository name and a package manager, which is what this field used to carry.
 
-### Why the install has to come first
+### The script installs the dependencies itself
 
 **A clone does not contain the skills on the harnesses that matter here.** OpenCode and Antigravity have them written into the checkout by `lisa apply`. Claude and Codex receive them as an *installed plugin*, which lives in the user's home directory — so a container that has just cloned the repository has never seen it.
 
 `node_modules/@codyswann/lisa` is therefore the only copy present on a fresh container, and it is a good one: it is the version that project pins, which is the version its setup should run. The entrypoint searches the agent directories first and falls back to it.
 
-Omitting the install does not degrade gracefully. The entrypoint exits before the toolchain, secrets, and hook phases have done anything, so the environment looks provisioned and fails on first dispatch.
+So the install has to happen before the runner is resolved — and the entrypoint does it, rather than the settings field. Which package manager is read from the lockfile the project actually commits (`bun.lock`, `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`), never guessed: a guessed one fails on the container's first command with an error that blames the project rather than the guess. The step is skipped when `node_modules` already exists, which is what keeps a resumed container cheap, and `LISA_SKIP_INSTALL=1` opts out entirely for a caller that has already installed.
+
+A project with no lockfile is not fatal on its own — a checkout may carry the skill directly — so the script says so and lets the resolver decide.
 
 ## The three phases
 
@@ -134,11 +136,10 @@ When emitting, produce exactly:
 ```text
 Environment name:  <project> remote executor
 Repository:        <org>/<repo>        (must be the default checkout)
-Setup script:      <install> && bash scripts/lisa-remote-env/setup.sh
-Maintenance:       <install> && bash scripts/lisa-remote-env/setup.sh
-                   (<install> is the project's own: bun install, npm ci, ...
-                   It must precede the script — on a fresh container
-                   node_modules is the only copy of the skills present.)
+Setup script:      bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
+Maintenance:       bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
+                   (identical for every project — the script finds the
+                   checkout and installs from the committed lockfile)
 Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
                    BWS_ACCESS_TOKEN=<from the provider; an environment
                    variable, not a task secret — setup and cache-resume
