@@ -47,7 +47,23 @@ if [ "${LISA_SKIP_INSTALL:-}" != "1" ] && [ ! -d node_modules ]; then
 
   if [ -n "$install_cmd" ]; then
     echo "Installing dependencies with: $install_cmd"
-    $install_cmd
+    # CI=1 so lifecycle scripts take their automation path and leave the
+    # checkout alone. A remote-env setup is automation by definition, and a
+    # postinstall that rewrites tracked files here breaks any skill with a
+    # clean-checkout precondition — which the publishing skills have, because
+    # their diff is contractually bounded and merged without human review.
+    #
+    # Lisa's own postinstall already guards on exactly this variable, so this
+    # is an existing convention rather than a new one.
+    #
+    # NOT --ignore-scripts: that would also stop patch-package, so a project
+    # relying on patched dependencies would silently get unpatched ones — a
+    # quieter failure than the one being fixed.
+    #
+    # Without it the bug is cache-dependent, not deterministic: a fresh
+    # container installs and dirties the tree, a resumed one skips the install
+    # and succeeds. That reads as flakiness rather than a cause.
+    CI=1 $install_cmd
   else
     # Not fatal on its own. A project may carry no lockfile and still have the
     # skill in a checkout directory, so let the resolver below decide.
