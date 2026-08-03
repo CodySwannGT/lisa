@@ -28,11 +28,19 @@ import { join } from "node:path";
  * drift and leak. It is *required* on surfaces whose bootstrap runs before the
  * consuming process exists and which therefore have no other channel; a remote
  * agent container prepares itself during setup, long before any task starts.
+ *
+ * The two remote surfaces share the capability but not the timing, and a reader
+ * adding a third should not assume otherwise. `codex-cloud` re-runs its setup
+ * script when a container resumes, so materializing there picks up a rotated
+ * value. `claude-web` *skips* its setup script whenever a filesystem cache
+ * exists, so materializing there would strand a rotated value until the cache
+ * expired — its materialize step runs from a session-start hook instead.
  */
 export const SURFACES = {
   local: { materialized: false, mayWriteValues: false },
   "github-actions": { materialized: false, mayWriteValues: false },
   "codex-cloud": { materialized: true, mayWriteValues: true },
+  "claude-web": { materialized: true, mayWriteValues: true },
 };
 
 /** Config defaults when `.lisa.config.json` carries no `secrets` block. */
@@ -68,6 +76,10 @@ export function detectSurface(configured = null, env = process.env) {
     return explicit;
   }
   if ((env.GITHUB_ACTIONS ?? "") === "true") return "github-actions";
+  // Compared to the exact string rather than tested for presence: the variable
+  // is documented as carrying "true" in a cloud session and never being true
+  // locally, so a presence test would misread a shell that exports it empty.
+  if ((env.CLAUDE_CODE_REMOTE ?? "") === "true") return "claude-web";
   if ((env.CODEX_SANDBOX ?? env.CODEX_HOME ?? "") !== "") return "codex-cloud";
   return "local";
 }

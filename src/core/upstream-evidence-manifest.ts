@@ -1073,7 +1073,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "9d7346864b04304e5b4bbb90512c7f2e701d69ab012b4fcf3b7b687221fc76bd",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
-      "aca23d562016bfda30d0ace0f77668edb91e5bcda1bf278036353671c53e9cbc",
+      "62cd565234b55c1d269d94103bc33bc4f9edb4077a76ab3b975d8989fa10ebc9",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
@@ -1087,9 +1087,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "f896ef08c53c9f6a859c4ddb527f7e765c542e1fd8bb198c6d75c8f260185669",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "1c66994259475f3c2edb6b21e27df79ce5206b2a8755f4665b97ac814689f658",
+      "97c0cde692991fdf01cf640a563cd78f2f91812f135c06eac7ac418ff2bf2c8a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "d1ce8808983ba4c45a6e5631606e49b8183f59a71f7e55d52baed869b895b0ab",
+      "4a5209cdc1344dc309d853d2a4197cf7eef786f0c4de4886847c731a28629522",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -2580,6 +2580,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "phaser/package-lisa/package.lisa.json": true,
     "plans/abstract-conjuring-map.md": true,
     "plans/breezy-dancing-pancake.md": true,
+    "plans/claude-web-surface.md": true,
     "plans/compiled-riding-whisper.md": true,
     "plans/completed/add-managed-files-list-to-claude-md/add-managed-files-list-to-claude-md.md": true,
     "plans/completed/add-managed-files-list-to-claude-md/jaunty-tumbling-hellman.md": true,

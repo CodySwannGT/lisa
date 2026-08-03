@@ -19,14 +19,59 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { SURFACES as SURFACE_CAPABILITIES } from "./surfaces.mjs";
+
 /** Providers with a read implementation today. */
 const IMPLEMENTED_PROVIDERS = new Set(["bitwarden", "doppler", "env"]);
 
 /** Providers named in the dispatch table but not yet implemented. */
 const DECLARED_PROVIDERS = new Set(["1password", "aws", "vault"]);
 
-/** Surfaces the resolver knows. */
-const SURFACES = new Set(["local", "github-actions", "codex-cloud"]);
+/**
+ * Surfaces the resolver knows.
+ *
+ * Derived from the resolver's own table rather than restated here. The two
+ * lists previously drifted apart by construction: adding a surface meant
+ * remembering to edit a second file, and forgetting produced a config that
+ * resolved correctly at runtime while `doctor` called it unknown.
+ */
+const SURFACES = new Set(Object.keys(SURFACE_CAPABILITIES));
+
+/**
+ * What a provisioned surface must record before anything dispatches to it.
+ *
+ * Deliberately not uniform, because these surfaces do not bind the same way. A
+ * Codex Cloud environment is bound to one repository, so naming the repository
+ * is part of proving the environment is the right one. A Claude cloud
+ * environment has no repository at all — it is account-scoped configuration
+ * (network policy, variables, setup script) and the repository arrives per
+ * session — so its durable handle is the routine that dispatch fires.
+ *
+ * Requiring `repository` of every surface, as this file used to, would demand
+ * a field that cannot be true of `claude-web` in any meaningful sense.
+ *
+ * `repository` stays the default so every existing surface keeps its current
+ * contract. This file checks structure only — whether a declaration *could* be
+ * correct — so it deliberately does not restate the fuller preconditions that
+ * `lisa-remote-dispatch` enforces at the moment it actually dispatches.
+ */
+const SURFACE_BINDINGS = {
+  "claude-web": ["routineId", "fireUrl"],
+};
+
+/**
+ * The fields a surface must record, with the default applied.
+ *
+ * Read through one helper rather than at each call site, because the two
+ * callers answer different questions — "could this declaration be correct" and
+ * "may an automation dispatch to it" — and a fallback that drifted between them
+ * would let those answers disagree about the very same config.
+ * @param {string} surface Surface name.
+ * @returns {string[]} Field names that must be present.
+ */
+function bindingsFor(surface) {
+  return SURFACE_BINDINGS[surface] ?? ["repository"];
+}
 
 /** Install methods the toolchain runner supports. */
 const INSTALL_METHODS = new Set(["release-zip", "npm-global"]);
@@ -139,13 +184,28 @@ export function validateRemoteEnv(remoteEnv) {
   for (const [surface, block] of Object.entries(remoteEnv.surfaces ?? {})) {
     if (!SURFACES.has(surface)) {
       problems.push(`remoteEnv.surfaces has unknown surface "${surface}"`);
+      continue;
     }
-    if (!block.repository) {
-      problems.push(`remoteEnv.surfaces["${surface}"] has no repository`);
+    for (const field of bindingsFor(surface)) {
+      if (!block[field]) {
+        problems.push(`remoteEnv.surfaces["${surface}"] has no ${field}`);
+      }
     }
   }
 
   return problems;
+}
+
+/**
+ * Report whether a surface has been provisioned far enough to dispatch to.
+ * @param {object|undefined} remoteEnv The remote-environment block.
+ * @param {string} surface Surface name.
+ * @returns {boolean} Whether every binding field is recorded.
+ */
+export function isProvisioned(remoteEnv, surface) {
+  const block = remoteEnv?.surfaces?.[surface];
+  if (!block) return false;
+  return bindingsFor(surface).every(field => Boolean(block[field]));
 }
 
 /**
@@ -173,7 +233,7 @@ export function validateAutomations(automations, remoteEnv) {
       );
       continue;
     }
-    if (!remoteEnv?.surfaces?.[loop.executionEnv]?.repository) {
+    if (!isProvisioned(remoteEnv, loop.executionEnv)) {
       problems.push(
         `automations["${name}"] dispatches to "${loop.executionEnv}", which is ` +
           `not provisioned. Run /lisa:setup:remote-env ${loop.executionEnv} first.`

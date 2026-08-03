@@ -34,6 +34,27 @@ const providerView = (
     ])
   );
 
+/**
+ * Run a body with one environment variable set, restoring what was there.
+ *
+ * Restores rather than deletes: these tests share one process environment with
+ * every other test in the run, so unconditionally deleting a name would quietly
+ * clear a value something else had set and depended on.
+ * @param name Variable to set for the duration of the body.
+ * @param value Value to set it to.
+ * @param body What to run while it is set.
+ */
+const withEnv = (name: string, value: string, body: () => void): void => {
+  const previous = process.env[name];
+  process.env[name] = value;
+  try {
+    body();
+  } finally {
+    if (previous === undefined) delete process.env[name];
+    else process.env[name] = previous;
+  }
+};
+
 describe("required-name assertion", () => {
   it("passes a name the provider supplies", () => {
     const { findings, report } = collector();
@@ -52,6 +73,31 @@ describe("required-name assertion", () => {
     const { findings, report } = collector();
     checkRequired({ require: ["ABSENT"] }, new Map(), new Map(), report);
     expect(findings[0].level).toBe("error");
+  });
+
+  it("does not call a proxy placeholder resolved", () => {
+    // The variable is present and non-empty, which is exactly what makes it
+    // dangerous: a presence check passes while any consumer reading the
+    // variable itself receives the placeholder instead of a credential.
+    withEnv("PROXIED_TOKEN", "proxy-injected", () => {
+      const { findings, report } = collector();
+      checkRequired(
+        { require: ["PROXIED_TOKEN"] },
+        new Map(),
+        new Map(),
+        report
+      );
+      expect(findings[0].level).toBe("warn");
+      expect(findings[0].message).toMatch(/substituted at egress/i);
+    });
+  });
+
+  it("still resolves a real value that merely looks ordinary", () => {
+    withEnv("REAL_TOKEN", "an-actual-value", () => {
+      const { findings, report } = collector();
+      checkRequired({ require: ["REAL_TOKEN"] }, new Map(), new Map(), report);
+      expect(findings[0].level).toBe("ok");
+    });
   });
 
   it("accepts a name satisfied only by the materialized file", () => {
