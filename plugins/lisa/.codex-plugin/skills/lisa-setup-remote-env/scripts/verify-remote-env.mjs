@@ -22,7 +22,8 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 import { readRemoteEnvConfig } from "./setup-remote-env.mjs";
 import { extractVersion } from "./toolchain.mjs";
@@ -120,6 +121,43 @@ function verifyToolchain(tools) {
 }
 
 /**
+ * Assert that a declared credential is genuinely readable, not a proxy stand-in.
+ *
+ * A surface may keep a credential outside the sandbox entirely and substitute
+ * the real value at egress. The variable is then present and non-empty, so a
+ * presence check passes — and a script that reads the variable and puts it in a
+ * header sends the placeholder and fails somewhere far from here, with an error
+ * that points at the service rather than at the environment.
+ *
+ * Reported without printing any value: the placeholder is compared, and a real
+ * credential is only ever reported as present.
+ *
+ * Takes its reporter as an argument rather than writing to this module's
+ * results array, so the rule can be exercised against a synthetic environment
+ * without a container and without leaking findings between runs.
+ * @param {string[]} required Declared credential names.
+ * @param {Record<string, string|undefined>} env Environment to inspect.
+ * @param {(ok: boolean, label: string, detail: string) => void} report Collector.
+ */
+export function verifyNotProxied(required, env, report) {
+  for (const name of required) {
+    const value = (env[name] ?? "").trim();
+    if (!value) {
+      report(false, `credential ${name}`, "declared but not present");
+      continue;
+    }
+    report(
+      value !== "proxy-injected",
+      `credential ${name}`,
+      value === "proxy-injected"
+        ? 'reads as "proxy-injected" — substituted at egress, so anything ' +
+            "reading this variable directly receives the placeholder"
+        : "present"
+    );
+  }
+}
+
+/**
  * Assert the working tree is clean.
  *
  * A remote environment that starts dirty will carry unrelated changes into
@@ -142,11 +180,28 @@ function verifyCleanCheckout() {
   }
 }
 
+/**
+ * Read the credential names the project declares it needs.
+ * @param {string} [cwd] Repository root.
+ * @returns {string[]} Declared names, or none when unconfigured.
+ */
+function readRequired(cwd = process.cwd()) {
+  const path = join(cwd, ".lisa.config.json");
+  if (!existsSync(path)) return [];
+  const required = JSON.parse(readFileSync(path, "utf8")).secrets?.require;
+  if (required == null) return [];
+  if (!Array.isArray(required)) {
+    throw new Error("secrets.require must be an array when present");
+  }
+  return required;
+}
+
 function main() {
   const cfg = readRemoteEnvConfig();
   const secretsDir = process.argv[2];
 
   verifyToolchain(cfg.tools);
+  verifyNotProxied(readRequired(), process.env, check);
 
   const surface = node([
     new URL(
