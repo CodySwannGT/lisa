@@ -23,6 +23,38 @@ case "$script_dir" in
     ;;
 esac
 
+# Install the project's dependencies, unless the caller already did.
+#
+# This lives here rather than in the vendor's settings field so that field can
+# be one identical line for every project. Naming the package manager there
+# meant a Claude environment for an npm project and one for a bun project
+# differed by a string a human had to get right, in a box with no review, no
+# version history, and no test.
+#
+# Which manager is decided by the lockfile that is actually committed, never
+# guessed: a guessed one fails on the container's first command with an error
+# blaming the project rather than the guess.
+#
+# Skipped when node_modules already exists, which is what makes this cheap on a
+# resumed container and correct to run twice.
+if [ "${LISA_SKIP_INSTALL:-}" != "1" ] && [ ! -d node_modules ]; then
+  if [ -f bun.lock ] || [ -f bun.lockb ]; then install_cmd="bun install"
+  elif [ -f pnpm-lock.yaml ]; then install_cmd="pnpm install --frozen-lockfile"
+  elif [ -f yarn.lock ]; then install_cmd="yarn install --immutable"
+  elif [ -f package-lock.json ]; then install_cmd="npm ci"
+  else install_cmd=""
+  fi
+
+  if [ -n "$install_cmd" ]; then
+    echo "Installing dependencies with: $install_cmd"
+    $install_cmd
+  else
+    # Not fatal on its own. A project may carry no lockfile and still have the
+    # skill in a checkout directory, so let the resolver below decide.
+    echo "No lockfile found; skipping dependency install." >&2
+  fi
+fi
+
 # Node is the one thing that cannot be installed by the installer, since the
 # installer is written in it. Fail with an actionable message rather than a
 # "command not found" forty lines deep.
@@ -67,9 +99,10 @@ if [ -z "$runner" ]; then
   echo "yet: Claude and Codex receive Lisa skills as an installed plugin, which" >&2
   echo "is not part of a clone, so node_modules is the only copy present." >&2
   echo >&2
-  echo "Install dependencies before this script runs. The environment's setup" >&2
-  echo "command should be the install and this script together, for example:" >&2
-  echo "  bun install && bash scripts/lisa-remote-env/setup.sh" >&2
+  echo "This script installs dependencies itself, so reaching here means the" >&2
+  echo "install did not produce the package, or the project has no lockfile" >&2
+  echo "identifying its package manager. Check that @codyswann/lisa is a" >&2
+  echo "dependency and that a lockfile is committed." >&2
   echo >&2
   echo "If dependencies are installed, run 'lisa apply' so the skills are" >&2
   echo "present, then re-run setup." >&2
