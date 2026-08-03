@@ -39,6 +39,20 @@ Omitting the install does not degrade gracefully. The entrypoint exits before th
 
 Order matters. The toolchain comes first because the secrets step needs the provider CLI it installs. The hook comes last because it is the only part that may assume everything else is ready.
 
+### Which phases run depends on the surface
+
+Not every surface runs all three here, and the reason is worth understanding before changing it.
+
+A surface that **re-runs this script when a container resumes** — Codex Cloud — should materialize during setup. Re-running is exactly what picks up a rotated value, an edited note, or a changed version pin.
+
+A surface that **skips this script whenever a filesystem cache exists** — Claude Code web — must not. Materializing here would write the values once and then never refresh them, so a credential rotated on Tuesday would still be serving Monday's value until the cache expired days later. Those surfaces materialize from a session-start hook instead, which runs every session including a resumed one:
+
+```sh
+bash scripts/lisa-remote-env/session-start.sh   # guard; delegates to --phase=secrets
+```
+
+The selection comes from the surface's `materializeAt` capability in `lisa-secrets-access`, not from its name, so adding a surface does not mean editing a branch. The hook is committed to the repository, so it also fires on a developer's machine — it exits `0` immediately there rather than failing, because a correct local session must not look broken.
+
 ## Toolchain manifest — two entry kinds
 
 ```json
@@ -131,6 +145,25 @@ Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
                    maintenance both run before task secrets exist>
 ```
 
+### Claude Code web is emit-only, and that is not a fallback
+
+**For Claude Code web there is no tier 1 or tier 2 to fall back from.** A cloud environment is account-scoped configuration — network access level, environment variables, setup script — edited only in the environment selector at claude.ai/code, which has no settings page, no direct URL, and no API. `/remote-env` selects an environment; it cannot create or edit one.
+
+Note what this surface's environment is *not*: it carries no repository. The repository arrives per session, so an environment is reusable across every project, and there is nothing to bind. Its durable handle is the routine that dispatch fires, which is why `remoteEnv.surfaces["claude-web"]` records `routineId` and `fireUrl` rather than a repository.
+
+Generate the exact text to paste:
+
+```sh
+node scripts/setup-remote-env.mjs --emit=claude-web
+```
+
+It reads the project's own install command from its lockfile and the bootstrap name from `secrets.bootstrap.key`, then emits the environment fields, the `.claude/settings.json` hook block, and the two base-image surprises worth knowing before they cost an afternoon:
+
+- **`gh` is not pre-installed.** If the project's flows shell out to it, add it to `remoteEnv.tools.install`, pinned and checksummed like anything else.
+- **A proxied credential reads as the literal string `proxy-injected`.** Tools that authenticate through the GitHub proxy work; a script that reads the variable directly gets the placeholder. The read-back asserts this rather than leaving it to be discovered against a live service.
+
+**Only the bootstrap belongs in the environment-variable box.** Values there are stored as plain text and are readable by anyone who uses the environment — on an organization-shared environment, that is every member of the organization. Everything else is materialized by the session-start hook. There is no dedicated secrets store on this surface, and personal versus shared environments cannot be told apart programmatically, so this one is a rule the operator upholds rather than something the tooling can enforce.
+
 ## Verification is tier-independent
 
 **Whatever tier provisioned it, the same read-back proves it.** Trust comes from the verify, not the mechanism — which is what makes emit-tier as trustworthy as API-tier.
@@ -139,7 +172,9 @@ Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
 scripts/verify-remote-env.mjs [SECRETS_DIR]
 ```
 
-Asserts, without printing a value: each declared tool at its pinned or minimum version, the detected surface, the secrets directory at mode `0700`, both files at mode `0600`, and a clean checkout.
+Asserts, without printing a value: each declared tool at its pinned or minimum version, the detected surface, the secrets directory at mode `0700`, both files at mode `0600`, a clean checkout, and that every name in `secrets.require` resolves to a real credential rather than a proxy placeholder.
+
+That last one exists because presence is a weaker claim than usability. A credential the surface keeps outside the sandbox and substitutes at egress is present and non-empty, so a presence check passes — and a script that reads the variable and puts it in a header sends the placeholder and fails against the service, with an error pointing anywhere but at the environment.
 
 **Never verify against vendor UI state.** On 2026-08-01 a Codex environments table reported zero tasks for an environment that had demonstrably completed one, because the task records carried a null environment identifier and the `--env` filter was correspondingly unreliable. Reconcile through durable identifiers only.
 
@@ -147,7 +182,7 @@ Asserts, without printing a value: each declared tool at its pinned or minimum v
 
 Checked when setup runs, not at 3am:
 
-- the environment exists and is bound to **this** repository as its default checkout;
+- the environment exists, and on a surface that binds one, is bound to **this** repository as its default checkout — Claude cloud environments bind no repository at all, so there is nothing to check there;
 - the bootstrap credential resolves;
 - either a checkout-local Lisa skill is present, or the project dependency install has made the pinned `@codyswann/lisa` package available under `node_modules`.
 
@@ -156,6 +191,8 @@ Fail with a message naming what is missing. Never provision-and-hope.
 ## Bootstrap credential placement
 
 On Codex Cloud the bootstrap must be an **environment variable, not a task secret**: setup runs on a new container and maintenance runs on cache resume, both before task secrets exist. The tradeoff is that the variable remains visible during the task, so compensate by keeping the machine account narrowly scoped and instructing the task never to inspect or use it.
+
+On Claude Code web the same placement applies for the same reason, with the exposure widened rather than narrowed: there is no secrets store, values are stored as plain text, and anyone who uses the environment can read them. On an organization-shared environment that is every member. Keep the bootstrap in a **personal** environment, scope the machine account to the minimum, and treat every other credential as something the session-start hook materializes rather than something a human pastes.
 
 ## Related
 

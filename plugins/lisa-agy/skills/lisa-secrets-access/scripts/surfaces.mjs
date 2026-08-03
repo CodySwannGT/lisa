@@ -29,18 +29,35 @@ import { join } from "node:path";
  * consuming process exists and which therefore have no other channel; a remote
  * agent container prepares itself during setup, long before any task starts.
  *
- * The two remote surfaces share the capability but not the timing, and a reader
- * adding a third should not assume otherwise. `codex-cloud` re-runs its setup
- * script when a container resumes, so materializing there picks up a rotated
- * value. `claude-web` *skips* its setup script whenever a filesystem cache
- * exists, so materializing there would strand a rotated value until the cache
- * expired — its materialize step runs from a session-start hook instead.
+ * `materializeAt` — *when* the write happens, for surfaces that do one. The two
+ * remote surfaces share the capability but not the timing, and a reader adding a
+ * third should not assume otherwise. `codex-cloud` re-runs its setup script when
+ * a container resumes, so materializing during setup picks up a rotated value.
+ * `claude-web` *skips* its setup script whenever a filesystem cache exists, so
+ * materializing there would strand a rotated value until the cache expired —
+ * it materializes from a session-start hook instead, which runs every session.
+ *
+ * Stated as a capability rather than inferred from the surface name, so the
+ * setup runner selects its phases from the table instead of branching on which
+ * vendor it happens to be talking to.
  */
 export const SURFACES = {
-  local: { materialized: false, mayWriteValues: false },
-  "github-actions": { materialized: false, mayWriteValues: false },
-  "codex-cloud": { materialized: true, mayWriteValues: true },
-  "claude-web": { materialized: true, mayWriteValues: true },
+  local: { materialized: false, mayWriteValues: false, materializeAt: null },
+  "github-actions": {
+    materialized: false,
+    mayWriteValues: false,
+    materializeAt: null,
+  },
+  "codex-cloud": {
+    materialized: true,
+    mayWriteValues: true,
+    materializeAt: "setup",
+  },
+  "claude-web": {
+    materialized: true,
+    mayWriteValues: true,
+    materializeAt: "session-start",
+  },
 };
 
 /** Config defaults when `.lisa.config.json` carries no `secrets` block. */
