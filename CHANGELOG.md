@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.6](https://github.com/CodySwannGT/lisa/compare/v2.322.5...v2.322.6) (2026-08-03)
+
+
+### Bug Fixes
+
+* **remote-env:** resolve the skill from the checkout when the checkout is Lisa ([f89a251](https://github.com/CodySwannGT/lisa/commit/f89a251a363eeb11d953b528e526665f0dc19cd1)), closes [CodySwannGT/lisa#2212](https://github.com/CodySwannGT/lisa/issues/2212)
+* **remote-env:** search the roots the surfaces use, and say what was there ([debf1cf](https://github.com/CodySwannGT/lisa/commit/debf1cf400476dd1460a10a28538c4feb256b7c4)), closes [CodySwannGT/lisa#2212](https://github.com/CodySwannGT/lisa/issues/2212)
+
 ### [2.322.5](https://github.com/CodySwannGT/lisa/compare/v2.322.4...v2.322.5) (2026-08-03)
 
 
