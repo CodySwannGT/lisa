@@ -21,6 +21,7 @@ import {
   EXECUTION_ENVS,
   assertPreconditions,
   dispatchClaudeWeb,
+  buildInvocation,
   readFireResponse,
   resolveExecutionEnv,
 } from "../../../plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs";
@@ -230,5 +231,34 @@ describe("fire response", () => {
   it("tolerates a missing url without losing the identifier", () => {
     const body = JSON.stringify({ claude_code_session_id: SESSION_ID });
     expect(readFireResponse(body)).toEqual({ sessionId: SESSION_ID, url: "" });
+  });
+});
+
+describe("skill invocation syntax", () => {
+  // The prefix IS the invocation. Codex runs a skill with `$name`, Claude with
+  // `/name`, and sending one agent the other's spelling produces a sentence
+  // that mentions a skill rather than a command that runs one.
+  //
+  // Nothing downstream catches that. The routine accepts any text, so the
+  // dispatch succeeds, a session identifier is recorded, and the ledger says
+  // the work was handed off — while the session executes none of the skill's
+  // contract. Being a capable model it will usually do *something*, which is
+  // worse than failing outright, because it leaves no signal to act on.
+  it("addresses a Claude session with the prefix Claude understands", () => {
+    expect(buildInvocation(CLAUDE_WEB, "lisa-implement", "org/repo#7")).toBe(
+      "/lisa-implement org/repo#7"
+    );
+  });
+
+  it("still addresses Codex with its own prefix", () => {
+    expect(buildInvocation("codex-cloud", "lisa-implement", "org/repo#7")).toBe(
+      "$lisa-implement org/repo#7"
+    );
+  });
+
+  it("emits a bare command when there is no payload", () => {
+    // The trailing space is trimmed rather than sent verbatim. Harmless on one
+    // agent is not a reason to rely on it on the other.
+    expect(buildInvocation(CLAUDE_WEB, "lisa-verify", "")).toBe("/lisa-verify");
   });
 });
