@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "e74885a33fdb7b5d565e13ebd781a3dd2fd02409a2a059deed851645630a6985",
     "cdk/package-lisa/package.lisa.json":
-      "8ab146a3323f970c3a8aafb8d78d17e8b2c121bf24e2a7d4ba07a75485176869",
+      "6eb9a4cea78747750d6efadb7a142a349bc8572ed5e5d109f8b71d862ed4e45d",
     "eslint-plugin-code-organization/README.md":
       "7943820d0b301041f764d4b33adc3c8afbd5bf08f800989390233e78962a51de",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -187,7 +187,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
-      "36ff218f50b41fc1a55d7477245e8554e241e6f42239dfa37083844a3c4183b7",
+      "430a2e42be94f5eda106d8e89ec33d1927813fe66851575d5f3453a8f2b2ab98",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -1906,6 +1906,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
+    "scripts/check-security-floors.mjs":
+      "8db373947c934e0d7d262bb6983a9750a51dc28b1b568e694ba503ef44a80932",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
@@ -2147,7 +2149,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
-      "f8a793afd505fa3631c1f4b94a360f6873f46c184d0bae103580e92020b1e9d3",
+      "6a70ca152ac9daf5f1546cbaa876818b9a63360cf784870879d8d199fafe22d4",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
@@ -2277,6 +2279,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/reusable-claude-nightly-test-improvement.yml": true,
     ".github/workflows/reusable-claude-sync-down-branches.yml": true,
     ".github/workflows/reusable-claude.yml": true,
+    ".github/workflows/security-floors.yml": true,
     ".github/workflows/zap-baseline-expo.yml": true,
     ".github/workflows/zap-baseline-nestjs.yml": true,
     ".gitignore": true,
@@ -7577,6 +7580,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-rules-pairing.sh": true,
+    "scripts/check-security-floors.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
     "scripts/cleanup-amplify-branches.sh": true,
@@ -8306,6 +8310,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
+    "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
