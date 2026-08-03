@@ -139,3 +139,39 @@ describe("declaration validation", () => {
     expect(yaml).toContain("--skill lisa-repair-intake");
   });
 });
+
+describe("skill script resolution", () => {
+  // A scheduled run is always a fresh clone that has never installed a plugin,
+  // and Claude and Codex receive Lisa skills as an installed plugin living in
+  // the user's home directory. So a hardcoded `.claude/skills/...` path names
+  // a file that does not exist in the one place this workflow runs — the
+  // failure lands unattended, at 7am, in the half of the feature that exists
+  // so nobody has to be watching.
+  const scripts = [
+    ["lisa-remote-dispatch", "dispatch.mjs"],
+    ["lisa-secrets-access", "rotate-secret.mjs"],
+  ] as const;
+
+  it.each(scripts)("falls back to node_modules for %s", (skill, script) => {
+    expect(renderWorkflow("intake", LOOP)).toContain(
+      `node_modules/@codyswann/lisa/plugins/lisa/skills/${skill}/scripts/${script}`
+    );
+  });
+
+  it.each(scripts)("never invokes %s by a fixed path", (skill, script) => {
+    expect(renderWorkflow("intake", LOOP)).not.toContain(
+      `node .claude/skills/${skill}/scripts/${script}`
+    );
+  });
+
+  it("says which script it could not find rather than failing on node", () => {
+    // `node <missing>` reports a path with no hint that the cause is a delivery
+    // model rather than a broken checkout, which is the wrong thing to read at
+    // 7am with no session open.
+    const yaml = renderWorkflow("intake", LOOP);
+    expect(yaml).toContain(
+      "cannot find lisa-remote-dispatch/scripts/dispatch.mjs"
+    );
+    expect(yaml).toContain("node_modules is the only copy a runner ever has");
+  });
+});

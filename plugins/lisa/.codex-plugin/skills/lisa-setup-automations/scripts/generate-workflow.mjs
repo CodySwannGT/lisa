@@ -63,6 +63,51 @@ export function readAutomation(name, cwd = process.cwd()) {
 }
 
 /**
+ * Emit shell that locates a Lisa skill script before running it.
+ *
+ * A hardcoded `.claude/skills/...` path is wrong in exactly the place this
+ * workflow runs. Claude and Codex receive Lisa skills as an installed plugin
+ * living in the user's home directory, which is emphatically not part of a
+ * clone — and a scheduled run is always a fresh clone with no plugin install.
+ * So the one path that reliably exists on a runner is the npm package, at the
+ * version the project pins, which is the version its automation should run.
+ *
+ * The same candidate list the remote-env entrypoint uses, for the same reason:
+ * the in-checkout copies are cheapest and need nothing installed, and
+ * `node_modules` is the fallback that makes the plugin-delivered harnesses work
+ * at all.
+ * @param {string} skill Skill slug that owns the script.
+ * @param {string} script Script filename.
+ * @param {string[]} args Arguments appended to the invocation, one per line.
+ * @returns {string} Shell, indented for a workflow `run:` block.
+ */
+function runSkillScript(skill, script, args) {
+  const candidates = [
+    `.claude/skills/${skill}/scripts/${script}`,
+    `.agents/skills/${skill}/scripts/${script}`,
+    `.codex/skills/${skill}/scripts/${script}`,
+    `node_modules/@codyswann/lisa/plugins/lisa/skills/${skill}/scripts/${script}`,
+  ]
+    .map(candidate => `            "${candidate}"`)
+    .join(" \\\n");
+  const tail = args.map(arg => `            ${arg}`).join(" \\\n");
+  return `          runner=""
+          for candidate in \\
+${candidates}; do
+            if [ -f "$candidate" ]; then runner="$candidate"; break; fi
+          done
+          if [ -z "$runner" ]; then
+            echo "cannot find ${skill}/scripts/${script}" >&2
+            echo "Checked the agent skill directories and node_modules." >&2
+            echo "Lisa skills reach Claude and Codex as an installed plugin," >&2
+            echo "so node_modules is the only copy a runner ever has." >&2
+            exit 1
+          fi
+          node "$runner" \\
+${tail}`;
+}
+
+/**
  * Render the workflow YAML for one loop.
  *
  * Three choices here are load-bearing rather than stylistic.
@@ -112,7 +157,7 @@ export function renderWorkflow(name, loop) {
           ${bootstrap}: \${{ secrets.${bootstrap} }}
         run: |
           set -euo pipefail
-          node .claude/skills/lisa-secrets-access/scripts/rotate-secret.mjs leases`;
+${runSkillScript("lisa-secrets-access", "rotate-secret.mjs", ["leases"])}`;
 
   const trigger = loop.enabled
     ? `  schedule:\n    - cron: '${loop.schedule}'\n  workflow_dispatch:`
@@ -172,9 +217,10 @@ jobs:
           ${bootstrap}: \${{ secrets.${bootstrap} }}
         run: |
           set -euo pipefail
-          node .claude/skills/lisa-remote-dispatch/scripts/dispatch.mjs \\
-            'executionEnv=${loop.executionEnv} ${loop.payload ?? ""}' \\
-            --skill ${loop.skill ?? `lisa-${name}`}
+${runSkillScript("lisa-remote-dispatch", "dispatch.mjs", [
+  `'executionEnv=${loop.executionEnv} ${loop.payload ?? ""}'`,
+  `--skill ${loop.skill ?? `lisa-${name}`}`,
+])}
 
 ${rotation}
 `;
