@@ -1087,7 +1087,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "f896ef08c53c9f6a859c4ddb527f7e765c542e1fd8bb198c6d75c8f260185669",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "97c0cde692991fdf01cf640a563cd78f2f91812f135c06eac7ac418ff2bf2c8a",
+      "da3fdf62b88f77c6c2ae09f5352797818813fccb0dafe551c801b58f25de2711",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "4a5209cdc1344dc309d853d2a4197cf7eef786f0c4de4886847c731a28629522",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1119,15 +1119,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "d3ecfe4ffbb7c6df241f2b3f7252c4b24e907ccf87fb3da7db95fadbaa45c054",
+      "91c5d4dbc513b642e9da304425501ca6802f28c8059135e8ccc6ca0200060ee9",
+    "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
+      "6e3871ec2f8d56b8ebb85376ebdd3956f3ed8fa4f7b278c2ed90ca9b8845897c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "a043074dd52e3f9b4b4a32bdd8b5eaa728160e5a0622a8a18388e6e26c7d25e3",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "1e3f57c34edd65129a157f7418524594ca92b5472978bf5be1641981f4f1afbe",
+      "d63a47cbf5ca4875c2d0e173943dd36a4c95db5b5ff994e1267d00b251277b57",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "ff66d33ba41a068d09be18f81ac68988238c2afa1d4e3733ae906b73eea74324",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
-      "5c025cd06d3d9f01649b75d03859126e347ba62e8230447580a0ae5297240697",
+      "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "53fbd8acce4b5e47e88195a7b90d5be424fa6ef7ad872f52c50467c690664c3b",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
@@ -3257,6 +3259,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/assets/setup.sh": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
@@ -3671,6 +3674,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/assets/setup.sh": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
@@ -4071,6 +4075,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/assets/setup.sh": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
@@ -6103,6 +6108,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-aws/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/assets/setup.sh": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
@@ -6679,6 +6685,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-setup-remote-aws/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-setup-remote-env/SKILL.md": true,
     "plugins/lisa/skills/lisa-setup-remote-env/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa/skills/lisa-setup-remote-env/assets/setup.sh": true,
     "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
@@ -7118,6 +7125,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md": true,
+    "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
@@ -8322,6 +8330,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
+    "tests/unit/secrets/remote-env-phases.test.ts": true,
     "tests/unit/secrets/remote-env-skill-resolution.test.ts": true,
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
