@@ -88,11 +88,17 @@ describe("documented remote-env setup field", () => {
   /**
    * Run the documented field with a given working directory.
    * @param cwd Directory the vendor would run the field from.
+   * @param home Value of `$HOME` in the container, which defaults to `cwd`
+   *   because on Claude Code web they are the same directory.
    * @returns Combined output of the field.
    */
-  const runField = (cwd: string): string =>
+  const runField = (cwd: string, home = cwd): string =>
     execFileSync(BASH, ["-c", documentedSetupField()], {
       cwd,
+      // The field consults $HOME, so the tests must control it. Inheriting the
+      // developer's real home would make them depend on that machine's layout
+      // and would let a passing run mean nothing.
+      env: { ...process.env, HOME: home },
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
@@ -109,11 +115,42 @@ describe("documented remote-env setup field", () => {
     expect(runField(home)).toBe("FOUND-claude-web");
   });
 
-  it("never depends on $HOME containing the checkout", () => {
-    // The field this replaced was `bash "$HOME"/*/scripts/...`, which is correct
-    // on Claude Code web and wrong on Codex Cloud, where the checkout lives at
+  it("never DEPENDS on $HOME containing the checkout", () => {
+    // The field this replaced was `bash "$HOME"/*/scripts/...`, correct on
+    // Claude Code web and wrong on Codex Cloud, where the checkout lives at
     // /workspace/<repo> and is not under $HOME at all.
-    expect(documentedSetupField()).not.toContain("$HOME");
+    //
+    // Asserted by behaviour rather than by the absence of the string. $HOME is
+    // now one candidate among several, and forbidding the text would forbid the
+    // fallback below along with the bug — the guard is that a checkout outside
+    // $HOME is still found, which is the property that actually broke.
+    const home = path.join(temporary, "elsewhere");
+    mkdirSync(home, { recursive: true });
+    checkout(temporary, "FOUND-outside-home");
+    expect(runField(temporary, home)).toBe("FOUND-outside-home");
+  });
+
+  it("finds a checkout under $HOME when cwd is neither", () => {
+    // Reported from a live Claude environment: `$HOME` was `/root`, the field
+    // ran somewhere with no checkout beneath it, and a cwd-only search could
+    // not reach the repository at all —
+    //   bash: /root/*/scripts/lisa-remote-env/setup.sh: No such file or directory
+    // Nothing guarantees cwd is the checkout OR its parent, so the roots the
+    // surfaces actually use are searched too.
+    const home = path.join(temporary, "home");
+    const elsewhere = path.join(temporary, "root");
+    mkdirSync(elsewhere, { recursive: true });
+    checkout(path.join(home, "frontend"), "FOUND-under-home");
+    expect(runField(elsewhere, home)).toBe("FOUND-under-home");
+  });
+
+  it("prepares a checkout exactly once when the candidates overlap", () => {
+    // cwd, $HOME and the checkout can all be the same directory, and several
+    // candidate globs then match it. Preparing it twice is not merely wasteful:
+    // a doubled log reads as two repositories, which is the opposite of what
+    // the multi-checkout support above is there to make legible.
+    checkout(temporary, "ONCE");
+    expect(runField(temporary, temporary).split("ONCE")).toHaveLength(2);
   });
 
   it("prepares EVERY checkout, not whichever one sorts first", () => {
@@ -161,6 +198,31 @@ describe("documented remote-env setup field", () => {
   it("fails loudly when no entrypoint exists, rather than succeeding silently", () => {
     const empty = path.join(temporary, "empty");
     mkdirSync(empty, { recursive: true });
-    expect(() => runField(empty)).toThrow();
+    expect(() => runField(empty, empty)).toThrow();
+  });
+
+  it("describes the layout it found when it finds no entrypoint", () => {
+    // This field lives in a vendor settings box with a slow edit-and-retry
+    // loop, and the vendor surfaces only its stderr. A miss that names just the
+    // path it wanted costs a whole round trip to learn one fact — which is
+    // exactly what happened: `/root/*/scripts/...: No such file or directory`
+    // said where it looked and nothing about where the checkout actually was.
+    const empty = path.join(temporary, "empty");
+    const home = path.join(temporary, "home");
+    mkdirSync(empty, { recursive: true });
+    mkdirSync(path.join(home, "a-directory-that-is-there"), {
+      recursive: true,
+    });
+
+    let stderr = "";
+    try {
+      runField(empty, home);
+    } catch (error) {
+      stderr = (error as { stderr?: string }).stderr ?? "";
+    }
+
+    expect(stderr).toContain("PWD=");
+    expect(stderr).toContain("HOME=");
+    expect(stderr).toContain("a-directory-that-is-there");
   });
 });

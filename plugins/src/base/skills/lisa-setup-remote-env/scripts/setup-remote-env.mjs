@@ -308,28 +308,44 @@ export function installAssets(cwd = process.cwd()) {
  * at all — so a `$HOME` glob matched nothing there and bash was handed a path
  * still containing a literal asterisk.
  *
- * Both candidates are therefore tried relative to cwd, and EVERY match is
- * prepared rather than the first. A Claude Code web environment can hold more
- * than one checkout, so stopping at the first hit would prepare whichever
- * repository sorts first and silently ignore the rest — arbitrary rather than
- * merely limited. Each script anchors itself on its own repository root and
- * each project materializes under its own `secrets.namespace`, so preparing
- * several is well defined rather than a collision.
+ * Candidates are therefore tried relative to cwd first, then under `$HOME` and
+ * `/workspace` — the container roots the two surfaces actually use — because
+ * cwd is not reliably either of them. A Claude environment reported `$HOME` as
+ * `/root` with no checkout beneath it, which a cwd-only search cannot reach.
+ *
+ * EVERY match is prepared rather than the first. A Claude Code web environment
+ * can hold more than one checkout, so stopping at the first hit would prepare
+ * whichever repository sorts first and silently ignore the rest — arbitrary
+ * rather than merely limited. Each script anchors itself on its own repository
+ * root and each project materializes under its own `secrets.namespace`, so
+ * preparing several is well defined rather than a collision. Matches are
+ * deduplicated by resolved directory, since the candidate globs overlap
+ * whenever cwd happens to be one of the roots.
  *
  * The status is the first failure and every checkout is still attempted: one
  * broken repository must neither hide the others nor report success. The
  * explicit `exit 1` on no matches matters because a `for` loop over a glob that
  * matches nothing otherwise exits 0 — the quiet success this guards against.
  *
+ * Failure prints the layout it found rather than only the path it wanted. This
+ * field lives in a vendor settings box with a slow edit-and-retry loop, and a
+ * miss that reports nothing costs a whole round trip to learn one fact; the
+ * listing means the next message names the layout instead of repeating it.
+ *
  * A field that named the repository and package manager was a string a human
  * had to get right, in a settings box with no review, no version history and no
  * test — and the logic it encoded belongs in a file that has all three.
  */
 export const SETUP_FIELD =
-  "n=0; rc=0; " +
-  "for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; " +
-  'do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; ' +
-  '[ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; ' +
+  'n=0; rc=0; seen=""; ' +
+  "for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh " +
+  '"$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh ' +
+  "/workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; " +
+  'do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); ' +
+  'case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; ' +
+  'n=$((n+1)); bash "$f" || rc=$?; done; ' +
+  '[ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. ' +
+  'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; ' +
   'exit "$rc"';
 
 /**
