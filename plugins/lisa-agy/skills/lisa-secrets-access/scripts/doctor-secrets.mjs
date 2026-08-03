@@ -19,7 +19,7 @@
 
 import { createHash } from "node:crypto";
 
-import { fetchAll } from "./providers.mjs";
+import { fetchAll, fetchRotatable } from "./providers.mjs";
 import { readMaterialized } from "./resolve-secret.mjs";
 import { readConfig } from "./surfaces.mjs";
 
@@ -220,7 +220,7 @@ function main() {
   checkRequired(cfg, provider, file, report);
   checkNaming(provider, report);
   checkNotes(provider, report);
-  checkRotating(cfg, provider, report);
+  checkRotating(cfg, fetchRotatable(cfg), report);
   checkTwoStores(provider, file, report);
 
   const order = { error: 0, warn: 1, ok: 2 };
