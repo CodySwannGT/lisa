@@ -15,6 +15,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
@@ -26,6 +27,46 @@ const GUIDANCE = [
 ].join("\n");
 
 class TrackingError extends Error {}
+
+/**
+ * Say which of three different failures a `gh` invocation actually hit.
+ *
+ * The three are indistinguishable from an exit status alone, and they send the
+ * reader to three different places: a missing binary is an environment to
+ * provision, a refused credential is an access grant to obtain, and only the
+ * third is anything to do with the ticket.
+ *
+ * Collapsing them cost a real round trip. On Claude Code web, where `gh` is not
+ * pre-installed, every commit was refused with "issue #2202 does not exist or
+ * is inaccessible" — about an issue that was open and correct. The message
+ * accused the ticket, so that is where the reader went.
+ * @param {{status: number|null, error?: Error, stderr?: string}} result Spawn result.
+ * @param {string} ref Work item reference, for the message.
+ * @param {string} noun What the reference names.
+ * @returns {string} A message naming the actual fault.
+ */
+export function githubFailureReason(result, ref, noun) {
+  if (result.error?.code === "ENOENT") {
+    return (
+      `the GitHub CLI (gh) is not installed, so ${noun} ${ref} could not be ` +
+      `checked.\nThis is an environment gap, not a problem with the work item. ` +
+      `Pin gh in remoteEnv.tools.install for surfaces that lack it.`
+    );
+  }
+  const stderr = String(result.stderr ?? "");
+  if (
+    /not enabled for this session|gh auth login|HTTP 40[13]|Bad credentials|authentication/i.test(
+      stderr
+    )
+  ) {
+    return (
+      `the GitHub CLI cannot authenticate, so ${noun} ${ref} could not be ` +
+      `checked.\nThis is a credential gap, not a problem with the work item.` +
+      `\n${stderr.trim().slice(0, 300)}`
+    );
+  }
+  return `${noun} ${ref} does not exist or is inaccessible`;
+}
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -537,9 +578,7 @@ function githubIssue(ref, contract) {
     }
   );
   if (result.status !== 0)
-    throw new TrackingError(
-      `GitHub issue ${ref} does not exist or is inaccessible`
-    );
+    throw new TrackingError(githubFailureReason(result, ref, "GitHub issue"));
   const issue = safeJson(result.stdout, `GitHub issue ${ref}`);
   if (String(issue.number) !== number)
     throw new TrackingError(`GitHub returned the wrong issue for ${ref}`);
@@ -1165,12 +1204,40 @@ function main() {
   );
 }
 
-try {
-  main();
-} catch (error) {
-  const detail = error instanceof Error ? error.message : String(error);
-  console.error(
-    `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
-  );
-  process.exitCode = 1;
+/**
+ * Run the CLI, reporting any refusal the way the Git hooks expect.
+ *
+ * Exported so the thin entrypoint at `scripts/lisa-work-item.mjs` can invoke it
+ * explicitly. That entrypoint re-exports this module rather than duplicating
+ * it, so inside here `import.meta.url` names THIS file while `argv[1]` names
+ * the entrypoint — the two never match, and a guard comparing them would leave
+ * Lisa's own hooks doing nothing at all, silently and with exit 0. An exported
+ * call is unambiguous where a path comparison is a guess.
+ */
+export function runCli() {
+  try {
+    main();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error(
+      `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
+    );
+    process.exitCode = 1;
+  }
+}
+
+// Only when invoked as a program. Running on import made every function here
+// unreachable from a test: importing the module executed the CLI, so the only
+// way to exercise any of it was to spawn a process and drive it through the
+// filesystem and PATH. That is why a bug in the message above shipped — the
+// branch that produced it had no way to be asserted on.
+//
+// This branch covers a host project, where the file is copied to
+// `scripts/lisa-work-item.mjs` and invoked directly. Lisa's own checkout keeps
+// a re-exporting entrypoint instead, which calls runCli() itself.
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  runCli();
 }
