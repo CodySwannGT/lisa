@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.320.0](https://github.com/CodySwannGT/lisa/compare/v2.319.0...v2.320.0) (2026-08-03)
+
+
+### Features
+
+* **remote-env:** materialize per session where setup is cached ([189c102](https://github.com/CodySwannGT/lisa/commit/189c102928ed19b32f5e84fe9c24494d26896141)), closes [CodySwannGT/lisa#2175](https://github.com/CodySwannGT/lisa/issues/2175)
+
+
+### Bug Fixes
+
+* address remote env review findings ([3e04666](https://github.com/CodySwannGT/lisa/commit/3e04666b639c2ede0352990bf14a830b64f082dd)), closes [CodySwannGT/lisa#2175](https://github.com/CodySwannGT/lisa/issues/2175)
+
 ## [2.319.0](https://github.com/CodySwannGT/lisa/compare/v2.318.0...v2.319.0) (2026-08-03)
 
 
