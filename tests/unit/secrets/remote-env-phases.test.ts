@@ -31,6 +31,7 @@ type Finding = { ok: boolean; label: string; detail: string };
 /** The two moments a surface can materialize at, as the capability names them. */
 const AT_SETUP = "setup";
 const AT_SESSION_START = "session-start";
+const BUN_INSTALL = "bun install";
 
 /**
  * Collect findings without touching the module's own results array.
@@ -105,7 +106,8 @@ describe("install command detection", () => {
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
   it.each([
-    ["bun.lock", "bun install"],
+    ["bun.lock", BUN_INSTALL],
+    ["bun.lockb", BUN_INSTALL],
     ["pnpm-lock.yaml", "pnpm install --frozen-lockfile"],
     ["yarn.lock", "yarn install --immutable"],
     ["package-lock.json", "npm ci"],

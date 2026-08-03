@@ -300,7 +300,7 @@ export function emitClaudeWeb({ bootstrapKey, install }) {
     "-------------",
     "  Start a session and run the read-back. Whatever provisioned an",
     "  environment, the same verify is what makes it trustworthy:",
-    "    node scripts/verify-remote-env.mjs",
+    "    node node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs",
   ].join("\n");
 }
 
