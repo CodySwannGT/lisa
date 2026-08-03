@@ -83,6 +83,35 @@ describe("invocation parsing", () => {
   it("tolerates an empty invocation", () => {
     expect(parseInvocation("")).toEqual({ params: {}, rest: "" });
   });
+
+  it("accepts the dashed form anyone who has used a CLI will type", () => {
+    // `--executionEnv=...` previously fell through to the payload and left the
+    // surface at its default, which is exactly the outcome this skill says it
+    // exists to prevent: the work runs locally while the operator believes it
+    // went remote, and nothing downstream contradicts them.
+    const { params, rest } = parseInvocation(
+      "SE-45434 --executionEnv=claude-web"
+    );
+    expect(params.executionEnv).toBe("claude-web");
+    expect(rest).toBe("SE-45434");
+  });
+
+  it("rejects a misspelled parameter rather than ignoring it", () => {
+    // Indistinguishable from not asking at all, and silence is the one response
+    // an operator cannot act on.
+    expect(() =>
+      parseInvocation("SE-45434 --executionEnvv=claude-web")
+    ).toThrow(/unknown parameter "executionEnvv"/);
+  });
+
+  it("still lets a bare key=value belong to the payload", () => {
+    // Only the dashed form claims to be a parameter. Prose may contain an
+    // equals sign, and this dispatcher has no business rejecting the caller's
+    // description because of one.
+    const { params, rest } = parseInvocation("describe the a=b mapping");
+    expect(params).toEqual({});
+    expect(rest).toBe("describe the a=b mapping");
+  });
 });
 
 describe("executionEnv resolution", () => {
