@@ -299,18 +299,29 @@ export function installAssets(cwd = process.cwd()) {
 }
 
 /**
- * The setup field, identical for every project.
+ * The setup field, identical for every project and every surface.
  *
- * Names neither the repository nor its package manager. Claude Code web runs
- * this field from `$HOME` while the checkout sits one level down, so the glob
- * locates the script; the script then anchors itself on the repository root and
- * installs dependencies from whichever lockfile the project commits.
+ * Names neither the repository nor its package manager, and deliberately not
+ * `$HOME` either: the surfaces disagree about where the field runs. Codex Cloud
+ * runs it inside the checkout, Claude Code web runs it from `$HOME` with the
+ * checkout one level down, and on Codex Cloud the checkout is not under `$HOME`
+ * at all — so a `$HOME` glob matched nothing there and bash was handed a path
+ * still containing a literal asterisk.
  *
- * A field that named both was a string a human had to get right, in a settings
- * box with no review, no version history and no test — and the logic it encoded
- * belongs in a file that has all three.
+ * Both candidates are therefore tried relative to cwd. `exec` on the first hit
+ * avoids a subshell and avoids parsing `ls`; the explicit `exit 1` means a
+ * missing entrypoint says so rather than the field quietly succeeding. The
+ * script then anchors itself on the repository root and installs dependencies
+ * from whichever lockfile the project commits.
+ *
+ * A field that named the repository and package manager was a string a human
+ * had to get right, in a settings box with no review, no version history and no
+ * test — and the logic it encoded belongs in a file that has all three.
  */
-const SETUP_FIELD = `bash "$HOME"/*/scripts/lisa-remote-env/setup.sh`;
+export const SETUP_FIELD =
+  "for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; " +
+  'do [ -f "$f" ] && exec bash "$f"; done; ' +
+  'echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1';
 
 /**
  * The settings block that wires the session-start hook into a repository.

@@ -24,6 +24,8 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+
 const SKILL = "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md";
 
 /** Where the entrypoint lives inside a checkout. */
@@ -56,6 +58,17 @@ function checkout(root: string, marker: string): void {
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(root, ENTRYPOINT), `echo ${marker}\n`);
 }
+
+describe("emitted setup field", () => {
+  it("is the same line the documentation tells operators to paste", () => {
+    // Two copies of a shell one-liner — one emitted, one in prose — drift
+    // silently: the emitter is what an operator actually pastes, SKILL.md is
+    // what a reader believes, and only one of them got fixed the first time
+    // this broke. Pinning them equal is what extends the tests below, which
+    // execute the documented line, to cover the emitted one too.
+    expect(SETUP_FIELD).toBe(documentedSetupField());
+  });
+});
 
 describe("documented remote-env setup field", () => {
   let temporary: string;

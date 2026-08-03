@@ -255,9 +255,10 @@ describe("emitted Claude configuration", () => {
     // by a string a human had to get right — in a settings box with no review,
     // no version history and no test. The script finds the checkout itself and
     // reads the package manager from the committed lockfile.
-    expect(emitted).toContain(
-      'bash "$HOME"/*/scripts/lisa-remote-env/setup.sh'
-    );
+    expect(emitted).toContain("for f in scripts/lisa-remote-env/setup.sh");
+    // Not $HOME: Codex Cloud's checkout is not under it, so a $HOME glob
+    // matched nothing there and bash got a path with a literal asterisk.
+    expect(emitted).not.toContain('"$HOME"/*/');
     expect(emitted).not.toMatch(/cd '?lisa'?/);
     expect(emitted).not.toContain("bun install &&");
   });
