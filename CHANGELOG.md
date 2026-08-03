@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.321.4](https://github.com/CodySwannGT/lisa/compare/v2.321.3...v2.321.4) (2026-08-03)
+
+
+### Bug Fixes
+
+* **remote-env:** put the install directory on PATH ([9d01f93](https://github.com/CodySwannGT/lisa/commit/9d01f936627d4cbec008533fb78a7b3ce80b1427)), closes [CodySwannGT/lisa#2188](https://github.com/CodySwannGT/lisa/issues/2188)
+
 ### [2.321.3](https://github.com/CodySwannGT/lisa/compare/v2.321.2...v2.321.3) (2026-08-03)
 
 
