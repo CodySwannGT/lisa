@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.7](https://github.com/CodySwannGT/lisa/compare/v2.322.6...v2.322.7) (2026-08-03)
+
+
+### Bug Fixes
+
+* **postinstall:** leave cloud-session plugin installs to Claude Code ([a394897](https://github.com/CodySwannGT/lisa/commit/a394897a0c4ab5265b5069f504313fe5b3c6e11c)), closes [CodySwannGT/lisa#2215](https://github.com/CodySwannGT/lisa/issues/2215)
+
 ### [2.322.6](https://github.com/CodySwannGT/lisa/compare/v2.322.5...v2.322.6) (2026-08-03)
 
 
