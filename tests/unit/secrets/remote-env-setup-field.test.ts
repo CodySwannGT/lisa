@@ -31,6 +31,10 @@ const SKILL = "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md";
 /** Where the entrypoint lives inside a checkout. */
 const ENTRYPOINT = "scripts/lisa-remote-env/setup.sh";
 
+/** Markers for the two checkouts in the multi-repo fixtures, named to sort apart. */
+const ALPHA = "FOUND-alpha";
+const ZULU = "FOUND-zulu";
+
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
 
@@ -110,6 +114,48 @@ describe("documented remote-env setup field", () => {
     // on Claude Code web and wrong on Codex Cloud, where the checkout lives at
     // /workspace/<repo> and is not under $HOME at all.
     expect(documentedSetupField()).not.toContain("$HOME");
+  });
+
+  it("prepares EVERY checkout, not whichever one sorts first", () => {
+    // A Claude Code web environment can hold more than one repository. Stopping
+    // at the first glob hit would prepare one chosen alphabetically and ignore
+    // the rest — arbitrary, not merely limited.
+    const home = path.join(temporary, "home");
+    mkdirSync(home, { recursive: true });
+    checkout(path.join(home, "alpha"), ALPHA);
+    checkout(path.join(home, "zulu"), ZULU);
+
+    const out = runField(home);
+    expect(out).toContain(ALPHA);
+    expect(out).toContain(ZULU);
+  });
+
+  it("reports a failure in one checkout without skipping the others", () => {
+    const home = path.join(temporary, "home");
+    mkdirSync(home, { recursive: true });
+    checkout(path.join(home, "alpha"), ALPHA);
+
+    // A broken second repository: must not hide the first, must not pass.
+    const broken = path.join(home, "zulu", path.dirname(ENTRYPOINT));
+    mkdirSync(broken, { recursive: true });
+    writeFileSync(
+      path.join(home, "zulu", ENTRYPOINT),
+      `echo ${ZULU}\nexit 3\n`
+    );
+
+    let status = 0;
+    let output = "";
+    try {
+      output = runField(home);
+    } catch (error) {
+      const failure = error as { status?: number; stdout?: string };
+      status = failure.status ?? 0;
+      output = failure.stdout ?? "";
+    }
+
+    expect(status).not.toBe(0);
+    expect(output).toContain(ALPHA);
+    expect(output).toContain(ZULU);
   });
 
   it("fails loudly when no entrypoint exists, rather than succeeding silently", () => {
