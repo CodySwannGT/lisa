@@ -199,6 +199,36 @@ describe("automations block", () => {
   it("accepts a loop whose surface is provisioned", () => {
     expect(validateAutomations({ intake: loop }, PROVISIONED)).toEqual([]);
   });
+
+  it("accepts a claude-web loop bound to a routine rather than a repository", () => {
+    // This is the path that actually gates dispatch, and it asks a different
+    // question of each surface: demanding a repository here would reject a
+    // correctly provisioned Claude surface, which has none to give.
+    const claudeLoop = { ...loop, executionEnv: "claude-web" };
+    const provisioned = {
+      surfaces: {
+        "claude-web": {
+          routineId: "trig_01ABC",
+          fireUrl: "https://api.anthropic.com/v1/claude_code/routines/x/fire",
+        },
+      },
+    };
+    expect(validateAutomations({ intake: claudeLoop }, provisioned)).toEqual(
+      []
+    );
+  });
+
+  it("rejects a claude-web loop whose routine was never recorded", () => {
+    const claudeLoop = { ...loop, executionEnv: "claude-web" };
+    const halfProvisioned = {
+      surfaces: { "claude-web": { routineId: "trig_01ABC" } },
+    };
+    const problems = validateAutomations(
+      { intake: claudeLoop },
+      halfProvisioned
+    );
+    expect(problems[0]).toMatch(/setup:remote-env claude-web/);
+  });
 });
 
 describe("whole-config validation", () => {

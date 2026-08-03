@@ -1,8 +1,5 @@
 # Claude Code web as a first-class secrets/execution surface
 
-> Rename to `plans/claude-web-surface.md` on first commit, matching the descriptive
-> convention of the parent plan (`plans/portable-secrets-remote-execution.md`).
-
 ## Context
 
 `plans/portable-secrets-remote-execution.md` shipped a two-axis model — **provider**

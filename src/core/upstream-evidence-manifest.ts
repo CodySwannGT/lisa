@@ -1089,7 +1089,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "97c0cde692991fdf01cf640a563cd78f2f91812f135c06eac7ac418ff2bf2c8a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "e317eeaa65283ceadb2f25b6ca5e22178801094209420e9b516f225cebae985f",
+      "4a5209cdc1344dc309d853d2a4197cf7eef786f0c4de4886847c731a28629522",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
