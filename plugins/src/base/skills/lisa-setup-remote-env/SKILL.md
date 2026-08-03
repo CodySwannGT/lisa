@@ -18,7 +18,7 @@ maintenance: n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scr
 ```
 
 **That line is identical for every project AND every surface.** Nothing in it names the
-repository, the package manager, or a home directory, so it can be pasted unchanged anywhere.
+repository or the package manager, so it can be pasted unchanged anywhere.
 
 Locating the checkout is the only hard part, because the surfaces disagree about where the
 field runs:
@@ -26,13 +26,17 @@ field runs:
 | Surface | cwd when the field runs | Checkout |
 | --- | --- | --- |
 | Codex Cloud | **is** the checkout | `/workspace/<repo>` |
-| Claude Code web | `$HOME` | `$HOME/<repo>` |
+| Claude Code web | `$HOME`, but not reliably | `$HOME/<repo>`, or another root |
 
-So both candidates are tried **relative to cwd** — the checkout itself, then one level down —
-and neither mentions `$HOME`. An earlier version of this field used
-`bash "$HOME"/*/scripts/...`, which works on Claude Code web and fails on Codex Cloud, where
-the checkout is not under `$HOME` at all: the glob matches nothing and bash reports
-`No such file or directory` for a path still containing a literal `*`.
+So the checkout itself and one level down are tried **relative to cwd first**, then the same
+pair under `$HOME` and `/workspace` — the roots the two surfaces actually use — because cwd is
+not reliably either of them: a live Claude environment reported `$HOME` as `/root` with the
+checkout at `/home/user/lisa`, which a cwd-only search cannot reach.
+
+The cwd-relative candidates coming **first** is the invariant, and a test pins it. An earlier
+version of this field used `bash "$HOME"/*/scripts/...` alone, which works on Claude Code web
+and fails on Codex Cloud, where the checkout is not under `$HOME` at all: the glob matches
+nothing and bash reports `No such file or directory` for a path still containing a literal `*`.
 
 **Every** match is prepared, not the first. A Claude Code web environment can hold more than
 one checkout, and stopping at the first glob hit would prepare whichever repository sorts
@@ -190,7 +194,7 @@ It reads the bootstrap name from `secrets.bootstrap.key` and emits the environme
 
 - **`gh` is not pre-installed.** If the project's flows shell out to it, add it to `remoteEnv.tools.install`, pinned and checksummed like anything else.
 - **A proxied credential reads as the literal string `proxy-injected`.** Tools that authenticate through the GitHub proxy work; a script that reads the variable directly gets the placeholder. The read-back asserts this rather than leaving it to be discovered against a live service.
-- **The setup field runs from `$HOME`, not from the checkout.** That is why the field is a `$HOME` glob rather than a plain relative path: it locates the clone one level down, and the script anchors itself from there. Nothing in the emitted line names this project, so it is the same line everywhere.
+- **The surfaces disagree about where the setup field runs.** Codex Cloud runs it inside the checkout; Claude Code web runs it from `$HOME` with the checkout one level down. That is why the field tries the checkout itself and then one level down relative to cwd, and only then the same pair under `$HOME` and `/workspace` — the script anchors itself on whichever matched. Nothing in the emitted line names this project, so it is the same line everywhere.
 - **Trusted network access is not enough for provider CLIs.** Use Custom and include package registries, GitHub, cloud SDK hosts, and the bootstrap credential manager API.
 
 ### One environment per project, pinned locally
