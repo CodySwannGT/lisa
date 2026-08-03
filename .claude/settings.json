@@ -44,5 +44,18 @@
       }
     }
   },
-  "plansDirectory": "./plans"
+  "plansDirectory": "./plans",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/lisa-remote-env/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
