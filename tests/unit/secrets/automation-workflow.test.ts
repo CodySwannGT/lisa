@@ -99,11 +99,32 @@ describe("declaration validation", () => {
     expect(() => renderWorkflow("intake", noSchedule)).toThrow(/no schedule/i);
   });
 
-  it("refuses to target a surface that was never provisioned", () => {
+  it("refuses when it cannot tell which repository the loop belongs to", () => {
+    // The workflow guards on the repository so a fork never dispatches, so an
+    // unknown one is refused rather than guessed.
+    //
+    // This used to double as the not-provisioned check, by reading the
+    // repository out of the surface block. That asked for a field a Claude
+    // cloud environment cannot have — it binds no repository — and refused to
+    // generate a workflow for a correctly configured loop. Provisioning is now
+    // asserted once, by validateAutomations, rather than inferred twice.
     const { repository, ...noRepo } = LOOP;
     expect(() => renderWorkflow("intake", noRepo)).toThrow(
-      /setup:remote-env codex-cloud/
+      /cannot determine which repository/i
     );
+  });
+
+  it("generates for a surface that binds no repository of its own", () => {
+    // The regression this pins: a Claude cloud environment is account-scoped
+    // and the repository arrives per session, so the fork guard has to come
+    // from the project's own GitHub config instead.
+    const yaml = renderWorkflow("intake", {
+      ...LOOP,
+      executionEnv: "claude-web",
+      repository: "CodySwannGT/lisa",
+    });
+    expect(yaml).toContain("if: github.repository == 'CodySwannGT/lisa'");
+    expect(yaml).toContain("'executionEnv=claude-web ");
   });
 
   it("defaults the dispatched skill to the loop name", () => {
