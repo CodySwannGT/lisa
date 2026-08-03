@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.323.0](https://github.com/CodySwannGT/lisa/compare/v2.322.8...v2.323.0) (2026-08-03)
+
+
+### Features
+
+* **automations:** register build-intake as the first scheduled loop ([e356116](https://github.com/CodySwannGT/lisa/commit/e35611600f9a3e8bd102ebe125b238cdeb04e5d0)), closes [CodySwannGT/lisa#2219](https://github.com/CodySwannGT/lisa/issues/2219)
+
 ### [2.322.8](https://github.com/CodySwannGT/lisa/compare/v2.322.7...v2.322.8) (2026-08-03)
 
 
