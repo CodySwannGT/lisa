@@ -48,6 +48,13 @@ const NODE_MODULES_RUNNER =
 const CLAUDE_RUNNER =
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
+/** Where the Lisa monorepo itself keeps the skill, at HEAD. */
+const CHECKOUT_PLUGIN_RUNNER =
+  "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+
+/** Distinct marker for the checkout's own plugin copy. */
+const CHECKOUT_PLUGIN_MARKER = "ran-from-checkout-plugins";
+
 /** Distinct markers, so a test can tell which runner actually executed. */
 const NODE_MODULES_MARKER = "ran-from-node-modules";
 const CLAUDE_MARKER = "ran-from-claude-skills";
@@ -204,6 +211,54 @@ describe("remote-env entrypoint skill resolution", () => {
 
     expect(result.status).toBe(0);
     expect(result.stderr).toContain("No lockfile found");
+  });
+
+  it("resolves from the checkout's own plugins directory (Lisa on Lisa)", () => {
+    // Lisa applied to Lisa is the case every other rung misses. The checkout
+    // IS Lisa, at HEAD; node_modules holds whatever its own lockfile pins,
+    // which was four months and a hundred skills behind — so this file did not
+    // exist there and setup aborted saying the skill could not be found. The
+    // one place it was is the one place that was not searched.
+    const root = temporaryDirectory();
+    plantRunner(root, CHECKOUT_PLUGIN_RUNNER, CHECKOUT_PLUGIN_MARKER);
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(CHECKOUT_PLUGIN_MARKER);
+  });
+
+  it("prefers the checkout's plugins directory over a stale node_modules", () => {
+    // A checkout that builds this skill is by construction newer than any
+    // published copy of it, so HEAD wins over the pinned release.
+    const root = temporaryDirectory();
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    plantRunner(root, CHECKOUT_PLUGIN_RUNNER, CHECKOUT_PLUGIN_MARKER);
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(CHECKOUT_PLUGIN_MARKER);
+    expect(result.stdout).not.toContain(NODE_MODULES_MARKER);
+  });
+
+  it("names the resolved package version when nothing matches", () => {
+    // "Not installed" and "installed, but predates this skill" read identically
+    // and are fixed differently — the second is what happened, and the message
+    // sent the operator to fix an install that had worked.
+    const root = temporaryDirectory();
+    const pkg = path.join(root, "node_modules", "@codyswann", "lisa");
+    mkdirSync(pkg, { recursive: true });
+    writeFileSync(
+      path.join(pkg, "package.json"),
+      JSON.stringify({ name: "@codyswann/lisa", version: "2.195.6" })
+    );
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("2.195.6");
+    expect(result.stderr).toMatch(/pin is the problem/i);
   });
 
   it("prefers an agent skill directory over node_modules", () => {
