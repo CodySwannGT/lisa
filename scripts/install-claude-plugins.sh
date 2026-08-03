@@ -290,6 +290,29 @@ fi
 # Install plugins only when claude CLI is available
 if ! command -v claude &>/dev/null; then exit 0; fi
 
+# Not in a cloud session: the platform already does this, and does it at the
+# only moment it can work.
+#
+# Claude Code installs the plugins a repository declares in .claude/settings.json
+# at session start, from the marketplace that file names. This script runs from a
+# package manager's postinstall, which in a container happens during the setup
+# script — before Claude Code has launched and before any marketplace is
+# registered. Every install therefore failed:
+#
+#   Installing plugin "lisa@lisa"...× Plugin "lisa" not found in marketplace "lisa"
+#
+# Eight of eight, the official marketplace's plugins included, which is what
+# ruled out anything project-specific. The failures are harmless on their own
+# (`|| true`), but they leave an empty installed_plugins.json and several
+# screens of red in the setup log that read as the cause of whatever fails next.
+#
+# Standing down is the fix rather than racing the platform with an earlier
+# install, because there is no earlier moment at which one could succeed.
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+  echo "Cloud session: leaving plugin installation to Claude Code, which installs what .claude/settings.json declares at session start."
+  exit 0
+fi
+
 # Version-gated plugin sync (perf). `claude plugin marketplace update` is a
 # network git pull of the whole Lisa repo and every `claude plugin install`
 # spawns the Claude CLI (seconds each); re-running all of it on every install
