@@ -1,6 +1,6 @@
 ---
 name: lisa-remote-dispatch
-description: "Route one unit of work to a remote execution surface. Reads the executionEnv parameter (local by default, codex-cloud today), verifies the environment is provisioned and bound to this repository, submits a thin skill invocation, records the task identifier to .lisa/remote-dispatch.json, and exits without polling. Routing only — the remote runs the identical skill from the identical repository. Composable and inline: other skills invoke it via the Skill tool rather than users calling it directly."
+description: "Route one unit of work to a remote execution surface. Reads the executionEnv parameter (local by default, codex-cloud or claude-web today), verifies the environment is provisioned and bound to this repository, submits a thin skill invocation, records the task identifier to .lisa/remote-dispatch.json, and exits without polling. Routing only — the remote runs the identical skill from the identical repository. Composable and inline: other skills invoke it via the Skill tool rather than users calling it directly."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -16,8 +16,11 @@ It changes **where** work happens and nothing about **what** happens. The remote
 | --- | --- |
 | omitted / `local` | The calling skill proceeds normally. Nothing is dispatched. |
 | `codex-cloud` | Submit to the project's Codex Cloud environment and return. |
+| `claude-web` | Fire the project's Claude routine, which starts a cloud session, and return. |
 
 Any other value is **rejected explicitly**. A silently ignored `executionEnv` would run the work locally while the operator believes it went remote, and nothing downstream would contradict that belief.
+
+For the same reason, the parameter is accepted as both `executionEnv=…` and `--executionEnv=…`, and a *dashed* parameter this skill does not recognise is an error rather than payload. The bare form is the documented one, but the dashed form is what anyone who has used a CLI will type, and a misspelling of either is indistinguishable from not asking at all — which is the one failure an operator cannot act on. A bare `key=value` still belongs to the payload, since prose may legitimately contain an equals sign.
 
 If a behaviour must differ between local and remote, it belongs in the calling skill as an explicit branch — never here. The moment this file starts encoding domain behaviour, there are two implementations to keep in sync.
 
