@@ -308,20 +308,29 @@ export function installAssets(cwd = process.cwd()) {
  * at all — so a `$HOME` glob matched nothing there and bash was handed a path
  * still containing a literal asterisk.
  *
- * Both candidates are therefore tried relative to cwd. `exec` on the first hit
- * avoids a subshell and avoids parsing `ls`; the explicit `exit 1` means a
- * missing entrypoint says so rather than the field quietly succeeding. The
- * script then anchors itself on the repository root and installs dependencies
- * from whichever lockfile the project commits.
+ * Both candidates are therefore tried relative to cwd, and EVERY match is
+ * prepared rather than the first. A Claude Code web environment can hold more
+ * than one checkout, so stopping at the first hit would prepare whichever
+ * repository sorts first and silently ignore the rest — arbitrary rather than
+ * merely limited. Each script anchors itself on its own repository root and
+ * each project materializes under its own `secrets.namespace`, so preparing
+ * several is well defined rather than a collision.
+ *
+ * The status is the first failure and every checkout is still attempted: one
+ * broken repository must neither hide the others nor report success. The
+ * explicit `exit 1` on no matches matters because a `for` loop over a glob that
+ * matches nothing otherwise exits 0 — the quiet success this guards against.
  *
  * A field that named the repository and package manager was a string a human
  * had to get right, in a settings box with no review, no version history and no
  * test — and the logic it encoded belongs in a file that has all three.
  */
 export const SETUP_FIELD =
+  "n=0; rc=0; " +
   "for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; " +
-  'do [ -f "$f" ] && exec bash "$f"; done; ' +
-  'echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1';
+  'do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; ' +
+  '[ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; ' +
+  'exit "$rc"';
 
 /**
  * The settings block that wires the session-start hook into a repository.
