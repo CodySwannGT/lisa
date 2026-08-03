@@ -1947,7 +1947,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "876914c369c5bd58f4a5f3c41d0c1264c6923f329a644f90640d15b434a0fbd1",
     "scripts/install-claude-plugins.sh":
-      "5f4bedb983900dc17f8843f73876fc7c445909eb12792b3330728ff03842f50b",
+      "ed60ed3afc25175b81439330dbf26ff639f55fabec54223df4c7266805c84f22",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -8187,6 +8187,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/oxlint-typescript.test.ts": true,
     "tests/unit/config/phaser-template.test.ts": true,
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
+    "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/sync-down-single-env.test.ts": true,
