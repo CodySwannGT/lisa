@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "9d3831007e681186a3673e1037ef3fc82980cab2fc04e27c0868e562912c9e9f",
     "all/copy-contents/gitignore":
-      "46f11b3fe840006c2d49fe83bf0fb873851f671ada417823674c3374b4774413",
+      "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "5eb31c284e820a51312d4484f0669128007326af55ee515923fec33700d003a1",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -1055,7 +1055,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
       "2cc999d2c3b61b10aabb849e0833fd58edb444c5013c05108dd58e5d7d60c4ba",
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
-      "3bf6c019de34a53a1c84b131ffeb9702441e8c1c7c1794f522f97c0de5ee5ce4",
+      "845b3ad36e32d8b1a317e1c7d2856a759b9db42621174e02528dc36a1a2f52a7",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "4f85ac1381631e9f250d9cf3239baba633ae0df9ba1959f8835ed662592e2d77",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
@@ -8335,6 +8335,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
+    "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-phases.test.ts": true,
     "tests/unit/secrets/remote-env-skill-resolution.test.ts": true,
