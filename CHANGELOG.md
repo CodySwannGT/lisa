@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.5](https://github.com/CodySwannGT/lisa/compare/v2.322.4...v2.322.5) (2026-08-03)
+
+
+### Bug Fixes
+
+* **dispatch:** stop a dashed executionEnv from silently running locally ([3053f6d](https://github.com/CodySwannGT/lisa/commit/3053f6dedc9d3cb55e8f72846400f97b886d690d)), closes [CodySwannGT/lisa#2209](https://github.com/CodySwannGT/lisa/issues/2209)
+
 ### [2.322.4](https://github.com/CodySwannGT/lisa/compare/v2.322.3...v2.322.4) (2026-08-03)
 
 
