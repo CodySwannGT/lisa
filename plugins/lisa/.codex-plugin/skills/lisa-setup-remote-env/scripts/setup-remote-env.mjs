@@ -299,6 +299,20 @@ export function installAssets(cwd = process.cwd()) {
 }
 
 /**
+ * The setup field, identical for every project.
+ *
+ * Names neither the repository nor its package manager. Claude Code web runs
+ * this field from `$HOME` while the checkout sits one level down, so the glob
+ * locates the script; the script then anchors itself on the repository root and
+ * installs dependencies from whichever lockfile the project commits.
+ *
+ * A field that named both was a string a human had to get right, in a settings
+ * box with no review, no version history and no test — and the logic it encoded
+ * belongs in a file that has all three.
+ */
+const SETUP_FIELD = `bash "$HOME"/*/scripts/lisa-remote-env/setup.sh`;
+
+/**
  * The settings block that wires the session-start hook into a repository.
  *
  * Emitted rather than written, because `.claude/settings.json` belongs to the
@@ -366,12 +380,11 @@ export function pinEnvironment(environmentId, cwd = process.cwd()) {
  * settings page, no direct URL, and no endpoint. Emit is not a degraded option
  * here, it is the only one — so the read-back in `verify-remote-env.mjs` is
  * what makes the result trustworthy, exactly as it would be at any other tier.
- * @param {{bootstrapKey: string|null, install: string, repoDir?: string}} options Project details.
+ * @param {{bootstrapKey: string|null}} options Project details.
  * @returns {string} Text to show the operator.
  */
-export function emitClaudeWeb({ bootstrapKey, install, repoDir = "lisa" }) {
+export function emitClaudeWeb({ bootstrapKey }) {
   const key = bootstrapKey ?? "<secrets.bootstrap.key is not configured>";
-  const setup = `cd ${shellQuote(repoDir)} && ${install} && bash scripts/lisa-remote-env/setup.sh`;
   return [
     "Provisioning tier: EMIT — and for this surface that is the only tier.",
     "  A Claude cloud environment is account-scoped configuration edited in the",
@@ -393,13 +406,17 @@ export function emitClaudeWeb({ bootstrapKey, install, repoDir = "lisa" }) {
     "    is why exactly one value needs to live here.",
     "",
     "  Setup script:",
-    `    ${setup}`,
+    `    ${SETUP_FIELD}`,
     "",
-    `    Claude runs this field from $HOME, while the checkout is $HOME/${repoDir}.`,
-    "    The `cd` must come first, and the install must run before the setup",
-    "    script. On a fresh container node_modules is the only copy of the Lisa",
-    "    skills present, because Claude receives them as an installed plugin",
-    "    rather than as part of the clone.",
+    "    This line is identical for every project — nothing in it names this",
+    "    repository or its package manager. Claude runs the field from $HOME",
+    "    while the checkout lives one level down, so the glob is what locates",
+    "    it; the script then anchors itself and installs dependencies using",
+    "    whichever lockfile the project actually commits.",
+    "",
+    "    Keeping it generic is the point. A field that named the repository and",
+    "    the package manager was a string a human had to get right, in a box",
+    "    with no review, no version history and no test.",
     "",
     "Commit to the repository",
     "------------------------",
@@ -479,57 +496,6 @@ async function detectSurface() {
 }
 
 /**
- * Name the project's own install command rather than inventing one.
- *
- * The emitted setup line must begin with whatever this project already uses; a
- * guessed package manager produces a container that fails on its first command.
- * @param {string} [cwd] Repository root.
- * @returns {string} The install command to place before the setup script.
- */
-export function detectInstallCommand(cwd = process.cwd()) {
-  const lockfiles = [
-    ["bun.lockb", "bun install"],
-    ["bun.lock", "bun install"],
-    ["pnpm-lock.yaml", "pnpm install --frozen-lockfile"],
-    ["yarn.lock", "yarn install --immutable"],
-    ["package-lock.json", "npm ci"],
-  ];
-  for (const [file, command] of lockfiles) {
-    if (existsSync(join(cwd, file))) return command;
-  }
-  return "<your install command>";
-}
-
-/**
- * Name the directory Claude creates under $HOME when it clones this repository.
- *
- * Claude cloud runs the environment setup field from $HOME, not from the
- * checkout. The setup line therefore has to `cd` into the clone before running
- * the project install. Prefer the configured GitHub repo name because it is the
- * thing Claude clones; fall back to the current directory for non-GitHub tests
- * and local dry runs.
- * @param {string} [cwd] Repository root.
- * @returns {string} Directory name to place after `cd`.
- */
-export function detectRepositoryDirectory(cwd = process.cwd()) {
-  const path = join(cwd, ".lisa.config.json");
-  if (existsSync(path)) {
-    const repo = JSON.parse(readFileSync(path, "utf8")).github?.repo;
-    if (repo && !repo.includes("/") && !repo.includes("\0")) return repo;
-  }
-  return basename(cwd);
-}
-
-/**
- * Quote a value for POSIX shell usage.
- * @param {string} value Raw value.
- * @returns {string} Single-quoted shell literal.
- */
-function shellQuote(value) {
-  return "'" + String(value).replaceAll("'", "'\\''") + "'";
-}
-
-/**
  * Read the bootstrap key name, which is the one value the operator must paste.
  * @param {string} [cwd] Repository root.
  * @returns {string|null} The configured key name, when there is one.
@@ -577,13 +543,7 @@ async function main() {
           `Emitting is implemented for claude-web, which has no other tier.`
       );
     }
-    console.log(
-      emitClaudeWeb({
-        bootstrapKey: readBootstrapKey(),
-        install: detectInstallCommand(),
-        repoDir: detectRepositoryDirectory(),
-      })
-    );
+    console.log(emitClaudeWeb({ bootstrapKey: readBootstrapKey() }));
     return;
   }
 
