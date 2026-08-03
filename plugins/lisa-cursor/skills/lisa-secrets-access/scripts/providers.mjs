@@ -244,6 +244,51 @@ export function fetchAll(cfg) {
 }
 
 /**
+ * The provider view the rotation path sees: `excludeKeys` waived for declared
+ * rotating names only.
+ *
+ * `excludeKeys` exists to keep a credential off a **surface's disk**. Applying it
+ * to the rotation path conflated that with hiding the record from the provider,
+ * which made `rotating` and `excludeKeys` mutually exclusive for the same name —
+ * a credential you cannot see is one you cannot write back to, so `doctor`
+ * correctly errored. That is exactly backwards for a consumable credential: the
+ * kind you least want materialized onto an untrusted surface is the kind that
+ * most needs a proven write path.
+ *
+ * The waiver is deliberately narrow. It applies only to names listed in
+ * `secrets.rotating`, which is config and therefore reviewed — the same
+ * declared-never-inferred rule the write path already enforces. Project
+ * narrowing still applies untouched, because that is the provider's own grant
+ * boundary and this must never widen it. Nothing here materializes anything;
+ * `fetchAll` remains the only view that feeds a surface.
+ * @param {object} cfg Resolved configuration.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets by name.
+ */
+export function fetchRotatable(cfg) {
+  return normalizeRows(fetchRaw(cfg), rotationNarrow(cfg));
+}
+
+/**
+ * The narrowing the rotation view applies: project grants intact, `excludeKeys`
+ * waived for declared rotating names only.
+ *
+ * Split out from {@link fetchRotatable} so the decision is testable without a
+ * provider, matching how the toolchain planner separates planning from
+ * execution.
+ * @param {object} cfg Resolved configuration.
+ * @returns {{projectIds: string[], excludeKeys: string[]}} Narrowing controls.
+ */
+export function rotationNarrow(cfg) {
+  const rotating = new Set(cfg.rotating ?? []);
+  return {
+    projectIds: cfg.narrow?.projectIds ?? [],
+    excludeKeys: (cfg.narrow?.excludeKeys ?? []).filter(
+      key => !rotating.has(key)
+    ),
+  };
+}
+
+/**
  * Find one raw row by exact key, bypassing the exposure boundary.
  *
  * Only the rotation path uses this, and only to reach the lease record, which
