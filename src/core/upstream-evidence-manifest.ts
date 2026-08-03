@@ -1125,7 +1125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "f1b492196f41adcceb1c2a2ada048355e7f36735de3be0dfe028e472b452f28c",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "0ac27775b2a11cc7ab6368aba4df7466cbf8cf57fd5470a807e24547b36cc94f",
+      "ceba67f85f1db0f390b0cbe66c63401cc03eaa8a27b254ba3d4b0c271103a53d",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "ff66d33ba41a068d09be18f81ac68988238c2afa1d4e3733ae906b73eea74324",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -8336,6 +8336,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
+    "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
     "tests/unit/secrets/remote-env-phases.test.ts": true,
     "tests/unit/secrets/remote-env-skill-resolution.test.ts": true,
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
