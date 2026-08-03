@@ -54,6 +54,37 @@ describe("required-name assertion", () => {
     expect(findings[0].level).toBe("error");
   });
 
+  it("does not call a proxy placeholder resolved", () => {
+    // The variable is present and non-empty, which is exactly what makes it
+    // dangerous: a presence check passes while any consumer reading the
+    // variable itself receives the placeholder instead of a credential.
+    process.env.PROXIED_TOKEN = "proxy-injected";
+    try {
+      const { findings, report } = collector();
+      checkRequired(
+        { require: ["PROXIED_TOKEN"] },
+        new Map(),
+        new Map(),
+        report
+      );
+      expect(findings[0].level).toBe("warn");
+      expect(findings[0].message).toMatch(/substituted at egress/i);
+    } finally {
+      delete process.env.PROXIED_TOKEN;
+    }
+  });
+
+  it("still resolves a real value that merely looks ordinary", () => {
+    process.env.REAL_TOKEN = "an-actual-value";
+    try {
+      const { findings, report } = collector();
+      checkRequired({ require: ["REAL_TOKEN"] }, new Map(), new Map(), report);
+      expect(findings[0].level).toBe("ok");
+    } finally {
+      delete process.env.REAL_TOKEN;
+    }
+  });
+
   it("accepts a name satisfied only by the materialized file", () => {
     const { findings, report } = collector();
     checkRequired(
