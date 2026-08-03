@@ -306,6 +306,105 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies.oxlint).toBe("^0.1.0");
     });
 
+    // Regression: force.resolutions/force.overrides are a security FLOOR, not an
+    // assignment. Writing them as a plain overwrite walked hosts BACKWARDS into
+    // the vulnerable range they had already escaped — a project pinned at
+    // `tar >=7.5.21` was reverted to `>=7.5.11` on every install, and upgrading
+    // Lisa did not fix it because the shipped template was still `>=7.5.19`,
+    // below the host. A floor can only be right by coincidence when it is
+    // written as an overwrite, so the merge now keeps whichever side is higher.
+    it("never lowers a host pin that already sits above the template floor", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          resolutions: {
+            tar: ">=7.5.19",
+            "brace-expansion": ">=5.0.9",
+            ws: ">=8.21.0",
+          },
+          overrides: {
+            tar: ">=7.5.19",
+            "brace-expansion": ">=5.0.9",
+            ws: ">=8.21.0",
+          },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        // Host is AHEAD of the template — must survive.
+        resolutions: {
+          tar: ">=7.5.21",
+          "brace-expansion": ">=5.0.9",
+          ws: "^8.0.0",
+        },
+        overrides: {
+          tar: ">=7.5.21",
+          "brace-expansion": ">=5.0.9",
+          ws: "^8.0.0",
+        },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      const content = await fs.readJson(destPath);
+      for (const section of ["resolutions", "overrides"] as const) {
+        // Host floor is HIGHER — the security write must not walk it back.
+        expect(content[section].tar).toBe(">=7.5.21");
+        // Equal floors — template value is fine, nothing to preserve.
+        expect(content[section]["brace-expansion"]).toBe(">=5.0.9");
+        // Host floor is LOWER — the force-bump still applies, which is the
+        // whole point of the mechanism and must not regress.
+        expect(content[section].ws).toBe(">=8.21.0");
+      }
+    });
+
+    // An unparseable range (a git URL, an npm alias) cannot be compared, so the
+    // template value stands — the guard may only ever RAISE a pin, never block a
+    // force-bump it failed to reason about. Uses a package that is NOT a direct
+    // dependency, so `normalizeSelfReferencingOverrides` does not rewrite the
+    // result into npm's `"$name"` form and mask what is being asserted.
+    it("applies the template pin when the host range is not comparable", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: { overrides: { "transitive-only": ">=2.0.0" } },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        overrides: { "transitive-only": "github:someone/transitive-only" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.overrides["transitive-only"]).toBe(">=2.0.0");
+    });
+
     // Regression: force.resolutions and force.overrides must replace project-side
     // values for package-level dep pinning (e.g. axios). This is the write that
     // was silently lost when `bun add -d @codyswann/lisa@latest` clobbered
