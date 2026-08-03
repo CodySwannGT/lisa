@@ -1125,7 +1125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "a043074dd52e3f9b4b4a32bdd8b5eaa728160e5a0622a8a18388e6e26c7d25e3",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "d63a47cbf5ca4875c2d0e173943dd36a4c95db5b5ff994e1267d00b251277b57",
+      "2fc05e4cc3128bb8753e6f51edd921728ab1cf502c7d53178e86ea75c38e0f55",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "ff66d33ba41a068d09be18f81ac68988238c2afa1d4e3733ae906b73eea74324",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -1978,6 +1978,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
     "scripts/lisa-github-rulesets.sh":
       "920a43ba268421b6fe55096062bd85850468bee9389f6006ad7c671010e7cccb",
+    "scripts/lisa-remote-env/session-start.sh":
+      "6e3871ec2f8d56b8ebb85376ebdd3956f3ed8fa4f7b278c2ed90ca9b8845897c",
+    "scripts/lisa-remote-env/setup.sh":
+      "a043074dd52e3f9b4b4a32bdd8b5eaa728160e5a0622a8a18388e6e26c7d25e3",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
@@ -7624,6 +7628,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
     "scripts/lisa-github-rulesets.sh": true,
+    "scripts/lisa-remote-env/session-start.sh": true,
+    "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/migrate-deploy-order.sh": true,

@@ -11,7 +11,13 @@
  * file starts a container, reaches a provider, or writes a value to disk.
  * @module tests/unit/secrets/remote-env-phases
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -20,6 +26,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import {
   detectInstallCommand,
+  installAssets,
+  probe,
   emitClaudeWeb,
   selectPhases,
 } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
@@ -120,6 +128,89 @@ describe("install command detection", () => {
     // A guessed package manager produces a container that fails on its very
     // first command, with an error that blames the project rather than the guess.
     expect(detectInstallCommand(root)).toBe("<your install command>");
+  });
+});
+
+describe("asset installation", () => {
+  const SETUP = "setup.sh";
+  const SESSION_START = "session-start.sh";
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), "lisa-assets-"));
+  });
+
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+  it("puts both scripts in the repository, executable", () => {
+    // Nothing used to do this. Every reference to scripts/lisa-remote-env/
+    // resolved to a path that did not exist, so the environment came up, ran a
+    // missing script, exited non-zero, and the session failed to start.
+    const written = installAssets(root);
+    const names = written.map(w => w.name).sort((a, b) => a.localeCompare(b));
+    expect(names).toEqual([SESSION_START, SETUP]);
+    for (const name of [SETUP, SESSION_START]) {
+      const target = path.join(root, "scripts", "lisa-remote-env", name);
+      expect(existsSync(target)).toBe(true);
+      expect(statSync(target).mode & 0o111).toBeGreaterThan(0);
+    }
+  });
+
+  it("reports an unchanged file as current rather than rewriting it", () => {
+    installAssets(root);
+    expect(installAssets(root).every(w => w.action === "current")).toBe(true);
+  });
+
+  it("restores a file that was edited in the repository", () => {
+    installAssets(root);
+    const target = path.join(root, "scripts", "lisa-remote-env", SETUP);
+    writeFileSync(target, "#!/usr/bin/env bash\nexit 0\n");
+    const written = installAssets(root);
+    expect(written.find(w => w.name === SETUP)?.action).toBe("written");
+  });
+});
+
+describe("tool presence probe", () => {
+  /**
+   * A runner that fails the way a real binary does.
+   * @param code Spawn error code — `ENOENT` only when the binary is absent.
+   * @param stdout What the tool printed before failing.
+   * @param stderr What the tool complained about.
+   * @returns A runner that throws that failure.
+   */
+  const failsWith =
+    (code: string | undefined, stdout: string, stderr: string) => () => {
+      throw Object.assign(new Error("command failed"), {
+        code,
+        stdout,
+        stderr,
+      });
+    };
+
+  it("treats a non-zero exit as present, not missing", () => {
+    // Info-ZIP's unzip — shipped by both macOS and Ubuntu — parses `--version`
+    // one letter at a time, warns that -n and -o conflict, and exits 10.
+    // Reading that as absence made `require` fail on a machine that had it.
+    const result = probe(
+      "unzip",
+      failsWith(
+        undefined,
+        "UnZip 6.00 of 20 April 2009, by Info-ZIP.",
+        "caution: both -n and -o specified; ignoring -o"
+      )
+    );
+    expect(result.present).toBe(true);
+    expect(result.version).toBe("6.00");
+  });
+
+  it("treats a failure to spawn as genuinely missing", () => {
+    const result = probe("nope", failsWith("ENOENT", "", ""));
+    expect(result).toEqual({ present: false, version: null });
+  });
+
+  it("reads the version from a clean run", () => {
+    const result = probe("node", () => "v22.22.0\n");
+    expect(result).toEqual({ present: true, version: "22.22.0" });
   });
 });
 
