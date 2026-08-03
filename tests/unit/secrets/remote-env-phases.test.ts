@@ -269,6 +269,25 @@ describe("emitted Claude configuration", () => {
     expect(emitted).not.toContain("bun install &&");
   });
 
+  it("explains the setup line it actually printed, on both surfaces", () => {
+    // The paragraph under the field drifted twice behind the field itself: it
+    // still told the operator that "the glob is what locates it" after the
+    // locator had become cwd-relative, and it named Claude Code web as the
+    // only surface — the exact assumption that made the old $HOME-only field
+    // fail on Codex Cloud. Prose in a settings box is the only explanation an
+    // operator gets, so it is pinned to the field rather than left to rot.
+    const paragraph = emitted
+      .slice(emitted.indexOf("This line is identical"))
+      .split("\n\n")[0];
+    expect(paragraph).toMatch(/Codex Cloud/);
+    expect(paragraph).toMatch(/Claude Code web/);
+    expect(paragraph).toMatch(/relative to cwd/i);
+    expect(paragraph).not.toMatch(/the glob is what locates/i);
+    // Naming neither the repository nor the package manager is why one line
+    // works everywhere, and it is the claim most likely to be quietly lost.
+    expect(paragraph).toMatch(/names this\s+repository or its package manager/);
+  });
+
   it("uses custom network access so the credential manager can be reached", () => {
     expect(emitted).toContain("Network access:  Custom");
     expect(emitted).toMatch(/credential manager API/i);
