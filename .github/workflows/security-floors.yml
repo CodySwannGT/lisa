@@ -1,0 +1,60 @@
+name: 🔒 Security Floors
+
+# Checks that no version floor Lisa pins permits a release the GitHub advisory
+# database marks vulnerable.
+#
+# This exists because a stale floor in a `force` section is worse than no pin:
+# it OVERWRITES a downstream project that pinned correctly, moving it back onto
+# the vulnerable range on the next `lisa apply`. That happened — a project had
+# correctly set `brace-expansion: >=5.0.8` and apply rewrote it to `>=5.0.7`.
+#
+# The floors are compared against `first_patched_version` rather than against
+# whatever npm resolves. Resolution drifts as advisories land; the advisory
+# floor does not. Deriving floors from resolution produced the same defect
+# repeatedly (fast-uri, js-yaml, then brace-expansion/axios/@apollo-server,
+# then tar/systeminformation).
+#
+# Runs on a schedule as well as on PRs: an advisory can land against a pin
+# nobody touched, so change-triggered checking alone would miss it until the
+# next unrelated edit.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move
+# it under plugins/src or the create-only template sets. Deliberately separate
+# from ci.yml/quality.yml, which are Lisa-managed generated files.
+
+on:
+  pull_request:
+    paths:
+      - '*/package-lisa/package.lisa.json'
+      - 'scripts/check-security-floors.mjs'
+      - '.github/workflows/security-floors.yml'
+  schedule:
+    # Weekly. Advisories land independently of commits.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-floors:
+    name: 🔒 Forced floors vs advisory database
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+      - name: Audit force-pinned security floors
+        env:
+          # The anonymous advisory limit is 60 requests/hour and these
+          # manifests declare ~190 packages. Without a token the run answers
+          # for the first 60 and reports the rest unchecked — the script now
+          # says so rather than calling them clean, and --strict fails on an
+          # inconclusive run for exactly that reason.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/check-security-floors.mjs --strict | tee -a "$GITHUB_STEP_SUMMARY"

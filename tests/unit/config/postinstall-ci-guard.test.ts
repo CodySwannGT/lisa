@@ -144,8 +144,8 @@ describe("package.lisa.json templates carry force-governed CVE floors", () => {
     const template = readTemplateJson(
       TYPESCRIPT_PACKAGE_TEMPLATE
     ) as OverridesShape;
-    expect(template.force?.overrides?.systeminformation).toBe(">=5.27.14");
-    expect(template.force?.resolutions?.systeminformation).toBe(">=5.27.14");
+    expect(template.force?.overrides?.systeminformation).toBe(">=5.31.7");
+    expect(template.force?.resolutions?.systeminformation).toBe(">=5.31.7");
   });
 
   it("typescript template keeps undici on the File-exporting v6 line", () => {
