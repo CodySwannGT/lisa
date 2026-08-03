@@ -21,13 +21,40 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** Surfaces this dispatcher knows how to reach. `local` means "do not dispatch". */
-export const EXECUTION_ENVS = new Set(["local", "codex-cloud"]);
+export const EXECUTION_ENVS = new Set(["local", "codex-cloud", "claude-web"]);
+
+/**
+ * What each surface must have recorded before anything may dispatch to it.
+ *
+ * Not uniform, because the two surfaces do not bind the same way. A Codex Cloud
+ * environment is bound to one repository, so naming both is what proves the
+ * environment is the right one. A Claude cloud environment binds no repository
+ * at all — it is account-scoped configuration and the repository arrives per
+ * session — so its durable handle is the routine that dispatch fires.
+ */
+const SURFACE_PRECONDITIONS = {
+  "codex-cloud": ["environmentId", "repository"],
+  "claude-web": ["routineId", "fireUrl"],
+};
+
+/**
+ * The beta this endpoint ships under.
+ *
+ * Dated and rotating: the two most recent previous versions keep working, so a
+ * bump here is a migration with a window rather than a break. Stated once so
+ * there is a single place to move it.
+ */
+const ROUTINE_BETA = "experimental-cc-routine-2026-04-01";
 
 /** Where dispatched work is recorded so a later session can find it. */
 const LEDGER = join(".lisa", "remote-dispatch.json");
+
+/** This file's directory, for locating the sibling secrets skill. */
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Split `key=value` parameters from the rest of an invocation.
@@ -101,9 +128,11 @@ export function readSurfaceConfig(surface, cwd = process.cwd()) {
  * @param {string} surface Execution surface.
  */
 export function assertPreconditions(block, surface) {
-  const missing = [];
-  if (!block.environmentId) missing.push("environmentId");
-  if (!block.repository) missing.push("repository");
+  const required = SURFACE_PRECONDITIONS[surface] ?? [
+    "environmentId",
+    "repository",
+  ];
+  const missing = required.filter(field => !block[field]);
   if (missing.length) {
     throw new Error(
       `remoteEnv.surfaces["${surface}"] is missing: ${missing.join(", ")}.\n` +
@@ -230,7 +259,143 @@ export function splitSkillFlag(argv) {
   return { skill, raw: rest.join(" ") };
 }
 
-function main() {
+/**
+ * Read the response a routine returns when it accepts a dispatch.
+ *
+ * Kept separate from the request so the shape can be exercised against a
+ * recorded body. The identifier is a field here rather than something scraped
+ * out of console output, which is the one respect in which this surface is
+ * easier to reconcile than the other.
+ * @param {string} body Raw response body.
+ * @returns {{sessionId: string, url: string}} The accepted session.
+ */
+export function readFireResponse(body) {
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new Error(
+      `routine returned a body that is not JSON:\n${String(body).slice(0, 400)}`
+    );
+  }
+  const sessionId = parsed.claude_code_session_id;
+  const url = parsed.claude_code_session_url;
+  if (!sessionId) {
+    throw new Error(
+      `routine accepted the request but returned no session identifier.\n` +
+        `${JSON.stringify(parsed).slice(0, 400)}\n` +
+        `Refusing to report success: without the identifier nothing can ` +
+        `reconcile this run, and a retry would duplicate it.`
+    );
+  }
+  return { sessionId, url: url ?? "" };
+}
+
+/**
+ * Fire a routine and record the session it created.
+ *
+ * The payload is deliberately the work item and nothing else. It arrives on the
+ * far side wrapped in a block the platform marks as untrusted data, and a
+ * routine acts on it only because its saved prompt says to — which is the
+ * boundary this plan wanted anyway, enforced by the platform rather than by
+ * convention. Nothing here can widen the remote run's authority.
+ *
+ * The bearer token is resolved through the secrets chokepoint at the moment of
+ * use and never stored in configuration.
+ * Its three side effects — resolving a credential, making a request, writing the
+ * ledger — are all injectable, so the accept and refuse paths can be exercised
+ * without a token, a network, or a write into the working repository.
+ * @param {object} block Surface configuration.
+ * @param {string} prompt The thin skill invocation.
+ * @param {string} payload The caller's original payload, for the record.
+ * @param {{post?: Function, getToken?: Function, cwd?: string}} [options] Seams for tests.
+ * @returns {Promise<{sessionId: string, url: string}>} The accepted session.
+ */
+export async function dispatchClaudeWeb(block, prompt, payload, options = {}) {
+  const {
+    post = fetch,
+    getToken = resolveBearerToken,
+    cwd = process.cwd(),
+  } = options;
+  const token = getToken(block);
+  let response;
+  try {
+    response = await post(block.fireUrl, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "anthropic-beta": ROUTINE_BETA,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ text: prompt }),
+    });
+  } catch (err) {
+    throw new Error(`could not reach the routine endpoint: ${err.message}`);
+  }
+
+  const body = await response.text();
+  if (!response.ok) {
+    // The token is the usual cause and the usual thing to leak, so the message
+    // names the status and the routine rather than echoing the request.
+    throw new Error(
+      `routine ${block.routineId} refused the dispatch (HTTP ${response.status}).\n` +
+        `${body.slice(0, 400)}\n` +
+        `A 401 means the bearer token is wrong, revoked, or regenerated.`
+    );
+  }
+
+  const { sessionId, url } = readFireResponse(body);
+  record(
+    {
+      taskId: sessionId,
+      surface: "claude-web",
+      routineId: block.routineId,
+      sessionUrl: url,
+      prompt,
+      payload,
+      dispatchedAt: new Date().toISOString(),
+    },
+    cwd
+  );
+  return { sessionId, url };
+}
+
+/**
+ * Resolve the dispatcher's own credential through the secrets chokepoint.
+ *
+ * Never read from configuration: the token authorises starting work on someone
+ * else's infrastructure, and it can be regenerated and revoked, so it belongs
+ * in the credential manager and in `secrets.rotating` alongside it.
+ * @param {object} block Surface configuration.
+ * @returns {string} The bearer token.
+ */
+function resolveBearerToken(block) {
+  const name = block.tokenKey ?? "CLAUDE_ROUTINE_TOKEN";
+  const resolver = resolve(
+    HERE,
+    "..",
+    "..",
+    "lisa-secrets-access",
+    "scripts",
+    "resolve-secret.mjs"
+  );
+  try {
+    return execFileSync("node", [resolver, "get", name], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch (err) {
+    throw new Error(
+      `could not resolve ${name} through lisa-secrets-access.\n` +
+        `${String(err.stderr ?? err.message).trim()}\n` +
+        `It is the dispatcher's own credential; store it in the provider ` +
+        `rather than in .lisa.config.json.`
+    );
+  }
+}
+
+async function main() {
   const { skill, raw } = splitSkillFlag(process.argv.slice(2));
   const { params, rest } = parseInvocation(raw);
   const surface = resolveExecutionEnv(params);
@@ -247,6 +412,15 @@ function main() {
   // the repository-local skill, so an interactive run, a scheduled run, and a
   // recovery run all execute one contract.
   const prompt = `$${skill} ${rest}`.trim();
+
+  if (surface === "claude-web") {
+    const { sessionId, url } = await dispatchClaudeWeb(block, prompt, rest);
+    console.log(`dispatched: ${sessionId}`);
+    if (url) console.log(url);
+    console.log(`recorded in ${LEDGER}; not polling — this process is done.`);
+    return;
+  }
+
   const taskId = dispatchCodexCloud(block, prompt, rest);
 
   console.log(`dispatched: ${taskId}`);
@@ -255,10 +429,11 @@ function main() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    main();
-  } catch (err) {
+  // Awaited rather than called bare: one dispatch path is async, so a synchronous
+  // try/catch would let a rejection escape as an unhandled rejection and exit 0 —
+  // reporting dispatched work that was never accepted.
+  main().catch(err => {
     console.error(err.message);
     process.exit(1);
-  }
+  });
 }

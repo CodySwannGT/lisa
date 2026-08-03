@@ -224,6 +224,12 @@ expo-env.d.ts
 # Freshness-bound standards proof is local runtime evidence, not knowledge.
 .lisa/standards/latest.json
 
+# Remote-dispatch ledger. Records the sessions this machine started so a later
+# run can find them. Per developer by construction — each fires their own
+# routine under their own account — so committing it would collide on every
+# dispatch while telling a teammate nothing they can act on.
+.lisa/remote-dispatch.json
+
 # Automation run outcomes — local scheduler observations read by
 # /lisa:automation-status. Runbooks are project knowledge; run records are not.
 .lisa/automations/runs/
