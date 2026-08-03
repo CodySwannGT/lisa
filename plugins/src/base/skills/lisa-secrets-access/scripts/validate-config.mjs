@@ -59,6 +59,20 @@ const SURFACE_BINDINGS = {
   "claude-web": ["routineId", "fireUrl"],
 };
 
+/**
+ * The fields a surface must record, with the default applied.
+ *
+ * Read through one helper rather than at each call site, because the two
+ * callers answer different questions — "could this declaration be correct" and
+ * "may an automation dispatch to it" — and a fallback that drifted between them
+ * would let those answers disagree about the very same config.
+ * @param {string} surface Surface name.
+ * @returns {string[]} Field names that must be present.
+ */
+function bindingsFor(surface) {
+  return SURFACE_BINDINGS[surface] ?? ["repository"];
+}
+
 /** Install methods the toolchain runner supports. */
 const INSTALL_METHODS = new Set(["release-zip", "npm-global"]);
 
@@ -172,7 +186,7 @@ export function validateRemoteEnv(remoteEnv) {
       problems.push(`remoteEnv.surfaces has unknown surface "${surface}"`);
       continue;
     }
-    for (const field of SURFACE_BINDINGS[surface] ?? ["repository"]) {
+    for (const field of bindingsFor(surface)) {
       if (!block[field]) {
         problems.push(`remoteEnv.surfaces["${surface}"] has no ${field}`);
       }
@@ -191,9 +205,7 @@ export function validateRemoteEnv(remoteEnv) {
 export function isProvisioned(remoteEnv, surface) {
   const block = remoteEnv?.surfaces?.[surface];
   if (!block) return false;
-  return (SURFACE_BINDINGS[surface] ?? ["repository"]).every(field =>
-    Boolean(block[field])
-  );
+  return bindingsFor(surface).every(field => Boolean(block[field]));
 }
 
 /**
