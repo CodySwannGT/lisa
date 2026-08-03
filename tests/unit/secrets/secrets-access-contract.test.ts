@@ -63,8 +63,9 @@ const PROJECT = "project-a";
 /** Namespace used by the materialized-file fixtures. */
 const NAMESPACE = "test-ns";
 
-/** The one surface that materializes values to disk. */
+/** The remote surfaces, both of which materialize values to disk. */
 const CODEX_CLOUD = "codex-cloud";
+const CLAUDE_WEB = "claude-web";
 
 /** The two materialized filenames, kept in one place as the contract names them. */
 const VALUES_FILE = "secrets.env";
@@ -210,10 +211,33 @@ describe("surfaces", () => {
     expect(detectSurface(null, env)).toBe(CODEX_CLOUD);
   });
 
+  it("grants the write capability to both remote surfaces", () => {
+    // Neither can read through live during setup, so both must materialize.
+    expect(SURFACES[CLAUDE_WEB].materialized).toBe(true);
+    expect(SURFACES[CLAUDE_WEB].mayWriteValues).toBe(true);
+  });
+
   it("detects a CI runner", () => {
     expect(detectSurface(null, { GITHUB_ACTIONS: "true" })).toBe(
       "github-actions"
     );
+  });
+
+  it("detects a Claude cloud session", () => {
+    // Without this the session falls through to local, which forbids writing
+    // values — so materialization refuses and the resolver reaches for a live
+    // provider read that a cloud container has no keychain to satisfy.
+    expect(detectSurface(null, { CLAUDE_CODE_REMOTE: "true" })).toBe(
+      CLAUDE_WEB
+    );
+  });
+
+  it("does not read an empty CLAUDE_CODE_REMOTE as a cloud session", () => {
+    // The variable is documented as carrying "true" remotely and never being
+    // true locally; a presence test would misread a shell that exports it empty
+    // and would grant disk-write permission on a developer's laptop.
+    expect(detectSurface(null, { CLAUDE_CODE_REMOTE: "" })).toBe("local");
+    expect(detectSurface(null, { CLAUDE_CODE_REMOTE: "false" })).toBe("local");
   });
 
   it("falls back to local", () => {
