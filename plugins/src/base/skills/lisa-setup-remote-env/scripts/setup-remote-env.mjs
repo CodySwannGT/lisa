@@ -35,6 +35,7 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -89,18 +90,35 @@ export function readRemoteEnvConfig(cwd = process.cwd()) {
 
 /**
  * Probe what a tool reports for its version, treating absence as not present.
+ *
+ * "Not installed" and "dislikes `--version`" are different answers, and only a
+ * failure to *spawn* means the first. Info-ZIP's `unzip` — the build shipped by
+ * both macOS and Ubuntu — parses `--version` one letter at a time, warns that
+ * `-n` and `-o` conflict, and exits 10. Reading that as absence made `require`
+ * fail on a machine that had the tool, which is precisely the false alarm the
+ * check exists to avoid raising.
+ *
+ * Version text is still recovered from a failed invocation where there is any,
+ * because a tool that refuses the flag often prints its banner anyway — which
+ * is how `unzip` still reports 6.00 despite exiting non-zero.
+ *
+ * The runner is injectable so both branches can be exercised without depending
+ * on which quirky binaries happen to exist on the machine running the tests.
  * @param {string} name Executable name.
+ * @param {Function} [exec] Command runner, for tests.
  * @returns {{version: string|null, present: boolean}} Probe result.
  */
-function probe(name) {
+export function probe(name, exec = execFileSync) {
   try {
-    const out = execFileSync(name, ["--version"], {
+    const out = exec(name, ["--version"], {
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
+      stdio: ["ignore", "pipe", "pipe"],
     });
     return { present: true, version: extractVersion(out) };
-  } catch {
-    return { present: false, version: null };
+  } catch (err) {
+    if (err.code === "ENOENT") return { present: false, version: null };
+    const output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+    return { present: true, version: extractVersion(output) };
   }
 }
 
@@ -211,6 +229,46 @@ function runHook(hook, dryRun) {
 /** Phases this runner can execute, in the order they must happen. */
 const PHASES = ["toolchain", "secrets", "hook"];
 
+/** Where a host project keeps the scripts its remote environment invokes. */
+export const INSTALL_DIR = join("scripts", "lisa-remote-env");
+
+/** Assets a host project needs on disk before any remote session can start. */
+const INSTALLABLE = ["setup.sh", "session-start.sh"];
+
+/**
+ * Copy this skill's assets into the host project that will run them.
+ *
+ * These live in the skill, but the paths that reference them are *repository*
+ * paths: a vendor's setup field says `bash scripts/lisa-remote-env/setup.sh`,
+ * and a session-start hook is only committed if it is a real file in the repo.
+ * Nothing put them there, so every reference resolved to a path that did not
+ * exist — the environment came up, ran a missing script, exited non-zero, and
+ * the session failed to start with no indication that a setup step was skipped.
+ *
+ * Copied rather than symlinked or generated: the file must survive in a fresh
+ * clone on a container that has never seen the plugin, which is the whole
+ * reason the entrypoint is thin enough to copy in the first place.
+ * @param {string} [cwd] Repository root.
+ * @returns {Array<{name: string, action: string}>} What was written.
+ */
+export function installAssets(cwd = process.cwd()) {
+  const destination = join(cwd, INSTALL_DIR);
+  mkdirSync(destination, { recursive: true, mode: 0o755 });
+  return INSTALLABLE.map(name => {
+    const source = resolve(HERE, "..", "assets", name);
+    if (!existsSync(source)) {
+      throw new Error(`asset ${name} is missing from this skill install`);
+    }
+    const target = join(destination, name);
+    const desired = readFileSync(source, "utf8");
+    const unchanged =
+      existsSync(target) && readFileSync(target, "utf8") === desired;
+    if (!unchanged) writeFileSync(target, desired, { mode: 0o755 });
+    chmodSync(target, 0o755);
+    return { name, action: unchanged ? "current" : "written" };
+  });
+}
+
 /**
  * The settings block that wires the session-start hook into a repository.
  *
@@ -233,6 +291,43 @@ const SESSION_START_BLOCK = `{
     ]
   }
 }`;
+
+/**
+ * Pin which cloud environment this project's sessions use.
+ *
+ * `/remote-env` writes `remote.defaultEnvironmentId` into *user* settings, which
+ * is one value for the whole machine. That is wrong as soon as a developer has
+ * more than one project, because an environment's contents are project-shaped:
+ * its setup script is a repository-relative path and its bootstrap is scoped to
+ * that project's secrets. Pointing one project's session at another's
+ * environment runs a setup script that may not exist there, and a non-zero setup
+ * script means the session never starts.
+ *
+ * Written to `.claude/settings.local.json` for two reasons. It outranks user
+ * settings, so the per-project choice wins over the machine-wide default; and it
+ * is gitignored, which is correct because an environment belongs to one
+ * developer's account and is meaningless in someone else's checkout.
+ *
+ * Merged rather than replaced — that file commonly holds permission grants a
+ * developer has accumulated, and clobbering them to write one key would be a
+ * poor trade.
+ * @param {string} environmentId Cloud environment identifier.
+ * @param {string} [cwd] Repository root.
+ * @returns {string} The settings path written.
+ */
+export function pinEnvironment(environmentId, cwd = process.cwd()) {
+  const path = join(cwd, ".claude", "settings.local.json");
+  mkdirSync(dirname(path), { recursive: true });
+  const existing = existsSync(path)
+    ? JSON.parse(readFileSync(path, "utf8"))
+    : {};
+  const merged = {
+    ...existing,
+    remote: { ...(existing.remote ?? {}), defaultEnvironmentId: environmentId },
+  };
+  writeFileSync(path, `${JSON.stringify(merged, null, 2)}\n`);
+  return path;
+}
 
 /**
  * Produce the configuration a human pastes to provision a Claude cloud surface.
@@ -388,6 +483,30 @@ async function main() {
   const emit = process.argv
     .find(arg => arg.startsWith("--emit="))
     ?.slice("--emit=".length);
+
+  if (process.argv.includes("--install")) {
+    console.log(`Installing remote-environment scripts into ${INSTALL_DIR}/`);
+    for (const { name, action } of installAssets()) {
+      console.log(`  ${action.padEnd(8)} ${join(INSTALL_DIR, name)}`);
+    }
+
+    const pin = process.argv
+      .find(arg => arg.startsWith("--pin-env="))
+      ?.slice("--pin-env=".length);
+    if (pin) {
+      console.log(`\nPinned this project to environment ${pin}`);
+      console.log(`  written  ${pinEnvironment(pin)}`);
+      console.log(
+        "  That file is gitignored and outranks the machine-wide default, so\n" +
+          "  every project can name its own environment."
+      );
+    }
+    console.log(
+      "\nCommit these. They are repository files by design — a container that " +
+        "has\njust cloned the repo has never seen the plugin they came from."
+    );
+    return;
+  }
 
   if (emit) {
     if (emit !== "claude-web") {

@@ -90,7 +90,7 @@ shape rather than just prose.
 | ~~U1~~ | ~~What does `claude --cloud` print on success…~~ **ANSWERED 2026-08-03 — `claude --cloud` cannot be used for dispatch at all.** | See below. |
 | U2 | Does a SessionStart hook run before the first agent turn in a cloud session, and does a value written to `$CLAUDE_ENV_FILE` reach later Bash calls? | The whole materialize relocation rests on this. |
 | U3 | Confirm `CLAUDE_CODE_REMOTE=true`, `GH_TOKEN=proxy-injected`, and that the setup script is genuinely skipped on a cache hit. | Surface detection and the `proxy-injected` verdict. |
-| U4 | Can an environment be selected per `--cloud` invocation, or only via the `/remote-env` saved default? | If only the saved default, `remoteEnv.surfaces["claude-web"].environmentId` is advisory and `assertPreconditions` must say so instead of implying a binding it cannot enforce. |
+| ~~U4~~ | ~~Can an environment be selected per `--cloud` invocation…~~ **ANSWERED 2026-08-03: no flag, but a settings key.** | See below. |
 
 Probe from a throwaway repo with a read-only prompt (`report the value of $CLAUDE_CODE_REMOTE and exit`). Record answers in this file's Sessions table.
 
@@ -144,6 +144,33 @@ The bearer token becomes the dispatcher credential, resolved through
 `lisa-secrets-access` and never stored in config. It can be regenerated and revoked,
 so it belongs in `secrets.rotating` — mirroring the parent plan's D.3 observation
 that the dispatcher's own credential exercises the rotating path.
+
+### U4 — answered: no flag, but the choice is a settings key
+
+CLI 2.1.220 has no per-invocation environment option. `--environment` appears in
+the binary but is Bun runtime noise — Claude Code ships as a Bun-compiled
+executable, and Commander rejects the flag exactly as it rejects a nonsense one:
+
+```
+--definitelynotaflag   -> error: unknown option '--definitelynotaflag'
+--environment          -> error: unknown option '--environment'
+```
+
+The selection is nonetheless expressible per invocation, because `/remote-env` is
+only a picker that writes `remote.defaultEnvironmentId` into user settings, and
+`--settings` accepts inline JSON:
+
+```sh
+claude --cloud --settings '{"remote":{"defaultEnvironmentId":"<id>"}}' '<prompt>'
+```
+
+Two consequences for this plan. First, nothing here is load-bearing for dispatch —
+U1 already moved that onto the routine `/fire` endpoint, and this affects only the
+interactive and verification paths. Second, `remoteEnv.surfaces["claude-web"]`
+should **not** carry an `environmentId` as though it were a binding: the durable
+handle is the routine, and an environment recorded in config would imply an
+enforcement this surface cannot provide. A repo's project settings outrank
+`--settings` for the same key, which is a further reason not to write it there.
 
 ## Sequencing
 
@@ -278,4 +305,5 @@ Stated plainly rather than designed around:
 | Session | Date | Phases | Notes |
 |---------|------|--------|-------|
 | 1 | 2026-08-03 | Research | Audited Claude Code web / cloud environments / routines docs against the shipped `codex-cloud` implementation. Confirmed `--cloud` and `--teleport` exist in CLI 2.1.220 but are hidden from `--help`. Established the four structural differences and the `proxy-injected` landmine. Plan created. |
+| 3 | 2026-08-03 | PR 2 follow-up | Setting the surface up for real against a live Bitwarden project surfaced two defects unit tests could not: nothing ever installed `scripts/lisa-remote-env/` despite four references naming it (affects Codex identically), and the toolchain probe read any non-zero exit as a missing tool, so `require: unzip` failed on machines that had it — Info-ZIP's `unzip`, shipped by macOS and Ubuntu alike, exits 10 on `--version`. Settled U4: no per-invocation environment flag, but `--settings` can inject `remote.defaultEnvironmentId`. Verified the full chain end to end — keychain bootstrap, `bws` auth, materialization at 0700/0600 into a throwaway config root. |
 | 2 | 2026-08-03 | PR 0 (probes) | Settled U1 by live invocation: `claude --cloud` refuses any non-interactive call (exit 1, <1s) and names `--print` among the rejected modes, so it cannot back `executionEnv`. Dispatch redesigned onto the routine `/fire` endpoint; PR 3 rewritten, PR 4 reduced. Verified account preconditions are met (`claude.ai` auth, Max, first-party) and that no `remote.defaultEnvironmentId` is saved in user settings, so CLI cloud sessions would fall back to the first available environment. U2–U4 still open — U3 and U4 now need a session started from the web or a TTY rather than a scripted dispatch. |
