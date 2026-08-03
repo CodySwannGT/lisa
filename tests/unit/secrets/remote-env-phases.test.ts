@@ -255,10 +255,16 @@ describe("emitted Claude configuration", () => {
     // by a string a human had to get right — in a settings box with no review,
     // no version history and no test. The script finds the checkout itself and
     // reads the package manager from the committed lockfile.
+    // cwd-relative FIRST. Codex Cloud's checkout is not under $HOME at all, so
+    // a field that led with a $HOME glob matched nothing there and bash got a
+    // path containing a literal asterisk. $HOME is a later fallback, for the
+    // case where cwd is neither the checkout nor its parent — that ordering is
+    // the invariant, which the behavioural tests in remote-env-setup-field
+    // exercise against each layout.
     expect(emitted).toContain("for f in scripts/lisa-remote-env/setup.sh");
-    // Not $HOME: Codex Cloud's checkout is not under it, so a $HOME glob
-    // matched nothing there and bash got a path with a literal asterisk.
-    expect(emitted).not.toContain('"$HOME"/*/');
+    expect(emitted.indexOf("for f in scripts/")).toBeLessThan(
+      emitted.indexOf('"$HOME"')
+    );
     expect(emitted).not.toMatch(/cd '?lisa'?/);
     expect(emitted).not.toContain("bun install &&");
   });

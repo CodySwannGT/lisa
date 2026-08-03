@@ -105,11 +105,21 @@ fi
 # plugin-delivered harnesses work at all. Lisa is a dependency of every project
 # it is applied to, so `node_modules` carries the same skill at the version that
 # project pins, which is the version its setup should run.
+#
+# `plugins/lisa/skills/` sits between them, and exists for exactly one project:
+# Lisa itself. There the checkout IS Lisa, at HEAD, while `node_modules` holds
+# whatever version its own lockfile pins — which was four months and a hundred
+# skills behind, so this file did not exist there at all and setup aborted
+# claiming the skill could not be found. The one place it was is the only place
+# that was not searched. It is ahead of node_modules because a checkout that
+# builds this skill is newer than any published copy of it, and harmless
+# everywhere else because no other project has that directory.
 runner=""
 for candidate in \
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".agents/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".codex/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
+  "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs"; do
   if [ -f "$candidate" ]; then
     runner="$candidate"
@@ -132,6 +142,18 @@ if [ -z "$runner" ]; then
   echo >&2
   echo "If dependencies are installed, run 'lisa apply' so the skills are" >&2
   echo "present, then re-run setup." >&2
+  echo >&2
+  # The version actually resolved, because "not found" and "found, but too old
+  # to contain this skill" read identically above and are fixed differently.
+  # The second is what happened on Lisa itself: node_modules held a release
+  # from before this skill existed, so every path checked was legitimately
+  # absent and the message blamed the install.
+  if [ -f node_modules/@codyswann/lisa/package.json ]; then
+    echo "For reference, node_modules has @codyswann/lisa version:" >&2
+    node -p "require('./node_modules/@codyswann/lisa/package.json').version" >&2 2>/dev/null ||
+      echo "  (unreadable)" >&2
+    echo "If that predates this skill, the pin is the problem, not the install." >&2
+  fi
   exit 1
 fi
 
