@@ -1053,9 +1053,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
       "87c6d34d0511d4afd812d1af3fee80fa3b7aa47db8449760b12f2699fedc1d78",
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
-      "2cc999d2c3b61b10aabb849e0833fd58edb444c5013c05108dd58e5d7d60c4ba",
+      "f3c48120a206d01db45f849ca5b61690d572abc16bc36d559a4cacc8f9422c06",
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
-      "c473e8eddf0fd5f220a5ea7ff9eb92f5482cfb2893e77edce59acc36671418a3",
+      "475963ed64d9e72a6cbd6cbb61c8b57a419f2e1805e3ddfa76066047c590deeb",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "4f85ac1381631e9f250d9cf3239baba633ae0df9ba1959f8835ed662592e2d77",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":

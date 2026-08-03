@@ -68,11 +68,25 @@ const LEDGER = join(".lisa", "remote-dispatch.json");
 /** This file's directory, for locating the sibling secrets skill. */
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+/** Every parameter this program reads. Anything else is a typo. */
+const KNOWN_PARAMS = new Set(["executionEnv"]);
+
 /**
  * Split `key=value` parameters from the rest of an invocation.
  *
  * The remainder is passed through untouched. It is the caller's payload — a
  * ticket key, a description — and this program has no business interpreting it.
+ *
+ * A leading `--` is accepted and stripped. The bare form is the documented one,
+ * but `--executionEnv=claude-web` is what anyone who has used a CLI this decade
+ * types, and it previously fell through to the payload and left the surface at
+ * its default. That is precisely the outcome this skill says it exists to
+ * prevent: work runs locally while the operator believes it went remote, and
+ * nothing downstream contradicts them.
+ *
+ * An unrecognised parameter is rejected for the same reason. A misspelled
+ * `executionEnvv=claude-web` is indistinguishable from not asking at all, and
+ * silence is the one response that cannot be acted on.
  * @param {string} input Raw argument string.
  * @returns {{params: Record<string, string>, rest: string}} Parsed invocation.
  */
@@ -83,9 +97,19 @@ export function parseInvocation(input) {
     .trim()
     .split(/\s+/)
     .filter(Boolean)) {
-    const match = /^([A-Za-z][A-Za-z0-9_]*)=(.*)$/.exec(token);
-    if (match) params[match[1]] = match[2];
-    else rest.push(token);
+    const match = /^(--)?([A-Za-z][A-Za-z0-9_]*)=(.*)$/.exec(token);
+    // Only a dashed token is required to be a known parameter. A bare `x=y` may
+    // legitimately be part of a payload — a description, a query — and this
+    // program has no business rejecting the caller's prose.
+    if (match && (match[1] || KNOWN_PARAMS.has(match[2]))) {
+      if (!KNOWN_PARAMS.has(match[2])) {
+        throw new Error(
+          `unknown parameter "${match[2]}".\n` +
+            `Supported: ${[...KNOWN_PARAMS].join(", ")}.`
+        );
+      }
+      params[match[2]] = match[3];
+    } else rest.push(token);
   }
   return { params, rest: rest.join(" ") };
 }
