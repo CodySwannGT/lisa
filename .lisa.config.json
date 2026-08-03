@@ -147,16 +147,26 @@
   "secrets": {
     "provider": "bitwarden",
     "bootstrap": {
-      "sources": ["env", "keychain"],
+      "sources": [
+        "env",
+        "keychain"
+      ],
       "key": "BWS_ACCESS_TOKEN_lisa"
     }
   },
   "remoteEnv": {
     "tools": {
       "require": [
-        { "name": "node", "minVersion": "20" },
-        { "name": "curl" },
-        { "name": "unzip" }
+        {
+          "name": "node",
+          "minVersion": "20"
+        },
+        {
+          "name": "curl"
+        },
+        {
+          "name": "unzip"
+        }
       ],
       "install": [
         {
@@ -174,6 +184,15 @@
         "fireUrl": "https://api.anthropic.com/v1/claude_code/routines/trig_01Szp6mAMiK9V8dKWSJLJkRo/fire",
         "tokenKey": "CLAUDE_ROUTINE_TOKEN"
       }
+    }
+  },
+  "automations": {
+    "build-intake": {
+      "scheduler": "github-actions",
+      "schedule": "0 7 * * *",
+      "executionEnv": "claude-web",
+      "skill": "lisa-github-build-intake",
+      "enabled": false
     }
   }
 }
