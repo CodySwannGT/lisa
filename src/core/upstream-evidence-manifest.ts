@@ -2263,6 +2263,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/deploy.yml": true,
     ".github/workflows/duplicate-versions.yml": true,
     ".github/workflows/lighthouse.yml": true,
+    ".github/workflows/lisa-build-intake.yml": true,
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
     ".github/workflows/plugins-sync.yml": true,
