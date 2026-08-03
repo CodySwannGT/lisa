@@ -1119,13 +1119,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "91c5d4dbc513b642e9da304425501ca6802f28c8059135e8ccc6ca0200060ee9",
+      "21de7c108a5f372d76416dfd3e2d229053d0d23c84fe88e646719a97405bd1e9",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "6e3871ec2f8d56b8ebb85376ebdd3956f3ed8fa4f7b278c2ed90ca9b8845897c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "a043074dd52e3f9b4b4a32bdd8b5eaa728160e5a0622a8a18388e6e26c7d25e3",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "2fc05e4cc3128bb8753e6f51edd921728ab1cf502c7d53178e86ea75c38e0f55",
+      "5e79d25368ddbc51ab2d9616a921b6eaea0e7fbee65de74a404b7b880f54fd9e",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "ff66d33ba41a068d09be18f81ac68988238c2afa1d4e3733ae906b73eea74324",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":

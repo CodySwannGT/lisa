@@ -293,6 +293,43 @@ const SESSION_START_BLOCK = `{
 }`;
 
 /**
+ * Pin which cloud environment this project's sessions use.
+ *
+ * `/remote-env` writes `remote.defaultEnvironmentId` into *user* settings, which
+ * is one value for the whole machine. That is wrong as soon as a developer has
+ * more than one project, because an environment's contents are project-shaped:
+ * its setup script is a repository-relative path and its bootstrap is scoped to
+ * that project's secrets. Pointing one project's session at another's
+ * environment runs a setup script that may not exist there, and a non-zero setup
+ * script means the session never starts.
+ *
+ * Written to `.claude/settings.local.json` for two reasons. It outranks user
+ * settings, so the per-project choice wins over the machine-wide default; and it
+ * is gitignored, which is correct because an environment belongs to one
+ * developer's account and is meaningless in someone else's checkout.
+ *
+ * Merged rather than replaced — that file commonly holds permission grants a
+ * developer has accumulated, and clobbering them to write one key would be a
+ * poor trade.
+ * @param {string} environmentId Cloud environment identifier.
+ * @param {string} [cwd] Repository root.
+ * @returns {string} The settings path written.
+ */
+export function pinEnvironment(environmentId, cwd = process.cwd()) {
+  const path = join(cwd, ".claude", "settings.local.json");
+  mkdirSync(dirname(path), { recursive: true });
+  const existing = existsSync(path)
+    ? JSON.parse(readFileSync(path, "utf8"))
+    : {};
+  const merged = {
+    ...existing,
+    remote: { ...(existing.remote ?? {}), defaultEnvironmentId: environmentId },
+  };
+  writeFileSync(path, `${JSON.stringify(merged, null, 2)}\n`);
+  return path;
+}
+
+/**
  * Produce the configuration a human pastes to provision a Claude cloud surface.
  *
  * This surface has no API tier and no console tier to fall back to: a Claude
@@ -451,6 +488,18 @@ async function main() {
     console.log(`Installing remote-environment scripts into ${INSTALL_DIR}/`);
     for (const { name, action } of installAssets()) {
       console.log(`  ${action.padEnd(8)} ${join(INSTALL_DIR, name)}`);
+    }
+
+    const pin = process.argv
+      .find(arg => arg.startsWith("--pin-env="))
+      ?.slice("--pin-env=".length);
+    if (pin) {
+      console.log(`\nPinned this project to environment ${pin}`);
+      console.log(`  written  ${pinEnvironment(pin)}`);
+      console.log(
+        "  That file is gitignored and outranks the machine-wide default, so\n" +
+          "  every project can name its own environment."
+      );
     }
     console.log(
       "\nCommit these. They are repository files by design — a container that " +
