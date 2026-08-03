@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.321.1](https://github.com/CodySwannGT/lisa/compare/v2.321.0...v2.321.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **security:** raise the brace-expansion floor past GHSA-rgw5-rvv9-x895 ([6a022b1](https://github.com/CodySwannGT/lisa/commit/6a022b12938c460876aa87ff97d8e249b6e3be2d)), closes [CodySwannGT/lisa#2182](https://github.com/CodySwannGT/lisa/issues/2182)
+
 ## [2.321.0](https://github.com/CodySwannGT/lisa/compare/v2.320.0...v2.321.0) (2026-08-03)
 
 
