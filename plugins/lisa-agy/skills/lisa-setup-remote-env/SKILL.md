@@ -13,11 +13,31 @@ Prepare a remote surface so a host project can execute there. Today that means *
 The remote environment's own configuration fields stay **one line into the repository**. Nothing else is pasted into a vendor UI.
 
 ```text
-setup:       bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
-maintenance: bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
+setup:       for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
+maintenance: for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
 ```
 
-**That line is identical for every project.** Nothing in it names the repository or the package manager, so it can be pasted unchanged into any project's environment. The glob is what locates the checkout — Claude Code web runs this field from `$HOME` while the clone lands one level down — and the script then anchors itself on the repository root.
+**That line is identical for every project AND every surface.** Nothing in it names the
+repository, the package manager, or a home directory, so it can be pasted unchanged anywhere.
+
+Locating the checkout is the only hard part, because the surfaces disagree about where the
+field runs:
+
+| Surface | cwd when the field runs | Checkout |
+| --- | --- | --- |
+| Codex Cloud | **is** the checkout | `/workspace/<repo>` |
+| Claude Code web | `$HOME` | `$HOME/<repo>` |
+
+So both candidates are tried **relative to cwd** — the checkout itself, then one level down —
+and neither mentions `$HOME`. An earlier version of this field used
+`bash "$HOME"/*/scripts/...`, which works on Claude Code web and fails on Codex Cloud, where
+the checkout is not under `$HOME` at all: the glob matches nothing and bash reports
+`No such file or directory` for a path still containing a literal `*`.
+
+`exec` on the first hit means no subshell and no `ls` output to parse, and the explicit
+`exit 1` means a missing entrypoint says so rather than the field silently succeeding. The
+script then anchors itself on the repository root, so it behaves the same however it was
+reached.
 
 They are the same command. A container may be built fresh or resumed from cache; every step is idempotent and version-aware, so running it twice is correct, and running it on resume is what picks up a rotated value, an edited note, or a changed version pin.
 
@@ -136,8 +156,8 @@ When emitting, produce exactly:
 ```text
 Environment name:  <project> remote executor
 Repository:        <org>/<repo>        (must be the default checkout)
-Setup script:      bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
-Maintenance:       bash "$HOME"/*/scripts/lisa-remote-env/setup.sh
+Setup script:      for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
+Maintenance:       for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
                    (identical for every project — the script finds the
                    checkout and installs from the committed lockfile)
 Environment vars:  LISA_SECRETS_SURFACE=codex-cloud

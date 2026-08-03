@@ -1119,7 +1119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "006f6372ff6aa34bd837f4ad492440389cd83ee01786655739ee47e38dae96cd",
+      "d2ff74bc4474ce0718ac56d1abca6fb2c34bd57c38db6d432e8f0bc59158e1d7",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "6e3871ec2f8d56b8ebb85376ebdd3956f3ed8fa4f7b278c2ed90ca9b8845897c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
@@ -8338,6 +8338,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
     "tests/unit/secrets/remote-env-phases.test.ts": true,
+    "tests/unit/secrets/remote-env-setup-field.test.ts": true,
     "tests/unit/secrets/remote-env-skill-resolution.test.ts": true,
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
     "tests/unit/secrets/rotation-view.test.ts": true,
