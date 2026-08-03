@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.1](https://github.com/CodySwannGT/lisa/compare/v2.322.0...v2.322.1) (2026-08-03)
+
+
+### Features
+
+* **dispatch:** route work to a Claude cloud session ([6abd41f](https://github.com/CodySwannGT/lisa/commit/6abd41f5d42a1f311720e92246dbd125ca963129)), closes [CodySwannGT/lisa#2186](https://github.com/CodySwannGT/lisa/issues/2186)
+
+
+### Bug Fixes
+
+* **dispatch:** bound the wait on the routine endpoint ([df4e1d8](https://github.com/CodySwannGT/lisa/commit/df4e1d8b24afff67bb78636fc72e97b38a05ac8a)), closes [CodySwannGT/lisa#2186](https://github.com/CodySwannGT/lisa/issues/2186)
+* **remote-env:** emit the same setup field the documentation prescribes ([42c8960](https://github.com/CodySwannGT/lisa/commit/42c8960f7d65ba2a48474c8e275688b8cc46831e)), closes [CodySwannGT/lisa#2198](https://github.com/CodySwannGT/lisa/issues/2198)
+* **remote-env:** make the setup field work on Codex Cloud as well as Claude web ([9f32274](https://github.com/CodySwannGT/lisa/commit/9f32274a20dd7ae8591b967bd8575afb2457510a)), closes [#2196](https://github.com/CodySwannGT/lisa/issues/2196) [CodySwannGT/lisa#2196](https://github.com/CodySwannGT/lisa/issues/2196)
+
 ## [2.322.0](https://github.com/CodySwannGT/lisa/compare/v2.321.5...v2.322.0) (2026-08-03)
 
 
