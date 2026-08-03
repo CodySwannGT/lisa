@@ -38,7 +38,7 @@ const CONSTRAINT_SECTIONS = [
 /** Governance groups in a package.lisa.json. */
 const GOVERNANCE_GROUPS = ["force", "defaults", "merge"];
 
-/** Severities that gate. Medium and low are reported but never fail. */
+/** Severities that gate. Medium and low advisories are ignored by this check. */
 const GATING_SEVERITIES = new Set(["high", "critical"]);
 
 const ADVISORY_ENDPOINT = "https://api.github.com/advisories";
@@ -223,55 +223,63 @@ async function audit() {
   return { problems, unreachable, checked: floors.size };
 }
 
-const strict = process.argv.includes("--strict");
-const asJson = process.argv.includes("--json");
-const { problems, unreachable, checked } = await audit();
+async function main() {
+  const strict = process.argv.includes("--strict");
+  const asJson = process.argv.includes("--json");
+  const { problems, unreachable, checked } = await audit();
 
-if (asJson) {
-  console.log(JSON.stringify({ problems, unreachable, checked }, null, 2));
-} else if (problems.length === 0) {
-  console.log(
-    `## Security floors\n\nNo force-pinned floor permits a high or critical vulnerable release. ${checked} package(s) checked.`
-  );
-} else {
-  console.log("## Security floors\n");
-  console.log(
-    "These pins permit a release the advisory database marks vulnerable. Because they sit in governance sections, a stale floor **overwrites** a downstream project that pinned correctly.\n"
-  );
-  console.log("| package | pinned | permits | advisory | patched | site |");
-  console.log("|---|---|---|---|---|---|");
-  for (const problem of problems) {
+  if (asJson) {
+    console.log(JSON.stringify({ problems, unreachable, checked }, null, 2));
+  } else if (problems.length === 0) {
     console.log(
-      `| \`${problem.package}\` | \`${problem.spec}\` | ${problem.vulnerableRange} | ${problem.advisory} (${problem.severity}) | **${problem.patched}** | ${problem.file} ${problem.path} |`
+      `## Security floors\n\nNo force-pinned floor permits a high or critical vulnerable release. ${checked} package(s) checked.`
+    );
+  } else {
+    console.log("## Security floors\n");
+    console.log(
+      "These pins permit a release the advisory database marks vulnerable. Because they sit in governance sections, a stale floor **overwrites** a downstream project that pinned correctly.\n"
+    );
+    console.log("| package | pinned | permits | advisory | patched | site |");
+    console.log("|---|---|---|---|---|---|");
+    for (const problem of problems) {
+      console.log(
+        `| \`${problem.package}\` | \`${problem.spec}\` | ${problem.vulnerableRange} | ${problem.advisory} (${problem.severity}) | **${problem.patched}** | ${problem.file} ${problem.path} |`
+      );
+    }
+    console.log(
+      "\nRaise each floor to the advisory's `first_patched_version`, then confirm the new value actually resolves on npm — a floor nothing satisfies is its own breakage."
     );
   }
-  console.log(
-    "\nRaise each floor to the advisory's `first_patched_version`, then confirm the new value actually resolves on npm — a floor nothing satisfies is its own breakage."
-  );
-}
 
-if (unreachable.length > 0) {
-  const limited = unreachable.filter(entry =>
-    entry.reason.includes("rate limited")
-  );
-  console.log(
-    `\n> **Inconclusive for ${unreachable.length} of ${checked} package(s).** Their floors were NOT verified — this is not a clean result for them.`
-  );
-  if (limited.length > 0) {
+  if (unreachable.length > 0) {
+    const limited = unreachable.filter(entry =>
+      entry.reason.includes("rate limited")
+    );
     console.log(
-      "> Cause is rate limiting. The anonymous advisory limit is 60 requests/hour; set `GITHUB_TOKEN` for 5000."
+      `\n> **Inconclusive for ${unreachable.length} of ${checked} package(s).** Their floors were NOT verified — this is not a clean result for them.`
+    );
+    if (limited.length > 0) {
+      console.log(
+        "> Cause is rate limiting. The anonymous advisory limit is 60 requests/hour; set `GITHUB_TOKEN` for 5000."
+      );
+    }
+    console.log(
+      `> Affected: ${unreachable.map(entry => entry.name).join(", ")}`
     );
   }
-  console.log(`> Affected: ${unreachable.map(entry => entry.name).join(", ")}`);
+
+  // Deliberately exit 0 without --strict. An advisory landing overnight would
+  // otherwise fail a PR that changed nothing, and a check that cries wolf gets
+  // disabled rather than fixed.
+  //
+  // Under --strict an inconclusive run also fails: it proves nothing, and
+  // treating "could not check" as "checked and clean" is exactly the silent
+  // degradation this script exists to prevent.
+  if (strict && (problems.length > 0 || unreachable.length > 0)) {
+    process.exitCode = 1;
+  }
 }
 
-// Deliberately exit 0 without --strict. An advisory landing overnight would
-// otherwise fail a PR that changed nothing, and a check that cries wolf gets
-// disabled rather than fixed.
-//
-// Under --strict an inconclusive run also fails: it proves nothing, and
-// treating "could not check" as "checked and clean" is exactly the silent
-// degradation this script exists to prevent.
-if (strict && (problems.length > 0 || unreachable.length > 0)) {
-  process.exitCode = 1;
+if (import.meta.main) {
+  await main();
 }

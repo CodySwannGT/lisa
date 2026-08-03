@@ -1907,7 +1907,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
-      "8db373947c934e0d7d262bb6983a9750a51dc28b1b568e694ba503ef44a80932",
+      "3d3c0d0ddff2d810bf3470ff88926566210a3373954761727bd4281c38fe8d8c",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
