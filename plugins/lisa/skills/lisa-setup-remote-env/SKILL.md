@@ -13,8 +13,8 @@ Prepare a remote surface so a host project can execute there. Today that means *
 The remote environment's own configuration fields stay **one line into the repository**. Nothing else is pasted into a vendor UI.
 
 ```text
-setup:       n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
-maintenance: n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
+setup:       n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
+maintenance: n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
 ```
 
 **That line is identical for every project AND every surface.** Nothing in it names the
@@ -164,8 +164,8 @@ When emitting, produce exactly:
 ```text
 Environment name:  <project> remote executor
 Repository:        <org>/<repo>        (must be the default checkout)
-Setup script:      n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
-Maintenance:       n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
+Setup script:      n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
+Maintenance:       n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
                    (identical for every project — the script finds the
                    checkout and installs from the committed lockfile)
 Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
