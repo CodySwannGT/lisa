@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.2](https://github.com/CodySwannGT/lisa/compare/v2.322.1...v2.322.2) (2026-08-03)
+
+
+### Bug Fixes
+
+* **remote-env:** emit the same setup field the documentation prescribes ([42c8960](https://github.com/CodySwannGT/lisa/commit/42c8960f7d65ba2a48474c8e275688b8cc46831e)), closes [CodySwannGT/lisa#2198](https://github.com/CodySwannGT/lisa/issues/2198)
+* **remote-env:** refresh Lisa's own installed scripts and guard the copy ([394b876](https://github.com/CodySwannGT/lisa/commit/394b8762cf72f1ffcc0c725d0e6bdb5e5b1afb9d)), closes [CodySwannGT/lisa#2200](https://github.com/CodySwannGT/lisa/issues/2200)
+
 ### [2.322.1](https://github.com/CodySwannGT/lisa/compare/v2.322.0...v2.322.1) (2026-08-03)
 
 
