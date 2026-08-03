@@ -41,9 +41,20 @@ export function readAutomation(name, cwd = process.cwd()) {
         `Declare the loop before generating its workflow.`
     );
   }
+  const surface = cfg.remoteEnv?.surfaces?.[loop.executionEnv];
+  const github = cfg.github ?? {};
   return {
     ...loop,
-    repository: cfg.remoteEnv?.surfaces?.[loop.executionEnv]?.repository,
+    // Only used for the fork guard, so it is a question about *this* repository
+    // rather than about the surface. Read from the surface where one records it
+    // — Codex Cloud binds an environment to a repository — and otherwise from
+    // the project's own GitHub config. A Claude cloud environment binds no
+    // repository at all, and demanding one there asked for a field that cannot
+    // exist, which refused to generate a workflow for a correctly configured
+    // loop.
+    repository:
+      surface?.repository ??
+      (github.org && github.repo ? `${github.org}/${github.repo}` : undefined),
     // Where this project keeps its bootstrap. A workstation serving several
     // tenants gives each its own name, so the generated workflow must template
     // it rather than assume the default.
@@ -81,11 +92,27 @@ export function renderWorkflow(name, loop) {
   const bootstrap = loop.bootstrapKey ?? "BWS_ACCESS_TOKEN";
   if (!loop.repository) {
     throw new Error(
-      `automations["${name}"] targets executionEnv "${loop.executionEnv}", ` +
-        `but no remoteEnv.surfaces["${loop.executionEnv}"].repository is set.\n` +
-        `Run /lisa:setup:remote-env ${loop.executionEnv} first.`
+      `cannot determine which repository this loop belongs to.\n` +
+        `The generated workflow guards on it so a fork never dispatches. Set ` +
+        `github.org and github.repo in .lisa.config.json.`
     );
   }
+
+  // Always emitted, even for a surface whose dispatcher token is not consumed
+  // by use. Making it conditional on secrets.rotating would mean a project that
+  // later declares one, without regenerating its workflow, silently loses the
+  // persist step and strands the replacement. One inert step is the cheaper
+  // failure.
+  const rotation = `
+      # The dispatcher authenticates with a credential that rotates on use, so
+      # the replacement must be persisted even when the dispatch itself failed.
+      - name: Persist any credential rotation
+        if: \${{ always() }}
+        env:
+          ${bootstrap}: \${{ secrets.${bootstrap} }}
+        run: |
+          set -euo pipefail
+          node .claude/skills/lisa-secrets-access/scripts/rotate-secret.mjs leases`;
 
   const trigger = loop.enabled
     ? `  schedule:\n    - cron: '${loop.schedule}'\n  workflow_dispatch:`
@@ -149,15 +176,7 @@ jobs:
             'executionEnv=${loop.executionEnv} ${loop.payload ?? ""}' \\
             --skill ${loop.skill ?? `lisa-${name}`}
 
-      # The dispatcher authenticates with a credential that rotates on use, so
-      # the replacement must be persisted even when the dispatch itself failed.
-      - name: Persist any credential rotation
-        if: \${{ always() }}
-        env:
-          ${bootstrap}: \${{ secrets.${bootstrap} }}
-        run: |
-          set -euo pipefail
-          node .claude/skills/lisa-secrets-access/scripts/rotate-secret.mjs leases
+${rotation}
 `;
 }
 
