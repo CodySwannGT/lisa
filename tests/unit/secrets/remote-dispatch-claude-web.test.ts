@@ -176,6 +176,28 @@ describe("dispatching", () => {
       dispatchClaudeWeb(BLOCK, "p", "p", { post, getToken, cwd: root })
     ).rejects.toThrow(/could not reach the routine endpoint/i);
   });
+
+  it("bounds the wait, so a silent endpoint fails rather than hangs", async () => {
+    // The failure `fetch` does not have an answer for on its own: a connection
+    // that is accepted and then never spoken on. Without a deadline that is not
+    // a failed dispatch at all, it is a dispatch that never returns — no error,
+    // no ledger entry, no operator.
+    let deadline: AbortSignal | undefined;
+    const post = async (_url: string, init: RequestInit): Promise<Response> => {
+      deadline = init.signal ?? undefined;
+      // What an aborted fetch actually throws, named the way the handler reads.
+      const err = new Error("The operation was aborted due to timeout");
+      err.name = "TimeoutError";
+      throw err;
+    };
+
+    await expect(
+      dispatchClaudeWeb(BLOCK, "p", "p", { post, getToken, cwd: root })
+    ).rejects.toThrow(
+      /could not reach the routine endpoint: no response within/i
+    );
+    expect(deadline).toBeInstanceOf(AbortSignal);
+  });
 });
 
 describe("fire response", () => {
