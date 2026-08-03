@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import * as fse from "fs-extra";
 import path from "node:path";
+import semver from "semver";
 import type { FileOperationResult, ProjectType } from "../core/config.js";
 import { PROJECT_TYPE_HIERARCHY, PROJECT_TYPE_ORDER } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
@@ -628,10 +629,11 @@ export class PackageLisaStrategy implements ICopyStrategy {
     projectJson: Record<string, unknown>,
     template: ResolvedPackageLisaTemplate
   ): Record<string, unknown> {
-    // Phase 1: Apply force (Lisa's values completely replace project's)
-    const afterForce = deepMerge(
+    // Phase 1: Apply force (Lisa's values completely replace project's), then
+    // restore any dependency pin the host had raised ABOVE Lisa's floor.
+    const afterForce = preserveHigherHostPins(
       projectJson,
-      template.force as Record<string, unknown>
+      deepMerge(projectJson, template.force as Record<string, unknown>)
     );
 
     // Phase 2: Apply defaults (project's values preserved, Lisa provides fallback)
@@ -761,6 +763,83 @@ const DIRECT_DEPENDENCY_SECTIONS = [
 
 /** package.json sections that carry npm-style version overrides. */
 const OVERRIDE_SECTIONS = ["overrides", "resolutions"] as const;
+
+/**
+ * Restore host `overrides`/`resolutions` pins that sit ABOVE Lisa's template.
+ * @remarks
+ * `force.overrides` / `force.resolutions` exist to push a project PAST a
+ * transitive CVE, so they are a security FLOOR — not an assignment. Phase 1
+ * applies them with `deepMerge`, where Lisa's value wins unconditionally, and
+ * that is only correct while the template is the higher of the two. The moment
+ * a host raises a pin beyond the template (or the template simply lags a fresh
+ * advisory), the same "security write" silently walks the host BACKWARDS into
+ * the vulnerable range it had already escaped.
+ *
+ * This is not hypothetical: a host pinned at `tar >=7.5.21` was reverted to
+ * `>=7.5.11` on every `bun install` by a template carrying the older value, and
+ * upgrading Lisa did not fix it — the shipped template was still `>=7.5.19`,
+ * below the host. A floor can only be right by coincidence when it is written
+ * as an overwrite.
+ *
+ * Comparison is on the minimum version each range admits (`>=7.5.21` → 7.5.21,
+ * `^6.27.0` → 6.27.0), which is exactly the quantity a CVE floor cares about. A
+ * value that cannot be parsed — npm's `"$name"` self-references, git URLs, `*`
+ * — is left as Phase 1 produced it, so this can only ever RAISE a pin.
+ * @param projectJson - The host package.json as it was before Phase 1.
+ * @param afterForce - The result of Phase 1's force merge.
+ * @returns `afterForce`, with host-side higher pins restored.
+ */
+function preserveHigherHostPins(
+  projectJson: Record<string, unknown>,
+  afterForce: Record<string, unknown>
+): Record<string, unknown> {
+  return OVERRIDE_SECTIONS.reduce<Record<string, unknown>>((acc, section) => {
+    const forcedSection = asRecord(acc[section]);
+    const restored = Object.entries(asRecord(projectJson[section])).reduce<
+      Record<string, unknown>
+    >(
+      (pins, [name, hostValue]) =>
+        hostPinIsHigher(hostValue, forcedSection[name])
+          ? { ...pins, [name]: hostValue }
+          : pins,
+      forcedSection
+    );
+
+    return restored === forcedSection ? acc : { ...acc, [section]: restored };
+  }, afterForce);
+}
+
+/**
+ * Decide whether the host's pin admits a strictly higher minimum than Lisa's.
+ * @param hostValue - The host's range for this dependency.
+ * @param forcedValue - The range Phase 1 wrote for the same dependency.
+ * @returns True only when both parse and the host's floor is strictly higher.
+ */
+function hostPinIsHigher(hostValue: unknown, forcedValue: unknown): boolean {
+  if (typeof hostValue !== "string" || typeof forcedValue !== "string") {
+    return false;
+  }
+  const hostFloor = rangeFloor(hostValue);
+  const forcedFloor = rangeFloor(forcedValue);
+  return (
+    hostFloor !== null &&
+    forcedFloor !== null &&
+    semver.gt(hostFloor, forcedFloor)
+  );
+}
+
+/**
+ * Resolve the lowest version a range admits.
+ * @param range - An npm version range.
+ * @returns The minimum version, or null when the range is not comparable.
+ */
+function rangeFloor(range: string): string | null {
+  try {
+    return semver.minVersion(range)?.version ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Rewrite literal `overrides`/`resolutions` entries into npm's `"$name"`

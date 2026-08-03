@@ -1970,6 +1970,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
+    "scripts/lisa-enforcement-fallback.sh":
+      "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -7625,6 +7627,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
+    "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
@@ -8256,6 +8259,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforce-verification-gate-preserve.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
