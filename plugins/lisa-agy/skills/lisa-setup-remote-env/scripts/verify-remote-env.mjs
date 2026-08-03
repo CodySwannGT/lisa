@@ -188,7 +188,12 @@ function verifyCleanCheckout() {
 function readRequired(cwd = process.cwd()) {
   const path = join(cwd, ".lisa.config.json");
   if (!existsSync(path)) return [];
-  return JSON.parse(readFileSync(path, "utf8")).secrets?.require ?? [];
+  const required = JSON.parse(readFileSync(path, "utf8")).secrets?.require;
+  if (required == null) return [];
+  if (!Array.isArray(required)) {
+    throw new Error("secrets.require must be an array when present");
+  }
+  return required;
 }
 
 function main() {
