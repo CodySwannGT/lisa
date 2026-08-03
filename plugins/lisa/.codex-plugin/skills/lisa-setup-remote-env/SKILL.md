@@ -158,11 +158,11 @@ Generate the exact text to paste:
 node scripts/setup-remote-env.mjs --emit=claude-web
 ```
 
-It reads the project's own install command from its lockfile and the bootstrap name from `secrets.bootstrap.key`, then emits the environment fields, the `.claude/settings.json` hook block, and the two base-image surprises worth knowing before they cost an afternoon:
+It reads the bootstrap name from `secrets.bootstrap.key` and emits the environment fields, the `.claude/settings.json` hook block, and the base-image surprises worth knowing before they cost an afternoon:
 
 - **`gh` is not pre-installed.** If the project's flows shell out to it, add it to `remoteEnv.tools.install`, pinned and checksummed like anything else.
 - **A proxied credential reads as the literal string `proxy-injected`.** Tools that authenticate through the GitHub proxy work; a script that reads the variable directly gets the placeholder. The read-back asserts this rather than leaving it to be discovered against a live service.
-- **The setup field runs from `$HOME`, not from the checkout.** The emitted setup command starts with `cd <repo-name>` on purpose; without it the package install runs one directory above the clone and cannot find `package.json`.
+- **The setup field runs from `$HOME`, not from the checkout.** That is why the field is a `$HOME` glob rather than a plain relative path: it locates the clone one level down, and the script anchors itself from there. Nothing in the emitted line names this project, so it is the same line everywhere.
 - **Trusted network access is not enough for provider CLIs.** Use Custom and include package registries, GitHub, cloud SDK hosts, and the bootstrap credential manager API.
 
 ### One environment per project, pinned locally
