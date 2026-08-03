@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.322.8](https://github.com/CodySwannGT/lisa/compare/v2.322.7...v2.322.8) (2026-08-03)
+
+
+### Documentation
+
+* **remote-env:** describe the setup locator the field actually prints ([6a8d92b](https://github.com/CodySwannGT/lisa/commit/6a8d92b2abaea5b10942b4784ec2c1675ae8a5bb)), closes [CodySwannGT/lisa#2202](https://github.com/CodySwannGT/lisa/issues/2202)
+
 ### [2.322.7](https://github.com/CodySwannGT/lisa/compare/v2.322.6...v2.322.7) (2026-08-03)
 
 
