@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.322.0](https://github.com/CodySwannGT/lisa/compare/v2.321.5...v2.322.0) (2026-08-03)
+
+
+### Features
+
+* **remote-env:** make the setup field identical for every project ([d2651f7](https://github.com/CodySwannGT/lisa/commit/d2651f729f6ffcc3276b138f0b6fac876d712030)), closes [CodySwannGT/lisa#2193](https://github.com/CodySwannGT/lisa/issues/2193)
+
+
+### Bug Fixes
+
+* **remote-env:** check node first and match the project's yarn ([ee2235b](https://github.com/CodySwannGT/lisa/commit/ee2235bc22fa799fa17f8a302a50fd48847947bd)), closes [CodySwannGT/lisa#2193](https://github.com/CodySwannGT/lisa/issues/2193)
+* **remote-env:** install with CI=1 so setup leaves the checkout clean ([938f6e3](https://github.com/CodySwannGT/lisa/commit/938f6e330aa32afece2ffc5bb34eae7f0df01b96)), closes [CodySwannGT/lisa#2193](https://github.com/CodySwannGT/lisa/issues/2193)
+
 ### [2.321.5](https://github.com/CodySwannGT/lisa/compare/v2.321.4...v2.321.5) (2026-08-03)
 
 
