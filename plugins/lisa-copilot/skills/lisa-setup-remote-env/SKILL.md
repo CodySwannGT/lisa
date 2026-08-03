@@ -13,8 +13,8 @@ Prepare a remote surface so a host project can execute there. Today that means *
 The remote environment's own configuration fields stay **one line into the repository**. Nothing else is pasted into a vendor UI.
 
 ```text
-setup:       for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
-maintenance: for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
+setup:       n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
+maintenance: n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
 ```
 
 **That line is identical for every project AND every surface.** Nothing in it names the
@@ -34,10 +34,18 @@ and neither mentions `$HOME`. An earlier version of this field used
 the checkout is not under `$HOME` at all: the glob matches nothing and bash reports
 `No such file or directory` for a path still containing a literal `*`.
 
-`exec` on the first hit means no subshell and no `ls` output to parse, and the explicit
-`exit 1` means a missing entrypoint says so rather than the field silently succeeding. The
-script then anchors itself on the repository root, so it behaves the same however it was
-reached.
+**Every** match is prepared, not the first. A Claude Code web environment can hold more than
+one checkout, and stopping at the first glob hit would prepare whichever repository sorts
+first and silently ignore the rest — arbitrary rather than merely limited. Each script
+anchors itself on its own repository root, and each project's secrets land under its own
+`secrets.namespace`, so preparing several is well defined rather than a collision.
+
+The exit status is the **first failure**, and every checkout is still attempted: one broken
+repository must not hide the state of the others, and it must not report success either.
+
+The explicit `exit 1` on `n=0` means a missing entrypoint says so rather than the field
+silently succeeding — a `for` loop over a glob that matches nothing otherwise exits `0`,
+which is the quiet failure this whole section exists to avoid.
 
 They are the same command. A container may be built fresh or resumed from cache; every step is idempotent and version-aware, so running it twice is correct, and running it on resume is what picks up a rotated value, an edited note, or a changed version pin.
 
@@ -156,8 +164,8 @@ When emitting, produce exactly:
 ```text
 Environment name:  <project> remote executor
 Repository:        <org>/<repo>        (must be the default checkout)
-Setup script:      for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
-Maintenance:       for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] && exec bash "$f"; done; echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1
+Setup script:      n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
+Maintenance:       n=0; rc=0; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found under $PWD" >&2; exit 1; }; exit "$rc"
                    (identical for every project — the script finds the
                    checkout and installs from the committed lockfile)
 Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
