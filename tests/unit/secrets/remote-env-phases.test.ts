@@ -28,6 +28,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import {
   detectInstallCommand,
+  detectRepositoryDirectory,
   installAssets,
   pinEnvironment,
   probe,
@@ -131,6 +132,28 @@ describe("install command detection", () => {
     // A guessed package manager produces a container that fails on its very
     // first command, with an error that blames the project rather than the guess.
     expect(detectInstallCommand(root)).toBe("<your install command>");
+  });
+});
+
+describe("repository directory detection", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(path.join(tmpdir(), "lisa-repo-dir-"));
+  });
+
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+  it("uses the configured GitHub repo name", () => {
+    writeFileSync(
+      path.join(root, ".lisa.config.json"),
+      JSON.stringify({ github: { repo: "lisa" } })
+    );
+    expect(detectRepositoryDirectory(root)).toBe("lisa");
+  });
+
+  it("falls back to the checkout basename", () => {
+    expect(detectRepositoryDirectory(root)).toBe(path.basename(root));
   });
 });
 
@@ -270,6 +293,7 @@ describe("emitted Claude configuration", () => {
   const emitted = emitClaudeWeb({
     bootstrapKey: "BWS_ACCESS_TOKEN",
     install: "bun install",
+    repoDir: "lisa",
   });
 
   it("states that emit is the only tier for this surface", () => {
@@ -277,10 +301,16 @@ describe("emitted Claude configuration", () => {
     expect(emitted).toMatch(/no API/i);
   });
 
-  it("puts the install ahead of the setup script", () => {
+  it("enters the checkout before installing and running setup", () => {
     expect(emitted).toContain(
-      "bun install && bash scripts/lisa-remote-env/setup.sh"
+      "cd 'lisa' && bun install && bash scripts/lisa-remote-env/setup.sh"
     );
+  });
+
+  it("uses custom network access so the credential manager can be reached", () => {
+    expect(emitted).toContain("Network access:  Custom");
+    expect(emitted).toMatch(/credential manager API/i);
+    expect(emitted).not.toContain("Trusted, or Custom");
   });
 
   it("asks for the bootstrap and warns who else can read it", () => {
@@ -300,7 +330,11 @@ describe("emitted Claude configuration", () => {
   });
 
   it("says plainly when the bootstrap has not been configured", () => {
-    const missing = emitClaudeWeb({ bootstrapKey: null, install: "npm ci" });
+    const missing = emitClaudeWeb({
+      bootstrapKey: null,
+      install: "npm ci",
+      repoDir: "lisa",
+    });
     expect(missing).toMatch(/secrets\.bootstrap\.key is not configured/);
   });
 });

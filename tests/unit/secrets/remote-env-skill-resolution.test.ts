@@ -98,6 +98,28 @@ function runEntrypoint(
   });
 }
 
+/**
+ * Install the entrypoint at its real repository path and invoke it from outside
+ * the checkout, the way Claude cloud runs an environment setup field.
+ * @param root Project directory
+ * @param cwd Directory to run from
+ * @param args Arguments forwarded to the entrypoint
+ * @returns The completed process
+ */
+function runInstalledEntrypointFrom(
+  root: string,
+  cwd: string,
+  args: readonly string[] = []
+): ReturnType<typeof spawnSync> {
+  const script = path.join(root, "scripts", "lisa-remote-env", "setup.sh");
+  mkdirSync(path.dirname(script), { recursive: true });
+  writeFileSync(script, readFileSync(ENTRYPOINT_PATH, "utf8"));
+  return spawnSync(BASH, [script, ...args], {
+    cwd,
+    encoding: "utf8",
+  });
+}
+
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
@@ -134,6 +156,19 @@ describe("remote-env entrypoint skill resolution", () => {
     const result = runEntrypoint(root, ["--dry-run"]);
 
     expect(result.status).toBe(0);
+    expect(result.stdout).toContain("--dry-run");
+  });
+
+  it("re-anchors to the repository root when installed script runs from its parent", () => {
+    const parent = temporaryDirectory();
+    const root = path.join(parent, "lisa");
+    mkdirSync(root);
+    plantRunner(root, NODE_MODULES_RUNNER, `${NODE_MODULES_MARKER}:${root}`);
+
+    const result = runInstalledEntrypointFrom(root, parent, ["--dry-run"]);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(`${NODE_MODULES_MARKER}:${root}`);
     expect(result.stdout).toContain("--dry-run");
   });
 
