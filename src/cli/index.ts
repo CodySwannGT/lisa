@@ -23,13 +23,17 @@ import {
 import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
-import { runStandardsProofCli } from "./standards-proof-cmd.js";
+import {
+  addStandardsProofCommand,
+  runStandardsProofCli,
+} from "./standards-proof-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
 import { runUi, type UiCmdOptions } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
 import { addUpdateCheckHook } from "./update-check-hook.js";
 import { runVersion } from "./version-cmd.js";
+import { addWorkstationCommand } from "./workstation-cmd.js";
 import { getPackageVersion } from "./version.js";
 
 /**
@@ -205,26 +209,6 @@ function addHealthCommand(program: Command, deps: ProgramDependencies): void {
 }
 
 /**
- * Register the explicit, mutating standards proof command.
- * @param program - Commander program to mutate
- * @param deps - Program dependencies
- */
-function addStandardsProofCommand(
-  program: Command,
-  deps: ProgramDependencies
-): void {
-  program
-    .command("standards-proof")
-    .description(
-      "Run all applicable Lisa standards checks and prove the current Git artifact"
-    )
-    .argument("[path]", PATH_ARG_DESCRIPTION)
-    .action(async (targetPath: string | undefined) => {
-      await deps.runStandardsProofCli(targetPath);
-    });
-}
-
-/**
  * Register CLI maintenance commands that do not run the root update warning.
  * @param program - Commander program to mutate
  * @param deps - Program dependencies
@@ -254,6 +238,7 @@ function addMaintenanceCommands(
       }
     });
 
+  addWorkstationCommand(program);
   addDoctorCommand(program, deps);
   addHealthCommand(program, deps);
   addStandardsProofCommand(program, deps);

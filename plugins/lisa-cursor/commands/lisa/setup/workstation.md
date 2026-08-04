@@ -5,3 +5,5 @@ argument-hint: "[--install] [--agents=claude,codex] [--provider=bitwarden] [--js
 ---
 
 Use the /lisa-setup-workstation skill to report and optionally install the coding agents, credential manager, and base tools this machine needs. $ARGUMENTS
+
+Note: on a machine with no agent and no checkout — which is what this prepares — reach the same bootstrap without Lisa installed at all: `npx -y @codyswann/lisa@latest workstation --install`.

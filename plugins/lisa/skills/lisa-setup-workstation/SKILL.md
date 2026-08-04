@@ -25,14 +25,35 @@ repository, and nothing here duplicates that manifest.
 
 ## Usage
 
+**Start here — this is the entry point that presumes nothing:**
+
 ```sh
-node scripts/cli.mjs                              # report what is present and missing
-node scripts/cli.mjs --install                    # install what is missing
-node scripts/cli.mjs --install --agents=claude,codex   # only these agents
-node scripts/cli.mjs --provider=bitwarden         # credential manager (asked if a TTY)
-node scripts/cli.mjs --json                       # machine-readable plan
-node scripts/cli.mjs --print-dockerfile           # an image that runs this same script
+npx -y @codyswann/lisa@latest workstation             # report what is present and missing
+npx -y @codyswann/lisa@latest workstation --install   # install what is missing
 ```
+
+That form needs only Node. No checkout, no agent, no Lisa install — npx resolves
+the package into its own cache.
+
+**Why it matters:** this skill exists to prepare a machine with *no coding agent*
+and *no checkout*. But a skill can only be invoked by typing a slash command into
+an agent, and Lisa ships as a devDependency, so it does not exist until a repo is
+cloned and its dependencies installed. Both are exactly the state this is meant to
+create — so as a skill alone, the bootstrap was unreachable in the one scenario it
+was designed for. The CLI is the way in; the skill is the surface for people who
+already have an agent.
+
+Every flag is the same either way:
+
+```sh
+lisa workstation --install --agents=claude,codex   # only these agents
+lisa workstation --provider=bitwarden              # credential manager (asked if a TTY)
+lisa workstation --json                            # machine-readable plan
+lisa workstation --print-dockerfile                # an image that runs this same script
+```
+
+Inside an agent, `/lisa:setup:workstation` runs the identical script; and the
+script itself is directly runnable as `node scripts/cli.mjs …`.
 
 Nothing is installed or written without `--install`. Exit status is non-zero when a required
 tool is absent or an install fails, so this is usable as a gate.
