@@ -45,6 +45,29 @@ class TrackingError extends Error {}
  * @param {string} noun What the reference names.
  * @returns {string} A message naming the actual fault.
  */
+export class TrackerUnreachableError extends TrackingError {}
+
+/**
+ * Turn a failed `gh` invocation into the right kind of refusal.
+ *
+ * The distinction is the whole point: a missing binary or a refused credential
+ * means the tracker could not be ASKED, while a "no" from the tracker is an
+ * answer. Absence of evidence is not evidence of absence, and only the first
+ * kind may be degraded — treating them alike would either strand finished work
+ * or wave through an item that genuinely is not committable.
+ * @param {{status: number|null, error?: Error, stderr?: string}} result Spawn result.
+ * @param {string} ref Work item reference.
+ * @returns {Error} The error to throw.
+ */
+export function githubFailure(result, ref) {
+  const reason = githubFailureReason(result, ref, "GitHub issue");
+  const unreachable =
+    result.error?.code === "ENOENT" || /cannot authenticate/.test(reason);
+  return unreachable
+    ? new TrackerUnreachableError(reason)
+    : new TrackingError(reason);
+}
+
 export function githubFailureReason(result, ref, noun) {
   if (result.error?.code === "ENOENT") {
     return (
@@ -577,8 +600,7 @@ function githubIssue(ref, contract) {
       allowFailure: true,
     }
   );
-  if (result.status !== 0)
-    throw new TrackingError(githubFailureReason(result, ref, "GitHub issue"));
+  if (result.status !== 0) throw githubFailure(result, ref);
   const issue = safeJson(result.stdout, `GitHub issue ${ref}`);
   if (String(issue.number) !== number)
     throw new TrackingError(`GitHub returned the wrong issue for ${ref}`);
@@ -814,10 +836,48 @@ function linearIssue(ref, contract) {
   return issue;
 }
 
+/**
+ * Ask the tracker whether this work item may be committed against.
+ *
+ * When the tracker cannot be REACHED, the live checks are reported as skipped
+ * rather than enforced or silently dropped. Everything checkable without a
+ * network — the trailer is present, well formed, and matches this branch's
+ * binding — has already run by the time this is called, and the semantic
+ * checks it cannot do here are re-run in CI by a REQUIRED status check
+ * ("Work-Item Traceability"), with credentials, before anything can merge.
+ *
+ * So the guarantee is not lost; it moves to a gate that cannot be bypassed.
+ * That is the whole justification, and it holds only while that check stays
+ * required — if it is ever made optional, this degradation becomes a hole.
+ *
+ * The alternative was worse in both directions. Refusing outright strands
+ * finished, green work on any surface without a GitHub credential — a cloud
+ * container, for one — and the agent's only remaining move is a bypass that
+ * skips the offline checks too. Enforcing nothing hides the difference between
+ * "could not ask" and "the tracker said no".
+ * @param {string} ref Work item reference.
+ * @param {object} [contract] Tracker contract.
+ * @returns {object|undefined} The live item, or undefined when unreachable.
+ */
 function validateLive(ref, contract = trackerContract()) {
-  if (contract.provider === "github") return githubIssue(ref, contract);
-  if (contract.provider === "jira") return jiraIssue(ref, contract);
-  return linearIssue(ref, contract);
+  try {
+    if (contract.provider === "github") return githubIssue(ref, contract);
+    if (contract.provider === "jira") return jiraIssue(ref, contract);
+    return linearIssue(ref, contract);
+  } catch (error) {
+    if (!(error instanceof TrackerUnreachableError)) throw error;
+    // Loud on stderr, never silent: a degradation nobody sees is the failure
+    // mode this exists to avoid, not a milder version of it.
+    console.error(
+      `\n⚠️  Work-item live validation SKIPPED for ${ref}.\n` +
+        `${error.message}\n\n` +
+        `The offline checks still ran: the trailer is present, well formed and ` +
+        `bound to this branch.\nWhat could not be checked here — that the item ` +
+        `is open, claimed and a leaf — is re-run\nwith credentials by the ` +
+        `required "Work-Item Traceability" check before this can merge.\n`
+    );
+    return undefined;
+  }
 }
 
 function textContainsBacklink(value, prUrl) {
@@ -836,6 +896,18 @@ function assertBacklink(
   contract,
   issue = validateLive(ref, contract)
 ) {
+  // The PR check never degrades, because it IS the re-check the local hooks
+  // degrade in favour of. A required status check that passes when it could
+  // not reach the tracker would make the whole arrangement circular: local
+  // defers to CI, CI defers to nothing.
+  if (!issue) {
+    throw new TrackingError(
+      `cannot verify ${ref} against the tracker, and this check is the one ` +
+        `that must.\nLocal hooks may skip live validation when the tracker ` +
+        `is unreachable; this check may not,\nbecause it is what they defer ` +
+        `to. Fix the tracker credential for this run.`
+    );
+  }
   if (contract.provider === "github") {
     const native = (issue.closedByPullRequestsReferences ?? []).some(
       pr => pr.url === prUrl
