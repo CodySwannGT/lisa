@@ -234,6 +234,17 @@ const AGY_PLUGIN_HOOKS = [
     agyScript: "block-shell-json-parsing.agy.sh",
     supportScripts: ["block-shell-json-parsing.sh"],
   },
+  {
+    // Bash arm only. agy matches `run_command`, so its file-edit tool calls
+    // cannot be intercepted the way Claude's Write/Edit/MultiEdit are; the
+    // redirection / tee / sed -i signatures are what agy gets.
+    sourceScript: "block-instruction-file-edits.sh",
+    hookName: "lisa-block-instruction-file-edits",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-instruction-file-edits.agy.sh",
+    supportScripts: ["block-instruction-file-edits.sh"],
+  },
 ];
 
 /**
