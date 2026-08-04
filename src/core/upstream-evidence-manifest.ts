@@ -969,9 +969,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "2ba59b7bcd9654c1852b6ff14ff5446bde8baa9890c218efc50daac2d1934970",
+      "b93b449a1d4b7ff4eb659e0f11e12b612cb6f44d78e53b64c2e8af6c78d4e4c7",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "7c3f63661c0808e2a0de059819feb2a6c40a2b2b04820a50fe43de2405601d33",
+      "d3fee9a0435e93402be53769313f971c77b847521826fbaee0d19a0bdbc34b93",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "4c769499b3db0fbf60e2f5fe1116ea3536012a9af5f78ee4858508090e340322",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -991,7 +991,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "d11a58bd7c2b773a973fe8f8ad19a2621f038327ee2d8afa3039bd72885f5e97",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "76bf3235501e1ca62d0900b7c0441d36b9474eb3eb5316d5acb7b15b1af9e29d",
+      "16535e9e081f5ffb872530879c859ad08d2569e2c788df47762771922f7746a0",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
