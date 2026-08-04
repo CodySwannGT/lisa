@@ -287,7 +287,7 @@ For each epic identified in Phase 1, **invoke the `lisa-tracker-write` skill** (
 - `artifacts`: the full Phase 1.5 artifact list — every artifact, regardless of domain. The epic is the canonical hub. No filtering at the epic level.
 - `priority`, `labels`, `components`, `fix_version`: as appropriate
 
-**Leaf-only build-ready (`leaf-only-lifecycle`)**: an Epic is a container, not a leaf work unit. Do NOT mark it build-ready — `lisa-tracker-write` must not be passed `status:ready` for an Epic, and the Epic's lifecycle state rolls up from its children. The build-ready label is applied only in Phase 5.
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: an Epic is a container, not a leaf work unit. Do NOT mark it build-ready — `lisa-tracker-write` must not be passed the build-ready role for an Epic, and the Epic's lifecycle state rolls up from its children. The build-ready role is applied only in Phase 5.
 
 Capture the returned epic key — Phase 4 needs it as the parent for stories.
 
@@ -318,7 +318,7 @@ For each story, **invoke `lisa-tracker-write`** with:
 | Infrastructure | `ops`, `reference` |
 | Mixed / setup ("X.0") | All domains |
 
-**Leaf-only build-ready (`leaf-only-lifecycle`)**: a Story is a container (it has child Sub-tasks), not a leaf work unit. Do NOT mark it build-ready — never pass `status:ready` to `lisa-tracker-write` for a Story. Its lifecycle state rolls up from its Sub-tasks. The build-ready label is applied only in Phase 5.
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: a Story is a container (it has child Sub-tasks), not a leaf work unit. Do NOT mark it build-ready — never pass the build-ready role to `lisa-tracker-write` for a Story. Its lifecycle state rolls up from its Sub-tasks. The build-ready role is applied only in Phase 5.
 
 Capture each returned story key — Phase 5 needs it as the parent for sub-tasks.
 
@@ -335,7 +335,7 @@ Each sub-task MUST:
 2. **Include an Empirical Verification Plan** — real user-like verification, NOT unit tests, linting, or typechecking
 3. **Carry its own `## Source Requirement` section** (shared format above) with the full verbatim quote(s) from the Phase 1.4 register — a leaf claimed by build-intake in isolation must be self-explanatory. When a sub-task is split per-repo, every split child inherits the same requirement quote(s).
 
-**Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready label. `lisa-tracker-write` applies `status:ready` here so downstream build intake (`lisa-tracker-build-intake`) claims the leaves and never the Epic or Stories. Apply `status:ready` to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa-tracker-write` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready role. `lisa-tracker-write` applies the build-ready role here so downstream build intake (`lisa-tracker-build-intake`) claims the leaves and never the Epic or Stories. Apply the build-ready role to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa-tracker-write` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
 
 Sub-tasks inherit their parent story's artifacts by reference (the parent link). Do not pass the same artifact list to every sub-task.
 

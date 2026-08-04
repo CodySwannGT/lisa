@@ -189,7 +189,7 @@ The childless-parent exception promotes every childless type **except Epic** to 
 Post via `lisa-atlassian-access` `operation: comment key: <TICKET> body: "<message>"` with:
 
 ```text
-[claude-build-intake] Not claimed: this ticket carries the build-ready status ($READY) but is a container with open child work (or a childless Epic), which violates the leaf-only-lifecycle rule. Build-ready (status:ready) is leaf-only per leaf-only-lifecycle — an agent claims and implements leaves, never a container. Repair: move $READY off this parent onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type). A parent's lifecycle state rolls up from its children and is never set to ready directly.
+[claude-build-intake] Not claimed: this ticket carries the build-ready status ($READY) but is a container with open child work (or a childless Epic), which violates the leaf-only-lifecycle rule. Build-ready is leaf-only per leaf-only-lifecycle — an agent claims and implements leaves, never a container. Repair: move $READY off this parent onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type). A parent's lifecycle state rolls up from its children and is never set to ready directly.
 ```
 
 This gate never blocks a legitimate flat Task/Bug: those have no open children and a leaf type, so they fall straight through to the claim in 3b.
