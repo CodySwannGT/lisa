@@ -97,7 +97,9 @@ describe("signals", () => {
     });
 
     expect(proposal.install).toHaveLength(1);
-    expect(proposal.require).toHaveLength(1);
+    // No companion `require`: the install entry now names an artifact for every
+    // platform, so there is no surface left needing a bare assertion.
+    expect(proposal.require).toHaveLength(0);
   });
 
   it("asks instead of proposing where no CLI exists to name", () => {
@@ -125,18 +127,17 @@ describe("signals", () => {
 });
 
 describe("proposals", () => {
-  it("leaves the pin and checksum for a human", () => {
+  it("leaves the pin for a human", () => {
     // The boundary that keeps this from becoming a second install path. A tool
     // reaches a machine because someone reviewed a pinned entry, never because
-    // a detector was confident.
+    // a detector was confident. The per-platform url and sha256 are covered
+    // below, where every block is checked rather than only the first.
     const [entry] = proposedEntries({ name: "maestro" }).install as Record<
       string,
       string
     >[];
 
     expect(entry?.version).toBe("<pin>");
-    expect(entry?.sha256).toMatch(/^</);
-    expect(entry?.url).toMatch(/^</);
   });
 
   it("proposes an npm install where the tool ships on npm", () => {
@@ -149,17 +150,43 @@ describe("proposals", () => {
     expect(proposal.require).toHaveLength(0);
   });
 
-  it("pairs a remote-only archive with a local require entry", () => {
-    // A Linux release archive must never be offered to a laptop — the concrete
-    // reason `surfaces` exists. But narrowing the install to remote without a
-    // local `require` would stop checking for the tool locally at all, trading
-    // one silent gap for another. Both halves or neither.
+  it("proposes an archive as a block per platform, installable everywhere", () => {
+    // A Linux archive must never be offered to a laptop, and the old shape
+    // could only achieve that by excluding the tool from laptops entirely —
+    // `surfaces: ["remote"]` plus a bare local `require`, which asserts a tool
+    // it then refuses to install. That is how bws and gh ended up required on
+    // a developer machine and provisionable only in a container.
     const proposal = proposedEntries({ name: "maestro" });
-    const [install] = proposal.install as { surfaces: string[] }[];
-    const [required] = proposal.require as { surfaces: string[] }[];
+    const [install] = proposal.install as {
+      surfaces?: string[];
+      platforms: Record<string, Record<string, string>>;
+    }[];
 
-    expect(install?.surfaces).toEqual(["remote"]);
-    expect(required?.surfaces).toEqual(["local"]);
+    expect(Object.keys(install?.platforms ?? {})).toEqual(
+      expect.arrayContaining(["linux-x64", "darwin-arm64"])
+    );
+    // No surface narrowing: the manifest now says which artifact each platform
+    // gets, so it no longer has to say which surfaces may have the tool.
+    expect(install?.surfaces).toBeUndefined();
+    // And no companion `require`, which existed only to re-assert a tool the
+    // install entry had just been narrowed away from.
+    expect(proposal.require).toHaveLength(0);
+  });
+
+  it("leaves every artifact field for a human to fill in", () => {
+    // A guessed URL is an artifact the checksum cannot vouch for, and the
+    // checksum is the only thing standing between a pinned entry and whatever
+    // the URL serves today.
+    const proposal = proposedEntries({ name: "maestro" });
+    const [install] = proposal.install as {
+      platforms: Record<string, Record<string, string>>;
+    }[];
+
+    for (const block of Object.values(install?.platforms ?? {})) {
+      expect(block.url).toMatch(/^</);
+      expect(block.sha256).toMatch(/^</);
+      expect(block.install).toMatch(/^</);
+    }
   });
 
   it("does not let a local-only declaration hide a missing remote tool", () => {

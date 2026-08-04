@@ -8,7 +8,7 @@ allowed-tools: ["Bash", "Skill", "Read"]
 
 Claim exactly one canonical Linear identifier such as `ENG-123`. All Linear access goes through `lisa-linear-access`. This is the reusable direct-session counterpart of `lisa-linear-build-intake` Phase 3b.
 
-1. Resolve merged `linear.workspace`, `linear.teamKey`, and Linear build-label roles from local-over-global config. Require the identifier's team key to equal the configured team. Resolve ready and claimed roles from config (defaults `status:ready` and `status:in-progress`); do not hardcode lifecycle decisions.
+1. Resolve merged `linear.workspace`, `linear.teamKey`, and Linear build-label roles from local-over-global config. Require the identifier's team key to equal the configured team. Resolve ready and claimed roles from config (defaults `Todo` and `In Progress`); do not hardcode lifecycle decisions.
 2. Invoke `lisa-linear-read-issue <identifier>` immediately before mutation. Reject a completed/canceled issue, active blocker, `repo:<other>` issue, any issue with open sub-Issues, or an Epic per `repo-scope-split` and `leaf-only-lifecycle`.
 3. Inspect live build labels/workflow state:
    - Already claimed, review, environment-done, or another configured later non-terminal role -> preserve it and set `claim_outcome: reused`.
