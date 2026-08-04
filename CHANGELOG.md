@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.325.0](https://github.com/CodySwannGT/lisa/compare/v2.324.1...v2.325.0) (2026-08-04)
+
+
+### Features
+
+* **tooling:** detect the CLIs a project needs, and provision them locally too ([bf0ee64](https://github.com/CodySwannGT/lisa/commit/bf0ee644434e7b921071d59b2bdc85d8309d2ead)), closes [CodySwannGT/lisa#2249](https://github.com/CodySwannGT/lisa/issues/2249)
+
+
+### Bug Fixes
+
+* **tooling:** address review — invoke the detector, and make it truly read-only ([6a4c2f4](https://github.com/CodySwannGT/lisa/commit/6a4c2f4f29848f0855f6b7a6b3cb66c46d46f32e)), closes [CodySwannGT/lisa#2249](https://github.com/CodySwannGT/lisa/issues/2249)
+
 ### [2.324.1](https://github.com/CodySwannGT/lisa/compare/v2.323.5...v2.324.1) (2026-08-04)
 
 
