@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.325.5](https://github.com/CodySwannGT/lisa/compare/v2.325.4...v2.325.5) (2026-08-04)
+
+
+### Bug Fixes
+
+* **scripts:** resolve $name floors instead of skipping them ([582a44c](https://github.com/CodySwannGT/lisa/commit/582a44cbee4ae8022b126fa78cc839206e3a407a)), closes [#2255](https://github.com/CodySwannGT/lisa/issues/2255) [CodySwannGT/lisa#2255](https://github.com/CodySwannGT/lisa/issues/2255)
+
 ### [2.325.4](https://github.com/CodySwannGT/lisa/compare/v2.325.3...v2.325.4) (2026-08-04)
 
 
