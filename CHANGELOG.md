@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.324.0](https://github.com/CodySwannGT/lisa/compare/v2.323.1...v2.324.0) (2026-08-04)
+
+
+### Features
+
+* **remote-env:** pin gh so a cloud session can run the commit guardrails ([068cd03](https://github.com/CodySwannGT/lisa/commit/068cd0399475f8410893c206498dd1b7759ecb17)), closes [CodySwannGT/lisa#2229](https://github.com/CodySwannGT/lisa/issues/2229)
+* **work-item:** skip live validation only when the tracker cannot be reached ([5c8a92a](https://github.com/CodySwannGT/lisa/commit/5c8a92aa9447c46a32de90c4e044e79c3d5b0703)), closes [CodySwannGT/lisa#2237](https://github.com/CodySwannGT/lisa/issues/2237)
+
+
+### Bug Fixes
+
+* **hooks:** keep enforcement when the plugin never installs ([0f75f88](https://github.com/CodySwannGT/lisa/commit/0f75f88d0da7cc8135cf316d9895aa07311d7b2f)), closes [CodySwannGT/lisa#2221](https://github.com/CodySwannGT/lisa/issues/2221)
+* **package-lisa:** treat force.overrides pins as a floor, not an assignment ([700adad](https://github.com/CodySwannGT/lisa/commit/700adad9ad077d420a2381af5a1b9bf898bbae67)), closes [CodySwannGT/lisa#2223](https://github.com/CodySwannGT/lisa/issues/2223)
+* **remote-env:** install the toolchain every session, not only on cache build ([e130a49](https://github.com/CodySwannGT/lisa/commit/e130a491a8286b4f1fe98b6bcd2a79988e7ff494)), closes [CodySwannGT/lisa#2233](https://github.com/CodySwannGT/lisa/issues/2233)
+
+
+### Documentation
+
+* **remote-env:** document the release-tar install kind ([7cb8e90](https://github.com/CodySwannGT/lisa/commit/7cb8e9059073fda1b484c029ec015b88fe9b2d7f)), closes [CodySwannGT/lisa#2231](https://github.com/CodySwannGT/lisa/issues/2231)
+
 ### [2.323.1](https://github.com/CodySwannGT/lisa/compare/v2.323.0...v2.323.1) (2026-08-03)
 
 
