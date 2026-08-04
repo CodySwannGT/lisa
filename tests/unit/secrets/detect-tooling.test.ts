@@ -73,13 +73,29 @@ describe("signals", () => {
     expect(found.get("maestro")).toMatch(/confirm this integration has one/i);
   });
 
-  it("proposes no binary when the only evidence is an MCP server", () => {
-    // Evidence that a path is missing does not say what fills it, and a pinned
-    // binary is expensive to be wrong about — its checksum moves with every
-    // version bump.
+  it("still proposes a binary for a tool that has one, however detected", () => {
+    // The regression this replaces: keying "propose nothing" on the EVIDENCE
+    // being an MCP server suppressed exactly the wrong case. The substrate
+    // allowlist already removes Linear before it becomes evidence, so the only
+    // tools reaching that branch were ones like Maestro that genuinely do have
+    // a CLI — the binary the Expo template invokes and nothing installs.
     const proposal = proposedEntries({
       name: "maestro",
       evidence: ['MCP server "maestro" - interactive auth'],
+    });
+
+    expect(proposal.install).toHaveLength(1);
+    expect(proposal.require).toHaveLength(1);
+  });
+
+  it("asks instead of proposing where no CLI exists to name", () => {
+    // Linear has no official CLI, so no proposal can name one — and a pinned
+    // binary is expensive to be wrong about, since its checksum moves with
+    // every version bump. Asserted directly rather than relying on the
+    // substrate allowlist to keep Linear out of proposals.
+    const proposal = proposedEntries({
+      name: "linear",
+      evidence: ['MCP server "linear-server" - interactive auth'],
     });
 
     expect(proposal.install).toHaveLength(0);

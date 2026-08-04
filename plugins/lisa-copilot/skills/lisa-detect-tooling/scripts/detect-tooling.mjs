@@ -53,6 +53,11 @@ const KNOWN_TOOLS = Object.freeze({
   linear: {
     why: "Linear reaches a container through lisa-linear-access with LINEAR_API_KEY; only the MCP path needs browser OAuth, and there is no official CLI to pin.",
     mcpFallback: "linear-server",
+    // No official Linear CLI exists, so no proposal can name one. Kept even
+    // though the substrate allowlist normally removes Linear before this
+    // point: a second signal reaching here must not resurrect a binary that
+    // does not exist.
+    noCli: true,
   },
 });
 
@@ -281,15 +286,15 @@ export function detectTooling(cwd = process.cwd()) {
  * @returns {{install: object[], require: object[]}} Manifest skeletons.
  */
 export function proposedEntries(proposal) {
-  // Evidence that an integration has no remote path does not say what the
-  // remote path should BE, and a pinned binary is expensive to be wrong about:
-  // its checksum has to move with every version bump. So MCP-only evidence
-  // proposes nothing and asks instead.
-  const evidence = proposal.evidence ?? [];
-  const onlyMcp =
-    evidence.length > 0 &&
-    evidence.every(item => String(item).startsWith(MCP_EVIDENCE));
-  if (onlyMcp) {
+  // Whether a binary can be proposed is a fact about the TOOL, not about how it
+  // was detected. Keying this on "the evidence was an MCP server" suppressed
+  // exactly the wrong case: the substrate allowlist already removes Linear
+  // before it becomes evidence, so the only tools reaching that branch were
+  // ones like Maestro that genuinely do have a CLI — the binary the Expo
+  // template invokes and nothing installs.
+  //
+  // So the question is asked only where there is no pinnable CLI to name.
+  if (KNOWN_TOOLS[proposal.name]?.noCli) {
     return { install: [], require: [], question: REMOTE_PATH_QUESTION };
   }
   const viaNpm = KNOWN_TOOLS[proposal.name]?.viaNpm;
