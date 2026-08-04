@@ -803,11 +803,17 @@ function findRollupCoverageGaps(
 ): readonly LisaUsageSectionIntegrityIssue[] {
   const entryIds = sortedIds(parsedEntryIds);
   if (rollup === null) {
-    return reportIssue(
-      "missing-rollup-token",
-      entryIds,
-      `Stored section has ${entryIds.length} direct entr${entryIds.length === 1 ? "y" : "ies"} but no lisa:usage-rollup token.`
-    );
+    // Every section Lisa writes carries a rollup token, even a child-only or
+    // fully empty ledger, so a missing token is always corruption -- report
+    // it unconditionally rather than routing through reportIssue(), which
+    // suppresses issues that name zero entries.
+    return [
+      {
+        code: "missing-rollup-token",
+        entryIds,
+        message: `Stored section has ${entryIds.length} direct entr${entryIds.length === 1 ? "y" : "ies"} but no lisa:usage-rollup token.`,
+      },
+    ];
   }
 
   const recorded = new Set(rollup.directEntryIds);
