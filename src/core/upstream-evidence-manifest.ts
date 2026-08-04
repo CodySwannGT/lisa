@@ -1125,9 +1125,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c04afb1cf8e14a2713645228e679fa7772559488330a240ec0297cae6afd03e2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "68339117f7d2fe1fdb9f05c8039ffe719f24da7cf700bc3c940bfccbf82cded2",
+      "1f451881342364d086640b59914a3b07286a3734caa63f01efe64531d3bde7e4",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "ff66d33ba41a068d09be18f81ac68988238c2afa1d4e3733ae906b73eea74324",
+      "8822af39d0251a2e4fb0eac9157ba9e63ea813d914240ca0cacacd6cb7cbb5bb",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
