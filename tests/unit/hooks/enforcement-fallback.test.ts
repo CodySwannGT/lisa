@@ -42,11 +42,11 @@ const FALLBACK = path.join(
 /** A config directory that cannot exist, standing in for a fresh container. */
 const NO_PLUGIN = "/nonexistent-claude-config";
 
-/** The command every guard case exercises, since it is the one that started this. */
-const BYPASS = "git commit --no-verify -m x";
-
 /** Claude's refusal code. Anything else lets the command through. */
 const BLOCKED = 2;
+
+/** The bypass a plugin-less session actually got away with. */
+const NO_VERIFY_COMMIT = "git commit --no-verify -m x";
 
 /**
  * Run the fallback against a tool payload.
@@ -75,7 +75,7 @@ function runFallback(
 
 describe("enforcement fallback when no plugin is installed", () => {
   it("blocks the bypass that a plugin-less session got away with", () => {
-    const { status, output } = runFallback(BYPASS, NO_PLUGIN);
+    const { status, output } = runFallback(NO_VERIFY_COMMIT, NO_PLUGIN);
 
     expect(status).toBe(BLOCKED);
     expect(output).toMatch(/bypasses pre-commit/i);
@@ -100,49 +100,42 @@ describe("enforcement fallback when no plugin is installed", () => {
     // Otherwise a developer machine runs every guard twice and prints every
     // refusal twice, which teaches people to skim refusals.
     //
-    // The registry is BUILT here rather than read from the machine's real
-    // `$HOME/.claude`. Pointing at that asserted machine state instead of
-    // behaviour: it passed on a laptop where the plugin happens to be
-    // installed and failed in a container where it is not — with the guard
-    // firing exactly as designed. A test that only passes where the thing
-    // under test is already installed cannot tell "inert because registered"
-    // from "inert because broken", and it made the whole suite unrunnable on
-    // the surface this file exists to protect.
+    // The registry is BUILT here rather than read from `$HOME/.claude`. Pointing
+    // at the developer's real config made this assert machine state instead of
+    // behaviour: it passed locally because the plugin happens to be installed,
+    // and failed in CI — where it is not — because the fallback correctly fired.
+    // A test that only passes on a machine that already has the thing under
+    // test installed cannot tell "inert because registered" from "inert because
+    // broken".
     const configDir = mkdtempSync(path.join(tmpdir(), "lisa-fallback-"));
-    try {
-      mkdirSync(path.join(configDir, "plugins"), { recursive: true });
-      writeFileSync(
-        path.join(configDir, "plugins", "installed_plugins.json"),
-        JSON.stringify({ version: 2, plugins: { "lisa@lisa": {} } })
-      );
+    mkdirSync(path.join(configDir, "plugins"), { recursive: true });
+    writeFileSync(
+      path.join(configDir, "plugins", "installed_plugins.json"),
+      JSON.stringify({ "lisa@lisa": { version: "0.0.0" } })
+    );
 
-      const { status } = runFallback(BYPASS, configDir);
+    const { status } = runFallback(NO_VERIFY_COMMIT, configDir);
 
-      expect(status).toBe(0);
-    } finally {
-      rmSync(configDir, { recursive: true, force: true });
-    }
+    rmSync(configDir, { recursive: true, force: true });
+    expect(status).toBe(0);
   });
 
   it("fires when the registry exists but does not carry the plugin", () => {
     // The inert path keys on the plugin being REGISTERED, not on the registry
     // file merely existing. Without this, a container that wrote an empty
-    // registry — precisely the case this whole file exists for — would read as
-    // "plugin present" and silence the fallback.
+    // registry — precisely the failure this whole file exists for — would read
+    // as "plugin present" and silence the fallback.
     const configDir = mkdtempSync(path.join(tmpdir(), "lisa-fallback-"));
-    try {
-      mkdirSync(path.join(configDir, "plugins"), { recursive: true });
-      writeFileSync(
-        path.join(configDir, "plugins", "installed_plugins.json"),
-        JSON.stringify({ version: 2, plugins: {} })
-      );
+    mkdirSync(path.join(configDir, "plugins"), { recursive: true });
+    writeFileSync(
+      path.join(configDir, "plugins", "installed_plugins.json"),
+      JSON.stringify({})
+    );
 
-      const { status } = runFallback(BYPASS, configDir);
+    const { status } = runFallback(NO_VERIFY_COMMIT, configDir);
 
-      expect(status).toBe(BLOCKED);
-    } finally {
-      rmSync(configDir, { recursive: true, force: true });
-    }
+    rmSync(configDir, { recursive: true, force: true });
+    expect(status).toBe(BLOCKED);
   });
 });
 
