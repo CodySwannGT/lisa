@@ -18,9 +18,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   declaredTools,
+  satisfiedByNpm,
   detectTooling,
   proposedEntries,
   toolsFromMcp,
+  toolsFromQuality,
   toolsFromScripts,
   toolsFromSecretNotes,
 } from "../../../plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs";
@@ -183,5 +185,72 @@ describe("against this repository", () => {
       expect(proposal.evidence.length).toBeGreaterThan(0);
       expect(proposal.why).not.toBe("");
     }
+  });
+});
+
+describe("quality signals", () => {
+  it("surfaces every configured e2e runner, not a hardcoded one", () => {
+    // quality.e2eCoverage.maestro is configured in this repository and produced
+    // no signal, so the detector reported "nothing outstanding" while maestro —
+    // the tool whose absence started this work — was undeclared and invisible.
+    const found = toolsFromQuality({
+      quality: { e2eCoverage: { playwright: {}, maestro: {} } },
+    });
+
+    expect([...found.keys()]).toEqual(
+      expect.arrayContaining(["playwright", "maestro"])
+    );
+  });
+
+  it("ignores a runner it knows nothing about", () => {
+    // A signal for an unknown name would propose a manifest entry naming a
+    // tool the detector cannot describe or pin.
+    const found = toolsFromQuality({
+      quality: { e2eCoverage: { somethingElse: {} } },
+    });
+
+    expect([...found.keys()]).toHaveLength(0);
+  });
+});
+
+describe("tools the package manager already provides", () => {
+  // The false positive this removes: `quality.e2eCoverage.playwright` is
+  // configured, so the detector proposed pinning a playwright binary — while
+  // `@playwright/test` is a declared devDependency and `playwright test`
+  // resolves from node_modules/.bin. It never needs to be on PATH.
+  //
+  // Noise is how a detector teaches people to skim it, which is the failure
+  // this skill's own documentation warns about.
+  it("recognises a tool declared as a devDependency", () => {
+    expect(
+      satisfiedByNpm(
+        { devDependencies: { "@playwright/test": "^1.57.0" } },
+        "playwright"
+      )
+    ).toBe(true);
+  });
+
+  it("recognises one declared as a runtime dependency too", () => {
+    expect(
+      satisfiedByNpm(
+        { dependencies: { "@playwright/test": "^1.57.0" } },
+        "playwright"
+      )
+    ).toBe(true);
+  });
+
+  it("does not claim to cover a tool npm cannot deliver", () => {
+    // Maestro ships no npm package, so a devDependency list says nothing about
+    // whether its binary is present.
+    expect(
+      satisfiedByNpm(
+        { devDependencies: { "@playwright/test": "1" } },
+        "maestro"
+      )
+    ).toBe(false);
+  });
+
+  it("still proposes when the package is absent", () => {
+    expect(satisfiedByNpm({ devDependencies: {} }, "playwright")).toBe(false);
   });
 });
