@@ -569,7 +569,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/setup/sonar.md":
       "1d2e94fd9f21988ce6d4be2ce4268b8c0bb020eb7cd7baf8ca65def7d8a4f5bc",
     "plugins/src/base/commands/setup/workstation.md":
-      "d23cc9adaaba5a682ed614df36a5d902d1a84e0a19e9a75220518a0c4ccfa71e",
+      "8046c6d2154d17fda44e29cc30146092f125b326410356f6efd7f2271631e9a7",
     "plugins/src/base/commands/sync-down.md":
       "4e974cb9745a4fd680f4a55f859d31fa8cf3cb28afa739b40a2e1a99de31e034",
     "plugins/src/base/commands/tear-down-automations.md":
@@ -1157,9 +1157,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "53fbd8acce4b5e47e88195a7b90d5be424fa6ef7ad872f52c50467c690664c3b",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
-      "c590e945607291fd7af427de9d4e932f681ea2274597afb96313a370fa1613f4",
+      "5f99bc03aa09e2ad7afde078cf8dbb18cd3976157af650494212c73f9db34411",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation-bootstrap.mjs":
-      "fe88c28d6daba8f98836d42882fcee86c2024222b1b8abe9506e74ab96b54179",
+      "2d726a2a725dbf544c08ded13b09f06b1e3e503e29b081d6ac0ab96cc1fc1474",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "031acb01195ae59010a65335da98d46a1d6080e749823d6f6d157938d9e96648",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
