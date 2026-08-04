@@ -23,6 +23,15 @@ const DEFAULT_JIRA_BUILD_DONE = {
   production: "Done",
 };
 
+// Linear shares JIRA's env rung NAMES but is a separate constant on purpose:
+// the two vocabularies are independently configurable and a shared object would
+// silently couple them.
+const DEFAULT_LINEAR_BUILD_DONE = {
+  dev: "On Dev",
+  staging: "On Stg",
+  production: "Done",
+};
+
 const DEFAULT_GITHUB_LINEAR_PRD_ROLES = {
   draft: "prd-draft",
   ready: "prd-ready",
@@ -290,18 +299,21 @@ export function resolveBuildLifecycleRoles(
         },
       };
     case "linear":
+      // Linear resolves BUILD roles to native workflow states, like JIRA — not
+      // to labels like GitHub, which has no workflow-state field to use. The
+      // `kind` matters to callers: it tells them whether a transition is a
+      // state move or a label swap.
       return {
         vendor: "linear",
-        kind: "labels",
+        kind: "workflow",
         roles: {
-          ready: config.linear?.labels?.build?.ready || "status:ready",
-          claimed:
-            config.linear?.labels?.build?.claimed || "status:in-progress",
-          review: config.linear?.labels?.build?.review || "status:code-review",
-          blocked: config.linear?.labels?.build?.blocked || "status:blocked",
+          ready: config.linear?.workflow?.ready || "Ready",
+          claimed: config.linear?.workflow?.claimed || "In Progress",
+          review: config.linear?.workflow?.review || "In Review",
+          blocked: config.linear?.workflow?.blocked || "Blocked",
           done:
-            config.linear?.labels?.build?.done ||
-            structuredClone(DEFAULT_GITHUB_BUILD_DONE),
+            config.linear?.workflow?.done ||
+            structuredClone(DEFAULT_LINEAR_BUILD_DONE),
         },
       };
     case "jira":
