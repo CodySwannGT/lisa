@@ -20,14 +20,44 @@ Nothing populates that last row. So a project can ship scripts that invoke `maes
 
 That is the same failure this repository has now paid for twice: `gh` was declared nowhere and a cloud session could not commit; `tar` was needed by an install method and asserted by nothing.
 
+## Discovery, not recognition
+
+The first version of this could only find tools it had been told about: it matched script bodies against a fixed `KNOWN_TOOLS` list. That makes the detector useful for exactly the set that needs it least — the tools someone already thought of.
+
+An Expo project invoking `eas` from **eight** npm scripts and six CI steps produced no proposal, because `eas` was not on the list. `gitleaks`, which runs on every commit in every one of these repositories, produced no proposal either.
+
+So the question asked of executable sources is now the open one — *what does this project actually run* — and everything already provided is subtracted afterwards:
+
+- what `remoteEnv.tools` declares
+- what `node_modules/.bin` provides (a dependency's binary never needs to be on PATH)
+- what `lisa-setup-workstation` owns (coding agents belong to the machine, not the checkout)
+
+The curated list stays, because a vetted `why` is worth more than an observed one — proposals say which they are, `[curated]` or `[discovered]`.
+
 ## What it does
 
-Reads four signals, subtracts what `remoteEnv.tools` already declares, and prints what is left with the evidence for each:
+Reads six signals, subtracts what is already covered, and prints what is left with the evidence for each:
 
-- **npm scripts** that invoke a binary. The strongest signal there is — a script running `maestro test` is the project stating a dependency in executable form. Matched on the script *body*, not its name, because the name is a label.
+- **git hooks** (`.husky/*`, `.git/hooks/*`) that invoke a binary. The **strongest** signal available, stronger than an npm script: a hook runs on every commit and push whether anyone asked or not, so a machine without the tool cannot commit at all.
+
+  A `command -v` guard counts as evidence rather than as "optional", because the guarded shape is the worse one. Lisa's pre-commit hook wraps its secret scan in `command -v gitleaks`, so on a machine without gitleaks the scan is **skipped silently** — the hook passes, the commit succeeds, and nothing was scanned. A guard makes the absence invisible precisely where it matters.
+
+- **npm scripts** that invoke a binary — a script running `maestro test` is the project stating a dependency in executable form. Read from the script *body*, not its name, because the name is a label.
 - **MCP servers with a CLI equivalent.** An MCP server is not a substitute for the binary: several authenticate by browser OAuth, which a container cannot do, so a project relying on one remotely has *no* integration rather than a degraded one. Do not infer a CLI for access layers that already define their own headless substrate; Linear is handled by `lisa-linear-access` through `LINEAR_API_KEY` + GraphQL when MCP OAuth is unavailable.
 - **Credential usage notes.** A note explaining what a token is for usually names the program that consumes it. `lisa-secrets-access` already exposes these without touching a value, which makes them a first-class input rather than a trick.
 - **Quality configuration**, where a threshold implies the tool that produces it.
+
+## Reading shell is the hard part
+
+Discovery only works if "what does this run" can be answered from shell text without inventing commands. Three things had to be right, each found by running it against real repositories:
+
+**Only the first word of a command position counts.** Word-scanning this repo's own hooks proposed `ltrimstr`, `map` and `select` (jq filter internals), `console.log` and `process.exit` (embedded JavaScript), and `load_audit_cves` (a function the hook defines three lines up). Reading only where a command can actually start removes all of them without a denylist entry for any.
+
+**Quoting and commenting nest, so neither can be stripped independently.** The comment on line 9 of `pre-push.local` ends `...the script's exit code)`. That lone apostrophe pairs with the next real quote 28 lines later, blanks everything between, and leaks a `node -e` payload's JavaScript into the results. Stripping comments first does not fix it, because a `#` inside a quoted string is not a comment. One character scanner tracking both is the only correct shape.
+
+**`$( )` restarts the quoting context.** In `"$(printf '%s' "$JSON" | node -e '…')"`, quotes inside the substitution pair among themselves. A flat scanner falls out of phase on the first one and starts reporting the payload's own string literals.
+
+Against Lisa and the three TunnlAI repositories, what survives is `gitleaks`, `jq`, `gtimeout` and `eas` — every one a real, undeclared invocation, with no false positives.
 
 ## What it will not do
 
