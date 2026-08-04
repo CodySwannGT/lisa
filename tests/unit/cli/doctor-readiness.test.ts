@@ -258,9 +258,12 @@ describe("checkRepositoryReadiness", () => {
       ].join("\n"),
       "utf8"
     );
-    const lisaDir = path.join(cwd, ".lisa");
-    await mkdir(lisaDir, { recursive: true });
-    await chmod(lisaDir, 0o500);
+    // A FILE where the directory must be, rather than a read-only directory.
+    // `chmod 0o500` denies nobody when the tests run as root — which is how a
+    // cloud container runs them — so the write succeeded there and the whole
+    // suite failed on a machine difference rather than on behaviour. ENOTDIR is
+    // refused identically for uid 0 and everyone else.
+    await writeFile(path.join(cwd, ".lisa"), "not a directory\n", "utf8");
 
     const check = await checkRepositoryReadiness(cwd);
 
@@ -271,22 +274,19 @@ describe("checkRepositoryReadiness", () => {
       "It IS ready for supervised, single-ticket agent work"
     );
     expect(check.detail).toContain("Could not persist");
-    await chmod(lisaDir, 0o755);
   });
 
   it("degrades to a WARN check instead of throwing when the report cannot be written", async () => {
     const cwd = await getTempDir();
-    const lisaDir = path.join(cwd, ".lisa");
-    await mkdir(lisaDir, { recursive: true });
-    // Make .lisa read-only so the atomic write fails.
-    await chmod(lisaDir, 0o500);
+    // A file where `.lisa/` must be, so the atomic write fails. Not a read-only
+    // directory: root ignores the mode bits, so that only failed for non-root
+    // and made this assert the uid of whoever ran the suite.
+    await writeFile(path.join(cwd, ".lisa"), "not a directory\n", "utf8");
 
     const check = await checkRepositoryReadiness(cwd);
 
     expect(check.status).toBe("warn");
     expect(check.detail.toLowerCase()).toContain("readiness");
-    // Restore permissions so afterEach cleanup succeeds.
-    await chmod(lisaDir, 0o755);
   });
 });
 
