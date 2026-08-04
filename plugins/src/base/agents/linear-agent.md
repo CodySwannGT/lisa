@@ -112,7 +112,7 @@ Use the `linear-sync` skill to update the item at these milestones:
 Use the `linear-evidence` skill to:
 - Upload verification evidence to the GitHub PR
 - Post evidence summary as a Linear comment
-- Transition labels: remove the configured `claimed` label, add the configured `review` label (`linear.labels.build.{claimed,review}`)
+- Transition the workflow state: move from the configured `claimed` state to the configured `review` state (`linear.workflow.{claimed,review}`)
 
 ### 8. Suggest Status Transition
 
