@@ -1,0 +1,4 @@
+display_name: "Setup Workstation"
+short_description: "Bootstrap a machine before any…"
+default_prompt:
+  - "Use $lisa-setup-workstation: Bootstrap a machine before any…."
