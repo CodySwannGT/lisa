@@ -46,7 +46,27 @@ What genuinely differs is **consent**, not the list:
 
 Omitting `surfaces` means every surface, because that is true of most tools and the cost of forgetting should be a redundant check rather than a silent absence.
 
-A platform-specific pin is the exception worth knowing: a Linux release archive must be `surfaces: ["remote"]`, with a matching `require` entry for `local`, so a laptop asserts the tool without being offered a binary it cannot run.
+Platform differences are **not** expressed with `surfaces`. A downloaded tool declares a
+`platforms` map keyed `<platform>-<arch>`, each block carrying its own `install` method, `url`,
+and `sha256`:
+
+```json
+"platforms": {
+  "linux-x64":    { "install": "release-tar", "url": "...", "sha256": "..." },
+  "darwin-arm64": { "install": "release-zip", "url": "...", "sha256": "..." }
+}
+```
+
+The method lives inside the block because it varies — gh ships a `.tar.gz` for Linux and a
+`.zip` for macOS. A flat entry means one artifact serves everything, which is true of
+`npm-global` and nothing else.
+
+This replaces an earlier convention worth naming, because its residue may still be in a
+manifest you read: a Linux archive used to be marked `surfaces: ["remote"]` with a bare
+`require` entry for `local`, so a laptop asserted the tool without being offered a binary it
+could not run. That kept the wrong binary off the laptop by making the tool uninstallable
+there — which is how `bws` and `gh`, the two CLIs Lisa's own guardrails shell out to, came to
+be required on developer machines and provisionable only in containers.
 
 ## Usage
 

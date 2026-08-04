@@ -361,9 +361,11 @@ export function detectTooling(cwd = process.cwd()) {
 /**
  * The manifest entries an operator can paste, with the parts only they supply.
  *
- * Returns both lists because a platform-specific archive needs both: an
- * `install` entry for the surface it is built for, and a `require` entry so the
- * other surface still asserts the tool instead of silently ignoring it.
+ * A release archive is proposed as a `platforms` map rather than a single URL
+ * plus `surfaces: ["remote"]`. The old shape could express only one artifact, so
+ * keeping a Linux binary off a laptop meant excluding the tool from laptops
+ * altogether — which is how `bws` and `gh` came to be required on a developer
+ * machine and installable only in a container.
  * @param {{name: string}} proposal One detected tool.
  * @returns {{install: object[], require: object[]}} Manifest skeletons.
  */
@@ -394,23 +396,33 @@ export function proposedEntries(proposal) {
       require: [],
     };
   }
-  // A release archive is built for one platform, so it is proposed as
-  // remote-install plus a local `require`. Proposing only the install entry
-  // produced a manifest that either offered a Linux binary to a laptop or —
-  // once narrowed to remote — stopped checking for the tool locally at all.
-  // Both halves or neither.
+  // A release archive is built for one platform, so every platform the project
+  // is developed or built on needs its own block — with its own install method,
+  // because a vendor may ship a tarball for one and a zip for another, as gh
+  // does. Both containers and laptops are proposed: a tool the manifest can
+  // only install remotely is one every developer installs by hand or does
+  // without.
+  //
+  // The placeholders stay unresolved on purpose. A guessed URL is an artifact
+  // the checksum cannot vouch for, which is the one property that makes a
+  // pinned entry worth reviewing.
+  const archive = platform => ({
+    install: "<release-tar or release-zip, whichever this platform ships>",
+    url: `<release url for this exact version, for ${platform}>`,
+    sha256: `<sha256 published with the ${platform} release>`,
+  });
   return {
     install: [
       {
         name: proposal.name,
         version: "<pin>",
-        install: "release-tar",
-        url: "<release url for this exact version, for the remote platform>",
-        sha256: "<sha256 published with that release>",
-        surfaces: ["remote"],
+        platforms: {
+          "linux-x64": archive("linux-x64"),
+          "darwin-arm64": archive("darwin-arm64"),
+        },
       },
     ],
-    require: [{ name: proposal.name, surfaces: ["local"] }],
+    require: [],
   };
 }
 

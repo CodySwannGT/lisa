@@ -100,7 +100,7 @@ function planRequired(tool, found) {
  * @param {{version: string|null, present: boolean}} found Probe result.
  * @returns {{name: string, action: string, reason: string}} The decision.
  */
-function planInstallable(tool, found) {
+function planInstallable(tool, found, pinIsFloor = false) {
   if (!tool.version) {
     return {
       name: tool.name,
@@ -115,6 +115,25 @@ function planInstallable(tool, found) {
       reason: `${tool.name} ${tool.version} already installed`,
     };
   }
+  // On a laptop the pin is a floor, not an equality. A container is disposable
+  // and reproducible by construction, so an exact match is right there. A
+  // developer's machine is shared with every other project they work on, and
+  // installing a pinned binary into ~/.local/bin ahead of a NEWER one already on
+  // PATH is a downgrade this project imposed on all of them — for gh, pinned at
+  // 2.83.0 against a workstation running 2.96.0, that is the likely case rather
+  // than the exotic one.
+  if (
+    pinIsFloor &&
+    found.present &&
+    found.version &&
+    compareVersions(found.version, tool.version) > 0
+  ) {
+    return {
+      name: tool.name,
+      action: "newer",
+      reason: `${tool.name} ${found.version} is newer than the pinned ${tool.version} — leaving it alone`,
+    };
+  }
   return {
     name: tool.name,
     action: "install",
@@ -126,6 +145,72 @@ function planInstallable(tool, found) {
 
 /** Surfaces a manifest entry may name. */
 const KNOWN_SURFACES = new Set(["local", "remote"]);
+
+/**
+ * The platform key a manifest entry is resolved against.
+ *
+ * `<platform>-<arch>` rather than either alone, because both halves change the
+ * artifact: an Apple Silicon laptop and an Intel one run different builds of the
+ * same release, and so do an arm64 container and an amd64 one.
+ * @param {{platform: string, arch: string}} [runtime] Injectable, for tests.
+ * @returns {string} A key such as "darwin-arm64" or "linux-x64".
+ */
+export function currentPlatform(runtime = process) {
+  return `${runtime.platform}-${runtime.arch}`;
+}
+
+/**
+ * Collapse a manifest entry to the artifact for one platform.
+ *
+ * A download URL is platform-specific and a checksum doubly so, which the
+ * single-URL shape could not express: the only way to stop a laptop being handed
+ * a Linux binary was `surfaces: ["remote"]`, which bought that safety by making
+ * the tool uninstallable on the laptop entirely. So `bws` and `gh` — the two
+ * tools Lisa's own guardrails shell out to — were declared, required, and
+ * unprovisionable on the machine most likely to be missing them.
+ *
+ * A `platforms` map fixes the cause instead of the symptom. `install` lives
+ * inside each block rather than beside it, because the method varies too: gh
+ * publishes a .tar.gz for Linux and a .zip for macOS, so a single install method
+ * would have forced one platform onto an archive kind its vendor does not ship.
+ *
+ * A flat entry is still valid and means "identical everywhere" — true of every
+ * `npm-global` install, which is genuinely platform-independent.
+ * @param {object} tool Manifest entry.
+ * @param {string} [platform] Platform key to resolve for.
+ * @returns {object} The entry with its platform block merged in.
+ */
+export function resolvePlatform(tool, platform = currentPlatform()) {
+  const { platforms } = tool;
+  if (platforms === undefined) return tool;
+  if (
+    typeof platforms !== "object" ||
+    platforms === null ||
+    Array.isArray(platforms)
+  ) {
+    throw new Error(
+      `${tool.name}: platforms must be an object keyed by <platform>-<arch>, ` +
+        `got ${Array.isArray(platforms) ? "an array" : typeof platforms}.\n` +
+        `Omit it when one artifact serves every platform.`
+    );
+  }
+  const block = platforms[platform];
+  if (!block) {
+    const known = Object.keys(platforms).sort().join(", ");
+    throw new Error(
+      `${tool.name}: no pin for ${platform}.\n` +
+        `Declared platforms: ${known || "(none)"}.\n` +
+        `Add a block for ${platform} with its own url and sha256, or drop the ` +
+        `tool from this surface. Guessing an artifact would defeat the ` +
+        `checksum.`
+    );
+  }
+  // The platform block wins over the shared fields, and `platforms` itself is
+  // dropped so a resolved entry is indistinguishable from a flat one — that is
+  // what lets assertPinned and the installers stay unaware of any of this.
+  const { platforms: _discarded, ...shared } = tool;
+  return { ...shared, ...block };
+}
 
 /**
  * Whether a manifest entry applies to the surface being provisioned.
@@ -171,18 +256,48 @@ export function appliesToSurface(tool, surface) {
 
 /**
  * Produce the complete plan for a toolchain manifest.
+ *
+ * Install entries are resolved to the running platform here rather than at
+ * install time, so a tool with no artifact for this machine is reported
+ * alongside every other problem instead of aborting the run at the first one.
+ * An operator fixing a manifest wants the whole list.
+ *
+ * `require` entries are deliberately not resolved: they carry a name and a
+ * minimum version, nothing platform-specific, and inventing a per-platform shape
+ * for them would be ceremony with no artifact behind it.
  * @param {{require?: object[], install?: object[]}} tools Manifest.
  * @param {(name: string) => {version: string|null, present: boolean}} probe Version probe.
- * @returns {Array<{name: string, action: string, reason: string}>} Ordered decisions.
+ * @param {string} [surface] Surface being provisioned.
+ * @param {string} [platform] Platform key to resolve install entries against.
+ * @returns {Array<{name: string, action: string, reason: string, tool?: object}>} Ordered decisions.
  */
-export function planToolchain(tools, probe, surface = "remote") {
+export function planToolchain(
+  tools,
+  probe,
+  surface = "remote",
+  platform = currentPlatform()
+) {
   const plan = [];
   for (const tool of tools.require ?? [])
     if (appliesToSurface(tool, surface))
       plan.push(planRequired(tool, probe(tool.name)));
-  for (const tool of tools.install ?? [])
-    if (appliesToSurface(tool, surface))
-      plan.push(planInstallable(tool, probe(tool.name)));
+  for (const tool of tools.install ?? []) {
+    if (!appliesToSurface(tool, surface)) continue;
+    let resolved;
+    try {
+      resolved = resolvePlatform(tool, platform);
+    } catch (err) {
+      plan.push({ name: tool.name, action: "invalid", reason: err.message });
+      continue;
+    }
+    // The resolved entry travels with the decision so the installer never has to
+    // resolve a second time — two resolutions are two chances to disagree, and
+    // the one that installs would be the one nothing tested.
+    plan.push({
+      ...planInstallable(resolved, probe(tool.name), surface === "local"),
+      tool: resolved,
+    });
+  }
   return plan;
 }
 
@@ -195,6 +310,17 @@ export function planToolchain(tools, probe, surface = "remote") {
  * @param {object} tool Manifest entry.
  */
 export function assertPinned(tool) {
+  // An unresolved entry reaching here means a caller skipped resolvePlatform and
+  // is about to read a url and sha256 that belong to no platform in particular.
+  // Refusing is the point: the failure this whole change exists to prevent is
+  // exactly "downloaded the wrong platform's artifact", and a silent pass here
+  // would reintroduce it one call site at a time.
+  if (tool.platforms !== undefined) {
+    throw new Error(
+      `${tool.name}: platform-specific entry was not resolved before install.\n` +
+        `Call resolvePlatform() first — the shared fields alone do not name an artifact.`
+    );
+  }
   // Both archive kinds carry the same obligation, and differ only in how they
   // are unpacked. gh, for one, publishes no zip for Linux at all — only .deb,
   // .rpm and .tar.gz — so a zip-only installer could not pin the CLI that

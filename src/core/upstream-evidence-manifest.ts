@@ -560,6 +560,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "6eb95e989b25fe2ed72ec7d361a66b1c7eece6b9950ac0e841d00f6fd8f16d8a",
     "plugins/src/base/commands/setup/linear.md":
       "5c25e3140d40140b5b6024de64a0bb808c48d966d88537baa0a37444cc043dbb",
+    "plugins/src/base/commands/setup/local-env.md":
+      "e828a241d9f3ff6fbe9332a9a2ac18c594a5e0828426f8f1f0b8a2e1a3fcfbbe",
     "plugins/src/base/commands/setup/notion.md":
       "2d705679db0dbb6c77728592a020430a529af9d0ef24ac7c434969d590d9f5a6",
     "plugins/src/base/commands/setup/remote-env.md":
@@ -851,9 +853,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
-      "1778a009d06099b3bd2d9a33b37bec34836b295e21fad220ae926491d3557208",
+      "7424cdbd43caa6f371b4cbf010491285e47f3bf00723c82caec023057b018985",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
-      "d2ff0e79dd8a3f79252d425d8203dab54f9e2afd387d113cb8b1a7637a5082e7",
+      "6582180a039ba5ca8cd59abeaf909205b3e5d5de355bad47da28bc5c02db6090",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
@@ -1105,7 +1107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "da3fdf62b88f77c6c2ae09f5352797818813fccb0dafe551c801b58f25de2711",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "4a5209cdc1344dc309d853d2a4197cf7eef786f0c4de4886847c731a28629522",
+      "058d8cf474e05985a781e5575efcade371b20699c1dc5f6d4df156eeafba0831",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1130,20 +1132,24 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
       "857a6323e8f2b4ddae3fddeeb700332822117dbf2326ea3c21fcd69442f012ef",
+    "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
+      "4d4b8c92e3616256f5f689fbe433f09c31d39c623508bc4ec0d8c1770caddf22",
+    "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
+      "bff68aa66d6d4cd7cb9d0e39be691c6daa232edb097f8a601815432a32cca6a6",
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "f5a1e9290789fd1c33675168d30461fb24a11c98a433ef777c1f536bc2f905ef",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "77a537460aaa1a7f9da74128161d24fa3bf758ae1fec6f6dcbc47bde9f078750",
+      "33eff2e0bd777030070b2616a83bb073e845d17823c12ed95c1e84c6f6b27bf4",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "eb8017ee2eef5b5b166908e5c2fccf493af283b0a40717688033d65263cf35ce",
+      "e3e54f281297e28d54769b45c0b87a40b93e8ab88ac1cd57aea4050d40dc4b5e",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "341e8058e1d20e7e52276007aae9ceda1504b995615cf8421c9494b60b550ef9",
+      "cb98159f9432ce0c4f93a8b5386c61fc1b7d3a299bbb041d6bd005b790291277",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
@@ -3093,6 +3099,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/setup/github.md": true,
     "plugins/lisa-agy/commands/lisa/setup/jira.md": true,
     "plugins/lisa-agy/commands/lisa/setup/linear.md": true,
+    "plugins/lisa-agy/commands/lisa/setup/local-env.md": true,
     "plugins/lisa-agy/commands/lisa/setup/notion.md": true,
     "plugins/lisa-agy/commands/lisa/setup/remote-env.md": true,
     "plugins/lisa-agy/commands/lisa/setup/sonar.md": true,
@@ -3287,6 +3294,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-setup-jira/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-kane/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-linear/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-setup-local-env/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-setup-local-env/scripts/local-env.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/SKILL.md": true,
@@ -3429,6 +3438,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/setup/github.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/jira.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/linear.md": true,
+    "plugins/lisa-copilot/commands/lisa/setup/local-env.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/notion.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/remote-env.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/sonar.md": true,
@@ -3705,6 +3715,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-setup-jira/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-kane/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-linear/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-setup-local-env/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-setup-local-env/scripts/local-env.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/SKILL.md": true,
@@ -3832,6 +3844,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/setup/github.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/jira.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/linear.md": true,
+    "plugins/lisa-cursor/commands/lisa/setup/local-env.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/notion.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/remote-env.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/sonar.md": true,
@@ -4109,6 +4122,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-setup-jira/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-kane/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-linear/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-setup-local-env/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-setup-local-env/scripts/local-env.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/SKILL.md": true,
@@ -6142,6 +6157,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-setup-kane/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-linear/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-linear/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-setup-local-env/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-setup-local-env/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-setup-local-env/scripts/local-env.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-notion/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-aws/SKILL.md": true,
@@ -6303,6 +6321,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/setup/github.md": true,
     "plugins/lisa/commands/setup/jira.md": true,
     "plugins/lisa/commands/setup/linear.md": true,
+    "plugins/lisa/commands/setup/local-env.md": true,
     "plugins/lisa/commands/setup/notion.md": true,
     "plugins/lisa/commands/setup/remote-env.md": true,
     "plugins/lisa/commands/setup/sonar.md": true,
@@ -6723,6 +6742,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-setup-kane/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-setup-linear/SKILL.md": true,
     "plugins/lisa/skills/lisa-setup-linear/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-setup-local-env/SKILL.md": true,
+    "plugins/lisa/skills/lisa-setup-local-env/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-setup-local-env/scripts/local-env.mjs": true,
     "plugins/lisa/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/lisa/skills/lisa-setup-notion/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-setup-remote-aws/SKILL.md": true,
@@ -6884,6 +6906,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/setup/github.md": true,
     "plugins/src/base/commands/setup/jira.md": true,
     "plugins/src/base/commands/setup/linear.md": true,
+    "plugins/src/base/commands/setup/local-env.md": true,
     "plugins/src/base/commands/setup/notion.md": true,
     "plugins/src/base/commands/setup/remote-env.md": true,
     "plugins/src/base/commands/setup/sonar.md": true,
@@ -7169,6 +7192,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-setup-jira/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md": true,
+    "plugins/src/base/skills/lisa-setup-local-env/SKILL.md": true,
+    "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs": true,
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md": true,
@@ -8387,6 +8412,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
+    "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
@@ -8398,6 +8424,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
+    "tests/unit/secrets/toolchain-platforms.test.ts": true,
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
