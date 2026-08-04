@@ -849,9 +849,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
-      "e29b3b8ebc256468bb67e5d10e2ae3cb4eda9ba20dfd2e065201b00864134734",
+      "736768d4c49e212b1c66b6526e47ef6f0d06e743dc2eacfeb88a7dbf34eee530",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
-      "043c3f59d6a7a21a3ab4fce8ae8dc88e8650c19c5a57bba40f567c5257684747",
+      "462be2ed3eb02b6b931ca2517dbc6eb64486792134a4283e8b38c5dcfb39e772",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
