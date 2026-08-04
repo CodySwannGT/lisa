@@ -26,6 +26,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { assertPinned } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
 import {
   installAssets,
   pinEnvironment,
@@ -346,5 +347,58 @@ describe("proxy read-back", () => {
     verifyNotProxied(["MISSING"], {}, report);
     expect(findings[0].ok).toBe(false);
     expect(findings[0].detail).toMatch(/not present/i);
+  });
+});
+
+/** The install kind gh needs, since it publishes no Linux zip. */
+const RELEASE_TAR = "release-tar";
+
+describe("pinned tarball installs", () => {
+  // gh publishes no zip for Linux — only .deb, .rpm and .tar.gz — so a
+  // zip-only installer could not pin the very CLI that Lisa's own commit and
+  // push guardrails shell out to. A cloud container ships without it, which is
+  // why a dispatched session could not commit at all.
+  it("requires a url and a checksum, exactly like a zip", () => {
+    expect(() =>
+      assertPinned({ name: "gh", install: RELEASE_TAR, url: "https://x/y.tgz" })
+    ).toThrow(/needs both url and sha256/);
+    expect(() =>
+      assertPinned({ name: "gh", install: RELEASE_TAR, sha256: "a".repeat(64) })
+    ).toThrow(/needs both url and sha256/);
+  });
+
+  it("accepts a fully pinned tarball", () => {
+    expect(() =>
+      assertPinned({
+        name: "gh",
+        install: RELEASE_TAR,
+        url: "https://x/y.tgz",
+        sha256: "a".repeat(64),
+      })
+    ).not.toThrow();
+  });
+
+  it("names the tar kind when refusing an unknown one", () => {
+    // The message is where an operator learns which kinds exist at all.
+    expect(() => assertPinned({ name: "x", install: "release-deb" })).toThrow(
+      /Supported: release-zip, release-tar, npm-global/
+    );
+  });
+
+  it("pins gh with a checksum and a path inside the archive", () => {
+    // Release tarballs nest under a versioned directory, so a bare name would
+    // resolve to nothing and the install would fail after the download.
+    const cfg = JSON.parse(readFileSync(".lisa.config.json", "utf8")) as {
+      remoteEnv: { tools: { install: readonly Record<string, string>[] } };
+    };
+    const gh = cfg.remoteEnv.tools.install.find(t => t.name === "gh");
+
+    expect(gh).toBeDefined();
+    expect(gh?.install).toBe(RELEASE_TAR);
+    expect(gh?.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(gh?.binary).toMatch(/\/bin\/gh$/);
+    // The pin and the URL must agree, or a version bump silently installs the
+    // old binary under the new number.
+    expect(gh?.url).toContain(`v${gh?.version}`);
   });
 });

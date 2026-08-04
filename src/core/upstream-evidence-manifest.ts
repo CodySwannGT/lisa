@@ -7,7 +7,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "5eb31c284e820a51312d4484f0669128007326af55ee515923fec33700d003a1",
+      "6a8be8577242588f14ab52b25b2a22b6def53aefa9513b4d3d7c49f4d8027079",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
@@ -1119,15 +1119,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "5627c45a4ce7d0f0d122791f699b6dd2841602adf873678c693ad08a48eab401",
+      "821f9f7db39259c3aef24dc369c7cdcfb55a85d61742b32ac2a961e1b3e263a4",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
-      "6e3871ec2f8d56b8ebb85376ebdd3956f3ed8fa4f7b278c2ed90ca9b8845897c",
+      "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c04afb1cf8e14a2713645228e679fa7772559488330a240ec0297cae6afd03e2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "68339117f7d2fe1fdb9f05c8039ffe719f24da7cf700bc3c940bfccbf82cded2",
+      "1f451881342364d086640b59914a3b07286a3734caa63f01efe64531d3bde7e4",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "ff66d33ba41a068d09be18f81ac68988238c2afa1d4e3733ae906b73eea74324",
+      "8822af39d0251a2e4fb0eac9157ba9e63ea813d914240ca0cacacd6cb7cbb5bb",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
@@ -1970,6 +1970,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
+    "scripts/lisa-enforcement-fallback.sh":
+      "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -1979,13 +1981,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-rulesets.sh":
       "920a43ba268421b6fe55096062bd85850468bee9389f6006ad7c671010e7cccb",
     "scripts/lisa-remote-env/session-start.sh":
-      "6e3871ec2f8d56b8ebb85376ebdd3956f3ed8fa4f7b278c2ed90ca9b8845897c",
+      "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
       "c04afb1cf8e14a2713645228e679fa7772559488330a240ec0297cae6afd03e2",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
-      "acb359ed7a39150fd5e1e68f4c95144045e75d9d53b735da4a7a9271f063044e",
+      "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/migrate-deploy-order.sh":
       "77d909b4cbbfc05169a79168d7868600ea7f56f846feefb7d5121618c54800c3",
     "scripts/plugin-parity-drift.mjs":
@@ -7625,6 +7627,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
+    "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
@@ -8256,6 +8259,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforce-verification-gate-preserve.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
@@ -8334,6 +8338,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
+    "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
@@ -8342,6 +8348,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
     "tests/unit/secrets/remote-env-installed-copy.test.ts": true,
     "tests/unit/secrets/remote-env-phases.test.ts": true,
+    "tests/unit/secrets/remote-env-session-start-hook.test.ts": true,
     "tests/unit/secrets/remote-env-setup-field.test.ts": true,
     "tests/unit/secrets/remote-env-skill-resolution.test.ts": true,
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,

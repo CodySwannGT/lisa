@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.323.1](https://github.com/CodySwannGT/lisa/compare/v2.323.0...v2.323.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **work-item:** name which GitHub failure the guardrail actually hit ([6f45954](https://github.com/CodySwannGT/lisa/commit/6f45954c73e4dfe224b023acf44b724401d246ad)), closes [CodySwannGT/lisa#2202](https://github.com/CodySwannGT/lisa/issues/2202) [CodySwannGT/lisa#2218](https://github.com/CodySwannGT/lisa/issues/2218)
+
 ## [2.323.0](https://github.com/CodySwannGT/lisa/compare/v2.322.8...v2.323.0) (2026-08-03)
 
 
