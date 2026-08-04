@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.328.1](https://github.com/CodySwannGT/lisa/compare/v2.328.0...v2.328.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **deps:** move the self-dependency floor off a 130-release-old pin ([9a7eb4c](https://github.com/CodySwannGT/lisa/commit/9a7eb4c91981a193779b2ba16084d12e237bc1a2)), closes [CodySwannGT/lisa#2279](https://github.com/CodySwannGT/lisa/issues/2279) [CodySwannGT/lisa#2279](https://github.com/CodySwannGT/lisa/issues/2279)
+
 ## [2.328.0](https://github.com/CodySwannGT/lisa/compare/v2.327.0...v2.328.0) (2026-08-04)
 
 
