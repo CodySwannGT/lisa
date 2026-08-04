@@ -48,13 +48,22 @@ export const BUILD_LABEL_DEFAULTS = {
  * is a one-key override.
  *
  * A stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but
- * NOT `Blocked`, `On Dev` or `On Stg`. `lisa-setup-linear` resolves each role
- * and offers to create what is missing; it never invents a name silently. The
- * env rungs must be typed `started`, never `completed` — see the
+ * NOT `Ready`, `Blocked`, `On Dev` or `On Stg`. `lisa-setup-linear` resolves
+ * each role and offers to create what is missing; it never invents a name
+ * silently. The env rungs must be typed `started`, never `completed` — see the
  * `config-resolution` rule.
+ *
+ * **`ready` must be a DEDICATED state, never the tracker's default.** `Todo` is
+ * where Linear puts a brand-new issue, so mapping `ready` to it inverts the
+ * gate — the lane stops meaning "a human flipped this to build-ready" and
+ * starts meaning "nobody has touched this", making every untouched backlog item
+ * claimable. Measured on the first team migrated: 20 issues in the lane, only 8
+ * ever explicitly marked ready. JIRA avoids this because `jira.workflow.ready`
+ * is `Ready` while a fresh ticket lands in the project default; this mirrors
+ * that. Do not "simplify" it back to `Todo`.
  */
 export const LINEAR_WORKFLOW_DEFAULTS: JsonValue = {
-  ready: "Todo",
+  ready: "Ready",
   claimed: "In Progress",
   review: "In Review",
   blocked: "Blocked",

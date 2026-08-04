@@ -415,9 +415,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/learnings-synthesizer.md":
       "186ea8a1baa66443eb73dcefb93aa8a767e3d600618de6359a09a0413f1f52c0",
     "plugins/src/base/agents/linear-agent.md":
-      "b44ae47e345e611c75abc5e15999d8e06b2f3c253f49fcc82540fc2e0f4aca23",
+      "65d9793c0b76f71a622f79a39bfbccd106fd6b5c6ec349e773c4b0a034563044",
     "plugins/src/base/agents/linear-build-intake.md":
-      "9dc3bce24b62938f7f2895fa1b23fa5d2403cf281cb68c2dad956198c216b62a",
+      "9d79122958faf12b69f32a75ebe0132ce06ca367045c6bcf43440e65d632ffca",
     "plugins/src/base/agents/linear-prd-intake.md":
       "28c4ee9f2ebbb4f089dd54bb4633063b48ea8099327a0bf2923825d83c3fe07c",
     "plugins/src/base/agents/notion-prd-intake.md":
@@ -713,7 +713,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "b3741243e7df42c6c5bfbee5b7c5d36a24ce9cfac861f595d02a180fdb9f7f87",
+      "25f751d6e6535da51fe4bd53803b3c0ae6463685091943563c86897c25ea606d",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -967,9 +967,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "56d46a8812ba9e6aabc56fc12c5f96f1112ca5c9920b9e7a48b84c284c4c82c4",
+      "21aaded4a558fc039c64b70723f9418a257ef776af296f3e042179c98009ad65",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "9bf4de0693d62c8be493f1e6d9eff88e89aa6707a55b4df9cb14e651e7217e7c",
+      "868ca8b8a02117172868a7503db0626effe6227f5dccf3bc8a4d455d997a2684",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "4c769499b3db0fbf60e2f5fe1116ea3536012a9af5f78ee4858508090e340322",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -981,15 +981,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
       "a6b8241648ba4b7b9f1196a37e9924ffaccc5461f3ac2ee8ae283c58559e9717",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
-      "4414647943e6675d7e8da5d26fd673af212c9aba226f0cff6b679abb52410477",
+      "aa29d8f762b5cb9f82f5c32fba966e83139590b9cff1fc286d9b9b2bd46eac0a",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "e811825c562fe5b406ae1364a809d1fb6793c0ad4c2d384c48f4e2cc1d9fe760",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "25f1a6b136a8643841fc3a4fef33927cacfbc7a14d32aa829851a3d03f2f5f31",
+      "ea49dd181a43adb566e29848bb7ac98087dd0dd1c46d9edeac524a8f6e18677e",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "d11a58bd7c2b773a973fe8f8ad19a2621f038327ee2d8afa3039bd72885f5e97",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "c44f582de0be4d264dc110e79eaff34b309b059f9bfd9bcd622b0604749a2b9c",
+      "06206d2655d7cf892aee5669a20c077611124306ce6d695e4f9a11bd3df4aa32",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1129,7 +1129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "857a6323e8f2b4ddae3fddeeb700332822117dbf2326ea3c21fcd69442f012ef",
+      "02efe0eb8867632e62cf3415df4c41854029fa121250816e531fd83082ee9304",
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "f5a1e9290789fd1c33675168d30461fb24a11c98a433ef777c1f536bc2f905ef",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
