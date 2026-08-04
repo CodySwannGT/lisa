@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.325.4](https://github.com/CodySwannGT/lisa/compare/v2.325.3...v2.325.4) (2026-08-04)
+
+
+### Bug Fixes
+
+* **remote-env:** skip the install, not the decision ([18512ba](https://github.com/CodySwannGT/lisa/commit/18512ba174196a0fc179b7cbc5e023de30da4916)), closes [CodySwannGT/lisa#2258](https://github.com/CodySwannGT/lisa/issues/2258)
+
 ### [2.325.3](https://github.com/CodySwannGT/lisa/compare/v2.325.2...v2.325.3) (2026-08-04)
 
 
