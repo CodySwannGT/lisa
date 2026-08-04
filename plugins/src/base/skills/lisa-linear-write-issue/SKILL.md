@@ -31,7 +31,7 @@ Linear's data model maps Epic / Story / Sub-task to **different entity types**. 
 | `Bug` | **Issue** | `lisa-linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 | `Spike` | **Issue** | `lisa-linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 
-The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new Issue is created in the team's default backlog/unstarted state unless `build_ready` promotes it (below).
+The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state by default; `build_ready: false` leaves it in the team's default backlog state instead, and a container is never put in `ready` at all (see the Build-ready control input below).
 
 ## Phase 1 — Resolve Intent
 
