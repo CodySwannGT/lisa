@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.328.5](https://github.com/CodySwannGT/lisa/compare/v2.328.4...v2.328.5) (2026-08-04)
+
+
+### Bug Fixes
+
+* **detect-tooling:** discover tools no allowlist mentions, and read git hooks ([f248cdd](https://github.com/CodySwannGT/lisa/commit/f248cdd8a9313505eac5e1797f3cf2ff737723e4)), closes [CodySwannGT/lisa#2289](https://github.com/CodySwannGT/lisa/issues/2289)
+
 ### [2.328.4](https://github.com/CodySwannGT/lisa/compare/v2.328.3...v2.328.4) (2026-08-04)
 
 
