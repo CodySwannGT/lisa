@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.331.0](https://github.com/CodySwannGT/lisa/compare/v2.330.1...v2.331.0) (2026-08-04)
+
+
+### Features
+
+* **toolchain:** add release-tree so tree-shaped artifacts stop installing broken ([4b93ad5](https://github.com/CodySwannGT/lisa/commit/4b93ad5a3a66e54241546b1c999e5352df20e413)), closes [CodySwannGT/lisa#2295](https://github.com/CodySwannGT/lisa/issues/2295)
+
 ### [2.330.1](https://github.com/CodySwannGT/lisa/compare/v2.330.0...v2.330.1) (2026-08-04)
 
 
