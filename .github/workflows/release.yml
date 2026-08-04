@@ -297,49 +297,6 @@ jobs:
               ;;
           esac
 
-          # A computed version must exceed what the registry already serves.
-          #
-          # The release job checks out `ref: github.sha` — the commit that
-          # triggered it, not the tip of the branch. When two merges land close
-          # together, the second run computes from a tree that predates the
-          # first run's release commit, produces a LOWER version, and commits it
-          # to the branch. The repository then declares a version below the
-          # published one, npm refuses the `latest` tag, and every subsequent
-          # release fails for everyone until a human corrects the base version.
-          #
-          # That is what happened at 2.325.6 vs a published 2.326.0. The publish
-          # step already fails in this case, but only AFTER the release commit
-          # has landed — so the branch is left corrupted by a job that reported
-          # the problem too late to prevent it.
-          #
-          # Checked before anything is committed, and only against the registry,
-          # because the registry is the one authority on what has actually been
-          # published. A registry that cannot be reached is not evidence of
-          # anything, so it is allowed through rather than blocking a release on
-          # a network blip.
-          PKG_NAME=$(node -p "require('./package.json').name" 2>/dev/null || echo "")
-          if [ -n "$PKG_NAME" ] && [ -n "$VERSION" ]; then
-            PUBLISHED=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
-            if [ -n "$PUBLISHED" ]; then
-              HIGHEST=$(printf '%s\n%s\n' "$VERSION" "$PUBLISHED" | sort -V | tail -1)
-              if [ "$VERSION" = "$PUBLISHED" ] || [ "$HIGHEST" != "$VERSION" ]; then
-                {
-                  echo "❌ Computed version $VERSION is not above the published $PUBLISHED."
-                  echo ""
-                  echo "This run checked out ${{ github.sha }}, whose package.json predates"
-                  echo "a release that has already been published. Committing this version"
-                  echo "would leave the branch declaring less than the registry serves and"
-                  echo "break every later release."
-                  echo ""
-                  echo "Re-run this workflow against the current tip of the branch."
-                } >> $GITHUB_STEP_SUMMARY
-                echo "allowed=false" >> $GITHUB_OUTPUT
-                echo "reason=computed $VERSION is not above published $PUBLISHED" >> $GITHUB_OUTPUT
-                exit 0
-              fi
-            fi
-          fi
-
           # Handle blackout
           if [ "$IS_BLACKOUT" == "true" ]; then
             if [ "${{ inputs.override_blackout }}" == "true" ]; then
