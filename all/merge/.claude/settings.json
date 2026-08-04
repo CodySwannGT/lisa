@@ -1,7 +1,7 @@
 {
   "attribution": {
-    "commit": "🤖 Generated with Claude Code\n\nCo-Authored-By: Claude",
-    "pr": "🤖 Generated with Claude Code"
+    "commit": "\ud83e\udd16 Generated with Claude Code\n\nCo-Authored-By: Claude",
+    "pr": "\ud83e\udd16 Generated with Claude Code"
   },
   "enabledPlugins": {
     "lisa@lisa": true,
@@ -33,7 +33,22 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
-    "deny": ["Read(./.entire/metadata/**)"]
+    "deny": [
+      "Read(./.entire/metadata/**)"
+    ]
   },
-  "plansDirectory": "./plans"
+  "plansDirectory": "./plans",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/lisa-enforcement-fallback.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

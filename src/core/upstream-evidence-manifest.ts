@@ -6,6 +6,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9d3831007e681186a3673e1037ef3fc82980cab2fc04e27c0868e562912c9e9f",
     "all/copy-contents/gitignore":
       "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
+    "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
+      "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
+    "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
+      "aa95a84f9f9224914947a09b858535aa8bd052199ff64cb53768cf78fb69b687",
+    "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
+      "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
+    "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
+      "062c69eea85157f1e941ec3626d8912aa9f182af6ccdbe19687588a6074db5ce",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "6a8be8577242588f14ab52b25b2a22b6def53aefa9513b4d3d7c49f4d8027079",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -25,7 +33,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "1d4a4d33d4a5f26a33560df21f9ad9ba97511c15a1c952dd2fe941679a0f1f9e",
+      "4d41a745030e5f33eb4d4fe1f1b12268680f104ea55a30c4d9f55a6e22ad6fca",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -1899,7 +1907,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "d26321ea10bc3ed8cf096f900622cb4cf7a37117fabf9730f0fe5c9d949582fc",
+      "b57413e6e003be102e82e0a8a6b44a137f5d0aeed8da4c1f4f99919a0d7e8b04",
     "scripts/check-duplicate-versions.mjs":
       "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
     "scripts/check-learnings-budget.ts":
@@ -1971,7 +1979,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
-      "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
+      "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2313,6 +2321,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "README.md": true,
     "all/copy-contents/.gitattributes": true,
     "all/copy-contents/gitignore": true,
+    "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
     "all/copy-overwrite/scripts/lisa-work-item.mjs": true,
     "all/create-only/.claude/rules/PROJECT_RULES.md": true,
     "all/create-only/.lisaignore": true,
@@ -8261,6 +8273,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
+    "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
