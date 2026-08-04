@@ -39,9 +39,20 @@ describe("linear access history contract", () => {
     });
 
     it("documents the label-history caveat honestly", () => {
+      // The caveat is still real — `human_needed` is a label and the PRD lane
+      // rides on project labels — so the ID-delta indirection must stay
+      // documented. What changed is that it no longer covers the BUILD lane.
       expect(skill).toContain("addedLabelIds");
       expect(skill).toContain("removedLabelIds");
-      expect(skill).toMatch(/label-driven/i);
+      expect(skill).toMatch(/markers|marker/i);
+    });
+
+    it("points build-lifecycle callers at the state stream, not labels", () => {
+      // The build lane reads `fromState`/`toState`, which the history inlines —
+      // no catalog cross-reference and no lossy reconstruction from ID deltas.
+      expect(skill).toMatch(/state-driven|states/i);
+      expect(skill).toContain("fromState");
+      expect(skill).toContain("toState");
     });
 
     it("documents empty-is-valid and graceful-degrade semantics", () => {

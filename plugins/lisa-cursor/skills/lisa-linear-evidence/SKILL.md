@@ -12,24 +12,24 @@ Post verification evidence to a Linear Issue and transition it from the configur
 
 ## Workflow resolution
 
-The `claimed` and `review` build labels are read from `.lisa.config.json` `linear.labels.build.*`, falling back to the defaults documented in the `config-resolution` rule (`status:in-progress` and `status:code-review`).
+The `claimed` and `review` build labels are read from `.lisa.config.json` `linear.workflow.*`, falling back to the defaults documented in the `config-resolution` rule (`In Progress` and `In Review`).
 
 ```bash
 read_role() {
   local role="$1" default="$2"
   local local_v global_v
-  local_v=$(jq -r ".linear.labels.build.${role} // empty" .lisa.config.local.json 2>/dev/null)
-  global_v=$(jq -r ".linear.labels.build.${role} // empty" .lisa.config.json 2>/dev/null)
+  local_v=$(jq -r ".linear.workflow.${role} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r ".linear.workflow.${role} // empty" .lisa.config.json 2>/dev/null)
   echo "${local_v:-${global_v:-$default}}"
 }
 
-CLAIMED=$(read_role claimed "status:in-progress")
-REVIEW=$(read_role review "status:code-review")
+CLAIMED=$(read_role claimed "In Progress")
+REVIEW=$(read_role review "In Review")
 ```
 
 ## Configuration
 
-Reads `linear.workspace`, `linear.teamKey`, and `linear.labels.build.*` from `.lisa.config.json` (with `.local` override).
+Reads `linear.workspace`, `linear.teamKey`, and `linear.workflow.*` from `.lisa.config.json` (with `.local` override).
 
 ## Inputs (in `<evidence-dir>`)
 
@@ -108,6 +108,6 @@ Return:
 ## Rules
 
 - Never modify the Issue description as part of evidence posting — comments only. Description edits go through `lisa-linear-write-issue`.
-- Never skip the label transition. The build queue is keyed off the configured `linear.labels.build.*` labels; an item that ships without transitioning is invisible to monitoring.
+- Never skip the label transition. The build queue is keyed off the configured `linear.workflow.*` labels; an item that ships without transitioning is invisible to monitoring.
 - If `lisa-linear-access operation: save-comment` fails, retry once. If it fails again, surface the error — don't pretend the comment was posted.
 - Do not delete prior comments. The history is the audit trail.

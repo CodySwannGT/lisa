@@ -178,7 +178,7 @@ rule — never hardcode status/label strings. The relevant repair roles:
 |-----------|--------|----------------------|------------------|----------------------------|
 | Build | JIRA | `jira.workflow.claimed` (`In Progress`) | `jira.workflow.blocked` (`Blocked`) | env-resolved `jira.workflow.done` |
 | Build | GitHub | `github.labels.build.claimed` (`status:in-progress`) | `github.labels.build.blocked` (`status:blocked`) | env-resolved `github.labels.build.done` (`status:done`) |
-| Build | Linear | `linear.labels.build.claimed` (`status:in-progress`) | `linear.labels.build.blocked` (`status:blocked`) | env-resolved `linear.labels.build.done` (`status:done`) |
+| Build | Linear | `linear.workflow.claimed` (`In Progress`) | `linear.workflow.blocked` (`Blocked`) | env-resolved `linear.workflow.done` (`Done`) |
 | PRD | Notion | `notion.values.in_review` (`In Review`) | `notion.values.blocked` (`Blocked`) | `notion.values.shipped` (`Shipped`) |
 | PRD | GitHub | `github.labels.prd.in_review` (`prd-in-review`) | `github.labels.prd.blocked` (`prd-blocked`) | `github.labels.prd.shipped` (`prd-shipped`) |
 | PRD | Linear | `linear.labels.prd.in_review` (`prd-in-review`) | `linear.labels.prd.blocked` (`prd-blocked`) | `linear.labels.prd.shipped` (`prd-shipped`) |

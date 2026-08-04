@@ -251,7 +251,7 @@ PASS (the childless-parent exception) when the issue is build-ready and is a **l
 | Epic | no | yes | **FAIL** (childless Epic — pure rollup container, exception does not apply) |
 | any | any | no | **N/A** (not build-ready) |
 
-Remediation (render `<READY_ROLE>` as the resolved configured label, never as a hard-coded default): `"Build-ready (<READY_ROLE>; status:ready by default) is leaf-only per leaf-only-lifecycle. Move <READY_ROLE> off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
+Remediation (render `<READY_ROLE>` as the resolved configured label, never as a hard-coded default): `"Build-ready is leaf-only per leaf-only-lifecycle. Move <READY_ROLE> off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
 
 `product_relevant: false` — a build-ready container is a lifecycle/decomposition error for the caller to repair, not a product question.
 

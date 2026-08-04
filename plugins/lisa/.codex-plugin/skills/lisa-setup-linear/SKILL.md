@@ -152,19 +152,41 @@ read_role() {  # $1=namespace (build|prd) $2=role $3=default
 }
 ```
 
-#### 3a. Build-queue labels — ISSUE labels (only if Linear is the tracker)
+#### 3a. Build-queue lifecycle — WORKFLOW STATES (only if Linear is the tracker)
 
-Probe with `lisa-linear-access operation: list-issue-labels` (scoped to the team). For each role's resolved name, create it via `lisa-linear-access operation: create-issue-label` only if absent. The `done` role is env-keyed — create all three defaults; collapse to a single string in config later if the project's terminal state is env-independent.
+The build lane resolves to native workflow **states**, not labels — see "Why Linear uses states, not labels" in `config-resolution`. Read role → state name with the same ladder, against `linear.workflow`:
 
-| Role | Default |
-|------|---------|
-| `ready` | `status:ready` |
-| `claimed` | `status:in-progress` |
-| `review` | `status:code-review` |
-| `blocked` | `status:blocked` |
-| `done.dev` | `status:on-dev` |
-| `done.staging` | `status:on-stg` |
-| `done.production` | `status:done` |
+```bash
+read_state() {  # $1=role path (e.g. ready, done.dev) $2=default
+  local role="$1" default="$2" local_v global_v
+  local_v=$(jq -r ".linear.workflow.${role} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r ".linear.workflow.${role} // empty" .lisa.config.json 2>/dev/null)
+  echo "${local_v:-${global_v:-$default}}"
+}
+```
+
+Enumerate the team's states with `lisa-linear-access operation: list-workflow-states` (each carries `id`, `name`, `type`, `position`). For each role, resolve in this order — the same cascade `lisa-setup-jira` uses, with one extra rung Linear affords that JIRA does not:
+
+1. **Exact name match** → resolved, nothing to do.
+2. **A plausible existing state of the right `type`** (`ready` → `unstarted`, `claimed`/`review` → `started`, `blocked` → `started` or `unstarted`, terminal `done` → `completed`) → present the team's state list via `AskUserQuestion` and let the user pick which state means this role. Record the choice as a config override in Step 4.
+3. **Nothing plausible** → offer to **create** the state via `lisa-linear-access operation: create-workflow-state` (name, `type`, `position`, colour), showing the exact name and type first. Linear's API permits this where JIRA's workflow editing is admin-gated — which is why this rung exists here and not there.
+4. **User declines creation** → stop and say which role is unresolvable and that the lifecycle cannot run without it. Never silently fall back to a state whose meaning differs, and never invent a name in config that does not exist in the team.
+
+| Role | Default state | `type` | Ships with a stock team? |
+|------|---------------|--------|--------------------------|
+| `ready` | `Todo` | `unstarted` | yes |
+| `claimed` | `In Progress` | `started` | yes |
+| `review` | `In Review` | `started` | yes |
+| `blocked` | `Blocked` | `unstarted` | **no — must be created or mapped** |
+| `done.dev` | `On Dev` | `started` | **no — must be created or mapped** |
+| `done.staging` | `On Stg` | `started` | **no — must be created or mapped** |
+| `done.production` | `Done` | `completed` | yes |
+
+**The env rungs are deliberately `started`, not `completed`.** `On Dev` and `On Stg` mean "merged and deployed *that far*" — work that is emphatically not finished. Typing them `completed` would make Linear treat them as closed: they would leave the active board, stop counting in cycles, and re-create the exact premature-closure problem this model exists to fix. Only `done.production` is `completed`.
+
+**Position them between `In Review` and `Done`** so the board reads left-to-right in real lifecycle order. A team that orders its board differently can pass its own `position`.
+
+**Turn off the team's `merge → Done` git automation.** Linear's per-team git automations (Settings → Team → Workflow, or the `gitAutomationStates` API) auto-complete an Issue on merge to **any** branch. With this model that automation is an unwanted second writer: it jumps an Issue straight to `Done` at a `dev` merge, skipping `On Dev` / `On Stg` and asserting production-done. Lisa itself moves the state at each rung, so the automation is redundant as well as wrong. Detect it and offer to delete it; leave `start` and `review` alone — those assert non-terminal states and are harmless.
 
 #### 3b. PRD-lifecycle labels — PROJECT labels (only if Linear is the PRD source)
 
@@ -205,13 +227,38 @@ if [ -n "$TEAM_KEY" ]; then
      .lisa.config.json > .lisa.config.json.tmp && mv .lisa.config.json.tmp .lisa.config.json
 fi
 
-# Conditionally write label overrides (only non-default role names).
+# Conditionally write label overrides (markers + PRD lane only — the build lane
+# is states now, and lives under .linear.workflow below).
 if [ -n "$LABEL_OVERRIDES_JSON" ] && [ "$LABEL_OVERRIDES_JSON" != "{}" ]; then
   jq --argjson o "$LABEL_OVERRIDES_JSON" \
      '.linear.labels = ((.linear.labels // {}) * $o)' \
      .lisa.config.json > .lisa.config.json.tmp && mv .lisa.config.json.tmp .lisa.config.json
 fi
+
+# Workflow-state overrides: only roles whose resolved state name differs from
+# the default, INCLUDING any the user mapped onto an existing state in 3a.
+if [ -n "$WORKFLOW_OVERRIDES_JSON" ] && [ "$WORKFLOW_OVERRIDES_JSON" != "{}" ]; then
+  jq --argjson w "$WORKFLOW_OVERRIDES_JSON" \
+     '.linear.workflow = ((.linear.workflow // {}) * $w)' \
+     .lisa.config.json > .lisa.config.json.tmp && mv .lisa.config.json.tmp .lisa.config.json
+fi
 ```
+
+**Migrating a project that predates the state model.** A config carrying
+`linear.labels.build.{ready,claimed,review,blocked,done}` was written against the
+old label-driven lane. Those keys are inert now — nothing reads them — but
+leaving them in place reads as configuration and will mislead the next person.
+Migrate in one pass, and do it before the first intake cycle runs, or that cycle
+sees an empty queue:
+
+1. Resolve each build role to a state per 3a, writing `linear.workflow`.
+2. **Backfill live Issues**: for every Issue carrying a `status:*` label, set its
+   workflow state to the role that label encoded. Do this before deleting
+   anything — the labels are the only record of where each Issue sits.
+3. Drop `build.{ready,claimed,review,blocked,done}` from `linear.labels`, keeping
+   `build.human_needed` and the whole `prd` map.
+4. Leave the `status:*` labels themselves in the workspace, unapplied, until the
+   first intake cycle after the migration has run green. They are the rollback.
 
 No secrets in config — the API key stays in keychain / `LINEAR_API_KEY`, the MCP session in its own store.
 
