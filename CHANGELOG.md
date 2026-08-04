@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.325.3](https://github.com/CodySwannGT/lisa/compare/v2.325.2...v2.325.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tooling:** surface every e2e runner, and skip what npm already provides ([1af9b8a](https://github.com/CodySwannGT/lisa/commit/1af9b8a01587ea6eeeadec8c1832d37424d3db89)), closes [CodySwannGT/lisa#2256](https://github.com/CodySwannGT/lisa/issues/2256)
+
 ### [2.325.2](https://github.com/CodySwannGT/lisa/compare/v2.325.1...v2.325.2) (2026-08-04)
 
 
