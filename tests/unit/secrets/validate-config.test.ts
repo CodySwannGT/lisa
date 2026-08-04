@@ -8,6 +8,8 @@
  * at doctor time instead.
  * @module tests/unit/secrets/validate-config
  */
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -21,6 +23,13 @@ import {
 const PROVISIONED = {
   surfaces: { "codex-cloud": { repository: "org/repo" } },
 };
+
+/** The two archive install methods, which carry identical pin obligations. */
+const ZIP = "release-zip";
+const TAR = "release-tar";
+
+/** A stand-in download location; no case here fetches anything. */
+const URL = "https://x";
 
 describe("secrets block", () => {
   it("accepts an absent block, since a manager is never required", () => {
@@ -86,8 +95,27 @@ describe("remoteEnv block", () => {
           {
             name: "bws",
             version: "2.1.0",
-            install: "release-zip",
-            url: "https://x",
+            install: ZIP,
+            url: URL,
+          },
+        ],
+      },
+    });
+    expect(problems[0]).toMatch(/whatever the URL serves today/i);
+  });
+
+  it("rejects a tarball install with no checksum, not just a zip", () => {
+    // Checking only the zip kind left gh — which ships a tarball on Linux, and
+    // which Lisa's own guardrails shell out to — as the one tool whose pin
+    // could go unverified.
+    const problems = validateRemoteEnv({
+      tools: {
+        install: [
+          {
+            name: "gh",
+            version: "2.83.0",
+            install: TAR,
+            url: URL,
           },
         ],
       },
@@ -104,11 +132,93 @@ describe("remoteEnv block", () => {
     expect(problems[0]).toMatch(/no pinned version/i);
   });
 
+  it("validates every platform block, not just the first", () => {
+    // A half-filled map is the failure this shape can introduce, and it stays
+    // invisible until someone runs setup on the platform that was left out.
+    const problems = validateRemoteEnv({
+      tools: {
+        install: [
+          {
+            name: "gh",
+            version: "2.83.0",
+            platforms: {
+              "linux-x64": {
+                install: TAR,
+                url: URL,
+                sha256: "a".repeat(64),
+              },
+              "darwin-arm64": { install: ZIP, url: "https://y" },
+            },
+          },
+        ],
+      },
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/darwin-arm64/);
+  });
+
+  it("accepts a fully pinned platform map", () => {
+    expect(
+      validateRemoteEnv({
+        tools: {
+          install: [
+            {
+              name: "gh",
+              version: "2.83.0",
+              platforms: {
+                "linux-x64": {
+                  install: TAR,
+                  url: URL,
+                  sha256: "a".repeat(64),
+                },
+              },
+            },
+          ],
+        },
+      })
+    ).toEqual([]);
+  });
+
+  it("rejects a platforms map that lists nothing", () => {
+    // It would otherwise pass every check by having nothing to check, while
+    // being installable nowhere.
+    const problems = validateRemoteEnv({
+      tools: {
+        install: [{ name: "gh", version: "2.83.0", platforms: {} }],
+      },
+    });
+    expect(problems[0]).toMatch(/lists none/i);
+  });
+
+  it("accepts this repository's own manifest", () => {
+    // The validator and the runner had drifted: `release-tar` was supported by
+    // the runner and unknown to the validator, so `lisa doctor` would have
+    // rejected the very manifest this project ships. Nothing caught it because
+    // nothing ever ran the two against each other.
+    const config = JSON.parse(readFileSync(".lisa.config.json", "utf8")) as {
+      remoteEnv: object;
+    };
+    expect(validateRemoteEnv(config.remoteEnv)).toEqual([]);
+  });
+
+  it("rejects a platforms field that is not a map", () => {
+    const problems = validateRemoteEnv({
+      tools: {
+        install: [{ name: "gh", version: "2.83.0", platforms: ["linux-x64"] }],
+      },
+    });
+    expect(problems[0]).toMatch(/not an object keyed by/i);
+  });
+
   it("rejects an unknown install method", () => {
     const problems = validateRemoteEnv({
       tools: { install: [{ name: "x", version: "1", install: "curl-bash" }] },
     });
-    expect(problems[0]).toMatch(/Supported: release-zip, npm-global/);
+    // The message is where an operator learns which methods exist at all, so
+    // it has to name the same three the runner accepts.
+    expect(problems[0]).toMatch(
+      /Supported: release-zip, release-tar, npm-global/
+    );
   });
 
   it("requires a Claude surface to name its routine, not a repository", () => {
@@ -157,8 +267,8 @@ describe("remoteEnv block", () => {
           {
             name: "bws",
             version: "2.1.0",
-            install: "release-zip",
-            url: "https://x",
+            install: ZIP,
+            url: URL,
             sha256: "abc",
           },
         ],

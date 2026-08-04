@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.328.2](https://github.com/CodySwannGT/lisa/compare/v2.328.1...v2.328.2) (2026-08-04)
+
+
+### Documentation
+
+* **claude-web:** record the multi-repo config-ownership unknown as U5 ([7e7c3fb](https://github.com/CodySwannGT/lisa/commit/7e7c3fbe9df91a64e00eacae6a823e057d8da34d)), closes [CodySwannGT/lisa#2281](https://github.com/CodySwannGT/lisa/issues/2281) [CodySwannGT/lisa#2281](https://github.com/CodySwannGT/lisa/issues/2281)
+
+### [2.328.1](https://github.com/CodySwannGT/lisa/compare/v2.328.0...v2.328.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **deps:** move the self-dependency floor off a 130-release-old pin ([9a7eb4c](https://github.com/CodySwannGT/lisa/commit/9a7eb4c91981a193779b2ba16084d12e237bc1a2)), closes [CodySwannGT/lisa#2279](https://github.com/CodySwannGT/lisa/issues/2279) [CodySwannGT/lisa#2279](https://github.com/CodySwannGT/lisa/issues/2279)
+
+## [2.328.0](https://github.com/CodySwannGT/lisa/compare/v2.327.0...v2.328.0) (2026-08-04)
+
+
+### Features
+
+* **toolchain:** pin tools per platform and give a laptop a way to ask ([cb75f0f](https://github.com/CodySwannGT/lisa/commit/cb75f0f1760bcad68e2c1178182619bc20753ef0)), closes [CodySwannGT/lisa#1982](https://github.com/CodySwannGT/lisa/issues/1982)
+
+## [2.327.0](https://github.com/CodySwannGT/lisa/compare/v2.326.3...v2.327.0) (2026-08-04)
+
+
+### Features
+
+* **linear:** drive the build lifecycle off native workflow states ([90400b3](https://github.com/CodySwannGT/lisa/commit/90400b3fec4dbcc08394b071ed449713fd3ab20d)), closes [CodySwannGT/lisa#2269](https://github.com/CodySwannGT/lisa/issues/2269)
+
 ### [2.326.3](https://github.com/CodySwannGT/lisa/compare/v2.326.2...v2.326.3) (2026-08-04)
 
 ### [2.326.2](https://github.com/CodySwannGT/lisa/compare/v2.325.6...v2.326.2) (2026-08-04)

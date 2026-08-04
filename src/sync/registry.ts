@@ -14,6 +14,11 @@ import { DEFAULT_PROJECT_RULES_FILE } from "../core/project-config.js";
 import { validateHealthSchedule } from "../health/contract.js";
 import type { JsonValue } from "./json-path.js";
 import type { LegacyAliasMapping } from "./legacy-aliases.js";
+import {
+  BUILD_LABEL_DEFAULTS,
+  LINEAR_WORKFLOW_DEFAULTS,
+  PRD_LABEL_DEFAULTS,
+} from "./lifecycle-defaults.js";
 
 /**
  * A project file that mirrors a synced setting. Artifact files are only ever
@@ -121,29 +126,6 @@ export const SETUP_PROVIDER_REQUIREMENTS: Readonly<{
 
 const COVERAGE_DEFAULTS: JsonValue = {
   global: { statements: 70, branches: 70, functions: 70, lines: 70 },
-};
-
-const BUILD_LABEL_DEFAULTS = {
-  ready: "status:ready",
-  claimed: "status:in-progress",
-  blocked: "status:blocked",
-  human_needed: "human-needed",
-  done: {
-    dev: "status:on-dev",
-    staging: "status:on-stg",
-    production: "status:done",
-  },
-} as const;
-
-const PRD_LABEL_DEFAULTS: JsonValue = {
-  draft: "prd-draft",
-  ready: "prd-ready",
-  in_review: "prd-in-review",
-  blocked: "prd-blocked",
-  ticketed: "prd-ticketed",
-  shipped: "prd-shipped",
-  verified: "prd-verified",
-  sentinel: "prd-intake-feedback",
 };
 
 /**
@@ -272,13 +254,25 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     description: "GitHub build and PRD lifecycle labels",
   },
   {
+    key: "linear.workflow",
+    defaultValue: LINEAR_WORKFLOW_DEFAULTS,
+    relevantWhen: ["linear", WHEN_TRACKER_LINEAR],
+    description: "Linear workflow state names per build lifecycle role",
+  },
+  {
+    // Markers and the PRD lane only. The build lane moved to `linear.workflow`
+    // — see LINEAR_WORKFLOW_DEFAULTS. `human_needed` stays a LABEL for the same
+    // reason it does on JIRA: an Issue holds exactly one state but any number
+    // of labels, so an additive marker cannot be a state. The PRD lane stays
+    // labels because it rides on Linear PROJECTS, whose status model is a
+    // separate object from Issue workflow states.
     key: "linear.labels",
     defaultValue: {
-      build: { ...BUILD_LABEL_DEFAULTS, review: "status:code-review" },
+      build: { human_needed: BUILD_LABEL_DEFAULTS.human_needed },
       prd: PRD_LABEL_DEFAULTS,
     },
     relevantWhen: ["linear", WHEN_TRACKER_LINEAR, WHEN_SOURCE_LINEAR],
-    description: "Linear build and PRD lifecycle labels",
+    description: "Linear marker labels and PRD lifecycle labels",
   },
   {
     key: "notion.statusProperty",

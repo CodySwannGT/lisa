@@ -385,20 +385,41 @@ describe("pinned tarball installs", () => {
     );
   });
 
-  it("pins gh with a checksum and a path inside the archive", () => {
-    // Release tarballs nest under a versioned directory, so a bare name would
+  it("pins gh with a checksum and a path inside the archive, on every platform", () => {
+    // Release archives nest under a versioned directory, so a bare name would
     // resolve to nothing and the install would fail after the download.
+    //
+    // Asserted per platform rather than once. gh ships a .tar.gz for Linux and
+    // a .zip for macOS, and the nested directory is named after the platform
+    // too — so a block copied from another one and edited halfway produces a
+    // download that succeeds and an install that cannot find its binary.
     const cfg = JSON.parse(readFileSync(".lisa.config.json", "utf8")) as {
-      remoteEnv: { tools: { install: readonly Record<string, string>[] } };
+      remoteEnv: {
+        tools: {
+          install: readonly {
+            name: string;
+            version: string;
+            platforms?: Record<string, Record<string, string>>;
+          }[];
+        };
+      };
     };
     const gh = cfg.remoteEnv.tools.install.find(t => t.name === "gh");
 
     expect(gh).toBeDefined();
-    expect(gh?.install).toBe(RELEASE_TAR);
-    expect(gh?.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(gh?.binary).toMatch(/\/bin\/gh$/);
-    // The pin and the URL must agree, or a version bump silently installs the
-    // old binary under the new number.
-    expect(gh?.url).toContain(`v${gh?.version}`);
+    const platforms = Object.entries(gh?.platforms ?? {});
+    expect(platforms.length).toBeGreaterThan(1);
+
+    for (const [platform, block] of platforms) {
+      expect([RELEASE_TAR, "release-zip"], platform).toContain(block.install);
+      expect(block.sha256, platform).toMatch(/^[0-9a-f]{64}$/);
+      expect(block.binary, platform).toMatch(/\/bin\/gh$/);
+      // The pin and the URL must agree, or a version bump silently installs the
+      // old binary under the new number.
+      expect(block.url, platform).toContain(`v${gh?.version}`);
+      // And the archive must be the one this platform can actually run: the
+      // failure being prevented is a Linux binary landing on a laptop.
+      expect(block.binary, platform).toContain(gh?.version ?? "");
+    }
   });
 });

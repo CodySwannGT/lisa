@@ -18,12 +18,12 @@ Callers (planning skills, lifecycle skills) invoke this skill at:
 
 | Milestone | What to post |
 |-----------|--------------|
-| Plan created | Plan contents (sections + ordered tasks) as a comment, suggest transition `Backlog → Todo` (label: `status:ready`) |
-| Implementation in progress | Branch URL + first commit, suggest transition `Todo → In Progress` (label: `status:in-progress`) |
-| PR ready for review | PR URL + summary, the implementation handoff comment, suggest transition `In Progress → In Review` (label: `status:code-review`) |
-| PR merged | Merge SHA + deploy environment (if known), suggest transition `In Review → Done` (label: `status:done`), **then run Phase 4b — mandatory when the merge target is a non-terminal env branch** |
+| Plan created | Plan contents (sections + ordered tasks) as a comment, suggest transition `Backlog → Todo` (label: `Todo`) |
+| Implementation in progress | Branch URL + first commit, suggest transition `Todo → In Progress` (label: `In Progress`) |
+| PR ready for review | PR URL + summary, the implementation handoff comment, suggest transition `In Progress → In Review` (label: `In Review`) |
+| PR merged | Merge SHA + deploy environment (if known), suggest transition `In Review → Done` (label: `Done`), **then run Phase 4b — mandatory when the merge target is a non-terminal env branch** |
 
-This skill **suggests** transitions but does not auto-transition the native Linear `state` field. It DOES update the `status:*` label set when the caller asks (the build queue is keyed off labels). Native state transitions remain a human / triage decision.
+This skill **suggests** transitions and applies them to the native Linear `state` field when the caller asks — the build queue is keyed off states, so the state IS the lane. Without `--update-state` it only suggests; an unasked-for transition remains a human / triage decision.
 
 ## Input
 
@@ -60,7 +60,7 @@ Sections:
 
 Tasks: 7 ordered items.
 
-Next: implementation begins. Suggested status: **Todo** (label: `status:ready`).
+Next: implementation begins. Suggested status: **Todo** (label: `Todo`).
 ```
 
 ## Phase 3 — Post Comment
@@ -79,57 +79,61 @@ The PR branch/title/body identifier is the PR -> Linear side. This phase is the 
 
 ## Phase 4 — Update Status Label (when caller requests)
 
-If the caller passes `--update-label`, update the `status:*` label set via `lisa-linear-access operation: save-issue`:
+If the caller passes `--update-state`, set the Issue's `stateId` via `lisa-linear-access operation: save-issue`:
 
-- `plan-created` → add `status:ready`
-- `implementation-in-progress` → remove `status:ready`, add `status:in-progress`
-- `pr-ready` → remove `status:in-progress`, add `status:code-review`
-- `pr-merged` → remove `status:code-review`, add `status:done`
+- `plan-created` → add `Todo`
+- `implementation-in-progress` → remove `Todo`, add `In Progress`
+- `pr-ready` → remove `In Progress`, add `In Review`
+- `pr-merged` → remove `In Review`, add `Done`
 
 If the requested label doesn't exist on the team, create it via `lisa-linear-access operation: create-issue-label`.
 
-Verify exactly one `status:*` label remains after the update — having two simultaneously breaks the build-queue invariant.
+No single-lane verification is needed: an Issue holds exactly one workflow state by construction, so the two-labels-at-once corruption the old label lane could produce is unrepresentable.
 
-Without `--update-label`, this skill posts the comment only and does NOT touch labels.
+Without `--update-state`, this skill posts the comment only and does NOT touch labels.
 
 ## Phase 4b — Reconcile Native Auto-Close (Linear-specific)
 
-Linear's GitHub integration completes a linked Issue on merge to **any branch** — unlike GitHub's default-branch-scoped `Closes` auto-close — so a magic word (`Closes`/`Fixes`/`Resolves ENG-123`) or branch-name linkage can natively move the Issue to a Done/Completed workflow `state` at a **non-terminal** env merge, front-running the env-keyed `status:*` label ladder. `git-submit-pr` prevents the magic-word case; this phase is the required post-merge repair for the residual (branch-linkage) case we cannot suppress server-side — branch linkage completes the Issue even when the PR body carries only the non-closing `Linear: <ID>` form. This phase is a **mandatory** numbered step of every `pr-merged` sync, not an optional backstop; run it whenever the resolved env is **intermediate** (below the production terminal `done`):
+Linear's per-team **git automations** complete a linked Issue on merge to **any branch** — unlike GitHub's default-branch-scoped `Closes` auto-close — so a magic word (`Closes`/`Fixes`/`Resolves ENG-123`) or branch-name linkage can move the Issue to a `completed` state at a **non-terminal** env merge, front-running the env-keyed ladder.
+
+**Since the build lane moved to native states, this phase is a BACKSTOP, not the primary defence.** The lifecycle now writes the same field the automation writes, so the disagreement it repairs can only arise when something outside Lisa moves the Issue. The primary fix is upstream and structural: `/lisa:setup:linear` detects the team's `merge → Done` git automation and offers to delete it, because with this model that automation is a redundant second writer as well as a wrong one. Keep this phase — a workspace can always re-add the automation, and a magic word in a hand-written PR body still fires — but a recurrence here is a **setup defect to report**, not routine repair to absorb silently.
+
+Run it whenever the resolved env is **intermediate** (below the production terminal `done`):
 
 1. Resolve the merged PR's base branch to its env via `.lisa.config.json` `deploy.branches` (`config-resolution`). If it maps to the production/terminal `done`, this phase is a **no-op** — native completion is correct there.
-2. **Uniform / single-environment no-op.** When the project's env-keyed `done` map is uniform — every environment resolves to the same `status:done`, as in this repo (`production: main` only) and TunnlAI/frontend — dev-merge == terminal, so native completion is correct. Do nothing. Only a **non-uniform** env→`done` map (distinct `status:on-dev`/`status:on-stg`/`status:done` rungs) can desync.
-3. Otherwise (non-uniform map, resolved env intermediate): re-read the Issue's native workflow `state`. If Linear natively moved it into a Done/Completed category while the derived `status:*` label is a lower env, **re-open** the native `state` back to the active/in-progress category (via `lisa-linear-access operation: save-issue`) so it mirrors the true env stage, and post a short `[lisa-linear-sync]` reconciliation comment. This applies the `leaf-only-lifecycle` "Terminal native closure" rule — native closure fires **only** at the production terminal `done` — as a *repair* of Linear front-running it. Cite the rule by slug; do not restate it.
-4. **Safe default.** If the true terminal cannot be resolved (ambiguous env or unresolvable `done` map), do not change the native `state` — post a `[lisa-linear-sync]` reconciliation-suggestion comment and leave it untouched, mirroring the Phase 5 safe default.
+2. **Uniform / single-environment no-op.** When the project's env-keyed `done` map is uniform — every environment resolves to the same `Done`, as in this repo (`production: main` only) — dev-merge == terminal, so native completion is correct. Do nothing. Only a **non-uniform** env→`done` map (distinct `On Dev`/`On Stg`/`Done` rungs) can desync.
+3. Otherwise (non-uniform map, resolved env intermediate): re-read the Issue's `state`. If it sits in a `completed`-typed state while the derived role is a lower env rung, **re-open** the native state by moving it back to the correct env rung (via `lisa-linear-access operation: save-issue`) and post a short `[lisa-linear-sync]` reconciliation comment **naming the likely cause** — a live `merge → Done` git automation, or a magic word in the PR body. This applies the `leaf-only-lifecycle` "Terminal native closure" rule — closure fires **only** at the production terminal `done`. Cite the rule by slug; do not restate it.
+4. **Safe default.** If the true terminal cannot be resolved (ambiguous env or unresolvable `done` map), do not change the `state` — post a `[lisa-linear-sync]` reconciliation-suggestion comment and leave it untouched, mirroring the Phase 5 safe default.
 
 ## Phase 5 — Parent Status Rollup (`--rollup`)
 
-When the caller passes `--rollup`, this skill **derives a parent/container's `status:*` label from the roll-up of its children** instead of acting on a leaf. A **Project** (the Epic equivalent) rolls up from its Issues; an **Issue** rolls up from its sub-Issues. This implements the Linear child-issue-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.
+When the caller passes `--rollup`, this skill **derives a parent/container's workflow state from the roll-up of its children** instead of acting on a leaf. A **Project** (the Epic equivalent) rolls up from its Issues; an **Issue** rolls up from its sub-Issues. This implements the Linear child-issue-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.
 
-**Resolve the child set the same way `lisa-linear-read-issue` does** — `lisa-linear-access operation: list-issues({project: <id>})` for a Project's Issues, or `lisa-linear-access operation: get-issue` per child for an Issue's sub-Issues (via `parentId`). Capture each child's `status:*` label. If the item has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
+**Resolve the child set the same way `lisa-linear-read-issue` does** — `lisa-linear-access operation: list-issues({project: <id>})` for a Project's Issues, or `lisa-linear-access operation: get-issue` per child for an Issue's sub-Issues (via `parentId`). Capture each child's workflow state. If the item has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
 
-**Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the Linear env-keyed `done` map, e.g. `status:on-dev < status:on-stg < status:done`) and take the first match** (canonical roles from `config-resolution`; Linear label map is `status:blocked`, `status:in-progress`, `status:code-review`, env-keyed `done`):
+**Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the Linear env-keyed `done` map, e.g. `On Dev < On Stg < Done`) and take the first match** (canonical roles from `config-resolution`; the Linear state map is `Blocked`, `In Progress`, `In Review`, env-keyed `done`):
 
 | If among the required child leaves… | Derived parent role | Linear label |
 |---|---|---|
-| any child carries `status:blocked` | `blocked` | `status:blocked` |
-| else **every** required child has shipped to some env (each at a `done`-map label, e.g. `status:on-dev`/`status:on-stg`/`status:done`) | `done[min-env]` | the **least-advanced** env label among them (all `status:on-stg` → `status:on-stg`; mixed dev+staging → `status:on-dev`; all production → `status:done`) |
-| else any child has **started** (`status:in-progress` / `status:code-review`, or shipped to an env while a sibling has not) | `claimed` | `status:in-progress` |
+| any child carries `Blocked` | `blocked` | `Blocked` |
+| else **every** required child has shipped to some env (each at a `done`-map label, e.g. `On Dev`/`On Stg`/`Done`) | `done[min-env]` | the **least-advanced** env label among them (all `On Stg` → `On Stg`; mixed dev+staging → `On Dev`; all production → `Done`) |
+| else any child has **started** (`In Progress` / `In Review`, or shipped to an env while a sibling has not) | `claimed` | `In Progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
 
-- **Blocked dominates** — one blocked child surfaces `status:blocked` on the parent even while siblings progress.
-- **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native completion (moving the workflow `state` to Done) fires only when the resolved env is the production `status:done`, never at `status:on-dev`/`status:on-stg`.
+- **Blocked dominates** — one blocked child surfaces `Blocked` on the parent even while siblings progress.
+- **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native completion (moving the workflow `state` to Done) fires only when the resolved env is the production `Done`, never at `On Dev`/`On Stg`.
 - **"Required" children only** — won't-do / optional (e.g. `Canceled`) children do not hold the parent open.
 - **Recursive** — a Project reaches an env only when its Issues have themselves rolled up to at least that env. Evaluate bottom-up.
-- **Never set the parent to `status:ready`** — `ready` is leaf-only. Rollup only moves the parent between non-ready container labels.
+- **Never set the parent to `Todo`** — `ready` is leaf-only. Rollup only moves the parent between non-ready container labels.
 
-**Single-environment collapse (this repo).** The env rungs resolve via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to the single `status:done` label, the only env rung is production, and the lifecycle is `status:ready → status:in-progress → status:code-review → status:done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map and roll a parent up to intermediate env labels (`status:on-dev`/`status:on-stg`).
+**Single-environment collapse (this repo).** The env rungs resolve via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to the single `Done` state, the only env rung is production, and the lifecycle is `Todo → In Progress → In Review → Done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map and roll a parent up to the intermediate env states (`On Dev`/`On Stg`).
 
-**Apply the derived label** via `lisa-linear-access operation: save-issue` (Project or Issue), removing the parent's existing `status:*` and adding the derived one so exactly one `status:*` label remains. Post an idempotent rollup comment naming the derived state and the child tally. The native Linear `state` is **not** auto-transitioned — only the `status:*` label, mirroring the `--update-label` rule. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's label untouched.
+**Apply the derived state** via `lisa-linear-access operation: save-issue` (Project or Issue), setting the parent's `stateId` to the derived role. Post an idempotent rollup comment naming the derived state and the child tally. Because the terminal `done` state is itself typed `completed`, a parent rolled to terminal is natively closed by the same write — there is no second closure step. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's state untouched.
 
 ## Rules
 
-- Never auto-transition the native Linear `state` — only the label, and only when the caller explicitly asks (`--update-label`, or `--rollup` for parent derivation per the `leaf-only-lifecycle` rule).
-- Rollup derives a *parent's* `status:*` label from its children and never sets a parent to `status:ready`. It cites the `leaf-only-lifecycle` rule by slug rather than restating the state machine.
+- Never auto-transition the native Linear `state` — only the label, and only when the caller explicitly asks (`--update-state`, or `--rollup` for parent derivation per the `leaf-only-lifecycle` rule).
+- Rollup derives a *parent's* workflow state from its children and never rolls a parent into the human-owned ready lane (never `$READY`). It cites the `leaf-only-lifecycle` rule by slug rather than restating the state machine.
 - Never post empty or minimal comments — if a milestone has no meaningful content, skip the post.
 - Do not delete prior milestone comments. They are the audit trail.
 - If `save_comment` fails, retry once. If it fails again, surface the error.

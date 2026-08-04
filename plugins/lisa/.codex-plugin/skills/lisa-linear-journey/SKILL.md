@@ -109,7 +109,7 @@ Invoke `lisa-linear-evidence` with `<IDENTIFIER> ./evidence` to:
 1. Upload large evidence files to the GitHub `pr-assets` release (if files present in `evidence/files/`).
 2. Update the GitHub PR description with an Evidence section (when a PR is open).
 3. Post the Linear comment (`comment.txt` + collapsible `code-blocks.md`).
-4. Transition labels: remove `status:in-progress`, add `status:code-review`.
+4. Transition labels: remove `In Progress`, add `In Review`.
 
 ### Step 6: Verify
 
@@ -144,4 +144,4 @@ The Issue may not have a Validation Journey section. Run `/linear-add-journey <I
 
 ### Label transition fails
 
-Ensure `status:in-progress` and `status:code-review` exist on the team. `lisa-linear-evidence` creates them on demand if missing.
+Ensure `In Progress` and `In Review` exist on the team. `lisa-linear-evidence` creates them on demand if missing.
