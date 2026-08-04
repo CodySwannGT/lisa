@@ -26,9 +26,9 @@ Return exactly one of:
 
 - **GitHub** — `LABELED` / `UNLABELED` timeline events on the configured **ready** label (the Label-Event History surface from `lisa-github-read-issue`).
 - **JIRA** — the `changelog` operation on `lisa-atlassian-access` (`?expand=changelog`, status items).
-- **Linear** — the `history` operation on `lisa-linear-access`, keyed on `status:*` label history (`addedLabelIds`/`removedLabelIds` resolved against `list-issue-labels`).
+- **Linear** — the `history` operation on `lisa-linear-access`, keyed on **workflow-state** history (`fromState.name` / `toState.name`, inlined on each node — no label-ID resolution needed).
 
-**Lane names ALWAYS come from `.lisa.config.json` lanes** (`github.labels.build.{ready,claimed,done}` and the JIRA/Linear equivalents; `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS`). **Never hardcode** `status:ready`, `Ready`, etc.
+**Lane names ALWAYS come from `.lisa.config.json` lanes** (`github.labels.build.{ready,claimed,done}` for GitHub, `jira.workflow.*` and `linear.workflow.*` for the status/state trackers; `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS` and `LINEAR_WORKFLOW_DEFAULTS`). **Never hardcode** `status:ready`, `Ready`, `Todo`, etc.
 
 ## Never block the build
 
