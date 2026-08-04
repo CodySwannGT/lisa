@@ -8,6 +8,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
+    "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
+      "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "aa95a84f9f9224914947a09b858535aa8bd052199ff64cb53768cf78fb69b687",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -2328,6 +2330,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-contents/.gitattributes": true,
     "all/copy-contents/gitignore": true,
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
+    "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
@@ -8352,6 +8355,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
+    "tests/unit/scripts/floor-collisions.test.ts": true,
     "tests/unit/scripts/generate-agy-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/generate-copilot-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts": true,
