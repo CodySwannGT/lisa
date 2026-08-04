@@ -157,7 +157,16 @@ export function resolveBunExecutable(executable: string | undefined): string {
   }
   const packageRunner = path.basename(executable);
   if (!/^bunx?(?:\.exe)?$/u.test(packageRunner)) {
-    throw new Error(`Expected Bun's package runner, received: ${executable}`);
+    // Name the remedy, not just the symptom. This suite shells out to Bun and
+    // resolves it from the runner that launched vitest, so `npx vitest` fails
+    // here with nothing wrong in the repository. Without the second sentence
+    // that reads as a broken suite — it misled me into reporting it as a
+    // pre-existing failure on main, in two pull request descriptions, when
+    // `bun run test:unit` passes all 14.
+    throw new Error(
+      `Expected Bun's package runner, received: ${executable}. ` +
+        `Run this suite with Bun — 'bun run test:unit' — rather than npx.`
+    );
   }
   const bunName = packageRunner.replace(/^bunx/u, "bun");
   const bunExecutable = realpathSync(
