@@ -50,6 +50,16 @@ const SCRIPT_RULES = {
     agy: true, // ships via AGY_PLUGIN_HOOKS (agy-protocol adapter), like the other PreToolUse guards
     copilot: true,
   },
+  "block-instruction-file-edits.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    // agy receives only the Bash arm: agy's plugin hooks match `run_command`,
+    // so its file-edit tool calls cannot be intercepted. Documented gap — the
+    // redirection/tee/sed-i signatures still hold there.
+    agy: true,
+    copilot: true,
+  },
   "enforce-team-first.sh": {
     claude: true,
     codex: false,
