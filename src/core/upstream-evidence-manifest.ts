@@ -571,7 +571,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/setup/sonar.md":
       "1d2e94fd9f21988ce6d4be2ce4268b8c0bb020eb7cd7baf8ca65def7d8a4f5bc",
     "plugins/src/base/commands/setup/workstation.md":
-      "2da226aa1a7efea41735eeb58d61ad70896eccadc59765f86c971aa331d11358",
+      "57ea736ded92d97c6914dde5354f631532cca46ddefc9bd9cdf89edd6d08dd9f",
     "plugins/src/base/commands/sync-down.md":
       "4e974cb9745a4fd680f4a55f859d31fa8cf3cb28afa739b40a2e1a99de31e034",
     "plugins/src/base/commands/tear-down-automations.md":
@@ -1165,7 +1165,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "53fbd8acce4b5e47e88195a7b90d5be424fa6ef7ad872f52c50467c690664c3b",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
-      "433168d83749709f9808fa0b45ff74e0944707a26fb0039d1de28ffaadaa8db1",
+      "4bc4413bbe381ab97e2aa10eaeda574f8113f69e6eb5f5a6e625c04f1dff1ad5",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
       "3fa13e7e2885aa5f3b4efdd12fc87958494a57d8bfeb81ab8489558592780b90",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
@@ -7883,6 +7883,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/update-cmd.ts": true,
     "src/cli/version-cmd.ts": true,
     "src/cli/version.ts": true,
+    "src/cli/workstation-cmd.ts": true,
     "src/codex/agent-installer.ts": true,
     "src/codex/agent-transformer.ts": true,
     "src/codex/agents-md-installer.ts": true,
@@ -8274,6 +8275,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/update-check.test.ts": true,
     "tests/unit/cli/update-cmd.test.ts": true,
     "tests/unit/cli/version-cmd.test.ts": true,
+    "tests/unit/cli/workstation-cmd.test.ts": true,
     "tests/unit/codex/agent-installer.test.ts": true,
     "tests/unit/codex/agent-transformer.test.ts": true,
     "tests/unit/codex/agents-md-installer.test.ts": true,
