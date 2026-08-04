@@ -51,8 +51,13 @@ const KNOWN_TOOLS = Object.freeze({
     viaNpm: "@playwright/test",
   },
   linear: {
-    why: "Linear is wired as an MCP server, which needs browser OAuth and so cannot authenticate in a container.",
+    why: "Linear reaches a container through lisa-linear-access with LINEAR_API_KEY; only the MCP path needs browser OAuth, and there is no official CLI to pin.",
     mcpFallback: "linear-server",
+    // No official Linear CLI exists, so no proposal can name one. Kept even
+    // though the substrate allowlist normally removes Linear before this
+    // point: a second signal reaching here must not resurrect a binary that
+    // does not exist.
+    noCli: true,
   },
 });
 
@@ -107,18 +112,35 @@ export function toolsFromScripts(pkg) {
  * Treating the MCP server as CLI evidence would push operators toward an
  * arbitrary third-party executable instead of the access-layer contract.
  */
+/** Prefix marking evidence that shows a path is missing, not what fills it. */
+const MCP_EVIDENCE = "MCP";
+
+/** What to ask when the only evidence is an MCP-only integration. */
+const REMOTE_PATH_QUESTION =
+  "no manifest entry proposed — confirm how this reaches a container: a CLI, " +
+  "a key-authenticated API call, or deliberately local-only";
+
 const MCP_ACCESS_LAYER_SUBSTRATES = Object.freeze({
   "linear-server":
     "lisa-linear-access uses LINEAR_API_KEY in headless sessions",
 });
 
 /**
- * Tools implied by MCP servers that also have a CLI.
+ * Integrations wired only as an MCP server — the weakest signal here, and the
+ * easiest to over-read.
  *
- * An MCP server is not a substitute for the binary. Several authenticate by
- * browser OAuth, which a container cannot do at all, so a project relying on one
- * remotely has no integration rather than a degraded one — the CLI is the form
- * that survives the trip.
+ * True: an MCP server that authenticates interactively cannot authenticate in a
+ * container, so THAT path does not survive the trip.
+ *
+ * Not implied: that the integration is unavailable, or that a CLI is the
+ * answer. Linear proves both halves — its MCP server needs browser OAuth, and
+ * its GraphQL API is key-authenticated, so `lisa-linear-access` already reaches
+ * it headlessly with LINEAR_API_KEY and there is no official CLI to pin at all.
+ * A server whose access layer owns headless auth is skipped entirely.
+ *
+ * For anything else, this raises a QUESTION rather than asserting a need: this
+ * integration has no remote path as configured, confirm it has one. The answer
+ * may be a CLI, may be a direct API call, and may be "local-only on purpose".
  * @param {object|null} mcp Parsed .mcp.json.
  * @returns {Map<string, string>} Tool name to the server that implies it.
  */
@@ -139,7 +161,8 @@ export function toolsFromMcp(mcp) {
     if (server) {
       found.set(
         tool,
-        `MCP server "${server}" (browser OAuth cannot run remotely)`
+        `${MCP_EVIDENCE} server "${server}" — an interactively authenticated ` +
+          `MCP server has no remote path; confirm this integration has one`
       );
     }
   }
@@ -263,6 +286,17 @@ export function detectTooling(cwd = process.cwd()) {
  * @returns {{install: object[], require: object[]}} Manifest skeletons.
  */
 export function proposedEntries(proposal) {
+  // Whether a binary can be proposed is a fact about the TOOL, not about how it
+  // was detected. Keying this on "the evidence was an MCP server" suppressed
+  // exactly the wrong case: the substrate allowlist already removes Linear
+  // before it becomes evidence, so the only tools reaching that branch were
+  // ones like Maestro that genuinely do have a CLI — the binary the Expo
+  // template invokes and nothing installs.
+  //
+  // So the question is asked only where there is no pinnable CLI to name.
+  if (KNOWN_TOOLS[proposal.name]?.noCli) {
+    return { install: [], require: [], question: REMOTE_PATH_QUESTION };
+  }
   const viaNpm = KNOWN_TOOLS[proposal.name]?.viaNpm;
   if (viaNpm) {
     // npm resolves per platform, so one entry serves every surface.
@@ -317,6 +351,7 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
         console.log(`    evidence: ${evidence}`);
       }
       const entries = proposedEntries(proposal);
+      if (entries.question) console.log(`    ${entries.question}`);
       for (const entry of entries.install) {
         console.log(`    tools.install: ${JSON.stringify(entry)}`);
       }
