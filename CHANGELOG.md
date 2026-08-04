@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.329.0](https://github.com/CodySwannGT/lisa/compare/v2.328.5...v2.329.0) (2026-08-04)
+
+
+### Features
+
+* **setup:** add lisa-setup-workstation for repo-agnostic machine bootstrap ([a7fdf1f](https://github.com/CodySwannGT/lisa/commit/a7fdf1ffeea45388262e5604fa0788786de3c744)), closes [CodySwannGT/lisa#2286](https://github.com/CodySwannGT/lisa/issues/2286)
+
 ### [2.328.5](https://github.com/CodySwannGT/lisa/compare/v2.328.4...v2.328.5) (2026-08-04)
 
 
