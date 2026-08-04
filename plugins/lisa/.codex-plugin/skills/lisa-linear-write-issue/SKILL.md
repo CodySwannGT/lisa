@@ -227,7 +227,7 @@ If the item modifies an existing user-facing surface, a `lisa-product-walkthroug
 
 Before create/update, verify each field is populated where applicable:
 
-- **Workflow state**: set the resolved `ready` state (`linear.workflow.ready`, default `Todo`) on a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **unless `build_ready: false`** (see the Build-ready control input below). A container (Epic Project / Story with sub-issues / Spike) is never put in the build-ready state.
+- **Workflow state**: set the resolved `ready` state (`linear.workflow.ready`, default `Ready`) on a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **unless `build_ready: false`** (see the Build-ready control input below). A container (Epic Project / Story with sub-issues / Spike) is never put in the build-ready state.
 - **Labels**: taxonomy only — `type:<Kind>`, `repo:<name>`, `component:<name>`, and the `prd-intake-feedback` sentinel. Lifecycle is **not** a label on Linear; do not add `status:*` labels.
 - **Native priority field**: 0–4 per Linear's scale; explicit, not "unset".
 - **Native estimate**: per Linear's team-configured estimate scale (often 0–8 Fibonacci); skip for Epic / Spike.

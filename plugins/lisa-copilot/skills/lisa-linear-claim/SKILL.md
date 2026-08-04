@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-claim
-description: "Idempotently claims one live Linear leaf issue for direct Lisa work. Reuses linear-build-intake Phase 3b semantics through lisa-linear-access: configured ready-to-claimed relabel, assign-only-if-unassigned, stable managed comment, and post-write verification."
+description: "Idempotently claims one live Linear leaf issue for direct Lisa work. Reuses linear-build-intake Phase 3b semantics through lisa-linear-access: configured ready-to-claimed state transition, assign-only-if-unassigned, stable managed comment, and post-write verification."
 allowed-tools: ["Bash", "Skill", "Read"]
 ---
 
@@ -22,7 +22,7 @@ Claim exactly one canonical Linear identifier such as `ENG-123`. All Linear acce
    [lisa-tracker-claim] Claimed by Lisa. Starting implementation.
    ```
 
-6. Invoke `lisa-linear-read-issue <identifier>` again. Success requires a non-terminal, current-repo leaf in claimed or a later non-terminal role. A failed relabel or failed verification is a hard failure and must not authorize a binding.
+6. Invoke `lisa-linear-read-issue <identifier>` again. Success requires a non-terminal, current-repo leaf in claimed or a later non-terminal role. A failed state transition or failed verification is a hard failure and must not authorize a binding.
 7. Return `tracker_provider: linear`, canonical `work_item_ref: <IDENTIFIER>`, `claim_outcome: claimed|reused`, assignee outcome, and the post-write status evidence.
 
 Never create an Issue here. Never bypass `lisa-linear-access`.
