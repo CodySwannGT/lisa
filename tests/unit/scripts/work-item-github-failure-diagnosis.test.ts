@@ -114,17 +114,19 @@ describe("the guardrail actually runs from both entrypoints", () => {
     ],
   ] as const;
 
-  it.each(entrypoints)(
-    "refuses an unbound worktree via %s",
-    (_label, entry) => {
-      const result = spawnSync(process.execPath, [entry, "current"], {
-        encoding: "utf8",
-      });
+  it.each(entrypoints)("runs the CLI via %s", (_label, entry) => {
+    // An unrecognised subcommand, because the only property under test is
+    // whether `main()` ran at all. The first version asked for a refusal
+    // about an unbound worktree, which is a fact about the machine rather
+    // than about the entrypoint: any worktree with a work item bound — the
+    // normal state during a task — exits 0 with empty stderr, and the test
+    // failed on main within the hour.
+    const result = spawnSync(process.execPath, [entry, "not-a-real-command"], {
+      encoding: "utf8",
+    });
 
-      expect(result.stderr).toMatch(
-        /Work-item tracking blocked this operation/
-      );
-      expect(result.status).not.toBe(0);
-    }
-  );
+    expect(result.stderr).toMatch(/Work-item tracking blocked this operation/);
+    expect(result.stderr).toMatch(/Usage: lisa-work-item\.mjs/);
+    expect(result.status).not.toBe(0);
+  });
 });
