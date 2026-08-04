@@ -154,12 +154,24 @@ The implementation path should use the shared utility layer (`parseLisaUsageSect
 `mergeLisaUsageEntries`, `createLisaUsageRollup`, `upsertLisaUsageSection`) rather than duplicating
 token parsing or markdown rendering in each caller.
 
-### Step 4 — Persist and report
+### Step 4 — Persist, verify by read-back, and report
 
 1. If the rendered ledger body is byte-identical to the current managed surface, return `outcome:
    no-op`.
 2. Otherwise write the body or managed comment through the host adapter.
-3. Return the exact writable surface used, direct entry ids, rolled-up child entry ids, totals, and
+3. **Read the written surface back from the host and parse it.** Run
+   `verifyLisaUsageSectionIntegrity(<stored body>, { entryIds: <ids just written> })`. A write is
+   successful only when that returns `ok: true`. The host's mutation result is not evidence — a
+   Linear `issueUpdate` returned `success: true` while silently discarding every entry token
+   (2026-08-04), which is the defect this step exists to catch.
+4. If verification fails on the body, retry the identical payload as a managed comment and verify
+   that surface the same way. Return `outcome: comment-fallback` with a warning naming the failed
+   surface and the issue codes.
+5. If verification fails on every surface, return `outcome: blocked` with the issue codes in
+   `error.message`. **Never leave a rollup token behind whose `direct_entry_ids` names entries that
+   cannot be parsed from the same surface** — restore the prior managed content rather than
+   reporting success over an unreadable ledger.
+6. Return the exact writable surface used, direct entry ids, rolled-up child entry ids, totals, and
    any fallback warning.
 
 If the host write fails, preserve the exact error text in `error.message`. Do not collapse write
@@ -179,4 +191,6 @@ failures into a generic "usage update failed."
 - Never skip rollup dedupe. Child totals are keyed by stable `entry_id`, not by child ref count.
 - Never silently drop to comments. Return `outcome: comment-fallback` so the caller can surface the
   writable surface that actually holds the ledger.
+- Never report `updated` on the strength of a mutation's return value. Verification is read-back
+  and parse, on every surface, every write.
 - Never overwrite unrelated artifact body content. Rewrite only the managed usage section/comment.
