@@ -325,6 +325,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -339,6 +345,43 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).toContain(CLAUDE_INSTALL_BASE);
     expect(log).toContain(CODEX_SELF_OVERLAY_LOG);
     expect(log).not.toContain("apply self");
+  });
+
+  it("stands down entirely inside a cloud session", async () => {
+    // The positive case for the guard every other test here neutralises.
+    // Claude Code installs the plugins a repository declares at session start,
+    // and this script runs from a package manager's postinstall — inside a
+    // container that is during the environment setup script, before Claude has
+    // launched and before any marketplace exists, so all eight installs failed.
+    //
+    // Without this case the guard would be asserted only as a string in the
+    // source, and neutralising the variable everywhere else would have left the
+    // behaviour it controls untested by construction.
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeSelfProject(projectRoot);
+    const selfScriptPath = await writeSelfLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+
+    const { stdout } = await execFileAsync("bash", [selfScriptPath], {
+      env: {
+        ...process.env,
+        HOME: projectRoot,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        CLAUDE_CODE_REMOTE: "true",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8");
+    expect(log).not.toContain(CLAUDE_INSTALL_BASE);
+    // Says why, rather than going quiet. A postinstall that is silent in one
+    // environment and not another reads as a broken install to whoever is
+    // next looking at the setup log.
+    expect(stdout).toContain("Cloud session");
   });
 
   it("runs downstream apply before Codex user-wide cleanup", async () => {
@@ -357,6 +400,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -386,6 +435,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -415,6 +470,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         INIT_CWD: leakedRoot,
         npm_config_local_prefix: leakedRoot,
         LISA_TEST_COMMAND_LOG: commandLog,
@@ -445,6 +506,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -512,6 +579,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -572,6 +645,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         LISA_TEST_INSTALLED_PLUGINS: JSON.stringify(installedPlugins),
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
@@ -621,6 +700,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         LISA_TEST_INSTALLED_PLUGINS: JSON.stringify(installedPlugins),
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
@@ -675,6 +760,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: root,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -719,6 +810,12 @@ describe("install-claude-plugins self postinstall path", () => {
         HOME: root,
         CI: "",
         CODEX_THREAD_ID: "",
+        // Neutralised for the same reason as the two above: the script stands
+        // down entirely when this is "true", so a run inside a cloud container
+        // — where the platform sets it — exercised none of the Claude plugin
+        // work these cases assert, and only the Codex sections that run before
+        // the guard appeared in the log.
+        CLAUDE_CODE_REMOTE: "",
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
