@@ -121,6 +121,24 @@ describe("verifyLisaUsageSectionIntegrity", () => {
     expect(codes).toStrictEqual(["missing-rollup-token"]);
   });
 
+  it("reports a missing rollup token on a section with zero direct entries", () => {
+    const emptySectionWithoutRollup = [
+      LISA_USAGE_HEADING,
+      "",
+      "| Flow | Source | Model | Tokens | Cost |",
+      "| -- | -- | -- | -- | -- |",
+      "| _No direct entries recorded_ | | | | |",
+      "",
+    ].join("\n");
+
+    const result = verifyLisaUsageSectionIntegrity(emptySectionWithoutRollup);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0]?.code).toBe("missing-rollup-token");
+    expect(result.issues[0]?.entryIds).toStrictEqual([]);
+  });
+
   it("passes a freshly serialized ledger read straight back", () => {
     const entry = makeEntry();
     const document = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
