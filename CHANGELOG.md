@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.328.2](https://github.com/CodySwannGT/lisa/compare/v2.328.1...v2.328.2) (2026-08-04)
+
+
+### Documentation
+
+* **claude-web:** record the multi-repo config-ownership unknown as U5 ([7e7c3fb](https://github.com/CodySwannGT/lisa/commit/7e7c3fbe9df91a64e00eacae6a823e057d8da34d)), closes [CodySwannGT/lisa#2281](https://github.com/CodySwannGT/lisa/issues/2281) [CodySwannGT/lisa#2281](https://github.com/CodySwannGT/lisa/issues/2281)
+
 ### [2.328.1](https://github.com/CodySwannGT/lisa/compare/v2.328.0...v2.328.1) (2026-08-04)
 
 

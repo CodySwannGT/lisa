@@ -75,14 +75,24 @@ cost rollups under the normal pricing and currency rules.
 
 ## Machine-readable tokens
 
-Every visible direct entry row contains the backward-compatible 17-field primary token:
+Every visible direct entry row has a corresponding backward-compatible 17-field primary token:
 
 ```text
 <!-- lisa:usage-entry entry_id=<id> flow=<flow> run_id=<run-id> provider=<provider> model=<model> source=<source> input_tokens=<n|null> cached_input_tokens=<n|null> output_tokens=<n|null> reasoning_tokens=<n|null> total_tokens=<n|null> cost=<decimal|null> currency=<code|null> pricing_status=<status> pricing_source=<ref|null> artifact_ref=<ref> parent_artifact_ref=<ref-or-empty> -->
 ```
 
-The row immediately follows it with a correlated measured-subset extension. Writers serialize an
-omitted value as `null` instead of `undefined`:
+**Entry tokens are never rendered inside a table row.** They occupy their own lines below the
+visible table, and they correlate to their rows by `entry_id`, not by position. Hosts that
+normalize markdown re-serialize a table from its parsed cell model and discard anything that is
+not a cell: measured against Linear on 2026-08-04, an HTML comment trailing a table row is
+destroyed on write while the same comment on its own line round-trips byte-identically. The
+row-trailing layout therefore produced a ledger that reported a successful write, rendered
+correctly for humans, and enumerated **zero** entries — with a surviving rollup token still naming
+them. Parsing is position-agnostic and always has been, so sections written in the historical
+row-trailing layout still enumerate, and migrate to the own-line layout on their next rewrite.
+
+The primary token is immediately followed on the same line by a correlated measured-subset
+extension. Writers serialize an omitted value as `null` instead of `undefined`:
 
 ```text
 <!-- lisa:usage-entry-measured-subset entry_id=<id> measured_subset_tokens=<n|null> -->
@@ -141,7 +151,9 @@ _Managed by Lisa. Regenerated on each usage update; do not edit by hand._
 
 | Flow | Model | Source | Tokens | Cost |
 |---|---|---|---:|---:|
-| ...human-readable rows ending with `lisa-usage-entry` tokens... |
+| ...human-readable rows, cells only, no tokens... |
+
+<!-- lisa:usage-entry ... --> <!-- lisa:usage-entry-measured-subset ... -->
 
 ### Rollup
 
@@ -154,7 +166,28 @@ _Managed by Lisa. Regenerated on each usage update; do not edit by hand._
 <!-- lisa:usage-rollup ... -->
 ```
 
+Every machine-readable token sits on its own line, outside every table. One entry contributes one
+token line; multiple entries contribute consecutive token lines in the same order as their visible
+rows.
+
 Writers may add host-specific surrounding prose, but they must preserve the heading, the managed-note line, the direct-entry tokens, and the single rollup token.
+
+## Write verification
+
+A write surface can accept a section, report success, and silently destroy part of it. **Verify
+every managed write by reading the stored bytes back and parsing them — never by the mutation's
+return value.** A write is successful only when the stored surface satisfies the rollup/entry
+agreement invariant below. A caller that cannot verify a surface must fall back to one it can, or
+fail loudly; it must never report success over an unreadable ledger.
+
+- Every `entry_id` in the rollup's `direct_entry_ids` resolves to a parseable direct entry in the
+  same section.
+- Every parseable direct entry in the section appears in the rollup's `direct_entry_ids`.
+- Every entry the caller just wrote is parseable from the stored surface.
+
+`verifyLisaUsageSectionIntegrity` in the shared utility layer implements exactly these checks and
+returns structured issue codes (`missing-section`, `missing-entry-token`, `missing-rollup-token`,
+`unrecorded-entry`). Callers run it against the read-back body, not against the payload they sent.
 
 ## Rollup and dedupe behavior
 
