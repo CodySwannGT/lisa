@@ -234,18 +234,35 @@ describe("queue contract resolution (#822)", () => {
       })
     ).toMatchObject({
       vendor: "linear",
+      // Linear resolves BUILD roles to native workflow states, like JIRA — not
+      // to labels like GitHub, which has no workflow-state field to use. `kind`
+      // is asserted because callers branch on it to decide whether a transition
+      // is a state move or a label swap.
+      kind: "workflow",
       roles: {
-        ready: "status:ready",
-        claimed: "status:in-progress",
-        review: "status:code-review",
-        blocked: "status:blocked",
+        ready: "Ready",
+        claimed: "In Progress",
+        review: "In Review",
+        blocked: "Blocked",
         done: {
-          dev: "status:on-dev",
-          staging: "status:on-stg",
-          production: "status:done",
+          dev: "On Dev",
+          staging: "On Stg",
+          production: "Done",
         },
       },
     });
+  });
+
+  it("never resolves Linear `ready` to the team's default state", () => {
+    // "Todo" is where Linear puts a brand-new issue, so using it for `ready`
+    // inverts the gate: the lane stops meaning "a human flipped this" and
+    // starts meaning "nobody has touched this". Measured on the first team
+    // migrated: 20 issues in the lane, only 8 explicitly marked ready.
+    const linear = resolveBuildLifecycleRoles({ tracker: "linear" });
+    const jira = resolveBuildLifecycleRoles({ tracker: "jira" });
+
+    expect(["Todo", "Backlog", "Triage"]).not.toContain(linear.roles.ready);
+    expect(linear.roles.ready).toBe(jira.roles.ready);
   });
 
   it("ignores invalid GitHub PRD role overrides instead of disabling defaults", () => {
