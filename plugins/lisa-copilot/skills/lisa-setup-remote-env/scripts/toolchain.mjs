@@ -124,6 +124,9 @@ function planInstallable(tool, found) {
   };
 }
 
+/** Surfaces a manifest entry may name. */
+const KNOWN_SURFACES = new Set(["local", "remote"]);
+
 /**
  * Whether a manifest entry applies to the surface being provisioned.
  *
@@ -143,7 +146,26 @@ function planInstallable(tool, found) {
  */
 export function appliesToSurface(tool, surface) {
   const surfaces = tool.surfaces;
-  if (!Array.isArray(surfaces) || surfaces.length === 0) return true;
+  if (surfaces === undefined) return true;
+  // A typo must not silently widen scope. Treating any non-array as "omitted"
+  // meant `surfaces: "remote"` — an easy thing to write — quietly applied the
+  // entry to every surface, which for a platform-specific archive means
+  // offering a Linux binary to a laptop. Absent means everywhere; malformed
+  // means stop.
+  if (!Array.isArray(surfaces)) {
+    throw new Error(
+      `${tool.name}: surfaces must be an array, got ${typeof surfaces}.\n` +
+        `Omit it to mean every surface; write ["remote"] or ["local"] to narrow.`
+    );
+  }
+  if (surfaces.length === 0) return true;
+  const unknown = surfaces.filter(entry => !KNOWN_SURFACES.has(entry));
+  if (unknown.length > 0) {
+    throw new Error(
+      `${tool.name}: unknown surface(s) ${unknown.join(", ")}.\n` +
+        `Known: ${[...KNOWN_SURFACES].join(", ")}.`
+    );
+  }
   return surfaces.includes(surface);
 }
 
