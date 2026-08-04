@@ -90,6 +90,38 @@ if [ -f "$SRC_DIR/base/hooks/threshold-ratchet.mjs" ]; then
   done
 fi
 
+# Enforcement guards for host projects.
+#
+# These three are declared in the Lisa plugin, so a container whose plugin
+# install fails runs with no PreToolUse enforcement at all — silently. Lisa
+# closes that with a repository hook, which reaches a cloud session because it
+# is part of the clone; a host project needs the same thing, and has no
+# plugins/ directory to fall back on.
+#
+# Synced rather than hand-copied, for the same reason the ratchet above is: a
+# unit test asserts byte-equality, so the shipped guard can never drift from the
+# reviewed one.
+HOST_GUARD_DIR="$ROOT_DIR/all/copy-overwrite/scripts/lisa-hooks"
+if [ -d "$SRC_DIR/base/hooks" ]; then
+  mkdir -p "$HOST_GUARD_DIR"
+fi
+for guard in block-no-verify parity-safety-net block-shell-json-parsing; do
+  if [ -f "$SRC_DIR/base/hooks/$guard.sh" ]; then
+    cp "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
+    chmod +x "$HOST_GUARD_DIR/$guard.sh"
+  fi
+done
+# The dispatcher itself, so a host project gets the identical entry point.
+# Guarded like the ratchet above: this script is also run against isolated
+# fixtures that carry a source tree but none of the repository's own scripts,
+# and an unconditional copy fails the whole build there.
+if [ -f "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" ]; then
+  mkdir -p "$ROOT_DIR/all/copy-overwrite/scripts"
+  cp "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" \
+    "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-fallback.sh"
+  chmod +x "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-fallback.sh"
+fi
+
 # Stack-specific plugins (NO base copy)
 STACKS=(typescript expo nestjs cdk harper-fabric phaser rails)
 for stack in "${STACKS[@]}"; do
