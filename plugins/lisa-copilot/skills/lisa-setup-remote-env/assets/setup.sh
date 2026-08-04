@@ -49,7 +49,7 @@ fi
 #
 # Skipped when node_modules already exists, which is what makes this cheap on a
 # resumed container and correct to run twice.
-if [ "${LISA_SKIP_INSTALL:-}" != "1" ] && [ ! -d node_modules ]; then
+if [ ! -d node_modules ]; then
   if [ -f bun.lock ] || [ -f bun.lockb ]; then install_cmd="bun install"
   elif [ -f pnpm-lock.yaml ]; then install_cmd="pnpm install --frozen-lockfile"
   elif [ -f yarn.lock ]; then
@@ -83,7 +83,20 @@ if [ "${LISA_SKIP_INSTALL:-}" != "1" ] && [ ! -d node_modules ]; then
     # Without it the bug is cache-dependent, not deterministic: a fresh
     # container installs and dirties the tree, a resumed one skips the install
     # and succeeds. That reads as flakiness rather than a cause.
-    CI=1 $install_cmd
+    # LISA_SKIP_INSTALL suppresses the INSTALL, not the decision. It used to
+    # gate the whole block, so the only way to observe which package manager
+    # was chosen was to actually run it — which is why a test asserting the
+    # choice ran `yarn install` against a fabricated lockfile, passing on a
+    # machine without yarn and doing a real network install on one with it.
+    #
+    # Reporting the choice and skipping the work is also the more useful
+    # behaviour for a caller that installed already: it still says what it
+    # would have done.
+    if [ "${LISA_SKIP_INSTALL:-}" = "1" ]; then
+      echo "  LISA_SKIP_INSTALL=1 — not running it."
+    else
+      CI=1 $install_cmd
+    fi
   else
     # Not fatal on its own. A project may carry no lockfile and still have the
     # skill in a checkout directory, so let the resolver below decide.
