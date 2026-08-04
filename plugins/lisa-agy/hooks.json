@@ -37,5 +37,18 @@
         ]
       }
     ]
+  },
+  "lisa-block-instruction-file-edits": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/block-instruction-file-edits.agy.sh\""
+          }
+        ]
+      }
+    ]
   }
 }

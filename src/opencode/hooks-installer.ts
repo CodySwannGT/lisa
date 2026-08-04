@@ -38,6 +38,7 @@ import {
   type ParseError,
 } from "jsonc-parser";
 import type { ProjectType } from "../core/config.js";
+import { PLUGIN_CATALOG, type PluginCatalogEntry } from "./plugin-catalog.js";
 import { mirrorLisaRules } from "../core/lisa-rules-mirror.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 import { OPENCODE_SCHEMA_URL } from "./settings-installer.js";
@@ -70,58 +71,6 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
   "*HUSKY_SKIP_HOOKS=*": "deny",
   "*core.hooksPath*/dev/null*": "deny",
 };
-
-/** One Lisa-shipped OpenCode plugin template. */
-interface PluginCatalogEntry {
-  /** Stable identifier (also the basename without the `lisa-`/`.ts`) */
-  readonly id: string;
-  /** Template filename in `plugin-templates/` and the dest filename verbatim */
-  readonly templateFilename: string;
-  /** Project types this plugin ships for. `["*"]` ships for every stack. */
-  readonly forProjectTypes: readonly (ProjectType | "*")[];
-}
-
-/**
- * Plugin catalog — the OpenCode counterpart of the Codex HOOK_CATALOG. Adding a
- * plugin? Drop a template in `plugin-templates/`, add an entry here, add tests.
- */
-const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
-  {
-    id: "parity-safety-net",
-    templateFilename: "lisa-parity-safety-net.ts",
-    forProjectTypes: ["*"],
-  },
-  {
-    id: "session-bootstrap",
-    templateFilename: "lisa-session-bootstrap.ts",
-    forProjectTypes: ["*"],
-  },
-  {
-    id: "block-suppress-directives",
-    templateFilename: "lisa-block-suppress-directives.ts",
-    forProjectTypes: ["typescript"],
-  },
-  {
-    id: "lint-on-edit",
-    templateFilename: "lisa-lint-on-edit.ts",
-    forProjectTypes: ["typescript"],
-  },
-  {
-    id: "sg-scan-on-edit",
-    templateFilename: "lisa-sg-scan-on-edit.ts",
-    forProjectTypes: ["typescript", "rails"],
-  },
-  {
-    id: "block-migration-edits",
-    templateFilename: "lisa-block-migration-edits.ts",
-    forProjectTypes: ["nestjs"],
-  },
-  {
-    id: "rubocop-on-edit",
-    templateFilename: "lisa-rubocop-on-edit.ts",
-    forProjectTypes: ["rails"],
-  },
-];
 
 /** Canonical policy files used by universal OpenCode adapters. */
 const PLUGIN_SUPPORT_FILES = [
