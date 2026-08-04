@@ -417,7 +417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/linear-agent.md":
       "d55664da47505d702d9bbbb96f9f98930d871acc5fc2972d35e1ae143f2dbde7",
     "plugins/src/base/agents/linear-build-intake.md":
-      "9d79122958faf12b69f32a75ebe0132ce06ca367045c6bcf43440e65d632ffca",
+      "1dbc43b74857a1f6d99394a206a510d95c0875946fa6f4d94f90706cbd29e7b4",
     "plugins/src/base/agents/linear-prd-intake.md":
       "28c4ee9f2ebbb4f089dd54bb4633063b48ea8099327a0bf2923825d83c3fe07c",
     "plugins/src/base/agents/notion-prd-intake.md":
@@ -805,7 +805,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "81b6eb911cf5cf6d1913cacf65b6ae298732e0a4e92529aed6767cdf79ab2ec0",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
-      "a3949db1058a97f6c20280b1dfcbd3e246385fb3b15c642f90f13bd7df1e4aa7",
+      "189f1d0be562c442b5db07efdb87783e964c08016e2761ae58da252bd17ba20b",
     "plugins/src/base/scripts/queue-health-classification.mjs":
       "07fd596da5792d8bd29f2d51584c59011d3d06256eae601b27a3c72730b42333",
     "plugins/src/base/scripts/queue-status-build-readers.mjs":
