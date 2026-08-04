@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.323.4](https://github.com/CodySwannGT/lisa/compare/v2.323.3...v2.323.4) (2026-08-04)
+
+
+### Documentation
+
+* **tracked-work:** stop asserting that any tracker failure blocks work ([2c08688](https://github.com/CodySwannGT/lisa/commit/2c08688c683a7eea0f52283d71e824819efbb2c7)), closes [#2238](https://github.com/CodySwannGT/lisa/issues/2238) [CodySwannGT/lisa#2239](https://github.com/CodySwannGT/lisa/issues/2239) [CodySwannGT/lisa#2239](https://github.com/CodySwannGT/lisa/issues/2239)
+
 ### [2.323.3](https://github.com/CodySwannGT/lisa/compare/v2.323.2...v2.323.3) (2026-08-04)
 
 ### [2.323.2](https://github.com/CodySwannGT/lisa/compare/v2.324.0...v2.323.2) (2026-08-04)
