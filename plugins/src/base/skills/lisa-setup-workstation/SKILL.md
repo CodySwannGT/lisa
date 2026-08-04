@@ -19,20 +19,27 @@ node scripts/workstation-bootstrap.mjs
 node scripts/workstation-bootstrap.mjs --yes
 node scripts/workstation-bootstrap.mjs --agents=claude,codex --yes
 node scripts/workstation-bootstrap.mjs --json
+node scripts/workstation-bootstrap.mjs --yes --dry-run
 ```
 
 The default run only reports. `--yes` permits installs. Existing tools are left
-alone regardless of how they were installed.
+alone regardless of how they were installed. `--dry-run` combines with `--yes`
+to preview exactly what would install, without touching the filesystem.
 
 ## Contract
 
-- Agent CLIs use their vendor installer surface. These entries are not pinned or
-  checksummed, and the report calls that out instead of mixing them with
-  `remoteEnv.tools` archive pins.
+- Most agent CLIs use their vendor installer surface. These entries are not
+  pinned or checksummed, and the report calls that out instead of mixing them
+  with `remoteEnv.tools` archive pins.
+- `copilot` is detect-only. Its install methods vary by account and channel, so
+  no installer is declared.
 - `gh` and `bws` use Lisa's pinned archive installer with checksum verification.
-- `aws` and `sonar` use vendor installers because their official setup flows are
-  installer-managed rather than Lisa-owned release archives.
+- `aws` and `sonar` are detect-only. Their official setup flows are
+  installer-managed rather than Lisa-owned release archives, so you install
+  them yourself and the report lists them under manual setup.
 - `--agents=a,b` narrows only the agent CLIs. Universal tools are still checked
   because every factory needs them.
 - `--json` is machine-readable and performs no installs.
+- `--dry-run` (with `--yes`) reports what would be installed without running
+  any installer or creating the bin directory.
 

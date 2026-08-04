@@ -7,7 +7,7 @@
  * installers visibly separate from pinned archive installs.
  * @module tests/unit/secrets/workstation-bootstrap
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   parseArgs,
@@ -48,6 +48,10 @@ const fakeEnv = {
     }),
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("argument parsing", () => {
   it("narrows the agent fleet without affecting universal tooling", () => {
     expect(parseArgs(["--agents=claude,codex", "--yes"])).toMatchObject({
@@ -76,9 +80,32 @@ describe("planning", () => {
       kind: "vendor",
       action: "install",
     });
-    expect(
-      result.universal.find((row: { name: string }) => row.name === "gh")
-    ).not.toHaveProperty("kind", "vendor");
+    const gh = result.universal.find(
+      (row: { name: string }) => row.name === "gh"
+    );
+    expect(gh).toMatchObject({ name: "gh", action: "install" });
+    expect(gh).not.toHaveProperty("kind", "vendor");
+  });
+
+  it("leaves an already-current pinned tool alone during planning", async () => {
+    const result = await plan(
+      { agents: ["claude"] },
+      {
+        env: fakeEnv,
+        probe: (name: string) =>
+          name === "gh"
+            ? { present: true, version: "2.90.0" }
+            : name === "claude"
+              ? { present: true, version: "2.1.221" }
+              : absent(),
+      }
+    );
+
+    const gh = result.universal.find(
+      (row: { name: string }) => row.name === "gh"
+    );
+    expect(gh).toMatchObject({ name: "gh", action: "newer" });
+    expect(gh?.action).not.toBe("install");
   });
 
   it("leaves existing tools alone regardless of install source", async () => {
@@ -112,7 +139,6 @@ describe("execution", () => {
     expect(log.mock.calls.map(call => String(call[0])).join("\n")).toContain(
       "Nothing was installed"
     );
-    log.mockRestore();
   });
 
   it("executes vendor and pinned installers only with --yes", async () => {
@@ -125,9 +151,32 @@ describe("execution", () => {
       { env: { ...fakeEnv, installTool }, exec }
     );
 
-    expect(exec).toHaveBeenCalled();
-    expect(installTool).toHaveBeenCalled();
-    vi.restoreAllMocks();
+    expect(exec).toHaveBeenCalledWith(
+      "bash",
+      ["-lc", "curl -fsSL https://claude.ai/install.sh | bash"],
+      { stdio: "inherit" }
+    );
+    expect(installTool).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "gh" }),
+      expect.any(String)
+    );
+  });
+
+  it("does not touch the filesystem in --yes --dry-run", async () => {
+    const exec = vi.fn();
+    const installTool = vi.fn();
+    const ensureBinDir = vi.fn(() => `${process.cwd()}/.lisa-test-bin`);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    const code = await run(
+      { yes: true, dryRun: true, agents: ["claude"] },
+      { env: { ...fakeEnv, installTool, ensureBinDir }, exec }
+    );
+
+    expect(code).toBe(0);
+    expect(ensureBinDir).not.toHaveBeenCalled();
+    expect(exec).not.toHaveBeenCalled();
+    expect(installTool).not.toHaveBeenCalled();
   });
 
   it("prints json without installing", async () => {
@@ -137,11 +186,16 @@ describe("execution", () => {
 
     await run({ json: true }, { env: { ...fakeEnv, installTool }, exec });
 
+    expect(log).toHaveBeenCalledTimes(1);
+    const printed = JSON.parse(String(log.mock.calls[0]?.[0]));
     expect(exec).not.toHaveBeenCalled();
     expect(installTool).not.toHaveBeenCalled();
-    expect(JSON.parse(String(log.mock.calls[0]?.[0])).platform).toBe(
-      "darwin-arm64"
-    );
-    log.mockRestore();
+    expect(printed).toMatchObject({
+      platform: "darwin-arm64",
+    });
+    expect(Array.isArray(printed.agents)).toBe(true);
+    expect(printed.agents.length).toBeGreaterThan(0);
+    expect(Array.isArray(printed.universal)).toBe(true);
+    expect(printed.universal.length).toBeGreaterThan(0);
   });
 });

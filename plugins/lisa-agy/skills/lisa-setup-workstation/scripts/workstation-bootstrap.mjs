@@ -331,10 +331,14 @@ export async function run(options = {}, deps = {}) {
   }
 
   if (options.yes) {
-    const binDir = env.ensureBinDir();
+    const binDir =
+      options.dryRun || installable.length === 0 ? null : env.ensureBinDir();
     for (const row of installable) {
+      if (options.dryRun) {
+        console.log(`\nWould install ${row.name}`);
+        continue;
+      }
       console.log(`\nInstalling ${row.name}`);
-      if (options.dryRun) continue;
       if (row.kind === "vendor") runInstaller(row.installer, exec);
       else env.installTool(row.tool, binDir);
     }
@@ -348,7 +352,10 @@ export async function run(options = {}, deps = {}) {
   return blocked.length ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   run(parseArgs(process.argv.slice(2))).then(
     code => {
       process.exitCode = code;
