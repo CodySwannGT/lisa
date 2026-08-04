@@ -22,7 +22,7 @@
  * @module detect-tooling
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 /** The tool named by the Expo template's scripts and its flows directory. */
@@ -219,7 +219,17 @@ function usedByProject(tool, pkg, cwd) {
   const invoked = [...toolsFromScripts(pkg).keys()].includes(tool);
   if (invoked) return true;
   const artifacts = KNOWN_TOOLS[tool]?.artifacts;
-  return Boolean(artifacts && existsSync(join(cwd, artifacts)));
+  if (!artifacts) return false;
+  // A DIRECTORY, not merely an entry with that name. `existsSync` is true for a
+  // regular file too, so a stray `.maestro` note or editor artifact would have
+  // corroborated the threshold and reintroduced the 300MB proposal this check
+  // exists to prevent — a false positive arriving through the very guard added
+  // to stop one.
+  try {
+    return statSync(join(cwd, artifacts)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 /**
