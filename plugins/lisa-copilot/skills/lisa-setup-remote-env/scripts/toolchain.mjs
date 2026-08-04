@@ -334,6 +334,26 @@ export function assertPinned(tool) {
     }
     return;
   }
+  // A tree carries the same checksum obligation and one more: which file inside
+  // it is the entry point. There is no sane default — the archive root is a
+  // directory, so guessing would install a directory as a binary.
+  if (tool.install === "release-tree") {
+    if (!tool.url || !tool.sha256) {
+      throw new Error(
+        `${tool.name}: a release-tree install needs both url and sha256.\n` +
+          `A version bump must move the checksum in the same reviewed commit.`
+      );
+    }
+    if (!tool.binary) {
+      throw new Error(
+        `${tool.name}: a release-tree install needs "binary" — the path to the ` +
+          `entry point INSIDE the archive, such as "maestro/bin/maestro".\n` +
+          `Unlike the single-file kinds there is nothing to fall back to: the ` +
+          `archive root is a directory.`
+      );
+    }
+    return;
+  }
   if (tool.install === "npm-global") {
     if (!tool.package)
       throw new Error(`${tool.name}: npm-global install needs a package`);
@@ -341,6 +361,6 @@ export function assertPinned(tool) {
   }
   throw new Error(
     `${tool.name}: unknown install method "${tool.install}".\n` +
-      `Supported: release-zip, release-tar, npm-global.`
+      `Supported: release-zip, release-tar, release-tree, npm-global.`
   );
 }

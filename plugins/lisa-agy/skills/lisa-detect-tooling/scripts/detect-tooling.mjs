@@ -563,7 +563,8 @@ export function proposedEntries(proposal) {
   // the checksum cannot vouch for, which is the one property that makes a
   // pinned entry worth reviewing.
   const archive = platform => ({
-    install: "<release-tar or release-zip, whichever this platform ships>",
+    install:
+      "<release-tar | release-zip | release-tree — tree when the archive is a directory whose entry point loads its own siblings>",
     url: `<release url for this exact version, for ${platform}>`,
     sha256: `<sha256 published with the ${platform} release>`,
   });
