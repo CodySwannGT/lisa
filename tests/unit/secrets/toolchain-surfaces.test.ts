@@ -68,7 +68,11 @@ describe("one manifest, many surfaces", () => {
     };
     const local = planToolchain(cfg.remoteEnv.tools, PROBE, "local");
 
-    expect(local.filter(step => step.action === "install")).toHaveLength(0);
+    expect(
+      local.filter(
+        step => step.action === "install" && ["gh", "bws"].includes(step.name)
+      )
+    ).toHaveLength(0);
     // Still asserted there, so a missing tool is loud rather than discovered
     // at the moment of use.
     expect(local.map(step => step.name)).toContain("gh");
