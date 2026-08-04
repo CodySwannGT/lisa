@@ -87,6 +87,14 @@ bash scripts/lisa-remote-env/session-start.sh   # guard; delegates to --phase=se
 
 The selection comes from the surface's `materializeAt` capability in `lisa-secrets-access`, not from its name, so adding a surface does not mean editing a branch. The hook is committed to the repository, so it also fires on a developer's machine — it exits `0` immediately there rather than failing, because a correct local session must not look broken.
 
+## Detect before you provision
+
+Run `/lisa:detect-tooling` first, every time. The manifest is the only thing that puts a binary on `PATH`, and nothing populates it — so a project ships npm scripts invoking `maestro`, wires an MCP server whose CLI it also shells out to, and configures Playwright thresholds, while `remoteEnv.tools` stays empty and each of those fails at the moment of use instead of at setup.
+
+This repository has paid for that twice: `gh` was declared nowhere and a cloud session could not commit anything; `tar` was needed by an install method and asserted by nothing.
+
+The detector proposes and a human decides. It writes nothing, so provisioning still only ever happens from a reviewed, pinned, checksummed entry.
+
 ## Toolchain manifest — two entry kinds
 
 ```json
@@ -165,9 +173,9 @@ Because `release-tar` unpacks with `tar` rather than `unzip`, a project using it
 - **Prefer what is there.** A second Node beside the image's creates PATH ambiguity and wastes container time.
 - **Pin and checksum together, in one reviewed commit.** A version bump that does not move the checksum fails before installation, not after. An archive is verified *before* it is unpacked, so unexpected contents never reach a directory on PATH.
 
-## Tooling is never derived from secret notes
+## Tooling is never *authorised* by secret notes
 
-Deliberately rejected:
+Deliberately rejected — notes may not cause an install:
 
 - Most tooling has **no credential** — `jq`, ripgrep, browsers, a linter — so notes could only ever cover a subset, and a second mechanism would be needed anyway.
 - Most credentials **imply no tool**: a webhook is curl'd, a REST key needs no CLI.
@@ -176,6 +184,14 @@ Deliberately rejected:
 - It is a **supply-chain path** — provider write access would become arbitrary install access.
 
 **Notes are an assertion target instead.** At verify time, a tool that declares a credential which is not materialized is an **error**; a credential materialized with no declared consumer is a **warning**. The arrow points the safe way: the repository declares intent, and the provider is checked against it.
+
+### Reading a note as *evidence* is a different act
+
+`lisa-detect-tooling` does read notes, and this section is why it may. Every objection above is an objection to a note **causing** something: authorising an install, being the sole source, deciding a version. None of that changes.
+
+What the detector produces is a proposal with `<pin>`, `<release url>` and `<sha256>` left blank, printed for a human. It cannot install, cannot write config, and its output is inert until someone commits a pinned, checksummed entry that `assertPinned` then enforces. Provider write access therefore buys an attacker one line of text in a proposal a human reads — not arbitrary install access, which is the specific escalation this section exists to block.
+
+The other objections stay true and stay unfixed: most tooling has no credential and most credentials imply no tool, so notes are one signal among four and the weakest of them. They are read *after* npm scripts and MCP servers, and a note alone should be the least persuasive reason to add anything.
 
 ## Provisioning tiers
 

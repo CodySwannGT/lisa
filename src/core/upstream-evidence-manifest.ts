@@ -456,6 +456,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b254a4264b25c6436a39035e72c5d53bdc219a6d612be5ee44d054d5f0bac205",
     "plugins/src/base/commands/debrief/apply.md":
       "2c31e0eb000c742be4dd8d5ee0ee64b1f0736389bcaa4202fc05c6b31602aab8",
+    "plugins/src/base/commands/detect-tooling.md":
+      "3e0b2b71b3049b76743822558ecf69102289bdb4578f7c42036c80df88afeb2b",
     "plugins/src/base/commands/doctor.md":
       "308132cc6b34fbc33d01b0cb1a529b413efedc1c80579c61f42801e49eaa0449",
     "plugins/src/base/commands/exploratory-qa.md":
@@ -846,6 +848,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "47e4cda36b07994ff47ab15fb04a17dd6b0c310ad804f9cae9d69637edaaa72a",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
+    "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
+      "e29b3b8ebc256468bb67e5d10e2ae3cb4eda9ba20dfd2e065201b00864134734",
+    "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
+      "043c3f59d6a7a21a3ab4fce8ae8dc88e8650c19c5a57bba40f567c5257684747",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
@@ -1127,15 +1133,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "821f9f7db39259c3aef24dc369c7cdcfb55a85d61742b32ac2a961e1b3e263a4",
+      "77a537460aaa1a7f9da74128161d24fa3bf758ae1fec6f6dcbc47bde9f078750",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c04afb1cf8e14a2713645228e679fa7772559488330a240ec0297cae6afd03e2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "1f451881342364d086640b59914a3b07286a3734caa63f01efe64531d3bde7e4",
+      "eb8017ee2eef5b5b166908e5c2fccf493af283b0a40717688033d65263cf35ce",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "8822af39d0251a2e4fb0eac9157ba9e63ea813d914240ca0cacacd6cb7cbb5bb",
+      "341e8058e1d20e7e52276007aae9ceda1504b995615cf8421c9494b60b550ef9",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
@@ -3033,6 +3039,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/cross-pollinate.md": true,
     "plugins/lisa-agy/commands/lisa/debrief.md": true,
     "plugins/lisa-agy/commands/lisa/debrief/apply.md": true,
+    "plugins/lisa-agy/commands/lisa/detect-tooling.md": true,
     "plugins/lisa-agy/commands/lisa/doctor.md": true,
     "plugins/lisa-agy/commands/lisa/exploratory-qa.md": true,
     "plugins/lisa-agy/commands/lisa/fix/linter-error.md": true,
@@ -3138,6 +3145,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa-agy/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-epic-triage/SKILL.md": true,
@@ -3366,6 +3375,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/cross-pollinate.md": true,
     "plugins/lisa-copilot/commands/lisa/debrief.md": true,
     "plugins/lisa-copilot/commands/lisa/debrief/apply.md": true,
+    "plugins/lisa-copilot/commands/lisa/detect-tooling.md": true,
     "plugins/lisa-copilot/commands/lisa/doctor.md": true,
     "plugins/lisa-copilot/commands/lisa/exploratory-qa.md": true,
     "plugins/lisa-copilot/commands/lisa/fix/linter-error.md": true,
@@ -3553,6 +3563,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa-copilot/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-epic-triage/SKILL.md": true,
@@ -3766,6 +3778,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/cross-pollinate.md": true,
     "plugins/lisa-cursor/commands/lisa/debrief.md": true,
     "plugins/lisa-cursor/commands/lisa/debrief/apply.md": true,
+    "plugins/lisa-cursor/commands/lisa/detect-tooling.md": true,
     "plugins/lisa-cursor/commands/lisa/doctor.md": true,
     "plugins/lisa-cursor/commands/lisa/exploratory-qa.md": true,
     "plugins/lisa-cursor/commands/lisa/fix/linter-error.md": true,
@@ -3954,6 +3967,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa-cursor/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-epic-triage/SKILL.md": true,
@@ -5867,6 +5882,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-debrief/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-doctor/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-drive-pr-to-merge/SKILL.md": true,
@@ -6231,6 +6249,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/cross-pollinate.md": true,
     "plugins/lisa/commands/debrief.md": true,
     "plugins/lisa/commands/debrief/apply.md": true,
+    "plugins/lisa/commands/detect-tooling.md": true,
     "plugins/lisa/commands/doctor.md": true,
     "plugins/lisa/commands/exploratory-qa.md": true,
     "plugins/lisa/commands/fix/linter-error.md": true,
@@ -6444,6 +6463,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-debrief/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa/skills/lisa-detect-tooling/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa/skills/lisa-doctor/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-drive-pr-to-merge/SKILL.md": true,
@@ -6808,6 +6830,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/cross-pollinate.md": true,
     "plugins/src/base/commands/debrief.md": true,
     "plugins/src/base/commands/debrief/apply.md": true,
+    "plugins/src/base/commands/detect-tooling.md": true,
     "plugins/src/base/commands/doctor.md": true,
     "plugins/src/base/commands/exploratory-qa.md": true,
     "plugins/src/base/commands/fix/linter-error.md": true,
@@ -7003,6 +7026,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/src/base/skills/lisa-debrief/SKILL.md": true,
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/src/base/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/src/base/skills/lisa-doctor/SKILL.md": true,
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md": true,
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md": true,
@@ -8355,6 +8380,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
+    "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
@@ -8367,6 +8393,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
+    "tests/unit/secrets/toolchain-surfaces.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
     "tests/unit/standards/capture.test.ts": true,
