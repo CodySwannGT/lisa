@@ -1,7 +1,7 @@
 ---
 name: lisa-detect-tooling
 description: "Find the command-line tools a…"
-allowed-tools: ["Bash", "Read", "Edit", "AskUserQuestion"]
+allowed-tools: ["Bash", "Read", "AskUserQuestion"]
 ---
 
 # Detect Tooling
@@ -55,4 +55,6 @@ node scripts/detect-tooling.mjs          # human-readable proposals
 node scripts/detect-tooling.mjs --json   # machine-readable
 ```
 
-Confirm each proposal with the operator before editing `.lisa.config.json`. When a proposal is wrong — the tool is genuinely unused, or arrives another way — say so and move on; a rejected proposal is a normal outcome, not a failure.
+Confirm each proposal with the operator, then hand it to them to apply. **This skill does not hold `Edit`**, deliberately: a skill that both decides a tool is needed and writes the entry that installs it is the second unreviewed install path this design exists to avoid. Granting `Edit` while documenting "writes nothing" would have made the prose the only thing stopping it.
+
+When a proposal is wrong — the tool is genuinely unused, or arrives another way — say so and move on. A rejected proposal is a normal outcome, not a failure.

@@ -17,8 +17,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  declaredTools,
   detectTooling,
-  proposedEntry,
+  proposedEntries,
   toolsFromMcp,
   toolsFromScripts,
   toolsFromSecretNotes,
@@ -77,29 +78,50 @@ describe("proposals", () => {
     // The boundary that keeps this from becoming a second install path. A tool
     // reaches a machine because someone reviewed a pinned entry, never because
     // a detector was confident.
-    const entry = proposedEntry({ name: "maestro" }) as Record<string, string>;
+    const [entry] = proposedEntries({ name: "maestro" }).install as Record<
+      string,
+      string
+    >[];
 
-    expect(entry.version).toBe("<pin>");
-    expect(entry.sha256).toMatch(/^</);
-    expect(entry.url).toMatch(/^</);
+    expect(entry?.version).toBe("<pin>");
+    expect(entry?.sha256).toMatch(/^</);
+    expect(entry?.url).toMatch(/^</);
   });
 
   it("proposes an npm install where the tool ships on npm", () => {
-    const entry = proposedEntry({ name: "playwright" }) as Record<
-      string,
-      string
-    >;
+    const proposal = proposedEntries({ name: "playwright" });
+    const [entry] = proposal.install as Record<string, string>[];
 
-    expect(entry.install).toBe("npm-global");
-    expect(entry.package).toBe("@playwright/test");
+    expect(entry?.install).toBe("npm-global");
+    expect(entry?.package).toBe("@playwright/test");
+    // npm resolves per platform, so no local `require` companion is needed.
+    expect(proposal.require).toHaveLength(0);
   });
 
-  it("marks a pinned archive remote-only", () => {
-    // A Linux release archive must never be offered to a laptop, which is the
-    // concrete reason `surfaces` exists rather than a second config block.
-    const entry = proposedEntry({ name: "maestro" }) as { surfaces: string[] };
+  it("pairs a remote-only archive with a local require entry", () => {
+    // A Linux release archive must never be offered to a laptop — the concrete
+    // reason `surfaces` exists. But narrowing the install to remote without a
+    // local `require` would stop checking for the tool locally at all, trading
+    // one silent gap for another. Both halves or neither.
+    const proposal = proposedEntries({ name: "maestro" });
+    const [install] = proposal.install as { surfaces: string[] }[];
+    const [required] = proposal.require as { surfaces: string[] }[];
 
-    expect(entry.surfaces).toEqual(["remote"]);
+    expect(install?.surfaces).toEqual(["remote"]);
+    expect(required?.surfaces).toEqual(["local"]);
+  });
+
+  it("does not let a local-only declaration hide a missing remote tool", () => {
+    // declaredTools() filtered by name alone, so a `require` entry scoped to
+    // local reported the tool as covered on remote, where it was absent.
+    const config = {
+      remoteEnv: {
+        tools: { require: [{ name: "maestro", surfaces: ["local"] }] },
+      },
+    };
+
+    expect([...declaredTools(config, "local")]).toContain("maestro");
+    expect([...declaredTools(config, "remote")]).not.toContain("maestro");
   });
 });
 

@@ -556,6 +556,40 @@ export function emitClaudeWeb({ bootstrapKey }) {
 }
 
 /**
+ * Report tooling the project appears to need but has not declared.
+ *
+ * Called before the toolchain is applied, because the manifest is the only
+ * thing that puts a binary on PATH and nothing populates it — so provisioning
+ * "the declared toolchain" happily succeeds while the tool a project actually
+ * uses is absent, and fails later at the moment of use instead of here.
+ *
+ * Informational, never blocking. The detector proposes and a human decides, so
+ * an undeclared tool must not stop a setup that was asked to provision what IS
+ * declared; failing here would make a advisory signal into a gate nobody chose.
+ * Its own absence is silent for the same reason: an older installed copy of the
+ * skills has no detector, and that is not a reason to refuse to provision.
+ * @param {Function} [exec] Seam for tests.
+ */
+function reportUndeclaredTooling(exec = execFileSync) {
+  let script;
+  try {
+    script = siblingScript("lisa-detect-tooling", "detect-tooling.mjs");
+  } catch {
+    return;
+  }
+  try {
+    const out = exec("node", [script], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const text = String(out).trim();
+    if (text) console.log(`\n${text}\n`);
+  } catch {
+    // A detector that cannot run is a missing hint, not a failed setup.
+  }
+}
+
+/**
  * Decide which phases this invocation runs.
  *
  * An explicit `--phase` always wins, because that is how a session-start hook
@@ -669,6 +703,7 @@ async function main() {
   }
 
   if (phases.includes("toolchain")) {
+    reportUndeclaredTooling();
     console.log("Toolchain:");
     // A remote container consents by construction: it is disposable, nobody is
     // watching, and provisioning it is why the script exists. Locally the

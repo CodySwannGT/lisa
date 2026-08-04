@@ -174,10 +174,22 @@ export function toolsFromQuality(config) {
  * @param {object|null} config Parsed .lisa.config.json.
  * @returns {Set<string>} Declared tool names.
  */
-export function declaredTools(config) {
+export function declaredTools(config, surface = "remote") {
   const tools = config?.remoteEnv?.tools ?? {};
+  const applies = tool => {
+    const surfaces = tool.surfaces;
+    if (!Array.isArray(surfaces) || surfaces.length === 0) return true;
+    return surfaces.includes(surface);
+  };
+  // Filtered by surface, because a declaration that applies somewhere else is
+  // not coverage here. A local-only `require` entry would otherwise suppress
+  // the proposal for a tool genuinely missing from the remote manifest — the
+  // detector reporting "already declared" about the one surface where it is
+  // not.
   return new Set(
-    [...(tools.require ?? []), ...(tools.install ?? [])].map(t => t.name)
+    [...(tools.require ?? []), ...(tools.install ?? [])]
+      .filter(applies)
+      .map(tool => tool.name)
   );
 }
 
@@ -220,27 +232,48 @@ export function detectTooling(cwd = process.cwd()) {
 }
 
 /**
- * A manifest entry an operator can paste, with the parts only they can supply.
+ * The manifest entries an operator can paste, with the parts only they supply.
+ *
+ * Returns both lists because a platform-specific archive needs both: an
+ * `install` entry for the surface it is built for, and a `require` entry so the
+ * other surface still asserts the tool instead of silently ignoring it.
  * @param {{name: string}} proposal One detected tool.
- * @returns {object} A `remoteEnv.tools.install` skeleton.
+ * @returns {{install: object[], require: object[]}} Manifest skeletons.
  */
-export function proposedEntry(proposal) {
+export function proposedEntries(proposal) {
   const viaNpm = KNOWN_TOOLS[proposal.name]?.viaNpm;
-  return viaNpm
-    ? {
-        name: proposal.name,
-        install: "npm-global",
-        package: viaNpm,
-        version: "<pin>",
-      }
-    : {
+  if (viaNpm) {
+    // npm resolves per platform, so one entry serves every surface.
+    return {
+      install: [
+        {
+          name: proposal.name,
+          install: "npm-global",
+          package: viaNpm,
+          version: "<pin>",
+        },
+      ],
+      require: [],
+    };
+  }
+  // A release archive is built for one platform, so it is proposed as
+  // remote-install plus a local `require`. Proposing only the install entry
+  // produced a manifest that either offered a Linux binary to a laptop or —
+  // once narrowed to remote — stopped checking for the tool locally at all.
+  // Both halves or neither.
+  return {
+    install: [
+      {
         name: proposal.name,
         version: "<pin>",
         install: "release-tar",
-        url: "<release url for this exact version>",
+        url: "<release url for this exact version, for the remote platform>",
         sha256: "<sha256 published with that release>",
         surfaces: ["remote"],
-      };
+      },
+    ],
+    require: [{ name: proposal.name, surfaces: ["local"] }],
+  };
 }
 
 if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
@@ -261,7 +294,14 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
       for (const evidence of proposal.evidence) {
         console.log(`    evidence: ${evidence}`);
       }
-      console.log(`    proposed: ${JSON.stringify(proposedEntry(proposal))}\n`);
+      const entries = proposedEntries(proposal);
+      for (const entry of entries.install) {
+        console.log(`    tools.install: ${JSON.stringify(entry)}`);
+      }
+      for (const entry of entries.require) {
+        console.log(`    tools.require: ${JSON.stringify(entry)}`);
+      }
+      console.log("");
     }
     console.log(
       "Nothing has been written or installed. Confirm each entry, supply the\n" +

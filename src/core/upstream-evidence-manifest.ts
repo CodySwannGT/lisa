@@ -849,9 +849,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
-      "107f92e48d78d4ec707fdc3ac84862a30d5e6bf8b5d9c64a953648a36cbabb47",
+      "e29b3b8ebc256468bb67e5d10e2ae3cb4eda9ba20dfd2e065201b00864134734",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
-      "f3cc865fbc88755bcf83bb8cc8dc94dda97321ede7ee6265c4021b57c610a75c",
+      "043c3f59d6a7a21a3ab4fce8ae8dc88e8650c19c5a57bba40f567c5257684747",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
@@ -1139,9 +1139,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c04afb1cf8e14a2713645228e679fa7772559488330a240ec0297cae6afd03e2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "ef2a9de46233315f382f5ad74b6dbcd81eb50223abbe335d449b4fdff8db5794",
+      "eb8017ee2eef5b5b166908e5c2fccf493af283b0a40717688033d65263cf35ce",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "3e523c7056746fabb127b5b0942d3512eb6d77eb0261eb7273ada96633204e65",
+      "341e8058e1d20e7e52276007aae9ceda1504b995615cf8421c9494b60b550ef9",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":

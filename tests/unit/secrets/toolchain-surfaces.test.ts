@@ -40,6 +40,18 @@ describe("one manifest, many surfaces", () => {
     expect(appliesToSurface({ name: "jq" }, "remote")).toBe(true);
   });
 
+  it("refuses a malformed surfaces value instead of widening scope", () => {
+    // Treating any non-array as "omitted" meant `surfaces: "remote"` — an easy
+    // thing to write — quietly applied to every surface, which for a
+    // platform-specific archive means offering a Linux binary to a laptop.
+    expect(() =>
+      appliesToSurface({ name: "gh", surfaces: "remote" }, "local")
+    ).toThrow(/must be an array/);
+    expect(() =>
+      appliesToSurface({ name: "gh", surfaces: ["cloud"] }, "local")
+    ).toThrow(/unknown surface/);
+  });
+
   it("honours an explicit surface list", () => {
     const tool = { name: "gh", surfaces: ["remote"] };
 
@@ -60,6 +72,9 @@ describe("one manifest, many surfaces", () => {
     // Still asserted there, so a missing tool is loud rather than discovered
     // at the moment of use.
     expect(local.map(step => step.name)).toContain("gh");
+    // bws too: asserting only one left the test passing if the other's local
+    // require entry were dropped.
+    expect(local.map(step => step.name)).toContain("bws");
   });
 
   it("still installs them remotely", () => {
