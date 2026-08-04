@@ -679,7 +679,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/tool-access-gate.md":
       "a5413a43ec353f768586e0a1cde3836db025cb5d8b80821020602995e71aa296",
     "plugins/src/base/rules/eager/tracked-work.md":
-      "ab784db4efee993e28dd2b9c8696f19ee049222890b0cae977bff5435f698aff",
+      "ae5177a3ce321007dfc03f44974f25110aed578bcdf2283d5c5f12c838f82673",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "eb8b37e789423dba78e3a77951db087c4d3f56a88478b63107ec6b9ddbf23b13",
     "plugins/src/base/rules/eager/usage-accounting.md":
@@ -755,7 +755,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/tool-access-gate.md":
       "70fcd6cd92dc003a40886b1bef02540e6401f5b70ba97308d42bbbddc0206eab",
     "plugins/src/base/rules/reference/tracked-work.md":
-      "cc956e7a61d8f65bfc4e0e3bc4c3da1b5a9e541683aa17dc1850979d04abac24",
+      "85fb31a5d7aad44d04592bb7feea7ad02808eeeb6950639ad452fcec1bc3c86b",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "dcf07f8eba66aaf1d132bfaeff73cbf7576279822893235a3c3f8cbc4a4a3323",
     "plugins/src/base/rules/reference/usage-accounting.md":
