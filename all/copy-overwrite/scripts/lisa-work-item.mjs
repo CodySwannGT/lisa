@@ -15,6 +15,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
@@ -26,6 +27,69 @@ const GUIDANCE = [
 ].join("\n");
 
 class TrackingError extends Error {}
+
+/**
+ * Say which of three different failures a `gh` invocation actually hit.
+ *
+ * The three are indistinguishable from an exit status alone, and they send the
+ * reader to three different places: a missing binary is an environment to
+ * provision, a refused credential is an access grant to obtain, and only the
+ * third is anything to do with the ticket.
+ *
+ * Collapsing them cost a real round trip. On Claude Code web, where `gh` is not
+ * pre-installed, every commit was refused with "issue #2202 does not exist or
+ * is inaccessible" — about an issue that was open and correct. The message
+ * accused the ticket, so that is where the reader went.
+ * @param {{status: number|null, error?: Error, stderr?: string}} result Spawn result.
+ * @param {string} ref Work item reference, for the message.
+ * @param {string} noun What the reference names.
+ * @returns {string} A message naming the actual fault.
+ */
+export class TrackerUnreachableError extends TrackingError {}
+
+/**
+ * Turn a failed `gh` invocation into the right kind of refusal.
+ *
+ * The distinction is the whole point: a missing binary or a refused credential
+ * means the tracker could not be ASKED, while a "no" from the tracker is an
+ * answer. Absence of evidence is not evidence of absence, and only the first
+ * kind may be degraded — treating them alike would either strand finished work
+ * or wave through an item that genuinely is not committable.
+ * @param {{status: number|null, error?: Error, stderr?: string}} result Spawn result.
+ * @param {string} ref Work item reference.
+ * @returns {Error} The error to throw.
+ */
+export function githubFailure(result, ref) {
+  const reason = githubFailureReason(result, ref, "GitHub issue");
+  const unreachable =
+    result.error?.code === "ENOENT" || /cannot authenticate/.test(reason);
+  return unreachable
+    ? new TrackerUnreachableError(reason)
+    : new TrackingError(reason);
+}
+
+export function githubFailureReason(result, ref, noun) {
+  if (result.error?.code === "ENOENT") {
+    return (
+      `the GitHub CLI (gh) is not installed, so ${noun} ${ref} could not be ` +
+      `checked.\nThis is an environment gap, not a problem with the work item. ` +
+      `Pin gh in remoteEnv.tools.install for surfaces that lack it.`
+    );
+  }
+  const stderr = String(result.stderr ?? "");
+  if (
+    /not enabled for this session|gh auth login|HTTP 40[13]|Bad credentials|authentication/i.test(
+      stderr
+    )
+  ) {
+    return (
+      `the GitHub CLI cannot authenticate, so ${noun} ${ref} could not be ` +
+      `checked.\nThis is a credential gap, not a problem with the work item.` +
+      `\n${stderr.trim().slice(0, 300)}`
+    );
+  }
+  return `${noun} ${ref} does not exist or is inaccessible`;
+}
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -536,10 +600,7 @@ function githubIssue(ref, contract) {
       allowFailure: true,
     }
   );
-  if (result.status !== 0)
-    throw new TrackingError(
-      `GitHub issue ${ref} does not exist or is inaccessible`
-    );
+  if (result.status !== 0) throw githubFailure(result, ref);
   const issue = safeJson(result.stdout, `GitHub issue ${ref}`);
   if (String(issue.number) !== number)
     throw new TrackingError(`GitHub returned the wrong issue for ${ref}`);
@@ -775,10 +836,48 @@ function linearIssue(ref, contract) {
   return issue;
 }
 
+/**
+ * Ask the tracker whether this work item may be committed against.
+ *
+ * When the tracker cannot be REACHED, the live checks are reported as skipped
+ * rather than enforced or silently dropped. Everything checkable without a
+ * network — the trailer is present, well formed, and matches this branch's
+ * binding — has already run by the time this is called, and the semantic
+ * checks it cannot do here are re-run in CI by a REQUIRED status check
+ * ("Work-Item Traceability"), with credentials, before anything can merge.
+ *
+ * So the guarantee is not lost; it moves to a gate that cannot be bypassed.
+ * That is the whole justification, and it holds only while that check stays
+ * required — if it is ever made optional, this degradation becomes a hole.
+ *
+ * The alternative was worse in both directions. Refusing outright strands
+ * finished, green work on any surface without a GitHub credential — a cloud
+ * container, for one — and the agent's only remaining move is a bypass that
+ * skips the offline checks too. Enforcing nothing hides the difference between
+ * "could not ask" and "the tracker said no".
+ * @param {string} ref Work item reference.
+ * @param {object} [contract] Tracker contract.
+ * @returns {object|undefined} The live item, or undefined when unreachable.
+ */
 function validateLive(ref, contract = trackerContract()) {
-  if (contract.provider === "github") return githubIssue(ref, contract);
-  if (contract.provider === "jira") return jiraIssue(ref, contract);
-  return linearIssue(ref, contract);
+  try {
+    if (contract.provider === "github") return githubIssue(ref, contract);
+    if (contract.provider === "jira") return jiraIssue(ref, contract);
+    return linearIssue(ref, contract);
+  } catch (error) {
+    if (!(error instanceof TrackerUnreachableError)) throw error;
+    // Loud on stderr, never silent: a degradation nobody sees is the failure
+    // mode this exists to avoid, not a milder version of it.
+    console.error(
+      `\n⚠️  Work-item live validation SKIPPED for ${ref}.\n` +
+        `${error.message}\n\n` +
+        `The offline checks still ran: the trailer is present, well formed and ` +
+        `bound to this branch.\nWhat could not be checked here — that the item ` +
+        `is open, claimed and a leaf — is re-run\nwith credentials by the ` +
+        `required "Work-Item Traceability" check before this can merge.\n`
+    );
+    return undefined;
+  }
 }
 
 function textContainsBacklink(value, prUrl) {
@@ -797,6 +896,18 @@ function assertBacklink(
   contract,
   issue = validateLive(ref, contract)
 ) {
+  // The PR check never degrades, because it IS the re-check the local hooks
+  // degrade in favour of. A required status check that passes when it could
+  // not reach the tracker would make the whole arrangement circular: local
+  // defers to CI, CI defers to nothing.
+  if (!issue) {
+    throw new TrackingError(
+      `cannot verify ${ref} against the tracker, and this check is the one ` +
+        `that must.\nLocal hooks may skip live validation when the tracker ` +
+        `is unreachable; this check may not,\nbecause it is what they defer ` +
+        `to. Fix the tracker credential for this run.`
+    );
+  }
   if (contract.provider === "github") {
     const native = (issue.closedByPullRequestsReferences ?? []).some(
       pr => pr.url === prUrl
@@ -1165,12 +1276,40 @@ function main() {
   );
 }
 
-try {
-  main();
-} catch (error) {
-  const detail = error instanceof Error ? error.message : String(error);
-  console.error(
-    `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
-  );
-  process.exitCode = 1;
+/**
+ * Run the CLI, reporting any refusal the way the Git hooks expect.
+ *
+ * Exported so the thin entrypoint at `scripts/lisa-work-item.mjs` can invoke it
+ * explicitly. That entrypoint re-exports this module rather than duplicating
+ * it, so inside here `import.meta.url` names THIS file while `argv[1]` names
+ * the entrypoint — the two never match, and a guard comparing them would leave
+ * Lisa's own hooks doing nothing at all, silently and with exit 0. An exported
+ * call is unambiguous where a path comparison is a guess.
+ */
+export function runCli() {
+  try {
+    main();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error(
+      `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
+    );
+    process.exitCode = 1;
+  }
+}
+
+// Only when invoked as a program. Running on import made every function here
+// unreachable from a test: importing the module executed the CLI, so the only
+// way to exercise any of it was to spawn a process and drive it through the
+// filesystem and PATH. That is why a bug in the message above shipped — the
+// branch that produced it had no way to be asserted on.
+//
+// This branch covers a host project, where the file is copied to
+// `scripts/lisa-work-item.mjs` and invoked directly. Lisa's own checkout keeps
+// a re-exporting entrypoint instead, which calls runCli() itself.
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  runCli();
 }

@@ -108,6 +108,14 @@ The selection comes from the surface's `materializeAt` capability in `lisa-secre
           "sha256": "<sha256 published with that exact release>"
         },
         {
+          "name": "gh",
+          "version": "2.83.0",
+          "install": "release-tar",
+          "url": "https://<vendor>/releases/download/v2.83.0/gh_2.83.0_linux_amd64.tar.gz",
+          "sha256": "<sha256 published with that exact release>",
+          "binary": "gh_2.83.0_linux_amd64/bin/gh"
+        },
+        {
           "name": "codex",
           "version": "0.144.6",
           "install": "npm-global",
@@ -132,6 +140,22 @@ The selection comes from the surface's `materializeAt` capability in `lisa-secre
 **`install`** — provision it, pinned and checksummed. Only for what genuinely is not there.
 
 Expected shape for most projects: a short `require` list, an empty or near-empty `install` list, and the provider CLI as the only thing always provisioned.
+
+### The three `install` methods
+
+| `install` | Required fields | Use it when |
+| --- | --- | --- |
+| `release-zip` | `url` **and** `sha256` | The vendor publishes a Linux zip of the release. |
+| `release-tar` | `url` **and** `sha256` — plus `binary` in practice | The vendor publishes no zip for Linux, only a `.tar.gz`. |
+| `npm-global` | `package` | The tool ships on the npm registry. |
+
+Anything else is rejected by name at plan time, so a typo fails loudly rather than silently installing nothing.
+
+Both archive kinds carry the **same** obligation and differ only in how they are unpacked: `url` and `sha256` are both mandatory, the checksum is verified *before* the archive is unpacked, and a version bump must move the checksum in the same reviewed commit. Neither is a weaker path than the other — `release-tar` exists because some tools worth pinning simply do not publish a zip. `gh` is the case that forced it: it ships `.deb`, `.rpm` and `.tar.gz` and nothing else, so a zip-only installer could not pin the CLI that Lisa's own commit guardrails shell out to.
+
+**`binary` means something different for a tarball.** It defaults to the tool's `name` and is resolved relative to the unpacked directory. Release tarballs almost always nest their contents under a versioned top-level directory, so for `release-tar` it must be the path *within* the archive — `gh_2.83.0_linux_amd64/bin/gh`, not `gh`. A bare name there resolves to nothing after a download that otherwise succeeded, and the install fails at the copy step rather than at the fetch, which reads as a broken release when it is a manifest mistake. Bump the version and this path moves with it, alongside the `url` and the `sha256`.
+
+Because `release-tar` unpacks with `tar` rather than `unzip`, a project using it should assert `tar` in its `require` list the same way a zip-installing project asserts `unzip` — the base image providing it is an assumption, not a contract.
 
 ### Rules
 
