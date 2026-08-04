@@ -42,18 +42,57 @@ const forbiddenBasenames = new Set([
   ".mcp.json",
   "audit.local",
 ]);
-const canonicalOriginUrls = new Set([
-  "https://github.com/CodySwannGT/lisa.git",
-  "https://github.com/CodySwannGT/lisa",
-  "git@github.com:CodySwannGT/lisa.git",
-]);
+/** The repository this manifest may be generated from. Not a URL — see below. */
+const canonicalRepository = "CodySwannGT/lisa";
 
-const originUrl = execFileSync("git", ["remote", "get-url", "origin"], {
-  cwd: repoRoot,
-  encoding: "utf8",
-}).trim();
-if (!canonicalOriginUrls.has(originUrl)) {
-  throw new Error(`Refusing non-canonical Lisa origin: ${originUrl}`);
+/**
+ * The `owner/repo` an origin URL points at, or null if it names none.
+ *
+ * The guard exists to refuse hash-pinning from a fork, which is a question
+ * about **identity**. It used to compare the whole origin URL against a list of
+ * spellings, which answers a question about **transport** instead — and the two
+ * come apart in ordinary situations, not just exotic ones. `remote.origin.url`
+ * and `remote.origin.pushurl` can differ, `url.<base>.insteadOf` rewrites what
+ * `git remote get-url` returns, and a cloud container clones through a local
+ * git proxy. All three are proxied checkouts of the real repository, and all
+ * three were refused before a single hash was checked.
+ *
+ * Comparing the path keeps the property that matters: a fork is
+ * `someone-else/lisa` and is still refused, while `https://…`, `git@…` and
+ * `http://local_proxy@127.0.0.1:PORT/git/…` all resolve to the same identity.
+ * @param {string} url Whatever `git remote get-url` returned.
+ * @returns {string|null} `owner/repo`, lowercased, or null.
+ */
+function repositoryPath(url) {
+  // scp-style (git@host:owner/repo.git) is not a URL, so it is handled first.
+  const scp = /^[^/]+@[^:/]+:(?<path>.+)$/u.exec(url);
+  const raw =
+    scp?.groups?.path ?? (URL.canParse(url) ? new URL(url).pathname : null);
+  if (raw === null) return null;
+  const segments = raw
+    .replace(/\.git$/u, "")
+    .split("/")
+    .filter(Boolean);
+  if (segments.length < 2) return null;
+  return segments.slice(-2).join("/").toLowerCase();
+}
+
+// The configured value rather than the resolved one, for the same reason the
+// comparison is by path: `url.<base>.insteadOf` rewrites what `git remote
+// get-url` returns, so it answers "how do I reach this" rather than "what is
+// this". Falls back to the resolved URL only if no value is configured.
+const originUrl = execFileSync(
+  "git",
+  ["config", "--get", "remote.origin.url"],
+  { cwd: repoRoot, encoding: "utf8" }
+).trim();
+if (repositoryPath(originUrl) !== canonicalRepository.toLowerCase()) {
+  throw new Error(
+    `Refusing to generate from a non-canonical repository.\n` +
+      `origin resolves to: ${repositoryPath(originUrl) ?? "(no owner/repo)"}\n` +
+      `expected:           ${canonicalRepository}\n` +
+      `(origin URL was: ${originUrl})`
+  );
 }
 
 const tracked = execFileSync("git", ["ls-files", "-z"], {

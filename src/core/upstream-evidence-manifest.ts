@@ -1943,7 +1943,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "d8806197a723f0c2b50a8155ffc5b6f0abc30c68dc2385cb80b0dd066d061231",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "3fda910de51aa51def6c7cee276c471cc50cb7cb72478bee5495341d67409a97",
+      "de1eb5adaa6252b4abe5859933bff0ab2a52e19cc5a3fc5a41018fbb57b766d1",
     "scripts/github-status-check.sh":
       "876914c369c5bd58f4a5f3c41d0c1264c6923f329a644f90640d15b434a0fbd1",
     "scripts/install-claude-plugins.sh":

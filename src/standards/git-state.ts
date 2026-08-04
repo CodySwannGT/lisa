@@ -34,8 +34,17 @@ export async function readStandardsGitState(
     .split("\n")
     .map(value => value.trim())
     .filter(Boolean);
+  // `git config --get-all` returns the CONFIGURED value; `git remote get-url`
+  // returns it after `url.<base>.insteadOf` rewriting. Identity must be what
+  // the repository is, not how this machine happens to reach it — a proof
+  // captured behind a mirror or a cloud container's git proxy otherwise records
+  // a different repository than the same commit captured on a laptop, and the
+  // two proofs stop comparing. Verified: with a global
+  // `url."http://proxy/git/".insteadOf https://github.com/`,
+  //   git config --get remote.origin.url -> https://github.com/acme/project.git
+  //   git remote get-url origin          -> http://proxy/git/acme/project.git
   const remoteUrls = remoteNames.includes("origin")
-    ? (await git(root, ["remote", "get-url", "--all", "origin"]))
+    ? (await git(root, ["config", "--get-all", "remote.origin.url"]))
         .split("\n")
         .map(value => value.trim())
         .filter(Boolean)
