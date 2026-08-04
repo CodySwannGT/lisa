@@ -167,14 +167,14 @@ read_state() {  # $1=role path (e.g. ready, done.dev) $2=default
 
 Enumerate the team's states with `lisa-linear-access operation: list-workflow-states` (each carries `id`, `name`, `type`, `position`). For each role, resolve in this order — the same cascade `lisa-setup-jira` uses, with one extra rung Linear affords that JIRA does not:
 
-1. **Exact name match** → resolved, nothing to do.
+1. **Exact name match** → resolved, nothing to do. For `ready`, additionally refuse to resolve onto the team's DEFAULT state (`Todo` on a stock team): that inverts the gate from "a human flipped this" to "nobody has touched this" and makes every untouched backlog item claimable. Offer to create a dedicated state instead.
 2. **A plausible existing state of the right `type`** (`ready` → `unstarted`, `claimed`/`review` → `started`, `blocked` → `started` or `unstarted`, terminal `done` → `completed`) → present the team's state list via `AskUserQuestion` and let the user pick which state means this role. Record the choice as a config override in Step 4.
 3. **Nothing plausible** → offer to **create** the state via `lisa-linear-access operation: create-workflow-state` (name, `type`, `position`, colour), showing the exact name and type first. Linear's API permits this where JIRA's workflow editing is admin-gated — which is why this rung exists here and not there.
 4. **User declines creation** → stop and say which role is unresolvable and that the lifecycle cannot run without it. Never silently fall back to a state whose meaning differs, and never invent a name in config that does not exist in the team.
 
 | Role | Default state | `type` | Ships with a stock team? |
 |------|---------------|--------|--------------------------|
-| `ready` | `Todo` | `unstarted` | yes |
+| `ready` | `Ready` | `unstarted` | **no — must be created or mapped** |
 | `claimed` | `In Progress` | `started` | yes |
 | `review` | `In Review` | `started` | yes |
 | `blocked` | `Blocked` | `unstarted` | **no — must be created or mapped** |

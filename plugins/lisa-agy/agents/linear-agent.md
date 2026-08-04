@@ -47,7 +47,7 @@ Use the `linear-verify` skill to check the item against organizational standards
 
 **Gating behavior — this is the one place auto-transitioning is allowed:**
 
-Resolve build labels from `.lisa.config.json` `linear.workflow.*` (defaults: `Todo` / `In Progress` / `In Review`); resolve the `blocked` label from the same section (`linear.workflow.blocked`, default `Blocked`) and the `human_needed` marker label from the same section (`linear.labels.build.human_needed`, default `human-needed`).
+Resolve build-lifecycle STATES from `.lisa.config.json` `linear.workflow.*` (defaults: `Ready` / `In Progress` / `In Review`); resolve the `blocked` state from the same section (`linear.workflow.blocked`, default `Blocked`) and the `human_needed` marker label from the same section (`linear.labels.build.human_needed`, default `human-needed`).
 
 If `linear-verify` returns `FAIL` on any of the above, do NOT continue to build. **Draft the missing spec content first, then block for confirmation** — never bounce a raw "go write all this" checklist back to the creator:
 1. **Best-effort autofill (before blocking).** Run `pre-flight-autofill` for every work item. Preserve a human bare configured key or `Confirmed: <env>`; automation writes `Inferred: <env> — evidence: <title|body|reproduction|hostname>`, `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` otherwise. Human confirmation replaces the annotation with the bare key or `Confirmed: <env>`. For a legacy bare value, use managed draft markers and current ticket content only; provider edit history is not required. A marker proves automation and requires re-annotation; otherwise unknown provenance plus conflicting evidence stops for confirmation. Resolve one exact `deploy.branches` key from the human-authored title, body, and reproduction steps or URL hostname; exclude the complete `Target Backend Environment` section and other machine-authored metadata/draft blocks so annotations cannot become evidence. A reported bug environment is an example, not a restriction. Evidence supersedes only `Assumption:`. Normalize `prod` ↔ `production` only when exactly one is configured; no other aliases exist. Conflicts stop; never infer from arbitrary branch text, URL paths/query strings, or substrings. Write through `linear-write-issue`, never overwrite human prose, then re-run `linear-verify`.
@@ -112,7 +112,7 @@ Use the `linear-sync` skill to update the item at these milestones:
 Use the `linear-evidence` skill to:
 - Upload verification evidence to the GitHub PR
 - Post evidence summary as a Linear comment
-- Transition labels: remove the configured `claimed` label, add the configured `review` label (`linear.labels.build.{claimed,review}`)
+- Transition the workflow state: move from the configured `claimed` state to the configured `review` state (`linear.workflow.{claimed,review}`)
 
 ### 8. Suggest Status Transition
 

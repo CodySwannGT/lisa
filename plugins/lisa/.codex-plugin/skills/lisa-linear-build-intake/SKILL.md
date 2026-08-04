@@ -30,7 +30,7 @@ read_role() {
   echo "${local_v:-${global_v:-$default}}"
 }
 
-READY=$(read_role ready "Todo")
+READY=$(read_role ready "Ready")
 CLAIMED=$(read_role claimed "In Progress")
 REVIEW=$(read_role review "In Review")
 BLOCKED=$(read_role blocked "Blocked")
@@ -68,7 +68,7 @@ else
 fi
 ```
 
-In prose below, the role names refer to the resolved **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to (default: `Todo`).
+In prose below, the role names refer to the resolved **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to (default: `Ready`).
 
 ## Why native states, not labels
 
@@ -110,7 +110,7 @@ ready → claimed → review → done(env-keyed) (downstream)
 (human/PM)    (us claim)    (us PR ready)    (us build done)
 ```
 
-(Defaults: `Todo` / `In Progress` / `In Review` / `On Dev`/`On Stg`/`Done`.)
+(Defaults: `Ready` / `In Progress` / `In Review` / `On Dev`/`On Stg`/`Done`.)
 
 This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches the terminal production `done`, `$REVIEW` (owned by the lifecycle / `lisa-linear-evidence`), or `$BLOCKED` (owned by the pre-flight gate).
 
@@ -152,7 +152,7 @@ A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructu
 
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 
-Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still sits in the build-ready state (e.g. moved to `$READY` before this rule existed, or hand-moved on a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa-linear-write-issue` and the validate-time S15 gate in `lisa-linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
+Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still sits in the build-ready state (e.g. moved to `$READY` before this rule existed, or hand-moved on a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time state assignment in `lisa-linear-write-issue` and the validate-time S15 gate in `lisa-linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
 Run this gate **before** the claim transition, starting with the oldest/highest-priority ready candidate. Do NOT transition, comment "Claimed", or dispatch the lifecycle for an Issue that fails the gate.
 
@@ -197,11 +197,11 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 **Rejection detection runs first — before the transition below.** Per the vendor-neutral `rejection-detection` rule (cite the slug; do not restate its classification table), classify this Issue at the **top of 3b, BEFORE** the `$READY → $CLAIMED` transition — afterwards the current-lane signal is gone. Read the Issue's history via `lisa-linear-access operation: history id: <ISSUE-ID>`, keyed on **workflow-state** history, and classify it `rejection-reclaim | forward-only | never-left-ready | unknown` (a `rejection-reclaim` is a move back into `$READY` from a later lane). State names come from `.lisa.config.json`, never hardcoded.
 
-> Reading state history is strictly simpler than the label history this used to key on: `IssueHistory` inlines `fromState.name` / `toState.name` on each node, so the transition is read directly with no label-ID resolution against `list-issue-labels` and no reconstruction from `addedLabelIds`/`removedLabelIds` deltas. That reconstruction was lossy — the deltas carry no prior/next full set — which is one more reason the build lane moved to states. A failing/absent history yields `unknown` and the claim proceeds — detection never blocks the build. Issues carrying a learning marker (`[lisa-learning-drop]` / `[lisa-learning-pr]` / `[lisa-learning-upstream-handoff]`) or the `learning:needs-triage` label are never rejection triggers (no learning-about-learning). Carry the classification into the relabel and lifecycle below.
+> Reading state history is strictly simpler than the label history this used to key on: `IssueHistory` inlines `fromState.name` / `toState.name` on each node, so the transition is read directly with no label-ID resolution against `list-issue-labels` and no reconstruction from `addedLabelIds`/`removedLabelIds` deltas. That reconstruction was lossy — the deltas carry no prior/next full set — which is one more reason the build lane moved to states. A failing/absent history yields `unknown` and the claim proceeds — detection never blocks the build. Issues carrying a learning marker (`[lisa-learning-drop]` / `[lisa-learning-pr]` / `[lisa-learning-upstream-handoff]`) or the `learning:needs-triage` label are never rejection triggers (no learning-about-learning). Carry the classification into the transition and lifecycle below.
 
 **On `rejection-reclaim`, reflect before re-implementing** (per `rejection-detection`): read the rejection evidence through the access layer — the Issue comments posted after the backward transition (the QA rejection comment) via `lisa-linear-access operation: list-comments` and the review threads on the rejected PR — assemble ONE candidate learning (rule, why, provenance linking the rejection comment + rejected PR, evidence links, scope hint, triggering issue, fingerprint `sll4-sha1(rule\ntriggering_issue)[:12]`), and route it to the `lisa-persist-learning` skill. If that skill is absent, record the candidate via `lisa-linear-access operation: save-comment` as a comment carrying a **visible prose line plus** the marker (a bare marker renders as an empty bubble) — `Recorded a candidate learning from this rejection (queued for the judgment gate): <one-line candidate rule>.` then `<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->` — and proceed. Dedupe on `<issue>-<backward-transition-timestamp>` — a second re-claim produces no duplicate. Unreadable/absent evidence → no candidate, still implement.
 
-**Claim-time archaeology runs second — after rejection detection, still before the relabel below.** Classify this Issue per the vendor-neutral `claim-archaeology` rule, with the rejection classification above as its input. All shared semantics — ancestry signals, classification, learning-loop exclusion, cost budget, candidate derivation, marker dedupe, and the never-block degrade — live in that one slug; change them there, never here. Linear wiring only: the native relations are already in the read bundle; text-similarity searches run through `lisa-linear-access operation: list-issues` filtered to recently-closed Issues; the fallback candidate comment is posted via `lisa-linear-access operation: save-comment`.
+**Claim-time archaeology runs second — after rejection detection, still before the transition below.** Classify this Issue per the vendor-neutral `claim-archaeology` rule, with the rejection classification above as its input. All shared semantics — ancestry signals, classification, learning-loop exclusion, cost budget, candidate derivation, marker dedupe, and the never-block degrade — live in that one slug; change them there, never here. Linear wiring only: the native relations are already in the read bundle; text-similarity searches run through `lisa-linear-access operation: list-issues` filtered to recently-closed Issues; the fallback candidate comment is posted via `lisa-linear-access operation: save-comment`.
 
 Transition the Issue via `lisa-linear-access operation: save-issue` by setting `stateId` to the `$CLAIMED` state. Resolve state IDs via `list-workflow-states`; a missing `$CLAIMED` state is a setup defect (see the pre-flight check) — never create one here.
 
@@ -355,9 +355,9 @@ Total PRs opened: <n>
 
 ## Adoption (one-time per team)
 
-Before this skill can run against a Linear team, the team must have the build-queue workflow states. Run `/lisa:setup:linear`, which resolves each role and offers to create what is missing — a stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but **not** `Blocked`, `On Dev` or `On Stg`.
+Before this skill can run against a Linear team, the team must have the build-queue workflow states. Run `/lisa:setup:linear`, which resolves each role and offers to create what is missing — a stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but **not** `Ready`, `Blocked`, `On Dev` or `On Stg`.
 
-1. Ensure states exist for every role in `linear.workflow` (defaults `Todo`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`). Override any role name in config rather than renaming to match.
+1. Ensure states exist for every role in `linear.workflow` (defaults `Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`). Note `ready` is a DEDICATED state, not Linear's default `Todo` — mapping it to the default would make every untouched backlog item claimable. Override any role name in config rather than renaming to match.
 2. Move Issues to `$READY` when they are ready for development.
 3. Reserve `$CLAIMED`, `$REVIEW`, `$DONE` for Lisa — humans should not set them manually except to recover from an error.
 4. Remove the team's `merge → Done` git automation. It is a second writer that jumps an Issue to terminal on a `dev` merge, skipping the env rungs; `/lisa:setup:linear` detects and offers to delete it.

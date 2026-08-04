@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.329.0](https://github.com/CodySwannGT/lisa/compare/v2.328.5...v2.329.0) (2026-08-04)
+
+
+### Features
+
+* **setup:** add lisa-setup-workstation for repo-agnostic machine bootstrap ([a7fdf1f](https://github.com/CodySwannGT/lisa/commit/a7fdf1ffeea45388262e5604fa0788786de3c744)), closes [CodySwannGT/lisa#2286](https://github.com/CodySwannGT/lisa/issues/2286)
+
+### [2.328.5](https://github.com/CodySwannGT/lisa/compare/v2.328.4...v2.328.5) (2026-08-04)
+
+
+### Bug Fixes
+
+* **detect-tooling:** discover tools no allowlist mentions, and read git hooks ([f248cdd](https://github.com/CodySwannGT/lisa/commit/f248cdd8a9313505eac5e1797f3cf2ff737723e4)), closes [CodySwannGT/lisa#2289](https://github.com/CodySwannGT/lisa/issues/2289)
+
+### [2.328.4](https://github.com/CodySwannGT/lisa/compare/v2.328.3...v2.328.4) (2026-08-04)
+
+
+### Bug Fixes
+
+* **linear:** clear the last relabel wording and a stale Todo default ([8e7f7d6](https://github.com/CodySwannGT/lisa/commit/8e7f7d66b1d611fa0329475b307fca991b29fe85)), closes [#2277](https://github.com/CodySwannGT/lisa/issues/2277) [CodySwannGT/lisa#2276](https://github.com/CodySwannGT/lisa/issues/2276)
+* **linear:** complete the state migration in the claim flow and write default ([ba3090a](https://github.com/CodySwannGT/lisa/commit/ba3090a6a4ffbf222d1a0aa2809e8fbd520b7952)), closes [#2277](https://github.com/CodySwannGT/lisa/issues/2277) [CodySwannGT/lisa#2276](https://github.com/CodySwannGT/lisa/issues/2276)
+* **linear:** finish the label-to-state sweep in the sync and agent artifacts ([d008b15](https://github.com/CodySwannGT/lisa/commit/d008b15170aecffd11271b6923cba94c1a7f77ae)), closes [#2277](https://github.com/CodySwannGT/lisa/issues/2277) [CodySwannGT/lisa#2276](https://github.com/CodySwannGT/lisa/issues/2276)
+* **linear:** map `ready` to a dedicated state, not the team default ([137c8c8](https://github.com/CodySwannGT/lisa/commit/137c8c87eb2c501a144ae9661ca0e44fa7ddacb8)), closes [#2271](https://github.com/CodySwannGT/lisa/issues/2271) [CodySwannGT/lisa#2276](https://github.com/CodySwannGT/lisa/issues/2276)
+* **linear:** resolve build roles from linear.workflow in the queue resolver ([bc67111](https://github.com/CodySwannGT/lisa/commit/bc671119671d843fde410075ea9e29d09c72c0bd)), closes [#2277](https://github.com/CodySwannGT/lisa/issues/2277) [CodySwannGT/lisa#2276](https://github.com/CodySwannGT/lisa/issues/2276)
+
+### [2.328.3](https://github.com/CodySwannGT/lisa/compare/v2.328.2...v2.328.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **usage-accounting:** flag missing rollup token on zero-entry sections ([260fe5d](https://github.com/CodySwannGT/lisa/commit/260fe5de908c161cc5680b002b3494e36a968d41)), closes [CodySwannGT/lisa#2283](https://github.com/CodySwannGT/lisa/issues/2283)
+* **usage-accounting:** render entry tokens off the table row ([56f0a54](https://github.com/CodySwannGT/lisa/commit/56f0a54b832e42447fcd5a6f225acac6a3762d41)), closes [CodySwannGT/lisa#2283](https://github.com/CodySwannGT/lisa/issues/2283) [CodySwannGT/lisa#2283](https://github.com/CodySwannGT/lisa/issues/2283)
+
 ### [2.328.2](https://github.com/CodySwannGT/lisa/compare/v2.328.1...v2.328.2) (2026-08-04)
 
 
