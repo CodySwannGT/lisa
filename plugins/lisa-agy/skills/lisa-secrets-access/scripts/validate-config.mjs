@@ -73,8 +73,16 @@ function bindingsFor(surface) {
   return SURFACE_BINDINGS[surface] ?? ["repository"];
 }
 
-/** Install methods the toolchain runner supports. */
-const INSTALL_METHODS = new Set(["release-zip", "npm-global"]);
+/**
+ * Install methods the toolchain runner supports.
+ *
+ * `release-tar` was missing here while the runner had supported it for as long
+ * as gh has been pinned — so this validator would have rejected the project's
+ * own manifest, and the only reason nobody hit it is that nothing ran the two
+ * against each other. Kept in step with `assertPinned` in `toolchain.mjs`,
+ * which is the list that actually decides.
+ */
+const INSTALL_METHODS = new Set(["release-zip", "release-tar", "npm-global"]);
 
 /**
  * Validate the `secrets` block.
@@ -144,6 +152,44 @@ export function validateSecrets(secrets) {
 }
 
 /**
+ * Validate the artifact half of one install entry.
+ *
+ * Split out because the same obligations apply whether the fields sit directly
+ * on the entry or inside a per-platform block: a method must be one Lisa can
+ * execute, an archive must carry a checksum, and an npm install must name a
+ * package. Duplicating those three rules per shape is how one shape ends up
+ * quietly weaker than the other.
+ * @param {string} label How to name this entry in a message.
+ * @param {object} entry The entry or platform block.
+ * @param {string[]} problems Accumulator.
+ */
+function validateInstallArtifact(label, entry, problems) {
+  if (!INSTALL_METHODS.has(entry.install)) {
+    problems.push(
+      `remoteEnv install ${label} has method ${JSON.stringify(entry.install)}. ` +
+        `Supported: ${[...INSTALL_METHODS].join(", ")}.`
+    );
+    return;
+  }
+  // Both archive kinds, not just zip. A tarball pinned without a checksum
+  // trusts whatever the URL serves today exactly as much as a zip does, and
+  // checking only one of them meant the tool Lisa's guardrails shell out to —
+  // gh, which ships a tarball on Linux — was the one going unverified.
+  if (
+    (entry.install === "release-zip" || entry.install === "release-tar") &&
+    !(entry.url && entry.sha256)
+  ) {
+    problems.push(
+      `remoteEnv install ${label} needs both url and sha256. A pinned ` +
+        `version with no checksum still trusts whatever the URL serves today.`
+    );
+  }
+  if (entry.install === "npm-global" && !entry.package) {
+    problems.push(`remoteEnv install ${label} needs a package`);
+  }
+}
+
+/**
  * Validate the `remoteEnv` block.
  * @param {object|undefined} remoteEnv The block, if present.
  * @returns {string[]} Problems found.
@@ -163,21 +209,37 @@ export function validateRemoteEnv(remoteEnv) {
     if (!tool.version) {
       problems.push(`remoteEnv install "${tool.name}" has no pinned version`);
     }
-    if (!INSTALL_METHODS.has(tool.install)) {
+    // A flat entry means one artifact serves every platform — true of npm-global
+    // and of nothing else. Anything downloaded is platform-specific, so those
+    // declare a block per platform and each block is validated in full: a
+    // half-filled map is the failure this shape exists to prevent, and it is
+    // invisible until someone runs setup on the platform that was left out.
+    if (tool.platforms === undefined) {
+      validateInstallArtifact(`"${tool.name}"`, tool, problems);
+      continue;
+    }
+    if (
+      typeof tool.platforms !== "object" ||
+      tool.platforms === null ||
+      Array.isArray(tool.platforms)
+    ) {
       problems.push(
-        `remoteEnv install "${tool.name}" has method ${JSON.stringify(tool.install)}. ` +
-          `Supported: ${[...INSTALL_METHODS].join(", ")}.`
+        `remoteEnv install "${tool.name}" has a platforms field that is not an ` +
+          `object keyed by <platform>-<arch>. Omit it when one artifact serves ` +
+          `every platform.`
       );
       continue;
     }
-    if (tool.install === "release-zip" && !(tool.url && tool.sha256)) {
+    const platforms = Object.entries(tool.platforms);
+    if (platforms.length === 0) {
       problems.push(
-        `remoteEnv install "${tool.name}" needs both url and sha256. A pinned ` +
-          `version with no checksum still trusts whatever the URL serves today.`
+        `remoteEnv install "${tool.name}" declares platforms but lists none, so ` +
+          `it can never be installed anywhere.`
       );
+      continue;
     }
-    if (tool.install === "npm-global" && !tool.package) {
-      problems.push(`remoteEnv install "${tool.name}" needs a package`);
+    for (const [platform, block] of platforms) {
+      validateInstallArtifact(`"${tool.name}" (${platform})`, block, problems);
     }
   }
 

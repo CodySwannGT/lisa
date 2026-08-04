@@ -59,36 +59,58 @@ describe("one manifest, many surfaces", () => {
     expect(appliesToSurface(tool, "local")).toBe(false);
   });
 
-  it("never offers a linux-only archive to a laptop", () => {
-    // The concrete reason this exists. Lisa pins gh and bws as Linux release
-    // archives; installing either on a developer's machine would place a
-    // binary that cannot run.
+  it("offers a laptop the artifact built for it, never another platform's", () => {
+    // The concrete reason any of this exists. gh and bws used to be excluded
+    // from a laptop outright — `surfaces: ["remote"]` — because the only pin
+    // available was a Linux archive, and a Linux binary in ~/.local/bin cannot
+    // run. That bought safety by making the two CLIs Lisa's own guardrails
+    // shell out to unprovisionable on the machine most likely to lack them.
+    //
+    // Per-platform pins fix the cause, so the invariant is no longer "do not
+    // offer" but "offer the right one".
     const cfg = JSON.parse(readFileSync(".lisa.config.json", "utf8")) as {
       remoteEnv: { tools: Record<string, readonly Record<string, string>[]> };
     };
-    const local = planToolchain(cfg.remoteEnv.tools, PROBE, "local");
+    // The platform is explicit, never the host's: a resolution bug that only
+    // appears on a platform CI does not run is precisely what this prevents.
+    const local = planToolchain(
+      cfg.remoteEnv.tools,
+      PROBE,
+      "local",
+      "darwin-arm64"
+    ) as { name: string; action: string; tool?: Record<string, unknown> }[];
+    const installs = local.filter(step => step.action === "install");
 
-    expect(
-      local.filter(
-        step => step.action === "install" && ["gh", "bws"].includes(step.name)
-      )
-    ).toHaveLength(0);
-    // Still asserted there, so a missing tool is loud rather than discovered
-    // at the moment of use.
-    expect(local.map(step => step.name)).toContain("gh");
-    // bws too: asserting only one left the test passing if the other's local
-    // require entry were dropped.
-    expect(local.map(step => step.name)).toContain("bws");
+    expect(installs.map(step => step.name)).toEqual(
+      expect.arrayContaining(["gh", "bws"])
+    );
+    for (const step of installs) {
+      const url = step.tool?.url;
+      if (typeof url !== "string") continue; // npm-global has no archive
+      expect(url, step.name).not.toMatch(/linux/i);
+      expect(url, step.name).toMatch(/darwin|macOS/i);
+    }
   });
 
-  it("still installs them remotely", () => {
+  it("gives a container the linux artifact for the same tools", () => {
     const cfg = JSON.parse(readFileSync(".lisa.config.json", "utf8")) as {
       remoteEnv: { tools: Record<string, readonly Record<string, string>[]> };
     };
-    const remote = planToolchain(cfg.remoteEnv.tools, PROBE, "remote");
+    const remote = planToolchain(
+      cfg.remoteEnv.tools,
+      PROBE,
+      "remote",
+      "linux-x64"
+    ) as { name: string; action: string; tool?: Record<string, unknown> }[];
+    const installs = remote.filter(step => step.action === "install");
 
-    expect(
-      remote.filter(step => step.action === "install").map(s => s.name)
-    ).toEqual(expect.arrayContaining(["gh", "bws"]));
+    expect(installs.map(step => step.name)).toEqual(
+      expect.arrayContaining(["gh", "bws"])
+    );
+    for (const step of installs) {
+      const url = step.tool?.url;
+      if (typeof url !== "string") continue;
+      expect(url, step.name).not.toMatch(/darwin|macOS/i);
+    }
   });
 });
