@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.326.2](https://github.com/CodySwannGT/lisa/compare/v2.325.6...v2.326.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **release:** a release may not publish a version below the registry ([928e0d2](https://github.com/CodySwannGT/lisa/commit/928e0d2fd32407058b3d6dcb426513d90a2491a6)), closes [CodySwannGT/lisa#2267](https://github.com/CodySwannGT/lisa/issues/2267)
+* **release:** guard version floor against stale queued runs ([7d71553](https://github.com/CodySwannGT/lisa/commit/7d71553837701b6cf27ca7b727aad0d134534b8b)), closes [CodySwannGT/lisa#2267](https://github.com/CodySwannGT/lisa/issues/2267) [CodySwannGT/lisa#2267](https://github.com/CodySwannGT/lisa/issues/2267)
+
 ### [2.326.1](https://github.com/CodySwannGT/lisa/compare/v2.325.6...v2.326.1) (2026-08-04)
 
 
