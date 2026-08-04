@@ -221,8 +221,9 @@ function installTool(tool, binDir) {
  * @param {boolean} dryRun Whether to plan only.
  * @returns {Array<object>} The plan that was applied.
  */
-function applyToolchain(tools, dryRun) {
-  const plan = planToolchain(tools, probe);
+function applyToolchain(tools, dryRun, options = {}) {
+  const { surface = "remote", consent = true } = options;
+  const plan = planToolchain(tools, probe, surface);
   const blocked = plan.filter(
     p => p.action === "missing" || p.action === "invalid"
   );
@@ -233,6 +234,34 @@ function applyToolchain(tools, dryRun) {
   const binDir = join(process.env.HOME ?? "", ".local", "bin");
   mkdirSync(binDir, { recursive: true, mode: 0o755 });
   const byName = new Map((tools.install ?? []).map(t => [t.name, t]));
+
+  // Installing is a different act on a laptop than in a container. A container
+  // is disposable and provisioning it silently is the whole point; a developer
+  // machine belongs to a person, and putting pinned binaries in their
+  // ~/.local/bin without being asked is not ours to decide. So the same
+  // manifest drives both, and only the consent differs.
+  //
+  // Reporting still happens either way — knowing the machine diverges from what
+  // the project declares is most of the value, and is what nothing did before.
+  if (!consent) {
+    const missing = plan.filter(step => step.action === "install");
+    if (missing.length === 0) {
+      console.log("  every declared tool is already present");
+      return plan;
+    }
+    console.log(
+      `  ${missing.length} declared tool(s) are missing or below their pin:`
+    );
+    for (const step of missing) {
+      const tool = byName.get(step.name);
+      console.log(`    ${step.name}${tool?.version ? ` ${tool.version}` : ""}`);
+    }
+    console.log(
+      "\n  Not installing without confirmation. Re-run with --install-tools\n" +
+        "  to provision them, or install them yourself."
+    );
+    return plan;
+  }
 
   // Installing a binary somewhere nothing looks is the same as not installing
   // it. `~/.local/bin` is on PATH by default on a developer workstation and is
@@ -641,7 +670,14 @@ async function main() {
 
   if (phases.includes("toolchain")) {
     console.log("Toolchain:");
-    applyToolchain(cfg.tools, dryRun);
+    // A remote container consents by construction: it is disposable, nobody is
+    // watching, and provisioning it is why the script exists. Locally the
+    // operator opts in per run.
+    const remote = Boolean(materializeAt);
+    applyToolchain(cfg.tools, dryRun, {
+      surface: remote ? "remote" : "local",
+      consent: remote || process.argv.includes("--install-tools"),
+    });
   }
 
   if (phases.includes("secrets")) {
