@@ -148,10 +148,14 @@ export function planToolchain(tools, probe) {
  * @param {object} tool Manifest entry.
  */
 export function assertPinned(tool) {
-  if (tool.install === "release-zip") {
+  // Both archive kinds carry the same obligation, and differ only in how they
+  // are unpacked. gh, for one, publishes no zip for Linux at all — only .deb,
+  // .rpm and .tar.gz — so a zip-only installer could not pin the CLI that
+  // Lisa's own guardrails shell out to.
+  if (tool.install === "release-zip" || tool.install === "release-tar") {
     if (!tool.url || !tool.sha256) {
       throw new Error(
-        `${tool.name}: a release-zip install needs both url and sha256.\n` +
+        `${tool.name}: a ${tool.install} install needs both url and sha256.\n` +
           `A version bump must move the checksum in the same reviewed commit.`
       );
     }
@@ -164,6 +168,6 @@ export function assertPinned(tool) {
   }
   throw new Error(
     `${tool.name}: unknown install method "${tool.install}".\n` +
-      `Supported: release-zip, npm-global.`
+      `Supported: release-zip, release-tar, npm-global.`
   );
 }
