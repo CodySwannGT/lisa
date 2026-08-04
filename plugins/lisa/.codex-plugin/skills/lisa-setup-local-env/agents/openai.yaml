@@ -1,0 +1,4 @@
+display_name: "Setup Local Env"
+short_description: "Bring a developer's machine in…"
+default_prompt:
+  - "Use $lisa-setup-local-env: Bring a developer's machine in…."

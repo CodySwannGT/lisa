@@ -29,6 +29,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
@@ -37,7 +38,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { basename, delimiter, dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { assertPinned, extractVersion, planToolchain } from "./toolchain.mjs";
@@ -123,6 +124,34 @@ export function probe(name, exec = execFileSync) {
 }
 
 /**
+ * Refuse an archive whose contents are not exactly what was pinned.
+ *
+ * Hashed in-process rather than by shelling out. `sha256sum` is a GNU coreutils
+ * program: it is not present on a stock macOS, where the equivalent is
+ * `shasum -a 256`, and it was never in the manifest's `require` list either — so
+ * the verification step depended on a tool nothing asserted, on every surface.
+ * Doing it here removes the dependency instead of adding a second name to probe
+ * for, and the check can then be tested without a real archive or a real binary.
+ * @param {string} archive Path to the downloaded file.
+ * @param {string} expected Pinned lowercase hex digest.
+ * @param {string} name Tool name, for the message.
+ */
+export function verifyChecksum(archive, expected, name) {
+  const actual = createHash("sha256")
+    .update(readFileSync(archive))
+    .digest("hex");
+  if (actual !== String(expected).trim().toLowerCase()) {
+    throw new Error(
+      `${name}: checksum mismatch — refusing to install.\n` +
+        `  expected ${expected}\n` +
+        `  actual   ${actual}\n` +
+        `The URL served something other than the reviewed artifact. Do not ` +
+        `update the pin to match without establishing why it changed.`
+    );
+  }
+}
+
+/**
  * Install a pinned archive, refusing anything whose checksum does not match.
  * @param {object} tool Manifest entry.
  * @param {string} binDir Directory to install into.
@@ -137,10 +166,7 @@ function installReleaseZip(tool, binDir) {
     });
     // Verify before unpacking, not after. An unexpected archive must fail
     // before any of its contents reach a directory that is on PATH.
-    execFileSync("sha256sum", ["-c", "-"], {
-      input: `${tool.sha256}  ${archive}\n`,
-      stdio: ["pipe", "ignore", "inherit"],
-    });
+    verifyChecksum(archive, tool.sha256, tool.name);
     execFileSync("unzip", ["-q", "-o", archive, "-d", temporary], {
       stdio: "inherit",
     });
@@ -171,10 +197,7 @@ function installReleaseTar(tool, binDir) {
     execFileSync("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
     });
-    execFileSync("sha256sum", ["-c", "-"], {
-      input: `${tool.sha256}  ${archive}\n`,
-      stdio: ["pipe", "ignore", "inherit"],
-    });
+    verifyChecksum(archive, tool.sha256, tool.name);
     execFileSync("tar", ["-xzf", archive, "-C", temporary], {
       stdio: "inherit",
     });
@@ -205,14 +228,44 @@ function installNpmGlobal(tool) {
 
 /**
  * Execute one install decision.
- * @param {object} tool Manifest entry.
+ *
+ * Exported because the local-environment flow installs from the same manifest
+ * with the same pins and the same checksum refusal. A second installer would be
+ * a second thing to keep honest, and the one people run least would rot.
+ * @param {object} tool Manifest entry, already resolved to this platform.
  * @param {string} binDir Directory for downloaded binaries.
  */
-function installTool(tool, binDir) {
+export function installTool(tool, binDir) {
   assertPinned(tool);
   if (tool.install === "release-zip") installReleaseZip(tool, binDir);
   else if (tool.install === "release-tar") installReleaseTar(tool, binDir);
   else installNpmGlobal(tool);
+}
+
+/**
+ * Create the directory installs land in, and make sure PATH will find it.
+ *
+ * Installing a binary somewhere nothing looks is the same as not installing it.
+ * `~/.local/bin` is on PATH by default on a developer workstation and is NOT on
+ * a minimal container, so the toolchain step reported `install bws`, the file
+ * landed at ~/.local/bin/bws mode 755, and the very next step died with
+ * `spawnSync bws ENOENT`.
+ *
+ * This was invisible in every local test because a workstation shell already
+ * exports the directory — the environment doing the hiding was the one used to
+ * verify the fix.
+ *
+ * Prepended, not appended: a pinned-and-checksummed binary must win over
+ * whatever an image happens to ship under the same name.
+ * @returns {string} The directory installs are written to.
+ */
+export function ensureBinDir() {
+  const binDir = join(process.env.HOME ?? "", ".local", "bin");
+  mkdirSync(binDir, { recursive: true, mode: 0o755 });
+  if (!pathContains(binDir)) {
+    process.env.PATH = `${binDir}${delimiter}${process.env.PATH ?? ""}`;
+  }
+  return binDir;
 }
 
 /**
@@ -231,8 +284,7 @@ function applyToolchain(tools, dryRun, options = {}) {
     throw new Error(blocked.map(p => p.reason).join("\n\n"));
   }
 
-  const binDir = join(process.env.HOME ?? "", ".local", "bin");
-  mkdirSync(binDir, { recursive: true, mode: 0o755 });
+  const binDir = ensureBinDir();
   const byName = new Map((tools.install ?? []).map(t => [t.name, t]));
 
   // Installing is a different act on a laptop than in a container. A container
@@ -263,26 +315,14 @@ function applyToolchain(tools, dryRun, options = {}) {
     return plan;
   }
 
-  // Installing a binary somewhere nothing looks is the same as not installing
-  // it. `~/.local/bin` is on PATH by default on a developer workstation and is
-  // NOT on a minimal container, so the toolchain step reported `install bws`,
-  // the file landed at ~/.local/bin/bws mode 755, and the very next step died
-  // with `spawnSync bws ENOENT`.
-  //
-  // This was invisible in every local test because a workstation shell already
-  // exports the directory — the environment doing the hiding was the one used
-  // to verify the fix.
-  //
-  // Prepended, not appended: a pinned-and-checksummed binary must win over
-  // whatever an image happens to ship under the same name.
-  if (!pathContains(binDir)) {
-    process.env.PATH = `${binDir}${delimiter}${process.env.PATH ?? ""}`;
-  }
-
   for (const step of plan) {
     console.log(`  ${step.action.padEnd(8)} ${step.reason}`);
+    // The planner already resolved this entry to the running platform, so use
+    // what it decided rather than looking the raw entry up again. `byName` is
+    // the pre-platform shape and would hand the installer a url that belongs to
+    // whichever platform happened to be written first.
     if (step.action === "install" && !dryRun)
-      installTool(byName.get(step.name), binDir);
+      installTool(step.tool ?? byName.get(step.name), binDir);
   }
   return plan;
 }
