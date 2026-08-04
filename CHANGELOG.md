@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.327.0](https://github.com/CodySwannGT/lisa/compare/v2.326.3...v2.327.0) (2026-08-04)
+
+
+### Features
+
+* **linear:** drive the build lifecycle off native workflow states ([90400b3](https://github.com/CodySwannGT/lisa/commit/90400b3fec4dbcc08394b071ed449713fd3ab20d)), closes [CodySwannGT/lisa#2269](https://github.com/CodySwannGT/lisa/issues/2269)
+
 ### [2.326.3](https://github.com/CodySwannGT/lisa/compare/v2.326.2...v2.326.3) (2026-08-04)
 
 ### [2.326.2](https://github.com/CodySwannGT/lisa/compare/v2.325.6...v2.326.2) (2026-08-04)

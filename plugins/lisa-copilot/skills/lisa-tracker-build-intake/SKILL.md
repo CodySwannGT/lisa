@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-build-intake
-description: "Vendor-neutral wrapper for the build-queue scanner. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-build-intake (JQL/project-key queue), lisa-github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa-linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — dispatch leaf work units only; move or safe-block a container with open child work (or a childless Epic) that carries a stale build-ready role according to the vendor's lifecycle semantics. Counterpart to lisa-intake's PRD-side dispatchers."
+description: "Vendor-neutral wrapper for the build-queue scanner. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-build-intake (JQL/project-key queue), lisa-github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa-linear-build-intake (Linear team queue keyed off the configured `ready` workflow state). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — dispatch leaf work units only; move or safe-block a container with open child work (or a childless Epic) that carries a stale build-ready role according to the vendor's lifecycle semantics. Counterpart to lisa-intake's PRD-side dispatchers."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 

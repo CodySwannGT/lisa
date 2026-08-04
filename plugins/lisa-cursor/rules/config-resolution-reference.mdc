@@ -349,6 +349,28 @@ When `github.projects.v2` is present, later setup/doctor and writer preflight va
 |-------|---------------|-------|
 | `linear.workspace` | `tracker = "linear"`, `source = "linear"`, or any `linear-*` skill is invoked | Linear workspace slug (e.g. `acme`). |
 | `linear.teamKey` | `tracker = "linear"` | Linear team key (e.g. `ENG`). The team owns the destination Issues. For source mode, projects are workspace-scoped or team-scoped per the URL passed. |
+| `linear.workflow` | `tracker = "linear"` | Workflow **state** name per build lifecycle role — the Linear analogue of `jira.workflow`, not of `github.labels`. Defaults `{ ready: "Todo", claimed: "In Progress", review: "In Review", blocked: "Blocked", done: { dev: "On Dev", staging: "On Stg", production: "Done" } }`. Resolve and verify with `/lisa:setup:linear`. |
+| `linear.labels` | `tracker = "linear"` or `source = "linear"` | **Markers and the PRD lane only.** `build.human_needed` (default `human-needed`) and the `prd.*` map. The build lifecycle does **not** live here — see `linear.workflow`. |
+
+##### Why Linear uses states, not labels
+
+Linear Issues carry first-class workflow states with a machine-readable `type`
+(`backlog` / `unstarted` / `started` / `completed` / `canceled`) — the same shape
+JIRA statuses have. GitHub Issues has no such field (only open/closed), which is
+why the GitHub adapter *must* use labels; that is a constraint of GitHub's data
+model, not a Lisa preference, and Linear does not share it.
+
+Driving Linear off labels left **two writers on one lifecycle**: Linear's own git
+automations move `state` on merge while Lisa moved only labels. The two then
+disagreed permanently on any merge that did not run through a Lisa flow, and the
+env rungs (`On Dev` / `On Stg`) could never appear on a Linear board, cycle or
+insight at all, because those group by state.
+
+The historical objection was that per-team state NAMES vary and get renamed. That
+is equally true of JIRA statuses, which Lisa keys on regardless, and Linear
+additionally exposes the rename-proof `type` discriminator that the lifecycle
+skills already use for terminal detection. Names live in config, so a project
+that renames a state overrides one key.
 
 #### `verification.browser.kane`
 
@@ -410,15 +432,19 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 
 **Build lifecycle** (work items):
 
-| Role | What it means | JIRA default | GitHub/Linear default |
-|---|---|---|---|
-| `ready` | Human signal "this is buildable; agent may claim" | `Ready` (status) | `status:ready` (label) |
-| `claimed` | Agent has picked the item up | `In Progress` (status) | `status:in-progress` (label) |
-| `review` | Optional post-build review hold, when a tracker/project still uses one | `Code Review` (status) | Linear default: `status:code-review`; GitHub has no default review label |
-| `blocked` | Agent stopped on triage ambiguities or external blocker | `Blocked` (status) | `status:blocked` (label) |
-| `done` | Terminal state for this work, **env-keyed** | map of env → status | map of env → label |
+| Role | What it means | JIRA default | Linear default | GitHub default |
+|---|---|---|---|---|
+| `ready` | Human signal "this is buildable; agent may claim" | `Ready` (status) | `Todo` (state) | `status:ready` (label) |
+| `claimed` | Agent has picked the item up | `In Progress` (status) | `In Progress` (state) | `status:in-progress` (label) |
+| `review` | Optional post-build review hold, when a tracker/project still uses one | `Code Review` (status) | `In Review` (state) | no default review label |
+| `blocked` | Agent stopped on triage ambiguities or external blocker | `Blocked` (status) | `Blocked` (state) | `status:blocked` (label) |
+| `done` | Terminal state for this work, **env-keyed** | map of env → status | map of env → state | map of env → label |
+
+**JIRA and Linear resolve roles to native workflow statuses/states** (`jira.workflow`, `linear.workflow`); **GitHub resolves them to labels** (`github.labels.build`) because GitHub Issues has no workflow-state field at all. A role transition is therefore a *state move* on JIRA and Linear, and a *label swap* on GitHub. Skills operate on roles and never hardcode either form.
 
 `review` is optional. GitHub build intake skips it by default and moves successful builds directly from `claimed` to the configured `done` label. Linear and JIRA projects that still use a post-build review hold can configure `review`; projects that keep the ticket in `claimed` until terminal can omit it and lifecycle skills will skip the intermediate transition.
+
+**Linear state resolution is `type`-aware.** When a configured name is missing, a lifecycle skill may fall back to the team's states by `type` — `ready` → the lowest-position `unstarted`, `claimed` → the lowest-position `started`, terminal `done` → `completed` — but only to *read*; it must never invent a state to write into. Missing states are a setup defect, repaired by `/lisa:setup:linear`, not papered over at runtime.
 
 `blocked` is what every vendor agent flips to when triage finds unresolved ambiguities or the build path is blocked by something the agent can't resolve. Different from `claimed` because it explicitly signals "human attention required."
 
@@ -430,11 +456,13 @@ A **marker** is an additive label applied *alongside* a lifecycle role, not a st
 |---|---|---|---|
 | `human_needed` | Applied with `blocked` when — **after the agent has drafted every authorable missing section via the `pre-flight-autofill` procedure** — the block still requires a human to confirm the drafted assumptions or supply something no agent can invent: real missing credentials, access/permissions, or an irreducible product/scoping decision. | `Human Needed` (label) | `human-needed` (label) |
 
+Markers are labels on **every** vendor, Linear included — that is the one place the Linear build lane still touches `linear.labels`.
+
 Resolution keys:
 
 - JIRA: `jira.labels.human_needed` (default `Human Needed`). Applied as a JIRA **label** — not a workflow status — because an item holds exactly one status but any number of labels. The `blocked` status still drives the lifecycle; `human_needed` is the additive marker on top of it.
 - GitHub: `github.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
-- Linear: `linear.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
+- Linear: `linear.labels.build.human_needed` (default `human-needed`). Applied as a Linear **label**, for the same reason as JIRA — an Issue holds exactly one workflow state but any number of labels, so an additive marker cannot be a state. The `blocked` **state** still drives the lifecycle; `human_needed` is the marker on top of it. This is the only build-lane key left in `linear.labels`.
 
 **When to apply it.** Apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter are exactly this case, but **only after** the agent has run the `pre-flight-autofill` draft-then-block procedure (drafting the authorable gaps — acceptance criteria, validation journey, repository, relationship search, etc. — into the ticket as labeled assumptions). What then remains for the human is to **confirm those assumptions** or supply a genuinely human-only input (real missing credentials, an irreducible product/scoping decision). The marker means "a human must confirm or decide," not "a human must author from scratch."
 
@@ -793,7 +821,7 @@ When `github-to-tracker` is invoked AND `tracker = "github"`, both reads and wri
 
 Never overload one label across both lifecycles.
 
-The same separation applies for Linear self-host (`source = "linear"` AND `tracker = "linear"`): project-level labels (`prd-*`) drive the PRD lifecycle; issue-level labels (`status:*`) drive the build lifecycle; the sentinel feedback issue carries the issue-level `prd-intake-feedback` label.
+The same separation applies for Linear self-host (`source = "linear"` AND `tracker = "linear"`), with one asymmetry: project-level **labels** (`prd-*`) drive the PRD lifecycle, because a PRD is a Linear Project and Projects carry their own status object rather than Issue workflow states; issue-level **workflow states** (`linear.workflow`) drive the build lifecycle; the sentinel feedback issue carries the issue-level `prd-intake-feedback` label. So on Linear the two lanes are not merely different vocabularies, they are different *mechanisms* — never move a PRD by state or an Issue by `status:*` label.
 
 ## Notion access (substrate ladder)
 
