@@ -95,6 +95,19 @@ This repository has paid for that twice: `gh` was declared nowhere and a cloud s
 
 The detector proposes and a human decides. It writes nothing, so provisioning still only ever happens from a reviewed, pinned, checksummed entry.
 
+## The same manifest provisions a laptop
+
+`remoteEnv.tools` is not a remote-only manifest, and `/lisa:setup:local-env` is how a developer
+applies it to their own machine — same pins, same checksums, same installers, differing only in
+that nothing installs without `--install-tools` and that a newer tool already on `PATH` is left
+alone rather than downgraded.
+
+A downloaded tool declares a `platforms` map keyed `<platform>-<arch>`, each block carrying its
+own `install` method, `url`, and `sha256`, because the artifact and the archive kind both vary
+by platform. Before that existed, the only way to keep a Linux binary off a laptop was
+`surfaces: ["remote"]`, which achieved it by making the tool uninstallable there — so `bws` and
+`gh` were required on developer machines and provisionable only in containers.
+
 ## Toolchain manifest — two entry kinds
 
 ```json
@@ -109,19 +122,22 @@ The detector proposes and a human decides. It writes nothing, so provisioning st
       ],
       "install": [
         {
-          "name": "bws",
-          "version": "2.1.0",
-          "install": "release-zip",
-          "url": "https://<vendor>/releases/download/bws-v2.1.0/bws-<platform>-2.1.0.zip",
-          "sha256": "<sha256 published with that exact release>"
-        },
-        {
           "name": "gh",
           "version": "2.83.0",
-          "install": "release-tar",
-          "url": "https://<vendor>/releases/download/v2.83.0/gh_2.83.0_linux_amd64.tar.gz",
-          "sha256": "<sha256 published with that exact release>",
-          "binary": "gh_2.83.0_linux_amd64/bin/gh"
+          "platforms": {
+            "linux-x64": {
+              "install": "release-tar",
+              "url": "https://<vendor>/releases/download/v2.83.0/gh_2.83.0_linux_amd64.tar.gz",
+              "sha256": "<sha256 published with that exact release>",
+              "binary": "gh_2.83.0_linux_amd64/bin/gh"
+            },
+            "darwin-arm64": {
+              "install": "release-zip",
+              "url": "https://<vendor>/releases/download/v2.83.0/gh_2.83.0_macOS_arm64.zip",
+              "sha256": "<sha256 published with that exact release>",
+              "binary": "gh_2.83.0_macOS_arm64/bin/gh"
+            }
+          }
         },
         {
           "name": "codex",
