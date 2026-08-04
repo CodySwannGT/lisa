@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   lowestPermitted,
+  resolveSelfReference,
   withinRange,
 } from "../../../scripts/check-security-floors.mjs";
 
@@ -81,5 +82,68 @@ describe("withinRange", () => {
 
   it("treats an empty range as no constraint rather than a match", () => {
     expect(withinRange([1, 0, 0], "")).toBe(false);
+  });
+});
+
+/**
+ * `$name` self-references, which the collector used to skip outright.
+ *
+ * The skip was justified as "defers to the project's own pin and carries no
+ * floor of its own". That is true of the reference and false of the outcome:
+ * the pin it defers to may itself sit below the advisory floor, and skipping
+ * meant nothing ever compared it. It was safe only by coincidence — every
+ * `$name` in the templates today happens to target a package also declared as
+ * a literal elsewhere, so the range got checked under its own entry. Nothing
+ * enforced that, and the first reference to an undeclared target would have
+ * been an unchecked floor reported as clean.
+ */
+describe("resolveSelfReference", () => {
+  it("finds the target in a force dependency section", () => {
+    const manifest = { force: { devDependencies: { vite: "^8.0.16" } } };
+    expect(resolveSelfReference(manifest, "vite")).toBe("^8.0.16");
+  });
+
+  it("finds the target in any governance group, not just force", () => {
+    // phaser declares its vite pin under `defaults`, cdk under `force`. A
+    // resolver that only looked at one would silently miss the other.
+    const manifest = { defaults: { devDependencies: { vite: "^8.0.16" } } };
+    expect(resolveSelfReference(manifest, "vite")).toBe("^8.0.16");
+  });
+
+  it("returns the range so a WEAK target can be compared, not waved through", () => {
+    // The whole point: a reference is only as strong as what it points at.
+    const manifest = { force: { dependencies: { postcss: "^8.5.0" } } };
+    const resolved = resolveSelfReference(manifest, "postcss");
+    expect(resolved).toBe("^8.5.0");
+    expect(lowestPermitted(resolved as string)).toEqual([8, 5, 0]);
+    // ^8.5.0 permits 8.5.0, which sits inside a range patched at 8.5.18.
+    expect(withinRange([8, 5, 0], ">= 8.0.0, < 8.5.18")).toBe(true);
+  });
+
+  it("returns null when nothing declares the target", () => {
+    // Not an error and not a pass — the caller reports it, because a floor
+    // nobody checked must not read as a floor that passed.
+    expect(
+      resolveSelfReference({ force: { overrides: {} } }, "vite")
+    ).toBeNull();
+  });
+
+  it("does not resolve a reference to another reference", () => {
+    // Otherwise a `$a -> $b` pair could loop, or resolve to a string that is
+    // not a version at all.
+    const manifest = { force: { dependencies: { vite: "$vite" } } };
+    expect(resolveSelfReference(manifest, "vite")).toBeNull();
+  });
+
+  it("ignores constraint sections that are themselves override maps", () => {
+    // `overrides`/`resolutions` are where `$name` lives; resolving into them
+    // would find the reference again rather than the pin.
+    const manifest = {
+      force: {
+        overrides: { vite: "$vite" },
+        devDependencies: { vite: "^8.0.16" },
+      },
+    };
+    expect(resolveSelfReference(manifest, "vite")).toBe("^8.0.16");
   });
 });
