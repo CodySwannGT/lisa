@@ -771,7 +771,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "dcf07f8eba66aaf1d132bfaeff73cbf7576279822893235a3c3f8cbc4a4a3323",
     "plugins/src/base/rules/reference/usage-accounting.md":
-      "d2a24f8f176dbd900beb6e396fc669008b0be0c9033fac5c1c1ecc19002bd7c2",
+      "79c00ed4a97c40de72cfccef16b6846ba668fc564354507907876489c038ab75",
     "plugins/src/base/rules/reference/verification.md":
       "0a4424d79fae5ce028d08b98523a01f51cbe07c1bcc0a094048d7a25adc075d8",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
@@ -1193,7 +1193,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md":
       "ecd43afc346c9729826bd2940fd337f910f8889ae9282610e2cd8817c3ba9735",
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md":
-      "74ef854c172c74f3c1b916c547ed6945abd9852d453146268e276a8ebc35be4e",
+      "838da4ca08fb6e6a4bc14b6cb5446be93c4565f468f169a1ec68435d275d1ef8",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -8562,6 +8562,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/usage-accounting-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-lifecycle-artifacts.test.ts": true,
     "tests/unit/strategies/usage-accounting-skill.test.ts": true,
+    "tests/unit/strategies/usage-accounting-table-normalization-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-writer-preservation.test.ts": true,
     "tests/unit/strategies/usage-pricing-config-resolution.test.ts": true,
     "tests/unit/strategies/verify-prd-guard-logic.test.ts": true,
@@ -8595,7 +8596,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/linked-worktree.test.ts": true,
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
     "tests/unit/utils/usage-accounting-backward-compatibility.test.ts": true,
+    "tests/unit/utils/usage-accounting-integrity.test.ts": true,
     "tests/unit/utils/usage-accounting-rollup.test.ts": true,
+    "tests/unit/utils/usage-accounting-table-normalization.test.ts": true,
     "tests/unit/utils/usage-accounting-token-serialization.test.ts": true,
     "tests/unit/utils/usage-accounting.test.ts": true,
     "transcripts/.gitkeep": true,

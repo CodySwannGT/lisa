@@ -72,6 +72,23 @@ describe("usage-accounting skill contract", () => {
       expect(content).toMatch(/createLisaUsageRollup/i);
       expect(content).toMatch(/upsertLisaUsageSection/i);
     });
+
+    it("verifies writes by read-back and parse, never by the mutation result", () => {
+      expect(content).toMatch(/verifyLisaUsageSectionIntegrity/);
+      expect(content).toMatch(
+        /read the written surface back from the host and parse it/i
+      );
+      expect(content).toMatch(
+        /the host's mutation result is not evidence|never report `updated` on the strength of a mutation's return value/i
+      );
+    });
+
+    it("refuses to leave a rollup naming entries the surface cannot resolve", () => {
+      expect(content).toMatch(
+        /never leave a rollup token behind whose `direct_entry_ids` names entries[\s\S]{0,120}cannot be parsed from the same surface/i
+      );
+      expect(content).toMatch(/outcome: blocked/i);
+    });
   });
 
   it("keeps the generated OpenAI agent metadata aligned with the skill surface", () => {
