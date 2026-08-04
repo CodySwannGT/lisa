@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.325.6](https://github.com/CodySwannGT/lisa/compare/v2.326.0...v2.325.6) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tooling:** a synced threshold is not evidence a tool is used ([6220033](https://github.com/CodySwannGT/lisa/commit/62200332a8c2d32b593fc7c7ee53409e5f7cb00a)), closes [CodySwannGT/lisa#2261](https://github.com/CodySwannGT/lisa/issues/2261)
+* **tooling:** artifact corroboration must be a directory, not any entry ([69ad238](https://github.com/CodySwannGT/lisa/commit/69ad2388d79a67b5c26df14edc56d1325cd22ea8)), closes [CodySwannGT/lisa#2261](https://github.com/CodySwannGT/lisa/issues/2261)
+
 ## [2.326.0](https://github.com/CodySwannGT/lisa/compare/v2.325.5...v2.326.0) (2026-08-04)
 
 
