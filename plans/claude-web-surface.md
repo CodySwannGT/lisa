@@ -62,6 +62,12 @@ marketplace**, and `github.com` is on the Trusted allowlist. Lisa reaches a Clau
 cloud session through its normal marketplace path — the `node_modules` fallback that
 PR #2161 added for Codex is a belt-and-braces path here, not the only one.
 
+5. **The repo-per-environment difference has a second edge.** Because the environment
+   carries no repository, a session or routine may attach *several*, and project
+   settings are documented to load "only from your starting directory". If that holds
+   here, `enabledPlugins` — and therefore all of Lisa — loads from one attached repo
+   and not the rest, silently. Unsettled; see [U5](#u5--open-which-repository-owns-a-multi-repo-session).
+
 ## Decisions
 
 - **Dispatch** — ~~shell out to `claude --cloud`~~. **Superseded by the U1 probe on
@@ -91,6 +97,7 @@ shape rather than just prose.
 | U2 | Does a SessionStart hook run before the first agent turn in a cloud session, and does a value written to `$CLAUDE_ENV_FILE` reach later Bash calls? | The whole materialize relocation rests on this. |
 | U3 | Confirm `CLAUDE_CODE_REMOTE=true`, `GH_TOKEN=proxy-injected`, and that the setup script is genuinely skipped on a cache hit. | Surface detection and the `proxy-injected` verdict. |
 | ~~U4~~ | ~~Can an environment be selected per `--cloud` invocation…~~ **ANSWERED 2026-08-03: no flag, but a settings key.** | See below. |
+| U5 | In a session with several repositories attached, which one is the working directory, and do the others' skills, hooks and `enabledPlugins` load at all? | Whether Lisa reaches a multi-repo routine **at all**. See below. |
 
 Probe from a throwaway repo with a read-only prompt (`report the value of $CLAUDE_CODE_REMOTE and exit`). Record answers in this file's Sessions table.
 
@@ -171,6 +178,97 @@ should **not** carry an `environmentId` as though it were a binding: the durable
 handle is the routine, and an environment recorded in config would imply an
 enforcement this surface cannot provide. A repo's project settings outrank
 `--settings` for the same key, which is a further reason not to write it there.
+
+### U5 — open: which repository owns a multi-repo session
+
+A Codex environment binds to one repository. A Claude environment binds to **none** — it is
+`{network access, environment variables, setup script}` and nothing else, and the repositories
+arrive per session or per routine: *"Add one or more GitHub repositories for Claude to work in.
+Each repository is cloned at the start of a run, starting from the default branch."*
+
+So "which repo does this environment use" is not a question the model supports. The real question
+is which of several attached repositories supplies configuration, and the docs do not answer it.
+Checked: the web, quickstart, cloud-environments, routines, settings, `.claude`-directory and
+large-codebases pages.
+
+What **is** documented, and frames the answer:
+
+- Everything config-like arrives in the clone, never from the environment — `CLAUDE.md`,
+  `.claude/settings.json` hooks, `.mcp.json`, `.claude/rules/`, `.claude/skills|agents|commands`,
+  and plugins declared in `.claude/settings.json`, which are *"installed at session start from the
+  marketplace you declared."*
+- *"Project settings in `.claude/settings.json` load only from your starting directory and are not
+  inherited from parent directories the way CLAUDE.md files are."*
+- *"In a cloud session, Claude Code runs hooks from the repository and from your organization's
+  server-managed settings."* Singular.
+- For directories added beyond the working directory, the loading rules differ by mechanism:
+  `additionalDirectories` loads **neither** skills nor `CLAUDE.md`; `--add-dir` loads skills, and
+  loads `CLAUDE.md`/rules only under `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`.
+
+**Why this blocks.** Lisa reaches a cloud session through `enabledPlugins` in the repo's
+`.claude/settings.json`. If that file only loads from the primary repository, then a routine whose
+primary repo is not the Lisa-configured one gets no Lisa skills and **no PreToolUse enforcement**,
+with no error — the same silent-zero-enforcement failure already recorded for plugin-less cloud
+sessions. A multi-repo routine would look like it was governed and not be.
+
+#### The probe
+
+Two throwaway private repositories, identical layout, different marker strings. Purpose-built
+rather than real repos, because Lisa's skills arrive from the *marketplace plugin* and would
+appear whichever repo is primary — only repo-local markers discriminate.
+
+```
+CLAUDE.md                          ALPHA_CLAUDE_MD_LOADED
+.claude/settings.json              SessionStart hook: echo ALPHA_HOOK_FIRED
+.claude/skills/probe-alpha/SKILL.md   ALPHA_SKILL_LOADED
+.claude/rules/probe-alpha.md          ALPHA_RULE_LOADED
+```
+
+`probe-repo-beta` is the same with `ALPHA` → `BETA`. Nothing writes, installs, or reaches the
+network; the hook is an `echo`.
+
+Read-only prompt, answers one per line as `N: <answer>`, `ABSENT` rather than a guess:
+
+```
+1.  pwd
+2.  $CLAUDE_PROJECT_DIR
+3.  ls -1 /
+4.  find / -maxdepth 4 -name .claude -type d 2>/dev/null
+5.  Which of these appear in your available skills: probe-alpha, probe-beta
+6.  The full list of skill names available to you right now
+7.  Which are in context from CLAUDE.md: ALPHA_CLAUDE_MD_LOADED, BETA_CLAUDE_MD_LOADED
+8.  Which are in context from rules: ALPHA_RULE_LOADED, BETA_RULE_LOADED
+9.  Which SessionStart markers you saw: ALPHA_HOOK_FIRED, BETA_HOOK_FIRED
+10. $CLAUDE_CODE_REMOTE
+11. $CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD
+12. Any plugin-provided skills, and their namespaces
+
+Then state which repository you consider your working directory.
+```
+
+Item 4 earns its place independently: it reveals the on-disk layout of a multi-repo session, which
+no doc states.
+
+**Two runs, order swapped** — `[alpha, beta]` then `[beta, alpha]` — because one run cannot
+distinguish "first listed wins" from "alpha wins". Default environment, no setup script, **Run
+now**; one-off runs are exempt from the daily routine cap.
+
+| Observation | Conclusion |
+|---|---|
+| Items 1–2 follow the listed order across the two runs | primary = first listed |
+| Items 1–2 name the same repo in both runs | order-independent; record the actual rule |
+| `probe-beta` present in items 5–6 | secondaries attach with `--add-dir` semantics |
+| `probe-beta` absent from items 5–6 | secondaries attach with `additionalDirectories` semantics — no config at all |
+| `probe-beta` present but `BETA_CLAUDE_MD_LOADED` absent | matches the documented split; item 11 is then the lever |
+| Only `ALPHA_HOOK_FIRED` in item 9 | **hooks and plugins are primary-repo only — the Lisa consequence is real** |
+| Both markers in item 9 | hooks load from every attached repo; better than documented |
+
+If item 7 comes back absent, set `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` in the
+environment's variables box and re-run the first ordering. That tests whether the documented
+workaround reaches this surface.
+
+**Status: not yet run.** It needs an account with a multi-repo session available; deferred until
+one is at hand. Record the answers in the Sessions table below and strike U5 when settled.
 
 ## Sequencing
 
