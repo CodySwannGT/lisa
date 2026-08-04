@@ -401,6 +401,13 @@ jobs:
           fetch-depth: 0
           ssh-key: ${{ secrets.DEPLOY_KEY }}
 
+      - name: Refresh release branch tip
+        if: github.ref_type == 'branch'
+        run: |
+          target_ref="${{ github.ref_name }}"
+          git fetch origin "$target_ref" --tags --force
+          git reset --hard "origin/$target_ref"
+
       - name: Setup Release Logger
         id: logger
         run: |
@@ -552,6 +559,21 @@ jobs:
 
           # Normalize any leading "v" regardless of strategy so "tag=v$VERSION" never yields "vv"
           VERSION="${VERSION#v}"
+
+          case "$RELEASE_ENVIRONMENT" in
+            main|master|prod|production)
+              PACKAGE_NAME=$(node -p 'require("./package.json").name || ""')
+              if [ -n "$PACKAGE_NAME" ]; then
+                PUBLISHED_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || true)
+                if [ -n "$PUBLISHED_VERSION" ] && npx semver "$PUBLISHED_VERSION" >/dev/null 2>&1; then
+                  while [ "$(npx semver "$VERSION" "$PUBLISHED_VERSION" | tail -1)" = "$PUBLISHED_VERSION" ]; do
+                    echo "::warning::Computed version $VERSION is not above published $PUBLISHED_VERSION; bumping patch"
+                    VERSION=$(npx semver -i patch "$PUBLISHED_VERSION")
+                  done
+                fi
+              fi
+              ;;
+          esac
 
           # Environment-scoped release tags (standard-version strategy).
           # Tags are repo-global but version counters are branch-local, so
