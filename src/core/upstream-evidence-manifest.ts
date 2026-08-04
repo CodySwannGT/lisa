@@ -715,7 +715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "25f751d6e6535da51fe4bd53803b3c0ae6463685091943563c86897c25ea606d",
+      "76fae921ab507361ef91e6f9ee2e4ec8122062be6cfe8a7632ef216ea36d1702",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -971,7 +971,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
       "2ba59b7bcd9654c1852b6ff14ff5446bde8baa9890c218efc50daac2d1934970",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "868ca8b8a02117172868a7503db0626effe6227f5dccf3bc8a4d455d997a2684",
+      "7c3f63661c0808e2a0de059819feb2a6c40a2b2b04820a50fe43de2405601d33",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "4c769499b3db0fbf60e2f5fe1116ea3536012a9af5f78ee4858508090e340322",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -991,7 +991,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "d11a58bd7c2b773a973fe8f8ad19a2621f038327ee2d8afa3039bd72885f5e97",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "06206d2655d7cf892aee5669a20c077611124306ce6d695e4f9a11bd3df4aa32",
+      "76bf3235501e1ca62d0900b7c0441d36b9474eb3eb5316d5acb7b15b1af9e29d",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
