@@ -7,9 +7,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
+      "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
+    "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
+      "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "aa95a84f9f9224914947a09b858535aa8bd052199ff64cb53768cf78fb69b687",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -35,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "4d41a745030e5f33eb4d4fe1f1b12268680f104ea55a30c4d9f55a6e22ad6fca",
+      "c3ea6760913c0104350f731646fc5abd22122ce0a303c95536e7769f12294654",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -586,6 +588,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ffbc553ec86e77845da72b5b0eb0dbb2b5a93b781ac8a7dbb2ef0f31f38f7b96",
     "plugins/src/base/commands/wiki/install.md":
       "51392cf053c17edd549bfbaba5d19ce669dc79021aafa7cfa100324ad38de11f",
+    "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
+      "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
+    "plugins/src/base/hooks/block-instruction-file-edits.sh":
+      "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "1a36c841b6339a2c664938d65c5a4542f97d05f584e467de448bb72ac6bdba55",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -1933,7 +1939,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "b57413e6e003be102e82e0a8a6b44a137f5d0aeed8da4c1f4f99919a0d7e8b04",
+      "d4332a862d57798280e0d0c96826bbdc6b07855659dae529f8de32de994d2da9",
     "scripts/check-duplicate-versions.mjs":
       "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
     "scripts/check-learnings-budget.ts":
@@ -1969,7 +1975,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "bcecec726f2590036c57247d41eadf361b8613d827d93366e18b419bbd801346",
+      "0d9380e0533b2cd24ab418da64817a06672f0d12c9a7f648a3d57286d35c7983",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "1d1a362afb8dba408741a3eed9fe583296f6bcb048608979f73f359cd609c03d",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -1997,7 +2003,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "2565e2cb414f253fa7fd014021120ec9760f4e716bf0ae69e5f7de09a5b966c1",
+      "6038a4ebee750672042ba706269b8a4c1d9055cfd83c436364e2e40d6242dcd9",
     "scripts/lib/reusable-workflow-contract.d.mts":
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
@@ -2005,7 +2011,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
-      "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
+      "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2349,6 +2355,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-contents/gitignore": true,
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": true,
+    "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
@@ -3125,6 +3132,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/verify.md": true,
     "plugins/lisa-agy/commands/lisa/wiki/install.md": true,
     "plugins/lisa-agy/hooks.json": true,
+    "plugins/lisa-agy/hooks/block-instruction-file-edits.agy.sh": true,
+    "plugins/lisa-agy/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa-agy/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.sh": true,
@@ -3469,6 +3478,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/verify-workflow-change.md": true,
     "plugins/lisa-copilot/commands/lisa/verify.md": true,
     "plugins/lisa-copilot/commands/lisa/wiki/install.md": true,
+    "plugins/lisa-copilot/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa-copilot/hooks/block-no-verify.sh": true,
     "plugins/lisa-copilot/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-copilot/hooks/cleanup-stale-worktrees.sh": true,
@@ -3881,6 +3891,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/verify-workflow-change.md": true,
     "plugins/lisa-cursor/commands/lisa/verify.md": true,
     "plugins/lisa-cursor/commands/lisa/wiki/install.md": true,
+    "plugins/lisa-cursor/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa-cursor/hooks/block-no-verify.sh": true,
     "plugins/lisa-cursor/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-cursor/hooks/cleanup-stale-worktrees.sh": true,
@@ -6370,6 +6381,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/verify-workflow-change.md": true,
     "plugins/lisa/commands/verify.md": true,
     "plugins/lisa/commands/wiki/install.md": true,
+    "plugins/lisa/hooks/block-instruction-file-edits.agy.sh": true,
+    "plugins/lisa/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa/hooks/block-no-verify.sh": true,
     "plugins/lisa/hooks/block-shell-json-parsing.agy.sh": true,
@@ -6962,6 +6975,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/verify-workflow-change.md": true,
     "plugins/src/base/commands/verify.md": true,
     "plugins/src/base/commands/wiki/install.md": true,
+    "plugins/src/base/hooks/block-instruction-file-edits.agy.sh": true,
+    "plugins/src/base/hooks/block-instruction-file-edits.sh": true,
     "plugins/src/base/hooks/block-no-verify.agy.sh": true,
     "plugins/src/base/hooks/block-no-verify.sh": true,
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh": true,
@@ -8010,6 +8025,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/hooks-installer.ts": true,
     "src/opencode/manifest.ts": true,
     "src/opencode/mcp-installer.ts": true,
+    "src/opencode/plugin-catalog.ts": true,
+    "src/opencode/plugin-templates/lisa-block-instruction-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": true,
     "src/opencode/plugin-templates/lisa-lint-on-edit.ts": true,
@@ -8364,6 +8381,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
+    "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing.test.ts": true,
     "tests/unit/hooks/blocking-hook-exit.test.ts": true,
