@@ -46,14 +46,13 @@ describe("signals", () => {
     expect([...found.keys()]).not.toContain("maestro");
   });
 
-  it("treats an MCP server as evidence the CLI is needed", () => {
-    // An MCP server is not a substitute for the binary: Linear authenticates by
-    // browser OAuth, which a container cannot do at all, so a remote session has
-    // no integration rather than a degraded one.
+  it("does not invent a Linear CLI when the access layer owns headless auth", () => {
+    // Linear's headless substrate is LINEAR_API_KEY through lisa-linear-access.
+    // There is no official Linear CLI to pin; turning MCP into CLI evidence
+    // would make the detector propose an arbitrary third-party binary.
     const found = toolsFromMcp({ mcpServers: { "linear-server": {} } });
 
-    expect([...found.keys()]).toContain("linear");
-    expect(found.get("linear")).toMatch(/OAuth/i);
+    expect([...found.keys()]).not.toContain("linear");
   });
 
   it("reads a credential usage note", () => {
@@ -127,12 +126,14 @@ describe("proposals", () => {
 
 describe("against this repository", () => {
   it("never proposes something already declared", () => {
-    // gh and bws are declared, so a detector that re-proposed them would train
-    // the reader to skim its output.
+    // gh, bws, and Playwright are declared, so a detector that re-proposed them
+    // would train the reader to skim its output.
     const names = detectTooling(process.cwd()).map(p => p.name);
 
     expect(names).not.toContain("gh");
     expect(names).not.toContain("bws");
+    expect(names).not.toContain("playwright");
+    expect(names).not.toContain("linear");
   });
 
   it("gives evidence for everything it proposes", () => {
