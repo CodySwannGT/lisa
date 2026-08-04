@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.328.3](https://github.com/CodySwannGT/lisa/compare/v2.328.2...v2.328.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **usage-accounting:** flag missing rollup token on zero-entry sections ([260fe5d](https://github.com/CodySwannGT/lisa/commit/260fe5de908c161cc5680b002b3494e36a968d41)), closes [CodySwannGT/lisa#2283](https://github.com/CodySwannGT/lisa/issues/2283)
+* **usage-accounting:** render entry tokens off the table row ([56f0a54](https://github.com/CodySwannGT/lisa/commit/56f0a54b832e42447fcd5a6f225acac6a3762d41)), closes [CodySwannGT/lisa#2283](https://github.com/CodySwannGT/lisa/issues/2283) [CodySwannGT/lisa#2283](https://github.com/CodySwannGT/lisa/issues/2283)
+
 ### [2.328.2](https://github.com/CodySwannGT/lisa/compare/v2.328.1...v2.328.2) (2026-08-04)
 
 
