@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.325.1](https://github.com/CodySwannGT/lisa/compare/v2.325.0...v2.325.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* declare Playwright remote tooling ([d6aaa32](https://github.com/CodySwannGT/lisa/commit/d6aaa3253e694a591e68b2ad753fc556ec1b8e25)), closes [CodySwannGT/lisa#2251](https://github.com/CodySwannGT/lisa/issues/2251)
+
 ## [2.325.0](https://github.com/CodySwannGT/lisa/compare/v2.324.1...v2.325.0) (2026-08-04)
 
 
