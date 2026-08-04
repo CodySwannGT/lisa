@@ -102,6 +102,11 @@ function runEntrypoint(
   return spawnSync(BASH, [script, ...args], {
     cwd: root,
     encoding: "utf8",
+    // Never run a real package manager. This test plants a FABRICATED lockfile
+    // to assert which manager the script chooses; without this it also ran
+    // `yarn install` against that lockfile — passing on a machine with no yarn
+    // and doing a real network install on a CI runner that has one.
+    env: { ...process.env, LISA_SKIP_INSTALL: "1" },
   });
 }
 
