@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.324.1](https://github.com/CodySwannGT/lisa/compare/v2.323.5...v2.324.1) (2026-08-04)
+
+
+### Features
+
+* **hooks:** give host projects the enforcement a missing plugin removes ([8494fea](https://github.com/CodySwannGT/lisa/commit/8494feab6fdaea817bdb785a04624a44f96a4744)), closes [CodySwannGT/lisa#2228](https://github.com/CodySwannGT/lisa/issues/2228)
+
 ### [2.323.5](https://github.com/CodySwannGT/lisa/compare/v2.323.4...v2.323.5) (2026-08-04)
 
 
