@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.325.2](https://github.com/CodySwannGT/lisa/compare/v2.325.1...v2.325.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tooling:** an MCP-only integration is a question, not a missing CLI ([0553883](https://github.com/CodySwannGT/lisa/commit/0553883132b121df4b693bf9713dc9dde06a4f19)), closes [CodySwannGT/lisa#2253](https://github.com/CodySwannGT/lisa/issues/2253)
+* **tooling:** decide by the tool, not by how it was detected ([6046c03](https://github.com/CodySwannGT/lisa/commit/6046c036559423e7249bd22726a1d2deccf4966c)), closes [CodySwannGT/lisa#2253](https://github.com/CodySwannGT/lisa/issues/2253)
+
 ### [2.325.1](https://github.com/CodySwannGT/lisa/compare/v2.325.0...v2.325.1) (2026-08-04)
 
 
