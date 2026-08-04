@@ -14,7 +14,11 @@
  * install path, which is precisely what `assertPinned` exists to prevent.
  * @module tests/unit/secrets/detect-tooling
  */
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   declaredTools,
@@ -296,5 +300,56 @@ describe("tools the package manager already provides", () => {
 
   it("still proposes when the package is absent", () => {
     expect(satisfiedByNpm({ devDependencies: {} }, "playwright")).toBe(false);
+  });
+});
+
+describe("artifact corroboration", () => {
+  const roots: string[] = [];
+
+  afterEach(() => {
+    for (const dir of roots.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * A project carrying only the synced threshold, plus whatever artifact the
+   * case plants.
+   * @returns Absolute path to the throwaway project
+   */
+  function project(): string {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-artifact-"));
+    roots.push(root);
+    return root;
+  }
+
+  it("accepts the flows DIRECTORY as evidence the tool is used", () => {
+    const root = project();
+    mkdirSync(path.join(root, ".maestro"), { recursive: true });
+
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { maestro: {} } } },
+      { scripts: { test: "vitest" } },
+      root
+    );
+
+    expect([...found.keys()]).toContain("maestro");
+  });
+
+  it("rejects a regular FILE of the same name", () => {
+    // `existsSync` is true for a file too, so a stray `.maestro` note or editor
+    // artifact would have corroborated the threshold and reintroduced the
+    // 300MB proposal this check exists to prevent — a false positive arriving
+    // through the very guard added to stop one.
+    const root = project();
+    writeFileSync(path.join(root, ".maestro"), "just a note\n");
+
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { maestro: {} } } },
+      { scripts: { test: "vitest" } },
+      root
+    );
+
+    expect([...found.keys()]).toHaveLength(0);
   });
 });
