@@ -32,6 +32,14 @@ import { join } from "node:path";
  * a false negative is the failure this exists to prevent, so the signals are
  * ones that only appear when the tool is genuinely used.
  */
+/** Prefix marking evidence that only shows a path is missing, not what fills it. */
+const MCP_EVIDENCE = "MCP";
+
+/** What to ask when the only evidence is an MCP-only integration. */
+const REMOTE_PATH_QUESTION =
+  "no manifest entry proposed — confirm how this reaches a container: a CLI, " +
+  "a key-authenticated API call, or deliberately local-only";
+
 const KNOWN_TOOLS = Object.freeze({
   maestro: {
     why: "Expo's template ships npm scripts that invoke `maestro`, and nothing installs the binary.",
@@ -51,7 +59,7 @@ const KNOWN_TOOLS = Object.freeze({
     viaNpm: "@playwright/test",
   },
   linear: {
-    why: "Linear is wired as an MCP server, which needs browser OAuth and so cannot authenticate in a container.",
+    why: "Linear is reachable remotely through its key-authenticated GraphQL API; only the MCP path needs browser OAuth.",
     mcpFallback: "linear-server",
   },
 });
@@ -99,12 +107,23 @@ export function toolsFromScripts(pkg) {
 }
 
 /**
- * Tools implied by MCP servers that also have a CLI.
+ * Integrations wired only as an MCP server, which is a weaker signal than it
+ * looks and must not be read as "install the CLI".
  *
- * An MCP server is not a substitute for the binary. Several authenticate by
- * browser OAuth, which a container cannot do at all, so a project relying on one
- * remotely has no integration rather than a degraded one — the CLI is the form
- * that survives the trip.
+ * What is true: an MCP server that authenticates interactively — Linear's needs
+ * browser OAuth — cannot authenticate in a container, so that PATH does not
+ * survive the trip.
+ *
+ * What does not follow: that the integration is therefore unavailable, or that
+ * a CLI is the answer. Linear also exposes a key-authenticated GraphQL API that
+ * `curl` reaches with a token the secrets chokepoint already resolves. Several
+ * services are like this, and for them the remote path is an API call, not a
+ * binary.
+ *
+ * So this signal raises a question rather than asserting a need: this
+ * integration has no remote path *as configured* — confirm it has one. The
+ * answer may be a CLI, may be a direct API call, and may be "it is local-only
+ * on purpose".
  * @param {object|null} mcp Parsed .mcp.json.
  * @returns {Map<string, string>} Tool name to the server that implies it.
  */
@@ -117,7 +136,8 @@ export function toolsFromMcp(mcp) {
     if (server) {
       found.set(
         tool,
-        `MCP server "${server}" (browser OAuth cannot run remotely)`
+        `${MCP_EVIDENCE} server "${server}" — an interactively authenticated ` +
+          `MCP server has no remote path; confirm this integration has one`
       );
     }
   }
@@ -241,6 +261,18 @@ export function detectTooling(cwd = process.cwd()) {
  * @returns {{install: object[], require: object[]}} Manifest skeletons.
  */
 export function proposedEntries(proposal) {
+  // Evidence that an integration has no remote path does not say what the
+  // remote path should BE. Linear is the case that proves it: its MCP server
+  // needs browser OAuth and cannot authenticate in a container, but its
+  // GraphQL API is key-authenticated and `curl` reaches it with a token the
+  // secrets chokepoint already resolves. Proposing a CLI there would answer a
+  // question nobody asked, and a pinned binary is expensive to be wrong about.
+  const onlyMcp = (proposal.evidence ?? []).every(item =>
+    String(item).startsWith(MCP_EVIDENCE)
+  );
+  if (onlyMcp && (proposal.evidence ?? []).length > 0) {
+    return { install: [], require: [], question: REMOTE_PATH_QUESTION };
+  }
   const viaNpm = KNOWN_TOOLS[proposal.name]?.viaNpm;
   if (viaNpm) {
     // npm resolves per platform, so one entry serves every surface.
@@ -295,6 +327,7 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
         console.log(`    evidence: ${evidence}`);
       }
       const entries = proposedEntries(proposal);
+      if (entries.question) console.log(`    ${entries.question}`);
       for (const entry of entries.install) {
         console.log(`    tools.install: ${JSON.stringify(entry)}`);
       }

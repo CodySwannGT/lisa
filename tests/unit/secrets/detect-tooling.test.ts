@@ -46,14 +46,28 @@ describe("signals", () => {
     expect([...found.keys()]).not.toContain("maestro");
   });
 
-  it("treats an MCP server as evidence the CLI is needed", () => {
-    // An MCP server is not a substitute for the binary: Linear authenticates by
-    // browser OAuth, which a container cannot do at all, so a remote session has
-    // no integration rather than a degraded one.
+  it("treats an MCP server as a question about the remote path", () => {
+    // Not as evidence a CLI is needed. Linear's MCP server needs browser OAuth,
+    // so that path cannot work in a container — but its GraphQL API is
+    // key-authenticated and curl reaches it with a token the secrets chokepoint
+    // already resolves. "No remote path as configured" is the true claim.
     const found = toolsFromMcp({ mcpServers: { "linear-server": {} } });
 
     expect([...found.keys()]).toContain("linear");
-    expect(found.get("linear")).toMatch(/OAuth/i);
+    expect(found.get("linear")).toMatch(/confirm this integration has one/i);
+  });
+
+  it("proposes no binary when the only evidence is an MCP server", () => {
+    // Proposing a pinned CLI here would answer a question nobody asked, and a
+    // binary is expensive to be wrong about.
+    const proposal = proposedEntries({
+      name: "linear",
+      evidence: ['MCP server "linear-server" - interactive auth'],
+    });
+
+    expect(proposal.install).toHaveLength(0);
+    expect(proposal.require).toHaveLength(0);
+    expect(proposal.question).toMatch(/key-authenticated API call/);
   });
 
   it("reads a credential usage note", () => {
