@@ -44,11 +44,44 @@ const GATING_SEVERITIES = new Set(["high", "critical"]);
 const ADVISORY_ENDPOINT = "https://api.github.com/advisories";
 
 /**
+ * Resolve a `$name` self-reference to the range the manifest pins it to.
+ *
+ * Searches the dependency sections of every governance group, because a
+ * template may declare the target in `force`, `defaults` or `merge` and the
+ * reference means the same thing in each. Constraint sections that are
+ * themselves override maps are skipped, so a `$name` cannot resolve to another
+ * `$name` and loop.
+ * @param {object} manifest A parsed package.lisa.json.
+ * @param {string} name The referenced package.
+ * @returns {string|null} The pinned range, or null when nothing declares it.
+ */
+export function resolveSelfReference(manifest, name) {
+  const DEPENDENCY_SECTIONS = [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+  ];
+  for (const group of GOVERNANCE_GROUPS) {
+    const block = manifest[group];
+    if (!block || typeof block !== "object") continue;
+    for (const section of DEPENDENCY_SECTIONS) {
+      const spec = block[section]?.[name];
+      if (typeof spec === "string" && !spec.startsWith("$")) return spec;
+    }
+  }
+  return null;
+}
+
+/**
  * Every version constraint declared across the template manifests.
- * @returns {Map<string, Array<{file: string, path: string, spec: string}>>} By package name.
+ * @returns {{found: Map<string, Array<{file: string, path: string, spec: string}>>,
+ *   unresolved: Array<{file: string, path: string, name: string, spec: string}>}}
+ *   Constraints by package name, plus self-references pointing at nothing.
  */
 function collectFloors() {
   const found = new Map();
+  /** `$name` references pointing at nothing this manifest declares. */
+  const unresolved = [];
   const files = globSync("*/package-lisa/package.lisa.json").filter(
     file => !file.includes("node_modules") && !file.includes(".worktrees")
   );
@@ -66,17 +99,45 @@ function collectFloors() {
         const entries = block[section];
         if (!entries || typeof entries !== "object") continue;
         for (const [name, spec] of Object.entries(entries)) {
-          // `$name` self-references defer to the project's own pin and carry
-          // no floor of their own; a literal like "workspace:*" likewise.
-          if (typeof spec !== "string" || !/\d/.test(spec)) continue;
-          if (spec.startsWith("$")) continue;
+          if (typeof spec !== "string") continue;
+          // A `$name` self-reference carries no floor of its own — it adopts
+          // whatever the manifest pins that package to elsewhere. Resolve it
+          // and check THAT, rather than skipping.
+          //
+          // Skipping was safe only by coincidence: every `$name` in the
+          // templates today happens to target a package also declared as a
+          // literal in a scanned group, so the range got checked under its own
+          // entry. Nothing enforces that. The first `$name` whose target is
+          // declared only downstream — or not at all — would be a floor
+          // nothing checks, reported as clean, which is worse than no check.
+          if (spec.startsWith("$")) {
+            const target = resolveSelfReference(manifest, spec.slice(1));
+            if (target === null) {
+              unresolved.push({
+                file,
+                path: `${group}.${section}`,
+                name,
+                spec,
+              });
+              continue;
+            }
+            if (!/\d/.test(target)) continue;
+            if (!found.has(name)) found.set(name, []);
+            found
+              .get(name)
+              .push({ file, path: `${group}.${section}`, spec: target });
+            continue;
+          }
+          // A literal carrying no digits — "workspace:*", "latest" — is not a
+          // floor and there is nothing to compare.
+          if (!/\d/.test(spec)) continue;
           if (!found.has(name)) found.set(name, []);
           found.get(name).push({ file, path: `${group}.${section}`, spec });
         }
       }
     }
   }
-  return found;
+  return { found, unresolved };
 }
 
 /**
@@ -185,10 +246,10 @@ async function advisoriesFor(name) {
 
 /**
  * Audit every collected floor.
- * @returns {Promise<{problems: Array, unreachable: string[], checked: number}>} Findings.
+ * @returns {Promise<{problems: Array, unreachable: Array, unresolved: Array, checked: number}>} Findings.
  */
 async function audit() {
-  const floors = collectFloors();
+  const { found: floors, unresolved } = collectFloors();
   const problems = [];
   const unreachable = [];
   for (const [name, sites] of floors) {
@@ -220,16 +281,18 @@ async function audit() {
       }
     }
   }
-  return { problems, unreachable, checked: floors.size };
+  return { problems, unreachable, unresolved, checked: floors.size };
 }
 
 async function main() {
   const strict = process.argv.includes("--strict");
   const asJson = process.argv.includes("--json");
-  const { problems, unreachable, checked } = await audit();
+  const { problems, unreachable, unresolved, checked } = await audit();
 
   if (asJson) {
-    console.log(JSON.stringify({ problems, unreachable, checked }, null, 2));
+    console.log(
+      JSON.stringify({ problems, unreachable, unresolved, checked }, null, 2)
+    );
   } else if (problems.length === 0) {
     console.log(
       `## Security floors\n\nNo force-pinned floor permits a high or critical vulnerable release. ${checked} package(s) checked.`
@@ -251,7 +314,24 @@ async function main() {
     );
   }
 
-  if (unreachable.length > 0) {
+  // Markdown notes belong to the human report only. Printed in --json mode
+  // they follow the document and break every parser reading it; the same
+  // facts are already fields in the JSON.
+  if (!asJson && unresolved.length > 0) {
+    console.log(
+      `\n> **${unresolved.length} self-reference(s) resolve to nothing.** A \`$name\` adopts whatever the manifest pins that package to; when nothing pins it, there is no floor to check and no floor to enforce. Reported rather than skipped, because silence here is indistinguishable from a clean result.`
+    );
+    for (const entry of unresolved) {
+      console.log(
+        `> - \`${entry.name}: ${entry.spec}\` in ${entry.file} ${entry.path}`
+      );
+    }
+    console.log(
+      "> Fix by declaring the target in a governance dependency section, or by replacing the reference with an explicit floor."
+    );
+  }
+
+  if (!asJson && unreachable.length > 0) {
     const limited = unreachable.filter(entry =>
       entry.reason.includes("rate limited")
     );
@@ -275,7 +355,12 @@ async function main() {
   // Under --strict an inconclusive run also fails: it proves nothing, and
   // treating "could not check" as "checked and clean" is exactly the silent
   // degradation this script exists to prevent.
-  if (strict && (problems.length > 0 || unreachable.length > 0)) {
+  // An unresolved self-reference gates for the same reason an inconclusive one
+  // does: it is a floor nobody checked, and letting it pass reports it clean.
+  if (
+    strict &&
+    (problems.length > 0 || unreachable.length > 0 || unresolved.length > 0)
+  ) {
     process.exitCode = 1;
   }
 }
