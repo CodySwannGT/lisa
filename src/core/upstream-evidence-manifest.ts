@@ -865,7 +865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs":
       "e28bd61fdde4a336b56ae3395423026943a5816015719d31d04f0d5a0ab50eec",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
-      "e24e6ac3e073097d4a9991b398386f19f10a8abe2dfba57196d615f5e6a6cf63",
+      "9d06590e6b99cce33e5fb10bd5b9e7515318133e3635368ef47162abc123bdfa",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
@@ -1151,15 +1151,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "33eff2e0bd777030070b2616a83bb073e845d17823c12ed95c1e84c6f6b27bf4",
+      "b570ebc3faa5099dc8e43f33f5ba51bdc1e2312b3c49d28d04a3ae67f138041f",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "e3e54f281297e28d54769b45c0b87a40b93e8ab88ac1cd57aea4050d40dc4b5e",
+      "fe5b7231c8fb82de22a8b6d14f50aea2f9ddc068a2deddf817660dd1e4db83a2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "cb98159f9432ce0c4f93a8b5386c61fc1b7d3a299bbb041d6bd005b790291277",
+      "b2fa53bf577400851e8c2991cbe822d29dcdd2d090ff1cd1d0fa2d76bfcaa20b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
@@ -8495,6 +8495,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
+    "tests/unit/secrets/toolchain-release-tree.test.ts": true,
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,

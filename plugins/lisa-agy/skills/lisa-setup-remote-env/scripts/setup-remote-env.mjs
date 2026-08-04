@@ -213,6 +213,94 @@ function installReleaseTar(tool, binDir) {
 }
 
 /**
+ * Where a tree-shaped tool's extracted contents live.
+ *
+ * Versioned so a re-pin lands beside the old copy rather than on top of it, and
+ * outside `binDir` because only the entry point belongs on PATH.
+ * @param {object} tool Manifest entry.
+ * @param {string} binDir Directory holding the symlink.
+ * @returns {string} Absolute prefix for this tool and version.
+ */
+export function treePrefix(tool, binDir) {
+  return join(binDir, "..", "share", tool.name, String(tool.version));
+}
+
+/**
+ * Install a pinned archive that is a DIRECTORY, not a single binary.
+ *
+ * `release-zip` and `release-tar` extract and then copy one file onto PATH,
+ * which is right for a static binary and silently wrong for anything that
+ * resolves its own siblings at run time. Maestro is the case that forced this:
+ *
+ *     maestro/bin/maestro   <- launcher
+ *     maestro/lib/*.jar     <- 100+ MB of classpath
+ *
+ * and the launcher computes `CLASSPATH=$APP_HOME/lib/*` where `APP_HOME` is the
+ * parent of wherever the script itself sits. Copy that launcher to
+ * `~/.local/bin` and APP_HOME becomes `~/.local`, so the classpath resolves to
+ * an empty directory. The install reports success and the tool fails at first
+ * use — the failure this manifest exists to turn into a loud setup error.
+ *
+ * So the whole tree is extracted and the entry point is SYMLINKED. A symlink,
+ * not a copy, precisely so that resolution walks back into the extracted tree.
+ * @param {object} tool Manifest entry.
+ * @param {string} binDir Directory to link the entry point into.
+ */
+function installReleaseTree(tool, binDir) {
+  const temporary = join(binDir, `.${tool.name}-download`);
+  const prefix = treePrefix(tool, binDir);
+  mkdirSync(temporary, { recursive: true });
+  try {
+    const archive = join(temporary, "download.archive");
+    execFileSync("curl", ["-fsSL", tool.url, "-o", archive], {
+      stdio: "inherit",
+    });
+    // Verify before unpacking, as everywhere else here: an unexpected archive
+    // must fail before any of its contents reach the filesystem.
+    verifyChecksum(archive, tool.sha256, tool.name);
+
+    // Replace rather than layer. Extracting over a previous version leaves both
+    // sets of jars on the classpath, which fails in a way that looks like a
+    // version bug rather than a stale install.
+    rmSync(prefix, { recursive: true, force: true });
+    mkdirSync(prefix, { recursive: true });
+    if (tool.url.endsWith(".zip")) {
+      execFileSync("unzip", ["-q", "-o", archive, "-d", prefix], {
+        stdio: "inherit",
+      });
+    } else {
+      execFileSync("tar", ["-xzf", archive, "-C", prefix], {
+        stdio: "inherit",
+      });
+    }
+
+    const entry = join(prefix, tool.binary);
+    if (!existsSync(entry)) {
+      throw new Error(
+        `${tool.name}: "binary" points at ${tool.binary}, which is not in the ` +
+          `archive.\nList the archive and use the path to the entry point ` +
+          `inside it, such as "maestro/bin/maestro".`
+      );
+    }
+    chmodSync(entry, 0o755);
+
+    // A WRAPPER, not a symlink. Both keep the tree intact, but a symlink only
+    // works for launchers that resolve symlinks before computing their own
+    // location — gradle's template does, and plenty of others do not. One that
+    // does not sees the link's directory as its home and looks for its
+    // classpath beside the link instead of beside itself, which is the same
+    // broken install this kind exists to prevent, reintroduced for a subset of
+    // tools. Exec'ing the absolute path removes the assumption entirely.
+    const shim = join(binDir, tool.name);
+    rmSync(shim, { force: true });
+    writeFileSync(shim, `#!/bin/sh\nexec ${JSON.stringify(entry)} "$@"\n`);
+    chmodSync(shim, 0o755);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
+/**
  * Install a pinned global npm package.
  * @param {object} tool Manifest entry.
  */
@@ -239,6 +327,7 @@ export function installTool(tool, binDir) {
   assertPinned(tool);
   if (tool.install === "release-zip") installReleaseZip(tool, binDir);
   else if (tool.install === "release-tar") installReleaseTar(tool, binDir);
+  else if (tool.install === "release-tree") installReleaseTree(tool, binDir);
   else installNpmGlobal(tool);
 }
 
