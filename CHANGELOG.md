@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.330.0](https://github.com/CodySwannGT/lisa/compare/v2.329.0...v2.330.0) (2026-08-04)
+
+
+### Features
+
+* **hooks:** refuse agent writes to AGENTS.md and CLAUDE.md ([0ba7e65](https://github.com/CodySwannGT/lisa/commit/0ba7e65505543e8dbff81fd57648773c148f015a)), closes [CodySwannGT/lisa#2292](https://github.com/CodySwannGT/lisa/issues/2292)
+
 ## [2.329.0](https://github.com/CodySwannGT/lisa/compare/v2.328.5...v2.329.0) (2026-08-04)
 
 
