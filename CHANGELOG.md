@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.330.1](https://github.com/CodySwannGT/lisa/compare/v2.330.0...v2.330.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **cli:** make the workstation bootstrap reachable without an agent or a repo ([dec9a6a](https://github.com/CodySwannGT/lisa/commit/dec9a6adb530298b3830d915e16df36afe40335d)), closes [CodySwannGT/lisa#2291](https://github.com/CodySwannGT/lisa/issues/2291)
+
 ## [2.330.0](https://github.com/CodySwannGT/lisa/compare/v2.329.0...v2.330.0) (2026-08-04)
 
 
