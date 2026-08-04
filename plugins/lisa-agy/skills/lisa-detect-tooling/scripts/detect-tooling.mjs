@@ -205,8 +205,16 @@ export function toolsFromSecretNotes(notes) {
  */
 export function toolsFromQuality(config) {
   const found = new Map();
-  if (config?.quality?.e2eCoverage?.playwright) {
-    found.set("playwright", "quality.e2eCoverage.playwright is configured");
+  // Every runner under e2eCoverage, not a hardcoded one. Naming `playwright`
+  // explicitly meant `quality.e2eCoverage.maestro` — configured in this very
+  // repository — produced no signal at all, so the one tool that genuinely
+  // needs a pinned binary and genuinely was not declared stayed invisible to
+  // the detector built to find it. A gate that reports "nothing outstanding"
+  // while the gap is right there is worse than no gate.
+  for (const runner of Object.keys(config?.quality?.e2eCoverage ?? {})) {
+    if (Object.hasOwn(KNOWN_TOOLS, runner)) {
+      found.set(runner, `quality.e2eCoverage.${runner} is configured`);
+    }
   }
   if (config?.quality?.sonar || config?.sonar) {
     found.set("sonar-scanner", "Sonar analysis is configured");
@@ -239,6 +247,32 @@ export function declaredTools(config, surface = "remote") {
 }
 
 /**
+ * Whether a tool already reaches this project as an npm dependency.
+ *
+ * A package that declares `@playwright/test` gets the `playwright` binary in
+ * `node_modules/.bin`, and its npm scripts resolve it from there. It never
+ * needs to be on PATH, so proposing a manifest entry for it is noise — and
+ * noise is how a detector teaches people to skim it, which is the one failure
+ * this skill's own documentation warns about.
+ *
+ * Only the CLI is covered by this. Anything else the tool needs at runtime —
+ * Playwright's browsers, for instance — is a separate concern that a package
+ * manager does not solve and this function does not claim to.
+ * @param {object|null} pkg Parsed package.json.
+ * @param {string} tool Tool name.
+ * @returns {boolean} Whether npm already provides the binary.
+ */
+export function satisfiedByNpm(pkg, tool) {
+  const viaNpm = KNOWN_TOOLS[tool]?.viaNpm;
+  if (!viaNpm) return false;
+  const declared = {
+    ...(pkg?.dependencies ?? {}),
+    ...(pkg?.devDependencies ?? {}),
+  };
+  return Object.hasOwn(declared, viaNpm);
+}
+
+/**
  * Collect every signal and subtract what the manifest already covers.
  * @param {string} [cwd] Project root.
  * @returns {Array<{name: string, why: string, evidence: string[]}>} Proposals.
@@ -261,6 +295,8 @@ export function detectTooling(cwd = process.cwd()) {
   for (const signal of signals) {
     for (const [tool, evidence] of signal) {
       if (declared.has(tool)) continue;
+      // Already provided by the package manager, so there is nothing to pin.
+      if (satisfiedByNpm(pkg, tool)) continue;
       const entry = merged.get(tool) ?? { evidence: [] };
       entry.evidence.push(evidence);
       merged.set(tool, entry);
