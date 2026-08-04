@@ -124,18 +124,65 @@ function planInstallable(tool, found) {
   };
 }
 
+/** Surfaces a manifest entry may name. */
+const KNOWN_SURFACES = new Set(["local", "remote"]);
+
+/**
+ * Whether a manifest entry applies to the surface being provisioned.
+ *
+ * One declaration per tool, not one block per surface. Most tools a project
+ * needs are needed *everywhere* — a Maestro or Sonar CLI is as required on a
+ * laptop as in a container — and duplicated blocks drift, which this repository
+ * has paid for more than once. What actually differs between surfaces is the
+ * install method and, more importantly, consent: a disposable container may
+ * install silently, a developer's machine may not.
+ *
+ * Omitting `surfaces` means every surface, because that is true of most tools
+ * and the failure of forgetting it should be "checked somewhere unnecessary"
+ * rather than "silently absent where it was needed".
+ * @param {object} tool Manifest entry.
+ * @param {string} surface Surface being provisioned.
+ * @returns {boolean} Whether this entry applies.
+ */
+export function appliesToSurface(tool, surface) {
+  const surfaces = tool.surfaces;
+  if (surfaces === undefined) return true;
+  // A typo must not silently widen scope. Treating any non-array as "omitted"
+  // meant `surfaces: "remote"` — an easy thing to write — quietly applied the
+  // entry to every surface, which for a platform-specific archive means
+  // offering a Linux binary to a laptop. Absent means everywhere; malformed
+  // means stop.
+  if (!Array.isArray(surfaces)) {
+    throw new Error(
+      `${tool.name}: surfaces must be an array, got ${typeof surfaces}.\n` +
+        `Omit it to mean every surface; write ["remote"] or ["local"] to narrow.`
+    );
+  }
+  if (surfaces.length === 0) return true;
+  const unknown = surfaces.filter(entry => !KNOWN_SURFACES.has(entry));
+  if (unknown.length > 0) {
+    throw new Error(
+      `${tool.name}: unknown surface(s) ${unknown.join(", ")}.\n` +
+        `Known: ${[...KNOWN_SURFACES].join(", ")}.`
+    );
+  }
+  return surfaces.includes(surface);
+}
+
 /**
  * Produce the complete plan for a toolchain manifest.
  * @param {{require?: object[], install?: object[]}} tools Manifest.
  * @param {(name: string) => {version: string|null, present: boolean}} probe Version probe.
  * @returns {Array<{name: string, action: string, reason: string}>} Ordered decisions.
  */
-export function planToolchain(tools, probe) {
+export function planToolchain(tools, probe, surface = "remote") {
   const plan = [];
   for (const tool of tools.require ?? [])
-    plan.push(planRequired(tool, probe(tool.name)));
+    if (appliesToSurface(tool, surface))
+      plan.push(planRequired(tool, probe(tool.name)));
   for (const tool of tools.install ?? [])
-    plan.push(planInstallable(tool, probe(tool.name)));
+    if (appliesToSurface(tool, surface))
+      plan.push(planInstallable(tool, probe(tool.name)));
   return plan;
 }
 
