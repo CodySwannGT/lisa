@@ -86,11 +86,13 @@ describe("build_ready write-control input", () => {
     });
   });
 
-  // Label-based trackers omit the ready label for build_ready: false.
-  describe.each([
-    "lisa-github-write-issue",
-    "lisa-linear-write-issue",
-  ] as const)(
+  // GitHub is the only LABEL-based tracker: GitHub Issues has no workflow-state
+  // field, so the ready role can only be a label there. JIRA and Linear both
+  // resolve the role to a native status/state — see the state-based blocks
+  // below. Keeping Linear in this group is what the pre-migration test did, and
+  // it is exactly the conflation that put the Linear adapter on the GitHub
+  // model in the first place.
+  describe.each(["lisa-github-write-issue"] as const)(
     "%s omits the status:ready label for a build_ready:false leaf",
     skill => {
       describe.each(WRITE_ROOTS)("%s", root => {
@@ -100,6 +102,41 @@ describe("build_ready write-control input", () => {
           const section = content.slice(idx);
           expect(section).toMatch(/without.*status:ready/i);
         });
+      });
+    }
+  );
+
+  // Linear is state-based: build_ready:false leaves the Issue in the team's
+  // default backlog state rather than stripping a label, and build_ready:true
+  // transitions it to the configured ready state.
+  describe.each(WRITE_ROOTS)(
+    "linear-write-issue is state-based, not label-based (%s)",
+    root => {
+      const content = readSkill(root, "lisa-linear-write-issue");
+      const section = content.slice(content.indexOf(BUILD_READY_HEADING));
+
+      it("leaves a build_ready:false leaf in the default backlog state", () => {
+        // Tolerate markdown emphasis around "without" — the assertion is about
+        // the semantics (no ready state), not the formatting.
+        expect(section).toMatch(/without\W{0,4}the `ready` state/i);
+        expect(section).toMatch(/default backlog state/i);
+      });
+
+      it("transitions a leaf to the configured ready state on build_ready:true", () => {
+        expect(section).toContain(".linear.workflow.ready");
+      });
+
+      it("is best-effort: leaves the Issue in its default state if unreachable", () => {
+        expect(section).toMatch(
+          /do not fail the write|leave the Issue in its default state/i
+        );
+      });
+
+      it("never routes the build lifecycle through a status:* label", () => {
+        // The regression guard for the whole migration: if a `status:*`
+        // lifecycle label reappears here, the adapter has drifted back onto
+        // the GitHub model.
+        expect(content).not.toMatch(/status:(ready|in-progress|code-review)/);
       });
     }
   );

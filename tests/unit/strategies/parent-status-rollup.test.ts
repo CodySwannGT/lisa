@@ -275,10 +275,19 @@ describe("parent status rollup (#544)", () => {
       assertStateMachine(content.slice(content.indexOf(heading)));
     });
 
-    it("updates only the status:* label, never the native Linear state", () => {
+    // INVERTED by the Linear state migration. This used to assert the rollup
+    // touched only `status:*` labels and never the native state — which was the
+    // defect: the native state was then free to disagree with the label lane
+    // forever. The rollup now writes the state, because the state IS the lane.
+    it("rolls the parent up by moving its native workflow state", () => {
       const section = content.slice(content.indexOf(heading));
-      expect(section).toMatch(/status:\*/);
-      expect(section).toMatch(/not.*auto-transition|native Linear `state`/i);
+      expect(section).toMatch(/state/i);
+      expect(section).not.toMatch(/status:\*/);
+    });
+
+    it("never rolls a parent into the human-owned ready lane", () => {
+      const section = content.slice(content.indexOf(heading));
+      expect(section).toMatch(/never `\$READY`|never .*ready/i);
     });
 
     it(COLLAPSE_TEST, () => {
@@ -288,7 +297,7 @@ describe("parent status rollup (#544)", () => {
     it(INTERMEDIATE_ENV_TEST, () => {
       assertIntermediateEnvRollup(
         content.slice(content.indexOf(heading)),
-        "status:on-stg"
+        "On Stg"
       );
     });
   });

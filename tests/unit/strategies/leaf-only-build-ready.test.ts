@@ -288,7 +288,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
         // identical across the three validators (the #541 acceptance criterion:
         // "equivalent leaf-only remediation").
         expect(section).toContain(
-          "Build-ready (status:ready) is leaf-only per leaf-only-lifecycle."
+          "Build-ready is leaf-only per leaf-only-lifecycle."
         );
         expect(section).toMatch(
           /a parent's lifecycle state rolls up from its children and is never set to ready directly/
@@ -518,7 +518,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
         // Shared wording keeps the lifecycle-repair message consistent with the
         // validators' S15 remediation (the #543 cross-vendor symmetry goal).
         expect(section).toContain(
-          "Build-ready (status:ready) is leaf-only per leaf-only-lifecycle"
+          "Build-ready is leaf-only per leaf-only-lifecycle"
         );
         // Case-insensitive: the safe-block comment mirrors github-build-intake's
         // capitalized sentence ("A parent's …"); the validators use it lowercase
@@ -617,14 +617,14 @@ describe("leaf-only build-ready invariant (#538)", () => {
         // The Epic block must carry the leaf-only guidance and forbid the label.
         expect(phase3).toContain(RULE_SLUG);
         expect(phase3).toMatch(/container, not a leaf work unit/);
-        expect(phase3).toMatch(/status:ready/);
+        expect(phase3).toMatch(/build-ready role/);
       });
 
       it("states Stories (Phase 4) are never marked build-ready", () => {
         const phase4 = phaseWindow(PHASE_4_HEADING, PHASE_5_HEADING);
         expect(phase4).toContain(RULE_SLUG);
         expect(phase4).toMatch(/a Story is a container/);
-        expect(phase4).toMatch(/status:ready/);
+        expect(phase4).toMatch(/build-ready role/);
       });
 
       it("applies the build-ready label only to Sub-tasks (Phase 5)", () => {
@@ -633,7 +633,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
         expect(phase5).toMatch(/leaf work units/);
         // Sub-tasks are the ONLY items that receive the label.
         expect(phase5).toMatch(/the ONLY items in the hierarchy/);
-        expect(phase5).toMatch(/status:ready/);
+        expect(phase5).toMatch(/build-ready role/);
       });
 
       it("cites the vendor-neutral build intake, not the GitHub one", () => {

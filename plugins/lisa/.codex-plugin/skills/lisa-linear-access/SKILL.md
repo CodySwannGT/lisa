@@ -18,9 +18,11 @@ operation: get-team id:<ID>
 operation: list-projects [team:<KEY>] [label:<NAME>] [state:<arr>]
 operation: get-project id:<ID>
 operation: save-project payload:{...}
-operation: list-issues [team:<ID>] [project:<ID>] [label:<NAME>] [state_type:<arr>]
+operation: list-issues [team:<ID>] [project:<ID>] [label:<NAME>] [state:<NAME>] [state_type:<arr>]
 operation: get-issue id:<ID>
 operation: save-issue payload:{...}
+operation: list-workflow-states team:<ID>
+operation: create-workflow-state payload:{...}
 operation: list-comments issue_id:<ID>
 operation: save-comment issue_id:<ID> body:"..."
 operation: history id:<ID>
@@ -118,15 +120,24 @@ query($id:String!){
   `toState.name`, `createdAt` (ISO timestamp), `actor.name`. Nodes with no
   `fromState`/`toState` are non-state edits (label-only, assignee, etc.); keep
   them for the label stream, skip them for workflow-state ordering.
-- **Label history (honest caveat).** Linear's build lanes are **label-driven**
-  (`lisa-linear-build-intake` keys the queue on `status:*` labels), so label
-  moves matter as much as workflow-state moves. `IssueHistory` carries label
-  changes as `addedLabelIds` / `removedLabelIds` — arrays of label **IDs**, not
-  names. It does **not** inline label names, and it does not carry the label's
-  full prior/next set — only the per-event deltas. Resolve IDs → names by
+- **Build lanes are STATE-driven, so the `from`/`to` stream above is the primary
+  signal.** `lisa-linear-build-intake` keys the queue on workflow states
+  (`linear.workflow`), and `IssueHistory` inlines `fromState.name` /
+  `toState.name` directly — no catalog cross-reference, no ID resolution, no
+  reconstruction. Callers needing lifecycle transitions read them straight off
+  the node. This is strictly better than the label stream below and is why the
+  Linear adapter moved to states.
+- **Label history (honest caveat, still needed for MARKERS and the PRD lane).**
+  `human_needed` is a label, and the PRD lifecycle rides on project labels, so
+  label moves still matter for those. `IssueHistory` carries label changes as
+  `addedLabelIds` / `removedLabelIds` — arrays of label **IDs**, not names. It
+  does **not** inline label names, and it does not carry the label's full
+  prior/next set — only the per-event deltas. Resolve IDs → names by
   cross-referencing `list-issue-labels`. Do not overclaim: a caller that needs
-  `status:*` label transitions reconstructs them from the ID deltas plus the
-  label catalog, not from an inline name on the history node.
+  label transitions reconstructs them from the ID deltas plus the label catalog,
+  not from an inline name on the history node. A caller reading a **build**
+  lifecycle transition should not be in this bullet at all — use the state
+  stream.
 - **Empty is valid.** An Issue that never changed state returns an **empty**
   history — an empty history is a valid result, not an error.
 - **Graceful degrade — never block the build.** A failed history fetch returns

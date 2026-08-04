@@ -31,7 +31,7 @@ History is always obtained through the vendor access layer — never a direct ve
 
 - **GitHub** — read the issue via `lisa-github-read-issue`, whose Label-Event History surface returns chronological `LabeledEvent` / `UnlabeledEvent` entries. A backward move is: the configured **ready** label was removed (item advanced) and later re-added (item bounced back). Non-status label churn is ignored for classification.
 - **JIRA** — call `lisa-atlassian-access operation: changelog key:<K>`. A backward move is a status changelog entry whose `to` is the configured ready status, following an earlier entry that reached a `review`/`done`-ward status.
-- **Linear** — call `lisa-linear-access operation: history id:<ID>`, keyed on `status:*` **label** history (Linear build lanes are label-driven — `lisa-linear-build-intake` keys the queue on `status:*` labels). Resolve `addedLabelIds` / `removedLabelIds` against `list-issue-labels`; a backward move is the configured ready label re-added after a later-lane label was applied. Linear workflow-state moves (`fromState`/`toState`) are a secondary corroborating signal where the project maps lanes to states.
+- **Linear** — call `lisa-linear-access operation: history id:<ID>`, keyed on **workflow-state** history (Linear build lanes are state-driven — `lisa-linear-build-intake` keys the queue on `linear.workflow.*`). Each history node inlines `fromState.name` / `toState.name`, so a backward move reads directly: a move back into the configured `ready` state from a later lane. No label-ID resolution, and no reconstruction from lossy `addedLabelIds` / `removedLabelIds` deltas — that indirection existed only while the lane was label-driven.
 
 ### Lane names are configuration, never literals
 
@@ -39,7 +39,7 @@ The ready / claimed / done lane names ALWAYS come from `.lisa.config.json` lanes
 
 - `github.labels.build.{ready,claimed,done}` (GitHub),
 - the JIRA status equivalents, and
-- the Linear label equivalents,
+- the Linear state equivalents (`linear.workflow.*`),
 
 resolved per the `config-resolution` rule with the `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS` (`ready: status:ready`, `claimed: status:in-progress`, `done: {dev: status:on-dev, staging: status:on-stg, production: status:done}`) as the fallback. **Never hardcode** a lane string in the detection logic — a project that renames its ready lane must still detect rejections.
 

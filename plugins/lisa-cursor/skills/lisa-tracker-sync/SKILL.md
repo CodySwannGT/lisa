@@ -21,7 +21,7 @@ See the `config-resolution` rule for configuration and dispatch table.
    - Anything else → stop and report `"Unknown tracker '<value>' in .lisa.config.json. Expected 'jira', 'github', or 'linear'."`
 3. Pass through the output.
 
-`$ARGUMENTS` is forwarded verbatim, including the optional `--rollup` flag (see "Parent status rollup" below), `--update-label`, `pr_url=<url>`, and `merge_sha=<sha>`. The shim never interprets these — the vendor skill does.
+`$ARGUMENTS` is forwarded verbatim, including the optional `--rollup` flag (see "Parent status rollup" below), the vendor lane-write flag (`--update-label` on GitHub, `--update-state` on Linear), `pr_url=<url>`, and `merge_sha=<sha>`. The shim never interprets these — the vendor skill does.
 
 If `$ARGUMENTS` is empty, all vendor skills auto-detect a ticket reference from the active plan file (most recently modified `.md` in `plans/`).
 
@@ -60,6 +60,6 @@ This is the reverse half of `lisa-git-submit-pr`'s PR body linkage. A PR that me
 ## Rules
 
 - Idempotent updates — running sync at the same milestone twice should not produce duplicate comments. Vendor skills enforce this.
-- Never auto-transition the underlying state. Linear's label-based transition (`status:*`) is the canonical signal and is updated only when the caller passes `--update-label`. Native states stay as suggestions.
+- Never auto-transition a lane the caller did not ask for. On GitHub the canonical signal is the `status:*` label, written only with `--update-label`; on Linear it is the native workflow state, written only with `--update-state`. Without the flag, every vendor arm only suggests.
 - Parent rollup derives state from children per the `leaf-only-lifecycle` rule; it never sets a parent to `ready` and never resolves a dev/staging `done` in this single-environment repo.
 - Pull request backlinks are mandatory when `pr_url=<url>` is present: native first, managed-comment fallback, never silently dropped.
