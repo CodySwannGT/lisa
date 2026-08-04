@@ -154,6 +154,42 @@ function installReleaseZip(tool, binDir) {
 }
 
 /**
+ * Install a pinned tarball, refusing anything whose checksum does not match.
+ *
+ * Same contract as the zip path and the same ordering — verify, then unpack —
+ * because an unexpected archive must fail before any of its contents reach a
+ * directory that is on PATH. It exists because several tools worth pinning
+ * publish no zip for Linux: gh ships .deb, .rpm and .tar.gz and nothing else.
+ * @param {object} tool Manifest entry.
+ * @param {string} binDir Directory to install into.
+ */
+function installReleaseTar(tool, binDir) {
+  const temporary = join(binDir, `.${tool.name}-download`);
+  mkdirSync(temporary, { recursive: true });
+  try {
+    const archive = join(temporary, "download.tar.gz");
+    execFileSync("curl", ["-fsSL", tool.url, "-o", archive], {
+      stdio: "inherit",
+    });
+    execFileSync("sha256sum", ["-c", "-"], {
+      input: `${tool.sha256}  ${archive}\n`,
+      stdio: ["pipe", "ignore", "inherit"],
+    });
+    execFileSync("tar", ["-xzf", archive, "-C", temporary], {
+      stdio: "inherit",
+    });
+    // Release tarballs usually nest under a versioned directory, so `binary` is
+    // a path within the archive rather than a bare name.
+    const binary = join(temporary, tool.binary ?? tool.name);
+    execFileSync("install", ["-m", "0755", binary, join(binDir, tool.name)], {
+      stdio: "inherit",
+    });
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
+/**
  * Install a pinned global npm package.
  * @param {object} tool Manifest entry.
  */
@@ -175,6 +211,7 @@ function installNpmGlobal(tool) {
 function installTool(tool, binDir) {
   assertPinned(tool);
   if (tool.install === "release-zip") installReleaseZip(tool, binDir);
+  else if (tool.install === "release-tar") installReleaseTar(tool, binDir);
   else installNpmGlobal(tool);
 }
 
