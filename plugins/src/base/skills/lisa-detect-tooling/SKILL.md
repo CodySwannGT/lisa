@@ -13,7 +13,7 @@ Lisa provisions tooling through four unrelated mechanisms, and only one of them 
 | playwright, stryker | npm devDependency from a stack template | nothing — a local `node_modules` binary |
 | maestro | npm **scripts** in the Expo template | **nothing** |
 | sonar | `src/sonar/sonar-installer.ts` | nothing |
-| linear | MCP server | nothing — but its GraphQL API is key-authenticated, so a container reaches it without one |
+| linear | MCP server or `LINEAR_API_KEY` | `lisa-linear-access`, not a CLI |
 | bws, gh | `remoteEnv.tools` — pinned and checksummed | this, and only this |
 
 Nothing populates that last row. So a project can ship scripts that invoke `maestro`, wire an MCP server whose CLI it also shells out to, and configure Playwright thresholds, while the manifest that actually provisions binaries stays empty — and every one of those fails at the moment of use rather than at setup.
@@ -25,7 +25,7 @@ That is the same failure this repository has now paid for twice: `gh` was declar
 Reads four signals, subtracts what `remoteEnv.tools` already declares, and prints what is left with the evidence for each:
 
 - **npm scripts** that invoke a binary. The strongest signal there is — a script running `maestro test` is the project stating a dependency in executable form. Matched on the script *body*, not its name, because the name is a label.
-- **MCP servers that authenticate interactively.** The weakest signal, and the easiest to over-read. Linear's MCP server needs browser OAuth, so *that path* cannot work in a container — but Linear's GraphQL API is key-authenticated and `curl` reaches it with a token the secrets chokepoint already resolves. So this raises a **question**, not a proposal: this integration has no remote path as configured, confirm it has one. The answer may be a CLI, may be a direct API call, and may be "local-only on purpose". No manifest entry is proposed for it.
+- **MCP servers with a CLI equivalent.** An MCP server is not a substitute for the binary: several authenticate by browser OAuth, which a container cannot do, so a project relying on one remotely has *no* integration rather than a degraded one. Do not infer a CLI for access layers that already define their own headless substrate; Linear is handled by `lisa-linear-access` through `LINEAR_API_KEY` + GraphQL when MCP OAuth is unavailable.
 - **Credential usage notes.** A note explaining what a token is for usually names the program that consumes it. `lisa-secrets-access` already exposes these without touching a value, which makes them a first-class input rather than a trick.
 - **Quality configuration**, where a threshold implies the tool that produces it.
 

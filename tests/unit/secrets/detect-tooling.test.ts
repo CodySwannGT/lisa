@@ -46,28 +46,13 @@ describe("signals", () => {
     expect([...found.keys()]).not.toContain("maestro");
   });
 
-  it("treats an MCP server as a question about the remote path", () => {
-    // Not as evidence a CLI is needed. Linear's MCP server needs browser OAuth,
-    // so that path cannot work in a container — but its GraphQL API is
-    // key-authenticated and curl reaches it with a token the secrets chokepoint
-    // already resolves. "No remote path as configured" is the true claim.
+  it("does not invent a Linear CLI when the access layer owns headless auth", () => {
+    // Linear's headless substrate is LINEAR_API_KEY through lisa-linear-access.
+    // There is no official Linear CLI to pin; turning MCP into CLI evidence
+    // would make the detector propose an arbitrary third-party binary.
     const found = toolsFromMcp({ mcpServers: { "linear-server": {} } });
 
-    expect([...found.keys()]).toContain("linear");
-    expect(found.get("linear")).toMatch(/confirm this integration has one/i);
-  });
-
-  it("proposes no binary when the only evidence is an MCP server", () => {
-    // Proposing a pinned CLI here would answer a question nobody asked, and a
-    // binary is expensive to be wrong about.
-    const proposal = proposedEntries({
-      name: "linear",
-      evidence: ['MCP server "linear-server" - interactive auth'],
-    });
-
-    expect(proposal.install).toHaveLength(0);
-    expect(proposal.require).toHaveLength(0);
-    expect(proposal.question).toMatch(/key-authenticated API call/);
+    expect([...found.keys()]).not.toContain("linear");
   });
 
   it("reads a credential usage note", () => {
@@ -76,6 +61,30 @@ describe("signals", () => {
     });
 
     expect([...found.keys()]).toContain("sonar-scanner");
+  });
+
+  it("asks about a remote path for an MCP server with no known substrate", () => {
+    // The substrate allowlist fixes Linear. It does not fix the class: every
+    // other interactively authenticated MCP server was still told "browser
+    // OAuth cannot run remotely", which asserts a conclusion the evidence does
+    // not support.
+    const found = toolsFromMcp({ mcpServers: { maestro: {} } });
+
+    expect(found.get("maestro")).toMatch(/confirm this integration has one/i);
+  });
+
+  it("proposes no binary when the only evidence is an MCP server", () => {
+    // Evidence that a path is missing does not say what fills it, and a pinned
+    // binary is expensive to be wrong about — its checksum moves with every
+    // version bump.
+    const proposal = proposedEntries({
+      name: "maestro",
+      evidence: ['MCP server "maestro" - interactive auth'],
+    });
+
+    expect(proposal.install).toHaveLength(0);
+    expect(proposal.require).toHaveLength(0);
+    expect(proposal.question).toMatch(/key-authenticated API call/);
   });
 
   it("survives a malformed config instead of throwing", () => {
@@ -141,12 +150,14 @@ describe("proposals", () => {
 
 describe("against this repository", () => {
   it("never proposes something already declared", () => {
-    // gh and bws are declared, so a detector that re-proposed them would train
-    // the reader to skim its output.
+    // gh, bws, and Playwright are declared, so a detector that re-proposed them
+    // would train the reader to skim its output.
     const names = detectTooling(process.cwd()).map(p => p.name);
 
     expect(names).not.toContain("gh");
     expect(names).not.toContain("bws");
+    expect(names).not.toContain("playwright");
+    expect(names).not.toContain("linear");
   });
 
   it("gives evidence for everything it proposes", () => {

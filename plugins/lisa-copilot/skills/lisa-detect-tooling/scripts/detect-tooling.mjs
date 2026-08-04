@@ -32,14 +32,6 @@ import { join } from "node:path";
  * a false negative is the failure this exists to prevent, so the signals are
  * ones that only appear when the tool is genuinely used.
  */
-/** Prefix marking evidence that only shows a path is missing, not what fills it. */
-const MCP_EVIDENCE = "MCP";
-
-/** What to ask when the only evidence is an MCP-only integration. */
-const REMOTE_PATH_QUESTION =
-  "no manifest entry proposed — confirm how this reaches a container: a CLI, " +
-  "a key-authenticated API call, or deliberately local-only";
-
 const KNOWN_TOOLS = Object.freeze({
   maestro: {
     why: "Expo's template ships npm scripts that invoke `maestro`, and nothing installs the binary.",
@@ -59,7 +51,7 @@ const KNOWN_TOOLS = Object.freeze({
     viaNpm: "@playwright/test",
   },
   linear: {
-    why: "Linear is reachable remotely through its key-authenticated GraphQL API; only the MCP path needs browser OAuth.",
+    why: "Linear reaches a container through lisa-linear-access with LINEAR_API_KEY; only the MCP path needs browser OAuth, and there is no official CLI to pin.",
     mcpFallback: "linear-server",
   },
 });
@@ -107,23 +99,43 @@ export function toolsFromScripts(pkg) {
 }
 
 /**
- * Integrations wired only as an MCP server, which is a weaker signal than it
- * looks and must not be read as "install the CLI".
+ * MCP servers that are access substrates rather than evidence for a CLI.
  *
- * What is true: an MCP server that authenticates interactively — Linear's needs
- * browser OAuth — cannot authenticate in a container, so that PATH does not
- * survive the trip.
+ * Linear is the important case: Lisa's `lisa-linear-access` skill owns the
+ * headless path through `LINEAR_API_KEY` + GraphQL. There is no official Linear
+ * CLI to pin, and the unrelated `linear` npm package is not a tracker binary.
+ * Treating the MCP server as CLI evidence would push operators toward an
+ * arbitrary third-party executable instead of the access-layer contract.
+ */
+/** Prefix marking evidence that shows a path is missing, not what fills it. */
+const MCP_EVIDENCE = "MCP";
+
+/** What to ask when the only evidence is an MCP-only integration. */
+const REMOTE_PATH_QUESTION =
+  "no manifest entry proposed — confirm how this reaches a container: a CLI, " +
+  "a key-authenticated API call, or deliberately local-only";
+
+const MCP_ACCESS_LAYER_SUBSTRATES = Object.freeze({
+  "linear-server":
+    "lisa-linear-access uses LINEAR_API_KEY in headless sessions",
+});
+
+/**
+ * Integrations wired only as an MCP server — the weakest signal here, and the
+ * easiest to over-read.
  *
- * What does not follow: that the integration is therefore unavailable, or that
- * a CLI is the answer. Linear also exposes a key-authenticated GraphQL API that
- * `curl` reaches with a token the secrets chokepoint already resolves. Several
- * services are like this, and for them the remote path is an API call, not a
- * binary.
+ * True: an MCP server that authenticates interactively cannot authenticate in a
+ * container, so THAT path does not survive the trip.
  *
- * So this signal raises a question rather than asserting a need: this
- * integration has no remote path *as configured* — confirm it has one. The
- * answer may be a CLI, may be a direct API call, and may be "it is local-only
- * on purpose".
+ * Not implied: that the integration is unavailable, or that a CLI is the
+ * answer. Linear proves both halves — its MCP server needs browser OAuth, and
+ * its GraphQL API is key-authenticated, so `lisa-linear-access` already reaches
+ * it headlessly with LINEAR_API_KEY and there is no official CLI to pin at all.
+ * A server whose access layer owns headless auth is skipped entirely.
+ *
+ * For anything else, this raises a QUESTION rather than asserting a need: this
+ * integration has no remote path as configured, confirm it has one. The answer
+ * may be a CLI, may be a direct API call, and may be "local-only on purpose".
  * @param {object|null} mcp Parsed .mcp.json.
  * @returns {Map<string, string>} Tool name to the server that implies it.
  */
@@ -133,6 +145,14 @@ export function toolsFromMcp(mcp) {
   for (const [tool, meta] of Object.entries(KNOWN_TOOLS)) {
     if (!meta.mcpFallback) continue;
     const server = servers.find(name => name.includes(meta.mcpFallback));
+    if (
+      server &&
+      Object.keys(MCP_ACCESS_LAYER_SUBSTRATES).some(substrate =>
+        server.includes(substrate)
+      )
+    ) {
+      continue;
+    }
     if (server) {
       found.set(
         tool,
@@ -262,15 +282,14 @@ export function detectTooling(cwd = process.cwd()) {
  */
 export function proposedEntries(proposal) {
   // Evidence that an integration has no remote path does not say what the
-  // remote path should BE. Linear is the case that proves it: its MCP server
-  // needs browser OAuth and cannot authenticate in a container, but its
-  // GraphQL API is key-authenticated and `curl` reaches it with a token the
-  // secrets chokepoint already resolves. Proposing a CLI there would answer a
-  // question nobody asked, and a pinned binary is expensive to be wrong about.
-  const onlyMcp = (proposal.evidence ?? []).every(item =>
-    String(item).startsWith(MCP_EVIDENCE)
-  );
-  if (onlyMcp && (proposal.evidence ?? []).length > 0) {
+  // remote path should BE, and a pinned binary is expensive to be wrong about:
+  // its checksum has to move with every version bump. So MCP-only evidence
+  // proposes nothing and asks instead.
+  const evidence = proposal.evidence ?? [];
+  const onlyMcp =
+    evidence.length > 0 &&
+    evidence.every(item => String(item).startsWith(MCP_EVIDENCE));
+  if (onlyMcp) {
     return { install: [], require: [], question: REMOTE_PATH_QUESTION };
   }
   const viaNpm = KNOWN_TOOLS[proposal.name]?.viaNpm;
