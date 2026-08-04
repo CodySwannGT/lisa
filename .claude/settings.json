@@ -39,6 +39,15 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/lisa-enforcement-fallback.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/lisa-enforcement-fallback.sh"
+          }
+        ]
       }
     ]
   },
