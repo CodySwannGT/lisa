@@ -61,12 +61,12 @@ authenticated_surface: true       # → requires Sign-in Required
 artifacts_attached: true          # → requires Source Precedence section
 relations: [{ id: "ENG-99", type: "blocked_by" }]   # known issue relations (may be empty)
 remote_links: [{ url: "https://github.com/...", title: "PR #42" }]
-build_ready: true                 # caller asserts the build-ready role (status:ready) is/would be applied — see S15
+build_ready: true                 # caller asserts the build-ready role (the `Todo` state) is/would be set — see S15
 child_refs: ["ENG-601", "ENG-602"]   # known child work (sub-issues / project-member issues / blocked_by parentage) — see S15
 prd_source: "https://notion.so/..."    # set when the Issue was generated from a PRD — requires the Source Requirement section, see S16
 ```
 
-If the caller passes only an identifier, fetch the item via `lisa-linear-access operation: get-issue` (Issue) or `lisa-linear-access operation: get-project` (Project), derive the same fields from the fetched data — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item — then run gates.
+If the caller passes only an identifier, fetch the item via `lisa-linear-access operation: get-issue` (Issue) or `lisa-linear-access operation: get-project` (Project), derive the same fields from the fetched data — including `build_ready` (label set contains `Todo`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item — then run gates.
 
 ## Gates
 
@@ -235,9 +235,9 @@ This gate depends on S11. It is `N/A` for containers — a **Project** (the Epic
 
 #### S15 — Leaf-only build-ready
 
-Enforces the build-side of the vendor-neutral `leaf-only-lifecycle` rule: **only a leaf work unit may carry the build-ready role.** This is the symmetric write-side guard for the Linear validator — a stale or hand-applied `status:ready` label on a container is a lifecycle error and must FAIL here, regardless of how the item was produced. (Mirrors the "Build-ready label is leaf-only" rule that `lisa-linear-write-issue` applies at write time.)
+Enforces the build-side of the vendor-neutral `leaf-only-lifecycle` rule: **only a leaf work unit may carry the build-ready role.** This is the symmetric write-side guard for the Linear validator — a stale or hand-applied `Todo` label on a container is a lifecycle error and must FAIL here, regardless of how the item was produced. (Mirrors the "Build-ready label is leaf-only" rule that `lisa-linear-write-issue` applies at write time.)
 
-**When the gate applies.** Run S15 whenever the item is build-ready — i.e. `build_ready = true`, or the spec/live labels include `status:ready`. If the item is not build-ready, S15 is `N/A` (nothing claims a non-ready item, so the invariant is vacuous).
+**When the gate applies.** Run S15 whenever the item is build-ready — i.e. `build_ready = true`, or the spec/live labels include `Todo`. If the item is not build-ready, S15 is `N/A` (nothing claims a non-ready item, so the invariant is vacuous).
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an item is a **container** if it has child work, whatever its declared type; otherwise the **issue type** decides. Determine child work from (in order) `child_refs`, native sub-issues, project-member issues (an Epic is modeled as a Linear Project), and `blocked_by` / parent references — the same hierarchy resolution `lisa-linear-read-issue` uses. When validating a live identifier, query sub-issues / project members alongside the item fetch.
 
@@ -255,7 +255,7 @@ PASS (the childless-parent exception) when the item is build-ready and is a **le
 | Epic (Project) | no | yes | **FAIL** (childless Epic/Project — pure rollup container, exception does not apply) |
 | any | any | no | **N/A** (not build-ready) |
 
-Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. Move status:ready off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
+Remediation: `"Build-ready is leaf-only per leaf-only-lifecycle. Move the build-ready role off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
 
 `product_relevant: false` — a build-ready container is a lifecycle/decomposition error for the caller to repair, not a product question.
 
@@ -362,7 +362,7 @@ system, and never invent or ask for credentials inline.
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's an identifier, fetch the item and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item. Otherwise parse the YAML spec.
+1. Parse `$ARGUMENTS`. If it's an identifier, fetch the item and derive the spec from the fetched fields — including `build_ready` (label set contains `Todo`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item. Otherwise parse the YAML spec.
 2. Resolve team ID via `lisa-linear-access operation: list-teams({query: <teamKey>})` if any feasibility gate will run.
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only` (dry-run), run every Feasibility gate. Collect results.
