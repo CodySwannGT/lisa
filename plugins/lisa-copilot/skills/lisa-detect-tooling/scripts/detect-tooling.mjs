@@ -25,6 +25,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+/** The tool named by the Expo template's scripts and its flows directory. */
+const MAESTRO = "maestro";
+
 /**
  * Tools Lisa or its templates invoke, and how to recognise a need for them.
  *
@@ -33,9 +36,12 @@ import { join } from "node:path";
  * ones that only appear when the tool is genuinely used.
  */
 const KNOWN_TOOLS = Object.freeze({
-  maestro: {
+  [MAESTRO]: {
+    // A flows directory is the artifact maestro consumes; its presence is
+    // usage, where a synced threshold default is not.
+    artifacts: ".maestro",
     why: "Expo's template ships npm scripts that invoke `maestro`, and nothing installs the binary.",
-    mcpFallback: "maestro",
+    mcpFallback: MAESTRO,
   },
   gh: {
     why: "The work-item guardrails shell out to `gh` for every tracker read.",
@@ -199,22 +205,52 @@ export function toolsFromSecretNotes(notes) {
 }
 
 /**
- * Tools implied by quality configuration.
+ * Whether anything in the project actually reaches for this tool.
+ *
+ * Corroboration for a threshold, which on its own says only that a default was
+ * synced. Two independent witnesses: a script that names the binary, or the
+ * directory of artifacts the tool consumes.
+ * @param {string} tool Tool name.
+ * @param {object|null} pkg Parsed package.json.
+ * @param {string} cwd Project root.
+ * @returns {boolean} Whether the project uses it.
+ */
+function usedByProject(tool, pkg, cwd) {
+  const invoked = [...toolsFromScripts(pkg).keys()].includes(tool);
+  if (invoked) return true;
+  const artifacts = KNOWN_TOOLS[tool]?.artifacts;
+  return Boolean(artifacts && existsSync(join(cwd, artifacts)));
+}
+
+/**
+ * Tools a project's quality configuration CORROBORATES — never establishes.
+ *
+ * A threshold is not usage. `quality.e2eCoverage` defaults are synced into
+ * every project by `src/sync/registry.ts`, so this repository carries a
+ * `maestro` entry while having no `.maestro` directory and no script that
+ * invokes it. Treating that as evidence proposed pinning a 300MB JVM
+ * application into a container for a tool nothing runs.
+ *
+ * Evidence that a tool is CONFIGURED is not evidence that it is NEEDED — the
+ * same mistake as proposing a binary npm already provides. So a threshold only
+ * counts when something corroborates it: a script that invokes the tool, or the
+ * artifacts it consumes. In a real Expo project the script signal fires and
+ * this adds nothing; in a project that merely inherited the defaults, it
+ * correctly stays quiet.
  * @param {object|null} config Parsed .lisa.config.json.
+ * @param {object|null} [pkg] Parsed package.json, for corroboration.
+ * @param {string} [cwd] Project root, for artifact corroboration.
  * @returns {Map<string, string>} Tool name to the setting that implies it.
  */
-export function toolsFromQuality(config) {
+export function toolsFromQuality(config, pkg = null, cwd = process.cwd()) {
   const found = new Map();
-  // Every runner under e2eCoverage, not a hardcoded one. Naming `playwright`
-  // explicitly meant `quality.e2eCoverage.maestro` — configured in this very
-  // repository — produced no signal at all, so the one tool that genuinely
-  // needs a pinned binary and genuinely was not declared stayed invisible to
-  // the detector built to find it. A gate that reports "nothing outstanding"
-  // while the gap is right there is worse than no gate.
   for (const runner of Object.keys(config?.quality?.e2eCoverage ?? {})) {
-    if (Object.hasOwn(KNOWN_TOOLS, runner)) {
-      found.set(runner, `quality.e2eCoverage.${runner} is configured`);
-    }
+    if (!Object.hasOwn(KNOWN_TOOLS, runner)) continue;
+    if (!usedByProject(runner, pkg, cwd)) continue;
+    found.set(
+      runner,
+      `quality.e2eCoverage.${runner} is configured, and the project uses it`
+    );
   }
   if (config?.quality?.sonar || config?.sonar) {
     found.set("sonar-scanner", "Sonar analysis is configured");
@@ -288,7 +324,7 @@ export function detectTooling(cwd = process.cwd()) {
     toolsFromScripts(pkg),
     toolsFromMcp(mcp),
     toolsFromSecretNotes(notes),
-    toolsFromQuality(config),
+    toolsFromQuality(config, pkg, cwd),
   ];
 
   const merged = new Map();
