@@ -28,6 +28,7 @@ const SUPPRESS = "lisa-block-suppress-directives.ts";
 const SGSCAN = "lisa-sg-scan-on-edit.ts";
 const MIGRATION = "lisa-block-migration-edits.ts";
 const RUBOCOP = "lisa-rubocop-on-edit.ts";
+const INSTR = "lisa-block-instruction-file-edits.ts";
 const BASE_RULES = "base-rules.md";
 
 describe("opencode/hooks-installer", () => {
@@ -39,8 +40,7 @@ describe("opencode/hooks-installer", () => {
     tempDir = await createTempDir();
     lisaDir = path.join(tempDir, "lisa");
     destDir = path.join(tempDir, "project");
-    await fs.ensureDir(lisaDir);
-    await fs.ensureDir(destDir);
+    await Promise.all([fs.ensureDir(lisaDir), fs.ensureDir(destDir)]);
   });
 
   afterEach(async () => {
@@ -250,7 +250,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the typescript guards for a typescript project", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([SUPPRESS, LINT, PARITY, SESSION, SGSCAN]);
+      expect(files).toEqual([INSTR, SUPPRESS, LINT, PARITY, SESSION, SGSCAN]);
     });
 
     it("adds the migration guard for a nestjs project", async () => {
@@ -264,7 +264,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the rails guards for a rails project", async () => {
       await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([PARITY, RUBOCOP, SESSION, SGSCAN]);
+      expect(files).toEqual([INSTR, PARITY, RUBOCOP, SESSION, SGSCAN]);
     });
 
     it("does not ship typescript guards to a rails-only project", async () => {

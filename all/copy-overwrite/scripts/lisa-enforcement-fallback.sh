@@ -4,7 +4,8 @@
 # is not installed.
 #
 # Every PreToolUse guard — block-no-verify, parity-safety-net,
-# block-shell-json-parsing — is declared in the Lisa plugin. A cloud session
+# block-shell-json-parsing, block-instruction-file-edits — is declared in the
+# Lisa plugin. A cloud session
 # installs plugins at session start from the marketplace the repository
 # declares, and when that does not happen the container runs with
 # `installed_plugins.json` empty and no enforcement whatsoever.
@@ -41,7 +42,8 @@ fi
 # host project whose plugin install fails has exactly the same hole and no
 # `plugins/` directory to fall back on.
 status=0
-for guard in block-no-verify parity-safety-net block-shell-json-parsing; do
+for guard in block-no-verify parity-safety-net block-shell-json-parsing \
+  block-instruction-file-edits; do
   script=""
   for candidate in \
     "$repo_root/scripts/lisa-hooks/$guard.sh" \
