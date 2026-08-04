@@ -14,7 +14,11 @@
  * install path, which is precisely what `assertPinned` exists to prevent.
  * @module tests/unit/secrets/detect-tooling
  */
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   declaredTools,
@@ -27,13 +31,19 @@ import {
   toolsFromSecretNotes,
 } from "../../../plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs";
 
+/** The Expo template's own script body — the strongest usage signal. */
+const MAESTRO_SCRIPT = "maestro test .maestro/flows";
+
+/** A root with no artifacts, so only the explicit inputs decide. */
+const NO_PROJECT = "/nonexistent-project";
+
 describe("signals", () => {
   it("reads the body of an npm script, not its name", () => {
     // A script NAMED maestro:test proves nothing; one that RUNS `maestro test`
     // is the project stating a dependency in executable form. The Expo template
     // ships exactly this, and nothing installs the binary.
     const found = toolsFromScripts({
-      scripts: { "maestro:test": "maestro test .maestro/flows" },
+      scripts: { "maestro:test": MAESTRO_SCRIPT },
     });
 
     expect([...found.keys()]).toContain("maestro");
@@ -189,13 +199,49 @@ describe("against this repository", () => {
 });
 
 describe("quality signals", () => {
+  it("stays quiet for a threshold nothing corroborates", () => {
+    // quality.e2eCoverage defaults are synced into every project by
+    // src/sync/registry.ts. This repository carries a maestro entry while
+    // having no .maestro directory and no script that invokes it — treating
+    // that as evidence proposed pinning a 300MB JVM application into a
+    // container for a tool nothing runs.
+    //
+    // Evidence that a tool is CONFIGURED is not evidence that it is NEEDED.
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { maestro: {} } } },
+      { scripts: { test: "vitest" } },
+      NO_PROJECT
+    );
+
+    expect([...found.keys()]).toHaveLength(0);
+  });
+
+  it("fires when a script actually invokes the runner", () => {
+    // A real Expo project: the template ships `maestro test` scripts, so the
+    // threshold is corroborated and the gap is still reported.
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { maestro: {} } } },
+      { scripts: { "maestro:test": MAESTRO_SCRIPT } },
+      NO_PROJECT
+    );
+
+    expect([...found.keys()]).toContain("maestro");
+  });
+
   it("surfaces every configured e2e runner, not a hardcoded one", () => {
     // quality.e2eCoverage.maestro is configured in this repository and produced
     // no signal, so the detector reported "nothing outstanding" while maestro —
     // the tool whose absence started this work — was undeclared and invisible.
-    const found = toolsFromQuality({
-      quality: { e2eCoverage: { playwright: {}, maestro: {} } },
-    });
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { playwright: {}, maestro: {} } } },
+      {
+        scripts: {
+          e2e: "playwright test",
+          "maestro:test": MAESTRO_SCRIPT,
+        },
+      },
+      NO_PROJECT
+    );
 
     expect([...found.keys()]).toEqual(
       expect.arrayContaining(["playwright", "maestro"])
@@ -205,9 +251,11 @@ describe("quality signals", () => {
   it("ignores a runner it knows nothing about", () => {
     // A signal for an unknown name would propose a manifest entry naming a
     // tool the detector cannot describe or pin.
-    const found = toolsFromQuality({
-      quality: { e2eCoverage: { somethingElse: {} } },
-    });
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { somethingElse: {} } } },
+      { scripts: { x: "somethingElse run" } },
+      NO_PROJECT
+    );
 
     expect([...found.keys()]).toHaveLength(0);
   });
@@ -252,5 +300,56 @@ describe("tools the package manager already provides", () => {
 
   it("still proposes when the package is absent", () => {
     expect(satisfiedByNpm({ devDependencies: {} }, "playwright")).toBe(false);
+  });
+});
+
+describe("artifact corroboration", () => {
+  const roots: string[] = [];
+
+  afterEach(() => {
+    for (const dir of roots.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * A project carrying only the synced threshold, plus whatever artifact the
+   * case plants.
+   * @returns Absolute path to the throwaway project
+   */
+  function project(): string {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-artifact-"));
+    roots.push(root);
+    return root;
+  }
+
+  it("accepts the flows DIRECTORY as evidence the tool is used", () => {
+    const root = project();
+    mkdirSync(path.join(root, ".maestro"), { recursive: true });
+
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { maestro: {} } } },
+      { scripts: { test: "vitest" } },
+      root
+    );
+
+    expect([...found.keys()]).toContain("maestro");
+  });
+
+  it("rejects a regular FILE of the same name", () => {
+    // `existsSync` is true for a file too, so a stray `.maestro` note or editor
+    // artifact would have corroborated the threshold and reintroduced the
+    // 300MB proposal this check exists to prevent — a false positive arriving
+    // through the very guard added to stop one.
+    const root = project();
+    writeFileSync(path.join(root, ".maestro"), "just a note\n");
+
+    const found = toolsFromQuality(
+      { quality: { e2eCoverage: { maestro: {} } } },
+      { scripts: { test: "vitest" } },
+      root
+    );
+
+    expect([...found.keys()]).toHaveLength(0);
   });
 });
