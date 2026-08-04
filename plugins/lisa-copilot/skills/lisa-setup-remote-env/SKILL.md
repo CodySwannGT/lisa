@@ -165,15 +165,27 @@ by platform. Before that existed, the only way to keep a Linux binary off a lapt
 
 Expected shape for most projects: a short `require` list, an empty or near-empty `install` list, and the provider CLI as the only thing always provisioned.
 
-### The three `install` methods
+### The four `install` methods
 
 | `install` | Required fields | Use it when |
 | --- | --- | --- |
 | `release-zip` | `url` **and** `sha256` | The vendor publishes a Linux zip of the release. |
 | `release-tar` | `url` **and** `sha256` — plus `binary` in practice | The vendor publishes no zip for Linux, only a `.tar.gz`. |
+| `release-tree` | `url`, `sha256` **and** `binary` | The archive is a **directory**, not a single binary — an entry point that resolves its own siblings at run time. |
 | `npm-global` | `package` | The tool ships on the npm registry. |
 
 Anything else is rejected by name at plan time, so a typo fails loudly rather than silently installing nothing.
+
+**`release-tree` exists because the single-file kinds fail silently on a tree.** They extract the archive and copy *one* file onto PATH, which is right for a static binary and wrong for anything that locates its own resources. Maestro is the case that forced it — one 314 MB zip containing:
+
+```text
+maestro/bin/maestro     <- launcher
+maestro/lib/*.jar       <- 100+ MB of classpath
+```
+
+and a launcher that computes `CLASSPATH=$APP_HOME/lib/*` where `APP_HOME` is the parent of wherever the script itself sits. Declared as `release-zip` with `binary: maestro/bin/maestro`, the launcher lands in `~/.local/bin`, `APP_HOME` resolves to `~/.local`, and the classpath points at an empty directory. **The install reports success and the tool dies at first use** with `Could not find or load main class` — exactly the failure this manifest exists to turn into a loud setup error.
+
+So `release-tree` extracts the whole archive to `~/.local/share/<name>/<version>` and puts a **wrapper** on PATH that `exec`s the entry point in place. Not a copy, and deliberately not a symlink either: a launcher that does not resolve symlinks before computing its own location would read the link's directory as its home and look for its resources beside the link — the same broken install, narrowed to a subset of tools. `binary` has no default here, because the archive root is a directory and guessing would install a directory as a binary.
 
 Both archive kinds carry the **same** obligation and differ only in how they are unpacked: `url` and `sha256` are both mandatory, the checksum is verified *before* the archive is unpacked, and a version bump must move the checksum in the same reviewed commit. Neither is a weaker path than the other — `release-tar` exists because some tools worth pinning simply do not publish a zip. `gh` is the case that forced it: it ships `.deb`, `.rpm` and `.tar.gz` and nothing else, so a zip-only installer could not pin the CLI that Lisa's own commit guardrails shell out to.
 

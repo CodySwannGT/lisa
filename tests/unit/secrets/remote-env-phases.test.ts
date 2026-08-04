@@ -381,7 +381,7 @@ describe("pinned tarball installs", () => {
   it("names the tar kind when refusing an unknown one", () => {
     // The message is where an operator learns which kinds exist at all.
     expect(() => assertPinned({ name: "x", install: "release-deb" })).toThrow(
-      /Supported: release-zip, release-tar, npm-global/
+      /Supported: release-zip, release-tar, release-tree, npm-global/
     );
   });
 
