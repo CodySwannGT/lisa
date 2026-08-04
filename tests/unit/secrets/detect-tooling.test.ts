@@ -63,6 +63,46 @@ describe("signals", () => {
     expect([...found.keys()]).toContain("sonar-scanner");
   });
 
+  it("asks about a remote path for an MCP server with no known substrate", () => {
+    // The substrate allowlist fixes Linear. It does not fix the class: every
+    // other interactively authenticated MCP server was still told "browser
+    // OAuth cannot run remotely", which asserts a conclusion the evidence does
+    // not support.
+    const found = toolsFromMcp({ mcpServers: { maestro: {} } });
+
+    expect(found.get("maestro")).toMatch(/confirm this integration has one/i);
+  });
+
+  it("still proposes a binary for a tool that has one, however detected", () => {
+    // The regression this replaces: keying "propose nothing" on the EVIDENCE
+    // being an MCP server suppressed exactly the wrong case. The substrate
+    // allowlist already removes Linear before it becomes evidence, so the only
+    // tools reaching that branch were ones like Maestro that genuinely do have
+    // a CLI — the binary the Expo template invokes and nothing installs.
+    const proposal = proposedEntries({
+      name: "maestro",
+      evidence: ['MCP server "maestro" - interactive auth'],
+    });
+
+    expect(proposal.install).toHaveLength(1);
+    expect(proposal.require).toHaveLength(1);
+  });
+
+  it("asks instead of proposing where no CLI exists to name", () => {
+    // Linear has no official CLI, so no proposal can name one — and a pinned
+    // binary is expensive to be wrong about, since its checksum moves with
+    // every version bump. Asserted directly rather than relying on the
+    // substrate allowlist to keep Linear out of proposals.
+    const proposal = proposedEntries({
+      name: "linear",
+      evidence: ['MCP server "linear-server" - interactive auth'],
+    });
+
+    expect(proposal.install).toHaveLength(0);
+    expect(proposal.require).toHaveLength(0);
+    expect(proposal.question).toMatch(/key-authenticated API call/);
+  });
+
   it("survives a malformed config instead of throwing", () => {
     // A detector that dies on a broken file blocks the very command someone
     // runs to find out what is broken.
