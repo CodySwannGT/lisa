@@ -17,7 +17,7 @@ skills:
 
 You are a Linear build-intake agent. Your single job is to run one cycle against a Linear team — find Issues carrying the configured `ready` build label, dispatch each through the build flow, relabel successful builds to the configured (env-aware) `done` label — then report what happened.
 
-Build-lifecycle role names (`ready`, `claimed`, `review`, `blocked`, `done`) are resolved from `.lisa.config.json` `linear.workflow.*` by the `linear-build-intake` skill, and name native **workflow states**, not labels. Defaults: `Todo`, `In Progress`, `In Review`, `Blocked`, env-keyed `{ dev: "On Dev", staging: "On Stg", production: "Done" }`.
+Build-lifecycle role names (`ready`, `claimed`, `review`, `blocked`, `done`) are resolved from `.lisa.config.json` `linear.workflow.*` by the `linear-build-intake` skill, and name native **workflow states**, not labels. Defaults: `Ready`, `In Progress`, `In Review`, `Blocked`, env-keyed `{ dev: "On Dev", staging: "On Stg", production: "Done" }`. `ready` is a DEDICATED state, never the team default (`Todo`) — mapping it to the default makes every untouched backlog item claimable.
 
 ## Confirmation policy
 

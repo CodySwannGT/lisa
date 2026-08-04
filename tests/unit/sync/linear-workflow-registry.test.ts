@@ -102,3 +102,49 @@ describe("linear.labels — markers and the PRD lane only", () => {
     expect(linear.build).not.toEqual(github.build);
   });
 });
+
+describe("`ready` must be a DEDICATED state, never the tracker default", () => {
+  // The first cut mapped `ready` to "Todo" — which is where Linear puts a
+  // BRAND-NEW issue. That inverted the gate: the lane stopped meaning "a human
+  // flipped this to build-ready" and started meaning "nobody has touched this",
+  // so every untouched backlog item read as claimable. Measured on the first
+  // team migrated: 20 issues in the lane, only 8 ever explicitly marked ready.
+  //
+  // JIRA never had the bug because `jira.workflow.ready` is a dedicated `Ready`
+  // status while a fresh ticket lands in the project default. These pin the
+  // parallel so a future "simplification" back to the default fails here.
+
+  const LINEAR_DEFAULT_STATES = ["Todo", "Backlog", "Triage"];
+
+  it("does not use a stock Linear default state for `ready`", () => {
+    const ready = (
+      entry(LINEAR_WORKFLOW).defaultValue as Record<string, unknown>
+    ).ready;
+
+    expect(LINEAR_DEFAULT_STATES).not.toContain(ready);
+  });
+
+  it("uses the same role name JIRA does", () => {
+    const linear = entry(LINEAR_WORKFLOW).defaultValue as Record<
+      string,
+      unknown
+    >;
+    const jira = entry("jira.workflow").defaultValue as Record<string, unknown>;
+
+    expect(linear.ready).toBe(jira.ready);
+  });
+
+  it("keeps `ready` distinct from every other role", () => {
+    // A `ready` that collides with `claimed` or a `done` rung would make the
+    // queue re-claim its own output.
+    const linear = entry(LINEAR_WORKFLOW).defaultValue as Record<string, any>;
+    const others = [
+      linear.claimed,
+      linear.review,
+      linear.blocked,
+      ...Object.values(linear.done),
+    ];
+
+    expect(others).not.toContain(linear.ready);
+  });
+});

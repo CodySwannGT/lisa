@@ -30,7 +30,7 @@ read_role() {
   echo "${local_v:-${global_v:-$default}}"
 }
 
-READY=$(read_role ready "Todo")
+READY=$(read_role ready "Ready")
 CLAIMED=$(read_role claimed "In Progress")
 REVIEW=$(read_role review "In Review")
 BLOCKED=$(read_role blocked "Blocked")
@@ -68,7 +68,7 @@ else
 fi
 ```
 
-In prose below, the role names refer to the resolved **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to (default: `Todo`).
+In prose below, the role names refer to the resolved **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to (default: `Ready`).
 
 ## Why native states, not labels
 
@@ -110,7 +110,7 @@ ready → claimed → review → done(env-keyed) (downstream)
 (human/PM)    (us claim)    (us PR ready)    (us build done)
 ```
 
-(Defaults: `Todo` / `In Progress` / `In Review` / `On Dev`/`On Stg`/`Done`.)
+(Defaults: `Ready` / `In Progress` / `In Review` / `On Dev`/`On Stg`/`Done`.)
 
 This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches the terminal production `done`, `$REVIEW` (owned by the lifecycle / `lisa-linear-evidence`), or `$BLOCKED` (owned by the pre-flight gate).
 
@@ -355,9 +355,9 @@ Total PRs opened: <n>
 
 ## Adoption (one-time per team)
 
-Before this skill can run against a Linear team, the team must have the build-queue workflow states. Run `/lisa:setup:linear`, which resolves each role and offers to create what is missing — a stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but **not** `Blocked`, `On Dev` or `On Stg`.
+Before this skill can run against a Linear team, the team must have the build-queue workflow states. Run `/lisa:setup:linear`, which resolves each role and offers to create what is missing — a stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but **not** `Ready`, `Blocked`, `On Dev` or `On Stg`.
 
-1. Ensure states exist for every role in `linear.workflow` (defaults `Todo`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`). Override any role name in config rather than renaming to match.
+1. Ensure states exist for every role in `linear.workflow` (defaults `Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`). Note `ready` is a DEDICATED state, not Linear's default `Todo` — mapping it to the default would make every untouched backlog item claimable. Override any role name in config rather than renaming to match.
 2. Move Issues to `$READY` when they are ready for development.
 3. Reserve `$CLAIMED`, `$REVIEW`, `$DONE` for Lisa — humans should not set them manually except to recover from an error.
 4. Remove the team's `merge → Done` git automation. It is a second writer that jumps an Issue to terminal on a `dev` merge, skipping the env rungs; `/lisa:setup:linear` detects and offers to delete it.
