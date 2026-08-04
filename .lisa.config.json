@@ -166,6 +166,9 @@
         },
         {
           "name": "unzip"
+        },
+        {
+          "name": "tar"
         }
       ],
       "install": [
