@@ -16,7 +16,7 @@ Use `lisa-track` as the single entry point:
 3. Idempotently claim the resolved leaf through `lisa-tracker-claim`, which reuses the vendor build-intake claim semantics and post-read verifies the claimed-or-later state.
 4. Before any durable repository work, persist the canonical reference with `node scripts/lisa-work-item.mjs bind <ref>` and verify the worktree-local binding.
 
-The sequence is strict: **live validate/create -> claim -> bind -> durable work**. A failed tracker read/write, claim, or binding blocks the work. Tracker availability must be proven; tool presence or stale session text is not access.
+The sequence is strict: **live validate/create -> claim -> bind -> durable work**. A tracker answer of no, and any claim or binding failure, blocks the work. A tracker that cannot be reached — `gh` absent, or its credential refused — does not block a commit: the offline checks still run, the skip is loud on stderr, and the required `Work-Item Traceability` check re-runs the live checks with credentials before anything merges. Any other tracker failure still blocks. Tool presence or stale session text is not access.
 
 ## One canonical identity
 
