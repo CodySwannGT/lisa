@@ -152,7 +152,7 @@ A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructu
 
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 
-Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still sits in the build-ready state (e.g. moved to `$READY` before this rule existed, or hand-moved on a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa-linear-write-issue` and the validate-time S15 gate in `lisa-linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
+Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still sits in the build-ready state (e.g. moved to `$READY` before this rule existed, or hand-moved on a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time state assignment in `lisa-linear-write-issue` and the validate-time S15 gate in `lisa-linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
 Run this gate **before** the claim transition, starting with the oldest/highest-priority ready candidate. Do NOT transition, comment "Claimed", or dispatch the lifecycle for an Issue that fails the gate.
 

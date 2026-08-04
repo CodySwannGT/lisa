@@ -77,7 +77,7 @@ When `$ARGUMENTS` includes `pr_url=<url>` for `pr-ready` or `pr-merged`, ensure 
 
 The PR branch/title/body identifier is the PR -> Linear side. This phase is the required Linear -> PR side.
 
-## Phase 4 — Update Status Label (when caller requests)
+## Phase 4 — Update Workflow State (when caller requests)
 
 If the caller passes `--update-state`, set the Issue's `stateId` via `lisa-linear-access operation: save-issue`:
 
@@ -88,7 +88,7 @@ If the caller passes `--update-state`, set the Issue's `stateId` via `lisa-linea
 
 If the requested STATE doesn't exist on the team, that is a setup defect — report it and point at `/lisa:setup:linear`. Never create a workflow state here: a state carries a `type` and a board position, and guessing either puts the Issue somewhere no human sanctioned.
 
-No single-lane verification is needed: an Issue holds exactly one workflow state by construction, so the two-labels-at-once corruption the old label lane could produce is unrepresentable.
+No single-lane verification is needed: an Issue holds exactly one workflow state by construction, so the two-lanes-at-once corruption the old label-driven lane could produce is unrepresentable. (It was not hypothetical — 16 issues carried two `status:*` labels at the time of the migration.)
 
 Without `--update-state`, this skill posts the comment only and does NOT touch the Issue's state.
 
@@ -132,7 +132,7 @@ When the caller passes `--rollup`, this skill **derives a parent/container's wor
 
 ## Rules
 
-- Never auto-transition the native Linear `state` — only the label, and only when the caller explicitly asks (`--update-state`, or `--rollup` for parent derivation per the `leaf-only-lifecycle` rule).
+- Never transition the Issue's workflow `state` unless the caller explicitly asks (`--update-state`, or `--rollup` for parent derivation per the `leaf-only-lifecycle` rule). Without a flag this skill only SUGGESTS a transition in its comment. The state is the lifecycle lane now, so an unrequested write here would move the item in the build queue.
 - Rollup derives a *parent's* workflow state from its children and never rolls a parent into the human-owned ready lane (never `$READY`). It cites the `leaf-only-lifecycle` rule by slug rather than restating the state machine.
 - Never post empty or minimal comments — if a milestone has no meaningful content, skip the post.
 - Do not delete prior milestone comments. They are the audit trail.
