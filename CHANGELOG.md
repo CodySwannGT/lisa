@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.328.0](https://github.com/CodySwannGT/lisa/compare/v2.327.0...v2.328.0) (2026-08-04)
+
+
+### Features
+
+* **toolchain:** pin tools per platform and give a laptop a way to ask ([cb75f0f](https://github.com/CodySwannGT/lisa/commit/cb75f0f1760bcad68e2c1178182619bc20753ef0)), closes [CodySwannGT/lisa#1982](https://github.com/CodySwannGT/lisa/issues/1982)
+
 ## [2.327.0](https://github.com/CodySwannGT/lisa/compare/v2.326.3...v2.327.0) (2026-08-04)
 
 
