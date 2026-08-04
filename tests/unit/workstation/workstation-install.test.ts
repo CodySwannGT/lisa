@@ -44,6 +44,11 @@ describe("installEntry", () => {
       { label: "Codex" },
       {
         run: (cmd, args) => calls.push([cmd, ...args]),
+        // `locate` MUST be injected. Without it the post-install check runs a
+        // real `command -v codex`, which passes on a laptop that has Codex and
+        // fails on CI that does not — the machine-dependent test this whole
+        // skill exists to stop people writing. It failed on CI exactly that way.
+        locate: () => `${BIN_DIR}/codex`,
       }
     );
     expect(calls).toEqual([["npm", "install", "-g", "@openai/codex"]]);
@@ -162,6 +167,10 @@ describe("installEntry", () => {
         run: () => {
           throw new Error("network down");
         },
+        // Deterministic without this, since the throw happens before the
+        // post-install check — injected anyway so no test in this file reaches
+        // for the host, and none can start depending on it later by accident.
+        locate: () => null,
       }
     );
     expect(result.action).toBe("failed");
