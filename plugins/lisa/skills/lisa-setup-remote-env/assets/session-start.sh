@@ -27,4 +27,21 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 here="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+
+# The toolchain first, for the same reason the secrets are here at all.
+#
+# It used to run only from the environment setup script, which a cached
+# environment skips — so a tool added to remoteEnv.tools was invisible until the
+# cache expired about a week later, or until someone edited the vendor's setup
+# field to force a rebuild. Neither is a thing a project can rely on, and the
+# symptom is a container missing a tool its own committed config pins.
+#
+# It is cheap to repeat: the plan probes each tool and installs only what is
+# absent or below its pinned version, so on a warm container this is a handful
+# of --version calls and nothing else.
+#
+# Before secrets, because materializing needs the provider CLI that this step
+# installs. A failure here is fatal for the same reason: continuing would report
+# a missing credential when the real fault was a missing binary.
+bash "${here}/setup.sh" --phase=toolchain "$@"
 exec bash "${here}/setup.sh" --phase=secrets "$@"
