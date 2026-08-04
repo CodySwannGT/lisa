@@ -1,0 +1,4 @@
+display_name: "Setup Workstation"
+short_description: "Prepare a machine — a fresh…"
+default_prompt:
+  - "Use $lisa-setup-workstation: Prepare a machine — a fresh…."
