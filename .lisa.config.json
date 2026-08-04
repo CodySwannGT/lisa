@@ -204,6 +204,12 @@
           "surfaces": [
             "remote"
           ]
+        },
+        {
+          "name": "playwright",
+          "install": "npm-global",
+          "package": "@playwright/test",
+          "version": "1.62.1"
         }
       ]
     },

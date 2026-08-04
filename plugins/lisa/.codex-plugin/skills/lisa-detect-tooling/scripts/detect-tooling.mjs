@@ -99,6 +99,20 @@ export function toolsFromScripts(pkg) {
 }
 
 /**
+ * MCP servers that are access substrates rather than evidence for a CLI.
+ *
+ * Linear is the important case: Lisa's `lisa-linear-access` skill owns the
+ * headless path through `LINEAR_API_KEY` + GraphQL. There is no official Linear
+ * CLI to pin, and the unrelated `linear` npm package is not a tracker binary.
+ * Treating the MCP server as CLI evidence would push operators toward an
+ * arbitrary third-party executable instead of the access-layer contract.
+ */
+const MCP_ACCESS_LAYER_SUBSTRATES = Object.freeze({
+  "linear-server":
+    "lisa-linear-access uses LINEAR_API_KEY in headless sessions",
+});
+
+/**
  * Tools implied by MCP servers that also have a CLI.
  *
  * An MCP server is not a substitute for the binary. Several authenticate by
@@ -114,6 +128,14 @@ export function toolsFromMcp(mcp) {
   for (const [tool, meta] of Object.entries(KNOWN_TOOLS)) {
     if (!meta.mcpFallback) continue;
     const server = servers.find(name => name.includes(meta.mcpFallback));
+    if (
+      server &&
+      Object.keys(MCP_ACCESS_LAYER_SUBSTRATES).some(substrate =>
+        server.includes(substrate)
+      )
+    ) {
+      continue;
+    }
     if (server) {
       found.set(
         tool,
