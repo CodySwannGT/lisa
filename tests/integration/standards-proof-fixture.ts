@@ -60,7 +60,27 @@ export interface ProofSnapshot {
  * @returns Trimmed command output
  */
 export function git(root: string, args: readonly string[]): string {
-  return execFileSync(GIT, args, { cwd: root, encoding: "utf8" }).trim();
+  return execFileSync(GIT, args, {
+    cwd: root,
+    encoding: "utf8",
+    // A fixture repository must not inherit the developer's — or the
+    // container's — global Git configuration. The failure that forced this was
+    // not subtle: a cloud session carries a global
+    // `url.<proxy>.insteadOf = https://github.com/`, which rewrote the FIXTURE's
+    // own origin, so a test asserting `github.com/acme/project` saw
+    // `127.0.0.1:PORT/git/acme/project` and failed on a correct tree.
+    //
+    // Nothing here should depend on machine configuration at all, so both
+    // scopes are silenced rather than only the one that happened to bite.
+    // A fixed environment rather than an inherited one: nothing this helper
+    // does should vary with the machine, and PATH is pinned because git itself
+    // is invoked by absolute path.
+    env: {
+      PATH: "/usr/bin:/bin",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+    },
+  }).trim();
 }
 
 /**
