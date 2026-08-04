@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.323.5](https://github.com/CodySwannGT/lisa/compare/v2.323.4...v2.323.5) (2026-08-04)
+
+
+### Bug Fixes
+
+* **standards:** derive repository identity from configuration, not transport ([3856955](https://github.com/CodySwannGT/lisa/commit/38569551bc2627d9a4b0d4963c7fcd34a1311c34)), closes [CodySwannGT/lisa#2246](https://github.com/CodySwannGT/lisa/issues/2246)
+
 ### [2.323.4](https://github.com/CodySwannGT/lisa/compare/v2.323.3...v2.323.4) (2026-08-04)
 
 
