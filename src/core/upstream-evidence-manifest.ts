@@ -853,9 +853,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
-      "7424cdbd43caa6f371b4cbf010491285e47f3bf00723c82caec023057b018985",
+      "4ef9b5004e13beb46cac5ae994c24d91c3715363771e3d89c32b0610408fc887",
+    "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs":
+      "e28bd61fdde4a336b56ae3395423026943a5816015719d31d04f0d5a0ab50eec",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
-      "6582180a039ba5ca8cd59abeaf909205b3e5d5de355bad47da28bc5c02db6090",
+      "e24e6ac3e073097d4a9991b398386f19f10a8abe2dfba57196d615f5e6a6cf63",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
@@ -3156,6 +3158,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa-agy/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa-agy/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-drive-pr-to-merge/SKILL.md": true,
@@ -3577,6 +3580,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa-copilot/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa-copilot/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-drive-pr-to-merge/SKILL.md": true,
@@ -3984,6 +3988,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa-cursor/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa-cursor/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-drive-pr-to-merge/SKILL.md": true,
@@ -5902,6 +5907,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-doctor/agents/openai.yaml": true,
@@ -6487,6 +6493,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa/skills/lisa-detect-tooling/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/lisa/skills/lisa-doctor/SKILL.md": true,
     "plugins/lisa/skills/lisa-doctor/agents/openai.yaml": true,
@@ -7053,6 +7060,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-debrief/SKILL.md": true,
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md": true,
+    "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
     "plugins/src/base/skills/lisa-doctor/SKILL.md": true,
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md": true,
@@ -8410,6 +8418,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
+    "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
