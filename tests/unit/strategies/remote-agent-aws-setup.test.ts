@@ -54,6 +54,28 @@ afterEach(() => {
   }
 });
 
+/**
+ * The only environment the bootstrap script may see.
+ *
+ * Built by allowlist rather than by spreading `process.env`. The script refuses
+ * when `AWS_ACCESS_KEY_ID` is set directly — correctly, so that role profiles
+ * cannot be bypassed — so a machine holding real AWS credentials tripped the
+ * script's own guard and turned a happy-path assertion red on a correct tree.
+ *
+ * Blanking that one variable would have fixed the symptom. Inheriting a
+ * developer's or a container's live AWS identity into a subprocess is worth
+ * avoiding on its own, so nothing is inherited that this script does not need.
+ * @param overrides - Variables this particular case supplies
+ * @returns A minimal, machine-independent environment
+ */
+function scriptEnvironment(
+  overrides: Readonly<Record<string, string>>
+): Record<string, string> {
+  // Nothing is inherited. Every caller supplies PATH explicitly, because the
+  // stubbed AWS CLI has to be findable and a real one must not be.
+  return { ...overrides };
+}
+
 describe("remote AWS platform installer", () => {
   it("installs the common script and native Cursor and Copilot adapters", () => {
     const project = temporaryDirectory();
@@ -280,14 +302,13 @@ fi
     const output = execFileSync("bash", [REMOTE_SETUP_SCRIPT_PATH], {
       cwd: path.resolve("."),
       encoding: "utf8",
-      env: {
-        ...process.env,
+      env: scriptEnvironment({
         HOME: home,
         PATH: `${binaryDirectory}:${process.env.PATH ?? ""}`,
         FAKE_AWS_LOG: logPath,
         LISA_AWS_BOOTSTRAP_JSON: bootstrap,
         LISA_REMOTE_AGENT: "codex",
-      },
+      }),
     });
 
     const awsCalls = readFileSync(logPath, "utf8");
@@ -310,14 +331,13 @@ fi
     const result = spawnSync("bash", [REMOTE_SETUP_SCRIPT_PATH], {
       cwd: path.resolve("."),
       encoding: "utf8",
-      env: {
-        ...process.env,
+      env: scriptEnvironment({
         HOME: home,
         PATH: `${binaryDirectory}:${process.env.PATH ?? ""}`,
         FAKE_AWS_LOG: logPath,
         AWS_ACCESS_KEY_ID: "must-not-be-used",
         LISA_AWS_BOOTSTRAP_JSON: "{}",
-      },
+      }),
     });
 
     expect(result.status).not.toBe(0);
