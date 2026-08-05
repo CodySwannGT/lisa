@@ -38,6 +38,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -584,6 +585,101 @@ export const SETUP_FIELD =
   'exit "$rc"';
 
 /**
+ * Register the session-start hook at USER scope, so it fires wherever the
+ * session opens.
+ *
+ * The committed `.claude/settings.json` hook is *project*-scoped: it loads only
+ * when Claude Code's project directory is that repository. A cloud session does
+ * not reliably start there. With several repositories it starts in the shared
+ * parent, which is not a git repository at all; even with one, the checkout sits
+ * at `$HOME/<repo>` while the session may open at `$HOME`. In those sessions no
+ * project settings load, the hook never registers, and nothing materializes —
+ * the failure that `materializeAt: "both"` was introduced to paper over, and
+ * which it could not fix, because the setup phase cannot see the bootstrap
+ * credential in the first place.
+ *
+ * A user-scoped hook has neither problem: `~/.claude/settings.json` is read for
+ * every session regardless of project directory, and it runs in-session where
+ * the vendor's configured variables ARE present.
+ *
+ * Only ever on a remote surface. This writes machine state in an ephemeral
+ * container, which is fine there and would be an intrusion on a developer's
+ * laptop, where the project hook already works and the user owns that file.
+ *
+ * Merged, never clobbered, and idempotent on the exact command — an existing
+ * user settings file may carry hooks this knows nothing about.
+ * @param {string} repoRoot Absolute path to the checkout.
+ * @param {object} options Home directory, dry-run flag, and file seams.
+ * @returns {{action: string, path: string, reason?: string}} What was done.
+ */
+export function installUserSessionHook(repoRoot, options = {}) {
+  const {
+    home = process.env.HOME || homedir(),
+    dryRun = false,
+    exists = existsSync,
+    read = readFileSync,
+    write = writeFileSync,
+    mkdir = mkdirSync,
+  } = options;
+
+  const script = join(repoRoot, "scripts/lisa-remote-env/session-start.sh");
+  if (!exists(script)) {
+    return { action: "skipped", path: script, reason: "no session-start.sh" };
+  }
+
+  const dir = join(home, ".claude");
+  const settingsPath = join(dir, "settings.json");
+  const command = `bash ${script}`;
+
+  let settings = {};
+  if (exists(settingsPath)) {
+    try {
+      settings = JSON.parse(String(read(settingsPath, "utf8"))) || {};
+    } catch {
+      // Refuse rather than overwrite. A settings file that does not parse is
+      // still someone's configuration, and replacing it would be the careless
+      // destruction this whole function is written to avoid.
+      return {
+        action: "failed",
+        path: settingsPath,
+        reason: "existing settings.json is not valid JSON; left untouched",
+      };
+    }
+  }
+
+  const hooks = settings.hooks ?? {};
+  const sessionStart = Array.isArray(hooks.SessionStart)
+    ? hooks.SessionStart
+    : [];
+  const already = sessionStart.some(entry =>
+    (entry?.hooks ?? []).some(hook => hook?.command === command)
+  );
+  if (already) {
+    return { action: "present", path: settingsPath };
+  }
+
+  const updated = {
+    ...settings,
+    hooks: {
+      ...hooks,
+      SessionStart: [
+        ...sessionStart,
+        {
+          matcher: "startup|resume",
+          hooks: [{ type: "command", command }],
+        },
+      ],
+    },
+  };
+
+  if (dryRun) return { action: "would-register", path: settingsPath };
+
+  mkdir(dir, { recursive: true });
+  write(settingsPath, `${JSON.stringify(updated, null, 2)}\n`);
+  return { action: "registered", path: settingsPath };
+}
+
+/**
  * The settings block that wires the session-start hook into a repository.
  *
  * Emitted rather than written, because `.claude/settings.json` belongs to the
@@ -936,6 +1032,19 @@ async function main() {
     // codex-cloud both have no second chance, so a silent pass there would
     // hand back a session with no credentials and call it ready.
     const retried = !requested && materializesAtSessionStart(materializeAt);
+
+    // If the hook is what will retry, make sure the hook can actually fire.
+    // Registering it at user scope is what makes the retry real rather than
+    // assumed: the committed project hook does not load when the session opens
+    // above the checkout, which is the norm in a cloud container.
+    // `materializeAt` being set is what "remote surface" means here. The
+    // toolchain phase derives a local `remote` from it, but that binding is
+    // scoped to its own block and is not in scope in this one.
+    if (retried && Boolean(materializeAt)) {
+      const hook = installUserSessionHook(process.cwd(), { dryRun });
+      console.log(`  session-start hook: ${hook.action} (${hook.path})`);
+      if (hook.reason) console.log(`    ${hook.reason}`);
+    }
     try {
       execFileSync(
         "node",
