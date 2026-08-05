@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.336.2](https://github.com/CodySwannGT/lisa/compare/v2.336.1...v2.336.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **sonar:** make the resolver deadline stop the work, not just the waiting ([11f78b1](https://github.com/CodySwannGT/lisa/commit/11f78b1846475c3181199722f02d9ea8f9126f8e)), closes [CodySwannGT/lisa#2334](https://github.com/CodySwannGT/lisa/issues/2334)
+
 ### [2.336.1](https://github.com/CodySwannGT/lisa/compare/v2.336.0...v2.336.1) (2026-08-05)
 
 
