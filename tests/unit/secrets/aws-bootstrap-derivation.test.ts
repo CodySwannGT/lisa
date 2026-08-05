@@ -63,24 +63,18 @@ describe("parseBootstrap", () => {
 });
 
 describe("deriveAwsEnvironment", () => {
-  it("derives the pair the SDKs actually read", () => {
+  it("does NOT export the raw key pair", () => {
+    // It used to, to out-shout the ambient pair a container injects. That made
+    // every call run as the bootstrap identity, because exported environment
+    // credentials outrank AWS_PROFILE — so the per-environment profiles existed
+    // and were never used. The pair now lives in ~/.aws/credentials as the
+    // source profile, and the ambient one is unset rather than overridden.
     const derived = deriveAwsEnvironment(
       selection({ [BOOTSTRAP_KEY]: BUNDLE })
     );
-    expect(derived.get("AWS_ACCESS_KEY_ID")?.value).toBe(KEY_ID);
-    expect(derived.get("AWS_SECRET_ACCESS_KEY")?.value).toBe(SECRET);
-  });
 
-  it("explains in the note why it overrides an ambient value", () => {
-    // The override is an intrusion — this project exporting over a variable it
-    // did not set. It has to be discoverable through the same read-the-note
-    // path as any other credential, not buried in a commit message.
-    const derived = deriveAwsEnvironment(
-      selection({ [BOOTSTRAP_KEY]: BUNDLE })
-    );
-    const note = derived.get("AWS_ACCESS_KEY_ID")?.note ?? "";
-    expect(note).toContain("outrank profile files");
-    expect(note).toContain("InvalidClientTokenId");
+    expect(derived.has("AWS_ACCESS_KEY_ID")).toBe(false);
+    expect(derived.has("AWS_SECRET_ACCESS_KEY")).toBe(false);
   });
 
   it("yields nothing when the bundle is absent", () => {
