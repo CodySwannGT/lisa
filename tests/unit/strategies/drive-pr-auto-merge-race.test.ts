@@ -57,19 +57,62 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     expect(content).toMatch(/required checks against\s+the PR's current head/i);
   });
 
-  it("leaves no disarm instruction in ANY auto_merge=true fix path", () => {
-    // The first version of this change only rewrote section 1 and left three
-    // later passages (failing checks, review threads, pending auto-fix) still
-    // telling the agent to disarm — a policy that contradicted itself, and a
-    // disarm that would still have happened. Scoping the check to section 1
-    // is what missed it, so this walks everything AFTER the auto_merge=false
-    // block instead.
-    const afterFalseMode = content.slice(content.indexOf("## 1. Enable auto-merge"));
-    expect(afterFalseMode.length).toBeGreaterThan(1000);
+  // Where the auto_merge=false contract ends and the auto_merge=true path
+  // begins. Split on this rather than on the section header: the false-mode
+  // block lives INSIDE section 1 and legitimately contains a disarm, so a
+  // slice that starts at the header covers both modes and can only pass by
+  // having a regex too weak to notice — which is exactly how the first version
+  // of this test passed while three stale disarms sat further down the file.
+  const TRUE_MODE_ANCHOR =
+    "Before enabling auto-merge, capture the live PR head";
 
-    const offenders = afterFalseMode
+  /** Every spelling of "turn the latch off" that appears in this document. */
+  const DISARM_FORMS =
+    /--disable-auto|disarm|auto-merge\s+must be disabled|re-enable auto-merge/i;
+
+  it("keeps the auto_merge=false disarm, with its fail-closed re-read", () => {
+    const falseModeEnd = content.indexOf(TRUE_MODE_ANCHOR);
+    const sectionStart = content.indexOf("## 1. Enable auto-merge");
+    expect(sectionStart).toBeGreaterThanOrEqual(0);
+    expect(falseModeEnd).toBeGreaterThan(sectionStart);
+
+    const falseMode = content.slice(sectionStart, falseModeEnd);
+
+    // This mode must still disarm a pre-existing latch: skipping the enable
+    // step is not enough when a prior session already armed the PR, and an
+    // auto_merge=false PR must stay open for a human.
+    expect(falseMode).toMatch(/disarm any pre-existing auto-merge latch/i);
+    expect(falseMode).toMatch(/gh pr merge <pr> --disable-auto/);
+    // ...and the fail-closed re-read that proves the disarm actually took.
+    expect(falseMode).toMatch(/must print null/);
+    expect(falseMode).toMatch(/fail closed/i);
+  });
+
+  it("leaves no disarm instruction anywhere on the auto_merge=true path", () => {
+    const trueModeStart = content.indexOf(TRUE_MODE_ANCHOR);
+    expect(trueModeStart).toBeGreaterThanOrEqual(0);
+
+    // The rationale block necessarily says "disarm" — it exists to explain why
+    // the policy changed. Cut it by its own boundaries rather than pattern-
+    // matching the prose, so what remains is only INSTRUCTION text. (Filtering
+    // the explanation line-by-line is how this test first went red against the
+    // very paragraph documenting its own rule.)
+    const rationaleStart = content.indexOf(
+      "**With `auto_merge=true`, leave the latch ARMED"
+    );
+    const rationaleEnd = content.indexOf("What still applies on a push");
+    expect(rationaleStart).toBeGreaterThan(trueModeStart);
+    expect(rationaleEnd).toBeGreaterThan(rationaleStart);
+
+    const instructions =
+      content.slice(trueModeStart, rationaleStart) +
+      content.slice(rationaleEnd);
+    // Guard the guard: bad anchors would slice to nothing and pass vacuously.
+    expect(instructions.length).toBeGreaterThan(2000);
+
+    const offenders = instructions
       .split("\n")
-      .filter(line => /disarm auto-merge|auto-merge\s+must be disabled|re-enable auto-merge/i.test(line));
+      .filter(line => DISARM_FORMS.test(line));
 
     expect(offenders).toEqual([]);
   });
@@ -79,7 +122,9 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     // contract, which disarms a pre-existing latch on purpose so the PR stays
     // open for a human.
     expect(content).toMatch(/With `auto_merge=true`, leave the latch ARMED/);
-    expect(content).toMatch(/auto_merge=false` the deliberate disarm above still applies/);
+    expect(content).toMatch(
+      /auto_merge=false` the deliberate disarm above still applies/
+    );
   });
 
   it("never instructs disabling the latch on the happy path", () => {
