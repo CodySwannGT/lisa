@@ -1159,7 +1159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "1568756df16a7fbeee95e46112a3462e0cd803daae89835f4fde8c38cbb26095",
+      "aa703a3fcadd847594c694f458fc41edd39590dfabeddf4fed1546b73099f33f",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -8510,6 +8510,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/toolchain-release-binary.test.ts": true,
     "tests/unit/secrets/toolchain-release-tree.test.ts": true,
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
+    "tests/unit/secrets/user-session-hook.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
     "tests/unit/standards/capture.test.ts": true,
