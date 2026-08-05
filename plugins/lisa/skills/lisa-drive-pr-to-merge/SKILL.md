@@ -315,6 +315,25 @@ ship — fix forward with a new commit/PR and re-drive. Re-confirm after any com
 that lands while auto-merge is enabled; a successful merge of an older head is a
 failed drive-to-merge outcome, not a successful closeout.
 
+**`merge_method=rebase` is not SHA-ancestry-safe — use tree comparison instead.**
+GitHub's rebase-and-merge replays each commit onto the base with a new committer
+and a new SHA, so `<verify_commit>` (the original, unmerged PR head) will **never**
+be an ancestor of the base branch even when the merge fully shipped — both the
+`git merge-base --is-ancestor` check above and the merge-commit-parent check
+assume a preserved SHA or a two-parent merge commit, neither of which rebase
+produces. For `merge_method=rebase`, skip both of those checks and compare trees
+instead:
+
+```bash
+merge_sha=$(gh pr view <pr> --json mergeCommit -q .mergeCommit.oid)
+test "$(git rev-parse <verify_commit>^{tree})" = "$(git rev-parse "$merge_sha"^{tree})"
+```
+
+A matching tree hash proves the exact file state you verified landed in the base
+branch, independent of the rewritten SHA. Treat a mismatch the same as a failed
+ancestry check: it did **not** ship — fix forward with a new commit/PR and
+re-drive.
+
 ### b. Deploy-run check — did a deploy/release workflow run actually fire
 
 Ancestry proves your code is *in* the merged branch; it does **not** prove
