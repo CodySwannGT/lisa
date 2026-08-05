@@ -23,6 +23,12 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { installAwsProfiles } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs";
 
+/** The one environment this fixture declares. */
+const DEV = "agent-dev";
+
+/** Where the written config lives, relative to home. */
+const CONFIG = ".aws/config";
+
 /** Where the written credentials live, relative to home. */
 const CREDENTIALS = ".aws/credentials";
 
@@ -35,7 +41,7 @@ const BUNDLE = {
   secretAccessKey: "s3cret",
   externalId: "ext-1",
   profiles: {
-    "agent-dev": {
+    [DEV]: {
       roleArn: "arn:aws:iam::905179307867:role/RemoteAgent",
       region: "us-east-1",
     },
@@ -62,22 +68,47 @@ describe("installAwsProfiles", () => {
   it("writes the profiles and reports their names", () => {
     const home = scratchHome();
 
-    expect(installAwsProfiles(BUNDLE, { home })).toEqual(["agent-dev"]);
-    expect(readFileSync(path.join(home, ".aws/config"), "utf8")).toContain(
-      "[profile agent-dev]"
+    expect(installAwsProfiles(BUNDLE, { home })).toEqual([DEV]);
+    expect(readFileSync(path.join(home, CONFIG), "utf8")).toContain(
+      `[profile ${DEV}]`
     );
   });
 
-  it("refuses to overwrite an ~/.aws it did not write", () => {
-    // The failure this prevents is silent and unrecoverable: someone's own
-    // credentials replaced by ours, with no copy kept.
+  it("merges into an ~/.aws it did not write, keeping both", () => {
+    // Refusing outright was the first attempt and was worse than useless: a
+    // container ships `~/.aws/config` holding a bare `[default]`, so the guard
+    // fired every time and wrote nothing — while AWS_PROFILE was still derived
+    // from the bundle. The session got a pointer to a profile that did not
+    // exist: "The config profile (agent-dev) could not be found".
+    //
+    // Destroying their file and refusing to write ours are both wrong.
     const home = scratchHome();
-    const existing = "[default]\naws_access_key_id = THEIRS\n";
     mkdirSync(path.join(home, ".aws"), { recursive: true });
-    writeFileSync(path.join(home, CREDENTIALS), existing);
+    writeFileSync(
+      path.join(home, CREDENTIALS),
+      "[theirs]\naws_access_key_id = THEIRS\n"
+    );
+    writeFileSync(path.join(home, CONFIG), "[default]\nregion = us-east-1\n");
 
-    expect(installAwsProfiles(BUNDLE, { home })).toEqual([]);
-    expect(readFileSync(path.join(home, CREDENTIALS), "utf8")).toBe(existing);
+    expect(installAwsProfiles(BUNDLE, { home })).toEqual([DEV]);
+
+    const credentials = readFileSync(path.join(home, CREDENTIALS), "utf8");
+    const config = readFileSync(path.join(home, CONFIG), "utf8");
+    expect(credentials).toContain("aws_access_key_id = THEIRS");
+    expect(config).toContain("[default]");
+    expect(config).toContain(`[profile ${DEV}]`);
+  });
+
+  it("replaces its own block instead of stacking it every session", () => {
+    const home = scratchHome();
+    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home });
+
+    const config = readFileSync(path.join(home, CONFIG), "utf8");
+    expect(
+      config.split(">>> managed by lisa-secrets-access >>>").length - 1
+    ).toBe(1);
   });
 
   it("refreshes a file it wrote previously", () => {
@@ -88,7 +119,7 @@ describe("installAwsProfiles", () => {
 
     expect(
       installAwsProfiles({ ...BUNDLE, accessKeyId: "AKIAROTATED" }, { home })
-    ).toEqual(["agent-dev"]);
+    ).toEqual([DEV]);
     expect(readFileSync(path.join(home, CREDENTIALS), "utf8")).toContain(
       "AKIAROTATED"
     );
