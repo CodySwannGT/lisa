@@ -165,9 +165,19 @@ export function materializedPaths(namespace, env = process.env) {
  * @param {string} [cwd] Directory to look in.
  * @returns {object} Resolved configuration with defaults applied.
  */
-export function readConfig(cwd = process.cwd()) {
+export function readConfig(cwd = process.cwd(), env = process.env) {
   const path = join(cwd, ".lisa.config.json");
-  if (!existsSync(path)) return withSurface(DEFAULTS);
+  // No repository is a real, supported state — not just a missing file.
+  //
+  // A Claude Tag channel session runs as the organization with no user account,
+  // and a repository "doesn't enter a session until a request names it". So a
+  // session can legitimately have no checkout and therefore no config, while
+  // still needing the credentials and profiles every other surface gets.
+  //
+  // The only values a config would supply here are the namespace and provider,
+  // so they can come from the environment instead. Everything else keeps its
+  // default, and an environment that sets neither still gets the old behaviour.
+  if (!existsSync(path)) return withSurface(fromEnvironment(env));
   let cfg;
   try {
     cfg = JSON.parse(readFileSync(path, "utf8")).secrets;
@@ -184,6 +194,36 @@ export function readConfig(cwd = process.cwd()) {
     narrow: { ...DEFAULTS.narrow, ...(cfg.narrow ?? {}) },
     surface: cfg.surface ?? null,
   });
+}
+
+/**
+ * Build a configuration from the environment, for sessions with no checkout.
+ *
+ * `LISA_SECRETS_NAMESPACE` is the one value with no safe default: it names the
+ * directory secrets are written to and the tenant they belong to, so guessing
+ * it would write one tenant's credentials under another's name. Absent, this
+ * returns the ordinary defaults and the caller behaves exactly as before.
+ *
+ * The bootstrap key follows the namespace by convention
+ * (`BWS_ACCESS_TOKEN_<namespace>`) so a channel environment needs one variable
+ * set, not two.
+ * @param {object} env The environment to read.
+ * @returns {object} A configuration, defaulted where the environment is silent.
+ */
+function fromEnvironment(env) {
+  const namespace = (env.LISA_SECRETS_NAMESPACE ?? "").trim();
+  if (!namespace) return DEFAULTS;
+
+  const provider = (env.LISA_SECRETS_PROVIDER ?? "").trim() || "bitwarden";
+  return {
+    ...DEFAULTS,
+    provider,
+    namespace: assertNamespace(namespace),
+    bootstrap: {
+      ...DEFAULTS.bootstrap,
+      key: env.LISA_SECRETS_BOOTSTRAP_KEY ?? `BWS_ACCESS_TOKEN_${namespace}`,
+    },
+  };
 }
 
 /**

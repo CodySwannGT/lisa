@@ -559,9 +559,26 @@ export function installAssets(cwd = process.cwd()) {
  * whenever cwd happens to be one of the roots.
  *
  * The status is the first failure and every checkout is still attempted: one
- * broken repository must neither hide the others nor report success. The
- * explicit `exit 1` on no matches matters because a `for` loop over a glob that
- * matches nothing otherwise exits 0 — the quiet success this guards against.
+ * broken repository must neither hide the others nor report success.
+ *
+ * Preparing nothing has two causes, and they are not the same failure:
+ *
+ *   - A checkout is present but carries no entrypoint. That is a
+ *     misconfiguration, and a `for` loop over a glob that matches nothing exits
+ *     0 on its own — the quiet success this has always guarded against. It
+ *     still fails loudly, printing the layout it found rather than only the
+ *     path it wanted.
+ *   - There is NO checkout. A Claude Tag channel session runs as the
+ *     organization with no user account, and a repository does not enter the
+ *     session until a request names one, so this is an ordinary state rather
+ *     than an error. Failing here would be severe: a setup script that exits
+ *     non-zero stops the session from starting at all, so the old blanket
+ *     `exit 1` would have killed every repo-less channel session.
+ *
+ * With no checkout, `LISA_SECRETS_NAMESPACE` decides whether there is anything
+ * to do: it names the tenant, which is the one value no default can supply.
+ * Given it, the machine itself is prepared — tools and credentials, no repo
+ * required. Without it there is nothing to prepare and nothing to fail about.
  *
  * Failure prints the layout it found rather than only the path it wanted. This
  * field lives in a vendor settings box with a slow edit-and-retry loop, and a
@@ -580,9 +597,19 @@ export const SETUP_FIELD =
   'do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); ' +
   'case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; ' +
   'n=$((n+1)); bash "$f" || rc=$?; done; ' +
-  '[ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. ' +
-  'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; ' +
-  'exit "$rc"';
+  '[ "$n" -gt 0 ] && exit "$rc"; ' +
+  'g=0; for c in ./.git ./*/.git "$HOME"/*/.git /workspace/*/.git; ' +
+  'do [ -e "$c" ] && g=1; done; ' +
+  'if [ "$g" -eq 1 ]; then ' +
+  'echo "lisa-remote-env entrypoint not found, but a checkout is present. ' +
+  'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; fi; ' +
+  'if [ -n "${LISA_SECRETS_NAMESPACE:-}" ]; then ' +
+  'echo "No checkout; preparing tools and credentials for $LISA_SECRETS_NAMESPACE."; ' +
+  "npx -y @codyswann/lisa@latest workstation " +
+  '--provider "${LISA_SECRETS_PROVIDER:-bitwarden}" --yes || true; ' +
+  "npx -y @codyswann/lisa@latest remote-env --phase=secrets || true; " +
+  'else echo "No checkout and no LISA_SECRETS_NAMESPACE; nothing to prepare."; fi; ' +
+  "exit 0";
 
 /**
  * Register the session-start hook at USER scope, so it fires wherever the
