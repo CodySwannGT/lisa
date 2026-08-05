@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.332.5](https://github.com/CodySwannGT/lisa/compare/v2.332.4...v2.332.5) (2026-08-05)
+
+
+### Bug Fixes
+
+* **hooks:** block-no-verify must not fail open when jq is missing ([e12784f](https://github.com/CodySwannGT/lisa/commit/e12784f2f8fa6085d662c9f5d9b09d32244e4bd7)), closes [CodySwannGT/lisa#2304](https://github.com/CodySwannGT/lisa/issues/2304) [CodySwannGT/lisa#2308](https://github.com/CodySwannGT/lisa/issues/2308)
+* **skills:** scope the armed-latch rule, and clear every stale disarm ([2be1a93](https://github.com/CodySwannGT/lisa/commit/2be1a9318c4ed8067f99f898c4ef1449f2671955)), closes [#1395](https://github.com/CodySwannGT/lisa/issues/1395) [#1071](https://github.com/CodySwannGT/lisa/issues/1071) [CodySwannGT/lisa#2299](https://github.com/CodySwannGT/lisa/issues/2299)
+* **skills:** stop drive-pr-to-merge disabling auto-merge before a push ([075b4cc](https://github.com/CodySwannGT/lisa/commit/075b4cc07614840aaa5acfdd788b751b804424f8)), closes [#1393](https://github.com/CodySwannGT/lisa/issues/1393) [#1392](https://github.com/CodySwannGT/lisa/issues/1392) [#1071](https://github.com/CodySwannGT/lisa/issues/1071) [#1395](https://github.com/CodySwannGT/lisa/issues/1395) [#1395](https://github.com/CodySwannGT/lisa/issues/1395) [#1071](https://github.com/CodySwannGT/lisa/issues/1071) [CodySwannGT/lisa#2299](https://github.com/CodySwannGT/lisa/issues/2299)
+
 ### [2.332.4](https://github.com/CodySwannGT/lisa/compare/v2.332.3...v2.332.4) (2026-08-05)
 
 
