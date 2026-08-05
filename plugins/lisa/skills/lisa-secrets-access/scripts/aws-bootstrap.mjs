@@ -33,8 +33,105 @@ const ACCESS_KEY = "AWS_ACCESS_KEY_ID";
 const SECRET_KEY = "AWS_SECRET_ACCESS_KEY";
 const REGION = "AWS_DEFAULT_REGION";
 
+/** Selects which environment's role a session assumes. */
+const PROFILE = "AWS_PROFILE";
+
 /** The bundle that carries the agent's identity. */
 export const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
+
+/**
+ * The profile that holds the bootstrap key pair and is assumed FROM.
+ *
+ * Named rather than `default` so it can never be picked up by accident: this
+ * identity can assume roles and do nothing else, so a call that silently ran as
+ * it would fail with a permissions error far from its cause.
+ */
+export const SOURCE_PROFILE = "lisa-bootstrap";
+
+/**
+ * Read the bundle's `profiles`, which may be an object OR a JSON string.
+ *
+ * The real bundle stores it double-encoded — a string containing JSON — so a
+ * plain `typeof === "object"` check silently yields zero profiles and every
+ * environment quietly disappears. Failing that way is worse than throwing:
+ * everything still "works", as the assume-only identity, with no permissions.
+ * @param {object|null} bundle Parsed bootstrap bundle.
+ * @returns {Record<string, {roleArn?: string, region?: string}>} Profiles by name.
+ */
+export function readProfiles(bundle) {
+  const raw = bundle?.profiles;
+  if (!raw) return {};
+  if (typeof raw === "object") return raw;
+  if (typeof raw !== "string") return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Render `~/.aws/credentials` and `~/.aws/config` from the bundle.
+ *
+ * The bundle carries a `profiles` map — one entry per environment, each a
+ * `roleArn` in a DIFFERENT account — plus the `externalId` those roles require.
+ * Nothing consumed any of it, so `--profile agent-dev` failed with "profile not
+ * found" and every call fell back to the bootstrap identity in the shared
+ * account. That identity can assume roles and nothing else, which is why
+ * `aws sts get-caller-identity` could succeed while real work had no
+ * permissions anywhere: a green check that proved only the first link.
+ *
+ * Writing the pair here rather than exporting it is deliberate. Exported
+ * environment credentials OUTRANK `AWS_PROFILE`, so a session that exports them
+ * ignores whichever profile it selects — the profiles would exist and never be
+ * used.
+ * @param {object} bundle Parsed bootstrap bundle.
+ * @returns {{credentials: string, config: string, profiles: string[]}|null}
+ *   Rendered file contents and the profile names, or null when unusable.
+ */
+export function renderAwsProfiles(bundle) {
+  if (!bundle) return null;
+
+  const accessKeyId = bundle.accessKeyId ?? bundle.aws_access_key_id;
+  const secretAccessKey =
+    bundle.secretAccessKey ?? bundle.aws_secret_access_key;
+  if (!accessKeyId || !secretAccessKey) return null;
+
+  const profiles = readProfiles(bundle);
+
+  const credentials = [
+    `[${SOURCE_PROFILE}]`,
+    `aws_access_key_id = ${accessKeyId}`,
+    `aws_secret_access_key = ${secretAccessKey}`,
+    "",
+  ].join("\n");
+
+  const sections = [];
+  const names = [];
+  for (const [name, entry] of Object.entries(profiles)) {
+    const roleArn = entry?.roleArn ?? entry?.role_arn;
+    if (!roleArn) continue;
+
+    // A name is only usable if it can be written as an ini section header and
+    // read back as the same string. Anything with a bracket or newline would
+    // either truncate or inject extra lines into ~/.aws/config, and a config
+    // file this corrupts is worse than one it never wrote.
+    if (!/^[\w.@-]+$/.test(name)) continue;
+
+    const lines = [`[profile ${name}]`, `role_arn = ${roleArn}`];
+    lines.push(`source_profile = ${SOURCE_PROFILE}`);
+    if (bundle.externalId) lines.push(`external_id = ${bundle.externalId}`);
+    if (entry.region) lines.push(`region = ${entry.region}`);
+    sections.push(`${lines.join("\n")}\n`);
+    // Collected here, where the name is already in scope. Recovering it by
+    // re-parsing the rendered text made the header format load-bearing: a
+    // change to it would silently corrupt every returned name.
+    names.push(name);
+  }
+
+  return { credentials, config: sections.join("\n"), profiles: names };
+}
 
 /**
  * Read the bootstrap bundle, treating anything malformed as absent.
@@ -80,16 +177,64 @@ export function deriveAwsEnvironment(selected) {
   // explicit. Overriding that would be this module guessing against an operator.
   if (selected.has(ACCESS_KEY) || selected.has(SECRET_KEY)) return derived;
 
-  const note =
-    `Derived from ${BOOTSTRAP_KEY} by lisa-secrets-access. Exported ` +
-    `deliberately so it overrides any ambient ${ACCESS_KEY} the host injects — ` +
-    `environment variables outrank profile files in the AWS credential chain, ` +
-    `so without this a stale host value wins and every call fails with ` +
-    `InvalidClientTokenId. This is the assume-only bootstrap identity; real ` +
-    `work assumes a role from it.`;
+  // The key pair is deliberately NOT exported.
+  //
+  // It used to be, to out-shout the ambient pair a cloud container injects. That
+  // worked and cost more than it bought: exported environment credentials
+  // outrank `AWS_PROFILE`, so every call ran as the bootstrap identity — which
+  // can assume roles and do nothing else. `aws sts get-caller-identity`
+  // succeeded while real work had no permissions in any environment account,
+  // because each environment is a SEPARATE account reached by assuming a role.
+  //
+  // The pair now lives in ~/.aws/credentials as the source profile, and the
+  // session selects an environment instead. The ambient pair is unset by the
+  // shell profile rather than overridden — removing the poison beats out-
+  // shouting it, and it is what makes `--profile agent-staging` behave exactly
+  // as it does on a developer's machine.
+  // Only profiles that actually get WRITTEN are candidates. Selecting a name
+  // that ~/.aws/config never contains — an entry with no roleArn, or a name too
+  // exotic to be an ini header — fails with "profile not found", which is the
+  // exact failure this whole change removes.
+  const names = renderAwsProfiles(bundle)?.profiles ?? [];
 
-  derived.set(ACCESS_KEY, { value: String(accessKeyId), note });
-  derived.set(SECRET_KEY, { value: String(secretAccessKey), note });
+  // No usable profiles is not a reason to hand back a session with NOTHING.
+  //
+  // The pair stops being exported only because a profile supersedes it. With no
+  // profile to select, exporting it is the difference between a degraded
+  // session (the assume-only identity, which at least authenticates) and a dead
+  // one — and the managed shell block unsets the ambient pair, so nothing would
+  // fill the gap.
+  if (names.length === 0) {
+    const note =
+      `Derived from ${BOOTSTRAP_KEY} by lisa-secrets-access. The bundle ` +
+      `declares no usable per-environment profile, so this falls back to the ` +
+      `bootstrap identity. It can assume roles and little else — if AWS calls ` +
+      `fail with permission errors, the bundle's "profiles" map is the thing ` +
+      `to check.`;
+    derived.set(ACCESS_KEY, { value: String(accessKeyId), note });
+    derived.set(SECRET_KEY, { value: String(secretAccessKey), note });
+  }
+
+  if (names.length > 0 && !selected.has(PROFILE)) {
+    // Never production by default. An implicit production profile is one
+    // careless command away from a bad afternoon; that one must be typed.
+    const preferred =
+      names.find(name => /dev/i.test(name)) ??
+      names.find(name => !/prod/i.test(name)) ??
+      names[0];
+
+    derived.set(PROFILE, {
+      value: preferred,
+      note:
+        `Derived from ${BOOTSTRAP_KEY} by lisa-secrets-access. Selects the ` +
+        `environment whose role this session assumes, via ~/.aws/config. ` +
+        `Defaults to a non-production profile deliberately — reach production ` +
+        `by naming it (\`--profile ${names.find(n => /prod/i.test(n)) ?? "…"}\`). ` +
+        `The bootstrap key pair is NOT exported: environment credentials ` +
+        `outrank AWS_PROFILE, so exporting them would ignore this selection ` +
+        `and run everything as the assume-only identity.`,
+    });
+  }
 
   const region = bundle.region ?? bundle.defaultRegion;
   if (region && !selected.has(REGION)) {
