@@ -43,6 +43,9 @@ type Finding = { ok: boolean; label: string; detail: string };
 const AT_SETUP = "setup";
 const AT_SESSION_START = "session-start";
 
+/** Materializes in the setup run AND from the session-start hook. */
+const AT_BOTH = "both";
+
 /**
  * Collect findings without touching the module's own results array.
  * @returns A collector holding its own findings and a matching reporter.
@@ -60,9 +63,14 @@ const collect = (): {
 
 describe("materialize timing", () => {
   it("records when each surface materializes, not merely whether", () => {
-    // Both remote surfaces may write; only one of them may write during setup.
+    // Both remote surfaces may write. codex-cloud writes during setup;
+    // claude-web writes in BOTH places, because on that surface either one
+    // alone has a hole — the setup run is skipped when a cached environment is
+    // reused, and the session-start hook cannot fire when Claude Code's project
+    // directory is not the repository, which is every cloud environment
+    // configured with more than one repo.
     expect(SURFACES["codex-cloud"].materializeAt).toBe(AT_SETUP);
-    expect(SURFACES["claude-web"].materializeAt).toBe(AT_SESSION_START);
+    expect(SURFACES["claude-web"].materializeAt).toBe(AT_BOTH);
     expect(SURFACES.local.materializeAt).toBe(null);
     expect(SURFACES["github-actions"].materializeAt).toBe(null);
   });

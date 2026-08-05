@@ -56,7 +56,28 @@ export const SURFACES = {
   "claude-web": {
     materialized: true,
     mayWriteValues: true,
-    materializeAt: "session-start",
+    // BOTH, and the two cover disjoint failures rather than duplicating work.
+    //
+    // The hook alone was the original design, for a real reason: this surface
+    // skips its setup script whenever a cached environment exists, so
+    // materializing only there would write values once and never refresh them.
+    //
+    // What that missed is that the hook is PROJECT-scoped — it lives in a
+    // repository's `.claude/settings.json` and only loads when Claude Code's
+    // project directory is that repository. A cloud environment configured with
+    // more than one repository starts in their parent:
+    //
+    //     HOME=/root  PWD=/home/user
+    //     /home/user/backend  /home/user/infrastructure
+    //
+    // `/home/user` is not a project root, so no settings load, no hook
+    // registers, and nothing materializes at all. Verified in a real session.
+    //
+    // So the setup run is the FLOOR — a fresh environment has its secrets even
+    // where the hook cannot fire — and the hook is the REFRESH, picking up
+    // rotation on resumed sessions that skip setup. A stale secret is
+    // recoverable; an absent one means the environment does not work.
+    materializeAt: "both",
   },
 };
 

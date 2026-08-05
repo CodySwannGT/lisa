@@ -736,7 +736,7 @@ export function selectPhases(requested, materializeAt) {
         `unknown --phase "${requested}". Known: ${PHASES.join(", ")}.`
       );
     }
-    if (requested === "secrets" && materializeAt !== "session-start") {
+    if (requested === "secrets" && !materializesAtSessionStart(materializeAt)) {
       // Not an error: the hook is committed to the repository and runs on every
       // surface the project is ever checked out on. Refusing loudly would make
       // a correct local session look broken every time it started.
@@ -745,8 +745,32 @@ export function selectPhases(requested, materializeAt) {
     return [requested];
   }
   return PHASES.filter(
-    phase => phase !== "secrets" || materializeAt === "setup"
+    phase => phase !== "secrets" || materializesAtSetup(materializeAt)
   );
+}
+
+/**
+ * Whether the setup run itself should materialize.
+ *
+ * `"both"` means the surface materializes in the setup run AND from the
+ * session-start hook, because on that surface either one alone has a hole: the
+ * setup run is skipped when a cached environment is reused, and the hook cannot
+ * fire when Claude Code's project directory is not the repository — which is
+ * every cloud environment configured with more than one repo.
+ * @param {string|null} materializeAt Surface capability.
+ * @returns {boolean} Whether to materialize during setup.
+ */
+export function materializesAtSetup(materializeAt) {
+  return materializeAt === "setup" || materializeAt === "both";
+}
+
+/**
+ * Whether the committed session-start hook should materialize.
+ * @param {string|null} materializeAt Surface capability.
+ * @returns {boolean} Whether the hook does the work.
+ */
+export function materializesAtSessionStart(materializeAt) {
+  return materializeAt === "session-start" || materializeAt === "both";
 }
 
 /**
