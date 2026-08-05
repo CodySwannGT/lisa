@@ -20,17 +20,40 @@ set -euo pipefail
 
 input="$(cat)"
 
-tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
+# Both interpreters must be probed BEFORE they are used, and a missing one must
+# be announced rather than swallowed.
+#
+# `jq` used to be called unguarded here while `python3` two lines below was
+# guarded. Under `set -e` an absent jq aborted the script with 127, and Claude
+# Code treats any non-2 exit as a NON-BLOCKING hook error — so the hook that
+# enforces "never --no-verify" silently permitted the very thing it exists to
+# stop. It was not hypothetical: agent containers routinely ship no jq (that is
+# why jq is now a pinned toolchain entry). The Codex variant of this script has
+# always had the guard, so this was a parity gap rather than a design choice.
+#
+# Degrading to "allow" is still the right behaviour — a hook that cannot parse
+# its input cannot tell a bypass from an ordinary command, and failing closed
+# would block every Bash call on a machine missing an interpreter. What is NOT
+# right is doing it quietly, so the operator gets one line on stderr saying the
+# protection is off. A guard that is silently absent reads exactly like a guard
+# that is passing.
+for required in jq python3; do
+  if ! command -v "$required" >/dev/null 2>&1; then
+    printf 'block-no-verify: %s not found; --no-verify protection is NOT active\n' \
+      "$required" >&2
+    exit 0
+  fi
+done
+
+tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null || true)"
 if [ "$tool_name" != "Bash" ]; then
   exit 0
 fi
 
-command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
+command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 if [ -z "$command_str" ]; then
   exit 0
 fi
-
-command -v python3 >/dev/null 2>&1 || exit 0
 
 if ! BLOCK_NO_VERIFY_COMMAND="$command_str" python3 - <<'PY'
 import os
