@@ -87,6 +87,19 @@ describe("catalogue integrity", () => {
     }
   });
 
+  it("marks every agent installable, since each vendor ships a bootstrapper", () => {
+    // Antigravity was carried as `manual` on the claim that it published no
+    // headless installer. It does — https://antigravity.google/cli/install.sh
+    // returns application/x-sh — so the entry made a real agent look
+    // unprovisionable. A wrong "cannot" is worse than a missing entry: it stops
+    // anyone from looking again.
+    for (const agent of AGENTS) {
+      expect(INSTALLABLE, `${agent.name} is ${agent.kind}`).toContain(
+        agent.kind
+      );
+    }
+  });
+
   it("puts the pinned bin directory first on PATH", () => {
     // A pinned, checksummed binary must win over whatever an image ships under
     // the same name.
@@ -177,8 +190,8 @@ describe("planEntry", () => {
   it("reports a manual-only tool as manual, not installable", async () => {
     const row = planEntry(
       {
-        name: "agy",
-        label: "Antigravity",
+        name: "vendor-only-tool",
+        label: "A tool with no headless installer",
         kind: "manual",
         note: "no installer",
       },
