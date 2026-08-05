@@ -191,6 +191,38 @@ export function installProfileSourcing(valuesFile, options = {}) {
  * @param {object} [options] Home directory and file seams, for tests.
  * @returns {string[]} The profile names written.
  */
+/**
+ * Profile names already defined OUTSIDE this module's managed block.
+ *
+ * Only what lies outside the block counts: our own previous output is meant to
+ * be replaced, and treating it as a collision would make the second run fail.
+ * @param {string} dir The `.aws` directory.
+ * @param {string[]} names Profile names about to be written.
+ * @param {object} io `exists` and `read` seams.
+ * @returns {string[]} Colliding names, in the order given.
+ */
+export function collidingProfiles(dir, names, io = {}) {
+  const { exists = existsSync, read = readFileSync } = io;
+  const file = join(dir, "config");
+  if (!exists(file)) return [];
+
+  const text = String(read(file, "utf8"));
+  const start = text.indexOf(MANAGED_MARKER);
+  const endAt = start === -1 ? -1 : text.indexOf(MANAGED_END, start);
+  const outside =
+    start === -1
+      ? text
+      : text.slice(0, start) +
+        (endAt === -1 ? "" : text.slice(endAt + MANAGED_END.length));
+
+  return names.filter(name =>
+    new RegExp(
+      `^\\s*\\[profile\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\]`,
+      "m"
+    ).test(outside)
+  );
+}
+
 export function installAwsProfiles(bundle, options = {}) {
   const {
     home = process.env.HOME || homedir(),
@@ -205,6 +237,33 @@ export function installAwsProfiles(bundle, options = {}) {
   if (!rendered) return [];
 
   const dir = join(home, ".aws");
+
+  // Refuse to write a profile name the operator already uses outside our block.
+  //
+  // AWS does not error on a duplicate `[profile x]` — it resolves one and
+  // ignores the other. So writing `tunnl-dev` next to an operator's existing SSO
+  // `tunnl-dev` would silently run some calls as the wrong identity, which is
+  // worse than either winning outright. Merging protects their sections from
+  // being deleted; this protects them from being shadowed.
+  //
+  // Deliberately not resolved by renaming theirs: this module writes its own
+  // block and nothing else. The operator renames (conventionally to `-sso`) and
+  // re-runs.
+  const collisions = collidingProfiles(dir, rendered.profiles, {
+    exists,
+    read,
+  });
+  if (collisions.length > 0) {
+    throw new Error(
+      `~/.aws/config already defines ${collisions.map(n => `"${n}"`).join(", ")} ` +
+        `outside the lisa-managed block.\n` +
+        `Writing them would create duplicate sections, and AWS resolves only ` +
+        `one — some calls would silently use the wrong identity.\n` +
+        `Rename the existing entries (for example to "${collisions[0]}-sso") ` +
+        `and run this again.`
+    );
+  }
+
   mkdir(dir, { recursive: true, mode: 0o700 });
   chmod(dir, 0o700);
 
@@ -297,6 +356,47 @@ export function materialize(cfg = readConfig()) {
 
 function main() {
   const cfg = readConfig();
+
+  // `--aws-profiles-only` writes ~/.aws and NOTHING else, on any surface.
+  //
+  // A laptop refuses to materialize secrets to disk, deliberately: read-through
+  // to the provider adds no drift and leaves no copy. That rule is about the
+  // thirteen values in secrets.env, and it stays exactly as it was here.
+  //
+  // The AWS profiles are a different bargain, requested explicitly. Agents
+  // working on a developer's machine should act as RemoteAgent rather than
+  // borrowing the human's SSO identity — separate attribution in CloudTrail,
+  // the role's blast radius instead of a person's, and the same `agent-*`
+  // profile names as a container so a script does not need two vocabularies.
+  //
+  // The cost is real and belongs in the open: `source_profile` needs a
+  // long-lived key pair, so this writes one to a machine that is not
+  // disposable, which is the thing the local surface otherwise prevents. It is
+  // therefore opt-in per run, never automatic, and never part of a normal
+  // materialize.
+  if (process.argv.includes("--aws-profiles-only")) {
+    const selected = fetchAll(cfg);
+    const bundle = parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value);
+    const written = installAwsProfiles(bundle);
+
+    if (written.length === 0) {
+      console.log(
+        `no AWS profiles written — ${BOOTSTRAP_KEY} is absent, unparseable, ` +
+          `or declares no profile carrying a roleArn.`
+      );
+      return;
+    }
+    console.log(
+      `wrote ${written.length} AWS profile(s): ${written.join(", ")}`
+    );
+    console.log(
+      `  Sourced from a long-lived key pair in ~/.aws/credentials. Existing\n` +
+        `  sections were preserved — only the lisa-managed block was replaced.\n` +
+        `  Use them explicitly: aws --profile ${written[0]} ...`
+    );
+    return;
+  }
+
   if (process.argv.includes("--dry-run")) {
     const selected = fetchAll(cfg);
     // Derive here too, or the preview lies in the one place it matters most:
@@ -314,10 +414,20 @@ function main() {
   const { count, derived, dir } = materialize(cfg);
   console.log(`materialized ${count} secret(s) and their notes into ${dir}`);
   if (derived > 0) {
-    // Said out loud: this run exported variables the host may also have set.
+    // Do not claim an override this does not perform.
+    //
+    // This line used to end "overriding any ambient value". That was true when
+    // the key pair was exported and stopped being true when the pair moved into
+    // ~/.aws and AWS_PROFILE took its place — AWS_PROFILE loses to ambient
+    // environment credentials, it does not beat them. The stale sentence sent
+    // two separate investigations after a credential problem that did not
+    // exist, while the real fault was that nothing sourced the file. A message
+    // that overclaims costs more than no message.
     console.log(
-      `  ${derived} AWS variable(s) derived from the bootstrap bundle, ` +
-        `overriding any ambient value`
+      `  ${derived} AWS variable(s) derived from the bootstrap bundle. ` +
+        `These take\n  effect only in a shell that sourced the materialized ` +
+        `env file; ambient\n  credentials outrank AWS_PROFILE, so prefer an ` +
+        `explicit --profile.`
     );
   }
 }
