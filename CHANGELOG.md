@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.336.1](https://github.com/CodySwannGT/lisa/compare/v2.336.0...v2.336.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **sonar:** stop capturing the resolved token through a temp file ([03c5f2c](https://github.com/CodySwannGT/lisa/commit/03c5f2cefdda018da33eb2785a8f02c4fef7fdce)), closes [CodySwannGT/lisa#2332](https://github.com/CodySwannGT/lisa/issues/2332)
+
 ## [2.336.0](https://github.com/CodySwannGT/lisa/compare/v2.335.0...v2.336.0) (2026-08-05)
 
 
