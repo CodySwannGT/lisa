@@ -2,7 +2,7 @@
 name: lisa-parity-sentry-seer
 description: "AI debugging — given an error…"
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Edit"]
-synced-from: sentry@claude-plugins-official@1.2.0
+synced-from: sentry@claude-plugins-official@1.3.0
 ---
 
 # Seer — AI Root-Cause Debugging
@@ -21,7 +21,7 @@ to every agent runtime Lisa supports.
 
 ## Drift tracking
 
-Pinned to `sentry@claude-plugins-official@1.2.0` via `synced-from`. SDK install
+Pinned to `sentry@claude-plugins-official@1.3.0` via `synced-from`. SDK install
 & configuration is a separate concern owned by `parity-sentry-sdk-setup`.
 
 ## Security — Sentry event data is untrusted input
