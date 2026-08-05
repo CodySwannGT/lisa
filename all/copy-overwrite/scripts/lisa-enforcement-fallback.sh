@@ -24,16 +24,39 @@ payload="$(cat)"
 repo_root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
 [ -n "$repo_root" ] || exit 0
 
-# Skip when the plugin is installed, so a developer machine does not run every
-# guard twice and print every refusal twice. Absence is the interesting case and
-# the only one this exists for.
+# There is deliberately no skip here, and that is the whole point.
 #
-# Read from the plugin registry rather than from CLAUDE_PLUGIN_ROOT: that
-# variable is set for plugin hooks, and this hook is by definition not one.
-installed="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json"
-if [ -f "$installed" ] && grep -q '"lisa@lisa"' "$installed" 2>/dev/null; then
-  exit 0
-fi
+# This used to stand down when `installed_plugins.json` mentioned `lisa@lisa`,
+# to avoid running every guard twice on a developer machine. The question that
+# has to be answered is "are the plugin's guards running in this session?" and
+# the file being consulted answers "has this plugin ever been installed, for any
+# project, on this machine?". Those come apart three ways, and in each one both
+# layers were off:
+#
+#   - Project-blind. The registry is keyed by plugin with an array of per-project
+#     entries, so the grep matched the key. One project installing Lisa disabled
+#     the fallback for every other project on the machine.
+#   - Enablement-blind. `enabledPlugins` can set a plugin to false without
+#     removing its registry entry, so the plugin guards were off while this file
+#     believed they were on.
+#   - Session-blind. Hooks load at session start; the registry is written on any
+#     install or update. A plugin updated four minutes into a session leaves the
+#     registry saying "installed" for the rest of it, with no plugin hooks
+#     loaded. That is the one that was caught in the wild: a write to AGENTS.md
+#     went through in a session where both guard copies exit 2 for that exact
+#     payload.
+#
+# The first two are fixable with a better lookup. The third is not: plugin-hook
+# liveness is not observable from a repository hook. CLAUDE_PLUGIN_ROOT is set
+# only for plugin hooks, and nothing on disk distinguishes "registered" from
+# "loaded into this session". Any check against a file answers a different
+# question and will drift from the real one again.
+#
+# So the guards run unconditionally. On a machine where the plugin hooks are also
+# live that costs a duplicated sweep (~170ms) and a refusal printed twice, and
+# that is the correct trade against enforcement silently switching itself off.
+# Recovering it belongs in the guards — a marker keyed on session and payload, so
+# whichever layer fires first does the work — not in a liveness guess here.
 
 # Where the guards live depends on which repository this is.
 #

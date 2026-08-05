@@ -96,17 +96,18 @@ describe("enforcement fallback when no plugin is installed", () => {
     expect(status).toBe(0);
   });
 
-  it("stays inert where the plugin already provides the guards", () => {
-    // Otherwise a developer machine runs every guard twice and prints every
-    // refusal twice, which teaches people to skim refusals.
+  it("fires even where the registry says the plugin is installed", () => {
+    // This used to assert the opposite — inert when registered — to spare a
+    // developer machine a duplicated sweep. The registry cannot support that
+    // conclusion. It answers "ever installed, for any project, on this machine";
+    // the question is "are the plugin's guards running in this session", and
+    // those come apart when another project registered it, when enabledPlugins
+    // turned it off, and when an install landed after the session's hooks were
+    // already loaded. The last one was observed: a write to AGENTS.md went
+    // through in a session where both guard copies refuse that exact payload.
     //
-    // The registry is BUILT here rather than read from `$HOME/.claude`. Pointing
-    // at the developer's real config made this assert machine state instead of
-    // behaviour: it passed locally because the plugin happens to be installed,
-    // and failed in CI — where it is not — because the fallback correctly fired.
-    // A test that only passes on a machine that already has the thing under
-    // test installed cannot tell "inert because registered" from "inert because
-    // broken".
+    // The registry is BUILT here rather than read from `$HOME/.claude`, so this
+    // asserts behaviour rather than machine state.
     const configDir = mkdtempSync(path.join(tmpdir(), "lisa-fallback-"));
     mkdirSync(path.join(configDir, "plugins"), { recursive: true });
     writeFileSync(
@@ -117,14 +118,12 @@ describe("enforcement fallback when no plugin is installed", () => {
     const { status } = runFallback(NO_VERIFY_COMMIT, configDir);
 
     rmSync(configDir, { recursive: true, force: true });
-    expect(status).toBe(0);
+    expect(status).toBe(BLOCKED);
   });
 
-  it("fires when the registry exists but does not carry the plugin", () => {
-    // The inert path keys on the plugin being REGISTERED, not on the registry
-    // file merely existing. Without this, a container that wrote an empty
-    // registry — precisely the failure this whole file exists for — would read
-    // as "plugin present" and silence the fallback.
+  it("fires when the registry exists but is empty", () => {
+    // A container that wrote an empty registry is precisely the failure this
+    // whole file exists for, and it must not read as "nothing to do".
     const configDir = mkdtempSync(path.join(tmpdir(), "lisa-fallback-"));
     mkdirSync(path.join(configDir, "plugins"), { recursive: true });
     writeFileSync(
