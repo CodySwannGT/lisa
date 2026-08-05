@@ -31,7 +31,12 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { deriveAwsEnvironment } from "./aws-bootstrap.mjs";
+import {
+  BOOTSTRAP_KEY,
+  deriveAwsEnvironment,
+  parseBootstrap,
+  renderAwsProfiles,
+} from "./aws-bootstrap.mjs";
 import { renderEnv, renderNotes } from "./envfile.mjs";
 import { fetchAll } from "./providers.mjs";
 import { materializedPaths, readConfig } from "./surfaces.mjs";
@@ -69,6 +74,15 @@ const PROFILE_MARKER = "# >>> lisa secrets (managed) >>>";
 const PROFILE_END = "# <<< lisa secrets (managed) <<<";
 
 /**
+ * Identifies an `~/.aws` file as one this wrote, and may therefore replace.
+ *
+ * `#` is a comment in the AWS shared-config format, so this is inert to every
+ * consumer while still being the thing that distinguishes "our file, refresh
+ * it" from "someone else's file, leave it alone".
+ */
+const MANAGED_MARKER = "# managed by lisa-secrets-access";
+
+/**
  * Make every shell in this container load the materialized secrets.
  *
  * `set -a` so the values are exported rather than merely set as shell
@@ -95,6 +109,14 @@ export function installProfileSourcing(valuesFile, options = {}) {
 
   const block = [
     PROFILE_MARKER,
+    // Unset BEFORE sourcing. A cloud container injects its own AWS key pair,
+    // and environment credentials outrank both ~/.aws profiles and AWS_PROFILE
+    // — so leaving them set means the session ignores whichever environment it
+    // selected and runs as whatever the host injected. That is how a perfectly
+    // valid credential produced InvalidClientTokenId for a day. Removing the
+    // poison beats out-shouting it, and it is what lets `--profile agent-dev`
+    // behave here exactly as it does on a developer's machine.
+    `unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN`,
     `if [ -f "${valuesFile}" ]; then`,
     `  set -a`,
     `  . "${valuesFile}"`,
@@ -124,6 +146,61 @@ export function installProfileSourcing(valuesFile, options = {}) {
     }
   }
   return updated;
+}
+
+/**
+ * Write `~/.aws/credentials` and `~/.aws/config` from the bootstrap bundle.
+ *
+ * Both at 0600 inside a 0700 directory, matching how the materialized secrets
+ * themselves are protected — the credentials file holds the source key pair.
+ * @param {object|null} bundle Parsed bootstrap bundle.
+ * @param {object} [options] Home directory and file seams, for tests.
+ * @returns {string[]} The profile names written.
+ */
+export function installAwsProfiles(bundle, options = {}) {
+  const {
+    home = process.env.HOME || homedir(),
+    mkdir = mkdirSync,
+    write = writeFileSync,
+    read = readFileSync,
+    exists = existsSync,
+    chmod = chmodSync,
+  } = options;
+
+  const rendered = renderAwsProfiles(bundle);
+  if (!rendered) return [];
+
+  const dir = join(home, ".aws");
+
+  // Never overwrite an ~/.aws this did not write.
+  //
+  // These are whole-file writes, so a pre-existing credentials file — a
+  // developer's own profiles, or something another tool set up — would be
+  // destroyed rather than merged. This only runs on a surface allowed to write
+  // secrets to disk (a disposable container), but "usually disposable" is not a
+  // reason to be able to delete someone's credentials. The marker makes our own
+  // file re-writable while anything else is left alone and reported.
+  for (const name of ["credentials", "config"]) {
+    const file = join(dir, name);
+    if (exists(file) && !String(read(file, "utf8")).includes(MANAGED_MARKER)) {
+      return [];
+    }
+  }
+
+  mkdir(dir, { recursive: true, mode: 0o700 });
+  chmod(dir, 0o700);
+  write(
+    join(dir, "credentials"),
+    `${MANAGED_MARKER}\n${rendered.credentials}`,
+    {
+      mode: 0o600,
+    }
+  );
+  write(join(dir, "config"), `${MANAGED_MARKER}\n${rendered.config}`, {
+    mode: 0o600,
+  });
+
+  return rendered.profiles;
 }
 
 export function materialize(cfg = readConfig()) {
@@ -170,7 +247,21 @@ export function materialize(cfg = readConfig()) {
   // materialized" and "the credential is usable" the same statement.
   const sourced = installProfileSourcing(valuesFile);
 
-  return { count: selected.size, derived: derived.size, dir, sourced };
+  // The environments live in separate AWS accounts, reached by assuming a role
+  // per environment. Without these files `--profile agent-dev` fails with
+  // "profile not found" and everything silently falls back to the bootstrap
+  // identity, which can assume roles and do nothing else.
+  const profiles = installAwsProfiles(
+    parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value)
+  );
+
+  return {
+    count: selected.size,
+    derived: derived.size,
+    dir,
+    sourced,
+    profiles,
+  };
 }
 
 function main() {
