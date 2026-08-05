@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.332.1](https://github.com/CodySwannGT/lisa/compare/v2.332.0...v2.332.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** stop the validator's install-method list drifting from the runner ([c7ab982](https://github.com/CodySwannGT/lisa/commit/c7ab982ee1b165f0ad648b667fe6c2a7d3c31733)), closes [CodySwannGT/lisa#2306](https://github.com/CodySwannGT/lisa/issues/2306)
+
 ## [2.332.0](https://github.com/CodySwannGT/lisa/compare/v2.331.3...v2.332.0) (2026-08-05)
 
 
