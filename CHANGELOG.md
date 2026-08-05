@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.332.4](https://github.com/CodySwannGT/lisa/compare/v2.332.3...v2.332.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** source the materialized env from the shell profile ([85b6c09](https://github.com/CodySwannGT/lisa/commit/85b6c099d08c010b0fcea50979170dec352f92be)), closes [CodySwannGT/lisa#2309](https://github.com/CodySwannGT/lisa/issues/2309)
+
 ### [2.332.3](https://github.com/CodySwannGT/lisa/compare/v2.332.2...v2.332.3) (2026-08-05)
 
 
