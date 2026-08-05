@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.333.2](https://github.com/CodySwannGT/lisa/compare/v2.333.1...v2.333.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** merge into ~/.aws instead of refusing when a file already exists ([d47853d](https://github.com/CodySwannGT/lisa/commit/d47853d73438dd933f188c2e6d12f216793d5c09)), closes [CodySwannGT/lisa#2319](https://github.com/CodySwannGT/lisa/issues/2319)
+* **secrets:** write ~/.aws atomically so an existing file is tightened to 0600 ([994033f](https://github.com/CodySwannGT/lisa/commit/994033f7cde4f359b53d05e130efbbc860b89721)), closes [CodySwannGT/lisa#2319](https://github.com/CodySwannGT/lisa/issues/2319)
+
 ### [2.333.1](https://github.com/CodySwannGT/lisa/compare/v2.333.0...v2.333.1) (2026-08-05)
 
 ## [2.333.0](https://github.com/CodySwannGT/lisa/compare/v2.332.5...v2.333.0) (2026-08-05)
