@@ -80,7 +80,41 @@ const PROFILE_END = "# <<< lisa secrets (managed) <<<";
  * consumer while still being the thing that distinguishes "our file, refresh
  * it" from "someone else's file, leave it alone".
  */
-const MANAGED_MARKER = "# managed by lisa-secrets-access";
+const MANAGED_MARKER = "# >>> managed by lisa-secrets-access >>>";
+
+/** Closes the managed region of an `~/.aws` file. */
+const MANAGED_END = "# <<< managed by lisa-secrets-access <<<";
+
+/**
+ * Replace this module's delimited region in a file, preserving everything else.
+ *
+ * Written as a merge rather than a whole-file write because both `~/.aws` files
+ * routinely hold sections nobody here knows about — an operator's own profiles,
+ * or a container's bare `[default]`. Refusing on their account wrote nothing at
+ * all; overwriting would delete them. This does neither.
+ * @param {string} current Existing file contents, or "".
+ * @param {string} body The region this module owns.
+ * @returns {string} The merged file.
+ */
+export function upsertManagedBlock(current, body) {
+  const block = `${MANAGED_MARKER}\n${body.trimEnd()}\n${MANAGED_END}`;
+  const start = current.indexOf(MANAGED_MARKER);
+
+  if (start === -1) {
+    const prefix =
+      current && !current.endsWith("\n") ? `${current}\n` : current;
+    return `${prefix}${prefix ? "\n" : ""}${block}\n`;
+  }
+
+  const endAt = current.indexOf(MANAGED_END, start);
+  // A truncated block (marker opened, never closed) would otherwise swallow the
+  // rest of the file on every subsequent write.
+  const after =
+    endAt === -1
+      ? ""
+      : current.slice(endAt + MANAGED_END.length).replace(/^\n/, "");
+  return `${current.slice(0, start)}${block}\n${after}`;
+}
 
 /**
  * Make every shell in this container load the materialized secrets.
@@ -171,34 +205,31 @@ export function installAwsProfiles(bundle, options = {}) {
   if (!rendered) return [];
 
   const dir = join(home, ".aws");
-
-  // Never overwrite an ~/.aws this did not write.
-  //
-  // These are whole-file writes, so a pre-existing credentials file — a
-  // developer's own profiles, or something another tool set up — would be
-  // destroyed rather than merged. This only runs on a surface allowed to write
-  // secrets to disk (a disposable container), but "usually disposable" is not a
-  // reason to be able to delete someone's credentials. The marker makes our own
-  // file re-writable while anything else is left alone and reported.
-  for (const name of ["credentials", "config"]) {
-    const file = join(dir, name);
-    if (exists(file) && !String(read(file, "utf8")).includes(MANAGED_MARKER)) {
-      return [];
-    }
-  }
-
   mkdir(dir, { recursive: true, mode: 0o700 });
   chmod(dir, 0o700);
-  write(
-    join(dir, "credentials"),
-    `${MANAGED_MARKER}\n${rendered.credentials}`,
-    {
-      mode: 0o600,
-    }
-  );
-  write(join(dir, "config"), `${MANAGED_MARKER}\n${rendered.config}`, {
-    mode: 0o600,
-  });
+
+  // Merge into a delimited block; never replace the file.
+  //
+  // Refusing whole files whenever one already existed sounded safe and was
+  // worse than useless: a container ships `~/.aws/config` containing a bare
+  // `[default]`, so the guard fired every time, wrote nothing, and returned
+  // silently — while AWS_PROFILE was still derived from the bundle. The session
+  // got a pointer to a profile that did not exist:
+  //
+  //     The config profile (agent-dev) could not be found
+  //
+  // Merging keeps the operator's own sections intact AND writes ours, which is
+  // what the guard was actually for. Same delimited-block approach as the shell
+  // profile, and `#` is a comment in the shared-config format so the markers are
+  // inert to every consumer.
+  for (const [name, body] of [
+    ["credentials", rendered.credentials],
+    ["config", rendered.config],
+  ]) {
+    const file = join(dir, name);
+    const current = exists(file) ? String(read(file, "utf8")) : "";
+    write(file, upsertManagedBlock(current, body), { mode: 0o600 });
+  }
 
   return rendered.profiles;
 }
