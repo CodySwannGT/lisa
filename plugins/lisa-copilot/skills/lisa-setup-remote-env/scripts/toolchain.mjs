@@ -354,6 +354,18 @@ export function assertPinned(tool) {
     }
     return;
   }
+  // The download IS the binary, so there is no `binary` path to require — but
+  // the checksum matters more here than anywhere else, because the artifact is
+  // directly executable rather than something that has to be unpacked first.
+  if (tool.install === "release-binary") {
+    if (!tool.url || !tool.sha256) {
+      throw new Error(
+        `${tool.name}: a release-binary install needs both url and sha256.\n` +
+          `A version bump must move the checksum in the same reviewed commit.`
+      );
+    }
+    return;
+  }
   if (tool.install === "npm-global") {
     if (!tool.package)
       throw new Error(`${tool.name}: npm-global install needs a package`);
@@ -361,6 +373,6 @@ export function assertPinned(tool) {
   }
   throw new Error(
     `${tool.name}: unknown install method "${tool.install}".\n` +
-      `Supported: release-zip, release-tar, release-tree, npm-global.`
+      `Supported: release-zip, release-tar, release-tree, release-binary, npm-global.`
   );
 }
