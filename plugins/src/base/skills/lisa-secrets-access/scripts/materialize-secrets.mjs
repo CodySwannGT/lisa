@@ -27,6 +27,7 @@ import {
   writeFileSync,
 } from "node:fs";
 
+import { deriveAwsEnvironment } from "./aws-bootstrap.mjs";
 import { renderEnv, renderNotes } from "./envfile.mjs";
 import { fetchAll } from "./providers.mjs";
 import { materializedPaths, readConfig } from "./surfaces.mjs";
@@ -74,25 +75,47 @@ export function materialize(cfg = readConfig()) {
     );
   }
 
+  // The AWS bundle is stored as one JSON blob under a name no SDK reads, so
+  // the variables it implies are derived here. Without them a host-injected
+  // AWS_ACCESS_KEY_ID wins — environment variables outrank profile files in the
+  // credential chain — and every AWS call fails with InvalidClientTokenId even
+  // though the real credential materialized correctly.
+  const derived = deriveAwsEnvironment(selected);
+  for (const [name, entry] of derived) selected.set(name, entry);
+
   const { dir, valuesFile, notesFile } = materializedPaths(cfg.namespace);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   chmodSync(dir, 0o700);
   writeAtomic(valuesFile, renderEnv(selected));
   writeAtomic(notesFile, renderNotes(selected));
-  return { count: selected.size, dir };
+  return { count: selected.size, derived: derived.size, dir };
 }
 
 function main() {
   const cfg = readConfig();
   if (process.argv.includes("--dry-run")) {
     const selected = fetchAll(cfg);
+    // Derive here too, or the preview lies in the one place it matters most:
+    // the derived names are exactly the ones that override ambient host
+    // credentials, so omitting them hides the most surprising effect of the run
+    // and reports a smaller count than the real write produces.
+    for (const [name, entry] of deriveAwsEnvironment(selected)) {
+      selected.set(name, entry);
+    }
     const { dir } = materializedPaths(cfg.namespace);
     console.log(`would write ${selected.size} secret(s) to ${dir}`);
     console.log([...selected.keys()].sort().join("\n"));
     return;
   }
-  const { count, dir } = materialize(cfg);
+  const { count, derived, dir } = materialize(cfg);
   console.log(`materialized ${count} secret(s) and their notes into ${dir}`);
+  if (derived > 0) {
+    // Said out loud: this run exported variables the host may also have set.
+    console.log(
+      `  ${derived} AWS variable(s) derived from the bootstrap bundle, ` +
+        `overriding any ambient value`
+    );
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

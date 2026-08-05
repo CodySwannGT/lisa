@@ -1100,12 +1100,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "9d7346864b04304e5b4bbb90512c7f2e701d69ab012b4fcf3b7b687221fc76bd",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
+      "5403ddeec18b670d10257beb3859cd220d92fab5d4768535a35a56a7d8a280da",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "f203c71457da958cdb49637c87e4a9c43e964f98ecef3dd0e933b419d565f98e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "4b4448cd680a8fe7b1f51bad840c2655f898e9bc08ca06c385cd1d21dca3c3d4",
+      "b535ed8babf7237374de9886fca7967519f4719ab8a1c03f16dfddef05f0a138",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "fec38ca937570c1e1c21e6e8f7314a9d8f4e9264779d0394b40d5158924da0da",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -3296,6 +3298,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-rework-triage/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
@@ -3724,6 +3727,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-rework-triage/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
@@ -4138,6 +4142,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-rework-triage/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
@@ -6167,6 +6172,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-root-cause-analysis/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
@@ -6761,6 +6767,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-root-cause-analysis/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-secrets-access/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
@@ -7231,6 +7238,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md": true,
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md": true,
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
@@ -8478,6 +8486,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
+    "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
