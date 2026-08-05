@@ -80,6 +80,51 @@ MCP config so it launches `sonar run mcp`, authenticated from the same env token
 
 Skip any agent whose CLI is not installed; never wire Kiro or Gemini.
 
+## 4a. Patch the generated shims — required, not optional
+
+Each integrate writes a five-line shim that pipes the hook payload to `sonar hook
+<event>` and passes the verdict through unchanged. That makes an
+**unauthenticated CLI refuse every prompt and every file read**, with a reason
+string that reads exactly like a real finding:
+
+```text
+SonarQube secret scanning is inactive: not authenticated. Run 'sonar auth login'.
+```
+
+The operator most likely to hit it is the one who just installed the CLI and has
+not logged in — so their very first prompt is rejected, before the session can
+say anything useful. Repoint every generated shim at Lisa's wrapper, which keeps
+real findings blocking, resolves `SONARQUBE_CLI_TOKEN` through
+`lisa-secrets-access` when the CLI reports it has none, and degrades the
+still-unauthenticated case to a warning:
+
+```bash
+if ! command -v sonar &> /dev/null; then
+  exit 0
+fi
+here="$(cd -- "$(dirname -- "$0")" && pwd)"
+exec bash "${here}/<relative-path>/scripts/lisa-hooks/sonar-secrets.sh" <vendor-event>
+```
+
+One wrapper serves every surface — it takes the vendor event name as its only
+argument. Known shim locations and their events:
+
+| Agent | Shim | Event |
+| --- | --- | --- |
+| Claude | `.claude/hooks/sonar-secrets/build-scripts/prompt-secrets.sh` | `claude-prompt-submit` |
+| Claude | `.claude/hooks/sonar-secrets/build-scripts/pretool-secrets.sh` | `claude-pre-tool-use` |
+| Codex | `.codex/hooks/sonar-secrets/build-scripts/prompt-secrets.sh` | `codex-prompt-submit` |
+| Copilot | `.github/hooks/sonar-secrets/build-scripts/pretool-secrets.sh` | `copilot-pre-tool-use` |
+| Antigravity | `.agents/sonar/hooks/pretool-secrets.sh` | `antigravity-pre-tool-use` |
+
+Compute the relative path from each shim's own directory rather than assuming a
+depth — Antigravity's is three levels up, the rest are four.
+
+**Re-running an integrate overwrites the shim with the vendor's original**, so
+re-apply this patch whenever you re-run step 4, and say so in the summary. Leave
+a comment at the top of each patched shim naming the wrapper, so the next reader
+does not mistake the delegation for drift.
+
 ## 5. Write non-secret policy config
 
 Merge only non-secret identifiers into committed `.lisa.config.json`, preserving
