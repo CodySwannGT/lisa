@@ -36,10 +36,39 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     expect(content).toMatch(/Never enable\s+auto-merge against a stale head/i);
   });
 
-  it("requires auto-merge to be disarmed or treated as race-prone before fix pushes", () => {
-    expect(content).toMatch(/disablePullRequestAutoMerge/);
-    expect(content).toMatch(/Do not leave auto-merge armed/i);
-    expect(content).toMatch(/required fix, CodeRabbit follow-up/i);
+  it("keeps auto-merge ARMED across fix pushes, and says why that is safe", () => {
+    // Reversed from the original #1395 guard, deliberately. That guard required
+    // the latch to be DISARMED before a fix push. Disarming is a durable change
+    // on GitHub while re-arming is one more step the run has to reach, so a run
+    // that ended in between left the PR unable to merge unattended — worse off
+    // than if the skill had never touched it, and reported as success.
+    //
+    // The window a disarm protected is only the gap between deciding to fix and
+    // the fix landing; once a commit is pushed, GitHub blocks on required checks
+    // that have not reported for the new head. The two merges attributed to that
+    // window were fixed forward within minutes, one a docs typo — and are not
+    // even distinguishable from a human pressing Merge, since auto-merge is
+    // attributed to whoever enabled it.
+    expect(content).toMatch(/Leave the latch ARMED/i);
+    expect(content).toMatch(/Never disable auto-merge/i);
+    // The reasoning has to travel with the rule: an agent that finds only the
+    // instruction and not the trade-off will re-add the disarm the first time a
+    // race is suspected.
+    expect(content).toMatch(/required checks against\s+the PR's current head/i);
+  });
+
+  it("never instructs disabling the latch on the happy path", () => {
+    // The mutation this file exists to catch, now pointing the other way: a
+    // reinstated disarm. `auto_merge=false` is a different thing — that mode
+    // deliberately disarms a pre-existing latch and must stay untouched — so
+    // this asserts on the section that runs when auto_merge=true.
+    const armSection = content.slice(
+      content.indexOf("## 1. Enable auto-merge"),
+      content.indexOf("## 2.")
+    );
+    expect(armSection.length).toBeGreaterThan(500);
+    expect(armSection).not.toMatch(/disablePullRequestAutoMerge/);
+    expect(armSection).not.toMatch(/Do not leave auto-merge armed/i);
   });
 
   it("resets verify_commit to the pushed head before re-enabling auto-merge", () => {
