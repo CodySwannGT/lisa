@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.331.1](https://github.com/CodySwannGT/lisa/compare/v2.331.0...v2.331.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **workstation:** agy is installable — Google ships a headless installer ([53fe55f](https://github.com/CodySwannGT/lisa/commit/53fe55f41db255efc5afb1aaf60e621b211f1ff1)), closes [#2287](https://github.com/CodySwannGT/lisa/issues/2287) [#2288](https://github.com/CodySwannGT/lisa/issues/2288) [CodySwannGT/lisa#2297](https://github.com/CodySwannGT/lisa/issues/2297)
+
 ## [2.331.0](https://github.com/CodySwannGT/lisa/compare/v2.330.1...v2.331.0) (2026-08-04)
 
 
