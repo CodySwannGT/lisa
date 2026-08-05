@@ -215,9 +215,11 @@ describe("remoteEnv block", () => {
       tools: { install: [{ name: "x", version: "1", install: "curl-bash" }] },
     });
     // The message is where an operator learns which methods exist at all, so
-    // it has to name the same three the runner accepts.
+    // it has to name the same set the runner accepts. That the two agree is
+    // enforced directly in install-method-conformance.test.ts; this only checks
+    // the message still enumerates them for whoever reads the failure.
     expect(problems[0]).toMatch(
-      /Supported: release-zip, release-tar, npm-global/
+      /Supported: release-zip, release-tar, release-tree, release-binary, npm-global/
     );
   });
 
