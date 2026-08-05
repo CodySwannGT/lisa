@@ -14,9 +14,18 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
 
 - `pr=<number|url>` — the PR to drive. Default: the PR for the current branch
   (`gh pr view --json number,url,baseRefName,headRefName,state`).
-- `merge_method=<merge|rebase>` — strategy for both auto-merge and the direct-merge
-  fallback. Default `merge`. **Never squash** — squashing flattens
-  `chore(release): X.Y.Z [skip ci]` commits and breaks release promotion detection.
+- `merge_method=<merge>` — strategy for both auto-merge and the direct-merge
+  fallback. Default and only accepted value: `merge`.
+  - **Never squash** — squashing flattens `chore(release): X.Y.Z [skip ci]`
+    commits and breaks release promotion detection.
+  - **Never rebase.** REJECT `merge_method=rebase` up front with a clear message
+    rather than accepting it and verifying it wrongly. GitHub's rebase-and-merge
+    rewrites the commits — new SHAs — and creates no merge commit, so the
+    shipped-verification in section 3 cannot succeed: `verify_commit` is the
+    pre-rebase SHA and is not an ancestor of the base branch afterwards, and the
+    merge-parent assertion has nothing to assert against. A successful merge
+    would then report as a FAILED verification and drive a false fix-forward,
+    which is worse than refusing the input. See CodySwannGT/lisa#2316.
 - `verify_commit=<sha>` — the commit that MUST end up in the merged base (for the
   ancestry check). Default: the PR head at the time this skill starts.
 - `auto_merge=<true|false>` — whether this skill is allowed to merge the PR at
