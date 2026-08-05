@@ -126,7 +126,10 @@ auto-merge against a stale head you have not verified.
 `gh pr merge <pr> --auto --<merge_method>`. Enabling auto-merge is **not terminal**
 — continue the loop below until the PR is actually `MERGED` or `CLOSED`.
 
-**Leave the latch ARMED. Never disable auto-merge.**
+**With `auto_merge=true`, leave the latch ARMED — never disable auto-merge.**
+(Under `auto_merge=false` the deliberate disarm above still applies: that mode
+must leave the PR open for a human, so a pre-existing latch is removed on
+purpose. Everything below is the `auto_merge=true` path.)
 
 Once a fix is PUSHED the latch is safe: GitHub evaluates required checks against
 the PR's current head, so a new commit whose checks have not reported leaves the
@@ -249,10 +252,9 @@ registered you will instead see real conflict markers — run
 ### c. Failing CI / deploy checks (`statusCheckRollup` has FAILURE)
 Inspect the failing check's logs (`gh pr checks <pr>`, `gh run view <run> --log-failed`).
 Fix the underlying code inline — **never lower thresholds, skip tests, or disable
-checks** to force green. Before pushing the fix, disarm auto-merge or classify the
-run as race-prone, then after the push re-read the PR head, update `verify_commit`
-to that exact SHA, wait for checks on that head to start, and only then resume
-auto-merge. When the root cause is an upstream Lisa template/postinstall bug
+checks** to force green. Leave auto-merge armed across the push (section 1);
+after it, re-read the PR head and update `verify_commit` to that exact SHA so the
+shipped-verification checks what you pushed. When the root cause is an upstream Lisa template/postinstall bug
 rather than this project's code, fix it upstream and propagate down rather than
 patching only here.
 
@@ -261,10 +263,9 @@ Delegate to the `pull-request-review` skill with the PR number. It owns the whol
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
 GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
 resolve every thread via `resolveReviewThread` so the branch-protection
-thread-resolution gate clears. If that skill needs to push a commit, auto-merge
-must be disabled first when possible; when it returns, re-read `headRefOid`, reset
-`verify_commit` to the returned/pushed head, wait for that head's checks to start,
-then re-enable auto-merge and continue. Do not re-implement review handling here
+thread-resolution gate clears. If that skill needs to push a commit, leave
+auto-merge armed (section 1); when it returns, re-read `headRefOid` and reset
+`verify_commit` to the returned/pushed head, then continue. Do not re-implement review handling here
 — it is the single source of truth for review-thread handling.
 
 ### e. Review gate stall (`reviewDecision == CHANGES_REQUESTED`)
@@ -286,9 +287,9 @@ branch (the CI auto-fix workflow engaged before this session took the lease),
 adjudicate it: merge it into the head branch if the fix is correct and still
 needed, otherwise close it and delete the side branch. Never leave it dangling
 — it represents a competing writer's pending work. Merging it mutates the
-driven branch, so treat it like any other push: disarm auto-merge first,
-re-read `headRefOid`, reset `verify_commit` to the merged head, wait for that
-head's checks to start, then re-enable auto-merge (section 1). In
+driven branch, so treat it like any other push: leave auto-merge armed
+(section 1), then re-read `headRefOid` and reset `verify_commit` to the merged
+head. In
 `on_blocker=report` mode this whole step is off-limits (diagnose-only): do not
 merge, close, or delete anything — return `blocked:pending-auto-fix`.
 

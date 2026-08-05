@@ -49,12 +49,37 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     // window were fixed forward within minutes, one a docs typo — and are not
     // even distinguishable from a human pressing Merge, since auto-merge is
     // attributed to whoever enabled it.
-    expect(content).toMatch(/Leave the latch ARMED/i);
+    expect(content).toMatch(/leave the latch ARMED/i);
     expect(content).toMatch(/Never disable auto-merge/i);
     // The reasoning has to travel with the rule: an agent that finds only the
     // instruction and not the trade-off will re-add the disarm the first time a
     // race is suspected.
     expect(content).toMatch(/required checks against\s+the PR's current head/i);
+  });
+
+  it("leaves no disarm instruction in ANY auto_merge=true fix path", () => {
+    // The first version of this change only rewrote section 1 and left three
+    // later passages (failing checks, review threads, pending auto-fix) still
+    // telling the agent to disarm — a policy that contradicted itself, and a
+    // disarm that would still have happened. Scoping the check to section 1
+    // is what missed it, so this walks everything AFTER the auto_merge=false
+    // block instead.
+    const afterFalseMode = content.slice(content.indexOf("## 1. Enable auto-merge"));
+    expect(afterFalseMode.length).toBeGreaterThan(1000);
+
+    const offenders = afterFalseMode
+      .split("\n")
+      .filter(line => /disarm auto-merge|auto-merge\s+must be disabled|re-enable auto-merge/i.test(line));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("scopes the armed-latch rule to auto_merge=true", () => {
+    // An unqualified "never disable auto-merge" contradicts the auto_merge=false
+    // contract, which disarms a pre-existing latch on purpose so the PR stays
+    // open for a human.
+    expect(content).toMatch(/With `auto_merge=true`, leave the latch ARMED/);
+    expect(content).toMatch(/auto_merge=false` the deliberate disarm above still applies/);
   });
 
   it("never instructs disabling the latch on the happy path", () => {
@@ -71,11 +96,15 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     expect(armSection).not.toMatch(/Do not leave auto-merge armed/i);
   });
 
-  it("resets verify_commit to the pushed head before re-enabling auto-merge", () => {
+  it("resets verify_commit to the pushed head after every push", () => {
+    // Retained from the original #1395 guard, minus the "before re-enabling"
+    // half — nothing is disabled now, so there is nothing to re-enable. What
+    // still matters, and matters MORE without a disarm, is that the
+    // shipped-verification in step 3 targets the commit actually pushed: that
+    // ancestry check is what catches a raced merge after the fact.
     expect(content).toMatch(
       /reset\s+`verify_commit` to the returned\/pushed head/i
     );
-    expect(content).toMatch(/wait for that head's checks to start/i);
     expect(content).toMatch(/failed drive-to-merge outcome/i);
   });
 
