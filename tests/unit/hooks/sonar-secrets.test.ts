@@ -13,11 +13,12 @@
  * already provisioned is fetched before either conclusion is drawn.
  * @module tests/unit/hooks/sonar-secrets
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -62,6 +63,9 @@ const FINDING = JSON.stringify({
   decision: "block",
   reason: "Sonar detected secrets in prompt",
 });
+
+/** The vendor event name the Claude prompt shim passes through. */
+const PROMPT_EVENT = "claude-prompt-submit";
 
 const temporaries: string[] = [];
 
@@ -141,7 +145,7 @@ function run(options: {
 }): ReturnType<typeof spawnSync> {
   const pathEntries = [options.bin, process.env.PATH].filter(Boolean);
 
-  return spawnSync(BASH, [SOURCE, "claude-prompt-submit"], {
+  return spawnSync(BASH, [SOURCE, PROMPT_EVENT], {
     input: JSON.stringify({ prompt: "hello" }),
     encoding: "utf8",
     env: {
@@ -213,10 +217,90 @@ describe("what the wrapper does with the CLI's verdict", () => {
   });
 });
 
+describe("the resolved value never reaches the filesystem", () => {
+  // CWE-922. The first version of this captured the resolver's output through
+  // `mktemp` and deleted the file afterwards, which is a race rather than a
+  // cleanup: kill the hook between the write and the `rm` and the token stays
+  // readable on disk. Process substitution has no path to leak, so this holds on
+  // every exit path, signalled or not.
+
+  it("does not capture the resolver through a temp file at all", () => {
+    // The mechanism, pinned directly, because it is the whole guarantee: with
+    // no temp file there is no window between writing the token and deleting
+    // it, and therefore no termination for cleanup to lose a race against.
+    const code = readFileSync(SOURCE, "utf8")
+      .split("\n")
+      .filter(line => !line.trimStart().startsWith("#"))
+      .join("\n");
+
+    expect(code).not.toContain("mktemp");
+  });
+
+  it("survives being killed mid-resolve without leaving the token behind", async () => {
+    // Scans the real temp directory rather than a redirected one: macOS
+    // `mktemp` reads the `_CS_DARWIN_USER_TEMP_DIR` confstr and ignores
+    // `TMPDIR` entirely, so a test that points TMPDIR at a scratch dir watches
+    // a location the leak could never appear in and passes against the very
+    // implementation it exists to reject. Only files that appear during the run
+    // are read, and only for a canary no other process emits.
+    const before = new Set(readdirSync(tmpdir()));
+    const slow = mkdtempSync(path.join(tmpdir(), "lisa-sonar-slow-"));
+    const dir = path.join(
+      slow,
+      ".claude",
+      "skills",
+      "lisa-secrets-access",
+      "scripts"
+    );
+
+    temporaries.push(slow);
+    mkdirSync(dir, { recursive: true });
+    // Emits the token, then holds the pipe open — so the kill lands squarely
+    // inside the window where a temp-file capture has already written it and
+    // not yet deleted it.
+    writeFileSync(
+      path.join(dir, "resolve-secret.mjs"),
+      'process.stdout.write("killed-run-token");\nsetTimeout(() => {}, 30000);\n'
+    );
+
+    const child = spawn(BASH, [SOURCE, PROMPT_EVENT], {
+      env: {
+        ...process.env,
+        PATH: [stubSonar(""), process.env.PATH].join(path.delimiter),
+        CLAUDE_PROJECT_DIR: slow,
+      },
+    });
+
+    child.stdin.end(JSON.stringify({ prompt: "hello" }));
+    // Awaited, not slept through. A blocking sleep here holds Node's event
+    // loop, so the payload queued by `stdin.end` never flushes, the script
+    // sits in `payload="$(cat)"`, and the kill lands before the resolver has
+    // been reached at all — the test then passes against every implementation
+    // because nothing ever ran.
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    child.kill("SIGKILL");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const leaked = readdirSync(tmpdir())
+      .filter(entry => !before.has(entry))
+      .filter(entry => {
+        try {
+          return readFileSync(path.join(tmpdir(), entry), "utf8").includes(
+            "killed-run-token"
+          );
+        } catch {
+          return false;
+        }
+      });
+
+    expect(leaked).toEqual([]);
+  });
+});
+
 describe("when the wrapper must stand aside", () => {
   it("exits quietly when the CLI is not installed", () => {
     // An empty PATH entry and nothing inherited: `command -v sonar` fails.
-    const result = spawnSync(BASH, [SOURCE, "claude-prompt-submit"], {
+    const result = spawnSync(BASH, [SOURCE, PROMPT_EVENT], {
       input: "{}",
       encoding: "utf8",
       env: { PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")) },
