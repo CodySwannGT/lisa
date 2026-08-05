@@ -31,7 +31,12 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { deriveAwsEnvironment } from "./aws-bootstrap.mjs";
+import {
+  BOOTSTRAP_KEY,
+  deriveAwsEnvironment,
+  parseBootstrap,
+  renderAwsProfiles,
+} from "./aws-bootstrap.mjs";
 import { renderEnv, renderNotes } from "./envfile.mjs";
 import { fetchAll } from "./providers.mjs";
 import { materializedPaths, readConfig } from "./surfaces.mjs";
@@ -95,6 +100,14 @@ export function installProfileSourcing(valuesFile, options = {}) {
 
   const block = [
     PROFILE_MARKER,
+    // Unset BEFORE sourcing. A cloud container injects its own AWS key pair,
+    // and environment credentials outrank both ~/.aws profiles and AWS_PROFILE
+    // — so leaving them set means the session ignores whichever environment it
+    // selected and runs as whatever the host injected. That is how a perfectly
+    // valid credential produced InvalidClientTokenId for a day. Removing the
+    // poison beats out-shouting it, and it is what lets `--profile agent-dev`
+    // behave here exactly as it does on a developer's machine.
+    `unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN`,
     `if [ -f "${valuesFile}" ]; then`,
     `  set -a`,
     `  . "${valuesFile}"`,
@@ -124,6 +137,35 @@ export function installProfileSourcing(valuesFile, options = {}) {
     }
   }
   return updated;
+}
+
+/**
+ * Write `~/.aws/credentials` and `~/.aws/config` from the bootstrap bundle.
+ *
+ * Both at 0600 inside a 0700 directory, matching how the materialized secrets
+ * themselves are protected — the credentials file holds the source key pair.
+ * @param {object|null} bundle Parsed bootstrap bundle.
+ * @param {object} [options] Home directory and file seams, for tests.
+ * @returns {string[]} The profile names written.
+ */
+export function installAwsProfiles(bundle, options = {}) {
+  const {
+    home = process.env.HOME || homedir(),
+    mkdir = mkdirSync,
+    write = writeFileSync,
+    chmod = chmodSync,
+  } = options;
+
+  const rendered = renderAwsProfiles(bundle);
+  if (!rendered) return [];
+
+  const dir = join(home, ".aws");
+  mkdir(dir, { recursive: true, mode: 0o700 });
+  chmod(dir, 0o700);
+  write(join(dir, "credentials"), rendered.credentials, { mode: 0o600 });
+  write(join(dir, "config"), rendered.config, { mode: 0o600 });
+
+  return rendered.profiles;
 }
 
 export function materialize(cfg = readConfig()) {
@@ -170,7 +212,21 @@ export function materialize(cfg = readConfig()) {
   // materialized" and "the credential is usable" the same statement.
   const sourced = installProfileSourcing(valuesFile);
 
-  return { count: selected.size, derived: derived.size, dir, sourced };
+  // The environments live in separate AWS accounts, reached by assuming a role
+  // per environment. Without these files `--profile agent-dev` fails with
+  // "profile not found" and everything silently falls back to the bootstrap
+  // identity, which can assume roles and do nothing else.
+  const profiles = installAwsProfiles(
+    parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value)
+  );
+
+  return {
+    count: selected.size,
+    derived: derived.size,
+    dir,
+    sourced,
+    profiles,
+  };
 }
 
 function main() {
