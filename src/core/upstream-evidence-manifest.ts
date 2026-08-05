@@ -1107,7 +1107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "b535ed8babf7237374de9886fca7967519f4719ab8a1c03f16dfddef05f0a138",
+      "32e4cd6011f619f15842b5cd07c6ca13f25b2c66af2f8b41b7759925ed8b14ad",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "fec38ca937570c1e1c21e6e8f7314a9d8f4e9264779d0394b40d5158924da0da",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -8494,6 +8494,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
+    "tests/unit/secrets/profile-sourcing.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
