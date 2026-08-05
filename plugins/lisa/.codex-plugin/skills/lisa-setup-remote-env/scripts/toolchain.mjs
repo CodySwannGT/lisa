@@ -302,6 +302,24 @@ export function planToolchain(
 }
 
 /**
+ * Every install method the runner can execute — the authoritative list.
+ *
+ * `validate-config.mjs` maintains its own copy because skills are distributed
+ * as self-contained directories and nothing else imports across a skill
+ * boundary. A comment saying "keep these in step" has now failed twice — first
+ * for `release-tar`, then for `release-tree` and `release-binary` together — so
+ * the pairing is enforced by a conformance test against this export instead.
+ * Adding a kind here fails that test until the validator learns it too.
+ */
+export const INSTALL_METHODS = Object.freeze([
+  "release-zip",
+  "release-tar",
+  "release-tree",
+  "release-binary",
+  "npm-global",
+]);
+
+/**
  * Reject a manifest entry that could install something unverifiable.
  *
  * A pinned version with no checksum still trusts whatever the URL serves today.
@@ -373,6 +391,6 @@ export function assertPinned(tool) {
   }
   throw new Error(
     `${tool.name}: unknown install method "${tool.install}".\n` +
-      `Supported: release-zip, release-tar, release-tree, release-binary, npm-global.`
+      `Supported: ${INSTALL_METHODS.join(", ")}.`
   );
 }
