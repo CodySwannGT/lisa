@@ -195,13 +195,38 @@ describe("documented remote-env setup field", () => {
     expect(output).toContain(ZULU);
   });
 
-  it("fails loudly when no entrypoint exists, rather than succeeding silently", () => {
-    const empty = path.join(temporary, "empty");
-    mkdirSync(empty, { recursive: true });
-    expect(() => runField(empty, empty)).toThrow();
+  it("fails loudly when a checkout exists but carries no entrypoint", () => {
+    // The original quiet-success guard, now scoped to the case it was really
+    // about: a repository IS present and simply has no Lisa entrypoint. A `for`
+    // loop over a glob that matches nothing exits 0 on its own, so this must
+    // not be allowed to look like success.
+    const repo = path.join(temporary, "repo");
+    mkdirSync(path.join(repo, ".git"), { recursive: true });
+
+    expect(() => runField(repo, repo)).toThrow();
   });
 
-  it("describes the layout it found when it finds no entrypoint", () => {
+  it("succeeds quietly when there is NO checkout at all", () => {
+    // Not the same failure. A Claude Tag channel session runs as the
+    // organization and a repository does not enter the session until a request
+    // names one, so a repo-less session is ordinary. Exiting non-zero here
+    // would be severe: a setup script that exits non-zero stops the session
+    // from starting, so the old blanket exit 1 killed every such session.
+    const empty = path.join(temporary, "empty");
+    mkdirSync(empty, { recursive: true });
+
+    expect(() => runField(empty, empty)).not.toThrow();
+  });
+
+  it("says nothing is to be prepared when no tenant is named", () => {
+    // Silence would be indistinguishable from a broken setup script.
+    const empty = path.join(temporary, "empty");
+    mkdirSync(empty, { recursive: true });
+
+    expect(runField(empty, empty)).toContain("nothing to prepare");
+  });
+
+  it("describes the layout it found when a checkout has no entrypoint", () => {
     // This field lives in a vendor settings box with a slow edit-and-retry
     // loop, and the vendor surfaces only its stderr. A miss that names just the
     // path it wanted costs a whole round trip to learn one fact — which is
@@ -209,7 +234,7 @@ describe("documented remote-env setup field", () => {
     // said where it looked and nothing about where the checkout actually was.
     const empty = path.join(temporary, "empty");
     const home = path.join(temporary, "home");
-    mkdirSync(empty, { recursive: true });
+    mkdirSync(path.join(empty, ".git"), { recursive: true });
     mkdirSync(path.join(home, "a-directory-that-is-there"), {
       recursive: true,
     });
