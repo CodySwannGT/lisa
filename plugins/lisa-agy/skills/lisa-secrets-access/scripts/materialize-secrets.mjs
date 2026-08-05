@@ -95,6 +95,13 @@ function main() {
   const cfg = readConfig();
   if (process.argv.includes("--dry-run")) {
     const selected = fetchAll(cfg);
+    // Derive here too, or the preview lies in the one place it matters most:
+    // the derived names are exactly the ones that override ambient host
+    // credentials, so omitting them hides the most surprising effect of the run
+    // and reports a smaller count than the real write produces.
+    for (const [name, entry] of deriveAwsEnvironment(selected)) {
+      selected.set(name, entry);
+    }
     const { dir } = materializedPaths(cfg.namespace);
     console.log(`would write ${selected.size} secret(s) to ${dir}`);
     console.log([...selected.keys()].sort().join("\n"));

@@ -1107,7 +1107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "048f261f49056e5d3b1f917e36df7f76529b88a1de5164e500ccf64537bff116",
+      "b535ed8babf7237374de9886fca7967519f4719ab8a1c03f16dfddef05f0a138",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "fec38ca937570c1e1c21e6e8f7314a9d8f4e9264779d0394b40d5158924da0da",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":

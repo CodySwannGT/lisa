@@ -40,7 +40,9 @@ const BUNDLE = JSON.stringify({
  * @param entries Name to value.
  * @returns The map materialize() would hold.
  */
-const selection = (entries: Record<string, string>) =>
+const selection = (
+  entries: Record<string, string>
+): Map<string, { value: string }> =>
   new Map(Object.entries(entries).map(([k, v]) => [k, { value: v }]));
 
 describe("parseBootstrap", () => {
