@@ -39,7 +39,7 @@
 set -uo pipefail
 
 event="${1:-}"
-[ -n "$event" ] || exit 0
+[[ -n "$event" ]] || exit 0
 
 # Nothing installed, nothing to enforce. Matches the vendor shim's own guard.
 command -v sonar >/dev/null 2>&1 || exit 0
@@ -48,7 +48,7 @@ command -v sonar >/dev/null 2>&1 || exit 0
 # deliberately no way to turn the *blocking* back on from the environment: the
 # decision that a missing token must not stop work belongs in this file, where it
 # is reviewable, not in whatever shell happened to launch the agent.
-[ "${LISA_SONAR_HOOK:-on}" = "off" ] && exit 0
+[[ "${LISA_SONAR_HOOK:-on}" == "off" ]] && exit 0
 
 payload="$(cat)"
 
@@ -68,23 +68,25 @@ is_inactive() {
 }
 
 # Run the resolver with a ceiling, because the provider call crosses the network
-# and this sits in front of every prompt and every file read. `timeout` is not
-# present on a stock macOS, so this is the portable equivalent: start it, poll,
-# give up. Giving up is safe — the caller treats an empty value as "the provider
-# had nothing", which lands on the warn path rather than a block.
+# and this sits in front of every prompt and every file read.
+#
+# The value never touches the filesystem. An earlier version captured it through
+# `mktemp` and deleted the file afterwards, which is a race, not a cleanup: a
+# kill between the write and the `rm` leaves the token readable on disk (CWE-922)
+# — the precise failure the one-store rule in lisa-secrets-access exists to
+# prevent, reintroduced by the code enforcing it. Process substitution gives a
+# `/dev/fd` pipe instead, so there is no path on disk to leak and nothing to
+# clean up on any exit path, signalled or not.
+#
+# `read -t` supplies the ceiling. `timeout` is absent on a stock macOS and
+# `coproc` needs Bash 4 (the hooks run under /bin/bash 3.2 there), so this is the
+# portable form. A timeout leaves `value` empty, which the caller treats as "the
+# provider had nothing" — the warn path, never a block. `|| true` because `read`
+# also reports failure at EOF on the resolver's deliberately unterminated output.
 resolve_secret() {
-  local resolver="$1" name="$2" out pid waited=0
-  out="$(mktemp)" || return 0
-  node "$resolver" get "$name" >"$out" 2>/dev/null &
-  pid=$!
-  while kill -0 "$pid" 2>/dev/null; do
-    [ "$waited" -ge 10 ] && { kill -9 "$pid" 2>/dev/null; break; }
-    sleep 1
-    waited=$((waited + 1))
-  done
-  wait "$pid" 2>/dev/null
-  cat "$out"
-  rm -f "$out"
+  local resolver="$1" name="$2" value=""
+  IFS= read -r -t 10 value < <(node "$resolver" get "$name" 2>/dev/null) || true
+  printf '%s' "$value"
 }
 
 out="$(run_scanner)"
@@ -103,21 +105,21 @@ if is_inactive "$out"; then
     "$repo_root/.codex/skills/lisa-secrets-access/scripts/resolve-secret.mjs" \
     "$repo_root/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs" \
     "$repo_root/node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs"; do
-    if [ -f "$candidate" ]; then
+    if [[ -f "$candidate" ]]; then
       resolver="$candidate"
       break
     fi
   done
 
-  if [ -n "$resolver" ] && command -v node >/dev/null 2>&1; then
+  if [[ -n "$resolver" ]] && command -v node >/dev/null 2>&1; then
     token="$(resolve_secret "$resolver" SONARQUBE_CLI_TOKEN)"
-    if [ -n "$token" ]; then
+    if [[ -n "$token" ]]; then
       # Exported into this process only. Writing it anywhere durable would create
       # a second live copy of a credential whose single store is the provider —
       # see the one-store rule in lisa-secrets-access.
       export SONARQUBE_CLI_TOKEN="$token"
       org="$(resolve_secret "$resolver" SONARQUBE_CLI_ORG)"
-      [ -n "$org" ] && export SONARQUBE_CLI_ORG="$org"
+      [[ -n "$org" ]] && export SONARQUBE_CLI_ORG="$org"
       out="$(run_scanner)"
     fi
     unset token org
@@ -135,5 +137,5 @@ if is_inactive "$out"; then
   exit 0
 fi
 
-[ -n "$out" ] && printf '%s' "$out"
+[[ -n "$out" ]] && printf '%s' "$out"
 exit 0
