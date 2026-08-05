@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.334.0](https://github.com/CodySwannGT/lisa/compare/v2.333.3...v2.334.0) (2026-08-05)
+
+
+### Features
+
+* **secrets:** let agents use their own AWS identity on a laptop ([32677df](https://github.com/CodySwannGT/lisa/commit/32677df66908feeedcc080b6af2df74491ead0a3)), closes [CodySwannGT/lisa#2328](https://github.com/CodySwannGT/lisa/issues/2328)
+
 ### [2.333.3](https://github.com/CodySwannGT/lisa/compare/v2.333.2...v2.333.3) (2026-08-05)
 
 
