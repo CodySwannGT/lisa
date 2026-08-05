@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.331.2](https://github.com/CodySwannGT/lisa/compare/v2.331.1...v2.331.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** claude-web must materialize at setup as well as session start ([6d0ca9e](https://github.com/CodySwannGT/lisa/commit/6d0ca9ed95f008998b9cd8f3bc3eb954b5cdf38d)), closes [CodySwannGT/lisa#2301](https://github.com/CodySwannGT/lisa/issues/2301)
+
 ### [2.331.1](https://github.com/CodySwannGT/lisa/compare/v2.331.0...v2.331.1) (2026-08-05)
 
 
