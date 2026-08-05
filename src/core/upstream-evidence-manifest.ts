@@ -13,7 +13,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "aa95a84f9f9224914947a09b858535aa8bd052199ff64cb53768cf78fb69b687",
+      "a6ed91576efebb6ba40cfa4e9d8a3e8566314909210ae8d5860be62a3feb4cff",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -595,7 +595,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "1a36c841b6339a2c664938d65c5a4542f97d05f584e467de448bb72ac6bdba55",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "aa95a84f9f9224914947a09b858535aa8bd052199ff64cb53768cf78fb69b687",
+      "a6ed91576efebb6ba40cfa4e9d8a3e8566314909210ae8d5860be62a3feb4cff",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -8392,6 +8392,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
+    "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing.test.ts": true,
     "tests/unit/hooks/blocking-hook-exit.test.ts": true,
