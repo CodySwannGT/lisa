@@ -1119,7 +1119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "f8d4404ab105284ee072a26319366a71333c89abb14f9d71aafe461e7ea0686a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "058d8cf474e05985a781e5575efcade371b20699c1dc5f6d4df156eeafba0831",
+      "62d1b87d1b852dc00c00ea9d132d9d6953f4ef77beb5fa4b93652c4424f33274",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1161,7 +1161,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
       "2a91430fc2918f2e7df328d58d07feda35fcc0f11f1d9e29623e4f2552617d29",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "30695136eb4ae3ab92d26fe33b5eda60dd04d2e03f760dcf9d66df5d0144f5ae",
+      "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
@@ -8491,6 +8491,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
+    "tests/unit/secrets/install-method-conformance.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
