@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.336.0](https://github.com/CodySwannGT/lisa/compare/v2.335.0...v2.336.0) (2026-08-05)
+
+
+### Features
+
+* **secrets:** prepare a session that has no checkout ([2a694bf](https://github.com/CodySwannGT/lisa/commit/2a694bfa99642fbc813967351d205bbbd2e150bb)), closes [CodySwannGT/lisa#2330](https://github.com/CodySwannGT/lisa/issues/2330)
+
+
+### Bug Fixes
+
+* **sonar:** stop capturing the resolved token through a temp file ([03c5f2c](https://github.com/CodySwannGT/lisa/commit/03c5f2cefdda018da33eb2785a8f02c4fef7fdce)), closes [CodySwannGT/lisa#2332](https://github.com/CodySwannGT/lisa/issues/2332)
+
 ## [2.335.0](https://github.com/CodySwannGT/lisa/compare/v2.334.1...v2.335.0) (2026-08-05)
 
 
