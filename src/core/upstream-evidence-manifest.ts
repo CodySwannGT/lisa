@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "062c69eea85157f1e941ec3626d8912aa9f182af6ccdbe19687588a6074db5ce",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
-      "945453fb275a58aa7185e150e6b05e5810739750928ab5bd6edfbf87d1c8aa0d",
+      "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "6a8be8577242588f14ab52b25b2a22b6def53aefa9513b4d3d7c49f4d8027079",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -627,7 +627,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
-      "945453fb275a58aa7185e150e6b05e5810739750928ab5bd6edfbf87d1c8aa0d",
+      "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "4535a145c5c5cbee13bdf970bc91d390a264043604e607288cdd6bf28de56192",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
