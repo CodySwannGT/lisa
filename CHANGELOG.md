@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.332.3](https://github.com/CodySwannGT/lisa/compare/v2.332.2...v2.332.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** register the session-start hook at user scope on remote surfaces ([f020411](https://github.com/CodySwannGT/lisa/commit/f020411a9f2774f0ebf769fe8e42cdaf721587f4)), closes [CodySwannGT/lisa#2309](https://github.com/CodySwannGT/lisa/issues/2309)
+
 ### [2.332.2](https://github.com/CodySwannGT/lisa/compare/v2.332.1...v2.332.2) (2026-08-05)
 
 
