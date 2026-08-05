@@ -195,7 +195,7 @@ export function installAwsProfiles(bundle, options = {}) {
   const {
     home = process.env.HOME || homedir(),
     mkdir = mkdirSync,
-    write = writeFileSync,
+    write = writeAtomic,
     read = readFileSync,
     exists = existsSync,
     chmod = chmodSync,
@@ -228,7 +228,7 @@ export function installAwsProfiles(bundle, options = {}) {
   ]) {
     const file = join(dir, name);
     const current = exists(file) ? String(read(file, "utf8")) : "";
-    write(file, upsertManagedBlock(current, body), { mode: 0o600 });
+    write(file, upsertManagedBlock(current, body));
   }
 
   return rendered.profiles;
