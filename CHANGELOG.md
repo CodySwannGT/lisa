@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.333.0](https://github.com/CodySwannGT/lisa/compare/v2.332.5...v2.333.0) (2026-08-05)
+
+
+### Features
+
+* **secrets:** assume a role per environment instead of exporting the bootstrap pair ([3b2d5d8](https://github.com/CodySwannGT/lisa/commit/3b2d5d822d9a79f615dc7126cca29387ac59ebac)), closes [CodySwannGT/lisa#2317](https://github.com/CodySwannGT/lisa/issues/2317)
+
+
+### Bug Fixes
+
+* **secrets:** address review findings on the per-environment profile change ([4d56196](https://github.com/CodySwannGT/lisa/commit/4d561968bedf936f0ab3491136b46b74a3fcbe56)), closes [CodySwannGT/lisa#2317](https://github.com/CodySwannGT/lisa/issues/2317)
+
 ### [2.332.5](https://github.com/CodySwannGT/lisa/compare/v2.332.4...v2.332.5) (2026-08-05)
 
 
