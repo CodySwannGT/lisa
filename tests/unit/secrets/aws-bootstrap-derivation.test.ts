@@ -1,0 +1,137 @@
+/**
+ * Tests for deriving AWS variables from the bootstrap bundle.
+ *
+ * `LISA_AWS_BOOTSTRAP_JSON` is a name no AWS SDK reads. Materializing it alone
+ * leaves a session whose credential is present and unusable — and worse than
+ * unusable, because a Claude cloud container ships its own stale
+ * `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, and environment variables
+ * outrank profile files in the credential chain. A real session failed exactly
+ * that way:
+ *
+ *     InvalidClientTokenId: The security token included in the request is invalid.
+ * @module tests/unit/secrets/aws-bootstrap-derivation
+ */
+
+import { describe, expect, it } from "vitest";
+
+import {
+  BOOTSTRAP_KEY,
+  deriveAwsEnvironment,
+  parseBootstrap,
+} from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs";
+
+/** The example access key id, repeated across cases. */
+const KEY_ID = "AKIAEXAMPLE";
+
+/** The example secret half. */
+const SECRET = "s3cret-example";
+
+/** A realistic bundle: assume-only user plus the roles it may assume. */
+const BUNDLE = JSON.stringify({
+  accessKeyId: KEY_ID,
+  secretAccessKey: SECRET,
+  roleName: "RemoteAgent",
+  externalId: "example-external-id",
+  profiles: { dev: "111111111111", production: "222222222222" },
+});
+
+/**
+ * Build a selected-secrets map.
+ * @param entries Name to value.
+ * @returns The map materialize() would hold.
+ */
+const selection = (
+  entries: Record<string, string>
+): Map<string, { value: string }> =>
+  new Map(Object.entries(entries).map(([k, v]) => [k, { value: v }]));
+
+describe("parseBootstrap", () => {
+  it("parses a well-formed bundle", () => {
+    expect(parseBootstrap(BUNDLE)?.roleName).toBe("RemoteAgent");
+  });
+
+  it.each([
+    ["malformed JSON", "{not json"],
+    ["empty", ""],
+    ["a bare string", '"just-a-string"'],
+  ])("treats %s as absent rather than throwing", (_label, raw) => {
+    // A parse failure must not take materialization down with it: every other
+    // secret in the run is still valid, and a session with most of its
+    // credentials beats a session with none.
+    expect(parseBootstrap(raw)).toBeNull();
+  });
+});
+
+describe("deriveAwsEnvironment", () => {
+  it("derives the pair the SDKs actually read", () => {
+    const derived = deriveAwsEnvironment(
+      selection({ [BOOTSTRAP_KEY]: BUNDLE })
+    );
+    expect(derived.get("AWS_ACCESS_KEY_ID")?.value).toBe(KEY_ID);
+    expect(derived.get("AWS_SECRET_ACCESS_KEY")?.value).toBe(SECRET);
+  });
+
+  it("explains in the note why it overrides an ambient value", () => {
+    // The override is an intrusion — this project exporting over a variable it
+    // did not set. It has to be discoverable through the same read-the-note
+    // path as any other credential, not buried in a commit message.
+    const derived = deriveAwsEnvironment(
+      selection({ [BOOTSTRAP_KEY]: BUNDLE })
+    );
+    const note = derived.get("AWS_ACCESS_KEY_ID")?.note ?? "";
+    expect(note).toContain("outrank profile files");
+    expect(note).toContain("InvalidClientTokenId");
+  });
+
+  it("yields nothing when the bundle is absent", () => {
+    expect(deriveAwsEnvironment(selection({ OTHER: "x" })).size).toBe(0);
+  });
+
+  it("yields nothing when the bundle is malformed", () => {
+    expect(
+      deriveAwsEnvironment(selection({ [BOOTSTRAP_KEY]: "{broken" })).size
+    ).toBe(0);
+  });
+
+  it("refuses half a credential", () => {
+    // Half a credential is not a weaker credential; it is a confusing failure.
+    // The SDK reports a signature error rather than a missing one.
+    const half = JSON.stringify({ accessKeyId: KEY_ID });
+    expect(
+      deriveAwsEnvironment(selection({ [BOOTSTRAP_KEY]: half })).size
+    ).toBe(0);
+  });
+
+  it("never overrides names the secret store itself supplies", () => {
+    // A project storing these under their own names has stated an explicit
+    // intent. Overriding it would be this module guessing against an operator.
+    const derived = deriveAwsEnvironment(
+      selection({
+        [BOOTSTRAP_KEY]: BUNDLE,
+        AWS_ACCESS_KEY_ID: "AKIAFROMSTORE",
+        AWS_SECRET_ACCESS_KEY: "from-store",
+      })
+    );
+    expect(derived.size).toBe(0);
+  });
+
+  it("carries a region through when the bundle names one", () => {
+    const withRegion = JSON.stringify({
+      accessKeyId: KEY_ID,
+      secretAccessKey: SECRET,
+      region: "us-east-1",
+    });
+    const derived = deriveAwsEnvironment(
+      selection({ [BOOTSTRAP_KEY]: withRegion })
+    );
+    expect(derived.get("AWS_DEFAULT_REGION")?.value).toBe("us-east-1");
+  });
+
+  it("does not mutate the selection it was given", () => {
+    // The caller decides what to merge and what to report; a function that
+    // edited its input would make that choice invisible.
+    const input = selection({ [BOOTSTRAP_KEY]: BUNDLE });
+    deriveAwsEnvironment(input);
+    expect([...input.keys()]).toEqual([BOOTSTRAP_KEY]);
+  });
+});
