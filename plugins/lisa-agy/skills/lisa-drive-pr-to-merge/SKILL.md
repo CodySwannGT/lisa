@@ -126,13 +126,35 @@ auto-merge against a stale head you have not verified.
 `gh pr merge <pr> --auto --<merge_method>`. Enabling auto-merge is **not terminal**
 — continue the loop below until the PR is actually `MERGED` or `CLOSED`.
 
-If any later step will push commits, temporarily remove the auto-merge latch
-before the push when GitHub exposes that mutation (`disablePullRequestAutoMerge`),
-or otherwise treat the push as a merge race: immediately re-read `headRefOid`,
-reset `verify_commit` to the pushed head, wait until that head's checks have
-started, then re-enable auto-merge. Do not leave auto-merge armed while a
-required fix, CodeRabbit follow-up, generated artifact update, or CI auto-fix is
-still in flight.
+**Leave the latch ARMED when you push a fix. Never disable it.** A pull request
+that needs a fix cannot merge anyway: auto-merge fires only once every required
+check passes, so disarming buys nothing in the ordinary case — and it costs a
+failure that is both silent and worse than the race it guards.
+
+Disabling is a durable state change on GitHub; re-enabling is one more step you
+have to reach. When a run ends in between — turns exhausted, job timeout, or you
+concluding the work while checks are still pending — the latch stays off and
+nothing restores it. The pull request is then left WORSE OFF THAN IF THIS SKILL
+HAD NEVER RUN: it has lost the mechanism that merges it while no agent is
+watching, and the run reports success. Measured on `gunnertech/frontend#282`,
+where the latch went off 14s before the fix commit and the PR sat 26 minutes
+after going green, against ~3 minutes for PRs this skill never touched.
+
+The race the old disarm guarded is the seconds after a push, before GitHub has
+registered any check for the NEW head. GitHub already closes it: a required check
+that has not reported for the head SHA leaves the PR blocked, not mergeable. And
+a repo with no required checks has no protection the disarm could add. So keeping
+the latch fails safe (at worst something merges a little early), while disarming
+fails unsafe (the PR silently cannot merge at all).
+
+Instead of disarming, treat the push as a merge race: immediately re-read
+`headRefOid` and reset `verify_commit` to the pushed head, so the verification in
+step 3 is against what you actually pushed rather than the commit you replaced.
+
+**Invariant:** this skill must never terminate having left auto-merge OFF on an
+open PR when `auto_merge=true`. If some future path does disable it, restoring it
+is a terminal obligation on EVERY exit — including give-up, budget-exhausted and
+error paths — not a later step in a sequence.
 
 - **Capability fallback** (`auto_merge=true` only): if the repo disallows
   auto-merge, do not fail. Keep watching; once checks are green, the review gate
