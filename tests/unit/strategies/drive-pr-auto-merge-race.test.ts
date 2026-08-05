@@ -118,18 +118,29 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
   });
 
   it("refuses merge_method=rebase rather than verifying it wrongly", () => {
-    // GitHub's rebase-and-merge rewrites the commits and creates no merge
-    // commit, so section 3's ancestry + merge-parent verification cannot
-    // succeed: a SUCCESSFUL merge reports as a failed verification and drives a
-    // false fix-forward. Refusing the input beats accepting it and being wrong
-    // about the outcome (CodySwannGT/lisa#2316).
-    expect(content).toMatch(/Never rebase/i);
+    // The REFUSAL itself, not merely a mention of the word. "Never rebase"
+    // alone would pass against a document that named rebase and then went on
+    // to accept it.
+    expect(content).toMatch(/REJECT `merge_method=rebase`/);
     expect(content).toMatch(/merge_method=<merge>/);
-    // The reasoning travels with the rule, so nobody re-adds `rebase` to the
-    // accepted set without meeting the argument first.
-    expect(content).toMatch(/rewrites the commits/i);
     // ...and the old permissive signature is gone, not merely contradicted.
     expect(content).not.toMatch(/merge_method=<merge\|rebase>/);
+  });
+
+  it("says WHY rebase cannot be verified, in both its parts", () => {
+    // The reasoning travels with the rule, so nobody re-adds `rebase` without
+    // meeting the argument. Both halves matter and they fail differently:
+    // rewritten SHAs break the ancestry check, and the absent merge commit
+    // breaks the parent assertion. A document stating only one would leave the
+    // next reader thinking the other case is handled.
+    expect(content).toMatch(/rewrites the commits/i);
+    expect(content).toMatch(/creates no merge commit/i);
+    expect(content).toMatch(
+      /merge-parent assertion has nothing to assert against/i
+    );
+    // And the consequence, which is what makes refusing better than accepting:
+    // a successful merge reported as a failure drives a false fix-forward.
+    expect(content).toMatch(/false fix-forward/i);
   });
 
   it("scopes the armed-latch rule to auto_merge=true", () => {
