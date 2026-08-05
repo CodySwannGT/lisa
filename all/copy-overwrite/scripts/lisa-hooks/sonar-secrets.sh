@@ -81,11 +81,37 @@ is_inactive() {
 # `read -t` supplies the ceiling. `timeout` is absent on a stock macOS and
 # `coproc` needs Bash 4 (the hooks run under /bin/bash 3.2 there), so this is the
 # portable form. A timeout leaves `value` empty, which the caller treats as "the
-# provider had nothing" — the warn path, never a block. `|| true` because `read`
-# also reports failure at EOF on the resolver's deliberately unterminated output.
+# provider had nothing" — the warn path, never a block.
+#
+# Giving up on the read is not the same as stopping the work: a resolver blocked
+# on the network otherwise outlives the hook that started it, and this runs in
+# front of every prompt and every file read. So the child is killed and reaped,
+# which requires knowing its PID — and that is why the transport is a FIFO and
+# not the process substitution this function used to read from.
+#
+# On /bin/bash 3.2, `$!` after `< <(cmd)` is the SHELL'S OWN PID, not the
+# substitution's child (verified: the child's PPID is the shell, and `$!` equals
+# the shell). A `kill -9 "$!"` there tells the hook to kill itself. Backgrounding
+# the resolver explicitly is what makes `$!` mean the resolver.
+#
+# The FIFO is a rendezvous, not storage: a named pipe holds no data at rest, so
+# the value still never lands on disk (CWE-922) and a kill at any point leaves an
+# empty pipe behind rather than a readable token. The directory is `mktemp -d`,
+# which is 0700.
 resolve_secret() {
-  local resolver="$1" name="$2" value=""
-  IFS= read -r -t 10 value < <(node "$resolver" get "$name" 2>/dev/null) || true
+  local resolver="$1" name="$2" value="" child="" dir="" fifo=""
+  dir="$(mktemp -d)" || return 0
+  fifo="$dir/resolver"
+  if ! mkfifo -m 600 "$fifo" 2>/dev/null; then
+    rm -rf "$dir"
+    return 0
+  fi
+  node "$resolver" get "$name" >"$fifo" 2>/dev/null &
+  child=$!
+  IFS= read -r -t 10 value < "$fifo" || true
+  kill -9 "$child" 2>/dev/null
+  wait "$child" 2>/dev/null
+  rm -rf "$dir"
   printf '%s' "$value"
 }
 
