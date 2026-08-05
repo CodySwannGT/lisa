@@ -112,21 +112,41 @@ function stubSonar(whenAuthed: string): string {
  * @returns Path to the fake project root.
  */
 function projectWithResolver(token: string): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-sonar-proj-"));
-  const dir = path.join(
+  return checkoutWithResolver(
+    `process.stdout.write(${JSON.stringify(token)});\n`,
+    "lisa-sonar-proj-"
+  );
+}
+
+/**
+ * The first path the wrapper's resolver search checks, inside a fake checkout.
+ * @param root The fake checkout.
+ * @returns Absolute path to where `resolve-secret.mjs` must be planted.
+ */
+function resolverScriptPath(root: string): string {
+  return path.join(
     root,
     ".claude",
     "skills",
     "lisa-secrets-access",
-    "scripts"
+    "scripts",
+    "resolve-secret.mjs"
   );
+}
+
+/**
+ * A fresh checkout carrying a stub resolver with the given body.
+ * @param body Node source for the stub resolver.
+ * @param prefix Temp-directory prefix, so a failing run names itself.
+ * @returns Path to the fake checkout.
+ */
+function checkoutWithResolver(body: string, prefix: string): string {
+  const root = mkdtempSync(path.join(tmpdir(), prefix));
+  const script = resolverScriptPath(root);
 
   temporaries.push(root);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(
-    path.join(dir, "resolve-secret.mjs"),
-    `process.stdout.write(${JSON.stringify(token)});\n`
-  );
+  mkdirSync(path.dirname(script), { recursive: true });
+  writeFileSync(script, body);
   return root;
 }
 
@@ -224,16 +244,21 @@ describe("the resolved value never reaches the filesystem", () => {
   // readable on disk. Process substitution has no path to leak, so this holds on
   // every exit path, signalled or not.
 
-  it("does not capture the resolver through a temp file at all", () => {
-    // The mechanism, pinned directly, because it is the whole guarantee: with
-    // no temp file there is no window between writing the token and deleting
-    // it, and therefore no termination for cleanup to lose a race against.
+  it("carries the value over a pipe, never a regular file", () => {
+    // The mechanism, pinned directly, because it is the whole guarantee. A FIFO
+    // holds no data at rest, so there is no window between writing the token
+    // and deleting it for a termination to land in. `mktemp -d` appears here —
+    // it makes the 0700 directory the FIFO lives in — so the pin is on the
+    // redirection target being a pipe, not on the absence of a temp path.
     const code = readFileSync(SOURCE, "utf8")
       .split("\n")
       .filter(line => !line.trimStart().startsWith("#"))
       .join("\n");
 
-    expect(code).not.toContain("mktemp");
+    expect(code).toContain("mkfifo");
+    expect(code).toContain('>"$fifo"');
+    // A bare `mktemp` (no -d) is the regular-file capture this replaced.
+    expect(code).not.toMatch(/mktemp(?!\s+-d)/u);
   });
 
   it("survives being killed mid-resolve without leaving the token behind", async () => {
@@ -244,23 +269,12 @@ describe("the resolved value never reaches the filesystem", () => {
     // implementation it exists to reject. Only files that appear during the run
     // are read, and only for a canary no other process emits.
     const before = new Set(readdirSync(tmpdir()));
-    const slow = mkdtempSync(path.join(tmpdir(), "lisa-sonar-slow-"));
-    const dir = path.join(
-      slow,
-      ".claude",
-      "skills",
-      "lisa-secrets-access",
-      "scripts"
-    );
-
-    temporaries.push(slow);
-    mkdirSync(dir, { recursive: true });
     // Emits the token, then holds the pipe open — so the kill lands squarely
-    // inside the window where a temp-file capture has already written it and
+    // inside the window where a regular-file capture has already written it and
     // not yet deleted it.
-    writeFileSync(
-      path.join(dir, "resolve-secret.mjs"),
-      'process.stdout.write("killed-run-token");\nsetTimeout(() => {}, 30000);\n'
+    const slow = checkoutWithResolver(
+      'process.stdout.write("killed-run-token");\nsetTimeout(() => {}, 30000);\n',
+      "lisa-sonar-slow-"
     );
 
     const child = spawn(BASH, [SOURCE, PROMPT_EVENT], {
@@ -295,6 +309,36 @@ describe("the resolved value never reaches the filesystem", () => {
 
     expect(leaked).toEqual([]);
   });
+});
+
+describe("the resolver deadline is enforced, not just declared", () => {
+  it("kills and reaps a resolver that outlives the ceiling", async () => {
+    // `read -t` bounds how long the hook WAITS; on its own it does not bound
+    // the work. A resolver blocked on the network otherwise outlives the hook
+    // that started it, and this runs in front of every prompt and file read —
+    // so the ceiling has to terminate the child, not merely stop listening.
+    // Never writes and never exits: the read times out with nothing, which is
+    // exactly the case where an unreaped child lingers.
+    const slow = checkoutWithResolver(
+      "setTimeout(() => {}, 600000);\n",
+      "lisa-sonar-hang-"
+    );
+
+    run({ bin: stubSonar(""), projectDir: slow });
+
+    // The hook has returned. Anything still running the stub resolver is a
+    // child it failed to reap.
+    const survivors = spawnSync(
+      "/bin/sh",
+      [
+        "-c",
+        `ps -eo pid,args | grep -F ${JSON.stringify(resolverScriptPath(slow))} | grep -v grep`,
+      ],
+      { encoding: "utf8" }
+    );
+
+    expect(survivors.stdout.trim()).toBe("");
+  }, 40_000);
 });
 
 describe("when the wrapper must stand aside", () => {
