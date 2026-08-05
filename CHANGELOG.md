@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.331.3](https://github.com/CodySwannGT/lisa/compare/v2.331.2...v2.331.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** export AWS credentials over any ambient pair the host injects ([6d9f74b](https://github.com/CodySwannGT/lisa/commit/6d9f74bc29619f0f28fd478446fbbf165379581d)), closes [CodySwannGT/lisa#2301](https://github.com/CodySwannGT/lisa/issues/2301)
+* **secrets:** preview derived AWS variables in the dry-run too ([c699d5a](https://github.com/CodySwannGT/lisa/commit/c699d5a2dc45186e53fa029048508e9baeafb767)), closes [CodySwannGT/lisa#2301](https://github.com/CodySwannGT/lisa/issues/2301)
+
 ### [2.331.2](https://github.com/CodySwannGT/lisa/compare/v2.331.1...v2.331.2) (2026-08-05)
 
 
