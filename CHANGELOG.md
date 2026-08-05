@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.333.3](https://github.com/CodySwannGT/lisa/compare/v2.333.2...v2.333.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **skills:** refuse merge_method=rebase instead of verifying it wrongly ([8435549](https://github.com/CodySwannGT/lisa/commit/8435549107b242c625c117d0b1729f2a91e51839)), closes [#2316](https://github.com/CodySwannGT/lisa/issues/2316) [CodySwannGT/lisa#2316](https://github.com/CodySwannGT/lisa/issues/2316)
+
 ### [2.333.2](https://github.com/CodySwannGT/lisa/compare/v2.333.1...v2.333.2) (2026-08-05)
 
 
