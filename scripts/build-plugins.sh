@@ -112,6 +112,20 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
     chmod +x "$HOST_GUARD_DIR/$guard.sh"
   fi
 done
+# The Sonar hook wrapper, which ships alongside the guards but is not one.
+#
+# The guards above are dispatched by lisa-enforcement-fallback.sh and take a tool
+# payload with no arguments. This one is invoked by the shim that
+# `sonar integrate <agent>` generates, takes the vendor's event name as its only
+# argument, and must therefore stay out of that dispatcher's list — it is copied
+# here because a host project needs it in its checkout for the same reason the
+# guards are, not because it is dispatched the same way.
+if [ -f "$SRC_DIR/base/hooks/sonar-secrets.sh" ]; then
+  mkdir -p "$HOST_GUARD_DIR"
+  cp "$SRC_DIR/base/hooks/sonar-secrets.sh" "$HOST_GUARD_DIR/sonar-secrets.sh"
+  chmod +x "$HOST_GUARD_DIR/sonar-secrets.sh"
+fi
+
 # The dispatcher itself, so a host project gets the identical entry point.
 # Guarded like the ratchet above: this script is also run against isolated
 # fixtures that carry a source tree but none of the repository's own scripts,
