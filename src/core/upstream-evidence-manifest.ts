@@ -18,6 +18,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "062c69eea85157f1e941ec3626d8912aa9f182af6ccdbe19687588a6074db5ce",
+    "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
+      "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "6a8be8577242588f14ab52b25b2a22b6def53aefa9513b4d3d7c49f4d8027079",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
@@ -624,6 +626,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
+    "plugins/src/base/hooks/sonar-secrets.sh":
+      "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "4535a145c5c5cbee13bdf970bc91d390a264043604e607288cdd6bf28de56192",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
@@ -1165,7 +1169,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
-      "53fbd8acce4b5e47e88195a7b90d5be424fa6ef7ad872f52c50467c690664c3b",
+      "b18e07ae942f75aad5730c0535840ef5f7115072f1b6cc62afac83196b28d6a3",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
       "e57e64083c292f0402b704eeb647244be0f33ab17394a688bce57a1efd59f169",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
@@ -1941,7 +1945,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "d4332a862d57798280e0d0c96826bbdc6b07855659dae529f8de32de994d2da9",
+      "c584fab4c77a77facf70c38c4699d4ed27d46ae667c1e1ef644efc2c4c5a14c7",
     "scripts/check-duplicate-versions.mjs":
       "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
     "scripts/check-learnings-budget.ts":
@@ -2361,6 +2365,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh": true,
     "all/copy-overwrite/scripts/lisa-work-item.mjs": true,
     "all/create-only/.claude/rules/PROJECT_RULES.md": true,
     "all/create-only/.lisaignore": true,
@@ -3492,6 +3497,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/parity-safety-net.sh": true,
     "plugins/lisa-copilot/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-copilot/hooks/shell-write-nudge.sh": true,
+    "plugins/lisa-copilot/hooks/sonar-secrets.sh": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet.mjs": true,
@@ -3906,6 +3912,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/parity-safety-net.sh": true,
     "plugins/lisa-cursor/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-cursor/hooks/shell-write-nudge.sh": true,
+    "plugins/lisa-cursor/hooks/sonar-secrets.sh": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet.mjs": true,
@@ -6405,6 +6412,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/parity-safety-net.sh": true,
     "plugins/lisa/hooks/setup-jira-cli.sh": true,
     "plugins/lisa/hooks/shell-write-nudge.sh": true,
+    "plugins/lisa/hooks/sonar-secrets.sh": true,
     "plugins/lisa/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa/hooks/threshold-ratchet.mjs": true,
@@ -7000,6 +7008,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/parity-safety-net.sh": true,
     "plugins/src/base/hooks/setup-jira-cli.sh": true,
     "plugins/src/base/hooks/shell-write-nudge.sh": true,
+    "plugins/src/base/hooks/sonar-secrets.sh": true,
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/src/base/hooks/threshold-ratchet-families.mjs": true,
     "plugins/src/base/hooks/threshold-ratchet.mjs": true,
@@ -8417,6 +8426,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
+    "tests/unit/hooks/sonar-secrets.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
