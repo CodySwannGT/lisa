@@ -126,35 +126,47 @@ auto-merge against a stale head you have not verified.
 `gh pr merge <pr> --auto --<merge_method>`. Enabling auto-merge is **not terminal**
 — continue the loop below until the PR is actually `MERGED` or `CLOSED`.
 
-**Leave the latch ARMED when you push a fix. Never disable it.** A pull request
-that needs a fix cannot merge anyway: auto-merge fires only once every required
-check passes, so disarming buys nothing in the ordinary case — and it costs a
-failure that is both silent and worse than the race it guards.
+**Leave the latch ARMED. Never disable auto-merge.**
 
-Disabling is a durable state change on GitHub; re-enabling is one more step you
-have to reach. When a run ends in between — turns exhausted, job timeout, or you
-concluding the work while checks are still pending — the latch stays off and
-nothing restores it. The pull request is then left WORSE OFF THAN IF THIS SKILL
-HAD NEVER RUN: it has lost the mechanism that merges it while no agent is
-watching, and the run reports success. Measured on `gunnertech/frontend#282`,
-where the latch went off 14s before the fix commit and the PR sat 26 minutes
-after going green, against ~3 minutes for PRs this skill never touched.
+Once a fix is PUSHED the latch is safe: GitHub evaluates required checks against
+the PR's current head, so a new commit whose checks have not reported leaves the
+PR blocked. Auto-merge cannot ship a commit nothing has verified.
 
-The race the old disarm guarded is the seconds after a push, before GitHub has
-registered any check for the NEW head. GitHub already closes it: a required check
-that has not reported for the head SHA leaves the PR blocked, not mergeable. And
-a repo with no required checks has no protection the disarm could add. So keeping
-the latch fails safe (at worst something merges a little early), while disarming
-fails unsafe (the PR silently cannot merge at all).
+The only window a disarm ever protected is the gap between deciding to fix
+something and that fix landing — during which the PR is genuinely green and
+genuinely mergeable, and auto-merge firing is GitHub behaving correctly. Two
+merges in this repo's history are attributed to that window (#1392, and the
+release that shipped the `./hooks/` Cursor bug). Both were fixed forward within
+minutes; one was a one-line docs inconsistency.
 
-Instead of disarming, treat the push as a merge race: immediately re-read
-`headRefOid` and reset `verify_commit` to the pushed head, so the verification in
-step 3 is against what you actually pushed rather than the commit you replaced.
+That evidence is also weaker than it looks: **auto-merge attributes the merge to
+whoever enabled it**, so an auto-merge and a human pressing Merge are
+indistinguishable in the timeline. The record cannot tell us those PRs were not
+simply merged by hand while the latch happened to be armed.
 
-**Invariant:** this skill must never terminate having left auto-merge OFF on an
-open PR when `auto_merge=true`. If some future path does disable it, restoring it
-is a terminal obligation on EVERY exit — including give-up, budget-exhausted and
-error paths — not a later step in a sequence.
+Against that, disarming costs something certain. Disabling is a durable state
+change on GitHub; re-enabling is one more step the run has to reach. When a run
+ends in between — turns exhausted, job timeout, or you concluding the work while
+checks are still pending — the latch stays off and nothing restores it. The PR is
+left WORSE OFF THAN IF THIS SKILL HAD NEVER RUN: it has lost the mechanism that
+merges it while no agent is watching, and the run reports success. Measured on
+`gunnertech/frontend#282`, the latch went off 14s before the fix commit and the
+PR sat 26 minutes after going green, against ~3 minutes for PRs this skill never
+touched.
+
+So the trade is a rare, unproven miss that costs a fix-forward PR, against a
+frequent, silent stall on every PR this skill repairs. Take the rare one.
+
+What still applies on a push: immediately re-read `headRefOid` and reset
+`verify_commit` to the pushed head, so the shipped-verification in step 3 checks
+what you actually pushed rather than the commit you replaced. That ancestry check
+is what CATCHES a raced merge — it fails loudly when the fix SHA is not an
+ancestor of the base branch — so the rare miss is detected rather than silent.
+
+**Invariant:** never terminate having left auto-merge OFF on an open PR when
+`auto_merge=true`. If some future path does disable it, restoring it is a
+terminal obligation on EVERY exit — including give-up, budget-exhausted and error
+paths — not a later step in a sequence.
 
 - **Capability fallback** (`auto_merge=true` only): if the repo disallows
   auto-merge, do not fail. Keep watching; once checks are green, the review gate
