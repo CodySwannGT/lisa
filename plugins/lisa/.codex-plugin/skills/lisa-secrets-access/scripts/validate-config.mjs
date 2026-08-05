@@ -76,13 +76,37 @@ function bindingsFor(surface) {
 /**
  * Install methods the toolchain runner supports.
  *
- * `release-tar` was missing here while the runner had supported it for as long
- * as gh has been pinned — so this validator would have rejected the project's
- * own manifest, and the only reason nobody hit it is that nothing ran the two
- * against each other. Kept in step with `assertPinned` in `toolchain.mjs`,
- * which is the list that actually decides.
+ * This is a deliberate copy of `INSTALL_METHODS` in `toolchain.mjs`, which is
+ * the list that actually decides. Skills are distributed as self-contained
+ * directories and nothing imports across a skill boundary, so importing the
+ * authority here would couple two skills' distribution for one array.
+ *
+ * The copy has drifted twice. First `release-tar` was missing while the runner
+ * had supported it for as long as gh has been pinned. Then `release-tree` and
+ * `release-binary` were both missing, which rejected a valid `jq` pin. Each
+ * time the only safeguard was a comment asking the next author to remember.
+ * A conformance test now compares the two sets directly, so adding a kind on
+ * either side fails until both know it.
  */
-const INSTALL_METHODS = new Set(["release-zip", "release-tar", "npm-global"]);
+const INSTALL_METHODS = new Set([
+  "release-zip",
+  "release-tar",
+  "release-tree",
+  "release-binary",
+  "npm-global",
+]);
+
+/**
+ * Download kinds — every method that fetches a URL, so every one that needs a
+ * checksum. Spelled as "not npm-global" rather than as a list, because the next
+ * download kind should inherit the obligation by default; the drift above came
+ * from lists that had to be remembered.
+ * @param {string} method An install method.
+ * @returns {boolean} Whether the method fetches a pinned artifact.
+ */
+function isDownloadKind(method) {
+  return INSTALL_METHODS.has(method) && method !== "npm-global";
+}
 
 /**
  * Validate the `secrets` block.
@@ -171,17 +195,26 @@ function validateInstallArtifact(label, entry, problems) {
     );
     return;
   }
-  // Both archive kinds, not just zip. A tarball pinned without a checksum
-  // trusts whatever the URL serves today exactly as much as a zip does, and
-  // checking only one of them meant the tool Lisa's guardrails shell out to —
-  // gh, which ships a tarball on Linux — was the one going unverified.
-  if (
-    (entry.install === "release-zip" || entry.install === "release-tar") &&
-    !(entry.url && entry.sha256)
-  ) {
+  // Every download kind, not an enumerated few. A tarball pinned without a
+  // checksum trusts whatever the URL serves today exactly as much as a zip
+  // does, and checking only one of them meant the tool Lisa's guardrails shell
+  // out to — gh, which ships a tarball on Linux — was the one going unverified.
+  // A `release-binary` matters most of all: the artifact is directly
+  // executable, so a wrong one needs no unpacking step to run.
+  if (isDownloadKind(entry.install) && !(entry.url && entry.sha256)) {
     problems.push(
       `remoteEnv install ${label} needs both url and sha256. A pinned ` +
         `version with no checksum still trusts whatever the URL serves today.`
+    );
+  }
+  // A tree is the one kind with no sane default entry point: the archive root
+  // is a directory, so an omitted `binary` would install a directory as a
+  // command. The runner refuses it, and a validator that accepted it would just
+  // move the failure from review to provisioning.
+  if (entry.install === "release-tree" && !entry.binary) {
+    problems.push(
+      `remoteEnv install ${label} needs "binary" — the path to the entry ` +
+        `point INSIDE the archive, such as "maestro/bin/maestro".`
     );
   }
   if (entry.install === "npm-global" && !entry.package) {
