@@ -301,6 +301,44 @@ function installReleaseTree(tool, binDir) {
 }
 
 /**
+ * Install a pinned artifact that IS the binary, with no archive around it.
+ *
+ * Several tools worth pinning publish a raw executable rather than an archive —
+ * jq ships `jq-linux-amd64` and a `sha256sum.txt`, which is ideal material for a
+ * checksummed pin and fits none of the archive kinds.
+ *
+ * Without this the only entry that passes `assertPinned` is `release-zip`, which
+ * then fails at install when `unzip` is handed a binary. A manifest entry that
+ * validates and cannot install is worse than one that is rejected outright: the
+ * error arrives during provisioning rather than during review.
+ *
+ * There is no `binary` field here, deliberately — the download is the binary,
+ * so there is nothing inside it to name.
+ * @param {object} tool Manifest entry.
+ * @param {string} binDir Directory to install into.
+ */
+function installReleaseBinary(tool, binDir) {
+  const temporary = join(binDir, `.${tool.name}-download`);
+  mkdirSync(temporary, { recursive: true });
+  try {
+    const artifact = join(temporary, tool.name);
+    execFileSync("curl", ["-fsSL", tool.url, "-o", artifact], {
+      stdio: "inherit",
+    });
+    // Verify before it reaches a directory on PATH. For this kind that ordering
+    // matters more than for the archives: the downloaded file is directly
+    // executable, so a wrong artifact placed first is a wrong artifact that can
+    // be run.
+    verifyChecksum(artifact, tool.sha256, tool.name);
+    execFileSync("install", ["-m", "0755", artifact, join(binDir, tool.name)], {
+      stdio: "inherit",
+    });
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
+/**
  * Install a pinned global npm package.
  * @param {object} tool Manifest entry.
  */
@@ -328,6 +366,8 @@ export function installTool(tool, binDir) {
   if (tool.install === "release-zip") installReleaseZip(tool, binDir);
   else if (tool.install === "release-tar") installReleaseTar(tool, binDir);
   else if (tool.install === "release-tree") installReleaseTree(tool, binDir);
+  else if (tool.install === "release-binary")
+    installReleaseBinary(tool, binDir);
   else installNpmGlobal(tool);
 }
 
