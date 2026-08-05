@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.332.0](https://github.com/CodySwannGT/lisa/compare/v2.331.3...v2.332.0) (2026-08-05)
+
+
+### Features
+
+* **secrets:** install bare release binaries via a checksummed pin ([5059f98](https://github.com/CodySwannGT/lisa/commit/5059f9814b32e54177679147cd7b9feee602e9b4)), closes [CodySwannGT/lisa#2304](https://github.com/CodySwannGT/lisa/issues/2304)
+
 ### [2.331.3](https://github.com/CodySwannGT/lisa/compare/v2.331.2...v2.331.3) (2026-08-05)
 
 
