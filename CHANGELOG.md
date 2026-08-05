@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.332.2](https://github.com/CodySwannGT/lisa/compare/v2.332.1...v2.332.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **secrets:** a setup-phase secrets failure must not kill the environment ([3b185a1](https://github.com/CodySwannGT/lisa/commit/3b185a17bfe7999409cc36286b47727a681aeb93)), closes [CodySwannGT/lisa#2309](https://github.com/CodySwannGT/lisa/issues/2309)
+
 ### [2.332.1](https://github.com/CodySwannGT/lisa/compare/v2.332.0...v2.332.1) (2026-08-05)
 
 
