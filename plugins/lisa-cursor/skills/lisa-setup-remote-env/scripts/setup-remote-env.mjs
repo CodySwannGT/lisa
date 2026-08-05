@@ -914,9 +914,45 @@ async function main() {
       "lisa-secrets-access",
       "materialize-secrets.mjs"
     );
-    execFileSync("node", dryRun ? [materialize, "--dry-run"] : [materialize], {
-      stdio: "inherit",
-    });
+    // A failure here is fatal only when nothing else will try again.
+    //
+    // On a surface that materializes at BOTH setup and session start, this run
+    // is the floor and the hook is the authority. The two run in different
+    // environments: a cloud vendor can expose its configured variables to the
+    // agent session while the setup phase — which runs earlier, during image
+    // construction — never sees them. That is not an error state, it is the
+    // normal shape of `materializeAt: "both"`, and the hook materializes
+    // correctly moments later.
+    //
+    // Treating it as fatal cost an entire environment: setup.sh `exec`s this
+    // script, so a non-zero exit fails the vendor's setup step and Claude Code
+    // never starts at all. Trading "secrets arrive one phase later" for "the
+    // container will not boot" is a bad trade, and it regressed a case that
+    // used to work — before this surface materialized at setup, setup simply
+    // never attempted it.
+    //
+    // Every other case keeps the hard failure: an explicit `--phase=secrets`
+    // (the hook's own authoritative run) and a setup-only surface such as
+    // codex-cloud both have no second chance, so a silent pass there would
+    // hand back a session with no credentials and call it ready.
+    const retried = !requested && materializesAtSessionStart(materializeAt);
+    try {
+      execFileSync(
+        "node",
+        dryRun ? [materialize, "--dry-run"] : [materialize],
+        { stdio: "inherit" }
+      );
+    } catch (err) {
+      if (!retried) throw err;
+      console.log(
+        `\n  Secrets were not materialized during setup, and that is not fatal ` +
+          `here.\n  This surface also materializes at session start, which runs ` +
+          `with the\n  session's own environment — the usual reason setup cannot ` +
+          `see the\n  bootstrap credential. The session-start hook will retry.\n` +
+          `  If secrets are still missing INSIDE a session, that run is the one ` +
+          `to debug.`
+      );
+    }
   } else if (!requested) {
     console.log(
       `\nSecrets: materialized from a session-start hook on "${surface}", ` +
