@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.334.1](https://github.com/CodySwannGT/lisa/compare/v2.334.0...v2.334.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **sonar:** stop an unauthenticated scanner from blocking every prompt ([842e236](https://github.com/CodySwannGT/lisa/commit/842e236e611650d1a08b95d51604ea58955631e5)), closes [CodySwannGT/lisa#2324](https://github.com/CodySwannGT/lisa/issues/2324)
+
+## [2.334.0](https://github.com/CodySwannGT/lisa/compare/v2.333.3...v2.334.0) (2026-08-05)
+
+
+### Features
+
+* **secrets:** let agents use their own AWS identity on a laptop ([32677df](https://github.com/CodySwannGT/lisa/commit/32677df66908feeedcc080b6af2df74491ead0a3)), closes [CodySwannGT/lisa#2328](https://github.com/CodySwannGT/lisa/issues/2328)
+
 ### [2.333.3](https://github.com/CodySwannGT/lisa/compare/v2.333.2...v2.333.3) (2026-08-05)
 
 
