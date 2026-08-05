@@ -57,19 +57,47 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     expect(content).toMatch(/required checks against\s+the PR's current head/i);
   });
 
-  it("leaves no disarm instruction in ANY auto_merge=true fix path", () => {
+  it("keeps the deliberate false-mode disarm scoped before the true-mode section, matching its real command form", () => {
+    // The false-mode disarm literally runs `gh pr merge <pr> --disable-auto`
+    // followed by a null reread — assert the actual invocation is present, not
+    // just descriptive prose that could drift from the real command.
+    const falseModeStart = content.indexOf("With `auto_merge=false`, also");
+    const trueModeStart = content.indexOf(
+      "With `auto_merge=true`, leave the latch ARMED"
+    );
+    expect(falseModeStart).toBeGreaterThan(-1);
+    expect(trueModeStart).toBeGreaterThan(falseModeStart);
+
+    const falseModeBlock = content.slice(falseModeStart, trueModeStart);
+    expect(falseModeBlock).toMatch(/gh pr merge <pr> --disable-auto/);
+    expect(falseModeBlock).toMatch(/must print null/);
+  });
+
+  it("leaves no disarm instruction — prose or command — in ANY auto_merge=true fix path", () => {
     // The first version of this change only rewrote section 1 and left three
     // later passages (failing checks, review threads, pending auto-fix) still
     // telling the agent to disarm — a policy that contradicted itself, and a
     // disarm that would still have happened. Scoping the check to section 1
-    // is what missed it, so this walks everything AFTER the auto_merge=false
-    // block instead.
-    const afterFalseMode = content.slice(content.indexOf("## 1. Enable auto-merge"));
-    expect(afterFalseMode.length).toBeGreaterThan(1000);
+    // is what missed it, so this walks everything from the true-mode rule
+    // onward instead. The offender patterns also cover the actual CLI form
+    // (`--disable-auto`) used by the false-mode disarm above, not just prose
+    // paraphrases of it, so a regression that copies the real command into a
+    // fix path is caught too.
+    const trueModeStart = content.indexOf(
+      "With `auto_merge=true`, leave the latch ARMED"
+    );
+    expect(trueModeStart).toBeGreaterThan(-1);
 
-    const offenders = afterFalseMode
+    const trueModeAndBeyond = content.slice(trueModeStart);
+    expect(trueModeAndBeyond.length).toBeGreaterThan(1000);
+
+    const offenders = trueModeAndBeyond
       .split("\n")
-      .filter(line => /disarm auto-merge|auto-merge\s+must be disabled|re-enable auto-merge/i.test(line));
+      .filter(line =>
+        /disarm auto-merge|auto-merge\s+must be disabled|re-enable auto-merge|--disable-auto|disablePullRequestAutoMerge/i.test(
+          line
+        )
+      );
 
     expect(offenders).toEqual([]);
   });
@@ -79,7 +107,9 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     // contract, which disarms a pre-existing latch on purpose so the PR stays
     // open for a human.
     expect(content).toMatch(/With `auto_merge=true`, leave the latch ARMED/);
-    expect(content).toMatch(/auto_merge=false` the deliberate disarm above still applies/);
+    expect(content).toMatch(
+      /auto_merge=false` the deliberate disarm above still applies/
+    );
   });
 
   it("never instructs disabling the latch on the happy path", () => {
@@ -106,6 +136,23 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
       /reset\s+`verify_commit` to the returned\/pushed head/i
     );
     expect(content).toMatch(/failed drive-to-merge outcome/i);
+  });
+
+  it("falls back to tree comparison instead of SHA ancestry for merge_method=rebase", () => {
+    // GitHub's rebase-and-merge replays every commit onto the base with a new
+    // committer and a new SHA, so the pre-merge PR head is never an ancestor
+    // of the base branch even when the merge fully shipped. The SHA-ancestry
+    // check (and the merge-commit-parent check) above both assume a preserved
+    // SHA or a two-parent merge commit, neither of which rebase produces, so a
+    // real rebase-mode ship would otherwise be misread as unshipped.
+    expect(content).toMatch(
+      /`merge_method=rebase`\s+is not SHA-ancestry-safe/i
+    );
+    expect(content).toMatch(
+      /rebase-and-merge replays each commit onto the base with a new committer/i
+    );
+    expect(content).toMatch(/\^\{tree\}/);
+    expect(content).toMatch(/skip both of those checks and compare trees/i);
   });
 
   it("asserts a deploy/release workflow run fired for the merge SHA, keyed to the merged-into branch", () => {
