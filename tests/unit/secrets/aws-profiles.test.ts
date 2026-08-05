@@ -119,6 +119,34 @@ describe("renderAwsProfiles", () => {
     expect(renderAwsProfiles(null)).toBeNull();
   });
 
+  it("skips a name that cannot round-trip as an ini header", () => {
+    // A `]` truncates the header and a newline injects extra lines, so the
+    // written config would not mean what it appears to. Names were also being
+    // recovered by re-parsing the rendered text, which made this corrupting
+    // rather than merely wrong.
+    const rendered = renderAwsProfiles({
+      ...BUNDLE,
+      profiles: {
+        "bad]name": { roleArn: "arn:aws:iam::1:role/X" },
+        "with\nnewline": { roleArn: "arn:aws:iam::2:role/X" },
+        "agent-dev": PROFILES["agent-dev"],
+      },
+    });
+
+    expect(rendered?.profiles).toEqual(["agent-dev"]);
+    expect(rendered?.config).not.toContain("bad]name");
+  });
+
+  it("returns names collected in the loop, not re-parsed from its output", () => {
+    // Guards the specific regression: if the header format changes, the names
+    // must still be right.
+    const rendered = renderAwsProfiles(BUNDLE);
+
+    for (const name of rendered?.profiles ?? []) {
+      expect(rendered?.config).toContain(`[profile ${name}]`);
+    }
+  });
+
   it("skips a profile entry with no role", () => {
     const rendered = renderAwsProfiles({
       ...BUNDLE,

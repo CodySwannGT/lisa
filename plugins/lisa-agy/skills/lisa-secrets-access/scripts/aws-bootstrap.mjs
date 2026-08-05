@@ -108,22 +108,29 @@ export function renderAwsProfiles(bundle) {
   ].join("\n");
 
   const sections = [];
+  const names = [];
   for (const [name, entry] of Object.entries(profiles)) {
     const roleArn = entry?.roleArn ?? entry?.role_arn;
     if (!roleArn) continue;
+
+    // A name is only usable if it can be written as an ini section header and
+    // read back as the same string. Anything with a bracket or newline would
+    // either truncate or inject extra lines into ~/.aws/config, and a config
+    // file this corrupts is worse than one it never wrote.
+    if (!/^[\w.@-]+$/.test(name)) continue;
 
     const lines = [`[profile ${name}]`, `role_arn = ${roleArn}`];
     lines.push(`source_profile = ${SOURCE_PROFILE}`);
     if (bundle.externalId) lines.push(`external_id = ${bundle.externalId}`);
     if (entry.region) lines.push(`region = ${entry.region}`);
     sections.push(`${lines.join("\n")}\n`);
+    // Collected here, where the name is already in scope. Recovering it by
+    // re-parsing the rendered text made the header format load-bearing: a
+    // change to it would silently corrupt every returned name.
+    names.push(name);
   }
 
-  return {
-    credentials,
-    config: sections.join("\n"),
-    profiles: sections.map(s => s.slice(9, s.indexOf("]"))),
-  };
+  return { credentials, config: sections.join("\n"), profiles: names };
 }
 
 /**
@@ -184,7 +191,30 @@ export function deriveAwsEnvironment(selected) {
   // shell profile rather than overridden — removing the poison beats out-
   // shouting it, and it is what makes `--profile agent-staging` behave exactly
   // as it does on a developer's machine.
-  const names = Object.keys(readProfiles(bundle));
+  // Only profiles that actually get WRITTEN are candidates. Selecting a name
+  // that ~/.aws/config never contains — an entry with no roleArn, or a name too
+  // exotic to be an ini header — fails with "profile not found", which is the
+  // exact failure this whole change removes.
+  const names = renderAwsProfiles(bundle)?.profiles ?? [];
+
+  // No usable profiles is not a reason to hand back a session with NOTHING.
+  //
+  // The pair stops being exported only because a profile supersedes it. With no
+  // profile to select, exporting it is the difference between a degraded
+  // session (the assume-only identity, which at least authenticates) and a dead
+  // one — and the managed shell block unsets the ambient pair, so nothing would
+  // fill the gap.
+  if (names.length === 0) {
+    const note =
+      `Derived from ${BOOTSTRAP_KEY} by lisa-secrets-access. The bundle ` +
+      `declares no usable per-environment profile, so this falls back to the ` +
+      `bootstrap identity. It can assume roles and little else — if AWS calls ` +
+      `fail with permission errors, the bundle's "profiles" map is the thing ` +
+      `to check.`;
+    derived.set(ACCESS_KEY, { value: String(accessKeyId), note });
+    derived.set(SECRET_KEY, { value: String(secretAccessKey), note });
+  }
+
   if (names.length > 0 && !selected.has(PROFILE)) {
     // Never production by default. An implicit production profile is one
     // careless command away from a bad afternoon; that one must be typed.

@@ -32,7 +32,25 @@ const BUNDLE = JSON.stringify({
   secretAccessKey: SECRET,
   roleName: "RemoteAgent",
   externalId: "example-external-id",
-  profiles: { dev: "111111111111", production: "222222222222" },
+  // Shaped as the real bundle stores it: each entry names a role to assume in
+  // that environment's own account. An earlier fixture mapped names to bare
+  // account-id strings, which no code path can turn into a profile — so it
+  // silently exercised the no-usable-profiles branch while claiming to cover
+  // the normal one.
+  profiles: {
+    dev: {
+      roleArn: "arn:aws:iam::111111111111:role/RemoteAgent",
+      region: "us-east-1",
+    },
+    production: { roleArn: "arn:aws:iam::222222222222:role/RemoteAgent" },
+  },
+});
+
+/** A bundle whose profiles cannot produce a single usable entry. */
+const BUNDLE_NO_PROFILES = JSON.stringify({
+  accessKeyId: KEY_ID,
+  secretAccessKey: SECRET,
+  roleName: "RemoteAgent",
 });
 
 /**
@@ -75,6 +93,22 @@ describe("deriveAwsEnvironment", () => {
 
     expect(derived.has("AWS_ACCESS_KEY_ID")).toBe(false);
     expect(derived.has("AWS_SECRET_ACCESS_KEY")).toBe(false);
+  });
+
+  it("falls back to the pair when no usable profile exists", () => {
+    // Withholding the pair is only safe because a profile supersedes it. With
+    // no profile to select — and the managed shell block unsetting the ambient
+    // pair — withholding it too would leave the session with NO credentials at
+    // all. A degraded session beats a dead one.
+    const derived = deriveAwsEnvironment(
+      selection({ [BOOTSTRAP_KEY]: BUNDLE_NO_PROFILES })
+    );
+
+    expect(derived.get("AWS_ACCESS_KEY_ID")?.value).toBe(KEY_ID);
+    expect(derived.get("AWS_SECRET_ACCESS_KEY")?.value).toBe(SECRET);
+    expect(derived.has("AWS_PROFILE")).toBe(false);
+    // And it must say why, so the empty `profiles` map is findable.
+    expect(derived.get("AWS_ACCESS_KEY_ID")?.note ?? "").toContain("profiles");
   });
 
   it("yields nothing when the bundle is absent", () => {
