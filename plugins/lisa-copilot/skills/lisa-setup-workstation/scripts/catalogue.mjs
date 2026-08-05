@@ -66,11 +66,13 @@ export const AGENTS = [
   {
     name: "agy",
     label: "Antigravity",
-    kind: "manual",
-    // No headless installer published. Reported as absent with a pointer
-    // rather than silently skipped, because "not installed" and "cannot be
-    // installed by this tool" are different answers to the operator.
-    note: "no headless installer published; install from the vendor",
+    kind: "vendor-script",
+    // Google does publish a headless bootstrapper; this entry previously said
+    // otherwise and reported the agent as uninstallable. Confirmed live —
+    // `content-type: application/x-sh`, and the payload is a bash script that
+    // downloads and verifies the flat native build.
+    script: "https://antigravity.google/cli/install.sh",
+    selfUpdates: true,
   },
   {
     name: "copilot",
