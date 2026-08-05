@@ -74,6 +74,15 @@ const PROFILE_MARKER = "# >>> lisa secrets (managed) >>>";
 const PROFILE_END = "# <<< lisa secrets (managed) <<<";
 
 /**
+ * Identifies an `~/.aws` file as one this wrote, and may therefore replace.
+ *
+ * `#` is a comment in the AWS shared-config format, so this is inert to every
+ * consumer while still being the thing that distinguishes "our file, refresh
+ * it" from "someone else's file, leave it alone".
+ */
+const MANAGED_MARKER = "# managed by lisa-secrets-access";
+
+/**
  * Make every shell in this container load the materialized secrets.
  *
  * `set -a` so the values are exported rather than merely set as shell
@@ -153,6 +162,8 @@ export function installAwsProfiles(bundle, options = {}) {
     home = process.env.HOME || homedir(),
     mkdir = mkdirSync,
     write = writeFileSync,
+    read = readFileSync,
+    exists = existsSync,
     chmod = chmodSync,
   } = options;
 
@@ -160,10 +171,34 @@ export function installAwsProfiles(bundle, options = {}) {
   if (!rendered) return [];
 
   const dir = join(home, ".aws");
+
+  // Never overwrite an ~/.aws this did not write.
+  //
+  // These are whole-file writes, so a pre-existing credentials file — a
+  // developer's own profiles, or something another tool set up — would be
+  // destroyed rather than merged. This only runs on a surface allowed to write
+  // secrets to disk (a disposable container), but "usually disposable" is not a
+  // reason to be able to delete someone's credentials. The marker makes our own
+  // file re-writable while anything else is left alone and reported.
+  for (const name of ["credentials", "config"]) {
+    const file = join(dir, name);
+    if (exists(file) && !String(read(file, "utf8")).includes(MANAGED_MARKER)) {
+      return [];
+    }
+  }
+
   mkdir(dir, { recursive: true, mode: 0o700 });
   chmod(dir, 0o700);
-  write(join(dir, "credentials"), rendered.credentials, { mode: 0o600 });
-  write(join(dir, "config"), rendered.config, { mode: 0o600 });
+  write(
+    join(dir, "credentials"),
+    `${MANAGED_MARKER}\n${rendered.credentials}`,
+    {
+      mode: 0o600,
+    }
+  );
+  write(join(dir, "config"), `${MANAGED_MARKER}\n${rendered.config}`, {
+    mode: 0o600,
+  });
 
   return rendered.profiles;
 }
