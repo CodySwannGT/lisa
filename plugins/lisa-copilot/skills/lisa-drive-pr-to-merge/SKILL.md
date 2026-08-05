@@ -126,13 +126,50 @@ auto-merge against a stale head you have not verified.
 `gh pr merge <pr> --auto --<merge_method>`. Enabling auto-merge is **not terminal**
 — continue the loop below until the PR is actually `MERGED` or `CLOSED`.
 
-If any later step will push commits, temporarily remove the auto-merge latch
-before the push when GitHub exposes that mutation (`disablePullRequestAutoMerge`),
-or otherwise treat the push as a merge race: immediately re-read `headRefOid`,
-reset `verify_commit` to the pushed head, wait until that head's checks have
-started, then re-enable auto-merge. Do not leave auto-merge armed while a
-required fix, CodeRabbit follow-up, generated artifact update, or CI auto-fix is
-still in flight.
+**With `auto_merge=true`, leave the latch ARMED — never disable auto-merge.**
+(Under `auto_merge=false` the deliberate disarm above still applies: that mode
+must leave the PR open for a human, so a pre-existing latch is removed on
+purpose. Everything below is the `auto_merge=true` path.)
+
+Once a fix is PUSHED the latch is safe: GitHub evaluates required checks against
+the PR's current head, so a new commit whose checks have not reported leaves the
+PR blocked. Auto-merge cannot ship a commit nothing has verified.
+
+The only window a disarm ever protected is the gap between deciding to fix
+something and that fix landing — during which the PR is genuinely green and
+genuinely mergeable, and auto-merge firing is GitHub behaving correctly. Two
+merges in this repo's history are attributed to that window (#1392, and the
+release that shipped the `./hooks/` Cursor bug). Both were fixed forward within
+minutes; one was a one-line docs inconsistency.
+
+That evidence is also weaker than it looks: **auto-merge attributes the merge to
+whoever enabled it**, so an auto-merge and a human pressing Merge are
+indistinguishable in the timeline. The record cannot tell us those PRs were not
+simply merged by hand while the latch happened to be armed.
+
+Against that, disarming costs something certain. Disabling is a durable state
+change on GitHub; re-enabling is one more step the run has to reach. When a run
+ends in between — turns exhausted, job timeout, or you concluding the work while
+checks are still pending — the latch stays off and nothing restores it. The PR is
+left WORSE OFF THAN IF THIS SKILL HAD NEVER RUN: it has lost the mechanism that
+merges it while no agent is watching, and the run reports success. Measured on
+`gunnertech/frontend#282`, the latch went off 14s before the fix commit and the
+PR sat 26 minutes after going green, against ~3 minutes for PRs this skill never
+touched.
+
+So the trade is a rare, unproven miss that costs a fix-forward PR, against a
+frequent, silent stall on every PR this skill repairs. Take the rare one.
+
+What still applies on a push: immediately re-read `headRefOid` and reset
+`verify_commit` to the pushed head, so the shipped-verification in step 3 checks
+what you actually pushed rather than the commit you replaced. That ancestry check
+is what CATCHES a raced merge — it fails loudly when the fix SHA is not an
+ancestor of the base branch — so the rare miss is detected rather than silent.
+
+**Invariant:** never terminate having left auto-merge OFF on an open PR when
+`auto_merge=true`. If some future path does disable it, restoring it is a
+terminal obligation on EVERY exit — including give-up, budget-exhausted and error
+paths — not a later step in a sequence.
 
 - **Capability fallback** (`auto_merge=true` only): if the repo disallows
   auto-merge, do not fail. Keep watching; once checks are green, the review gate
@@ -215,10 +252,9 @@ registered you will instead see real conflict markers — run
 ### c. Failing CI / deploy checks (`statusCheckRollup` has FAILURE)
 Inspect the failing check's logs (`gh pr checks <pr>`, `gh run view <run> --log-failed`).
 Fix the underlying code inline — **never lower thresholds, skip tests, or disable
-checks** to force green. Before pushing the fix, disarm auto-merge or classify the
-run as race-prone, then after the push re-read the PR head, update `verify_commit`
-to that exact SHA, wait for checks on that head to start, and only then resume
-auto-merge. When the root cause is an upstream Lisa template/postinstall bug
+checks** to force green. Leave auto-merge armed across the push (section 1);
+after it, re-read the PR head and update `verify_commit` to that exact SHA so the
+shipped-verification checks what you pushed. When the root cause is an upstream Lisa template/postinstall bug
 rather than this project's code, fix it upstream and propagate down rather than
 patching only here.
 
@@ -227,10 +263,9 @@ Delegate to the `pull-request-review` skill with the PR number. It owns the whol
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
 GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
 resolve every thread via `resolveReviewThread` so the branch-protection
-thread-resolution gate clears. If that skill needs to push a commit, auto-merge
-must be disabled first when possible; when it returns, re-read `headRefOid`, reset
-`verify_commit` to the returned/pushed head, wait for that head's checks to start,
-then re-enable auto-merge and continue. Do not re-implement review handling here
+thread-resolution gate clears. If that skill needs to push a commit, leave
+auto-merge armed (section 1); when it returns, re-read `headRefOid` and reset
+`verify_commit` to the returned/pushed head, then continue. Do not re-implement review handling here
 — it is the single source of truth for review-thread handling.
 
 ### e. Review gate stall (`reviewDecision == CHANGES_REQUESTED`)
@@ -252,9 +287,9 @@ branch (the CI auto-fix workflow engaged before this session took the lease),
 adjudicate it: merge it into the head branch if the fix is correct and still
 needed, otherwise close it and delete the side branch. Never leave it dangling
 — it represents a competing writer's pending work. Merging it mutates the
-driven branch, so treat it like any other push: disarm auto-merge first,
-re-read `headRefOid`, reset `verify_commit` to the merged head, wait for that
-head's checks to start, then re-enable auto-merge (section 1). In
+driven branch, so treat it like any other push: leave auto-merge armed
+(section 1), then re-read `headRefOid` and reset `verify_commit` to the merged
+head. In
 `on_blocker=report` mode this whole step is off-limits (diagnose-only): do not
 merge, close, or delete anything — return `blocked:pending-auto-fix`.
 
