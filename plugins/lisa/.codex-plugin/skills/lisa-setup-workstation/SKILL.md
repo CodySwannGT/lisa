@@ -137,6 +137,7 @@ than stopping.
 - **Install a credential manager you did not pick.**
 - **Reinstall over a tool that is already there**, whatever installed it.
 - **Install anything without `--install`.**
-- **Install `agy`.** Antigravity publishes no headless installer; it is reported as manual
-  with a pointer, because "not installed" and "cannot be installed by this tool" are
-  different answers to the operator.
+- **Install a tool whose vendor publishes no headless installer.** Such an entry is
+  reported as manual with a pointer, because "not installed" and "cannot be installed by
+  this tool" are different answers to the operator. No agent is currently in that state —
+  Antigravity was listed there in error and does publish a bootstrapper.
