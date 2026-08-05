@@ -21,11 +21,15 @@
 
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
+  readFileSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 import { deriveAwsEnvironment } from "./aws-bootstrap.mjs";
 import { renderEnv, renderNotes } from "./envfile.mjs";
@@ -58,6 +62,70 @@ function writeAtomic(destination, contents) {
  * @param {object} [cfg] Resolved configuration.
  * @returns {{count: number, dir: string}} What was written, and where.
  */
+/** Marks the block this owns, so it is replaced rather than appended twice. */
+const PROFILE_MARKER = "# >>> lisa secrets (managed) >>>";
+
+/** Closes the managed block. */
+const PROFILE_END = "# <<< lisa secrets (managed) <<<";
+
+/**
+ * Make every shell in this container load the materialized secrets.
+ *
+ * `set -a` so the values are exported rather than merely set as shell
+ * variables, and sourced LAST so they win over anything the host injected —
+ * environment variables outrank profile files in AWS's credential chain, which
+ * is the whole reason a valid credential was being ignored.
+ *
+ * Guarded on the file existing, so a shell still starts cleanly before the
+ * first materialization or if the file is removed. Written to both `.bashrc`
+ * and `.profile` because which one a given shell reads depends on whether it is
+ * interactive or a login shell, and an agent's tool calls are not reliably
+ * either.
+ * @param {string} valuesFile Absolute path to the materialized env file.
+ * @param {object} [options] Home directory and file seams, for tests.
+ * @returns {string[]} The profile files that now source it.
+ */
+export function installProfileSourcing(valuesFile, options = {}) {
+  const {
+    home = process.env.HOME || homedir(),
+    exists = existsSync,
+    read = readFileSync,
+    write = writeFileSync,
+  } = options;
+
+  const block = [
+    PROFILE_MARKER,
+    `if [ -f "${valuesFile}" ]; then`,
+    `  set -a`,
+    `  . "${valuesFile}"`,
+    `  set +a`,
+    `fi`,
+    PROFILE_END,
+  ].join("\n");
+
+  const updated = [];
+  for (const name of [".bashrc", ".profile"]) {
+    const file = join(home, name);
+    const current = exists(file) ? String(read(file, "utf8")) : "";
+
+    // Replace an existing managed block rather than appending another: this
+    // runs on every session, and an appended-forever profile is its own bug.
+    const start = current.indexOf(PROFILE_MARKER);
+    const next =
+      start === -1
+        ? `${current}${current.endsWith("\n") || !current ? "" : "\n"}\n${block}\n`
+        : `${current.slice(0, start)}${block}${current.slice(
+            current.indexOf(PROFILE_END, start) + PROFILE_END.length
+          )}`;
+
+    if (next !== current) {
+      write(file, next, { mode: 0o600 });
+      updated.push(file);
+    }
+  }
+  return updated;
+}
+
 export function materialize(cfg = readConfig()) {
   if (!cfg.capabilities.mayWriteValues) {
     throw new Error(
@@ -88,7 +156,21 @@ export function materialize(cfg = readConfig()) {
   chmodSync(dir, 0o700);
   writeAtomic(valuesFile, renderEnv(selected));
   writeAtomic(notesFile, renderNotes(selected));
-  return { count: selected.size, derived: derived.size, dir };
+
+  // Writing the file is not the same as the values being in effect.
+  //
+  // A materialized secrets.env that nothing sources changes nothing: the agent's
+  // shell starts from the container's own environment, so a host-injected
+  // AWS_ACCESS_KEY_ID keeps winning and every call fails with
+  // InvalidClientTokenId while the correct credential sits on disk, correct and
+  // unused. Deriving the variables (above) only fixes precedence WITHIN the
+  // file — something still has to load the file.
+  //
+  // So the shell profile sources it. That is what makes "the credential is
+  // materialized" and "the credential is usable" the same statement.
+  const sourced = installProfileSourcing(valuesFile);
+
+  return { count: selected.size, derived: derived.size, dir, sourced };
 }
 
 function main() {
