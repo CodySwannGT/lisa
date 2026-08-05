@@ -117,6 +117,21 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     expect(offenders).toEqual([]);
   });
 
+  it("refuses merge_method=rebase rather than verifying it wrongly", () => {
+    // GitHub's rebase-and-merge rewrites the commits and creates no merge
+    // commit, so section 3's ancestry + merge-parent verification cannot
+    // succeed: a SUCCESSFUL merge reports as a failed verification and drives a
+    // false fix-forward. Refusing the input beats accepting it and being wrong
+    // about the outcome (CodySwannGT/lisa#2316).
+    expect(content).toMatch(/Never rebase/i);
+    expect(content).toMatch(/merge_method=<merge>/);
+    // The reasoning travels with the rule, so nobody re-adds `rebase` to the
+    // accepted set without meeting the argument first.
+    expect(content).toMatch(/rewrites the commits/i);
+    // ...and the old permissive signature is gone, not merely contradicted.
+    expect(content).not.toMatch(/merge_method=<merge\|rebase>/);
+  });
+
   it("scopes the armed-latch rule to auto_merge=true", () => {
     // An unqualified "never disable auto-merge" contradicts the auto_merge=false
     // contract, which disarms a pre-existing latch on purpose so the PR stays
