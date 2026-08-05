@@ -1159,9 +1159,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "cafc8cc0917f767719d7591b6c2031eb9d4f2b451e28090d73519a09808a86d3",
+      "2a91430fc2918f2e7df328d58d07feda35fcc0f11f1d9e29623e4f2552617d29",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
-      "b2fa53bf577400851e8c2991cbe822d29dcdd2d090ff1cd1d0fa2d76bfcaa20b",
+      "30695136eb4ae3ab92d26fe33b5eda60dd04d2e03f760dcf9d66df5d0144f5ae",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "82bc2a27a0a5afb2ff413a88365c619fd7f0eaada5de3ccabf2000938f0607a4",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
@@ -8505,6 +8505,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
+    "tests/unit/secrets/toolchain-release-binary.test.ts": true,
     "tests/unit/secrets/toolchain-release-tree.test.ts": true,
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
