@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.337.1](https://github.com/CodySwannGT/lisa/compare/v2.337.0...v2.337.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **setup-remote-env:** pin the documented setup field to the released version ([7134f2b](https://github.com/CodySwannGT/lisa/commit/7134f2b2e84cd404edfe52de245cae8d22e3faf9)), closes [CodySwannGT/lisa#2340](https://github.com/CodySwannGT/lisa/issues/2340)
+
+
+### Documentation
+
+* **drive-pr-to-merge:** a watcher cannot observe a PR leaving the open set ([5306f7c](https://github.com/CodySwannGT/lisa/commit/5306f7c6572e3ef8c056bf785be0999bf225568d)), closes [CodySwannGT/lisa#2340](https://github.com/CodySwannGT/lisa/issues/2340)
+
 ## [2.337.0](https://github.com/CodySwannGT/lisa/compare/v2.336.4...v2.337.0) (2026-08-06)
 
 
