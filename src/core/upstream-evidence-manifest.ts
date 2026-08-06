@@ -1111,7 +1111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "d74faf4f3d309f2bfb15c64386d2e28c811e958cd0d59fe24aa4b51e645a39ef",
+      "3b598675cee9d5235a3d12b82ab969effb0b47be263edf41474f8427105e3ce4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "fec38ca937570c1e1c21e6e8f7314a9d8f4e9264779d0394b40d5158924da0da",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -1157,13 +1157,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "b5993444364b361c7b365092ab424bc1d0eee61705a5a2471e4e1f443e30d78f",
+      "e677cf7f2a54fd240b92b7e3bf1ad8c570b25454fbfbd36cc2c368da8592655b",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "830a2c75fabb0069ebe1bf3f5ec1c1f4dd3437fea6c059b41b8ab4092277025f",
+      "da2675dcc7954a8f27555c6455f9722262f0e2918ab68ce3a8c7178d98bea8ad",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -8523,6 +8523,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-env-toolchain.test.ts": true,
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
+    "tests/unit/secrets/setup-field-flags.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
     "tests/unit/secrets/toolchain-release-binary.test.ts": true,

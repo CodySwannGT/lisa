@@ -151,6 +151,12 @@ export function installProfileSourcing(valuesFile, options = {}) {
     // poison beats out-shouting it, and it is what lets `--profile agent-dev`
     // behave here exactly as it does on a developer's machine.
     `unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN`,
+    // The pinned toolchain installs into ~/.local/bin, which is not on PATH in
+    // every base image. Without this the tools are present and unfindable:
+    // `command -v bws` fails and anything spawning it gets ENOENT, which reads
+    // as "nothing was installed" when everything was.
+    `case ":$PATH:" in *":$HOME/.local/bin:"*) ;; ` +
+      `*) PATH="$HOME/.local/bin:$PATH"; export PATH;; esac`,
     `if [ -f "${valuesFile}" ]; then`,
     `  set -a`,
     `  . "${valuesFile}"`,
