@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.338.0](https://github.com/CodySwannGT/lisa/compare/v2.337.3...v2.338.0) (2026-08-06)
+
+
+### Features
+
+* **secrets:** install the CLIs the vault names, and only those ([e054dc2](https://github.com/CodySwannGT/lisa/commit/e054dc2e7fc9758a7337ada99a05156d498e043e)), closes [CodySwannGT/lisa#2347](https://github.com/CodySwannGT/lisa/issues/2347)
+* **secrets:** let the vault declare which CLIs a session needs ([f3dd663](https://github.com/CodySwannGT/lisa/commit/f3dd6636ce2b6aa526f8880ac9ea4030b3b4e2da)), closes [CodySwannGT/lisa#2347](https://github.com/CodySwannGT/lisa/issues/2347)
+
+
+### Bug Fixes
+
+* **secrets:** distinguish a failed tool lookup from an empty one ([2f73495](https://github.com/CodySwannGT/lisa/commit/2f73495d55a9ae80c4d950a99680880edc3b52b6)), closes [CodySwannGT/lisa#2347](https://github.com/CodySwannGT/lisa/issues/2347)
+* **secrets:** regenerate the per-agent plugin artifacts ([660bef7](https://github.com/CodySwannGT/lisa/commit/660bef7dbc1fa05612a0b2ddbda808c304c58be9)), closes [CodySwannGT/lisa#2347](https://github.com/CodySwannGT/lisa/issues/2347)
+
 ### [2.337.3](https://github.com/CodySwannGT/lisa/compare/v2.337.2...v2.337.3) (2026-08-06)
 
 
