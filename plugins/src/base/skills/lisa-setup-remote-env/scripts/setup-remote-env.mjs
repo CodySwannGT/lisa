@@ -580,6 +580,17 @@ export function installAssets(cwd = process.cwd()) {
  * Given it, the machine itself is prepared — tools and credentials, no repo
  * required. Without it there is nothing to prepare and nothing to fail about.
  *
+ * Those two preparation steps report their failures and do not propagate them,
+ * which is deliberate and is NOT the same as hiding them. A setup script that
+ * exits non-zero stops the session from starting at all, so propagating turns
+ * "no credentials this session" into "no session" — strictly worse, and the
+ * exact regression that killed every repo-less channel session once already.
+ * What was wrong before was the silence: a bare `|| true` let a container come
+ * up with a bootstrap token and nothing able to use it, looking identical to
+ * success. Each phase's status is now captured and named on stderr, which the
+ * vendor surfaces, so the session still starts and the operator can see which
+ * half is missing.
+ *
  * Failure prints the layout it found rather than only the path it wanted. This
  * field lives in a vendor settings box with a slow edit-and-retry loop, and a
  * miss that reports nothing costs a whole round trip to learn one fact; the
@@ -589,6 +600,33 @@ export function installAssets(cwd = process.cwd()) {
  * had to get right, in a settings box with no review, no version history and no
  * test — and the logic it encoded belongs in a file that has all three.
  */
+/**
+ * The exact Lisa the emitted field runs, pinned to the version that emitted it.
+ *
+ * `@latest` in a field that executes with `npx -y` is remote code execution
+ * against a moving target: whatever is newest when the session starts, run as
+ * root before Claude launches. That contradicts the rule this project applies
+ * to everything else — `assertPinned` refuses a tool whose version is not fixed
+ * and checksummed, and it would be strange to hold third-party binaries to a
+ * standard Lisa exempts itself from.
+ *
+ * Pinning to the emitting version keeps the field honest without freezing it:
+ * regenerating the field after an upgrade produces a new pin, which is the same
+ * "a version bump moves in one reviewed commit" contract as the toolchain.
+ * Falling back to `latest` only when the version cannot be read keeps a broken
+ * install from turning into an unrunnable field.
+ */
+const SELF_SPEC = (() => {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(resolve(HERE, "../../../../../../package.json"), "utf8")
+    );
+    return pkg.version ? `@codyswann/lisa@${pkg.version}` : "@codyswann/lisa";
+  } catch {
+    return "@codyswann/lisa";
+  }
+})();
+
 export const SETUP_FIELD =
   'n=0; rc=0; seen=""; ' +
   "for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh " +
@@ -605,9 +643,18 @@ export const SETUP_FIELD =
   'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; fi; ' +
   'if [ -n "${LISA_SECRETS_NAMESPACE:-}" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $LISA_SECRETS_NAMESPACE."; ' +
-  "npx -y @codyswann/lisa@latest workstation " +
-  '--provider "${LISA_SECRETS_PROVIDER:-bitwarden}" --yes || true; ' +
-  "npx -y @codyswann/lisa@latest remote-env --phase=secrets || true; " +
+  "tw=0; ts=0; " +
+  `npx -y ${SELF_SPEC} workstation --install ` +
+  '--provider="${LISA_SECRETS_PROVIDER:-bitwarden}" || tw=$?; ' +
+  // Exported BEFORE the secrets phase, not after: the toolchain installs into
+  // ~/.local/bin, and materialization spawns the provider CLI by name. Ordered
+  // the other way it gets ENOENT on a binary that is sitting right there.
+  'export PATH="$HOME/.local/bin:$PATH"; ' +
+  `npx -y ${SELF_SPEC} remote-env --phase=secrets || ts=$?; ` +
+  '[ "$tw" -eq 0 ] || echo "SETUP INCOMPLETE: tool install failed ' +
+  '(exit $tw). The session will start WITHOUT the pinned tools." >&2; ' +
+  '[ "$ts" -eq 0 ] || echo "SETUP INCOMPLETE: secrets did not materialize ' +
+  '(exit $ts). The session will start WITHOUT credentials." >&2; ' +
   'else echo "No checkout and no LISA_SECRETS_NAMESPACE; nothing to prepare."; fi; ' +
   "exit 0";
 
