@@ -19,34 +19,45 @@ import { describe, expect, it } from "vitest";
 
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
-/** The bootstrap invocation inside the field. */
-const invocation =
-  /npx -y @codyswann\/lisa@[\d.]+ workstation[^;|]*/.exec(SETUP_FIELD)?.[0] ??
-  "";
+/** Every bootstrap invocation inside the field. */
+const invocations =
+  SETUP_FIELD.match(/npx -y @codyswann\/lisa@[\d.]+ workstation[^;|]*/g) ?? [];
 
-describe("the workstation invocation in the setup field", () => {
-  it("is present at all", () => {
-    expect(invocation).not.toBe("");
+describe("the workstation invocations in the setup field", () => {
+  it("are present at all", () => {
+    // Two: one for the provider CLI, one for the tools its secrets imply.
+    expect(invocations.length).toBe(2);
   });
 
-  it("passes --install, without which it only reports an inventory", () => {
+  it("pass --install, without which they only report an inventory", () => {
     // The exact miss that shipped: a run that inspects and provisions nothing,
     // then exits 0.
-    expect(invocation).toContain("--install");
+    for (const invocation of invocations) {
+      expect(invocation).toContain("--install");
+    }
   });
 
-  it("passes the provider as --provider=value, the only form parsed", () => {
+  it("pass the provider as --provider=value, the only form parsed", () => {
     // `flag(name)` matches `--name` and value flags match `--name=`; a
     // space-separated value is silently ignored and no provider is selected.
-    expect(invocation).toMatch(/--provider=/);
-    expect(invocation).not.toMatch(/--provider\s+["'$]/);
+    for (const invocation of invocations) {
+      expect(invocation).toMatch(/--provider=/);
+      expect(invocation).not.toMatch(/--provider\s+["'$]/);
+    }
   });
 
-  it("passes no flag the bootstrap does not define", () => {
+  it("pass no flag the bootstrap does not define", () => {
     // `--yes` was carried for a while and does nothing; a flag that is ignored
     // reads as an intent that is being honoured.
-    const flags = invocation.match(/--[a-z-]+/g) ?? [];
-    expect(flags.sort()).toEqual(["--agents", "--install", "--provider"]);
+    for (const invocation of invocations) {
+      const flags = invocation.match(/--[a-z-]+/g) ?? [];
+      expect(flags.sort()).toEqual([
+        "--agents",
+        "--install",
+        "--provider",
+        "--tools",
+      ]);
+    }
   });
 });
 
@@ -55,6 +66,7 @@ describe("failures in the preparation phases", () => {
     // A bare `|| true` let a container come up with a bootstrap token and
     // nothing able to use it, looking identical to success.
     expect(SETUP_FIELD).toMatch(/workstation[^;]*\|\| tw=\$\?/);
+    expect(SETUP_FIELD).toMatch(/workstation[^;]*\|\| tt=\$\?/);
     expect(SETUP_FIELD).toMatch(/remote-env --phase=secrets \|\| ts=\$\?/);
   });
 
@@ -98,11 +110,11 @@ describe("the Lisa the field executes", () => {
     expect(SETUP_FIELD).toMatch(/@codyswann\/lisa@\d+\.\d+\.\d+/);
   });
 
-  it("uses the same pin for both invocations", () => {
+  it("uses the same pin for every invocation", () => {
     // Two different Lisas preparing one session is a difference nobody would
-    // think to look for.
+    // think to look for — and the field now runs four of them.
     const specs = SETUP_FIELD.match(/@codyswann\/lisa@[\d.]+/g) ?? [];
-    expect(specs.length).toBe(2);
+    expect(specs.length).toBe(4);
     expect(new Set(specs).size).toBe(1);
   });
 });

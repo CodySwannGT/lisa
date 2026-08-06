@@ -644,7 +644,7 @@ export const SETUP_FIELD =
   'ten="${LISA_TENANT:-${LISA_SECRETS_NAMESPACE:-}}"; ' +
   'if [ -n "$ten" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $ten."; ' +
-  "tw=0; ts=0; " +
+  "tw=0; tt=0; ts=0; tp=0; " +
   // `--agents=none` is load-bearing, not tidiness.
   //
   // The bootstrap's default is every coding agent it knows: claude, codex,
@@ -657,15 +657,39 @@ export const SETUP_FIELD =
   // A remote container needs the provider CLI and the tools; it does not need
   // agents, because it IS one. No AGENTS entry is named "none", so the filter
   // selects nothing — pinned by a test, since it reads like a magic word.
-  `npx -y ${SELF_SPEC} workstation --install --agents=none ` +
+  // Two passes, credentials in between, because the vault is what knows which
+  // CLIs this container needs — and it cannot be asked until it has been read.
+  //
+  // The first pass installs only the provider CLI (`--tools=none`, the same
+  // idiom as `--agents=none`), because that is all materialization requires.
+  `npx -y ${SELF_SPEC} workstation --install --agents=none --tools=none ` +
   '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tw=$?; ' +
   // Exported BEFORE the secrets phase, not after: the toolchain installs into
   // ~/.local/bin, and materialization spawns the provider CLI by name. Ordered
   // the other way it gets ENOENT on a binary that is sitting right there.
   'export PATH="$HOME/.local/bin:$PATH"; ' +
   `npx -y ${SELF_SPEC} remote-env --phase=secrets || ts=$?; ` +
-  '[ "$tw" -eq 0 ] || echo "SETUP INCOMPLETE: tool install failed ' +
-  '(exit $tw). The session will start WITHOUT the pinned tools." >&2; ' +
+  // Now the notes can answer it. A vault that names nothing yields an empty
+  // string, and `--tools=` with an empty value selects the whole catalogue —
+  // so annotating the notes NARROWS what gets installed, and not annotating
+  // them leaves this field behaving exactly as it did before.
+  //
+  // stderr is dropped and only the last line kept: npx narrates to stderr, and
+  // this is a command substitution whose output becomes a flag value.
+  //
+  // The status is captured BEFORE the pipe, because `tail` exits 0 whatever
+  // happened upstream. A failed lookup still falls through to the whole
+  // catalogue — installing too much is the safe direction, and it is what this
+  // field did before the vault had any say — but it says so, rather than being
+  // indistinguishable from a vault that simply names nothing.
+  `w=$(npx -y ${SELF_SPEC} remote-env --print-tools 2>/dev/null) || tp=$?; ` +
+  'w=$(printf "%s\\n" "$w" | tail -1); ' +
+  '[ "$tp" -eq 0 ] || echo "SETUP INCOMPLETE: could not read the tool list ' +
+  'from the vault (exit $tp). Installing the full catalogue." >&2; ' +
+  `npx -y ${SELF_SPEC} workstation --install --agents=none --tools="$w" ` +
+  '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tt=$?; ' +
+  '[ "$tw" -eq 0 ] && [ "$tt" -eq 0 ] || echo "SETUP INCOMPLETE: tool install ' +
+  'failed (exit $tw/$tt). The session will start WITHOUT the pinned tools." >&2; ' +
   '[ "$ts" -eq 0 ] || echo "SETUP INCOMPLETE: secrets did not materialize ' +
   '(exit $ts). The session will start WITHOUT credentials." >&2; ' +
   'else echo "No checkout and no tenant configured; nothing to prepare."; fi; ' +
@@ -1023,6 +1047,43 @@ function readBootstrapKey(cwd = process.cwd()) {
 }
 
 async function main() {
+  // `--print-tools` answers "which CLIs does this secret set imply", reading
+  // the notes materialized alongside the values.
+  //
+  // It exists so a repo-less setup can install what the container actually
+  // needs. Without a checkout there is no `remoteEnv.tools`, and the fallback
+  // was the whole catalogue — which spends a five-minute setup budget on CLIs
+  // that may never be used, and a blown budget is a session that never starts.
+  //
+  // Printing rather than installing keeps the two skills decoupled: the secrets
+  // side knows what the vault says, the workstation side knows how to install,
+  // and neither grows a dependency on the other.
+  if (process.argv.includes("--print-tools")) {
+    const { readConfig, materializedPaths } = await import(
+      pathToFileURL(siblingScript("lisa-secrets-access", "surfaces.mjs")).href
+    );
+    const { toolsFromNotes } = await import(
+      pathToFileURL(
+        siblingScript("lisa-secrets-access", "tools-from-notes.mjs")
+      ).href
+    );
+    const { TOOLS } = await import(
+      pathToFileURL(siblingScript("lisa-setup-workstation", "catalogue.mjs"))
+        .href
+    );
+
+    const { notesFile } = materializedPaths(readConfig().namespace);
+    // Silence rather than failure when nothing has been materialized: the
+    // caller is a shell substitution in a setup script, and an error there
+    // would abort provisioning over a question that simply has no answer yet.
+    if (!existsSync(notesFile)) return;
+
+    const notes = JSON.parse(readFileSync(notesFile, "utf8")).secrets ?? {};
+    const known = TOOLS.filter(t => t.kind !== "required").map(t => t.name);
+    console.log(toolsFromNotes(notes, known).join(","));
+    return;
+  }
+
   const dryRun = process.argv.includes("--dry-run");
   const emit = process.argv
     .find(arg => arg.startsWith("--emit="))
