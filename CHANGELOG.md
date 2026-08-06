@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.337.2](https://github.com/CodySwannGT/lisa/compare/v2.337.1...v2.337.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* **secrets:** stop the setup field installing every coding agent ([d7b3933](https://github.com/CodySwannGT/lisa/commit/d7b39333cf6ec50d596a2265e08a6985051fa87e)), closes [CodySwannGT/lisa#2345](https://github.com/CodySwannGT/lisa/issues/2345)
+
 ### [2.337.1](https://github.com/CodySwannGT/lisa/compare/v2.337.0...v2.337.1) (2026-08-06)
 
 
