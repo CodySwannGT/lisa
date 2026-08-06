@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.336.3](https://github.com/CodySwannGT/lisa/compare/v2.336.2...v2.336.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* **cli:** register the remote-env command the no-checkout path calls ([6ba95fb](https://github.com/CodySwannGT/lisa/commit/6ba95fb11d4c02837481a14cf92434cd81f8e71c)), closes [CodySwannGT/lisa#2336](https://github.com/CodySwannGT/lisa/issues/2336)
+
 ### [2.336.2](https://github.com/CodySwannGT/lisa/compare/v2.336.1...v2.336.2) (2026-08-05)
 
 
