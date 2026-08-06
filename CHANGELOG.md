@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.337.3](https://github.com/CodySwannGT/lisa/compare/v2.337.2...v2.337.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* **deps:** raise the js-yaml floor past GHSA-5p4m-2wfm-xmqj ([328617d](https://github.com/CodySwannGT/lisa/commit/328617deea224539628da9f61c01a6ccf57ce8fc)), closes [CodySwannGT/lisa#2349](https://github.com/CodySwannGT/lisa/issues/2349)
+
 ### [2.337.2](https://github.com/CodySwannGT/lisa/compare/v2.337.1...v2.337.2) (2026-08-06)
 
 
