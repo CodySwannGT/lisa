@@ -4,9 +4,22 @@ import { gte, major } from "semver";
 import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const ADVISORY_ID = "GHSA-52cp-r559-cp3m";
+/**
+ * Advisories against js-yaml this floor answers, newest first.
+ *
+ * Kept as a list rather than replaced: an exclusion added for the older one is
+ * just as capable of hiding the newer, since both are the same package under
+ * the same audit gate.
+ *
+ * - `GHSA-5p4m-2wfm-xmqj` — quadratic CPU in `!!omap` resolution, patched in
+ *   3.15.1 and 4.3.1 (the 4.x fix was not backported to the earlier 3.x floor).
+ * - `GHSA-52cp-r559-cp3m` — the advisory this file was first written for.
+ */
+const ADVISORY_IDS = ["GHSA-5p4m-2wfm-xmqj", "GHSA-52cp-r559-cp3m"] as const;
+/** The repository's own manifest, which several floors read separately. */
+const ROOT_MANIFEST = "package.json";
 const DIRECT_MANIFESTS = [
-  "package.json",
+  ROOT_MANIFEST,
   "plugins/src/expo/skills/expo-cicd-workflows/scripts/package.json",
 ] as const;
 const AUDIT_IGNORE_FILES = [
@@ -48,7 +61,7 @@ describe("js-yaml security floors", () => {
         manifest.dependencies?.["js-yaml"] ??
         manifest.devDependencies?.["js-yaml"];
 
-      expect(range).toBe("^4.3.0");
+      expect(range).toBe("^4.3.1");
     }
   );
 
@@ -67,24 +80,47 @@ describe("js-yaml security floors", () => {
       new Set([3, 4])
     );
     for (const version of versions) {
-      expect(gte(version, major(version) === 3 ? "3.15.0" : "4.3.0")).toBe(
+      expect(gte(version, major(version) === 3 ? "3.15.1" : "4.3.1")).toBe(
         true
       );
     }
   });
 
-  it.each(AUDIT_IGNORE_FILES)("does not suppress the advisory in %s", file => {
-    const auditIgnores = readJson<AuditIgnoreConfig>(file);
+  it.each(AUDIT_IGNORE_FILES)(
+    "does not suppress the advisories in %s",
+    file => {
+      const auditIgnores = readJson<AuditIgnoreConfig>(file);
+      const excluded = auditIgnores.exclusions.map(exclusion => exclusion.id);
 
-    expect(
-      auditIgnores.exclusions.map(exclusion => exclusion.id)
-    ).not.toContain(ADVISORY_ID);
-  });
+      for (const advisory of ADVISORY_IDS) {
+        expect(excluded).not.toContain(advisory);
+      }
+    }
+  );
 
   it("does not force js-yaml across major lines", () => {
-    const rootManifest = readJson<PackageManifest>("package.json");
+    // A blanket override drags `@istanbuljs/load-nyc-config` from 3.x to 4.x,
+    // where the `safeLoad` it calls no longer exists. Verified: adding one
+    // collapses the nested copy and removing it restores 3.15.1.
+    const rootManifest = readJson<PackageManifest>(ROOT_MANIFEST);
 
     expect(rootManifest.overrides?.["js-yaml"]).toBeUndefined();
     expect(rootManifest.resolutions?.["js-yaml"]).toBeUndefined();
+  });
+
+  it("patches the 3.x line where it is actually consumed", () => {
+    // The 4.x floor cannot reach it: the only 3.x copy arrives transitively,
+    // so a path-scoped override is what raises it without a major bump.
+    const rootManifest = readJson<
+      PackageManifest & {
+        readonly overrides?: Readonly<
+          Record<string, Readonly<Record<string, string>>>
+        >;
+      }
+    >(ROOT_MANIFEST);
+
+    expect(rootManifest.overrides?.["@istanbuljs/load-nyc-config"]).toEqual({
+      "js-yaml": "^3.15.1",
+    });
   });
 });
