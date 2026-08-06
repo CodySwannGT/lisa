@@ -21,7 +21,7 @@ import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-
 
 /** The bootstrap invocation inside the field. */
 const invocation =
-  /npx -y @codyswann\/lisa@latest workstation[^;|]*/.exec(SETUP_FIELD)?.[0] ??
+  /npx -y @codyswann\/lisa@[\d.]+ workstation[^;|]*/.exec(SETUP_FIELD)?.[0] ??
   "";
 
 describe("the workstation invocation in the setup field", () => {
@@ -58,11 +58,27 @@ describe("failures in the preparation phases", () => {
     expect(SETUP_FIELD).toMatch(/remote-env --phase=secrets \|\| ts=\$\?/);
   });
 
-  it("names each failure on stderr", () => {
-    expect(SETUP_FIELD).toContain("SETUP INCOMPLETE: tool install failed");
-    expect(SETUP_FIELD).toContain(
-      "SETUP INCOMPLETE: secrets did not materialize"
+  it("names each failure ON STDERR, which is what the vendor surfaces", () => {
+    // Asserting only the text leaves the test green if `>&2` is removed, and a
+    // diagnostic on stdout is one the operator never sees.
+    expect(SETUP_FIELD).toMatch(
+      /echo "SETUP INCOMPLETE: tool install failed [^"]*" >&2/
     );
+    expect(SETUP_FIELD).toMatch(
+      /echo "SETUP INCOMPLETE: secrets did not materialize [^"]*" >&2/
+    );
+  });
+
+  it("exports PATH BEFORE the secrets phase, not after", () => {
+    // Ordering is the whole fix: materialization spawns the provider CLI by
+    // name, and the toolchain installs it into ~/.local/bin. Reversed, it gets
+    // ENOENT on a binary that is sitting right there. Asserting both strings
+    // exist would pass with them in either order.
+    const path = SETUP_FIELD.indexOf('export PATH="$HOME/.local/bin:$PATH"');
+    const secrets = SETUP_FIELD.indexOf("remote-env --phase=secrets");
+
+    expect(path).toBeGreaterThan(-1);
+    expect(secrets).toBeGreaterThan(path);
   });
 
   it("still exits 0, because propagating would stop the session starting", () => {
@@ -72,13 +88,32 @@ describe("failures in the preparation phases", () => {
   });
 });
 
+describe("the Lisa the field executes", () => {
+  it("is pinned, not @latest", () => {
+    // `npx -y` runs whatever the spec resolves to, as root, before Claude
+    // launches. `@latest` makes that a moving target — and this project refuses
+    // to install a third-party tool without a pinned version and checksum, so
+    // exempting itself would be a standard it does not hold itself to.
+    expect(SETUP_FIELD).not.toContain("@codyswann/lisa@latest");
+    expect(SETUP_FIELD).toMatch(/@codyswann\/lisa@\d+\.\d+\.\d+/);
+  });
+
+  it("uses the same pin for both invocations", () => {
+    // Two different Lisas preparing one session is a difference nobody would
+    // think to look for.
+    const specs = SETUP_FIELD.match(/@codyswann\/lisa@[\d.]+/g) ?? [];
+    expect(specs.length).toBe(2);
+    expect(new Set(specs).size).toBe(1);
+  });
+});
+
 describe("the runner invocation in the setup field", () => {
   it("calls a registered CLI command", () => {
     // `remote-env` was called before it existed as a command; guarded by
     // `|| true`, the failure was silent and the session came up with a
     // bootstrap token and nothing able to use it.
-    expect(SETUP_FIELD).toContain(
-      "npx -y @codyswann/lisa@latest remote-env --phase=secrets"
+    expect(SETUP_FIELD).toMatch(
+      /npx -y @codyswann\/lisa@[\d.]+ remote-env --phase=secrets/
     );
   });
 });
