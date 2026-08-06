@@ -644,7 +644,7 @@ export const SETUP_FIELD =
   'ten="${LISA_TENANT:-${LISA_SECRETS_NAMESPACE:-}}"; ' +
   'if [ -n "$ten" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $ten."; ' +
-  "tw=0; ts=0; " +
+  "tw=0; tt=0; ts=0; " +
   // `--agents=none` is load-bearing, not tidiness.
   //
   // The bootstrap's default is every coding agent it knows: claude, codex,
@@ -657,15 +657,30 @@ export const SETUP_FIELD =
   // A remote container needs the provider CLI and the tools; it does not need
   // agents, because it IS one. No AGENTS entry is named "none", so the filter
   // selects nothing — pinned by a test, since it reads like a magic word.
-  `npx -y ${SELF_SPEC} workstation --install --agents=none ` +
+  // Two passes, credentials in between, because the vault is what knows which
+  // CLIs this container needs — and it cannot be asked until it has been read.
+  //
+  // The first pass installs only the provider CLI (`--tools=none`, the same
+  // idiom as `--agents=none`), because that is all materialization requires.
+  `npx -y ${SELF_SPEC} workstation --install --agents=none --tools=none ` +
   '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tw=$?; ' +
   // Exported BEFORE the secrets phase, not after: the toolchain installs into
   // ~/.local/bin, and materialization spawns the provider CLI by name. Ordered
   // the other way it gets ENOENT on a binary that is sitting right there.
   'export PATH="$HOME/.local/bin:$PATH"; ' +
   `npx -y ${SELF_SPEC} remote-env --phase=secrets || ts=$?; ` +
-  '[ "$tw" -eq 0 ] || echo "SETUP INCOMPLETE: tool install failed ' +
-  '(exit $tw). The session will start WITHOUT the pinned tools." >&2; ' +
+  // Now the notes can answer it. A vault that names nothing yields an empty
+  // string, and `--tools=` with an empty value selects the whole catalogue —
+  // so annotating the notes NARROWS what gets installed, and not annotating
+  // them leaves this field behaving exactly as it did before.
+  //
+  // stderr is dropped and only the last line kept: npx narrates to stderr, and
+  // this is a command substitution whose output becomes a flag value.
+  `w=$(npx -y ${SELF_SPEC} remote-env --print-tools 2>/dev/null | tail -1); ` +
+  `npx -y ${SELF_SPEC} workstation --install --agents=none --tools="$w" ` +
+  '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tt=$?; ' +
+  '[ "$tw" -eq 0 ] && [ "$tt" -eq 0 ] || echo "SETUP INCOMPLETE: tool install ' +
+  'failed (exit $tw/$tt). The session will start WITHOUT the pinned tools." >&2; ' +
   '[ "$ts" -eq 0 ] || echo "SETUP INCOMPLETE: secrets did not materialize ' +
   '(exit $ts). The session will start WITHOUT credentials." >&2; ' +
   'else echo "No checkout and no tenant configured; nothing to prepare."; fi; ' +
