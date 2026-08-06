@@ -641,11 +641,12 @@ export const SETUP_FIELD =
   'if [ "$g" -eq 1 ]; then ' +
   'echo "lisa-remote-env entrypoint not found, but a checkout is present. ' +
   'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; fi; ' +
-  'if [ -n "${LISA_SECRETS_NAMESPACE:-}" ]; then ' +
-  'echo "No checkout; preparing tools and credentials for $LISA_SECRETS_NAMESPACE."; ' +
+  'ten="${LISA_TENANT:-${LISA_SECRETS_NAMESPACE:-}}"; ' +
+  'if [ -n "$ten" ]; then ' +
+  'echo "No checkout; preparing tools and credentials for $ten."; ' +
   "tw=0; ts=0; " +
   `npx -y ${SELF_SPEC} workstation --install ` +
-  '--provider="${LISA_SECRETS_PROVIDER:-bitwarden}" || tw=$?; ' +
+  '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tw=$?; ' +
   // Exported BEFORE the secrets phase, not after: the toolchain installs into
   // ~/.local/bin, and materialization spawns the provider CLI by name. Ordered
   // the other way it gets ENOENT on a binary that is sitting right there.
@@ -655,7 +656,7 @@ export const SETUP_FIELD =
   '(exit $tw). The session will start WITHOUT the pinned tools." >&2; ' +
   '[ "$ts" -eq 0 ] || echo "SETUP INCOMPLETE: secrets did not materialize ' +
   '(exit $ts). The session will start WITHOUT credentials." >&2; ' +
-  'else echo "No checkout and no LISA_SECRETS_NAMESPACE; nothing to prepare."; fi; ' +
+  'else echo "No checkout and no tenant configured; nothing to prepare."; fi; ' +
   "exit 0";
 
 /**
