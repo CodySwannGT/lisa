@@ -1157,7 +1157,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "660d1978ada23219a4b48d78ea9cfe25223e1670181ac8a653692241f42d0ef9",
+      "fbf76bf5140f9614d1b0795dd02eafa37a25cca7f3a1184ba2d5701abce51420",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
@@ -1351,7 +1351,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/expo-cicd-workflows/scripts/fetch.js":
       "d930e22127481e1e210a2c7f5ae297c56263fdb616771b16a2762b9410c9d435",
     "plugins/src/expo/skills/expo-cicd-workflows/scripts/package.json":
-      "d2a49575e568f8b05e8b8ccb72061aa63ecd780136a62a46f4a17343e6c6f4b6",
+      "39dbc0886b193e09466398b8c6348507fd861e75cc4ee42742df2810934be79b",
     "plugins/src/expo/skills/expo-cicd-workflows/scripts/validate.js":
       "3fa181c28af49084a2efcd57f7b168c8af01f4794df3b67a7449203c16f2fbdd",
     "plugins/src/expo/skills/expo-deployment/SKILL.md":
