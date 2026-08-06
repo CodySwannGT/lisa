@@ -1023,6 +1023,43 @@ function readBootstrapKey(cwd = process.cwd()) {
 }
 
 async function main() {
+  // `--print-tools` answers "which CLIs does this secret set imply", reading
+  // the notes materialized alongside the values.
+  //
+  // It exists so a repo-less setup can install what the container actually
+  // needs. Without a checkout there is no `remoteEnv.tools`, and the fallback
+  // was the whole catalogue — which spends a five-minute setup budget on CLIs
+  // that may never be used, and a blown budget is a session that never starts.
+  //
+  // Printing rather than installing keeps the two skills decoupled: the secrets
+  // side knows what the vault says, the workstation side knows how to install,
+  // and neither grows a dependency on the other.
+  if (process.argv.includes("--print-tools")) {
+    const { readConfig, materializedPaths } = await import(
+      pathToFileURL(siblingScript("lisa-secrets-access", "surfaces.mjs")).href
+    );
+    const { toolsFromNotes } = await import(
+      pathToFileURL(
+        siblingScript("lisa-secrets-access", "tools-from-notes.mjs")
+      ).href
+    );
+    const { TOOLS } = await import(
+      pathToFileURL(siblingScript("lisa-setup-workstation", "catalogue.mjs"))
+        .href
+    );
+
+    const { notesFile } = materializedPaths(readConfig().namespace);
+    // Silence rather than failure when nothing has been materialized: the
+    // caller is a shell substitution in a setup script, and an error there
+    // would abort provisioning over a question that simply has no answer yet.
+    if (!existsSync(notesFile)) return;
+
+    const notes = JSON.parse(readFileSync(notesFile, "utf8")).secrets ?? {};
+    const known = TOOLS.filter(t => t.kind !== "required").map(t => t.name);
+    console.log(toolsFromNotes(notes, known).join(","));
+    return;
+  }
+
   const dryRun = process.argv.includes("--dry-run");
   const emit = process.argv
     .find(arg => arg.startsWith("--emit="))
