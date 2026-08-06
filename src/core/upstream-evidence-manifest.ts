@@ -7857,6 +7857,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/merge-learnings-cmd.ts": true,
     "src/cli/print-update-warning.ts": true,
     "src/cli/prompts.ts": true,
+    "src/cli/remote-env-cmd.ts": true,
     "src/cli/remote-environment-catalog.ts": true,
     "src/cli/remote-environment-contract.ts": true,
     "src/cli/remote-environment-detection.ts": true,

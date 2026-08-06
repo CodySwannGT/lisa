@@ -33,6 +33,7 @@ import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
 import { addUpdateCheckHook } from "./update-check-hook.js";
 import { runVersion } from "./version-cmd.js";
+import { addRemoteEnvCommand } from "./remote-env-cmd.js";
 import { addWorkstationCommand } from "./workstation-cmd.js";
 import { getPackageVersion } from "./version.js";
 
@@ -239,6 +240,7 @@ function addMaintenanceCommands(
     });
 
   addWorkstationCommand(program);
+  addRemoteEnvCommand(program);
   addDoctorCommand(program, deps);
   addHealthCommand(program, deps);
   addStandardsProofCommand(program, deps);
