@@ -1159,13 +1159,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "5d8ae8f633ab912e78cdbed4fd5a602c7cd6f3ea5373d1cce0e3030d7eebbe97",
+      "67927cc66e762f7a7b2c9eda09f8fb06a0e8154a586a7a4695c82da7a6a3c77e",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "b52c18d708fe2836531950736797fee8334da76ec684666bd259e29e0c39b956",
+      "3e26d607c6b1412d6a14b50e1aa7b9cda6c717c4caab720c7c8035122d96c54c",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -1177,7 +1177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
       "eb0b8ec8a5d4fd81402dcbf40e6ccb55eb5e0c960f11aa928e45b99de43fabbc",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
-      "813078131a384786d02790f168d8f25b1cf1f7404f1afa872d9030cbc757a95f",
+      "874c075c63c45d0ffca4e98d7cb28bbeeb804675d1733571c1b3d38705404eb3",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
       "9d8c3a8c16d2942449c131fff1e1b0c08558ab8889eb926404eb7f91e5b0ace4",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
@@ -8534,6 +8534,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/setup-field-budget.test.ts": true,
     "tests/unit/secrets/setup-field-flags.test.ts": true,
+    "tests/unit/secrets/setup-field-lookup-status.test.ts": true,
     "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
