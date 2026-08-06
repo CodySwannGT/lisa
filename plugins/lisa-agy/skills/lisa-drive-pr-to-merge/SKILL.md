@@ -198,6 +198,25 @@ Handle every blocker class; after any fix, re-poll and continue. Do not stop whi
 the PR is still open and progress is possible. On each iteration, refresh the
 babysitter lease if its last stamp is older than ~30 minutes (section 0).
 
+**Poll by PR number, and never discover the PR set from "what is currently open".**
+A watcher whose target list comes from `gh pr list --state open` **cannot observe a
+merge**: the moment the PR merges it leaves that list, so the branch that would
+report `MERGED` is unreachable and the watch ends in silence that looks like
+"still running". The same hole hides `CLOSED`. This is why the poll above names
+`<pr>` explicitly.
+
+The general shape, worth recognising anywhere a watcher is built: **a set defined
+by a current state cannot witness a member leaving that state.** If a watcher must
+discover its targets dynamically, it has to *remember* what it discovered and keep
+inspecting each one after it drops out of the discovery query — discovery and
+inspection are separate lists.
+
+Prefer this skill over a hand-rolled multi-PR watcher for exactly that reason. If
+you do build one, give it the same coverage this loop has: not just `MERGED` and
+failing checks, but `BEHIND`/`DIRTY` and unresolved review threads — a PR stalled
+on any of those is indistinguishable from one still running, and silence is not
+evidence of progress.
+
 With **`auto_merge=false`**, the loop's goal changes from "merged" to "clean and
 waiting": drive blockers exactly the same, but exit successfully at
 `awaiting-human` (section 4) once the PR is open with green checks, a clear
