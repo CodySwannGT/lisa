@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.336.4](https://github.com/CodySwannGT/lisa/compare/v2.336.3...v2.336.4) (2026-08-06)
+
+
+### Bug Fixes
+
+* **secrets:** install the tools and put them on PATH in a repo-less session ([5e504ea](https://github.com/CodySwannGT/lisa/commit/5e504ea37467dea15305b2efe1339c60bb5cfda7)), closes [CodySwannGT/lisa#2338](https://github.com/CodySwannGT/lisa/issues/2338)
+* **secrets:** pin the Lisa the setup field executes ([19cbb98](https://github.com/CodySwannGT/lisa/commit/19cbb98375203e9d135b222cb3698a3a70501130)), closes [CodySwannGT/lisa#2338](https://github.com/CodySwannGT/lisa/issues/2338)
+* **secrets:** report preparation failures instead of discarding them ([6cf842e](https://github.com/CodySwannGT/lisa/commit/6cf842ec71a2fe87409455192b518694c7803c14)), closes [CodySwannGT/lisa#2338](https://github.com/CodySwannGT/lisa/issues/2338)
+
 ### [2.336.3](https://github.com/CodySwannGT/lisa/compare/v2.336.2...v2.336.3) (2026-08-06)
 
 
