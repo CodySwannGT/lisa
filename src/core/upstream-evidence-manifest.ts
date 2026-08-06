@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "21d3408de74f2691d61649862b086dfc37a5ce2553bcb17366fcd5d1c50a4ae8",
+      "a765822c43fe488a674683a820cd03e8a9cc2f4507391afc4d971a500f4d0d3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "62d1b87d1b852dc00c00ea9d132d9d6953f4ef77beb5fa4b93652c4424f33274",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1157,13 +1157,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "ce3de45c13a97dde16b3e24f661b9e65c5a3fb7c9c6ab88a0a624f3f1ebe289e",
+      "271fe000479ccac625a4f064f6a4a57469fbda8bc2052195333544e20b4c9ab0",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "d9d3938c7fdfe1aa325050937ae32148b25a5c741da84a6654c9e7ac51b1bf18",
+      "ccdf62494d0a379ee8d0ffb59a0ef5be5378597621e0987b4f0d70fa35915e7b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -8510,6 +8510,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/install-method-conformance.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
+    "tests/unit/secrets/neutral-tenant-var.test.ts": true,
     "tests/unit/secrets/profile-sourcing.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
