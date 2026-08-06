@@ -605,8 +605,9 @@ export const SETUP_FIELD =
   'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; fi; ' +
   'if [ -n "${LISA_SECRETS_NAMESPACE:-}" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $LISA_SECRETS_NAMESPACE."; ' +
-  "npx -y @codyswann/lisa@latest workstation " +
-  '--provider "${LISA_SECRETS_PROVIDER:-bitwarden}" --yes || true; ' +
+  "npx -y @codyswann/lisa@latest workstation --install " +
+  '--provider="${LISA_SECRETS_PROVIDER:-bitwarden}" || true; ' +
+  'export PATH="$HOME/.local/bin:$PATH"; ' +
   "npx -y @codyswann/lisa@latest remote-env --phase=secrets || true; " +
   'else echo "No checkout and no LISA_SECRETS_NAMESPACE; nothing to prepare."; fi; ' +
   "exit 0";
