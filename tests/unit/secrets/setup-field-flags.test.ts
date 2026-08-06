@@ -46,7 +46,7 @@ describe("the workstation invocation in the setup field", () => {
     // `--yes` was carried for a while and does nothing; a flag that is ignored
     // reads as an intent that is being honoured.
     const flags = invocation.match(/--[a-z-]+/g) ?? [];
-    expect(flags.sort()).toEqual(["--install", "--provider"]);
+    expect(flags.sort()).toEqual(["--agents", "--install", "--provider"]);
   });
 });
 
