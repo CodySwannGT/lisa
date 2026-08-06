@@ -50,6 +50,28 @@ describe("the workstation invocation in the setup field", () => {
   });
 });
 
+describe("failures in the preparation phases", () => {
+  it("captures each phase's status rather than discarding it", () => {
+    // A bare `|| true` let a container come up with a bootstrap token and
+    // nothing able to use it, looking identical to success.
+    expect(SETUP_FIELD).toMatch(/workstation[^;]*\|\| tw=\$\?/);
+    expect(SETUP_FIELD).toMatch(/remote-env --phase=secrets \|\| ts=\$\?/);
+  });
+
+  it("names each failure on stderr", () => {
+    expect(SETUP_FIELD).toContain("SETUP INCOMPLETE: tool install failed");
+    expect(SETUP_FIELD).toContain(
+      "SETUP INCOMPLETE: secrets did not materialize"
+    );
+  });
+
+  it("still exits 0, because propagating would stop the session starting", () => {
+    // Propagating turns "no credentials this session" into "no session" — the
+    // regression that killed every repo-less channel session once already.
+    expect(SETUP_FIELD.trimEnd().endsWith("exit 0")).toBe(true);
+  });
+});
+
 describe("the runner invocation in the setup field", () => {
   it("calls a registered CLI command", () => {
     // `remote-env` was called before it existed as a command; guarded by
