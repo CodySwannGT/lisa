@@ -1103,7 +1103,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "9d7346864b04304e5b4bbb90512c7f2e701d69ab012b4fcf3b7b687221fc76bd",
+      "23ff65052c23e5b71c232547ec15d9b3b39232ff2014370b2a3a402a904fde67",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
@@ -1159,13 +1159,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "fbf76bf5140f9614d1b0795dd02eafa37a25cca7f3a1184ba2d5701abce51420",
+      "5d8ae8f633ab912e78cdbed4fd5a602c7cd6f3ea5373d1cce0e3030d7eebbe97",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "474345dcacd08fcd8f5c5702e69bcd78cd5c8cb2e256fb147b10d3b1b310f5c2",
+      "b52c18d708fe2836531950736797fee8334da76ec684666bd259e29e0c39b956",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -1177,7 +1177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
       "eb0b8ec8a5d4fd81402dcbf40e6ccb55eb5e0c960f11aa928e45b99de43fabbc",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
-      "cb64e501a6e8bf0b12fd865aa0be3407f54c5a08537a36dc71d2ead4764f5da0",
+      "813078131a384786d02790f168d8f25b1cf1f7404f1afa872d9030cbc757a95f",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
       "9d8c3a8c16d2942449c131fff1e1b0c08558ab8889eb926404eb7f91e5b0ace4",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
@@ -8534,6 +8534,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/setup-field-budget.test.ts": true,
     "tests/unit/secrets/setup-field-flags.test.ts": true,
+    "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
     "tests/unit/secrets/toolchain-release-binary.test.ts": true,
