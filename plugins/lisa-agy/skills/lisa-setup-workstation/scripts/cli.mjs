@@ -10,6 +10,9 @@
  *   cli.mjs                                report present vs missing
  *   cli.mjs --install                      provision what is missing
  *   cli.mjs --install --agents=claude,codex   only these agents
+ *   cli.mjs --install --tools=aws,sonar    only these OPTIONAL tools; required
+ *                                          ones are always kept, and an empty
+ *                                          value selects the whole catalogue
  *   cli.mjs --provider=bitwarden           credential manager (asked if a TTY)
  *   cli.mjs --json                         machine-readable plan
  *   cli.mjs --print-dockerfile             an image that runs this same script
@@ -177,6 +180,21 @@ export async function run(argv, io = {}) {
         .filter(Boolean)
     : null;
 
+  // `--tools=` with nothing after it selects everything, deliberately.
+  //
+  // Its caller is a shell substitution — a repo-less setup script asking the
+  // vault which CLIs its secrets imply — and a vault that names none must leave
+  // the container exactly as it was before this flag existed. Reading an empty
+  // value as "install nothing" would make adopting the convention a silent
+  // regression for every environment that has not annotated its notes yet.
+  const requested = value("tools");
+  const tools = requested
+    ? requested
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+    : null;
+
   const provider = chooseProvider(value("provider"), io);
 
   if (flag("print-dockerfile")) {
@@ -186,7 +204,7 @@ export async function run(argv, io = {}) {
 
   let plan;
   try {
-    plan = planWorkstation({ agents, provider, ...(io.probes ?? {}) });
+    plan = planWorkstation({ agents, tools, provider, ...(io.probes ?? {}) });
   } catch (error) {
     // A misspelled provider stops here rather than silently provisioning the
     // wrong credential manager.

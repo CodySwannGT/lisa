@@ -129,6 +129,22 @@ ci: yes - injected by <mechanism>
 docs: <path>
 ```
 
+### `tool:` — the CLI a secret implies
+
+One key is read by more than a human. A credential and the CLI that consumes it belong together — `SONARQUBE_CLI_TOKEN` is only useful with `sonar` — so a `tool:` (or `tools: a, b`) line declares that pairing where it cannot drift from the secret:
+
+```text
+SonarCloud token, in the variable name the SonarQube CLI reads.
+owner: <name>
+tool: sonar
+```
+
+`lisa remote-env --print-tools` reads these from the materialized notes and prints the names, which is how a **repo-less** session decides what to install: with no checkout there is no `remoteEnv.tools`, and installing the whole catalogue can exhaust a cloud surface's setup-script time budget — a blown budget is a session that never starts. The machine account's grant then scopes the credentials and the CLIs together, instead of leaving a second list to maintain.
+
+Annotating **narrows**; annotating nothing changes nothing. A vault where no note carries the key yields an empty list, and an empty list means the full catalogue.
+
+Names are matched against Lisa's catalogue and **never executed**. A note is remote-influenced input — anyone who can edit a secret can edit its note — so the worst a hostile one can ask for is a CLI Lisa already ships a pinned, checksummed entry for. A name Lisa cannot install is ignored rather than treated as an error: it is a request from a future version, not a broken environment.
+
 `describe` returns this. When a note is empty, **infer purpose from the name, mark it inferred, and report the gap** — infer *and* warn, never instead of. A silent fallback that works well enough guarantees the notes stay empty forever.
 
 **An inferred mapping must never authorise a write.** It orients a reader; it does not pick which credential calls a production API. `ATTIO_API_KEY` versus `ATTIO_API_KEY_STAGING` is exactly the guess that silently writes to the wrong system.

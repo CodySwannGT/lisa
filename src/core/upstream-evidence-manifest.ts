@@ -1103,7 +1103,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "9d7346864b04304e5b4bbb90512c7f2e701d69ab012b4fcf3b7b687221fc76bd",
+      "23ff65052c23e5b71c232547ec15d9b3b39232ff2014370b2a3a402a904fde67",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
@@ -1122,6 +1122,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "a765822c43fe488a674683a820cd03e8a9cc2f4507391afc4d971a500f4d0d3e",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
+      "07d183d8325341feea0db82c5f48f403981d0642999ce9b6462b6f89642e93c6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "62d1b87d1b852dc00c00ea9d132d9d6953f4ef77beb5fa4b93652c4424f33274",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1157,13 +1159,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "fbf76bf5140f9614d1b0795dd02eafa37a25cca7f3a1184ba2d5701abce51420",
+      "67927cc66e762f7a7b2c9eda09f8fb06a0e8154a586a7a4695c82da7a6a3c77e",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "329af2d5e30661f9e75beb92c24fcc2b611b63fbe43ed204d88195c145069a70",
+      "3e26d607c6b1412d6a14b50e1aa7b9cda6c717c4caab720c7c8035122d96c54c",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -1175,9 +1177,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
       "eb0b8ec8a5d4fd81402dcbf40e6ccb55eb5e0c960f11aa928e45b99de43fabbc",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
-      "cb64e501a6e8bf0b12fd865aa0be3407f54c5a08537a36dc71d2ead4764f5da0",
+      "874c075c63c45d0ffca4e98d7cb28bbeeb804675d1733571c1b3d38705404eb3",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
-      "8f9d066bb4c60095831c9549af89f9a8d49cc2bcadf37189982d276ad9270759",
+      "9d8c3a8c16d2942449c131fff1e1b0c08558ab8889eb926404eb7f91e5b0ace4",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "031acb01195ae59010a65335da98d46a1d6080e749823d6f6d157938d9e96648",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
@@ -3312,6 +3314,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-agy/skills/lisa-security-review/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-security-zap-scan/SKILL.md": true,
@@ -3742,6 +3745,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-copilot/skills/lisa-security-review/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-security-zap-scan/SKILL.md": true,
@@ -4158,6 +4162,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-cursor/skills/lisa-security-review/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-security-zap-scan/SKILL.md": true,
@@ -6188,6 +6193,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-security-review/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-security-review/agents/openai.yaml": true,
@@ -6784,6 +6790,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa/skills/lisa-security-review/SKILL.md": true,
     "plugins/lisa/skills/lisa-security-review/agents/openai.yaml": true,
@@ -7256,6 +7263,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/src/base/skills/lisa-security-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md": true,
@@ -8526,11 +8534,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/setup-field-budget.test.ts": true,
     "tests/unit/secrets/setup-field-flags.test.ts": true,
+    "tests/unit/secrets/setup-field-lookup-status.test.ts": true,
+    "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
     "tests/unit/secrets/toolchain-release-binary.test.ts": true,
     "tests/unit/secrets/toolchain-release-tree.test.ts": true,
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
+    "tests/unit/secrets/tools-from-notes.test.ts": true,
     "tests/unit/secrets/user-session-hook.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
