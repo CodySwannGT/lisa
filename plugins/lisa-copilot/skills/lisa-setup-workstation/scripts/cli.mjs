@@ -10,7 +10,9 @@
  *   cli.mjs                                report present vs missing
  *   cli.mjs --install                      provision what is missing
  *   cli.mjs --install --agents=claude,codex   only these agents
- *   cli.mjs --install --tools=aws,sonar    only these tools (empty selects all)
+ *   cli.mjs --install --tools=aws,sonar    only these OPTIONAL tools; required
+ *                                          ones are always kept, and an empty
+ *                                          value selects the whole catalogue
  *   cli.mjs --provider=bitwarden           credential manager (asked if a TTY)
  *   cli.mjs --json                         machine-readable plan
  *   cli.mjs --print-dockerfile             an image that runs this same script

@@ -644,7 +644,7 @@ export const SETUP_FIELD =
   'ten="${LISA_TENANT:-${LISA_SECRETS_NAMESPACE:-}}"; ' +
   'if [ -n "$ten" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $ten."; ' +
-  "tw=0; tt=0; ts=0; " +
+  "tw=0; tt=0; ts=0; tp=0; " +
   // `--agents=none` is load-bearing, not tidiness.
   //
   // The bootstrap's default is every coding agent it knows: claude, codex,
@@ -676,7 +676,16 @@ export const SETUP_FIELD =
   //
   // stderr is dropped and only the last line kept: npx narrates to stderr, and
   // this is a command substitution whose output becomes a flag value.
-  `w=$(npx -y ${SELF_SPEC} remote-env --print-tools 2>/dev/null | tail -1); ` +
+  //
+  // The status is captured BEFORE the pipe, because `tail` exits 0 whatever
+  // happened upstream. A failed lookup still falls through to the whole
+  // catalogue — installing too much is the safe direction, and it is what this
+  // field did before the vault had any say — but it says so, rather than being
+  // indistinguishable from a vault that simply names nothing.
+  `w=$(npx -y ${SELF_SPEC} remote-env --print-tools 2>/dev/null) || tp=$?; ` +
+  'w=$(printf "%s\\n" "$w" | tail -1); ' +
+  '[ "$tp" -eq 0 ] || echo "SETUP INCOMPLETE: could not read the tool list ' +
+  'from the vault (exit $tp). Installing the full catalogue." >&2; ' +
   `npx -y ${SELF_SPEC} workstation --install --agents=none --tools="$w" ` +
   '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tt=$?; ' +
   '[ "$tw" -eq 0 ] && [ "$tt" -eq 0 ] || echo "SETUP INCOMPLETE: tool install ' +
