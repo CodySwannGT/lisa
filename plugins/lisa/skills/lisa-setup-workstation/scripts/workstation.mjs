@@ -168,7 +168,17 @@ export function planWorkstation(options = {}) {
       group: "agent",
     })
   );
-  const tools = TOOLS.map(t => ({ ...planEntry(t, options), group: "tool" }));
+  // Tools are selectable for the same reason agents are, and it matters more
+  // here: a remote container has a setup-script time budget, and installing a
+  // CLI nothing in that container uses spends it for nothing.
+  //
+  // A `required` tool is never filtered out. Those are not installs — they are
+  // assertions about the machine (git, node), and hiding them would turn a
+  // missing prerequisite into a silent one.
+  const wantedTools = options.tools ?? null;
+  const tools = TOOLS.filter(
+    t => t.kind === "required" || !wantedTools || wantedTools.includes(t.name)
+  ).map(t => ({ ...planEntry(t, options), group: "tool" }));
 
   // Only the SELECTED provider is planned. Installing every credential CLI
   // would leave four unused ones on the machine, each needing patching for no
