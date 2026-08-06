@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.337.0](https://github.com/CodySwannGT/lisa/compare/v2.336.4...v2.337.0) (2026-08-06)
+
+
+### Features
+
+* **secrets:** accept a neutrally named tenant variable ([a0cfd9c](https://github.com/CodySwannGT/lisa/commit/a0cfd9c46eca074b76d71e60d6e9e6304766b898)), closes [CodySwannGT/lisa#2342](https://github.com/CodySwannGT/lisa/issues/2342)
+
 ### [2.336.4](https://github.com/CodySwannGT/lisa/compare/v2.336.3...v2.336.4) (2026-08-06)
 
 
