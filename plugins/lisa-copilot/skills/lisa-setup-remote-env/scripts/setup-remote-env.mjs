@@ -580,6 +580,17 @@ export function installAssets(cwd = process.cwd()) {
  * Given it, the machine itself is prepared — tools and credentials, no repo
  * required. Without it there is nothing to prepare and nothing to fail about.
  *
+ * Those two preparation steps report their failures and do not propagate them,
+ * which is deliberate and is NOT the same as hiding them. A setup script that
+ * exits non-zero stops the session from starting at all, so propagating turns
+ * "no credentials this session" into "no session" — strictly worse, and the
+ * exact regression that killed every repo-less channel session once already.
+ * What was wrong before was the silence: a bare `|| true` let a container come
+ * up with a bootstrap token and nothing able to use it, looking identical to
+ * success. Each phase's status is now captured and named on stderr, which the
+ * vendor surfaces, so the session still starts and the operator can see which
+ * half is missing.
+ *
  * Failure prints the layout it found rather than only the path it wanted. This
  * field lives in a vendor settings box with a slow edit-and-retry loop, and a
  * miss that reports nothing costs a whole round trip to learn one fact; the
@@ -605,10 +616,15 @@ export const SETUP_FIELD =
   'PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; fi; ' +
   'if [ -n "${LISA_SECRETS_NAMESPACE:-}" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $LISA_SECRETS_NAMESPACE."; ' +
+  "tw=0; ts=0; " +
   "npx -y @codyswann/lisa@latest workstation --install " +
-  '--provider="${LISA_SECRETS_PROVIDER:-bitwarden}" || true; ' +
+  '--provider="${LISA_SECRETS_PROVIDER:-bitwarden}" || tw=$?; ' +
   'export PATH="$HOME/.local/bin:$PATH"; ' +
-  "npx -y @codyswann/lisa@latest remote-env --phase=secrets || true; " +
+  "npx -y @codyswann/lisa@latest remote-env --phase=secrets || ts=$?; " +
+  '[ "$tw" -eq 0 ] || echo "SETUP INCOMPLETE: tool install failed ' +
+  '(exit $tw). The session will start WITHOUT the pinned tools." >&2; ' +
+  '[ "$ts" -eq 0 ] || echo "SETUP INCOMPLETE: secrets did not materialize ' +
+  '(exit $ts). The session will start WITHOUT credentials." >&2; ' +
   'else echo "No checkout and no LISA_SECRETS_NAMESPACE; nothing to prepare."; fi; ' +
   "exit 0";
 
