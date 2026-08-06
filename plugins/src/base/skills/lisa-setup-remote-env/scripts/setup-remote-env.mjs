@@ -645,7 +645,19 @@ export const SETUP_FIELD =
   'if [ -n "$ten" ]; then ' +
   'echo "No checkout; preparing tools and credentials for $ten."; ' +
   "tw=0; ts=0; " +
-  `npx -y ${SELF_SPEC} workstation --install ` +
+  // `--agents=none` is load-bearing, not tidiness.
+  //
+  // The bootstrap's default is every coding agent it knows: claude, codex,
+  // cursor-agent, opencode, agy, copilot. `agy` alone is ~193MB and `gh` ~55MB,
+  // and a setup script has roughly five minutes before the vendor kills it and
+  // reports "Session failed to start: Setup script failed" — which is exactly
+  // what a Claude Tag channel did, killing the session outright rather than
+  // starting it without tools.
+  //
+  // A remote container needs the provider CLI and the tools; it does not need
+  // agents, because it IS one. No AGENTS entry is named "none", so the filter
+  // selects nothing — pinned by a test, since it reads like a magic word.
+  `npx -y ${SELF_SPEC} workstation --install --agents=none ` +
   '--provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tw=$?; ' +
   // Exported BEFORE the secrets phase, not after: the toolchain installs into
   // ~/.local/bin, and materialization spawns the provider CLI by name. Ordered
