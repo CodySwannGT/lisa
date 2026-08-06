@@ -49,10 +49,17 @@ describe("--tools as a selector", () => {
     // This is the fallback the field depends on. `--tools=` is what a command
     // substitution produces when the vault names nothing, and reading it as
     // "install nothing" would strip a working environment on upgrade.
-    const all = await plannedTools([]);
-
-    expect(await plannedTools(["--tools="])).toEqual(all);
-    expect(all.length).toBeGreaterThan(0);
+    //
+    // Named outright rather than compared against an unfiltered run: computing
+    // the expectation from the same code path would pass just as happily if
+    // BOTH selected the wrong subset, which is the defect worth catching.
+    expect(await plannedTools(["--tools="])).toEqual([
+      "git",
+      "node",
+      "gh",
+      "aws",
+      "sonar",
+    ]);
   });
 
   it("keeps required entries whatever is selected", async () => {
