@@ -42,6 +42,13 @@ import { homedir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+// Reaching across to the workstation skill, the same sibling layout
+// `siblingScript` asserts at runtime. Static rather than dynamic because the
+// emitted field is a module-level constant: it must exist before anything can
+// read it, and the alternative is restating the install directories here, where
+// they would drift the first time a tool ships with a new one.
+import { pathDirs } from "../../lisa-setup-workstation/scripts/catalogue.mjs";
+
 import { assertPinned, extractVersion, planToolchain } from "./toolchain.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -627,6 +634,27 @@ const SELF_SPEC = (() => {
   }
 })();
 
+/**
+ * Every directory the catalogue installs into, as a `$HOME`-relative PATH.
+ *
+ * The field used to hardcode `~/.local/bin`, which is only where the *pinned*
+ * binaries land. A vendor script may install anywhere it likes — SonarQube's
+ * puts `sonar` under `~/.local/share/sonarqube-cli/bin` — so the tool installed
+ * successfully and then could not be found, which reads to an operator exactly
+ * like an install that never happened.
+ *
+ * The bootstrap already writes these into the shell rc files, and on this
+ * surface that is inert: a cloud container's tool shell is not a login shell
+ * and reads no profile. Exporting them here is what makes the install visible
+ * to the session that asked for it.
+ *
+ * Derived from the catalogue rather than restated, so a tool added with a new
+ * `binDir` reaches this field without anyone remembering to come back here.
+ * `$HOME` stays a shell variable — the field runs as a different user, in a
+ * different container, than whatever machine emitted it.
+ */
+const FIELD_PATH = pathDirs("$HOME").join(":");
+
 export const SETUP_FIELD =
   'n=0; rc=0; seen=""; ' +
   "for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh " +
@@ -667,7 +695,7 @@ export const SETUP_FIELD =
   // Exported BEFORE the secrets phase, not after: the toolchain installs into
   // ~/.local/bin, and materialization spawns the provider CLI by name. Ordered
   // the other way it gets ENOENT on a binary that is sitting right there.
-  'export PATH="$HOME/.local/bin:$PATH"; ' +
+  `export PATH="${FIELD_PATH}:$PATH"; ` +
   `npx -y ${SELF_SPEC} remote-env --phase=secrets || ts=$?; ` +
   // Now the notes can answer it. A vault that names nothing yields an empty
   // string, and `--tools=` with an empty value selects the whole catalogue —
