@@ -6,9 +6,14 @@
  * prose breaks, by being correct on the surface its author used and wrong on
  * the other one.
  *
- * The line under test is READ OUT OF `SKILL.md` rather than duplicated here, so
- * the documentation is the source of truth and editing it to something that
- * cannot find the entrypoint turns this red.
+ * The line under test is the EMITTED one, because it is now the only one. It
+ * used to be read out of `SKILL.md`, with a separate assertion that the two
+ * agreed — a reasonable guard while there were two copies, and a guard the
+ * duplication itself kept defeating: the documented copy is a snapshot taken at
+ * build time, the release bumps the version after the build, and so the two
+ * disagreed after every single release. `SKILL.md` now tells operators to ask
+ * for the line instead of copying it, which removes the second copy and with it
+ * the thing the parity assertion was defending.
  * @module tests/unit/secrets/remote-env-setup-field
  */
 import { execFileSync } from "node:child_process";
@@ -39,20 +44,6 @@ const ZULU = "FOUND-zulu";
 const BASH = "/bin/bash";
 
 /**
- * Pull the `setup:` line out of the skill's documented field block.
- * @returns The shell command an operator is told to paste.
- */
-function documentedSetupField(): string {
-  // A line scan rather than a regex: the field is long and shell-shaped, and a
-  // pattern loose enough to capture it is exactly the kind that backtracks badly.
-  const line = readFileSync(SKILL, "utf8")
-    .split("\n")
-    .find(candidate => candidate.startsWith("setup:"));
-  if (!line) throw new Error(`no 'setup:' field found in ${SKILL}`);
-  return line.slice("setup:".length).trim();
-}
-
-/**
  * Build a checkout containing a stub entrypoint that identifies itself.
  * @param root Directory to create the checkout in.
  * @param marker Text the stub prints when executed.
@@ -63,18 +54,21 @@ function checkout(root: string, marker: string): void {
   writeFileSync(path.join(root, ENTRYPOINT), `echo ${marker}\n`);
 }
 
-describe("emitted setup field", () => {
-  it("is the same line the documentation tells operators to paste", () => {
-    // Two copies of a shell one-liner — one emitted, one in prose — drift
-    // silently: the emitter is what an operator actually pastes, SKILL.md is
-    // what a reader believes, and only one of them got fixed the first time
-    // this broke. Pinning them equal is what extends the tests below, which
-    // execute the documented line, to cover the emitted one too.
-    expect(SETUP_FIELD).toBe(documentedSetupField());
+describe("SKILL.md", () => {
+  it("tells operators to ASK for the field rather than copying one", () => {
+    // The parity assertion that used to live here is gone because its subject
+    // is: there is no second copy to disagree with. What replaces it is the
+    // guarantee that made the copy unnecessary — the document points at the
+    // emitter, and carries no pinned version of its own to go stale.
+    const doc = readFileSync(SKILL, "utf8");
+
+    expect(doc).toContain("remote-env --emit=");
+    expect(doc).not.toMatch(/@codyswann\/lisa@\d+\.\d+\.\d+/);
+    expect(doc).not.toContain("for f in scripts/lisa-remote-env/setup.sh");
   });
 });
 
-describe("documented remote-env setup field", () => {
+describe("the emitted remote-env setup field", () => {
   let temporary: string;
 
   beforeEach(() => {
@@ -86,14 +80,14 @@ describe("documented remote-env setup field", () => {
   });
 
   /**
-   * Run the documented field with a given working directory.
+   * Run the emitted field with a given working directory.
    * @param cwd Directory the vendor would run the field from.
    * @param home Value of `$HOME` in the container, which defaults to `cwd`
    *   because on Claude Code web they are the same directory.
    * @returns Combined output of the field.
    */
   const runField = (cwd: string, home = cwd): string =>
-    execFileSync(BASH, ["-c", documentedSetupField()], {
+    execFileSync(BASH, ["-c", SETUP_FIELD], {
       cwd,
       // The field consults $HOME, so the tests must control it. Inheriting the
       // developer's real home would make them depend on that machine's layout

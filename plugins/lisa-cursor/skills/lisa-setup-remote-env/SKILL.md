@@ -12,10 +12,25 @@ Prepare a remote surface so a host project can execute there. Today that means *
 
 The remote environment's own configuration fields stay **one line into the repository**. Nothing else is pasted into a vendor UI.
 
-```text
-setup:       n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] && exit "$rc"; g=0; for c in ./.git ./*/.git "$HOME"/*/.git /workspace/*/.git; do [ -e "$c" ] && g=1; done; if [ "$g" -eq 1 ]; then echo "lisa-remote-env entrypoint not found, but a checkout is present. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; fi; ten="${LISA_TENANT:-${LISA_SECRETS_NAMESPACE:-}}"; if [ -n "$ten" ]; then echo "No checkout; preparing tools and credentials for $ten."; tw=0; tt=0; ts=0; tp=0; npx -y @codyswann/lisa@2.338.1 workstation --install --agents=none --tools=none --provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tw=$?; export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.local/share/sonarqube-cli/bin:$PATH"; npx -y @codyswann/lisa@2.338.1 remote-env --phase=secrets || ts=$?; w=$(npx -y @codyswann/lisa@2.338.1 remote-env --print-tools 2>/dev/null) || tp=$?; w=$(printf "%s\n" "$w" | tail -1); [ "$tp" -eq 0 ] || echo "SETUP INCOMPLETE: could not read the tool list from the vault (exit $tp). Installing the full catalogue." >&2; npx -y @codyswann/lisa@2.338.1 workstation --install --agents=none --tools="$w" --provider="${LISA_PROVIDER:-${LISA_SECRETS_PROVIDER:-bitwarden}}" || tt=$?; [ "$tw" -eq 0 ] && [ "$tt" -eq 0 ] || echo "SETUP INCOMPLETE: tool install failed (exit $tw/$tt). The session will start WITHOUT the pinned tools." >&2; [ "$ts" -eq 0 ] || echo "SETUP INCOMPLETE: secrets did not materialize (exit $ts). The session will start WITHOUT credentials." >&2; else echo "No checkout and no tenant configured; nothing to prepare."; fi; exit 0
-maintenance: n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
+**Ask for that line; do not copy it from here.**
+
+```bash
+npx -y @codyswann/lisa@latest remote-env --emit=claude-web
 ```
+
+The field pins the exact Lisa it runs, and the emitter reads that version from
+the package it is running out of — so the line it prints is always pinned to the
+version that printed it.
+
+A copy written into this file cannot have that property. It is a snapshot taken
+when the package was *built*, and the release bumps the version *after* the
+build, so a published tarball's copy names the previous release. That is not a
+cosmetic lag: the pinned version predates whatever this file documents, so a
+pasted copy can call flags that version does not implement. Measured on
+`2.338.1`, whose embedded copy named `2.338.0` — a Lisa with no `--print-tools`,
+no `--tools`, and no `tools-from-notes.mjs`. Unknown flags are ignored rather
+than rejected, so it did not fail; it installed the full catalogue and re-ran the
+whole setup, three times over, inside a five-minute budget.
 
 **That line is identical for every project AND every surface.** Nothing in it names the
 repository or the package manager, so it can be pasted unchanged anywhere.
@@ -236,8 +251,10 @@ When emitting, produce exactly:
 ```text
 Environment name:  <project> remote executor
 Repository:        <org>/<repo>        (must be the default checkout)
-Setup script:      n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
-Maintenance:       n=0; rc=0; seen=""; for f in scripts/lisa-remote-env/setup.sh */scripts/lisa-remote-env/setup.sh "$HOME"/scripts/lisa-remote-env/setup.sh "$HOME"/*/scripts/lisa-remote-env/setup.sh /workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; n=$((n+1)); bash "$f" || rc=$?; done; [ "$n" -gt 0 ] || { echo "lisa-remote-env entrypoint not found. PWD=$PWD HOME=$HOME" >&2; ls -1 . "$HOME" /workspace 2>&1 | head -40 >&2; exit 1; }; exit "$rc"
+Setup script:      <printed by `remote-env --emit`; never copied
+                   from prose, so its pin is always the version
+                   that printed it>
+Maintenance:       <same line, printed by the same command>
                    (identical for every project — the script finds the
                    checkout and installs from the committed lockfile)
 Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
