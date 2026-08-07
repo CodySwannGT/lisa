@@ -1159,7 +1159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "8e08fae1925945663a6a23629f83f0e4aa945ed3d9fb3e83f0a0fb9e86b2c906",
+      "100d4a0e7b187defd69f8690d518b11544fc9e16f0aa3db1c622b1adfd9449e9",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
@@ -1179,7 +1179,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
       "874c075c63c45d0ffca4e98d7cb28bbeeb804675d1733571c1b3d38705404eb3",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
-      "9d8c3a8c16d2942449c131fff1e1b0c08558ab8889eb926404eb7f91e5b0ace4",
+      "6ab19c08aa9db7643aa49133ba1d0febf1c1dbdc9a503026a01b1ce0a83f68ab",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "031acb01195ae59010a65335da98d46a1d6080e749823d6f6d157938d9e96648",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
@@ -8749,6 +8749,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/usage-accounting-token-serialization.test.ts": true,
     "tests/unit/utils/usage-accounting.test.ts": true,
     "tests/unit/workstation/fixtures.ts": true,
+    "tests/unit/workstation/link-into-bin-dir.test.ts": true,
     "tests/unit/workstation/workstation-install.test.ts": true,
     "tests/unit/workstation/workstation-plan.test.ts": true,
     "transcripts/.gitkeep": true,
