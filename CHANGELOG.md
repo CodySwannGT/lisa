@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.1](https://github.com/CodySwannGT/lisa/compare/v2.341.0...v2.341.1) (2026-08-07)
+
+
+### Documentation
+
+* write down the onboarding order, and test it against the code ([11b188d](https://github.com/CodySwannGT/lisa/commit/11b188d684b00b77a3d537e23a41b66ce0b34590)), closes [CodySwannGT/lisa#2367](https://github.com/CodySwannGT/lisa/issues/2367)
+
 ## [2.341.0](https://github.com/CodySwannGT/lisa/compare/v2.340.0...v2.341.0) (2026-08-07)
 
 
