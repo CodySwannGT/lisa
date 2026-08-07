@@ -17,6 +17,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { bootstrapKeyFor } from "./providers.mjs";
+
 /**
  * Capabilities, per surface.
  *
@@ -237,10 +239,14 @@ function fromEnvironment(env) {
     namespace: assertNamespace(namespace),
     bootstrap: {
       ...DEFAULTS.bootstrap,
+      // Derived from the provider resolved just above, not from Bitwarden's
+      // name. Hardcoding it told a Doppler tenant to set BWS_ACCESS_TOKEN_<ns>,
+      // which its CLI has never heard of — on the one surface that has no
+      // config file to override the guess.
       key:
         env.LISA_BOOTSTRAP_KEY ??
         env.LISA_SECRETS_BOOTSTRAP_KEY ??
-        `BWS_ACCESS_TOKEN_${namespace}`,
+        bootstrapKeyFor(provider, namespace),
     },
   };
 }

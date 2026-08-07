@@ -322,13 +322,17 @@ describe("emitted Claude configuration", () => {
     expect(emitted).toContain("proxy-injected");
   });
 
-  it("says plainly when the bootstrap has not been configured", () => {
+  it("says how to fill the bootstrap in, rather than naming a config path", () => {
+    // It used to print `<secrets.bootstrap.key is not configured>`, which reads
+    // as an error in a file the operator of a repo-less surface does not have.
+    // The actionable version names the flag that resolves it.
     const missing = emitClaudeWeb({
       bootstrapKey: null,
       install: "npm ci",
       repoDir: "lisa",
     });
-    expect(missing).toMatch(/secrets\.bootstrap\.key is not configured/);
+
+    expect(missing).toMatch(/Re-run with --tenant=/);
   });
 });
 
