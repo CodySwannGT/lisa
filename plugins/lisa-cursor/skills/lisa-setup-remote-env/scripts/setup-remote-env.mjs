@@ -893,11 +893,62 @@ export function pinEnvironment(environmentId, cwd = process.cwd()) {
  * settings page, no direct URL, and no endpoint. Emit is not a degraded option
  * here, it is the only one — so the read-back in `verify-remote-env.mjs` is
  * what makes the result trustworthy, exactly as it would be at any other tier.
- * @param {{bootstrapKey: string|null}} options Project details.
+ * @param {{bootstrapKey: string|null, tenant?: string|null, provider?: string}} options Project details.
  * @returns {string} Text to show the operator.
  */
-export function emitClaudeWeb({ bootstrapKey }) {
-  const key = bootstrapKey ?? "<secrets.bootstrap.key is not configured>";
+/**
+ * The lines an operator puts above the field, for a session with no checkout.
+ *
+ * Emitted as shell that runs, not as a template with holes: every hole is a
+ * hand substitution in a settings box with no review, which is the failure this
+ * whole file exists to prevent. So a provider that cannot be bootstrapped by an
+ * environment variable gets a sentence explaining that, not an `export` of a
+ * placeholder — a line that would be a syntax error if pasted.
+ *
+ * `LISA_PROVIDER` is exported even though the field defaults it, because the
+ * field's default is Bitwarden. A Doppler tenant that omits it gets `bws`
+ * installed and its own CLI missing, having configured everything correctly.
+ * @param {object} options Resolved identity and display strings.
+ * @returns {string[]} Lines to include in the emitted guidance.
+ */
+function repoLessExports({ namespace, key, provider, bootstrapKey, tenant }) {
+  // Two different reasons the key can be missing, and telling them apart is the
+  // whole value of the message. "Nothing was named" is the operator's to fix by
+  // re-running; "this provider has no such variable" is not fixable at all and
+  // must not read as an omission.
+  if (!tenant) {
+    return [
+      "      # Re-run with --tenant=<name> and these are filled in for you.",
+      `      export LISA_TENANT=${namespace}`,
+      "      export <bootstrap variable>='<read from your credential manager>'",
+      "      export LISA_SECRETS_SURFACE=claude-web",
+    ];
+  }
+  if (!bootstrapKey) {
+    return [
+      `      # ${provider} has no environment-variable bootstrap, so there is`,
+      "      # nothing to export for it. Authenticate it the way its own CLI",
+      "      # expects, then set the three below.",
+      `      export LISA_TENANT=${namespace}`,
+      `      export LISA_PROVIDER=${provider}`,
+      "      export LISA_SECRETS_SURFACE=claude-web",
+    ];
+  }
+  return [
+    `      export LISA_TENANT=${namespace}`,
+    `      export ${key}='<the same value as above>'`,
+    ...(provider ? [`      export LISA_PROVIDER=${provider}`] : []),
+    "      export LISA_SECRETS_SURFACE=claude-web",
+  ];
+}
+
+export function emitClaudeWeb({
+  bootstrapKey,
+  tenant = null,
+  provider = null,
+}) {
+  const key = bootstrapKey ?? "<not resolved>";
+  const namespace = tenant ?? "<your namespace>";
   return [
     "Provisioning tier: EMIT — and for this surface that is the only tier.",
     "  A Claude cloud environment is account-scoped configuration edited in the",
@@ -924,11 +975,9 @@ export function emitClaudeWeb({ bootstrapKey }) {
     "    while the image is being built, before the environment exists. So a",
     "    session with no checkout has to be told its tenant inside the script",
     "    itself, or the field finds nothing to prepare and exits 0 looking like",
-    "    success. Put these three lines FIRST, then the line after them:",
+    "    success. Put the lines below FIRST, then the field after them:",
     "",
-    "      export LISA_TENANT=<your namespace>",
-    `      export ${key}='<the same value as above>'`,
-    "      export LISA_SECRETS_SURFACE=claude-web",
+    ...repoLessExports({ namespace, key, provider, bootstrapKey, tenant }),
     "",
     "    LISA_SECRETS_SURFACE is set explicitly rather than left to detection:",
     "    detection keys off CLAUDE_CODE_REMOTE, and a surface that does not set",
@@ -1096,6 +1145,54 @@ function readBootstrapKey(cwd = process.cwd()) {
   return JSON.parse(readFileSync(path, "utf8")).secrets?.bootstrap?.key ?? null;
 }
 
+/**
+ * Work out what to tell the operator to export, for a surface that has no repo.
+ *
+ * Emitting used to read the key out of `.lisa.config.json` in the working
+ * directory, which made the command that configures a REPO-LESS environment
+ * require a repository — so it was run from a checkout that happened to be
+ * nearby, or it printed a placeholder the operator substituted by hand.
+ *
+ * Explicit flags win, then the environment, then a checkout if the caller
+ * happens to be standing in one, then the convention. The provider matters
+ * because it decides the variable's name: `bws` reads `BWS_ACCESS_TOKEN` and
+ * `doppler` reads `DOPPLER_TOKEN`, so a tenant on one told to export the
+ * other's name gets "Missing access token" from a CLI it did configure.
+ * @param {string[]} argv Process arguments.
+ * @param {Record<string, string|undefined>} [env] Environment to read.
+ * @param {string} [cwd] Directory to look for a config in.
+ * @returns {Promise<{tenant: string|null, provider: string, bootstrapKey: string|null}>} Resolved identity.
+ */
+export async function resolveEmitTarget(
+  argv,
+  env = process.env,
+  cwd = process.cwd()
+) {
+  const flag = name =>
+    argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? null;
+
+  const tenant =
+    flag("tenant") ||
+    (env.LISA_TENANT ?? env.LISA_SECRETS_NAMESPACE ?? "").trim() ||
+    null;
+  const provider =
+    flag("provider") ||
+    (env.LISA_PROVIDER ?? env.LISA_SECRETS_PROVIDER ?? "").trim() ||
+    "bitwarden";
+
+  // A configured key outranks the convention: a project may legitimately use a
+  // name that is not derivable, and this command must not tell its operator to
+  // set a different one from the one their sessions actually read.
+  const configured = readBootstrapKey(cwd);
+  if (configured) return { tenant, provider, bootstrapKey: configured };
+  if (!tenant) return { tenant, provider, bootstrapKey: null };
+
+  const { bootstrapKeyFor } = await import(
+    pathToFileURL(siblingScript("lisa-secrets-access", "providers.mjs")).href
+  );
+  return { tenant, provider, bootstrapKey: bootstrapKeyFor(provider, tenant) };
+}
+
 async function main() {
   // `--print-tools` answers "which CLIs does this secret set imply", reading
   // the notes materialized alongside the values.
@@ -1170,7 +1267,7 @@ async function main() {
           `Emitting is implemented for claude-web, which has no other tier.`
       );
     }
-    console.log(emitClaudeWeb({ bootstrapKey: readBootstrapKey() }));
+    console.log(emitClaudeWeb(await resolveEmitTarget(process.argv)));
     return;
   }
 

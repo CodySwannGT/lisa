@@ -18,7 +18,15 @@ import { describe, expect, it } from "vitest";
 
 import { emitClaudeWeb } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
-const emitted = emitClaudeWeb({ bootstrapKey: "BWS_ACCESS_TOKEN_acme" });
+// The tenant is supplied because that is the case worth asserting: with one,
+// every placeholder is filled in and the block is shell that runs as pasted.
+// Without one the guidance switches to "re-run with --tenant=", which
+// `emit-tenant-provider` covers.
+const emitted = emitClaudeWeb({
+  bootstrapKey: "BWS_ACCESS_TOKEN_acme",
+  tenant: "acme",
+  provider: "bitwarden",
+});
 
 describe("the repo-less exports in the emitted configuration", () => {
   it("names all three", () => {

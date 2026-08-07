@@ -52,6 +52,29 @@ const PROVIDER_BOOTSTRAP_ENV = {
 };
 
 /**
+ * The tenant-scoped bootstrap variable a provider expects, by convention.
+ *
+ * Exists so the repo-less path cannot invent one. It used to compose
+ * `BWS_ACCESS_TOKEN_<namespace>` literally, ignoring the provider it had just
+ * resolved — so a Doppler tenant with no checkout was told to set a Bitwarden
+ * variable, and its CLI failed with "Missing access token". That is precisely
+ * the confusion the two questions above are separated to prevent, reintroduced
+ * on the one surface with no config file to correct it.
+ *
+ * `null` for a provider with no env-var bootstrap — 1Password, Vault and AWS
+ * authenticate by other means — because a name invented for them would be a
+ * variable nothing reads, which is worse than admitting there is none.
+ * `providerEnv` already treats an unmapped provider as "inject nothing".
+ * @param {string} provider Provider name.
+ * @param {string} namespace Tenant namespace.
+ * @returns {string|null} The variable to set, or null when the provider has none.
+ */
+export function bootstrapKeyFor(provider, namespace) {
+  const canonical = PROVIDER_BOOTSTRAP_ENV[provider];
+  return canonical ? `${canonical}_${namespace}` : null;
+}
+
+/**
  * Build the child environment for a provider CLI, injecting the bootstrap under
  * the name that CLI actually reads.
  *

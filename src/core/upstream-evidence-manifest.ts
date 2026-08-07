@@ -1113,7 +1113,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
       "3b598675cee9d5235a3d12b82ab969effb0b47be263edf41474f8427105e3ce4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "fec38ca937570c1e1c21e6e8f7314a9d8f4e9264779d0394b40d5158924da0da",
+      "af876989440fdf2ddb035a40829474c6a5c0c9c292c4d18d2447a16a3b67361d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "1471d2108058f3059e242f9c71208c99fdbc212bde32de34b798eaa9a27ffbcc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "a765822c43fe488a674683a820cd03e8a9cc2f4507391afc4d971a500f4d0d3e",
+      "2bbd7234626813d0458a7aecd68eb4d69dcacea2d3c907594e1619af9e15537f",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "07d183d8325341feea0db82c5f48f403981d0642999ce9b6462b6f89642e93c6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -1165,7 +1165,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "4d4f3fa7d49a430bd30ab32876a9b8492dcb51f6693e924a5ae5f5d49f6b7463",
+      "5de9b2987ab50e15bbbe24d025d79ef38e1ad1021df7b80ef71c0401b70917f4",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -8516,6 +8516,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/emit-claude-web-exports.test.ts": true,
+    "tests/unit/secrets/emit-tenant-provider.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
