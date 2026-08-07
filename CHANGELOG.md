@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.338.1](https://github.com/CodySwannGT/lisa/compare/v2.338.0...v2.338.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **secrets:** put every install directory on the setup field PATH ([59281c5](https://github.com/CodySwannGT/lisa/commit/59281c54df93c7610a1355b916169e41f2f95e47)), closes [CodySwannGT/lisa#2353](https://github.com/CodySwannGT/lisa/issues/2353)
+
 ## [2.338.0](https://github.com/CodySwannGT/lisa/compare/v2.337.3...v2.338.0) (2026-08-06)
 
 
