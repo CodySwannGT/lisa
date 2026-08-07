@@ -34,6 +34,8 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { existsSync, lstatSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   AGENTS,
@@ -297,6 +299,84 @@ export function renderPlan(plan) {
  * @param {object} [deps] Injected runner, for tests.
  * @returns {object} Result row.
  */
+/**
+ * Make a tool that installed elsewhere reachable from `~/.local/bin`.
+ *
+ * A vendor script installs where it likes — SonarQube's puts `sonar` under
+ * `~/.local/share/sonarqube-cli/bin` — and the catalogue records that in
+ * `binDir`. Until now the only thing that put those directories on PATH was an
+ * edit to the shell rc files, which a cloud container never reads: its tool
+ * shell is not a login shell. So the tool installed, and the session that asked
+ * for it could not find it. Observed on a live Claude Tag channel, where
+ * `~/.local/share/sonarqube-cli` existed and `command -v sonar` came back empty.
+ *
+ * Exporting PATH from the setup script does not fix that either — those exports
+ * die with the process that ran them. Only the filesystem survives into the
+ * session, so the fix has to be a file.
+ *
+ * A symlink into `~/.local/bin` is the shape the AWS installer already uses
+ * (`aws -> ~/.local/aws-cli/v2/current/bin/aws`), and that directory is the one
+ * place every surface agrees is on PATH.
+ *
+ * Deliberately never fatal. A tool that is already reachable does not need the
+ * link, and one that cannot be linked is caught a moment later by the probe —
+ * which reports the real problem instead of a symlink error standing in for it.
+ * @param {object} entry Catalogue entry just installed.
+ * @param {object} [deps] Injected seams, for tests.
+ */
+export function linkIntoBinDir(entry, deps = {}) {
+  if (!entry.binDir) return;
+
+  const home = deps.home ?? process.env.HOME ?? "";
+  const link = deps.link ?? symlinkSync;
+  const exists = deps.exists ?? existsSync;
+  const remove = deps.remove ?? rmSync;
+  const makeDir = deps.mkdir ?? mkdirSync;
+  // Two different questions, and they need two different probes.
+  //
+  // The SOURCE must be followed: a link pointing at a binary that is not there
+  // means the install did not produce one, whatever the link says.
+  //
+  // The TARGET must NOT be followed. `existsSync` reports false for a dangling
+  // symlink, which is precisely the case this function claims to repair — the
+  // vendor moved and the old link now points at nothing. Following it would
+  // skip the removal, `symlinkSync` would throw EEXIST, the catch below would
+  // swallow it, and the broken link would survive the fix meant to replace it.
+  const present = deps.present ?? (path => lstatPresent(path));
+
+  const source = join(
+    entry.binDir.replace(/^~/, home),
+    entry.binary ?? entry.name
+  );
+  const target = join(home, ".local", "bin", entry.name);
+  if (source === target || !exists(source)) return;
+
+  try {
+    makeDir(join(home, ".local", "bin"), { recursive: true });
+    // Replaced rather than skipped-if-present: a stale link left by an earlier
+    // version pointing at a path the vendor has since moved is worse than none,
+    // because it resolves and then fails at the moment of use.
+    if (present(target)) remove(target, { force: true });
+    link(source, target);
+  } catch {
+    // See above: the probe is the authority on whether this worked.
+  }
+}
+
+/**
+ * Whether a path exists WITHOUT following it, so a dangling link counts.
+ * @param {string} path Path to inspect.
+ * @returns {boolean} True when something occupies the path.
+ */
+function lstatPresent(path) {
+  try {
+    lstatSync(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function installEntry(entry, row, deps = {}) {
   const run =
     deps.run ??
@@ -397,6 +477,10 @@ export function installEntry(entry, row, deps = {}) {
       reason: String(error.message).slice(0, 160),
     };
   }
+
+  // Link it into ~/.local/bin BEFORE probing, because that is what makes the
+  // probe meaningful for a tool the vendor put somewhere else.
+  linkIntoBinDir(entry, deps);
 
   // Verify by looking, not by exit status. Every installer above can exit 0
   // having installed nothing, so a claim of success is only as good as a fresh
