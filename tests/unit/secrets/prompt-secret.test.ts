@@ -11,7 +11,7 @@ import {
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs";
 
 /** A stand-in for the credential. */
-const TYPED = "not-a-real-token.value==\n";
+const TYPED = "stand-in-not-a-credential\n";
 
 /**
  * Injected seams that record what the prompt did.
@@ -55,7 +55,7 @@ describe("promptSecret", () => {
   it("returns what was typed, trimmed", () => {
     const { io } = harness();
 
-    expect(promptSecret("token: ", io)).toBe("not-a-real-token.value==");
+    expect(promptSecret("token: ", io)).toBe("stand-in-not-a-credential");
   });
 
   it("disables echo before reading and restores it after", () => {
