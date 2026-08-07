@@ -11,6 +11,8 @@
 
 import { execFileSync } from "node:child_process";
 
+import { readBootstrapFile } from "./bootstrap-store.mjs";
+
 /**
  * A provider key becomes a shell variable name on materializing surfaces, so
  * only names valid in every POSIX-like shell are accepted. Anything else stays
@@ -129,12 +131,22 @@ export function bootstrapToken(bootstrap) {
 }
 
 /**
- * Read one value from the macOS keychain, treating absence as empty.
- * @param {string} key Keychain service name.
+ * Read one value from this machine's credential store, treating absence as
+ * empty.
+ *
+ * The `keychain` source names a role, not a macOS API: "wherever this machine
+ * keeps its bootstrap". On macOS that is the keychain. Elsewhere there is no
+ * store that can be assumed present — libsecret needs a daemon and a desktop
+ * session, which a server or container does not have — so it is a `0600` file,
+ * the same protection the materialized secrets file already relies on.
+ *
+ * Returning empty on the other platform, as this did before, meant a Linux
+ * machine could store a bootstrap and never read it back.
+ * @param {string} key Bootstrap variable name.
  * @returns {string} The value, or an empty string when unavailable.
  */
 function fromKeychain(key) {
-  if (process.platform !== "darwin") return "";
+  if (process.platform !== "darwin") return readBootstrapFile(key);
   try {
     return execFileSync(
       "security",
