@@ -1165,7 +1165,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "5334419d3b236ce7d3bbcb3fc12d2d221ccf487a4ad6a6b44b841e68e638b89c",
+      "4d4f3fa7d49a430bd30ab32876a9b8492dcb51f6693e924a5ae5f5d49f6b7463",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -8534,6 +8534,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
     "tests/unit/secrets/setup-field-budget.test.ts": true,
+    "tests/unit/secrets/setup-field-first-failure.test.ts": true,
     "tests/unit/secrets/setup-field-flags.test.ts": true,
     "tests/unit/secrets/setup-field-lookup-status.test.ts": true,
     "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
