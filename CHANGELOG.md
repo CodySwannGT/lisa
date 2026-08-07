@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.340.0](https://github.com/CodySwannGT/lisa/compare/v2.339.0...v2.340.0) (2026-08-07)
+
+
+### Features
+
+* **secrets:** store the bootstrap, instead of documenting a shell command ([ebcbb31](https://github.com/CodySwannGT/lisa/commit/ebcbb3165363512f929679bf0b4ac42541317664)), closes [CodySwannGT/lisa#2363](https://github.com/CodySwannGT/lisa/issues/2363)
+
+
+### Bug Fixes
+
+* **secrets:** make the keychain write actually store the value ([847bc89](https://github.com/CodySwannGT/lisa/commit/847bc89edc7d18afd3a629962a7de220945fff0e)), closes [CodySwannGT/lisa#2363](https://github.com/CodySwannGT/lisa/issues/2363)
+
+
+### Documentation
+
+* **secrets:** correct the storeBootstrap comment to match the code ([3a85082](https://github.com/CodySwannGT/lisa/commit/3a85082a2c6720425ce1a1c441890d339a8b5747)), closes [CodySwannGT/lisa#2363](https://github.com/CodySwannGT/lisa/issues/2363)
+
 ## [2.339.0](https://github.com/CodySwannGT/lisa/compare/v2.338.5...v2.339.0) (2026-08-07)
 
 
