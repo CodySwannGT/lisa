@@ -417,7 +417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/learning-judge.md":
       "28618c3e20a0f790e4d254a9c8118645774233f19e3042b3cfeddf4ffbaf783a",
     "plugins/src/base/agents/learnings-synthesizer.md":
-      "186ea8a1baa66443eb73dcefb93aa8a767e3d600618de6359a09a0413f1f52c0",
+      "6c8d060e514da9b52766f5aad5cced1f1780defc6f118a30239660d894eb36a1",
     "plugins/src/base/agents/linear-agent.md":
       "d55664da47505d702d9bbbb96f9f98930d871acc5fc2972d35e1ae143f2dbde7",
     "plugins/src/base/agents/linear-build-intake.md":
@@ -749,7 +749,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/integration-access-layer.md":
       "8b0a0fc0e63492efce79c58a0fc1f112748b17ad59383cfdb9c25300b29a2c8b",
     "plugins/src/base/rules/reference/intent-routing.md":
-      "cc3f77c7b394645b89e0bf388a0db50544a2986af61d7a5646f4ef278e94d817",
+      "38f6b5889bc4b0a679d01d7457cb2b5f196c4881103c19e5d855e9043076ff35",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "3d6d531fdca61a348fa1dd1bdb4c28fe66c85fb955238ef668a78cce4a36a7a1",
     "plugins/src/base/rules/reference/observability-audit.md":
@@ -761,7 +761,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "e61b745bb1ddfbe24634246588c13e4e78c25b50817e5e8ff02e1a9681ad1130",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "0326d553d6cb9b997c6cb865635f72ec8b7d5026565f788f46bff0e912748e85",
+      "a51e3317020436e2d0a3a686e82a7d9989dabfa1c1727bac048feca4a7a16dad",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "472416b82eda5431c8e5467d6093fe9da79efa7eb836e79c77b75ef77ee194a4",
     "plugins/src/base/rules/reference/readiness-rubric.md":
@@ -859,9 +859,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
       "d1d33a149cab2de0d0b4c7ddc6bb2f67f43a097e5f551f642b1cb076747a5a05",
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md":
-      "90c5f01994bb0f8e71947e8a2f765ccf9a6aa3da47b8d7b8e2022150ef89c2b2",
+      "67b0d2a21a8c19a8bf48e43f282a1940931763682364c29558444d5c02ad4725",
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
-      "47e4cda36b07994ff47ab15fb04a17dd6b0c310ad804f9cae9d69637edaaa72a",
+      "1a1b933c1c64e16a27568bb05c41103bda1084dde785024b5cdae93363d834e4",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
@@ -923,7 +923,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "e68a85d24bea73fed811c6f5a131f5503a7f11f3aaaa7a4a7ad27423ca37f373",
+      "9d93865818a63cf3f6374267565906fe4beea314cc6b467d74707cb64c873d4b",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1243,7 +1243,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
       "d89740a4dc350a9ac0d26b1b955bf74f009775b60ee0275df3f9a50fe8be3048",
     "plugins/src/base/skills/lisa-verify/SKILL.md":
-      "bd97bd5965c05eafff25fcfeabe0fa7e763f96d5dcab8bf959a78679696c33f1",
+      "b303be2e2ed31c6a9a85564adbc451d9651fb2283f8c44732f51838c3a56fb8b",
     "plugins/src/base/skills/lisa-wiki-install/SKILL.md":
       "9689e5080dfdeffcebd230a5c1cb1ae7b173172a060a603634058f91ca71c17b",
     "plugins/src/cdk/commands/setup/aws.md":
@@ -8626,6 +8626,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/copy-contents.test.ts": true,
     "tests/unit/strategies/copy-overwrite.test.ts": true,
     "tests/unit/strategies/create-only.test.ts": true,
+    "tests/unit/strategies/debrief-destination-hints.test.ts": true,
     "tests/unit/strategies/debrief-reroute-contract.test.ts": true,
     "tests/unit/strategies/dependency-decision-records-rule-pair.test.ts": true,
     "tests/unit/strategies/dependency-internalization-kit-rule-pair.test.ts": true,
@@ -8745,6 +8746,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/usage-accounting-table-normalization-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-writer-preservation.test.ts": true,
     "tests/unit/strategies/usage-pricing-config-resolution.test.ts": true,
+    "tests/unit/strategies/verify-flow-surface-parity.test.ts": true,
     "tests/unit/strategies/verify-prd-guard-logic.test.ts": true,
     "tests/unit/strategies/verify-prd-idempotency.test.ts": true,
     "tests/unit/strategies/verify-prd-scaffold.test.ts": true,
