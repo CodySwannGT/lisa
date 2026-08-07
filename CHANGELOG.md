@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.341.0](https://github.com/CodySwannGT/lisa/compare/v2.340.0...v2.341.0) (2026-08-07)
+
+
+### Features
+
+* **secrets:** add lisa environment <surface> --tenant=<name> ([d8fbae8](https://github.com/CodySwannGT/lisa/commit/d8fbae8b741ee0bc2aeafa34d09fcb12bdec989f)), closes [CodySwannGT/lisa#2365](https://github.com/CodySwannGT/lisa/issues/2365)
+
 ## [2.340.0](https://github.com/CodySwannGT/lisa/compare/v2.339.0...v2.340.0) (2026-08-07)
 
 
