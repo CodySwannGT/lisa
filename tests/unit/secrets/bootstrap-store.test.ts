@@ -23,7 +23,7 @@ import {
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs";
 
 /** A stand-in for the credential, so no real one appears in the repo. */
-const TOKEN = "not-a-real-token.value==";
+const TOKEN = "stand-in-not-a-credential";
 
 let home: string;
 let env: Record<string, string>;
