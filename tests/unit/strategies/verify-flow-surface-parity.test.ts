@@ -171,5 +171,15 @@ describe.each(ALL_SEQUENCE_PATHS)(
       expect(scoped).toMatch(/artifact-only/i);
       expect(scoped).toMatch(/needs-human|human-review/);
     });
+
+    it("records what was tried, not just that something stopped", () => {
+      // A label alone is not an auditable hand-off: the condensed versions of
+      // this rule kept the label and dropped the tracker comment, losing which
+      // credential sources were checked and what went unverified.
+      expect(scoped).toMatch(
+        /tracker comment|comment on the (work item|ticket)/i
+      );
+      expect(scoped).toMatch(/blocked state/i);
+    });
   }
 );

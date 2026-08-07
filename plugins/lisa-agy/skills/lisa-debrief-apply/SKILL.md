@@ -34,6 +34,7 @@ For every row marked **Accept**:
 | Decomposition infidelity | Upstream Lisa repo | File an upstream Lisa issue per the "Filing upstream" procedure in `lisa-rework-triage`, citing the PRD text vs. the distorted ticket AC and naming the gate that passed it. |
 | PRD defect | Source PRD | Comment on the PRD via the `lisa-prd-backlink` lineage quoting the defective requirement and the failure it missed; flag for product review. Never silently edit the spec. |
 | Missing tool access | Configured tracker | Create a provisioning ticket via `lisa-tracker-write` (`issue_type: Task`, `type:tooling`) describing the missing tool/credential/environment and which flow needs it. |
+| Uncategorized | **No route — requires reclassification** | `Uncategorized` records that the synthesizer could not fit the finding to a category; it is not itself a destination. Do NOT guess a route and do NOT silently skip the row. Leave the row unapplied, mark it `[!] Needs reclassification — <the synthesizer's "why no category fit" note>`, and list it under its own heading in the run summary so the human can retag it to one of the eight and re-run `apply`. A row that stays `Uncategorized` across runs is a signal the category set itself is missing a case — worth an upstream Lisa issue, not a forced fit. |
 
 For every row marked **Reject** or **Defer**: no action. Defer is a no-op for `apply` but worth surfacing in the run summary — the human may want to revisit at the next debrief.
 
@@ -92,6 +93,8 @@ Applied <n> learnings:
   <n> missing tool access → <tracker> (<key1>, ...)
 Skipped:
   <n> rejected, <n> deferred, <n> already-applied
+Needs reclassification:
+  <n> uncategorized (retag to one of the eight categories and re-run apply)
 Failed:
   <n> (see <path> for details)
 Triage doc updated in place: <path>
