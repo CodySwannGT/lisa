@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "2bbd7234626813d0458a7aecd68eb4d69dcacea2d3c907594e1619af9e15537f",
+      "284c0634b64d6c2b24d388cf3a74a6275588c592fdf60a525ba5aa3c7cc569b7",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "07d183d8325341feea0db82c5f48f403981d0642999ce9b6462b6f89642e93c6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -8511,6 +8511,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/aws-profiles-install.test.ts": true,
     "tests/unit/secrets/aws-profiles-permissions.test.ts": true,
     "tests/unit/secrets/aws-profiles.test.ts": true,
+    "tests/unit/secrets/bootstrap-defaults.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
