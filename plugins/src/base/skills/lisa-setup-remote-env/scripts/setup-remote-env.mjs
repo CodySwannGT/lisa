@@ -1031,6 +1031,142 @@ export function emitClaudeWeb({
 }
 
 /**
+ * Emit the configuration for a surface Lisa cannot reach.
+ *
+ * Dispatch rather than four call sites, so `environment` names a surface and
+ * nothing downstream has to know which of them has an API and which does not.
+ * @param {string} target Surface name.
+ * @param {object} identity Resolved tenant, provider and bootstrap key.
+ * @returns {string} Text to show the operator.
+ */
+export function emitFor(target, identity) {
+  if (target === "claude-web") return emitClaudeWeb(identity);
+  if (target === "codex-cloud") return emitCodexCloud(identity);
+  if (target === "container") return emitContainer(identity);
+  throw new Error(`no emit template for surface "${target}".`);
+}
+
+/**
+ * Produce the configuration a human pastes into a Codex Cloud environment.
+ *
+ * Differs from Claude's in three ways that are properties of the vendor rather
+ * than of Lisa, and each has cost someone a debugging session.
+ * @param {{bootstrapKey: string|null, tenant?: string|null, provider?: string}} options Project details.
+ * @returns {string} Text to show the operator.
+ */
+export function emitCodexCloud({
+  bootstrapKey,
+  tenant = null,
+  provider = null,
+}) {
+  const key = bootstrapKey ?? "<not resolved>";
+  const namespace = tenant ?? "<your namespace>";
+  return [
+    "Provisioning tier: EMIT — Codex Cloud exposes no environment API.",
+    "  `codex cloud` offers exec, status and list; nothing that writes an",
+    "  environment. So this is text for the settings page.",
+    "",
+    "Paste into the environment settings",
+    "-----------------------------------",
+    "  Repository:        the DEFAULT checkout for this environment",
+    "",
+    "  Environment variables — NOT task secrets:",
+    // Written as name=value, not as `export name='value'`. This is a settings
+    // form, not a shell: the quotes would be stored as part of the value, and
+    // the surface named must be this one rather than the shell block's.
+    `    LISA_TENANT=${namespace}`,
+    ...(bootstrapKey
+      ? [`    ${key}=<read this from your credential manager>`]
+      : [`    (${provider} has no environment-variable bootstrap)`]),
+    ...(provider ? [`    LISA_PROVIDER=${provider}`] : []),
+    "    LISA_SECRETS_SURFACE=codex-cloud",
+    "",
+    "    Setup and cache-resume maintenance both run BEFORE task secrets",
+    "    exist, so a bootstrap placed in the secrets box is invisible to the",
+    "    only two steps that need it.",
+    "",
+    "  Setup script:",
+    `    ${SETUP_FIELD}`,
+    "",
+    "  Maintenance script:",
+    "    The SAME line. It runs when a container resumes from cache, and every",
+    "    step is idempotent and version-aware — so running it again is how a",
+    "    rotated value, an edited note, or a changed pin gets picked up.",
+    "",
+    "Watch for",
+    "---------",
+    "  CODEX_ENV_NODE_VERSION overrides the repository's own .nvmrc and",
+    "  engines. An environment left on an older major breaks setup for a repo",
+    "  that requires a newer one, and the error blames the package manager.",
+    "",
+    "  Codex clones `main`, not the repository's default branch. If those",
+    "  differ here, that is where the confusion starts.",
+    "",
+    "  Setup logs are visible only in the Codex UI; no CLI retrieves them.",
+  ].join("\n");
+}
+
+/**
+ * Produce an image definition and a run command for a container.
+ *
+ * Split across build and run on purpose: the binaries are baked once, and the
+ * credential arrives at `docker run`. Baking it would put it in an image layer,
+ * readable by anyone who can pull the image and surviving every
+ * `docker history` — so the Dockerfile deliberately contains no secret.
+ * @param {{bootstrapKey: string|null, tenant?: string|null, provider?: string}} options Project details.
+ * @returns {string} Text to show the operator.
+ */
+export function emitContainer({
+  bootstrapKey,
+  tenant = null,
+  provider = null,
+}) {
+  const key = bootstrapKey ?? "<not resolved>";
+  const namespace = tenant ?? "<your namespace>";
+  return [
+    "Provisioning tier: EMIT — an image is built from a file you own.",
+    "",
+    "Dockerfile",
+    "----------",
+    "  Generate it with the bootstrap's own emitter, so the image and this",
+    "  machine install the identical set:",
+    "",
+    "    npx -y @codyswann/lisa@latest workstation --print-dockerfile \\",
+    `      --provider=${provider ?? "bitwarden"} > Dockerfile.lisa`,
+    "    docker build -f Dockerfile.lisa -t lisa-workstation .",
+    "",
+    "  Nothing secret belongs in it. An image layer is readable by anyone who",
+    "  can pull the image and survives every `docker history`, so the",
+    "  credential arrives at run time instead.",
+    "",
+    "docker run",
+    "----------",
+    "  docker run --rm -it \\",
+    `    -e LISA_TENANT=${namespace} \\`,
+    `    -e ${key}="<this image's own access token>" \\`,
+    ...(provider ? [`    -e LISA_PROVIDER=${provider} \\`] : []),
+    "    -e LISA_SECRETS_SURFACE=container \\",
+    '    -v "$PWD:/work" -w /work \\',
+    "    lisa-workstation",
+    "",
+    "  LISA_SECRETS_SURFACE=container is what makes credentials materialize.",
+    "  Left to detection a container reads as `local`, which is",
+    "  materialized:false — right for a human at a keyboard whose provider CLI",
+    "  is authenticated, wrong for a container that has no keychain and dies",
+    "  with its filesystem.",
+    "",
+    "  Give the image its own access token rather than reusing this machine's.",
+    "  If the image is shared, so is anything its token can read.",
+    "",
+    "Mounted repositories need nothing further",
+    "-----------------------------------------",
+    "  A checkout you have already run `apply` and `sync` on carries its",
+    "  .lisa.config.json with it. Cloning INSIDE the container instead means",
+    "  running those there.",
+  ].join("\n");
+}
+
+/**
  * Report tooling the project appears to need but has not declared.
  *
  * Called before the toolchain is applied, because the manifest is the only

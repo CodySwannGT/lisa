@@ -253,6 +253,33 @@ function resolveBootstrap(bootstrap, provider, namespace) {
 }
 
 /**
+ * Build a configuration for a tenant the operator named outright.
+ *
+ * Deliberately ignores any `.lisa.config.json` in the working directory. The
+ * flag is the more specific statement — someone who typed `--tenant=acme` means
+ * acme, whichever repository they happen to be standing in — and silently
+ * preferring the file would materialize a different tenant than the one on the
+ * command line.
+ *
+ * Getting this wrong is not a cosmetic error. Every namespace is a directory
+ * under `$XDG_CONFIG_HOME`, so resolving to the wrong one writes one tenant's
+ * credentials where another tenant's sessions read, and on a machine serving
+ * several the two would share a store.
+ * @param {{tenant: string, provider?: string}} options Named identity.
+ * @param {Record<string, string|undefined>} [env] Environment to inherit.
+ * @returns {object} A resolved configuration.
+ */
+export function configForTenant({ tenant, provider }, env = process.env) {
+  return withSurface(
+    fromEnvironment({
+      ...env,
+      LISA_TENANT: tenant,
+      ...(provider ? { LISA_PROVIDER: provider } : {}),
+    })
+  );
+}
+
+/**
  * Build a configuration from the environment, for sessions with no checkout.
  *
  * `LISA_SECRETS_NAMESPACE` is the one value with no safe default: it names the

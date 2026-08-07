@@ -1107,13 +1107,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
-      "6b59accef9d1899a5154fc504932e7bf24613bdd65f31d6d4e30cb1311c1e597",
+      "8dd5ca2c99394ead696093dd10caf664ce2609d39fb8d8ae8f4d4f236dbddbe6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "f203c71457da958cdb49637c87e4a9c43e964f98ecef3dd0e933b419d565f98e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "3b598675cee9d5235a3d12b82ab969effb0b47be263edf41474f8427105e3ce4",
+      "694f2660df23871d470701d1fb9fc7e24fcf7be137d9c275059ae7f7383340e9",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
@@ -1125,7 +1125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "284c0634b64d6c2b24d388cf3a74a6275588c592fdf60a525ba5aa3c7cc569b7",
+      "ad4df3007572f6dba5086633b8238e51a14e5ef163216aea899800441f56cd02",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "07d183d8325341feea0db82c5f48f403981d0642999ce9b6462b6f89642e93c6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -1168,8 +1168,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
+    "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
+      "3b9be11691d81a896fc779c37fb6d69e8e7222f95e23f84aa03d4e590f9d9108",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "d17e71d7073e76d2301db26b57003cfc66eefe4ee4f7ac4b6649e3a028569946",
+      "b4b831f8900360bbb36922edcddaef6bbe4b3730cb21cf0a365d76b914bcbe4e",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
@@ -3341,6 +3343,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-setup-remote-env/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/assets/setup.sh": true,
+    "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/environment.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
@@ -3774,6 +3777,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/assets/setup.sh": true,
+    "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/environment.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
@@ -4193,6 +4197,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/assets/setup.sh": true,
+    "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/environment.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
@@ -6241,6 +6246,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/assets/setup.sh": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/scripts/environment.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
@@ -6840,6 +6846,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-setup-remote-env/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/lisa/skills/lisa-setup-remote-env/assets/setup.sh": true,
+    "plugins/lisa/skills/lisa-setup-remote-env/scripts/environment.mjs": true,
     "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/lisa/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/lisa/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
@@ -7300,6 +7307,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh": true,
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh": true,
+    "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
@@ -7871,6 +7879,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-worker-epoch.ts": true,
     "src/cli/doctor-worker-journey.ts": true,
     "src/cli/doctor.ts": true,
+    "src/cli/environment-cmd.ts": true,
     "src/cli/file-upstream-cmd.ts": true,
     "src/cli/gate-commands.ts": true,
     "src/cli/health-cmd.ts": true,
@@ -8536,6 +8545,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/doctor-secrets.test.ts": true,
     "tests/unit/secrets/emit-claude-web-exports.test.ts": true,
     "tests/unit/secrets/emit-tenant-provider.test.ts": true,
+    "tests/unit/secrets/environment-command.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
