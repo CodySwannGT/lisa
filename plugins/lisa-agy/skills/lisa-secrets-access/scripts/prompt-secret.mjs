@@ -54,13 +54,21 @@ export function promptSecret(message, io = {}) {
   const tty = open("/dev/tty", "r+");
   try {
     write(tty, message);
-    run("stty", ["-echo"], { stdio: ["inherit", "ignore", "ignore"] });
+    // `stty` must be pointed at the descriptor the credential is READ from, not
+    // at this process's stdin. With "inherit" it configures whatever stdin
+    // happens to be: a pipe, where stty exits non-zero and this throws; or a
+    // different terminal, where echo stays on for the device the operator is
+    // typing into and the credential lands in their scrollback.
+    run("stty", ["-echo"], { stdio: [tty, "ignore", "ignore"] });
+    const buffer = Buffer.alloc(4096);
     try {
-      const buffer = Buffer.alloc(4096);
       const bytes = read(tty, buffer, 0, buffer.length, null);
       return buffer.toString("utf8", 0, bytes).trim();
     } finally {
-      run("stty", ["echo"], { stdio: ["inherit", "ignore", "ignore"] });
+      // Zeroed rather than left for the collector: a 4 KiB buffer holding a
+      // bootstrap credential is exactly the page that ends up in a core dump.
+      buffer.fill(0);
+      run("stty", ["echo"], { stdio: [tty, "ignore", "ignore"] });
       // The newline the operator typed was not echoed, so without this the next
       // line of output starts halfway across the prompt.
       write(tty, "\n");

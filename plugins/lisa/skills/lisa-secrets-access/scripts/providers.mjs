@@ -146,8 +146,14 @@ export function bootstrapToken(bootstrap) {
  * @returns {string} The value, or an empty string when unavailable.
  */
 function fromKeychain(key) {
-  if (process.platform !== "darwin") return readBootstrapFile(key);
   try {
+    // Inside the `try`, not before it. `readBootstrapFile` uses `readFileSync`,
+    // which throws on a permission error, on EISDIR, and when the file is
+    // removed between the existence check and the read. This function's
+    // contract is to return empty when the value is unavailable, and
+    // `bootstrapToken` has no handler — so a raw filesystem error would
+    // replace the curated "not found in: ..." message with a stack trace.
+    if (process.platform !== "darwin") return readBootstrapFile(key);
     return execFileSync(
       "security",
       ["find-generic-password", "-s", key, "-a", process.env.USER ?? "", "-w"],

@@ -38,7 +38,53 @@ import { dirname, join } from "node:path";
  */
 export function bootstrapFile(key, env = process.env) {
   const root = env.XDG_CONFIG_HOME || join(env.HOME || homedir(), ".config");
-  return join(root, "lisa", "bootstrap", key);
+  return join(root, "lisa", "bootstrap", assertKey(key));
+}
+
+/**
+ * Reject a key that is not exactly one safe path segment.
+ *
+ * The key is joined onto a directory, and every entry point — store, clear and
+ * read — routes through that join. A `/` or a `..` in it escapes the bootstrap
+ * directory, so an unvalidated key can write, delete, or read an arbitrary file
+ * as the operator. Validating in `bootstrapFile` covers all three at once
+ * rather than trusting each caller to remember.
+ *
+ * Same guard `assertNamespace` applies to the namespace, and for the same
+ * reason. The character set is what a variable name can hold anyway, so nothing
+ * legitimate is refused.
+ * @param {string} key Candidate bootstrap variable name.
+ * @returns {string} The key, unchanged, when valid.
+ */
+export function assertKey(key) {
+  if (
+    typeof key !== "string" ||
+    !/^[A-Za-z0-9._-]+$/.test(key) ||
+    key === ".."
+  ) {
+    throw new Error(
+      `bootstrap key must be one safe path segment, got ${JSON.stringify(key)}`
+    );
+  }
+  return key;
+}
+
+/**
+ * Quote a word for `security -i`, which tokenizes its stdin like a shell.
+ *
+ * A token is usually base64-ish and needs no quoting, but "usually" is not a
+ * property to rely on for a credential: an unquoted value containing a space
+ * would be parsed as two arguments and silently store only the first part.
+ * A newline is refused outright rather than escaped, because it terminates the
+ * command line and there is no quoting that survives it.
+ * @param {string} word Value to quote.
+ * @returns {string} A single quoted token.
+ */
+function quote(word) {
+  if (/[\n\r]/.test(word)) {
+    throw new Error("bootstrap value must not contain a newline");
+  }
+  return `"${String(word).replace(/(["\\])/g, "\\$1")}"`;
 }
 
 /**
@@ -70,13 +116,25 @@ export function storeBootstrap(key, value, deps = {}) {
 
   if (kind === "keychain") {
     const run = deps.run ?? execFileSync;
-    // `-U` updates in place. Without it a second run fails with "already
-    // exists", which would make rotation — the common case — the broken one.
-    run(
-      "security",
-      ["add-generic-password", "-U", "-s", key, "-a", env.USER ?? "", "-w"],
-      { input: value, stdio: ["pipe", "ignore", "ignore"] }
-    );
+    assertKey(key);
+    // `security -i` reads a COMMAND STREAM on stdin, which is what keeps the
+    // value out of `argv` — where `ps` would show it to every process running
+    // as this user for as long as the call lasts.
+    //
+    // The obvious `-w` with no argument does NOT read the password from stdin.
+    // It opens an interactive prompt on the terminal, and with stdin piped it
+    // stores an EMPTY value and exits 0 — verified against the real binary,
+    // which is how this shipped broken the first time: unit tests injected the
+    // runner and never executed it.
+    //
+    // `-U` updates in place; without it a second run fails with "already
+    // exists", making rotation — the common case — the broken one.
+    run("security", ["-i"], {
+      input: `add-generic-password -U -s ${quote(key)} -a ${quote(
+        env.USER ?? ""
+      )} -w ${quote(value)}\n`,
+      stdio: ["pipe", "ignore", "ignore"],
+    });
     return { kind, where: `keychain (service ${key})` };
   }
 

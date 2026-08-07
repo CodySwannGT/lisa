@@ -1107,7 +1107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
-      "719c43c14b812ce12e9661eb97dca1d30965d55f93f44e6d65930ecb01314def",
+      "43d7f38948903be2528c6a189a396c75015812ebe9d9dc8b363c09e5d51864e2",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "f203c71457da958cdb49637c87e4a9c43e964f98ecef3dd0e933b419d565f98e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
@@ -1115,9 +1115,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
       "3b598675cee9d5235a3d12b82ab969effb0b47be263edf41474f8427105e3ce4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
-      "0099bc1f6192bf68c9f94b98fbdc72c44ac41749f9e13e224046ffc37ec44dee",
+      "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "75612a71f6365ff9afe41fd97bef6c15e8122370c51d78a1ef90170d8c98486e",
+      "f295709e2d14267db89d03d7d61cec9611897d816d5b31eed4b397b9c52d54af",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "1471d2108058f3059e242f9c71208c99fdbc212bde32de34b798eaa9a27ffbcc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -8212,6 +8212,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/verification-gate-harness.ts": true,
     "tests/helpers/workflow-test-utils.ts": true,
     "tests/integration/autofix-ownership-guards.test.ts": true,
+    "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
