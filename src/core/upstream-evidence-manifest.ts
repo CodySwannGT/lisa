@@ -1179,7 +1179,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
       "874c075c63c45d0ffca4e98d7cb28bbeeb804675d1733571c1b3d38705404eb3",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
-      "6af3d6f2763de106985b56aa795648ab99bbf7ed0a1eced2d1001099e3c70a0a",
+      "6ab19c08aa9db7643aa49133ba1d0febf1c1dbdc9a503026a01b1ce0a83f68ab",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "031acb01195ae59010a65335da98d46a1d6080e749823d6f6d157938d9e96648",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":

@@ -34,7 +34,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -332,6 +332,17 @@ export function linkIntoBinDir(entry, deps = {}) {
   const exists = deps.exists ?? existsSync;
   const remove = deps.remove ?? rmSync;
   const makeDir = deps.mkdir ?? mkdirSync;
+  // Two different questions, and they need two different probes.
+  //
+  // The SOURCE must be followed: a link pointing at a binary that is not there
+  // means the install did not produce one, whatever the link says.
+  //
+  // The TARGET must NOT be followed. `existsSync` reports false for a dangling
+  // symlink, which is precisely the case this function claims to repair — the
+  // vendor moved and the old link now points at nothing. Following it would
+  // skip the removal, `symlinkSync` would throw EEXIST, the catch below would
+  // swallow it, and the broken link would survive the fix meant to replace it.
+  const present = deps.present ?? (path => lstatPresent(path));
 
   const source = join(
     entry.binDir.replace(/^~/, home),
@@ -345,10 +356,24 @@ export function linkIntoBinDir(entry, deps = {}) {
     // Replaced rather than skipped-if-present: a stale link left by an earlier
     // version pointing at a path the vendor has since moved is worse than none,
     // because it resolves and then fails at the moment of use.
-    if (exists(target)) remove(target, { force: true });
+    if (present(target)) remove(target, { force: true });
     link(source, target);
   } catch {
     // See above: the probe is the authority on whether this worked.
+  }
+}
+
+/**
+ * Whether a path exists WITHOUT following it, so a dangling link counts.
+ * @param {string} path Path to inspect.
+ * @returns {boolean} True when something occupies the path.
+ */
+function lstatPresent(path) {
+  try {
+    lstatSync(path);
+    return true;
+  } catch {
+    return false;
   }
 }
 

@@ -14,7 +14,13 @@
  * @module tests/unit/workstation/link-into-bin-dir
  */
 
-import { existsSync, mkdirSync, readlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readlinkSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -77,14 +83,41 @@ describe("linkIntoBinDir", () => {
     expect(existsSync(linkPath())).toBe(true);
   });
 
-  it("replaces a stale link rather than leaving it", () => {
+  it("replaces a stale link that still resolves", () => {
     // A link left by an earlier version, pointing where the vendor no longer
     // installs, is worse than no link: it resolves and fails at the moment of
     // use.
     place(INSTALLED);
     place(".local/old/sonar");
     mkdirSync(path.join(home, ".local", "bin"), { recursive: true });
-    writeFileSync(linkPath(), "stale\n");
+    symlinkSync(path.join(home, ".local/old/sonar"), linkPath());
+
+    linkIntoBinDir(SONAR, { home });
+
+    expect(readlinkSync(linkPath())).toBe(path.join(home, INSTALLED));
+  });
+
+  it("replaces a stale link that DANGLES", () => {
+    // The case a plain file cannot stand in for, and the one this function
+    // exists for: the vendor moved, so the old link points at nothing.
+    // `existsSync` follows the link and reports false, which would skip the
+    // removal, make `symlinkSync` throw EEXIST, and leave the broken link in
+    // place — repaired by nothing, and silent because the throw is swallowed.
+    place(INSTALLED);
+    mkdirSync(path.join(home, ".local", "bin"), { recursive: true });
+    symlinkSync(path.join(home, ".local/gone/sonar"), linkPath());
+    expect(existsSync(linkPath())).toBe(false);
+
+    linkIntoBinDir(SONAR, { home });
+
+    expect(readlinkSync(linkPath())).toBe(path.join(home, INSTALLED));
+    expect(existsSync(linkPath())).toBe(true);
+  });
+
+  it("replaces a real file sitting where the link belongs", () => {
+    place(INSTALLED);
+    mkdirSync(path.join(home, ".local", "bin"), { recursive: true });
+    writeFileSync(linkPath(), "an actual binary someone dropped here\n");
 
     linkIntoBinDir(SONAR, { home });
 
