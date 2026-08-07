@@ -42,7 +42,8 @@ Each persisted entry has seven fields:
   `persistConsolidatedLearning`, with consolidation-at-write), provenance drawn
   from the triage row's evidence links and a `high` starting confidence because
   a human Accept is corroboration. It no longer writes to machine-local memory,
-  `PROJECT_RULES.md`, or `CLAUDE.md` for these categories.
+  `PROJECT_RULES.md`, or `AGENTS.md` (the human-authored source of truth, of
+  which `CLAUDE.md` is only a `@AGENTS.md` pointer) for these categories.
 - The **build-intake flows** advance `last_confirmed` at claim time
   (`confirmLearningEntry`, below).
 

@@ -68,11 +68,11 @@ A markdown triage document at `./debrief/<initiative-slug>-<YYYY-MM-DD>.md` (or 
 
 1. **Header** — initiative name, source PRD/epic link, work-item count, PR count, generation date, gate results.
 2. **Anomalies** — work items missing PRs, items with abnormal status-transition timing, PRs with no review comments at all (signal-of-absence is a learning), etc.
-3. **Candidate learnings** — one row per candidate, grouped by category (Edge case / Recurring gotcha / Process friction / Tooling gap / Convention drift). Each row has:
+3. **Candidate learnings** — one row per candidate, grouped by category (Edge case / Recurring gotcha / Process friction / Tooling gap / Convention drift / Decomposition infidelity / PRD defect / Missing tool access, plus `Uncategorized` for a finding none of the eight fit). The category set is owned by `learnings-synthesizer` — every category it can emit must have a section here and a route in `lisa-debrief-apply`, or an accepted row cannot be applied. Each row has:
    - `Summary` — one sentence
    - `Category`
    - `Evidence` — links to the source ticket comment / PR comment / commit / test file (multiple allowed)
-   - `Recommended persistence destination` — the agent's best guess for where this should land if accepted (e.g., "Edge Case Brainstorm checklist → Navigation & URL state", "PROJECT_RULES.md", "memory: project_*.md", "new tooling-gap ticket")
+   - `Recommended persistence destination` — the agent's best guess for where this should land if accepted (e.g., "Edge Case Brainstorm checklist → Navigation & URL state", "learnings ledger via the executable contract", "new tooling-gap ticket", "upstream Lisa issue"). Never name machine-local auto-memory, `PROJECT_RULES.md`, or `AGENTS.md` — those are not persistence destinations.
    - `Disposition` — empty checkbox-style field the human will fill: `[ ] Accept` / `[ ] Reject` / `[ ] Defer` plus a free-text reason
 4. **Source map** — appendix listing every work item and PR walked, so the human can verify completeness.
 
@@ -89,7 +89,7 @@ After producing the triage document, print:
 
 ```text
 Triage document written to: <path>
-Counts: <n> edge cases, <n> gotchas, <n> friction, <n> tooling gaps, <n> convention drift; <n> anomalies
+Counts: <n> edge cases, <n> gotchas, <n> friction, <n> tooling gaps, <n> convention drift, <n> decomposition infidelity, <n> PRD defects, <n> missing tool access, <n> uncategorized; <n> anomalies
 Next: human triage. When done, run `/lisa:debrief:apply <path>` to persist accepted learnings.
 ```
 
