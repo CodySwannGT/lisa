@@ -189,19 +189,13 @@ Gate:
 Sequence:
 1. Commit -- atomic conventional commits via `git-commit` skill
 2. PR -- create/update pull request via `git-submit-pr` skill
-3. PR Watch Loop (repeat until mergeable):
-   - If status checks fail -- fix and push
-   - If merge conflicts -- resolve and push
-   - If bot review feedback (CodeRabbit, etc.):
-     - Valid feedback -- implement fix, push, resolve comment
-     - Invalid feedback -- reply explaining why, resolve comment
-   - Repeat until all checks pass and all comments are resolved
-4. Merge the PR
+3. PR Watch Loop -- drive the PR to MERGED via the `drive-pr-to-merge` skill. That skill is the single source of truth for clearing every blocker (auto-merge with direct-merge fallback, `BEHIND` re-sync, conflict resolution, failing-check fixes, human + bot review-comment handling with thread resolution via `pull-request-review`, stale `CHANGES_REQUESTED` dismissal, and post-merge ancestry verification). Do NOT re-implement the loop or its terminal conditions here or in any calling skill.
+4. Merge the PR (owned by `drive-pr-to-merge`, including the auto-merge race and zero-deploy-run checks)
 5. Monitor deploy (watch the deployment action triggered by merge):
    - If deploy fails -- fix, open new PR, return to step 3
 6. Remote verification:
-   - `verification-specialist` -- verify in target environment (same checks as local verification, but on remote)
-   - `ops-specialist` -- post-deploy health check, smoke test, monitor for errors in first minutes
+   - `verification-specialist` -- verify in target environment (same checks as local verification, but on remote). Resolve credentials through the `verification-lifecycle` lookup order before declaring any missing. If they remain genuinely unavailable, do not complete on artifact-only evidence: post a tracker comment naming every credential source checked and what could not be verified as a result, transition the work item to the configured blocked state, and apply the configured `needs-human` / `human-review` label (creating it when the tracker supports label creation and it is missing). The comment is what makes the escalation auditable -- a label alone records that something stopped, not what was tried or why. Evidence must explicitly distinguish `verified empirically` from `artifact-only / verification deferred`
+   - `ops-specialist` -- post-deploy health check via `lisa-monitor <env> --report-only`, smoke test, monitor for errors in first minutes. `--report-only` is REQUIRED: it keeps the post-deploy check a pure health/audit report so monitor's standalone ticket-filing never fires inside a Verify run
    - If remote verification fails -- fix, open new PR, return to step 3
 7. **Record Verify usage on the evidence artifact** -- invoke `lisa-usage-accounting` against the generated evidence artifact (comment body, PR evidence section, or markdown proof) so it gains a direct `verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item or PRD parentage is known, prefer `record_and_rollup` so ancestor totals refresh in the same pass. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
 8. **Post evidence via the tracker surface** -- invoke `lisa-tracker-evidence` after the usage write so the same canonical evidence artifact is uploaded / posted without hand-editing a second format.
@@ -229,6 +223,11 @@ Sequence:
    - **Process friction** — a step in the lifecycle that consistently slowed the work
    - **Tooling gap** — missing skill, wrong agent assignment, broken hook, missing automation
    - **Convention drift** — an unwritten rule revealed by review comments that should be codified
+   - **Decomposition infidelity** — a ticket distorted the PRD requirement it claimed to implement, and every gate passed it
+   - **PRD defect** — the ticket faithfully captured the PRD, but the PRD itself was wrong, ambiguous, or missing the failing case
+   - **Missing tool access** — an agent lacked a tool, credential, environment, or permission the work required
+
+   The three knowledge categories (recurring gotcha, process friction, convention drift) persist to the committed learnings ledger through the executable contract — never to machine-local memory, `PROJECT_RULES.md`, or `AGENTS.md`.
 4. **Produce the human-triage document** — a markdown file with one row per candidate learning showing: category, summary, evidence (links to the source ticket comment / PR comment / commit), recommended persistence destination, and a checkbox-style disposition field the human will mark (Accept / Reject / Defer). Surface step-1 anomalies (work items missing PRs, etc.) in a separate section. The document is exhaustive — it lists every candidate, even ones the synthesizer rates low confidence — because the human, not the agent, decides what is worth keeping.
 5. **Record Debrief usage on the triage document** — invoke `lisa-usage-accounting` against the generated markdown artifact so the document carries its own direct `debrief` usage entry in the canonical `## Lisa Usage` section. If runtime usage is unavailable, write the entry with `source: unavailable` and nullable token/cost fields rather than skipping it.
 6. **Stop and hand the document to the human.** Debrief does NOT persist accepted learnings itself. The human triages, marks dispositions, and runs the **`/lisa:debrief:apply`** command (skill: `debrief-apply`) to route the accepted items to their destinations.
