@@ -44,6 +44,16 @@ const DEBRIEF_SKILL_PATHS = [
   "plugins/lisa-copilot/skills/lisa-debrief/SKILL.md",
 ] as const;
 
+/** `lisa-debrief-apply` and its runtime projections (see debrief-reroute-contract). */
+const APPLY_SKILL_PATHS = [
+  "plugins/src/base/skills/lisa-debrief-apply/SKILL.md",
+  "plugins/lisa/skills/lisa-debrief-apply/SKILL.md",
+  "plugins/lisa/.codex-plugin/skills/lisa-debrief-apply/SKILL.md",
+  "plugins/lisa-cursor/skills/lisa-debrief-apply/SKILL.md",
+  "plugins/lisa-agy/skills/lisa-debrief-apply/SKILL.md",
+  "plugins/lisa-copilot/skills/lisa-debrief-apply/SKILL.md",
+] as const;
+
 /** The three categories `lisa-debrief-apply` persists to the ledger. */
 const KNOWLEDGE_CATEGORIES = [
   "Recurring gotcha",
@@ -129,10 +139,72 @@ describe.each(SYNTHESIZER_PATHS)(
   }
 );
 
+/**
+ * Every category `learnings-synthesizer` can emit. A category that exists in
+ * its table but nowhere downstream produces a row a human can Accept and
+ * `apply` cannot route — which is exactly how the five-of-eight drift below
+ * survived: the table grew, the output template and the apply routes did not.
+ */
+const ALL_CATEGORIES = [
+  "Edge case",
+  "Recurring gotcha",
+  "Process friction",
+  "Tooling gap",
+  "Convention drift",
+  "Decomposition infidelity",
+  "PRD defect",
+  "Missing tool access",
+] as const;
+
+describe.each(SYNTHESIZER_PATHS)(
+  "the output template can represent every category (%s)",
+  agentPath => {
+    const agent = read(agentPath);
+    const template = agent.slice(agent.indexOf("## Candidate learnings"));
+
+    it.each(ALL_CATEGORIES)("has a section for %s", category => {
+      // Singular/plural both appear as headings ("Edge cases", "PRD defects").
+      const stem = category.replace(/y$/, "");
+      expect(template.toLowerCase()).toContain(stem.toLowerCase());
+    });
+
+    it("keeps the overflow bucket alongside the eight", () => {
+      expect(template).toContain("Uncategorized");
+    });
+  }
+);
+
+describe.each(APPLY_SKILL_PATHS)(
+  "apply routes or explicitly refuses every emitted category (%s)",
+  applyPath => {
+    const apply = read(applyPath);
+
+    it.each(ALL_CATEGORIES)("has a routing row for %s", category => {
+      expect(apply).toContain(`| ${category} |`);
+    });
+
+    it("handles Uncategorized deterministically rather than dropping it", () => {
+      // Not a destination — but a silent skip would lose an accepted row.
+      const row = apply
+        .split("\n")
+        .find(l => l.trimStart().startsWith("| Uncategorized "));
+      expect(row).toBeDefined();
+      expect(row).toMatch(/reclassif/i);
+      expect(row).toMatch(/(do not|don't|never).{0,40}(silently )?skip/i);
+    });
+  }
+);
+
 describe.each(DEBRIEF_SKILL_PATHS)(
   "debrief skill's example destinations stay current (%s)",
   skillPath => {
     const skill = read(skillPath);
+
+    it("lists every category the synthesizer can emit", () => {
+      for (const category of ALL_CATEGORIES) {
+        expect(skill).toContain(category);
+      }
+    });
 
     it("offers the ledger and forbids the retired surfaces by name", () => {
       const bullet = skill

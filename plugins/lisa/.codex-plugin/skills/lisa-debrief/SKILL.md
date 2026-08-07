@@ -68,7 +68,7 @@ A markdown triage document at `./debrief/<initiative-slug>-<YYYY-MM-DD>.md` (or 
 
 1. **Header** — initiative name, source PRD/epic link, work-item count, PR count, generation date, gate results.
 2. **Anomalies** — work items missing PRs, items with abnormal status-transition timing, PRs with no review comments at all (signal-of-absence is a learning), etc.
-3. **Candidate learnings** — one row per candidate, grouped by category (Edge case / Recurring gotcha / Process friction / Tooling gap / Convention drift). Each row has:
+3. **Candidate learnings** — one row per candidate, grouped by category (Edge case / Recurring gotcha / Process friction / Tooling gap / Convention drift / Decomposition infidelity / PRD defect / Missing tool access, plus `Uncategorized` for a finding none of the eight fit). The category set is owned by `learnings-synthesizer` — every category it can emit must have a section here and a route in `lisa-debrief-apply`, or an accepted row cannot be applied. Each row has:
    - `Summary` — one sentence
    - `Category`
    - `Evidence` — links to the source ticket comment / PR comment / commit / test file (multiple allowed)
@@ -89,7 +89,7 @@ After producing the triage document, print:
 
 ```text
 Triage document written to: <path>
-Counts: <n> edge cases, <n> gotchas, <n> friction, <n> tooling gaps, <n> convention drift; <n> anomalies
+Counts: <n> edge cases, <n> gotchas, <n> friction, <n> tooling gaps, <n> convention drift, <n> decomposition infidelity, <n> PRD defects, <n> missing tool access, <n> uncategorized; <n> anomalies
 Next: human triage. When done, run `/lisa:debrief:apply <path>` to persist accepted learnings.
 ```
 

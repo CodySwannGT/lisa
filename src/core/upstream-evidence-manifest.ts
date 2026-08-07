@@ -417,7 +417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/learning-judge.md":
       "28618c3e20a0f790e4d254a9c8118645774233f19e3042b3cfeddf4ffbaf783a",
     "plugins/src/base/agents/learnings-synthesizer.md":
-      "6c8d060e514da9b52766f5aad5cced1f1780defc6f118a30239660d894eb36a1",
+      "7926a941d735866683a536a54b23578a7f04252cb662c6bdb4892e655006c65f",
     "plugins/src/base/agents/linear-agent.md":
       "d55664da47505d702d9bbbb96f9f98930d871acc5fc2972d35e1ae143f2dbde7",
     "plugins/src/base/agents/linear-build-intake.md":
@@ -749,7 +749,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/integration-access-layer.md":
       "8b0a0fc0e63492efce79c58a0fc1f112748b17ad59383cfdb9c25300b29a2c8b",
     "plugins/src/base/rules/reference/intent-routing.md":
-      "38f6b5889bc4b0a679d01d7457cb2b5f196c4881103c19e5d855e9043076ff35",
+      "a72c40b529efb2f5a52ad0d1f51ae31e9ba3c5fa7eab4e414d1af9862531c6a8",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "3d6d531fdca61a348fa1dd1bdb4c28fe66c85fb955238ef668a78cce4a36a7a1",
     "plugins/src/base/rules/reference/observability-audit.md":
@@ -859,9 +859,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
       "d1d33a149cab2de0d0b4c7ddc6bb2f67f43a097e5f551f642b1cb076747a5a05",
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md":
-      "67b0d2a21a8c19a8bf48e43f282a1940931763682364c29558444d5c02ad4725",
+      "e69dc81bccd44e9c165b021dfb6e250e1b3560f109e49a5559a2f972edfb81da",
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
-      "1a1b933c1c64e16a27568bb05c41103bda1084dde785024b5cdae93363d834e4",
+      "71a06d24e290648db45efb77349bd320337dfaa1bd42274b3ea5d86e04019aff",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
@@ -923,7 +923,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "9d93865818a63cf3f6374267565906fe4beea314cc6b467d74707cb64c873d4b",
+      "6ebd3411ecfa6bfab75cdb8e5c45734d44711d1c1f70fce3fa421bf05ccc5ac5",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":

@@ -115,6 +115,21 @@ Anomalies: <n> (see below)
 | # | Confidence | Summary | Evidence | Recommended destination | Disposition |
 | CD-1 | ... |
 
+### Decomposition infidelity
+
+| # | Confidence | Summary | Evidence | Recommended destination | Disposition |
+| DI-1 | ... |
+
+### PRD defects
+
+| # | Confidence | Summary | Evidence | Recommended destination | Disposition |
+| PD-1 | ... |
+
+### Missing tool access
+
+| # | Confidence | Summary | Evidence | Recommended destination | Disposition |
+| MT-1 | ... |
+
 ### Uncategorized
 
 | # | Confidence | Summary | Evidence | Why no category fit | Disposition |
