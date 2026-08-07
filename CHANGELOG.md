@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.338.5](https://github.com/CodySwannGT/lisa/compare/v2.338.4...v2.338.5) (2026-08-07)
+
+
+### Bug Fixes
+
+* **secrets:** emit a repo-less environment without a repo, and without assuming Bitwarden ([256dc79](https://github.com/CodySwannGT/lisa/commit/256dc799bc1b7d1c46ef96815c4e03f56ce289f1)), closes [CodySwannGT/lisa#2359](https://github.com/CodySwannGT/lisa/issues/2359)
+* **secrets:** refuse a tenant that would emit broken shell ([e7c5225](https://github.com/CodySwannGT/lisa/commit/e7c52259be0ebfca29591b8c9bf558b16b8e6d54)), closes [CodySwannGT/lisa#2359](https://github.com/CodySwannGT/lisa/issues/2359)
+
 ### [2.338.4](https://github.com/CodySwannGT/lisa/compare/v2.338.3...v2.338.4) (2026-08-07)
 
 
