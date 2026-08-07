@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.338.3](https://github.com/CodySwannGT/lisa/compare/v2.338.2...v2.338.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **secrets:** emit the setup field instead of documenting a stale copy ([77964de](https://github.com/CodySwannGT/lisa/commit/77964de074f6f9199278f1e7145277ba8bccf70e)), closes [CodySwannGT/lisa#2352](https://github.com/CodySwannGT/lisa/issues/2352)
+
 ### [2.338.2](https://github.com/CodySwannGT/lisa/compare/v2.338.1...v2.338.2) (2026-08-07)
 
 
