@@ -30,7 +30,11 @@ async function plannedTools(argv: string[]): Promise<string[]> {
   let out = "";
   // `--provider=none` is not incidental: omitted, the bootstrap asks which
   // credential manager to use and the test waits on an answer nobody types.
-  await run([...argv, "--provider=none", "--json"], {
+  //
+  // `--agents=none` is how the setup field invokes it, and planning the six
+  // agents costs seconds even with the probe injected — enough that under a
+  // full-suite run these tests were tripping the timeout.
+  await run([...argv, "--agents=none", "--provider=none", "--json"], {
     log: (text: string) => (out = text),
     probes: PRESENT,
   });

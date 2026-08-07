@@ -86,7 +86,10 @@ describe("failures in the preparation phases", () => {
     // name, and the toolchain installs it into ~/.local/bin. Reversed, it gets
     // ENOENT on a binary that is sitting right there. Asserting both strings
     // exist would pass with them in either order.
-    const path = SETUP_FIELD.indexOf('export PATH="$HOME/.local/bin:$PATH"');
+    // Matched on the assignment, not the whole value: what that PATH is made of
+    // is `setup-field-path`'s subject, and pinning it twice means a directory
+    // added to the catalogue fails here too, in a test about ordering.
+    const path = SETUP_FIELD.indexOf("export PATH=");
     const secrets = SETUP_FIELD.indexOf("remote-env --phase=secrets");
 
     expect(path).toBeGreaterThan(-1);
