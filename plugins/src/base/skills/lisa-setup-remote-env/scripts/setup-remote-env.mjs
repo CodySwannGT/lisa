@@ -886,17 +886,6 @@ export function pinEnvironment(environmentId, cwd = process.cwd()) {
 }
 
 /**
- * Produce the configuration a human pastes to provision a Claude cloud surface.
- *
- * This surface has no API tier and no console tier to fall back to: a Claude
- * cloud environment is configured only in the environment dialog, which has no
- * settings page, no direct URL, and no endpoint. Emit is not a degraded option
- * here, it is the only one — so the read-back in `verify-remote-env.mjs` is
- * what makes the result trustworthy, exactly as it would be at any other tier.
- * @param {{bootstrapKey: string|null, tenant?: string|null, provider?: string}} options Project details.
- * @returns {string} Text to show the operator.
- */
-/**
  * The lines an operator puts above the field, for a session with no checkout.
  *
  * Emitted as shell that runs, not as a template with holes: every hole is a
@@ -942,6 +931,17 @@ function repoLessExports({ namespace, key, provider, bootstrapKey, tenant }) {
   ];
 }
 
+/**
+ * Produce the configuration a human pastes to provision a Claude cloud surface.
+ *
+ * This surface has no API tier and no console tier to fall back to: a Claude
+ * cloud environment is configured only in the environment dialog, which has no
+ * settings page, no direct URL, and no endpoint. Emit is not a degraded option
+ * here, it is the only one — so the read-back in `verify-remote-env.mjs` is
+ * what makes the result trustworthy, exactly as it would be at any other tier.
+ * @param {{bootstrapKey: string|null, tenant?: string|null, provider?: string}} options Project details.
+ * @returns {string} Text to show the operator.
+ */
 export function emitClaudeWeb({
   bootstrapKey,
   tenant = null,
@@ -1179,6 +1179,18 @@ export async function resolveEmitTarget(
     flag("provider") ||
     (env.LISA_PROVIDER ?? env.LISA_SECRETS_PROVIDER ?? "").trim() ||
     "bitwarden";
+
+  // Validated before it can reach the output, by the same rule the runtime path
+  // applies. This one becomes `export LISA_TENANT=<value>` in a block an
+  // operator pastes verbatim, so `my tenant` or `has$var` would emit shell that
+  // breaks — or worse, expands — where nothing reviews it. Refusing here costs
+  // a re-run; emitting it costs a container nobody can explain.
+  if (tenant) {
+    const { assertNamespace } = await import(
+      pathToFileURL(siblingScript("lisa-secrets-access", "surfaces.mjs")).href
+    );
+    assertNamespace(tenant);
+  }
 
   // A configured key outranks the convention: a project may legitimately use a
   // name that is not derivable, and this command must not tell its operator to

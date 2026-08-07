@@ -90,6 +90,23 @@ describe("resolveEmitTarget", () => {
     ).resolves.toMatchObject({ tenant: "flagged" });
   });
 
+  it.each(["my tenant", "has$var", "../escape", "a;rm -rf /", ""])(
+    "refuses %j rather than emitting it as shell",
+    async bad => {
+      // The value lands in `export LISA_TENANT=<value>` inside a block pasted
+      // verbatim into a settings box. A space breaks the line, a `$` expands,
+      // and a `;` runs. Refusing costs a re-run; emitting costs a container
+      // nobody can explain. An empty string is simply not a tenant.
+      const call = resolveEmitTarget([`--tenant=${bad}`], {}, nowhere);
+
+      if (bad === "") {
+        await expect(call).resolves.toMatchObject({ tenant: null });
+        return;
+      }
+      await expect(call).rejects.toThrow(/one safe path segment/);
+    }
+  );
+
   it("lets a CONFIGURED key beat the convention", async () => {
     // A project may use a name that is not derivable. Telling its operator to
     // set a different one from the one their sessions read would be worse than
