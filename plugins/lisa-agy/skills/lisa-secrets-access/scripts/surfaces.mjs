@@ -81,6 +81,28 @@ export const SURFACES = {
     // recoverable; an absent one means the environment does not work.
     materializeAt: "both",
   },
+  // A container an operator builds and runs themselves — locally, or anywhere
+  // Lisa is not the one provisioning the host.
+  //
+  // It exists because `local` was standing in for it, and `local` is
+  // `materialized: false`. That default is right for a human at a keyboard: the
+  // provider CLI is authenticated, secrets resolve live, and writing them to
+  // disk would be a second copy to keep honest. A container has no keychain and
+  // dies with its filesystem, so the same default leaves it with the CLIs
+  // installed and nothing to authenticate them.
+  //
+  // The workaround was to claim `claude-web`, which materializes correctly and
+  // is a lie — it made a local container indistinguishable from a cloud session
+  // in every diagnostic and log.
+  //
+  // `setup` rather than `both`: a container has no session-start hook to run,
+  // and it is started fresh rather than resumed from a vendor's cache, so the
+  // start of the container IS the refresh.
+  container: {
+    materialized: true,
+    mayWriteValues: true,
+    materializeAt: "setup",
+  },
 };
 
 /** Config defaults when `.lisa.config.json` carries no `secrets` block. */
@@ -187,15 +209,47 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
     throw new Error(`.lisa.config.json is not readable: ${err.message}`);
   }
   if (!cfg) return withSurface(DEFAULTS);
+  const provider = cfg.provider ?? DEFAULTS.provider;
+  const namespace = assertNamespace(cfg.namespace ?? DEFAULTS.namespace);
   return withSurface({
-    provider: cfg.provider ?? DEFAULTS.provider,
-    bootstrap: { ...DEFAULTS.bootstrap, ...(cfg.bootstrap ?? {}) },
+    provider,
+    bootstrap: resolveBootstrap(cfg.bootstrap, provider, namespace),
     require: cfg.require ?? null,
     rotating: cfg.rotating ?? [],
-    namespace: assertNamespace(cfg.namespace ?? DEFAULTS.namespace),
+    namespace,
     narrow: { ...DEFAULTS.narrow, ...(cfg.narrow ?? {}) },
     surface: cfg.surface ?? null,
   });
+}
+
+/**
+ * Fill in the bootstrap block a project did not spell out.
+ *
+ * Both defaults exist because a token stored on the machine was going unread.
+ *
+ * **The key** follows the same convention the repo-less path uses,
+ * `<PROVIDER_VAR>_<namespace>`, so a machine provisioned once serves every
+ * project of that tenant without each restating the name. A project that sets
+ * one keeps it: a name that is not derivable is a legitimate choice, and
+ * overriding it would point sessions at a variable nobody set.
+ *
+ * **The sources** gain `keychain` because `["env"]` alone meant a token in the
+ * OS keychain was never consulted — so the machine setup appeared to work and
+ * every project still failed until someone hand-edited its config. Env stays
+ * first, so a CI runner injecting the bootstrap never reaches for a local store.
+ * On a platform with no keychain the extra source reads as empty and costs
+ * nothing.
+ * @param {object|undefined} bootstrap The project's own block, if any.
+ * @param {string} provider Resolved provider name.
+ * @param {string} namespace Resolved namespace.
+ * @returns {{sources: string[], key: string|null}} The resolved block.
+ */
+function resolveBootstrap(bootstrap, provider, namespace) {
+  const given = bootstrap ?? {};
+  return {
+    sources: given.sources ?? ["env", "keychain"],
+    key: given.key ?? bootstrapKeyFor(provider, namespace),
+  };
 }
 
 /**
@@ -243,6 +297,10 @@ function fromEnvironment(env) {
       // name. Hardcoding it told a Doppler tenant to set BWS_ACCESS_TOKEN_<ns>,
       // which its CLI has never heard of — on the one surface that has no
       // config file to override the guess.
+      // Same two defaults as a project config gets, for the same reasons —
+      // see `resolveBootstrap`. Stated here too because this path never reads
+      // a file, so it cannot inherit them.
+      sources: ["env", "keychain"],
       key:
         env.LISA_BOOTSTRAP_KEY ??
         env.LISA_SECRETS_BOOTSTRAP_KEY ??
