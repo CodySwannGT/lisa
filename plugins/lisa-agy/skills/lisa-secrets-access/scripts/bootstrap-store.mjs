@@ -99,12 +99,12 @@ export function storeKind(platform = process.platform) {
 /**
  * Write the bootstrap where this machine's sessions will look for it.
  *
- * The value never reaches a command line on either path. `security` is handed
- * it on **stdin** via `-w` with no argument, because an argument is visible in
- * `ps` to every process on the machine for as long as the call runs — and a
- * shell would also record it in history. The file path writes and chmods a
- * temporary before renaming, so the credential is never briefly world-readable
- * on a filesystem where the default umask would have made it so.
+ * The value never reaches a command line on either path. The keychain path
+ * feeds `security -i` a command stream on **stdin**, because an argument is
+ * visible in `ps` to every process running as this user for as long as the call
+ * lasts. The file path writes and chmods a temporary before renaming, so the
+ * credential is never briefly world-readable on a filesystem where the default
+ * umask would have made it so.
  * @param {string} key Bootstrap variable name.
  * @param {string} value The token.
  * @param {object} [deps] Injected seams, for tests.
