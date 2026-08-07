@@ -299,12 +299,28 @@ export function installAwsProfiles(bundle, options = {}) {
   return rendered.profiles;
 }
 
-export function materialize(cfg = readConfig()) {
-  if (!cfg.capabilities.mayWriteValues) {
+export function materialize(cfg = readConfig(), options = {}) {
+  // `requested` distinguishes an OPERATOR asking from a flow deciding.
+  //
+  // The capability governs automated behaviour: a session-start hook on a
+  // laptop must not write credentials to disk, because the provider CLI is
+  // authenticated there and a copy would add drift and exposure without adding
+  // capability. That reasoning holds, and the guard below still enforces it.
+  //
+  // It does not hold for `lisa environment local`, where the operator typed the
+  // command whose entire purpose is to put credentials on this machine — the
+  // AWS `-static` profiles reference variables that exist only once the env
+  // file is materialized, so refusing there means the profiles never work.
+  //
+  // Two different questions, so two different answers, rather than flipping
+  // `local` to `materialized: true` and silently starting to write on every
+  // machine that upgrades.
+  if (!cfg.capabilities.mayWriteValues && !options.requested) {
     throw new Error(
       `surface "${cfg.surface}" may not write secret values to disk.\n` +
         `It can read through to the provider, so a copy on disk would add drift ` +
-        `and exposure without adding capability.`
+        `and exposure without adding capability.\n` +
+        `Run 'lisa environment local --tenant=<name>' to ask for it explicitly.`
     );
   }
 

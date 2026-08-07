@@ -184,6 +184,39 @@ export function clearBootstrap(key, deps = {}) {
 }
 
 /**
+ * Whether this machine already holds a bootstrap under that name.
+ *
+ * Asked so `environment local` can re-materialize after a rotation in the vault
+ * without demanding the token again — that is the common case, and prompting
+ * every time would make it the tedious one.
+ *
+ * Presence only. The value is never read here, because nothing about deciding
+ * whether to prompt needs it.
+ * @param {string} key Bootstrap variable name.
+ * @param {object} [deps] Injected seams, for tests.
+ * @returns {boolean} True when a value is stored.
+ */
+export function hasBootstrap(key, deps = {}) {
+  const kind = deps.kind ?? storeKind();
+  const env = deps.env ?? process.env;
+
+  if (kind === "keychain") {
+    const run = deps.run ?? execFileSync;
+    try {
+      run(
+        "security",
+        ["find-generic-password", "-s", assertKey(key), "-a", env.USER ?? ""],
+        { stdio: "ignore" }
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return (deps.exists ?? existsSync)(deps.path ?? bootstrapFile(key, env));
+}
+
+/**
  * Read a file-backed bootstrap, treating absence as empty.
  *
  * The keychain reader lives beside the other provider concerns in
