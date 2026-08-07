@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.339.0](https://github.com/CodySwannGT/lisa/compare/v2.338.5...v2.339.0) (2026-08-07)
+
+
+### Features
+
+* **secrets:** default the bootstrap block, and give containers a surface ([2ac1f1b](https://github.com/CodySwannGT/lisa/commit/2ac1f1ba8c7d4714494a60409148d1db54651512)), closes [CodySwannGT/lisa#2361](https://github.com/CodySwannGT/lisa/issues/2361)
+
 ### [2.338.5](https://github.com/CodySwannGT/lisa/compare/v2.338.4...v2.338.5) (2026-08-07)
 
 
