@@ -236,6 +236,41 @@ What the detector produces is a proposal with `<pin>`, `<release url>` and `<sha
 
 The other objections stay true and stay unfixed: most tooling has no credential and most credentials imply no tool, so notes are one signal among four and the weakest of them. They are read *after* npm scripts and MCP servers, and a note alone should be the least persuasive reason to add anything.
 
+## One command, four surfaces
+
+`lisa environment <surface> --tenant=<name>` configures one surface for one
+tenant. The only difference between them is whether Lisa can execute there:
+
+| Surface | What happens | Materializes |
+| --- | --- | --- |
+| `local` | runs here: stores the bootstrap, materializes, installs AWS profiles | on request |
+| `container` | emits an image definition and a `docker run` line | at container start |
+| `claude-web` | emits text for the environment dialog | at setup **and** session start |
+| `codex-cloud` | emits text for the environment settings | at setup |
+
+None of it needs a checkout, which is the point: the surfaces most in need of
+configuration are the ones with no repository attached.
+
+`--tenant` is required on `local` because that path **writes**. Every namespace
+is a directory under `$XDG_CONFIG_HOME`, so resolving the wrong one puts one
+tenant's credentials where another tenant's sessions read — and on a machine
+serving several, the two would share a store. The named tenant also outranks any
+`.lisa.config.json` in the working directory: someone who typed `--tenant=acme`
+means acme, whichever repository they happen to be standing in.
+
+Re-running `environment local` is how a token is **rotated**. It is not an
+installer, so it does not reinstall agents to replace one credential; it reports
+that a bootstrap is already stored and leaves it alone unless `--rotate` says
+otherwise.
+
+`workstation` remains the separate question — what binaries does this machine
+have — with no tenant and no credentials.
+
+`remote-env --emit=<surface>` still works, and is the older spelling of the same
+thing. It named the machinery rather than the task: from a laptop it reads as
+"prepare the remote environment I am currently in", which is the opposite of
+configuring a cloud environment.
+
 ## Provisioning tiers
 
 Preference order, falling back:
