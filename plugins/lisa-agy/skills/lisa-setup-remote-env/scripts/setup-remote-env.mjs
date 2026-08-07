@@ -662,7 +662,14 @@ export const SETUP_FIELD =
   "/workspace/scripts/lisa-remote-env/setup.sh /workspace/*/scripts/lisa-remote-env/setup.sh; " +
   'do [ -f "$f" ] || continue; d=$(cd "$(dirname "$f")" && pwd -P); ' +
   'case " $seen " in *" $d "*) continue;; esac; seen="$seen $d"; ' +
-  'n=$((n+1)); bash "$f" || rc=$?; done; ' +
+  // `rc` keeps the FIRST failure, which is what the contract below promises.
+  //
+  // A bare `rc=$?` keeps the last one, so with two broken checkouts the
+  // operator is shown the second and the first is lost — the precise hiding the
+  // documented behaviour exists to prevent. A success never overwrites, because
+  // `||` only fires on failure, so the bug was confined to the multiple-failure
+  // case that the rule was written for.
+  'n=$((n+1)); bash "$f" || { s=$?; [ "$rc" -ne 0 ] || rc=$s; }; done; ' +
   '[ "$n" -gt 0 ] && exit "$rc"; ' +
   'g=0; for c in ./.git ./*/.git "$HOME"/*/.git /workspace/*/.git; ' +
   'do [ -e "$c" ] && g=1; done; ' +
