@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.2](https://github.com/CodySwannGT/lisa/compare/v2.341.1...v2.341.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **debrief:** complete the category contract and the credential hand-off ([785a083](https://github.com/CodySwannGT/lisa/commit/785a0838cc5ca320b71cfc0acd9900d57e1faaac)), closes [#2370](https://github.com/CodySwannGT/lisa/issues/2370) [CodySwannGT/lisa#2369](https://github.com/CodySwannGT/lisa/issues/2369)
+* **lifecycle:** reconcile drifted prose across debrief and Verify surfaces ([86a8c9c](https://github.com/CodySwannGT/lisa/commit/86a8c9cec588beb13a40cc87db2c72839a6e9218)), closes [CodySwannGT/lisa#2369](https://github.com/CodySwannGT/lisa/issues/2369)
+
 ### [2.341.1](https://github.com/CodySwannGT/lisa/compare/v2.341.0...v2.341.1) (2026-08-07)
 
 
