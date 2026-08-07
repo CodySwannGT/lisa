@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.338.2](https://github.com/CodySwannGT/lisa/compare/v2.338.1...v2.338.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **workstation:** link tools installed elsewhere into ~/.local/bin ([4e9e505](https://github.com/CodySwannGT/lisa/commit/4e9e5059b5e4a0beeb9b5bf2d6b0c4a49c479963)), closes [CodySwannGT/lisa#2355](https://github.com/CodySwannGT/lisa/issues/2355)
+* **workstation:** repair a link that dangles, not just one that resolves ([c2bc188](https://github.com/CodySwannGT/lisa/commit/c2bc188b8a4aca85b4b61eab8e7e0071f9c44d22)), closes [CodySwannGT/lisa#2355](https://github.com/CodySwannGT/lisa/issues/2355)
+
 ### [2.338.1](https://github.com/CodySwannGT/lisa/compare/v2.338.0...v2.338.1) (2026-08-07)
 
 
