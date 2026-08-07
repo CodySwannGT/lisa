@@ -69,6 +69,101 @@ native Playwright/Maestro regression authority.
 
 ## Getting started
 
+Setup has three layers, and conflating them is the usual mistake:
+
+```
+vault  →  machine  →  each repo  →  each other surface
+```
+
+Two commands do the machine-and-surface work, and **neither needs a checkout** —
+that matters, because the surfaces most in need of setup are the ones with no
+repository attached.
+
+| Command | Answers | Scope |
+| --- | --- | --- |
+| `workstation` | what binaries does this machine have | once per machine |
+| `environment <surface>` | which tenant, and where do its credentials go | once per machine, and once per other surface |
+
+`environment` runs where Lisa can execute and prints what to paste where it
+cannot:
+
+```
+environment local        prepares this machine
+environment container    an image definition and a run command
+environment claude-web   text for the Claude environment dialog
+environment codex-cloud  text for the Codex environment settings
+```
+
+### 1. The vault, once per tenant
+
+Create the secrets, then a **machine account** granted only the projects agents
+may read — that grant is what scopes every headless session. Annotate a secret's
+note with `tool: <name>` where a CLI is implied (`sonar`, `aws`, `gh`); a session
+with no checkout installs exactly what the notes name, and the whole catalogue
+if they name nothing.
+
+Issue each place its own access token, at the moment you set that place up. One
+token shared across five places makes any compromise a five-place outage, and
+makes every access in the audit log anonymous.
+
+### 2. The machine
+
+```bash
+npx -y @codyswann/lisa@latest workstation --install --provider=bitwarden
+exec $SHELL -l                                   # ~/.local/bin on PATH
+npx -y @codyswann/lisa@latest environment local --tenant=<name>
+```
+
+Node is the only prerequisite. `workstation` is the one entry point that works
+before any agent or repository exists — invoking a *skill* needs an installed
+agent, and Lisa is a devDependency so it needs a clone; both are what this
+creates.
+
+`environment local` prompts for the token, stores it in the OS keychain (a
+`0600` file where there is no keychain), materializes the credentials, and
+installs the per-environment AWS profiles. **Re-run it to rotate** — it is not
+an installer, so it will not reinstall six coding agents to replace one token.
+
+`--tenant` is required because every namespace is a directory: guessing would
+put one tenant's credentials where another tenant's sessions read.
+
+Then authenticate the things that are *you* rather than the machine account —
+`gh auth login`, `aws configure sso`, and each agent's own login.
+
+### 3. Each repository
+
+```bash
+git clone … && cd …
+npx -y @codyswann/lisa@latest apply    # lint, hooks, workflows, agent surfaces
+bun install                            # postinstall installs the agent plugins
+npx -y @codyswann/lisa@latest sync     # then set secrets.namespace
+```
+
+A repository only needs to say *which tenant it belongs to*. The credentials are
+already on the machine.
+
+Brownfield repositories then converge — see below.
+
+### 4. Each other surface
+
+Cloud environments are account-scoped and shared across every repository, so
+this is once per environment rather than once per repository:
+
+```bash
+npx -y @codyswann/lisa@latest environment claude-web --tenant=<name>
+```
+
+Paste what it prints. Give that environment its **own** access token: those
+dialogs store values in plain text, readable by everyone who can use the
+environment.
+
+A repository becomes usable *from* a cloud surface with
+`lisa remote-env --install`, which writes two entrypoints to commit. They are
+inert locally — a container that has just cloned the repository has never seen
+the plugin they came from, so they have to be part of the clone.
+
+---
+
 Install Lisa as a development dependency in each project that uses it:
 
 ```bash
