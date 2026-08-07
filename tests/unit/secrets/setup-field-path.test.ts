@@ -22,30 +22,36 @@ import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-
 /** The field's PATH export, as emitted. */
 const exported = /export PATH="([^"]*)"/.exec(SETUP_FIELD)?.[1] ?? "";
 
+/**
+ * The exact PATH the field must emit, written out rather than computed.
+ *
+ * Deriving it from `pathDirs` would let the same defect satisfy both sides: a
+ * directory dropped from the catalogue would disappear from the expectation
+ * too, and the test would stay green through the outage it exists to catch.
+ *
+ * `$HOME/.local/bin` leads because it holds the pinned, checksummed installs,
+ * which must win over whatever the image ships under the same name. `$PATH`
+ * trails because dropping it costs the session git, node, and every builtin.
+ */
+const EXPECTED_PATH = [
+  "$HOME/.local/bin",
+  "$HOME/.opencode/bin",
+  "$HOME/.local/share/sonarqube-cli/bin",
+  "$PATH",
+];
+
 describe("the PATH the setup field exports", () => {
-  it("carries EVERY directory the catalogue installs into", () => {
-    // Derived from the catalogue, so a tool added with a new binDir fails here
-    // rather than silently going missing in a container.
-    for (const dir of pathDirs("$HOME")) {
-      expect(exported.split(":")).toContain(dir);
-    }
+  it("is exactly the catalogue's directories, in order, then $PATH", () => {
+    // A whole-sequence assertion rather than membership: containment cannot see
+    // a reordering, and it cannot see an extra absolute path spliced in.
+    expect(exported.split(":")).toEqual(EXPECTED_PATH);
   });
 
-  it("includes the one that was missing, by name", () => {
-    // Named outright: the generic check above passes if pathDirs itself loses
-    // the entry, and that is the same outage with a green test.
-    expect(exported).toContain("$HOME/.local/share/sonarqube-cli/bin");
-  });
-
-  it("puts the pinned binaries first", () => {
-    // ~/.local/bin holds the checksummed installs, which must win over whatever
-    // the image happens to ship under the same name.
-    expect(exported.split(":")[0]).toBe("$HOME/.local/bin");
-  });
-
-  it("keeps the inherited PATH last rather than replacing it", () => {
-    // Dropping $PATH costs the session git, node, and every image builtin.
-    expect(exported.split(":").at(-1)).toBe("$PATH");
+  it("fails when the catalogue gains a directory this test does not name", () => {
+    // The pairing that makes the hardcoded list safe. A tool added with a new
+    // binDir breaks HERE — visibly, with the new directory in the diff —
+    // instead of going quietly missing inside a container.
+    expect(pathDirs("$HOME")).toEqual(EXPECTED_PATH.slice(0, -1));
   });
 
   it("leaves $HOME for the container to expand", () => {
