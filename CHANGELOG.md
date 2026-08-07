@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.338.4](https://github.com/CodySwannGT/lisa/compare/v2.338.3...v2.338.4) (2026-08-07)
+
+
+### Bug Fixes
+
+* **secrets:** report the FIRST checkout failure, as documented ([3aec228](https://github.com/CodySwannGT/lisa/commit/3aec228fa9265d3e75c7e840fb67a070e23c90ee)), closes [#2352](https://github.com/CodySwannGT/lisa/issues/2352) [CodySwannGT/lisa#2351](https://github.com/CodySwannGT/lisa/issues/2351)
+
 ### [2.338.3](https://github.com/CodySwannGT/lisa/compare/v2.338.2...v2.338.3) (2026-08-07)
 
 
