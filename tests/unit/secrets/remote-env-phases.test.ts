@@ -258,6 +258,9 @@ describe("emitted Claude configuration", () => {
     expect(emitted).toMatch(/no API/i);
   });
 
+  // The repo-less exports the emitted guidance must carry are covered in
+  // `emit-claude-web-exports`, which keeps this file inside its line budget.
+
   it("emits one setup line that is identical for every project", () => {
     // Previously this named the repository and the package manager, so a
     // Claude environment for an npm project and one for a bun project differed
