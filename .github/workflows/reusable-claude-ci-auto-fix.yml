@@ -132,10 +132,22 @@ jobs:
       - name: Check for previous auto-fix attempt
         id: loop-guard
         run: |
+          # Skip only when the head commit is a PREVIOUS auto-fix attempt —
+          # mirrors reusable-claude-deploy-auto-fix.yml, which fixed this
+          # same blanket check earlier. Branches routinely carry
+          # github-actions[bot] commits that are not fix attempts (release
+          # artifacts, content pipelines, any bot that opens a PR); treating
+          # every bot commit as a loop exempted those branches from auto-fix
+          # entirely, and bailed before the ownership guard below could apply
+          # the lease/quiet-period rules that enforce single-writer safety.
           AUTHOR=$(git log -1 --format='%an')
-          if [[ "$AUTHOR" == "github-actions[bot]" || "$AUTHOR" == "claude[bot]" ]]; then
+          SUBJECT=$(git log -1 --format='%s')
+          if [[ "$AUTHOR" == "claude[bot]" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "Last commit was by $AUTHOR — skipping to prevent loop."
+          elif [[ "$AUTHOR" == "github-actions[bot]" && "$SUBJECT" == *"claude-auto-fix-"* ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Last commit merges a previous auto-fix PR — skipping to prevent loop."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
