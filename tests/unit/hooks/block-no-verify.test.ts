@@ -129,6 +129,45 @@ describe("block-no-verify.sh", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    it.each(["CORE.HOOKSPATH", "core.hookspath", "Core.HooksPath"])(
+      "blocks the case variant %s, since git config names are case-insensitive",
+      variable => {
+        // git treats CORE.HOOKSPATH and core.hooksPath as the same setting, so
+        // a case-sensitive guard is bypassed by holding down shift.
+        const { status } = runHook(
+          "Bash",
+          `git -c ${variable}=/var/no-hooks commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it.each([
+      "--config-env=core.hooksPath=HOOKS",
+      "--config-env=CORE.HOOKSPATH=HOOKS",
+    ])("blocks %s, which sets the same config from an env var", flag => {
+      // The path is never in the command — git reads it out of $HOOKS at run
+      // time — so there is nothing to allowlist against and this is refused
+      // outright.
+      const { status } = runHook("Bash", `git ${flag} commit -m bypass`);
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it.each([".no-hooks-here", "build/empty", "..", "/"])(
+      "blocks core.hooksPath redirected to %s",
+      hooksPath => {
+        // The bypass a denylist of "obviously disabling" values could never
+        // catch: any directory that simply contains no hooks disables them as
+        // completely as /dev/null, so the permitted destinations have to be
+        // enumerated instead.
+        const { status } = runHook(
+          "Bash",
+          `git -c core.hooksPath=${hooksPath} commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
     it("blocks core.hooksPath set empty", () => {
       const { status } = runHook(
         "Bash",
@@ -179,6 +218,17 @@ describe("block-no-verify.sh", () => {
       );
       expect(status).toBe(EXIT_ALLOWED);
     });
+
+    it.each([".githooks", "./.husky", ".husky/"])(
+      "allows the in-repo hooks directory %s",
+      hooksPath => {
+        const { status } = runHook(
+          "Bash",
+          `git -c core.hooksPath=${hooksPath} commit -m normal`
+        );
+        expect(status).toBe(EXIT_ALLOWED);
+      }
+    );
 
     it("allows unsetting core.hooksPath", () => {
       const { status } = runHook("Bash", "git config --unset core.hooksPath");
