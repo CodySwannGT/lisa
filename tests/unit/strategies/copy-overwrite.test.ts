@@ -10,6 +10,8 @@ const NEW_CONTENT = "new content";
 const OLD_CONTENT = "old content";
 const KNIP_JSON = "knip.json";
 const TSCONFIG_JSON = "tsconfig.json";
+const IDENTICAL_TXT = "identical.txt";
+const CHANGED_TXT = "changed.txt";
 
 describe("CopyOverwriteStrategy", () => {
   let strategy: CopyOverwriteStrategy;
@@ -163,7 +165,10 @@ describe("CopyOverwriteStrategy", () => {
       createContext({ skipGitCheck: true })
     );
 
-    expect(result.action).toBe("skipped");
+    // Preserved, as before — but reported as `stale`, not `skipped`. The file
+    // is out of date with the packaged template and the operator has to be
+    // able to see that.
+    expect(result.action).toBe("stale");
     expect(await fs.readJson(destFile)).toEqual({
       ignoreDependencies: ["shell-quote"],
     });
@@ -182,8 +187,65 @@ describe("CopyOverwriteStrategy", () => {
       createContext({ skipGitCheck: true })
     );
 
-    expect(result.action).toBe("skipped");
+    expect(result.action).toBe("stale");
     expect(await fs.readJson(destFile)).toEqual({});
+  });
+
+  it("distinguishes an out-of-date file from an identical one", async () => {
+    // The regression this exists to stop. Both cases leave the file untouched,
+    // so folding them into one `skipped` count made an undelivered template
+    // change indistinguishable from a clean no-op. A guard fix could ship in a
+    // release and reach nobody, with nothing in the summary to say so.
+    const identicalSrc = path.join(srcDir, IDENTICAL_TXT);
+    const identicalDest = path.join(destDir, IDENTICAL_TXT);
+    await fs.writeFile(identicalSrc, NEW_CONTENT);
+    await fs.writeFile(identicalDest, NEW_CONTENT);
+
+    const changedSrc = path.join(srcDir, CHANGED_TXT);
+    const changedDest = path.join(destDir, CHANGED_TXT);
+    await fs.writeFile(changedSrc, NEW_CONTENT);
+    await fs.writeFile(changedDest, OLD_CONTENT);
+
+    const context = createContext({ skipGitCheck: true });
+
+    expect(
+      (
+        await strategy.apply(
+          identicalSrc,
+          identicalDest,
+          IDENTICAL_TXT,
+          context
+        )
+      ).action
+    ).toBe("skipped");
+    expect(
+      (await strategy.apply(changedSrc, changedDest, CHANGED_TXT, context))
+        .action
+    ).toBe("stale");
+  });
+
+  it("reports an out-of-date enforcement guard rather than swallowing it", async () => {
+    // The concrete case: a released fix to a PreToolUse guard reaching a
+    // project that already has the old one. It is still not overwritten
+    // without a prompt, but it can no longer be invisible.
+    const rel = "scripts/lisa-hooks/block-no-verify.sh";
+    const srcFile = path.join(srcDir, rel);
+    const destFile = path.join(destDir, rel);
+    await fs.ensureDir(path.dirname(srcFile));
+    await fs.ensureDir(path.dirname(destFile));
+    await fs.writeFile(srcFile, "#!/usr/bin/env bash\n# fixed\n");
+    await fs.writeFile(destFile, "#!/usr/bin/env bash\n# vulnerable\n");
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      rel,
+      createContext({ skipGitCheck: true })
+    );
+
+    expect(result.action).toBe("stale");
+    expect(result.relativePath).toBe(rel);
+    expect(await fs.readFile(destFile, "utf-8")).toContain("vulnerable");
   });
 
   it("creates parent directories when needed", async () => {
