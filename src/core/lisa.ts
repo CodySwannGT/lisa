@@ -1948,7 +1948,9 @@ export class Lisa {
         break;
       case "stale":
         this.deps.logger.warn(
-          `Out of date, not updated: ${result.relativePath}`
+          this.config.dryRun
+            ? `Out of date, would not be updated: ${result.relativePath}`
+            : `Out of date, not updated: ${result.relativePath}`
         );
         break;
       case "overwritten":
@@ -2148,6 +2150,7 @@ export class Lisa {
         this.lisaignoreSuffix
       );
     }
+    this.printStaleDetail();
   }
 
   /**
@@ -2202,7 +2205,9 @@ export class Lisa {
     const { logger } = this.deps;
 
     logger.warn(
-      `${this.counters.stale} managed file(s) changed upstream but were left as-is:`
+      this.config.dryRun
+        ? `${this.counters.stale} managed file(s) changed upstream and would be left as-is:`
+        : `${this.counters.stale} managed file(s) changed upstream but were left as-is:`
     );
     for (const relativePath of this.stalePaths) {
       logger.warn(`  ${relativePath}`);
