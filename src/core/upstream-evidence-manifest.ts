@@ -563,7 +563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/setup/jira.md":
       "6eb95e989b25fe2ed72ec7d361a66b1c7eece6b9950ac0e841d00f6fd8f16d8a",
     "plugins/src/base/commands/setup/linear.md":
-      "5c25e3140d40140b5b6024de64a0bb808c48d966d88537baa0a37444cc043dbb",
+      "c19f376ce1f4d52011c59ffe2bf68875323e4d74a19461798e37116e0faf9839",
     "plugins/src/base/commands/setup/local-env.md":
       "e828a241d9f3ff6fbe9332a9a2ac18c594a5e0828426f8f1f0b8a2e1a3fcfbbe",
     "plugins/src/base/commands/setup/notion.md":
@@ -1153,7 +1153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "02efe0eb8867632e62cf3415df4c41854029fa121250816e531fd83082ee9304",
+      "45567e53808836e418653e79066fb0f940543daae6baf158ffe07474a62560c5",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "4d4b8c92e3616256f5f689fbe433f09c31d39c623508bc4ec0d8c1770caddf22",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
