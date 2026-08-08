@@ -43,8 +43,19 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
+    // A non-interactive apply (postinstall / `--skip-git-check`) cannot prompt,
+    // and replacing a file the project may have customised without asking is
+    // not a decision this path gets to make. So the file is left alone — but
+    // reported as `stale`, never as `skipped`.
+    //
+    // Reporting it as `skipped` is what made template changes undeliverable in
+    // practice: the postinstall bootstrap is how downstream projects take an
+    // upgrade, so every changed template landed here, and the summary counted
+    // it beside genuinely-identical files under "identical or create-only".
+    // A fix to an enforcement guard could ship in a release and reach nobody,
+    // with nothing in the output to say so.
     if (config.skipGitCheck) {
-      return { relativePath, strategy: this.name, action: "skipped" };
+      return { relativePath, strategy: this.name, action: "stale" };
     }
 
     if (config.dryRun) {

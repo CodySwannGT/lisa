@@ -130,6 +130,15 @@ type PluginExecAsync = (
  */
 export class Lisa {
   private counters: OperationCounters = createInitialCounters();
+
+  /**
+   * Managed files this apply found out of date but could not update.
+   *
+   * Named so the summary can list them: a count alone tells an operator that
+   * something did not land without telling them what, which is most of the way
+   * back to the silence this exists to end.
+   */
+  private readonly stalePaths: string[] = [];
   private detectedTypes: ProjectType[] = [];
   private ignorePatterns: IgnorePatterns = {
     patterns: [],
@@ -1890,6 +1899,10 @@ export class Lisa {
       case "skipped":
         this.counters.skipped++;
         break;
+      case "stale":
+        this.counters.stale++;
+        this.stalePaths.push(result.relativePath);
+        break;
       case "overwritten":
         this.counters.overwritten++;
         break;
@@ -1932,6 +1945,13 @@ export class Lisa {
         break;
       case "skipped":
         // Silent for skipped files
+        break;
+      case "stale":
+        this.deps.logger.warn(
+          this.config.dryRun
+            ? `Out of date, would not be updated: ${result.relativePath}`
+            : `Out of date, not updated: ${result.relativePath}`
+        );
         break;
       case "overwritten":
         this.logMessage(
@@ -2109,6 +2129,12 @@ export class Lisa {
     );
     this.printStatLine("Would prompt:   ", overwritten, pc.yellow, "(differ)");
     this.printStatLine(
+      "Out of date:    ",
+      this.counters.stale,
+      pc.yellow,
+      "(managed templates changed; would NOT be updated)"
+    );
+    this.printStatLine(
       "Would append:   ",
       appended,
       pc.blue,
@@ -2124,6 +2150,7 @@ export class Lisa {
         this.lisaignoreSuffix
       );
     }
+    this.printStaleDetail();
   }
 
   /**
@@ -2145,6 +2172,12 @@ export class Lisa {
       pc.yellow,
       "(user approved)"
     );
+    this.printStatLine(
+      "Out of date:",
+      this.counters.stale,
+      pc.yellow,
+      "(managed templates changed; NOT updated)"
+    );
     this.printStatLine("Appended:   ", appended, pc.blue, "(copy-contents)");
     this.printStatLine("Merged:     ", merged, pc.green, "(JSON merged)");
     this.printStatLine("Deleted:    ", deleted, pc.red);
@@ -2156,6 +2189,35 @@ export class Lisa {
         this.lisaignoreSuffix
       );
     }
+    this.printStaleDetail();
+  }
+
+  /**
+   * Name the out-of-date managed files and say how to update them.
+   *
+   * A bare count is not enough to act on. An operator taking an upgrade needs
+   * to see WHICH managed files the release changed and did not deliver —
+   * particularly the enforcement guards, where the gap is a security control
+   * that stayed on its old version while the release notes said otherwise.
+   */
+  private printStaleDetail(): void {
+    if (this.counters.stale === 0) return;
+    const { logger } = this.deps;
+
+    logger.warn(
+      this.config.dryRun
+        ? `${this.counters.stale} managed file(s) changed upstream and would be left as-is:`
+        : `${this.counters.stale} managed file(s) changed upstream but were left as-is:`
+    );
+    for (const relativePath of this.stalePaths) {
+      logger.warn(`  ${relativePath}`);
+    }
+    logger.info(
+      "A non-interactive apply will not replace a file your project may have customised."
+    );
+    logger.info(
+      "Review the differences and run `lisa apply .` interactively to take them, or add paths to .lisaignore to keep yours."
+    );
   }
 
   /**
