@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.6](https://github.com/CodySwannGT/lisa/compare/v2.341.5...v2.341.6) (2026-08-08)
+
+
+### Bug Fixes
+
+* **work-item:** read the Linear lifecycle from the workflow state, not labels ([c30079f](https://github.com/CodySwannGT/lisa/commit/c30079f0c9be2aab4a9f2c5681636e277d1817af)), closes [#2271](https://github.com/CodySwannGT/lisa/issues/2271) [#2277](https://github.com/CodySwannGT/lisa/issues/2277) [CodySwannGT/lisa#2379](https://github.com/CodySwannGT/lisa/issues/2379)
+
 ### [2.341.5](https://github.com/CodySwannGT/lisa/compare/v2.341.4...v2.341.5) (2026-08-08)
 
 
