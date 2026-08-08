@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.4](https://github.com/CodySwannGT/lisa/compare/v2.341.3...v2.341.4) (2026-08-08)
+
+
+### Bug Fixes
+
+* **hooks:** close four fail-opens in the Bash enforcement guards ([bf3b16a](https://github.com/CodySwannGT/lisa/commit/bf3b16af79b8de0878b75ee97535707a1f16fba9)), closes [PropSwapLLC/wiki#39](https://github.com/PropSwapLLC/wiki/issues/39) [PropSwapLLC/backend#940](https://github.com/PropSwapLLC/backend/issues/940) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+* **hooks:** close two residual bypasses found in review round 2 ([dbc441e](https://github.com/CodySwannGT/lisa/commit/dbc441e5289b19d944c0e2106f4888a1a88175ab)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+* **hooks:** harden the exemption and hooksPath checks from review ([bb6d6d4](https://github.com/CodySwannGT/lisa/commit/bb6d6d4a1e9dc7adf50249b0507500f3e14c7560)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+
 ### [2.341.3](https://github.com/CodySwannGT/lisa/compare/v2.341.2...v2.341.3) (2026-08-08)
 
 
