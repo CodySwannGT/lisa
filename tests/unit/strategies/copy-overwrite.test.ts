@@ -12,6 +12,7 @@ const KNIP_JSON = "knip.json";
 const TSCONFIG_JSON = "tsconfig.json";
 const IDENTICAL_TXT = "identical.txt";
 const CHANGED_TXT = "changed.txt";
+const VULNERABLE_GUARD = "#!/usr/bin/env bash\n# vulnerable\n";
 
 describe("CopyOverwriteStrategy", () => {
   let strategy: CopyOverwriteStrategy;
@@ -234,7 +235,7 @@ describe("CopyOverwriteStrategy", () => {
     await fs.ensureDir(path.dirname(srcFile));
     await fs.ensureDir(path.dirname(destFile));
     await fs.writeFile(srcFile, "#!/usr/bin/env bash\n# fixed\n");
-    await fs.writeFile(destFile, "#!/usr/bin/env bash\n# vulnerable\n");
+    await fs.writeFile(destFile, VULNERABLE_GUARD);
 
     const result = await strategy.apply(
       srcFile,
@@ -245,7 +246,10 @@ describe("CopyOverwriteStrategy", () => {
 
     expect(result.action).toBe("stale");
     expect(result.relativePath).toBe(rel);
-    expect(await fs.readFile(destFile, "utf-8")).toContain("vulnerable");
+    // Exact content, not a substring: the contract is that the host file is
+    // untouched, and a substring match would still pass if it had been rewritten
+    // around that word.
+    expect(await fs.readFile(destFile, "utf-8")).toBe(VULNERABLE_GUARD);
   });
 
   it("creates parent directories when needed", async () => {
