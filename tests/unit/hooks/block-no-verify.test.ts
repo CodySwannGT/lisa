@@ -142,6 +142,17 @@ describe("block-no-verify.sh", () => {
       }
     );
 
+    it.each([
+      "--config-env=core.hooksPath=HOOKS",
+      "--config-env=CORE.HOOKSPATH=HOOKS",
+    ])("blocks %s, which sets the same config from an env var", flag => {
+      // The path is never in the command — git reads it out of $HOOKS at run
+      // time — so there is nothing to allowlist against and this is refused
+      // outright.
+      const { status } = runHook("Bash", `git ${flag} commit -m bypass`);
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
     it.each([".no-hooks-here", "build/empty", "..", "/"])(
       "blocks core.hooksPath redirected to %s",
       hooksPath => {

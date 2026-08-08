@@ -65,9 +65,14 @@ case "$tool_name" in
   Edit | MultiEdit)
     if printf '%s' "$input" |
       jq -e '
+        # Exactly ONE marked region and nothing else. The inner
+        # `(?!<!-- LISA_)` is what makes it one: a plain `[\s\S]*` anchors only
+        # the FIRST opening marker and the LAST closing marker, so
+        # `region + prose + region` satisfies it and the prose between the two
+        # regions rides along outside any marked block.
         def bounded:
           type == "string"
-          and test("^\\s*<!-- LISA_[A-Z_]+ -->[\\s\\S]*<!-- LISA_[A-Z_]+ -->\\s*$");
+          and test("^\\s*<!-- LISA_[A-Z_]+ -->(?:(?!<!-- LISA_)[\\s\\S])*<!-- LISA_[A-Z_]+ -->\\s*$");
         def replacement_pairs:
           if .tool_input.edits? then [.tool_input.edits[]?]
           else [.tool_input] end;

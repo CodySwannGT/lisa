@@ -11,9 +11,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "6f52076e3488821d638b6dd45b5faca527d92b181cc12e6e5033859e0786c8a7",
+      "850cfc23852eb752114ae1e938a1c7bcf34bc50c85d3aaca0c02311cc8c0ef70",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "18b7bb8867c5e6f719a9c503a38525f4c05e3d611717c3e1a503cf58dfb2832f",
+      "33e2bd341eb992036059b0c4606db35a218adcfeca7e44d174fedf8ebdff29d2",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -593,11 +593,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "6f52076e3488821d638b6dd45b5faca527d92b181cc12e6e5033859e0786c8a7",
+      "850cfc23852eb752114ae1e938a1c7bcf34bc50c85d3aaca0c02311cc8c0ef70",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "1a36c841b6339a2c664938d65c5a4542f97d05f584e467de448bb72ac6bdba55",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "18b7bb8867c5e6f719a9c503a38525f4c05e3d611717c3e1a503cf58dfb2832f",
+      "33e2bd341eb992036059b0c4606db35a218adcfeca7e44d174fedf8ebdff29d2",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
