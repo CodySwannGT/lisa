@@ -206,14 +206,21 @@ function values(value) {
 }
 
 function lifecycleContract(config, provider) {
+  // Linear's lifecycle is a workflow STATE, exactly like Jira's status, so it
+  // is configured under `linear.workflow` — NOT `linear.labels.build`. The
+  // label path is still honoured as a fallback for any config written against
+  // the old shape. Reading only the label path meant nothing resolved, the
+  // GitHub-shaped `status:*` defaults below took over, and no Linear state name
+  // could ever match them, so every correctly claimed Linear issue was
+  // rejected as "not claimed".
   const configured =
     provider === "jira"
       ? config.jira?.workflow
       : provider === "github"
         ? config.github?.labels?.build
-        : config.linear?.labels?.build;
+        : (config.linear?.workflow ?? config.linear?.labels?.build);
   const defaults =
-    provider === "jira"
+    provider === "jira" || provider === "linear"
       ? {
           ready: "Ready",
           claimed: "In Progress",
@@ -228,7 +235,6 @@ function lifecycleContract(config, provider) {
       : {
           ready: "status:ready",
           claimed: "status:in-progress",
-          ...(provider === "linear" ? { review: "status:code-review" } : {}),
           blocked: "status:blocked",
           done: {
             dev: "status:on-dev",
@@ -786,7 +792,7 @@ function linearIssue(ref, contract) {
       "Linear validation requires LINEAR_API_KEY or a lisa-linear keychain entry"
     );
   const query =
-    "query($id:String!){issue(id:$id){id identifier team{key} state{type} labels{nodes{name}} children{nodes{state{type}}} attachments{nodes{url}} comments{nodes{body}}}}";
+    "query($id:String!){issue(id:$id){id identifier team{key} state{name type} labels{nodes{name}} children{nodes{state{type}}} attachments{nodes{url}} comments{nodes{body}}}}";
   const payload = JSON.stringify({ query, variables: { id: ref } });
   const result = secureCurl(
     ["https://api.linear.app/graphql"],
@@ -827,7 +833,10 @@ function linearIssue(ref, contract) {
     );
   }
   assertRepoScope(ref, contract, issue.labels?.nodes);
-  assertClaimedLifecycle(ref, contract, issue.labels?.nodes);
+  // Lifecycle comes from the workflow STATE, the same shape the Jira path uses
+  // (`[issue.fields?.status?.name]`). Repo scope stays on labels above, because
+  // repo scoping genuinely IS a label.
+  assertClaimedLifecycle(ref, contract, [issue.state?.name]);
   assertLeaf(
     ref,
     typeFromLabels(issue.labels?.nodes),
