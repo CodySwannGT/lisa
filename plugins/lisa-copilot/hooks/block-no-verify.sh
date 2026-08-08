@@ -143,6 +143,15 @@ for i, token in enumerate(normalized_tokens):
     if lowered == "core.hookspath" and i + 1 < len(normalized_tokens):
         if not is_permitted_hooks_path(normalized_tokens[i + 1]):
             sys.exit(1)
+    # `git --config-env=core.hooksPath=SOMEVAR` sets the same config, reading
+    # the value out of the named environment variable. The path therefore is
+    # not in the command at all, so there is nothing to allowlist against —
+    # SOMEVAR can hold anything by the time git reads it. Any core.hooksPath
+    # routed through --config-env is refused outright.
+    if lowered.startswith("--config-env="):
+        spec = token.split("=", 1)[1]
+        if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
+            sys.exit(1)
 
 sys.exit(0)
 PY
