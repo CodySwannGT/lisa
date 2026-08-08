@@ -132,10 +132,15 @@ for i, token in enumerate(normalized_tokens):
     # always be stepped around by naming a third thing. The set of paths that
     # DISABLE hooks is unbounded; the set that legitimately relocates them is
     # tiny and known, so the allowlist is the only side that can be enumerated.
-    if token.startswith("core.hooksPath="):
+    #
+    # Matched case-insensitively because git config variable names are:
+    # `CORE.HOOKSPATH=/x` and `core.hookspath=/x` are the same setting to git,
+    # so a case-sensitive check is bypassed by holding down shift.
+    lowered = token.lower()
+    if lowered.startswith("core.hookspath="):
         if not is_permitted_hooks_path(token.split("=", 1)[1]):
             sys.exit(1)
-    if token == "core.hooksPath" and i + 1 < len(normalized_tokens):
+    if lowered == "core.hookspath" and i + 1 < len(normalized_tokens):
         if not is_permitted_hooks_path(normalized_tokens[i + 1]):
             sys.exit(1)
 

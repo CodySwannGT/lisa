@@ -11,9 +11,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "be1e77fb0ddb246eddae71ebac25e972c3c9e8079514e0dc78d0b73df919464c",
+      "6f52076e3488821d638b6dd45b5faca527d92b181cc12e6e5033859e0786c8a7",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "2df476aacebcb2544a12f459a0092e88eb28c0d00e45fd7ed909c75dfe441027",
+      "18b7bb8867c5e6f719a9c503a38525f4c05e3d611717c3e1a503cf58dfb2832f",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -593,11 +593,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "be1e77fb0ddb246eddae71ebac25e972c3c9e8079514e0dc78d0b73df919464c",
+      "6f52076e3488821d638b6dd45b5faca527d92b181cc12e6e5033859e0786c8a7",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "1a36c841b6339a2c664938d65c5a4542f97d05f584e467de448bb72ac6bdba55",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "2df476aacebcb2544a12f459a0092e88eb28c0d00e45fd7ed909c75dfe441027",
+      "18b7bb8867c5e6f719a9c503a38525f4c05e3d611717c3e1a503cf58dfb2832f",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -8439,6 +8439,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
+    "tests/unit/hooks/block-shell-json-parsing-missing-deps.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing.test.ts": true,
     "tests/unit/hooks/blocking-hook-exit.test.ts": true,
     "tests/unit/hooks/cleanup-stale-worktrees.test.ts": true,

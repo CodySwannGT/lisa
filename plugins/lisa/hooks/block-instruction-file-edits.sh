@@ -42,24 +42,39 @@ fi
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
 [ -n "$tool_name" ] || exit 0
 
-# Lisa's own bounded bridges write marked regions. Replacing a delimited block
-# is not the unbounded growth this guard exists to stop, so it is exempt.
+# Lisa's own bounded bridges write marked regions — the agy project-learnings
+# bridge and cross-pollinate's rule section. The premise of their exemption, as
+# originally stated, is that they "replace in place and cannot grow the file".
+# This enforces that premise rather than trusting it.
 #
-# The exemption is keyed on the text being REPLACED, never on the text being
-# written. Scanning the whole payload made it trivially forgeable: any caller
-# could put `<!-- LISA_` in the content it was writing and walk straight past
-# the guard. The marker has to already be in the region on disk, which only
-# `old_string` attests to — `content` and `new_string` are attacker-chosen.
+# Both sides have to be a marked region and nothing else:
 #
-# It is therefore also limited to the replace-in-place tools. Write has no
-# old_string: it clobbers the whole file, which is exactly the unbounded case,
-# and can never be exempt.
+#   - old_string bounded proves the region really is on disk. Scanning the whole
+#     payload was trivially forgeable — any caller could put `<!-- LISA_` in the
+#     content it was WRITING and walk past the guard.
+#   - new_string bounded is what makes it a replacement rather than an append.
+#     old_string alone does not authorize anything: a caller can read a genuine
+#     marked region, echo it back verbatim, and still smuggle unbounded prose in
+#     after the closing marker. Requiring the written text to be exactly one
+#     marked region — whitespace aside — leaves nowhere to put it.
+#
+# Every edit in a MultiEdit must qualify; one unbounded edit taints the batch.
+# Write is absent by construction: it has no old_string and clobbers the whole
+# file, which is precisely the unbounded case.
 case "$tool_name" in
   Edit | MultiEdit)
     if printf '%s' "$input" |
-      jq -e '[.tool_input.old_string?, (.tool_input.edits[]?.old_string)]
-             | map(select(type == "string"))
-             | any(test("<!-- LISA_"))' >/dev/null 2>&1; then
+      jq -e '
+        def bounded:
+          type == "string"
+          and test("^\\s*<!-- LISA_[A-Z_]+ -->[\\s\\S]*<!-- LISA_[A-Z_]+ -->\\s*$");
+        def replacement_pairs:
+          if .tool_input.edits? then [.tool_input.edits[]?]
+          else [.tool_input] end;
+        replacement_pairs
+        | length > 0
+        and all(.[]; (.old_string | bounded) and (.new_string | bounded))
+      ' >/dev/null 2>&1; then
       exit 0
     fi
     ;;
