@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.5](https://github.com/CodySwannGT/lisa/compare/v2.341.4...v2.341.5) (2026-08-08)
+
+
+### Documentation
+
+* **setup-linear:** stop claiming the build queue runs off status:* labels ([2fbac51](https://github.com/CodySwannGT/lisa/commit/2fbac5103669c24b6de88deb4d5b6b95ee7d85d7)), closes [CodySwannGT/lisa#2375](https://github.com/CodySwannGT/lisa/issues/2375)
+* sync Linear setup command metadata with workflow-state migration ([0abbaec](https://github.com/CodySwannGT/lisa/commit/0abbaecc21d6b1751e85c8c149a159ec1e4b4e9b)), closes [CodySwannGT/lisa#2375](https://github.com/CodySwannGT/lisa/issues/2375)
+
 ### [2.341.4](https://github.com/CodySwannGT/lisa/compare/v2.341.3...v2.341.4) (2026-08-08)
 
 
