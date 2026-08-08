@@ -129,6 +129,21 @@ describe("block-no-verify.sh", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    it.each([".no-hooks-here", "build/empty", "..", "/"])(
+      "blocks core.hooksPath redirected to %s",
+      hooksPath => {
+        // The bypass a denylist of "obviously disabling" values could never
+        // catch: any directory that simply contains no hooks disables them as
+        // completely as /dev/null, so the permitted destinations have to be
+        // enumerated instead.
+        const { status } = runHook(
+          "Bash",
+          `git -c core.hooksPath=${hooksPath} commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
     it("blocks core.hooksPath set empty", () => {
       const { status } = runHook(
         "Bash",
@@ -179,6 +194,17 @@ describe("block-no-verify.sh", () => {
       );
       expect(status).toBe(EXIT_ALLOWED);
     });
+
+    it.each([".githooks", "./.husky", ".husky/"])(
+      "allows the in-repo hooks directory %s",
+      hooksPath => {
+        const { status } = runHook(
+          "Bash",
+          `git -c core.hooksPath=${hooksPath} commit -m normal`
+        );
+        expect(status).toBe(EXIT_ALLOWED);
+      }
+    );
 
     it("allows unsetting core.hooksPath", () => {
       const { status } = runHook("Bash", "git config --unset core.hooksPath");
