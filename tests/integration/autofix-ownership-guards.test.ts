@@ -1,6 +1,65 @@
+import { execFileSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+
+/** Step id of the loop guard in both auto-fix workflows. */
+const LOOP_GUARD_ID = "loop-guard";
+/** Absolute interpreter path; resolving `bash` via PATH is not permitted. */
+const BASH = "/bin/bash";
+/** Commit identity every CI automation shares; not auto-fix's own. */
+const BOT_AUTHOR = "github-actions[bot]";
+/** The commit identity auto-fix itself writes under. */
+const AUTOFIX_AUTHOR = "claude[bot]";
+
+/**
+ * A bash function declaration shadows the external command of the same name,
+ * so declaring `git` ahead of the step body makes the head commit's author
+ * and subject controllable without a PATH shim or an on-disk executable.
+ */
+const GIT_STUB = [
+  "git() {",
+  '  if [[ "$*" == *"%an"* ]]; then',
+  '    printf "%s\\n" "$STUB_AUTHOR"',
+  "  else",
+  '    printf "%s\\n" "$STUB_SUBJECT"',
+  "  fi",
+  "}",
+].join("\n");
+
+/**
+ * Execute a loop-guard step body against a synthetic head commit.
+ *
+ * Returns the `skip=` value the step wrote to GITHUB_OUTPUT, which is the
+ * only thing the downstream `if:` conditions consume.
+ * @param run The step's `run` script
+ * @param author Value `git log -1 --format='%an'` should report
+ * @param subject Value `git log -1 --format='%s'` should report
+ * @returns "true" or "false" as written to the step output, else "unset"
+ */
+function runLoopGuard(run: string, author: string, subject: string): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-loop-guard-"));
+  try {
+    const outFile = path.join(dir, "github-output");
+    fs.writeFileSync(outFile, "");
+    execFileSync(BASH, ["-c", `${GIT_STUB}\n${run}`], {
+      env: {
+        ...process.env,
+        GITHUB_OUTPUT: outFile,
+        STUB_AUTHOR: author,
+        STUB_SUBJECT: subject,
+      },
+      stdio: "pipe",
+    });
+    return (
+      /skip=(true|false)/.exec(fs.readFileSync(outFile, "utf8"))?.[1] ?? "unset"
+    );
+  } finally {
+    fs.rmSync(dir, { force: true, recursive: true });
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -30,7 +89,7 @@ describe("claude ci auto-fix ownership and fix detection", () => {
   const autoFixSteps = workflow.jobs["auto-fix"]?.steps ?? [];
 
   it("skips only previous fix attempts, not branches authored by github-actions[bot]", () => {
-    const guard = autoFixSteps.find(step => step.id === "loop-guard");
+    const guard = autoFixSteps.find(step => step.id === LOOP_GUARD_ID);
     // Parity with reusable-claude-deploy-auto-fix.yml: a merge of the
     // `claude-auto-fix-*` side branch is a loop; any other bot commit is not.
     expect(guard?.run).toContain('"$SUBJECT" == *"claude-auto-fix-"*');
@@ -39,6 +98,36 @@ describe("claude ci auto-fix ownership and fix detection", () => {
     // circuiting before the ownership guard could apply lease rules.
     expect(guard?.run).not.toContain(
       '"$AUTHOR" == "github-actions[bot]" || "$AUTHOR" == "claude[bot]"'
+    );
+  });
+
+  it("resolves every author/subject pair to the right loop-guard outcome", () => {
+    const run = autoFixSteps.find(step => step.id === LOOP_GUARD_ID)?.run ?? "";
+    expect(run).not.toBe("");
+
+    // Own identity: a previous auto-fix commit, whatever the subject.
+    expect(runLoopGuard(run, AUTOFIX_AUTHOR, "fix: repair failing lint")).toBe(
+      "true"
+    );
+    // A merge of the side branch is the other shape a previous attempt takes.
+    expect(
+      runLoopGuard(
+        run,
+        BOT_AUTHOR,
+        "Merge pull request #12 from o/claude-auto-fix-feature-x"
+      )
+    ).toBe("true");
+    // Unrelated bot commits must reach the ownership guard, not stand down.
+    // This is the case that regressed: a content pipeline authoring a branch.
+    expect(runLoopGuard(run, BOT_AUTHOR, "feat(blog): publish a post")).toBe(
+      "false"
+    );
+    expect(
+      runLoopGuard(run, BOT_AUTHOR, "chore(release): 1.2.3 [skip ci]")
+    ).toBe("false");
+    // Humans always proceed.
+    expect(runLoopGuard(run, "Cody Swann", "feat: add a feature")).toBe(
+      "false"
     );
   });
 
@@ -150,7 +239,7 @@ describe("deploy auto-fix escalation and loop guard", () => {
   const autoFixSteps = workflow.jobs["auto-fix"]?.steps ?? [];
 
   it("skips only previous fix attempts, not release commits by github-actions[bot]", () => {
-    const guard = autoFixSteps.find(step => step.id === "loop-guard");
+    const guard = autoFixSteps.find(step => step.id === LOOP_GUARD_ID);
     expect(guard?.run).toContain('"$SUBJECT" == *"claude/deploy-fix-"*');
     // The old blanket bot-author check disabled self-healing on every
     // deploy that followed a release commit.
