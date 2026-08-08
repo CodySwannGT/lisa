@@ -98,7 +98,7 @@ function createFixture(config: object = githubConfig()): Fixture {
     FAKE_ACLI_JSON:
       '{"key":"LAS-12","fields":{"project":{"key":"LAS"},"status":{"name":"In Progress","statusCategory":{"key":"indeterminate"}},"labels":["repo:widgets"],"issuetype":{"name":"Task"},"subtasks":[],"comment":{"comments":[]}}}',
     FAKE_CURL_JSON:
-      '{"data":{"issue":{"id":"id-12","identifier":"LIN-12","team":{"key":"LIN"},"state":{"type":"started"},"labels":{"nodes":[{"name":"repo:widgets"},{"name":"status:in-progress"},{"name":"type:Task"}]},"children":{"nodes":[]},"attachments":{"nodes":[]},"comments":{"nodes":[]}}}}',
+      '{"data":{"issue":{"id":"id-12","identifier":"LIN-12","team":{"key":"LIN"},"state":{"name":"In Progress","type":"started"},"labels":{"nodes":[{"name":"repo:widgets"},{"name":"type:Task"}]},"children":{"nodes":[]},"attachments":{"nodes":[]},"comments":{"nodes":[]}}}}',
     FAKE_GH_ISSUE_JSON:
       '{"number":42,"url":"https://github.com/acme/widgets/issues/42","state":"OPEN","labels":[{"name":"repo:identity"},{"name":"status:in-progress"},{"name":"type:Bug"}],"comments":[],"closedByPullRequestsReferences":[]}',
     FAKE_GH_HIERARCHY_JSON:
@@ -169,15 +169,26 @@ function githubConfig(repository = "widgets"): object {
   return { tracker: "github", github: { org: "acme", repo: repository } };
 }
 
-/** Build a claimed, leaf Linear issue payload carrying the given labels. */
-function linearIssueResponse(labels: string[]): string {
+/**
+ * Build a leaf Linear issue payload carrying the given labels.
+ *
+ * Lifecycle lives in the workflow STATE, not in a label — the same shape the
+ * Jira path uses — so the state name is what decides claimed vs unclaimed.
+ * Labels still carry repo scope and issue type.
+ * @param labels - Label names on the issue.
+ * @param stateName - Workflow state name; defaults to the claimed state.
+ */
+function linearIssueResponse(
+  labels: string[],
+  stateName = "In Progress"
+): string {
   return JSON.stringify({
     data: {
       issue: {
         id: "id-12",
         identifier: "LIN-12",
         team: { key: "LIN" },
-        state: { type: "started" },
+        state: { name: stateName, type: "started" },
         labels: { nodes: labels.map(name => ({ name })) },
         children: { nodes: [] },
         attachments: { nodes: [] },
@@ -893,14 +904,18 @@ describe("provider liveness", () => {
       repo: "widgets",
       linear: { workspace: "acme", teamKey: "LIN" },
     });
-    const response = (labels: string[], children: object[] = []) =>
+    const response = (
+      labels: string[],
+      children: object[] = [],
+      stateName = "In Progress"
+    ) =>
       JSON.stringify({
         data: {
           issue: {
             id: "id-12",
             identifier: "LIN-12",
             team: { key: "LIN" },
-            state: { type: "started" },
+            state: { name: stateName, type: "started" },
             labels: { nodes: labels.map(name => ({ name })) },
             children: { nodes: children },
             attachments: { nodes: [] },
@@ -923,7 +938,7 @@ describe("provider liveness", () => {
 
     const unclaimed = command(fixture, ["bind", "LIN-12"], {
       env: {
-        FAKE_CURL_JSON: response(["repo:widgets", "status:ready", "type:Task"]),
+        FAKE_CURL_JSON: response(["repo:widgets", "type:Task"], [], "Ready"),
       },
     });
     expect(unclaimed.status).toBe(1);
