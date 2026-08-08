@@ -6,9 +6,16 @@ allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion", "mc
 
 # Setup Linear: $ARGUMENTS
 
-Make Linear a tracker, a PRD source, or both for this project. After this skill, `.lisa.config.json` contains `linear.workspace` (+ `linear.teamKey` when Linear is the tracker), the team carries the lifecycle label namespaces lisa needs, and (optionally) `tracker` / `source` point at Linear.
+Make Linear a tracker, a PRD source, or both for this project. After this skill, `.lisa.config.json` contains `linear.workspace` (+ `linear.teamKey` when Linear is the tracker), the team carries the lifecycle states and label namespaces lisa needs, and (optionally) `tracker` / `source` point at Linear.
 
-Linear's data model splits labels into two **kinds** that matter here: **issue labels** (drive the build queue, `status:*`) and **project labels** (drive the PRD lifecycle, `prd-*`). They are distinct namespaces in Linear and are NOT interchangeable — the build lifecycle lives on Issues, the PRD lifecycle lives on Projects. The sentinel feedback marker is an **issue** label even though it belongs to the PRD flow (Linear's MCP has no project-level comments — see `linear-prd-intake`).
+The two lifecycles run on different primitives, and conflating them is the most common setup error:
+
+- **Build queue → native workflow STATES**, read from `linear.workflow.*`. Not labels. See "Why Linear uses states, not labels" in `config-resolution`, and Step 3a below. `lisa-linear-build-intake` reads only these.
+- **PRD lifecycle → PROJECT labels** (`prd-*`), because a PRD is a Linear Project.
+
+Project labels and issue labels are distinct namespaces in Linear and are NOT interchangeable — creating an issue label named `prd-ready` will not work for the PRD flow. The one issue label this skill creates is the sentinel feedback marker, which belongs to the PRD flow despite being an issue label (Linear's MCP has no project-level comments — see `linear-prd-intake`).
+
+**A `status:*` issue-label namespace is no longer scaffolded or read.** It was the pre-state-model build lane; see "Migrating a project that predates the state model" below for what to do with a config that still carries it.
 
 ## Workflow
 
@@ -28,10 +35,10 @@ Ask two things via `AskUserQuestion`.
 
 > What should lisa use Linear for?
 >
-> 1. **Destination tracker** — lisa writes Epics→Projects, Stories→Issues, Sub-tasks→Sub-issues; the build queue runs off the `status:*` issue-label namespace. Sets `tracker: "linear"`. (Requires a team key.)
+> 1. **Destination tracker** — lisa writes Epics→Projects, Stories→Issues, Sub-tasks→Sub-issues; the build queue runs off native workflow **states** (`linear.workflow`), not labels. Sets `tracker: "linear"`. (Requires a team key.)
 > 2. **PRD source** — humans flag Linear **projects** with `prd-ready`; `/lisa:intake` scans and ticketes them off the `prd-*` project-label namespace. Sets `source: "linear"`.
 
-The role answer drives Step 3 (which label namespaces to scaffold) and whether `teamKey` is required (tracker → yes).
+The role answer drives Step 3 (states for the tracker lane, `prd-*` project labels for the PRD lane) and whether `teamKey` is required (tracker → yes).
 
 ### Step 1 — Establish Linear access
 
@@ -139,7 +146,7 @@ echo "Linear key validated. Org: $(echo "$VIEWER" | jq -r '.data.organization.ur
 - **Workspace slug**: honor `--workspace=<slug>`. Otherwise derive from the validated identity — the GraphQL `organization.urlKey` (API path) or the team list's workspace (MCP path). Confirm with the user; this slug is the keychain `account` key and the multi-workspace disambiguator.
 - **Team key** (required when Linear is the **tracker**): honor `--team=<KEY>`. Otherwise enumerate teams via `lisa-linear-access operation: list-teams({})` (or the GraphQL `teams` query) and present them via `AskUserQuestion` (label = team key, description = team name) for the user to pick the team that owns lisa's destination Issues. If Linear is source-only, `teamKey` is optional — skip unless the user wants to pin a team scope.
 
-### Step 3 — Scaffold the lifecycle label namespaces
+### Step 3 — Scaffold the lifecycle namespaces
 
 Read role → label with the default-fallback ladder the intake skills use, so scaffolded labels match exactly what they query.
 
@@ -280,7 +287,7 @@ jq -e '.linear.workspace' .lisa.config.json >/dev/null
 [ "$(jq -r '.tracker // empty' .lisa.config.json)" = "linear" ] && jq -e '.linear.teamKey' .lisa.config.json >/dev/null
 ```
 
-Confirm the scaffolded labels are present (`list_issue_labels` for `status:*` + the sentinel; `list_project_labels` for `prd-*`, including the terminal `prd-verified`). Report success with the resolved workspace, team key (if any), which namespaces were scaffolded (created vs. already existed), any non-default overrides, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.
+Confirm what was scaffolded is present: `list-workflow-states` for every build role when Linear is the tracker, `list_project_labels` for `prd-*` (including the terminal `prd-verified`) and `list_issue_labels` for the sentinel when Linear is the PRD source. Do NOT expect a `status:*` namespace — it is not part of this model. Report success with the resolved workspace, team key (if any), which namespaces were scaffolded (created vs. already existed), any non-default overrides, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.
 
 ## Idempotency
 
