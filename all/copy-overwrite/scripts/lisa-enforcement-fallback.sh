@@ -88,7 +88,20 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   # fail-open this file exists to close.
   printf '%s' "$payload" | bash "$script"
   guard_status=$?
-  if [ "$guard_status" -gt "$status" ]; then
+  # 2 is the ONLY status Claude Code treats as a refusal. Every other non-zero
+  # is a non-blocking error: it is surfaced, and the tool call proceeds anyway.
+  # So the aggregate cannot be the numerically largest status — under `-gt`, a
+  # guard erroring with 3, or dying on a missing interpreter with 127,
+  # outranks another guard's 2 and silently downgrades a refusal into a
+  # warning. That is the precise fail-open this file exists to close,
+  # reintroduced one layer up.
+  #
+  # 2 therefore dominates and is sticky; a lesser non-zero is only carried when
+  # no guard has refused, so a genuine error is still reported when nothing
+  # blocked.
+  if [ "$guard_status" -eq 2 ]; then
+    status=2
+  elif [ "$guard_status" -ne 0 ] && [ "$status" -ne 2 ]; then
     status="$guard_status"
   fi
 done

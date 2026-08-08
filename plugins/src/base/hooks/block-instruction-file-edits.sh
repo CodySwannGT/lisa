@@ -42,12 +42,48 @@ fi
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
 [ -n "$tool_name" ] || exit 0
 
-# Lisa's own bounded bridges write marked regions. A payload carrying a marker
-# is replacing a delimited block, not appending prose, so it cannot be the
-# unbounded growth this guard exists to stop.
-if printf '%s' "$input" | grep -q '<!-- LISA_'; then
-  exit 0
-fi
+# Lisa's own bounded bridges write marked regions — the agy project-learnings
+# bridge and cross-pollinate's rule section. The premise of their exemption, as
+# originally stated, is that they "replace in place and cannot grow the file".
+# This enforces that premise rather than trusting it.
+#
+# Both sides have to be a marked region and nothing else:
+#
+#   - old_string bounded proves the region really is on disk. Scanning the whole
+#     payload was trivially forgeable — any caller could put `<!-- LISA_` in the
+#     content it was WRITING and walk past the guard.
+#   - new_string bounded is what makes it a replacement rather than an append.
+#     old_string alone does not authorize anything: a caller can read a genuine
+#     marked region, echo it back verbatim, and still smuggle unbounded prose in
+#     after the closing marker. Requiring the written text to be exactly one
+#     marked region — whitespace aside — leaves nowhere to put it.
+#
+# Every edit in a MultiEdit must qualify; one unbounded edit taints the batch.
+# Write is absent by construction: it has no old_string and clobbers the whole
+# file, which is precisely the unbounded case.
+case "$tool_name" in
+  Edit | MultiEdit)
+    if printf '%s' "$input" |
+      jq -e '
+        # Exactly ONE marked region and nothing else. The inner
+        # `(?!<!-- LISA_)` is what makes it one: a plain `[\s\S]*` anchors only
+        # the FIRST opening marker and the LAST closing marker, so
+        # `region + prose + region` satisfies it and the prose between the two
+        # regions rides along outside any marked block.
+        def bounded:
+          type == "string"
+          and test("^\\s*<!-- LISA_[A-Z_]+ -->(?:(?!<!-- LISA_)[\\s\\S])*<!-- LISA_[A-Z_]+ -->\\s*$");
+        def replacement_pairs:
+          if .tool_input.edits? then [.tool_input.edits[]?]
+          else [.tool_input] end;
+        replacement_pairs
+        | length > 0
+        and all(.[]; (.old_string | bounded) and (.new_string | bounded))
+      ' >/dev/null 2>&1; then
+      exit 0
+    fi
+    ;;
+esac
 
 # Basename match, case-insensitively: `agents.md` and `AGENTS.md` are the same
 # file on the macOS checkouts this fleet runs on.
@@ -130,9 +166,13 @@ EOF
     # Write signatures only. A bare mention (`cat AGENTS.md`, `rg x AGENTS.md`)
     # is a read and must stay allowed — the filename has to appear as the target
     # of a redirection, a tee, or an in-place sed.
+    # `>>?\|?` covers `>`, `>>`, and the noclobber override `>|`. The bare-`>`
+    # branch already catches explicit fd forms such as `1>` / `2>>` because the
+    # pattern is unanchored and matches the `>` inside them; `>|` was the real
+    # gap, since `|` is excluded by the target class and so terminated the match.
     write_target='[^ |;&]*(agents|claude|copilot-instructions)\.md'
     if printf '%s' "$command_str" |
-      grep -Eqi ">>?[[:space:]]*['\"]?$write_target|tee([[:space:]]+-[a-z]+)*[[:space:]]+['\"]?$write_target|sed[[:space:]]+[^|;&]*-i[^|;&]*$write_target"; then
+      grep -Eqi ">>?\|?[[:space:]]*['\"]?$write_target|tee([[:space:]]+-[a-z]+)*[[:space:]]+['\"]?$write_target|sed[[:space:]]+[^|;&]*-i[^|;&]*$write_target"; then
       refuse "$(printf '%s' "$command_str" |
         grep -Eoi "$write_target" | head -1)"
     fi
