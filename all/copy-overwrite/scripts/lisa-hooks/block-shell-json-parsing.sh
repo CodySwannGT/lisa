@@ -24,6 +24,25 @@ set -euo pipefail
 
 input="$(cat)"
 
+# Probe the interpreters before the first use. Under `set -euo pipefail` an
+# absent jq does not merely skip the parse — the assignment below dies with
+# 127, and 127 is not a refusal, so the guard vanishes and the command runs.
+# Worse, that 127 used to outrank a sibling guard's 2 in
+# lisa-enforcement-fallback.sh, taking a real refusal down with it.
+#
+# Degrading to "allow" stays right: a hook that cannot parse its input cannot
+# tell a bypass from an ordinary command, and failing closed would block every
+# Bash call on a machine missing an interpreter. Doing it QUIETLY is what is
+# wrong — a guard that is silently absent reads exactly like a guard that is
+# passing. Mirrors block-no-verify.sh, which already had this.
+for required in jq python3; do
+  if ! command -v "$required" >/dev/null 2>&1; then
+    printf 'block-shell-json-parsing: %s not found; JSON-parsing protection is NOT active\n' \
+      "$required" >&2
+    exit 0
+  fi
+done
+
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
 if [ "$tool_name" != "Bash" ]; then
   exit 0
@@ -40,7 +59,7 @@ case "$command_str" in
   *) exit 0 ;;
 esac
 
-command -v python3 >/dev/null 2>&1 || exit 0
+# python3 is probed with jq at the top now, announced rather than silent.
 
 if ! BLOCK_SHELL_JSON_COMMAND="$command_str" python3 - <<'PY'
 import os
