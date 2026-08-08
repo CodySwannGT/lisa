@@ -57,10 +57,12 @@
       "vite": "^8.0.16"
     },
     "overrides": {
-      "vite": "$vite"
+      "vite": "$vite",
+      "nanoid": "^3.3.18"
     },
     "resolutions": {
-      "vite": "$vite"
+      "vite": "$vite",
+      "nanoid": "^3.3.18"
     }
   },
   "defaults": {
