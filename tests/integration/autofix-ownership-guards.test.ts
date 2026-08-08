@@ -29,6 +29,19 @@ describe("claude ci auto-fix ownership and fix detection", () => {
   const workflow = loadWorkflow(CLAUDE_CI_AUTO_FIX_YML);
   const autoFixSteps = workflow.jobs["auto-fix"]?.steps ?? [];
 
+  it("skips only previous fix attempts, not branches authored by github-actions[bot]", () => {
+    const guard = autoFixSteps.find(step => step.id === "loop-guard");
+    // Parity with reusable-claude-deploy-auto-fix.yml: a merge of the
+    // `claude-auto-fix-*` side branch is a loop; any other bot commit is not.
+    expect(guard?.run).toContain('"$SUBJECT" == *"claude-auto-fix-"*');
+    // The old blanket bot-author check exempted every bot-authored branch
+    // (content pipelines, release bots) from auto-fix entirely, short-
+    // circuiting before the ownership guard could apply lease rules.
+    expect(guard?.run).not.toContain(
+      '"$AUTHOR" == "github-actions[bot]" || "$AUTHOR" == "claude[bot]"'
+    );
+  });
+
   it("captures the pre-fix SHA before Claude runs and compares the remote against it", () => {
     const claudeIndex = autoFixSteps.findIndex(
       step => step.id === "claude-fix"
