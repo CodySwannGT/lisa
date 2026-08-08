@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.3](https://github.com/CodySwannGT/lisa/compare/v2.341.2...v2.341.3) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ci:** stop auto-fix skipping every bot-authored branch ([1bf935c](https://github.com/CodySwannGT/lisa/commit/1bf935cd6da636d0dc8d50dfaf37ae6fc51d9e11)), closes [CodySwannGT/lisa#2372](https://github.com/CodySwannGT/lisa/issues/2372) [CodySwannGT/lisa#2372](https://github.com/CodySwannGT/lisa/issues/2372)
+* **deps:** pin nanoid to ^3.3.18 ([b8ff5f2](https://github.com/CodySwannGT/lisa/commit/b8ff5f257bbe2ed034f01d7d0ca823a47f37ecfd)), closes [CodySwannGT/lisa#2372](https://github.com/CodySwannGT/lisa/issues/2372) [CodySwannGT/lisa#2372](https://github.com/CodySwannGT/lisa/issues/2372)
+* **review:** force nanoid floor downstream and assert guard behavior ([4ad8145](https://github.com/CodySwannGT/lisa/commit/4ad8145fe90fd60ca8873d53e9640445f77206be)), closes [#2373](https://github.com/CodySwannGT/lisa/issues/2373) [CodySwannGT/lisa#2372](https://github.com/CodySwannGT/lisa/issues/2372) [CodySwannGT/lisa#2372](https://github.com/CodySwannGT/lisa/issues/2372)
+
 ### [2.341.2](https://github.com/CodySwannGT/lisa/compare/v2.341.1...v2.341.2) (2026-08-07)
 
 
