@@ -129,6 +129,19 @@ describe("block-no-verify.sh", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    it.each(["CORE.HOOKSPATH", "core.hookspath", "Core.HooksPath"])(
+      "blocks the case variant %s, since git config names are case-insensitive",
+      variable => {
+        // git treats CORE.HOOKSPATH and core.hooksPath as the same setting, so
+        // a case-sensitive guard is bypassed by holding down shift.
+        const { status } = runHook(
+          "Bash",
+          `git -c ${variable}=/var/no-hooks commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
     it.each([".no-hooks-here", "build/empty", "..", "/"])(
       "blocks core.hooksPath redirected to %s",
       hooksPath => {
