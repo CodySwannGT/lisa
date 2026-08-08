@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.341.7](https://github.com/CodySwannGT/lisa/compare/v2.341.6...v2.341.7) (2026-08-08)
+
+
+### Bug Fixes
+
+* **apply:** report managed templates a non-interactive apply cannot update ([698a96d](https://github.com/CodySwannGT/lisa/commit/698a96d4b04a5c1575e44d1379f7d41241d688c3)), closes [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#2377](https://github.com/CodySwannGT/lisa/issues/2377) [CodySwannGT/lisa#2377](https://github.com/CodySwannGT/lisa/issues/2377)
+* **apply:** report stale detail in dry-run and tighten the guard assertion ([8ee71d9](https://github.com/CodySwannGT/lisa/commit/8ee71d9e4ad463c4e4c6658423634b34e622839b)), closes [#2377](https://github.com/CodySwannGT/lisa/issues/2377) [CodySwannGT/lisa#2377](https://github.com/CodySwannGT/lisa/issues/2377)
+
 ### [2.341.6](https://github.com/CodySwannGT/lisa/compare/v2.341.5...v2.341.6) (2026-08-08)
 
 
