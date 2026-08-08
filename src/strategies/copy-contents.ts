@@ -175,11 +175,13 @@ export class CopyContentsStrategy implements ICopyStrategy {
       };
     }
 
+    // Same reasoning as copy-overwrite: a non-interactive apply leaves the file
+    // alone, but must say so. `stale`, never `skipped`.
     if (context.config.skipGitCheck) {
       return {
         relativePath: realRelativePath,
         strategy: this.name,
-        action: "skipped",
+        action: "stale",
       };
     }
 

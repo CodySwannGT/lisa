@@ -205,6 +205,16 @@ export interface FileOperationResult {
   readonly action:
     | "copied"
     | "skipped"
+    /**
+     * The managed template differs from the installed file and this apply
+     * could not update it, because a non-interactive apply cannot prompt
+     * before replacing a file a project may have customised.
+     *
+     * Distinct from "skipped" on purpose. Folding the two together is what
+     * let template changes — including fixes to the enforcement guards —
+     * go undelivered while the summary read exactly like a clean no-op.
+     */
+    | "stale"
     | "overwritten"
     | "appended"
     | "merged"
@@ -218,6 +228,8 @@ export interface FileOperationResult {
 export interface OperationCounters {
   copied: number;
   skipped: number;
+  /** Managed files left out of date because this apply could not overwrite them. */
+  stale: number;
   overwritten: number;
   appended: number;
   merged: number;
@@ -256,6 +268,7 @@ export function createInitialCounters(): OperationCounters {
   return {
     copied: 0,
     skipped: 0,
+    stale: 0,
     overwritten: 0,
     appended: 0,
     merged: 0,
