@@ -2,7 +2,7 @@
 name: lisa-parity-sentry-sdk-setup
 description: "Install and configure the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: sentry@claude-plugins-official@1.3.0
+synced-from: sentry@claude-plugins-official@1.3.1
 ---
 
 # Sentry SDK Setup
@@ -19,7 +19,7 @@ setup skills**; this single Lisa-native skill consolidated all of them. As of
 upstream **1.2.0** Sentry itself consolidated the suite into one
 `sentry-instrument` playbook, so the shapes now match — but this skill remains a
 from-scratch reimplementation against Lisa conventions, **not** a translation of
-the upstream skill. Pinned to `sentry@claude-plugins-official@1.3.0` via
+the upstream skill. Pinned to `sentry@claude-plugins-official@1.3.1` via
 `synced-from` so the parity drift detector tracks it as one unit.
 
 ## Step 0 — Scope the install
