@@ -7,15 +7,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
+      "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
+      "be1e77fb0ddb246eddae71ebac25e972c3c9e8079514e0dc78d0b73df919464c",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "a6ed91576efebb6ba40cfa4e9d8a3e8566314909210ae8d5860be62a3feb4cff",
+      "2df476aacebcb2544a12f459a0092e88eb28c0d00e45fd7ed909c75dfe441027",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
-      "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
+      "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "062c69eea85157f1e941ec3626d8912aa9f182af6ccdbe19687588a6074db5ce",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
@@ -593,15 +593,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
+      "be1e77fb0ddb246eddae71ebac25e972c3c9e8079514e0dc78d0b73df919464c",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "1a36c841b6339a2c664938d65c5a4542f97d05f584e467de448bb72ac6bdba55",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "a6ed91576efebb6ba40cfa4e9d8a3e8566314909210ae8d5860be62a3feb4cff",
+      "2df476aacebcb2544a12f459a0092e88eb28c0d00e45fd7ed909c75dfe441027",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
-      "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
+      "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
     "plugins/src/base/hooks/cleanup-stale-worktrees.sh":
       "c9b2fcca1b34d6f636b5289ece11b254cbb8ee2c2bac5c2e426b6f4dcfa972f2",
     "plugins/src/base/hooks/debug-hook.sh":
@@ -2025,7 +2025,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
-      "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
+      "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -8448,6 +8448,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforce-verification-gate-preserve.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback-status-aggregation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,

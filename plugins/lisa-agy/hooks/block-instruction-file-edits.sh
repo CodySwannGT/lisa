@@ -42,12 +42,28 @@ fi
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
 [ -n "$tool_name" ] || exit 0
 
-# Lisa's own bounded bridges write marked regions. A payload carrying a marker
-# is replacing a delimited block, not appending prose, so it cannot be the
-# unbounded growth this guard exists to stop.
-if printf '%s' "$input" | grep -q '<!-- LISA_'; then
-  exit 0
-fi
+# Lisa's own bounded bridges write marked regions. Replacing a delimited block
+# is not the unbounded growth this guard exists to stop, so it is exempt.
+#
+# The exemption is keyed on the text being REPLACED, never on the text being
+# written. Scanning the whole payload made it trivially forgeable: any caller
+# could put `<!-- LISA_` in the content it was writing and walk straight past
+# the guard. The marker has to already be in the region on disk, which only
+# `old_string` attests to — `content` and `new_string` are attacker-chosen.
+#
+# It is therefore also limited to the replace-in-place tools. Write has no
+# old_string: it clobbers the whole file, which is exactly the unbounded case,
+# and can never be exempt.
+case "$tool_name" in
+  Edit | MultiEdit)
+    if printf '%s' "$input" |
+      jq -e '[.tool_input.old_string?, (.tool_input.edits[]?.old_string)]
+             | map(select(type == "string"))
+             | any(test("<!-- LISA_"))' >/dev/null 2>&1; then
+      exit 0
+    fi
+    ;;
+esac
 
 # Basename match, case-insensitively: `agents.md` and `AGENTS.md` are the same
 # file on the macOS checkouts this fleet runs on.
@@ -130,9 +146,13 @@ EOF
     # Write signatures only. A bare mention (`cat AGENTS.md`, `rg x AGENTS.md`)
     # is a read and must stay allowed — the filename has to appear as the target
     # of a redirection, a tee, or an in-place sed.
+    # `>>?\|?` covers `>`, `>>`, and the noclobber override `>|`. The bare-`>`
+    # branch already catches explicit fd forms such as `1>` / `2>>` because the
+    # pattern is unanchored and matches the `>` inside them; `>|` was the real
+    # gap, since `|` is excluded by the target class and so terminated the match.
     write_target='[^ |;&]*(agents|claude|copilot-instructions)\.md'
     if printf '%s' "$command_str" |
-      grep -Eqi ">>?[[:space:]]*['\"]?$write_target|tee([[:space:]]+-[a-z]+)*[[:space:]]+['\"]?$write_target|sed[[:space:]]+[^|;&]*-i[^|;&]*$write_target"; then
+      grep -Eqi ">>?\|?[[:space:]]*['\"]?$write_target|tee([[:space:]]+-[a-z]+)*[[:space:]]+['\"]?$write_target|sed[[:space:]]+[^|;&]*-i[^|;&]*$write_target"; then
       refuse "$(printf '%s' "$command_str" |
         grep -Eoi "$write_target" | head -1)"
     fi

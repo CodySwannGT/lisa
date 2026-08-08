@@ -97,17 +97,47 @@ except ValueError:
 
 normalized_tokens = [token.strip("();|&") for token in tokens]
 
+# The only relocations that keep a repo's own hooks in play. `.husky` is the
+# husky convention this fleet runs; `.githooks` is the common hand-rolled one.
+# Anything else — including "" and /dev/null, which are simply the two most
+# obvious members of the blocked set rather than special cases — is refused.
+PERMITTED_HOOKS_PATHS = {".husky", ".githooks"}
+
+
+def is_permitted_hooks_path(value):
+    """Whether a core.hooksPath value relocates hooks rather than disabling them.
+
+    Args:
+        value: The raw core.hooksPath value as it appeared on the command line.
+
+    Returns:
+        True if the path is an established in-repo hooks directory.
+    """
+    cleaned = value.strip().strip("'\"")
+    if cleaned.startswith("./"):
+        cleaned = cleaned[2:]
+    return cleaned.rstrip("/") in PERMITTED_HOOKS_PATHS
+
 for i, token in enumerate(normalized_tokens):
     if token == "--no-verify":
         sys.exit(1)
     if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
         sys.exit(1)
+    # Allowlist the destinations, do not denylist the disabling ones.
+    #
+    # This used to block only "" and /dev/null. But hooks are disabled just as
+    # completely by pointing hooksPath at any directory that happens to contain
+    # none — `-c core.hooksPath=/tmp/empty` bypassed every hook while reading as
+    # an ordinary path — so a denylist of "obviously disabling" values can
+    # always be stepped around by naming a third thing. The set of paths that
+    # DISABLE hooks is unbounded; the set that legitimately relocates them is
+    # tiny and known, so the allowlist is the only side that can be enumerated.
     if token.startswith("core.hooksPath="):
-        value = token.split("=", 1)[1]
-        if value in ("", "/dev/null"):
+        if not is_permitted_hooks_path(token.split("=", 1)[1]):
             sys.exit(1)
-    if token == "core.hooksPath" and i + 1 < len(normalized_tokens) and normalized_tokens[i + 1] in ("", "/dev/null"):
-        sys.exit(1)
+    if token == "core.hooksPath" and i + 1 < len(normalized_tokens):
+        if not is_permitted_hooks_path(normalized_tokens[i + 1]):
+            sys.exit(1)
 
 sys.exit(0)
 PY
