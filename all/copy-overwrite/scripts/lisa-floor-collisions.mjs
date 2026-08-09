@@ -48,18 +48,50 @@ const DEPENDENCY_SECTIONS = [
 ];
 
 /**
+ * Lowest version a single disjunction branch permits.
+ *
+ * An upper-bound-only branch (`<2.0.0`, `<=2.0.0`) has no floor: it permits
+ * everything beneath the bound, so its lower bound is zero. Every other form
+ * used in practice (`>=1.2.3`, `^1.2.3`, `~1.2.3`, `1.2.3`, `>=1.2.3 <2`)
+ * leads with its lower bound.
+ * @param {string} branch One branch of a `||` range.
+ * @returns {number[]|null} [major, minor, patch], or null when there is none.
+ */
+function branchLowerBound(branch) {
+  const trimmed = branch.trim();
+  if (trimmed === "") return null;
+  if (/^<=?\s*\d/.test(trimmed)) return [0, 0, 0];
+  const match = /(\d+)\.(\d+)\.(\d+)/.exec(trimmed);
+  return match ? match.slice(1, 4).map(Number) : null;
+}
+
+/**
  * Lowest version a range permits, as a comparable tuple.
  *
- * Deliberately crude: it reads the first version in the spec, which is the
- * lower bound for every form used in practice (`>=1.2.3`, `^1.2.3`, `~1.2.3`,
- * `1.2.3`, `>=1.2.3 <2`). A spec carrying no version — `*`, `workspace:*`,
- * `latest` — has no floor to compare and returns null.
+ * Reading only the first version in the spec was wrong in a direction that
+ * matters: for `^2.0.0 || ^1.9.0` it reported 2.0.0, a floor HIGHER than the
+ * range actually permits, and the caller's `compare(target, floor) >= 0` then
+ * skipped a genuine collision. A floor read too high is a false negative in a
+ * security check, so every branch is measured and the lowest wins.
+ *
+ * An alias spec (`npm:other-pkg@^1.2.3`) versions a different package
+ * entirely; its number cannot be compared against a floor for this name, so it
+ * returns null rather than a misleading answer. A spec carrying no version —
+ * `*`, `workspace:*`, `latest` — has no floor either.
  * @param {string} spec A version range.
  * @returns {number[]|null} [major, minor, patch], or null when there is none.
  */
 export function lowestPermitted(spec) {
-  const match = /(\d+)\.(\d+)\.(\d+)/.exec(spec ?? "");
-  return match ? match.slice(1, 4).map(Number) : null;
+  const raw = spec ?? "";
+  if (/^\s*npm:/i.test(raw)) return null;
+  const bounds = raw
+    .split("||")
+    .map(branchLowerBound)
+    .filter(bound => bound !== null);
+  if (bounds.length === 0) return null;
+  return bounds.reduce((lowest, bound) =>
+    compare(bound, lowest) < 0 ? bound : lowest
+  );
 }
 
 /**
