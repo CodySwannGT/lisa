@@ -42,6 +42,7 @@ Sections to extract:
 | Deliverables | Each explicit deliverable (migration, doc, endpoint, script) | `deliverable` |
 | Plan file tasks | Each task marked complete in the plan | `task` |
 | Linked blocker resolutions | Each `is blocked by` that required work in this ticket | `blocker` |
+| Behavior contract (frontend only) | Each Gherkin scenario the item was to add or change, and each required scenario-platform obligation it introduced | `behavior` |
 
 If an acceptance criterion is not in Gherkin, still extract it as a requirement — but flag it as `LOW_SPECIFICITY` so the verdict downgrades.
 Downgrade rule: if any `LOW_SPECIFICITY` requirement exists, the maximum possible verdict is `PARTIAL` unless the spec is tightened and re-evaluated.
@@ -96,7 +97,7 @@ For every requirement extracted in Phase 2, produce one row:
 | Column | Value |
 |--------|-------|
 | Requirement ID | Stable identifier (e.g. `AC-1`, `OOS-2`, `ASSERT-3`) |
-| Classification | `acceptance` / `excluded` / `technical` / `assertion` / `deliverable` / `task` / `blocker` |
+| Classification | `acceptance` / `excluded` / `technical` / `assertion` / `deliverable` / `task` / `blocker` / `behavior` |
 | Requirement Text | Verbatim from spec |
 | Evidence | Specific pointer — file:line, test name, verification report section, PR file, screenshot name. When a v2 verdict exists, also name the `claim_id` and `evidence_id` that discharge it |
 | Boundary | The claim's `boundary` from the v2 verdict (`code-unit` / `browser` / `http-api` / `cli` / `data` / `deploy-health` / `performance` / `standards-compat`), or `—` when no v2 claim maps to this row |
@@ -111,6 +112,16 @@ For every requirement extracted in Phase 2, produce one row:
 - **`MISSING`** — requirement has no corresponding implementation OR no evidence at all.
 - **`BOUNDARY_MISMATCH`** — the requirement was implemented and evidence was cited, but the evidence does not *reach* the claim's boundary (a unit `test-run-log` offered for a `browser` claim), or its `artifact_head_sha` does not match `artifact.head_sha`, or the verdict omits the required Not-established review. This is a distinct failure from a miss: the work may be right and the proof still does not establish it. A `BOUNDARY_MISMATCH` row forces the verdict to `DIVERGES` — it can never render as `CONFORMS` or `PARTIAL`. Name the boundary, the kind cited, and the kind(s) required, citing the `claim-evidence-mapping` taxonomy.
 - **`SCOPE_CREEP_VIOLATION`** — used for `excluded` classification only. An Out-of-Scope item appears to have been shipped anyway. This is a different failure than a miss — it means the agent exceeded the spec.
+
+### Behavior-contract rows (frontend work)
+
+For `behavior` rows, evidence is the contract itself, not prose: the scenario exists in the project's behavior contract with its stable ID, and each required scenario-platform obligation resolves to a mapping in the coverage map (or a dated waiver). Read the generated coverage matrix and run the project's coverage gate rather than inferring from the diff.
+
+- Shipped frontend behavior with **no scenario** → `MISSING`. It is a spec-conformance failure, not a documentation nit.
+- Scenario present but a required scenario-platform obligation has neither a mapping nor a waiver, or the coverage gate fails (stale mapping, invalid waiver, floor regression) → `MISSING`.
+- Scenario and mappings present but the gate was not re-run and the matrix not regenerated → `PARTIAL`.
+
+Per the `bdd-e2e-coverage` rule, a waiver is a dated IOU and never counts as coverage — a row backed only by a waiver is reported as waived, never `MATCH`.
 
 ### Scope creep detection
 

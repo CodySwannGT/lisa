@@ -1,0 +1,175 @@
+# BDD Behavior Contract & E2E Coverage
+
+Frontend behavior has historically been specified twice and owned nowhere: once as prose acceptance
+criteria on a ticket that closes and disappears, and once as whatever e2e tests someone had time to
+write. Neither survives the work item. The cost lands at verification time — nobody can answer "what
+is this app supposed to do?" without re-reading a year of closed tickets, and "is that behavior
+guarded?" has a different answer shape per platform and per runner. This contract writes both
+answers down once, in the repo, next to the code.
+
+It is a **single vendor-neutral contract** consumed by `lisa-research` (PRDs express frontend
+behavior in a BDD-convertible shape), `lisa-acceptance-criteria` and `lisa-task-decomposition`
+(the contract update and the e2e sealing are explicit obligations on the work item, not implied
+work), `lisa-test-strategy` and `lisa-tdd-implementation` and `lisa-implement` (building a frontend
+item includes both), `lisa-codify-verification` (the verified journey is codified into every runner
+the scenario's platforms require), and `lisa-verification-lifecycle` / `lisa-spec-conformance` /
+`lisa-verify` (the gate is checked, and a miss fails the item). Those skills cite this slug; they do
+not restate it.
+
+## Vendor neutrality is the point
+
+This contract never names a test runner. Projects use Playwright, Cypress, Maestro, Detox, Appium,
+WebdriverIO, XCUITest, Espresso, an in-house harness, or several at once, and that choice is
+project configuration that changes without touching this contract. What the contract fixes is the
+*obligation*: a required scenario-platform pair is sealed by aligned automation **in whatever runner
+the project has configured for that platform**. Any tool named anywhere downstream is an example,
+never a mandate.
+
+The runner→platform mapping is declared once, in the coverage map, and is the only place a tool name
+is authoritative:
+
+```json
+"runnerPlatforms": {
+  "<web-runner>": ["web"],
+  "<device-runner>": ["ios", "android"]
+}
+```
+
+Platform vocabulary is the project's own — a project that ships only web declares only `web`; one
+that ships a desktop or TV surface declares those. The contract cares that each scenario names the
+platforms it requires and that each named platform has a configured runner.
+
+## Coverage map schema
+
+`bdd/coverage-map.json` is the machine-readable half of the contract. Minimum shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "asOf": "<ISO date>",
+  "runnerPlatforms": { "<runner>": ["<platform>", "..."] },
+  "platformWaivers": [
+    {
+      "scenario": "BDD-DOMAIN-NNN",
+      "platforms": ["<platform>"],
+      "reason": "why this runner cannot decide this behavior today",
+      "recordedAt": "<ISO date>"
+    }
+  ],
+  "mappings": [
+    {
+      "scenario": "BDD-DOMAIN-NNN",
+      "runner": "<runner>",
+      "platforms": ["<platform>", "..."],
+      "file": "<path to the spec/flow>",
+      "evidence": "<exact string inside that file — the test title or flow name>",
+      "level": "behavioral"
+    }
+  ],
+  "exclusions": [
+    { "file": "<path>", "reason": "why this test aligns to no product behavior" }
+  ]
+}
+```
+
+`evidence` is what makes a mapping falsifiable: the gate reads the mapped file and confirms the
+string is still there, so renaming or deleting a test breaks the map loudly instead of leaving a
+scenario silently unguarded. `exclusions` records tests that deliberately map to nothing — starter
+templates, source-level corroboration — so "unmapped test" stays a meaningful signal.
+
+## The gate
+
+Two commands, wired into the project's script surface and into CI:
+
+1. **Regenerate** — recompute coverage from features + map, rewrite the generated matrix
+   (`docs/bdd-scenario-matrix.md`) and the burndown (`docs/e2e-bdd-coverage.md`), and refresh the
+   machine-readable report. Low coverage is reported honestly and does **not** fail this command.
+2. **Check** — the CI gate. It fails on contract defects, not on ambition:
+   - a duplicate or malformed scenario ID;
+   - a scenario declaring a platform with no configured runner;
+   - a mapping whose file is missing or whose `evidence` string is gone (stale mapping);
+   - a mapping claiming a platform the scenario does not declare;
+   - an invalid waiver (nonexistent scenario, undeclared platform, already-excluded scenario, or one
+     that masks an existing mapping);
+   - a regression against the project's committed coverage floor.
+
+The percentage measures **aligned automation inventory, not the latest run result**. A mapped test
+that currently fails is a red CI check, a separate signal; the map only asserts the automation
+exists and still says what it claimed. Both facts are required — a green gate over a red suite is
+not coverage.
+
+### Coverage floor, not coverage target
+
+Projects adopting this contract mid-life start below 100% and must not be blocked by that. The gate
+enforces a **ratchet**: the committed floor per platform may rise and may never fall. A frontend
+work item raises the floor by the obligations it seals; it is never asked to clear the whole backlog.
+
+## Waivers versus `@blocked`
+
+These are different failures and must never be conflated:
+
+| | Means | Recorded as |
+|---|---|---|
+| `@blocked` | The **product** does not do this yet — undesigned, undecided, or unbuilt. | Lifecycle tag on the scenario |
+| Waiver | The product may well do it, but this **runner** cannot decide it on this platform today. | Dated entry in `platformWaivers` |
+
+Both leave the denominator, and neither is ever counted as covered: a waiver is a dated IOU, never
+coverage. A waiver names a runner limitation — no camera on
+the simulator, no request interception, a provider sign-in needing a real credential nobody
+provisioned, a backend with no seedable row for the required state — and it carries a date so it can
+be audited for age. When the limitation dies, the waiver is deleted and the automation is written;
+a waiver that outlives its reason is a defect the burndown should surface.
+
+## Scenario identity and change
+
+A stable ID is a promise about *behavior*, not about text:
+
+- The user-observable behavior is unchanged → **keep the ID**, however much the wording, the
+  implementation, or the design node changed.
+- The behavior is genuinely different → **new ID**; mark the old one `@superseded` and leave it in
+  the file. Superseded scenarios are the audit trail for why the product changed.
+- The capability is committed but not yet designed or built → write it now and tag it `@blocked`.
+  Omitting a committed capability makes coverage look better by describing less of the product,
+  which is exactly the failure this contract exists to prevent.
+- IDs are never renumbered or reused. Gaps in the sequence are normal and harmless.
+
+Provenance tags tie a scenario back to its authority (design node, ratified decision, wiki
+requirement) and to the tracker item that introduced or changed it, so `spec-conformance` can walk
+from a requirement to a scenario to a test without guessing.
+
+## Per-flow obligations
+
+| Flow | Obligation |
+|---|---|
+| **Research / PRD** | For frontend scope, user-facing behavior is written as — or in a shape directly convertible to — Given/When/Then scenarios, with the platforms each behavior must hold on. A PRD that describes frontend behavior only as narrative forces the shape to be invented later, inconsistently. |
+| **Plan / decomposition / acceptance criteria** | Each frontend work item's acceptance criteria and Validation Journey name the contract update *and* the e2e sealing as explicit deliverables, with the scenario IDs it will add or change once known. They are line items, not implied work. |
+| **Implement / TDD / test strategy** | Building the item updates `bdd/features` and the coverage map and writes the aligned automation, in the same PR as the behavior. The scenario is the RED test's specification for user-facing behavior. |
+| **Codify verification** | The verified journey is codified into **every runner the scenario's platforms require** — one runner is never a substitute for another, because they guard different platforms of the same behavior. |
+| **Verify / verification-lifecycle / spec-conformance** | Verification confirms scenarios exist for the shipped behavior and the coverage gate passes. A shipped frontend behavior with no scenario, or a required obligation with neither mapping nor waiver, is a verification **failure** — not a warning, not a nit. |
+
+## Bootstrap
+
+A repo with no contract yet, taking its first frontend work item:
+
+1. **Detect runners.** Find the e2e harnesses the project actually has, per the Tool Discovery
+   Process in `verification-lifecycle`. Record which platforms each covers.
+2. **Scaffold the minimum** — `bdd/features/`, `bdd/coverage-map.json` (with `runnerPlatforms` from
+   step 1 and a coverage floor of the current, honest number), the regenerate + check scripts wired
+   into the project's script surface, and the CI invocation of the check.
+3. **Write only this item's scenarios.** The first item is not a backfill project. Pre-existing
+   uncovered behavior becomes burndown in `docs/e2e-bdd-coverage.md`, and the floor starts where the
+   repo actually is.
+4. **Seal this item's obligations** and commit the regenerated matrix and burndown with the change.
+
+If a required platform has **no** e2e runner at all, record the locations checked and the absence as
+the reason — the same recorded-absence exit the regression-spec rule in `verification` allows — and,
+where the runner could reasonably be added, file a linked build-ready follow-up ticket before merge.
+Silence is never an exit.
+
+## Degradation
+
+Missing scaffolding degrades the run, it does not crash it: a project with no contract gets the
+bootstrap path, an unreadable coverage map is reported as a blocker on the work item rather than
+swallowed, and an absent optional runner is recorded as an absence with the locations checked. What
+never degrades is the reporting — an agent that could not evaluate the contract says so explicitly
+and does not report the item as done.

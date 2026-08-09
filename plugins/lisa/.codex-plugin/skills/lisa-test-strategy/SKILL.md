@@ -12,8 +12,9 @@ Design test strategies, write tests, and review test quality.
 1. **Read existing tests** -- understand the project's test conventions (describe/it structure, naming, helpers)
 2. **Identify test types needed** -- unit, integration, E2E based on the scope of changes
 3. **Map edge cases** -- boundary values, empty inputs, error states, concurrency scenarios
-4. **Check coverage gaps** -- run existing tests to understand current coverage of affected files
-5. **Design verification commands** -- proof commands that empirically demonstrate the code works
+4. **For frontend scope, start from the behavior contract** -- read the project's Gherkin scenarios and coverage map, identify which scenario IDs this work adds or changes, and treat each required scenario-platform obligation as a strategy line item per the `bdd-e2e-coverage` rule
+5. **Check coverage gaps** -- run existing tests to understand current coverage of affected files
+6. **Design verification commands** -- proof commands that empirically demonstrate the code works
 
 ## Test Writing Process
 
@@ -56,6 +57,7 @@ Structure findings as:
 
 - Always run `bun run test` to understand current test state before recommending or writing new tests
 - Match existing test conventions -- do not introduce new test patterns
+- For frontend work, the strategy is not complete until every required scenario-platform obligation has aligned e2e automation in the project's configured runner for that platform, or a dated waiver naming the runner limitation (`bdd-e2e-coverage`). A unit test, a route boot, or a passing test on a different platform never seals an obligation
 - Every test must have a clear "why" -- no tests for testing's sake
 - Focus on testing behavior, not implementation details
 - Verification commands must be runnable locally (no CI/CD dependencies)

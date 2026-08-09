@@ -59,7 +59,7 @@ If the empirical proof came from Kane, consume its exact objective, observable a
 |---|---|
 | UI (web) | Playwright > Cypress > Selenium |
 | UI (mobile) | Maestro > Detox > Playwright (mobile emulation) |
-| UI (frontend, project supports multiple runners) | **ALL supported UI runners** — see "Frontend dual-runner codification" below |
+| UI (frontend) | **The project's configured runner for every platform the behavior requires** — see "Frontend multi-runner codification" below |
 | API | project's integration test runner (Vitest / Jest / RSpec / pytest) with HTTP client (supertest / fetch / faraday) |
 | Database | integration test with real DB + migrations applied |
 | Auth | API or UI test asserting role-gated access (multi-role coverage) |
@@ -74,19 +74,21 @@ If the empirical proof came from Kane, consume its exact objective, observable a
 
 If the project lacks the preferred framework AND no acceptable substitute exists, escalate.
 
-### 2a. Frontend dual-runner codification (non-demotable)
+### 2a. Frontend multi-runner codification (non-demotable)
 
-For **frontend work** — any verification whose validation journey exercised a user-facing UI surface — codification is not one-runner-or-the-other. After the validation journey is complete and verified, the verified behavior MUST be codified in **every UI runner the project supports**:
+For **frontend work** — any verification whose validation journey exercised a user-facing UI surface — codification is not one-runner-or-the-other. The `bdd-e2e-coverage` rule is the contract; this section is only how codification satisfies it. After the validation journey is complete and verified:
 
-1. **A Playwright spec in the project's Playwright test runner** (where its web e2e tests live, e.g. `tests/e2e/**` / `e2e/**`) — required whenever the project has a Playwright (or equivalent web e2e) harness.
-2. **A Maestro flow in the project's Maestro test runner** — required whenever the project supports Maestro. Detect support by any of: a `.maestro/` directory (flows live in `.maestro/flows/`), a `maestro:test` script in `package.json`, or a Maestro CI workflow (e.g. `maestro-native-e2e`). Wire the new flow where the runner picks it up (`maestro test .maestro/flows`), tagging per the project's tier convention (e.g. `smoke`) when one exists.
+1. **Locate the behavior's scenario** in the project's behavior contract (`bdd/features/**` by default) — its stable `@BDD-*` ID and the platforms it declares. If the verified behavior has no scenario yet, write it now; that is part of codification, not a separate task. If the project has no contract yet, take the rule's bootstrap path, scoped to this behavior only.
+2. **Codify into the project's configured runner for EVERY platform that scenario requires.** The runner→platform mapping is project configuration, declared in `bdd/coverage-map.json` under `runnerPlatforms` — read it rather than assuming a tool. Wire each new spec/flow where its runner already picks work up, following the project's existing directory and tagging conventions.
+3. **Record the mapping.** Add one `mappings` entry per scenario-platform obligation naming the runner, platforms, file, and an `evidence` string that actually appears in that file, then regenerate the matrix and burndown so the gate reflects the new coverage.
 
-Both artifacts encode the SAME verified journey — the Playwright spec drives the web surface, the Maestro flow drives the native surface. One is not a substitute for the other: they guard different platforms of the same behavior.
+Every artifact encodes the SAME verified journey against a different platform. One is never a substitute for another, and a passing test on one platform never seals another platform's obligation.
 
 Permitted exits, mirroring the regression-spec rule in `lisa-implement` (never a silent skip, never "optional"):
 
-- The project genuinely has no runner of that kind (no web e2e harness, or no Maestro support by the detection above) → record the checked locations and the absence in the codification evidence; that runner is N/A.
-- A runner is supported but the flow/spec cannot be added or executed in this PR (genuine technical blocker) → create a linked build-ready follow-up ticket before merge, reference it from the PR and work item, and record the blocker — the same follow-up path as the regression-spec blocker.
+- The project genuinely has no runner configured for that platform → record the checked locations and the absence in the codification evidence; that platform is N/A for now.
+- The runner exists but genuinely cannot decide this behavior on that platform (no camera on the simulator, no request interception, an unprovisioned provider credential) → record a dated `platformWaivers` entry with the reason, per the rule. A waiver is an IOU, never coverage.
+- A runner is configured and capable but the spec cannot be added or executed in this PR (genuine technical blocker) → create a linked build-ready follow-up ticket before merge, reference it from the PR and work item, and record the blocker — the same follow-up path as the regression-spec blocker.
 
 ### 3. Generate the test
 
