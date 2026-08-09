@@ -118,8 +118,42 @@ def is_permitted_hooks_path(value):
         cleaned = cleaned[2:]
     return cleaned.rstrip("/") in PERMITTED_HOOKS_PATHS
 
+
+# Git resolves any UNAMBIGUOUS abbreviation of a long option, so `--no-verify`
+# is only the longest of the spellings that disable verification: `git commit
+# --no-veri` skips hooks exactly as completely. An equality check therefore
+# enforced the guard against the one spelling nobody in a hurry types.
+#
+# Matched as "a prefix of --no-verify" rather than by listing abbreviations,
+# because the set of accepted abbreviations is a property of git's parser and
+# changes with the surrounding options. `--no-verbose` is NOT caught, and must
+# not be: it diverges from `--no-verify` at the character after `--no-ver`, so
+# it fails the prefix test.
+#
+# The floor is `--no-v`. Shorter is refused anyway — bare `--no-` is not a flag
+# — and blocking an abbreviation git would reject as ambiguous costs nothing,
+# while missing one git accepts costs the whole guard.
+NO_VERIFY = "--no-verify"
+NO_VERIFY_MIN_PREFIX = len("--no-v")
+
+
+def disables_verification(token):
+    """Whether a token is `--no-verify` or an abbreviation git would accept.
+
+    Args:
+        token: A single shell token from the command line.
+
+    Returns:
+        True if git would read this token as --no-verify.
+    """
+    return (
+        len(token) >= NO_VERIFY_MIN_PREFIX
+        and len(token) <= len(NO_VERIFY)
+        and NO_VERIFY.startswith(token)
+    )
+
 for i, token in enumerate(normalized_tokens):
-    if token == "--no-verify":
+    if disables_verification(token):
         sys.exit(1)
     if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
         sys.exit(1)
