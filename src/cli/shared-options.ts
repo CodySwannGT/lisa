@@ -1,5 +1,5 @@
 import { type Command, InvalidArgumentError } from "commander";
-import type { Harness } from "../core/config.js";
+import type { Harness, RefreshTemplates } from "../core/config.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { GitService } from "../core/git-service.js";
 import type { LisaDependencies } from "../core/lisa.js";
@@ -20,7 +20,29 @@ export interface CLIOptions {
   yes?: boolean;
   validate?: boolean;
   skipGitCheck?: boolean;
+  /** Bare `--refresh-templates` yields true; with a value, the raw path list. */
+  refreshTemplates?: boolean | string;
   harness?: Harness;
+}
+
+/**
+ * Resolve `--refresh-templates` into the selection the strategies consume.
+ * @param value - Raw commander value: absent, true, or a comma-separated list
+ * @returns The selection, or undefined when the flag was not passed
+ */
+export function parseRefreshTemplates(
+  value: boolean | string | undefined
+): RefreshTemplates | undefined {
+  if (value === undefined || value === false) return undefined;
+  if (value === true) return { mode: "all" };
+  const paths = value
+    .split(",")
+    .map(entry => entry.trim())
+    .filter(entry => entry.length > 0);
+  // `--refresh-templates=` with nothing after it reads as "refresh nothing",
+  // which is a footgun either way. Treat it as the bare flag rather than
+  // silently matching no path.
+  return paths.length > 0 ? { mode: "paths", paths } : { mode: "all" };
 }
 
 /**
@@ -61,6 +83,12 @@ export function addSharedOptions(command: Command): Command {
     .option(
       "--skip-git-check",
       "Skip dirty git working directory check (for postinstall use)"
+    )
+    .option(
+      "--refresh-templates [paths]",
+      "Let a non-interactive apply replace managed files it would otherwise report as out of date. " +
+        "Optionally scope to a comma-separated list of repo-relative paths " +
+        "(e.g. --refresh-templates=scripts/lisa-hooks). Backs up before replacing."
     )
     .option(
       "--harness <harness>",
