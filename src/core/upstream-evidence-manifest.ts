@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "2d9ca0841db9e75ddfd95e3a4d485fd01aa639a512ef648996f565b7991d8e2b",
+      "ab0dede91c5c8a07984ae13aa48ec70cdcd2fa691b59617bc4b57998dc79a51c",
     "all/create-only/.claude/rules/PROJECT_RULES.md":
       "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
     "all/create-only/.lisaignore":
