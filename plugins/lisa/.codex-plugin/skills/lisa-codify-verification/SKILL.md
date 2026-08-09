@@ -57,9 +57,7 @@ If the empirical proof came from Kane, consume its exact objective, observable a
 
 | Verification type | Preferred framework (use whichever the project already has) |
 |---|---|
-| UI (web) | Playwright > Cypress > Selenium |
-| UI (mobile) | Maestro > Detox > Playwright (mobile emulation) |
-| UI (frontend) | **The project's configured runner for every platform the behavior requires** — see "Frontend multi-runner codification" below |
+| UI (web, mobile, or any frontend surface) | **The project's configured runner for every platform the behavior requires** — see "Frontend multi-runner codification" below. This row is authoritative for any UI work covered by a `bdd-e2e-coverage` scenario (in practice, essentially all user-facing UI work); it supersedes any generic runner preference — a project's web runner might be Playwright, Cypress, or Selenium, and its device runner might be Maestro, Detox, or a Playwright mobile-emulation profile, but the choice is read from `runnerPlatforms`, never assumed |
 | API | project's integration test runner (Vitest / Jest / RSpec / pytest) with HTTP client (supertest / fetch / faraday) |
 | Database | integration test with real DB + migrations applied |
 | Auth | API or UI test asserting role-gated access (multi-role coverage) |
@@ -81,14 +79,17 @@ For **frontend work** — any verification whose validation journey exercised a 
 1. **Locate the behavior's scenario** in the project's behavior contract (`bdd/features/**` by default) — its stable `@BDD-*` ID and the platforms it declares. If the verified behavior has no scenario yet, write it now; that is part of codification, not a separate task. If the project has no contract yet, take the rule's bootstrap path, scoped to this behavior only.
 2. **Codify into the project's configured runner for EVERY platform that scenario requires.** The runner→platform mapping is project configuration, declared in `bdd/coverage-map.json` under `runnerPlatforms` — read it rather than assuming a tool. Wire each new spec/flow where its runner already picks work up, following the project's existing directory and tagging conventions.
 3. **Record the mapping.** Add one `mappings` entry per scenario-platform obligation naming the runner, platforms, file, and an `evidence` string that actually appears in that file, then regenerate the matrix and burndown so the gate reflects the new coverage.
+4. **Run the coverage gate.** Invoke the project's configured `bdd-e2e-coverage` check command (the same one wired into CI) and confirm it passes. Regenerating the matrix and burndown only recomputes the report; it does not itself prove the gate is green. Record the command and its result in the codification evidence — a regenerated matrix with no observed gate run is not proof of coverage.
 
 Every artifact encodes the SAME verified journey against a different platform. One is never a substitute for another, and a passing test on one platform never seals another platform's obligation.
 
-Permitted exits, mirroring the regression-spec rule in `lisa-implement` (never a silent skip, never "optional"):
+Permitted exits, mirroring the regression-spec rule in `lisa-implement` (never a silent skip, never "optional", and never a bare `N/A`):
 
-- The project genuinely has no runner configured for that platform → record the checked locations and the absence in the codification evidence; that platform is N/A for now.
+- The project genuinely has no runner configured for that platform → record a dated `platformWaivers` entry naming the locations checked and "no runner configured" as the reason, exactly like any other unsealable obligation, per the rule. This is never left as a bare `N/A` — an undated absence has no forcing function to ever get revisited.
 - The runner exists but genuinely cannot decide this behavior on that platform (no camera on the simulator, no request interception, an unprovisioned provider credential) → record a dated `platformWaivers` entry with the reason, per the rule. A waiver is an IOU, never coverage.
 - A runner is configured and capable but the spec cannot be added or executed in this PR (genuine technical blocker) → create a linked build-ready follow-up ticket before merge, reference it from the PR and work item, and record the blocker — the same follow-up path as the regression-spec blocker.
+
+Either of the first two exits also gets a linked build-ready follow-up ticket, referenced from the waiver's reason, whenever the runner could reasonably be added or the limitation could reasonably be lifted — the waiver records the IOU, the ticket is what pays it down.
 
 ### 3. Generate the test
 
@@ -109,7 +110,8 @@ For Playwright UI tests specifically:
 
 **Concrete verification (UAT) contract.** Verification *is* UAT — codifying it is
 how the playthrough becomes durable. For a runtime/behavioral `feat`/`fix`: place
-the codified test where the project's e2e/Playwright tests live (`tests/e2e/**`)
+the codified test wherever the project's own configured e2e runner(s) already look
+for tests — its own directory conventions, never a Lisa-assumed path or tool —
 so CI re-runs it, and commit the evidence artifact to `evidence/<ticket>/`
 (`verdict.json` + state + screenshots). For a Phaser game, drive the canvas
 through the in-game verification test bridge (seed RNG, read state, inject input,

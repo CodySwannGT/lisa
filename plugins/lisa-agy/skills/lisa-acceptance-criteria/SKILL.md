@@ -64,7 +64,7 @@ For each acceptance criterion:
 - Write acceptance criteria from the user's perspective, not the developer's
 - Every user flow must include at least one error path
 - Use Gherkin format (Given/When/Then) for user flows to enable direct translation into test cases
-- For frontend work, the `bdd-e2e-coverage` rule applies: name the scenario IDs the item will add or change in the project's behavior contract and the platforms each must hold on, and list the contract update plus the aligned e2e automation as explicit acceptance criteria -- they are deliverables, not implied work
+- For frontend work, the `bdd-e2e-coverage` rule applies: name the scenario IDs the item will add or change in the project's behavior contract and the platforms each must hold on, and list the contract update plus the aligned e2e automation as explicit acceptance criteria -- they are deliverables, not implied work. List the passing coverage gate and the regenerated matrix and burndown as explicit acceptance criteria too -- the item is not done on a code-complete mapping alone
 - When verifying, always run the feature -- never review by only reading code
 - If you cannot run the feature (missing dependencies, services unavailable), report as a blocker -- do not guess
 - If the changes are purely internal (refactoring, config, tooling), report "No user-facing impact" and explain why

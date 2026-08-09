@@ -99,7 +99,7 @@ Sequence:
 6. Decompose into ordered work items (epics, stories, tasks, spikes, bugs). For each item, run the **Edge Case Brainstorm sub-flow** scoped to that item — accepted cases become additional acceptance criteria or sub-tasks; rejected ones are noted with a one-line reason. Each item carries:
    - Type (epic, story, task, spike, bug)
    - Acceptance criteria (including any added by the per-item brainstorm). For a frontend item, these MUST name the behavior-contract update and the aligned e2e automation as explicit deliverables per the `bdd-e2e-coverage` rule -- never left implied
-   - Verification method
+   - Verification method -- becomes the item's Validation Journey. For a frontend item this MUST name, symmetrically with the acceptance criteria above: the scenario IDs the item will add or change (once known), the platforms each requires, the contract update, and the e2e-sealing evidence markers per the `bdd-e2e-coverage` rule -- a generic "manual QA" or "run the e2e suite" description does not satisfy it
    - Dependencies
    - Skills and agents required (from step 5)
 7. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents

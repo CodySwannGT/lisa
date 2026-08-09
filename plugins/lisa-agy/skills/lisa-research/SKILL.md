@@ -62,7 +62,11 @@ EARS-pattern shape, each with a measurable fit criterion, plus the non-functiona
 story with frontend scope, its user-facing behavior MUST be expressed as — or in a shape directly
 convertible to — Given/When/Then scenarios, naming the platforms each behavior must hold on, per the
 `bdd-e2e-coverage` rule; narrative-only frontend behavior forces that shape to be invented later,
-inconsistently, by whoever picks up the ticket. The final
+inconsistently, by whoever picks up the ticket. Each scenario stub carries its originating requirement
+atom (`R1`, `R2`, …) even though the stable `@BDD-<DOMAIN>-<NNN>` ID is not minted until Plan or
+Implement — this is what lets a later stage's provenance tag, and `spec-conformance`'s traceability
+check, walk back from a shipped scenario to the PRD requirement it was written to satisfy, instead of
+accepting any scenario with a stable ID as proof of this requirement. The final
 flow step invokes `lisa-prd-source-write`, which creates the PRD in the configured `source` (Notion
 page in the PRD database, Confluence page under the lifecycle parent, GitHub issue, or Linear
 project) in the `draft` role by default or `ready` when `prd_ready=true`. **The PRD lives in the
