@@ -62,8 +62,31 @@ except ValueError:
 
 normalized_tokens = [token.strip("();|&") for token in tokens]
 
+# Git resolves any UNAMBIGUOUS abbreviation of a long option, so `--no-veri`
+# skips hooks exactly as completely as `--no-verify`. Matched as a prefix
+# rather than by listing abbreviations; `--no-verbose` diverges after
+# `--no-ver` and so is correctly not caught.
+NO_VERIFY = "--no-verify"
+NO_VERIFY_MIN_PREFIX = len("--no-v")
+
+
+def disables_verification(token):
+    """Whether a token is `--no-verify` or an abbreviation git would accept.
+
+    Args:
+        token: A single shell token from the command line.
+
+    Returns:
+        True if git would read this token as --no-verify.
+    """
+    return (
+        len(token) >= NO_VERIFY_MIN_PREFIX
+        and len(token) <= len(NO_VERIFY)
+        and NO_VERIFY.startswith(token)
+    )
+
 for i, token in enumerate(normalized_tokens):
-    if token == "--no-verify":
+    if disables_verification(token):
         sys.exit(1)
     if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
         sys.exit(1)
