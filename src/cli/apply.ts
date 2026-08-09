@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { LisaConfig } from "../core/config.js";
+import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
 import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
@@ -15,7 +15,11 @@ import {
 import { ConsoleLogger } from "../logging/index.js";
 import { toAbsolutePath } from "../utils/path-utils.js";
 import { nudgeCrossPollinate } from "./cross-pollinate-nudge.js";
-import { type CLIOptions, createDependencies } from "./shared-options.js";
+import {
+  type CLIOptions,
+  createDependencies,
+  parseRefreshTemplates,
+} from "./shared-options.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,6 +68,17 @@ function printUsageAndExit(): never {
   );
   console.log(
     "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
+  );
+  console.log("  --refresh-templates [paths]");
+  console.log(
+    "                    Let a non-interactive apply replace managed files it would"
+  );
+  console.log(
+    "                    otherwise report as out of date. Optionally scope to a"
+  );
+  console.log("                    comma-separated path list, e.g.");
+  console.log(
+    "                    --refresh-templates=scripts/lisa-hooks. Backs up first."
   );
   console.log("  --no-update-check Skip the npm latest-version check");
   console.log(
@@ -131,6 +146,39 @@ async function migrateLegacyHarnessIfNeeded(
 }
 
 /**
+ * Assemble the apply config.
+ *
+ * Split out so the optional `refreshTemplates` key can be omitted entirely
+ * rather than set to undefined — `exactOptionalPropertyTypes` distinguishes
+ * the two — without that conditional counting against `runApply`.
+ * @param parts - Resolved settings for this invocation
+ * @param parts.destDir - Project directory being applied to
+ * @param parts.dryRun - Whether to report without writing
+ * @param parts.yesMode - Whether prompts auto-accept
+ * @param parts.validateOnly - Whether to validate instead of apply
+ * @param parts.skipGitCheck - Whether the dirty-tree prompt is skipped
+ * @param parts.refreshTemplates - Opted-in managed files, if any
+ * @param parts.harness - Target harness for emitted artifacts
+ * @returns The config to hand to Lisa
+ */
+function buildApplyConfig(parts: {
+  destDir: string;
+  dryRun: boolean;
+  yesMode: boolean;
+  validateOnly: boolean;
+  skipGitCheck: boolean;
+  refreshTemplates: RefreshTemplates | undefined;
+  harness: Harness;
+}): LisaConfig {
+  const { refreshTemplates, ...rest } = parts;
+  return {
+    lisaDir: getLisaDir(),
+    ...rest,
+    ...(refreshTemplates === undefined ? {} : { refreshTemplates }),
+  };
+}
+
+/**
  * Apply Lisa to the given destination with the given options.
  *
  * This is the relocated action that previously lived inline in
@@ -161,16 +209,17 @@ export async function runApply(
   const projectConfig = await readProjectConfig(destDir);
   const configFileExists = await projectConfigExists(destDir);
   const harness = resolveHarness(options.harness, projectConfig);
+  const refreshTemplates = parseRefreshTemplates(options.refreshTemplates);
 
-  const config: LisaConfig = {
-    lisaDir: getLisaDir(),
+  const config = buildApplyConfig({
     destDir,
     dryRun,
     yesMode,
     validateOnly,
     skipGitCheck: options.skipGitCheck ?? false,
+    refreshTemplates,
     harness,
-  };
+  });
 
   const deps = createDependencies(dryRun, yesMode, logger);
   const lisa = new Lisa(config, deps);
