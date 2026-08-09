@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.2](https://github.com/CodySwannGT/lisa/compare/v2.342.1...v2.342.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* **ci:** pair the Playwright blob reporter with a streaming one ([552d96d](https://github.com/CodySwannGT/lisa/commit/552d96d38bf034c6af881c3a607f170799a11390)), closes [CodySwannGT/lisa#2384](https://github.com/CodySwannGT/lisa/issues/2384)
+
 ### [2.342.1](https://github.com/CodySwannGT/lisa/compare/v2.342.0...v2.342.1) (2026-08-09)
 
 
