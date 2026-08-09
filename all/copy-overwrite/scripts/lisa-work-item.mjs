@@ -29,21 +29,9 @@ const GUIDANCE = [
 class TrackingError extends Error {}
 
 /**
- * Say which of three different failures a `gh` invocation actually hit.
- *
- * The three are indistinguishable from an exit status alone, and they send the
- * reader to three different places: a missing binary is an environment to
- * provision, a refused credential is an access grant to obtain, and only the
- * third is anything to do with the ticket.
- *
- * Collapsing them cost a real round trip. On Claude Code web, where `gh` is not
- * pre-installed, every commit was refused with "issue #2202 does not exist or
- * is inaccessible" — about an issue that was open and correct. The message
- * accused the ticket, so that is where the reader went.
- * @param {{status: number|null, error?: Error, stderr?: string}} result Spawn result.
- * @param {string} ref Work item reference, for the message.
- * @param {string} noun What the reference names.
- * @returns {string} A message naming the actual fault.
+ * The tracker could not be ASKED — a missing binary, a refused credential, a
+ * call that never completed. Distinct from a TrackingError, which carries the
+ * tracker's own "no". Only this kind may be degraded.
  */
 export class TrackerUnreachableError extends TrackingError {}
 
@@ -68,6 +56,23 @@ export function githubFailure(result, ref) {
     : new TrackingError(reason);
 }
 
+/**
+ * Say which of three different failures a `gh` invocation actually hit.
+ *
+ * The three are indistinguishable from an exit status alone, and they send the
+ * reader to three different places: a missing binary is an environment to
+ * provision, a refused credential is an access grant to obtain, and only the
+ * third is anything to do with the ticket.
+ *
+ * Collapsing them cost a real round trip. On Claude Code web, where `gh` is not
+ * pre-installed, every commit was refused with "issue #2202 does not exist or
+ * is inaccessible" — about an issue that was open and correct. The message
+ * accused the ticket, so that is where the reader went.
+ * @param {{status: number|null, error?: Error, stderr?: string}} result Spawn result.
+ * @param {string} ref Work item reference, for the message.
+ * @param {string} noun What the reference names.
+ * @returns {string} A message naming the actual fault.
+ */
 export function githubFailureReason(result, ref, noun) {
   if (result.error?.code === "ENOENT") {
     return (
@@ -91,13 +96,31 @@ export function githubFailureReason(result, ref, noun) {
   return `${noun} ${ref} does not exist or is inaccessible`;
 }
 
+/**
+ * Wall-clock ceiling for any child process this script spawns.
+ *
+ * These run inside a git hook, so an unbounded call does not merely wait — it
+ * hangs the commit or push that invoked it, with no output explaining why. A
+ * tracker that has stopped answering must look like a tracker that is
+ * unreachable, which the degradation path already knows how to handle.
+ */
+const CHILD_TIMEOUT_MS = 30_000;
+
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? process.cwd(),
     encoding: "utf8",
     env: options.env ?? process.env,
     input: options.input,
+    timeout: options.timeout ?? CHILD_TIMEOUT_MS,
   });
+  // spawnSync reports a timeout via `error`, not a non-zero status, so the
+  // status check below would let a timed-out call through as success.
+  if (result.error && !options.allowFailure) {
+    throw new TrackerUnreachableError(
+      `${command} ${args.join(" ")} did not complete: ${result.error.message}`
+    );
+  }
   if (result.status !== 0 && !options.allowFailure) {
     throw new TrackingError(
       options.error ?? `${command} ${args.join(" ")} failed`
@@ -122,10 +145,24 @@ function secureCurl(args, entries, options = {}) {
   const input = `${entries
     .map(([name, value]) => `${name} = ${curlConfigValue(value)}`)
     .join("\n")}\n`;
-  return run("curl", ["-fsS", "--config", "-", ...args], {
-    ...options,
-    input,
-  });
+  // --max-time bounds curl itself, so it exits on its own rather than being
+  // killed by the spawnSync ceiling; --connect-timeout fails fast on a host
+  // that is not answering at all. Kept below CHILD_TIMEOUT_MS so curl's own
+  // error message is what surfaces.
+  return run(
+    "curl",
+    [
+      "-fsS",
+      "--connect-timeout",
+      "10",
+      "--max-time",
+      "25",
+      "--config",
+      "-",
+      ...args,
+    ],
+    { ...options, input }
+  );
 }
 
 function projectRoot() {
@@ -557,13 +594,34 @@ function typeFromLabels(labels) {
   return namesFrom(labels).find(name => name.startsWith("type:"));
 }
 
+/**
+ * Every sub-issue state for a GitHub issue, following pagination.
+ *
+ * Two things this gets right that the single-page version did not:
+ *
+ * A transport failure is classified through githubFailure, exactly as
+ * githubIssue does. Raising a bare TrackingError meant "gh is missing" and
+ * "the network is down" read as "this work item is invalid", so validateLive
+ * could not degrade and the hook hard-failed on a laptop with no connection.
+ *
+ * And it pages. `subIssues(first:100)` silently truncated, so an Epic with
+ * more than 100 children reported only the first page — assertLeaf then saw
+ * no open child beyond it and treated a container as a leaf, which is the
+ * precise condition leaf-only-lifecycle exists to prevent.
+ * @param {string} ref Canonical work-item ref, for error messages.
+ * @param {object} contract Resolved tracker contract.
+ * @param {string|number} number GitHub issue number.
+ * @returns {string[]} State of every sub-issue.
+ */
 function githubHierarchy(ref, contract, number) {
   const [owner, repo] = contract.repository.split("/");
   const query =
-    "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){issue(number:$number){subIssues(first:100){nodes{state}}}}}";
-  const result = run(
-    "gh",
-    [
+    "query($owner:String!,$repo:String!,$number:Int!,$after:String){repository(owner:$owner,name:$repo){issue(number:$number){subIssues(first:100,after:$after){nodes{state}pageInfo{hasNextPage endCursor}}}}}";
+  const states = [];
+  const cursor = { after: null };
+
+  do {
+    const args = [
       "api",
       "graphql",
       "-f",
@@ -574,19 +632,25 @@ function githubHierarchy(ref, contract, number) {
       `repo=${repo}`,
       "-F",
       `number=${number}`,
-    ],
-    { allowFailure: true }
-  );
-  if (result.status !== 0)
-    throw new TrackingError(`GitHub issue ${ref} hierarchy is inaccessible`);
-  const response = safeJson(result.stdout, `GitHub issue ${ref} hierarchy`);
-  const issue = response.data?.repository?.issue;
-  if (!issue || !Array.isArray(issue.subIssues?.nodes)) {
-    throw new TrackingError(
-      `GitHub issue ${ref} did not expose native sub-issue hierarchy`
-    );
-  }
-  return issue.subIssues.nodes.map(child => child.state);
+    ];
+    if (cursor.after) args.push("-F", `after=${cursor.after}`);
+    const result = run("gh", args, { allowFailure: true });
+    if (result.status !== 0) throw githubFailure(result, ref);
+
+    const response = safeJson(result.stdout, `GitHub issue ${ref} hierarchy`);
+    const subIssues = response.data?.repository?.issue?.subIssues;
+    if (!Array.isArray(subIssues?.nodes)) {
+      throw new TrackingError(
+        `GitHub issue ${ref} did not expose native sub-issue hierarchy`
+      );
+    }
+    states.push(...subIssues.nodes.map(child => child.state));
+    cursor.after = subIssues.pageInfo?.hasNextPage
+      ? subIssues.pageInfo.endCursor
+      : null;
+  } while (cursor.after);
+
+  return states;
 }
 
 function githubIssue(ref, contract) {
@@ -1152,9 +1216,25 @@ function currentPullRequest(number, repository = currentRepository()) {
     : undefined;
 }
 
+/**
+ * Read a `--name <value>` option, falling back to an environment variable.
+ *
+ * A flag present but carrying no value — last on the line, or immediately
+ * followed by another flag — used to yield `undefined` (or the next flag's
+ * name) rather than falling back. `lisa … --ref` therefore silently discarded
+ * a perfectly good value in the environment, and `--ref --json` bound the
+ * literal string "--json". Both now behave as if the flag were absent.
+ * @param {string[]} args Argument list.
+ * @param {string} name Flag to read, including leading dashes.
+ * @param {string} envName Environment variable to fall back to.
+ * @returns {string | undefined} The resolved value, if any.
+ */
 function option(args, name, envName) {
   const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : process.env[envName];
+  if (index < 0) return process.env[envName];
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-")) return process.env[envName];
+  return value;
 }
 
 function bind(args) {

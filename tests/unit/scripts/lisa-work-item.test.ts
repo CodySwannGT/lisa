@@ -127,7 +127,17 @@ case "\${1:-} \${2:-}" in
       printf '%s\\n' "$FAKE_GH_ISSUE_JSON"
     fi
     ;;
-  "api graphql") printf '%s\\n' "$FAKE_GH_HIERARCHY_JSON" ;;
+  "api graphql")
+    # Page-aware so sub-issue pagination can be exercised. The real caller
+    # sends "after=<cursor>" only on follow-up pages, so its presence is what
+    # distinguishes page 2 from page 1 — no state file needed.
+    case "$*" in
+      *after=*)
+        printf '%s\\n' "\${FAKE_GH_HIERARCHY_PAGE2_JSON:-$FAKE_GH_HIERARCHY_JSON}" ;;
+      *)
+        printf '%s\\n' "$FAKE_GH_HIERARCHY_JSON" ;;
+    esac
+    ;;
   "pr view")
     [ "\${FAKE_GH_PR_MISSING:-0}" != "1" ] || exit 1
     printf '%s\\n' "$FAKE_GH_PR_JSON"
@@ -543,6 +553,62 @@ describe("work-item binding and commit messages", () => {
           '{"data":{"repository":{"issue":{"subIssues":{"nodes":[{"state":"OPEN"}]}}}}}',
       },
     });
+    expect(parent.status).toBe(1);
+    expect(parent.stderr).toContain("is a container");
+  });
+
+  it("finds an open child on a later page of sub-issues (#2371)", () => {
+    // `subIssues(first:100)` truncated silently, so an Epic with more than 100
+    // children reported only the first page. assertLeaf then saw no open child
+    // and treated a container as a leaf — the exact condition
+    // leaf-only-lifecycle exists to prevent, reachable by having enough
+    // children that the open one falls past the boundary.
+    const fixture = createFixture({
+      tracker: "github",
+      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+    });
+    const parent = command(fixture, ["bind", "acme/widgets#42"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: JSON.stringify({
+          number: 42,
+          state: "OPEN",
+          labels: [
+            { name: "repo:identity" },
+            { name: "status:in-progress" },
+            { name: "type:Task" },
+          ],
+          comments: [],
+          closedByPullRequestsReferences: [],
+        }),
+        // Page 1: every child closed, and more pages to come.
+        FAKE_GH_HIERARCHY_JSON: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                subIssues: {
+                  nodes: [{ state: "CLOSED" }],
+                  pageInfo: { hasNextPage: true, endCursor: "CURSOR1" },
+                },
+              },
+            },
+          },
+        }),
+        // Page 2: the open child that used to be invisible.
+        FAKE_GH_HIERARCHY_PAGE2_JSON: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                subIssues: {
+                  nodes: [{ state: "OPEN" }],
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          },
+        }),
+      },
+    });
+
     expect(parent.status).toBe(1);
     expect(parent.stderr).toContain("is a container");
   });
