@@ -1283,9 +1283,21 @@ jobs:
       # distinct from the aggregator's unsuffixed context. `--shard=1/1` is
       # a no-op split (runs every test) and keeps a single command shape
       # regardless of `playwright_shards` value.
+      #
+      # `line` is paired with `blob` so a shard that never finishes still says
+      # what it was doing. `blob` writes its file only when the run ENDS and
+      # prints nothing to the console meanwhile, so a shard killed by the job
+      # timeout produces no artifact AND no console output — the aggregator has
+      # nothing to merge and the log names no test. Observed on
+      # geminisportsai/frontend-v2, where shard 2 hit the 60-minute timeout on
+      # three consecutive nightlies having printed only "Running 136 tests using
+      # 2 workers, shard 2 of 4"; the hang could not be attributed to a test at
+      # all, in any run. `line` streams progress to the console without
+      # displacing the blob artifact the aggregator needs, so the next timeout
+      # is self-diagnosing.
       - name: 🎭 Run Playwright tests
         if: steps.check_playwright.outputs.has_config == 'true'
-        run: npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }} --reporter=blob
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }} --reporter=blob,line
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Every shard uploads its blob report. The aggregator (below) always

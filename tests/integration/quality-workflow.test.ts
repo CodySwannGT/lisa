@@ -286,6 +286,23 @@ describe("quality.yml reusable workflow", () => {
         "playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}"
       );
     });
+
+    it("pairs blob with a streaming reporter so a timed-out shard names its tests", () => {
+      const steps = workflow.jobs.playwright_e2e.steps ?? [];
+      const run = steps.find(s => s.name === "🎭 Run Playwright tests")?.run;
+      expect(run).toContain("--reporter=");
+      const reporters =
+        /--reporter=(\S+)/.exec(run ?? "")?.[1].split(",") ?? [];
+      // `blob` must stay — the aggregator merges those artifacts.
+      expect(reporters).toContain("blob");
+      // …but `blob` alone writes only at the END of the run and prints nothing
+      // meanwhile, so a shard killed by the 60-minute job timeout leaves no
+      // artifact AND no console output, naming no test. A streaming reporter
+      // alongside it is what makes such a timeout diagnosable at all.
+      expect(reporters.some(r => ["line", "list", "dot"].includes(r))).toBe(
+        true
+      );
+    });
   });
 
   describe("playwright_e2e_aggregate job (ruleset anchor)", () => {
