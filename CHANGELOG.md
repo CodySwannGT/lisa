@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.343.0](https://github.com/CodySwannGT/lisa/compare/v2.342.7...v2.343.0) (2026-08-09)
+
+
+### Features
+
+* **rules:** add the vendor-neutral bdd-e2e-coverage contract ([9513aff](https://github.com/CodySwannGT/lisa/commit/9513aff0e8574dfc85854768154f23a05a6a90dc)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+* **skills:** cite bdd-e2e-coverage from the lifecycle skills ([b2a1fe1](https://github.com/CodySwannGT/lisa/commit/b2a1fe124cf40790e48a7357a1991e24020ad822)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+
+
+### Bug Fixes
+
+* **bdd-e2e-coverage:** add coverageFloor/runner schema fields, close silent-N/A gap ([002d6e6](https://github.com/CodySwannGT/lisa/commit/002d6e68ffe6ab9439737d35a19ec8f797866d3c)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+* **bdd-e2e-coverage:** fix runner precedence, missing-runner exit, and gate proof ([7f8c41c](https://github.com/CodySwannGT/lisa/commit/7f8c41cce83b3998e7ffe1750e589e0c607e2039)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+* **bdd-e2e-coverage:** propagate the burndown obligation to earlier lifecycle stages ([59ec705](https://github.com/CodySwannGT/lisa/commit/59ec705b3ce1349c72b2c71dd42a4f5819d576a4)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+* **intent-routing:** make Validation Journey symmetric with acceptance criteria ([10fba8a](https://github.com/CodySwannGT/lisa/commit/10fba8a13ca463a700d5f2ef1755aaada81eab4a)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+* **spec-conformance:** require execution evidence for MATCH, fix waiver status, add provenance check ([6d75e47](https://github.com/CodySwannGT/lisa/commit/6d75e473ca1adfc60adc3d82fe93a29ce467d6db)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+* **verification:** stop hardcoding Playwright/tests-e2e as the codification path ([0dc2c60](https://github.com/CodySwannGT/lisa/commit/0dc2c60b4831c7ef1d2403fa83789ae207878c5f)), closes [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2393](https://github.com/CodySwannGT/lisa/issues/2393)
+
 ### [2.342.7](https://github.com/CodySwannGT/lisa/compare/v2.342.6...v2.342.7) (2026-08-09)
 
 
