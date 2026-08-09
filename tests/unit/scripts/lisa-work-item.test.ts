@@ -117,6 +117,13 @@ function createFixture(config: object = githubConfig()): Fixture {
     path.join(bin, "gh"),
     `
 if [ -n "\${FAKE_GH_LOG:-}" ]; then printf '%s\\n' "$*" >> "$FAKE_GH_LOG"; fi
+# An unresponsive tracker that also declines SIGTERM — the case a plain
+# \`timeout\` cannot end, because it signals and then keeps waiting.
+if [ "\${FAKE_GH_HANG:-0}" = "1" ]; then
+  trap '' TERM
+  sleep 30
+  exit 0
+fi
 case "\${1:-} \${2:-}" in
   "issue view")
     if [ "\${3:-}" = "43" ]; then
@@ -127,7 +134,17 @@ case "\${1:-} \${2:-}" in
       printf '%s\\n' "$FAKE_GH_ISSUE_JSON"
     fi
     ;;
-  "api graphql") printf '%s\\n' "$FAKE_GH_HIERARCHY_JSON" ;;
+  "api graphql")
+    # Page-aware so sub-issue pagination can be exercised. The real caller
+    # sends "after=<cursor>" only on follow-up pages, so its presence is what
+    # distinguishes page 2 from page 1 — no state file needed.
+    case "$*" in
+      *after=*)
+        printf '%s\\n' "\${FAKE_GH_HIERARCHY_PAGE2_JSON:-$FAKE_GH_HIERARCHY_JSON}" ;;
+      *)
+        printf '%s\\n' "$FAKE_GH_HIERARCHY_JSON" ;;
+    esac
+    ;;
   "pr view")
     [ "\${FAKE_GH_PR_MISSING:-0}" != "1" ] || exit 1
     printf '%s\\n' "$FAKE_GH_PR_JSON"
@@ -543,6 +560,90 @@ describe("work-item binding and commit messages", () => {
           '{"data":{"repository":{"issue":{"subIssues":{"nodes":[{"state":"OPEN"}]}}}}}',
       },
     });
+    expect(parent.status).toBe(1);
+    expect(parent.stderr).toContain("is a container");
+  });
+
+  it("kills a tracker call that ignores SIGTERM, and degrades (#2371)", () => {
+    // The deadline has to be one the child cannot decline. `timeout` alone
+    // sends SIGTERM and then waits for the child to exit, so a child that
+    // traps it hangs the commit exactly as long as it would have with no
+    // timeout at all. killSignal: "SIGKILL" is what makes it a deadline.
+    //
+    // And the outcome must be degradable: a call killed at its deadline means
+    // the tracker could not be ASKED, not that the work item is invalid.
+    const fixture = createFixture({
+      tracker: "github",
+      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+    });
+
+    const started = Date.now();
+    const result = command(fixture, ["bind", "acme/widgets#42"], {
+      env: { FAKE_GH_HANG: "1", LISA_WORK_ITEM_TIMEOUT_MS: "1500" },
+    });
+    const elapsed = Date.now() - started;
+
+    // Well under the child's own 30s sleep: proof it was killed, not waited out.
+    expect(elapsed).toBeLessThan(15_000);
+    // Degraded, not refused. A call killed at its deadline means the tracker
+    // could not be ASKED — treating that as "this work item is invalid" would
+    // block every commit on a slow network.
+    expect(result.status).toBe(0);
+    expect(result.stderr).toMatch(/live validation SKIPPED/i);
+  }, 30_000);
+
+  it("finds an open child on a later page of sub-issues (#2371)", () => {
+    // `subIssues(first:100)` truncated silently, so an Epic with more than 100
+    // children reported only the first page. assertLeaf then saw no open child
+    // and treated a container as a leaf — the exact condition
+    // leaf-only-lifecycle exists to prevent, reachable by having enough
+    // children that the open one falls past the boundary.
+    const fixture = createFixture({
+      tracker: "github",
+      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+    });
+    const parent = command(fixture, ["bind", "acme/widgets#42"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: JSON.stringify({
+          number: 42,
+          state: "OPEN",
+          labels: [
+            { name: "repo:identity" },
+            { name: "status:in-progress" },
+            { name: "type:Task" },
+          ],
+          comments: [],
+          closedByPullRequestsReferences: [],
+        }),
+        // Page 1: every child closed, and more pages to come.
+        FAKE_GH_HIERARCHY_JSON: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                subIssues: {
+                  nodes: [{ state: "CLOSED" }],
+                  pageInfo: { hasNextPage: true, endCursor: "CURSOR1" },
+                },
+              },
+            },
+          },
+        }),
+        // Page 2: the open child that used to be invisible.
+        FAKE_GH_HIERARCHY_PAGE2_JSON: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                subIssues: {
+                  nodes: [{ state: "OPEN" }],
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          },
+        }),
+      },
+    });
+
     expect(parent.status).toBe(1);
     expect(parent.stderr).toContain("is a container");
   });
