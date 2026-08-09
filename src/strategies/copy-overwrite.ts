@@ -1,5 +1,6 @@
 import * as fse from "fs-extra";
 import { copyFile } from "node:fs/promises";
+import { mayRefreshTemplate } from "../core/config.js";
 import type { FileOperationResult } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
@@ -55,7 +56,12 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     // A fix to an enforcement guard could ship in a release and reach nobody,
     // with nothing in the output to say so.
     if (config.skipGitCheck) {
-      return { relativePath, strategy: this.name, action: "stale" };
+      return this.applyNonInteractive(
+        sourcePath,
+        destPath,
+        relativePath,
+        context
+      );
     }
 
     if (config.dryRun) {
@@ -75,5 +81,41 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     }
 
     return { relativePath, strategy: this.name, action: "skipped" };
+  }
+
+  /**
+   * Resolve a differing managed file on a non-interactive apply.
+   *
+   * There is no prompt available here, so the file is left alone and reported
+   * as `stale` — unless `--refresh-templates` covers it, which is the operator
+   * deciding in advance to take upstream's version. That flag is the supported
+   * way to deliver a changed enforcement guard to an installed project; without
+   * it the only route is deleting the file so the create path picks it up,
+   * which is a workaround nobody should have to know.
+   * @param sourcePath - Packaged template path
+   * @param destPath - Installed file path
+   * @param relativePath - Repo-relative path for reporting
+   * @param context - Strategy context with config and callbacks
+   * @returns Whether the file was refreshed or left out of date
+   */
+  private async applyNonInteractive(
+    sourcePath: string,
+    destPath: string,
+    relativePath: string,
+    context: StrategyContext
+  ): Promise<FileOperationResult> {
+    const { config, backupFile } = context;
+
+    if (!mayRefreshTemplate(relativePath, config.refreshTemplates)) {
+      return { relativePath, strategy: this.name, action: "stale" };
+    }
+
+    // Backed up first: opting in to an overwrite is not opting out of being
+    // able to undo it.
+    if (!config.dryRun) {
+      await backupFile(destPath);
+      await copyFile(sourcePath, destPath);
+    }
+    return { relativePath, strategy: this.name, action: "overwritten" };
   }
 }
