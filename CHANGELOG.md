@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.6](https://github.com/CodySwannGT/lisa/compare/v2.342.5...v2.342.6) (2026-08-09)
+
+
+### Bug Fixes
+
+* **hooks:** close two guards that passed when they had not checked ([8026b61](https://github.com/CodySwannGT/lisa/commit/8026b61e6c3f2e5a2aff79cd6aa9492edcf3e5a6)), closes [CodySwannGT/lisa#2389](https://github.com/CodySwannGT/lisa/issues/2389)
+
 ### [2.342.5](https://github.com/CodySwannGT/lisa/compare/v2.342.4...v2.342.5) (2026-08-09)
 
 
