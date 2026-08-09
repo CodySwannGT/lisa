@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.3](https://github.com/CodySwannGT/lisa/compare/v2.342.2...v2.342.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* **ci:** let callers raise the Maestro per-suite timeout ([8d47aad](https://github.com/CodySwannGT/lisa/commit/8d47aadb0e27d4666f26a726156b9db4bb734536)), closes [CodySwannGT/lisa#2386](https://github.com/CodySwannGT/lisa/issues/2386)
+
 ### [2.342.2](https://github.com/CodySwannGT/lisa/compare/v2.342.1...v2.342.2) (2026-08-09)
 
 
