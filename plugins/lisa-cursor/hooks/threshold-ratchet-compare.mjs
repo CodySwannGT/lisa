@@ -72,6 +72,29 @@ export function compareConstraints(relPath, base, current) {
       });
       continue;
     }
+    // A bound's DIRECTION carries as much of the gate as its number. Flipping
+    // `rate>=0.99` to `rate<=0.99` keeps the key and the value and inverts the
+    // meaning: "at least 99% success" becomes "at most 99% success", a gate
+    // that now passes when the system is broken. Comparing only values, that
+    // read as unchanged.
+    //
+    // Rejected rather than re-evaluated in the new direction, because the two
+    // bounds are not commensurable — there is no value at which `<=0.99` is
+    // "no weaker than" `>=0.99`. The honest verdict is that the change cannot
+    // be proven safe, so it belongs in the existing allow-list path where a
+    // human records why, not in a comparison that would have to invent an
+    // ordering between incomparable gates.
+    if (currentC.direction !== baseC.direction) {
+      findings.push({
+        file: relPath,
+        key,
+        type: TYPE_WEAKENED,
+        base: baseC.value,
+        current: currentC.value,
+        message: `${relPath}: ${key} changed bound direction (${baseC.direction} → ${currentC.direction}) — the gate's meaning is inverted, so preserving it cannot be proven from the value alone.`,
+      });
+      continue;
+    }
     const weakened =
       baseC.direction === "min"
         ? currentC.value < baseC.value
