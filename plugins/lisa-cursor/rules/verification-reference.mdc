@@ -31,7 +31,7 @@ For UI work, the agent must control a live browser and use the product the way a
 
 Kane is a guarded provider, not a global browser override. It is eligible only when the project explicitly enables it, acknowledges TestMu cloud upload, pins Lisa's contract-tested version, selects an allow-listed non-production environment, and resolves mutation policy `full`; `lisa kane probe` must prove installation, authentication, Test Manager targeting, and usable credits before a factory starts. Invoke it only through `lisa-kane-browser`. Treat auth, Chrome, upload, schema, and control-plane failures as tooling failures. Persist the local evidence pack through Lisa's evidence pipeline because a Test Manager share link is secondary and expiring.
 
-Running an automated Playwright or Maestro test is still a quality gate, **not the initial empirical verification evidence**. The distinction is how the browser is used, not the library name: interactive Playwright control or a guarded Kane objective that performs and observes the Validation Journey is valid empirical verification; invoking a prewritten test and reporting its green result alone is not. After the live journey passes, codify that observed behavior in the project's Playwright and/or Maestro runner as required below so CI can prevent regressions. Kane `_test.md`, code export, and auto-healed recordings are not authoritative substitutes during the initial rollout.
+Running an automated Playwright or Maestro test is still a quality gate, **not the initial empirical verification evidence**. The distinction is how the browser is used, not the library name: interactive Playwright control or a guarded Kane objective that performs and observes the Validation Journey is valid empirical verification; invoking a prewritten test and reporting its green result alone is not. After the live journey passes, codify that observed behavior in the project's configured runner(s) for the platforms it covers, as required below, so CI can prevent regressions. Kane `_test.md`, code export, and auto-healed recordings are not authoritative substitutes during the initial rollout.
 
 Verification is mandatory. Never skip it, defer it, or claim it was unnecessary. Every task must be verified before claiming completion.
 
@@ -239,12 +239,13 @@ one-off claim. It builds on the **Per-Work-Unit Evidence Contract** above (the
 typed `[EVIDENCE: <artifact-type>: <name>]` manifest), adding three concrete requirements:
 
 **1. The codified proof re-runs in CI.** After local verification passes,
-`codify-verification` encodes it where the project's e2e/Playwright tests live
-(`tests/e2e/**`). That suite runs in CI (the existing e2e/Playwright job); for a
-project type with verification **enforced**, it is a required check — so the proof
-re-runs on every PR instead of being proven once by hand.
+`codify-verification` encodes it wherever the project's own configured e2e runner(s) already look
+for tests — its own directory conventions and config, never a Lisa-assumed path or tool. That suite
+runs in CI (the project's existing e2e job, whatever runner backs it); for a project type with
+verification **enforced**, it is a required check — so the proof re-runs on every PR instead of being
+proven once by hand.
 
-For **frontend work**, codification is dual-runner: a Playwright spec in the project's Playwright test runner AND a Maestro flow in the Maestro test runner whenever the project supports Maestro (`.maestro/` directory, `maestro:test` script, or Maestro CI workflow) — both encoding the same verified journey, neither a substitute for the other. The dual-runner requirement is non-demotable: a missing runner is either a recorded absence (the project genuinely has no such harness) or a linked build-ready follow-up ticket — never a silent skip (see "Frontend dual-runner codification" in `codify-verification`).
+For **frontend work**, codification is multi-runner and governed by the `bdd-e2e-coverage` rule: the same verified journey is encoded in the project's configured runner for every platform the behavior's scenario requires, and no runner substitutes for another because they guard different platforms. The requirement is non-demotable: a missing runner is either a recorded absence (the project genuinely has no such harness for that platform) or a linked build-ready follow-up ticket — never a silent skip. That rule also owns the behavior contract the codified tests are sealing (Gherkin scenarios with stable IDs, the coverage map, waivers, and the gate); cite it rather than restating it here.
 
 **2. Evidence is committed to the repo.** The named artifacts from the work
 unit's evidence manifest are committed under `evidence/<ticket>/` (in addition to

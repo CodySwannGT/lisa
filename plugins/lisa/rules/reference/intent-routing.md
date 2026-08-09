@@ -64,7 +64,7 @@ Gate:
 
 Sequence:
 1. **Investigate sub-flow** -- gather context from codebase, git history, existing behavior, and external sources
-2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
+2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items. For frontend scope, the Gherkin flows must satisfy the `bdd-e2e-coverage` rule's scenario shape (behavior stated as Given/When/Then, with the platforms each behavior must hold on) so the PRD converts to behavior-contract scenarios without re-specification
 3. **Edge Case Brainstorm sub-flow** -- run the PRD candidate through the edge-case checklist; fold accepted cases into acceptance criteria, out-of-scope, or open questions
 4. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
 5. Synthesize findings into a PRD structured as: (1) problem statement, (2) high-level solution description, (3) links to design files/docs if needed, (4) user stories -- each carrying its own functional requirements, non-functional requirements, and a pointer to a design file (only when that story introduces new UI/visual work; omit the pointer otherwise rather than leaving it as a blank required field), (5) overall acceptance criteria, and (6) open questions/decisions. Nest requirements under each story rather than flattening them into global lists -- this keeps the context an agent needs to implement or ticket one story colocated, instead of requiring it to infer which global requirement applies to which story. Any technically viable but genuinely unresolved choice discovered during drafting (for example, a library, framework, or architecture decision with more than one live candidate) MUST be captured as an entry under open questions -- never written into any other section, including the "Recommended Tooling for Plan Phase" section in step 6, as though it were already decided. Every open-questions entry MUST include the drafter's own recommended resolution, with a one-sentence rationale, alongside the question; an open question must never be left bare.
@@ -93,8 +93,8 @@ Sequence:
 5. **Implement/Verify Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Implement and Verify phases will need for each work item. For each recommended skill or agent, state why it is needed and which work items it applies to. If no skills or agents beyond the defaults are identified for a work item, explicitly justify why the standard set is sufficient.
 6. Decompose into ordered work items (epics, stories, tasks, spikes, bugs). For each item, run the **Edge Case Brainstorm sub-flow** scoped to that item — accepted cases become additional acceptance criteria or sub-tasks; rejected ones are noted with a one-line reason. Each item carries:
    - Type (epic, story, task, spike, bug)
-   - Acceptance criteria (including any added by the per-item brainstorm)
-   - Verification method
+   - Acceptance criteria (including any added by the per-item brainstorm). For a frontend item, these MUST name the behavior-contract update and the aligned e2e automation as explicit deliverables per the `bdd-e2e-coverage` rule -- never left implied
+   - Verification method -- becomes the item's Validation Journey. For a frontend item this MUST name, symmetrically with the acceptance criteria above: the scenario IDs the item will add or change (once known), the platforms each requires, the contract update, and the e2e-sealing evidence markers per the `bdd-e2e-coverage` rule -- a generic "manual QA" or "run the e2e suite" description does not satisfy it
    - Dependencies
    - Skills and agents required (from step 5)
 7. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents
@@ -126,7 +126,7 @@ Determine the work type and execute the matching variant:
 5. `builder` -- implement via TDD (acceptance criteria become tests)
 6. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 7. `verification-specialist` -- verify locally (run the software, observe behavior)
-8. `verification-specialist` -- invoke `codify-verification` skill per passing verification (Playwright for UI, integration test for API/DB/auth, etc.); commit each test in the same PR
+8. `verification-specialist` -- invoke `codify-verification` skill per passing verification (integration test for API/DB/auth, benchmark for performance, the project's e2e runner for UI); commit each test in the same PR. For frontend work this also means the `bdd-e2e-coverage` obligations: the Gherkin scenario added/updated with its stable ID, aligned automation in the project's configured runner for every platform that scenario requires, and the coverage gate re-run with the matrix regenerated
 9. **Record Implement usage on the work artifact** -- invoke `lisa-usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
 10. **Review sub-flow**
 11. `learner` -- capture discoveries
@@ -141,7 +141,7 @@ Determine the work type and execute the matching variant:
 6. `bug-fixer` -- implement fix via TDD (reproduction becomes failing test)
 7. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 8. `verification-specialist` -- verify locally (prove the bug is fixed)
-9. `verification-specialist` -- invoke `codify-verification` skill to encode the fix as a regression test (mandatory for bug fixes — the test must fail against the pre-fix commit and pass against the fix); commit in the same PR
+9. `verification-specialist` -- invoke `codify-verification` skill to encode the fix as a regression test (mandatory for bug fixes — the test must fail against the pre-fix commit and pass against the fix); commit in the same PR. For a user-visible frontend fix, the `bdd-e2e-coverage` obligations apply as in the Build flow: the scenario the fix restores or changes, aligned automation per required platform, and a passing coverage gate
 10. **Record Implement usage on the work artifact** -- invoke `lisa-usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
 11. **Review sub-flow**
 12. `learner` -- capture discoveries
@@ -168,7 +168,7 @@ Determine the work type and execute the matching variant:
 
 In every work type above, before a task completes -- immediately ahead of the closing `learner` step -- the implementing agent records concise kind-tagged MLD (Mistakes / Learnings / Desires) into that task's `metadata.learnings`: one line per item, empty is valid, never re-prompted or scored. See the `lisa-implement` skill for the full `{ kind, note, evidence? }` schema and routing (change the schema there, not here).
 
-Output: Code passing all quality gates + local empirical verification + codified regression test for each verification (except for spikes, which produce findings only, and non-behavioral verification types — PR / Documentation / Deploy — which carry their own proof).
+Output: Code passing all quality gates + local empirical verification + codified regression test for each verification (except for spikes, which produce findings only, and non-behavioral verification types — PR / Documentation / Deploy — which carry their own proof). For frontend work the output additionally includes the updated behavior contract, coverage-map mappings for every required scenario-platform obligation, and a regenerated matrix with a passing coverage gate (`bdd-e2e-coverage`).
 
 ### Verify
 
@@ -178,6 +178,7 @@ Gate:
 - Code must pass quality gates (lint, typecheck, tests)
 - Local empirical verification must be complete
 - Each passing local verification must be codified as a regression test (or carry a documented skip from the allowed set: PR / Documentation / Deploy / Investigate-Only). If verifications are not codified, return to the Implement flow's codify step before shipping
+- For frontend work, the `bdd-e2e-coverage` contract must be satisfied: scenarios exist for the shipped behavior, every required scenario-platform obligation is mapped or dated-waived, and the coverage gate passes with the matrix regenerated. A miss returns to Implement — it is a verification failure, not a warning
 - If quality gates fail, go back to **Implement**
 - If no code changes exist, there is nothing to verify
 
