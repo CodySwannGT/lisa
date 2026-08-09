@@ -21,6 +21,36 @@ const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
 const ZERO_OID = /^0+$/;
 const MARKER = "[lisa-pr-link]";
+/**
+ * The prefix only — an anchored, fixed-length literal with no quantifier, so
+ * it cannot backtrack. The ReDoS was never here; it was in the `\s*(.+?)\s*$`
+ * tail, which is now string work.
+ *
+ * Deliberately still a regex rather than `line.toLowerCase().startsWith(…)`.
+ * `toLowerCase()` applies FULL Unicode case mapping, so U+212A KELVIN SIGN
+ * folds to "k" and `WorK-Item:` written with it would be accepted — a format
+ * this has never accepted, because `/i` on a non-unicode pattern canonicalizes
+ * ASCII only.
+ */
+const WORK_ITEM_PREFIX = /^work-item:/i;
+
+/**
+ * The value of a `Work-Item:` line, or null if this is not one.
+ *
+ * Replaces `/^Work-Item:\s*(.+?)\s*$/i`, which put a lazy quantifier between
+ * two `\s*` groups and backtracked super-linearly on a line that is mostly
+ * whitespace — over commit messages and PR bodies, which are not this
+ * script's to trust. Acceptance is unchanged: ASCII-case-insensitive prefix at
+ * the start of the line, non-empty value, surrounding whitespace ignored.
+ * @param {string} line One line of a commit message or PR body.
+ * @returns {string | null} The trimmed value, or null.
+ */
+function workItemLineValue(line) {
+  const match = WORK_ITEM_PREFIX.exec(line);
+  if (!match) return null;
+  const value = line.slice(match[0].length).trim();
+  return value === "" ? null : value;
+}
 const GUIDANCE = [
   "Mention the ticket this work relates to, or ask Lisa to create one:",
   "  Work-Item: <configured-project-ticket>",
@@ -493,8 +523,8 @@ function parseTrailers(message) {
     .split("\n")
     .filter(Boolean)
     .flatMap(line => {
-      const match = /^Work-Item:\s*(.+?)\s*$/i.exec(line);
-      return match ? [match[1]] : [];
+      const value = workItemLineValue(line);
+      return value === null ? [] : [value];
     });
 }
 
@@ -1179,8 +1209,8 @@ function prWorkItem(body, contract) {
   const matches = String(body ?? "")
     .split(/\r?\n/)
     .flatMap(line => {
-      const match = /^Work-Item:\s*(.+?)\s*$/i.exec(line);
-      return match ? [match[1]] : [];
+      const value = workItemLineValue(line);
+      return value === null ? [] : [value];
     });
   if (matches.length !== 1)
     throw new TrackingError(
