@@ -134,6 +134,18 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       expect(findings[0].type).toBe("weakened");
     });
 
+    it("blocks flipping a bound's direction at the same value", () => {
+      // `rate>=0.99` → `rate<=0.99` keeps the key and the number and inverts
+      // the gate: "at least 99% of checks pass" becomes "at most 99% pass",
+      // which succeeds when the system is broken. Comparing values alone, this
+      // read as no change at all.
+      const current = base.replace(RATE_LOWER, "rate<=0.99");
+      const findings = compareFile(K6_FILE, base, current);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].type).toBe("weakened");
+      expect(findings[0].message).toContain("direction");
+    });
+
     it("blocks turning off abortOnFail", () => {
       const current = base.replace('"abortOnFail":true', '"abortOnFail":false');
       const findings = compareFile(K6_FILE, base, current);
