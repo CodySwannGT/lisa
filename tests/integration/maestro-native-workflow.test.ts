@@ -52,7 +52,8 @@ interface WorkflowStep {
 interface WorkflowJob {
   name?: string;
   "runs-on"?: string;
-  "timeout-minutes"?: number;
+  // A string when the ceiling is wired to a workflow_call input expression.
+  "timeout-minutes"?: number | string;
   needs?: string | string[];
   if?: string;
   uses?: string;
@@ -134,6 +135,26 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(inputs.setup_command).toBeDefined();
     expect(inputs.android_app_id).toBeDefined();
     expect(inputs.ios_app_id).toBeDefined();
+  });
+
+  it("lets a caller raise the per-suite timeout without changing its 90-minute default", () => {
+    const suiteTimeout =
+      workflow.on.workflow_call?.inputs?.suite_timeout_minutes;
+    expect(suiteTimeout?.type).toBe("number");
+    expect(suiteTimeout?.required ?? false).toBe(false);
+    // Callers that pass nothing must keep the ceiling they have today.
+    expect(suiteTimeout?.default).toBe(90);
+
+    // The input caps EACH platform suite job...
+    expect(workflow.jobs.android["timeout-minutes"]).toBe(
+      "${{ inputs.suite_timeout_minutes }}"
+    );
+    expect(workflow.jobs.ios["timeout-minutes"]).toBe(
+      "${{ inputs.suite_timeout_minutes }}"
+    );
+    // ...and only those: the EAS build job is a separate, fixed ceiling, so
+    // raising the suite budget must not also loosen a hung build.
+    expect(workflow.jobs.build["timeout-minutes"]).toBe(90);
   });
 
   it("gates build and test jobs behind the preflight prerequisite check", () => {
