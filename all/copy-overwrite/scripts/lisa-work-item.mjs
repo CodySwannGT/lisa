@@ -21,6 +21,25 @@ const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
 const ZERO_OID = /^0+$/;
 const MARKER = "[lisa-pr-link]";
+const WORK_ITEM_PREFIX = "work-item:";
+
+/**
+ * The value of a `Work-Item:` line, or null if this is not one.
+ *
+ * String operations rather than `/^Work-Item:\s*(.+?)\s*$/i`. That pattern
+ * puts a lazy quantifier between two `\s*` groups, which backtracks
+ * quadratically on a line that is mostly whitespace — and the lines it runs
+ * over are commit messages and PR bodies, which are not this script's to
+ * trust. Same acceptance: the prefix must start the line, the value must be
+ * non-empty, surrounding whitespace is ignored.
+ * @param {string} line One line of a commit message or PR body.
+ * @returns {string | null} The trimmed value, or null.
+ */
+function workItemLineValue(line) {
+  if (!line.toLowerCase().startsWith(WORK_ITEM_PREFIX)) return null;
+  const value = line.slice(WORK_ITEM_PREFIX.length).trim();
+  return value === "" ? null : value;
+}
 const GUIDANCE = [
   "Mention the ticket this work relates to, or ask Lisa to create one:",
   "  Work-Item: <configured-project-ticket>",
@@ -493,8 +512,8 @@ function parseTrailers(message) {
     .split("\n")
     .filter(Boolean)
     .flatMap(line => {
-      const match = /^Work-Item:\s*(.+?)\s*$/i.exec(line);
-      return match ? [match[1]] : [];
+      const value = workItemLineValue(line);
+      return value === null ? [] : [value];
     });
 }
 
@@ -1179,8 +1198,8 @@ function prWorkItem(body, contract) {
   const matches = String(body ?? "")
     .split(/\r?\n/)
     .flatMap(line => {
-      const match = /^Work-Item:\s*(.+?)\s*$/i.exec(line);
-      return match ? [match[1]] : [];
+      const value = workItemLineValue(line);
+      return value === null ? [] : [value];
     });
   if (matches.length !== 1)
     throw new TrackingError(
