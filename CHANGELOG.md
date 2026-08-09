@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.7](https://github.com/CodySwannGT/lisa/compare/v2.342.6...v2.342.7) (2026-08-09)
+
+
+### Bug Fixes
+
+* **hooks:** reject a threshold whose bound direction was flipped ([924cd27](https://github.com/CodySwannGT/lisa/commit/924cd272b61d87936517db00b87f500f83b4092a)), closes [geminisportsai/infrastructure-v2#351](https://github.com/geminisportsai/infrastructure-v2/issues/351) [#2391](https://github.com/CodySwannGT/lisa/issues/2391) [CodySwannGT/lisa#2389](https://github.com/CodySwannGT/lisa/issues/2389)
+
 ### [2.342.6](https://github.com/CodySwannGT/lisa/compare/v2.342.5...v2.342.6) (2026-08-09)
 
 
