@@ -172,6 +172,30 @@ function run(mode, baseRef, onlyFiles) {
   const watched = plan.files.filter(f => familyFor(f));
   if (watched.length === 0) return 0;
 
+  // A null baseline means one of two opposite things, and they must not be
+  // conflated: the file is NEW (nothing to weaken — pass), or it exists at the
+  // baseline and could not be read (nothing could be COMPARED — the one case
+  // where the ratchet cannot do its job). Both arrive here as null because
+  // `git()` swallows every failure, so the ratchet passed exactly when it had
+  // no evidence — failing open in its blind spot.
+  //
+  // `cat-file -e` answers the question `git show` cannot: does this path exist
+  // at that ref? Absent means new; present-but-unreadable means undeterminable,
+  // and an undeterminable ratchet must refuse rather than wave the change on.
+  const unreadable = watched.filter(
+    f =>
+      git(["show", `${plan.baselineRef}:${f}`], root) === null &&
+      git(["cat-file", "-e", `${plan.baselineRef}:${f}`], root) !== null
+  );
+  if (unreadable.length > 0) {
+    return undeterminable(
+      mode,
+      `could not read the baseline for ${unreadable.join(", ")} — ` +
+        `the file exists at ${plan.baselineRef} but its contents could not be ` +
+        `retrieved, so a loosened threshold could not be detected`
+    );
+  }
+
   const findings = watched.flatMap(f =>
     compareFile(
       f,

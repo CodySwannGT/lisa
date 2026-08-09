@@ -50,6 +50,26 @@ describe("block-no-verify.sh", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    // Git resolves unambiguous abbreviations of long options, so each of these
+    // skips hooks exactly as completely as the full spelling. An equality check
+    // enforced the guard against only the longest form — the one spelling
+    // nobody bypassing hooks in a hurry would bother to type.
+    it.each(["--no-v", "--no-ve", "--no-ver", "--no-veri", "--no-verif"])(
+      "blocks the abbreviation %s, which git accepts as --no-verify",
+      (abbreviation: string) => {
+        const { status } = runHook("Bash", `git commit ${abbreviation} -m x`);
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it("does not block --no-verbose, which is a different flag", () => {
+      // Diverges from --no-verify at the character after `--no-ver`, so it
+      // fails the prefix test. Guarding the abbreviations must not swallow
+      // neighbouring flags that happen to share a stem.
+      const { status } = runHook("Bash", "git commit --no-verbose -m x");
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
     it("blocks --no-verify inside a subshell with parentheses", () => {
       // Regression: `)` after --no-verify was not in the old allowed boundary
       // set, allowing (git commit --no-verify) to bypass the check.
