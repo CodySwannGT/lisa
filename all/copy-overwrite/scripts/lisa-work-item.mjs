@@ -49,8 +49,13 @@ export class TrackerUnreachableError extends TrackingError {}
  */
 export function githubFailure(result, ref) {
   const reason = githubFailureReason(result, ref, "GitHub issue");
+  // ANY spawn-level error means the tracker could not be asked — the binary is
+  // missing (ENOENT), the call was killed at its deadline (ETIMEDOUT), the
+  // system could not fork (EAGAIN). Singling out ENOENT made a timed-out `gh`
+  // a non-degradable TrackingError, i.e. "this work item is invalid" because
+  // the network was slow.
   const unreachable =
-    result.error?.code === "ENOENT" || /cannot authenticate/.test(reason);
+    result.error !== undefined || /cannot authenticate/.test(reason);
   return unreachable
     ? new TrackerUnreachableError(reason)
     : new TrackingError(reason);
@@ -104,7 +109,9 @@ export function githubFailureReason(result, ref, noun) {
  * tracker that has stopped answering must look like a tracker that is
  * unreachable, which the degradation path already knows how to handle.
  */
-const CHILD_TIMEOUT_MS = 30_000;
+const CHILD_TIMEOUT_MS = Number(
+  process.env.LISA_WORK_ITEM_TIMEOUT_MS || 30_000
+);
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -113,6 +120,11 @@ function run(command, args, options = {}) {
     env: options.env ?? process.env,
     input: options.input,
     timeout: options.timeout ?? CHILD_TIMEOUT_MS,
+    // SIGKILL, not the default SIGTERM. `timeout` sends killSignal and then
+    // keeps waiting for the child to exit, so a child that traps or ignores
+    // SIGTERM hangs the hook exactly as long as it would have without any
+    // timeout at all. A deadline a child can decline is not a deadline.
+    killSignal: "SIGKILL",
   });
   // spawnSync reports a timeout via `error`, not a non-zero status, so the
   // status check below would let a timed-out call through as success.
