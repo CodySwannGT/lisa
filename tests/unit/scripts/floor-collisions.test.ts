@@ -36,6 +36,29 @@ describe("lowestPermitted", () => {
     expect(lowestPermitted("workspace:*")).toBeNull();
     expect(lowestPermitted("")).toBeNull();
   });
+
+  it("takes the lowest branch of a disjunction, not the first", () => {
+    // The false negative. Reading only the first triple reported 2.0.0 here —
+    // a floor HIGHER than the range permits — and the caller's
+    // `compare(target, floor) >= 0` then skipped a genuine collision.
+    expect(lowestPermitted("^2.0.0 || ^1.9.0")).toEqual([1, 9, 0]);
+    expect(lowestPermitted("^1.9.0 || ^2.0.0")).toEqual([1, 9, 0]);
+    expect(lowestPermitted(">=3.0.0 || >=1.0.0 || >=2.0.0")).toEqual([1, 0, 0]);
+  });
+
+  it("treats an upper-bound-only range as having no floor", () => {
+    // `<2.0.0` permits everything beneath it; reading 2.0.0 as its floor
+    // inverted the meaning of the bound entirely.
+    expect(lowestPermitted("<2.0.0")).toEqual([0, 0, 0]);
+    expect(lowestPermitted("<=2.0.0")).toEqual([0, 0, 0]);
+  });
+
+  it("returns null for an alias spec, which versions another package", () => {
+    // The number in `npm:other-pkg@^1.2.3` describes other-pkg, so comparing it
+    // against a floor recorded for THIS name answers a question nobody asked.
+    expect(lowestPermitted("npm:other-pkg@^1.2.3")).toBeNull();
+    expect(lowestPermitted("  npm:string-width@^4.2.3")).toBeNull();
+  });
 });
 
 describe("directDependencies", () => {

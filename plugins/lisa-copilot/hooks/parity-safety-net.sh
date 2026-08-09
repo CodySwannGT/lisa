@@ -172,16 +172,6 @@ case "$command_str" in
     ;;
 esac
 
-# matches / matches_cs run an ERE against the guarded command text. matches is
-# case-insensitive (the default for these guards); matches_cs is case-SENSITIVE
-# for guards where flag case is meaningful (`git branch -d` vs `-D`).
-matches() {
-  printf '%s' "$command_for_guards" | grep -Eiq -- "$1"
-}
-matches_cs() {
-  printf '%s' "$command_for_guards" | grep -Eq -- "$1"
-}
-
 # Normalize bash line-continuations (a trailing backslash + newline → space)
 # before segmenting the command. Without this, "git push --force origin
 # \<newline>main" splits into a segment matching --force but not `main`, letting a
@@ -189,6 +179,28 @@ matches_cs() {
 # `sed ':a;N;$!ba;…'`, which errors on BSD sed (macOS) and there silently no-ops.
 normalized_command_str="$(printf '%s' "$command_for_guards" \
   | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
+
+# matches / matches_cs run an ERE against the guarded command text. matches is
+# case-insensitive (the default for these guards); matches_cs is case-SENSITIVE
+# for guards where flag case is meaningful (`git branch -d` vs `-D`).
+#
+# Both read the NORMALIZED text. They used to read $command_for_guards, so only
+# the two segment-walking guards (rm, git push) were protected against line
+# continuations and every guard expressed through these helpers could be evaded
+# by breaking the command across lines:
+#
+#     git reset --hard \
+#       origin/main
+#
+# The patterns match on intermediate whitespace, and an embedded "\<newline>" is
+# not whitespace to grep -E, so the anchor failed to span the break. Defined
+# after the normalization above so the value exists when these are first called.
+matches() {
+  printf '%s' "$normalized_command_str" | grep -Eiq -- "$1"
+}
+matches_cs() {
+  printf '%s' "$normalized_command_str" | grep -Eq -- "$1"
+}
 
 # Shared ERE fragments. GIT_TOKENS walks over intermediate argv tokens without
 # crossing a statement separator, so a flag in a LATER statement can never be
@@ -553,9 +565,28 @@ if [ -f "$rules_file" ]; then
     case "$rule" in
       '' | '#'*) continue ;;
     esac
-    if printf '%s' "$command_for_guards" | grep -Eiq -- "$rule"; then
-      block "matched a project custom safety rule (${rules_file##*/}): $rule"
-    fi
+    # Normalized text, for the same reason every built-in guard uses it: a
+    # project rule must not be evadable by breaking the command across lines.
+    #
+    # `|| rule_status=$?` rather than a bare pipeline: this script runs under
+    # `set -e`, and a no-match grep exits 1, which would end the hook right
+    # here — before the remaining rules ran, and with an exit status that is
+    # not a refusal. The `||` puts the pipeline in a condition context, where
+    # a non-zero status is expected rather than fatal.
+    rule_status=0
+    printf '%s' "$normalized_command_str" | grep -Eiq -- "$rule" || rule_status=$?
+    case "$rule_status" in
+      0) block "matched a project custom safety rule (${rules_file##*/}): $rule" ;;
+      1) ;; # no match
+      # grep exits 2 on a malformed ERE. Treated as no-match before, so a typo
+      # in a project's rules file silently disabled that rule — a guard the
+      # project believed it had. Say so instead; still non-fatal, because one
+      # bad line must not take the other rules down with it.
+      *)
+        printf 'parity-safety-net: invalid regex in %s, rule NOT enforced: %s\n' \
+          "$rules_file" "$rule" >&2
+        ;;
+    esac
   done <"$rules_file"
 fi
 
