@@ -187,8 +187,69 @@ export interface LisaConfig {
   /** If true, skip the dirty git working directory check (for postinstall use) */
   readonly skipGitCheck: boolean;
 
+  /**
+   * Opt-in permission for a non-interactive apply to replace managed files it
+   * would otherwise only report as `stale`.
+   *
+   * Undefined — the default — keeps the conservative behaviour: a
+   * non-interactive apply never replaces a file the project may have
+   * customised. Set only when the operator has decided to take upstream's
+   * version, which is the supported way to deliver a changed enforcement guard
+   * without hand-deleting it first.
+   */
+  readonly refreshTemplates?: RefreshTemplates;
+
   /** Target harness(es) for emitted artifacts (e.g. claude | codex | fleet) */
   readonly harness: Harness;
+}
+
+/**
+ * Which managed files a non-interactive apply may refresh.
+ *
+ * Scoping exists because the blunt form is genuinely dangerous: the managed set
+ * includes files projects legitimately customise (`tsconfig.json`, `knip.json`,
+ * `eslint.config.ts`). Refreshing only `scripts/lisa-hooks` to take a security
+ * fix should not cost a project its build config.
+ */
+export type RefreshTemplates =
+  /** Every stale managed file. */
+  | { readonly mode: "all" }
+  /** Only files at, or beneath, these repo-relative paths. */
+  | { readonly mode: "paths"; readonly paths: readonly string[] };
+
+/**
+ * Whether a non-interactive apply may replace this managed file.
+ * @param relativePath - Repo-relative path of the managed file
+ * @param refresh - The resolved --refresh-templates selection, if any
+ * @returns True when the operator opted this path in
+ */
+export function mayRefreshTemplate(
+  relativePath: string,
+  refresh: RefreshTemplates | undefined
+): boolean {
+  if (refresh === undefined) return false;
+  if (refresh.mode === "all") return true;
+  // Normalise so `scripts/lisa-hooks`, `scripts/lisa-hooks/`, and an exact file
+  // path all behave the way the flag reads.
+  const target = relativePath.replaceAll("\\", "/");
+  return refresh.paths.some(raw => {
+    const scope = stripTrailingSlashes(raw.replaceAll("\\", "/"));
+    return scope === target || target.startsWith(`${scope}/`);
+  });
+}
+
+/**
+ * Drop trailing slashes so `scripts/lisa-hooks/` and `scripts/lisa-hooks` are
+ * one scope.
+ *
+ * Written as a loop rather than a `/\/+$/` replace: that pattern is
+ * super-linear on a pathological input, and a scope string comes straight from
+ * the command line.
+ * @param value - Normalised, forward-slashed path
+ * @returns The path without any trailing slashes
+ */
+function stripTrailingSlashes(value: string): string {
+  return value.endsWith("/") ? stripTrailingSlashes(value.slice(0, -1)) : value;
 }
 
 /**
