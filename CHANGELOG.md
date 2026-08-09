@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.4](https://github.com/CodySwannGT/lisa/compare/v2.342.3...v2.342.4) (2026-08-09)
+
+
+### Bug Fixes
+
+* **work-item:** bound tracker calls, page sub-issues, and classify failures ([b649f3e](https://github.com/CodySwannGT/lisa/commit/b649f3edd42304d8026969110c590530f0e9641e)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+* **work-item:** make the tracker deadline one the child cannot decline ([dd680a4](https://github.com/CodySwannGT/lisa/commit/dd680a4e63778578d5b4774e03c978bce7a3aa80)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+
 ### [2.342.3](https://github.com/CodySwannGT/lisa/compare/v2.342.2...v2.342.3) (2026-08-09)
 
 
