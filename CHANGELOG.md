@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.342.0](https://github.com/CodySwannGT/lisa/compare/v2.341.7...v2.342.0) (2026-08-09)
+
+
+### Features
+
+* **apply:** add --refresh-templates so a release can deliver a changed guard ([46767d2](https://github.com/CodySwannGT/lisa/commit/46767d27777dc4a80f8792348678a110dbe2152e)), closes [#2378](https://github.com/CodySwannGT/lisa/issues/2378) [#2381](https://github.com/CodySwannGT/lisa/issues/2381) [CodySwannGT/lisa#2381](https://github.com/CodySwannGT/lisa/issues/2381)
+
 ### [2.341.7](https://github.com/CodySwannGT/lisa/compare/v2.341.6...v2.341.7) (2026-08-08)
 
 
