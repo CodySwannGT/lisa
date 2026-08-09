@@ -99,6 +99,11 @@ on:
         required: false
         default: 'bun'
         type: string
+      suite_timeout_minutes:
+        description: 'Ceiling for EACH platform suite job (Android and iOS separately), not the whole workflow. Raise it when the flow count outgrows the default — a suite cancelled mid-run reports as a failure with no usable result.'
+        required: false
+        default: 90
+        type: number
     secrets:
       EXPO_TOKEN:
         description: 'Expo token for EAS builds. When absent, the whole suite skips with a warning.'
@@ -244,11 +249,13 @@ jobs:
     name: 🤖 Maestro Android
     needs: [preflight, build]
     runs-on: ubuntu-latest
-    # 90 to match the iOS job: the 60 inherited from frontend-v2's original
-    # workflow started timing out once its suite grew (nightly 29322073759 —
-    # the Android leg was cancelled mid-suite at exactly 60:00). Jobs end when
-    # the suite ends, so fast suites pay nothing for the headroom.
-    timeout-minutes: 90
+    # Caller-tunable, defaulting to 90 to match the iOS job: the 60 inherited
+    # from frontend-v2's original workflow started timing out once its suite
+    # grew (nightly 29322073759 — the Android leg was cancelled mid-suite at
+    # exactly 60:00). Jobs end when the suite ends, so fast suites pay nothing
+    # for the headroom, and a project whose suite outgrows 90 raises
+    # suite_timeout_minutes rather than waiting on a Lisa release.
+    timeout-minutes: ${{ inputs.suite_timeout_minutes }}
     # !cancelled(): `needs: build` is a matrix job, so one platform's build
     # failure marks the whole job failed and would skip BOTH test jobs. Run
     # whenever this platform's artifact might exist — if its own build leg
@@ -393,7 +400,8 @@ jobs:
     name: 🍎 Maestro iOS
     needs: [preflight, build]
     runs-on: macos-15
-    timeout-minutes: 90
+    # Same ceiling as the android job — see its comment for why it is an input.
+    timeout-minutes: ${{ inputs.suite_timeout_minutes }}
     # !cancelled(): see the android job — don't let the other platform's
     # build failure skip this platform's tests.
     if: ${{ !cancelled() && needs.preflight.outputs.run_ios == 'true' }}
