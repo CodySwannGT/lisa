@@ -54,6 +54,8 @@ For each task, define what "done" looks like:
 - Reference exact behavior: error messages, status codes, output format, performance thresholds
 - If a task modifies existing behavior, state both the before and after
 
+For a **frontend task** -- one that adds or changes a user-observable surface -- the `bdd-e2e-coverage` rule makes two further criteria mandatory on the item itself, never left implied: (a) the Gherkin scenarios it adds or changes in the project's behavior contract, with their stable IDs and required platforms, and (b) aligned e2e automation in the project's configured runner for each of those platforms, with the coverage gate passing and the matrix regenerated. Carry both into the item's Validation Journey. A project with no behavior contract yet does not get an exemption -- the first such task carries the bootstrap scaffolding as a deliverable, scoped to its own behavior (cite the rule; do not restate its bootstrap steps).
+
 ### 3. Assign Verification Type
 
 Each task must have a verification method. Choose the most appropriate:

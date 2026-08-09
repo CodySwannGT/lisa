@@ -91,7 +91,7 @@ If auto-merge is enabled while the regression spec is still in flight, disable a
 
 After each empirical verification produces PASS evidence, invoke the `codify-verification` skill to encode the verification as an automated regression test. The manual proof becomes a repeatable check that catches future regressions.
 
-The `codify-verification` skill maps the verification type to the appropriate framework (Playwright for browser/UI, integration test for API/DB/auth, benchmark for performance, etc.), generates a deterministic test that asserts the same observable outcome the verification just confirmed, runs it in isolation to confirm PASS, and commits it in the same PR as the change. For **frontend work**, codification is dual-runner: a Playwright spec in the project's Playwright test runner AND a Maestro flow in the Maestro test runner whenever the project supports Maestro (`.maestro/` directory, `maestro:test` script, or Maestro CI workflow) — both encoding the same verified journey, neither a substitute for the other.
+The `codify-verification` skill maps the verification type to the appropriate framework (Playwright for browser/UI, integration test for API/DB/auth, benchmark for performance, etc.), generates a deterministic test that asserts the same observable outcome the verification just confirmed, runs it in isolation to confirm PASS, and commits it in the same PR as the change. For **frontend work**, codification is multi-runner and governed by the `bdd-e2e-coverage` rule: the behavior exists as a Gherkin scenario with a stable ID in the project's behavior contract, and the same verified journey is encoded in the project's configured runner for every platform that scenario requires — neither a substitute for the other, since they guard different platforms.
 
 Codification is mandatory for every empirical verification type with one exception set: PR, Documentation, Deploy, and Investigate-Only spikes — those have inherently non-behavioral proof. For every other type, skipping codification is not allowed; if codification is genuinely impossible (e.g., the test framework does not exist and cannot be installed in scope), escalate via the Escalation Protocol rather than silently skipping.
 
@@ -251,7 +251,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 8. Implement the change.
 9. Execute verification plan — run the actual system and observe results.
 10. Collect proof artifacts.
-11. Codify — for each passing empirical verification, invoke `codify-verification` to encode it as a regression test (Playwright for UI, integration test for API/DB/auth, benchmark for performance, etc.) and commit the test in the same PR. Frontend work codifies into every supported UI runner: Playwright spec + Maestro flow when the project supports Maestro (see the dual-runner section of `codify-verification`).
+11. Codify — for each passing empirical verification, invoke `codify-verification` to encode it as a regression test (Playwright for UI, integration test for API/DB/auth, benchmark for performance, etc.) and commit the test in the same PR. Frontend work also updates the behavior contract and codifies into the project's configured runner for every platform the scenario requires, then regenerates the coverage matrix (`bdd-e2e-coverage`; see the frontend multi-runner section of `codify-verification`).
 12. Run spec conformance — build coverage matrix against the spec source (plan/ticket/issue), flag scope creep and untraceable changes, produce verdict.
 13. Summarize what changed, what was verified, what was codified, conformance verdict, and remaining risk.
 14. Label the result with a verification level.
@@ -373,6 +373,7 @@ A task is done only when:
 - Required verification surfaces and tooling surfaces are used or explicitly unavailable
 - Proof artifacts are captured
 - Every passing empirical verification is codified as a regression test (or has an explicit, documented skip reason from the allowed set)
+- For frontend work, the `bdd-e2e-coverage` contract is satisfied: every user-facing behavior added or changed exists as a Gherkin scenario with a stable ID traceable to the work item, every required scenario-platform obligation is mapped to aligned e2e automation in the project's configured runner for that platform or carries a dated waiver, and the coverage gate passes with the matrix and burndown regenerated and committed. Missing BDD coverage is a verification failure, not a warning
 - For a leaf work unit, every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared in its Validation Journey has a captured, non-empty artifact of the declared type attached to the ticket (the evidence manifest is fully satisfied)
 - Cross-work-item `EVIDENCE-REF` pointers were excluded from the local manifest and did not satisfy S14 or completion; a runtime-changing leaf has at least one local claiming marker
 - Spec conformance verdict is `CONFORMS` (not `PARTIAL`, not `DIVERGES`)

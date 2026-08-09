@@ -239,7 +239,7 @@ typed `[EVIDENCE: <artifact-type>: <name>]` manifest), adding three concrete req
 project type with verification **enforced**, it is a required check — so the proof
 re-runs on every PR instead of being proven once by hand.
 
-For **frontend work**, codification is dual-runner: a Playwright spec in the project's Playwright test runner AND a Maestro flow in the Maestro test runner whenever the project supports Maestro (`.maestro/` directory, `maestro:test` script, or Maestro CI workflow) — both encoding the same verified journey, neither a substitute for the other. The dual-runner requirement is non-demotable: a missing runner is either a recorded absence (the project genuinely has no such harness) or a linked build-ready follow-up ticket — never a silent skip (see "Frontend dual-runner codification" in `codify-verification`).
+For **frontend work**, codification is multi-runner and governed by the `bdd-e2e-coverage` rule: the same verified journey is encoded in the project's configured runner for every platform the behavior's scenario requires, and no runner substitutes for another because they guard different platforms. The requirement is non-demotable: a missing runner is either a recorded absence (the project genuinely has no such harness for that platform) or a linked build-ready follow-up ticket — never a silent skip. That rule also owns the behavior contract the codified tests are sealing (Gherkin scenarios with stable IDs, the coverage map, waivers, and the gate); cite it rather than restating it here.
 
 **2. Evidence is committed to the repo.** The named artifacts from the work
 unit's evidence manifest are committed under `evidence/<ticket>/` (in addition to
