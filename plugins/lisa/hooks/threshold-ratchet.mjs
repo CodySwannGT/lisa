@@ -56,6 +56,15 @@ const GIT = GIT_LOCATIONS.find(candidate => fs.existsSync(candidate)) ?? "git";
 
 /** Git flag shared by every changed-file listing. */
 const NAME_ONLY = "--name-only";
+/**
+ * Suppress rename detection when discovering changed files.
+ *
+ * With it on, `git diff --name-only` reports a rename as the destination path
+ * only. Moving a watched threshold file to an unwatched path therefore lists
+ * one name the ratchet does not watch, and the loosening at the old path is
+ * never compared. Both sides have to be visible for the gate to mean anything.
+ */
+const NO_RENAMES = "--no-renames";
 
 /**
  * Run git, returning stdout or null on any failure.
@@ -87,7 +96,7 @@ function git(args, cwd) {
  */
 function resolvePlan(mode, root, baseRef, onlyFiles) {
   if (mode === "staged") {
-    const diff = git(["diff", "--cached", NAME_ONLY], root);
+    const diff = git(["diff", "--cached", NAME_ONLY, NO_RENAMES], root);
     if (diff === null) return null;
     return {
       files: diff.split("\n").filter(Boolean),
@@ -99,7 +108,7 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
     if (!baseRef) return null;
     const mergeBase = git(["merge-base", baseRef, "HEAD"], root)?.trim();
     if (!mergeBase) return null;
-    const diff = git(["diff", NAME_ONLY, mergeBase, "HEAD"], root);
+    const diff = git(["diff", NAME_ONLY, NO_RENAMES, mergeBase, "HEAD"], root);
     if (diff === null) return null;
     return {
       files: diff.split("\n").filter(Boolean),
@@ -107,7 +116,7 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
       readCurrent: f => git(["show", `HEAD:${f}`], root),
     };
   }
-  const diff = git(["diff", NAME_ONLY, "HEAD"], root);
+  const diff = git(["diff", NAME_ONLY, NO_RENAMES, "HEAD"], root);
   if (diff === null) return null;
   return {
     files: onlyFiles ?? diff.split("\n").filter(Boolean),
@@ -123,6 +132,31 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
 }
 
 /**
+ * Decide the exit code when the ratchet cannot determine what changed.
+ *
+ * `staged` and `base` are enforcement gates — pre-commit and CI. A gate that
+ * cannot see the change set has not found the change set clean, and returning 0
+ * reports exactly that. It fails closed, loudly.
+ *
+ * `hook` is advisory feedback to an agent mid-edit, fires on every tool call,
+ * and blocks nothing downstream. Failing it closed on a transient git hiccup
+ * would turn a hint into an outage, so it stays permissive — but still says so.
+ * @param {"hook"|"staged"|"base"} mode Comparison mode
+ * @param {string} reason What could not be determined
+ * @returns {number} Process exit code
+ */
+function undeterminable(mode, reason) {
+  process.stderr.write(
+    `threshold-ratchet: ${reason}; the ratchet could not run in ${mode} mode\n`
+  );
+  if (mode === "hook") return 0;
+  process.stderr.write(
+    "threshold-ratchet: failing closed — an enforcement gate that cannot read the change set has not verified it\n"
+  );
+  return 1;
+}
+
+/**
  * Run the ratchet for a mode, print the report, and return the exit code.
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @param {string | undefined} [baseRef] Base ref (base mode only)
@@ -131,9 +165,9 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
  */
 function run(mode, baseRef, onlyFiles) {
   const root = git(["rev-parse", "--show-toplevel"])?.trim();
-  if (!root) return 0;
+  if (!root) return undeterminable(mode, "not a git repository");
   const plan = resolvePlan(mode, root, baseRef, onlyFiles);
-  if (!plan) return 0;
+  if (!plan) return undeterminable(mode, "could not resolve the changed files");
 
   const watched = plan.files.filter(f => familyFor(f));
   if (watched.length === 0) return 0;
