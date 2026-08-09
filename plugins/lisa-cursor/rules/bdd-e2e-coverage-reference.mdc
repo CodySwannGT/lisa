@@ -53,10 +53,12 @@ platforms it requires and that each named platform has a configured runner.
   "schemaVersion": 1,
   "asOf": "<ISO date>",
   "runnerPlatforms": { "<runner>": ["<platform>", "..."] },
+  "coverageFloor": { "<platform>": "<0-100, the committed floor — may rise, never falls>" },
   "platformWaivers": [
     {
       "scenario": "BDD-DOMAIN-NNN",
       "platforms": ["<platform>"],
+      "runner": "<runner — required when more than one runner covers a waived platform, so the waiver names which one cannot decide it>",
       "reason": "why this runner cannot decide this behavior today",
       "recordedAt": "<ISO date>"
     }
@@ -94,9 +96,10 @@ Two commands, wired into the project's script surface and into CI:
    - a scenario declaring a platform with no configured runner;
    - a mapping whose file is missing or whose `evidence` string is gone (stale mapping);
    - a mapping claiming a platform the scenario does not declare;
-   - an invalid waiver (nonexistent scenario, undeclared platform, already-excluded scenario, or one
-     that masks an existing mapping);
-   - a regression against the project's committed coverage floor.
+   - an invalid waiver (nonexistent scenario, undeclared platform, already-excluded scenario, a
+     `runner` that does not cover the waived platform under `runnerPlatforms`, or one that masks an
+     existing mapping);
+   - a regression against the project's committed `coverageFloor` per platform.
 
 The percentage measures **aligned automation inventory, not the latest run result**. A mapped test
 that currently fails is a red CI check, a separate signal; the map only asserts the automation
@@ -106,8 +109,9 @@ not coverage.
 ### Coverage floor, not coverage target
 
 Projects adopting this contract mid-life start below 100% and must not be blocked by that. The gate
-enforces a **ratchet**: the committed floor per platform may rise and may never fall. A frontend
-work item raises the floor by the obligations it seals; it is never asked to clear the whole backlog.
+enforces a **ratchet**: the committed floor per platform may rise and may never fall. Recorded in
+`coverageFloor`, it is bumped by regenerating the matrix after a frontend work item raises it by the
+obligations it seals; it is never asked to clear the whole backlog.
 
 ## Waivers versus `@blocked`
 
@@ -166,10 +170,13 @@ A repo with no contract yet, taking its first frontend work item:
    repo actually is.
 4. **Seal this item's obligations** and commit the regenerated matrix and burndown with the change.
 
-If a required platform has **no** e2e runner at all, record the locations checked and the absence as
-the reason — the same recorded-absence exit the regression-spec rule in `verification` allows — and,
-where the runner could reasonably be added, file a linked build-ready follow-up ticket before merge.
-Silence is never an exit.
+If a required platform has **no** e2e runner at all, that obligation is never left as a bare `N/A` —
+record it exactly like any other unsealable obligation: a dated `platformWaivers` entry naming the
+locations checked and "no runner configured" as the reason, so the absence is dated, audited for age,
+and visible in the same place every other IOU lives — the same recorded-absence exit the
+regression-spec rule in `verification` allows, made falsifiable. Where the runner could reasonably be
+added, additionally file a linked build-ready follow-up ticket before merge and reference it from the
+waiver's reason. Silence is never an exit.
 
 ## Degradation
 

@@ -118,10 +118,13 @@ For every requirement extracted in Phase 2, produce one row:
 For `behavior` rows, evidence is the contract itself, not prose: the scenario exists in the project's behavior contract with its stable ID, and each required scenario-platform obligation resolves to a mapping in the coverage map (or a dated waiver). Read the generated coverage matrix and run the project's coverage gate rather than inferring from the diff.
 
 - Shipped frontend behavior with **no scenario** → `MISSING`. It is a spec-conformance failure, not a documentation nit.
+- A scenario satisfies this row only when its provenance tag (tracker item reference) names the current work item, or the PRD atom this item implements. A same-ID or coincidentally-matching scenario with no provenance link to this item does not satisfy the row — treat it as `MISSING` and flag the traceability gap; a passing gate elsewhere in the contract proves nothing about *this* requirement.
 - Scenario present but a required scenario-platform obligation has neither a mapping nor a waiver, or the coverage gate fails (stale mapping, invalid waiver, floor regression) → `MISSING`.
+- Scenario, mapping, and a passing coverage gate present, but the mapped test's execution has not been observed to pass (no verification-specialist evidence, no named passing CI run) → `PARTIAL`. The gate only proves the mapping is statically valid — the file exists and the `evidence` string is still present — not that the test currently passes; that is a separate signal per the `bdd-e2e-coverage` rule, and `MATCH` requires both.
 - Scenario and mappings present but the gate was not re-run and the matrix not regenerated → `PARTIAL`.
+- Scenario, mapping, passing gate, AND observed execution evidence that the mapped test passes → `MATCH`.
 
-Per the `bdd-e2e-coverage` rule, a waiver is a dated IOU and never counts as coverage — a row backed only by a waiver is reported as waived, never `MATCH`.
+Per the `bdd-e2e-coverage` rule, a waiver is a dated IOU and never counts as coverage — a row backed only by a waiver is reported as `MISSING`, never `MATCH`, with the waiver and its `recordedAt` date named in the Notes column so the IOU stays visible in the matrix instead of disappearing into a passing status. (There is no separate `WAIVED` status; the existing enum is reused deliberately so a waiver is never mistaken for coverage.) A waiver satisfies the `bdd-e2e-coverage` rule's *definition of done* — it does not block the work item from shipping — but spec-conformance is a stricter accounting lens than that gate: reporting the row as `MISSING` caps this item below `CONFORMS` until the waiver is cleared. That is intentional, not a false failure — it is the mechanism that keeps a waiver from quietly becoming permanent.
 
 ### Scope creep detection
 
