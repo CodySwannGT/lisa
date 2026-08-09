@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.1](https://github.com/CodySwannGT/lisa/compare/v2.342.0...v2.342.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **hooks:** close the remaining security findings from the guard review ([98f64c4](https://github.com/CodySwannGT/lisa/commit/98f64c45b2174862b828150e27711ba1fdcfb51e)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+
 ## [2.342.0](https://github.com/CodySwannGT/lisa/compare/v2.341.7...v2.342.0) (2026-08-09)
 
 
