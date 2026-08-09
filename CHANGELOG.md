@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.342.5](https://github.com/CodySwannGT/lisa/compare/v2.342.4...v2.342.5) (2026-08-09)
+
+
+### Bug Fixes
+
+* **work-item:** keep the trailer prefix ASCII-case-insensitive ([cfaf644](https://github.com/CodySwannGT/lisa/commit/cfaf6447ea8ed84194eaab7b30c530ef6fb30e1c)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+* **work-item:** parse Work-Item trailers without a backtracking regex ([3fb0e1c](https://github.com/CodySwannGT/lisa/commit/3fb0e1ced85e844739c0425ffb900d79c001af8c)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+
 ### [2.342.4](https://github.com/CodySwannGT/lisa/compare/v2.342.3...v2.342.4) (2026-08-09)
 
 
