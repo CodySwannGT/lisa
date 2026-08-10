@@ -89,6 +89,11 @@ on:
         required: false
         default: ''
         type: string
+      flow_runner:
+        description: 'Optional shell script path that runs Maestro flows and writes the supplied JUnit report/debug outputs'
+        required: false
+        default: ''
+        type: string
       node_version:
         description: 'Node.js version for setup_command tooling'
         required: false
@@ -345,6 +350,8 @@ jobs:
 
       - name: 📱 Run Maestro flows on emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          FLOW_RUNNER: ${{ inputs.flow_runner }}
         with:
           api-level: 34
           arch: x86_64
@@ -383,7 +390,7 @@ jobs:
             adb shell input keyevent KEYCODE_HOME
             adb shell dumpsys power | grep -q 'mWakefulness=Awake'
             adb shell dumpsys window | grep -q 'isKeyguardShowing=false'
-            maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}
+            if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}; fi
 
       - name: 📤 Upload Maestro debug output
         if: always()
@@ -503,14 +510,20 @@ jobs:
           echo "MAESTRO_E2E_ARGS=$ARGS" >> "$GITHUB_ENV"
 
       - name: 📱 Run Maestro flows on simulator
+        env:
+          FLOW_RUNNER: ${{ inputs.flow_runner }}
         run: |
           # MAESTRO_E2E_ARGS is a flag list that needs word splitting.
           # shellcheck disable=SC2086
-          maestro test ${{ inputs.flows_dir }} \
-            $MAESTRO_E2E_ARGS \
-            --format junit \
-            --output maestro-ios-report.xml \
-            --debug-output maestro-debug
+          if [ -n "$FLOW_RUNNER" ]; then
+            bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}
+          else
+            maestro test ${{ inputs.flows_dir }} \
+              $MAESTRO_E2E_ARGS \
+              --format junit \
+              --output maestro-ios-report.xml \
+              --debug-output maestro-debug
+          fi
 
       - name: 📤 Upload Maestro debug output
         if: always()
