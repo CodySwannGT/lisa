@@ -43,11 +43,13 @@ twelve agent CLIs).
 
 ### Guard-family gap (empirically measured, not inferred)
 
-Each case below was run through **both** engines — upstream via
+Each comparable case below was run through **both** engines — upstream via
 `node dist/bin/cc-safety-net.js explain --json <cmd>` (reading the `result` and
 `ruleId` fields) and Lisa's hook via a fake `PreToolUse` payload piped to
-`parity-safety-net.sh`, asserting the exit code. The two comparable upstream
-guard families introduced in 2.0.0 have **no Lisa counterpart**:
+`parity-safety-net.sh`, asserting the exit code. The `policy-protection` row is
+non-comparable (Lisa has no policy file to probe) and is included only for
+completeness — see its `n/a` note. The two comparable upstream guard families
+introduced in 2.0.0 have **no Lisa counterpart**:
 
 | upstream rule id | probe | upstream | Lisa hook |
 | --- | --- | --- | --- |
