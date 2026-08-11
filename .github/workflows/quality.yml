@@ -1550,6 +1550,11 @@ jobs:
             build
             .next
             out
+          # `.next` is hidden, so without this a Next.js project's build output
+          # is dropped from the artifact — and because the other three paths do
+          # not exist there either, `if-no-files-found: ignore` turns that into
+          # a silent no-op rather than a warning.
+          include-hidden-files: true
           retention-days: 1
           if-no-files-found: ignore
 
