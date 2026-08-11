@@ -25,7 +25,7 @@
 | codex | `reimplement` | - keep the Lisa-native PreToolUse hook (`parity-safety-net.sh`, fanned out via the #1054–1058 hook generators) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.1<br>- keep the consolidated `lisa-parity-safety-net-rules` skill as the Lisa-native equivalent of the upstream `cc-safety-net` skill, stamped synced-from: safety-net@cc-marketplace@2.0.1 | No MCP/LSP re-point exists for a hook plugin. Upstream 2.0 now publishes a native Codex integration, which would ordinarily outrank `reimplement` — see the flagged decision below. |
 | cursor | `claude-only` | _(none)_ | Cursor reads `.claude-plugin/` natively, so Lisa's hook and rules skill load unchanged. The upstream plugin stays uninstalled (retired in #1960) so a session is screened by one guard engine, not two. |
 | agy | `reimplement` | - keep the Lisa-native PreToolUse hook (`parity-safety-net.sh`, fanned out via the #1054–1058 hook generators) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.1<br>- keep the consolidated `lisa-parity-safety-net-rules` skill as the Lisa-native equivalent of the upstream `cc-safety-net` skill, stamped synced-from: safety-net@cc-marketplace@2.0.1 | Curated third-party plugins are not in agy's fan-out, so agy receives nothing natively. Same flagged decision as Codex. |
-| copilot | `enable-vendor-equivalent` | - the hook is covered by safety-net's native Copilot CLI hook runner (`cc-safety-net install --copilot-cli`), enabled by the user — Lisa emits nothing (see `parity/FOLLOWUPS.md` §2)<br>- the rule-management skill is covered by the same runner's built-in `cc-safety-net rule` commands | The vendor ships a concrete, named Copilot CLI runner plus built-in rule management. Unchanged from the 1.0.6 review. |
+| copilot | `enable-vendor-equivalent` | - **Correction (this re-review):** the Lisa-native `parity-safety-net.sh` hook and `lisa-parity-safety-net-rules` skill DO ship into the generated Copilot artifact via the universal base-plugin fan-out (#1054–1058); the Copilot generator has no safety-net-specific exclusion. The prior "Lisa emits nothing" wording was inaccurate.<br>- safety-net's native Copilot CLI hook runner (`cc-safety-net install --copilot-cli`) remains a separate, user-opt-in install; if enabled, it runs alongside the Lisa hook (dual engine), not instead of it (see `parity/FOLLOWUPS.md` §2)<br>- likewise the rule-management skill ships regardless of whether the user has the vendor runner's built-in `cc-safety-net rule` commands installed | The vendor ships a concrete, named Copilot CLI runner plus built-in rule management, which is why `enable-vendor-equivalent` was preferred over `reimplement` for Copilot in the 1.0.6 review. In practice the #1050 universal fan-out ships Lisa's own hook/skill to every agent variant including Copilot regardless of this outcome label, so the actions above now document the real dual-engine coexistence. Whether to actively exclude the Lisa hook/skill from Copilot (making the outcome literally true) is an owner-level call — see "Flagged for owner review" below. |
 
 > Review the routing, then flip `"status": "proposed"` → `"approved"` in the paired `.json` to authorize `implement-plugin-parity`.
 
@@ -46,8 +46,8 @@ twelve agent CLIs).
 Each case below was run through **both** engines — upstream via
 `node dist/bin/cc-safety-net.js explain --json <cmd>` (reading the `result` and
 `ruleId` fields) and Lisa's hook via a fake `PreToolUse` payload piped to
-`parity-safety-net.sh`, asserting the exit code. Two upstream guard families
-introduced in 2.0.0 have **no Lisa counterpart**:
+`parity-safety-net.sh`, asserting the exit code. The two comparable upstream
+guard families introduced in 2.0.0 have **no Lisa counterpart**:
 
 | upstream rule id | probe | upstream | Lisa hook |
 | --- | --- | --- | --- |
@@ -62,7 +62,7 @@ introduced in 2.0.0 have **no Lisa counterpart**:
 | `secret.ext-pattern.key` | `cat /etc/ssl/private/server.key` | BLOCK | allow |
 | `rm.git-metadata` | recursive delete of `.git` | BLOCK | allow |
 | `rm.git-metadata` | `rm .git/hooks/pre-commit` | BLOCK | allow |
-| `policy-protection` | delete of upstream's own policy file | BLOCK | allow (n/a — Lisa has no such file) |
+| `policy-protection` | delete of upstream's own policy file | BLOCK | n/a (non-comparable; Lisa has no such file) |
 
 Control cases (`ls -la`, `echo FOO=1 >> .env.example`) are allowed by both, and
 the README's broader "Git metadata mutation" claim is **narrower in practice**
@@ -98,5 +98,23 @@ dependency that writes per-agent config outside Lisa's distribution model;
 guard set ships identically everywhere; and `parity/FOLLOWUPS.md` §2 already
 records that Lisa has no mechanism to enable a third-party vendor plugin inside
 another agent's marketplace — `enable-vendor-equivalent` is documented as a
-user-enabled, manual outcome that Lisa never emits. Reversing #1960 is an
-owner-level standards call, so it is surfaced here rather than decided.
+user-enabled, manual outcome that Lisa itself never *activates*. Reversing
+#1960 is an owner-level standards call, so it is surfaced here rather than
+decided.
+
+**Correction (this re-review, addressing a review finding):** "Lisa itself
+never emits" was previously mis-stated as "Lisa emits nothing" for Copilot
+specifically. That is not true of the *hook and skill files* — the #1050
+universal base-plugin fan-out ships `parity-safety-net.sh` and
+`lisa-parity-safety-net-rules` into the generated Copilot artifact exactly as
+it does for every other agent, with no safety-net-specific carve-out in
+`generate-copilot-plugin-artifacts.mjs`. What Lisa does not do is *enable the
+vendor's own plugin/runner* inside Copilot's marketplace — that part of the
+claim holds. So today a Copilot user who also opts into
+`cc-safety-net install --copilot-cli` runs **both** engines side by side. The
+per-agent routing table above and `parity/FOLLOWUPS.md` §2 have been corrected
+to describe this dual-engine coexistence rather than "Lisa emits nothing."
+Deciding whether to suppress the Lisa hook/skill for Copilot specifically (so
+the vendor runner is the sole guard there) is the same owner-level call as the
+Codex/agy vendor-integration question above, and is left open pending that
+decision.
