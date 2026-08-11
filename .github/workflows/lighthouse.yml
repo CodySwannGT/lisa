@@ -85,4 +85,11 @@ jobs:
         with:
           name: lighthouse-reports
           path: .lighthouseci/
+          # `.lighthouseci/` is a dot-directory and upload-artifact skips hidden
+          # paths by default, so this step found nothing, warned, and exited 0 —
+          # green on every run while never once producing an artifact. The
+          # 30-day retention configured here was doing nothing, leaving GCS
+          # report links (~14 days) as the only record, so a regression older
+          # than two weeks could not be bisected at all.
+          include-hidden-files: true
           retention-days: 30
