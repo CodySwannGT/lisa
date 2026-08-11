@@ -1,56 +1,122 @@
 # Parity routing review — `safety-net@cc-marketplace`
 
 - **Plugin:** `safety-net@cc-marketplace`
-- **Upstream version:** `1.0.6`
-- **Analyzed:** 2026-07-22 (re-review; originally 2026-05-30 at 0.9.0)
+- **Upstream version:** `2.0.1`
+- **Analyzed:** 2026-08-11 (re-review; previously 2026-07-22 at 1.0.6, originally 2026-05-30 at 0.9.0)
 - **Status:** `approved`
 
 ## Components
 
 | kind | id | path | classification | notes |
 | --- | --- | --- | --- | --- |
-| hook | `pretooluse-bash-guard` | `hooks/hooks.json` | hook | PreToolUse Bash guard that runs dist/bin/cc-safety-net.js --claude-code to block destructive git/filesystem commands. |
-| skill | `set-custom-rules` | `skills/set-custom-rules/SKILL.md` | claude-skill | Configures custom safety-net rules. |
-| skill | `verify-custom-rules` | `skills/verify-custom-rules/SKILL.md` | claude-skill | Validates custom safety-net rules. |
+| hook | `pretooluse-bash-guard` | `hooks/hooks.json` | hook | PreToolUse guard running `dist/bin/cc-safety-net.js hook --coding-cli`. Byte-identical to 1.0.6; the engine behind it was rebuilt in 2.0.0 and grew two guard families Lisa does not mirror (`secret.*`, `rm.git-metadata`). As of 2.0.0 upstream also screens file tools, not just Bash. |
+| skill | `cc-safety-net` | `skills/cc-safety-net/SKILL.md` | claude-skill | Single consolidated rule-management skill, byte-identical between 1.0.6 and 2.0.1. Drives the JSON rulebook via `cc-safety-net rule`. |
+
+> **Inventory correction.** Through the 1.0.6 re-review this artifact still listed the
+> 0.9.0-era `set-custom-rules` + `verify-custom-rules` skill pair. Upstream had already
+> consolidated them into the single `cc-safety-net` skill by 1.0.6 — verified against the
+> cache tree, which contains only `skills/cc-safety-net/SKILL.md` at both 1.0.6 and 2.0.1.
+> The component list above is the corrected inventory.
 
 ## Per-agent routing
 
 | agent | outcome | actions | rationale |
 | --- | --- | --- | --- |
-| codex | `reimplement` | - scaffold a Lisa-native PreToolUse hook (fanned out via the per-agent hook generators from #1054–#1058) stamped synced-from: safety-net@cc-marketplace@0.9.0<br>- reimplement the set-custom-rules and verify-custom-rules skills as Lisa-native skills stamped synced-from: safety-net@cc-marketplace@0.9.0 | A hook-bearing plugin has no MCP/LSP re-point; reimplement as a Lisa-native hook (via the existing per-agent hook generators) plus reimplement the two rule-management skills so no component group is dropped. |
-| cursor | `claude-only` | _(none)_ | Cursor reads .claude-plugin/ natively; the hook and both skills load unchanged. |
-| agy | `reimplement` | - scaffold a Lisa-native PreToolUse hook (fanned out via the per-agent hook generators from #1054–#1058) stamped synced-from: safety-net@cc-marketplace@0.9.0<br>- reimplement the set-custom-rules and verify-custom-rules skills as Lisa-native skills stamped synced-from: safety-net@cc-marketplace@0.9.0 | Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa-native hook plus the two rule-management skills. |
-| copilot | `enable-vendor-equivalent` | - enable safety-net's native Copilot CLI hook runner (cc-safety-net --copilot-cli) in the project-scoped marketplace<br>- the set-custom-rules and verify-custom-rules skills are covered by cc-safety-net's native built-in commands for the Copilot CLI runner | safety-net ships a concrete Copilot CLI hook runner (cc-safety-net --copilot-cli) plus built-in rule-management commands, so enable the vendor's native Copilot support rather than reimplementing. |
+| codex | `reimplement` | - keep the Lisa-native PreToolUse hook (`parity-safety-net.sh`, fanned out via the #1054–1058 hook generators) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.1<br>- keep the consolidated `lisa-parity-safety-net-rules` skill as the Lisa-native equivalent of the upstream `cc-safety-net` skill, stamped synced-from: safety-net@cc-marketplace@2.0.1 | No MCP/LSP re-point exists for a hook plugin. Upstream 2.0 now publishes a native Codex integration, which would ordinarily outrank `reimplement` — see the flagged decision below. |
+| cursor | `claude-only` | _(none)_ | Cursor reads `.claude-plugin/` natively, so Lisa's hook and rules skill load unchanged. The upstream plugin stays uninstalled (retired in #1960) so a session is screened by one guard engine, not two. |
+| agy | `reimplement` | - keep the Lisa-native PreToolUse hook (`parity-safety-net.sh`, fanned out via the #1054–1058 hook generators) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.1<br>- keep the consolidated `lisa-parity-safety-net-rules` skill as the Lisa-native equivalent of the upstream `cc-safety-net` skill, stamped synced-from: safety-net@cc-marketplace@2.0.1 | Curated third-party plugins are not in agy's fan-out, so agy receives nothing natively. Same flagged decision as Codex. |
+| copilot | `enable-vendor-equivalent` | - **Correction (this re-review):** the Lisa-native `parity-safety-net.sh` hook and `lisa-parity-safety-net-rules` skill DO ship into the generated Copilot artifact via the universal base-plugin fan-out (#1054–1058); the Copilot generator has no safety-net-specific exclusion. The prior "Lisa emits nothing" wording was inaccurate.<br>- safety-net's native Copilot CLI hook runner (`cc-safety-net install --copilot-cli`) remains a separate, user-opt-in install; if enabled, it runs alongside the Lisa hook (dual engine), not instead of it (see `parity/FOLLOWUPS.md` §2)<br>- likewise the rule-management skill ships regardless of whether the user has the vendor runner's built-in `cc-safety-net rule` commands installed | The vendor ships a concrete, named Copilot CLI runner plus built-in rule management, which is why `enable-vendor-equivalent` was preferred over `reimplement` for Copilot in the 1.0.6 review. In practice the #1050 universal fan-out ships Lisa's own hook/skill to every agent variant including Copilot regardless of this outcome label, so the actions above now document the real dual-engine coexistence. Whether to actively exclude the Lisa hook/skill from Copilot (making the outcome literally true) is an owner-level call — see "Flagged for owner review" below. |
 
-> Plan-only artifact. Review the routing, then flip `"status": "proposed"` → `"approved"` in the paired `.json` to authorize `implement-plugin-parity`.
+> Review the routing, then flip `"status": "proposed"` → `"approved"` in the paired `.json` to authorize `implement-plugin-parity`.
 
-## Addendum — 2026-07-22 re-review at upstream 1.0.6 (issue #1960)
+## Addendum — 2026-08-11 re-review at upstream 2.0.1
 
-Upstream 1.0.6 consolidated the two rule-management skills into a single
-`cc-safety-net` skill, moved custom rules to a JSON rulebook system driven by
-the `npx cc-safety-net rule` CLI, and grew the Bash-guard engine (semantic
-segment analysis, wrapper stripping, interpreter one-liner scanning). Lisa's
-`lisa-parity-safety-net-rules` skill deliberately keeps the flat ERE-lines-file
-design (auditable, no npx dependency, identical on every agent runtime) and is
-re-pinned at `1.0.6`.
+### What changed upstream (1.0.6 → 2.0.1)
 
-**Claude-side change.** The original routing left the upstream plugin installed
-on Claude/Cursor alongside Lisa's own `parity-safety-net.sh` PreToolUse hook,
-so every Bash command in a Claude session was screened twice by two different
-guard engines. As of issue #1960 the Lisa hook is canonical on every agent:
-its guard set was audited against upstream 1.0.6 (`.lisa/research-1960-guard-audit.md`)
-and every material default-mode guard was **reimplemented** (never ported) into
-`parity-safety-net.sh` — git discard family (checkout/switch/restore/stash/
-clean/branch -D/tag -d/reflog delete/worktree remove --force, reset --merge),
-rm target hardening (cwd `.`, `..`-traversal, out-of-project absolute paths
-with a /tmp+$TMPDIR allowance, `$VAR` targets, cwd=$HOME gate), quote-aware
-target boundaries (closing the `bash -c "rm -rf /"` / interpreter one-liner
-bypass), find/xargs deletion, always-on disk destroyers (dd/mkfs/shred), and a
-fail-closed exit-2 path for malformed hook input — proven by the 138-fixture
-matrix in `tests/unit/hooks/parity-safety-net-guards.test.ts`. Documented
-deliberate divergences kept: dirty-tree-only `reset --hard`,
-protected-branch-only force-push blocking, and Lisa-only guards upstream lacks
-(SQL DROP/TRUNCATE, bare `rm -rf *`, `git checkout .`). Mirroring the #1955
-sentry retirement, the upstream `safety-net@cc-marketplace` plugin is no longer
-installed (a version-gated uninstall retires existing installs) and the merge
-settings templates set its `enabledPlugins` entry to `false`.
+The **component surface did not change**: `hooks/hooks.json` and
+`skills/cc-safety-net/SKILL.md` are byte-identical between the two cached
+versions. What changed is entirely behind the hook — 2.0.0 was a major-version
+engine rebuild (canonical command IR, immutable policy snapshots, an ordered
+guard pipeline with `explain` decision tracing) plus new product surface
+(safety presets, a policy GUI, an audit log, and a universal installer covering
+twelve agent CLIs).
+
+### Guard-family gap (empirically measured, not inferred)
+
+Each comparable case below was run through **both** engines — upstream via
+`node dist/bin/cc-safety-net.js explain --json <cmd>` (reading the `result` and
+`ruleId` fields) and Lisa's hook via a fake `PreToolUse` payload piped to
+`parity-safety-net.sh`, asserting the exit code. The `policy-protection` row is
+non-comparable (Lisa has no policy file to probe) and is included only for
+completeness — see its `n/a` note. The two comparable upstream guard families
+introduced in 2.0.0 have **no Lisa counterpart**:
+
+| upstream rule id | probe | upstream | Lisa hook |
+| --- | --- | --- | --- |
+| `secret.home.ssh` | `cat ~/.ssh/id_rsa` | BLOCK | allow |
+| `secret.home.ssh` | `cp ~/.ssh/id_ed25519 /tmp/x` | BLOCK | allow |
+| `secret.basename.env` | `cat .env` | BLOCK | allow |
+| `secret.pattern.env-variant` | `cat config/.env.production` | BLOCK | allow |
+| `secret.home.aws` | `cat ~/.aws/credentials` | BLOCK | allow |
+| `secret.home.gcloud-config` | `cat ~/.config/gcloud/credentials.db` | BLOCK | allow |
+| `secret.cli.claude-code` | `cat ~/.claude/.credentials.json` | BLOCK | allow |
+| `secret.basename.npmrc` | `cat ~/.npmrc` | BLOCK | allow |
+| `secret.ext-pattern.key` | `cat /etc/ssl/private/server.key` | BLOCK | allow |
+| `rm.git-metadata` | recursive delete of `.git` | BLOCK | allow |
+| `rm.git-metadata` | `rm .git/hooks/pre-commit` | BLOCK | allow |
+| `policy-protection` | delete of upstream's own policy file | BLOCK | n/a (non-comparable; Lisa has no such file) |
+
+Control cases (`ls -la`, `echo FOO=1 >> .env.example`) are allowed by both, and
+the README's broader "Git metadata mutation" claim is **narrower in practice**
+than the prose suggests: upstream 2.0.1 allows `echo "x" > .git/config`,
+`git update-ref -d`, `git submodule deinit -f --all`, and recursive deletes of
+`.git/objects` and `.git/worktrees`.
+
+### Decision — re-pin now, absorb the gap under its own issue
+
+This re-review **re-pins to 2.0.1 and does not absorb the two new families**,
+matching how the 1.0.6 refresh was sequenced: the pin refresh landed first
+(`feat(parity): refresh drifted parity pins to current upstreams`) and the guard
+absorption followed as its own tracked work (#1960) with a research audit and a
+fixture matrix. Absorbing `secret.*` here would mean importing a large curated
+path/pattern corpus **and** registering the hook on file tools — today
+`parity-safety-net.sh` is a `Bash`-only `PreToolUse` matcher, so the file-tool
+half of upstream's coverage is not even reachable without a matcher change that
+ships to every downstream project. That is a behavioral change with
+cross-project blast radius and belongs behind its own review, not a pin refresh.
+Recorded as deferred work in `parity/FOLLOWUPS.md` §5.
+
+### Flagged for owner review — upstream now ships native multi-CLI integrations
+
+Upstream 2.0 added a universal installer covering **twelve** agent CLIs,
+including Codex, Antigravity, Cursor, and Copilot CLI. Under the locked
+preference order (`already-native > re-point-mcp-lsp > enable-vendor-equivalent
+> claude-only > reimplement`) a named vendor integration for Codex and agy would
+outrank `reimplement`, which would flip both cells and retire Lisa's own hook.
+
+That is **not** taken here, for three reasons: the installer is an npx/Node
+dependency that writes per-agent config outside Lisa's distribution model;
+#1960 deliberately made the Lisa hook canonical on every agent so one audited
+guard set ships identically everywhere; and `parity/FOLLOWUPS.md` §2 already
+records that Lisa has no mechanism to enable a third-party vendor plugin inside
+another agent's marketplace — `enable-vendor-equivalent` is documented as a
+user-enabled, manual outcome that Lisa itself never *activates*. Reversing
+#1960 is an owner-level standards call, so it is surfaced here rather than
+decided.
+
+**Correction (this re-review, addressing a review finding):** "Lisa itself
+never emits" was previously mis-stated as "Lisa emits nothing" for Copilot
+specifically. That is not true of the *hook and skill files* — the #1050
+universal base-plugin fan-out ships `parity-safety-net.sh` and
+`lisa-parity-safety-net-rules` into the generated Copilot artifact exactly as
+it does for every other agent, with no safety-net-specific carve-out in
+`generate-copilot-plugin-artifacts.mjs`. What Lisa does not do is *enable the
+vendor's own plugin/runner* inside Copilot's marketplace — that part of the
+claim holds. So today a Copilot user who also opts into
+`cc-safety-net install --copilot-cli` runs **both** engines side by side. The
+per-agent routing table above and `parity/FOLLOWUPS.md` §2 have been corrected
+to describe this dual-engine coexistence rather than "Lisa emits nothing."
+Deciding whether to suppress the Lisa hook/skill for Copilot specifically (so
+the vendor runner is the sole guard there) is the same owner-level call as the
+Codex/agy vendor-integration question above, and is left open pending that
+decision.
