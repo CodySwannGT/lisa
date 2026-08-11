@@ -45,9 +45,21 @@ and Lisa should prefer enabling those over reimplementing.
 | safety-net       | native hook runner (`cc-safety-net --copilot-cli`)          |
 
 There is **no Lisa mechanism** to enable a third-party vendor's plugin inside Copilot's
-marketplace from Lisa's side — these are **user-enabled native capabilities**. They are
-documented here and **not emitted by Lisa**. (Note: `coderabbit`'s `autofix` skill has no
-native Copilot equivalent, so it is reimplemented — see §3.)
+marketplace from Lisa's side — these are **user-enabled native capabilities** that Lisa
+itself never activates. (Note: `coderabbit`'s `autofix` skill has no native Copilot
+equivalent, so it is reimplemented — see §3.)
+
+**Correction for `safety-net` (2026-08-11 re-review).** "Not emitted by Lisa" does not
+hold for the `safety-net` row the way it was previously worded: the reimplemented
+`parity-safety-net.sh` hook and `lisa-parity-safety-net-rules` skill (see §3) ship into
+the generated Copilot plugin artifact via the same universal base-plugin fan-out every
+other agent gets — `generate-copilot-plugin-artifacts.mjs` has no safety-net-specific
+exclusion for them. What Lisa does not do is enable the *vendor's own* `cc-safety-net`
+runner inside Copilot's marketplace — a user who wants that installs
+`cc-safety-net --copilot-cli` themselves, and it then runs alongside Lisa's hook rather
+than replacing it. See `parity/plugin-routing/safety-net@cc-marketplace.md`'s "Flagged
+for owner review" addendum for the open question of whether to suppress the Lisa hook
+on Copilot instead.
 
 ---
 
