@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.345.0](https://github.com/CodySwannGT/lisa/compare/v2.344.2...v2.345.0) (2026-08-11)
+
+
+### Features
+
+* **maestro-e2e:** add caller flow runner seam ([980c185](https://github.com/CodySwannGT/lisa/commit/980c185704767c9a5dc16144ede9d8574b045bda)), closes [CodySwannGT/lisa#2396](https://github.com/CodySwannGT/lisa/issues/2396)
+
 ### [2.344.2](https://github.com/CodySwannGT/lisa/compare/v2.344.0...v2.344.2) (2026-08-11)
 
 
