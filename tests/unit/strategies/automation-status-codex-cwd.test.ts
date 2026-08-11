@@ -43,6 +43,7 @@ describe("automation-status Codex cwd health", () => {
         detectedTypes: ["typescript"],
       }),
       automationsDir,
+      projectRoot: automationsDir,
       now: RECENT_RUN_AT,
     });
 
