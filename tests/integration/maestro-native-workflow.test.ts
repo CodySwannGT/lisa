@@ -133,6 +133,7 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(inputs.ios_include_tags?.default).toBe("");
     expect(inputs.maestro_env).toBeDefined();
     expect(inputs.setup_command).toBeDefined();
+    expect(inputs.flow_runner?.default).toBe("");
     expect(inputs.android_app_id).toBeDefined();
     expect(inputs.ios_app_id).toBeDefined();
   });
