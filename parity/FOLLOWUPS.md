@@ -45,9 +45,21 @@ and Lisa should prefer enabling those over reimplementing.
 | safety-net       | native hook runner (`cc-safety-net --copilot-cli`)          |
 
 There is **no Lisa mechanism** to enable a third-party vendor's plugin inside Copilot's
-marketplace from Lisa's side — these are **user-enabled native capabilities**. They are
-documented here and **not emitted by Lisa**. (Note: `coderabbit`'s `autofix` skill has no
-native Copilot equivalent, so it is reimplemented — see §3.)
+marketplace from Lisa's side — these are **user-enabled native capabilities** that Lisa
+itself never activates. (Note: `coderabbit`'s `autofix` skill has no native Copilot
+equivalent, so it is reimplemented — see §3.)
+
+**Correction for `safety-net` (2026-08-11 re-review).** "Not emitted by Lisa" does not
+hold for the `safety-net` row the way it was previously worded: the reimplemented
+`parity-safety-net.sh` hook and `lisa-parity-safety-net-rules` skill (see §3) ship into
+the generated Copilot plugin artifact via the same universal base-plugin fan-out every
+other agent gets — `generate-copilot-plugin-artifacts.mjs` has no safety-net-specific
+exclusion for them. What Lisa does not do is enable the *vendor's own* `cc-safety-net`
+runner inside Copilot's marketplace — a user who wants that installs
+`cc-safety-net --copilot-cli` themselves, and it then runs alongside Lisa's hook rather
+than replacing it. See `parity/plugin-routing/safety-net@cc-marketplace.md`'s "Flagged
+for owner review" addendum for the open question of whether to suppress the Lisa hook
+on Copilot instead.
 
 ---
 
@@ -64,9 +76,9 @@ maps to an upstream plugin publishing semver still carries its `synced-from` pin
 | ----------------------------------- | --------------------------------------------- |
 | `parity-code-simplifier`            | `code-simplifier@claude-plugins-official@1.0.0`     |
 | `parity-coderabbit`                 | `coderabbit@claude-plugins-official@1.1.1`          |
-| `parity-safety-net-rules`           | `safety-net@cc-marketplace@0.9.0`                   |
-| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.0.0`              |
-| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.0.0`              |
+| `parity-safety-net-rules`           | `safety-net@cc-marketplace@2.0.1`                   |
+| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.3.1`              |
+| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.3.1`              |
 | `parity-code-review`                | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 | `parity-skill-creator`              | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 
@@ -91,3 +103,40 @@ guard rules the hook enforces.
 - **All 7 routing artifacts approved** under `parity/plugin-routing/`:
   `code-review`, `code-simplifier`, `coderabbit`, `safety-net`, `sentry`,
   `skill-creator`, `typescript-lsp`.
+
+---
+
+## 5. `safety-net` 2.0 guard families NOT absorbed (deferred)
+
+The 2026-08-11 re-pin to `safety-net@cc-marketplace@2.0.1` refreshed the pin and the
+routing artifact but **did not absorb** the two guard families upstream introduced in
+2.0.0. Both gaps were measured, not assumed — the probe table (upstream `explain`
+verdicts beside live `parity-safety-net.sh` exit codes) is in
+`parity/plugin-routing/safety-net@cc-marketplace.md`.
+
+| upstream family | what it blocks | Lisa hook today |
+| --------------- | -------------- | --------------- |
+| `secret.*` | reading or copying SSH private keys, `.env` and `.env.*` files, AWS/gcloud credentials, coding-CLI credential stores, `.npmrc`, `*.key` | allows all |
+| `rm.git-metadata` | deleting the `.git` control plane (the directory itself, `.git/hooks/*`) | allows |
+
+**Why deferred rather than folded into the pin refresh.** This mirrors how the 1.0.6
+refresh was sequenced: the pin bump landed first and the guard absorption followed as
+its own tracked work (#1960) with a research audit and a fixture matrix. Two specifics
+make `secret.*` more than a pin-refresh change:
+
+- **It needs a new matcher surface.** `parity-safety-net.sh` is registered as a
+  `PreToolUse` matcher on `Bash` only. Upstream 2.0 screens file tools as well, so the
+  file-tool half of its coverage is unreachable from Lisa's hook without a registration
+  change that ships to **every** downstream project.
+- **It is a curated corpus, not a rule.** The family is a large path/basename/extension
+  pattern set (nine distinct rule ids observed in a twelve-case probe alone), and a
+  text-scan hook over-blocking on paths like `.env.example` would train users to work
+  around the safety net — the exact failure mode the skill warns against.
+
+`rm.git-metadata` is small and low-risk by comparison and is the natural first slice.
+
+**Not yet decided:** whether to absorb these into `parity-safety-net.sh` or to reverse
+#1960 and adopt upstream's native per-CLI integrations (2.0 ships an installer for
+twelve agent CLIs, including Codex, Antigravity, Cursor, and Copilot CLI). The second
+option would retire Lisa's own hook and is an owner-level standards call — see the
+flagged addendum in `parity/plugin-routing/safety-net@cc-marketplace.md`.
