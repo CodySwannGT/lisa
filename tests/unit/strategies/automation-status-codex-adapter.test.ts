@@ -83,6 +83,7 @@ describe("automation-status Codex adapter (#801)", () => {
     const report = await inspectCodexAutomationFleet({
       expectedFleet,
       automationsDir,
+      projectRoot: automationsDir,
       now: RECENT_RUN_AT,
     });
 
@@ -152,6 +153,7 @@ describe("automation-status Codex adapter (#801)", () => {
         detectedTypes: ["typescript"],
       }),
       automationsDir,
+      projectRoot: automationsDir,
       now: "2026-05-26T12:00:00Z",
     });
 

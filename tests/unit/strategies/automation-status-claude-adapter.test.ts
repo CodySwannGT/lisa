@@ -7,6 +7,7 @@
  * @module tests/unit/strategies/automation-status-claude-adapter
  */
 import { describe, expect, it } from "vitest";
+import path from "node:path";
 
 import { resolveExpectedAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
 import {
@@ -37,6 +38,7 @@ const FIXTURE_NOW = "2026-05-26T12:00:00Z";
 const RECENT_RUN_AT = "2026-05-26T11:55:00Z";
 const HOURLY_SCHEDULE = "hourly";
 const TEN_MINUTE_SCHEDULE = "every 10 minutes";
+const PROJECT_ROOT_WITHOUT_RUN_HISTORY = path.parse(process.cwd()).root;
 
 describe("automation-status Claude adapter (#802)", () => {
   it("maps structured Claude schedule metadata into shared health states", async () => {
@@ -83,6 +85,7 @@ describe("automation-status Claude adapter (#802)", () => {
           },
         ],
       },
+      projectRoot: PROJECT_ROOT_WITHOUT_RUN_HISTORY,
       now: FIXTURE_NOW,
     });
 
@@ -145,6 +148,7 @@ Command: ${BUILD_SCHEDULE_COMMAND}
 Status: ACTIVE
 Last result: No recent failures reported.
       `.trim(),
+      projectRoot: PROJECT_ROOT_WITHOUT_RUN_HISTORY,
       now: FIXTURE_NOW,
     });
 
@@ -179,6 +183,7 @@ ID: ${BUILD_AUTOMATION_ID}
 /schedule "hourly" /lisa:intake CodySwannGT/lisa intake_mode=build
 Status: ACTIVE
       `.trim(),
+      projectRoot: PROJECT_ROOT_WITHOUT_RUN_HISTORY,
       now: FIXTURE_NOW,
     });
 
@@ -234,6 +239,7 @@ Status: ACTIVE
           },
         ],
       },
+      projectRoot: PROJECT_ROOT_WITHOUT_RUN_HISTORY,
       now: FIXTURE_NOW,
     });
 
@@ -283,6 +289,7 @@ Status: ACTIVE
           detectedTypes: DETECTED_TYPES,
         }),
         scheduleListing,
+        projectRoot: PROJECT_ROOT_WITHOUT_RUN_HISTORY,
         now: FIXTURE_NOW,
       })
     ).resolves.toBeDefined();
