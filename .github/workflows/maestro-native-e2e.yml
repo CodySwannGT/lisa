@@ -393,6 +393,15 @@ jobs:
           path: |
             maestro-android-report.xml
             maestro-debug
+          # Maestro writes EVERY debug artifact under `maestro-debug/.maestro/`
+          # — a hidden directory — so the screenshots, view-hierarchy dumps and
+          # device logcat that name the cause of a failure all sit behind a dot.
+          # upload-artifact skips hidden files by default, which silently
+          # reduced this artifact to the junit XML alone: a failing run uploaded
+          # one file and told you an element was missing without a single frame
+          # showing what was on screen instead. Both native suites were
+          # undiagnosable after the fact for exactly this reason.
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 
@@ -511,5 +520,8 @@ jobs:
           path: |
             maestro-ios-report.xml
             maestro-debug
+          # See the Android upload above: `maestro-debug/.maestro/` is hidden,
+          # and without this the artifact is the junit XML and nothing else.
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
