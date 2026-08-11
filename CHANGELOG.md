@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.344.2](https://github.com/CodySwannGT/lisa/compare/v2.344.0...v2.344.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ci:** stop dropping hidden paths from the Lighthouse and build uploads ([0b56f13](https://github.com/CodySwannGT/lisa/commit/0b56f13fef412e0677cb25ff59f9a0007d2012f0)), closes [#2398](https://github.com/CodySwannGT/lisa/issues/2398) [CodySwannGT/lisa#2398](https://github.com/CodySwannGT/lisa/issues/2398) [CodySwannGT/lisa#2398](https://github.com/CodySwannGT/lisa/issues/2398)
+* **ci:** upload the Maestro debug artifacts that were being silently dropped ([a1cccbb](https://github.com/CodySwannGT/lisa/commit/a1cccbb109c0a8947081c7ddc6304651e89c6a26)), closes [CodySwannGT/lisa#2401](https://github.com/CodySwannGT/lisa/issues/2401)
+
 ### [2.344.1](https://github.com/CodySwannGT/lisa/compare/v2.344.0...v2.344.1) (2026-08-11)
 
 
