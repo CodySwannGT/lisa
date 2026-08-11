@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.344.0](https://github.com/CodySwannGT/lisa/compare/v2.343.0...v2.344.0) (2026-08-11)
+
+
+### Features
+
+* **parity:** refresh the safety-net pin to 2.0.1 and correct its inventory ([3ad4f3b](https://github.com/CodySwannGT/lisa/commit/3ad4f3b64dea060e5e7aeaf67cd8ae5b2a274fe2)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#2402](https://github.com/CodySwannGT/lisa/issues/2402) [CodySwannGT/lisa#2402](https://github.com/CodySwannGT/lisa/issues/2402)
+
+
+### Documentation
+
+* **parity:** correct Copilot safety-net routing claims ([2fd5cf1](https://github.com/CodySwannGT/lisa/commit/2fd5cf18f92b4568c69c3a1d853d315c52161811)), closes [#2403](https://github.com/CodySwannGT/lisa/issues/2403) [CodySwannGT/lisa#2402](https://github.com/CodySwannGT/lisa/issues/2402)
+* **parity:** scope empirical-test claim to comparable safety-net probes ([b2b51de](https://github.com/CodySwannGT/lisa/commit/b2b51de234087e95536b7f1c346f30532891a748)), closes [#2403](https://github.com/CodySwannGT/lisa/issues/2403) [CodySwannGT/lisa#2402](https://github.com/CodySwannGT/lisa/issues/2402)
+
 ## [2.343.0](https://github.com/CodySwannGT/lisa/compare/v2.342.7...v2.343.0) (2026-08-09)
 
 
