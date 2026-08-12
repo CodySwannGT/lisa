@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.346.0](https://github.com/CodySwannGT/lisa/compare/v2.345.1...v2.346.0) (2026-08-12)
+
+
+### Features
+
+* **rules:** ship the reset/seed coverage contract and its anti-drift check ([79c5698](https://github.com/CodySwannGT/lisa/commit/79c56982d82709acff770775736a2ef7aaa2eee2)), closes [CodySwannGT/lisa#2411](https://github.com/CodySwannGT/lisa/issues/2411)
+
 ### [2.345.1](https://github.com/CodySwannGT/lisa/compare/v2.345.0...v2.345.1) (2026-08-12)
 
 
