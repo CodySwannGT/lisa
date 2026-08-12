@@ -1,0 +1,121 @@
+name: 🌙 Nightly E2E Health
+
+# The blocking half of the nightly e2e standard.
+#
+# The e2e suites are too slow to gate a pull request, so they run on a schedule
+# against the integration branch. That trade buys fast PRs and pays for them
+# with a signal nobody is obliged to read: a nightly can go red and merges
+# continue on top of it for days, so the suite ends up measuring accumulated
+# damage rather than the change that caused it. This workflow closes the loop —
+# it runs no e2e itself, it reads the verdict the nightlies already produced, so
+# it costs seconds and adds nothing to PR latency.
+#
+# All the logic lives in Lisa's reusable `nightly-e2e-health.yml` plus the
+# Lisa-shipped guard `scripts/check-nightly-e2e-health.mjs`. The contract —
+# including the 25-row fail-closed truth table and the bypass rules — is
+# `docs/nightly-e2e-gate.md` in Lisa. This caller owns only the project-specific
+# values: which suites, which branch, and where the gate is required.
+#
+# ## Wiring this up, in order
+#
+#   1. Fill in `suites` below with YOUR workflow file names and job names. The
+#      job name for a suite reached through a nested reusable workflow is
+#      reported by the API as `<caller job name> / <called job name>` — copy it
+#      from a real run, do not guess it.
+#   2. Leave `bootstrap_until` set to a date ~2 weeks out while you burn the
+#      suite down. Missing evidence will report but not block, with the expiry
+#      visible on every PR. A red suite still blocks. When the date passes the
+#      gate arms itself with no further action.
+#   3. Add the required status check to the ruleset for the branch below. The
+#      context is `🌙 Nightly E2E Health / 🌙 Gate` — the composite of THIS
+#      job's name and the reusable's job name, byte for byte, emoji included.
+#      `expo/github-rulesets/nightly-e2e-health.json` in Lisa is the template.
+#   4. Add the context-pinning test (see the ruleset template's header) so a
+#      rename of either half cannot silently disarm the gate.
+#   5. Install `nightly-e2e-bypass-reaper.yml` so a used bypass label is removed
+#      when the PR closes.
+#
+# ## Scoped to PRs targeting the integration branch, on purpose
+#
+# `branches:` filters by BASE branch, and it must pair with where the context is
+# required. Two reasons, each load-bearing:
+#
+#   1. A required context whose workflow never runs on that branch is a DEADLOCK,
+#      not a gate — the check is never reported, so the PR can never go green.
+#   2. Release and hotfix branches receive promotion PRs. Blocking a hotfix to
+#      production because last night's dev suite was red blocks the fix for the
+#      failure, which inverts the point of the gate.
+#
+# So: required where the work lands, absent where the releases go.
+
+on:
+  pull_request:
+    # Set this to your integration branch (the one the nightlies run against).
+    branches: [dev]
+    # No `paths:` filter, deliberately. A required context that a path filter
+    # can suppress never reports on a docs-only PR, which blocks that PR
+    # forever. This job takes seconds; it always runs.
+    #
+    # `labeled` / `unlabeled` ride on top of the defaults so applying (or
+    # removing) the bypass label re-evaluates the gate immediately instead of
+    # requiring an empty push to re-trigger `synchronize`.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # The whole job is Actions-API reads. Nothing here writes.
+  actions: read
+  # Only needed on a PRIVATE repository, and only for the bypass path (reading
+  # the PR timeline to attribute the label). Harmless to keep on a public repo.
+  pull-requests: read
+
+concurrency:
+  # Per-PR and CANCELLING: this job holds no external state and writes to
+  # nothing, so a superseded run is pure waste. Note the fail-closed
+  # interaction: a cancelled gate run reports NO check, which leaves the
+  # required context unreported and the PR blocked until the newer run reports.
+  group: nightly-e2e-health-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # This job's `name:` is HALF of the required status-check context; the other
+  # half is the reusable's job name (`🌙 Gate`). GitHub composes them as
+  # `🌙 Nightly E2E Health / 🌙 Gate`. Renaming either half silently stops the
+  # gate reporting, which DEADLOCKS every PR into the protected branch until
+  # someone edits the ruleset. Pin both strings in a test.
+  health:
+    name: 🌙 Nightly E2E Health
+    # PIN AN IMMUTABLE REF. `@main` is not a supported pin for a merge gate: the
+    # thing that decides whether code may merge must not change under you
+    # between two runs of the same PR. Better still, pin the tag's commit SHA
+    # and keep the tag in a trailing comment.
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v2.345.1
+    with:
+      branch: dev
+      # Structured JSON, schema-validated before any API call. Duplicated
+      # labels, unanchored regexes, unknown keys and zero-match patterns are all
+      # rejected rather than silently gating less than you wrote.
+      #
+      # Prefer `{"mode":"run"}` (the whole workflow IS the suite) or
+      # `{"mode":"job","name":"…"}` (an exact, published job name). Use
+      # `{"mode":"job_pattern","pattern":"^…$"}` only for matrix job names that
+      # no single string can cover.
+      suites: |
+        [
+          {
+            "label": "Playwright browser e2e",
+            "workflow": "playwright-e2e.yml",
+            "match": { "mode": "run" }
+          },
+          {
+            "label": "Maestro native e2e",
+            "workflow": "maestro-e2e.yml",
+            "match": { "mode": "run" }
+          }
+        ]
+      # A TIME-BOXED grace period. While this is in the future, MISSING evidence
+      # reports but does not block, and every PR shows the expiry. A red suite
+      # blocks inside the window too. Set it, do not remove it — and do not push
+      # it out repeatedly, which is how a bootstrap becomes permanent.
+      bootstrap_until: ''
