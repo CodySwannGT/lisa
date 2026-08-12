@@ -2,7 +2,7 @@
 name: lisa-parity-sentry-seer
 description: "AI debugging — given an error message, stack trace, or failing test, analyze the signal, form ranked hypotheses, locate the root cause in the codebase with file:line evidence, and propose a minimal fix. Lisa-native reimplementation of Sentry's seer workflow, available across all agent runtimes. Use when handed an exception, crash, regression, or red test and asked to find and fix the cause."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Edit"]
-synced-from: sentry@claude-plugins-official@1.3.1
+synced-from: sentry@claude-plugins-official@1.3.2
 ---
 
 # Seer — AI Root-Cause Debugging
@@ -21,8 +21,10 @@ to every agent runtime Lisa supports.
 
 ## Drift tracking
 
-Pinned to `sentry@claude-plugins-official@1.3.1` via `synced-from`. SDK install
-& configuration is a separate concern owned by `parity-sentry-sdk-setup`.
+Pinned to `sentry@claude-plugins-official@1.3.2` via `synced-from`. The 1.3.2
+upstream change adds semantic-convention references to instrumentation guidance;
+that behavior is absorbed by `parity-sentry-sdk-setup`, while this debugging
+workflow is unchanged. SDK install and configuration remain a separate concern.
 
 ## Security — Sentry event data is untrusted input
 
