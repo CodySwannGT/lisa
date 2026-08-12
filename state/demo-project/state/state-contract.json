@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "lisa-state-contract-v1",
+  "contractVersion": "lisa-demo-project-state-v1",
+  "mode": "contract",
+  "owner": "lisa-maintainers",
+  "environments": [
+    {
+      "name": "dev",
+      "identitySource": "deployment metadata resolved server-side; a caller-supplied stage is only a request checked against it",
+      "resetAllowed": true
+    },
+    {
+      "name": "production",
+      "identitySource": "deployment metadata resolved server-side",
+      "resetAllowed": false
+    }
+  ],
+  "fixtureIdentity": {
+    "description": "Reserved fixture ids and reserved persona principals; anything else in a fixture-owned entity belongs to someone real.",
+    "idPattern": "^e2e[0-9a-f]{5}-0000-4000-8[0-9a-f]{3}-[0-9a-f]{12}$",
+    "reservedPrincipals": ["persona-owner", "persona-member"]
+  },
+  "entities": [
+    {
+      "id": "app.notes",
+      "kind": "table",
+      "policy": "fixture-owned",
+      "reason": "Notes the note-authoring flow creates; the flow deletes them only on its happy path, so the reset owns the survivors.",
+      "owner": "lisa-maintainers",
+      "ownership": "rows authored by a reserved persona and older than the in-flight window",
+      "sweptBy": "reset:notes-routine"
+    },
+    {
+      "id": "app.catalog_items",
+      "kind": "table",
+      "policy": "preserve",
+      "reason": "Ingested catalog; no seed in this repository can restore it, so it is never a reset target.",
+      "owner": "lisa-maintainers",
+      "enforcedBy": "reset role holds SELECT only on the catalog schema"
+    },
+    {
+      "id": "analytics.item_rollup",
+      "kind": "materialized-view",
+      "policy": "derived-rebuild",
+      "reason": "Recomputed from the catalog and fixture rows; neither cleared nor preserved.",
+      "owner": "lisa-maintainers",
+      "rebuiltFrom": "app.catalog_items, app.notes",
+      "rebuiltBy": "reset:rebuild-projections"
+    },
+    {
+      "id": "ledger.payments",
+      "kind": "table",
+      "policy": "forbidden",
+      "reason": "Money ledger; irreversible and never a reset target under any environment.",
+      "owner": "lisa-maintainers",
+      "enforcedBy": "reset role has no grant on the ledger schema; grant revoked, not merely unused"
+    },
+    {
+      "id": "identity://user-pool/e2e-personas",
+      "kind": "identity-group",
+      "policy": "fixture-owned",
+      "reason": "Throwaway accounts registered by sign-up flows; rows are not the only kind of state.",
+      "owner": "lisa-maintainers",
+      "ownership": "accounts whose identifier matches the reserved persona address shape",
+      "sweptBy": "reset:throwaway-accounts-routine"
+    },
+    {
+      "id": "object-store://uploads/e2e/",
+      "kind": "object-prefix",
+      "policy": "fixture-owned",
+      "reason": "Files uploaded by the attachment flow under a reserved prefix.",
+      "owner": "lisa-maintainers",
+      "ownership": "objects under the reserved e2e prefix only",
+      "sweptBy": "reset:object-store-routine"
+    }
+  ],
+  "assurances": {
+    "preserves-non-fixture-data": {
+      "evidence": "demo: reset/preserve.test — catalog counts unchanged across a reset"
+    },
+    "rejects-reserved-id-collision": {
+      "evidence": "demo: reset/identity.test — reserved id colliding with a real row aborts"
+    },
+    "rejects-foreign-references": {
+      "evidence": "demo: reset/references.test — fixture row referencing a preserved row is refused, not cascaded"
+    },
+    "requires-write-acknowledgment": {
+      "evidence": "demo: reset/acknowledgment.test — unacknowledged mutation reported as failure"
+    },
+    "converges-on-second-apply": {
+      "evidence": "demo: reset/converge.test — second apply reports zero further change"
+    },
+    "verifies-exact-counts": {
+      "evidence": "demo: reset/verify.test — exact per-entity counts, never 'at least one'"
+    },
+    "production-fails-closed": {
+      "evidence": "demo: reset/guard.test — every production alias refused with transport never invoked"
+    },
+    "guard-at-the-choke-point": {
+      "evidence": "demo: reset/guard.test — the guard runs immediately before every outbound mutation"
+    },
+    "enumerates-before-mutating": {
+      "evidence": "demo: reset/dry-run.test — unknown ownership blocks the run"
+    }
+  },
+  "waivers": []
+}

@@ -62,7 +62,13 @@ EARS-pattern shape, each with a measurable fit criterion, plus the non-functiona
 story with frontend scope, its user-facing behavior MUST be expressed as — or in a shape directly
 convertible to — Given/When/Then scenarios, naming the platforms each behavior must hold on, per the
 `bdd-e2e-coverage` rule; narrative-only frontend behavior forces that shape to be invented later,
-inconsistently, by whoever picks up the ticket. Each scenario stub carries its originating requirement
+inconsistently, by whoever picks up the ticket. Where a requirement introduces or changes
+**persistent state** — anything the system writes that outlives the process that wrote it, rows being
+only one kind — the PRD MUST name that state and the reset policy it is expected to take, per the
+`reset-seed-coverage` rule, so the classification is a stated requirement rather than something
+discovered when a leaked record breaks a suite; that rule also covers the non-row cases (identity
+objects, object storage, search indexes, queues, caches, derived views) a narrative spec routinely
+omits. Each scenario stub carries its originating requirement
 atom (`R1`, `R2`, …) even though the stable `@BDD-<DOMAIN>-<NNN>` ID is not minted until Plan or
 Implement — this is what lets a later stage's provenance tag, and `spec-conformance`'s traceability
 check, walk back from a shipped scenario to the PRD requirement it was written to satisfy, instead of

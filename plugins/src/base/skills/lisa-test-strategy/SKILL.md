@@ -58,6 +58,7 @@ Structure findings as:
 - Always run `bun run test` to understand current test state before recommending or writing new tests
 - Match existing test conventions -- do not introduce new test patterns
 - For frontend work, the strategy is not complete until every required scenario-platform obligation has aligned e2e automation in the project's configured runner for that platform, or a dated waiver naming the runner limitation (`bdd-e2e-coverage`). A unit test, a route boot, or a passing test on a different platform never seals an obligation
+- For work that adds or changes persistent state, the strategy is not complete until each new entity is classified in the project's state contract and anything `fixture-owned` has a sweep, per the `reset-seed-coverage` rule. Per-flow self-cleanup is not a strategy: a flow that deletes what it created only on its happy path leaks on every failure in between, which is how state pollution becomes an unreproducible flake months later
 - Every test must have a clear "why" -- no tests for testing's sake
 - Focus on testing behavior, not implementation details
 - Verification commands must be runnable locally (no CI/CD dependencies)
