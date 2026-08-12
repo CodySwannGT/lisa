@@ -220,8 +220,66 @@ describe("quality.yml reusable workflow", () => {
         step => step.id === "build_cache"
       );
 
-      expect(playwrightExpoCache?.with?.key).toContain("'**/src/**'");
-      expect(buildCache?.with?.key).toContain("'**/src/**'");
+      // Both keys derive from the git-based fingerprint step rather than
+      // inlining a hashFiles glob — see the node_modules regression test below.
+      expect(playwrightExpoCache?.with?.key).toContain(
+        "steps.build_fingerprint.outputs.hash"
+      );
+      expect(buildCache?.with?.key).toContain(
+        "steps.build_fingerprint.outputs.hash"
+      );
+
+      for (const job of ["playwright_e2e", "build"] as const) {
+        const fingerprint = workflow.jobs[job].steps?.find(
+          step => step.id === "build_fingerprint"
+        );
+        expect(
+          fingerprint,
+          `${job} must compute a build fingerprint`
+        ).toBeDefined();
+        // The source roots and the lockfiles still drive invalidation.
+        expect(fingerprint?.run).toContain("git ls-files");
+        for (const path of ["'src'", "'bun.lock'", "'package.json'"]) {
+          expect(fingerprint?.run).toContain(path);
+        }
+      }
+    });
+
+    // Regression guard for CodySwannGT/lisa#2418.
+    //
+    // `hashFiles('**/src/**')` is unanchored, so it also matches
+    // `node_modules/**/src/**`. On PropSwapLLC/frontend that walked 116,353
+    // paths and hashed 26,955 node_modules files, blowing past the runner's
+    // 120-second hashFiles ceiling and failing the job in the cache's POST
+    // step — after every test had already passed. A green Playwright nightly
+    // (73/73) was reported as red, blocking merges repo-wide.
+    it("never derives a build cache key from an unanchored source glob", () => {
+      const fingerprintSteps = [
+        ...(workflow.jobs.playwright_e2e.steps ?? []),
+        ...(workflow.jobs.build.steps ?? []),
+      ].filter(
+        step =>
+          step.id === "build_fingerprint" ||
+          step.id === "expo_cache" ||
+          step.id === "build_cache"
+      );
+
+      expect(fingerprintSteps.length).toBe(4);
+
+      for (const step of fingerprintSteps) {
+        const text = `${step.run ?? ""}${step.with?.key ?? ""}`;
+        for (const glob of [
+          "**/src/**",
+          "**/app/**",
+          "**/components/**",
+          "**/features/**",
+        ]) {
+          expect(
+            text,
+            `${step.id} must not hash ${glob} — it traverses node_modules`
+          ).not.toContain(glob);
+        }
+      }
     });
   });
 
