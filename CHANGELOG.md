@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.348.0](https://github.com/CodySwannGT/lisa/compare/v2.346.0...v2.348.0) (2026-08-12)
+
+
+### Features
+
+* **bdd:** ship the BDD coverage gate with three-state adoption and a floor ratchet ([d8e0aef](https://github.com/CodySwannGT/lisa/commit/d8e0aef6f624b8582cbe382cc72d8a0c137fb840)), closes [#2393](https://github.com/CodySwannGT/lisa/issues/2393) [#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2412](https://github.com/CodySwannGT/lisa/issues/2412)
+
+
+### Bug Fixes
+
+* **ci:** stop the build-cache key from hashing node_modules ([89dfeda](https://github.com/CodySwannGT/lisa/commit/89dfedadc1043efed1196c5ab1cad651c77b5563)), closes [CodySwannGT/lisa#2418](https://github.com/CodySwannGT/lisa/issues/2418)
+
+
+### Code Refactoring
+
+* **bdd:** answer WS-1c's command envelope and invert the fail-open logic ([bbdaa69](https://github.com/CodySwannGT/lisa/commit/bbdaa6948a9dfef71857230d0d7875aad93c1190)), closes [#2413](https://github.com/CodySwannGT/lisa/issues/2413) [CodySwannGT/lisa#2412](https://github.com/CodySwannGT/lisa/issues/2412)
+
 ## [2.347.0](https://github.com/CodySwannGT/lisa/compare/v2.346.0...v2.347.0) (2026-08-12)
 
 
