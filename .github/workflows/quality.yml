@@ -55,7 +55,7 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -144,6 +144,11 @@ on:
         required: false
         default: false
         type: boolean
+      bdd_mode:
+        description: 'BDD behavior-contract adoption state — the ONLY authority for it, because it survives deletion of bdd/. Permitted values are enumerated in the gate as source constants and anything else is refused (allowlist, never denylist): an unrecognized value exits nonzero rather than falling through to a permissive default. `not-adopted` (default): the bdd_coverage job does not run and the check MUST NOT be a required ruleset context. `bootstrap`: the job runs as a visible NON-BLOCKING check that requires a named owner and a hard expiry in bdd/coverage-map.json; contract defects are warnings, but a missing or passed expiry fails so bootstrap cannot become permanent. `enforced`: absence FAILS CLOSED — a missing script, a missing or malformed bdd/coverage-map.json, zero scenarios, zero mappings, any contract defect, a coverage-floor regression, or a deleted scenario all fail loudly; ONLY in this state is the check added to a ruleset. A required context is never auto-skipped: GitHub counts a skipped required check as passing.'
+        required: false
+        default: 'not-adopted'
+        type: string
       coverage_services:
         description: 'Optional JSON service-container spec for the coverage job. Empty string preserves prior behavior. Accepts an object map or array with image plus optional name, ports, env, options, and healthTimeoutSeconds.'
         required: false
@@ -667,6 +672,109 @@ jobs:
       - name: ⏭️ Skip state classification (no check-state-classification.mjs script)
         if: steps.check_script.outputs.exists == 'false'
         run: echo "Skipping state classification - scripts/check-state-classification.mjs not found"
+
+  bdd_coverage:
+    name: 🧾 BDD Behavior Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # THREE-STATE ADOPTION. The state comes from `bdd_mode`, passed by the
+    # caller's ci.yml — never inferred from what happens to be on disk, because
+    # inference is how a required check comes to pass by finding nothing.
+    #
+    #   not-adopted -> this job does not run at all, and the context is NOT in
+    #                  any ruleset. Nothing is required, so nothing is faked.
+    #   bootstrap   -> runs as a VISIBLE, NON-BLOCKING check. Not a required
+    #                  context, so a red here cannot block a merge, but it
+    #                  carries a named owner and a hard expiry and turns red
+    #                  when that expiry passes.
+    #   enforced    -> runs, and ABSENCE FAILS CLOSED: no script, no config,
+    #                  zero scenarios, zero mappings, a floor regression, or a
+    #                  deleted scenario are all failures, never skips. Only
+    #                  here is the context added to the ruleset, and adding it
+    #                  and flipping bdd_mode is ONE adoption operation.
+    #
+    # The permitted values are an ALLOWLIST held as source constants in the
+    # gate. An unrecognized `bdd_mode` exits nonzero instead of falling through
+    # to the permissive default, because a denylist fails OPEN on exactly the
+    # value nobody anticipated.
+    #
+    # A required context is never auto-skipped (GitHub counts a skipped
+    # required check as passing) — see the e2e_coverage and state_classification
+    # jobs above for the presence-gated pattern this deliberately does NOT copy
+    # in enforced mode.
+    if: ${{ inputs.bdd_mode != 'not-adopted' && !contains(format(',{0},', inputs.skip_jobs), ',bdd_coverage,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Full history: the coverage-floor ratchet and the scenario-deletion
+          # check read the base revision of bdd/ to prove the bar was not
+          # lowered to make the number look better.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🔎 Resolve BDD gate presence
+        id: bdd_script
+        env:
+          BDD_MODE: ${{ inputs.bdd_mode }}
+        run: |
+          if [ -f "scripts/check-bdd-coverage.mjs" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          if [ "$BDD_MODE" = "enforced" ]; then
+            echo "::error title=BDD gate missing::bdd_mode is 'enforced' but scripts/check-bdd-coverage.mjs does not exist. In enforced mode the gate's absence is a FAILURE, never a skip — a required context that passes because it found nothing is worse than no gate. Run 'lisa apply' to install the Lisa-managed script, or set bdd_mode to 'bootstrap'."
+            exit 1
+          fi
+          echo "::warning title=BDD gate missing::bdd_mode is '$BDD_MODE' but scripts/check-bdd-coverage.mjs does not exist. This is non-blocking in bootstrap."
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧾 Evaluate the BDD behavior contract
+        if: steps.bdd_script.outputs.exists == 'true'
+        run: node scripts/check-bdd-coverage.mjs
+        working-directory: ${{ inputs.working_directory || '.' }}
+        env:
+          BDD_MODE: ${{ inputs.bdd_mode }}
+          # Base revision for the ratchet + deletion checks. Empty off a PR,
+          # where there is no base to compare against; the gate says so
+          # explicitly rather than passing silently.
+          BDD_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          # Labels authorize a floor reduction or a scenario retirement. They
+          # are maintainer-applied, so an author cannot lower the bar and
+          # authorize the lowering in the same pull request.
+          BDD_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          # Joins the standard command envelope to this run's CI log.
+          BDD_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          BDD_ENVIRONMENT: ${{ github.repository }}@${{ github.ref_name }}
+
+      - name: 📋 Report the adoption state
+        if: always()
+        env:
+          BDD_MODE: ${{ inputs.bdd_mode }}
+        run: |
+          {
+            echo "### 🧾 BDD behavior contract — \`$BDD_MODE\`"
+            echo
+            case "$BDD_MODE" in
+              bootstrap)
+                echo "This check is **visible but non-blocking**. It must NOT be a required ruleset context in this state."
+                echo "It carries a named owner and a hard expiry in \`bdd/coverage-map.json\`; it turns red when that expiry passes."
+                ;;
+              enforced)
+                echo "This check is **enforcing**. Absence fails: missing script, missing or malformed config, zero scenarios, zero mappings, floor regression, or a deleted scenario."
+                echo "Required ruleset context: \`🔍 Quality Checks / 🧾 BDD Behavior Contract\`."
+                ;;
+            esac
+            echo
+            echo "Traceability coverage is not execution coverage and is not a pass rate — see \`docs/e2e-bdd-coverage.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   learnings_budget:
     name: 📚 Learnings Budget
