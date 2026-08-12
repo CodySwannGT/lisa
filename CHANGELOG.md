@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.349.0](https://github.com/CodySwannGT/lisa/compare/v2.348.0...v2.349.0) (2026-08-12)
+
+
+### Features
+
+* **ci:** ship the fail-closed nightly-e2e-health reusable gate ([9db8917](https://github.com/CodySwannGT/lisa/commit/9db8917505e0ebd0efcf8f74d40b9c334903ff53)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+
+
+### Bug Fixes
+
+* **ci:** close five more fail-open paths found in review ([75c2d8f](https://github.com/CodySwannGT/lisa/commit/75c2d8fb8ec7d19751c88e332ef087db813c328b)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+* **ci:** make every gate limit a source constant, not an env override ([3960c5e](https://github.com/CodySwannGT/lisa/commit/3960c5ef8ae049aa7c995422b96f1e545efa8765)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+* **ci:** paginate bypass-label attribution, oldest-first API ([fa7a4d7](https://github.com/CodySwannGT/lisa/commit/fa7a4d7eacaa81de668472c0691d716cfff332c4)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+* **ci:** stop a job-scoped finding reporting the RUN's conclusion ([348a41f](https://github.com/CodySwannGT/lisa/commit/348a41ff6c905cc20c00024ef7fece68a6eed16a)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+
 ## [2.348.0](https://github.com/CodySwannGT/lisa/compare/v2.346.0...v2.348.0) (2026-08-12)
 
 
