@@ -53,6 +53,7 @@ interface GuardModule {
 }
 
 const REQUIRED = "🔍 Quality Checks / 🧪 Run E2E Tests";
+const CI_WORKFLOW = ".github/workflows/ci.yml";
 const NOT_REQUIRED = "🔍 Quality Checks / 🕷️ OWASP ZAP Baseline";
 
 describe("check-skipped-required-checks", () => {
@@ -137,7 +138,7 @@ describe("check-skipped-required-checks", () => {
       required: readonly string[] = [REQUIRED]
     ): Record<string, unknown> => ({
       required_contexts: required,
-      workflows: [".github/workflows/ci.yml"],
+      workflows: [CI_WORKFLOW],
       skip_job_declarations: { [token]: entry },
     });
 
@@ -299,6 +300,32 @@ describe("check-skipped-required-checks", () => {
       expect(() => mod.loadDeclaration(root)).toThrow(/does not exist/);
     });
 
+    it("REFUSES a malformed declaration entry rather than treating it as harmless", () => {
+      // `"test:e2e": true` reads as "declared" at the point of use, then yields
+      // no suppressed contexts and therefore no violation — the guard becomes a
+      // no-op for exactly the token someone was documenting.
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "skipreq-bad-"));
+      fs.mkdirSync(path.join(dir, ".github"), { recursive: true });
+      for (const bad of [
+        true,
+        "not required",
+        ["x"],
+        { ruleset_required: false },
+      ]) {
+        fs.writeFileSync(
+          path.join(dir, ".github", "required-checks.json"),
+          JSON.stringify({
+            required_contexts: [REQUIRED],
+            workflows: [CI_WORKFLOW],
+            skip_job_declarations: { "test:e2e": bad },
+          })
+        );
+        expect(() => mod.loadDeclaration(dir)).toThrow(
+          /malformed|suppressed_contexts/
+        );
+      }
+    });
+
     it("fails when a declared workflow does not exist", () => {
       expect(() =>
         mod.collectSkipJobTokens(root, [".github/workflows/ghost.yml"])
@@ -325,7 +352,7 @@ describe("check-skipped-required-checks", () => {
         ) as Record<string, unknown>;
         const tokens = mod.readSkipJobs(
           fs.readFileSync(
-            path.join(REPO_ROOT, workflowDir, ".github/workflows/ci.yml"),
+            path.join(REPO_ROOT, workflowDir, CI_WORKFLOW),
             "utf-8"
           ),
           "ci.yml"

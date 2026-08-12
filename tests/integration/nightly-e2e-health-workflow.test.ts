@@ -168,9 +168,18 @@ describe("the reusable workflow's contract", () => {
   });
 
   it("requests the MINIMUM permissions and never a write", () => {
-    expect(reusable.permissions).toEqual({ contents: "read", actions: "read" });
+    // A called workflow's `permissions:` is a CEILING, not a request: a scope
+    // absent here can never be granted by the caller. `pull-requests: read` is
+    // therefore required for the bypass path to read the PR timeline on a
+    // private repository — without it a valid maintainer bypass is rejected as
+    // `no_attributable_actor`. Every scope stays read-only.
+    expect(reusable.permissions).toEqual({
+      contents: "read",
+      actions: "read",
+      "pull-requests": "read",
+    });
     for (const value of Object.values(reusable.permissions ?? {})) {
-      expect(value).not.toBe("write");
+      expect(value).toBe("read");
     }
   });
 
@@ -246,13 +255,36 @@ describe("the caller template", () => {
     });
   });
 
+  it("names only workflows the template actually ships", () => {
+    // Row 11 is a HARD failure: a `suites` entry naming a workflow file that
+    // does not exist red-walls a fresh fork on day one, and the first thing a
+    // new adopter would do about that is delete the gate.
+    const suites = JSON.parse(caller.jobs.health.with?.suites as string) as {
+      workflow: string;
+    }[];
+    for (const suite of suites) {
+      expect(
+        fs.existsSync(
+          path.join(
+            REPO_ROOT,
+            "expo/create-only/.github/workflows",
+            suite.workflow
+          )
+        )
+      ).toBe(true);
+    }
+  });
+
   it("ships a `suites` table that the guard's own validator accepts", async () => {
     const guard = (await import(
       new URL(`file://${path.join(REPO_ROOT, GUARD_REL)}`).href
     )) as { validateSuites(raw: string): readonly unknown[] };
     const suites = caller.jobs.health.with?.suites as string;
     expect(() => guard.validateSuites(suites)).not.toThrow();
-    expect(guard.validateSuites(suites).length).toBeGreaterThan(0);
+    // A hardcoded count, not `> 0`: an accidental deletion of the one shipped
+    // suite would otherwise leave a table that still "validates" while gating
+    // nothing.
+    expect(guard.validateSuites(suites)).toHaveLength(1);
   });
 });
 
@@ -270,9 +302,10 @@ describe("the bypass reaper", () => {
 
   it("is the ONLY workflow in the standard that holds a write scope", () => {
     expect(reaper.permissions?.["pull-requests"]).toBe("write");
-    expect(
-      workflow(REUSABLE_REL).permissions?.["pull-requests"]
-    ).toBeUndefined();
+    // The gate reads the PR timeline, so it holds `pull-requests: read` — but
+    // never `write`. Removal is the reaper's job precisely so the thing that
+    // runs on every pull request needs no write scope at all.
+    expect(workflow(REUSABLE_REL).permissions?.["pull-requests"]).toBe("read");
   });
 
   it("never checks out pull-request code under its writable token", () => {

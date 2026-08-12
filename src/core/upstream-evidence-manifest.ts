@@ -175,7 +175,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "4f9d73340d4e500f713b3e827655f65492c267f3e69506260a5ffea2f10802b9",
+      "fb2f03ba0c595fab1fdf59b018a38acce0f9b25ba15705bf8af498135eb148b4",
     "expo/create-only/.github/workflows/ci.yml":
       "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -183,9 +183,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
-      "d113b844f494bfcb52f9b0b967bf7bb509beca04372e99b113b2f84439d35259",
+      "4185f5083d8da5efa620e8641d6b75e0cb424edd563989c7432892872969797c",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "147bdd7efd5c54eca1f7493b4f1c308a7dfaa6ce4925987ba02c0f475ba56caf",
+      "f0ca0b9ed28f565e60de14e0fb949d335b308243e108948cd1f7cb1472d30724",
     "expo/create-only/.zap/baseline.conf":
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
@@ -2171,9 +2171,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "3810fdea24d361f20895113f32d241f54d7194f4f3e3daba4dad01a941bbb230",
+      "c1e4bf2287982c9814f168a13f66792c013f557a6028adbc8110ee4214cecf15",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "86de31fbda9dd26a938bf30846c5fc70744cf199df7d475a35f3f25dbc0f7c2f",
+      "86e9df17ea11fe0cd11d54f7fd60f016338e7fe28cdd4b07fab3b0b064b64ffb",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":

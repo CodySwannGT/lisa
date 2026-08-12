@@ -270,6 +270,34 @@ export function loadDeclaration(rootDir) {
       `check-skipped-required-checks: \`workflows\` must list at least one workflow file whose \`skip_jobs\` this guard reads.`
     );
   }
+
+  // Validate the SHAPE of every declaration, not just its presence. A truthy
+  // non-object entry (`"test:e2e": true`, or a string) reads as "declared" at
+  // the point of use, then yields `suppressed_contexts: undefined` — no hits,
+  // no violation. The guard silently becomes a no-op for exactly the token
+  // someone was trying to document, which is the fail-open class this file
+  // exists to refuse. A bad snapshot fails loudly HERE instead, where it is
+  // unambiguously a configuration error rather than a clean bill of health.
+  for (const [token, entry] of Object.entries(
+    declaration.skip_job_declarations
+  )) {
+    if (
+      typeof entry !== "object" ||
+      entry === null ||
+      Array.isArray(entry) ||
+      !Array.isArray(entry.suppressed_contexts) ||
+      typeof entry.ruleset_required !== "boolean"
+    ) {
+      throw new Error(
+        `check-skipped-required-checks: the declaration for \`${token}\` in ${DECLARATION_PATH} is malformed. Each entry must be an object with an array \`suppressed_contexts\` and a boolean \`ruleset_required\`. A malformed entry still counts as "declared" where it is used, which turns this guard into a no-op for that exact token.`
+      );
+    }
+    if (entry.suppressed_contexts.some(name => typeof name !== "string")) {
+      throw new Error(
+        `check-skipped-required-checks: \`${token}.suppressed_contexts\` must contain only context strings — they are compared byte for byte against \`required_contexts\`.`
+      );
+    }
+  }
   return declaration;
 }
 

@@ -57,15 +57,27 @@ jobs:
         run: |
           set -euo pipefail
           echo "Removing '$LABEL' from $REPO#$PR (state: ${{ github.event.pull_request.merged && 'merged' || 'closed' }})."
-          # 404 means someone already took the label off between the event and
-          # this run — the desired end state, so it is not a failure. Anything
-          # else IS reported: a permission or API problem must not look like a
-          # successful reap, or the label list quietly stops being trustworthy.
-          status=$(gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" \
-            --silent --include 2>/dev/null | head -1 | grep -oE '[0-9]{3}' | head -1 || true)
-          if [[ "$status" == "404" ]]; then
-            echo "::notice title=Nightly E2E bypass label already gone::'$LABEL' was not on #$PR by the time the reaper ran. Nothing to do."
+          # ONE delete. Someone removing the label between the event and this
+          # run is the desired end state, not a failure — but a permission or
+          # API problem must NEVER look like a successful reap, or the label
+          # list quietly stops being trustworthy.
+          #
+          # `set -e` is disabled around the call so a non-zero exit is inspected
+          # rather than killing the step, and the outcome is then decided by
+          # asking whether the label is actually gone. Reading the status out of
+          # `--include` does not work: `--silent` suppresses the output that
+          # would carry it.
+          set +e
+          gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" --silent 2>/dev/null
+          deleted=$?
+          set -e
+          if [[ $deleted -eq 0 ]]; then
+            echo "::notice title=Nightly E2E bypass label removed::'$LABEL' cleared from #$PR after close. The audit record on the gate run that honoured it is unaffected."
             exit 0
           fi
-          gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" --silent 2>/dev/null || true
-          echo "::notice title=Nightly E2E bypass label removed::'$LABEL' cleared from #$PR after close. The audit record on the gate run that honoured it is unaffected."
+          if gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name' 2>/dev/null \
+            | grep -qxF "$LABEL"; then
+            echo "::error title=Nightly E2E bypass label NOT removed::'$LABEL' is still on #$PR and the delete failed. Check that this workflow's token carries \`pull-requests: write\`."
+            exit 1
+          fi
+          echo "::notice title=Nightly E2E bypass label already gone::'$LABEL' was not on #$PR by the time the reaper ran. Nothing to do."

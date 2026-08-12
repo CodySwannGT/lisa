@@ -101,13 +101,32 @@ jobs:
       # `{"mode":"job","name":"…"}` (an exact, published job name). Use
       # `{"mode":"job_pattern","pattern":"^…$"}` only for matrix job names that
       # no single string can cover.
+      #
+      # ONLY `maestro-e2e.yml` by default, because that is the only nightly
+      # suite this template actually ships. Naming a workflow file that does not
+      # exist is truth-table row 11 — a HARD failure, not missing evidence —
+      # since the API cannot tell "renamed out from under the gate" apart from
+      # "never existed". A default that red-walls a fresh fork would teach the
+      # first adopter to delete the gate.
+      #
+      # Add your browser suite here once you have one. If Playwright runs inside
+      # `ci.yml`'s scheduled arm rather than its own workflow, use `mode: "job"`
+      # with the job name copied from a REAL run — for a job inside a nested
+      # reusable workflow the API reports `<caller job> / <called job>`:
+      #
+      #   {
+      #     "label": "Playwright browser e2e",
+      #     "workflow": "ci.yml",
+      #     "match": {
+      #       "mode": "job",
+      #       "name": "🔍 Quality Checks / 🎭 Playwright E2E Tests"
+      #     }
+      #   }
+      #
+      # Do NOT add a suite whose job `ci.yml` skips — a skipped job never
+      # reports, and the gate would read it as missing evidence forever.
       suites: |
         [
-          {
-            "label": "Playwright browser e2e",
-            "workflow": "playwright-e2e.yml",
-            "match": { "mode": "run" }
-          },
           {
             "label": "Maestro native e2e",
             "workflow": "maestro-e2e.yml",

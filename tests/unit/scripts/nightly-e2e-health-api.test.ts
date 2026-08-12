@@ -138,6 +138,21 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
       await expect(mod.apiGet(API, "/x", noWait)).resolves.toBeNull();
     });
 
+    it("a 404 mid-walk returns what was read, and does NOT blame the page cap", async () => {
+      // Falling through to the page-cap throw would name a limit that had
+      // nothing to do with it and discard every job already collected.
+      const full = Array.from({ length: 100 }, (_unused, index) => ({
+        name: `job-${index}`,
+        conclusion: "success",
+      }));
+      stubFetch(attempt =>
+        attempt === 1 ? response(200, {}, { jobs: full }) : response(404)
+      );
+      await expect(
+        mod.fetchAllJobs({ ...API, maxPages: 3 }, 7, noWait)
+      ).resolves.toHaveLength(100);
+    });
+
     it("a truncated job list is RED rather than a partial read", async () => {
       // A matrix suite routinely exceeds one page, and a truncated job list
       // turns "the failing shard is on page 2" into a false green.
@@ -174,12 +189,44 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
         bootstrapMaxDays: 100_000,
         freshnessHours: 99_999,
         apiMaxAttempts: 500,
+        apiMaxPages: 100_000,
+        // Unbounded, this parks the gate until the runner timeout: a required
+        // check that never reports blocks every PR as effectively as a red one,
+        // but with nothing to read.
+        apiRetryMaxSeconds: 86_400,
       });
       expect(limits.bypassMaxHours).toBe(mod.BYPASS_ABSOLUTE_MAX_HOURS);
       expect(limits.bootstrapMaxDays).toBe(mod.BOOTSTRAP_ABSOLUTE_MAX_DAYS);
       expect(limits.freshnessHours).toBe(mod.ABSOLUTE_MAX_FRESHNESS_HOURS);
       expect(limits.apiMaxAttempts).toBe(mod.ABSOLUTE_MAX_API_ATTEMPTS);
-      expect(clamped).toHaveLength(4);
+      expect(limits.apiMaxPages).toBe(mod.ABSOLUTE_MAX_API_PAGES);
+      expect(limits.apiRetryMaxSeconds).toBe(mod.ABSOLUTE_MAX_RETRY_SECONDS);
+      expect(clamped).toHaveLength(6);
+    });
+
+    it("EVERY env-readable limit passes through the clamp — none bypasses it", () => {
+      // The regression this pins: `NIGHTLY_API_MAX_PAGES` and
+      // `NIGHTLY_API_RETRY_MAX_SECONDS` were read straight from the env after
+      // the doctrine landed for the other four, so the file stated a rule it
+      // did not keep.
+      const settings = mod.resolveSettings({
+        GITHUB_TOKEN: "t",
+        GITHUB_REPOSITORY: "o/r",
+        NIGHTLY_BRANCH: "dev",
+        NIGHTLY_SUITES: JSON.stringify([ONE_SUITE]),
+        NIGHTLY_API_MAX_PAGES: "100000",
+        NIGHTLY_API_RETRY_MAX_SECONDS: "86400",
+        NIGHTLY_API_MAX_ATTEMPTS: "500",
+      }) as {
+        api: {
+          maxPages: number;
+          retryMaxSeconds: number;
+          maxAttempts: number;
+        };
+      };
+      expect(settings.api.maxPages).toBe(mod.ABSOLUTE_MAX_API_PAGES);
+      expect(settings.api.retryMaxSeconds).toBe(mod.ABSOLUTE_MAX_RETRY_SECONDS);
+      expect(settings.api.maxAttempts).toBe(mod.ABSOLUTE_MAX_API_ATTEMPTS);
     });
 
     it("leaves a TIGHTER request untouched, and says nothing about it", () => {
@@ -188,12 +235,16 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
         bootstrapMaxDays: 7,
         freshnessHours: 12,
         apiMaxAttempts: 2,
+        apiMaxPages: 3,
+        apiRetryMaxSeconds: 5,
       });
       expect(limits).toEqual({
         bypassMaxHours: 4,
         bootstrapMaxDays: 7,
         freshnessHours: 12,
         apiMaxAttempts: 2,
+        apiMaxPages: 3,
+        apiRetryMaxSeconds: 5,
       });
       expect(clamped).toEqual([]);
     });
