@@ -2,7 +2,7 @@
 name: lisa-parity-safety-net-rules
 description: "View, set, and verify the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: safety-net@cc-marketplace@2.0.1
+synced-from: safety-net@cc-marketplace@2.0.3
 ---
 
 # Parity Safety-Net Rules
@@ -24,12 +24,17 @@ project-specific rules on top of those built-ins.
 > against Lisa conventions — it does **not** port or invoke upstream plugin
 > code.
 >
-> **Drift tracking.** Pinned to `safety-net@cc-marketplace@2.0.1`.
+> **Drift tracking.** Pinned to `safety-net@cc-marketplace@2.0.3`.
 > `scripts/plugin-parity-drift.mjs` compares this pin against the upstream
 > version in the plugin cache and flags staleness. **Do not port or copy upstream
 > plugin code.**
 >
-> **Known gap at the 2.0.1 pin.** Upstream 2.0.0 rebuilt its engine and added two
+> **2.0.3 review.** Upstream 2.0.2–2.0.3 added Kimi Code and Amp installation
+> support and release tooling. Those changes do not alter the upstream
+> rule-management skill or Lisa's project-local ERE rule contract, and Lisa does
+> not currently ship hooks for those runtimes, so no behavior is absorbed here.
+>
+> **Known gap at the 2.0.3 pin.** Upstream 2.0.0 rebuilt its engine and added two
 > guard families this hook does **not** mirror: `secret.*` (blocks reading or
 > copying SSH keys, `.env` files, cloud credentials, and coding-CLI credential
 > stores) and `rm.git-metadata` (blocks deleting the `.git` control plane). Both

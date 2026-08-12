@@ -1035,11 +1035,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
-      "35c4c9f5e77f73a0e33e2ec01a70198eeb6bf521ec793983c9e633cbcab7b69b",
+      "f240857de2f14938009ddd212c56601269fd9e1aec33a766cd09da5bea5656e0",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
-      "610890385568ae097b2a48c9d20e42104a1bf5a3ba06223a89086ef385542e3b",
+      "edb513a9d29b3faeccce71d92596e12bc1f35e44fe3af1349bd7bd473fee98af",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
-      "d060d3171529cc228368e640d0ab813a79ec18440921602e7c720d53fdcabb67",
+      "ec09515906a55e98ac0f619f048f14c4a16db74c1cd5744dda0cdfa42ce7fed6",
     "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":
       "616e0493f75fe92c18137548d7c86a91a9b04d9844ca76fa3f14156e3e7814e5",
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":

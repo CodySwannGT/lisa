@@ -125,9 +125,9 @@ on:
         default: ''
         type: string
       playwright_shards:
-        description: 'Number of parallel CI jobs (shards) to run Playwright tests across. Default 1 = single runner (unchanged behavior). Values >= 2 enable matrix sharding via `npx playwright test --shard=i/N`.'
+        description: 'Number of parallel CI jobs (shards) to run Playwright tests across. Default 2 keeps large suites within hosted-runner disk and time limits. Set 1 explicitly for a single runner.'
         required: false
-        default: 1
+        default: 2
         type: number
       cache_build:
         description: 'Cache build output between runs to skip `expo export` and `<pm> run build` when source unchanged. Default false = full rebuild every run (unchanged behavior). When true, cache key hashes lockfiles + src/app/components/features sources + Expo/Metro/Babel/TS configs; invalidates when any of those change.'
@@ -1130,7 +1130,7 @@ jobs:
           echo "To run Maestro tests, provide the maestro_app_file input with the path to your app binary"
 
   # Emits a JSON array consumed by playwright_e2e's matrix strategy.
-  # When playwright_shards <= 1 the array is [1] (single runner, behavior unchanged).
+  # When playwright_shards <= 1 the array is [1] (explicit single-runner mode).
   # When playwright_shards >= 2 the array is [1,2,...,N] and the test command
   # passes --shard=i/N so tests split across N parallel runners.
   playwright_e2e_setup:
