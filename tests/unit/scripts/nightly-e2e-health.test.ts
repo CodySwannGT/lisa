@@ -203,6 +203,34 @@ describe("nightly e2e gate — truth table rows 1-16", () => {
       expect(finding.state).toBe(STATE.pass);
     });
 
+    it("a job-scoped finding NEVER reports the run's conclusion beside a job verdict", () => {
+      // Found empirically smoking the guard against a real repo: a `ci.yml` run
+      // concluded `failure` (Lighthouse) while the watched Lint job was green,
+      // and the finding rendered `state: pass` next to `conclusion: failure`.
+      // A gate that appears to contradict itself teaches readers to stop
+      // trusting it, so a job-scoped finding reports the JOB's conclusion or
+      // none at all.
+      const passing = assess(
+        { match: { mode: "job", name: WATCHED_JOB } },
+        {
+          run: runWith("failure"),
+          jobs: [{ name: WATCHED_JOB, conclusion: "success" }],
+        }
+      );
+      expect(passing.state).toBe(STATE.pass);
+      expect(passing.conclusion).toBe("success");
+
+      const missing = assess(
+        { match: { mode: "job", name: WATCHED_JOB } },
+        {
+          run: runWith("failure"),
+          jobs: [{ name: "other", conclusion: "success" }],
+        }
+      );
+      expect(missing.reason).toBe("job_not_found");
+      expect(missing.conclusion).toBeNull();
+    });
+
     it("row 14: a green RUN whose watched JOB failed still fails", () => {
       // The reason `mode: job` exists: a workflow that also carries lint and
       // Lighthouse must not be judged by its own overall conclusion.
