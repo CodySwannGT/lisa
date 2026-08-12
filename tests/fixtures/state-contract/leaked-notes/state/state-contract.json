@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "lisa-state-contract-v1",
+  "contractVersion": "fixture-leaked-notes-state-v1",
+  "mode": "contract",
+  "owner": "platform-team",
+  "environments": [
+    {
+      "name": "dev",
+      "identitySource": "deployment metadata resolved server-side",
+      "resetAllowed": true
+    },
+    {
+      "name": "production",
+      "identitySource": "deployment metadata resolved server-side",
+      "resetAllowed": false
+    }
+  ],
+  "fixtureIdentity": {
+    "description": "Reserved fixture ids and reserved persona principals; anything else in a fixture-owned entity belongs to someone real.",
+    "idPattern": "^e2e[0-9a-f]{5}-0000-4000-8[0-9a-f]{3}-[0-9a-f]{12}$",
+    "reservedPrincipals": [
+      "persona-owner",
+      "persona-member"
+    ]
+  },
+  "entities": [
+    {
+      "id": "public.user_cards",
+      "kind": "table",
+      "policy": "fixture-owned",
+      "reason": "Portfolio rows the suite creates on behalf of reserved personas.",
+      "owner": "platform-team",
+      "ownership": "rows whose owner is a reserved persona AND whose id does not match the seeded-fixture id shape",
+      "sweptBy": "reset:portfolio-routine"
+    },
+    {
+      "id": "public.watchlists",
+      "kind": "table",
+      "policy": "fixture-owned",
+      "reason": "Lists the watchlist flow creates with a marked name.",
+      "owner": "platform-team",
+      "ownership": "rows whose name carries the reserved e2e marker prefix",
+      "sweptBy": "reset:watchlist-routine"
+    },
+    {
+      "id": "public.cards",
+      "kind": "table",
+      "policy": "preserve",
+      "reason": "Ingested catalog; measured multi-hour reload and no seed in this repo can restore it.",
+      "owner": "data-team",
+      "enforcedBy": "reset role holds SELECT only on the catalog schema"
+    },
+    {
+      "id": "public.onboarding_options",
+      "kind": "table",
+      "policy": "preserve",
+      "reason": "Migration-seeded reference data; clearing it does not reset the environment, it breaks it, and no seed re-runs the migration.",
+      "owner": "platform-team"
+    },
+    {
+      "id": "analytics.player_season_rollup",
+      "kind": "materialized-view",
+      "policy": "derived-rebuild",
+      "reason": "Recomputed from catalog and fixture rows; neither cleared nor preserved.",
+      "owner": "data-team",
+      "rebuiltFrom": "public.cards, public.user_cards",
+      "rebuiltBy": "reset:rebuild-projections"
+    },
+    {
+      "id": "ledger.payments",
+      "kind": "table",
+      "policy": "forbidden",
+      "reason": "Money ledger; irreversible and never a reset target under any environment.",
+      "owner": "finance-eng",
+      "enforcedBy": "reset role has no grant on the ledger schema; grant revoked, not merely unused"
+    },
+    {
+      "id": "identity://user-pool/e2e-personas",
+      "kind": "identity-group",
+      "policy": "fixture-owned",
+      "reason": "Throwaway accounts registered by sign-up flows; rows are not the only kind of state.",
+      "owner": "platform-team",
+      "ownership": "accounts whose identifier matches the reserved persona address shape",
+      "sweptBy": "reset:throwaway-accounts-routine"
+    },
+    {
+      "id": "object-store://uploads/e2e/",
+      "kind": "object-prefix",
+      "policy": "fixture-owned",
+      "reason": "Files uploaded by the attachment flow under a reserved prefix.",
+      "owner": "platform-team",
+      "ownership": "objects under the reserved e2e prefix only",
+      "sweptBy": "reset:object-store-routine"
+    },
+    {
+      "id": "search://players-index",
+      "kind": "search-index",
+      "policy": "derived-rebuild",
+      "reason": "Rebuilt from the catalog after a reset; a stale index reads as a product bug.",
+      "owner": "data-team",
+      "rebuiltFrom": "public.cards",
+      "rebuiltBy": "reset:reindex"
+    },
+    {
+      "id": "queue://notifications-dlq",
+      "kind": "queue",
+      "policy": "fixture-owned",
+      "reason": "Dead-letter backlog from suite runs; left alone it hides the next real failure.",
+      "owner": "platform-team",
+      "ownership": "messages whose correlation id carries the reserved e2e prefix",
+      "sweptBy": "reset:dlq-routine"
+    }
+  ],
+  "assurances": {
+    "preserves-non-fixture-data": {
+      "evidence": "tests/reset/preserve.test — catalog counts unchanged across a reset"
+    },
+    "rejects-reserved-id-collision": {
+      "evidence": "tests/reset/identity.test — reserved id colliding with a real row aborts"
+    },
+    "rejects-foreign-references": {
+      "evidence": "tests/reset/references.test — fixture row referencing a preserved row is refused, not cascaded"
+    },
+    "requires-write-acknowledgment": {
+      "evidence": "tests/reset/acknowledgment.test — unacknowledged mutation reported as failure"
+    },
+    "converges-on-second-apply": {
+      "evidence": "tests/reset/converge.test — second apply reports zero further change"
+    },
+    "verifies-exact-counts": {
+      "evidence": "tests/reset/verify.test — exact per-entity counts, never 'at least one'"
+    },
+    "production-fails-closed": {
+      "evidence": "tests/reset/guard.test — every production alias refused with transport never invoked"
+    },
+    "guard-at-the-choke-point": {
+      "evidence": "tests/reset/guard.test — the guard runs immediately before every outbound mutation"
+    },
+    "enumerates-before-mutating": {
+      "evidence": "tests/reset/dry-run.test — unknown ownership blocks the run"
+    }
+  },
+  "waivers": []
+}

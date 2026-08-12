@@ -1,0 +1,236 @@
+---
+description: "Reset/Seed Coverage & State Classification"
+alwaysApply: false
+---
+
+# Reset/Seed Coverage & State Classification
+
+Automated suites create state, and the state outlives them. The historical pattern is per-flow
+self-cleanup: a flow creates a uniquely-marked record at the top and deletes it as its last step, so
+the record survives every failure that happens in between. Nothing sweeps the survivors and nothing
+reports them, so the leak is invisible until a list view, a uniqueness constraint, a pagination
+boundary, or an exact-count assertion breaks — at which point it presents as a product bug or an
+unreproducible flake. The same story has now played out on several entity types in several
+codebases, always with the same three ingredients: state a suite creates, cleanup that only runs on
+the happy path, and no inventory that would have noticed.
+
+This contract removes the discipline requirement. Instead of asking every author to remember to
+sweep what they created, it makes the *absence* of a decision a failing check.
+
+It is a **single vendor-neutral contract** consumed by `lisa-research` (specs state what persistent
+state the work introduces), `lisa-acceptance-criteria` and `lisa-task-decomposition` (the
+classification and the sweep are explicit deliverables on the work item, not implied work),
+`lisa-test-strategy` and `lisa-implement` (building the item includes both),
+`lisa-codify-verification` (the verify step asserts the post-reset baseline), and
+`lisa-verification-lifecycle` / `lisa-verify` (the check is run, and a miss fails the item). Those
+skills cite this slug; they do not restate it.
+
+## Vendor neutrality is the point
+
+This contract never names a database engine, a cloud, an identity provider, an object store, a
+search engine, a queue, or a test runner. Projects use different ones, several at once, and change
+them without touching this contract. What is fixed is the *obligation*: every entity that holds
+state across process boundaries carries exactly one policy, and the running system's inventory is
+compared against that declaration.
+
+The words "table" and "row" appear in this document only as examples. An entity is anything with a
+durable identity and a lifetime: a table, a collection, a bucket prefix, an index, a topic, a
+user-pool group, a materialized view, a scheduled job.
+
+## Why "new entities are cleared by default" is the wrong safety model
+
+An earlier version of this pattern derived the clear-list by subtracting a hand-maintained keep-list
+from a schema listing: anything new is cleared unless someone deliberately exempts it. It is
+attractive because it fails toward action, and the failure it prevents (a new entity silently
+accumulating) is real. It is still wrong as the *boundary*, for reasons that are structural rather
+than stylistic:
+
+- **It erases unrelated data on first contact.** The first change that adds an entity nobody has
+  classified deletes its contents on the next run, in whatever non-production environment happened
+  to run first. "Non-production" is not "worthless" — shared development environments hold hand-built
+  scenarios, support reproductions, and partner sandboxes.
+- **A migrations-directory diff does not model reality.** It cannot see renames (which read as one
+  deletion plus one unclassified addition), multiple schemas or namespaces, framework- or
+  ORM-generated entities that no migration file names, views, partitions and inheritance children,
+  entities created by a deploy rather than a migration, or row-level ownership — the common case
+  where an entity holds both fixture rows and rows that must survive.
+- **It only sees the database.** Identity-provider accounts, object-storage prefixes, search indexes,
+  queue backlogs, and third-party side effects are invisible to it, and those are precisely where
+  leaked test state is most expensive.
+
+Subtraction survives in this contract as a **detector**: run it, and treat every entity it finds
+that the contract has not classified as a finding. The safety decision is the classification.
+
+## The state contract
+
+Default location `state/state-contract.json` (a project with an equivalent artifact keeps its own
+path and records it in `.lisa.config.json`). It is checked in, reviewed like code, and versioned:
+
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | The schema this document conforms to. Pinned; a bump is a deliberate migration. |
+| `contractVersion` | The project's own version for *its* declared state. Bumped whenever policies or ownership predicates change, so evidence from one run cannot be read as evidence for a different contract. |
+| `mode` | `contract` (the normal case) or `declared-noop`. |
+| `owner` | Who answers questions about this file. A team or role, not an individual's personal account. |
+| `environments` | The environments a reset may target, and the identity source each is resolved from. Never a list the caller can extend at runtime. |
+| `fixtureIdentity` | How fixture-owned records are recognized: reserved id shape, reserved account/namespace, marker attribute. This is the ownership predicate the whole model rests on. |
+| `entities[]` | One entry per persistent entity. |
+| `assurances` | The required properties below, each with a pointer to the evidence that proves it. |
+| `waivers[]` | Dated IOUs for entities that genuinely cannot be classified yet. |
+
+Each `entities[]` entry carries `id` (stable, fully qualified — namespace plus name), `kind` (the
+project's own vocabulary for what sort of state it is), `policy` (one of the four), `reason` (why,
+in one sentence a reviewer can check), `owner`, and policy-specific obligations:
+
+- `fixture-owned` → `ownership` (the predicate identifying rows/objects the reset may delete) and
+  `sweptBy` (the routine that removes them). An entity classified `fixture-owned` with no sweep is
+  the exact leak this rule exists to catch and fails the check.
+- `preserve` → `reason` must name the provenance (migration-seeded, ingested catalog, human-authored,
+  belongs to a real person) and, where available, `enforcedBy`.
+- `derived-rebuild` → `rebuiltFrom` (the sources) and `rebuiltBy` (the routine). The reset rebuilds
+  and proves convergence rather than clearing.
+- `forbidden` → `enforcedBy` is **required** and must name a control outside the reset process: a
+  least-privilege role, a revoked grant, a separate credential or account boundary, a database
+  constraint. "The script does not touch it" is not an enforcement.
+
+### Waivers are dated IOUs, never classifications
+
+An entity nobody can classify today is recorded with its id, a reason, an owner, a ticket, and a
+`recordedAt` date. It stays visible in the report, it never counts as classified, and it never
+authorizes the reset to touch the entity — a waived entity is treated as `preserve` for safety while
+remaining a finding. A waiver is invalid, and fails the check, when it names an entity that is not in
+the inventory, duplicates an existing classification, or carries no owner, ticket, or date.
+
+## The check
+
+The check compares a **runtime inventory** — what the system actually holds, enumerated from the
+running environment — against the contract. Static sources are inputs to discovery, never a
+substitute for the inventory: the whole point is to catch what the repository does not describe.
+
+Semantics, in order:
+
+1. **Contract absent** → `not-adopted`. Reported visibly, exits 0, and the context is not required.
+   Adoption is an explicit act; a not-yet-adopted repo is not silently passing a gate it never wired.
+2. **Contract malformed, unparseable, or failing schema validation** → fail. A broken contract is
+   never treated as an empty one.
+3. **`mode: "declared-noop"`** → the noop must carry a reason, an owner, and a capability-manifest
+   reference, **and** the detectors must find no persistence signals in the repository. A repo with
+   persistence cannot declare a reset noop; the check rejects it rather than trusting the
+   declaration.
+4. **Entity in the inventory with no classification and no waiver** → **fail closed**, naming the
+   entity. This is the primary failure this contract exists to produce.
+5. **Entity classified but absent from the inventory** → fail as stale, unless the entry is marked
+   retired with a date. A contract that describes a system that no longer exists is not protection.
+6. **Policy obligations unmet** — `fixture-owned` with no ownership predicate or no sweep,
+   `forbidden` with no external enforcement, `derived-rebuild` with no rebuild routine → fail.
+7. **A required assurance missing or unevidenced** → fail.
+8. **Detector findings that the inventory did not surface** (a schema or migration source naming an
+   entity the inventory did not return) → fail, because it means the inventory is incomplete and
+   every other conclusion is unsound.
+9. **No inventory available** → `detection-only`. The detectors run, findings are reported, and the
+   result is explicitly labeled non-authoritative. It never reports the same status as a verified
+   run, and it never satisfies the definition of done on its own.
+
+Every exit path emits the standard command envelope, so a caller can tell "verified clean" from
+"could not look" without parsing prose.
+
+### Non-database discovery
+
+The inventory is only complete when it enumerates every kind of state the project holds. At minimum,
+discovery asks each of these and records either the enumeration or a documented absence: identity
+provider (accounts, groups, memberships, long-lived sessions and devices), object storage (buckets
+and prefixes written by the app or by tests), search indexes and their aliases, queues and topics
+including dead-letter backlogs, caches with a persistence tier, derived views and projections,
+runtime-created scheduled jobs and webhooks, feature-flag and configuration overrides, and outbound
+side effects (email, SMS, billing, analytics events, third-party records). "We checked and there is
+none" is an acceptable answer and must be written down; not asking is not.
+
+## Required assurances
+
+These are the properties a reset must have. Each is declared in `assurances` with a pointer to the
+test, guard, or role that proves it — a declaration with no evidence pointer fails the check.
+
+| Assurance | What it means | Why |
+|---|---|---|
+| `preserves-non-fixture-data` | Catalog, reference, and any non-fixture data survive a reset unchanged. | The expensive-to-rebuild data is usually the data a blunt reset destroys, and it is often not restorable by re-running any seed in the repo. |
+| `rejects-reserved-id-collision` | A reserved fixture identifier that collides with a real record aborts rather than overwriting. | The ownership predicate is the entire safety boundary; a collision means it is no longer identifying. |
+| `rejects-foreign-references` | A fixture record referencing a preserved record it does not own is refused, never cascaded. | Cascades are how a fixture-scoped delete reaches outside its scope. |
+| `requires-write-acknowledgment` | Every mutation is confirmed by the system, not assumed from a returned status. | An unacknowledged write is an unknown state, and "unknown" reported as success is how a half-applied reset becomes a mystery failure downstream. |
+| `converges-on-second-apply` | Applying twice produces the same state and the second run reports no further change. | Convergence is what makes the reset safe to re-run, and re-running is what makes partial failure recoverable. |
+| `verifies-exact-counts` | Verification asserts the exact expected count per fixture entity. | "At least one" passes against a leak. Exact counts are what detect one. |
+| `production-fails-closed` | Production is refused with no override, escape hatch, or environment variable that changes the answer. | A single variable that authorizes production mutation will eventually be set by something that is not a person. |
+| `guard-at-the-choke-point` | The environment check runs immediately before every outbound mutation, not only at startup. | A startup-only check does not survive a refactor that adds a second code path. |
+| `enumerates-before-mutating` | `--dry-run` enumerates exactly what would change and fails on anything whose ownership it cannot establish. | Unknown ownership must block, not default to delete. |
+
+Prefer platform enforcement over process enforcement wherever it exists: a role that cannot see the
+forbidden entities, grants revoked rather than merely unused, constraints that make a cross-boundary
+reference impossible, separate credentials per environment. A test proves the code behaves today; a
+revoked grant makes the behavior unavailable.
+
+## Standard command envelope
+
+Every adapter in this family — reset, seed, verify, inventory, classification check — returns **one**
+JSON object on stdout and nothing else. Human-readable narration goes to stderr, redacted of secrets
+and personal data.
+
+```json
+{
+  "schemaVersion": "lisa-command-envelope-v1",
+  "capability": "<reset|seed|reset-verify|state-inventory|state-classification|...>",
+  "mode": "<real|declared-noop|not-applicable>",
+  "operation": "<the operation performed>",
+  "environment": "<server-resolved environment identity>",
+  "contractVersion": "<the project's state-contract version>",
+  "dryRun": true,
+  "status": "<completed|no-op|denied|invalid|failed|verification-mismatch|not-adopted|detection-only>",
+  "correlationId": "<stable id joining logs, audit records, and CI output>",
+  "summary": { "deleted": 0, "created": 0, "preserved": 0 }
+}
+```
+
+Rules that make the envelope load-bearing rather than decorative:
+
+- **Exit 0 means completed *and* verified.** Any nonzero exit means denied, invalid, failed, or
+  verification-mismatch, and the envelope's `status` says which. An adapter that mutated successfully
+  but could not verify exits nonzero.
+- **`--dry-run` is mandatory for every destructive adapter**, enumerates the intended mutations, and
+  fails on any entity whose ownership it cannot establish.
+- **`--stage` (or equivalent) is a *request*, never the source of truth.** The adapter resolves the
+  environment from server-side deployment identity and fails if the request disagrees. A
+  caller-supplied stage, URL, host, or public build-time variable never authorizes a destructive
+  operation.
+- **`--idempotency-key` is required in CI**, so a retried invocation is recognized rather than
+  repeated.
+- **A noop returns `mode: "declared-noop"`** with a reason, an owner, and a capability-manifest
+  reference. A bare exit 0 with no envelope is indistinguishable from a successful destructive run
+  and is never an acceptable noop.
+- **`correlationId` appears in the envelope, the audit record, and the CI log**, so a run can be
+  reconstructed after the fact.
+- The audit record for a destructive run additionally names the actor, the CI run, the resolved
+  environment and account, the contract version, and before/after counts — and contains no secrets
+  or personal data.
+
+## Bootstrap procedure
+
+1. Enumerate the runtime inventory from a non-production environment, including the non-database
+   sources listed above. Record what could not be enumerated and why.
+2. Classify every entity. Start from provenance: who writes it, and can anything put it back? Prefer
+   `preserve` when unsure — an over-preserved entity leaks; an over-cleared one destroys.
+3. Declare `fixtureIdentity` and the ownership predicate before classifying anything as
+   `fixture-owned`.
+4. Write the assurances with pointers to the tests or roles that prove them. Missing evidence is a
+   work item, not a field to leave blank.
+5. Wire the check into CI so the next unclassified entity fails the pull request that introduces it.
+6. Record everything still unclassified as dated waivers with owners, and burn them down.
+
+The first work item does not backfill the whole system. It classifies what it touches, scaffolds the
+file, and turns the check on; everything else is burndown that stays visible.
+
+## What this contract does not do
+
+It does not decide *how* a reset is executed, where it runs, or what invokes it. It does not
+prescribe intra-run isolation. It does not replace a threat model for a destructive control plane —
+where a reset is reachable from CI, that control plane has its own security obligations (identity,
+least privilege, leases, audit) which this contract assumes rather than specifies. What it
+guarantees is narrower and load-bearing: **no persistent state exists in the system that nobody has
+decided about, and no work item adds some without saying so.**
