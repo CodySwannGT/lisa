@@ -1986,6 +1986,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
       "0060a0f65885b54fc93bd3885ca249cbb1ac822c52813817aae640bc1303827b",
+    "scripts/check-state-classification.mjs":
+      "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
@@ -7820,6 +7822,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-rules-pairing.sh": true,
     "scripts/check-security-floors.mjs": true,
+    "scripts/check-state-classification.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
     "scripts/cleanup-amplify-branches.sh": true,
@@ -8179,6 +8182,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/postinstall-trampoline.ts": true,
     "src/utils/usage-accounting-rollup.ts": true,
     "src/utils/usage-accounting.ts": true,
+    "state/demo-project/README.md": true,
+    "state/demo-project/state/inventory.json": true,
+    "state/demo-project/state/state-contract.json": true,
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
