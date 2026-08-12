@@ -42,6 +42,7 @@ interface WorkflowStep {
   id?: string;
   name?: string;
   run?: string;
+  shell?: string;
   uses?: string;
   if?: string;
   env?: Record<string, unknown>;
@@ -276,11 +277,17 @@ describe("maestro-native-e2e reusable workflow", () => {
   });
 
   it("uploads JUnit reports and debug output even when flows fail", () => {
-    for (const job of [workflow.jobs.android, workflow.jobs.ios]) {
-      const upload = (job.steps ?? []).find(step =>
-        step.uses?.startsWith("actions/upload-artifact")
+    for (const [job, platform] of [
+      [workflow.jobs.android, "android"],
+      [workflow.jobs.ios, "ios"],
+    ] as const) {
+      const debugUpload = (job.steps ?? []).find(
+        step => step.with?.name === `maestro-${platform}-results`
       );
-      expect(upload?.if).toBe("always()");
+      // The diagnostic bundle is worth having on a CANCELLED suite too, which
+      // is the one case `!cancelled()` would drop.
+      expect(debugUpload?.if).toBe("always()");
+      expect(debugUpload?.with?.["include-hidden-files"]).toBe(true);
     }
   });
 
