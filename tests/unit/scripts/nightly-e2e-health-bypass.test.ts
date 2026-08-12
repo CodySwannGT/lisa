@@ -106,7 +106,7 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
           "Fixes the red nightly.\nNightly-E2E-Bypass: SE-6899 harness outage\n",
         actorPermission: "maintain",
         maxHours: 24,
-        reasonPattern: mod.DEFAULT_BYPASS_REASON_PATTERN,
+        extraReasonPattern: "",
         now: NOW,
       };
     });
@@ -190,6 +190,51 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       });
       expect(decision.reason).toBe("bypass_expired");
       expect(mod.BYPASS_ABSOLUTE_MAX_HOURS).toBe(72);
+    });
+
+    describe("allowlist doctrine — a caller may tighten, never loosen", () => {
+      // Portfolio doctrine from WS-0a: a security gate is an ALLOWLIST and its
+      // limits are SOURCE CONSTANTS. An env-readable limit fails OPEN on the
+      // inputs nobody tests — an unset variable, a typo, a new deployment. Both
+      // holes pinned below were real in this file before the doctrine landed.
+
+      it("the built-in reason rule ALWAYS applies — `.*` cannot stand in for it", () => {
+        // The hole: a caller-supplied pattern that REPLACED the built-in one
+        // would let `.*` satisfy "a reason and a ticket are required" against an
+        // empty PR body.
+        const decision = bypassWith({
+          prBody: "no reason here at all",
+          extraReasonPattern: ".*",
+        });
+        expect(decision.valid).toBe(false);
+        expect(decision.reason).toBe("no_reason_or_ticket");
+      });
+
+      it("a caller-supplied pattern is an AND — it can only narrow", () => {
+        // Body satisfies the built-in rule but not the project's extra rule.
+        expect(
+          bypassWith({ extraReasonPattern: "^Approved-By: .+$" }).valid
+        ).toBe(false);
+        // Both satisfied.
+        expect(
+          bypassWith({
+            prBody:
+              "Nightly-E2E-Bypass: SE-6899 harness outage\nApproved-By: someone\n",
+            extraReasonPattern: "^Approved-By: .+$",
+          }).valid
+        ).toBe(true);
+      });
+
+      it("the permitted-role set is an ALLOWLIST, not a denylist of known-bad roles", () => {
+        // A denylist admits any role GitHub adds tomorrow. Two roles in, and a
+        // role nobody has heard of stays out.
+        expect(
+          [...mod.BYPASS_PERMISSIONS].toSorted((a, b) => a.localeCompare(b))
+        ).toEqual(["admin", "maintain"]);
+        expect(bypassWith({ actorPermission: "some_future_role" }).valid).toBe(
+          false
+        );
+      });
     });
 
     it("row 22: an unattributable label (fork PR, unreadable timeline) is rejected", () => {

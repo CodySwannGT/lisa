@@ -53,6 +53,19 @@
 # not on use: removing it during evaluation fires `unlabeled`, re-runs the gate,
 # and re-blocks the PR the bypass was meant to unblock.
 #
+# ## Security limits are SOURCE CONSTANTS (portfolio doctrine, WS-0a)
+#
+# Every security ceiling — the permitted-bypass role set, the bypass lifetime,
+# how far out a bootstrap window may sit, how stale a run may be, how many
+# retries count as "bounded" — lives in the guard as a constant, not in an
+# input and not in the environment. The inputs below can only TIGHTEN them;
+# a request above a ceiling is clamped down to the ceiling and SAID SO in the
+# job summary. An env-readable limit fails OPEN on exactly the inputs nobody
+# tests: an unset variable, a typo'd name, a new deployment that forgot to set
+# it. The permitted-role set is likewise an ALLOWLIST (`admin`, `maintain`),
+# never a denylist of the roles we happen to know about today — a denylist
+# silently admits any role GitHub adds tomorrow.
+#
 # ## Permissions the CALLER must grant
 #
 #   permissions:
@@ -137,8 +150,13 @@ on:
         type: number
       bypass_reason_pattern:
         description: >-
-          Override the required PR-body reason line. Empty uses the default
-          `^Nightly-E2E-Bypass:\s*(<TICKET>|#NNN)\s+<reason>$` (multiline).
+          An ADDITIONAL PR-body rule a bypass must ALSO satisfy — never a
+          replacement. The built-in
+          `^Nightly-E2E-Bypass:\s*(<TICKET>|#NNN)\s+<reason>$` always applies, so
+          this input can only NARROW what qualifies (e.g. also require an
+          `Approved-By:` line). A security limit a caller can relax is not a
+          limit: an input that replaced the built-in rule would let `.*` satisfy
+          "a reason and a ticket are required" against an empty body.
         required: false
         default: ''
         type: string

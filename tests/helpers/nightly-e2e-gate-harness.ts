@@ -79,7 +79,15 @@ export interface Verdict {
 export interface GateModule {
   readonly DECISIVE_CONCLUSIONS: ReadonlySet<string>;
   readonly BYPASS_ABSOLUTE_MAX_HOURS: number;
-  readonly DEFAULT_BYPASS_REASON_PATTERN: string;
+  readonly REQUIRED_BYPASS_REASON_PATTERN: string;
+  readonly BOOTSTRAP_ABSOLUTE_MAX_DAYS: number;
+  readonly ABSOLUTE_MAX_FRESHNESS_HOURS: number;
+  readonly ABSOLUTE_MAX_API_ATTEMPTS: number;
+  readonly BYPASS_PERMISSIONS: ReadonlySet<string>;
+  resolveSecurityLimits(requested: Record<string, number>): {
+    limits: Record<string, number>;
+    clamped: readonly string[];
+  };
   readonly NIGHTLY_E2E_CONTRACT_VERSION: string;
   assessSuite(
     suite: Record<string, unknown>,

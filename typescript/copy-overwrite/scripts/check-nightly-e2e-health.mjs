@@ -106,21 +106,128 @@ export const SUITE_STATES = Object.freeze({
   unknown: "unknown",
 });
 
+// ---------------------------------------------------------------------------
+// SECURITY LIMITS — source constants, never env-readable (portfolio doctrine)
+// ---------------------------------------------------------------------------
+//
+// Every value in this block is a SOURCE CONSTANT and is deliberately not
+// overridable from the environment. The doctrine comes from WS-0a: a security
+// gate is an ALLOWLIST, never a denylist, and its limits live in code.
+//
+// The reason is that an env-readable limit fails OPEN on exactly the inputs
+// nobody tests — an unset variable, a typo'd name, a new deployment that forgot
+// to set it. `NIGHTLY_BOOTSTRAP_MAX_DAYS=100000` would have restored the
+// forever-bootstrap this gate exists to delete, and a caller-supplied
+// `bypass_reason_pattern` of `.*` would have satisfied the "reason required"
+// rule with an empty PR body. Both were real holes in this file before the
+// doctrine was applied to it.
+//
+// Callers may still TIGHTEN any of these through the workflow inputs. What they
+// cannot do is loosen one, and `resolveSecurityLimits` below is the single
+// place that is enforced — so fail-closed only has to be right once.
+
 /** Hard ceiling on a bypass's lifetime, whatever the caller asks for. */
 export const BYPASS_ABSOLUTE_MAX_HOURS = 72;
 
-/** Repository permissions that may grant a bypass. Maintainers only. */
+/**
+ * Repository permissions that may grant a bypass — an ALLOWLIST.
+ *
+ * Never expressed as "anything except read/triage": a denylist of the roles we
+ * happen to know about today silently admits any role GitHub adds tomorrow.
+ */
 export const BYPASS_PERMISSIONS = Object.freeze(new Set(["admin", "maintain"]));
 
 /**
- * Default reason line the PR body must carry for a bypass to be valid.
+ * The reason line the PR body must carry. ALWAYS enforced.
  *
  * A reason AND a tracker reference, in the artefact reviewers already read.
  * Multiline so it can match one line of a body; not global, so `.exec` has no
  * sticky `lastIndex` to alternate on.
+ *
+ * A caller-supplied `bypass_reason_pattern` is an ADDITIONAL requirement that
+ * must ALSO match — never a replacement for this one. That asymmetry is the
+ * whole point: an override can only narrow what qualifies as a valid bypass.
  */
-export const DEFAULT_BYPASS_REASON_PATTERN =
+export const REQUIRED_BYPASS_REASON_PATTERN =
   "^Nightly-E2E-Bypass:\\s*(?<ticket>[A-Z][A-Z0-9]+-\\d+|#\\d+)\\s+(?<reason>\\S.*)$";
+
+/**
+ * Back-compatible alias.
+ *
+ * @deprecated Use `REQUIRED_BYPASS_REASON_PATTERN`. Kept so the name in the
+ * published contract keeps resolving during the deprecation window (§8).
+ */
+export const DEFAULT_BYPASS_REASON_PATTERN = REQUIRED_BYPASS_REASON_PATTERN;
+
+/** Hard ceiling on how far out a bootstrap window may sit. */
+export const BOOTSTRAP_ABSOLUTE_MAX_DAYS = 30;
+
+/** Hard ceiling on how stale a run may be and still speak for the branch. */
+export const ABSOLUTE_MAX_FRESHNESS_HOURS = 720;
+
+/** Hard ceiling on retry attempts, so a "bounded retry" stays bounded. */
+export const ABSOLUTE_MAX_API_ATTEMPTS = 5;
+
+/**
+ * Applies every source-constant ceiling, in one place.
+ *
+ * Numeric ceilings CLAMP DOWN rather than fail, because clamping toward
+ * strictness cannot fail open and a caller who asked for a looser gate than
+ * policy allows should still get the policy gate rather than a broken one. The
+ * clamp is reported so it is never silent.
+ *
+ * `bootstrap_until` is the deliberate exception and FAILS instead of clamping
+ * (see `resolveBootstrap`): it is a date somebody chose, and quietly pulling it
+ * closer would make the gate arm on a day nobody expected.
+ *
+ * @param {{bypassMaxHours: number, bootstrapMaxDays: number, freshnessHours: number, apiMaxAttempts: number}} requested - What the caller asked for
+ * @returns {{limits: object, clamped: ReadonlyArray<string>}} The effective limits and what was reduced
+ */
+export function resolveSecurityLimits(requested) {
+  const clamped = [];
+  /**
+   * Clamps one value to its source-constant ceiling, recording any reduction.
+   *
+   * @param {string} name - Caller-facing input name
+   * @param {number} asked - Requested value
+   * @param {number} ceiling - Source-constant ceiling
+   * @returns {number} The effective value
+   */
+  const cap = (name, asked, ceiling) => {
+    if (asked > ceiling) {
+      clamped.push(
+        `\`${name}\` was ${asked}, above the policy ceiling of ${ceiling}; using ${ceiling}. This limit is a source constant and cannot be raised from a workflow input or the environment.`
+      );
+      return ceiling;
+    }
+    return asked;
+  };
+  return {
+    limits: Object.freeze({
+      bypassMaxHours: cap(
+        "bypass_max_hours",
+        requested.bypassMaxHours,
+        BYPASS_ABSOLUTE_MAX_HOURS
+      ),
+      bootstrapMaxDays: cap(
+        "bootstrap_max_days",
+        requested.bootstrapMaxDays,
+        BOOTSTRAP_ABSOLUTE_MAX_DAYS
+      ),
+      freshnessHours: cap(
+        "freshness_hours",
+        requested.freshnessHours,
+        ABSOLUTE_MAX_FRESHNESS_HOURS
+      ),
+      apiMaxAttempts: cap(
+        "api_max_attempts",
+        requested.apiMaxAttempts,
+        ABSOLUTE_MAX_API_ATTEMPTS
+      ),
+    }),
+    clamped: Object.freeze(clamped),
+  };
+}
 
 /** Raised for anything that makes the gate's own configuration unreadable. */
 export class GateConfigError extends Error {
@@ -513,6 +620,10 @@ export function assessSuite(suite, observation, context) {
  * extended forever by editing one string; failing makes extension require
  * changing the cap too, which is a reviewable act.
  *
+ * `maxDays` reaches here already clamped to `BOOTSTRAP_ABSOLUTE_MAX_DAYS` by
+ * `resolveSecurityLimits`, so a caller cannot raise the ceiling it is checked
+ * against — which is what stops this row from being defeated by one input.
+ *
  * @param {string} until - ISO-8601 UTC timestamp, or "" for no window
  * @param {number} maxDays - Ceiling on how far out the window may sit
  * @param {Date} now - Evaluation instant
@@ -554,7 +665,12 @@ export function resolveBootstrap(until, maxDays, now) {
  * condition failed. A bypass one person can both request and grant is not a
  * control, which is why `self_bypass` exists as its own rejection.
  *
- * @param {object} request - `{ label, labelEvent, prAuthor, prBody, actorPermission, maxHours, reasonPattern, now }`
+ * `extraReasonPattern` is an ADDITIONAL requirement, never a replacement for
+ * `REQUIRED_BYPASS_REASON_PATTERN`. An override that could replace the built-in
+ * rule would let `.*` satisfy "a reason and a ticket are required" with an empty
+ * PR body — a security limit a caller can relax is not a limit.
+ *
+ * @param {object} request - `{ labelEvent, prAuthor, prBody, actorPermission, maxHours, extraReasonPattern, now }`
  * @returns {{valid: boolean, reason: string, actor: string|null, appliedAt: string|null, expiresAt: string|null, ticket: string|null, detail: string|null}} The decision
  */
 export function evaluateBypass(request) {
@@ -564,7 +680,7 @@ export function evaluateBypass(request) {
     prBody,
     actorPermission,
     maxHours,
-    reasonPattern,
+    extraReasonPattern,
     now,
   } = request;
 
@@ -605,19 +721,33 @@ export function evaluateBypass(request) {
     });
   }
 
-  let matcher;
-  try {
-    matcher = new RegExp(reasonPattern, "m");
-  } catch (error) {
-    throw new GateConfigError(
-      `\`bypass_reason_pattern\` does not compile: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-  const found = matcher.exec(prBody ?? "");
+  // The built-in rule ALWAYS applies. It is checked first and on its own, so no
+  // caller-supplied pattern can stand in for it.
+  const found = new RegExp(REQUIRED_BYPASS_REASON_PATTERN, "m").exec(
+    prBody ?? ""
+  );
   if (!found) {
     return reject("no_reason_or_ticket", {
       expiresAt: new Date(expiresMs).toISOString(),
     });
+  }
+
+  // An optional project rule can only NARROW what qualifies — e.g. a repo that
+  // wants its own ticket prefix, or a second required line. It is an AND.
+  if (typeof extraReasonPattern === "string" && extraReasonPattern.length > 0) {
+    let extra;
+    try {
+      extra = new RegExp(extraReasonPattern, "m");
+    } catch (error) {
+      throw new GateConfigError(
+        `\`bypass_reason_pattern\` does not compile: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+    if (!extra.test(prBody ?? "")) {
+      return reject("no_reason_or_ticket", {
+        expiresAt: new Date(expiresMs).toISOString(),
+      });
+    }
   }
 
   return Object.freeze({
@@ -773,6 +903,13 @@ export function formatReport(verdict, context) {
   const lines = ["## 🌙 Nightly E2E Health", ""];
   lines.push(...verdict.findings.map(finding => `- ${formatFinding(finding)}`));
   lines.push("");
+
+  // A limit the caller asked for and did not get must be visible, or the gate
+  // is quietly stricter than its configuration says and the next person debugs
+  // the wrong thing.
+  for (const note of verdict.clamped ?? []) {
+    lines.push(`🔒 **Policy ceiling applied** — ${note}`, "");
+  }
 
   if (verdict.bootstrap.active) {
     lines.push(
@@ -1101,24 +1238,36 @@ export function resolveSettings(env) {
     return value;
   };
 
+  // Every security ceiling is applied HERE, through the one shared resolver, so
+  // fail-closed only has to be right once. Resolved at call time from the env
+  // passed in — never captured at module load, so a test or a re-entrant caller
+  // cannot be reading limits some earlier import froze.
+  const { limits, clamped } = resolveSecurityLimits({
+    bypassMaxHours: number("NIGHTLY_BYPASS_MAX_HOURS", 24),
+    bootstrapMaxDays: number("NIGHTLY_BOOTSTRAP_MAX_DAYS", 30),
+    freshnessHours: number("NIGHTLY_FRESHNESS_HOURS", 36),
+    apiMaxAttempts: number("NIGHTLY_API_MAX_ATTEMPTS", 3),
+  });
+
   return {
     api: {
       apiUrl: env.GITHUB_API_URL || "https://api.github.com",
       repo: env.GITHUB_REPOSITORY,
       token,
-      maxAttempts: number("NIGHTLY_API_MAX_ATTEMPTS", 3),
+      maxAttempts: limits.apiMaxAttempts,
       maxPages: number("NIGHTLY_API_MAX_PAGES", 5),
       retryMaxSeconds: number("NIGHTLY_API_RETRY_MAX_SECONDS", 60),
     },
     branch,
     suites: validateSuites(env.NIGHTLY_SUITES),
-    freshnessHours: number("NIGHTLY_FRESHNESS_HOURS", 36),
+    freshnessHours: limits.freshnessHours,
     bootstrapUntil: env.NIGHTLY_BOOTSTRAP_UNTIL || "",
-    bootstrapMaxDays: number("NIGHTLY_BOOTSTRAP_MAX_DAYS", 30),
+    bootstrapMaxDays: limits.bootstrapMaxDays,
     bypassLabel: env.NIGHTLY_BYPASS_LABEL || "nightly-e2e-bypass",
-    bypassMaxHours: number("NIGHTLY_BYPASS_MAX_HOURS", 24),
-    bypassReasonPattern:
-      env.NIGHTLY_BYPASS_REASON_PATTERN || DEFAULT_BYPASS_REASON_PATTERN,
+    bypassMaxHours: limits.bypassMaxHours,
+    // An ADDITIONAL project rule, never a replacement — see `evaluateBypass`.
+    extraBypassReasonPattern: env.NIGHTLY_BYPASS_REASON_PATTERN || "",
+    clamped,
     pr: {
       number: Number(env.NIGHTLY_PR_NUMBER) || null,
       author: env.NIGHTLY_PR_AUTHOR || null,
@@ -1181,12 +1330,16 @@ export async function runGate(env, wait) {
       prBody: settings.pr.body,
       actorPermission,
       maxHours: settings.bypassMaxHours,
-      reasonPattern: settings.bypassReasonPattern,
+      extraReasonPattern: settings.extraBypassReasonPattern,
       now,
     });
   }
 
-  return { ...decide(findings, { bootstrap, bypass }), settings };
+  return {
+    ...decide(findings, { bootstrap, bypass }),
+    clamped: settings.clamped,
+    settings,
+  };
 }
 
 /**

@@ -345,7 +345,17 @@ describe("the contract document and its proof stay together", () => {
   const doc = read("docs/nightly-e2e-gate.md").replace(/\s+/g, " ");
 
   it("names the plan revision it implements", () => {
-    expect(doc).toContain("2026-08-12-r2");
+    expect(doc).toContain("2026-08-12-r3");
+  });
+
+  it("states the allowlist-never-denylist doctrine the guard implements", () => {
+    for (const rule of [
+      "Allowlist, never denylist",
+      "Limits are source constants, never env-readable",
+      "One shared resolution function, resolved at call time",
+    ]) {
+      expect(doc).toContain(rule);
+    }
   });
 
   it("states the bypass rules the guard enforces", () => {
