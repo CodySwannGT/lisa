@@ -54,6 +54,7 @@ import { loadScenarios } from "./bdd/parse.mjs";
 import { buildReport } from "./bdd/report.mjs";
 import { renderBurndown } from "./bdd/render.mjs";
 import {
+  unresolvedEvidenceKeys,
   validateMappings,
   validateScenarios,
   validateTrackerTags,
@@ -235,11 +236,11 @@ export function loadExecutionResults(root, files) {
  * @param {object} input - Root, contract, scenarios, platforms, and options.
  * @returns {object[]} Defects found.
  */
-function validateAll({ root, contract, scenarios, platforms, options }) {
+function validateAll({ root, contract, scenarios, platforms, options, cache }) {
   const defects = [
     ...validateScenarios(scenarios, platforms),
     ...validateTrackerTags(scenarios, contract.trackers),
-    ...validateMappings({ root, scenarios, contract }),
+    ...validateMappings({ root, scenarios, contract, cache }),
     ...validateWaivers({ scenarios, contract, today: options.today }),
   ];
   if (!options.baseSha) return defects;
@@ -267,6 +268,25 @@ function validateAll({ root, contract, scenarios, platforms, options }) {
       labels: options.labels,
     }),
   ];
+}
+
+/**
+ * A malformed coverage floor, in EVERY adopted state.
+ *
+ * This is config integrity, not contract quality, so bootstrap does not
+ * downgrade it: a floor written as `"19"` rather than `19` disables the
+ * ratchet AND removes the platform from enforcement, in one character, in
+ * one file, with no other signal. It is refused rather than ignored.
+ * @param {object} report - The built report.
+ * @returns {object[]} Defects found.
+ */
+function floorIntegrityDefects(report) {
+  return (report.floor.invalid ?? []).map(platform =>
+    defect(
+      "floor-invalid",
+      `coverageFloor.${platform} is not a number between 0 and 100; a non-numeric floor silently disables enforcement, so it is refused rather than ignored`
+    )
+  );
 }
 
 /**
@@ -342,17 +362,23 @@ export function run(root, options) {
   const platforms = declaredPlatforms(contract.runnerPlatforms);
   const scenarios = loadScenarios(root, platforms);
   const execution = loadExecutionResults(root, options.resultFiles ?? []);
+  // One file cache serves both the evidence defects and the coverage count,
+  // so each mapped file is read once no matter how large the manifest.
+  const cache = new Map();
+  const unresolved = unresolvedEvidenceKeys({ root, contract, cache });
   const report = buildReport({
     scenarios,
     contract,
     runs: execution.runs,
     platforms,
+    unresolved,
   });
   const defects = [
     ...(versionDefect ? [versionDefect] : []),
     ...validateAdoption(contract, mode, options.today),
     ...execution.defects,
-    ...validateAll({ root, contract, scenarios, platforms, options }),
+    ...floorIntegrityDefects(report),
+    ...validateAll({ root, contract, scenarios, platforms, options, cache }),
     ...(mode === "enforced"
       ? enforcedDefects({ contract, scenarios, report, platforms })
       : []),

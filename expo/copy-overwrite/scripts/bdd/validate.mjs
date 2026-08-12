@@ -64,9 +64,29 @@ export function validateScenarios(scenarios, platforms) {
       );
     }
     defects.push(...missingSteps(scenario, at));
+    defects.push(...featureLevelId(scenario));
     if (scenario.id) defects.push(...recordId(scenario, at, seen));
   }
-  return defects;
+  return [...new Map(defects.map(item => [item.message, item])).values()];
+}
+
+/**
+ * Reject a `@BDD-*` id placed on the Feature rather than a Scenario.
+ *
+ * Gherkin would inherit it into every scenario in the file, handing them all
+ * the same identity. IDs are per-behavior, so this is always a mistake — and
+ * inheriting it silently would produce a pile of duplicate-ID defects that
+ * never name the real cause.
+ * @param {object} scenario - Parsed scenario.
+ * @returns {object[]} Defects found.
+ */
+function featureLevelId(scenario) {
+  return (scenario.featureIdTags ?? []).map(tag =>
+    defect(
+      "scenario-id",
+      `${scenario.file}:${scenario.featureLine} declares @${tag} on the Feature; a scenario ID identifies one behavior and is never inherited`
+    )
+  );
 }
 
 /**
@@ -166,7 +186,12 @@ function orphanReason(reference, { keys, repos, defaultRepo }) {
  * @param {object} input - Root, scenarios, and the parsed contract.
  * @returns {object[]} Defects found.
  */
-export function validateMappings({ root, scenarios, contract }) {
+export function validateMappings({
+  root,
+  scenarios,
+  contract,
+  cache = new Map(),
+}) {
   const byId = new Map(scenarios.map(scenario => [scenario.id, scenario]));
   const platformRunners = runnersByPlatform(contract.runnerPlatforms);
   const defects = [];
@@ -188,7 +213,7 @@ export function validateMappings({ root, scenarios, contract }) {
     }
     defects.push(...mappingDuplicates(mapping, at, seen));
     defects.push(...mappingPlatforms(mapping, scenario, platformRunners, at));
-    defects.push(...mappingEvidence(root, mapping, at));
+    defects.push(...mappingEvidence(root, mapping, at, cache));
   }
   return defects;
 }
@@ -250,6 +275,69 @@ function mappingPlatforms(mapping, scenario, platformRunners, at) {
 }
 
 /**
+ * Whether a mapping's evidence string still resolves inside the repo.
+ *
+ * The single source of truth for "does this mapping still prove anything",
+ * shared by the defect check and by the coverage count. Two separate answers
+ * to that question is how a stale mapping comes to fail validation while
+ * still counting as covered.
+ * @param {string} root - Repo root.
+ * @param {object} mapping - Raw mapping entry.
+ * @param {Map<string, string>} [cache] - Optional file-content cache.
+ * @returns {{ok: boolean, code?: string, detail?: string}} The verdict.
+ */
+export function evidenceResolves(root, mapping, cache = new Map()) {
+  if (typeof mapping.evidence !== "string" || mapping.evidence.length === 0) {
+    return {
+      ok: false,
+      code: "mapping-evidence",
+      detail: "declares no evidence string",
+    };
+  }
+  const resolved = resolveInsideRepo(root, mapping.file);
+  if (!resolved.path) {
+    return {
+      ok: false,
+      code: "mapping-file",
+      detail: `${mapping.file} — ${resolved.error}`,
+    };
+  }
+  if (!cache.has(resolved.path)) {
+    cache.set(resolved.path, fs.readFileSync(resolved.path, "utf8"));
+  }
+  if (!cache.get(resolved.path).includes(mapping.evidence)) {
+    return {
+      ok: false,
+      code: "mapping-evidence",
+      detail: `${mapping.file} no longer contains ${JSON.stringify(mapping.evidence)}`,
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * The scenario-platform keys whose mapping no longer proves anything.
+ *
+ * Coverage is counted from mappings that PASS this check, so a mapping whose
+ * test was renamed stops counting the moment it stops resolving — including
+ * in bootstrap, where the matching defect is only a warning. Otherwise the
+ * headline would keep claiming coverage the repo does not have, which is
+ * exactly the "manifest was lying" failure this gate exists to surface.
+ * @param {object} input - Root, contract, and an optional file cache.
+ * @returns {Set<string>} Keys that must not be counted as covered.
+ */
+export function unresolvedEvidenceKeys({ root, contract, cache = new Map() }) {
+  const broken = new Set();
+  for (const mapping of contract.mappings ?? []) {
+    if (evidenceResolves(root, mapping, cache).ok) continue;
+    for (const platform of mapping.platforms ?? []) {
+      broken.add(`${mapping.scenario}:${platform}`);
+    }
+  }
+  return broken;
+}
+
+/**
  * Prove the mapped file still contains the exact evidence string.
  *
  * This is what makes a mapping falsifiable rather than an assertion: rename
@@ -258,25 +346,10 @@ function mappingPlatforms(mapping, scenario, platformRunners, at) {
  * @param {string} root - Repo root.
  * @param {object} mapping - Raw mapping entry.
  * @param {string} at - Location label.
+ * @param {Map<string, string>} cache - File-content cache.
  * @returns {object[]} Defects found.
  */
-function mappingEvidence(root, mapping, at) {
-  if (typeof mapping.evidence !== "string" || mapping.evidence.length === 0) {
-    return [defect("mapping-evidence", `${at}: declares no evidence string`)];
-  }
-  const resolved = resolveInsideRepo(root, mapping.file);
-  if (!resolved.path) {
-    return [
-      defect("mapping-file", `${at}: ${mapping.file} — ${resolved.error}`),
-    ];
-  }
-  if (!fs.readFileSync(resolved.path, "utf8").includes(mapping.evidence)) {
-    return [
-      defect(
-        "mapping-evidence",
-        `${at}: ${mapping.file} no longer contains ${JSON.stringify(mapping.evidence)}`
-      ),
-    ];
-  }
-  return [];
+function mappingEvidence(root, mapping, at, cache) {
+  const verdict = evidenceResolves(root, mapping, cache);
+  return verdict.ok ? [] : [defect(verdict.code, `${at}: ${verdict.detail}`)];
 }
