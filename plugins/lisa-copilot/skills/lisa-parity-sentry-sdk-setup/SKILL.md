@@ -2,7 +2,7 @@
 name: lisa-parity-sentry-sdk-setup
 description: "Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize the client, wire the DSN through env, enable error + performance monitoring, and set up source map upload for readable stack traces. One consolidated skill covering react, nextjs, node, nestjs, express, python, django, react-native, and more. Lisa-native reimplementation of Sentry's SDK-setup suite. Use when adding Sentry to a project or fixing an existing Sentry install."
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: sentry@claude-plugins-official@1.3.1
+synced-from: sentry@claude-plugins-official@1.3.2
 ---
 
 # Sentry SDK Setup
@@ -19,7 +19,7 @@ setup skills**; this single Lisa-native skill consolidated all of them. As of
 upstream **1.2.0** Sentry itself consolidated the suite into one
 `sentry-instrument` playbook, so the shapes now match — but this skill remains a
 from-scratch reimplementation against Lisa conventions, **not** a translation of
-the upstream skill. Pinned to `sentry@claude-plugins-official@1.3.1` via
+the upstream skill. Pinned to `sentry@claude-plugins-official@1.3.2` via
 `synced-from` so the parity drift detector tracks it as one unit.
 
 ## Step 0 — Scope the install
@@ -211,6 +211,16 @@ build time:
 - Tie uploads to a **release** identifier (commit SHA or version) and inject the
   same release into `Sentry.init({ release })` so traces map to the right build.
 
+## Step 6a — Name custom telemetry consistently
+
+When adding custom span or log attributes, use the current stable Sentry
+semantic-convention key for that domain when one exists. Sentry conventions are
+aligned with OpenTelemetry in many domains, but Sentry's current convention is
+authoritative for data sent to Sentry. Consult only the relevant domain in the
+official convention reference, omit deprecated keys, and do not invent a second
+name for an established attribute. Keep values low-cardinality and never attach
+secrets, credentials, request bodies, or unnecessary personal data.
+
 ## Step 7 — Verify
 
 - Build/typecheck to confirm the SDK wiring compiles:
@@ -230,5 +240,7 @@ build time:
 - Initialize Sentry before any other application code runs.
 - Tune sample rates for the environment — do not ship `tracesSampleRate: 1.0` to
   high-traffic production by default.
+- Prefer current Sentry semantic-convention keys for custom span and log
+  attributes; do not use deprecated keys or invent aliases for established ones.
 - Verify with a real captured event and a source-mapped trace before declaring
   setup complete.
