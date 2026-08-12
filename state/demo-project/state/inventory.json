@@ -11,11 +11,37 @@
   ],
   "notEnumerated": [],
   "entities": [
-    { "id": "app.notes", "kind": "table" },
-    { "id": "app.catalog_items", "kind": "table" },
-    { "id": "analytics.item_rollup", "kind": "materialized-view" },
-    { "id": "ledger.payments", "kind": "table" },
-    { "id": "identity://user-pool/e2e-personas", "kind": "identity-group" },
-    { "id": "object-store://uploads/e2e/", "kind": "object-prefix" }
+    {
+      "id": "app.notes",
+      "kind": "table"
+    },
+    {
+      "id": "app.catalog_items",
+      "kind": "table"
+    },
+    {
+      "id": "analytics.item_rollup",
+      "kind": "materialized-view"
+    },
+    {
+      "id": "ledger.payments",
+      "kind": "table"
+    },
+    {
+      "id": "identity://user-pool/e2e-personas",
+      "kind": "identity-group"
+    },
+    {
+      "id": "object-store://uploads/e2e/",
+      "kind": "object-prefix"
+    },
+    {
+      "id": "app.saved_searches",
+      "kind": "table"
+    },
+    {
+      "id": "app.share_links",
+      "kind": "table"
+    }
   ]
 }

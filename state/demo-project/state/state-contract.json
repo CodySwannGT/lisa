@@ -18,7 +18,10 @@
   "fixtureIdentity": {
     "description": "Reserved fixture ids and reserved persona principals; anything else in a fixture-owned entity belongs to someone real.",
     "idPattern": "^e2e[0-9a-f]{5}-0000-4000-8[0-9a-f]{3}-[0-9a-f]{12}$",
-    "reservedPrincipals": ["persona-owner", "persona-member"]
+    "reservedPrincipals": [
+      "persona-owner",
+      "persona-member"
+    ]
   },
   "entities": [
     {
@@ -72,6 +75,14 @@
       "owner": "lisa-maintainers",
       "ownership": "objects under the reserved e2e prefix only",
       "sweptBy": "reset:object-store-routine"
+    },
+    {
+      "id": "app.share_links",
+      "kind": "table",
+      "policy": "fixture-owned",
+      "reason": "Share links the sharing flow creates; the flow deletes them as its last step.",
+      "owner": "lisa-maintainers",
+      "ownership": "rows created by a reserved persona"
     }
   ],
   "assurances": {
