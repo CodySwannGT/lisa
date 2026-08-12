@@ -2171,7 +2171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "ce972e90c4a63a32b5753317c90eab56e7c4534f02132733a0e824a80dde7434",
+      "3810fdea24d361f20895113f32d241f54d7194f4f3e3daba4dad01a941bbb230",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "86de31fbda9dd26a938bf30846c5fc70744cf199df7d475a35f3f25dbc0f7c2f",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -8611,6 +8611,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-work-item.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,

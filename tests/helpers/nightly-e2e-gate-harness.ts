@@ -121,6 +121,12 @@ export interface GateModule {
     maxSeconds: number
   ): number;
   resolveSettings(env: Record<string, string | undefined>): unknown;
+  fetchLabelEvent(
+    api: Record<string, unknown>,
+    prNumber: number,
+    label: string,
+    wait?: () => Promise<void>
+  ): Promise<{ actor: string; createdAt: string } | null>;
 }
 
 /** The instant every suite evaluates at, so freshness maths is deterministic. */
@@ -211,3 +217,41 @@ export const GREEN_FINDING: Finding = Object.freeze({
   conclusion: "success",
   url: "u",
 });
+
+/** API coordinates with a tiny retry budget, so suites stay instant. */
+export const TEST_API = Object.freeze({
+  apiUrl: "https://api.test",
+  repo: "o/r",
+  token: "t",
+  maxAttempts: 3,
+  maxPages: 5,
+  retryMaxSeconds: 1,
+});
+
+/**
+ * A no-op sleeper, so a retry path costs no wall-clock time.
+ *
+ * @returns A promise that resolves immediately
+ */
+export const noWait = async (): Promise<void> => undefined;
+
+/**
+ * A fake `Response`.
+ *
+ * @param status - HTTP status
+ * @param headers - Response headers, lowercase keys
+ * @param body - JSON body
+ * @returns A minimal Response-shaped object
+ */
+export function fakeResponse(
+  status: number,
+  headers: Record<string, string> = {},
+  body: unknown = {}
+): unknown {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+    json: async () => body,
+  };
+}

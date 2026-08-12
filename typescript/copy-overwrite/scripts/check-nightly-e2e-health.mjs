@@ -1152,7 +1152,19 @@ export async function observe(api, suites, branch, wait) {
 }
 
 /**
- * Reads who most recently applied the bypass label, from the PR timeline.
+ * Reads who most recently applied the bypass label, from the PR's issue events.
+ *
+ * PAGINATED, and that is not defensive padding. The issue-events API returns
+ * events OLDEST-FIRST, so on a long-lived pull request — a big feature branch,
+ * or exactly the sort of PR that ends up needing a bypass — page 1 holds the
+ * oldest hundred events and the label application is on a later page. Reading
+ * only page 1 would report `no_attributable_actor` for a perfectly valid
+ * maintainer bypass. That fails closed, so it is not a security hole, but it
+ * rejects the legitimate case for the wrong stated reason, which is its own kind
+ * of untrustworthy gate.
+ *
+ * Every page is scanned and the newest match across all of them wins, so a label
+ * removed and re-applied is attributed to the person who applied it LAST.
  *
  * @param {object} api - API coordinates
  * @param {number} prNumber - Pull request number
@@ -1161,20 +1173,23 @@ export async function observe(api, suites, branch, wait) {
  * @returns {Promise<{actor: string, createdAt: string}|null>} The labelling event
  */
 export async function fetchLabelEvent(api, prNumber, label, wait) {
-  const result = await apiGet(
-    api,
-    `/repos/${api.repo}/issues/${prNumber}/events?per_page=100`,
-    wait
-  ).catch(() => null);
-  if (result === null) return null;
-  const events = (result.body ?? []).filter(
-    event => event.event === "labeled" && event.label?.name === label
-  );
-  const newest = events.reduce(
-    (best, event) =>
-      best === null || event.created_at > best.created_at ? event : best,
-    null
-  );
+  let newest = null;
+  for (let page = 1; page <= api.maxPages; page += 1) {
+    const result = await apiGet(
+      api,
+      `/repos/${api.repo}/issues/${prNumber}/events?per_page=100&page=${page}`,
+      wait
+    ).catch(() => null);
+    if (result === null) break;
+    const batch = result.body ?? [];
+    for (const event of batch) {
+      if (event.event !== "labeled" || event.label?.name !== label) continue;
+      if (newest === null || event.created_at > newest.created_at) {
+        newest = event;
+      }
+    }
+    if (batch.length < 100) break;
+  }
   if (!newest?.actor?.login) return null;
   return { actor: newest.actor.login, createdAt: newest.created_at };
 }

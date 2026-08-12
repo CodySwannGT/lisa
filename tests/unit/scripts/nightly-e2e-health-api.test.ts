@@ -67,18 +67,20 @@ function response(
  * Installs a stub `fetch`.
  *
  * @param responder - Produces a response, or an Error to throw, per attempt
- * @returns A live counter of how many times fetch was called
+ * @returns A reader for how many times fetch has been called so far
  */
-function stubFetch(responder: (attempt: number) => unknown): { calls: number } {
-  const state = { calls: 0 };
+function stubFetch(responder: (attempt: number) => unknown): {
+  calls: () => number;
+} {
+  let attempts = 0;
   const stub = async (): Promise<unknown> => {
-    state.calls += 1;
-    const result = responder(state.calls);
+    attempts += 1;
+    const result = responder(attempts);
     if (result instanceof Error) throw result;
     return result;
   };
   (globalThis as { fetch: unknown }).fetch = stub;
-  return state;
+  return { calls: () => attempts };
 }
 
 describe("nightly e2e gate — truth table rows 17-20", () => {
@@ -92,7 +94,7 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
     it("row 17: a 5xx is retried a bounded number of times and then FAILS", async () => {
       const state = stubFetch(() => response(503));
       await expect(mod.apiGet(API, "/x", noWait)).rejects.toThrow(/RED/);
-      expect(state.calls).toBe(3);
+      expect(state.calls()).toBe(3);
     });
 
     it("row 17: a network error is retried and then FAILS", async () => {
@@ -100,7 +102,7 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
       await expect(mod.apiGet(API, "/x", noWait)).rejects.toThrow(
         /unreachable API as a green nightly/
       );
-      expect(state.calls).toBe(3);
+      expect(state.calls()).toBe(3);
     });
 
     it("row 17: a transient 5xx that recovers within the budget succeeds", async () => {
@@ -120,7 +122,7 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
         })
       );
       await expect(mod.apiGet(API, "/x", noWait)).rejects.toThrow(/RED/);
-      expect(state.calls).toBe(3);
+      expect(state.calls()).toBe(3);
     });
 
     it("row 19: an auth 403 fails IMMEDIATELY — retrying cannot fix a token", async () => {
@@ -128,7 +130,7 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
       await expect(mod.apiGet(API, "/x", noWait)).rejects.toThrow(
         /permissions: actions: read/
       );
-      expect(state.calls).toBe(1);
+      expect(state.calls()).toBe(1);
     });
 
     it("a 404 is data, not an error — it is how row 11 is detected", async () => {
