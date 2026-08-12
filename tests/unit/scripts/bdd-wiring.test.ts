@@ -31,6 +31,7 @@ describe("shipped wiring", () => {
       "expo/copy-overwrite/scripts/bdd/report.mjs",
       "expo/copy-overwrite/scripts/bdd/render.mjs",
       "expo/copy-overwrite/scripts/bdd/baseline.mjs",
+      "expo/copy-overwrite/scripts/bdd/envelope.mjs",
     ]) {
       expect(fs.existsSync(path.join(REPO_ROOT, relative)), relative).toBe(
         true
@@ -121,6 +122,8 @@ describe("shipped wiring", () => {
       "Tracker-tag grammar",
       "@gh-wiki-124",
       "Execution-result documents",
+      "Allowlist, never denylist",
+      "lisa-command-envelope-v1",
     ]) {
       expect(doc, needle).toContain(needle);
     }

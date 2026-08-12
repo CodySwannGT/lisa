@@ -18,6 +18,7 @@ import {
   healthyProject,
   makeProject,
   runGate,
+  runReport,
 } from "./bdd/support";
 
 const RESULTS_FILE = "results.json";
@@ -41,13 +42,20 @@ function resultsDoc(
 
 describe("honest reporting", () => {
   it("emits no execution counts at all when no run evidence is supplied", () => {
+    const execution = runReport(healthyProject(), {
+      BDD_MODE: ENFORCED,
+    }).execution;
+    expect(execution.supplied).toBe(false);
+    expect(execution.executed).toBeUndefined();
+    expect(execution.passed).toBeUndefined();
+    expect(String(execution.note)).toContain("not that it ran or passed");
     const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
-    const execution = run.envelope.report?.execution;
-    expect(execution?.supplied).toBe(false);
-    expect(execution?.executed).toBeUndefined();
-    expect(execution?.passed).toBeUndefined();
-    expect(String(execution?.note)).toContain("not that it ran or passed");
-    expect(run.envelope.summary).toContain("no execution evidence supplied");
+    expect(run.envelope.summary.headline).toContain(
+      "no execution evidence supplied"
+    );
+    // Absent evidence emits no counters at all, not zeros.
+    expect(run.envelope.summary.executed).toBeUndefined();
+    expect(run.envelope.summary.passed).toBeUndefined();
   });
 
   it("separates declared, mapped, executed, and pass/fail/skip", () => {
@@ -65,14 +73,17 @@ describe("honest reporting", () => {
       BDD_MODE: ENFORCED,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
-    const report = run.envelope.report;
-    expect(report?.scenarios.declared).toBe(1);
-    expect(report?.traceability.overall).toMatchObject({
+    const report = runReport(root, {
+      BDD_MODE: ENFORCED,
+      BDD_EXECUTION_RESULTS: RESULTS_FILE,
+    });
+    expect(report.scenarios.declared).toBe(1);
+    expect(report.traceability.overall).toMatchObject({
       covered: 1,
       total: 1,
       percentage: 100,
     });
-    expect(report?.execution).toMatchObject({
+    expect(report.execution).toMatchObject({
       supplied: true,
       mappedTests: 1,
       executed: 1,
@@ -84,7 +95,14 @@ describe("honest reporting", () => {
     // A failing mapped test is still fully traced. Traceability is not a pass
     // rate, and the gate must never conflate them.
     expect(run.status).toBe(0);
-    expect(report?.traceability.note).toContain("not execution coverage");
+    expect(report.traceability.note).toContain("not execution coverage");
+    expect(run.envelope.summary).toMatchObject({
+      traceabilityCovered: 1,
+      traceabilityTotal: 1,
+      executed: 1,
+      failed: 1,
+      passed: 0,
+    });
   });
 
   it("counts a mapped test with no result as notRun, never as passing", () => {
@@ -96,7 +114,7 @@ describe("honest reporting", () => {
       BDD_MODE: ENFORCED,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
-    expect(run.envelope.report?.execution).toMatchObject({
+    expect(run.envelope.summary).toMatchObject({
       executed: 0,
       notRun: 1,
       passed: 0,
@@ -108,7 +126,7 @@ describe("honest reporting", () => {
       BDD_MODE: ENFORCED,
       BDD_EXECUTION_RESULTS: "nowhere.json",
     });
-    expect(run.envelope.defects.map(item => item.code)).toContain(
+    expect(run.envelope.findings.map(item => item.code)).toContain(
       "execution-results"
     );
   });
@@ -137,10 +155,10 @@ describe("honest reporting", () => {
       },
       files: {},
     });
-    const report = runGate(root, { BDD_MODE: "bootstrap" }).envelope.report;
-    expect(report?.waived.count).toBe(1);
-    expect(report?.traceability.overall.total).toBe(0);
-    expect(report?.gaps).toEqual([]);
+    const report = runReport(root, { BDD_MODE: "bootstrap" });
+    expect(report.waived.count).toBe(1);
+    expect(report.traceability.overall.total).toBe(0);
+    expect(report.gaps).toEqual([]);
   });
 
   it("produces byte-identical output across runs", () => {
@@ -164,9 +182,7 @@ describe("honest reporting", () => {
         },
       },
     });
-    expect(
-      runGate(root, { BDD_MODE: ENFORCED }).envelope.report?.trackers.tags
-    ).toEqual([
+    expect(runReport(root, { BDD_MODE: ENFORCED }).trackers.tags).toEqual([
       {
         tag: "TUN-123",
         url: "https://linear.app/t/issue/TUN-123",
@@ -204,8 +220,8 @@ describe("scale", () => {
     const started = Date.now();
     const run = runGate(root, { BDD_MODE: ENFORCED });
     expect(run.status).toBe(0);
-    expect(run.envelope.report?.scenarios.declared).toBe(count);
-    expect(run.envelope.report?.traceability.overall.covered).toBe(count);
+    expect(run.envelope.summary.scenariosDeclared).toBe(count);
+    expect(run.envelope.summary.traceabilityCovered).toBe(count);
     expect(Date.now() - started).toBeLessThan(30_000);
   }, 60_000);
 });

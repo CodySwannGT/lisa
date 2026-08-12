@@ -73,33 +73,51 @@ export function hermeticEnv(root: string): Record<string, string> {
   };
 }
 
-/** Minimal shape of the gate's result envelope. */
+/** Envelope statuses this gate emits. */
+export const COMPLETED = "completed";
+export const FAILED = "failed";
+export const INVALID = "invalid";
+
+/** One finding in the standard command envelope. */
+export interface Finding {
+  readonly code: string;
+  readonly subject: string;
+  readonly message: string;
+  readonly severity: string;
+}
+
+/** Lisa's standard command envelope, as this gate emits it. */
 export interface Envelope {
-  readonly schemaVersion: number;
+  readonly schemaVersion: string;
   readonly capability: string;
   readonly mode: string;
+  readonly operation: string;
+  readonly environment: string;
+  readonly contractVersion: string;
+  readonly dryRun: boolean;
   readonly status: string;
-  readonly summary: string;
-  readonly defects: readonly {
-    readonly code: string;
-    readonly message: string;
-  }[];
-  readonly report: {
-    readonly scenarios: Record<string, number>;
-    readonly traceability: {
-      readonly overall: { covered: number; total: number; percentage: number };
-      readonly byPlatform: Record<string, { percentage: number }>;
-      readonly note: string;
-    };
-    readonly execution: Record<string, unknown>;
-    readonly waived: {
-      count: number;
-      entries: readonly Record<string, unknown>[];
-    };
-    readonly floor: { ok: boolean; unset: readonly string[] };
-    readonly trackers: { tags: readonly { tag: string; url: string | null }[] };
-    readonly gaps: readonly Record<string, unknown>[];
-  } | null;
+  readonly correlationId: string;
+  readonly reason?: string;
+  readonly summary: Record<string, unknown> & { readonly headline: string };
+  readonly findings: readonly Finding[];
+}
+
+/** The detailed report, emitted only by `--report`. */
+export interface Report {
+  readonly scenarios: Record<string, number>;
+  readonly traceability: {
+    readonly overall: { covered: number; total: number; percentage: number };
+    readonly byPlatform: Record<string, { percentage: number }>;
+    readonly note: string;
+  };
+  readonly execution: Record<string, unknown>;
+  readonly waived: {
+    count: number;
+    entries: readonly Record<string, unknown>[];
+  };
+  readonly floor: { ok: boolean; unset: readonly string[] };
+  readonly trackers: { tags: readonly { tag: string; url: string | null }[] };
+  readonly gaps: readonly Record<string, unknown>[];
 }
 
 /**
@@ -213,12 +231,39 @@ export function runGate(
 }
 
 /**
+ * Run the gate with `--report`, which swaps the envelope for the detailed
+ * report. Used only where a case asserts on the report's interior.
+ * @param root - Project root.
+ * @param env - Extra environment.
+ * @returns The parsed report.
+ */
+export function runReport(
+  root: string,
+  env: Record<string, string> = {}
+): Report {
+  const result = spawnSync(process.execPath, [SCRIPT_ABS, "--report"], {
+    encoding: "utf-8",
+    env: {
+      ...hermeticEnv(root),
+      BDD_COVERAGE_ROOT: root,
+      BDD_TODAY: TODAY,
+      BDD_MODE: "",
+      BDD_BASE_SHA: "",
+      BDD_PR_LABELS: "",
+      BDD_EXECUTION_RESULTS: "",
+      ...env,
+    },
+  });
+  return JSON.parse(result.stdout.trim()) as Report;
+}
+
+/**
  * Collect the defect codes an envelope reported.
  * @param run - A gate run.
  * @returns The codes, in order.
  */
 export function codes(run: GateRun): string[] {
-  return run.envelope.defects.map(item => item.code);
+  return run.envelope.findings.map(item => item.code);
 }
 
 /**
@@ -228,7 +273,7 @@ export function codes(run: GateRun): string[] {
  * @returns The matching messages.
  */
 export function messages(run: GateRun, code: string): string[] {
-  return run.envelope.defects
+  return run.envelope.findings
     .filter(item => item.code === code)
     .map(item => item.message);
 }

@@ -36,10 +36,19 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   ADOPTION_STATES,
-  REPORT_SCHEMA_VERSION,
   SUPPORTED_MAP_SCHEMA_VERSIONS,
   declaredPlatforms,
 } from "./bdd/contract.mjs";
+import {
+  SUCCESS_STATUSES,
+  WARNABLE_DEFECT_CODES,
+  buildSummary,
+  contractVersion,
+  correlationId,
+  hasFatalDefect,
+  loadEnvelopeModule,
+  subjectFor,
+} from "./bdd/envelope.mjs";
 import { checkDeletions, checkRatchet, loadBaseline } from "./bdd/baseline.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
 import { buildReport } from "./bdd/report.mjs";
@@ -324,9 +333,9 @@ export function run(root, options) {
   const loaded = loadContract(root);
   const fatal = configFatals(loaded, mode);
   if (fatal)
-    return envelope({ mode, status: "failed", defects: [fatal], report: null });
+    return result({ mode, defects: [fatal], report: null, contract: null });
   if (!loaded.present) {
-    return envelope({ mode, status: "not-adopted", defects: [], report: null });
+    return result({ mode, defects: [], report: null, contract: null });
   }
   const contract = loaded.contract;
   const versionDefect = schemaDefect(contract);
@@ -348,7 +357,7 @@ export function run(root, options) {
       ? enforcedDefects({ contract, scenarios, report, platforms })
       : []),
   ];
-  return envelope({ mode, status: statusFor(mode, defects), defects, report });
+  return result({ mode, defects, report, contract });
 }
 
 /**
@@ -381,61 +390,131 @@ function schemaDefect(contract) {
 }
 
 /**
- * Map mode plus defects onto a run status.
- * @param {string} mode - Adoption state.
- * @param {readonly object[]} defects - Defects found.
- * @returns {string} The status.
+ * Statuses that must NOT map onto `failed`, because they describe a bad
+ * request or an unreadable contract rather than a contract that failed.
+ * Source constants, deliberately: an unrecognized code falls through to
+ * `failed`, which is the closed direction.
  */
-function statusFor(mode, defects) {
-  if (defects.length === 0) return "passed";
-  if (mode === "enforced") return "failed";
-  const fatalCodes = [
-    "bootstrap-expired",
-    "bootstrap-metadata",
-    "adoption-drift",
-    "config-malformed",
-    "config-schema",
-  ];
-  const fatal = defects.some(item => fatalCodes.includes(item.code));
-  if (mode === "bootstrap") return fatal ? "failed" : "bootstrap-warnings";
-  return fatal ? "failed" : "passed";
-}
+const INVALID_CODES = Object.freeze([
+  "config-malformed",
+  "config-schema",
+  "config-absent",
+]);
 
 /**
- * Wrap a result in the standard command envelope (Lisa A8).
- * @param {object} input - Mode, status, defects, and report.
- * @returns {object} The envelope.
+ * Assemble the gate's internal result, with each defect's severity resolved.
+ *
+ * Severity is decided here, once, from the adoption state and the warnable
+ * allowlist, so the human output, the envelope findings and the exit code can
+ * never disagree about whether something was a warning.
+ * @param {object} input - Mode, defects, report, and the parsed contract.
+ * @returns {object} The internal result.
  */
-function envelope({ mode, status, defects, report }) {
+function result({ mode, defects, report, contract }) {
+  const fatal = hasFatalDefect(mode, defects);
+  const graded = defects.map(item => ({
+    ...item,
+    severity:
+      mode === "enforced" || !WARNABLE_DEFECT_CODES.includes(item.code)
+        ? "error"
+        : "warning",
+  }));
   return {
-    schemaVersion: REPORT_SCHEMA_VERSION,
-    capability: "bdd-coverage",
-    operation: "check",
-    mode,
-    status,
-    contractVersion: report?.schemaVersion ?? null,
-    defects: defects.map(item => ({ ...item })),
+    adoptionState: mode,
+    status: statusFor({ mode, defects: graded, fatal, report }),
+    defects: graded,
     report,
-    summary: summaryLine(mode, status, report, defects.length),
+    contract,
   };
 }
 
 /**
- * One operator-readable line naming what the gate proved.
- * @param {string} mode - Adoption state.
- * @param {string} status - Run status.
- * @param {object|null} report - The report, when built.
- * @param {number} defectCount - Number of defects.
+ * Map the run onto the standard envelope's status vocabulary.
+ * @param {object} input - Mode, graded defects, fatality, and the report.
+ * @returns {string} An envelope status.
+ */
+function statusFor({ mode, defects, fatal, report }) {
+  if (defects.some(item => INVALID_CODES.includes(item.code))) return "invalid";
+  if (fatal) return "failed";
+  if (mode === "not-adopted" && !report) return "not-adopted";
+  return "completed";
+}
+
+/**
+ * One operator-readable line naming what the gate proved, and what it did not.
+ * @param {object} run - The internal result.
  * @returns {string} Summary line.
  */
-function summaryLine(mode, status, report, defectCount) {
-  if (!report)
-    return `bdd-coverage ${mode}: ${status} (${defectCount} defects)`;
-  const trace = report.traceability.overall;
-  const exec = report.execution.supplied
-    ? `${report.execution.executed}/${report.execution.mappedTests} mapped tests executed, ${report.execution.passed} passed / ${report.execution.failed} failed / ${report.execution.skipped} skipped`
+function summaryLine(run) {
+  const head = `bdd-coverage ${run.adoptionState}: ${run.status}`;
+  if (!run.report) return `${head} (${run.defects.length} findings)`;
+  const trace = run.report.traceability.overall;
+  const execution = run.report.execution.supplied
+    ? `${run.report.execution.executed}/${run.report.execution.mappedTests} mapped tests executed, ${run.report.execution.passed} passed / ${run.report.execution.failed} failed / ${run.report.execution.skipped} skipped`
     : "no execution evidence supplied";
-  return `bdd-coverage ${mode}: ${status}; ${report.scenarios.declared} scenarios declared, traceability ${trace.covered}/${trace.total} (${trace.percentage}%), ${exec}, ${report.waived.count} waived, ${defectCount} defects`;
+  return `${head}; ${run.report.scenarios.declared} scenarios declared, traceability ${trace.covered}/${trace.total} (${trace.percentage}%), ${execution}, ${run.report.waived.count} waived, ${run.defects.length} findings`;
+}
+
+/**
+ * The one-sentence `reason` the envelope requires for a non-success status.
+ * @param {object} run - The internal result.
+ * @returns {string} The reason.
+ */
+function reasonFor(run) {
+  const first = run.defects.find(item => item.severity === "error");
+  return first
+    ? `${first.code}: ${first.message}`
+    : `bdd-coverage ${run.adoptionState} did not complete`;
+}
+
+/**
+ * Convert the internal result into Lisa's standard command envelope.
+ *
+ * `mode` is the ENVELOPE's mode — the gate really runs, so it is always
+ * `real`. The BDD adoption state is a different axis and rides in
+ * `summary.adoptionState`, with `status: "not-adopted"` carrying it for a
+ * repo that has not wired the contract.
+ * @param {object} input - The result, the environment, and CLI options.
+ * @returns {object} An envelope conforming to lisa-command-envelope.v1.
+ */
+export function toCommandEnvelope({
+  run: gateRun,
+  env,
+  options,
+  filesWritten,
+}) {
+  const fields = {
+    capability: "bdd-coverage",
+    mode: "real",
+    operation: "check",
+    environment: env.BDD_ENVIRONMENT || "local",
+    contractVersion: contractVersion(gateRun.contract),
+    dryRun: !options.write,
+    status: gateRun.status,
+    correlationId: correlationId(env.BDD_CORRELATION_ID, {
+      adoptionState: gateRun.adoptionState,
+      status: gateRun.status,
+      summary: summaryLine(gateRun),
+    }),
+    summary: {
+      ...buildSummary({
+        adoptionState: gateRun.adoptionState,
+        report: gateRun.report,
+        defects: gateRun.defects,
+        filesWritten,
+      }),
+      headline: summaryLine(gateRun),
+    },
+    findings: gateRun.defects.map(item => ({
+      code: item.code,
+      subject: subjectFor(item),
+      message: item.message,
+      severity: item.severity,
+    })),
+  };
+  return SUCCESS_STATUSES.includes(gateRun.status)
+    ? fields
+    : { ...fields, reason: reasonFor(gateRun) };
 }
 
 /**
@@ -462,6 +541,7 @@ export function parseArgs(argv, env) {
   return {
     write: argv.includes("--write"),
     json: argv.includes("--json"),
+    report: argv.includes("--report"),
     resultFiles,
     baseSha: env.BDD_BASE_SHA || null,
     labels: (env.BDD_PR_LABELS ?? "")
@@ -474,9 +554,12 @@ export function parseArgs(argv, env) {
 
 /**
  * CLI entry point.
- * @returns {void}
+ *
+ * stdout carries exactly one machine-readable result — the standard command
+ * envelope — and human narration goes to stderr, per the envelope contract.
+ * @returns {Promise<void>} Resolves once the exit code is set.
  */
-function main() {
+async function main() {
   const root = process.env.BDD_COVERAGE_ROOT || PACKAGE_ROOT;
   const resolved = resolveMode(process.env);
   if (resolved.error) {
@@ -488,18 +571,53 @@ function main() {
     ...parseArgs(process.argv.slice(2), process.env),
     mode: resolved.mode,
   };
-  const result = run(root, options);
-  if (options.write && result.report) writeArtifacts(root, result.report);
-  if (options.json) console.log(JSON.stringify(result, null, 2));
-  else printHuman(result);
-  process.exitCode = result.status === "failed" ? 1 : 0;
+  const gateRun = run(root, options);
+  const filesWritten =
+    options.write && gateRun.report ? writeArtifacts(root, gateRun.report) : 0;
+  const envelope = await sealEnvelope({ gateRun, options, filesWritten });
+  // Exactly ONE machine-readable object on stdout. `--report` is a diagnostic
+  // that swaps the envelope for the detailed report; it never adds a second
+  // document, because a stream carrying two shapes has no schema at all.
+  if (options.report) console.log(JSON.stringify(gateRun.report, null, 2));
+  else if (options.json) console.log(JSON.stringify(envelope, null, 2));
+  printHuman(gateRun, envelope);
+  process.exitCode = SUCCESS_STATUSES.includes(envelope.status) ? 0 : 1;
+}
+
+/**
+ * Build the envelope through the shared module when it is installed, so its
+ * validator — not this file — decides conformance.
+ *
+ * When the shared module is absent the same object is emitted unvalidated
+ * rather than nothing: a gate that produces no result is indistinguishable
+ * from one that passed.
+ * @param {object} input - The gate run, CLI options, and files written.
+ * @returns {Promise<object>} The envelope.
+ */
+async function sealEnvelope({ gateRun, options, filesWritten }) {
+  const fields = toCommandEnvelope({
+    run: gateRun,
+    env: process.env,
+    options,
+    filesWritten,
+  });
+  const shared = await loadEnvelopeModule(
+    path.dirname(fileURLToPath(import.meta.url))
+  );
+  if (!shared) {
+    console.error(
+      "[bdd-coverage] scripts/lisa-command-envelope.mjs is not installed; emitting the envelope without validating it against the published schema."
+    );
+    return { schemaVersion: "lisa-command-envelope-v1", ...fields };
+  }
+  return shared.buildEnvelope(fields);
 }
 
 /**
  * Write the regenerated machine report and burndown.
  * @param {string} root - Repo root.
  * @param {object} report - The report.
- * @returns {void}
+ * @returns {number} How many files were written, for the envelope's counters.
  */
 function writeArtifacts(root, report) {
   fs.writeFileSync(
@@ -511,23 +629,28 @@ function writeArtifacts(root, report) {
     path.join(root, "docs", "e2e-bdd-coverage.md"),
     `${renderBurndown(report).trim()}\n`
   );
+  return 2;
 }
 
 /**
- * Print the human-readable result.
- * @param {object} result - The envelope.
+ * Narrate the result on stderr, which the envelope contract reserves for
+ * humans so stdout stays exactly one machine-readable object.
+ * @param {object} gateRun - The internal result.
+ * @param {object} envelope - The emitted envelope.
  * @returns {void}
  */
-function printHuman(result) {
-  const log = result.status === "failed" ? console.error : console.log;
-  for (const item of result.defects)
-    log(`[bdd-coverage] ${item.code}: ${item.message}`);
-  if (result.mode === "bootstrap" && result.defects.length > 0) {
-    console.log(
-      "[bdd-coverage] bootstrap: the defects above are visible warnings, not blockers, until this repo advances to enforced."
+function printHuman(gateRun, envelope) {
+  for (const item of gateRun.defects) {
+    console.error(
+      `[bdd-coverage] ${item.severity}: ${item.code}: ${item.message}`
     );
   }
-  log(`[bdd-coverage] ${result.summary}`);
+  if (gateRun.adoptionState === "bootstrap" && gateRun.defects.length > 0) {
+    console.error(
+      "[bdd-coverage] bootstrap: warnings above are visible, not blockers, until this repo advances to enforced. Anything reported as `error` fails even here."
+    );
+  }
+  console.error(`[bdd-coverage] ${envelope.summary.headline}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
