@@ -1,0 +1,38 @@
+{
+  "_comment": "BDD behavior contract, machine-readable half. See the Lisa rule `bdd-e2e-coverage` and docs/bdd-coverage-schema.md. Seeded in the `not-adopted` state: the gate reports and exits 0, and the BDD check MUST NOT be a required ruleset context until adoption.state is `enforced`. Adopt in one operation: set adoption.state, pass the matching bdd_mode from ci.yml, and add the ruleset context together.",
+  "schemaVersion": 2,
+  "asOf": "1970-01-01",
+  "adoption": {
+    "_comment": "not-adopted | bootstrap | enforced. Must equal the bdd_mode this repo's ci.yml passes to Lisa's quality.yml. bootstrap additionally requires `owner` (a named person) and `expiresAt` (an ISO date) — a bootstrap with no time-box never ends.",
+    "state": "not-adopted",
+    "owner": null,
+    "expiresAt": null
+  },
+  "runnerPlatforms": {
+    "_comment": "The ONLY place a test runner is named authoritatively. Declare each runner this project has and the platforms it covers, e.g. {\"playwright\": [\"web\"], \"maestro\": [\"ios\", \"android\"]}. Platform vocabulary is this project's own.",
+    "playwright": ["web"],
+    "maestro": ["ios", "android"]
+  },
+  "coverageFloor": {
+    "_comment": "Committed traceability floor per platform. A ratchet: may rise, may never fall. Seeded at 0 so adopting on a brownfield app never red-gates CI before any scenario exists. Lowering one requires a coverageFloorBaseline record naming the exact change AND the maintainer-applied `bdd-floor-baseline` pull-request label.",
+    "web": 0,
+    "ios": 0,
+    "android": 0
+  },
+  "coverageFloorBaseline": [],
+  "retirements": [],
+  "trackers": {
+    "_comment": "Tracker-tag grammar is portfolio-wide; the allowed keys and repos are per-repo. Key style: @TUN-123, @SE-6833. Repo-issue style: @gh-2394 (this repo) or @gh-wiki-124 (a sibling repo). Tags are validated for syntax and membership only — the gate never contacts a tracker, so an unreachable issue can never block a merge.",
+    "required": false,
+    "keys": [],
+    "keyUrlTemplate": null,
+    "github": {
+      "org": null,
+      "defaultRepo": null,
+      "repos": []
+    }
+  },
+  "platformWaivers": [],
+  "mappings": [],
+  "exclusions": []
+}

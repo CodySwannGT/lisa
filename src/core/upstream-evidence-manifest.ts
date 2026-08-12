@@ -166,6 +166,26 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "102b22e857eb9deebfa18a44b680f8d95496dafcceaa3e65b6774b8e4a0e74f1",
     "expo/copy-overwrite/knip.json":
       "b19d0c177d8d0460779e07043c92d37555e7721224b6b2134ac2f6d10ab44b33",
+    "expo/copy-overwrite/scripts/bdd-matrix.mjs":
+      "f510e7e4484cd4f6182afab72f412ff9e8db458b18b96403ec1c0bd672f1dd51",
+    "expo/copy-overwrite/scripts/bdd/baseline.mjs":
+      "dd48f24536fd36c56e8e6dc3c192f8862f3aa7dfef0e46db4f55205c1ee2b1ec",
+    "expo/copy-overwrite/scripts/bdd/contract.mjs":
+      "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
+    "expo/copy-overwrite/scripts/bdd/envelope.mjs":
+      "7bb2aa5dbe49fa97d3f14e5400fef3f76e0fd99ab74e88d568a3d037c94c601d",
+    "expo/copy-overwrite/scripts/bdd/parse.mjs":
+      "d6866a422d841cef291dea931424af4e0799be34d19f6817adba28e31972ac4f",
+    "expo/copy-overwrite/scripts/bdd/render.mjs":
+      "c900d5be3b4692bc7f2252f1461b0db987d300f99817ad83466428c530da4fce",
+    "expo/copy-overwrite/scripts/bdd/report.mjs":
+      "effb76f834032e5a21e631134a1fb38a08382dcb1db5da2c57fc28aeebe6fb56",
+    "expo/copy-overwrite/scripts/bdd/validate.mjs":
+      "564e128ba1fc804861598baf509e2e13ec688bb99df9612b1aea3434ed9412a6",
+    "expo/copy-overwrite/scripts/bdd/waivers.mjs":
+      "4b9ebf80100f478cc5e06d50b4d672ad08ec77a3746a7a109a74e1daf71a55b7",
+    "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
+      "13db95d2ed8bce81acfb4fdfd9adb195a60818952393268f6a269dbaa6e62d66",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -190,6 +210,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
       "faaf96f0d43c724a240a7892584de54ae384eee9ef9d76430d081f37d9f92924",
+    "expo/create-only/bdd/coverage-map.json":
+      "7aecd1aca01b73eb20e311281a5e63137bd92d86d49c02fb48bcee9fdc94e07d",
+    "expo/create-only/bdd/features/.keep":
+      "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":
       "23ac9bab7fe84cfa542785156425e020af9baabdbeb1a53293ae7e2395e4dd92",
     "expo/create-only/jest.config.local.ts":
@@ -214,6 +238,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
     "expo/deletions.json":
       "ddf6330d4f5d961c55e908efcc5d71c4c78410525018b096702b9a53906b946e",
+    "expo/github-rulesets/bdd-coverage.json":
+      "e97e53f48abc255a1a200c63fcea0cf2353b795248d126155041347908815386",
     "expo/github-rulesets/nightly-e2e-health.json":
       "af9556f52bbb04d303f557eb178d876d82348d15a991729b8a96fb1f06d5b03a",
     "expo/merge/.claude/settings.json":
@@ -221,7 +247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
-      "c0d30ba53a179acb8720c4443b5f5fd6df092f735b9e3fbcea34f6b4995def0f",
+      "a36a59462e548e685bd199770cb2d567a5965a1c1da6e32ef3e9041b2f9f1446",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -2483,6 +2509,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/merge/.oxlintrc.json": true,
     "cdk/package-lisa/package.lisa.json": true,
     "commitlint.config.cjs": true,
+    "docs/bdd-coverage-schema.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
@@ -2543,6 +2570,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/jest.setup.pre.js": true,
     "expo/copy-overwrite/jest.setup.ts": true,
     "expo/copy-overwrite/knip.json": true,
+    "expo/copy-overwrite/scripts/bdd-matrix.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/baseline.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/contract.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/envelope.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/parse.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/render.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/report.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/validate.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/waivers.mjs": true,
+    "expo/copy-overwrite/scripts/check-bdd-coverage.mjs": true,
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs": true,
     "expo/copy-overwrite/tsconfig.eslint.json": true,
     "expo/copy-overwrite/tsconfig.expo.json": true,
@@ -2555,6 +2592,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/.github/workflows/nightly-e2e-health.yml": true,
     "expo/create-only/.zap/baseline.conf": true,
     "expo/create-only/babel.config.js": true,
+    "expo/create-only/bdd/coverage-map.json": true,
+    "expo/create-only/bdd/features/.keep": true,
     "expo/create-only/e2e.thresholds.json": true,
     "expo/create-only/jest.config.local.ts": true,
     "expo/create-only/jest.config.react-native-mock.js": true,
@@ -2567,6 +2606,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/tsconfig.json": true,
     "expo/create-only/tsconfig.local.json": true,
     "expo/deletions.json": true,
+    "expo/github-rulesets/bdd-coverage.json": true,
     "expo/github-rulesets/nightly-e2e-health.json": true,
     "expo/merge/.claude/settings.json": true,
     "expo/merge/.oxlintrc.json": true,
@@ -8585,6 +8625,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/parity-safety-net-plugin.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
+    "tests/unit/scripts/bdd-adoption.test.ts": true,
+    "tests/unit/scripts/bdd-envelope.test.ts": true,
+    "tests/unit/scripts/bdd-grammar.test.ts": true,
+    "tests/unit/scripts/bdd-ratchet.test.ts": true,
+    "tests/unit/scripts/bdd-reporting.test.ts": true,
+    "tests/unit/scripts/bdd-validation.test.ts": true,
+    "tests/unit/scripts/bdd-wiring.test.ts": true,
+    "tests/unit/scripts/bdd/support.ts": true,
     "tests/unit/scripts/build-cursor-hooks-json.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions-helpers.ts": true,
     "tests/unit/scripts/check-duplicate-versions.test.ts": true,

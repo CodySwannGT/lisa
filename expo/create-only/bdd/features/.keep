@@ -1,0 +1,5 @@
+# Gherkin behavior contract lives here as *.feature files.
+#
+# Each scenario carries one stable @BDD-<DOMAIN>-<NNN> id, the platforms it
+# requires, @figma-*/@ratified-* provenance, and a tracker tag (@TUN-123,
+# @SE-6833, @gh-2394, @gh-wiki-124). See the Lisa rule bdd-e2e-coverage.
