@@ -1293,12 +1293,55 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Fingerprint of the inputs the build below depends on. Deliberately
+      # ungated: the cache steps interpolate this output, and a skipped step
+      # yields an empty string, which would silently collapse the cache key to
+      # a constant rather than fail. It costs ~10ms, so it always runs.
+      #
+      # This replaces `hashFiles('**/src/**', '**/app/**', ...)`. Those patterns
+      # are unanchored, so they also matched `node_modules/**/src/**`: measured
+      # on PropSwapLLC/frontend, the glob enumerated 116,353 paths and hashed
+      # 26,955 files out of node_modules against 1,305 real source files. The
+      # runner caps one hashFiles call at 120 seconds, and on a slow runner it
+      # blew through that — failing the job in the cache's POST step, AFTER
+      # every test had already passed. Playwright nightly run 31574583191 went
+      # red exactly that way, with 73/73 specs green and zero test failures.
+      #
+      # git only tracks checked-in files, so gitignored node_modules can never
+      # enter the key, and the walk is O(tracked files) — 0.012s on the same
+      # repo. `ls-files -s` emits each file's mode and blob SHA, so the digest
+      # stays content-addressed exactly as hashFiles was, and `hash-object`
+      # keeps it portable across runner OSes (no sha256sum/shasum split).
+      #
+      # Pathspecs are relative to the working directory, which is what the
+      # `**/`-prefixed globs were approximating — and gets it right for a
+      # nested working_directory instead of hashing every package in a monorepo.
+      #
+      # app.config.{js,ts} are included here but were absent from the old glob,
+      # even though 🔍 Detect Expo project treats them as Expo config: changing
+      # one used to restore a stale export.
+      - name: 🔑 Fingerprint build inputs
+        id: build_fingerprint
+        run: |
+          set -euo pipefail
+          fingerprint=$(git ls-files -s -- \
+            'bun.lock' 'bun.lockb' 'package-lock.json' 'yarn.lock' \
+            'src' 'app' 'components' 'features' \
+            'app.json' 'app.config.js' 'app.config.ts' 'package.json' \
+            'babel.config.js' 'babel.config.ts' \
+            'metro.config.js' 'metro.config.ts' 'tsconfig.json' \
+            | git hash-object --stdin)
+          echo "hash=$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "Build input fingerprint: $fingerprint"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Expo build cache — opt-in via `cache_build: true`.
       #
       # Cache invalidation contract:
-      #   Key hashes (in order): lockfiles → source directories → config files.
-      #   Any change to a lockfile, src/app/components/features source, or
-      #   Expo/Metro/Babel/TS config will miss the cache and force a rebuild.
+      #   Key is the build-input fingerprint computed above: lockfiles → source
+      #   directories → config files. Any change to a lockfile, to
+      #   src/app/components/features source, or to Expo/Metro/Babel/TS config
+      #   misses the cache and forces a rebuild.
       #   Runner OS is part of the key to prevent cross-OS cache reuse.
       # Cached paths:
       #   - dist/             Expo web export output (consumed by Playwright)
@@ -1313,7 +1356,7 @@ jobs:
             ${{ inputs.working_directory || '.' }}/dist
             ${{ inputs.working_directory || '.' }}/.expo
             ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-expo-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/src/**', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          key: ${{ runner.os }}-expo-build-${{ steps.build_fingerprint.outputs.hash }}
           restore-keys: |
             ${{ runner.os }}-expo-build-
 
@@ -1560,11 +1603,31 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Same build-input fingerprint the playwright_e2e job uses, and for the
+      # same reason — the `**/src/**`-style globs this replaces walked
+      # node_modules and could exceed the runner's 120s hashFiles cap. See the
+      # 🔑 Fingerprint build inputs step in playwright_e2e for the measurements.
+      - name: 🔑 Fingerprint build inputs
+        id: build_fingerprint
+        run: |
+          set -euo pipefail
+          fingerprint=$(git ls-files -s -- \
+            'bun.lock' 'bun.lockb' 'package-lock.json' 'yarn.lock' \
+            'src' 'app' 'components' 'features' \
+            'app.json' 'app.config.js' 'app.config.ts' 'package.json' \
+            'babel.config.js' 'babel.config.ts' \
+            'metro.config.js' 'metro.config.ts' 'tsconfig.json' \
+            | git hash-object --stdin)
+          echo "hash=$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "Build input fingerprint: $fingerprint"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Build output cache — opt-in via `cache_build: true`.
       #
       # Cache invalidation contract (same as playwright_e2e):
-      #   Key hashes lockfiles → src/app/components/features sources →
-      #   Expo/Metro/Babel/TS configs. Any change forces a rebuild.
+      #   Key is the build-input fingerprint above: lockfiles →
+      #   src/app/components/features sources → Expo/Metro/Babel/TS configs.
+      #   Any change forces a rebuild.
       # Cached paths cover common build output directories (dist, build,
       # .next, out) plus bundler caches. Default false = unchanged behavior.
       - name: 💾 Restore build cache
@@ -1579,7 +1642,7 @@ jobs:
             ${{ inputs.working_directory || '.' }}/out
             ${{ inputs.working_directory || '.' }}/.expo
             ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/src/**', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          key: ${{ runner.os }}-build-${{ steps.build_fingerprint.outputs.hash }}
           restore-keys: |
             ${{ runner.os }}-build-
 
