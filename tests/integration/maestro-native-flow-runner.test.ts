@@ -88,8 +88,12 @@ describe("maestro-native flow_runner seam", () => {
     expect(iosRun?.run).toContain(
       'bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}'
     );
-    expect(iosRun?.run).toContain(
-      "maestro test ${{ inputs.flows_dir }} \\\n    $MAESTRO_E2E_ARGS"
+    // Indentation-agnostic on purpose: the invocation now lives inside a
+    // `run_suite()` function so the driver-startup retry can call it twice,
+    // which shifts it two columns. What matters is that the flows dir and the
+    // assembled args still reach the same command, not how deep it sits.
+    expect(iosRun?.run.replace(/\n\s+/g, " ")).toContain(
+      "maestro test ${{ inputs.flows_dir }} \\ $MAESTRO_E2E_ARGS"
     );
   });
 });
