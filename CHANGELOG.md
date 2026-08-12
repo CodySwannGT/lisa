@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.349.1](https://github.com/CodySwannGT/lisa/compare/v2.349.0...v2.349.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **bdd:** close six ways the coverage gate could report what it had not proven ([b71e494](https://github.com/CodySwannGT/lisa/commit/b71e4944424f78daa98928c81be38f821bafec73)), closes [gunnertech/frontend#388](https://github.com/gunnertech/frontend/issues/388) [#2412](https://github.com/CodySwannGT/lisa/issues/2412) [CodySwannGT/lisa#2421](https://github.com/CodySwannGT/lisa/issues/2421)
+
 ## [2.349.0](https://github.com/CodySwannGT/lisa/compare/v2.348.0...v2.349.0) (2026-08-12)
 
 
