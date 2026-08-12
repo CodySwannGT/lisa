@@ -453,10 +453,20 @@ export function assessSuite(suite, observation, context) {
   // Rows 12 and 13 — the matcher found nothing. A renamed job and a regex that
   // no longer matches are the same defect, and both are how a gate stops gating
   // with nothing to see. Never "nothing to report".
+  //
+  // `conclusion: null` is load-bearing here, not tidiness. `seen.conclusion` is
+  // the RUN's conclusion, which for a job-scoped suite is a different question
+  // from the one being answered — a workflow that also carries lint can conclude
+  // `failure` while the watched job is green, and vice versa. Reporting the run's
+  // value beside a job-derived state prints "❌ … [failure]" for a suite whose
+  // job was never found, or worse "✅ … [failure]" for one that passed. Both read
+  // as the gate contradicting itself, which is how a reader learns to stop
+  // trusting it.
   if (matches.length === 0) {
     return {
       ...base,
       ...seen,
+      conclusion: null,
       state: SUITE_STATES.unknown,
       reason:
         suite.match.mode === "job"
@@ -472,6 +482,7 @@ export function assessSuite(suite, observation, context) {
     return {
       ...base,
       ...seen,
+      conclusion: GREEN_CONCLUSION,
       state: SUITE_STATES.pass,
       reason: "job_conclusion",
     };
