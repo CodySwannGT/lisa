@@ -65,6 +65,7 @@ For each acceptance criterion:
 - Every user flow must include at least one error path
 - Use Gherkin format (Given/When/Then) for user flows to enable direct translation into test cases
 - For frontend work, the `bdd-e2e-coverage` rule applies: name the scenario IDs the item will add or change in the project's behavior contract and the platforms each must hold on, and list the contract update plus the aligned e2e automation as explicit acceptance criteria -- they are deliverables, not implied work. List the passing coverage gate and the regenerated matrix and burndown as explicit acceptance criteria too -- the item is not done on a code-complete mapping alone
+- For work that adds or changes persistent state, the `reset-seed-coverage` rule applies: name the persistent entities the item introduces or changes and the reset policy each takes (`fixture-owned` / `preserve` / `derived-rebuild` / `forbidden`), and list the state-contract update, the sweep for anything `fixture-owned`, and the passing state-classification check as explicit acceptance criteria -- they are deliverables, not implied work. Rows are only one kind of state: identity-provider objects, object storage, search indexes, queues, caches and derived views count too
 - When verifying, always run the feature -- never review by only reading code
 - If you cannot run the feature (missing dependencies, services unavailable), report as a blocker -- do not guess
 - If the changes are purely internal (refactoring, config, tooling), report "No user-facing impact" and explain why

@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lisa.codyswann.dev/schemas/lisa-state-contract.v1.schema.json",
+  "title": "Lisa state contract (v1)",
+  "description": "Per-project declaration of every persistent entity and the reset policy that governs it. Governed by the reset-seed-coverage rule. The check compares a runtime inventory against this document and fails closed on any entity the document does not classify.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractVersion", "mode", "owner"],
+  "properties": {
+    "schemaVersion": {
+      "const": "lisa-state-contract-v1",
+      "description": "Pinned schema version. A bump is a deliberate migration."
+    },
+    "contractVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The project's own version for its declared state. Bump whenever a policy or ownership predicate changes, so evidence from one run cannot be read as evidence for a different contract."
+    },
+    "mode": {
+      "enum": ["contract", "declared-noop"],
+      "description": "contract = this project holds persistent state and classifies it below. declared-noop = this project holds no persistent state; the check verifies that claim against the repository rather than trusting it."
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Team or role that answers questions about this file. Not an individual's personal account."
+    },
+    "noop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "owner", "capabilityManifest"],
+      "description": "Required when mode is declared-noop. A bare exit 0 is indistinguishable from a successful destructive run and never satisfies the contract.",
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "capabilityManifest": { "type": "string", "minLength": 1 }
+      }
+    },
+    "environments": {
+      "type": "array",
+      "description": "Environments a reset may target. Each names how the environment identity is resolved server-side; a caller-supplied stage is only a request checked against it.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["name", "identitySource"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "identitySource": { "type": "string", "minLength": 1 },
+          "resetAllowed": { "type": "boolean" }
+        }
+      }
+    },
+    "fixtureIdentity": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["description"],
+      "description": "How fixture-owned records are recognized. The ownership predicate the entire safety model rests on: a reserved id shape, a reserved account or namespace, or a marker attribute.",
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "idPattern": { "type": "string", "minLength": 1 },
+        "reservedPrincipals": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tuning for the subtraction detectors. Detectors are a staleness signal, never the safety boundary.",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Extra repository paths to scan for declared entities (migrations, schema files, model definitions)."
+        },
+        "ignore": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Entity names the detectors may find but that are not real persistent entities (framework bookkeeping, examples in docs)."
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "description": "One entry per persistent entity. Rows are only one kind of state: identity-provider objects, object-storage prefixes, search indexes, queues, caches, derived views, scheduled jobs and outbound side effects all belong here too.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "kind", "policy", "reason", "owner"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable, fully qualified identifier: namespace/schema plus name."
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The project's own vocabulary for what sort of state this is (table, view, materialized-view, identity-group, object-prefix, search-index, queue, cache-namespace, scheduled-job, external-record, ...)."
+          },
+          "policy": {
+            "enum": [
+              "fixture-owned",
+              "preserve",
+              "derived-rebuild",
+              "forbidden"
+            ],
+            "description": "fixture-owned = the reset may delete records it owns. preserve = untouched. derived-rebuild = recomputed from sources. forbidden = the reset must be structurally unable to touch it."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why this policy, in one sentence a reviewer can check. Classify by provenance (who writes it, can anything put it back), never by an emptiness observation."
+          },
+          "owner": { "type": "string", "minLength": 1 },
+          "ownership": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required for fixture-owned: the predicate identifying which records the reset may delete. Never 'everything in this entity'."
+          },
+          "sweptBy": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required for fixture-owned: the routine that actually removes them. A fixture-owned entity nothing sweeps is the leak this contract exists to catch."
+          },
+          "rebuiltFrom": { "type": "string", "minLength": 1 },
+          "rebuiltBy": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required for derived-rebuild: the routine that recomputes it, and proves convergence."
+          },
+          "enforcedBy": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required for forbidden: a control OUTSIDE the reset process — a least-privilege role, a revoked grant, a separate credential boundary, a constraint. 'The script does not touch it' is not an enforcement."
+          },
+          "retiredAt": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Set when the entity no longer exists. A classified entity absent from the inventory is stale and fails unless retired with a date."
+          }
+        }
+      }
+    },
+    "assurances": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The required properties of the reset, each pointing at the evidence that proves it. A declaration with no evidence pointer fails the check.",
+      "properties": {
+        "preserves-non-fixture-data": { "$ref": "#/$defs/assurance" },
+        "rejects-reserved-id-collision": { "$ref": "#/$defs/assurance" },
+        "rejects-foreign-references": { "$ref": "#/$defs/assurance" },
+        "requires-write-acknowledgment": { "$ref": "#/$defs/assurance" },
+        "converges-on-second-apply": { "$ref": "#/$defs/assurance" },
+        "verifies-exact-counts": { "$ref": "#/$defs/assurance" },
+        "production-fails-closed": { "$ref": "#/$defs/assurance" },
+        "guard-at-the-choke-point": { "$ref": "#/$defs/assurance" },
+        "enumerates-before-mutating": { "$ref": "#/$defs/assurance" }
+      }
+    },
+    "waivers": {
+      "type": "array",
+      "description": "Dated IOUs for entities that genuinely cannot be classified yet. A waived entity is treated as preserve for safety and stays a visible finding; it never counts as classified.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "reason", "owner", "ticket", "recordedAt"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "owner": { "type": "string", "minLength": 1 },
+          "ticket": { "type": "string", "minLength": 1 },
+          "recordedAt": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assurance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["evidence"],
+      "properties": {
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pointer to the test, guard, role, or grant that proves this property."
+        },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
