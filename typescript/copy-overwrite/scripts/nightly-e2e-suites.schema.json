@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodySwannGT/lisa/typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json",
+  "title": "Nightly E2E Health — suites table",
+  "description": "The structured `suites` input of the nightly-e2e-health reusable workflow. Passed as a JSON string because workflow_call inputs cannot be objects. Validated by check-nightly-e2e-health.mjs BEFORE any API call, so a malformed table fails the gate rather than silently gating less than its author believes. Deliberately NOT a delimiter-joined mini-language: a `;`-separated table cannot express optional per-suite freshness, cannot distinguish an exact job name from a pattern, and cannot reject a duplicate.",
+  "type": "array",
+  "minItems": 1,
+  "items": { "$ref": "#/$defs/suite" },
+  "$defs": {
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "workflow", "match"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name for this suite, used in the report. Must be unique across the table — two suites sharing a label produce one report line for two verdicts."
+        },
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Workflow FILE name (e.g. `maestro-e2e.yml`). The Actions API accepts the file name as the workflow id, which survives a rename of the workflow's display `name:`. A file the API cannot find is a hard failure, not a missing-evidence bootstrap: it means the workflow was renamed or deleted out from under the gate."
+        },
+        "match": {
+          "description": "How this suite's verdict is read. `run` and `job` are the machine-readable contract and are preferred; `job_pattern` is a last resort for matrix job names no single string can cover.",
+          "oneOf": [
+            { "$ref": "#/$defs/matchRun" },
+            { "$ref": "#/$defs/matchJob" },
+            { "$ref": "#/$defs/matchJobPattern" }
+          ]
+        },
+        "freshness_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 720,
+          "description": "Override the workflow-level freshness window for this suite. A run older than this is treated as no run at all (missing evidence), which fails once the bootstrap window has closed."
+        },
+        "required_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "When present, the run's head_sha must equal this exact commit. Use only where the suite is expected to run on a pinned commit; freshness plus the branch filter is the normal staleness control."
+        }
+      }
+    },
+    "matchRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "const": "run" }
+      },
+      "description": "Read the run's own conclusion. Correct when the whole workflow IS the suite."
+    },
+    "matchJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "name"],
+      "properties": {
+        "mode": { "const": "job" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The job's name, EXACTLY as the Actions API reports it. For a job inside a nested reusable workflow the API reports `<caller job name> / <called job name>` — the same composition the required status-check context uses. A run that completes without ever producing this job is a renamed job, which fails once bootstrap closes."
+        }
+      },
+      "description": "Read one named job's conclusion. Correct when the suite is one job inside a larger workflow (so a Lighthouse regression elsewhere in that workflow cannot block every PR)."
+    },
+    "matchJobPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "pattern"],
+      "properties": {
+        "mode": { "const": "job_pattern" },
+        "pattern": {
+          "type": "string",
+          "minLength": 3,
+          "pattern": "^\\^.*\\$$",
+          "description": "An ECMAScript regular expression ANCHORED at both ends. Anchoring is enforced, not advised: an unanchored regex is a substring test wearing a regex's clothes, so `Playwright` would match `Playwright (skipped placeholder)`. Matching ZERO jobs is an error — zero matches is the signature of a renamed job, which is exactly how a gate stops gating unnoticed. Any non-success match decides the verdict."
+        }
+      },
+      "description": "Read every job whose name matches an anchored regex. Last resort: use it only for matrix job names (`… (android)`, `… (shard 2/4)`) that no single exact string can cover."
+    }
+  }
+}
