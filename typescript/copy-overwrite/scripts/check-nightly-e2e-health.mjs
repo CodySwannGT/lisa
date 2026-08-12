@@ -169,6 +169,23 @@ export const ABSOLUTE_MAX_FRESHNESS_HOURS = 720;
 export const ABSOLUTE_MAX_API_ATTEMPTS = 5;
 
 /**
+ * Hard ceiling on job-list pages one run may consume.
+ *
+ * Unbounded, `NIGHTLY_API_MAX_PAGES` would remove the very bound that makes a
+ * truncated job list detectable.
+ */
+export const ABSOLUTE_MAX_API_PAGES = 20;
+
+/**
+ * Hard ceiling on a single retry wait.
+ *
+ * Unbounded, `NIGHTLY_API_RETRY_MAX_SECONDS=86400` would park the gate until the
+ * runner timeout — a check that never reports, which on a required context
+ * blocks every PR just as effectively as a red one but with nothing to read.
+ */
+export const ABSOLUTE_MAX_RETRY_SECONDS = 120;
+
+/**
  * Applies every source-constant ceiling, in one place.
  *
  * Numeric ceilings CLAMP DOWN rather than fail, because clamping toward
@@ -180,7 +197,7 @@ export const ABSOLUTE_MAX_API_ATTEMPTS = 5;
  * (see `resolveBootstrap`): it is a date somebody chose, and quietly pulling it
  * closer would make the gate arm on a day nobody expected.
  *
- * @param {{bypassMaxHours: number, bootstrapMaxDays: number, freshnessHours: number, apiMaxAttempts: number}} requested - What the caller asked for
+ * @param {{bypassMaxHours: number, bootstrapMaxDays: number, freshnessHours: number, apiMaxAttempts: number, apiMaxPages: number, apiRetryMaxSeconds: number}} requested - What the caller asked for
  * @returns {{limits: object, clamped: ReadonlyArray<string>}} The effective limits and what was reduced
  */
 export function resolveSecurityLimits(requested) {
@@ -223,6 +240,16 @@ export function resolveSecurityLimits(requested) {
         "api_max_attempts",
         requested.apiMaxAttempts,
         ABSOLUTE_MAX_API_ATTEMPTS
+      ),
+      apiMaxPages: cap(
+        "api_max_pages",
+        requested.apiMaxPages,
+        ABSOLUTE_MAX_API_PAGES
+      ),
+      apiRetryMaxSeconds: cap(
+        "api_retry_max_seconds",
+        requested.apiRetryMaxSeconds,
+        ABSOLUTE_MAX_RETRY_SECONDS
       ),
     }),
     clamped: Object.freeze(clamped),
@@ -415,10 +442,10 @@ export function validateSuites(raw) {
         typeof hours !== "number" ||
         !Number.isFinite(hours) ||
         hours <= 0 ||
-        hours > 720
+        hours > ABSOLUTE_MAX_FRESHNESS_HOURS
       ) {
         throw new GateConfigError(
-          `${where}: \`freshness_hours\` must be a number in (0, 720].`
+          `${where}: \`freshness_hours\` must be a number in (0, ${ABSOLUTE_MAX_FRESHNESS_HOURS}].`
         );
       }
     }
@@ -670,13 +697,15 @@ export function resolveBootstrap(until, maxDays, now) {
  * rule would let `.*` satisfy "a reason and a ticket are required" with an empty
  * PR body — a security limit a caller can relax is not a limit.
  *
- * @param {object} request - `{ labelEvent, prAuthor, prBody, actorPermission, maxHours, extraReasonPattern, now }`
+ * @param {object} request - `{ labelEvent, prAuthor, prNumber, label, prBody, actorPermission, maxHours, extraReasonPattern, now }`
  * @returns {{valid: boolean, reason: string, actor: string|null, appliedAt: string|null, expiresAt: string|null, ticket: string|null, detail: string|null}} The decision
  */
 export function evaluateBypass(request) {
   const {
     labelEvent,
     prAuthor,
+    prNumber = null,
+    label = null,
     prBody,
     actorPermission,
     maxHours,
@@ -684,8 +713,17 @@ export function evaluateBypass(request) {
     now,
   } = request;
 
+  /** Identity of the request, carried onto every outcome for the audit. */
+  const subject = {
+    label,
+    prAuthor: prAuthor ?? null,
+    prNumber,
+    actorPermission: actorPermission ?? null,
+  };
+
   const reject = (reason, extra = {}) =>
     Object.freeze({
+      ...subject,
       valid: false,
       reason,
       actor: labelEvent?.actor ?? null,
@@ -751,6 +789,7 @@ export function evaluateBypass(request) {
   }
 
   return Object.freeze({
+    ...subject,
     valid: true,
     reason: "valid",
     actor: labelEvent.actor,
@@ -1095,7 +1134,11 @@ export async function fetchAllJobs(api, runId, wait) {
       `/repos/${api.repo}/actions/runs/${runId}/jobs?per_page=100&page=${page}&filter=latest`,
       wait
     );
-    if (result === null) break;
+    // A 404 means the run's job list stopped being readable mid-walk. Return
+    // what was read; falling through to the page-cap throw below would blame a
+    // pagination limit that had nothing to do with it AND discard every job
+    // already collected.
+    if (result === null) return Object.freeze(jobs);
     const batch = result.body.jobs ?? [];
     jobs.push(...batch);
     if (batch.length < 100) return Object.freeze(jobs);
@@ -1262,6 +1305,8 @@ export function resolveSettings(env) {
     bootstrapMaxDays: number("NIGHTLY_BOOTSTRAP_MAX_DAYS", 30),
     freshnessHours: number("NIGHTLY_FRESHNESS_HOURS", 36),
     apiMaxAttempts: number("NIGHTLY_API_MAX_ATTEMPTS", 3),
+    apiMaxPages: number("NIGHTLY_API_MAX_PAGES", 5),
+    apiRetryMaxSeconds: number("NIGHTLY_API_RETRY_MAX_SECONDS", 60),
   });
 
   return {
@@ -1270,8 +1315,8 @@ export function resolveSettings(env) {
       repo: env.GITHUB_REPOSITORY,
       token,
       maxAttempts: limits.apiMaxAttempts,
-      maxPages: number("NIGHTLY_API_MAX_PAGES", 5),
-      retryMaxSeconds: number("NIGHTLY_API_RETRY_MAX_SECONDS", 60),
+      maxPages: limits.apiMaxPages,
+      retryMaxSeconds: limits.apiRetryMaxSeconds,
     },
     branch,
     suites: validateSuites(env.NIGHTLY_SUITES),
@@ -1344,6 +1389,8 @@ export async function runGate(env, wait) {
       prAuthor: settings.pr.author,
       prBody: settings.pr.body,
       actorPermission,
+      prNumber: settings.pr.number,
+      label: settings.bypassLabel,
       maxHours: settings.bypassMaxHours,
       extraReasonPattern: settings.extraBypassReasonPattern,
       now,
@@ -1385,6 +1432,11 @@ async function main(argv) {
       error: { kind, message },
       findings: [],
     };
+    // A downstream job reading `verdict`/`blocked` must see the gate's OWN
+    // failures too. Leaving them unset makes a configuration or API failure
+    // indistinguishable from a job that never ran — the same "absence reads as
+    // fine" shape the whole gate refuses.
+    await writeOutputs(failure);
     if (asJson) {
       process.stdout.write(`${JSON.stringify(failure, null, 2)}\n`);
       return;

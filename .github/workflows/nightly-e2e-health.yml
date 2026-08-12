@@ -71,7 +71,7 @@
 #   permissions:
 #     contents: read        # checkout
 #     actions:  read        # the whole point: reading other workflows' history
-#     pull-requests: read   # ONLY when the bypass path is used on a PRIVATE repo
+#     pull-requests: read   # attributing the bypass label (see below)
 #
 # This workflow never requests write. The default `${{ github.token }}` is
 # sufficient; there is deliberately no cross-repo mode, because a gate that reads
@@ -213,9 +213,16 @@ on:
         description: 'The full machine verdict, including the bypass audit record when one applies.'
         value: ${{ jobs.gate.outputs.audit_json }}
 
+# A called workflow's `permissions:` is a CEILING, not a request: a scope absent
+# here can never be granted by the caller. `pull-requests: read` is therefore
+# listed even though only the bypass path needs it — without it, reading the PR
+# timeline to attribute the bypass label 403s on a private repository, and a
+# valid maintainer bypass is rejected as `no_attributable_actor`. Read-only, and
+# still the minimum: nothing here is ever `write`.
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 jobs:
   # This job's name is HALF of the required status-check context. GitHub composes

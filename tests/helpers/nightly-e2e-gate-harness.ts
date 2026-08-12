@@ -83,6 +83,8 @@ export interface GateModule {
   readonly BOOTSTRAP_ABSOLUTE_MAX_DAYS: number;
   readonly ABSOLUTE_MAX_FRESHNESS_HOURS: number;
   readonly ABSOLUTE_MAX_API_ATTEMPTS: number;
+  readonly ABSOLUTE_MAX_API_PAGES: number;
+  readonly ABSOLUTE_MAX_RETRY_SECONDS: number;
   readonly BYPASS_PERMISSIONS: ReadonlySet<string>;
   resolveSecurityLimits(requested: Record<string, number>): {
     limits: Record<string, number>;

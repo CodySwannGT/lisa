@@ -129,6 +129,43 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       expect(decision.expiresAt).toBe("2026-08-13T09:00:00.000Z");
     });
 
+    it("emits the audit record key-for-key as the contract documents it", () => {
+      // §8 makes `audit_json` part of the output schema, so adopters may parse
+      // it. A documented shape the code does not emit is worse than none.
+      const decision = bypassWith({ prNumber: 123, label: LABEL });
+      expect(
+        Object.keys(decision).toSorted((a, b) => a.localeCompare(b))
+      ).toEqual([
+        "actor",
+        "actorPermission",
+        "appliedAt",
+        "detail",
+        "expiresAt",
+        "label",
+        "prAuthor",
+        "prNumber",
+        "reason",
+        "ticket",
+        "valid",
+      ]);
+      expect(decision.label).toBe(LABEL);
+      expect(decision.prNumber).toBe(123);
+      expect(decision.actorPermission).toBe("maintain");
+      expect(decision.prAuthor).toBe("author");
+    });
+
+    it("a REJECTED bypass carries the same keys, so the audit is uniform", () => {
+      const decision = bypassWith({
+        prNumber: 123,
+        label: LABEL,
+        labelEvent: { actor: "author", createdAt: APPLIED_AT },
+      });
+      expect(decision.valid).toBe(false);
+      expect(decision.reason).toBe("self_bypass");
+      expect(decision.label).toBe(LABEL);
+      expect(decision.prNumber).toBe(123);
+    });
+
     it("row 21: it produces a DISTINCT `bypassed` verdict, not a plain pass", () => {
       const verdict = mod.decide([RED_FINDING], {
         bootstrap: armed,

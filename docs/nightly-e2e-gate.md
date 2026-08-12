@@ -194,7 +194,7 @@ window here is mandatory and bounded.
   configuration and fails the check** (row 24). This is what stops the window
   being extended indefinitely by editing one string: past the cap, extending it
   requires changing the cap too, which is a reviewable act.
-- While the window is active, every non-`pass` suite renders as
+- While the window is active, every **`unknown`** suite renders as
   `⚠️ bootstrap — not blocking; this window expires <timestamp> (in N days)`,
   in the job summary and in the job's `verdict` output. The expiry is always
   visible; there is no quiet bootstrap.
@@ -256,16 +256,31 @@ check, distinct from `pass`, that carries an immutable audit record:
 ```json
 {
   "verdict": "bypassed",
+  "blocked": false,
   "bypass": {
+    "valid": true,
+    "reason": "valid",
     "label": "nightly-e2e-bypass",
-    "actor": "<login>", "actor_permission": "maintain",
-    "pr_author": "<login>", "pr_number": 123,
-    "applied_at": "2026-08-12T09:14:02Z", "expires_at": "2026-08-13T09:14:02Z",
-    "ticket": "SE-6899", "reason": "harness outage, no re-run can turn this green",
-    "waived": [ { "label": "…", "state": "fail", "conclusion": "failure", "url": "…" } ]
+    "actor": "<login>",
+    "actorPermission": "maintain",
+    "prAuthor": "<login>",
+    "prNumber": 123,
+    "appliedAt": "2026-08-12T09:14:02.000Z",
+    "expiresAt": "2026-08-13T09:14:02.000Z",
+    "ticket": "SE-6899",
+    "detail": "harness outage, no re-run can turn this green",
+    "waived": [
+      { "label": "…", "state": "fail", "conclusion": "failure", "url": "…" }
+    ]
   }
 }
 ```
+
+This is the **emitted** shape, key for key — a rejected bypass carries the same
+keys with `valid: false` and `reason` naming the rule that failed. §8 makes
+`audit_json` part of the output schema, so adopters may parse it; it is asserted
+against the implementation by
+`tests/unit/scripts/nightly-e2e-health-bypass.test.ts`.
 
 written to `$GITHUB_STEP_SUMMARY`, to stdout, to the job output `audit_json`,
 and echoed as a `::notice::` annotation so it is visible on the checks surface.
