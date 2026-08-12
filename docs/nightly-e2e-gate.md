@@ -8,8 +8,9 @@
 > `…-api.test.ts` (rows 17-20) and `…-bypass.test.ts` (rows 21-25).
 > Changing a row without changing its test is a contract violation.
 >
-> **Plan revision followed:** `2026-08-12-r2` (Portfolio E2E Standards Plan,
-> §5 WS-1a, Appendix A3/A4/A5).
+> **Plan revision followed:** `2026-08-12-r3` (Portfolio E2E Standards Plan,
+> §5 WS-1a, Appendix A3/A4/A5, plus the r3 allowlist-never-denylist doctrine
+> carried over from WS-0a — see §6.2).
 
 ## 1. What the gate is, and what it queries
 
@@ -246,8 +247,8 @@ A bypass is valid only when **all** of the following hold. Any failure is row 22
 | The PR carries the label named by `bypass_label` (default `nightly-e2e-bypass`). | The trigger. |
 | The **actor who applied the label** has repository permission `admin` or `maintain`. | "Maintainers only." Read from `GET /repos/{repo}/collaborators/{login}/permission`; the labelling actor is read from the newest matching `labeled` event on the PR timeline. |
 | The labelling actor is **not** the PR author. | **No self-bypass.** A bypass one person can both request and grant is not a control. |
-| The PR body contains a reason line matching `bypass_reason_pattern` (default `^Nightly-E2E-Bypass:\s*(?<ticket>[A-Z][A-Z0-9]+-\d+|#\d+)\s+(?<reason>\S.*)$`). | A reason **and** a tracker reference, in the artefact reviewers already read. |
-| The label was applied no more than `bypass_max_hours` ago (default `24`, hard ceiling `72`). | **Auto-expiry.** A label nobody removes must not be a permanent hole. Past the window the bypass simply stops working. |
+| The PR body contains a line matching the built-in `^Nightly-E2E-Bypass:\s*(?<ticket>[A-Z][A-Z0-9]+-\d+|#\d+)\s+(?<reason>\S.*)$`, **and** the optional `bypass_reason_pattern` if one is configured. | A reason **and** a tracker reference, in the artefact reviewers already read. The built-in rule always applies; a configured pattern is an AND, never a replacement (§6.2). |
+| The label was applied no more than `bypass_max_hours` ago (default `24`, **source-constant** ceiling `72`). | **Auto-expiry.** A label nobody removes must not be a permanent hole. Past the window the bypass simply stops working. |
 
 When all conditions hold the gate emits verdict **`bypassed`** — a *successful*
 check, distinct from `pass`, that carries an immutable audit record:
@@ -270,6 +271,45 @@ written to `$GITHUB_STEP_SUMMARY`, to stdout, to the job output `audit_json`,
 and echoed as a `::notice::` annotation so it is visible on the checks surface.
 A `pass` verdict ignores the label entirely — a stale label on a green PR must
 not read as though it did something.
+
+### 6.2 Allowlist, never denylist — and limits are source constants
+
+This is portfolio doctrine (plan r3, carried from WS-0a), and applying it to
+this gate found **two real fail-open holes in the guard's own configuration**
+before it shipped:
+
+1. `bypass_reason_pattern` was an override that **replaced** the built-in reason
+   rule. Setting it to `.*` would have satisfied "a reason and a ticket are
+   required" against a completely empty PR body.
+2. `bootstrap_max_days` was read straight from the environment. Setting
+   `NIGHTLY_BOOTSTRAP_MAX_DAYS=100000` would have restored precisely the
+   forever-bootstrap (§4) this gate exists to delete.
+
+Both are closed by the same three rules, which every future change to this file
+must keep:
+
+- **Allowlist, never denylist.** The roles that may grant a bypass are the
+  explicit set `{admin, maintain}`. Never "anything except `read`/`triage`" — a
+  denylist of the roles we know about today silently admits whatever GitHub adds
+  tomorrow. Same shape as `DECISIVE_CONCLUSIONS` (§2.3): a conclusion outside the
+  known-good set is `unknown`, not "probably fine".
+- **Limits are source constants, never env-readable.**
+  `BYPASS_ABSOLUTE_MAX_HOURS`, `BOOTSTRAP_ABSOLUTE_MAX_DAYS`,
+  `ABSOLUTE_MAX_FRESHNESS_HOURS`, `ABSOLUTE_MAX_API_ATTEMPTS` and
+  `REQUIRED_BYPASS_REASON_PATTERN` live in the guard. Workflow inputs can only
+  **tighten** them. A request above a ceiling is clamped **down** and reported in
+  the job summary — never silently, so a gate is never quietly stricter than its
+  configuration reads.
+- **One shared resolution function, resolved at call time.**
+  `resolveSecurityLimits()` is the single place a ceiling is applied, called from
+  `resolveSettings(env)` per invocation — never captured at module load, where an
+  early import would freeze the limits for everything after it. Fail-closed only
+  has to be right once.
+
+`bootstrap_until` is the one deliberate exception to clamping: it **fails**
+rather than being pulled closer (row 24), because it is a date somebody chose and
+quietly moving it would arm the gate on a day nobody expected. Numeric ceilings
+clamp because clamping toward strictness cannot fail open.
 
 ### 6.1 Auto-removal happens on merge, not on use
 

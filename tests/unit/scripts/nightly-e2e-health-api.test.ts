@@ -160,6 +160,75 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
     });
   });
 
+  describe("security limits are SOURCE CONSTANTS, clamped in one place", () => {
+    // Portfolio doctrine (WS-0a): the allowlist and any limits are source
+    // constants, resolved at call time through ONE function so fail-closed only
+    // has to be right once. `NIGHTLY_BOOTSTRAP_MAX_DAYS=100000` would otherwise
+    // have restored exactly the forever-bootstrap this gate exists to delete.
+
+    it("clamps every ceiling DOWN and never up", () => {
+      const { limits, clamped } = mod.resolveSecurityLimits({
+        bypassMaxHours: 10_000,
+        bootstrapMaxDays: 100_000,
+        freshnessHours: 99_999,
+        apiMaxAttempts: 500,
+      });
+      expect(limits.bypassMaxHours).toBe(mod.BYPASS_ABSOLUTE_MAX_HOURS);
+      expect(limits.bootstrapMaxDays).toBe(mod.BOOTSTRAP_ABSOLUTE_MAX_DAYS);
+      expect(limits.freshnessHours).toBe(mod.ABSOLUTE_MAX_FRESHNESS_HOURS);
+      expect(limits.apiMaxAttempts).toBe(mod.ABSOLUTE_MAX_API_ATTEMPTS);
+      expect(clamped).toHaveLength(4);
+    });
+
+    it("leaves a TIGHTER request untouched, and says nothing about it", () => {
+      const { limits, clamped } = mod.resolveSecurityLimits({
+        bypassMaxHours: 4,
+        bootstrapMaxDays: 7,
+        freshnessHours: 12,
+        apiMaxAttempts: 2,
+      });
+      expect(limits).toEqual({
+        bypassMaxHours: 4,
+        bootstrapMaxDays: 7,
+        freshnessHours: 12,
+        apiMaxAttempts: 2,
+      });
+      expect(clamped).toEqual([]);
+    });
+
+    it("a clamp is never silent — it reaches the settings the report renders", () => {
+      const settings = mod.resolveSettings({
+        GITHUB_TOKEN: "t",
+        GITHUB_REPOSITORY: "o/r",
+        NIGHTLY_BRANCH: "dev",
+        NIGHTLY_SUITES: JSON.stringify([ONE_SUITE]),
+        NIGHTLY_BOOTSTRAP_MAX_DAYS: "100000",
+      }) as { bootstrapMaxDays: number; clamped: readonly string[] };
+      expect(settings.bootstrapMaxDays).toBe(mod.BOOTSTRAP_ABSOLUTE_MAX_DAYS);
+      expect(settings.clamped[0]).toContain("cannot be raised");
+    });
+
+    it("the env cannot buy a longer bootstrap window than policy allows", () => {
+      // The end-to-end version of the hole: raise the cap via the env, then try
+      // to set a window a year out. The cap is clamped first, so the window is
+      // still rejected.
+      const settings = mod.resolveSettings({
+        GITHUB_TOKEN: "t",
+        GITHUB_REPOSITORY: "o/r",
+        NIGHTLY_BRANCH: "dev",
+        NIGHTLY_SUITES: JSON.stringify([ONE_SUITE]),
+        NIGHTLY_BOOTSTRAP_MAX_DAYS: "100000",
+      }) as { bootstrapMaxDays: number };
+      expect(() =>
+        mod.resolveBootstrap(
+          "2027-08-12T00:00:00Z",
+          settings.bootstrapMaxDays,
+          new Date("2026-08-12T12:00:00Z")
+        )
+      ).toThrow(/beyond `bootstrap_max_days`/);
+    });
+  });
+
   describe("row 20 — an unreadable `suites` table is RED", () => {
     /**
      * Wraps one suite entry as a table string.

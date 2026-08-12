@@ -183,7 +183,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
-      "90e1feaef986efaf556b68a780d1bf6a8a53662588aed7320f2dd814b203414e",
+      "d113b844f494bfcb52f9b0b967bf7bb509beca04372e99b113b2f84439d35259",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "147bdd7efd5c54eca1f7493b4f1c308a7dfaa6ce4925987ba02c0f475ba56caf",
     "expo/create-only/.zap/baseline.conf":
@@ -2171,7 +2171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "38900cd4c9bb33ff26ff10e82cb928cb4b0a7fa10bc614c9c30d4860d2c0d017",
+      "ce972e90c4a63a32b5753317c90eab56e7c4534f02132733a0e824a80dde7434",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "86de31fbda9dd26a938bf30846c5fc70744cf199df7d475a35f3f25dbc0f7c2f",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":

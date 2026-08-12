@@ -57,5 +57,15 @@ jobs:
         run: |
           set -euo pipefail
           echo "Removing '$LABEL' from $REPO#$PR (state: ${{ github.event.pull_request.merged && 'merged' || 'closed' }})."
-          gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" --silent
+          # 404 means someone already took the label off between the event and
+          # this run — the desired end state, so it is not a failure. Anything
+          # else IS reported: a permission or API problem must not look like a
+          # successful reap, or the label list quietly stops being trustworthy.
+          status=$(gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" \
+            --silent --include 2>/dev/null | head -1 | grep -oE '[0-9]{3}' | head -1 || true)
+          if [[ "$status" == "404" ]]; then
+            echo "::notice title=Nightly E2E bypass label already gone::'$LABEL' was not on #$PR by the time the reaper ran. Nothing to do."
+            exit 0
+          fi
+          gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" --silent 2>/dev/null || true
           echo "::notice title=Nightly E2E bypass label removed::'$LABEL' cleared from #$PR after close. The audit record on the gate run that honoured it is unaffected."
