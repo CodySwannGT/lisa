@@ -258,6 +258,35 @@ export function runReport(
 }
 
 /**
+ * Run the gate with `--write` and return the regenerated burndown.
+ * @param root - Project root.
+ * @param env - Extra environment.
+ * @returns The burndown Markdown.
+ */
+export function runGateWrite(
+  root: string,
+  env: Record<string, string> = {}
+): string {
+  spawnSync(process.execPath, [SCRIPT_ABS, "--write"], {
+    encoding: "utf-8",
+    env: {
+      ...hermeticEnv(root),
+      BDD_COVERAGE_ROOT: root,
+      BDD_TODAY: TODAY,
+      BDD_MODE: "",
+      BDD_BASE_SHA: "",
+      BDD_PR_LABELS: "",
+      BDD_EXECUTION_RESULTS: "",
+      ...env,
+    },
+  });
+  return fs.readFileSync(
+    path.join(root, "docs", "e2e-bdd-coverage.md"),
+    "utf-8"
+  );
+}
+
+/**
  * Collect the defect codes an envelope reported.
  * @param run - A gate run.
  * @returns The codes, in order.

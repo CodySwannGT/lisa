@@ -139,6 +139,9 @@ export function parseFeatureSource(source, file, platforms) {
   const scenarios = [];
   const lines = source.split(/\r?\n/);
   let feature = null;
+  let featureTags = [];
+  let featureIdTags = [];
+  let featureLine = 0;
   let pending = [];
   let current = null;
   for (let index = 0; index < lines.length; index += 1) {
@@ -151,6 +154,15 @@ export function parseFeatureSource(source, file, platforms) {
     const featureMatch = /^Feature:\s*(.+)$/.exec(trimmed);
     if (featureMatch) {
       feature = featureMatch[1].trim();
+      // Gherkin inherits Feature-level tags down to every scenario in the
+      // file. Dropping them made an inherited @web or @ratified-* read as
+      // missing, so a conforming feature file failed on defects it did not
+      // have. Scenario IDs are deliberately NOT inherited — a feature-level
+      // @BDD-* would hand every scenario the same ID, which is a duplicate,
+      // so it is reported instead.
+      featureTags = pending.filter(tag => !ID_PATTERN.test(tag));
+      featureIdTags = pending.filter(tag => ID_PATTERN.test(tag));
+      featureLine = index + 1;
       pending = [];
       current = null;
       continue;
@@ -159,14 +171,22 @@ export function parseFeatureSource(source, file, platforms) {
       trimmed
     );
     if (scenarioMatch) {
-      const grouped = categorize(pending, platforms);
+      // Inherited tags come first so a scenario's own tags read last, and
+      // duplicates are collapsed: a scenario repeating an inherited @web must
+      // not look like it declared the platform twice.
+      const effective = [...new Set([...featureTags, ...pending])];
+      const grouped = categorize(effective, platforms);
       current = {
         id: grouped.ids[0] ?? null,
         name: scenarioMatch[1].trim(),
         feature: feature ?? "Unknown feature",
         file,
         line: index + 1,
-        tags: [...pending],
+        tags: effective,
+        ownTags: [...pending],
+        inheritedTags: [...featureTags],
+        featureIdTags,
+        featureLine,
         ...grouped,
         required: grouped.lifecycle.length === 0,
         primarySteps: [],
