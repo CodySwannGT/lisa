@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.345.1](https://github.com/CodySwannGT/lisa/compare/v2.345.0...v2.345.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ci:** shard Playwright by default ([ef3d139](https://github.com/CodySwannGT/lisa/commit/ef3d139cbd14a55eebd657675e603732fe372660)), closes [CodySwannGT/lisa#2407](https://github.com/CodySwannGT/lisa/issues/2407)
+
 ## [2.345.0](https://github.com/CodySwannGT/lisa/compare/v2.344.2...v2.345.0) (2026-08-11)
 
 
