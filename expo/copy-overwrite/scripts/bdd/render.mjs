@@ -1,0 +1,170 @@
+/**
+ * Markdown rendering for the BDD burndown.
+ *
+ * The prose here is load-bearing: it is the only place a reader learns that
+ * the headline percentage is traceability, not execution and not a pass
+ * rate. Do not shorten it into a bare number.
+ *
+ * @module scripts/bdd/render
+ */
+
+/**
+ * Format a coverage figure, refusing to print "100%" for an empty
+ * denominator — a platform with no obligations has no coverage to report,
+ * and a bare 100% there is the exact false headline this gate exists to
+ * prevent.
+ * @param {object} value - A covered/total/percentage summary.
+ * @returns {string} Cell text.
+ */
+const fmt = value =>
+  value.total === 0
+    ? "n/a (no obligations)"
+    : `${value.covered}/${value.total} (${value.percentage.toFixed(1)}%)`;
+
+/**
+ * Render the per-platform traceability table.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown table.
+ */
+function platformTable(report) {
+  const rows = Object.entries(report.traceability.byPlatform)
+    .map(([platform, value]) => `| ${platform} | ${fmt(value)} |`)
+    .join("\n");
+  return `| Platform | Obligations with mapped automation |\n|---|---:|\n${rows}\n| **Overall** | **${fmt(report.traceability.overall)}** |`;
+}
+
+/**
+ * Render the execution section, which is deliberately empty-but-explicit
+ * when no run evidence was supplied.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown section body.
+ */
+function executionSection(report) {
+  const execution = report.execution;
+  if (!execution.supplied) {
+    return `**No execution evidence was supplied to this run.** ${execution.mappedTests} mapped tests exist; how many ran, and what they returned, is unknown here. Pass \`--results <file>\` with a runner result document to populate this section. Traceability without execution proves automation was written, never that it works.`;
+  }
+  const sources = execution.sources
+    .map(
+      source =>
+        `- \`${source.runner}\` run \`${source.runId ?? "unidentified"}\` (${source.resultCount} results, completed ${source.completedAt ?? "unknown"})`
+    )
+    .join("\n");
+  return `| Mapped tests | Executed | Passed | Failed | Skipped | Not run |\n|---:|---:|---:|---:|---:|---:|\n| ${execution.mappedTests} | ${execution.executed} | ${execution.passed} | ${execution.failed} | ${execution.skipped} | ${execution.notRun} |\n\nSources:\n\n${sources}`;
+}
+
+/**
+ * Render the waiver ledger.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown table.
+ */
+function waiverTable(report) {
+  const rows =
+    report.waived.entries
+      .map(
+        entry =>
+          `| ${entry.scenario} | ${entry.platforms.join(", ")} | ${entry.runner ?? "—"} | ${entry.owner ?? "**unowned**"} | ${entry.reason ?? "—"} | ${entry.ticket ?? "**none**"} | ${entry.expiresAt ?? "**never**"} |`
+      )
+      .join("\n") || "| — | — | — | — | None | — | — |";
+  return `| Scenario | Platforms | Runner | Owner | Reason | Ticket | Expires |\n|---|---|---|---|---|---|---|\n${rows}`;
+}
+
+/**
+ * Render the floor ratchet table.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown table.
+ */
+function floorTable(report) {
+  const rows = Object.entries(report.floor.byPlatform)
+    .map(
+      ([platform, value]) =>
+        `| ${platform} | ${value.floor === null ? "**unset**" : `${value.floor}%`} | ${value.actual}% | ${value.ok ? "ok" : "**below floor**"} |`
+    )
+    .join("\n");
+  return `| Platform | Committed floor | Current | Status |\n|---|---:|---:|---|\n${rows}`;
+}
+
+/**
+ * Group the remaining gaps by feature.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown sections.
+ */
+function gapSections(report) {
+  const grouped = new Map();
+  for (const gap of report.gaps) {
+    const entries = grouped.get(gap.feature) ?? new Map();
+    const entry = entries.get(gap.scenario) ?? {
+      name: gap.name,
+      platforms: [],
+    };
+    entry.platforms.push(gap.platform);
+    entries.set(gap.scenario, entry);
+    grouped.set(gap.feature, entries);
+  }
+  const sections = [...grouped.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([feature, entries]) => {
+      const rows = [...entries.entries()]
+        .map(
+          ([id, value]) =>
+            `| ${id} | ${value.name} | ${value.platforms.sort().join(", ")} |`
+        )
+        .join("\n");
+      return `### ${feature}\n\n| Scenario | Behavior with no mapped proof | Platforms |\n|---|---|---|\n${rows}`;
+    });
+  return (
+    sections.join("\n\n") ||
+    "None. Every required, non-waived obligation has aligned automation mapped to it."
+  );
+}
+
+/**
+ * Render the whole burndown document.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown document.
+ */
+export function renderBurndown(report) {
+  return `# BDD behavior contract — coverage burndown
+
+Generated from \`bdd/features/*.feature\` and \`bdd/coverage-map.json\` as of ${report.asOf ?? "an unrecorded date"}.
+Regenerated by \`node scripts/check-bdd-coverage.mjs --write\`; never hand-edited.
+
+## What each number means
+
+This document reports five different facts and never merges them:
+
+1. **Declared** — behaviors written as Gherkin scenarios. ${report.scenarios.declared} total, ${report.scenarios.required} in the denominator, ${report.scenarios.excluded} excluded (${report.scenarios.blocked} blocked, ${report.scenarios.referenceOnly} reference-only, ${report.scenarios.superseded} superseded).
+2. **Traceability coverage** — required obligations with aligned automation mapped and their evidence string still present. **This is not execution coverage and not a pass rate.** A mapped test that fails on every run still counts here.
+3. **Execution** — how many of those mapped tests actually ran in a supplied run.
+4. **Results** — what those runs returned: pass, fail, skip.
+5. **Waivers** — obligations deliberately outside the denominator. A waiver is a dated IOU with an owner and a retiring ticket; it is never coverage.
+
+## Traceability coverage
+
+${platformTable(report)}
+
+## Execution
+
+${executionSection(report)}
+
+## Coverage floor (ratchet)
+
+The committed floor may rise and may never fall. Lowering it requires a \`coverageFloorBaseline\` record naming the exact change plus the maintainer-applied \`bdd-floor-baseline\` label — two artifacts one author cannot produce alone.
+
+${floorTable(report)}
+
+## Waived obligations
+
+${report.waived.note}
+
+${waiverTable(report)}
+
+## Traceability to work items
+
+${report.trackers.scenariosWithTag} of ${report.scenarios.declared} scenarios carry a tracker tag; ${report.trackers.scenariosWithoutTag} do not. Tags are validated for syntax and against this repo's declared trackers; the gate never contacts a tracker, so an unreachable issue can never block a merge.
+
+## Required obligations with no mapped proof
+
+${gapSections(report)}
+`;
+}
