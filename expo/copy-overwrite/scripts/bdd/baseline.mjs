@@ -91,15 +91,57 @@ export function loadBaseline(root, revision) {
 export function checkRatchet({ baseContract, contract, labels }) {
   const before = baseContract?.coverageFloor ?? {};
   const after = contract.coverageFloor ?? {};
+  // A head value that is not a finite number is treated as a REMOVAL, never
+  // as "unchanged". Quoting a floor as "19" would otherwise make the
+  // comparison `"19" < 19` false, recording no drop, while the report treats
+  // the same value as no floor at all — a one-character, single-file edit
+  // that disables enforcement and produces no defect. That is precisely what
+  // the ratchet exists to prevent, so an unusable value fails closed.
   const drops = Object.keys(before)
-    .filter(platform => typeof before[platform] === "number")
-    .filter(platform => (after[platform] ?? -Infinity) < before[platform])
+    .filter(platform => isUsableFloor(before[platform]))
+    .filter(
+      platform =>
+        !isUsableFloor(after[platform]) || after[platform] < before[platform]
+    )
     .map(platform => ({
       platform,
       from: before[platform],
-      to: typeof after[platform] === "number" ? after[platform] : null,
+      to: isUsableFloor(after[platform]) ? after[platform] : null,
+      malformed:
+        after[platform] !== undefined && !isUsableFloor(after[platform]),
     }));
   return drops.flatMap(drop => ratchetDefects(drop, contract, labels));
+}
+
+/**
+ * Whether a raw `coverageFloor` entry is a usable floor.
+ *
+ * Mirrors `classifyFloor` in report.mjs; a unit test asserts the two agree,
+ * because a disagreement is exactly the gap a quoted value slipped through.
+ * @param {unknown} value - The raw entry.
+ * @returns {boolean} True when it is a finite number in 0..100.
+ */
+export function isUsableFloor(value) {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 100
+  );
+}
+
+/**
+ * Describe one observed reduction for the operator.
+ * @param {object} drop - The observed reduction.
+ * @returns {string} A one-line description.
+ */
+function describeDrop(drop) {
+  if (drop.malformed) {
+    return `coverageFloor.${drop.platform} is no longer a number (was ${drop.from}); a non-numeric floor disables enforcement, so it counts as a removal`;
+  }
+  return drop.to === null
+    ? `coverageFloor.${drop.platform} was removed (was ${drop.from})`
+    : `coverageFloor.${drop.platform} lowered ${drop.from} → ${drop.to}`;
 }
 
 /**
@@ -110,10 +152,7 @@ export function checkRatchet({ baseContract, contract, labels }) {
  * @returns {object[]} Defects found.
  */
 function ratchetDefects(drop, contract, labels) {
-  const what =
-    drop.to === null
-      ? `coverageFloor.${drop.platform} was removed (was ${drop.from})`
-      : `coverageFloor.${drop.platform} lowered ${drop.from} → ${drop.to}`;
+  const what = describeDrop(drop);
   const record = (contract.coverageFloorBaseline ?? []).find(
     entry =>
       entry.platform === drop.platform &&

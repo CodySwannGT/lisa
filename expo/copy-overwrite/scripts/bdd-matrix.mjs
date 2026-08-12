@@ -22,6 +22,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { declaredPlatforms, trackerUrl } from "./bdd/contract.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
+import { indexResults } from "./bdd/report.mjs";
 import { loadExecutionResults } from "./check-bdd-coverage.mjs";
 
 const PACKAGE_ROOT = path.resolve(
@@ -44,37 +45,6 @@ function mappingsByScenario(contract) {
     ]);
   }
   return index;
-}
-
-/**
- * Index execution results by runner, file, and evidence.
- * @param {readonly object[]} runs - Parsed execution-result documents.
- * @returns {Map<string, object>} Lookup keyed by `runner|file|evidence`.
- */
-function resultsIndex(runs) {
-  const index = new Map();
-  for (const run of runs) {
-    for (const result of run.results ?? []) {
-      index.set(`${run.runner}|${result.file}|${result.evidence}`, result);
-    }
-  }
-  return index;
-}
-
-/**
- * Every `SCENARIO:platform` a waiver removes from the denominator.
- *
- * The matrix must know about waivers or it contradicts the burndown: a
- * waived obligation is not an uncovered one, it is a dated IOU.
- * @param {object} contract - Parsed coverage map.
- * @returns {Set<string>} Waived keys.
- */
-function waivedKeys(contract) {
-  return new Set(
-    (contract.platformWaivers ?? []).flatMap(waiver =>
-      (waiver.platforms ?? []).map(platform => `${waiver.scenario}:${platform}`)
-    )
-  );
 }
 
 /**
@@ -152,7 +122,10 @@ export function renderMatrix(root, resultFiles) {
   const platforms = declaredPlatforms(contract.runnerPlatforms);
   const scenarios = loadScenarios(root, platforms);
   const execution = loadExecutionResults(root, resultFiles);
-  const results = resultsIndex(execution.runs);
+  // Shared with the burndown so the two can never disagree about whether a
+  // test failed — including the retry precedence that keeps a `failed`
+  // attempt from being buried by a later `passed`.
+  const results = indexResults(execution.runs);
   const byScenario = mappingsByScenario(contract);
   const waived = waivedKeys(contract);
   const runners = Object.keys(contract.runnerPlatforms ?? {}).sort();

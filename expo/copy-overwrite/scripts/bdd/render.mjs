@@ -17,9 +17,23 @@
  * @returns {string} Cell text.
  */
 const fmt = value =>
-  value.total === 0
+  value.total === 0 || value.percentage === null
     ? "n/a (no obligations)"
     : `${value.covered}/${value.total} (${value.percentage.toFixed(1)}%)`;
+
+/**
+ * Make author-supplied text safe inside a Markdown table cell.
+ *
+ * Waiver reasons and scenario titles are repo data. A single `|` ends the
+ * cell early and shifts every column after it, so the Ticket and Expires
+ * columns silently misreport — in a generated file nobody re-reads.
+ * @param {unknown} text - Arbitrary cell content.
+ * @returns {string} Text safe to interpolate into a table row.
+ */
+const cell = text =>
+  String(text ?? "")
+    .replace(/\|/g, "\\|")
+    .replace(/\r?\n/g, " ");
 
 /**
  * Render the per-platform traceability table.
@@ -28,7 +42,7 @@ const fmt = value =>
  */
 function platformTable(report) {
   const rows = Object.entries(report.traceability.byPlatform)
-    .map(([platform, value]) => `| ${platform} | ${fmt(value)} |`)
+    .map(([platform, value]) => `| ${cell(platform)} | ${fmt(value)} |`)
     .join("\n");
   return `| Platform | Obligations with mapped automation |\n|---|---:|\n${rows}\n| **Overall** | **${fmt(report.traceability.overall)}** |`;
 }
@@ -47,7 +61,7 @@ function executionSection(report) {
   const sources = execution.sources
     .map(
       source =>
-        `- \`${source.runner}\` run \`${source.runId ?? "unidentified"}\` (${source.resultCount} results, completed ${source.completedAt ?? "unknown"})`
+        `- \`${cell(source.runner)}\` run \`${cell(source.runId ?? "unidentified")}\` (${source.resultCount} results, completed ${cell(source.completedAt ?? "unknown")})`
     )
     .join("\n");
   return `| Mapped tests | Executed | Passed | Failed | Skipped | Not run |\n|---:|---:|---:|---:|---:|---:|\n| ${execution.mappedTests} | ${execution.executed} | ${execution.passed} | ${execution.failed} | ${execution.skipped} | ${execution.notRun} |\n\nSources:\n\n${sources}`;
@@ -63,10 +77,23 @@ function waiverTable(report) {
     report.waived.entries
       .map(
         entry =>
-          `| ${entry.scenario} | ${entry.platforms.join(", ")} | ${entry.runner ?? "—"} | ${entry.owner ?? "**unowned**"} | ${entry.reason ?? "—"} | ${entry.ticket ?? "**none**"} | ${entry.expiresAt ?? "**never**"} |`
+          `| ${cell(entry.scenario)} | ${cell(entry.platforms.join(", "))} | ${cell(entry.runner ?? "—")} | ${cell(entry.owner ?? "**unowned**")} | ${cell(entry.reason ?? "—")} | ${cell(entry.ticket ?? "**none**")} | ${cell(entry.expiresAt ?? "**never**")} |`
       )
       .join("\n") || "| — | — | — | — | None | — | — |";
   return `| Scenario | Platforms | Runner | Owner | Reason | Ticket | Expires |\n|---|---|---|---|---|---|---|\n${rows}`;
+}
+
+/**
+ * Render one platform's committed floor.
+ *
+ * An unusable value is called out as invalid rather than shown as absent —
+ * "no floor here" and "somebody broke the floor" need different reactions.
+ * @param {object} value - One platform's floor evaluation.
+ * @returns {string} Cell text.
+ */
+function floorCell(value) {
+  if (value.state === "invalid") return "**invalid**";
+  return value.floor === null ? "**unset**" : `${value.floor}%`;
 }
 
 /**
@@ -78,7 +105,7 @@ function floorTable(report) {
   const rows = Object.entries(report.floor.byPlatform)
     .map(
       ([platform, value]) =>
-        `| ${platform} | ${value.floor === null ? "**unset**" : `${value.floor}%`} | ${value.actual}% | ${value.ok ? "ok" : "**below floor**"} |`
+        `| ${cell(platform)} | ${floorCell(value)} | ${value.actual === null ? "n/a" : `${value.actual}%`} | ${value.ok ? "ok" : "**below floor**"} |`
     )
     .join("\n");
   return `| Platform | Committed floor | Current | Status |\n|---|---:|---:|---|\n${rows}`;
@@ -107,10 +134,10 @@ function gapSections(report) {
       const rows = [...entries.entries()]
         .map(
           ([id, value]) =>
-            `| ${id} | ${value.name} | ${value.platforms.sort().join(", ")} |`
+            `| ${cell(id)} | ${cell(value.name)} | ${cell(value.platforms.sort().join(", "))} |`
         )
         .join("\n");
-      return `### ${feature}\n\n| Scenario | Behavior with no mapped proof | Platforms |\n|---|---|---|\n${rows}`;
+      return `### ${cell(feature)}\n\n| Scenario | Behavior with no mapped proof | Platforms |\n|---|---|---|\n${rows}`;
     });
   return (
     sections.join("\n\n") ||
