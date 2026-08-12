@@ -167,25 +167,25 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "b19d0c177d8d0460779e07043c92d37555e7721224b6b2134ac2f6d10ab44b33",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "f510e7e4484cd4f6182afab72f412ff9e8db458b18b96403ec1c0bd672f1dd51",
+      "519273668f08db7c14053ba1f25830e4cbb6e34ddf11f06264e72d0f7a80b98d",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "dd48f24536fd36c56e8e6dc3c192f8862f3aa7dfef0e46db4f55205c1ee2b1ec",
+      "96f6a295bad34c0b52f7f667640243a462cb745998768c21a192c74d1a96dd34",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "7bb2aa5dbe49fa97d3f14e5400fef3f76e0fd99ab74e88d568a3d037c94c601d",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
-      "d6866a422d841cef291dea931424af4e0799be34d19f6817adba28e31972ac4f",
+      "d1bf74b01388d107e6869b90a3d1e1d2c03da8124cb2cc14f9cf6d64e2b00ce8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "c900d5be3b4692bc7f2252f1461b0db987d300f99817ad83466428c530da4fce",
+      "47a5adb9fc607e5d330c246218d0b043be14a8527c7ba198b222df03fd96672a",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
-      "effb76f834032e5a21e631134a1fb38a08382dcb1db5da2c57fc28aeebe6fb56",
+      "4a07425197ddbcc53052a334354325c5d6b1880d586a02c176362bfb5c826a2a",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
-      "564e128ba1fc804861598baf509e2e13ec688bb99df9612b1aea3434ed9412a6",
+      "afb8dd052733a5f83e6d004eac3437783a707c08810ba9cc65138d898aff83e2",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4b9ebf80100f478cc5e06d50b4d672ad08ec77a3746a7a109a74e1daf71a55b7",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "13db95d2ed8bce81acfb4fdfd9adb195a60818952393268f6a269dbaa6e62d66",
+      "98fa86e5987e7384c7fd23baa435f86830fb432424134bb7d8141c005af9167b",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -8627,8 +8627,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-envelope.test.ts": true,
+    "tests/unit/scripts/bdd-failopen.test.ts": true,
     "tests/unit/scripts/bdd-grammar.test.ts": true,
     "tests/unit/scripts/bdd-ratchet.test.ts": true,
+    "tests/unit/scripts/bdd-render.test.ts": true,
     "tests/unit/scripts/bdd-reporting.test.ts": true,
     "tests/unit/scripts/bdd-validation.test.ts": true,
     "tests/unit/scripts/bdd-wiring.test.ts": true,

@@ -22,11 +22,13 @@ import {
   trackerUrl,
 } from "./contract.mjs";
 
-const percentage = (covered, total) =>
-  total === 0 ? 100 : (covered / total) * 100;
-
 /**
  * Summarize a subset of obligations against the covered set.
+ *
+ * An empty denominator reports `percentage: null`, never 100. "Nothing was
+ * required here" and "everything required here is covered" are different
+ * claims, and printing the second for the first is how a platform with no
+ * obligations comes to look fully covered.
  * @param {readonly object[]} subset - Obligations to count.
  * @param {ReadonlySet<string>} coveredKeys - Keys with an aligned mapping.
  * @returns {object} Covered/total/percentage.
@@ -36,7 +38,10 @@ function summarize(subset, coveredKeys) {
   return {
     covered,
     total: subset.length,
-    percentage: Number(percentage(covered, subset.length).toFixed(1)),
+    percentage:
+      subset.length === 0
+        ? null
+        : Number(((covered / subset.length) * 100).toFixed(1)),
   };
 }
 
@@ -60,15 +65,54 @@ function declaredObligations(scenarios, platformRunners) {
 }
 
 /**
+ * Precedence when the same test reports more than once.
+ *
+ * Retries and sharded runs legitimately report a test twice. Last-write-wins
+ * would let a `passed` retry bury the `failed` attempt that preceded it, and
+ * the whole point of the execution block is that it cannot understate
+ * failures. Higher wins.
+ */
+const STATUS_PRECEDENCE = Object.freeze({
+  failed: 3,
+  skipped: 2,
+  passed: 1,
+});
+
+/**
+ * Rank a result status, treating anything unrecognized as the most severe.
+ *
+ * Unknown is ranked ABOVE failed on purpose: a status this gate does not
+ * understand must never be silently outranked by a `passed` from another
+ * shard (allowlist, never denylist).
+ * @param {string|undefined} status - A supplied result status.
+ * @returns {number} Its precedence.
+ */
+function statusRank(status) {
+  return STATUS_PRECEDENCE[status] ?? 4;
+}
+
+/**
  * Index supplied execution results by runner, file, and evidence.
+ *
+ * Exported so the matrix joins results exactly as the burndown does; two
+ * private copies of this rule would eventually disagree about whether a test
+ * failed.
  * @param {readonly object[]} runs - Parsed execution-result documents.
  * @returns {Map<string, object>} Lookup keyed by `runner|file|evidence`.
  */
-function indexResults(runs) {
+export function indexResults(runs) {
   const index = new Map();
   for (const run of runs) {
     for (const result of run.results ?? []) {
-      index.set(`${run.runner}|${result.file}|${result.evidence}`, {
+      const key = `${run.runner}|${result.file}|${result.evidence}`;
+      const existing = index.get(key);
+      if (
+        existing &&
+        statusRank(existing.status) >= statusRank(result.status)
+      ) {
+        continue;
+      }
+      index.set(key, {
         ...result,
         runner: run.runner,
         runId: run.runId ?? null,
@@ -153,33 +197,75 @@ function distinctTests(mappings) {
 }
 
 /**
+ * A declared floor value, or the reason it is not usable.
+ *
+ * Only a finite number in 0..100 is a floor. Anything else — a quoted
+ * `"19"`, a null, a NaN — is `invalid`, NOT "no floor": treating a bad value
+ * as absent is what let a one-character edit remove a platform from
+ * enforcement while producing no defect at all.
+ * @param {unknown} declared - The raw `coverageFloor` entry.
+ * @returns {{state: string, value: number|null}} The classified floor.
+ */
+function classifyFloor(declared) {
+  if (declared === undefined) return { state: "unset", value: null };
+  if (typeof declared !== "number" || !Number.isFinite(declared)) {
+    return { state: "invalid", value: null };
+  }
+  if (declared < 0 || declared > 100) return { state: "invalid", value: null };
+  return { state: "declared", value: declared };
+}
+
+/**
  * Evaluate the committed coverage floor per platform.
  * @param {object} contract - Parsed coverage map.
  * @param {object} byPlatform - Traceability summary per platform.
  * @param {ReadonlySet<string>} platforms - Declared platform vocabulary.
- * @returns {object} Floor evaluation, including which platforms declared none.
+ * @returns {object} Floor evaluation, naming unset and invalid platforms.
  */
 export function evaluateFloor(contract, byPlatform, platforms) {
   const floors = contract.coverageFloor ?? {};
   const entries = [...platforms].sort().map(platform => {
-    const declared = floors[platform];
-    const actual = byPlatform[platform]?.percentage ?? 100;
+    const declared = classifyFloor(floors[platform]);
+    // A platform with no obligations reports `null`, not 100. It cannot clear
+    // a positive floor by having nothing to measure.
+    const actual = byPlatform[platform]?.percentage ?? null;
     return [
       platform,
       {
-        floor: typeof declared === "number" ? declared : null,
+        floor: declared.value,
+        state: declared.state,
         actual,
-        ok: typeof declared !== "number" || actual + 1e-9 >= declared,
+        ok: isFloorMet(declared, actual),
       },
     ];
   });
   return {
     byPlatform: Object.fromEntries(entries),
     unset: entries
-      .filter(([, value]) => value.floor === null)
+      .filter(([, value]) => value.state === "unset")
+      .map(([name]) => name),
+    invalid: entries
+      .filter(([, value]) => value.state === "invalid")
       .map(([name]) => name),
     ok: entries.every(([, value]) => value.ok),
   };
+}
+
+/**
+ * Whether a platform clears its floor.
+ *
+ * An invalid floor is never "met" — a bad value must fail rather than quietly
+ * disable enforcement. An unset floor has nothing to clear here; the enforced
+ * mode reports its absence separately.
+ * @param {{state: string, value: number|null}} declared - The classified floor.
+ * @param {number|null} actual - Measured percentage, or null when there are no obligations.
+ * @returns {boolean} Whether the floor is satisfied.
+ */
+function isFloorMet(declared, actual) {
+  if (declared.state === "invalid") return false;
+  if (declared.state === "unset") return true;
+  if (actual === null) return declared.value === 0;
+  return actual + 1e-9 >= declared.value;
 }
 
 /**
@@ -218,7 +304,13 @@ export function buildTrackerIndex(scenarios, trackers) {
  * @param {object} input - Scenarios, contract, execution runs, and platforms.
  * @returns {object} The report envelope.
  */
-export function buildReport({ scenarios, contract, runs, platforms }) {
+export function buildReport({
+  scenarios,
+  contract,
+  runs,
+  platforms,
+  unresolved = new Set(),
+}) {
   const platformRunners = runnersByPlatform(contract.runnerPlatforms);
   const declared = declaredObligations(scenarios, platformRunners);
   const waivedKeys = new Set(
@@ -227,7 +319,7 @@ export function buildReport({ scenarios, contract, runs, platforms }) {
     )
   );
   const obligations = declared.filter(item => !waivedKeys.has(item.key));
-  const coveredKeys = coverageKeys(scenarios, contract);
+  const coveredKeys = coverageKeys(scenarios, contract, unresolved);
   const byPlatform = Object.fromEntries(
     [...platforms].sort().map(platform => [
       platform,
@@ -242,7 +334,7 @@ export function buildReport({ scenarios, contract, runs, platforms }) {
     asOf: contract.asOf ?? null,
     scenarios: countScenarios(scenarios),
     traceability: {
-      note: "Obligations whose aligned automation is mapped and whose evidence string still resolves. This is TRACEABILITY coverage, not execution coverage and not a pass rate.",
+      note: "Obligations whose aligned automation is mapped AND whose evidence string still resolves — a mapping whose test was renamed or deleted stops counting here immediately, even in bootstrap where the matching defect is only a warning. This is TRACEABILITY coverage, not execution coverage and not a pass rate.",
       overall: summarize(obligations, coveredKeys),
       byPlatform,
       byRunner: byRunnerSummary(contract, obligations, coveredKeys),
@@ -267,12 +359,19 @@ export function buildReport({ scenarios, contract, runs, platforms }) {
 }
 
 /**
- * Every scenario-platform key an existing mapping covers.
+ * Every scenario-platform key a mapping covers AND still proves.
+ *
+ * A mapping whose evidence string no longer resolves is excluded here, not
+ * merely reported. In bootstrap that defect is only a warning, so counting it
+ * as covered would let the headline keep claiming coverage the repo does not
+ * have — the precise "the manifest was lying" failure this gate exists to
+ * surface.
  * @param {readonly object[]} scenarios - Parsed scenarios.
  * @param {object} contract - Parsed coverage map.
+ * @param {ReadonlySet<string>} unresolved - Keys whose evidence no longer resolves.
  * @returns {Set<string>} Covered keys.
  */
-function coverageKeys(scenarios, contract) {
+function coverageKeys(scenarios, contract, unresolved) {
   const required = new Set(
     scenarios.filter(scenario => scenario.required).map(scenario => scenario.id)
   );
@@ -280,7 +379,8 @@ function coverageKeys(scenarios, contract) {
   for (const mapping of contract.mappings ?? []) {
     if (!required.has(mapping.scenario)) continue;
     for (const platform of mapping.platforms ?? []) {
-      covered.add(`${mapping.scenario}:${platform}`);
+      const key = `${mapping.scenario}:${platform}`;
+      if (!unresolved.has(key)) covered.add(key);
     }
   }
   return covered;
