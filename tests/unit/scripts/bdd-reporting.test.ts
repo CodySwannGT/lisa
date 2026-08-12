@@ -1,0 +1,211 @@
+/**
+ * Tests that the report keeps declared / mapped / executed / pass-fail-skip /
+ * waived apart, and that it never invents a number it does not have.
+ */
+import { describe, expect, it } from "vitest";
+
+import {
+  ENFORCED,
+  HEALTHY_MAP,
+  HOME_EVIDENCE,
+  HOME_FEATURE_FILE,
+  HOME_ID,
+  HOME_SPEC,
+  PLAYWRIGHT,
+  RATIFIED,
+  WEB,
+  featureSource,
+  healthyProject,
+  makeProject,
+  runGate,
+} from "./bdd/support";
+
+const RESULTS_FILE = "results.json";
+
+/**
+ * Build an execution-result document.
+ * @param results - Individual test outcomes.
+ * @returns Serialized document.
+ */
+function resultsDoc(
+  results: readonly { file: string; evidence: string; status: string }[]
+): string {
+  return JSON.stringify({
+    schemaVersion: 1,
+    runner: PLAYWRIGHT,
+    runId: "run-1",
+    completedAt: "2026-08-12T09:00:00Z",
+    results,
+  });
+}
+
+describe("honest reporting", () => {
+  it("emits no execution counts at all when no run evidence is supplied", () => {
+    const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
+    const execution = run.envelope.report?.execution;
+    expect(execution?.supplied).toBe(false);
+    expect(execution?.executed).toBeUndefined();
+    expect(execution?.passed).toBeUndefined();
+    expect(String(execution?.note)).toContain("not that it ran or passed");
+    expect(run.envelope.summary).toContain("no execution evidence supplied");
+  });
+
+  it("separates declared, mapped, executed, and pass/fail/skip", () => {
+    const root = healthyProject(
+      {},
+      {
+        files: {
+          [RESULTS_FILE]: resultsDoc([
+            { file: HOME_SPEC, evidence: HOME_EVIDENCE, status: "failed" },
+          ]),
+        },
+      }
+    );
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_EXECUTION_RESULTS: RESULTS_FILE,
+    });
+    const report = run.envelope.report;
+    expect(report?.scenarios.declared).toBe(1);
+    expect(report?.traceability.overall).toMatchObject({
+      covered: 1,
+      total: 1,
+      percentage: 100,
+    });
+    expect(report?.execution).toMatchObject({
+      supplied: true,
+      mappedTests: 1,
+      executed: 1,
+      passed: 0,
+      failed: 1,
+      skipped: 0,
+      notRun: 0,
+    });
+    // A failing mapped test is still fully traced. Traceability is not a pass
+    // rate, and the gate must never conflate them.
+    expect(run.status).toBe(0);
+    expect(report?.traceability.note).toContain("not execution coverage");
+  });
+
+  it("counts a mapped test with no result as notRun, never as passing", () => {
+    const root = healthyProject(
+      {},
+      { files: { [RESULTS_FILE]: resultsDoc([]) } }
+    );
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_EXECUTION_RESULTS: RESULTS_FILE,
+    });
+    expect(run.envelope.report?.execution).toMatchObject({
+      executed: 0,
+      notRun: 1,
+      passed: 0,
+    });
+  });
+
+  it("reports a missing or malformed results document instead of ignoring it", () => {
+    const run = runGate(healthyProject(), {
+      BDD_MODE: ENFORCED,
+      BDD_EXECUTION_RESULTS: "nowhere.json",
+    });
+    expect(run.envelope.defects.map(item => item.code)).toContain(
+      "execution-results"
+    );
+  });
+
+  it("keeps waived obligations out of the denominator and names their owner", () => {
+    const root = makeProject({
+      map: {
+        ...HEALTHY_MAP,
+        mappings: [],
+        platformWaivers: [
+          {
+            scenario: HOME_ID,
+            platforms: [WEB],
+            reason: "no request interception in this runner",
+            owner: "cody@example.test",
+            ticket: "gh-2394",
+            recordedAt: "2026-08-01",
+            expiresAt: "2026-12-31",
+          },
+        ],
+      },
+      features: {
+        [HOME_FEATURE_FILE]: featureSource("Home", [
+          { id: HOME_ID, tags: [WEB, RATIFIED, "TUN-123"] },
+        ]),
+      },
+      files: {},
+    });
+    const report = runGate(root, { BDD_MODE: "bootstrap" }).envelope.report;
+    expect(report?.waived.count).toBe(1);
+    expect(report?.traceability.overall.total).toBe(0);
+    expect(report?.gaps).toEqual([]);
+  });
+
+  it("produces byte-identical output across runs", () => {
+    const root = healthyProject();
+    const first = runGate(root, { BDD_MODE: ENFORCED });
+    const second = runGate(root, { BDD_MODE: ENFORCED });
+    expect(JSON.stringify(first.envelope)).toBe(
+      JSON.stringify(second.envelope)
+    );
+  });
+
+  it("indexes tracker tags with emitted links", () => {
+    const root = healthyProject({
+      trackers: {
+        keys: ["TUN"],
+        keyUrlTemplate: "https://linear.app/t/issue/{id}",
+        github: {
+          org: "TunnlAI",
+          defaultRepo: "frontend",
+          repos: ["frontend"],
+        },
+      },
+    });
+    expect(
+      runGate(root, { BDD_MODE: ENFORCED }).envelope.report?.trackers.tags
+    ).toEqual([
+      {
+        tag: "TUN-123",
+        url: "https://linear.app/t/issue/TUN-123",
+        scenarios: [HOME_ID],
+      },
+    ]);
+  });
+});
+
+describe("scale", () => {
+  it("handles a very large contract without quadratic blowup", () => {
+    const count = 2000;
+    const scenarios = Array.from({ length: count }, (_, index) => ({
+      id: `BDD-BULK-${String(index + 1).padStart(4, "0")}`,
+      tags: [WEB, RATIFIED],
+    }));
+    const files: Record<string, string> = {};
+    const mappings = scenarios.map((spec, index) => {
+      files[`e2e/bulk-${index}.spec.ts`] =
+        `test("proves ${spec.id}", () => {});\n`;
+      return {
+        scenario: spec.id,
+        runner: PLAYWRIGHT,
+        platforms: [WEB],
+        file: `e2e/bulk-${index}.spec.ts`,
+        evidence: `proves ${spec.id}`,
+        level: "behavioral",
+      };
+    });
+    const root = makeProject({
+      map: { ...HEALTHY_MAP, coverageFloor: { [WEB]: 100 }, mappings },
+      features: { "bulk.feature": featureSource("Bulk", scenarios) },
+      files,
+    });
+    const started = Date.now();
+    const run = runGate(root, { BDD_MODE: ENFORCED });
+    expect(run.status).toBe(0);
+    expect(run.envelope.report?.scenarios.declared).toBe(count);
+    expect(run.envelope.report?.traceability.overall.covered).toBe(count);
+    expect(Date.now() - started).toBeLessThan(30_000);
+  }, 60_000);
+});
