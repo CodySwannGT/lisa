@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lisa.codyswann.dev/schemas/lisa-command-envelope.v1.schema.json",
+  "title": "Lisa standard command envelope (v1)",
+  "description": "The single JSON result every capability adapter (reset, seed, verify, inventory, classification) writes to stdout. Exit 0 means the operation completed AND verified; any other outcome exits nonzero and says which in `status`. Human-readable narration goes to stderr, redacted of secrets and personal data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "capability",
+    "mode",
+    "operation",
+    "environment",
+    "contractVersion",
+    "dryRun",
+    "status",
+    "correlationId",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "lisa-command-envelope-v1",
+      "description": "Pinned envelope schema version. A bump is a deliberate migration, never an incidental edit."
+    },
+    "capability": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Which standard interface answered, e.g. reset, seed, reset-verify, state-inventory, state-classification."
+    },
+    "mode": {
+      "enum": ["real", "declared-noop", "not-applicable"],
+      "description": "real = the adapter does the thing. declared-noop = the repo deliberately has nothing to do here and says so machine-readably. not-applicable = the capability does not apply to this repo kind."
+    },
+    "operation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The concrete operation performed, in the adapter's own vocabulary."
+    },
+    "environment": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The SERVER-RESOLVED environment identity the operation ran against. Never the caller-supplied --stage, which is only a request to be checked against this value."
+    },
+    "contractVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The project's own contract version for the state this adapter acts on, so evidence from one run cannot be read as evidence for a different contract."
+    },
+    "dryRun": {
+      "type": "boolean",
+      "description": "True when the adapter enumerated intended mutations without performing them. Mandatory support on every destructive adapter."
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "no-op",
+        "not-adopted",
+        "detection-only",
+        "denied",
+        "invalid",
+        "failed",
+        "verification-mismatch"
+      ],
+      "description": "completed = did it and verified it. no-op = nothing to do (declared noop). not-adopted = the capability is not wired in this repo yet. detection-only = could not observe authoritative state, findings are non-authoritative. denied = refused by a guard. invalid = bad input or malformed contract. failed = attempted and failed. verification-mismatch = mutated but the post-state did not verify."
+    },
+    "correlationId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id joining this envelope to the audit record and the CI log for the same run."
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["deleted", "created", "preserved"],
+      "description": "Counts describing what the run did. Additional adapter-specific counters are allowed; these three are always present so a reader can compare runs across repos.",
+      "properties": {
+        "deleted": { "type": "integer", "minimum": 0 },
+        "created": { "type": "integer", "minimum": 0 },
+        "preserved": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required when mode is declared-noop or not-applicable, and whenever status is not a success status. Explains the outcome in one operator-readable sentence."
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required when mode is declared-noop or not-applicable. The team or role accountable for the declaration."
+    },
+    "capabilityManifest": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required when mode is declared-noop or not-applicable. Reference to the capability-matrix entry that records this declaration."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required in CI for destructive adapters so a retried invocation is recognized rather than repeated."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Machine-readable findings. Each names the entity or subject, the rule violated, and a one-line message.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["code", "subject", "message"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "subject": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "severity": { "enum": ["error", "warning"] }
+        }
+      }
+    }
+  }
+}

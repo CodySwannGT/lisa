@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "lisa-state-contract-v1",
+  "contractVersion": "fixture-noop-state-v1",
+  "mode": "declared-noop",
+  "owner": "marketing-eng",
+  "noop": {
+    "reason": "Static marketing site: no datastore, no accounts, no uploads, nothing survives a request.",
+    "owner": "marketing-eng",
+    "capabilityManifest": "docs/capability-matrix.md#marketing-site-reset"
+  }
+}

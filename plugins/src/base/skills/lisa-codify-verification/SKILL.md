@@ -83,6 +83,10 @@ For **frontend work** — any verification whose validation journey exercised a 
 
 Every artifact encodes the SAME verified journey against a different platform. One is never a substitute for another, and a passing test on one platform never seals another platform's obligation.
 
+### 2b. Codifying persistent state (non-demotable)
+
+When the verified journey **created, changed, or depended on persistent state**, the `reset-seed-coverage` rule governs what else this codification owes. Classify every entity the work touched in the project's state contract, give anything `fixture-owned` an ownership predicate and a sweep, and run the project's state-classification check the same way the coverage gate is run above — a contract edited but never checked is not proof. Where the journey depended on seeded state, the seed's verify step asserts **exact expected counts** for that state: "at least one" passes against a leak, which is precisely the condition being guarded. Cite the rule for the policy vocabulary and the assurances; do not restate them here.
+
 Permitted exits, mirroring the regression-spec rule in `lisa-implement` (never a silent skip, never "optional", and never a bare `N/A`):
 
 - The project genuinely has no runner configured for that platform → record a dated `platformWaivers` entry naming the locations checked and "no runner configured" as the reason, exactly like any other unsealable obligation, per the rule. This is never left as a bare `N/A` — an undated absence has no forcing function to ever get revisited.

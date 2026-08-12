@@ -55,7 +55,7 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,learnings_budget,threshold_ratchet,work_item_traceability,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -612,6 +612,61 @@ jobs:
       - name: ⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)
         if: steps.check_script.outputs.exists == 'false'
         run: echo "Skipping e2e route coverage - scripts/check-e2e-coverage.mjs not found"
+
+  state_classification:
+    name: 🧬 State Classification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Anti-drift gate for the reset/seed contract (reset-seed-coverage rule):
+    # compares the runtime inventory of persistent state against the project's
+    # state contract and FAILS CLOSED on any entity nobody classified, and on
+    # any fixture-owned entity nothing sweeps. That second case is the failure
+    # this exists for — a flow that creates uniquely-marked records and deletes
+    # them only on its happy path leaks on every failure in between, silently,
+    # until a count or uniqueness assertion breaks months later.
+    #
+    # Deliberately NOT "new entities are cleared by default": that erases
+    # unrelated non-production data the first time a change adds an entity, and
+    # a migrations diff cannot model renames, multiple schemas, generated
+    # entities, views, partitions, row-level ownership, or any state that is not
+    # a row. Subtraction runs here only as a staleness detector.
+    #
+    # Auto-enabled by the presence of the Lisa-managed script; a repo with no
+    # state contract reports `not-adopted` rather than silently passing a gate
+    # it never wired. The script is dependency-free, so no install step.
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',state_classification,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🔍 Check for state classification script
+        id: check_script
+        run: |
+          if [ -f "scripts/check-state-classification.mjs" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧬 Require every persistent entity to carry a reset policy
+        if: steps.check_script.outputs.exists == 'true'
+        env:
+          STATE_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: node scripts/check-state-classification.mjs
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ Skip state classification (no check-state-classification.mjs script)
+        if: steps.check_script.outputs.exists == 'false'
+        run: echo "Skipping state classification - scripts/check-state-classification.mjs not found"
 
   learnings_budget:
     name: 📚 Learnings Budget

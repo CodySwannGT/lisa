@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "lisa-state-inventory-v1",
+  "environment": "dev",
+  "collectedAt": "2026-08-12T00:00:00Z",
+  "sources": [
+    "relational-store",
+    "identity-provider",
+    "object-storage",
+    "search",
+    "queues"
+  ],
+  "entities": [
+    {
+      "id": "public.user_cards",
+      "kind": "table"
+    },
+    {
+      "id": "public.notes",
+      "kind": "table"
+    },
+    {
+      "id": "public.cards",
+      "kind": "table"
+    },
+    {
+      "id": "public.onboarding_options",
+      "kind": "table"
+    },
+    {
+      "id": "analytics.player_season_rollup",
+      "kind": "materialized-view"
+    },
+    {
+      "id": "ledger.payments",
+      "kind": "table"
+    },
+    {
+      "id": "identity://user-pool/e2e-personas",
+      "kind": "identity-group"
+    },
+    {
+      "id": "object-store://uploads/e2e/",
+      "kind": "object-prefix"
+    },
+    {
+      "id": "search://players-index",
+      "kind": "search-index"
+    },
+    {
+      "id": "queue://notifications-dlq",
+      "kind": "queue"
+    }
+  ]
+}
