@@ -196,11 +196,11 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("SE-4551 + SE-4552 new inputs", () => {
-    it("declares playwright_shards with default 1 (unchanged behavior)", () => {
+    it("defaults Playwright to two shards so large suites fit hosted runners", () => {
       const input = workflow.on.workflow_call?.inputs?.playwright_shards;
       expect(input).toBeDefined();
       expect(input?.required).toBe(false);
-      expect(input?.default).toBe(1);
+      expect(input?.default).toBe(2);
       expect(input?.type).toBe("number");
     });
 
