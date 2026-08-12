@@ -1,0 +1,61 @@
+name: 🧹 Nightly E2E Bypass Reaper
+
+# Removes a used `nightly-e2e-bypass` label when its pull request closes.
+#
+# ## Why removal happens on CLOSE and not on USE
+#
+# The obvious implementation — have the gate strip the label as soon as it
+# honours it — is wrong, and wrong in a way that is easy to ship and hard to
+# diagnose. Removing the label fires `unlabeled`, which re-runs the gate, which
+# now sees no bypass and goes RED. The PR is blocked again by the very mechanism
+# meant to unblock it, and the only way out is to re-apply the label, which the
+# gate then strips again. So the gate itself never writes; this single-purpose
+# workflow does the cleanup once the PR can no longer be affected by it.
+#
+# Expiry is the belt to this suspenders. Even where this reaper is not
+# installed, a bypass stops working `bypass_max_hours` after the label was
+# applied (default 24, hard ceiling 72). The reaper keeps the label list honest;
+# it is not what bounds the waiver's lifetime.
+#
+# ## Why the audit survives removal
+#
+# The audit record lives in the gate's job summary, its `::notice::` annotation
+# and its `audit_json` output on the run that honoured the bypass — none of which
+# this workflow touches. Removing the label removes the REQUEST, never the
+# RECORD.
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: read
+  # The one write in the whole nightly-gate standard, scoped to removing one
+  # label from an already-closed PR.
+  pull-requests: write
+
+concurrency:
+  group: nightly-e2e-bypass-reaper-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  reap:
+    name: 🧹 Remove used bypass label
+    # `pull_request_target` runs with a writable token against the BASE repo, so
+    # this job must never check out or execute pull-request code. It does not:
+    # there is no checkout step and the only command is a `gh` API call.
+    if: contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 🧹 Strip the bypass label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          LABEL: nightly-e2e-bypass
+        run: |
+          set -euo pipefail
+          echo "Removing '$LABEL' from $REPO#$PR (state: ${{ github.event.pull_request.merged && 'merged' || 'closed' }})."
+          gh api -X DELETE "repos/$REPO/issues/$PR/labels/$LABEL" --silent
+          echo "::notice title=Nightly E2E bypass label removed::'$LABEL' cleared from #$PR after close. The audit record on the gate run that honoured it is unaffected."

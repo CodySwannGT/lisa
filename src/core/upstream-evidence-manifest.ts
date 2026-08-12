@@ -174,12 +174,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "55f3dfe80496f03152d40d364c5a9cabf3fdce3adc8cebea48ba5257d77b7aa9",
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
+    "expo/create-only/.github/required-checks.json":
+      "4f9d73340d4e500f713b3e827655f65492c267f3e69506260a5ffea2f10802b9",
     "expo/create-only/.github/workflows/ci.yml":
       "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
       "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
+    "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
+      "90e1feaef986efaf556b68a780d1bf6a8a53662588aed7320f2dd814b203414e",
+    "expo/create-only/.github/workflows/nightly-e2e-health.yml":
+      "147bdd7efd5c54eca1f7493b4f1c308a7dfaa6ce4925987ba02c0f475ba56caf",
     "expo/create-only/.zap/baseline.conf":
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
@@ -208,8 +214,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
     "expo/deletions.json":
       "ddf6330d4f5d961c55e908efcc5d71c4c78410525018b096702b9a53906b946e",
-    "expo/github-rulesets/playwright.json":
-      "b57ccd12f768a1466a9681528858e59764bd0efedcbcb3a96c2fb40719bbd579",
+    "expo/github-rulesets/nightly-e2e-health.json":
+      "af9556f52bbb04d303f557eb178d876d82348d15a991729b8a96fb1f06d5b03a",
     "expo/merge/.claude/settings.json":
       "e97b33d7ad86b71abba94ab957d725e34c3cafca455e92fba0b29ebabc3b73d1",
     "expo/merge/.oxlintrc.json":
@@ -2164,12 +2170,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f66d04381940936544931d7f20ffd4e43c38b8a907d56ffa101e2236371d8c94",
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
+    "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
+      "f25be9368af95dba5a5ce9891e582d5c1fc04ffca9f31cbbd28bc061154e7605",
+    "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
+      "86de31fbda9dd26a938bf30846c5fc70744cf199df7d475a35f3f25dbc0f7c2f",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "3c1d27d0668fc66a18cb014f2b607878f0a88c178a773fbe964b8e46b19e86d6",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "7d8d24dea151ef2178807046e97aea7ebfadd9c88eb50347feb7bb4bb190227d",
+    "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
+      "ea9b2b4ab1d2a39d7b4eb8c841ccae576836678ca42bb40161d6af383e3e378c",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -2182,6 +2194,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "8f4257fcd2cfd4b23e83e0fdd4908d41ee8f1ae75bb95d632e653a0ac13d58e4",
     "typescript/copy-overwrite/vitest.config.ts":
       "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
+    "typescript/create-only/.github/required-checks.json":
+      "a490d9d4344bafe8178c6b0b4a9a8a6fff8548ef9cff76ba0562c50040b174ae",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2235,7 +2249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
     "typescript/package-lisa/package.lisa.json":
-      "5d66792e54b1ed0ca1f2103e504f77a6afb8187660404ddba24936b049568934",
+      "7f121eec2d022cad7e3cf960806fefe7f30ef626cc89f951d322b40f5a9bd5ca",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
@@ -2346,6 +2360,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/lisa-build-intake.yml": true,
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
+    ".github/workflows/nightly-e2e-health.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
     ".github/workflows/quality-rails.yml": true,
@@ -2471,6 +2486,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
+    "docs/nightly-e2e-gate.md": true,
     "docs/remote-agent-aws.md": true,
     "docs/wiki-inbox/.gitkeep": true,
     "eslint-plugin-code-organization/README.md": true,
@@ -2531,9 +2547,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/tsconfig.eslint.json": true,
     "expo/copy-overwrite/tsconfig.expo.json": true,
     "expo/copy-overwrite/tsconfig.json": true,
+    "expo/create-only/.github/required-checks.json": true,
     "expo/create-only/.github/workflows/ci.yml": true,
     "expo/create-only/.github/workflows/deploy.yml": true,
     "expo/create-only/.github/workflows/maestro-e2e.yml": true,
+    "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml": true,
+    "expo/create-only/.github/workflows/nightly-e2e-health.yml": true,
     "expo/create-only/.zap/baseline.conf": true,
     "expo/create-only/babel.config.js": true,
     "expo/create-only/e2e.thresholds.json": true,
@@ -2548,7 +2567,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/tsconfig.json": true,
     "expo/create-only/tsconfig.local.json": true,
     "expo/deletions.json": true,
-    "expo/github-rulesets/playwright.json": true,
+    "expo/github-rulesets/nightly-e2e-health.json": true,
     "expo/merge/.claude/settings.json": true,
     "expo/merge/.oxlintrc.json": true,
     "expo/package-lisa/package.lisa.json": true,
@@ -8278,6 +8297,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
+    "tests/helpers/nightly-e2e-gate-harness.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
@@ -8294,6 +8314,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-native-flow-runner.test.ts": true,
     "tests/integration/maestro-native-workflow.test.ts": true,
+    "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -8588,6 +8609,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
     "tests/unit/scripts/lisa-work-item.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
@@ -8597,6 +8621,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
+    "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
@@ -8903,15 +8928,19 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/eslint.ignore.config.json": true,
     "typescript/copy-overwrite/eslint.slow.config.ts": true,
     "typescript/copy-overwrite/knip.json": true,
+    "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": true,
+    "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs": true,
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs": true,
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs": true,
+    "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json": true,
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": true,
     "typescript/copy-overwrite/sgconfig.yml": true,
     "typescript/copy-overwrite/tsconfig.eslint.json": true,
     "typescript/copy-overwrite/tsconfig.json": true,
     "typescript/copy-overwrite/vitest.config.ts": true,
+    "typescript/create-only/.github/required-checks.json": true,
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml": true,
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml": true,
     "typescript/create-only/.github/workflows/ci.yml": true,

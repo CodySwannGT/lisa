@@ -1,0 +1,418 @@
+# Nightly E2E Health gate — contract, truth table, and versioning policy
+
+> **Status:** normative. This document is the specification the reusable
+> workflow `.github/workflows/nightly-e2e-health.yml` and the shipped guard
+> `typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs` implement.
+> Every row of §2 is proven by a named case in Lisa's
+> `tests/unit/scripts/nightly-e2e-health.test.ts` (rows 1-16),
+> `…-api.test.ts` (rows 17-20) and `…-bypass.test.ts` (rows 21-25).
+> Changing a row without changing its test is a contract violation.
+>
+> **Plan revision followed:** `2026-08-12-r2` (Portfolio E2E Standards Plan,
+> §5 WS-1a, Appendix A3/A4/A5).
+
+## 1. What the gate is, and what it queries
+
+A nightly e2e suite is too slow to run on a pull request. So it runs on a
+schedule against a protected branch, and this gate turns *last night's already
+produced verdict* into a required status check on every PR. It runs no tests
+itself; it costs seconds.
+
+**The gate queries GitHub Actions RUN HISTORY.** It does not dispatch suites, it
+does not read artifacts, and it does not "call" the suite workflows.
+
+That last point is a hard constraint of the platform, not a preference: a
+reusable workflow's `uses:` value must be a static literal, so a reusable
+workflow **cannot** dynamically call an arbitrary list of workflow filenames
+supplied at runtime in an input. Any design that reads "the gate runs the suites
+named in the table" is impossible. The gate reads
+`GET /repos/{owner}/{repo}/actions/workflows/{workflow_file}/runs` and, for
+job-scoped suites, `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs`.
+
+Artifacts are deliberately **not** a supported result source. Actions artifacts
+are zip archives, and Node ships no zip reader, so consuming them would either
+add a dependency to a guard that must stay installable-free or shell out to
+`unzip` in a way that cannot be unit-tested. Artifacts also expire (default 90
+days, often less), which turns "the evidence aged out" into an unreadable
+verdict — the exact fail-open shape this gate exists to refuse.
+
+### 1.1 Match modes, best first
+
+Each suite in the `suites` table declares exactly one match mode. They are
+listed here in the order you should prefer them.
+
+| Mode | What it reads | Use when |
+|---|---|---|
+| `run` | the run's own `conclusion` | the whole workflow **is** the suite (e.g. a dedicated `maestro-e2e.yml`) |
+| `job` | the `conclusion` of the job whose name is **exactly** the declared string | the suite is one job inside a larger workflow |
+| `job_pattern` | the `conclusion` of every job whose name matches an **anchored** regex | last resort only |
+
+**`run` and `job` are the machine-readable contract; `job_pattern` is not.** A
+job name is a string the suite publishes on purpose and a repo can pin with a
+test (see §5); a regex is an inference *about* that string that keeps passing
+while it silently matches nothing else. `job_pattern` is supported because some
+existing suites emit matrix job names (`… (android)`, `… (shard 2/4)`) that no
+single exact string can cover — and for those, the anchoring rules and the
+zero-match rule in §3 are what keep it honest.
+
+For a suite reached through a nested reusable workflow, the job name reported by
+the API is `<caller job name> / <called job name>`. That composition is also
+what the *required status-check context* looks like, and getting it wrong is how
+a gate silently stops gating — see §5.
+
+## 2. The fail-closed truth table
+
+`B` = the bootstrap window is active (see §4). Every row is stated for a single
+suite; the workflow verdict is the worst verdict across suites, with `bypassed`
+applied last (§6).
+
+| # | Observation | B active | After B | Verdict |
+|---|---|---|---|---|
+| 1 | Fresh run on the required branch (and required SHA, if declared), conclusion `success` | pass | pass | **`pass`** |
+| 2 | Conclusion `failure` | fail | fail | **`fail`** |
+| 3 | Conclusion `timed_out` | fail | fail | **`fail`** |
+| 4 | Conclusion `action_required` | fail | fail | **`fail`** |
+| 5 | Conclusion `startup_failure` | fail | fail | **`fail`** |
+| 6 | Conclusion `cancelled` | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 7 | Conclusion `skipped` | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 8 | Conclusion `neutral`, `stale`, `null`, or any value not in `DECISIVE_CONCLUSIONS` | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 9 | No run at all in the repository's history | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 10 | Runs exist, but none inside the freshness window | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 11 | Workflow file renamed / deleted (API returns 404 for the declared file) | fail | fail | **`fail`** |
+| 12 | Job renamed so `job` finds no job of that name in the newest run | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 13 | `job_pattern` matches **zero** jobs in the newest run | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 14 | `job_pattern` matches ≥1 job; **any** match is non-`success` | fail | fail | **`fail`** |
+| 15 | Newest run is on a **different branch** than required | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 16 | `required_sha` declared and the run's `head_sha` differs (stale SHA) | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 17 | Actions API unavailable / 5xx / network error | **fail** | **fail** | **`fail`** after bounded retry |
+| 18 | Actions API rate-limited (403/429 with rate-limit headers) | **fail** | **fail** | **`fail`** after bounded retry |
+| 19 | API returns 401/403 for auth (token cannot read run history) | **fail** | **fail** | **`fail`** |
+| 20 | `suites` input is absent, empty, malformed JSON, or fails schema validation | **fail** | **fail** | **`fail`** |
+| 21 | A red or unknown verdict on a PR carrying a **valid** audited bypass | — | — | **`bypassed`** (success, audited) |
+| 22 | A red or unknown verdict on a PR carrying an **invalid** bypass (self-bypass, non-maintainer, no reason/ticket, expired) | — | — | **`fail`**, with the rejection reason in the audit |
+| 23 | Bootstrap window declared but already expired, and evidence still missing | — | — | **`fail`** |
+| 24 | Bootstrap window declared beyond `bootstrap_max_days` from the workflow run date | **fail** | **fail** | **`fail`** (invalid configuration) |
+| 25 | Bootstrap window active and evidence missing | non-blocking | — | **`bootstrap`**, summary states the UTC expiry timestamp |
+
+### 2.1 Rows 17–19 in one sentence
+
+**"We could not check" never renders as "it is fine."** API failure is retried a
+bounded number of times with backoff (`api_max_attempts`, default 3) and then
+**fails the check**. There is no configuration that turns an unreachable API
+into a pass; the only escape is the audited bypass of row 21, which leaves a
+record.
+
+### 2.2 Why rows 6–8 are a change from the inherited implementations
+
+gemini's `check-nightly-e2e.mjs` skips over `cancelled` / `skipped` / `neutral`
+to find the newest *decisive* run and, failing that, reports `unknown` and
+**passes with a warning**. That is a fail-open path and it is closed here:
+`DECISIVE_CONCLUSIONS` is kept as an explicit set — it is the right vocabulary,
+and it is what lets the report say *why* a suite is unreadable — but a suite
+whose newest in-window run is not decisive resolves to `unknown`, and `unknown`
+**fails** once the bootstrap window has closed.
+
+Cancelling a run must never be a one-click way to clear a merge gate. That is
+the same false-green shape `check-skipped-required-checks.mjs` exists to refuse:
+GitHub counts a *skipped* required check as satisfied, so anything that makes a
+red suite report "nothing to say" is a hole in the gate.
+
+### 2.3 `DECISIVE_CONCLUSIONS`
+
+```
+success | failure | timed_out | action_required | startup_failure
+```
+
+Everything else (`cancelled`, `skipped`, `neutral`, `stale`, `null`, and any
+value GitHub adds later) is **indecisive** → state `unknown` → row 8.
+
+The set is closed on purpose: a conclusion GitHub introduces after this file was
+written is unknown to us, and an unknown conclusion is not evidence of health.
+
+## 3. The `suites` input — structured JSON, schema-validated
+
+`suites` is a JSON **array**, passed as a string because `workflow_call` inputs
+cannot be objects. It is validated against
+`typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json` before any
+API call. It is explicitly **not** a semicolon-delimited mini-language: a
+delimiter-joined table has no way to express optional per-suite freshness, no
+way to distinguish an exact job name from a pattern, and no way to reject a
+duplicate — every one of which is a silent mis-gate.
+
+```yaml
+suites: |
+  [
+    { "label": "Playwright browser e2e",
+      "workflow": "ci.yml",
+      "match": { "mode": "job", "name": "🔍 Quality Checks / 🎭 Playwright E2E Tests" } },
+    { "label": "Maestro native e2e",
+      "workflow": "maestro-e2e.yml",
+      "match": { "mode": "run" },
+      "freshness_hours": 36 }
+  ]
+```
+
+Validation rules, all of which **fail the check** (row 20) rather than warn:
+
+- The document is an array with at least one entry.
+- Every entry has a non-empty `label` and `workflow`.
+- **`label` values are unique** (case-sensitively). Two suites sharing a label
+  produce one report line for two verdicts.
+- **`workflow` + `match` pairs are unique.** The same suite declared twice is a
+  copy-paste error, and a duplicate can mask a typo in the one you meant.
+- `match.mode` is one of `run` | `job` | `job_pattern`.
+- `mode: "job"` requires a non-empty `name`; `mode: "job_pattern"` requires a
+  non-empty `pattern`.
+- **A `pattern` must be anchored at both ends** (`^…$`). An unanchored regex is
+  a substring test wearing a regex's clothes: `Playwright` matches
+  `Playwright (skipped placeholder)`. Rejected at validation time, not at match
+  time, so the failure names the config rather than a run.
+- A `pattern` must compile, and is compiled **without** the `g` flag (a sticky
+  `lastIndex` makes repeated `.test()` calls return alternating answers).
+- `freshness_hours`, when present, is a number in `(0, 720]`.
+- Unknown keys are rejected. A typo'd `freshnessHours` that silently takes the
+  default is a gate that is looser than its author believes.
+
+`job_pattern` **matching zero jobs is an error** (row 13), never "nothing to
+report". Zero matches is the exact signature of a renamed job, and a renamed job
+is how a gate stops gating without anyone noticing.
+
+## 4. Bootstrap — time-boxed, with a visible expiry
+
+A gate that blocks a repository the day it is installed teaches everyone to
+bypass it. So the gate ships with a bootstrap window during which *missing or
+unreadable* evidence is reported but does not block. propswap's equivalent has
+no expiry at all, which means a suite that never runs passes forever — the
+window here is mandatory and bounded.
+
+- `bootstrap_until` — an **ISO-8601 UTC timestamp** (e.g.
+  `2026-09-15T00:00:00Z`). Absent (the default) means **no bootstrap window**:
+  the gate is fully armed from the first run.
+- `bootstrap_max_days` — default `30`. A `bootstrap_until` further into the
+  future than this many days *from the moment the gate runs* is **invalid
+  configuration and fails the check** (row 24). This is what stops the window
+  being extended indefinitely by editing one string: past the cap, extending it
+  requires changing the cap too, which is a reviewable act.
+- While the window is active, every non-`pass` suite renders as
+  `⚠️ bootstrap — not blocking; this window expires <timestamp> (in N days)`,
+  in the job summary and in the job's `verdict` output. The expiry is always
+  visible; there is no quiet bootstrap.
+- **Genuinely red evidence still fails during bootstrap.** Rows 2–5, 11, 14 and
+  17–20 are red inside the window as well as outside it. Bootstrap forgives
+  *absence of evidence*, never *evidence of failure*.
+- The moment the window lapses, rows 6–10, 12–13, 15–16 flip to `fail` with no
+  further action (row 23). Nothing needs to be turned on.
+
+## 5. The context-name identity — two strings that disarm the gate silently
+
+Both of these break with no error at all. The gate simply stops gating, and the
+next person to look finds a green checkmark that measured nothing.
+
+1. **The check's context name is `<caller job name> / <reusable job name>`.**
+   GitHub composes the check-run name from the caller's job `name:` and the
+   called workflow's job `name:`. The ruleset must require that *composite*
+   string, byte for byte, emoji included.
+2. **The ruleset's required context is a hand-entered string** living outside
+   the repository. Rename either half of (1) and GitHub waits forever for a
+   context nobody reports — which does not "de-gate" the branch, it
+   **deadlocks** every PR into it.
+
+`tests/integration/nightly-e2e-health-workflow.test.ts` pins all three strings
+against each other: the reusable's job name, the create-only caller template's
+job name, and the `context` value in
+`expo/github-rulesets/nightly-e2e-health.json`. The adopter-side equivalent is
+`typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs`, which
+additionally catches the *other* direction of this failure: a ruleset requiring
+a context that the repo's CI unconditionally skips. GitHub counts a **skipped**
+required check as **satisfied**, so that combination enforces nothing while
+looking fully armed. It is the defect that made gemini's `playwright` ruleset
+decorative, and it is why `expo/github-rulesets/playwright.json` is deleted by
+this change rather than fixed.
+
+## 6. The bypass contract (Appendix A4 — owner ruling, ratified 2026-08-12)
+
+A gate that reads *last night's* verdict cannot be cleared by the PR that fixes
+last night's failure — the nightly stays red until the fix merges and runs.
+Deadlock by construction. The escape hatch is a **single audited bypass label**,
+and it is the *only* sanctioned path past a red gate: there is **no
+admin-merge-past-red**. An unaudited admin merge and an audited bypass differ
+precisely in whether anyone can find out afterwards.
+
+A bypass is valid only when **all** of the following hold. Any failure is row 22
+— the check goes **red**, and the audit says which condition failed.
+
+| Condition | Why |
+|---|---|
+| The PR carries the label named by `bypass_label` (default `nightly-e2e-bypass`). | The trigger. |
+| The **actor who applied the label** has repository permission `admin` or `maintain`. | "Maintainers only." Read from `GET /repos/{repo}/collaborators/{login}/permission`; the labelling actor is read from the newest matching `labeled` event on the PR timeline. |
+| The labelling actor is **not** the PR author. | **No self-bypass.** A bypass one person can both request and grant is not a control. |
+| The PR body contains a reason line matching `bypass_reason_pattern` (default `^Nightly-E2E-Bypass:\s*(?<ticket>[A-Z][A-Z0-9]+-\d+|#\d+)\s+(?<reason>\S.*)$`). | A reason **and** a tracker reference, in the artefact reviewers already read. |
+| The label was applied no more than `bypass_max_hours` ago (default `24`, hard ceiling `72`). | **Auto-expiry.** A label nobody removes must not be a permanent hole. Past the window the bypass simply stops working. |
+
+When all conditions hold the gate emits verdict **`bypassed`** — a *successful*
+check, distinct from `pass`, that carries an immutable audit record:
+
+```json
+{
+  "verdict": "bypassed",
+  "bypass": {
+    "label": "nightly-e2e-bypass",
+    "actor": "<login>", "actor_permission": "maintain",
+    "pr_author": "<login>", "pr_number": 123,
+    "applied_at": "2026-08-12T09:14:02Z", "expires_at": "2026-08-13T09:14:02Z",
+    "ticket": "SE-6899", "reason": "harness outage, no re-run can turn this green",
+    "waived": [ { "label": "…", "state": "fail", "conclusion": "failure", "url": "…" } ]
+  }
+}
+```
+
+written to `$GITHUB_STEP_SUMMARY`, to stdout, to the job output `audit_json`,
+and echoed as a `::notice::` annotation so it is visible on the checks surface.
+A `pass` verdict ignores the label entirely — a stale label on a green PR must
+not read as though it did something.
+
+### 6.1 Auto-removal happens on merge, not on use
+
+"Auto-removes after use" cannot mean "the gate removes the label when it
+evaluates," and this trap is worth stating because the obvious implementation is
+wrong: removing the label fires `unlabeled`, which re-runs the gate, which now
+sees no bypass and goes **red** — the PR is blocked again by the mechanism meant
+to unblock it. So removal is a separate, single-purpose workflow
+(`expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml`) triggered on
+`pull_request: closed`, which strips the label from the merged/closed PR. The
+reusable gate itself needs **no write permission** as a result.
+
+Expiry (`bypass_max_hours`) is the belt to that suspenders: even if the reaper
+is not installed, a bypass label stops working after its window.
+
+## 7. Permissions, tokens, pagination, rate limits, reruns, concurrency
+
+**Minimum permissions** for the caller job:
+
+```yaml
+permissions:
+  contents: read   # actions/checkout of the caller repo
+  actions: read    # the entire point: reading other workflows' run history
+```
+
+`pull-requests: read` is additionally required **only** when the bypass path is
+enabled on a **private** repository — the PR timeline and collaborator
+permission reads are otherwise covered by `contents: read` on public repos. The
+reusable requests nothing else and **never** requests write.
+
+**Token behaviour.** The default `${{ github.token }}` can read run history and
+collaborator permission for the repository it runs in, which is the only
+repository this gate reads. There is deliberately **no cross-repo mode**: a
+gate that reads another repository's runs needs a PAT/App token whose blast
+radius exceeds the gate's value. On a **private** repository the default token
+works unchanged; what does *not* work is a fork PR, where `github.token` is
+read-only and the `pull_request` event carries no privileged context. Fork PRs
+therefore get the same treatment as any other missing evidence: `bypass` is
+unavailable (the timeline read fails → row 22), and the suite verdicts still
+resolve normally because run history is readable.
+
+**Pagination.** Run listing needs none: the request is filtered by
+`workflow file + branch + status=completed + event` and asks for `per_page=1`,
+and the API returns newest-first, so page 1 *is* the answer. That is two
+requests per suite (one per counted event), and the newest of the two wins.
+Job listing (`/runs/{id}/jobs?filter=latest`) **does** paginate, to exhaustion
+up to `api_max_pages` (default 5), because a matrix suite routinely exceeds one
+page and a truncated job list turns "the failing shard is on page 2" into a
+false green. Exhausting the page cap while pages are still full is **red**, not
+a partial read.
+
+**Rate limits.** A 403/429 carrying `x-ratelimit-remaining: 0` is retried after
+`x-ratelimit-reset` (bounded by `api_retry_max_seconds`, default 60) up to
+`api_max_attempts` (default 3), then **fails** (row 18). Secondary rate limits
+(`retry-after`) are honoured the same way. The gate issues at most
+`1 + suites × 2` requests on the happy path, which is negligible against the
+5 000/hour installation limit even with every PR re-running it.
+
+**Reruns.** A re-run of the *gate* re-reads history and can legitimately change
+verdict — that is the unblock path working (re-dispatch the suite, re-run the
+check). A re-run of a *suite* creates a new run whose `created_at` is newer, so
+it supersedes; a re-run of a *failed job within* an existing run mutates that
+run's conclusion in place, and because the gate always reads the run's current
+conclusion rather than a cached one, a rerun-to-green is picked up immediately.
+`workflow_dispatch` runs count exactly like `schedule` runs, by design: that is
+what makes the gate escapable by *fixing* rather than by *waiting*. Dispatch
+runs are still branch-filtered — a dispatch from someone's feature branch must
+never clear the gate for everybody.
+
+**Concurrency.** Gate evaluations are idempotent reads with no shared state, so
+the caller template uses a per-PR `concurrency` group with
+`cancel-in-progress: true`. Two evaluations racing cannot corrupt anything; the
+newer one wins and reports. Note the interaction with row 6: a *cancelled gate
+run* reports no check at all (GitHub marks it cancelled), which leaves the
+required context unreported and the PR blocked until the newer run reports —
+blocked, not passed. Fail-closed holds through cancellation.
+
+## 8. Versioning, compatibility, and rollback (Appendix A5)
+
+**"Lisa reaches every repo at once" is false.** A reusable workflow is consumed
+at a ref, and a copy-overwrite script is consumed at whatever Lisa release the
+repo last applied. Both are per-repo adoption events.
+
+- **Consumers pin an immutable ref.** The caller template ships pinned to a tag
+  (`@vX.Y.Z`), not `@main`. Lisa's other caller templates still use `@main`;
+  that is a pre-existing fleet-wide gap, not a licence to add another one.
+  Pinning to a tag is the floor; pinning to the tag's commit SHA with the tag in
+  a trailing comment is better and is what the template documents.
+- **The gate's contract version is `NIGHTLY_E2E_CONTRACT_VERSION`**, exported by
+  the guard script and asserted by the reusable workflow. The two halves travel
+  by different routes (workflow by git ref, script by `lisa apply`) and *will*
+  drift. On a **major** mismatch the gate **fails closed** with a message naming
+  both versions and the fix. A minor/patch skew is allowed and reported.
+- **Compatibility policy.**
+  - *Major* — removing or renaming an input, removing an output field, changing
+    a verdict for an unchanged observation (i.e. editing a row of §2), or
+    tightening schema validation so a previously valid `suites` document is
+    rejected.
+  - *Minor* — adding an optional input with a fail-closed-safe default, adding
+    an output field, adding a match mode, adding a `DECISIVE_CONCLUSIONS`
+    member.
+  - *Patch* — message wording, docs, internal refactors, test-only changes.
+  - **Inputs are never repurposed.** A removed input keeps its name reserved and
+    is rejected with a pointer to its replacement, rather than being silently
+    ignored — an ignored input is a gate configured differently than its author
+    believes.
+- **Output schema.** `verdict` (`pass|fail|bypassed|bootstrap`),
+  `blocked` (boolean), `audit_json` (the full record). Fields are added, never
+  removed or retyped, inside a major.
+- **Rollout.** Canary repo → one batch → remainder, with a stop condition of
+  *any* adopter seeing a verdict its maintainer disputes. **Rollback is
+  re-pinning the caller to the prior tag** — the guard script rolls back with
+  `lisa apply` at the prior Lisa release. Because the workflow asserts the
+  script's contract major, a half-rolled-back pair fails loudly instead of
+  running a mismatched contract.
+- **Deprecation window.** A major bump keeps the previous major's tag live and
+  supported for 90 days; the release notes name every adopter that must move.
+
+## 9. What this replaces
+
+| Was | Where | Now |
+|---|---|---|
+| Node script, one repo | tunnl `scripts/check-nightly-e2e-health.mjs` | the shipped guard (its bypass model and context-pinning test are the ancestors of §5/§6) |
+| Bash + `gh` + `jq` library | propswap `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4 |
+| Second Node script, `unknown`-passes | gemini `scripts/check-nightly-e2e.mjs` | the shipped guard; `DECISIVE_CONCLUSIONS` kept, the fail-open path closed (§2.2) |
+| A ruleset requiring a PR-skipped context | Lisa `expo/github-rulesets/playwright.json` | **deleted**, replaced by `expo/github-rulesets/nightly-e2e-health.json` |
+
+### 9.1 Deleting the `playwright` ruleset is a two-step
+
+Ruleset templates are **not** copied into host repositories — `lisa apply` reads
+`<type>/github-rulesets/*.json` and pushes them to the GitHub API through
+`scripts/lisa-github-rulesets.sh`. So deleting the template stops Lisa from
+*re-creating or updating* the bad ruleset, but it does **not** remove a ruleset
+already live on a repository, and `deletions.json` (which removes host *files*)
+has no bearing on it.
+
+Every repo that received it must delete the live ruleset explicitly:
+
+```bash
+gh api "repos/$REPO/rulesets" --jq '.[] | select(.name=="playwright") | .id'
+gh api -X DELETE "repos/$REPO/rulesets/<id>"
+```
+
+That is an adopter-PR step, not a Lisa step, and it is called out in the adopter
+checklist for exactly the reason the ruleset is being deleted: a required
+context that PRs skip **looks** like enforcement and is not.

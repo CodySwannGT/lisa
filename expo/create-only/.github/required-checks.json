@@ -1,0 +1,44 @@
+{
+  "_readme": [
+    "See typescript/create-only/.github/required-checks.json in Lisa for the full rationale. In short: GitHub counts a SKIPPED required status check as SATISFIED, so a `skip_jobs` token that silences a required context makes the merge gate decorative.",
+    "This expo seed declares the three tokens the shipped ci.yml skips. Every one of them is currently NOT ruleset-required, so nothing here is a false green — but the declaration exists so that the day one of them BECOMES required, the guard says so instead of the gate quietly going hollow.",
+    "Transcribe `required_contexts` byte for byte from your ruleset and keep it current with `--remote`."
+  ],
+  "ruleset": {
+    "repo": "",
+    "ids": [],
+    "baseline_fetched_at": ""
+  },
+  "workflows": [".github/workflows/ci.yml"],
+  "exemption_ticket_pattern": "^[A-Z][A-Z0-9]+-\\d+$",
+  "required_contexts": [
+    "🔍 Quality Checks / 🧹 Lint",
+    "🔍 Quality Checks / 🔍 Type Check",
+    "🔍 Quality Checks / 🏗️ Build",
+    "🔍 Quality Checks / 📐 Check Formatting",
+    "🔍 Quality Checks / 🔒 Security Scan",
+    "🔍 Quality Checks / 🧪 Run Unit Tests",
+    "🔍 Quality Checks / 🧪 Run Integration Tests",
+    "🔍 Quality Checks / 🔗 Work-Item Traceability"
+  ],
+  "skip_job_declarations": {
+    "test:e2e": {
+      "suppressed_contexts": ["🔍 Quality Checks / 🧪 Run E2E Tests"],
+      "ruleset_required": false,
+      "reason": "A fresh Expo project has no `test:e2e` script. Lisa's quality callee guards each job on script existence, so un-skipping it would produce a real run that succeeds having tested nothing — a worse false green than the skip. Not a required context, so skipping removes a check rather than faking one."
+    },
+    "playwright_e2e": {
+      "suppressed_contexts": [
+        "🔍 Quality Checks / 🎭 Playwright Shard Setup",
+        "🔍 Quality Checks / 🎭 Playwright E2E Tests"
+      ],
+      "ruleset_required": false,
+      "reason": "Note this ONE token silences TWO jobs. Neither is a required context. Browser e2e is gated by the nightly suite plus `🌙 Nightly E2E Health`, not by a PR-time Playwright run — which is exactly why the old `playwright` ruleset template was deleted: it required a context PRs skip, and GitHub counts skipped as satisfied."
+    },
+    "zap_baseline": {
+      "suppressed_contexts": ["🔍 Quality Checks / 🕷️ OWASP ZAP Baseline"],
+      "ruleset_required": false,
+      "reason": "DAST needs a deployed target and is run against staging, not on every PR. Not a required context."
+    }
+  }
+}
