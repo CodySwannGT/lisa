@@ -37,27 +37,67 @@ would read as "everything ran".
 
 ## Result envelope (`--json`)
 
-Follows Lisa's standard command envelope. `schemaVersion` is the envelope's, and
-also the version of the nested `report`.
+The gate answers **Lisa's standard command envelope**
+(`scripts/lisa-command-envelope.mjs` and its published schema), not a shape of
+its own. When that module is installed the envelope is built *by it*, so its
+validator — never a restated copy of its rules here — decides conformance.
+
+Two axes are deliberately distinct and are easy to confuse:
+
+- **`mode`** is the *envelope's* mode and is always `real`: the gate genuinely
+  runs. `declared-noop` / `not-applicable` describe capability adapters with
+  nothing to do, which this is not.
+- **`summary.adoptionState`** is the *BDD* three-state adoption state
+  (`not-adopted` / `bootstrap` / `enforced`). A repo that has not wired the
+  contract is reported by `status: "not-adopted"`.
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": "lisa-command-envelope-v1",
   "capability": "bdd-coverage",
+  "mode": "real",
   "operation": "check",
-  "mode": "not-adopted | bootstrap | enforced",
-  "status": "passed | bootstrap-warnings | not-adopted | failed",
-  "contractVersion": 2,
-  "defects": [{ "code": "<stable code>", "message": "<operator-readable>" }],
-  "report": { "...": "see below" },
-  "summary": "<one operator-readable line>"
+  "environment": "<BDD_ENVIRONMENT, e.g. owner/repo@ref; 'local' off CI>",
+  "contractVersion": "bdd-coverage-map-v2@2026-08-12",
+  "dryRun": true,
+  "status": "completed | not-adopted | invalid | failed",
+  "correlationId": "<CI run id, or a content-derived id off CI>",
+  "reason": "<required on every non-success status>",
+  "summary": { "deleted": 0, "created": 0, "preserved": 0, "adoptionState": "enforced", "...": "counters below", "headline": "<one operator-readable line>" },
+  "findings": [{ "code": "<stable code>", "subject": "<entity>", "message": "<operator-readable>", "severity": "error | warning" }]
 }
 ```
 
-Exit codes: `0` completed (including `bootstrap-warnings` and `not-adopted`),
-`1` failed, `2` usage error (an invalid `BDD_MODE`).
+`dryRun` is `true` unless `--write` was passed, because without it the gate
+mutates nothing. `created` counts the files `--write` regenerated.
 
-### `report`
+**Status mapping.** `completed` — the contract was evaluated and nothing fatal
+was found (in `bootstrap` this includes runs carrying warnings).
+`not-adopted` — the capability is not wired here. `invalid` — the coverage map
+is absent, malformed, or written against an unsupported schema version.
+`failed` — the contract was evaluated and something fatal was found.
+
+Exit codes come from the envelope contract: `0` for `completed`, `no-op` and
+`not-adopted`; `1` for everything else; `2` for a usage error (an unrecognized
+`BDD_MODE`).
+
+`summary` carries the counters, so two runs are comparable without parsing
+prose: `adoptionState`, `findingsError`, `findingsWarning`,
+`scenariosDeclared`, `scenariosRequired`, `scenariosExcluded`,
+`traceabilityCovered`, `traceabilityTotal`, `traceabilityPercentage`,
+`executionEvidenceSupplied`, `mappedTests`, `waivedObligations`, `floorOk`, and
+— **only when run evidence was supplied** — `executed`, `passed`, `failed`,
+`skipped`, `notRun`.
+
+**Human narration goes to stderr**, so stdout holds exactly one machine-readable
+document.
+
+### The detailed report (`--report`)
+
+`--report` swaps the envelope for the full report below. It is a diagnostic, not
+the standard result, and it never prints *alongside* the envelope: a stream
+carrying two shapes has no schema at all. The same document is written to
+`bdd/coverage-report.json` by `--write`.
 
 ```json
 {
@@ -113,6 +153,10 @@ result is `notRun` and named in `notRunTests` — never quietly counted as passi
 Consumers pin an immutable Lisa tag or SHA (Lisa distribution policy A5); nothing
 here "reaches every repo at once".
 
+- **Envelope `schemaVersion`** — owned by `lisa-command-envelope.mjs`, not by this
+  gate. This gate restates only the shared module's `SUCCESS_STATUSES`, because
+  it must decide its exit code without waiting on a dynamic import; a unit test
+  asserts the two lists are identical, so the copy cannot drift silently.
 - **`report.schemaVersion`** — bumped on any removal or meaning-change of a field.
   Additive fields do not bump it. A consumer reading this report must tolerate
   unknown fields and must fail loudly on an unexpected major.
@@ -148,6 +192,28 @@ rather than three drifting ones.
 as passing, so the presence-gated skip used by `e2e_coverage` is exactly what
 `enforced` mode must not do — in `enforced`, a missing `scripts/check-bdd-coverage.mjs`
 fails the job in the workflow itself, before the script could have been asked.
+
+### Allowlist, never denylist
+
+Every gate decision here enumerates what is **permitted** and treats everything
+else as the restricted case, because a denylist fails OPEN on exactly the value
+nobody anticipated:
+
+- `BDD_MODE` is checked against `ADOPTION_STATES`; an unrecognized value exits
+  `2` rather than falling through to the permissive default.
+- `bootstrap` downgrades a defect to a warning only when its code is on
+  `WARNABLE_DEFECT_CODES`. **An unknown code — a check added later, a typo — is
+  fatal.** The adoption-integrity codes (`adoption-drift`, `bootstrap-*`,
+  `config-*`) are deliberately absent from that list, so they fail in every
+  state.
+- The coverage map's `schemaVersion` is checked against
+  `SUPPORTED_MAP_SCHEMA_VERSIONS`; anything else is `invalid`, never a silent
+  downgrade.
+- The shared envelope module is resolved from an enumerated list of paths, not
+  by searching whatever is nearby.
+
+All four lists are **source constants**. None is read from the environment, so
+no caller can widen what the gate permits.
 
 ### Enabling `enforced` is ONE operation
 
@@ -238,3 +304,8 @@ comes due is a quieter coverage gap.
 | `BDD_EXECUTION_RESULTS` | Comma-separated execution-result documents, same as repeated `--results`. |
 | `BDD_COVERAGE_ROOT` | Repo root override, for tests. |
 | `BDD_TODAY` | ISO date used for expiry evaluation, for tests and deterministic reruns. |
+| `BDD_CORRELATION_ID` | Joins the envelope to the CI log. Off CI a content-derived id is used so output stays deterministic. |
+| `BDD_ENVIRONMENT` | Environment identity recorded in the envelope (e.g. `owner/repo@ref`). Defaults to `local`. |
+
+None of these widens what the gate permits — the allowlists above are source
+constants, not environment-readable.

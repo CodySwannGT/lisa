@@ -17,6 +17,8 @@ import {
   HEALTHY_FEATURES,
   HEALTHY_FILES,
   HEALTHY_MAP,
+  COMPLETED,
+  INVALID,
   NOT_ADOPTED,
   SCRIPT_ABS,
   codes,
@@ -27,16 +29,20 @@ import {
   runGate,
 } from "./bdd/support";
 
+const CONFIG_ABSENT = "config-absent";
+
 describe("three-state adoption", () => {
   it("not-adopted: reports and exits 0 even with no contract at all", () => {
     const run = runGate(makeProject({}), { BDD_MODE: NOT_ADOPTED });
     expect(run.status).toBe(0);
     expect(run.envelope.status).toBe(NOT_ADOPTED);
-    expect(run.envelope.defects).toHaveLength(0);
+    expect(run.envelope.findings).toHaveLength(0);
   });
 
   it("defaults to not-adopted when BDD_MODE is unset, so upgrading enrolls nobody", () => {
-    expect(runGate(makeProject({})).envelope.mode).toBe(NOT_ADOPTED);
+    expect(runGate(makeProject({})).envelope.summary.adoptionState).toBe(
+      NOT_ADOPTED
+    );
   });
 
   it("rejects an unrecognized BDD_MODE with a usage exit rather than guessing", () => {
@@ -55,15 +61,17 @@ describe("three-state adoption", () => {
   it("enforced: FAILS when the coverage map is absent — absence is never a skip", () => {
     const run = runGate(makeProject({}), { BDD_MODE: ENFORCED });
     expect(run.status).toBe(1);
-    expect(run.envelope.status).toBe("failed");
-    expect(run.envelope.defects[0].code).toBe("config-absent");
-    expect(run.envelope.defects[0].message).toContain("never a skip");
+    expect(run.envelope.status).toBe(INVALID);
+    expect(run.envelope.findings[0].code).toBe(CONFIG_ABSENT);
+    expect(run.envelope.findings[0].message).toContain("never a skip");
+    expect(run.envelope.reason).toContain(CONFIG_ABSENT);
   });
 
   it("enforced: FAILS on a malformed coverage map", () => {
     const root = makeProject({ map: "{ not json" });
     const run = runGate(root, { BDD_MODE: ENFORCED });
     expect(run.status).toBe(1);
+    expect(run.envelope.status).toBe(INVALID);
     expect(codes(run)).toContain("config-malformed");
   });
 
@@ -87,9 +95,9 @@ describe("three-state adoption", () => {
 
   it("enforced: passes a healthy contract", () => {
     const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
-    expect(run.envelope.defects).toEqual([]);
+    expect(run.envelope.findings).toEqual([]);
     expect(run.status).toBe(0);
-    expect(run.envelope.status).toBe("passed");
+    expect(run.envelope.status).toBe(COMPLETED);
   });
 
   it("enforced: rejects a manifest whose adoption.state disagrees with CI", () => {
@@ -130,7 +138,9 @@ describe("three-state adoption", () => {
     });
     const run = runGate(root, { BDD_MODE: BOOTSTRAP });
     expect(run.status).toBe(0);
-    expect(run.envelope.status).toBe("bootstrap-warnings");
+    expect(run.envelope.status).toBe(COMPLETED);
+    expect(run.envelope.summary.findingsWarning).toBeGreaterThan(0);
+    expect(run.envelope.summary.findingsError).toBe(0);
     expect(codes(run)).toContain("mapping-evidence");
   });
 
@@ -160,6 +170,6 @@ describe("three-state adoption", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "bdd-empty-"));
     const run = runGate(root, { BDD_MODE: BOOTSTRAP });
     expect(run.status).toBe(1);
-    expect(codes(run)).toContain("config-absent");
+    expect(codes(run)).toContain(CONFIG_ABSENT);
   });
 });

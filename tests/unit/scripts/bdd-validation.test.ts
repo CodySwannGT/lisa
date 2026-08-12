@@ -28,6 +28,7 @@ import {
   makeProject,
   messages,
   runGate,
+  runReport,
 } from "./bdd/support";
 
 describe("scenario and mapping validation", () => {
@@ -222,10 +223,10 @@ function waivedProject(map: Record<string, unknown> = {}): string {
 
 describe("waivers", () => {
   it("accepts a fully-recorded waiver and keeps it out of the denominator", () => {
-    const run = runGate(waivedProject(), { BDD_MODE: BOOTSTRAP });
-    expect(run.envelope.report?.waived.count).toBe(1);
-    expect(run.envelope.report?.traceability.overall.total).toBe(0);
-    expect(run.envelope.report?.waived.entries[0]).toMatchObject({
+    const report = runReport(waivedProject(), { BDD_MODE: BOOTSTRAP });
+    expect(report.waived.count).toBe(1);
+    expect(report.traceability.overall.total).toBe(0);
+    expect(report.waived.entries[0]).toMatchObject({
       owner: "cody@example.test",
       ticket: "TUN-77",
       expiresAt: "2026-12-31",

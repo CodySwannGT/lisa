@@ -172,6 +172,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dd48f24536fd36c56e8e6dc3c192f8862f3aa7dfef0e46db4f55205c1ee2b1ec",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
+    "expo/copy-overwrite/scripts/bdd/envelope.mjs":
+      "7bb2aa5dbe49fa97d3f14e5400fef3f76e0fd99ab74e88d568a3d037c94c601d",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "d6866a422d841cef291dea931424af4e0799be34d19f6817adba28e31972ac4f",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
@@ -183,7 +185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4b9ebf80100f478cc5e06d50b4d672ad08ec77a3746a7a109a74e1daf71a55b7",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "fbfe26bf9a03da7b71a3cb9e2e5125ddb2897aa2a40e94fd4988cd5f606c32c5",
+      "13db95d2ed8bce81acfb4fdfd9adb195a60818952393268f6a269dbaa6e62d66",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -2555,6 +2557,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": true,
     "expo/copy-overwrite/scripts/bdd/baseline.mjs": true,
     "expo/copy-overwrite/scripts/bdd/contract.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/envelope.mjs": true,
     "expo/copy-overwrite/scripts/bdd/parse.mjs": true,
     "expo/copy-overwrite/scripts/bdd/render.mjs": true,
     "expo/copy-overwrite/scripts/bdd/report.mjs": true,
@@ -8602,6 +8605,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
+    "tests/unit/scripts/bdd-envelope.test.ts": true,
     "tests/unit/scripts/bdd-grammar.test.ts": true,
     "tests/unit/scripts/bdd-ratchet.test.ts": true,
     "tests/unit/scripts/bdd-reporting.test.ts": true,
