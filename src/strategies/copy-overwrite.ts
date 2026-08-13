@@ -2,6 +2,7 @@ import * as fse from "fs-extra";
 import { copyFile } from "node:fs/promises";
 import { mayRefreshTemplate } from "../core/config.js";
 import type { FileOperationResult } from "../core/config.js";
+import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 
@@ -86,12 +87,19 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
   /**
    * Resolve a differing managed file on a non-interactive apply.
    *
-   * There is no prompt available here, so the file is left alone and reported
-   * as `stale` — unless `--refresh-templates` covers it, which is the operator
-   * deciding in advance to take upstream's version. That flag is the supported
-   * way to deliver a changed enforcement guard to an installed project; without
-   * it the only route is deleting the file so the create path picks it up,
-   * which is a workaround nobody should have to know.
+   * There is no prompt available here, so a file the project may have
+   * customised is left alone and reported as `stale` — unless
+   * `--refresh-templates` covers it, which is the operator deciding in advance
+   * to take upstream's version.
+   *
+   * Lisa's own artifacts are not in that category and never wait for the flag.
+   * A version bump is how the fleet takes an upgrade, and it passes no flags, so
+   * gating `scripts/lisa-hooks/*` behind one meant a released security fix
+   * reached nobody: the fail-open fixes in #2374 shipped while installed repos
+   * kept running the vulnerable guard, until someone deleted the files by hand
+   * so the create path would recreate them. Lisa owns those files outright —
+   * see `isLisaOwnedTemplate` — so they refresh here, backed up first, and a
+   * project that wants to keep its own copy says so in `.lisaignore`.
    * @param sourcePath - Packaged template path
    * @param destPath - Installed file path
    * @param relativePath - Repo-relative path for reporting
@@ -106,7 +114,10 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
   ): Promise<FileOperationResult> {
     const { config, backupFile } = context;
 
-    if (!mayRefreshTemplate(relativePath, config.refreshTemplates)) {
+    if (
+      !isLisaOwnedTemplate(relativePath) &&
+      !mayRefreshTemplate(relativePath, config.refreshTemplates)
+    ) {
       return { relativePath, strategy: this.name, action: "stale" };
     }
 

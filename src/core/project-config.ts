@@ -19,9 +19,21 @@ import {
   type Harness,
 } from "./config.js";
 import {
+  DEFAULT_PROJECT_LEARNINGS_FILE,
+  PROJECT_LEARNINGS_FILENAME,
+  eagerContextRejection,
+  findEagerContextSurface,
+} from "./learnings-location.js";
+import {
   validateVerificationConfig,
   type VerificationConfig,
 } from "./project-config-kane.js";
+
+export {
+  AUTO_LOADED_RULES_DIR_PREFIXES,
+  DEFAULT_PROJECT_LEARNINGS_FILE,
+  PROJECT_LEARNINGS_FILENAME,
+} from "./learnings-location.js";
 
 export type {
   BrowserVerificationConfig,
@@ -32,56 +44,27 @@ export type {
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
 
-/** Default durable project-rules destination used by governance skills. */
-export const DEFAULT_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
-
-/** Fixed filename for the machine-managed project-learnings ledger. */
-export const PROJECT_LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
-
 /**
- * Default location for the machine-managed learnings ledger.
+ * Canonical, agent-neutral directory for **host-authored** operating rules.
+ * One directory, every agent; Lisa never writes rule bodies into it.
  *
- * The ledger lives beside other machine-managed state under `.lisa/`, NOT in an
- * auto-loaded rules tree. Anything under `.claude/rules/` (and the equivalents
- * other runtimes inject) is read raw into every session — placing the ledger
- * there double-loads it and bypasses the executable contract's budget and
- * validation. `.lisa/` is cold: the ledger is consumed only through the
- * contract's bounded projection.
+ * Deliberately NOT a native auto-load tree for any runtime, so every agent
+ * reaches it through exactly one surface — the Lisa-managed pointer block in
+ * `AGENTS.md` — and none double-loads host rules. Fixed rather than
+ * configurable: it is already reserved in `AUTO_LOADED_RULES_DIR_PREFIXES`
+ * (`./learnings-location.js`), which keeps the learnings ledger from ever
+ * resolving inside it.
  */
-export const DEFAULT_PROJECT_LEARNINGS_FILE = path.posix.join(
-  ".lisa",
-  PROJECT_LEARNINGS_FILENAME
-);
+export const HOST_RULES_DIR = ".agents/rules";
 
 /**
- * Directory prefixes that one or more runtimes inject raw at session start. The
- * learnings ledger must never resolve inside any of them, or the relocation's
- * whole point — keeping the raw file out of eager context — is defeated. Kept
- * conservative and explicit rather than agent-exhaustive; extend it as new
- * eager rule trees are added.
+ * The retired single-file rules destination, superseded by
+ * {@link HOST_RULES_DIR}. Migration-only, never a serving default: it locates a
+ * ledger older releases wrote beside it, and names a host's surviving legacy
+ * file in the pointer block so that content stays reachable. Reclassifying it
+ * is human-gated work.
  */
-const AUTO_LOADED_RULES_DIR_PREFIXES = [
-  ".claude/rules",
-  ".cursor/rules",
-  ".github/instructions",
-  ".agents/rules",
-] as const;
-
-/**
- * Repo-root instruction files that runtimes auto-load whole at session start
- * (AGENTS.md for Codex/Cursor/Copilot/agy/OpenCode; CLAUDE.md for Claude). A
- * `learnings.file` override must never resolve to one of these, or the ledger
- * would again be injected raw.
- */
-const ROOT_EAGER_INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
-
-/**
- * Non-root instruction files the generators maintain and runtimes auto-load
- * (Copilot reads `.github/copilot-instructions.md`). Matched by exact path.
- */
-const EAGER_INSTRUCTION_FILE_PATHS = [
-  ".github/copilot-instructions.md",
-] as const;
+export const LEGACY_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
 
 /** Optional `learnings` configuration block in `.lisa.config.json`. */
 export interface LearningsConfig {
@@ -100,7 +83,12 @@ export interface LearningsConfig {
 export interface ProjectConfig {
   /** Target harness(es) for emitted artifacts */
   readonly harness?: Harness;
-  /** Relative path to the project's durable rules file. */
+  /**
+   * @deprecated Retired in favour of the fixed {@link HOST_RULES_DIR}. Still
+   * parsed and preserved on round-trip so an installed project's config keeps
+   * working, and still consulted by the migration paths that need to know where
+   * a pre-directory release put things. Nothing serves rules from it.
+   */
   readonly projectRulesFile?: string;
   /** Optional overrides for the machine-managed learnings ledger. */
   readonly learnings?: LearningsConfig;
@@ -109,15 +97,20 @@ export interface ProjectConfig {
 }
 
 /**
- * Resolve the validated project-rules path from config or its default.
+ * Resolve where a pre-directory release would have kept this project's
+ * single-file rules: the deprecated `projectRulesFile` override when one is
+ * persisted, else {@link LEGACY_PROJECT_RULES_FILE}.
+ *
+ * Migration-only. Callers use it to find a ledger written beside the old file
+ * and to name a surviving legacy file in the `AGENTS.md` pointer — never to
+ * decide where rules should be read from today ({@link HOST_RULES_DIR} answers
+ * that, and it is not configurable).
  * @param config - Parsed project configuration
  * @returns Safe project-relative Markdown path
  */
-export function resolveProjectRulesFile(config: ProjectConfig): string {
-  return validateProjectRulesFile(
-    config.projectRulesFile ?? DEFAULT_PROJECT_RULES_FILE,
-    PROJECT_CONFIG_FILENAME
-  );
+export function resolveLegacyProjectRulesFile(config: ProjectConfig): string {
+  const configured = config.projectRulesFile ?? LEGACY_PROJECT_RULES_FILE;
+  return validateProjectRulesFile(configured, PROJECT_CONFIG_FILENAME);
 }
 
 /**
@@ -139,20 +132,18 @@ export function resolveProjectLearningsFile(config: ProjectConfig): string {
 }
 
 /**
- * Resolve the ledger's LEGACY location — the sibling of `projectRulesFile`,
- * where releases before the `.lisa/` relocation kept it. Used only by the
- * apply/doctor relocation so an existing file can be found and moved to the new
- * canonical path; never a serving path.
+ * Resolve the ledger's LEGACY location — the sibling of the retired single-file
+ * rules path, where releases before the `.lisa/` relocation kept it. Used only
+ * by the apply/doctor relocation so an existing file can be found and moved to
+ * the new canonical path; never a serving path.
  * @param config - Parsed project configuration
  * @returns Legacy project-relative learnings Markdown path
  */
 export function resolveLegacyProjectLearningsFile(
   config: ProjectConfig
 ): string {
-  return path.posix.join(
-    path.posix.dirname(resolveProjectRulesFile(config)),
-    PROJECT_LEARNINGS_FILENAME
-  );
+  const dir = path.posix.dirname(resolveLegacyProjectRulesFile(config));
+  return path.posix.join(dir, PROJECT_LEARNINGS_FILENAME);
 }
 
 /**
@@ -434,25 +425,10 @@ function validateLearningsFile(value: unknown, source: string): string {
     source,
     "learnings.file"
   );
-  const normalized = path.posix.normalize(safe);
-  const lowered = normalized.toLowerCase();
-  const insideEagerTree = AUTO_LOADED_RULES_DIR_PREFIXES.some(
-    prefix => normalized === prefix || normalized.startsWith(`${prefix}/`)
-  );
-  const isRootEagerFile =
-    path.posix.dirname(normalized) === "." &&
-    ROOT_EAGER_INSTRUCTION_FILES.some(name => name.toLowerCase() === lowered);
-  const isNamedEagerFile = EAGER_INSTRUCTION_FILE_PATHS.some(
-    filePath => filePath.toLowerCase() === lowered
-  );
-  if (insideEagerTree || isRootEagerFile || isNamedEagerFile) {
-    const surfaces = [
-      ...AUTO_LOADED_RULES_DIR_PREFIXES,
-      ...ROOT_EAGER_INSTRUCTION_FILES,
-      ...EAGER_INSTRUCTION_FILE_PATHS,
-    ].join(", ");
+  const surface = findEagerContextSurface(safe);
+  if (surface !== undefined) {
     throw new Error(
-      `Invalid learnings.file in ${source}: the ledger must not live in an auto-loaded rules tree or instruction file (${surfaces}); the default ${DEFAULT_PROJECT_LEARNINGS_FILE} is the recommended location`
+      `Invalid learnings.file in ${source}: ${eagerContextRejection(surface)}`
     );
   }
   return safe;
