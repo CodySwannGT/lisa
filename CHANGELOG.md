@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.6.2](https://github.com/CodySwannGT/lisa/compare/v3.6.1...v3.6.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **learnings:** wait on a wall-clock budget instead of a retry count ([6747aea](https://github.com/CodySwannGT/lisa/commit/6747aeacecb96c636f243d14a9808813991caeb0)), closes [CodySwannGT/lisa#2474](https://github.com/CodySwannGT/lisa/issues/2474)
+
+
+### Code Refactoring
+
+* **learnings:** keep the stale-reclaim call site out of this diff ([ffdef03](https://github.com/CodySwannGT/lisa/commit/ffdef039a9066f696eff482e8076534543d161cd)), closes [#2488](https://github.com/CodySwannGT/lisa/issues/2488) [CodySwannGT/lisa#2474](https://github.com/CodySwannGT/lisa/issues/2474)
+
 ### [3.6.1](https://github.com/CodySwannGT/lisa/compare/v3.6.0...v3.6.1) (2026-08-13)
 
 ## [3.6.0](https://github.com/CodySwannGT/lisa/compare/v3.5.4...v3.6.0) (2026-08-13)
