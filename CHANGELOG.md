@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.352.0](https://github.com/CodySwannGT/lisa/compare/v2.351.0...v2.352.0) (2026-08-13)
+
+
+### Features
+
+* **rules:** adopt .agents/rules/ as the canonical host-rules path ([82a69dd](https://github.com/CodySwannGT/lisa/commit/82a69dd267e38b09963c4eb2b216a0d2a1294421)), closes [CodySwannGT/lisa#2431](https://github.com/CodySwannGT/lisa/issues/2431) [CodySwannGT/lisa#2431](https://github.com/CodySwannGT/lisa/issues/2431)
+
+
+### Bug Fixes
+
+* **apply:** deliver Lisa-owned enforcement guards on a version bump ([88c7cea](https://github.com/CodySwannGT/lisa/commit/88c7ceae0cf64734a6f1d2634552cec0606c1e8f)), closes [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [CodySwannGT/lisa#2424](https://github.com/CodySwannGT/lisa/issues/2424) [CodySwannGT/lisa#2424](https://github.com/CodySwannGT/lisa/issues/2424)
+
+
+### Documentation
+
+* **plan:** address CodeRabbit review on the Phase 0 decision records ([91ebc23](https://github.com/CodySwannGT/lisa/commit/91ebc235f37f7b7700b166b9e2008bf39cd51811)), closes [#2425](https://github.com/CodySwannGT/lisa/issues/2425) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+* **plan:** record Phase 0 decisions for the 2026-08-12 improvement notes ([1624f75](https://github.com/CodySwannGT/lisa/commit/1624f754490fed8daf3fc9f615631ed2b135dd97)), closes [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+
 ## [2.351.0](https://github.com/CodySwannGT/lisa/compare/v2.350.0...v2.351.0) (2026-08-13)
 
 
