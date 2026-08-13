@@ -91,7 +91,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.claude/settings.json":
       "6f938fdc9c808ee4dda9d605815788dda384197065aac6793c7549d8811a6224",
     "cdk/merge/.oxlintrc.json":
-      "e74885a33fdb7b5d565e13ebd781a3dd2fd02409a2a059deed851645630a6985",
+      "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
       "6eb9a4cea78747750d6efadb7a142a349bc8572ed5e5d109f8b71d862ed4e45d",
     "eslint-plugin-code-organization/README.md":
@@ -253,7 +253,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.claude/settings.json":
       "e97b33d7ad86b71abba94ab957d725e34c3cafca455e92fba0b29ebabc3b73d1",
     "expo/merge/.oxlintrc.json":
-      "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
+      "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
       "34c4a356db67fa55d715a7bb4dafac8249a3793cd330bc920cd1769b58fcdcd0",
     "harper-fabric/copy-contents/.prettierignore":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.claude/settings.json":
       "278c48f1af3a6aa23b7f5dcf55aa0d2737baf809942b1d4ef6831cdfc144581a",
     "harper-fabric/merge/.oxlintrc.json":
-      "43bd2a48954e15fbd1fe89b1a4f7b84cf93706d7de7b84ec120d63906bfde31b",
+      "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
       "4672b147ff12d0af80516b9c824aa9419b05da1308531d978ea285ae4e3c2b23",
     "nestjs/copy-overwrite/eslint.config.ts":
@@ -381,7 +381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.claude/settings.json":
       "d0ce50361a1f3868d15728646e66b9e1cdb8373688eb22459adbdb176e342aca",
     "nestjs/merge/.oxlintrc.json":
-      "3743a1e2bcfc879f5250f35206f413b10815f34e20b1d0afce67824579813b5d",
+      "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
       "f54fbe079e12caa89f1b768a851e71cd1c30e37918ca309c50add4379102381d",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
@@ -439,7 +439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.claude/settings.json":
       "296b8d5e3c197cd4526a99454aee1dc7f5ce9a25a729a957f392b71be3e8cfb6",
     "phaser/merge/.oxlintrc.json":
-      "4ac4bca00bef4b32810f3759a914ab2b8148e6fad3e329417a497e36df9e810c",
+      "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
       "2e01b1ec402f6804a54402e22d02d63f1aa96d3f698e171885b0fff6eb25b271",
     "plugins/src/base/agents/architecture-specialist.md":
@@ -2325,7 +2325,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.claude/settings.json":
       "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":
-      "4debc093acfd263eb81ae15894073ebf098513204f45f40b83fb8fa5353fa1f8",
+      "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
       "7f121eec2d022cad7e3cf960806fefe7f30ef626cc89f951d322b40f5a9bd5ca",
     "ui/README.md":
@@ -8325,6 +8325,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-learnings-gitattributes.ts": true,
     "src/migrations/ensure-learnings-merge-driver.ts": true,
     "src/migrations/ensure-lisa-postinstall.ts": true,
+    "src/migrations/ensure-oxlint-base-configs.ts": true,
     "src/migrations/ensure-quality-caller-scopes.ts": true,
     "src/migrations/ensure-sonar-excludes-lisa-harness.ts": true,
     "src/migrations/ensure-tsconfig-local-files-fallback.ts": true,
@@ -8517,6 +8518,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
+    "tests/integration/oxlint-worktree-resolution.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -8668,6 +8670,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/oxlint-expo.test.ts": true,
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
     "tests/unit/config/oxlint-typescript.test.ts": true,
+    "tests/unit/config/oxlint-worktree-safe-extends.test.ts": true,
     "tests/unit/config/phaser-template.test.ts": true,
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
@@ -8776,6 +8779,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-learnings-gitattributes.test.ts": true,
     "tests/unit/migrations/ensure-learnings-merge-driver.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
+    "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
     "tests/unit/migrations/ensure-quality-caller-scopes.test.ts": true,
     "tests/unit/migrations/ensure-sonar-excludes-lisa-harness.test.ts": true,
     "tests/unit/migrations/ensure-tsconfig-local-files-fallback.test.ts": true,
