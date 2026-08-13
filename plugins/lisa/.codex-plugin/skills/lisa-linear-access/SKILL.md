@@ -46,15 +46,27 @@ WORKSPACE=$(jq -r '.linear.workspace // empty' .lisa.config.json 2>/dev/null)
 TEAM_KEY=$(jq -r '.linear.teamKey // empty' .lisa.config.json 2>/dev/null)
 ```
 
-Probe in order:
+Probe in order — the ordering is the shared `credential-substrate-precedence`
+contract, not a Linear-local choice. The first tier that is ready **and**
+identity-matches wins; a substrate authenticated against a different
+workspace/team is **skipped, never used**, at either tier.
 
-1. Linear MCP, if `mcp__linear-server__list_teams` is available and can list the
-   configured workspace/team.
-2. `LINEAR_API_KEY` with Linear GraphQL (`https://api.linear.app/graphql`).
+1. **Tier 1 — configured-provider substrate: `LINEAR_API_KEY` with Linear GraphQL**
+   (`https://api.linear.app/graphql`), resolved through `lisa-secrets-access`.
+   Identity-match by querying `viewer { organization { urlKey } }` (plus
+   `teams` when `linear.teamKey` is configured) and comparing to
+   `.lisa.config.json`. A key that resolves to a different organization fails the
+   gate — warn, skip the tier, and continue down the ladder.
+2. **Tier 2 — interactive MCP fallback: Linear MCP**, if
+   `mcp__linear-server__list_teams` is available and can list the configured
+   workspace/team (that listing *is* the identity match). Used when tier 1 is
+   genuinely unavailable: no `LINEAR_API_KEY`, no GraphQL adapter for the
+   operation, or a Linear API outage.
 
 The Linear GraphQL docs support personal API keys for scripts and authenticate
-with an `Authorization: <API_KEY>` header. Treat `LINEAR_API_KEY` as the
-headless substrate. If neither tier works, fail with:
+with an `Authorization: <API_KEY>` header, so the token tier works identically on
+a developer laptop, in CI, in a cloud routine, and in a subagent — which is why it
+leads. If neither tier works, fail with:
 
 ```text
 Error: no Linear access substrate available. Authenticate the Linear MCP or set LINEAR_API_KEY.
@@ -148,8 +160,16 @@ query($id:String!){
 
 ## Invariants
 
-- MCP is preferred when it is present and already authenticated.
-- GraphQL fallback runs only when `LINEAR_API_KEY` is present.
-- Missing MCP plus missing token is a hard failure naming `LINEAR_API_KEY`.
+- Tier order is the shared `credential-substrate-precedence` contract:
+  `LINEAR_API_KEY` + GraphQL first when present and identity-matched, then the
+  Linear MCP. Do not restate or locally override the ordering here.
+- The Linear MCP remains a first-class **fallback**, not a removed tier: it stays
+  the substrate whenever `LINEAR_API_KEY` is absent, the operation has no GraphQL
+  adapter, or the token path is failing.
+- Identity-match is mandatory on **both** substrates. A substrate authenticated
+  against a different Linear organization or team is skipped, never used — that
+  includes a present-but-wrong `LINEAR_API_KEY`, which fails the gate loudly
+  instead of silently deferring to an authenticated MCP.
+- Missing token plus missing MCP is a hard failure naming `LINEAR_API_KEY`.
 - Mutations send only the fields being changed, matching existing Linear skill
   guidance that `save_*` style updates should not clobber unrelated fields.
