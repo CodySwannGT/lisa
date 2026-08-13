@@ -741,7 +741,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "ac7f9ccec2a02f98b3c68dc0c3b8334cfaba6d0cb18f29456118128b3d564dd7",
+      "b4ecd8196fa2ba0dc7c128c5f2f986a36840aaa5f78d5b739f6fc2a67404df00",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -841,7 +841,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "ef3bd26a29f22fd5ed9fdf31475a71f1c6f49ed630f1d543b8cdbf1b3e16d2e3",
+      "a0d7c3be070937042d17e98bdb955b87f30be5d298be91e33c1e6883cae2635d",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
