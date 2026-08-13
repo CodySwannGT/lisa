@@ -139,6 +139,26 @@ operation, the fallback is guarded — never the normal path:
 A successful pre-flight switch is not sufficient for tenant safety — another process can
 mutate global state between the check and the write.
 
+## Legacy OS-keychain fallback — removal date 2026-11-01
+
+Two access skills (`lisa-atlassian-access`, `lisa-notion-access`) still read an
+OS keychain as a last rung below the chokepoint, because the guided
+`/lisa:setup:atlassian` and `/lisa:setup:notion` flows wrote credentials there
+before `lisa-secrets-access` existed. That rung is a **migration ramp with a
+removal date, not a standing exemption**: it is a second reader of the same
+credential, which is exactly how one credential ends up living in two places and
+drifting, and a keychain entry is machine-local ambient state that no headless
+surface can reach — so a project resting on it has no working tier 1 in cron, CI,
+or a cloud session.
+
+**Both rungs are deleted on 2026-11-01.** Before then, projects still on the
+keychain path move the credential into their configured provider — re-running
+`/lisa:setup:<vendor>` stores it through the chokepoint. After removal, a
+keychain-only project fails loudly with the exact variable named (tier 3), which
+is the intended outcome: it can never silently resolve through a substrate
+authenticated elsewhere. No new access skill may add a keychain rung; a credential
+the chokepoint cannot answer for is a setup gap to fix, not a store to add.
+
 ## Consequences to expect
 
 - **A stale or wrong token now fails identity-match instead of silently succeeding

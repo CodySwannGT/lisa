@@ -158,6 +158,69 @@ export async function canInstallLearningsMergeDriver(
 }
 
 /**
+ * Registration state of the driver command for one checkout.
+ *
+ * `unregistered` is the state this whole module exists to make visible: the
+ * `.gitattributes` mapping is committed, so every clone believes the ledger is
+ * union-merged, while the command that performs the union lives only in local
+ * git config. A clone that never ran apply is degraded, not broken — and says
+ * nothing about it.
+ */
+export type MergeDriverRegistration =
+  | "registered"
+  | "unregistered"
+  | "not-a-repository"
+  | "git-unavailable";
+
+/**
+ * Report whether the driver command is registered for this checkout.
+ *
+ * Read-only, and deliberately scope-agnostic: registration is written to local
+ * config, but git resolves a merge driver from any config scope, so a global
+ * registration counts. Asking with `--local` would report a working driver as
+ * missing.
+ * @param projectRoot - Project directory to inspect
+ * @returns Closed registration state
+ */
+export async function probeLearningsMergeDriverRegistration(
+  projectRoot: string
+): Promise<MergeDriverRegistration> {
+  const probe = await probeRepository(projectRoot);
+  if (probe !== "repository") {
+    // Both non-repository outcomes are already registration states; narrowing
+    // hands them through unchanged rather than restating the literals.
+    return probe;
+  }
+  const current = await tryGit(["config", "--get", DRIVER_KEY], projectRoot);
+  return current.ok && current.stdout !== "" ? "registered" : "unregistered";
+}
+
+/**
+ * Report whether git resolves one path's `merge` attribute to this driver.
+ *
+ * Asks git rather than parsing `.gitattributes`, because the answer depends on
+ * pattern precedence and on every attributes source git consults (the working
+ * tree file, `.git/info/attributes`, a configured `core.attributesFile`).
+ * Reading the root file alone would claim a mapping the repository may not
+ * actually have — or miss one it does.
+ * @param projectRoot - Project directory to inspect
+ * @param ledgerPath - Project-relative path to the learnings ledger
+ * @returns True when the path is mapped to the learnings merge driver
+ */
+export async function isLearningsPathMappedToDriver(
+  projectRoot: string,
+  ledgerPath: string
+): Promise<boolean> {
+  const result = await tryGit(
+    ["check-attr", "merge", "--", ledgerPath],
+    projectRoot
+  );
+  return (
+    result.ok && result.stdout.endsWith(`merge: ${LEARNINGS_MERGE_DRIVER_NAME}`)
+  );
+}
+
+/**
  * Register the union merge driver in one project's local git config.
  *
  * Idempotent and safe outside a git repository: a non-repository directory is

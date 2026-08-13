@@ -245,6 +245,98 @@ describe("access skills conform to the precedence contract", () => {
   });
 });
 
+/**
+ * Every access skill whose tier 1 credential must be reachable through the
+ * `lisa-secrets-access` chokepoint, paired with the variable it resolves.
+ *
+ * Without this rung the ladder stops at rung one — a bare `$VAR` read — so a
+ * project keeping its credentials in Bitwarden, Doppler, or AWS has no tier 1
+ * path at all and silently resolves through the interactive MCP instead. That
+ * is the precise failure the precedence contract exists to remove, and it is
+ * why `/lisa:setup:linear` had nowhere to migrate its keychain read to.
+ */
+const RESOLVER_RUNG_SKILLS = [
+  [SENTRY, "SENTRY_AUTH_TOKEN"],
+  [POSTHOG, "POSTHOG_PERSONAL_API_KEY"],
+  [JAM, "JAM_PAT"],
+  ["lisa-sonarcloud-access", "SONARQUBE_CLI_TOKEN"],
+] as const;
+
+/** Date the legacy OS-keychain fallbacks stop being read. */
+const KEYCHAIN_REMOVAL_DATE = "2026-11-01";
+
+describe("access skills resolve tier 1 through lisa-secrets-access", () => {
+  describe.each(ROOTS)("%s", root => {
+    describe.each(RESOLVER_RUNG_SKILLS)("%s", (skillName, variable) => {
+      const skill = readSkill(root, skillName);
+
+      it("reads the credential through the resolve-secret chokepoint", () => {
+        expect(skill).toMatch(
+          /\.claude\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
+        );
+        expect(skill).toMatch(
+          /\.agents\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
+        );
+        expect(skill).toMatch(
+          new RegExp(
+            `resolve-secret[\\s\\S]{0,400}${variable}|${variable}[\\s\\S]{0,400}resolve-secret`,
+            "u"
+          )
+        );
+      });
+
+      it("keeps the bare environment variable as a documented fallback", () => {
+        expect(skill).toMatch(new RegExp(`\\$\\{?${variable}`, "u"));
+        expect(skill).toMatch(/fallback/i);
+      });
+
+      it("states the mutation boundary rather than leaving it implicit", () => {
+        // None of these four expose a mutating operation, so the contract's
+        // guarded-fallback / read-back reconciliation protocol is not engaged
+        // today — but that must be an asserted property, not an accident a
+        // future operation quietly breaks.
+        expect(skill).toMatch(/read-only/i);
+        expect(skill).toMatch(/guarded fallback|reconcil/i);
+      });
+    });
+  });
+});
+
+describe("legacy OS-keychain fallbacks carry a removal date", () => {
+  describe.each(ROOTS)("%s", root => {
+    const contract = read(root, CONTRACT);
+
+    it("publishes one shared removal date in the precedence contract", () => {
+      expect(contract).toMatch(/legacy OS-keychain fallback/i);
+      expect(contract).toContain(KEYCHAIN_REMOVAL_DATE);
+      expect(contract).toMatch(/removal date/i);
+    });
+
+    it("carries the date in the eager summary too, where the ban is stated", () => {
+      // An agent that loads only the eager rule reads "never read an OS keychain
+      // a second time"; the dated exception has to travel with it or the two
+      // surviving rungs look like a contradiction rather than a ramp.
+      const eager = read(
+        root,
+        "rules/eager/credential-substrate-precedence.md"
+      );
+      expect(eager).toContain(KEYCHAIN_REMOVAL_DATE);
+      expect(eager).toMatch(/removal date/i);
+    });
+
+    it.each([ATLASSIAN, NOTION])(
+      "dates the %s keychain fallback",
+      skillName => {
+        const skill = readSkill(root, skillName);
+        expect(skill).toContain(KEYCHAIN_REMOVAL_DATE);
+        expect(skill).toMatch(
+          /keychain[\s\S]{0,600}(removal date|removed on)|(removal date|removed on)[\s\S]{0,600}keychain/i
+        );
+      }
+    );
+  });
+});
+
 describe("integration-access-layer rule reflects the reversed ordering", () => {
   describe.each(ROOTS)("%s", root => {
     const eager = read(root, "rules/eager/integration-access-layer.md");
