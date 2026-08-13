@@ -270,6 +270,11 @@ function wedgeRebase(fixture: Fixture, branch: string): void {
     throw new Error("unexpected rebase head-name");
 }
 
+/** Path to the worktree-private binding state a successful bind/link writes. */
+function stateFilePath(fixture: Fixture): string {
+  return path.join(fixture.root, ".git", "lisa", "work-item.json");
+}
+
 /** Bind the work item on the current branch and add one tracked commit. */
 function bindThenCommitTracked(fixture: Fixture): string {
   if (command(fixture, ["bind", "acme/widgets#42"]).status !== 0)
@@ -432,6 +437,57 @@ describe("work-item binding and commit messages", () => {
     const validated = command(fixture, ["validate-commit", messageFile]);
     expect(validated.status).toBe(0);
     expect(validated.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
+  });
+
+  // `bind` is the name of a bash builtin that evaluates a string, so agent
+  // harnesses that scan an argv for string-evaluating commands flag the token
+  // wherever it appears — including as this CLI's subcommand. Claude Code's
+  // worktree isolation does exactly that, which made the documented binding
+  // step unrunnable from inside a worktree: three agents hit it in one session
+  // and each reinvented the same trailer workaround.
+  //
+  // The guard is the harness's and is not Lisa's to narrow, so Lisa stops
+  // colliding with it instead: `link` is the spelling the docs now teach, and
+  // it does the identical work. `bind` stays a permanent alias — every host
+  // project's checked-in hooks, scripts, and habits already say it, and
+  // breaking them to dodge a name would trade one outage for a larger one.
+  it("accepts `link` as the collision-free spelling of `bind`", () => {
+    const fixture = createFixture(githubConfig("identity"));
+    writeFileSync(
+      path.join(fixture.root, ".lisa.config.local.json"),
+      '{"github":{"queueRepo":"acme/widgets"}}\n'
+    );
+
+    const linked = command(fixture, ["link", "acme/widgets#42"]);
+    expect(linked.status).toBe(0);
+    expect(
+      JSON.parse(readFileSync(stateFilePath(fixture), "utf8"))
+    ).toMatchObject({
+      branch: "feature/tracked",
+      provider: "github",
+      ref: "acme/widgets#42",
+      version: 1,
+    });
+  });
+
+  it("still accepts the original `bind` spelling, so existing hooks keep working", () => {
+    const fixture = createFixture(githubConfig("identity"));
+    writeFileSync(
+      path.join(fixture.root, ".lisa.config.local.json"),
+      '{"github":{"queueRepo":"acme/widgets"}}\n'
+    );
+
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    expect(
+      JSON.parse(readFileSync(stateFilePath(fixture), "utf8"))
+    ).toMatchObject({ ref: "acme/widgets#42" });
+  });
+
+  it("names `link` in the usage text so a blocked agent is told the working spelling", () => {
+    const fixture = createFixture();
+    const usage = command(fixture, ["not-a-subcommand"]);
+    expect(usage.status).not.toBe(0);
+    expect(usage.stderr).toContain("link");
   });
 
   it("fails closed for missing, duplicate, mismatched, and closed GitHub work items", () => {

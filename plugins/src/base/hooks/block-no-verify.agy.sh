@@ -102,16 +102,56 @@ def disables_verification(token):
         and NO_VERIFY.startswith(token)
     )
 
+# The only relocations that keep a repo's own hooks in play. Anything else —
+# including "" and /dev/null, which are simply the two most obvious members of
+# the blocked set rather than special cases — is refused.
+PERMITTED_HOOKS_PATHS = {".husky", ".githooks"}
+
+
+def is_permitted_hooks_path(value):
+    """Whether a core.hooksPath value relocates hooks rather than disabling them.
+
+    Args:
+        value: The raw core.hooksPath value as it appeared on the command line.
+
+    Returns:
+        True if the path is an established in-repo hooks directory.
+    """
+    cleaned = value.strip().strip("'\"")
+    if cleaned.startswith("./"):
+        cleaned = cleaned[2:]
+    return cleaned.rstrip("/") in PERMITTED_HOOKS_PATHS
+
+
 for i, token in enumerate(normalized_tokens):
     if disables_verification(token):
         sys.exit(1)
     if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
         sys.exit(1)
-    if token.startswith("core.hooksPath="):
-        value = token.split("=", 1)[1]
-        if value in ("", "/dev/null"):
+    # Allowlist the destinations, do not denylist the disabling ones: hooks are
+    # disabled just as completely by any directory that happens to contain none
+    # (`-c core.hooksPath=/tmp/empty`), so the set that DISABLES hooks is
+    # unbounded while the set that legitimately relocates them is tiny. Matched
+    # case-insensitively because git config names are.
+    lowered = token.lower()
+    if lowered.startswith("core.hookspath="):
+        if not is_permitted_hooks_path(token.split("=", 1)[1]):
             sys.exit(1)
-    if token == "core.hooksPath" and i + 1 < len(normalized_tokens) and normalized_tokens[i + 1] in ("", "/dev/null"):
+    if lowered == "core.hookspath" and i + 1 < len(normalized_tokens):
+        if not is_permitted_hooks_path(normalized_tokens[i + 1]):
+            sys.exit(1)
+    # `--config-env=core.hooksPath=SOMEVAR` reads the path out of the named env
+    # var, so it is not in the command at all and cannot be allowlisted.
+    if lowered.startswith("--config-env="):
+        spec = token.split("=", 1)[1]
+        if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
+            sys.exit(1)
+    # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
+    # GIT_CONFIG_VALUE_0=/dev/null git ...` sets the same command-scope config
+    # via env-var-style assignments. The index is arbitrary below
+    # GIT_CONFIG_COUNT, so it is matched as `\d+` rather than pinned to 0.
+    key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
+    if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
         sys.exit(1)
 
 sys.exit(0)
