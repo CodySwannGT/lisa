@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.3.0](https://github.com/CodySwannGT/lisa/compare/v3.2.0...v3.3.0) (2026-08-13)
+
+
+### Features
+
+* **nightly-e2e:** bound per-suite first-seen grace so adding a suite is not an outage ([0ee3e1f](https://github.com/CodySwannGT/lisa/commit/0ee3e1fd4e808d76579031f290c3ed5ce6264b68)), closes [#2416](https://github.com/CodySwannGT/lisa/issues/2416) [#2446](https://github.com/CodySwannGT/lisa/issues/2446) [CodySwannGT/lisa#2455](https://github.com/CodySwannGT/lisa/issues/2455)
+* **rules:** ship the WU-B session operating pack ([4e3ae57](https://github.com/CodySwannGT/lisa/commit/4e3ae571975f76407a60e803387802a8c3553320)), closes [CodySwannGT/lisa#2450](https://github.com/CodySwannGT/lisa/issues/2450) [CodySwannGT/lisa#2450](https://github.com/CodySwannGT/lisa/issues/2450)
+
+
+### Bug Fixes
+
+* **doctor:** commit the host-rules block doctor reconciles into AGENTS.md ([4096333](https://github.com/CodySwannGT/lisa/commit/40963333a91aede5cb58d9ab81de53e9baef062a)), closes [#2444](https://github.com/CodySwannGT/lisa/issues/2444) [#2444](https://github.com/CodySwannGT/lisa/issues/2444) [CodySwannGT/lisa#2458](https://github.com/CodySwannGT/lisa/issues/2458)
+* **doctor:** stop reporting Lisa's own re-export trampolines as guard drift ([94502c0](https://github.com/CodySwannGT/lisa/commit/94502c0103f517f2d524a4b86d0d04dcf2eb71c4)), closes [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [CodySwannGT/lisa#2458](https://github.com/CodySwannGT/lisa/issues/2458)
+
 ## [3.2.0](https://github.com/CodySwannGT/lisa/compare/v3.1.0...v3.2.0) (2026-08-13)
 
 
