@@ -28,6 +28,14 @@
 # directory does not exist, every job skips with a warning instead of
 # failing, so this workflow is safe to install fleet-wide before a project
 # has wired its e2e harness.
+#
+# ...and how to turn that off once you HAVE wired it: `require_prerequisites:
+# true` inverts warn-and-skip into a hard red. Leaving it false forever is a
+# false-green generator — the run concludes `success` having tested nothing, so
+# a deleted flows directory or an expired EXPO_TOKEN is indistinguishable from a
+# passing suite to anything reading this workflow's conclusion (the
+# `nightly-e2e-health.yml` gate reads exactly that). Adopters were hand-rolling
+# their own preflight jobs to get this; use the input instead.
 
 name: 📱 Maestro Native E2E
 
@@ -104,6 +112,20 @@ on:
         required: false
         default: 'bun'
         type: string
+      require_prerequisites:
+        description: >-
+          Invert the warn-and-skip preflight into a hard failure. The default
+          (false) is what makes this workflow safe to install fleet-wide before a
+          project has wired its harness: a missing EXPO_TOKEN or flows directory
+          warns and skips. But once a project HAS wired it — and especially once
+          a nightly gate reads this workflow's conclusion — warn-and-skip is a
+          false green: the run concludes `success` having tested nothing, and a
+          deleted flows directory or an expired EXPO_TOKEN looks exactly like a
+          passing suite. Adopters have been hand-rolling preflight jobs to get
+          this behaviour; set it true instead.
+        required: false
+        default: false
+        type: boolean
       suite_timeout_minutes:
         description: 'Ceiling for EACH platform suite job (Android and iOS separately), not the whole workflow. Raise it when the flow count outgrows the default — a suite cancelled mid-run reports as a failure with no usable result.'
         required: false
@@ -152,15 +174,31 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           PLATFORM: ${{ inputs.platform }}
           FLOWS_DIR: ${{ inputs.flows_dir }}
+          REQUIRE_PREREQUISITES: ${{ inputs.require_prerequisites }}
         run: |
           should_run=true
+          missing=()
           if [[ -z "${EXPO_TOKEN// }" ]]; then
             echo "::warning::Maestro native e2e skipped - EXPO_TOKEN not configured"
+            missing+=("EXPO_TOKEN is not configured")
             should_run=false
           fi
           if [[ ! -d "$FLOWS_DIR" ]]; then
             echo "::warning::Maestro native e2e skipped - flows directory '$FLOWS_DIR' not found"
+            missing+=("flows directory '$FLOWS_DIR' does not exist")
             should_run=false
+          fi
+          # The whole point of require_prerequisites: a suite that skips its way
+          # to `success` is a false green, and anything reading this workflow's
+          # conclusion (a nightly gate, a release check) cannot tell it apart
+          # from a suite that ran. Fail here instead, while the cause is still
+          # named.
+          if [[ "$REQUIRE_PREREQUISITES" == "true" && ${#missing[@]} -gt 0 ]]; then
+            for reason in "${missing[@]}"; do
+              echo "::error title=Maestro native e2e prerequisites missing::$reason"
+            done
+            echo "require_prerequisites is true, so a skipped suite is a FAILURE rather than a green run that tested nothing." >&2
+            exit 1
           fi
           case "$PLATFORM" in
             android) platforms='["android"]' ;;

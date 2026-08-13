@@ -120,7 +120,7 @@
     }
   },
   "name": "@codyswann/lisa",
-  "version": "2.345.1",
+  "version": "2.349.1",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

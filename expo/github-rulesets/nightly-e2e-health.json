@@ -1,0 +1,33 @@
+{
+  "name": "nightly e2e health",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": ["refs/heads/dev"]
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": null,
+      "actor_type": "DeployKey",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          {
+            "context": "🌙 Nightly E2E Health / 🌙 Gate",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,300 @@
+# Nightly E2E Health — reusable workflow (the fail-closed merge gate)
+#
+# ## What this gate DOES, stated so nobody has to infer it
+#
+# It QUERIES GITHUB ACTIONS RUN HISTORY. It runs no e2e itself, it dispatches
+# nothing, and it reads no artifacts. For each suite in the `suites` table it
+# reads the newest completed run on the required branch (across `schedule` and
+# `workflow_dispatch`) and turns that already-produced verdict into a required
+# status check that costs seconds on every pull request.
+#
+# It CANNOT "call" the workflows named in the table. A reusable workflow's
+# `uses:` must be a static literal, so no reusable workflow can dynamically
+# invoke a list of workflow filenames supplied at runtime. Any design that reads
+# "the gate runs the suites in the table" is impossible on this platform.
+#
+# Artifacts are excluded on purpose: Actions artifacts are zip archives (Node
+# ships no zip reader) and they expire, which would turn "the evidence aged out"
+# into an unreadable verdict — the exact fail-open shape this gate refuses.
+#
+# ## Prefer a declared job name over a regex
+#
+# `match.mode: "run"` and `match.mode: "job"` are the machine-readable contract:
+# the suite publishes a name on purpose and the repo pins that name with a test.
+# `match.mode: "job_pattern"` exists only for matrix job names no single string
+# can cover, must be anchored at both ends, and treats ZERO matches as an error —
+# zero matches is the signature of a renamed job, which is how a gate stops
+# gating with nothing to see.
+#
+# ## Fail-closed
+#
+# Only a fresh `success` on the required branch passes. `failure`, `timed_out`,
+# `action_required`, `startup_failure`, `cancelled`, `skipped`, a missing run, a
+# stale run, a wrong-branch run, a renamed job, and an unreadable API ALL block.
+# `cancelled` blocks because otherwise cancelling a run would be a one-click way
+# to clear a merge gate. There is no configuration that renders "we could not
+# check" as "it is fine". The full truth table — 25 rows, each proven by a named
+# test — is `docs/nightly-e2e-gate.md` §2.
+#
+# The only forgiving state is the TIME-BOXED bootstrap window (§4 of that doc):
+# while `bootstrap_until` is in the future, MISSING evidence is reported with its
+# expiry timestamp on screen but does not block. Evidence of FAILURE still blocks
+# inside the window. A window further out than `bootstrap_max_days` is invalid
+# configuration and fails.
+#
+# ## The bypass is the ONLY path past a red gate
+#
+# Maintainers only; the PR author may not bypass their own PR; a
+# `Nightly-E2E-Bypass: <TICKET> <reason>` line in the PR body is required; the
+# waiver auto-expires (`bypass_max_hours`, hard ceiling 72). A valid bypass
+# returns the distinct verdict `bypassed` — a successful check carrying an
+# immutable audit record. There is NO admin-merge-past-red. See §6 of the doc,
+# including why the label is removed on MERGE (a separate reaper workflow) and
+# not on use: removing it during evaluation fires `unlabeled`, re-runs the gate,
+# and re-blocks the PR the bypass was meant to unblock.
+#
+# ## Security limits are SOURCE CONSTANTS (portfolio doctrine, WS-0a)
+#
+# Every security ceiling — the permitted-bypass role set, the bypass lifetime,
+# how far out a bootstrap window may sit, how stale a run may be, how many
+# retries count as "bounded" — lives in the guard as a constant, not in an
+# input and not in the environment. The inputs below can only TIGHTEN them;
+# a request above a ceiling is clamped down to the ceiling and SAID SO in the
+# job summary. An env-readable limit fails OPEN on exactly the inputs nobody
+# tests: an unset variable, a typo'd name, a new deployment that forgot to set
+# it. The permitted-role set is likewise an ALLOWLIST (`admin`, `maintain`),
+# never a denylist of the roles we happen to know about today — a denylist
+# silently admits any role GitHub adds tomorrow.
+#
+# ## Permissions the CALLER must grant
+#
+#   permissions:
+#     contents: read        # checkout
+#     actions:  read        # the whole point: reading other workflows' history
+#     pull-requests: read   # attributing the bypass label (see below)
+#
+# This workflow never requests write. The default `${{ github.token }}` is
+# sufficient; there is deliberately no cross-repo mode, because a gate that reads
+# another repository's runs needs a token whose blast radius exceeds its value.
+#
+# ## Versioning (Appendix A5)
+#
+# The gate has two halves that travel by different routes — this workflow by git
+# ref, `scripts/check-nightly-e2e-health.mjs` by `lisa apply` — so they WILL
+# drift. The script exports `NIGHTLY_E2E_CONTRACT_VERSION` and this workflow
+# asserts its MAJOR against `expected_contract_major`, failing closed on a
+# mismatch rather than running a contract neither half agrees on. Consumers pin
+# this workflow to an immutable tag/SHA; `@main` is not a supported pin for a
+# merge gate.
+
+name: 🌙 Nightly E2E Health
+
+on:
+  workflow_call:
+    inputs:
+      suites:
+        description: >-
+          REQUIRED. A JSON array of suites, validated against
+          scripts/nightly-e2e-suites.schema.json before any API call. Not a
+          delimiter-joined mini-language: duplicates, unanchored regexes and
+          typo'd keys are all rejected rather than silently mis-gating. Each
+          entry is
+          {label, workflow, match:{mode:"run"|"job"|"job_pattern", name?, pattern?},
+          freshness_hours?, required_sha?}.
+        required: true
+        type: string
+      branch:
+        description: >-
+          REQUIRED. The branch whose nightly verdict gates merges (e.g. `dev`).
+          Runs on any other branch are ignored — a dispatch from someone's
+          feature branch must never clear the gate for everybody.
+        required: true
+        type: string
+      freshness_hours:
+        description: >-
+          Default freshness window. A newest run older than this counts as NO
+          run, which fails once the bootstrap window closes. 36 leaves room for
+          one missed nightly plus a re-dispatch.
+        required: false
+        default: 36
+        type: number
+      bootstrap_until:
+        description: >-
+          ISO-8601 UTC timestamp (e.g. 2026-09-15T00:00:00Z). While in the
+          future, MISSING evidence is reported with its expiry but does not
+          block. Empty (the default) means the gate is fully armed immediately.
+          Evidence of failure blocks inside the window too.
+        required: false
+        default: ''
+        type: string
+      bootstrap_max_days:
+        description: >-
+          Ceiling on how far out `bootstrap_until` may sit, measured from the
+          moment the gate runs. Beyond it the gate FAILS as misconfigured rather
+          than clamping — that is what stops the window being extended forever
+          by editing one string (propswap's forever-bootstrap).
+        required: false
+        default: 30
+        type: number
+      bypass_label:
+        description: 'PR label that requests an audited bypass.'
+        required: false
+        default: 'nightly-e2e-bypass'
+        type: string
+      bypass_max_hours:
+        description: >-
+          Maximum age of the label application before the bypass stops working.
+          Hard-capped at 72 by the guard whatever is passed here.
+        required: false
+        default: 24
+        type: number
+      bypass_reason_pattern:
+        description: >-
+          An ADDITIONAL PR-body rule a bypass must ALSO satisfy — never a
+          replacement. The built-in
+          `^Nightly-E2E-Bypass:\s*(<TICKET>|#NNN)\s+<reason>$` always applies, so
+          this input can only NARROW what qualifies (e.g. also require an
+          `Approved-By:` line). A security limit a caller can relax is not a
+          limit: an input that replaced the built-in rule would let `.*` satisfy
+          "a reason and a ticket are required" against an empty body.
+        required: false
+        default: ''
+        type: string
+      guard_script:
+        description: >-
+          Path to the Lisa-shipped guard inside the CALLER repository. Ships via
+          copy-overwrite; a repo that has not run `lisa apply` since adopting the
+          gate will not have it, and the gate fails closed saying so.
+        required: false
+        default: 'scripts/check-nightly-e2e-health.mjs'
+        type: string
+      expected_contract_major:
+        description: >-
+          Major version of the guard contract this workflow revision speaks. A
+          mismatch fails closed — see the versioning note in the header.
+        required: false
+        default: 1
+        type: number
+      node_version:
+        description: 'Node.js version used to run the guard.'
+        required: false
+        default: '22.21.1'
+        type: string
+      api_max_attempts:
+        description: 'Bounded retries for a throttled or unreachable Actions API, then FAIL.'
+        required: false
+        default: 3
+        type: number
+      api_max_pages:
+        description: >-
+          Page cap when listing a run's jobs. Exceeding it is RED, not a partial
+          read: a truncated job list can hide the failing shard.
+        required: false
+        default: 5
+        type: number
+      api_retry_max_seconds:
+        description: 'Ceiling on any single rate-limit backoff wait.'
+        required: false
+        default: 60
+        type: number
+      timeout_minutes:
+        description: 'Ceiling for the gate job. It is a handful of API reads.'
+        required: false
+        default: 10
+        type: number
+    outputs:
+      verdict:
+        description: 'pass | fail | bypassed | bootstrap'
+        value: ${{ jobs.gate.outputs.verdict }}
+      blocked:
+        description: 'true when this check is red'
+        value: ${{ jobs.gate.outputs.blocked }}
+      audit_json:
+        description: 'The full machine verdict, including the bypass audit record when one applies.'
+        value: ${{ jobs.gate.outputs.audit_json }}
+
+# A called workflow's `permissions:` is a CEILING, not a request: a scope absent
+# here can never be granted by the caller. `pull-requests: read` is therefore
+# listed even though only the bypass path needs it — without it, reading the PR
+# timeline to attribute the bypass label 403s on a private repository, and a
+# valid maintainer bypass is rejected as `no_attributable_actor`. Read-only, and
+# still the minimum: nothing here is ever `write`.
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  # This job's name is HALF of the required status-check context. GitHub composes
+  # the check-run name as `<caller job name> / <this job name>`, and the ruleset
+  # must require that composite string byte for byte, emoji included. Rename
+  # either half alone and GitHub waits forever for a context nobody reports —
+  # which does not de-gate the branch, it DEADLOCKS every PR into it.
+  # `tests/integration/nightly-e2e-health-workflow.test.ts` pins this name, the
+  # caller template's job name, and the ruleset's `context` against each other.
+  gate:
+    name: 🌙 Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    outputs:
+      verdict: ${{ steps.gate.outputs.verdict }}
+      blocked: ${{ steps.gate.outputs.blocked }}
+      audit_json: ${{ steps.gate.outputs.audit_json }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      # No dependency install, deliberately. The guard uses only Node built-ins
+      # and global fetch, which is what keeps a gate on every PR cheap enough to
+      # stay uncontroversial — and a gate that needs a lockfile resolved is a
+      # gate that flakes.
+      - name: 🔒 Assert the guard is present and contract-compatible
+        env:
+          GUARD: ${{ inputs.guard_script }}
+          EXPECTED_MAJOR: ${{ inputs.expected_contract_major }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$GUARD" ]]; then
+            echo "::error title=Nightly E2E gate is not installed::'$GUARD' does not exist in this repository. It ships from Lisa via copy-overwrite — run \`lisa apply\` (or set the guard_script input). Refusing to report a green gate that measured nothing."
+            exit 1
+          fi
+          version="$(node "$GUARD" --contract-version)"
+          major="${version%%.*}"
+          echo "guard contract version: $version (expected major $EXPECTED_MAJOR)"
+          if [[ "$major" != "$EXPECTED_MAJOR" ]]; then
+            echo "::error title=Nightly E2E gate contract mismatch::The reusable workflow speaks contract major $EXPECTED_MAJOR but '$GUARD' is $version. The workflow travels by git ref and the guard travels by \`lisa apply\`, so they drift. Re-pin the caller to a matching Lisa tag, or run \`lisa apply\` at that tag. Failing closed rather than running a contract neither half agrees on."
+            exit 1
+          fi
+
+      - name: 🌙 Read last night's e2e verdict
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NIGHTLY_SUITES: ${{ inputs.suites }}
+          NIGHTLY_BRANCH: ${{ inputs.branch }}
+          NIGHTLY_FRESHNESS_HOURS: ${{ inputs.freshness_hours }}
+          NIGHTLY_BOOTSTRAP_UNTIL: ${{ inputs.bootstrap_until }}
+          NIGHTLY_BOOTSTRAP_MAX_DAYS: ${{ inputs.bootstrap_max_days }}
+          NIGHTLY_BYPASS_LABEL: ${{ inputs.bypass_label }}
+          NIGHTLY_BYPASS_MAX_HOURS: ${{ inputs.bypass_max_hours }}
+          NIGHTLY_BYPASS_REASON_PATTERN: ${{ inputs.bypass_reason_pattern }}
+          NIGHTLY_API_MAX_ATTEMPTS: ${{ inputs.api_max_attempts }}
+          NIGHTLY_API_MAX_PAGES: ${{ inputs.api_max_pages }}
+          NIGHTLY_API_RETRY_MAX_SECONDS: ${{ inputs.api_retry_max_seconds }}
+          # PR context for the bypass path. Passed through `env:` and never
+          # interpolated into the shell — a PR body is attacker-controlled text.
+          # Empty on workflow_dispatch, which simply means "no bypass available".
+          NIGHTLY_PR_NUMBER: ${{ github.event.pull_request.number }}
+          NIGHTLY_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          NIGHTLY_PR_BODY: ${{ github.event.pull_request.body }}
+          NIGHTLY_PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: node "${{ inputs.guard_script }}"

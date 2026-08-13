@@ -1,0 +1,28 @@
+{
+  "_readme": [
+    "Two REVIEWED SNAPSHOTS that scripts/check-skipped-required-checks.mjs makes police each other.",
+    "Neither is derivable from this repository: `required_contexts` lives in a GitHub ruleset that humans edit in an admin console, and the skip_jobs token -> job name map lives in Lisa's quality.yml, which is not vendored here.",
+    "Why it matters: GitHub counts a SKIPPED required status check as SATISFIED. A job named in `skip_jobs` still reports green against its required context having run zero steps, so the merge gate can never be red and therefore can never block anything.",
+    "Transcribe `required_contexts` BYTE FOR BYTE from the ruleset, emoji and the ' / ' separator included. The guard compares with exact string equality on purpose: a repo routinely carries confusable pairs (an external app's required `SonarCloud Code Analysis` beside a skippable, not-required `SonarCloud SAST`; `Run Tests` beside `Run Unit Tests`), and a fuzzy match would raise a false alarm whose obvious fix is to delete the guard.",
+    "Run `node scripts/check-skipped-required-checks.mjs --remote` periodically: two snapshots in one repo can only catch each other drifting from the CODE, never from a ruleset edited in the console.",
+    "Fill in `ruleset.repo` / `ruleset.ids` before --remote can work. Find the ids with: gh api repos/OWNER/NAME/rulesets --jq '.[] | \"\\(.id) \\(.name)\"'"
+  ],
+  "ruleset": {
+    "repo": "",
+    "ids": [],
+    "baseline_fetched_at": ""
+  },
+  "workflows": [".github/workflows/ci.yml"],
+  "exemption_ticket_pattern": "^[A-Z][A-Z0-9]+-\\d+$",
+  "required_contexts": [
+    "🔍 Quality Checks / 🧹 Lint",
+    "🔍 Quality Checks / 🔍 Type Check",
+    "🔍 Quality Checks / 🏗️ Build",
+    "🔍 Quality Checks / 📐 Check Formatting",
+    "🔍 Quality Checks / 🔒 Security Scan",
+    "🔍 Quality Checks / 🧪 Run Unit Tests",
+    "🔍 Quality Checks / 🧪 Run Integration Tests",
+    "🔍 Quality Checks / 🔗 Work-Item Traceability"
+  ],
+  "skip_job_declarations": {}
+}
