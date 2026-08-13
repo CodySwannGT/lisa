@@ -18,7 +18,7 @@ Rungs are ordered by context cost and enforcement strength. Decision vocabulary:
 | Rung | Recommendation | Destination | Enters context | Admission policy |
 | --- | --- | --- | --- | --- |
 | 6 | EXECUTABLE-CONTROL | Lint / ast-grep / type / test / hook / `package.lisa.json` force | Never — diagnostic fires on violation | Mechanically decidable + stable + recurred |
-| 5 | EAGER-RULE | Auto-loaded rules tree | Unconditionally, every session | **Earned by failure evidence** (repeated misses despite retrievability); demotion-biased |
+| 5 | EAGER-RULE | Host rules: `.agents/rules/` (project scope) · plugin `rules/eager/` (upstream scope) | Unconditionally, every session | **Earned by failure evidence** (repeated misses despite retrievability); demotion-biased |
 | 4 | SKILL | `.claude/skills/<name>/SKILL.md` | Description eager; body on invoke | Procedural, complex, recognizable trigger |
 | 3 | WIKI | Wiki page + index entry | Only when routed to | Durable reference knowledge |
 | 2 | KEEP-IN-LEDGER | `PROJECT_LEARNINGS.md` (bounded contract projection) | Bounded projection only | Default landing zone; probationary, expiring |

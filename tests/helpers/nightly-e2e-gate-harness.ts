@@ -117,12 +117,47 @@ export interface GateModule {
     runId: number,
     wait?: () => Promise<void>
   ): Promise<readonly Job[]>;
+  observe(
+    api: Record<string, unknown>,
+    suites: readonly Record<string, unknown>[],
+    branch: string,
+    wait?: () => Promise<void>
+  ): Promise<
+    readonly {
+      workflowMissing: boolean;
+      run: Run | null;
+      jobs: readonly Job[];
+    }[]
+  >;
   retryDelayMs(
     response: { headers: { get(name: string): string | null } | null },
     attempt: number,
     maxSeconds: number
   ): number;
   resolveSettings(env: Record<string, string | undefined>): unknown;
+  readonly TRACKING_ISSUE_LABEL: string;
+  readonly INCOMPLETE_EVIDENCE_REASON: string;
+  suiteMarker(label: string): string;
+  isCompleteEvidence(finding: { readonly reason: string }): boolean;
+  planIssueActions(
+    findings: readonly Finding[],
+    openIssues: readonly TrackedIssue[],
+    context: { branch: string; label: string; now: Date }
+  ): readonly IssuePlanEntry[];
+  applyIssuePlan(
+    api: Record<string, unknown>,
+    plan: readonly IssuePlanEntry[],
+    wait?: () => Promise<void>
+  ): Promise<readonly IssueResult[]>;
+  fetchTrackingIssues(
+    api: Record<string, unknown>,
+    label: string,
+    wait?: () => Promise<void>
+  ): Promise<readonly TrackedIssue[]>;
+  runGate(
+    env: Record<string, string | undefined>,
+    wait?: () => Promise<void>
+  ): Promise<Verdict>;
   fetchLabelEvent(
     api: Record<string, unknown>,
     prNumber: number,
@@ -150,6 +185,22 @@ export const REASON = Object.freeze({
   indecisive: "indecisive_conclusion",
   noRun: "no_run",
   staleRun: "stale_run",
+  incompleteRun: "incomplete_run",
+});
+
+/**
+ * A job every `mode: "run"` fixture carries unless it is testing completeness.
+ *
+ * A completed run always has at least one job, and since row 26 a run-scoped
+ * suite reads them: the run's own `success` is only evidence when every job
+ * behind it succeeded. A fixture with no jobs is therefore not "a green run
+ * with the job list omitted for brevity" — it is row 26's unreadable-job-list
+ * case, which is exactly why it lives here rather than being defaulted away
+ * inside each suite.
+ */
+export const GREEN_JOB: Job = Object.freeze({
+  name: "🧪 e2e",
+  conclusion: "success",
 });
 
 /** Suite states. */
@@ -158,6 +209,52 @@ export const STATE = Object.freeze({
   fail: "fail",
   unknown: "unknown",
 });
+
+/** Tracking-issue actions (§10 of the contract). */
+export const ISSUE_ACTION = Object.freeze({
+  create: "create",
+  refresh: "refresh",
+  close: "close",
+  none: "none",
+});
+
+/** Why the reporter chose an action, as a stable token per §10 row. */
+export const ISSUE_REASON = Object.freeze({
+  redFiled: "red_filed",
+  redRefreshed: "red_refreshed",
+  greenComplete: "green_complete",
+  greenUntracked: "green_untracked",
+  evidenceIncomplete: "evidence_incomplete",
+  evidenceMissing: "evidence_missing",
+});
+
+/** One suite's reporting plan. */
+export interface IssuePlanEntry {
+  readonly label: string;
+  readonly action: string;
+  readonly reason: string;
+  readonly state: string;
+  readonly issues: readonly number[];
+  readonly title: string | null;
+  readonly body: string | null;
+  readonly comment: string | null;
+}
+
+/** An open issue as the reporter reads it. */
+export interface TrackedIssue {
+  readonly number: number;
+  readonly body?: string | null;
+  readonly pull_request?: Record<string, unknown>;
+}
+
+/** The outcome of one planned action. */
+export interface IssueResult {
+  readonly label: string;
+  readonly action: string;
+  readonly ok: boolean;
+  readonly issues: readonly number[];
+  readonly error: string | null;
+}
 
 /**
  * Loads the guard.

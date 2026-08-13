@@ -112,7 +112,7 @@ This disposition completes the SLL-5 loop (#1583): on a Lisa-attributed failure 
 
    Resolve the upstream repo from `.lisa.config.json` `hardening.upstreamRepo` (default `CodySwannGT/lisa`). Search **all issue states** for an existing issue carrying the marker — a closed marker-bearing ticket still owns this root cause, and searching only open issues would mint a duplicate the moment the original closes. Match on the **MARKER, never the title** — with the same eventual-consistency guard as above (`gh issue list -R <upstream> --state all --search '"<marker>" in:body' --json number,state,url`, and when the search index returns nothing, also `gh issue list -R <upstream> --state all --json number,state,body` and grep the bodies for the marker before concluding no ticket exists).
 
-   - **No existing ticket** → compose the body EXCLUSIVELY through the executable builder, then file its stdout verbatim via `lisa-github-write-issue` targeting the upstream repo with the `self-hardening` label:
+   - **No existing ticket** → compose the body EXCLUSIVELY through the executable builder, then file its stdout verbatim via `lisa-github-write-issue` targeting the upstream repo with the `self-hardening` label and explicit `build_ready: true` (per `ready-role-filing`; the upstream repo runs its own build queue off the ready role, and an omitted flag would strand the hardening ticket there):
 
      ```bash
      bunx @codyswann/lisa file-upstream --input filing-event.json   # or pipe the JSON on stdin

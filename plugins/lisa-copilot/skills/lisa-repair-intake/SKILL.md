@@ -752,6 +752,34 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    applied. Include the normalization result in the loop-prevention fingerprint so repeated repair
    cycles do not spam comments.
 
+### Ungated non-ready filing → surface as an incomplete handoff (read-only)
+
+The recovery net for the failure `ready-role-filing` prevents: an agent files a real defect it found
+during other work, never gives it the ready role, and the ticket sits forever because build-intake
+scans the ready lane and nothing else. Under that rule every filing declares either
+`build_ready: true` or a `human_gate` reason; an item carrying neither is an **incomplete handoff**.
+
+1. Enumerate open items filed recently (within the configured staleness window — same resolution as
+   every other candidate class) that are **not** in the configured `ready` role for their lifecycle
+   and are not in a claimed / blocked / terminal role either. On GitHub that is the absence of the
+   configured build `ready` label; on JIRA and Linear it is a status/state outside the configured
+   `ready` role. Items whose role is simply "the tracker's default created lane" are the target.
+2. Exclude anything carrying the `[lisa-human-gate]` marker — those are deliberate holds and the rule
+   ratifies them. Exclude containers (their state rolls up per `leaf-only-lifecycle`), and exclude
+   `[lisa-exploratory-qa]`-marked findings, which are the rule's **named** human-gate exception even
+   on an older item written before the marker existed.
+3. **Report each survivor read-only; never promote it.** Name the item, when it was filed, and what
+   filed it, and state the two ways to resolve it — flip it to the configured `ready` role, or mark
+   it as a deliberate human gate. A filing whose readiness nobody declared is exactly the input the
+   gate model says a human should see, so guessing "it was probably meant to be ready" would
+   re-introduce the accidental-queue-entry failure this rule exists to eliminate.
+4. Post at most one idempotent `[lisa-repair-intake]` note per item and include the finding in the
+   loop-prevention fingerprint so repeated cycles do not spam.
+
+This is distinct from the GitHub label-normalization repair above, which targets items carrying **no
+Lisa lifecycle label at all** (created by older tools or by hand) and does normalize them. This sweep
+targets items inside the Lisa lifecycle whose readiness was never declared.
+
 ## Blocker classification & clearing (conservative, vendor-specific extraction)
 
 A `blocked` build item is held by one or more of three blocker classes. Identify which are present

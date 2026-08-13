@@ -1,6 +1,6 @@
 ---
 name: lisa-posthog-access
-description: "Vendor-neutral access layer for PostHog. PostHog skills and observability rules MUST delegate through this skill rather than calling PostHog MCP tools or REST directly. Resolves PostHog MCP first when available, then falls back to POSTHOG_PERSONAL_API_KEY bearer auth."
+description: "Vendor-neutral access layer for PostHog. PostHog skills and observability rules MUST delegate through this skill rather than calling PostHog MCP tools or REST directly. Per the credential-substrate-precedence contract, resolves POSTHOG_PERSONAL_API_KEY bearer auth first when present and identity-matched to the configured project, then falls back to the PostHog MCP."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -22,13 +22,21 @@ Return parsed JSON in a `<result>` block.
 
 ## Substrate Selection
 
-Probe in order:
+Probe in order — the ordering is the shared `credential-substrate-precedence`
+contract, not a PostHog-local choice. The first tier that is ready **and**
+identity-matches the configured project is used; a substrate authenticated against
+a different project is skipped, never used.
 
-1. PostHog MCP, if available and authenticated.
-2. `POSTHOG_PERSONAL_API_KEY` bearer token against the configured PostHog host.
+1. **Tier 1 — configured-provider substrate: `POSTHOG_PERSONAL_API_KEY`** bearer
+   token against the configured PostHog host, resolved through
+   `lisa-secrets-access`.
+2. **Tier 2 — interactive MCP fallback: PostHog MCP**, if available and
+   authenticated. Used when tier 1 is genuinely unavailable: no
+   `POSTHOG_PERSONAL_API_KEY`, no REST adapter for the operation, or a PostHog
+   outage.
 
-PostHog documents personal API keys and bearer authentication. The headless REST
-tier uses:
+PostHog documents personal API keys and bearer authentication, and the same key
+works interactively and headlessly — which is why it leads. The REST tier uses:
 
 ```bash
 POSTHOG_HOST=${POSTHOG_HOST:-https://app.posthog.com}
@@ -54,7 +62,9 @@ Error: no PostHog access substrate available. Authenticate the PostHog MCP or se
 
 ## Invariants
 
-- Fallback is gated on `POSTHOG_PERSONAL_API_KEY`.
+- Tier order is `credential-substrate-precedence`: `POSTHOG_PERSONAL_API_KEY`
+  first, the PostHog MCP as a preserved first-class fallback. Identity-match
+  against the configured project is mandatory on every tier.
 - `POSTHOG_HOST` defaults to PostHog Cloud but can point at a self-hosted
   deployment.
 - Consumer skills do not embed PostHog REST paths.

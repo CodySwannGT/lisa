@@ -9,7 +9,11 @@ Secrets are the same shape: every credential resolves through
 resolution order. Read it rather than restating it — and never ask a human to
 paste a value the provider can supply.
 
-Resolution order is MCP when available and authenticated, then documented
-token/REST substrate when the env var is set, then a loud error naming the env
-var. Full matrix and migration rules:
+Resolution order is the configured-provider token/CLI substrate first when its
+bootstrap credential is present and identity-matched, then the interactive MCP as
+fallback, then a loud error naming the exact credential to set. Identity-match is
+mandatory on every substrate — one authenticated as a different tenant is skipped,
+never used. The ordering itself is settled in
+[reference/credential-substrate-precedence.md](../reference/credential-substrate-precedence.md);
+full matrix and migration rules:
 [reference/integration-access-layer.md](../reference/integration-access-layer.md).
