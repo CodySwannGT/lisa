@@ -779,7 +779,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "76fae921ab507361ef91e6f9ee2e4ec8122062be6cfe8a7632ef216ea36d1702",
+      "2c6a1b0c3d3d935ac2ef8d055e808f6af13ae3e37a81fc03596af0d9195f877d",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -1033,7 +1033,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "0f56daf610cab90a2127cebf83a5bbe05cdcba0f692ebfae8fcf3da153826316",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "aa1f4505696e869f173bd4d335b216365ab5238aaa001654547dd2e3c99fe287",
+      "b3bbe6b1974491dbaba8f1308591bfb65be3bf9cfb644cb903d8266dc8121ffd",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
@@ -1157,17 +1157,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "23ff65052c23e5b71c232547ec15d9b3b39232ff2014370b2a3a402a904fde67",
+      "11e84b39b65cb99c657fd85ed8c00218ff6aa5bb03aa3f651185fe98c12a4c4d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "8dd5ca2c99394ead696093dd10caf664ce2609d39fb8d8ae8f4d4f236dbddbe6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
-      "f203c71457da958cdb49637c87e4a9c43e964f98ecef3dd0e933b419d565f98e",
+      "5e3b936279d663ad714f0c699af1cd8f487b1212657cd4ad30dbe563d8dee9f8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
       "be4e38ce85f9268b52b29dbde264ecd8d50973c2b63a15410336234a921d9644",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
       "694f2660df23871d470701d1fb9fc7e24fcf7be137d9c275059ae7f7383340e9",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
+      "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
@@ -1175,13 +1177,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "1471d2108058f3059e242f9c71208c99fdbc212bde32de34b798eaa9a27ffbcc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
-      "04ab89bc1f890526ba3b693cd3b022abc5a24e078b93c08fe7dfd586452b70b1",
+      "75ae143c971a7d442d513f2458ac64322d2394dec77ec806af82f39c5ed815be",
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "ad4df3007572f6dba5086633b8238e51a14e5ef163216aea899800441f56cd02",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
-      "07d183d8325341feea0db82c5f48f403981d0642999ce9b6462b6f89642e93c6",
+      "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
       "62d1b87d1b852dc00c00ea9d132d9d6953f4ef77beb5fa4b93652c4424f33274",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1191,7 +1193,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "ecaf49b42bbf399781a3ebd0b1595e5a8ac44422537832e0442b2f184da0c83c",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
-      "3820aecb57d184fde1cfa988e7e1402d8f2a766a0b3ffbb576de5a6a72b3d5c5",
+      "4fa7f9a83a9998951528c8ffffa930c61b5c316b510356a3e7a90ccb9d5ca123",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
       "3ad004148a54571a50df90f23abec71e8510ef3ea3562ac812f8e2e11beb157a",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
@@ -1207,13 +1209,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "45567e53808836e418653e79066fb0f940543daae6baf158ffe07474a62560c5",
+      "8813f9374f0d485c1ca1d2b2549e990dee1b232e82487c85caec972c47cceb64",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "4d4b8c92e3616256f5f689fbe433f09c31d39c623508bc4ec0d8c1770caddf22",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
       "bff68aa66d6d4cd7cb9d0e39be691c6daa232edb097f8a601815432a32cca6a6",
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
-      "f5a1e9290789fd1c33675168d30461fb24a11c98a433ef777c1f536bc2f905ef",
+      "a00121623871aa7578281779214d2a8ed871c7dfba19937f80374e76d6aa2b7f",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
@@ -2055,7 +2057,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-upstream-evidence-manifest.mjs":
       "de1eb5adaa6252b4abe5859933bff0ab2a52e19cc5a3fc5a41018fbb57b766d1",
     "scripts/github-status-check.sh":
-      "876914c369c5bd58f4a5f3c41d0c1264c6923f329a644f90640d15b434a0fbd1",
+      "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
       "ed60ed3afc25175b81439330dbf26ff639f55fabec54223df4c7266805c84f22",
     "scripts/internal-agy-skill-policy.json":
@@ -3406,6 +3408,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/note-format.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
@@ -3844,6 +3847,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/note-format.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
@@ -4268,6 +4272,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/note-format.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
@@ -6302,6 +6307,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/note-format.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
@@ -6906,6 +6912,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/note-format.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
@@ -7386,6 +7393,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
@@ -8700,6 +8708,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/neutral-tenant-var.test.ts": true,
+    "tests/unit/secrets/note-enforcement-parity.test.ts": true,
+    "tests/unit/secrets/note-format.test.ts": true,
     "tests/unit/secrets/profile-sourcing.test.ts": true,
     "tests/unit/secrets/prompt-secret.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
