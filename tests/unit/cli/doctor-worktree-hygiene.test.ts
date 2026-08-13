@@ -66,6 +66,42 @@ describe("checkWorktreeHygiene", () => {
     expect(check.detail).toContain("3 agent worktree");
   });
 
+  // The two cases below pin BOTH sides of the boundary. One alone is not
+  // enough: at-threshold-ok alone survives `<` becoming `<=`, and
+  // over-threshold-warns alone survives `<=` becoming `<`. Only the pair
+  // forbids an off-by-one in either direction.
+  it("still passes at exactly the threshold", async () => {
+    const cwd = await getTempDir();
+    await seedWorktrees(
+      cwd,
+      CLAUDE_WORKTREE_ROOT,
+      WORKTREE_COUNT_WARN_THRESHOLD
+    );
+
+    const check = await checkWorktreeHygiene(cwd);
+
+    expect(check.status).toBe("ok");
+    expect(check.detail).toContain(
+      `${String(WORKTREE_COUNT_WARN_THRESHOLD)} agent worktrees`
+    );
+  });
+
+  it("warns at one over the threshold", async () => {
+    const cwd = await getTempDir();
+    await seedWorktrees(
+      cwd,
+      CLAUDE_WORKTREE_ROOT,
+      WORKTREE_COUNT_WARN_THRESHOLD + 1
+    );
+
+    const check = await checkWorktreeHygiene(cwd);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(
+      `${String(WORKTREE_COUNT_WARN_THRESHOLD + 1)} agent worktrees`
+    );
+  });
+
   it("warns with the count once the threshold is exceeded", async () => {
     const cwd = await getTempDir();
     await seedWorktrees(cwd, CLAUDE_WORKTREE_ROOT, 12);
