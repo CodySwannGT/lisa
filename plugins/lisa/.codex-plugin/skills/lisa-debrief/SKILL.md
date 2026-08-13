@@ -72,7 +72,7 @@ A markdown triage document at `./debrief/<initiative-slug>-<YYYY-MM-DD>.md` (or 
    - `Summary` — one sentence
    - `Category`
    - `Evidence` — links to the source ticket comment / PR comment / commit / test file (multiple allowed)
-   - `Recommended persistence destination` — the agent's best guess for where this should land if accepted (e.g., "Edge Case Brainstorm checklist → Navigation & URL state", "learnings ledger via the executable contract", "new tooling-gap ticket", "upstream Lisa issue"). Never name machine-local auto-memory, `PROJECT_RULES.md`, or `AGENTS.md` — those are not persistence destinations.
+   - `Recommended persistence destination` — the agent's best guess for where this should land if accepted (e.g., "Edge Case Brainstorm checklist → Navigation & URL state", "learnings ledger via the executable contract", "new tooling-gap ticket", "upstream Lisa issue"). Never name machine-local auto-memory, the host-rules directory `.agents/rules/`, or `AGENTS.md` — those are not persistence destinations.
    - `Disposition` — empty checkbox-style field the human will fill: `[ ] Accept` / `[ ] Reject` / `[ ] Defer` plus a free-text reason
 4. **Source map** — appendix listing every work item and PR walked, so the human can verify completeness.
 
