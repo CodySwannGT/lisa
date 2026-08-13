@@ -2189,12 +2189,33 @@ jobs:
           else
             echo "has_rule_tests=false" >> $GITHUB_OUTPUT
           fi
+          # The tests existing does not mean the RUNNER exists. `sg:test` ships
+          # via package.lisa.json, which only reaches a host project on its next
+          # `lisa apply` — but this workflow is consumed at @main, so the step
+          # arrives immediately and the script does not. Gating on the test files
+          # alone turned every repo that already had rule tests red the moment
+          # #2525 merged (`error: Script not found "sg:test"`). See #2532.
+          if node -e "process.exit(require('./package.json').scripts?.['sg:test']?0:1)" 2>/dev/null; then
+            echo "has_test_script=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_test_script=false" >> $GITHUB_OUTPUT
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Run ast-grep rule tests
-        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true'
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true' && steps.check_rule_tests.outputs.has_test_script == 'true'
         run: ${{ inputs.package_manager }} run sg:test
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Warn loudly rather than failing: a missing `sg:test` is a not-yet-applied
+      # Lisa version, not a defect in this project's code, and failing the shared
+      # gate for it takes CI down fleet-wide. The wording states plainly that the
+      # rule tests did NOT run, so this cannot become the silent false-green that
+      # #2525 set out to prevent.
+      - name: ⚠️ ast-grep rule tests present but not runnable
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true' && steps.check_rule_tests.outputs.has_test_script != 'true'
+        run: |
+          echo "::warning::${{ steps.check_rule_tests.outputs.rule_test_count }} ast-grep rule test file(s) exist but were NOT RUN: package.json has no 'sg:test' script. This job going green does NOT mean any ast-grep rule has test coverage. Run 'lisa apply' to add the script (Lisa #2532)."
 
       - name: ⏭️ AST Grep Skipped (no config)
         if: steps.check_config.outputs.has_config != 'true'
