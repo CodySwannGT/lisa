@@ -18,11 +18,71 @@
 # Environment contract: forwarded to the flows as `-e` variables are (1)
 # every key declared in the `maestro_env` input, (2) every key declared in
 # the MAESTRO_SECRET_ENV secret (same KEY=VALUE format, for sensitive values
-# like test-account passwords — GitHub masks each line in logs), and (3)
-# every env var named MAESTRO_* after `setup_command` has run. Values must
-# not contain whitespace. The platform app id inputs are forwarded as
-# MAESTRO_APP_ID per platform (they may legitimately differ — e.g. `app_dev`
-# on Android vs `app-dev` on iOS).
+# like test-account passwords — GitHub masks each line in logs), (3) every
+# MAESTRO_* pair the `pre_suite_command` exported, and (4) every env var named
+# MAESTRO_* after `setup_command` has run. Values must not contain whitespace.
+# The platform app id inputs are forwarded as MAESTRO_APP_ID per platform
+# (they may legitimately differ — e.g. `app_dev` on Android vs `app-dev` on
+# iOS).
+#
+# ── TWO SETUP SEAMS, AND WHICH ONE YOU WANT ──────────────────────────────────
+#
+# `pre_suite_command` — runs EXACTLY ONCE per workflow run, in its own job that
+#   BOTH platform legs depend on, before either starts. Use it for anything
+#   that mutates shared state or must happen once:
+#     • data resets / fixture pruning / teardown sweeps (destructive)
+#     • conditional seeding — "if no record exists, create one" (read-modify-write)
+#     • leasing or claiming a shared environment
+#     • deriving ONE value both platforms must agree on
+#   Exports values to both legs via a job output — see "Exporting values" below.
+#
+# `setup_command` — runs in EACH platform job, and the two platform jobs run
+#   CONCURRENTLY. It is therefore only safe for per-leg, idempotent, read-only
+#   preparation: reading a value that already exists, computing something from
+#   the checkout, per-platform tweaks. Unchanged and fully supported; nothing
+#   about it moves.
+#
+#   If your `setup_command` writes, deletes, or conditionally creates ANYTHING
+#   in a shared backend, it is in the wrong seam. It is running twice, at the
+#   same time, on two runners. A "does X exist? if not, create it" script run
+#   from both legs evaluates the question against the same pre-write state and
+#   can create X twice — after which the two legs test against different
+#   fixtures and disagree for reasons that have nothing to do with the app.
+#
+# ── Exporting values from the pre-suite job ──────────────────────────────────
+#
+# `$GITHUB_ENV` does NOT cross job boundaries, so the `setup_command` trick of
+# appending MAESTRO_* lines to it cannot work for a command in a separate job.
+# `pre_suite_command` instead appends `KEY=VALUE` lines to the file named by
+# `$MAESTRO_PRE_SUITE_ENV` (same shape, different file). Those pairs are
+# validated, published as a job output, and re-applied to `$GITHUB_ENV` inside
+# each platform leg before `setup_command` runs — so flows read them exactly
+# as if they had been set locally.
+#
+#   pre_suite_command: |
+#     node scripts/maestro/reset-fixtures.mjs
+#     echo "MAESTRO_SEED_PLAYER_ID=$(node scripts/maestro/resolve-seed.mjs)" \
+#       >> "$MAESTRO_PRE_SUITE_ENV"
+#
+# Validation is an ALLOWLIST and fails closed: the key must match
+# `MAESTRO_[A-Za-z0-9_]+`, must not be a reserved name, and the value must be
+# non-empty and contain no whitespace (an unquoted `$MAESTRO_E2E_ARGS` is
+# word-split by the shell downstream, so a value with a space becomes a stray
+# argument Maestro reads as a flow path). Anything else fails the pre-suite job
+# by name rather than interpolating a broken value into every flow.
+#
+# Do NOT export secrets this way. GitHub redacts secret values out of job
+# outputs, so the pair would silently arrive empty. Sensitive flow variables
+# belong in the MAESTRO_SECRET_ENV secret, which both legs read directly.
+#
+# ── When the pre-suite command fails ─────────────────────────────────────────
+#
+# FAIL CLOSED: no platform suite runs. The seam exists to establish known
+# state, so a suite that runs after it failed is a suite running against
+# unknown state — its greens prove nothing and its reds are unattributable.
+# The platform legs allowlist the pre-suite job results they will start after
+# (`success` and `skipped` — skipped is "no command was configured"); every
+# other result, including any GitHub adds later, keeps them from starting.
 #
 # Graceful degradation: when EXPO_TOKEN is not provisioned or the flows
 # directory does not exist, every job skips with a warning instead of
@@ -100,8 +160,51 @@ on:
         required: false
         default: ''
         type: string
+      pre_suite_command:
+        description: >-
+          Shell command run EXACTLY ONCE per workflow run, in its own job that
+          BOTH platform legs depend on and that completes before either starts.
+          This is the seam for anything that mutates shared state or must happen
+          once: data resets, fixture pruning, conditional seeding, environment
+          leasing, or deriving a single value both platforms must agree on.
+          Export values for the platform legs by appending MAESTRO_*=value lines
+          to the file named by $MAESTRO_PRE_SUITE_ENV ($GITHUB_ENV does not
+          cross job boundaries). A failure here fails closed — no platform suite
+          runs, because a suite whose known state was never established proves
+          nothing. Contrast setup_command, which runs once per platform leg,
+          concurrently, and is only safe for idempotent read-only preparation.
+        required: false
+        default: ''
+        type: string
+      pre_suite_install_dependencies:
+        description: >-
+          Install the project's dependencies in the pre-suite job before running
+          pre_suite_command, using package_manager. The platform legs install
+          nothing, so this defaults false to match: a command built from Node
+          built-ins alone (the common case) does not pay for an install. Set it
+          true when the command needs node_modules — e.g. a `bun run db:reset`
+          that goes through the project's own tooling.
+        required: false
+        default: false
+        type: boolean
+      pre_suite_timeout_minutes:
+        description: >-
+          Ceiling for the pre-suite job. It gates the entire suite, so it is
+          deliberately much tighter than suite_timeout_minutes — a wedged reset
+          should surface as a fast, named failure rather than silently spending
+          the suite's budget before a single flow runs.
+        required: false
+        default: 20
+        type: number
       setup_command:
-        description: 'Shell command run in each test job before maestro test (e.g. resolve dynamic seed data); export values for flows by appending MAESTRO_* lines to $GITHUB_ENV'
+        description: >-
+          Shell command run in EACH test job before maestro test (e.g. read a
+          seed entity id that already exists); export values for flows by
+          appending MAESTRO_* lines to $GITHUB_ENV. The Android and iOS jobs run
+          CONCURRENTLY, so this command runs twice at the same time — it is only
+          safe for per-leg, idempotent, read-only preparation. Anything that
+          writes, deletes, or conditionally creates shared state belongs in
+          pre_suite_command instead.
         required: false
         default: ''
         type: string
@@ -111,7 +214,7 @@ on:
         default: ''
         type: string
       node_version:
-        description: 'Node.js version for setup_command tooling'
+        description: 'Node.js version for pre_suite_command and setup_command tooling'
         required: false
         default: '22.21.1'
         type: string
@@ -306,9 +409,156 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+  pre_suite:
+    name: 🧭 Pre-suite (once per run)
+    # ONE job, no matrix, no per-platform fan-out — that is the entire point.
+    # `setup_command` below runs inside each platform job, and those jobs are
+    # siblings with no edge between them, so it executes TWICE, CONCURRENTLY.
+    # That is fine for reading a value and catastrophic for writing one: a
+    # read-modify-write ("does any record have X? if not, create it") evaluated
+    # from two runners against the same pre-write state can seed twice, or seed
+    # two different records, after which the two legs test different fixtures.
+    # This job is the single-execution seam for that work.
+    #
+    # Placed AFTER the builds rather than beside them, deliberately. Running it
+    # in parallel with `build` would be free in wall clock, but an EAS build can
+    # take the better part of an hour — and "known state" established an hour
+    # before the first flow is not known state. The cost is this job's own
+    # duration; the benefit is that the reset/seed is as close to the suite as
+    # the graph allows.
+    needs: [preflight, build]
+    # `!cancelled()`: `build` is a matrix job, so ONE platform's build failure
+    # marks the whole job failed. Without this, an Android build failure would
+    # skip the pre-suite job and the surviving iOS leg would then run against
+    # state nobody established. Same rationale as the platform jobs below.
+    if: ${{ !cancelled() && needs.preflight.outputs.should_run == 'true' && inputs.pre_suite_command != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.pre_suite_timeout_minutes }}
+    outputs:
+      # Space-separated KEY=VALUE pairs. `$GITHUB_ENV` is per-job, so a job
+      # output is the only channel that reaches the platform legs.
+      maestro_env: ${{ steps.capture.outputs.maestro_env }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 🥟 Setup Bun
+        if: ${{ inputs.pre_suite_install_dependencies && inputs.package_manager == 'bun' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 📦 Install dependencies
+        # Opt-in: the platform legs install nothing, so the default keeps this
+        # job's toolchain identical to theirs. A command that needs
+        # node_modules asks for it rather than every adopter paying an install.
+        if: ${{ inputs.pre_suite_install_dependencies }}
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error title=Unknown package_manager::'$PACKAGE_MANAGER' is not one of npm, yarn, bun."
+              exit 1
+              ;;
+          esac
+
+      - name: 🧩 Apply maestro env
+        # Same env the platform legs give `setup_command`, so a command can be
+        # moved between the two seams without rewiring what it can read. E2E_*
+        # names (not MAESTRO_*) keep the multiline inputs out of any MAESTRO_*
+        # scan.
+        env:
+          E2E_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
+        run: |
+          printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | while IFS= read -r line; do
+            [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
+            echo "$line" >> "$GITHUB_ENV"
+          done
+
+      - name: 🗂️ Open the pre-suite export file
+        # The cross-job counterpart to $GITHUB_ENV. Created empty so the command
+        # can append unconditionally, and named in $GITHUB_ENV so the command
+        # reads it the same way it would read $GITHUB_ENV.
+        run: |
+          EXPORT_FILE="$RUNNER_TEMP/maestro-pre-suite-env"
+          : > "$EXPORT_FILE"
+          echo "MAESTRO_PRE_SUITE_ENV=$EXPORT_FILE" >> "$GITHUB_ENV"
+
+      - name: 🧭 Run pre-suite command
+        # A failure here fails this job, and the platform jobs below refuse to
+        # start unless this job's result is on their allowlist. Fail closed is
+        # the whole contract: the command's purpose is establishing known state,
+        # so "it failed but test anyway" produces a suite whose greens prove
+        # nothing and whose reds are unattributable.
+        run: ${{ inputs.pre_suite_command }}
+
+      - name: 📦 Capture pre-suite exports
+        id: capture
+        shell: bash
+        run: |
+          # ALLOWLIST, not denylist, and both lists are SOURCE CONSTANTS —
+          # literals in this file, never read from an input or the environment,
+          # so nothing a caller or a command sets can widen what is permitted to
+          # cross the job boundary.
+          KEY_ALLOWLIST='^MAESTRO_[A-Za-z0-9_]+$'
+          RESERVED_KEYS='MAESTRO_E2E_ARGS MAESTRO_PRE_SUITE_ENV'
+
+          PAIRS=""
+          if [[ -n "${MAESTRO_PRE_SUITE_ENV:-}" && -f "$MAESTRO_PRE_SUITE_ENV" ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              [[ -z "${line//[[:space:]]/}" || "$line" == \#* ]] && continue
+              if [[ "$line" != *=* ]]; then
+                echo "::error title=Invalid pre-suite export::'$line' is not KEY=VALUE. Append lines to \$MAESTRO_PRE_SUITE_ENV in the same shape you would append to \$GITHUB_ENV."
+                exit 1
+              fi
+              key="${line%%=*}"
+              value="${line#*=}"
+              if [[ ! "$key" =~ $KEY_ALLOWLIST ]]; then
+                echo "::error title=Pre-suite export key not allowed::'$key' does not match ${KEY_ALLOWLIST}. Only MAESTRO_* keys are forwarded to flows, so exporting anything else would be silently inert."
+                exit 1
+              fi
+              for reserved in $RESERVED_KEYS; do
+                if [[ "$key" == "$reserved" ]]; then
+                  echo "::error title=Pre-suite export key is reserved::'$key' is owned by this workflow and cannot be set by pre_suite_command."
+                  exit 1
+                fi
+              done
+              if [[ -z "$value" ]]; then
+                echo "::error title=Empty pre-suite export::'$key' was exported with an empty value. Flows would interpolate nothing and fail on a correct assertion; fail here instead, where the cause is named."
+                exit 1
+              fi
+              if [[ "$value" =~ [[:space:]] ]]; then
+                echo "::error title=Pre-suite export contains whitespace::'$key' has a value containing whitespace. The flag list is word-split unquoted downstream, so the tail would be read as a flow path and abort the whole suite before flow 1."
+                exit 1
+              fi
+              PAIRS="$PAIRS $key=$value"
+            done < "$MAESTRO_PRE_SUITE_ENV"
+          fi
+          PAIRS="${PAIRS# }"
+          # Whitespace-free values (enforced above) make a space-separated
+          # single-line output exact, and single-line keeps it clear of the
+          # multiline-job-output edge cases.
+          echo "maestro_env=$PAIRS" >> "$GITHUB_OUTPUT"
+          if [[ -z "$PAIRS" ]]; then
+            echo "Pre-suite command exported no variables."
+          else
+            echo "Pre-suite command exported: $(echo "$PAIRS" | tr ' ' '\n' | cut -d= -f1 | tr '\n' ' ')"
+          fi
+
   android:
     name: 🤖 Maestro Android
-    needs: [preflight, build]
+    needs: [preflight, build, pre_suite]
     runs-on: ubuntu-latest
     # Caller-tunable, defaulting to 90 to match the iOS job: the 60 inherited
     # from frontend-v2's original workflow started timing out once its suite
@@ -321,7 +571,15 @@ jobs:
     # failure marks the whole job failed and would skip BOTH test jobs. Run
     # whenever this platform's artifact might exist — if its own build leg
     # failed, the download-artifact step fails fast with a clear error.
-    if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' }}
+    #
+    # The pre-suite clause is an ALLOWLIST of results this job will start
+    # after, not a denylist of ones it won't: `success` (the command ran) and
+    # `skipped` (no command configured — the default for every adopter who
+    # never sets one). `failure`, `cancelled`, and anything GitHub adds later
+    # all fall through to "do not start". `!cancelled()` deliberately does NOT
+    # cover this — it is what lets a job run despite a failed dependency, which
+    # is right for a build artifact and wrong for established state.
+    if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -401,11 +659,31 @@ jobs:
             echo "$line" >> "$GITHUB_ENV"
           done
 
+      - name: 🧭 Apply pre-suite env
+        # $GITHUB_ENV is per-job, so the pre-suite command's exports arrive as a
+        # job OUTPUT and are re-applied here. Placed before `setup_command` so a
+        # per-leg command can read what the once-per-run command established.
+        if: ${{ needs.pre_suite.result == 'success' && needs.pre_suite.outputs.maestro_env != '' }}
+        env:
+          PRE_SUITE_ENV: ${{ needs.pre_suite.outputs.maestro_env }}
+        run: |
+          # Unquoted on purpose: the pairs are space-separated and every value
+          # was proven whitespace-free by the capture step that produced them.
+          # shellcheck disable=SC2086
+          for pair in $PRE_SUITE_ENV; do
+            echo "$pair" >> "$GITHUB_ENV"
+          done
+
       - name: 🎯 Run setup command
-        # Project-specific dynamic test data (e.g. resolving a seed entity id
-        # from the dev backend). The command exports values for the flows by
+        # Project-specific, PER-LEG preparation (e.g. reading a seed entity id
+        # that already exists). The command exports values for the flows by
         # appending MAESTRO_*=value lines to $GITHUB_ENV; a failure here fails
         # the run rather than letting flows interpolate empty values.
+        #
+        # This step runs in BOTH platform jobs, and those jobs run
+        # concurrently — so this command executes twice, at the same time, on
+        # two runners. Idempotent and read-only work only. Anything that
+        # mutates shared state belongs in `pre_suite_command`.
         if: inputs.setup_command != ''
         run: ${{ inputs.setup_command }}
 
@@ -676,13 +954,15 @@ jobs:
 
   ios:
     name: 🍎 Maestro iOS
-    needs: [preflight, build]
+    needs: [preflight, build, pre_suite]
     runs-on: macos-15
     # Same ceiling as the android job — see its comment for why it is an input.
     timeout-minutes: ${{ inputs.suite_timeout_minutes }}
     # !cancelled(): see the android job — don't let the other platform's
-    # build failure skip this platform's tests.
-    if: ${{ !cancelled() && needs.preflight.outputs.run_ios == 'true' }}
+    # build failure skip this platform's tests. The pre-suite clause is the
+    # same result ALLOWLIST as the android job; see its comment for why
+    # `!cancelled()` alone would not fail closed on a failed pre-suite.
+    if: ${{ !cancelled() && needs.preflight.outputs.run_ios == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -779,9 +1059,25 @@ jobs:
             echo "$line" >> "$GITHUB_ENV"
           done
 
+      - name: 🧭 Apply pre-suite env
+        # See the android job's copy: $GITHUB_ENV is per-job, so the pre-suite
+        # exports travel as a job output and are re-applied here, before
+        # `setup_command`.
+        if: ${{ needs.pre_suite.result == 'success' && needs.pre_suite.outputs.maestro_env != '' }}
+        env:
+          PRE_SUITE_ENV: ${{ needs.pre_suite.outputs.maestro_env }}
+        run: |
+          # Unquoted on purpose — see the android copy.
+          # shellcheck disable=SC2086
+          for pair in $PRE_SUITE_ENV; do
+            echo "$pair" >> "$GITHUB_ENV"
+          done
+
       - name: 🎯 Run setup command
-        # See the android job — the command appends MAESTRO_* lines to
-        # $GITHUB_ENV and a failure fails the run.
+        # See the android job — PER-LEG only, it runs concurrently in both
+        # platform jobs, it appends MAESTRO_* lines to $GITHUB_ENV, and a
+        # failure fails the run. Shared-state mutation belongs in
+        # `pre_suite_command`.
         if: inputs.setup_command != ''
         run: ${{ inputs.setup_command }}
 

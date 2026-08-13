@@ -205,7 +205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "4bacb1da9ea897345aad77b8ae7ee96861c555aa77a00846f4572da18e9fd6e0",
+      "1063a54717195bb7df479a8ce16e8816b38b8f673be8670888d03e7833a96b7e",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "4185f5083d8da5efa620e8641d6b75e0cb424edd563989c7432892872969797c",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
@@ -8512,6 +8512,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/test-utils.ts": true,
     "tests/helpers/verification-gate-fixtures.ts": true,
     "tests/helpers/verification-gate-harness.ts": true,
+    "tests/helpers/workflow-job-graph.ts": true,
     "tests/helpers/workflow-test-utils.ts": true,
     "tests/integration/autofix-ownership-guards.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
@@ -8524,6 +8525,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-flow-runner.test.ts": true,
     "tests/integration/maestro-native-workflow.test.ts": true,
     "tests/integration/maestro-native-zero-flow.test.ts": true,
+    "tests/integration/maestro-pre-suite-exports.test.ts": true,
+    "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
