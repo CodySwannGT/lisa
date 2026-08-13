@@ -79,6 +79,16 @@ The `None —` prefix is the machine discriminator; the words after it are for t
 
 **Underivable is its own verdict, never `false`.** A legacy item with no section gets `N/A` plus a repair note from every flag-dependent gate, repaired at claim time beside the legacy branch-plan repair — the same asymmetry, for the same reason. What must never happen is reading absence as `false`, which is the silent assumption that made S8, S11, S14, and S19 undecidable on a live item in the first place.
 
+### How strongly this binds
+
+Stated plainly, because the session that produced this contract exists to make exactly this distinction and it would be dishonest to blur it here.
+
+This is **not** an executable control. `ready-role-filing`'s sibling guard is a hook that exits 2 and physically refuses a tool call; nothing here refuses anything. What enforces this contract is a validator agent reading `SKILL.md` and choosing to apply it — the same rung of the ladder that failed to bind 13 filings out of 13.
+
+What the regression suite adds is narrower than enforcement and worth naming precisely: it pins the **wording** across all six generated skill roots, so the contract cannot be silently deleted, softened, or lost in a regeneration. It cannot catch a validator that documents the rule and then ignores it at runtime.
+
+That is the ceiling for now rather than a shortcut, because `SKILL.md` *is* the validators' execution substrate — there is no compiled artifact underneath to attach a hook to. The honest summary is: absence-as-`false` was undecidable and is now *decidable*, which is a real improvement and a strictly weaker claim than *enforced*. Treat a gate verdict resting on this contract as evidence, not proof, until a deterministic checker exists to read the declaration off a live item.
+
 This costs nothing in derivation difficulty. A single-environment project — Lisa itself is one, `deploy.branches: { production: main }` — recomputes every applicable item to the same branch. The gate was never hard to satisfy; it was impossible to *audit*, and those are different problems with different fixes. Weakening S19 would have fixed neither.
 
 ## Gate S19 — Branch Plan derivation

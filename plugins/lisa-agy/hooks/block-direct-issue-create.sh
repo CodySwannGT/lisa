@@ -539,15 +539,40 @@ def body_file_paths(args):
     return paths
 
 
-def declares_readiness(args):
+def before_end_of_options(args):
+    """The arguments up to a bare `--`.
+
+    Everything after `--` is an operand, not a flag, so it cannot reach the
+    created item — crediting a declaration from there is the same mistake as
+    reading the role out of a title, one position over.
+
+    The two installed CLIs disagree about it, which is exactly why the guard
+    cannot lean on any of them being strict: gh 2.96.0 rejects a post-`--`
+    flag outright, while `acli` parses straight past it and proceeds to create
+    the work item with the trailing `--status` silently unapplied. That made
+    this a live bypass on the JIRA path, verified by running it. `jira`,
+    `linear`, `http`, and `wget` were not installed and are UNVERIFIED, so the
+    guard fails closed for every path rather than assuming gh's strictness.
+
+    Args:
+        args: A command's arguments.
+
+    Returns:
+        The arguments preceding the first bare `--`.
+    """
+    return args[: args.index("--")] if "--" in args else args
+
+
+def declares_readiness(raw_args):
     """Whether the create carries one of the two required declarations.
 
     Args:
-        args: The creating command's arguments.
+        raw_args: The creating command's arguments.
 
     Returns:
         True when the build-ready role or a human-gate marker is present.
     """
+    args = before_end_of_options(raw_args)
     if ready_role:
         for raw in flag_values(args, LABEL_FLAGS):
             candidates = [

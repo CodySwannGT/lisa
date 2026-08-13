@@ -27,84 +27,21 @@
  *      command it was just refused is not an escape hatch, it is the prose
  *      problem with extra steps.
  */
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
-const SCRIPT_PATH = path.resolve(
-  "plugins/src/base/hooks/block-direct-issue-create.sh"
-);
-const BASH_PATH = "/bin/bash";
-
-const EXIT_BLOCKED = 2;
-const EXIT_ALLOWED = 0;
-
-/** The one command shape the audit found filed 13 times out of 13. */
-const UNDECLARED_CREATE = 'gh issue create --title "x"';
-/** The marker a deliberate human gate stamps on the item. */
-const GATE_MARKER = "<!-- [lisa-human-gate] reason=pricing -->";
-/** A non-default build-ready role, to prove the guard reads it from config. */
-const CUSTOM_ROLE = "state:queued";
-
-/**
- * A throwaway project directory whose `.lisa.config.json` configures a tracker.
- * @param config - The Lisa config to write.
- * @returns The directory path.
- */
-const projectWithTracker = (
-  config: Record<string, unknown> = {
-    tracker: "github",
-    github: { labels: { build: { ready: "status:ready" } } },
-  }
-): string => {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-issue-guard-"));
-  writeFileSync(
-    path.join(dir, ".lisa.config.json"),
-    JSON.stringify(config),
-    "utf-8"
-  );
-  return dir;
-};
-
-/**
- * A project directory with no Lisa config at all — the bootstrapping case.
- * @returns The directory path.
- */
-const projectWithoutTracker = (): string =>
-  mkdtempSync(path.join(tmpdir(), "lisa-issue-guard-bare-"));
-
-/**
- * Run the guard against a PreToolUse payload.
- * @param payload - The JSON given on stdin.
- * @param options - Overrides for the run.
- * @param options.cwd - The project directory the guard resolves config from.
- * @param options.env - Environment entries layered over the process env.
- * @returns Exit status and stderr.
- */
-const runHook = (
-  payload: unknown,
-  options: { cwd?: string; env?: Readonly<Record<string, string>> } = {}
-): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [SCRIPT_PATH], {
-    cwd: options.cwd ?? projectWithTracker(),
-    env: {
-      ...process.env,
-      CLAUDE_PROJECT_DIR: "",
-      LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
-      ...options.env,
-    },
-    input: JSON.stringify(payload),
-    encoding: "utf-8",
-  });
-  return { status: result.status, stderr: result.stderr };
-};
-
-const bash = (command: string) => ({
-  tool_name: "Bash",
-  tool_input: { command },
-});
+import {
+  bash,
+  CUSTOM_ROLE,
+  EXIT_ALLOWED,
+  EXIT_BLOCKED,
+  projectWithoutTracker,
+  projectWithTracker,
+  runHook,
+  UNDECLARED_CREATE,
+} from "./support/direct-issue-create.js";
 
 describe("block-direct-issue-create.sh", () => {
   describe("refuses an undeclared direct creation", () => {
@@ -182,113 +119,6 @@ describe("block-direct-issue-create.sh", () => {
       const { stderr } = runHook(bash(UNDECLARED_CREATE), { cwd });
 
       expect(stderr).toContain(CUSTOM_ROLE);
-    });
-  });
-
-  describe("allows a declared creation — the sanctioned writer's own command", () => {
-    it("allows a create carrying the configured build-ready role", () => {
-      const { status } = runHook(
-        bash(
-          'gh issue create --title "x" --body-file /tmp/b.md ' +
-            '--label "type:Bug" --label "status:ready"'
-        )
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("allows a create carrying an inline human-gate marker", () => {
-      const { status } = runHook(
-        bash(
-          'gh issue create --title "x" ' +
-            `--body "Held for a human product call: pricing. ${GATE_MARKER}"`
-        )
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("allows a create whose --body-file contains the human-gate marker", () => {
-      const cwd = projectWithTracker();
-      const bodyPath = path.join(cwd, "body.md");
-      writeFileSync(
-        bodyPath,
-        `Held for a human product call: pricing.\n${GATE_MARKER}\n`,
-        "utf-8"
-      );
-
-      const { status } = runHook(
-        bash(`gh issue create --title "x" --body-file ${bodyPath}`),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("refuses a create whose --body-file carries no marker", () => {
-      const cwd = projectWithTracker();
-      const bodyPath = path.join(cwd, "body.md");
-      writeFileSync(
-        bodyPath,
-        "## Context\n\nJust an ordinary body.\n",
-        "utf-8"
-      );
-
-      const { status } = runHook(
-        bash(`gh issue create --title "x" --body-file ${bodyPath}`),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
-    });
-
-    it("refuses when the ready role appears only as free text", () => {
-      // The role is a LABEL. A token that means one thing as a flag value and
-      // another inside a title is exactly the shape that turned #2469's
-      // hardening allowlist into a bypass, so the match is position-scoped.
-      const { status } = runHook(
-        bash('gh issue create --title "status:ready is broken" --body "y"')
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
-    });
-
-    it("refuses when the ready role is only in the body", () => {
-      const { status } = runHook(
-        bash('gh issue create --title "x" --body "set status:ready when done"')
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
-    });
-
-    it("accepts the ready role from a comma-joined label list", () => {
-      const { status } = runHook(
-        bash('gh issue create --title "x" --label "type:Bug,status:ready"')
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("accepts the ready role from --label=value", () => {
-      const { status } = runHook(
-        bash('gh issue create --title "x" --label=status:ready')
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("honors a project's non-default ready role as the declaration", () => {
-      const cwd = projectWithTracker({
-        tracker: "github",
-        github: { labels: { build: { ready: CUSTOM_ROLE } } },
-      });
-
-      const { status } = runHook(
-        bash(`${UNDECLARED_CREATE} --label "${CUSTOM_ROLE}"`),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
     });
   });
 

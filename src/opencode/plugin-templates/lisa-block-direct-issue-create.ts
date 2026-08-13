@@ -123,13 +123,18 @@ const LisaBlockDirectIssueCreate = async () => {
       // is the same position-blind matching that turned #2469's hardening
       // allowlist into a bypass. The human-gate marker is matched anywhere by
       // contrast, because it is a marker with no other meaning.
-      const declaresRole = [...command.matchAll(LABEL_FLAG)].some(match =>
+      // Everything after a bare `--` is an operand and cannot reach the
+      // created item, so no declaration may be read from there. gh rejects
+      // post-`--` flags outright; acli parses straight past them and creates
+      // the item with the flag silently unapplied (verified). Fails closed.
+      const declarable = command.split(/(?:^|\s)--(?:\s|$)/)[0] ?? command;
+      const declaresRole = [...declarable.matchAll(LABEL_FLAG)].some(match =>
         (match[2] ?? "")
           .split(",")
           .map(part => part.trim())
           .includes(readyRole)
       );
-      if (declaresRole || command.includes(HUMAN_GATE_MARKER)) return;
+      if (declaresRole || declarable.includes(HUMAN_GATE_MARKER)) return;
       throw new Error(
         [
           `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
