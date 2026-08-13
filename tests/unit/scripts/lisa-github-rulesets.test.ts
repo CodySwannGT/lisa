@@ -3,6 +3,7 @@ import {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -96,6 +97,82 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   return { scriptPath, root };
 }
 
+/** One captured `gh api` ruleset payload, projected to what the tests read. */
+type RulesetPayload = {
+  readonly name?: string;
+  readonly rules?: readonly {
+    readonly type?: string;
+    readonly parameters?: {
+      readonly required_status_checks?: readonly {
+        readonly context: string;
+        readonly integration_id?: number;
+      }[];
+    };
+  }[];
+};
+
+/**
+ * Runs the ruleset script with the mock gh first on PATH.
+ *
+ * @param scriptPath Copied script under the temporary Lisa install.
+ * @param args Arguments to pass to the script.
+ * @param ghBin Directory holding the mock gh executable.
+ * @returns The completed process result.
+ */
+function runRulesetScript(
+  scriptPath: string,
+  args: readonly string[],
+  ghBin: string
+): ReturnType<typeof spawnSync> {
+  return spawnSync(BASH_BIN, [scriptPath, ...args], {
+    cwd: REPO_ROOT,
+    env: cleanGitEnv(process.env, {
+      PATH: `${ghBin}:${process.env.PATH ?? ""}`,
+    }),
+    encoding: "utf8",
+  });
+}
+
+/**
+ * Creates a mock gh that records every ruleset payload the script sends.
+ *
+ * @param captureDir Directory the mock writes each `--input` payload into.
+ * @returns Temporary bin directory containing the mock gh executable.
+ */
+function createCapturingGhBin(captureDir: string): string {
+  const binDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-capture-"));
+  const ghPath = path.join(binDir, "gh");
+  writeFileSync(
+    ghPath,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      'if [[ "$1 $2" == "auth status" ]]; then',
+      "  exit 0",
+      "fi",
+      'if [[ "$1 $2" == "repo view" ]]; then',
+      `  echo "${REPO_NAME}"`,
+      "  exit 0",
+      "fi",
+      `if [[ "$1" == "api" && "$2" == "repos/${REPO_NAME}/rulesets" ]]; then`,
+      '  echo "[]"',
+      "  exit 0",
+      "fi",
+      'if [[ "$1" == "api" && "$2" == "-X" ]]; then',
+      '  input="${!#}"',
+      `  cp "$input" "${captureDir}/$(date +%s%N).json"`,
+      '  echo "{}"',
+      "  exit 0",
+      "fi",
+      'echo "unexpected gh invocation: $*" >&2',
+      "exit 1",
+      "",
+    ].join("\n"),
+    { mode: 0o755 }
+  );
+  return binDir;
+}
+
 describe("lisa-github-rulesets.sh", () => {
   it("continues past the first successful template under set -e", () => {
     const projectDir = createProject();
@@ -130,5 +207,137 @@ describe("lisa-github-rulesets.sh", () => {
     const script = readFileSync(SCRIPT_PATH, "utf8");
 
     expect(script).not.toMatch(/\(\(\s*(?:success|fail)_count\+\+\s*\)\)/);
+  });
+
+  // #2485: a repository-specific high-signal check (Lisa's own
+  // `🧩 Plugin artifacts match source`) has to become required WITHOUT being
+  // written into a shared template, because host projects do not run that
+  // workflow and a required context that never reports blocks every PR (#2476).
+  describe("github.rulesets.addRequiredChecks", () => {
+    const REPO_ONLY_CONTEXT = "🧩 Repo Only";
+    const CONTESTED_CONTEXT = "🧩 Contested";
+
+    /**
+     * Runs the script for real against a capturing mock gh.
+     *
+     * @param config The `.lisa.config.json` contents to write, or undefined.
+     * @returns Every ruleset payload the script sent, parsed.
+     */
+    function sentPayloads(config?: unknown): readonly RulesetPayload[] {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-payloads-"));
+      const ghBin = createCapturingGhBin(captureDir);
+      const lisaInstall = createLisaInstall();
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      if (config !== undefined) {
+        writeFileSync(
+          path.join(projectDir, ".lisa.config.json"),
+          JSON.stringify(config)
+        );
+      }
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--yes", projectDir],
+          ghBin
+        );
+        expect(result.status).toBe(0);
+        return readdirSync(captureDir).map(
+          file =>
+            JSON.parse(
+              readFileSync(path.join(captureDir, file), "utf8")
+            ) as RulesetPayload
+        );
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    }
+
+    /**
+     * Extracts the required contexts from one sent ruleset payload.
+     *
+     * @param payload A captured ruleset payload.
+     * @returns The contexts the payload requires.
+     */
+    function contextsOf(payload: RulesetPayload): readonly string[] {
+      return (payload.rules ?? []).flatMap(rule =>
+        rule.type === "required_status_checks"
+          ? (rule.parameters?.required_status_checks ?? []).map(
+              check => check.context
+            )
+          : []
+      );
+    }
+
+    it("adds the configured context to the named ruleset only", () => {
+      const payloads = sentPayloads({
+        github: {
+          rulesets: {
+            addRequiredChecks: {
+              base: [{ context: REPO_ONLY_CONTEXT, integration_id: 15368 }],
+            },
+          },
+        },
+      });
+
+      const base = payloads.find(payload => payload.name === "base");
+      const extra = payloads.find(payload => payload.name === "extra");
+      expect(base).toBeDefined();
+      expect(extra).toBeDefined();
+      expect(contextsOf(base as RulesetPayload)).toContain(REPO_ONLY_CONTEXT);
+      expect(contextsOf(extra as RulesetPayload)).not.toContain(
+        REPO_ONLY_CONTEXT
+      );
+    });
+
+    it("defaults a missing integration_id to GitHub Actions", () => {
+      const payloads = sentPayloads({
+        github: {
+          rulesets: { addRequiredChecks: { base: [{ context: "🧩 Bare" }] } },
+        },
+      });
+
+      const base = payloads.find(payload => payload.name === "base");
+      const rule = (base?.rules ?? []).find(
+        item => item.type === "required_status_checks"
+      );
+      expect(rule?.parameters?.required_status_checks).toContainEqual({
+        context: "🧩 Bare",
+        integration_id: 15368,
+      });
+    });
+
+    // The safe resolution of contradictory operator instructions: a context in
+    // both lists is DROPPED. Requiring a check the same file says to drop would
+    // block every pull request on the strength of a typo.
+    it("lets dropRequiredChecks win over an addition of the same context", () => {
+      const payloads = sentPayloads({
+        github: {
+          rulesets: {
+            addRequiredChecks: { base: [{ context: CONTESTED_CONTEXT }] },
+            dropRequiredChecks: [CONTESTED_CONTEXT],
+          },
+        },
+      });
+
+      for (const payload of payloads) {
+        expect(contextsOf(payload)).not.toContain(CONTESTED_CONTEXT);
+      }
+    });
+
+    it("sends no required checks when nothing is configured", () => {
+      const payloads = sentPayloads();
+
+      for (const payload of payloads) {
+        expect(contextsOf(payload)).toEqual([]);
+      }
+    });
   });
 });

@@ -424,5 +424,64 @@ describe("deterministic health governance regressions", () => {
     });
     expect(normalized?.rules).toEqual([{ type: "deletion" }]);
   });
+
+  // #2485: a repository-specific required check is declared per repo rather
+  // than in a shared template. The health inspector has to honor the same
+  // opt-in the applier does, or it reports the ruleset it just wrote as
+  // "drifted" — a false red that teaches operators to ignore the check.
+  it("expects per-repo addRequiredChecks the way the applier writes them", async () => {
+    const lisaRoot = await temporaryRoot("lisa-health-ruleset-add-source-");
+    const projectRoot = await temporaryRoot("lisa-health-ruleset-add-host-");
+    await write(
+      lisaRoot,
+      "all/github-rulesets/base.json",
+      `${JSON.stringify({
+        name: "base",
+        target: "branch",
+        enforcement: "active",
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: [
+                { context: "CI", integration_id: 15_368 },
+              ],
+            },
+          },
+        ],
+      })}\n`
+    );
+    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
+
+    const [withAddition] = await expectedRulesets(lisaRoot, projectRoot, [], {
+      github: {
+        rulesets: {
+          addRequiredChecks: {
+            base: [{ context: "🧩 Repo Only", integration_id: 15_368 }],
+          },
+        },
+      },
+    });
+    expect(
+      withAddition?.rules?.[0]?.parameters?.required_status_checks
+    ).toEqual([
+      { context: "CI", integration_id: 15_368 },
+      { context: "🧩 Repo Only", integration_id: 15_368 },
+    ]);
+
+    // Named for a different ruleset, it must not leak into this one.
+    const [unrelated] = await expectedRulesets(lisaRoot, projectRoot, [], {
+      github: {
+        rulesets: {
+          addRequiredChecks: {
+            "quality checks": [{ context: "🧩 Elsewhere" }],
+          },
+        },
+      },
+    });
+    expect(unrelated?.rules?.[0]?.parameters?.required_status_checks).toEqual([
+      { context: "CI", integration_id: 15_368 },
+    ]);
+  });
 });
 /* eslint-enable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- restore repository test defaults */

@@ -59,13 +59,13 @@ on:
         # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
         # has no string-replace function — the available string functions are
         # contains/startsWith/endsWith/format/join/toJSON/fromJSON/hashFiles —
-        # so this workflow cannot trim for you. `'test, test:e2e'` yields the
-        # token `" test:e2e"`, which matches nothing, and the job RUNS. That
+        # so this workflow cannot trim for you. `'lint, lint_slow'` yields the
+        # token `" lint_slow"`, which matches nothing, and the job RUNS. That
         # fails closed, so nothing unverified ships; it just silently does not
         # do what you asked. `scripts/check-skipped-required-checks.mjs` reports
         # exactly this as `whitespace_in_skip_token`, and the
         # `🔒 Skipped Required Checks` job below runs it on every pull request.
-        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `test, test:e2e` silently skips nothing. (lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -492,53 +492,25 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
-  test:
-    name: 🧪 Run Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') }}
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.3.8'
-
-      - name: 📦 Install dependencies
-        run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🧪 Run tests
-        run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm test
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn test
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun run test
-          fi
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        working-directory: ${{ inputs.working_directory || '.' }}
+  # A `test` job running bare `npm test` used to sit here (#2485). It was
+  # deleted, not made required, for two reasons:
+  #
+  #   1. It was pure duplication. `🧪 Run Unit Tests` runs `test:cov` and
+  #      `🧪 Run Integration Tests` runs `test:integration` over the same
+  #      suites WITH coverage, and both are required contexts. Lisa force-ships
+  #      the `test:unit` script into every host package.json, so no project
+  #      lost its only test execution when the bare job went away.
+  #   2. It was a confusable-pair hazard. `🧪 Run Tests`, `🧪 Run Unit Tests`,
+  #      and `🧪 Run Integration Tests` are three near-identical names, and the
+  #      one that did NOT block was the one whose failure read most alarmingly
+  #      — "Run Tests failed" reasonably reads as the required test gate. It
+  #      merged red on #2456 and #2461 with nobody noticing.
+  #
+  # The `test` skip token went with it. Removing it changes no other token's
+  # semantics: every gate here matches with the sentinel-comma idiom
+  # (`,test,`), which is exact-byte, so `test:unit` / `test:integration` /
+  # `test:e2e` were never affected by it and are not affected by its absence.
+  # A caller still passing `skip_jobs: 'test'` is inert rather than broken.
 
   verification_coverage:
     name: ✅ Verification Coverage
