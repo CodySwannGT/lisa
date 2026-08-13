@@ -34,6 +34,49 @@ SonarQube Cloud org. Do **not** substitute the raw MCP-image names
 running the Docker image directly, and the `sonar` CLI ignores them (auth exits
 non-zero). The CI scan gate's `SONAR_TOKEN` is a third, separate name.
 
+### Where those variables come from
+
+The `sonar` CLI reads them **from the environment only** — it has no provider
+integration of its own — so on a surface that deliberately materializes nothing
+to disk the credential can be provisioned and unreachable at the same time.
+Resolve it through `lisa-secrets-access` and export it into the launching
+process, exactly as the shared `sonar-secrets.sh` hook already does. The bare
+`$SONARQUBE_CLI_TOKEN` in the environment is the documented **fallback** rung,
+not the only one:
+
+```bash
+# Preferred: the one sanctioned reader. Without this rung a project keeping its
+# credentials in Bitwarden, Doppler, or AWS cannot authenticate the MCP at all,
+# and Sonar access degrades to "run `sonar auth login` in a browser" — dead in
+# cron, CI, and cloud sessions. See `credential-substrate-precedence`.
+read_sonar_secret() {
+  local name="$1"
+  [ -n "${!name:-}" ] && { echo "${!name}"; return; }
+  local resolver
+  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
+                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+    if [ -f "$resolver" ]; then
+      local via_lisa
+      via_lisa=$(node "$resolver" get "$name" 2>/dev/null) \
+        && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
+      break
+    fi
+  done
+  return 1
+}
+
+# Exported into this process only. Writing it anywhere durable would create a
+# second live copy of a credential whose single store is the provider.
+SONARQUBE_CLI_TOKEN=$(read_sonar_secret SONARQUBE_CLI_TOKEN) && export SONARQUBE_CLI_TOKEN
+SONARQUBE_CLI_ORG=$(read_sonar_secret SONARQUBE_CLI_ORG) && export SONARQUBE_CLI_ORG
+```
+
+`sonar-secrets.sh` runs the same resolution with a longer search path (it also
+probes `.codex/skills/…` and `node_modules/@codyswann/lisa/plugins/lisa/…`,
+because a hook fires in checkouts that never installed an agent plugin) and with
+a timeout, because it sits in front of every prompt. Use its search order
+verbatim when this skill runs inside a hook.
+
 Wiring is performed once by `/lisa:setup:sonar` (which drives `sonar integrate
 <agent>`); this access layer assumes the MCP is already wired. This is distinct
 from the CI `SONAR_TOKEN` secret that authenticates the SonarCloud scan job in
@@ -79,9 +122,22 @@ Pass the project key through the tool's `projectKey` argument (or rely on a
 server-configured `SONARQUBE_PROJECT_KEY`); pass `branch` / `pullRequest` where the
 tool accepts them.
 
+## Mutation boundary
+
+Every operation in the map above is **read-only** — quality, coverage, and
+security data. So the `credential-substrate-precedence` guarded fallback for
+mutating operations (write, read back, assert the tenant from the response, roll
+back on mismatch) is not engaged here; with one substrate there is nothing to
+fall back to in any case. A future operation that mutates Sonar state — marking
+a hotspot safe, changing an issue's status — is a write and MUST reconcile by
+read-back before any retry.
+
 ## Invariants
 
 - The official SonarQube MCP is the only substrate; there is no REST fallback.
+- `SONARQUBE_CLI_*` values are resolved through `lisa-secrets-access` and
+  exported in-process, with the bare environment variables as the documented
+  fallback. Never write them to a dotfile or a `.env` on a local surface.
 - Auth is env-var only (`SONARQUBE_CLI_TOKEN` [+ `SONARQUBE_CLI_ORG` | `SONARQUBE_CLI_SERVER`]);
   never the interactive `sonar auth login` keychain flow inside a factory.
 - Sonar host access requires the host (`sonarcloud.io`, `sonarqube.us`, or the

@@ -40,15 +40,38 @@ works interactively and headlessly — which is why it leads. The REST tier uses
 
 ```bash
 POSTHOG_HOST=${POSTHOG_HOST:-https://app.posthog.com}
+
+# Resolve the key through the chokepoint before giving up on the environment.
+# `$POSTHOG_PERSONAL_API_KEY` is the documented fallback, not the only rung:
+# without this, a project that keeps its credentials in Bitwarden, Doppler, or
+# AWS has no tier 1 path at all and silently resolves through the interactive
+# MCP — the exact divergence `credential-substrate-precedence` exists to remove.
+read_posthog_key() {
+  [ -n "${POSTHOG_PERSONAL_API_KEY:-}" ] && { echo "$POSTHOG_PERSONAL_API_KEY"; return; }
+  local resolver
+  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
+                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+    if [ -f "$resolver" ]; then
+      local via_lisa
+      via_lisa=$(node "$resolver" get POSTHOG_PERSONAL_API_KEY 2>/dev/null) \
+        && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
+      break
+    fi
+  done
+  return 1
+}
+
 posthog_api() {
   local path="$1"
   local method="${2:-GET}"
   local body="${3:-}"
-  [ -n "$POSTHOG_PERSONAL_API_KEY" ] || {
-    echo "Error: POSTHOG_PERSONAL_API_KEY is not set." >&2
+  local key
+  key=$(read_posthog_key) || {
+    echo "Error: no PostHog key. Set POSTHOG_PERSONAL_API_KEY, or store it as" >&2
+    echo "POSTHOG_PERSONAL_API_KEY in this project's secrets provider." >&2
     return 1
   }
-  local args=(-sS -X "$method" -H "Authorization: Bearer $POSTHOG_PERSONAL_API_KEY")
+  local args=(-sS -X "$method" -H "Authorization: Bearer $key")
   [ -n "$body" ] && args+=(-H "Content-Type: application/json" --data-binary "$body")
   curl "${args[@]}" "${POSTHOG_HOST%/}/api${path}"
 }
@@ -60,11 +83,25 @@ If neither tier works, fail with:
 Error: no PostHog access substrate available. Authenticate the PostHog MCP or set POSTHOG_PERSONAL_API_KEY.
 ```
 
+## Mutation boundary
+
+Every operation in the Invocation Contract is **read-only** — analytics
+retrieval. `query` is an HTTP POST, but it reads: it submits a query body and
+changes no PostHog state. So the `credential-substrate-precedence` guarded
+fallback for mutating operations (write, read back, assert the tenant from the
+response, roll back on mismatch) is not engaged here, and a failed tier is
+simply skipped. Adding a genuinely mutating operation — creating an insight,
+editing a feature flag — pulls that protocol in: a write of unknown outcome MUST
+reconcile by read-back before any retry.
+
 ## Invariants
 
 - Tier order is `credential-substrate-precedence`: `POSTHOG_PERSONAL_API_KEY`
   first, the PostHog MCP as a preserved first-class fallback. Identity-match
   against the configured project is mandatory on every tier.
+- The key is resolved through `lisa-secrets-access`, with the bare
+  `POSTHOG_PERSONAL_API_KEY` environment variable as the documented fallback.
+  Never read a second credential store directly.
 - `POSTHOG_HOST` defaults to PostHog Cloud but can point at a self-hosted
   deployment.
 - Consumer skills do not embed PostHog REST paths.

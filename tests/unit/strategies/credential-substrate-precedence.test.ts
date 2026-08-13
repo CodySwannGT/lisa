@@ -312,6 +312,18 @@ describe("legacy OS-keychain fallbacks carry a removal date", () => {
       expect(contract).toMatch(/removal date/i);
     });
 
+    it("carries the date in the eager summary too, where the ban is stated", () => {
+      // An agent that loads only the eager rule reads "never read an OS keychain
+      // a second time"; the dated exception has to travel with it or the two
+      // surviving rungs look like a contradiction rather than a ramp.
+      const eager = read(
+        root,
+        "rules/eager/credential-substrate-precedence.md"
+      );
+      expect(eager).toContain(KEYCHAIN_REMOVAL_DATE);
+      expect(eager).toMatch(/removal date/i);
+    });
+
     it.each([ATLASSIAN, NOTION])(
       "dates the %s keychain fallback",
       skillName => {
