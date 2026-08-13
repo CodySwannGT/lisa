@@ -259,6 +259,17 @@ describe("runHealth deterministic-first behavior", () => {
     ).toBe(beforeConfig);
   });
 
+  it("composes a full result when the evaluator is slower than the machine is fast", async () => {
+    const result = await collect(async () => {
+      await new Promise(resolve => {
+        setTimeout(resolve, 400);
+      });
+      return { status: "completed", judgments: [] };
+    });
+
+    expect(result.mode).toBe("full");
+  });
+
   it("records a completed clean evaluation as full without fabricating a finding", async () => {
     const result = await collect(async () => ({
       status: "completed",
