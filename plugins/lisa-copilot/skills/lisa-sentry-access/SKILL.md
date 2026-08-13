@@ -1,6 +1,6 @@
 ---
 name: lisa-sentry-access
-description: "Vendor-neutral access layer for Sentry. Sentry-oriented skills MUST delegate through this skill rather than calling Sentry MCP tools, sentry-cli, or REST directly. Resolves Sentry MCP/CLI first when available, then falls back to SENTRY_AUTH_TOKEN + Sentry REST API."
+description: "Vendor-neutral access layer for Sentry. Sentry-oriented skills MUST delegate through this skill rather than calling Sentry MCP tools, sentry-cli, or REST directly. Per the credential-substrate-precedence contract, resolves SENTRY_AUTH_TOKEN (REST, or sentry-cli authenticated from the same token) first when present and identity-matched to the configured org/project, then falls back to the Sentry MCP."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -22,13 +22,21 @@ Return parsed JSON in a `<result>` block.
 
 ## Substrate Selection
 
-Probe in order:
+Probe in order — the ordering is the shared `credential-substrate-precedence`
+contract, not a Sentry-local choice. The first tier that is ready **and**
+identity-matches the configured org/project is used; a substrate authenticated
+against a different org is skipped, never used.
 
-1. Sentry MCP, if available and authenticated.
-2. `sentry-cli`, if installed and authenticated to the requested org/project.
-3. `SENTRY_AUTH_TOKEN` bearer token against Sentry REST.
+1. **Tier 1 — configured-provider substrate: `SENTRY_AUTH_TOKEN`** bearer token
+   against Sentry REST, resolved through `lisa-secrets-access`.
+2. **Tier 1a — `sentry-cli`**, if installed and authenticated to the requested
+   org/project from that same token (the CLI arm of the provider substrate).
+3. **Tier 2 — interactive MCP fallback: Sentry MCP**, if available and
+   authenticated. Used when tier 1 is genuinely unavailable: no
+   `SENTRY_AUTH_TOKEN`, no REST/CLI adapter for the operation, or a Sentry outage.
 
-Sentry documents API auth tokens for REST API calls. The headless REST tier uses:
+Sentry documents API auth tokens for REST API calls, and the same token works
+interactively and headlessly — which is why it leads. The REST tier uses:
 
 ```bash
 sentry_api() {
@@ -50,7 +58,9 @@ Error: no Sentry access substrate available. Authenticate Sentry MCP/CLI or set 
 
 ## Invariants
 
-- Fallback is gated on `SENTRY_AUTH_TOKEN`.
+- Tier order is `credential-substrate-precedence`: `SENTRY_AUTH_TOKEN` first, the
+  Sentry MCP as a preserved first-class fallback. Identity-match against the
+  configured org/project is mandatory on every tier.
 - Org/project come from `.sentryclirc`, `.lisa.config.json`, or explicit
   operation args; never infer by searching all accessible orgs.
 - Consumer skills do not embed Sentry REST paths.

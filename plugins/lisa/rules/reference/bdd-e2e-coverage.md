@@ -48,7 +48,7 @@ platforms it requires and that each named platform has a configured runner.
   "schemaVersion": 1,
   "asOf": "<ISO date>",
   "runnerPlatforms": { "<runner>": ["<platform>", "..."] },
-  "coverageFloor": { "<platform>": "<0-100, the committed floor — may rise, never falls>" },
+  "coverageFloor": { "<platform>": "<0-100, an absolute bar checked in enforced mode — not a ratchet, set once and left alone>" },
   "platformWaivers": [
     {
       "scenario": "BDD-DOMAIN-NNN",
@@ -68,16 +68,43 @@ platforms it requires and that each named platform has a configured runner.
       "level": "behavioral"
     }
   ],
+  "testDiscovery": {
+    "<runner>": {
+      "roots": ["<repo-relative directory>", "..."],
+      "extensions": [".<suffix>", "..."],
+      "ignore": ["<optional repo-relative path prefix>"],
+      "evidence": { "kind": "call-title", "functions": ["test", "it"] }
+    }
+  },
   "exclusions": [
-    { "file": "<path>", "reason": "why this test aligns to no product behavior" }
+    {
+      "file": "<path>",
+      "evidence": "<optional exact title; omit to excuse the whole file>",
+      "reason": "why this test aligns to no product behavior"
+    }
   ]
 }
 ```
 
 `evidence` is what makes a mapping falsifiable: the gate reads the mapped file and confirms the
 string is still there, so renaming or deleting a test breaks the map loudly instead of leaving a
-scenario silently unguarded. `exclusions` records tests that deliberately map to nothing — starter
-templates, source-level corroboration — so "unmapped test" stays a meaningful signal.
+scenario silently unguarded.
+
+`testDiscovery` closes the other direction. Validating only what the map DECLARES can never see a
+test file nobody declared, so the gate walks the project's own roots and requires **every test it
+finds to be named by a mapping or excused by an exclusion**. Roots and the evidence grammar are
+per-runner configuration — list every directory, including subflow and helper directories, because
+a directory omitted here is structurally invisible to the gate. Evidence grammars are an allowlist
+of two (`call-title` reads `test("…")`-style declarations; `line-field` reads a leading `name:`
+field), never a project-supplied regular expression, and a template-literal title is used verbatim
+from the source rather than rewritten. A missing block is a defect in enforced mode
+(`discovery-missing`); a malformed one is refused in **every** state (`discovery-invalid`), because
+discovery that silently finds nothing looks exactly like a clean repo.
+
+`exclusions` records tests that deliberately map to nothing — starter templates, source-level
+corroboration — so "unmapped test" stays a meaningful signal. Each entry states a `reason`, and an
+exclusion whose file is gone, whose title was renamed, or that no discovery root covers is
+`exclusion-stale`: a standing claim about nothing, never a permanent excuse.
 
 ## The gate
 
@@ -94,19 +121,35 @@ Two commands, wired into the project's script surface and into CI:
    - an invalid waiver (nonexistent scenario, undeclared platform, already-excluded scenario, a
      `runner` that does not cover the waived platform under `runnerPlatforms`, or one that masks an
      existing mapping);
-   - a regression against the project's committed `coverageFloor` per platform.
+   - a discovered test named by no mapping and no exclusion, or an exclusion that no longer excuses
+     anything;
+   - a platform sitting below its committed `coverageFloor`;
+   - coverage given back: an obligation mapped at the base revision that nothing maps here;
+   - new behavior nobody mapped or waived.
+
+   Regeneration is never blocked by the check: `--write` rewrites the report and burndown whenever a
+   report can be built at all, so a stale evidence string can never hold hostage the paperwork that
+   documents it.
 
 The percentage measures **aligned automation inventory, not the latest run result**. A mapped test
 that currently fails is a red CI check, a separate signal; the map only asserts the automation
 exists and still says what it claimed. Both facts are required — a green gate over a red suite is
 not coverage.
 
-### Coverage floor, not coverage target
+### Coverage floor, not coverage target — and not a ratchet
 
-Projects adopting this contract mid-life start below 100% and must not be blocked by that. The gate
-enforces a **ratchet**: the committed floor per platform may rise and may never fall. Recorded in
-`coverageFloor`, it is bumped by regenerating the matrix after a frontend work item raises it by the
-obligations it seals; it is never asked to clear the whole backlog.
+Projects adopting this contract mid-life start below 100% and must not be blocked by that. The
+committed `coverageFloor` per platform is an **absolute bar** answering "is this platform below it
+right now". Set it once at adoption to the honest measured number (or `0`) and leave it: nothing
+forces it upward, and lowering it needs no ceremony.
+
+What stops coverage sliding backwards is checked directly, per obligation, against the base
+revision — **an obligation that was mapped may not stop being mapped, and new behavior arrives
+mapped or waived**. Giving coverage back is legitimate but takes two artifacts one author cannot
+produce alone: a recorded route (a `retirements` record or a `platformWaivers` entry) plus the
+maintainer-applied `bdd-floor-baseline` label. Gaps that predate the change are burndown, never a
+gate failure — which is what lets a brownfield project adopt `enforced` without first backfilling
+its whole history.
 
 ## Waivers versus `@blocked`
 
@@ -157,12 +200,16 @@ A repo with no contract yet, taking its first frontend work item:
 
 1. **Detect runners.** Find the e2e harnesses the project actually has, per the Tool Discovery
    Process in `verification-lifecycle`. Record which platforms each covers.
-2. **Scaffold the minimum** — `bdd/features/`, `bdd/coverage-map.json` (with `runnerPlatforms` from
-   step 1 and a coverage floor of the current, honest number), the regenerate + check scripts wired
-   into the project's script surface, and the CI invocation of the check.
+2. **Scaffold the minimum** — `bdd/features/`, `bdd/coverage-map.json` (with `runnerPlatforms` and
+   `testDiscovery` from step 1 — every root each runner's tests actually live in, subflow and helper
+   directories included — and a coverage floor of the current, honest number), the regenerate +
+   check scripts wired into the project's script surface, and the CI invocation of the check.
+   Pre-existing tests that align to no product behavior are recorded as `exclusions` with reasons
+   during this step, never left undisclosed.
 3. **Write only this item's scenarios.** The first item is not a backfill project. Pre-existing
    uncovered behavior becomes burndown in `docs/e2e-bdd-coverage.md`, and the floor starts where the
-   repo actually is.
+   repo actually is. That is a one-time act, not a recurring one: from here on the floor stays put
+   and what protects each new obligation is the per-obligation check, not the number.
 4. **Seal this item's obligations** and commit the regenerated matrix and burndown with the change.
 
 If a required platform has **no** e2e runner at all, that obligation is never left as a bare `N/A` —

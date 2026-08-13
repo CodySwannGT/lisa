@@ -160,8 +160,12 @@ describe("bdd-e2e-coverage rule contract", () => {
       }
       expect(eager).toMatch(/never backfills/i);
       expect(reference).toMatch(/not a backfill project/i);
-      // The floor ratchets up and never down, so mid-life adoption is possible.
-      expect(reference).toMatch(/may rise and may never fall/i);
+      // Mid-life adoption works because the floor is an absolute bar set once,
+      // and what protects earned coverage is a per-obligation check against
+      // the base revision — not a number somebody has to keep nudging.
+      expect(reference).toMatch(/absolute bar/i);
+      expect(reference).toMatch(/mapped or waived/i);
+      expect(reference).not.toMatch(/may rise and may never fall/i);
     });
 
     it("forbids a silent skip when a platform has no runner", () => {
