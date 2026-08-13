@@ -25,6 +25,46 @@
 # (they may legitimately differ — e.g. `app_dev` on Android vs `app-dev` on
 # iOS).
 #
+# ── SUITES THAT SHARE AN ENVIRONMENT MUST SHARE A CONCURRENCY GROUP ──────────
+#
+# A portfolio rule, not per-project advice. If two suites drive one backend —
+# typically this workflow and the Playwright suite running through quality.yml
+# — pass BOTH of them the same `concurrency_group` string. They then queue
+# one-behind-another instead of running at once against the same database, the
+# same test accounts, and the same fixtures.
+#
+# KEY IT ON THE ENVIRONMENT, NEVER ON `github.ref`. `maestro-e2e-${{ github.ref
+# }}` looks like exclusion and is not: two branches get two different groups
+# while sharing one database, so a run on branch A and a run on branch B do not
+# exclude each other at all. The thing being protected is the environment, so
+# the environment is what the key must name — `e2e-shared-test-user-dev`, not a
+# ref. A workflow that only ever targets one environment should use a CONSTANT.
+#
+# Staggered crons are not a substitute, and the reason is START time rather
+# than run length. A stagger assumes both suites begin when their cron fires;
+# they do not, because a run first waits for a hosted runner. In frontend-v2
+# that wait has been measured at 2h24m (run 31557572592: created 02:39, started
+# 05:03) and 6h55m (run 31574372761: created 07:32, started 14:27). Either
+# exceeds a two-hour stagger by itself, so the suite scheduled FIRST can begin
+# hours after the suite scheduled second, in an order nothing controls. A
+# stagger is a courtesy; the group is the mechanism.
+#
+# Measure this from `started` to `updated`, never from `created` — the latter
+# includes the queue wait and makes a run look far longer than it executes. The
+# 6h55m-delayed run above executed for 18 minutes; a "209 minute" figure taken
+# from created→updated on run 31557572592 was really a 65-minute suite behind a
+# 144-minute queue.
+#
+# The group MUST differ from the calling workflow's own top-level group, or the
+# parent run holds a slot while waiting on a child queued for that same slot.
+#
+# Cost of getting this right: GitHub keeps only ONE pending run per group, so a
+# third run displaces the second rather than queueing behind it. With a
+# multi-hour tail a run can disappear without a red, which reads as a flaky
+# scheduler. That is the price of exclusion and it is the right trade — a
+# displaced run tests nothing and stomps nothing, whereas two concurrent runs
+# corrupt each other's fixtures and produce reds nobody can attribute.
+#
 # ── TWO SETUP SEAMS, AND WHICH ONE YOU WANT ──────────────────────────────────
 #
 # `pre_suite_command` — runs EXACTLY ONCE per workflow run, in its own job that
@@ -264,6 +304,23 @@ on:
         required: false
         default: 240000
         type: number
+      concurrency_group:
+        description: >-
+          Concurrency group serializing whole runs that share mutable external
+          state. Pass the SAME string from every suite that drives one
+          environment — typically this workflow and the Playwright suite calling
+          quality.yml, which accepts an identically-named input — and they queue
+          one-behind-another instead of stomping each other's fixtures and test
+          accounts. Key it on the ENVIRONMENT (e.g. e2e-shared-test-user-dev),
+          never on github.ref: two branches keyed by ref get two different
+          groups while sharing one database, which is not exclusion. It MUST
+          differ from the calling workflow's own concurrency group, or the
+          parent run holds a slot while waiting on a child queued for the same
+          slot. Default empty = no cross-run serialization (a unique group per
+          run, prior behavior preserved).
+        required: false
+        default: ''
+        type: string
     secrets:
       EXPO_TOKEN:
         description: 'Expo token for EAS builds. When absent, the whole suite skips with a warning.'
@@ -274,6 +331,17 @@ on:
 
 permissions:
   contents: read
+
+# Cross-run serialization is opt-in via the `concurrency_group` input, and the
+# default is deadlock-safe by construction: an unset input yields a group unique
+# to this run, so no run ever waits on another and behavior is identical to
+# having no concurrency at all. Only a caller that passes a shared string opts
+# into queueing. Mirrors quality.yml so the two e2e suites are configured the
+# same way — that symmetry is the point, since the pair of them is what has to
+# be mutually excluded.
+concurrency:
+  group: ${{ inputs.concurrency_group != '' && inputs.concurrency_group || format('lisa-maestro-no-serialize-{0}', github.run_id) }}
+  cancel-in-progress: false
 
 jobs:
   preflight:
