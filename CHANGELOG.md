@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.353.0](https://github.com/CodySwannGT/lisa/compare/v2.352.0...v2.353.0) (2026-08-13)
+
+
+### Features
+
+* **bdd:** discover e2e specs and enforce exclusions in the v2 gate ([4d1907b](https://github.com/CodySwannGT/lisa/commit/4d1907bb23a031519ccc65cce31e298c786e5924)), closes [CodySwannGT/lisa#2440](https://github.com/CodySwannGT/lisa/issues/2440) [CodySwannGT/lisa#2440](https://github.com/CodySwannGT/lisa/issues/2440)
+
+
+### Bug Fixes
+
+* **linear:** reject a `ready` state that is the team's default created state ([67b5aa2](https://github.com/CodySwannGT/lisa/commit/67b5aa2dbecbab8f3ba744a933b9b203bea14017)), closes [CodySwannGT/lisa#2443](https://github.com/CodySwannGT/lisa/issues/2443) [CodySwannGT/lisa#2443](https://github.com/CodySwannGT/lisa/issues/2443)
+* **nightly-e2e:** refuse a green run that only tested half the fleet ([8c86395](https://github.com/CodySwannGT/lisa/commit/8c86395731d87a96cfb0031bb74bc16614b2dd92)), closes [CodySwannGT/lisa#2432](https://github.com/CodySwannGT/lisa/issues/2432) [CodySwannGT/lisa#2432](https://github.com/CodySwannGT/lisa/issues/2432)
+
 ## [2.352.0](https://github.com/CodySwannGT/lisa/compare/v2.351.0...v2.352.0) (2026-08-13)
 
 
