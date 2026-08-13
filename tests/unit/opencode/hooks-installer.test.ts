@@ -21,14 +21,15 @@ import { OPENCODE_CONFIG_DIR } from "../../../src/opencode/manifest.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Plugin template basenames (de-duplicated for sonarjs/no-duplicate-string). */
-const SESSION = "lisa-session-bootstrap.ts";
+const SESS = "lisa-session-bootstrap.ts";
 const PARITY = "lisa-parity-safety-net.ts";
 const LINT = "lisa-lint-on-edit.ts";
-const SUPPRESS = "lisa-block-suppress-directives.ts";
+const SUPPR = "lisa-block-suppress-directives.ts";
 const SGSCAN = "lisa-sg-scan-on-edit.ts";
 const MIGRATION = "lisa-block-migration-edits.ts";
 const RUBOCOP = "lisa-rubocop-on-edit.ts";
 const INSTR = "lisa-block-instruction-file-edits.ts";
+const ISSUE = "lisa-block-direct-issue-create.ts";
 const BASE_RULES = "base-rules.md";
 
 describe("opencode/hooks-installer", () => {
@@ -80,13 +81,8 @@ describe("opencode/hooks-installer", () => {
     relPath: string,
     body: string
   ): Promise<void> {
-    const filePath = path.join(
-      lisaDir,
-      "plugins",
-      pluginName,
-      "rules",
-      relPath
-    );
+    const rulesDir = path.join(lisaDir, "plugins", pluginName, "rules");
+    const filePath = path.join(rulesDir, relPath);
     await fs.ensureDir(path.dirname(filePath));
     await fs.writeFile(filePath, body, "utf8");
   }
@@ -211,7 +207,7 @@ describe("opencode/hooks-installer", () => {
     it("always ships the universal session-bootstrap plugin", async () => {
       await installHooks(lisaDir, destDir, [], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toContain(SESSION);
+      expect(files).toContain(SESS);
     });
 
     it("mirrors eager and reference rule files for OpenCode instructions", async () => {
@@ -250,7 +246,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the typescript guards for a typescript project", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([INSTR, SUPPRESS, LINT, PARITY, SESSION, SGSCAN]);
+      expect(files).toEqual([ISSUE, INSTR, SUPPR, LINT, PARITY, SESS, SGSCAN]);
     });
 
     it("adds the migration guard for a nestjs project", async () => {
@@ -264,25 +260,20 @@ describe("opencode/hooks-installer", () => {
     it("ships the rails guards for a rails project", async () => {
       await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([INSTR, PARITY, RUBOCOP, SESSION, SGSCAN]);
+      expect(files).toEqual([ISSUE, INSTR, PARITY, RUBOCOP, SESS, SGSCAN]);
     });
 
     it("does not ship typescript guards to a rails-only project", async () => {
       await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).not.toContain(LINT);
-      expect(files).not.toContain(SUPPRESS);
+      expect(files).not.toContain(SUPPR);
     });
 
     it("copies real plugin source (not an empty stub)", async () => {
       await installHooks(lisaDir, destDir, [], []);
       const body = await fs.readFile(
-        path.join(
-          destDir,
-          OPENCODE_CONFIG_DIR,
-          OPENCODE_PLUGIN_SUBDIR,
-          SESSION
-        ),
+        path.join(destDir, OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_SUBDIR, SESS),
         "utf8"
       );
       expect(body).toContain("export const LisaSessionBootstrap");
@@ -291,12 +282,7 @@ describe("opencode/hooks-installer", () => {
     it("session bootstrap uses strict https?:// URL-scheme check (not loose startsWith)", async () => {
       await installHooks(lisaDir, destDir, [], []);
       const body = await fs.readFile(
-        path.join(
-          destDir,
-          OPENCODE_CONFIG_DIR,
-          OPENCODE_PLUGIN_SUBDIR,
-          SESSION
-        ),
+        path.join(destDir, OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_SUBDIR, SESS),
         "utf8"
       );
       // Ensure the bootstrap uses a strict regex so that values like "httpfoo"

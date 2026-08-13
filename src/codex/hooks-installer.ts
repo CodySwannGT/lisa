@@ -134,6 +134,14 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     statusMessage: "Checking shell command policy",
   },
   {
+    id: "block-direct-issue-create",
+    event: "PreToolUse",
+    matcher: "Bash",
+    scriptFilename: "block-direct-issue-create.sh",
+    forProjectTypes: ["*"],
+    statusMessage: "Checking work-item filing policy",
+  },
+  {
     id: "shell-write-nudge",
     event: "PostToolUse",
     matcher: "Bash",

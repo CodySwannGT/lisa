@@ -106,7 +106,7 @@ if [ -d "$SRC_DIR/base/hooks" ]; then
   mkdir -p "$HOST_GUARD_DIR"
 fi
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
-  block-instruction-file-edits; do
+  block-instruction-file-edits block-direct-issue-create; do
   if [ -f "$SRC_DIR/base/hooks/$guard.sh" ]; then
     cp "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
     chmod +x "$HOST_GUARD_DIR/$guard.sh"

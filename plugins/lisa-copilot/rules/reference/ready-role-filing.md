@@ -54,6 +54,19 @@ The sibling `e2e-coverage-gaps` skills are the contrast: a missing automated tes
 
 Other legitimate human-gate filings follow the same shape — `lisa-learnings-audit` promotion/demotion tickets, `lisa-improve-harness` intervention proposals, automation-retirement proposals, and provisioning tickets for access a human must grant. Each declares its `human_gate` reason rather than relying on a default.
 
+## This rule is enforced, not merely stated
+
+The rule shipped as prose first, and prose did not hold. A conformance audit of the ~13 issues filed during the session that shipped it found **13 of 13 bypassed it**, with zero `lisa-track` / `lisa-tracker-write` invocations — eight of them filed *after* the rule merged, several by the agent that wrote it. Over the same window `Co-Authored-By` compliance was **50 of 50**, because a husky `commit-msg` hook enforces that one. The contrast is the whole argument: at the EAGER-RULE rung this rule did not bind even its own author, while the executable control was never once violated. `learnings-ladder` says machine-checkable knowledge belongs at EXECUTABLE-CONTROL, and this rule is machine-checkable.
+
+The control is the PreToolUse Bash guard `block-direct-issue-create.sh`, shipped to every agent variant (Claude, Codex, Cursor, Copilot, agy, OpenCode) and to the host `scripts/lisa-hooks/` fallback. It refuses a direct tracker-creation command — `gh issue create`, `gh api` POST to an issues endpoint, `gh api graphql createIssue`, `linear issue create`, `jira issue create`, `acli … create`, and equivalent `curl` posts — when the command carries **no readiness declaration**.
+
+What it checks is the artifact, not the caller. A Bash-level hook cannot observe call provenance: any provenance signal is settable by the very agent being governed, so a guard built on one would be theatre. So the guard asks whether the command about to run produces a correctly declared item — the configured build-ready role is applied, or a `[lisa-human-gate]` marker is present (inline, or in the `--body-file` the create is about to submit). That is precisely the machine-checkable content of this rule, and it lets the three writers through by construction, because they always stamp one.
+
+Two ways out, both deliberate:
+
+- **No tracker configured** — `.lisa.config.json` absent or carrying no `tracker`. There is no `lisa-tracker-write` to route through, so the guard stands down. This is the bootstrapping case, and it is *detected* rather than asserted: nobody has to remember an env var to bring up a new repo.
+- **`LISA_ALLOW_DIRECT_ISSUE_CREATE`** in the ambient environment — the human operator's override, mirroring `LISA_ALLOW_INSTRUCTION_FILE_WRITE`. It is honored **only** from the environment the hook inherits and is refused outright when it appears as an inline assignment on the intercepted command. A tool-call shell is fresh each time and its exports never reach the hook, so the ambient variable can only have been set by a human before the session began. An escape the governed agent reaches by typing one more token in front of the command it was just refused is not an escape hatch; it is this rule's original failure with extra steps.
+
 ## Recovery
 
 `lisa-repair-intake` sweeps for the failure this rule prevents: recently filed items that are open, not in the configured ready role, and carrying **no** `[lisa-human-gate]` marker. Each is an incomplete handoff — surfaced with its filing context so an operator can promote it or gate it deliberately. The sweep reports rather than guesses: it never silently promotes an item into the queue, because a filing whose readiness nobody declared is exactly the input the gate model says a human should see.

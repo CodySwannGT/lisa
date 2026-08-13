@@ -257,7 +257,7 @@ describe("codex/hooks-installer", () => {
     const result = await installHooks(lisaDir, destDir, []);
     // Universal hooks: inject-rules + install-pkgs + setup-jira-cli +
     // block-no-verify + shell-write-nudge = 5 entries
-    expect(result.hookEntries).toBe(5);
+    expect(result.hookEntries).toBe(6);
     const sortedFiles = [...result.managedFiles].sort((a, b) =>
       a.localeCompare(b)
     );
@@ -303,7 +303,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
       expect(ids).not.toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
-      expect(result.hookEntries).toBe(5);
+      expect(result.hookEntries).toBe(6);
     });
 
     it("ships TypeScript hooks when typescript is detected", async () => {
@@ -318,7 +318,7 @@ describe("codex/hooks-installer", () => {
       // NOT rails or nestjs
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
-      expect(result.hookEntries).toBe(9);
+      expect(result.hookEntries).toBe(10);
     });
 
     it("ships Rails hooks when rails is detected", async () => {
@@ -329,7 +329,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain("sg-scan-on-edit");
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
       // rubocop + sg-scan + 5 universal
-      expect(result.hookEntries).toBe(7);
+      expect(result.hookEntries).toBe(8);
     });
 
     it("ships NestJS migration block when nestjs is detected", async () => {
@@ -344,7 +344,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain(FORMAT_ON_EDIT_ID);
       // typescript also brings the suppression-directive block
       expect(ids).toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
-      expect(result.hookEntries).toBe(10);
+      expect(result.hookEntries).toBe(11);
     });
 
     it("copies only the script files for applicable hooks", async () => {
@@ -364,6 +364,7 @@ describe("codex/hooks-installer", () => {
         "setup-jira-cli.sh",
         "shell-write-nudge.sh",
         "sg-scan-on-edit.sh",
+        "block-direct-issue-create.sh",
       ].sort((a, b) => a.localeCompare(b));
       expect(scriptFiles).toEqual(expected);
     });
