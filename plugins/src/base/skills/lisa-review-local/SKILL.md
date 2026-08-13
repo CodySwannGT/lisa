@@ -14,6 +14,33 @@ maintainability feedback are non-blocking unless a repository rule or work item
 explicitly makes them release criteria. A blocking finding without a concrete
 failure scenario is malformed and must be filtered out.
 
+One deterministic gate runs ahead of the judgement-based review and is exempt
+from the confidence filtering below, because it is decided by a script rather
+than by an agent's opinion.
+
+**Design-source gate (`design-source-of-truth` rule).** Run it against the
+branch diff before step 1:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT:-.}/scripts/design-source-gate.mjs" --base=main --head=HEAD
+```
+
+Exit 0 = PASS, exit 1 = FAIL. A FAIL is a **blocking** review finding and is
+reported verbatim at the top of the review — it is never scored, never filtered
+by confidence, and never demoted to a nitpick. It qualifies under
+`convergent-review` because it names a concrete failure scenario: the design
+source silently diverges from the shipped product and nobody can tell which one
+is authoritative. The gate fails closed, so an unresolvable diff or an unreadable
+file is a FAIL too. Each violation is fixed one of two ways, sync-back first:
+reflect the surface in Figma and cite the node with `DESIGN-SOURCE: <figma-url>`,
+or — only when the surface genuinely does not belong in the design source — mark
+it `DESIGN-SOURCE: none — not in Figma`. Host design-system rules
+(`figma-design-system`, `design-system`, `use-the-design-library`, or the
+project's equivalent) remain authoritative about what to build; this gate only
+asks whether the source is declared. If the gate script is not present (the
+project predates the plugin version that ships it), say so explicitly in the
+review — a silent skip is not one of the exits.
+
 To do this, follow these steps precisely:
 
 1. Use a Haiku agent to check the current git state:
