@@ -64,7 +64,7 @@ The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve
 - **Bind before durable work:** only after the verified claim, run:
 
   ```bash
-  node scripts/lisa-work-item.mjs bind <canonical-ref>
+  node scripts/lisa-work-item.mjs link <canonical-ref>
   ```
 
   Require a successful readback of that worktree-local binding. On detached HEAD, `branch: null` is the expected pending binding; after branch creation the mandatory `attach-branch` step below must replace it before any commit. Tracker or binding failure stops the flow; never continue untracked.

@@ -186,6 +186,37 @@ for i, token in enumerate(normalized_tokens):
         spec = token.split("=", 1)[1]
         if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
             sys.exit(1)
+    # git accepts `--config-env <name>=<envvar>` as TWO tokens as well as one,
+    # and guarding only the `=` spelling was worse than missing the separate
+    # form outright: the trailing `core.hooksPath=.husky` then fell through to
+    # the allowlist above, which reads `.husky` as a PATH and permits it. But
+    # here it is an ENVIRONMENT VARIABLE NAME, and `env '.husky=/dev/null' git
+    # --config-env core.hooksPath=.husky` really does resolve hooksPath to
+    # /dev/null. The allowlist was being used as the bypass.
+    #
+    # Checked at the `--config-env` token, which the loop reaches first, so the
+    # refusal happens before the value token can be mistaken for a path.
+    if lowered == "--config-env" and i + 1 < len(normalized_tokens):
+        spec = normalized_tokens[i + 1]
+        if spec.split("=", 1)[0].strip().strip("'\"").lower() == "core.hookspath":
+            sys.exit(1)
+    # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
+    # GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config the
+    # same way `-c core.hooksPath=...` does — env-var-style assignments ahead of
+    # the invocation instead of a flag — so it disables every hook just as
+    # completely while matching none of the token shapes above. Upstream missed
+    # this until a downstream fork hardened its own copy against it, which is
+    # the one direction a guard must never be caught in.
+    #
+    # The index is matched as `\d+` rather than pinned to 0: git accepts any
+    # index below GIT_CONFIG_COUNT, so a single-index check is evaded by typing
+    # a 1. Refused outright, like --config-env=, because the path lives in a
+    # separate GIT_CONFIG_VALUE_<n> token that can be exported earlier,
+    # reordered, or left out entirely — there is nothing here to allowlist
+    # against.
+    key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
+    if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
+        sys.exit(1)
 
 sys.exit(0)
 PY

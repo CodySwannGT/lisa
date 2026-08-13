@@ -47,7 +47,7 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 2. Persist only the canonical reference in worktree-local machine state:
 
    ```bash
-   node scripts/lisa-work-item.mjs bind <canonical-ref>
+   node scripts/lisa-work-item.mjs link <canonical-ref>
    ```
 
 3. Read the binding back through `node scripts/lisa-work-item.mjs current` and require it to equal the canonical reference. If binding fails, stop before durable project work.
