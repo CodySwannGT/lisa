@@ -15,6 +15,7 @@ import {
 } from "./learnings-document.js";
 import { requireIsoDate, validateLearningEntry } from "./learnings-entry.js";
 import {
+  assertLearningsUnchanged,
   assertSafeLearningParents,
   readExistingLearnings,
   resolveSafeLearningTarget,
@@ -136,7 +137,10 @@ function writeLearningEntriesWithLock(
     const aliased = aliasSupersededEntries(entries, entry, supersede, options);
     const rendered = buildNextDocument(entries, aliased, supersede);
     await writeFileAtomically(target, rendered, {
-      beforeRename: () => assertSafeLearningParents(root, path.dirname(target)),
+      beforeRename: async () => {
+        await assertSafeLearningParents(root, path.dirname(target));
+        await assertLearningsUnchanged(target, existing);
+      },
     });
     return target;
   });
@@ -249,7 +253,10 @@ export async function confirmLearningEntry(
     );
     const rendered = renderConfirmedDocument(nextEntries);
     await writeFileAtomically(target, rendered, {
-      beforeRename: () => assertSafeLearningParents(root, path.dirname(target)),
+      beforeRename: async () => {
+        await assertSafeLearningParents(root, path.dirname(target));
+        await assertLearningsUnchanged(target, existing);
+      },
     });
     return {
       status: "confirmed",
