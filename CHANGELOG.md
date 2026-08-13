@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.9.0](https://github.com/CodySwannGT/lisa/compare/v3.8.2...v3.9.0) (2026-08-13)
+
+
+### Features
+
+* **maestro-e2e:** add opt-in concurrency_group so suites sharing a backend can exclude each other ([c741a7b](https://github.com/CodySwannGT/lisa/commit/c741a7bba5bd803e7d5706080258c2a4f46f879e)), closes [#1316](https://github.com/CodySwannGT/lisa/issues/1316) [CodySwannGT/lisa#2504](https://github.com/CodySwannGT/lisa/issues/2504)
+
 ### [3.8.2](https://github.com/CodySwannGT/lisa/compare/v3.8.1...v3.8.2) (2026-08-13)
 
 
