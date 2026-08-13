@@ -15,11 +15,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "3c7a0234b4f5609fce49e44711d2ec86af8cf7fb82b0831e4450e3347ecefe45",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "850cfc23852eb752114ae1e938a1c7bcf34bc50c85d3aaca0c02311cc8c0ef70",
+      "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "031ef7a53fc49cb18665105b834b7b50ad6a43317e0821949809e877e0562ce4",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
-      "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
+      "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "d9ea58150aa27e7f0aa9a4ef155ed446d30bdfc932d01c64e2b8ca211aa0de7b",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
@@ -32,8 +32,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
-    "all/create-only/.claude/rules/PROJECT_RULES.md":
-      "6e1c7923ad2a15356babc60c97e7f97be728d790af285b6a7cd7d1b4d39cd97f",
+    "all/create-only/.agents/rules/README.md":
+      "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
     "all/create-only/.lisaignore":
       "3c9827e7e98daa46510b5357cd6dd9406da1821e64cc46d2eea9f311cd6d06b9",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -463,7 +463,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/learning-judge.md":
       "28618c3e20a0f790e4d254a9c8118645774233f19e3042b3cfeddf4ffbaf783a",
     "plugins/src/base/agents/learnings-synthesizer.md":
-      "7926a941d735866683a536a54b23578a7f04252cb662c6bdb4892e655006c65f",
+      "d3ffc4294df44813772d8c2641ebbd79a97cbc9051fa88b407ef7bfdc5b8e0d9",
     "plugins/src/base/agents/linear-agent.md":
       "d55664da47505d702d9bbbb96f9f98930d871acc5fc2972d35e1ae143f2dbde7",
     "plugins/src/base/agents/linear-build-intake.md":
@@ -483,7 +483,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/security-specialist.md":
       "0952dee7bf1c04f978b0f8125a91425bf639e9b645de1a4b05ad945b9041bea7",
     "plugins/src/base/agents/skill-evaluator.md":
-      "83af6324ed0ee0cd5c4132429e137649c3fd616ef6fa5d4bd95579438d401894",
+      "56bfb1ffbf0fdea0993b324f96b1c837444909c650b2093cefb3f60fdf27df44",
     "plugins/src/base/agents/spec-conformance-specialist.md":
       "f589e4d543a617d3c421aa28d6583e1b25e0b18fc83412e6d544a389bdac225c",
     "plugins/src/base/agents/test-specialist.md":
@@ -639,7 +639,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "850cfc23852eb752114ae1e938a1c7bcf34bc50c85d3aaca0c02311cc8c0ef70",
+      "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "c549f1dadd6ac3fab72c0b670524445a08bee732a05b868954a438970d4d5bcc",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -647,7 +647,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
-      "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
+      "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
     "plugins/src/base/hooks/cleanup-stale-worktrees.sh":
       "c9b2fcca1b34d6f636b5289ece11b254cbb8ee2c2bac5c2e426b6f4dcfa972f2",
     "plugins/src/base/hooks/debug-hook.sh":
@@ -699,7 +699,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "8d292784056d0cc62d78cc079286a2fdd6381e14452615b7aa8db0d31c3ff2ca",
+      "fc9231ae27b09dadd4ec5a9a694f2a4fefa5e55e67be8eed3ccba1fdcb68a7a2",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
@@ -735,7 +735,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/pre-flight-autofill.md":
       "b7f2deae0f0e9d4ee046c6775d5665c42c6da9ce18cae48c1e0e8449860bd515",
     "plugins/src/base/rules/eager/project-learnings.md":
-      "de0983a45b05f8509f7cc54e8f553f571f932c347b46778e1675b71233e87513",
+      "6350cd0e21d1ca0bb391a12f700a4c1f10350269acd4353bee0b717bee42e102",
     "plugins/src/base/rules/eager/promotion-contract.md":
       "e10dc13b99c5c7621309d5764635d2465ab72e603c3c8a925c4eb27878256e8a",
     "plugins/src/base/rules/eager/readiness-rubric.md":
@@ -781,7 +781,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "2c6a1b0c3d3d935ac2ef8d055e808f6af13ae3e37a81fc03596af0d9195f877d",
+      "1ce689b08f73c13a771630c8ed9803db8665c1dd5191f2f8e97f7d954aeec5ba",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -805,7 +805,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/integration-access-layer.md":
       "8b0a0fc0e63492efce79c58a0fc1f112748b17ad59383cfdb9c25300b29a2c8b",
     "plugins/src/base/rules/reference/intent-routing.md":
-      "28f1719189f45c974804d9aa5499daeee9dacd30f633f64e75faa615f7d26679",
+      "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "3d6d531fdca61a348fa1dd1bdb4c28fe66c85fb955238ef668a78cce4a36a7a1",
     "plugins/src/base/rules/reference/observability-audit.md":
@@ -817,9 +817,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "e61b745bb1ddfbe24634246588c13e4e78c25b50817e5e8ff02e1a9681ad1130",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "a51e3317020436e2d0a3a686e82a7d9989dabfa1c1727bac048feca4a7a16dad",
+      "1b95f3603c8878003fe7c583ed42507f1ab440507cb8ce4d3c5e409dd509fc54",
     "plugins/src/base/rules/reference/promotion-contract.md":
-      "472416b82eda5431c8e5467d6093fe9da79efa7eb836e79c77b75ef77ee194a4",
+      "d1370532bb79262ec2a1ca48376aed796051f5dd9930cf1f1b17c993e24f469b",
     "plugins/src/base/rules/reference/readiness-rubric.md":
       "6b09f171166a7fc8e85f6e2deea68f42d89a554767bc91e8eed08d1e08501672",
     "plugins/src/base/rules/reference/rejection-detection.md":
@@ -917,9 +917,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
       "d1d33a149cab2de0d0b4c7ddc6bb2f67f43a097e5f551f642b1cb076747a5a05",
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md":
-      "e69dc81bccd44e9c165b021dfb6e250e1b3560f109e49a5559a2f972edfb81da",
+      "a6266a4034a2c4780d89dcb9ff17cbfe6aa0fb39138f129f8ca61f4612d7b18a",
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
-      "71a06d24e290648db45efb77349bd320337dfaa1bd42274b3ea5d86e04019aff",
+      "6a0981107f907d3362ab0001f46412b76a70ec5ecc37ea1cd1def6ce4a38c9ee",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
@@ -985,7 +985,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
-      "bafda5d2f9b86c48cd16bf0015528fdf5891675221d662fdc533aaad66aad669",
+      "20bcef4556b422543c41315b7f505af39747e312136dcc4623c26d34eb3ceb17",
     "plugins/src/base/skills/lisa-improve-max-lines-per-function/SKILL.md":
       "95c875950c9848fdaf520a18b9bbb264e33d7347be10170add768e01d9cd8e52",
     "plugins/src/base/skills/lisa-improve-max-lines/SKILL.md":
@@ -1035,7 +1035,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "0f56daf610cab90a2127cebf83a5bbe05cdcba0f692ebfae8fcf3da153826316",
+      "102953b4b8166b28e5c8d16bef852d3d9c1213b59e8d691d0647784f3cfd1be8",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "b3bbe6b1974491dbaba8f1308591bfb65be3bf9cfb644cb903d8266dc8121ffd",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -1771,7 +1771,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/ops-verify-telemetry/SKILL.md":
       "4b30c951007139ddc42725568d1dd32764bc59a1606e4eb588a40379eef58e02",
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
-      "f3aeca6835613e625e2e843afc0a49181eb7d4571424d124d7694921c8fc9ff6",
+      "14706896cf54a26c22d44e6dd6fc5e3bb22ec77a1235020087b63681be81d731",
     "plugins/src/typescript/hooks/format-on-edit.sh":
       "1423ea50cf2dee3ffae81448029631b30c4d1af027292cab01e5654523d2315f",
     "plugins/src/typescript/hooks/lint-on-edit.sh":
@@ -2451,7 +2451,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-work-item.mjs": true,
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json": true,
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json": true,
-    "all/create-only/.claude/rules/PROJECT_RULES.md": true,
+    "all/create-only/.agents/rules/README.md": true,
     "all/create-only/.lisaignore": true,
     "all/create-only/scripts/remote-agent-aws-setup.sh": true,
     "all/create-only/specs/.keep": true,
@@ -8119,6 +8119,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
     "src/core/git-service.ts": true,
+    "src/core/host-rules-pointer.ts": true,
     "src/core/index.ts": true,
     "src/core/instruction-files-migration.ts": true,
     "src/core/kane-cli-parser.ts": true,
@@ -8548,6 +8549,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
+    "tests/unit/core/host-rules-parity.test.ts": true,
+    "tests/unit/core/host-rules-pointer.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,

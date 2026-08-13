@@ -16,9 +16,16 @@
  *   3. Ensures `CLAUDE.md` imports `AGENTS.md`: creates the pointer when no
  *      `CLAUDE.md` exists, or prepends the `@AGENTS.md` import to an existing
  *      host-authored `CLAUDE.md` (preserving all existing content).
+ *   4. Adds or refreshes the bounded host-rules pointer block naming
+ *      `.agents/rules/` — the canonical, agent-neutral directory for
+ *      host-authored rules. Pointer only: Lisa never writes rule bodies into
+ *      `AGENTS.md` or into `.agents/rules/`. When the project still carries a
+ *      legacy single-file `PROJECT_RULES.md`, the pointer names it too so its
+ *      content stays reachable during the transition; the file itself is left
+ *      untouched, because reclassifying it is human-gated work.
  *
- * Host content is never deleted: the only thing removed is the clearly
- * Lisa-managed agy marker block. Everything else is additive.
+ * Host content is never deleted: the only things removed are clearly
+ * Lisa-managed marker blocks. Everything else is additive.
  * @module core/instruction-files-migration
  */
 import * as fse from "fs-extra";
@@ -36,12 +43,19 @@ import {
 } from "../claude/claude-md-installer.js";
 import { harnessIncludesAgent } from "./config.js";
 import {
+  LISA_HOST_RULES_END_MARKER,
+  LISA_HOST_RULES_START_MARKER,
+  buildHostRulesPointer,
+  replaceManagedBlock,
+} from "./host-rules-pointer.js";
+import {
   assertSafeLearningParents,
   resolveSafeLearningTarget,
 } from "./learnings-file-safety.js";
 import {
   readProjectConfig,
   resolveLegacyProjectLearningsFile,
+  resolveLegacyProjectRulesFile,
   resolveProjectLearningsFile,
 } from "./project-config.js";
 
@@ -59,6 +73,13 @@ export const LISA_PROJECT_LEARNINGS_START_MARKER =
 /** Marker closing Lisa's bounded Antigravity project-learnings bridge. */
 export const LISA_PROJECT_LEARNINGS_END_MARKER =
   "<!-- LISA_PROJECT_LEARNINGS_END -->";
+
+export {
+  LISA_HOST_RULES_END_MARKER,
+  LISA_HOST_RULES_START_MARKER,
+  buildHostRulesPointer,
+  stripHostRulesPointer,
+} from "./host-rules-pointer.js";
 
 /** Outcome of an instruction-files migration pass. */
 export interface InstructionFilesMigrationResult {
@@ -150,8 +171,8 @@ export interface MigrateInstructionFilesOptions {
    */
   readonly reconcileAgyProjectLearnings?: boolean;
   /**
-   * Resolved project-relative learnings path. Defaults to the sibling of the
-   * configured `projectRulesFile`.
+   * Resolved project-relative learnings path. Defaults to the canonical
+   * `.lisa/PROJECT_LEARNINGS.md` (or a validated `learnings.file` override).
    */
   readonly projectLearningsFile?: string;
   /**
@@ -228,117 +249,104 @@ function replaceManagedAgyProjectLearningsBridge(
   body: string,
   replacement: string
 ): string {
-  const startIdx = body.indexOf(LISA_PROJECT_LEARNINGS_START_MARKER);
-  const endIdx = body.indexOf(LISA_PROJECT_LEARNINGS_END_MARKER);
-  const hasStart = startIdx !== -1;
-  const hasEnd = endIdx !== -1;
-  const hasDuplicateStart =
-    hasStart &&
-    body.indexOf(
-      LISA_PROJECT_LEARNINGS_START_MARKER,
-      startIdx + LISA_PROJECT_LEARNINGS_START_MARKER.length
-    ) !== -1;
-  const hasDuplicateEnd =
-    hasEnd &&
-    body.indexOf(
-      LISA_PROJECT_LEARNINGS_END_MARKER,
-      endIdx + LISA_PROJECT_LEARNINGS_END_MARKER.length
-    ) !== -1;
-  if (
-    hasStart !== hasEnd ||
-    (hasStart && endIdx < startIdx) ||
-    hasDuplicateStart ||
-    hasDuplicateEnd
-  ) {
-    return body;
-  }
-  if (!hasStart) {
-    if (replacement === "") {
-      return body;
-    }
-    const separator = body.endsWith("\n") ? "\n" : "\n\n";
-    return `${body}${separator}${replacement}\n`;
-  }
-  const before = body.slice(0, startIdx);
-  const after = body.slice(endIdx + LISA_PROJECT_LEARNINGS_END_MARKER.length);
-  const next = `${before}${replacement}${after}`;
-  return `${next.replace(/\n\n\n+/g, "\n\n").trim()}\n`;
+  return replaceManagedBlock(
+    body,
+    LISA_PROJECT_LEARNINGS_START_MARKER,
+    LISA_PROJECT_LEARNINGS_END_MARKER,
+    replacement
+  );
+}
+
+/** Desired state of every Lisa-managed block in `AGENTS.md`. */
+interface ManagedAgentsMdState {
+  /** Whether the bounded Antigravity learnings bridge should be present. */
+  readonly agyProjectLearningsEnabled: boolean;
+  /** Resolved project-relative learnings path named in the bridge. */
+  readonly projectLearningsFile: string;
+  /**
+   * Project-relative path to a surviving legacy single-file rules document,
+   * named in the pointer so its content stays reachable; undefined when the
+   * project has none.
+   */
+  readonly legacyRulesFile: string | undefined;
 }
 
 /**
- * Ensure a canonical `AGENTS.md` exists and carries no legacy agy baked-rules
- * block.
+ * Ensure a canonical `AGENTS.md` exists and carries Lisa's managed blocks.
  * @param destDir - Absolute path to the host project root.
- * @param agyProjectLearnings - Desired state for the Antigravity bridge.
- * @param agyProjectLearnings.enabled - Whether the bridge should be present.
- * @param agyProjectLearnings.projectLearningsFile - Resolved project-relative
- *   learnings file path to include in the bridge.
+ * @param state - Desired state of the managed blocks.
  * @returns Action strings describing what changed (empty when nothing did).
  */
 async function reconcileAgentsMd(
   destDir: string,
-  agyProjectLearnings: {
-    readonly enabled: boolean;
-    readonly projectLearningsFile: string;
-  }
+  state: ManagedAgentsMdState
 ): Promise<string[]> {
   const filePath = path.join(destDir, AGENTS_MD_FILENAME);
   if (!existsSync(filePath)) {
     const result = await installAgentsMd(destDir);
     const actions = result.created ? [`created ${AGENTS_MD_FILENAME}`] : [];
-    return [
-      ...actions,
-      ...(await reconcileAgyProjectLearningsBridge(
-        filePath,
-        agyProjectLearnings
-      )),
-    ];
+    return [...actions, ...(await reconcileManagedBlocks(filePath, state))];
   }
-  return reconcileAgyProjectLearningsBridge(filePath, agyProjectLearnings);
+  return reconcileManagedBlocks(filePath, state);
 }
 
 /**
- * Reconcile the removable legacy bake and the bounded agy learnings bridge.
+ * Reconcile the removable legacy bake, the host-rules pointer, and the bounded
+ * agy learnings bridge in one pass. Every edit is bounded by markers, so host
+ * prose outside them is never read into the decision or rewritten, and a
+ * second run over an already-reconciled file writes nothing.
  * @param filePath - Absolute AGENTS.md path.
- * @param agyProjectLearnings - Desired bridge state.
- * @param agyProjectLearnings.enabled - Whether the bridge should be present.
- * @param agyProjectLearnings.projectLearningsFile - Resolved project-relative
- *   learnings file path to include in the bridge.
+ * @param state - Desired state of the managed blocks.
  * @returns Action strings describing changed state.
  */
-async function reconcileAgyProjectLearningsBridge(
+async function reconcileManagedBlocks(
   filePath: string,
-  agyProjectLearnings: {
-    readonly enabled: boolean;
-    readonly projectLearningsFile: string;
-  }
+  state: ManagedAgentsMdState
 ): Promise<string[]> {
   const existing = await readFile(filePath, "utf8");
   const stripped = stripBakedAgyRulesBlock(existing);
-  const desired = agyProjectLearnings.enabled
+  const withPointer = replaceManagedBlock(
+    stripped,
+    LISA_HOST_RULES_START_MARKER,
+    LISA_HOST_RULES_END_MARKER,
+    buildHostRulesPointer(state.legacyRulesFile)
+  );
+  const desired = state.agyProjectLearningsEnabled
     ? replaceManagedAgyProjectLearningsBridge(
-        stripped,
-        buildAgyProjectLearningsBridge(agyProjectLearnings.projectLearningsFile)
+        withPointer,
+        buildAgyProjectLearningsBridge(state.projectLearningsFile)
       )
-    : stripAgyProjectLearningsBridge(stripped);
+    : stripAgyProjectLearningsBridge(withPointer);
   if (desired === existing) {
     return [];
   }
   await writeFile(filePath, desired, "utf8");
-  const bakedRuleActions =
-    stripped !== existing
-      ? [`removed legacy baked-rules block from ${AGENTS_MD_FILENAME}`]
-      : [];
-  const bridgeActions =
-    desired !== stripped
-      ? [
-          agyProjectLearnings.enabled
-            ? `reconciled agy project-learnings bridge in ${AGENTS_MD_FILENAME}`
-            : `removed agy project-learnings bridge from ${AGENTS_MD_FILENAME}`,
-        ]
-      : [];
-  const actions = [...bakedRuleActions, ...bridgeActions];
-  return actions;
+  return [
+    ...(stripped === existing
+      ? []
+      : [`removed legacy baked-rules block from ${AGENTS_MD_FILENAME}`]),
+    ...(withPointer === stripped
+      ? []
+      : [`reconciled host-rules pointer in ${AGENTS_MD_FILENAME}`]),
+    ...bridgeActions(desired !== withPointer, state.agyProjectLearningsEnabled),
+  ];
+}
+
+/**
+ * Describe the agy learnings-bridge change, if any.
+ * @param changed - Whether the bridge block actually changed.
+ * @param enabled - Whether the bridge is meant to be present.
+ * @returns Zero or one action string.
+ */
+function bridgeActions(changed: boolean, enabled: boolean): string[] {
+  if (!changed) {
+    return [];
+  }
+  return [
+    enabled
+      ? `reconciled agy project-learnings bridge in ${AGENTS_MD_FILENAME}`
+      : `removed agy project-learnings bridge from ${AGENTS_MD_FILENAME}`,
+  ];
 }
 
 /**
@@ -405,19 +413,25 @@ export async function migrateInstructionFiles(
 ): Promise<InstructionFilesMigrationResult> {
   const projectConfig = await readProjectConfig(destDir);
   const createClaudePointer = options.createClaudePointer ?? true;
-  const agyProjectLearnings = {
-    enabled:
+  const legacyRules = resolveLegacyProjectRulesFile(projectConfig);
+  const managedState = {
+    agyProjectLearningsEnabled:
       options.reconcileAgyProjectLearnings ??
       harnessIncludesAgent(projectConfig.harness ?? "claude", "agy"),
     projectLearningsFile:
       options.projectLearningsFile ??
       resolveProjectLearningsFile(projectConfig),
+    // Named in the pointer only while the file actually exists, so the
+    // transition paragraph disappears on its own once a host retires it.
+    legacyRulesFile: existsSync(path.join(destDir, legacyRules))
+      ? legacyRules
+      : undefined,
   };
   const relocationActions = await collectLearningsRelocationActions(
     destDir,
     options.relocateLearnings ?? true
   );
-  const agentsActions = await reconcileAgentsMd(destDir, agyProjectLearnings);
+  const agentsActions = await reconcileAgentsMd(destDir, managedState);
   const claudeActions = await reconcileClaudeMd(destDir, createClaudePointer);
   const actions = [...relocationActions, ...agentsActions, ...claudeActions];
   return { changed: actions.length > 0, actions };
