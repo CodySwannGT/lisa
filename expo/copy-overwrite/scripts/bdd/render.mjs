@@ -112,6 +112,47 @@ function floorTable(report) {
 }
 
 /**
+ * Render the discovered-test inventory: what the roots hold, and what of it
+ * the contract never mentions.
+ *
+ * The undisclosed list is printed in full rather than counted. A count is a
+ * number somebody can grow accustomed to; a named file with a named test is a
+ * thing somebody has to either map or excuse.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown section body.
+ */
+function inventorySection(report) {
+  const inventory = report.testInventory;
+  if (inventory.runners.length === 0) {
+    return "**No `testDiscovery` roots are declared**, so no test file was walked and an undeclared test cannot be found here. In enforced mode this is a `discovery-missing` defect.";
+  }
+  const rows =
+    inventory.undisclosed
+      .map(
+        item =>
+          `| ${cell(item.runner)} | \`${cell(item.file)}\` | ${item.evidence === null ? "*(file has no title)*" : cell(item.evidence)} |`
+      )
+      .join("\n") || "| — | — | None |";
+  return `${inventory.discovered} tests discovered under ${inventory.roots.map(root => `\`${cell(root)}\``).join(", ")}; ${inventory.disclosed} are named by a mapping or an exclusion. ${inventory.dynamicTitles} carry a computed (template-literal) title, taken verbatim from the source — a runner result cannot be joined to those by title.\n\n| Runner | File | Test not named by the contract |\n|---|---|---|\n${rows}`;
+}
+
+/**
+ * Render the exclusion ledger: tests deliberately aligned to no behavior.
+ * @param {object} report - The coverage report.
+ * @returns {string} Markdown table.
+ */
+function exclusionTable(report) {
+  const rows =
+    report.testInventory.exclusions
+      .map(
+        entry =>
+          `| \`${cell(entry.file)}\` | ${entry.evidence === null ? "*(whole file)*" : cell(entry.evidence)} | ${cell(entry.reason ?? "**unstated**")} |`
+      )
+      .join("\n") || "| — | — | None |";
+  return `| File | Test | Reason it aligns to no product behavior |\n|---|---|---|\n${rows}`;
+}
+
+/**
  * Group the remaining gaps by feature.
  * @param {object} report - The coverage report.
  * @returns {string} Markdown sections.
@@ -174,9 +215,9 @@ ${platformTable(report)}
 
 ${executionSection(report)}
 
-## Coverage floor (ratchet)
+## Coverage floor
 
-The committed floor may rise and may never fall. Lowering it requires a \`coverageFloorBaseline\` record naming the exact change plus the maintainer-applied \`bdd-floor-baseline\` label — two artifacts one author cannot produce alone.
+The committed floor is an absolute bar — "is this platform below it right now" — and nothing else. It is **not** a ratchet and nobody has to nudge it upward: what protects coverage already earned is a separate, per-obligation check. Coverage accepted at the base revision cannot disappear, and behavior that is new must arrive mapped or waived; either reduction takes a recorded route (a \`retirements\` record or a \`platformWaivers\` entry) plus the maintainer-applied \`bdd-floor-baseline\` label — two artifacts one author cannot produce alone.
 
 ${floorTable(report)}
 
@@ -185,6 +226,18 @@ ${floorTable(report)}
 ${report.waived.note}
 
 ${waiverTable(report)}
+
+## Discovered tests the contract does not mention
+
+${report.testInventory.note}
+
+${inventorySection(report)}
+
+## Tests deliberately aligned to no behavior
+
+Every row here is a standing claim that a real test proves nothing about product behavior. An exclusion whose file is gone, whose title was renamed, or that no discovery root covers is a defect, not a permanent excuse.
+
+${exclusionTable(report)}
 
 ## Traceability to work items
 

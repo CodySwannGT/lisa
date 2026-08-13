@@ -122,7 +122,10 @@ describe.each(SYNTHESIZER_PATHS)(
 
     it("names the retired surfaces as never-destinations", () => {
       const note = agent.slice(agent.indexOf("The destination column"));
-      expect(note).toMatch(/PROJECT_RULES\.md/);
+      // Host rules are the canonical `.agents/rules/` directory now; naming the
+      // retired single file here would point triagers at a dead surface.
+      expect(note).toMatch(/\.agents\/rules\//);
+      expect(note).not.toMatch(/PROJECT_RULES\.md/);
       expect(note).toMatch(/AGENTS\.md/);
       expect(note).toMatch(/never/i);
       // AGENTS.md is the source of truth; CLAUDE.md only points at it.
@@ -213,10 +216,11 @@ describe.each(DEBRIEF_SKILL_PATHS)(
       expect(bullet).toBeDefined();
       expect(bullet).toMatch(/ledger/i);
       expect(bullet).toMatch(/[Nn]ever name/);
-      expect(bullet).toMatch(/PROJECT_RULES\.md/);
+      expect(bullet).toMatch(/\.agents\/rules\//);
       expect(bullet).toMatch(/AGENTS\.md/);
-      // The pre-ledger examples must not survive as suggestions.
-      expect(bullet).not.toMatch(/"PROJECT_RULES\.md"/);
+      // The pre-ledger examples must not survive as suggestions, and neither
+      // may the retired single-file rules path.
+      expect(bullet).not.toMatch(/PROJECT_RULES\.md/);
       expect(bullet).not.toMatch(/memory: project_\*\.md/);
     });
   }

@@ -21,13 +21,20 @@ Return parsed JSON or a concise structured summary in a `<result>` block.
 
 ## Substrate Selection
 
-Probe in order:
+Probe in order — the ordering is the shared `credential-substrate-precedence`
+contract, not a Jam-local choice. The first tier that is ready **and**
+identity-matches the configured Jam account is used; one authenticated elsewhere
+is skipped, never used.
 
-1. Jam MCP, if the tool is available and authenticated.
-2. Jam CLI authenticated with `JAM_PAT`.
+1. **Tier 1 — configured-provider substrate: Jam CLI authenticated with `JAM_PAT`**,
+   resolved through `lisa-secrets-access`.
+2. **Tier 2 — interactive MCP fallback: Jam MCP**, if the tool is available and
+   authenticated. Used when tier 1 is genuinely unavailable: no `JAM_PAT`, no CLI
+   adapter for the operation, or a Jam outage.
 
 Jam documents a PAT-authenticated CLI that is cleaner for remote routines than
-editing `.mcp.json` headers. The headless tier uses:
+editing `.mcp.json` headers, and it is the same substrate interactively and
+headlessly — which is why it leads. The CLI tier uses:
 
 ```bash
 curl -fsSL https://native.jam.dev/install | bash
@@ -44,7 +51,8 @@ Error: no Jam access substrate available. Authenticate the Jam MCP or set JAM_PA
 
 ## Invariants
 
-- Fallback is gated on `JAM_PAT`; do not retry Jam MCP failures blindly.
+- Tier order is `credential-substrate-precedence`: `JAM_PAT` CLI first, Jam MCP as
+  a preserved first-class fallback. Do not retry a failed tier blindly.
 - Never commit a Jam PAT into `.mcp.json` or any generated setup artifact.
 - Headless Jam access requires `native.jam.dev` for the installer and
   `api.jam.dev` for CLI/API calls in any custom remote network allowlist.

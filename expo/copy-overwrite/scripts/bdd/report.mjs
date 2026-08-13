@@ -21,6 +21,50 @@ import {
   runnersByPlatform,
   trackerUrl,
 } from "./contract.mjs";
+import { isDisclosed } from "./discover.mjs";
+
+/** An empty discovery result, for callers that do not walk the tree. */
+const NO_DISCOVERY = Object.freeze({ specs: [], runners: [], roots: [] });
+
+/**
+ * Summarize what walking the project's declared roots actually found.
+ *
+ * Traceability answers "is every declared behavior automated". This answers
+ * the other direction — "is every automated test accounted for" — and the two
+ * are not the same question: a repo can be at 100% traceability while carrying
+ * end-to-end tests nobody has ever mapped to a behavior.
+ * @param {object} discovery - The discovery result.
+ * @param {object} contract - Parsed coverage map.
+ * @returns {object} The report's `testInventory` block.
+ */
+function buildTestInventory(discovery, contract) {
+  const undisclosed = discovery.specs.filter(
+    spec => !isDisclosed(spec, contract)
+  );
+  return {
+    note: "Tests found by walking the roots declared in testDiscovery. A discovered test must be named by a mapping or by an exclusion carrying a reason; anything else is an undisclosed test, not a clean repo.",
+    runners: discovery.runners,
+    roots: discovery.roots,
+    discovered: discovery.specs.length,
+    disclosed: discovery.specs.length - undisclosed.length,
+    dynamicTitles: discovery.specs.filter(spec => spec.dynamic).length,
+    undisclosed: undisclosed.map(spec => ({
+      runner: spec.runner,
+      platforms: spec.platforms,
+      file: spec.file,
+      evidence: spec.evidence,
+    })),
+    exclusions: (contract.exclusions ?? [])
+      .map(exclusion => ({
+        file: exclusion.file ?? null,
+        evidence: exclusion.evidence ?? null,
+        reason: exclusion.reason ?? null,
+      }))
+      .sort((a, b) =>
+        `${a.file}${a.evidence}`.localeCompare(`${b.file}${b.evidence}`)
+      ),
+  };
+}
 
 /**
  * Summarize a subset of obligations against the covered set.
@@ -310,6 +354,7 @@ export function buildReport({
   runs,
   platforms,
   unresolved = new Set(),
+  discovery = NO_DISCOVERY,
 }) {
   const platformRunners = runnersByPlatform(contract.runnerPlatforms);
   const declared = declaredObligations(scenarios, platformRunners);
@@ -340,6 +385,7 @@ export function buildReport({
       byRunner: byRunnerSummary(contract, obligations, coveredKeys),
     },
     execution: buildExecution(contract.mappings ?? [], runs),
+    testInventory: buildTestInventory(discovery, contract),
     waived: waivedSummary(contract, scenarios, declared, waivedKeys),
     floor: evaluateFloor(contract, byPlatform, platforms),
     trackers: buildTrackerIndex(scenarios, contract.trackers),

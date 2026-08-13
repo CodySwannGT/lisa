@@ -7,7 +7,7 @@ set -uo pipefail
 
 JSON_INPUT="$(cat)"
 
-# Project rule (.claude/rules/PROJECT_RULES.md): never parse JSON in shell
+# Project rule (host rules, .agents/rules/): never parse JSON in shell
 # with grep/sed/cut/awk — always use jq. Fail open without jq.
 command -v jq >/dev/null 2>&1 || exit 0
 
