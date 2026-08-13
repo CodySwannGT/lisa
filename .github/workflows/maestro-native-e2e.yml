@@ -434,6 +434,12 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           FLOW_RUNNER: ${{ inputs.flow_runner }}
+          # Passed through `env` rather than expanded into the script body.
+          # A `${{ }}` expansion is substituted into the script TEXT before
+          # bash parses it, so a caller wiring this reusable input to
+          # event-controlled data (a branch or issue title) could inject shell
+          # commands. As an env var the value is only ever data.
+          FLOWS_DIR: ${{ inputs.flows_dir }}
         with:
           api-level: 34
           arch: x86_64
@@ -472,7 +478,7 @@ jobs:
             adb shell input keyevent KEYCODE_HOME
             adb shell dumpsys power | grep -q 'mWakefulness=Awake'
             adb shell dumpsys window | grep -q 'isKeyguardShowing=false'
-            if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}; fi
+            if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug "$FLOWS_DIR"; fi
 
       - name: 🔢 Count executed flows
         # The iOS job carries a byte-identical copy of this step (with the
@@ -762,6 +768,12 @@ jobs:
       - name: 📱 Run Maestro flows on simulator
         env:
           FLOW_RUNNER: ${{ inputs.flow_runner }}
+          # Passed through `env` rather than expanded into the script body.
+          # A `${{ }}` expansion is substituted into the script TEXT before
+          # bash parses it, so a caller wiring this reusable input to
+          # event-controlled data (a branch or issue title) could inject shell
+          # commands. As an env var the value is only ever data.
+          FLOWS_DIR: ${{ inputs.flows_dir }}
           # An EXPLICIT, caller-overridable budget for the XCUITest driver's
           # port bind. Leaving this unset does not mean "no opinion" — it means
           # the CLI's built-in 120 s applies by accident, and when it expired on
@@ -785,9 +797,9 @@ jobs:
           # shellcheck disable=SC2086
           run_suite() {
             if [ -n "$FLOW_RUNNER" ]; then
-              bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}
+              bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"
             else
-              maestro test ${{ inputs.flows_dir }} \
+              maestro test "$FLOWS_DIR" \
                 $MAESTRO_E2E_ARGS \
                 --format junit \
                 --output maestro-ios-report.xml \

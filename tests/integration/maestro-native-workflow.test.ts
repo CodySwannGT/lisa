@@ -262,7 +262,9 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(maestroLines).toHaveLength(1);
     expect(maestroLines[0]).toContain("$MAESTRO_E2E_ARGS");
     expect(maestroLines[0]).toContain("--format junit");
-    expect(maestroLines[0]).toContain("${{ inputs.flows_dir }}");
+    // The flows dir reaches the command as an env var, not a `${{ }}`
+    // expansion in the script text (shell-injection seam on a reusable input).
+    expect(maestroLines[0]).toContain('"$FLOWS_DIR"');
     expect(maestroLines[0].trimEnd().endsWith("\\")).toBe(false);
   });
 
