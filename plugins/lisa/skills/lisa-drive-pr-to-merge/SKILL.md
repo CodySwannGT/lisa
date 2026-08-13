@@ -291,7 +291,22 @@ Delegate to the `pull-request-review` skill with the PR number. It owns the whol
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
 GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
 resolve every thread via `resolveReviewThread` so the branch-protection
-thread-resolution gate clears. If that skill needs to push a commit, leave
+thread-resolution gate clears.
+
+**A green review check is not proof a review happened.** That skill's Step 1b
+returns a `reviewed` / `NOT REVIEWED` verdict — record it, and repeat it in this
+skill's final report. Measured (CodySwannGT/lisa#2497): `CodeRabbit` was a
+*required* context and posted `success — "Review rate limited"` on #2483 and
+#2484, so branch protection recorded a satisfied review gate for two
+security-relevant PRs nothing had read; both merged and shipped in `v3.5.1`.
+
+`NOT REVIEWED` is **not a blocker** — do not hold the merge on it, do not treat
+it as a failing check, and do not try to force the bot to re-run. A hollow
+review check is usually an org-wide vendor spending cap, which is a billing
+matter no amount of driving will clear, and whether such a check belongs in the
+required set at all is an open owner decision. It is a **reporting** obligation:
+the PR merged unreviewed, and the report has to say so instead of implying a
+review it did not get. If that skill needs to push a commit, leave
 auto-merge armed (section 1); when it returns, re-read `headRefOid` and reset
 `verify_commit` to the returned/pushed head, then continue. Do not re-implement review handling here
 — it is the single source of truth for review-thread handling.
@@ -452,3 +467,16 @@ At every terminal state, release the babysitter lease
 (`gh pr edit <pr> --remove-label "lisa:babysitter-on-duty"`) so the CI
 auto-fix workflow can take over as fixer of last resort if the branch goes
 red later with nobody driving it.
+
+**Every terminal report carries the step-(d) review verdict**, including a
+successful `MERGED`. "Merged, all checks green" is exactly the sentence that hid
+#2483 and #2484: both were green, both were merged, and neither had been read by
+anything. Green means *no gate objected*; it does not mean *something looked*.
+So state the verdict alongside the outcome:
+
+- `MERGED — reviewed (CodeRabbit "Review approved")`
+- `MERGED — NOT REVIEWED: CodeRabbit posted success but "Review rate limited"`
+
+This is reporting, never a terminal state of its own. `NOT REVIEWED` does not
+turn a merged PR into a blocked one, and it must never be used to withhold a
+merge — it changes what the record says, not what the loop does.
