@@ -2337,7 +2337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/deletions.json":
       "fe5f44b7a02148eacc429782e948b1c4aee302d1d56524cc16adec5489bbc308",
     "typescript/github-rulesets/quality-checks.json":
-      "d92599b203071b99b8fac1422b8493d2546138961ef04ba98176bc400af60945",
+      "cb544af6fb2e3c97b4eb59cca00a30e3dcb566b000d0496c01261f958b3c8295",
     "typescript/merge/.claude/settings.json":
       "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":
@@ -8861,6 +8861,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/parity-safety-net-plugin.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
+    "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
     "tests/unit/scripts/bdd-envelope.test.ts": true,
