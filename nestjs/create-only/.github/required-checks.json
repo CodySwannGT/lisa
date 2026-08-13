@@ -7,7 +7,12 @@
     "A transcription expires after 90 days, because a ruleset can be edited with no signal in this repository. The shipped `.github/workflows/required-checks-drift.yml` runs `--remote` weekly to catch that; `--remote` reads the ruleset live and so answers even when the cache is untrusted.",
     "Lisa's quality.yml runs the offline arm on every pull request. This seed ships `\"enforcement\": \"warn\"`, which downgrades findings AND the NOT-CHECKED refusal to reports so a fresh install does not go red on arrival. Delete the key once you have transcribed the list — then it blocks.",
     "`skip_jobs` is matched as an exact comma-delimited token and GitHub Actions expression syntax has no string-replace, so write the list with no spaces: `skip_jobs: 'a,b'`, never `skip_jobs: 'a, b'`. A spaced token matches nothing and the job runs — reported as `whitespace_in_skip_token`.",
-    "`_example_required_contexts` below is a STARTING POINT FOR TYPING, never read by the guard. Verify every line against your own ruleset before promoting any of it."
+    "`_example_required_contexts` below is a STARTING POINT FOR TYPING, never read by the guard. Verify every line against your own ruleset before promoting any of it.",
+    "THE FAMILY: required-and-red is loud; required-and-vacuous is not; advisory-and-stale is invisible. All three are one gate reporting satisfied without proving anything. `required_contexts` + `skip_job_declarations` above cover the SKIPPED variant; `evidence_bearing_checks` below covers the VACUOUS one.",
+    "VACUOUS, measured (CodySwannGT/lisa#2497): a required `CodeRabbit` context posted `success` with the description `Review rate limited`, having reviewed nothing, on two security-relevant PRs that then merged and shipped. `gh pr checks` prints `pass` for that exactly as it does for a real review — only the DESCRIPTION tells them apart.",
+    "Run it per PR: `npm run check:vacuous-required-checks -- --pr=1234` (or `node scripts/check-skipped-required-checks.mjs --pr=1234`). It reads `gh pr checks --json name,state,bucket,description`, which is the only route that carries the description for a legacy commit status like CodeRabbit's.",
+    "`evidence_bearing_checks` names the checks whose GREEN is supposed to mean something reviewed the code. Use `{}` to accept the shipped description vocabulary, or add `proof` / `no_work` arrays to extend it — extensions ADD to the defaults, they do not replace them. Undeclared checks are never examined, because most CI jobs ship an empty description and flagging them all would bury the one finding that matters.",
+    "This arm REPORTS AND NEVER BLOCKS, in every enforcement mode. A review bot can go hollow because an org-wide SPENDING CAP was hit, and a gate that reddens every PR on a billing state is worse than the one it criticises. What it changes is what you may CLAIM: a PR carrying a `vacuous_required_check` finding has not been shown to be reviewed, so do not record it as reviewed."
   ],
   "enforcement": "warn",
   "ruleset": {
@@ -53,5 +58,8 @@
       "ruleset_required": false,
       "reason": "The shipped ci.yml runs ZAP as its own `zap` job against a deployed target after quality passes, not inside the quality callee. Not a required context."
     }
+  },
+  "evidence_bearing_checks": {
+    "CodeRabbit": {}
   }
 }
