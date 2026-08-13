@@ -2,15 +2,22 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import type { ProjectType } from "../../../src/core/config.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
-import { EnsureLisaPostinstallMigration } from "../../../src/migrations/ensure-lisa-postinstall.js";
+import {
+  EnsureLisaPostinstallMigration,
+  LISA_INVOCATION,
+} from "../../../src/migrations/ensure-lisa-postinstall.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
+// Historical spellings that still sit in installed projects' package.json,
+// written verbatim rather than derived: recognising what is actually on disk
+// out there is the whole job of the migration. `SWALLOWING_LISA_INVOCATION` is
+// the pre-#2467 form that discarded the apply's stderr and exit code.
 const LEGACY_LISA_INVOCATION =
   "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true";
 const OLD_GUARDED_LISA_INVOCATION = `[ -n "$CI" ] || ${LEGACY_LISA_INVOCATION}`;
-const LISA_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${LEGACY_LISA_INVOCATION}`;
-const DUPLICATED_GUARD_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${LISA_INVOCATION}`;
+const SWALLOWING_LISA_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${LEGACY_LISA_INVOCATION}`;
+const DUPLICATED_GUARD_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${SWALLOWING_LISA_INVOCATION}`;
 const PACKAGE_JSON = "package.json";
 const PATCH_PACKAGE = "patch-package";
 

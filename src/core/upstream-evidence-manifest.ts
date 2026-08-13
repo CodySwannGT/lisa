@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "9d3831007e681186a3673e1037ef3fc82980cab2fc04e27c0868e562912c9e9f",
     "all/copy-contents/gitignore":
-      "2dbf7fd2f2020fc7824c432342002d9ca3ebb57b2872e761b14e942b23479a11",
+      "8104ccd32d7e6137cae706511c5037d11d6b6045b8e2a9bb7b3a48a81c053cfa",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "94dc98e0bbfcf8d43cba035d4805a1c5d61a3a0db88faa791e8e06e34e741f46",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
@@ -2111,7 +2111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "ed60ed3afc25175b81439330dbf26ff639f55fabec54223df4c7266805c84f22",
+      "0e96ebbae1e59304bb432286eccba38900a6008b80f2c53a1ec2c95801d4087c",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -8101,6 +8101,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/check-learnings-budget-cmd.ts": true,
     "src/cli/cross-pollinate-cmd.ts": true,
     "src/cli/cross-pollinate-nudge.ts": true,
+    "src/cli/doctor-apply-freshness.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
     "src/cli/doctor-learnings-merge-driver.ts": true,
@@ -8251,6 +8252,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/worktrees.ts": true,
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
+    "src/core/apply-receipt.ts": true,
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
     "src/core/git-service.ts": true,
@@ -8405,6 +8407,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/postinstall-trampoline.ts": true,
     "src/utils/usage-accounting-rollup.ts": true,
     "src/utils/usage-accounting.ts": true,
+    "src/utils/yaml.ts": true,
     "state/demo-project/README.md": true,
     "state/demo-project/state/inventory.json": true,
     "state/demo-project/state/state-contract.json": true,
@@ -8541,6 +8544,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/claude/claude-md-installer.test.ts": true,
     "tests/unit/cli/apply.test.ts": true,
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
+    "tests/unit/cli/doctor-apply-freshness.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
     "tests/unit/cli/doctor-learnings-merge-driver.test.ts": true,
@@ -8794,6 +8798,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-tsconfig-local-includes.test.ts": true,
     "tests/unit/migrations/ensure-wiki-source-declared.test.ts": true,
     "tests/unit/migrations/migration-registry.test.ts": true,
+    "tests/unit/migrations/postinstall-failure-surfacing.test.ts": true,
     "tests/unit/migrations/reconcile-claude-stack-plugins.test.ts": true,
     "tests/unit/migrations/untrack-codex-marketplace.test.ts": true,
     "tests/unit/opencode/agent-installer.test.ts": true,
@@ -9141,6 +9146,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/usage-accounting-table-normalization.test.ts": true,
     "tests/unit/utils/usage-accounting-token-serialization.test.ts": true,
     "tests/unit/utils/usage-accounting.test.ts": true,
+    "tests/unit/utils/yaml-interop.test.ts": true,
     "tests/unit/workstation/fixtures.ts": true,
     "tests/unit/workstation/link-into-bin-dir.test.ts": true,
     "tests/unit/workstation/workstation-install.test.ts": true,

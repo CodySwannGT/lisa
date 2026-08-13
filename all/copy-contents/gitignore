@@ -238,6 +238,13 @@ expo-env.d.ts
 # /lisa:automation-status. Runbooks are project knowledge; run records are not.
 .lisa/automations/runs/
 
+# Proof that `lisa apply` completed in THIS checkout, read by `lisa doctor` to
+# report a repo that has silently stopped receiving templates. Machine-local by
+# construction: committing it would churn on every version bump, conflict
+# between developers on different Lisa versions, and lie about a fresh clone
+# that has never installed.
+.lisa/apply-receipt.json
+
 # Remote-dispatch ledger. Records the sessions this machine started so a later
 # run can find them. Per developer by construction — each fires their own
 # routine under their own account — so committing it would collide on every

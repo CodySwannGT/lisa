@@ -2,8 +2,8 @@
  * Pure model for Deploy pipeline stages — parse deploy.yml, map holds, assemble.
  * @module cli/ui-deploy-pipeline-model
  */
-import yaml from "js-yaml";
 import { isJsonObject, type JsonValue } from "../sync/json-path.js";
+import { loadYaml } from "../utils/yaml.js";
 import type { ProbeResult } from "./ui-status.js";
 
 /** Stable probe id consumed by the Deploy section hydration. */
@@ -62,7 +62,7 @@ export function parseDeployWorkflowStages(
   contents: string
 ): readonly DeployPipelineStage[] {
   try {
-    const loaded = yaml.load(contents) as unknown;
+    const loaded = loadYaml(contents) as unknown;
     if (!isJsonObject(loaded)) {
       return [];
     }

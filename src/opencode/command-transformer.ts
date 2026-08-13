@@ -31,7 +31,7 @@
  * passed through unchanged.
  * @module opencode/command-transformer
  */
-import yaml from "js-yaml";
+import { loadYaml } from "../utils/yaml.js";
 
 /**
  * Pure transform: convert a Lisa command Markdown into an OpenCode command
@@ -53,7 +53,7 @@ export function transformCommandToOpencode(
       `Command source is missing YAML frontmatter for ${displayName}`
     );
   }
-  const description = parseDescription(yaml.load(match[1]), displayName);
+  const description = parseDescription(loadYaml(match[1]), displayName);
   const body = match[2].trimStart().trimEnd();
 
   const frontmatter = [
@@ -69,7 +69,7 @@ export function transformCommandToOpencode(
 /**
  * Extract the command description from parsed frontmatter, falling back to the
  * display name when none is present.
- * @param parsed - Output of `yaml.load(rawFrontmatter)` (untrusted shape)
+ * @param parsed - Output of `loadYaml(rawFrontmatter)` (untrusted shape)
  * @param displayName - Fallback used when no description is available
  * @returns The description string
  */
