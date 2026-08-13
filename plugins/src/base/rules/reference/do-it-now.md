@@ -1,0 +1,37 @@
+# Do It Now
+
+## The failure
+
+An agent notices something that needs doing — a lint rule that would have caught the bug it just fixed, a stale comment, a real defect found beside the one it was sent for, a ticket that should be flipped to ready — and writes a sentence about it instead of doing it. "Worth adding a rule for this later." "We should file that." "Follow-up: update the doc."
+
+Almost none of those happen. The note lands in a session transcript nobody re-reads, or in a report the human skims once. Even when it survives, the next session pays full price to rebuild the context that made the work obvious — which is the moment you are in right now, and it will not come back this cheap.
+
+The originating example: a session closed a non-reproducing bug, found a genuine defect next to it, filed a ticket for the real defect, and then left the ticket sitting outside the ready lane. Every individual step was correct. The handoff was incomplete, and the work sat.
+
+## The rule
+
+**If the factory is allowed to do it, do it in this session.** Allowed means: within scope, within your permissions, and not behind an exterior human gate. That covers the great majority of "later" items:
+
+- Filing the ticket — and flipping it to the ready role so something picks it up (`tracked-work`).
+- Adding the lint rule, ast-grep pattern, or test that prevents the recurrence (`promotion-contract` — and note that promotion is atomic: enable the control, fix the existing violations, ship the diagnostic, delete the superseded prose).
+- Fixing the flaky test rather than re-running it.
+- Updating the doc, comment, or rule your change just made wrong (`stale-state-claims`).
+- Cleaning up the scaffolding you introduced.
+
+## The exception, and its shape
+
+Lisa's exterior gates exist on purpose and this rule does not override them. A protected deployment, a held-back PRD, a low-confidence learning awaiting human review, a product judgement only a person can make — these wait for the human, by design.
+
+The exception is narrower than it first appears, because it applies to the **gated step**, not to the whole item. Do everything up to the gate now:
+
+1. Do the allowed part — file it, write it, prepare it, get it to the edge of the gate.
+2. Mark the gate explicitly, in the tracker, so it is visible outside your session.
+3. Say plainly, in your update, what is waiting on a human and what will happen once they act.
+
+"Waiting on a human" is a state you report, never a place you leave work silently.
+
+## Deferring is a decision
+
+Sometimes not doing it now is genuinely right: the change is out of scope, it would balloon the diff past reviewability, it depends on a decision not yet made, or it belongs to a different work item. Those are legitimate — and they are **decisions**, which means they get said out loud with a reason, and the deferred item becomes tracked work rather than a sentence.
+
+What is never acceptable is the implied deferral: noticing, saying nothing, and moving on. The human cannot act on what you did not tell them, and neither can the next session.
