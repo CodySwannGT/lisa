@@ -30,11 +30,14 @@ import {
   messages,
   readMap,
   runGate,
+  runGateWrite,
   runReport,
   writeMap,
 } from "./bdd/support";
 
 const RESULTS_FILE = "results.json";
+const STALE_TITLE = "renamed away";
+const STALE_SOURCE = `test("${STALE_TITLE}", async () => {});\n`;
 
 describe("a malformed coverage floor cannot disable the floor", () => {
   it("refuses a floor quoted as a string, in enforced mode", () => {
@@ -143,6 +146,14 @@ describe("a stale mapping stops counting as covered", () => {
       { BDD_MODE: BOOTSTRAP }
     );
     expect(report.gaps.map(gap => gap.scenario)).toContain(HOME_ID);
+  });
+
+  it("still lets --write regenerate the artifacts that document it", () => {
+    // A renamed title once wedged regeneration entirely in a fleet fork, so a
+    // waiver could not be recorded until an unrelated string was repaired.
+    const root = healthyProject({}, { files: { [HOME_SPEC]: STALE_SOURCE } });
+    expect(runGateWrite(root, { BDD_MODE: ENFORCED })).toContain(STALE_TITLE);
+    expect(runGate(root, { BDD_MODE: ENFORCED }).status).toBe(1);
   });
 });
 

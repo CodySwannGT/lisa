@@ -8,11 +8,12 @@ import {
 } from "../../../src/core/learnings-contract.js";
 import {
   DEFAULT_PROJECT_LEARNINGS_FILE,
-  DEFAULT_PROJECT_RULES_FILE,
+  HOST_RULES_DIR,
+  LEGACY_PROJECT_RULES_FILE,
   PROJECT_CONFIG_FILENAME,
   readProjectConfig,
+  resolveLegacyProjectRulesFile,
   resolveProjectLearningsFile,
-  resolveProjectRulesFile,
 } from "../../../src/core/project-config.js";
 import { SYNC_REGISTRY } from "../../../src/sync/registry.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -86,13 +87,15 @@ describe("learnings contract", () => {
     );
   });
 
-  it("registers the project rules default for lisa sync", () => {
+  it("stops syncing a project-rules default now that the path is fixed", () => {
+    // Host rules live at the non-configurable HOST_RULES_DIR, so there is no
+    // value for `lisa sync` to populate or reconcile.
     expect(
-      SYNC_REGISTRY.find(setting => setting.key === "projectRulesFile")
-    ).toMatchObject({ defaultValue: DEFAULT_PROJECT_RULES_FILE });
+      SYNC_REGISTRY.some(setting => setting.key === "projectRulesFile")
+    ).toBe(false);
   });
 
-  it("formalizes projectRulesFile in .lisa.config.json", async () => {
+  it("still parses and preserves a legacy projectRulesFile in .lisa.config.json", async () => {
     await fs.writeJson(path.join(tempDir, PROJECT_CONFIG_FILENAME), {
       projectRulesFile: CUSTOM_PROJECT_RULES_FILE,
     });
@@ -101,9 +104,10 @@ describe("learnings contract", () => {
     });
   });
 
-  it("resolves the default rules file and the relocated .lisa learnings ledger", () => {
-    expect(DEFAULT_PROJECT_RULES_FILE).toBe(".claude/rules/PROJECT_RULES.md");
-    expect(resolveProjectRulesFile({})).toBe(DEFAULT_PROJECT_RULES_FILE);
+  it("resolves the canonical host-rules directory, the legacy rules file, and the relocated .lisa learnings ledger", () => {
+    expect(HOST_RULES_DIR).toBe(".agents/rules");
+    expect(LEGACY_PROJECT_RULES_FILE).toBe(".claude/rules/PROJECT_RULES.md");
+    expect(resolveLegacyProjectRulesFile({})).toBe(LEGACY_PROJECT_RULES_FILE);
     expect(DEFAULT_PROJECT_LEARNINGS_FILE).toBe(".lisa/PROJECT_LEARNINGS.md");
     expect(resolveProjectLearningsFile({})).toBe(
       DEFAULT_PROJECT_LEARNINGS_FILE
@@ -114,7 +118,9 @@ describe("learnings contract", () => {
     // The ledger no longer rides along with projectRulesFile: relocating rules
     // must never drag the machine-managed ledger back into an eager tree.
     const config = { projectRulesFile: CUSTOM_PROJECT_RULES_FILE };
-    expect(resolveProjectRulesFile(config)).toBe(CUSTOM_PROJECT_RULES_FILE);
+    expect(resolveLegacyProjectRulesFile(config)).toBe(
+      CUSTOM_PROJECT_RULES_FILE
+    );
     expect(resolveProjectLearningsFile(config)).toBe(
       DEFAULT_PROJECT_LEARNINGS_FILE
     );
@@ -167,7 +173,7 @@ describe("learnings contract", () => {
       "rules/project_learnings.md",
       path.resolve(tempDir, "ABSOLUTE_RULES.md"),
     ]) {
-      expect(() => resolveProjectRulesFile({ projectRulesFile })).toThrow(
+      expect(() => resolveLegacyProjectRulesFile({ projectRulesFile })).toThrow(
         /projectRulesFile/i
       );
     }

@@ -38,7 +38,6 @@ fi
 {
   "tracker": "jira",
   "source":  "notion",
-  "projectRulesFile": ".claude/rules/PROJECT_RULES.md",
 
   "atlassian":  { "cloudId": "<uuid>", "site": "<host>" },
   "jira": {
@@ -184,11 +183,20 @@ fi
 |-------|----------|---------|-------|
 | `tracker` | **yes** | — | Destination for ticket writes. One of `"jira"`, `"github"`, `"linear"`. Missing → fail with instruction to run the matching `/lisa:setup:*` skill. |
 | `source` | no | — | Default PRD source for batch skills (`/lisa:intake`) and arg-less single-PRD skills. One of `"notion"`, `"confluence"`, `"linear"`, `"github"`, `"jira"`. Explicit URLs/keys passed to a skill always win over `source`; this is a default, not a lock. |
-| `projectRulesFile` | no | `.claude/rules/PROJECT_RULES.md` | Safe repo-relative Markdown path for hand-authored project rules. Independent of the learnings ledger — relocating the rules file never moves the ledger. |
+| ~~`projectRulesFile`~~ | — | — | **Retired.** Host-authored rules now live in the fixed, agent-neutral directory `.agents/rules/` — not a configurable file. An existing key is still parsed and preserved so installed projects keep applying, but nothing serves rules from it. See **Host rules** below. |
 | `learnings.file` | no | `.lisa/PROJECT_LEARNINGS.md` | Safe repo-relative Markdown path for the machine-managed learnings ledger, overriding the `.lisa/` default. Rejected if it resolves inside any auto-loaded rules tree (`.claude/rules`, `.cursor/rules`, `.github/instructions`, `.agents/rules`) — the ledger must stay out of eager context. |
 | `health.schedule` | no | `off` | Health cadence contract: `off`, `daily`, or `weekly`. `lisa sync` populates the default with `_lisaSync.populated` provenance and rejects values outside this closed vocabulary. Runtime results live only at the gitignored `.lisa/health/latest.json`, never in either config file. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 | `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
+
+### Host rules (`.agents/rules/`)
+
+Host-authored operating rules live in `.agents/rules/` — **fixed, not configurable**. One directory, every agent.
+
+- **Not a native auto-load tree.** `.claude/rules`, `.cursor/rules`, and `.github/instructions` are; `.agents/rules` deliberately is not. Every agent reaches it through the single Lisa-managed pointer block in `AGENTS.md` (Claude via the `@AGENTS.md` import in `CLAUDE.md`), so no agent loads host rules twice.
+- **Host-owned.** Lisa never writes rule bodies into `.agents/rules/`, and never edits or deletes a file there. Lisa's own rules originate in its plugins and arrive by their own route.
+- **Not the learnings ledger.** `.agents/rules` is reserved in the auto-loaded-tree blocklist, so a `learnings.file` override can never resolve inside it.
+- **Transition.** A project that still has the retired `.claude/rules/PROJECT_RULES.md` keeps it, untouched and authoritative. The pointer block names it so agents whose runtime does not auto-load `.claude/rules/` still find it. Moving that content is a human-gated decision, never an automated rewrite.
 
 ### Wiki source (`wiki`)
 
@@ -445,6 +453,13 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 `review` is optional. GitHub build intake skips it by default and moves successful builds directly from `claimed` to the configured `done` label. Linear and JIRA projects that still use a post-build review hold can configure `review`; projects that keep the ticket in `claimed` until terminal can omit it and lifecycle skills will skip the intermediate transition.
 
 **`ready` must never resolve to the team's DEFAULT state.** `Todo` is where Linear puts a brand-new issue, so using it for `ready` inverts the gate: the lane stops meaning "a human flipped this to build-ready" and starts meaning "nobody has touched this". Measured on the first team migrated: 20 issues in the lane, only 8 ever explicitly marked ready. JIRA avoids this because `jira.workflow.ready` is a dedicated `Ready` status while a fresh ticket lands in the project default.
+
+**That rule is enforced, not merely stated — a correct default is only half the fix.** The default is `Ready`, but any project can override `linear.workflow.ready`, and an override reproduces the inversion exactly. Two arms catch it, deliberately split by what each can see:
+
+- **Static, always-on.** The queue-contract resolver refuses a `ready` naming a stock default created state (`Todo`, `To Do`, `Backlog`, `Triage`) and throws rather than resolving. It needs no network, so it runs everywhere, including offline and in CI. It cannot see a team that renamed its default.
+- **Live, authoritative.** `/lisa:validate-tracker-mapping` compares the configured `ready` against the team's real `defaultIssueState` (surfaced as `isTeamDefault` on `lisa-linear-access operation: list-workflow-states`) and classifies a match as `INVERTED` — never `VALID`, and never auto-repaired, because nothing records what lane the human meant instead.
+
+`INVERTED` is not a name-resolution failure; it is the opposite. The name resolves perfectly, which is precisely why every existence check passes while the gate runs backwards.
 
 **Linear state resolution is `type`-aware.** When a configured name is missing, a lifecycle skill may fall back to the team's states by `type` — `claimed`/`review` → the lowest-position `started`, `blocked` → `started` or `unstarted`, terminal `done` → `completed` — but only to *read*. **`ready` has no fallback on purpose:** every candidate would be the team's default unstarted state, which is exactly the inversion described above. A missing `ready` state is reported, never guessed; it must never invent a state to write into. Missing states are a setup defect, repaired by `/lisa:setup:linear`, not papered over at runtime.
 
@@ -852,6 +867,22 @@ read_notion_token() {
   local slug=$(echo "$workspace" | tr '[:upper:]-' '[:lower:]_')
   local varname="NOTION_API_TOKEN_${slug}"
   [ -n "${!varname}" ] && { echo "${!varname}"; return; }
+  # Preferred path: the single secrets chokepoint, which owns the one-store rule
+  # and the surface ladder. An agent following this reference must try it before
+  # any keychain — a second reader is how one credential ends up in two places.
+  local resolver
+  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
+                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+    if [ -f "$resolver" ]; then
+      local via_lisa
+      via_lisa=$(node "$resolver" get NOTION_API_TOKEN 2>/dev/null) \
+        && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
+      break
+    fi
+  done
+  # Legacy fallback: the OS keychain written by the guided setup flow, for
+  # projects with no credentials provider. Reached only when the chokepoint is
+  # absent or has no entry.
   case "$(uname -s)" in
     Darwin)  security find-generic-password -s lisa-notion -a "$workspace" -w 2>/dev/null ;;
     Linux)   command -v secret-tool >/dev/null && \

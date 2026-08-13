@@ -102,6 +102,11 @@ jobs:
       # `{"mode":"job_pattern","pattern":"^…$"}` only for matrix job names that
       # no single string can cover.
       #
+      # `{"mode":"run"}` reads the run's conclusion AND every job behind it,
+      # because GitHub concludes a run `success` when jobs were skipped — a
+      # suite dispatched for one platform only would otherwise report green
+      # about the platform it never tested (row 26 / §2.4 of the contract).
+      #
       # ONLY `maestro-e2e.yml` by default, because that is the only nightly
       # suite this template actually ships. Naming a workflow file that does not
       # exist is truth-table row 11 — a HARD failure, not missing evidence —

@@ -77,11 +77,15 @@ describe("build_ready write-control input", () => {
         expect(content).toContain(RULE_SLUG);
       });
 
-      it("treats omitted as backward-compatible current behavior", () => {
+      // Superseded by `ready-role-filing` (WU-D): omitted no longer means
+      // "whatever this vendor used to do" — it means not build-ready
+      // everywhere. The full arm-by-arm contract lives in
+      // ready-role-filing-contract.test.ts; this keeps the section honest.
+      it("treats omitted as not build-ready", () => {
         const idx = content.indexOf(BUILD_READY_HEADING);
         const section = content.slice(idx);
         expect(section).toMatch(/omitted/i);
-        expect(section).toMatch(/current behavior/i);
+        expect(section).not.toMatch(/current behavior/i);
       });
     });
   });

@@ -407,4 +407,25 @@ describe("the contract document and its proof stay together", () => {
     expect(doc).toContain("NIGHTLY_E2E_CONTRACT_VERSION");
     expect(doc).toContain("Rollback is");
   });
+
+  it("row 26: doc, guard and caller agree on the completeness rule", () => {
+    // A row that lives only in code is a row the next reader will "simplify"
+    // away — and the unblock path must survive the tightening, or a red nightly
+    // becomes a day-long merge freeze with no escape but the bypass.
+    expect(doc).toContain(
+      "GitHub concludes a run `success` when its jobs were skipped"
+    );
+    expect(doc).toContain(
+      'The discriminator is "was this run PARTIAL?", never "was this a dispatch?"'
+    );
+    expect(doc).toContain(
+      "Nothing about *being* a dispatch disqualifies a run; being a partial one does"
+    );
+    expect(read(GUARD_REL)).toContain("incomplete_run");
+    // The platform picker is the surface that produced the false green, so the
+    // warning belongs where the operator chooses the value.
+    expect(
+      read("expo/create-only/.github/workflows/maestro-e2e.yml")
+    ).toContain("NARROWING THIS DOES NOT CLEAR THE NIGHTLY GATE");
+  });
 });

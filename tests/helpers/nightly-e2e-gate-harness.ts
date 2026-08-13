@@ -117,6 +117,18 @@ export interface GateModule {
     runId: number,
     wait?: () => Promise<void>
   ): Promise<readonly Job[]>;
+  observe(
+    api: Record<string, unknown>,
+    suites: readonly Record<string, unknown>[],
+    branch: string,
+    wait?: () => Promise<void>
+  ): Promise<
+    readonly {
+      workflowMissing: boolean;
+      run: Run | null;
+      jobs: readonly Job[];
+    }[]
+  >;
   retryDelayMs(
     response: { headers: { get(name: string): string | null } | null },
     attempt: number,
@@ -150,6 +162,22 @@ export const REASON = Object.freeze({
   indecisive: "indecisive_conclusion",
   noRun: "no_run",
   staleRun: "stale_run",
+  incompleteRun: "incomplete_run",
+});
+
+/**
+ * A job every `mode: "run"` fixture carries unless it is testing completeness.
+ *
+ * A completed run always has at least one job, and since row 26 a run-scoped
+ * suite reads them: the run's own `success` is only evidence when every job
+ * behind it succeeded. A fixture with no jobs is therefore not "a green run
+ * with the job list omitted for brevity" — it is row 26's unreadable-job-list
+ * case, which is exactly why it lives here rather than being defaulted away
+ * inside each suite.
+ */
+export const GREEN_JOB: Job = Object.freeze({
+  name: "🧪 e2e",
+  conclusion: "success",
 });
 
 /** Suite states. */

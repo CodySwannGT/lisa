@@ -9,6 +9,9 @@
  *
  * @module tests/unit/scripts/bdd/regression-support
  */
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 import {
   HOME_ID,
   HOME_SPEC,
@@ -88,6 +91,19 @@ export interface CommittedProject {
  * every "coverage was given back" case is built from.
  */
 export const HOME_ONLY_MAPPINGS = [HOME_MAPPING];
+
+/**
+ * Delete the extra scenario's spec from the head revision.
+ *
+ * Pairs with {@link HOME_ONLY_MAPPINGS} in any case asserting a fully clean
+ * run: a spec left behind with nothing mapping it is independently an
+ * undisclosed test, which is a different defect from the one under test.
+ * @param root - Project root.
+ * @returns Nothing.
+ */
+export function removeExtraSpec(root: string): void {
+  fs.rmSync(path.join(root, EXTRA_SPEC));
+}
 
 /**
  * Lay down a project with two mapped scenarios and a floor of 0, commit it,
