@@ -1,5 +1,5 @@
 /**
- * The nightly e2e gate's truth table, rows 27-30: PER-SUITE first-seen grace.
+ * The nightly e2e gate's truth table, rows 32-35: PER-SUITE first-seen grace.
  *
  * Bootstrap (§4, rows 23-25) is one flag for the whole workflow, and that made
  * the routine act of ADDING a suite a repository-wide wedge: the moment a
@@ -9,15 +9,16 @@
  * window — which un-arms the three suites that were working — or burning an
  * audited bypass. Neither is a proportionate answer to adding a suite.
  *
- * Rows 27-30 close that without resurrecting propswap's forever-bootstrap: the
+ * Rows 32-35 close that without resurrecting propswap's forever-bootstrap: the
  * grace is anchored on a `first_seen` timestamp that may not be in the future,
  * it is bounded by the SAME `bootstrap_max_days` ceiling as the global window,
  * and a window beyond that ceiling FAILS as misconfiguration rather than being
  * clamped (the row-24 rule, applied per suite).
  *
  * Sibling of `nightly-e2e-health.test.ts` (rows 1-16), `…-api.test.ts`
- * (rows 17-20), `…-bypass.test.ts` (rows 21-25) and `…-completeness.test.ts`
- * (row 26). Specification: `docs/nightly-e2e-gate.md` §2 rows 27-30 and §4.1.
+ * (rows 17-20), `…-bypass.test.ts` (rows 21-25), `…-completeness.test.ts`
+ * (row 26) and `…-issues.test.ts` (rows 27-31). Specification:
+ * `docs/nightly-e2e-gate.md` §2 rows 32-35 and §4.1.
  */
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -49,7 +50,7 @@ const GREEN_JOBS = Object.freeze({
   jobs: [{ name: "🧪 e2e", conclusion: "success" }],
 });
 
-describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => {
+describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => {
   let mod: GateModule;
   /** No global bootstrap window: every suite without grace is armed. */
   let armed: ReturnType<GateModule["resolveBootstrap"]>;
@@ -84,8 +85,8 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
     suite: Record<string, unknown>
   ): Finding => ({ ...finding, grace: graceFor(suite) });
 
-  describe("row 27 — a suite inside its grace window does not block", () => {
-    it("row 27: a new suite added to an ARMED repo does not wedge it", () => {
+  describe("row 32 — a suite inside its grace window does not block", () => {
+    it("row 32: a new suite added to an ARMED repo does not wedge it", () => {
       // The wedge, stated as a verdict: one suite green, one suite added two
       // days ago with no nightly of its own yet, no global bootstrap window.
       const verdict = mod.decide(
@@ -107,7 +108,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       expect(verdict.findings[0]?.state).toBe("pass");
     });
 
-    it("row 27: the OTHER suites stay armed — grace is per suite, not global", () => {
+    it("row 32: the OTHER suites stay armed — grace is per suite, not global", () => {
       // This is the property the global window cannot give you: forgiving the
       // new suite must not forgive the three that were already gating.
       const verdict = mod.decide(
@@ -128,7 +129,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       expect(verdict.findings[1]?.state).toBe("bootstrap");
     });
 
-    it("row 27: the grace expiry is ALWAYS on screen — there is no quiet grace", () => {
+    it("row 32: the grace expiry is ALWAYS on screen — there is no quiet grace", () => {
       const verdict = mod.decide(
         [
           withGrace(
@@ -148,7 +149,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       expect(report).toContain("grace");
     });
 
-    it("row 27: a per-suite `grace_days` may only SHORTEN the window", () => {
+    it("row 32: a per-suite `grace_days` may only SHORTEN the window", () => {
       expect(graceFor({ first_seen: RECENTLY }).until).toBe(
         "2026-08-24T00:00:00.000Z"
       );
@@ -158,8 +159,8 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
     });
   });
 
-  describe("row 28 — grace forgives ABSENCE of evidence, never FAILURE", () => {
-    it("row 28: a red suite inside its grace window still blocks", () => {
+  describe("row 33 — grace forgives ABSENCE of evidence, never FAILURE", () => {
+    it("row 33: a red suite inside its grace window still blocks", () => {
       const verdict = mod.decide(
         [withGrace(RED_FINDING, { first_seen: RECENTLY })],
         { bootstrap: armed }
@@ -169,8 +170,8 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
     });
   });
 
-  describe("row 29 — a lapsed grace window blocks with no further action", () => {
-    it("row 29: a suite first seen six weeks ago is armed again", () => {
+  describe("row 34 — a lapsed grace window blocks with no further action", () => {
+    it("row 34: a suite first seen six weeks ago is armed again", () => {
       const grace = graceFor({ first_seen: LONG_AGO });
       expect(grace.active).toBe(false);
       expect(
@@ -180,7 +181,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       ).toBe(true);
     });
 
-    it("row 29: a long-lapsed `first_seen` is INERT, never an error", () => {
+    it("row 34: a long-lapsed `first_seen` is INERT, never an error", () => {
       // Cleaning the field up must be optional. A guard that fails on stale
       // config buys itself a churn commit per suite per month, and the first
       // person to hit it deletes the anchor rather than the window.
@@ -190,21 +191,21 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
     });
   });
 
-  describe("row 30 — an unbounded or dishonest grace is MISCONFIGURATION", () => {
-    it("row 30: a `first_seen` in the FUTURE fails, never quietly forgives", () => {
+  describe("row 35 — an unbounded or dishonest grace is MISCONFIGURATION", () => {
+    it("row 35: a `first_seen` in the FUTURE fails, never quietly forgives", () => {
       // The anchor is what makes the window bounded. If it may sit in the
       // future, "first seen" becomes the hand-typed date this design exists to
       // avoid, and one string edit restores the forever-bootstrap.
       expect(() => graceFor({ first_seen: TOMORROW })).toThrow(/future/);
     });
 
-    it("row 30: an unparseable `first_seen` fails", () => {
+    it("row 35: an unparseable `first_seen` fails", () => {
       expect(() => graceFor({ first_seen: "last tuesday" })).toThrow(
         /ISO-8601/
       );
     });
 
-    it("row 30: a `grace_days` beyond the policy ceiling is rejected at validation", () => {
+    it("row 35: a `grace_days` beyond the policy ceiling is rejected at validation", () => {
       // Rejected rather than clamped, exactly as row 24 rejects a bootstrap
       // window beyond the cap: a grace that outlives the ceiling IS the
       // forever-bootstrap, whatever it is called.
@@ -223,7 +224,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       ).toThrow(/grace_days/);
     });
 
-    it("row 30: a window beyond a TIGHTENED `bootstrap_max_days` fails too", () => {
+    it("row 35: a window beyond a TIGHTENED `bootstrap_max_days` fails too", () => {
       // The ceiling the caller actually configured, not just the source
       // constant: a repo that tightened the global cap to a week must not get
       // a fortnight of grace through the side door.
@@ -232,7 +233,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       ).toThrow(/beyond `bootstrap_max_days`/);
     });
 
-    it("row 30: `grace_days` without a `first_seen` anchor is rejected", () => {
+    it("row 35: `grace_days` without a `first_seen` anchor is rejected", () => {
       // A knob with no anchor is a gate configured differently than its author
       // believes — the same reason a typo'd key fails rather than defaulting.
       expect(() =>
@@ -249,7 +250,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       ).toThrow(/first_seen/);
     });
 
-    it("row 30: the grace ceiling IS the bootstrap ceiling — one forgiveness budget", () => {
+    it("row 35: the grace ceiling IS the bootstrap ceiling — one forgiveness budget", () => {
       expect(mod.DEFAULT_SUITE_GRACE_DAYS).toBeLessThanOrEqual(
         mod.BOOTSTRAP_ABSOLUTE_MAX_DAYS
       );
@@ -284,12 +285,12 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
       expect(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[0]).toBe("1");
-      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toBe("1.2.0");
+      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toBe("1.3.0");
     });
   });
 
   describe("the wedge, end to end through `runGate`", () => {
-    it("row 27: adding a suite to an armed repo leaves the gate unblocked", async () => {
+    it("row 32: adding a suite to an armed repo leaves the gate unblocked", async () => {
       // The pure verdict cases above prove the rule; this proves the WIRING —
       // that `runGate` resolves each suite's window and carries it into the
       // verdict. Before this row, `decide` saw one flag for every finding.
@@ -351,7 +352,7 @@ describe("nightly e2e gate — truth table rows 27-30 (per-suite grace)", () => 
       expect(verdict.findings[1]?.reason).toBe("no_run");
     });
 
-    it("row 29: the same repo blocks once that suite's grace has lapsed", async () => {
+    it("row 34: the same repo blocks once that suite's grace has lapsed", async () => {
       const longAgo = new Date(Date.now() - 60 * 86_400_000).toISOString();
       (globalThis as { fetch: unknown }).fetch = async (
         url: string

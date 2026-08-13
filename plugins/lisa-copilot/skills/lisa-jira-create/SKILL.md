@@ -125,6 +125,8 @@ Exclude unless requested: migration plans, performance tests
 - Sign-in account and target environment recorded in description
 - Post-create verification
 
+**Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<why a human must judge this first>"`. Filing a leaf with neither is an incomplete handoff and `lisa-jira-write-ticket` rejects it.
+
 ### Invocation order
 
 Tickets must be created in parent-before-child order so each child can be passed its parent key:

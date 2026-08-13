@@ -12,7 +12,7 @@ Shipped artifacts (copy-overwrite, so `lisa apply` replaces local edits):
 |---|---|
 | `scripts/check-bdd-coverage.mjs` | The gate. Validates the contract, evaluates the ratchet, emits the envelope. |
 | `scripts/bdd-matrix.mjs` | The per-scenario traceability matrix. |
-| `scripts/bdd/*.mjs` | Shared modules: grammar, parser, validators, report, renderer, baseline. |
+| `scripts/bdd/*.mjs` | Shared modules: grammar, parser, validators, discovery, report, renderer, baseline. |
 
 Seeded once, never overwritten (create-only): `bdd/coverage-map.json`, `bdd/features/.keep`.
 
@@ -28,6 +28,7 @@ report never merges them and the burndown never prints one without the others.
 | `execution.executed` | How many mapped tests actually ran in a supplied run. | Whether they passed. |
 | `execution.passed/failed/skipped` | What those runs returned. | Anything about unmapped behavior. |
 | `waived.*` | What is deliberately outside the denominator, with owner, reason, ticket, expiry. | That the behavior works. A waiver is an IOU. |
+| `testInventory.*` | Which test files exist under the declared roots, and how many of them the contract never mentions. | Anything about behaviors nobody wrote a test for — that is `gaps`. |
 
 `traceability` is **traceability coverage**. It is not execution coverage and it is
 not a pass rate — a mapped test that fails on every run still counts as traced. When
@@ -85,9 +86,9 @@ Exit codes come from the envelope contract: `0` for `completed`, `no-op` and
 prose: `adoptionState`, `findingsError`, `findingsWarning`,
 `scenariosDeclared`, `scenariosRequired`, `scenariosExcluded`,
 `traceabilityCovered`, `traceabilityTotal`, `traceabilityPercentage`,
-`executionEvidenceSupplied`, `mappedTests`, `waivedObligations`, `floorOk`, and
-— **only when run evidence was supplied** — `executed`, `passed`, `failed`,
-`skipped`, `notRun`.
+`executionEvidenceSupplied`, `mappedTests`, `testsDiscovered`,
+`testsUndisclosed`, `waivedObligations`, `floorOk`, and — **only when run
+evidence was supplied** — `executed`, `passed`, `failed`, `skipped`, `notRun`.
 
 **Human narration goes to stderr**, so stdout holds exactly one machine-readable
 document.
@@ -101,7 +102,7 @@ carrying two shapes has no schema at all. The same document is written to
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "asOf": "<ISO date from the coverage map>",
   "scenarios": { "declared": 0, "required": 0, "excluded": 0, "blocked": 0, "referenceOnly": 0, "superseded": 0 },
   "traceability": {
@@ -117,6 +118,11 @@ carrying two shapes has no schema at all. The same document is written to
     "mappedTests": 0,
     "executed": 0, "passed": 0, "failed": 0, "skipped": 0, "notRun": 0,
     "notRunTests": []
+  },
+  "testInventory": {
+    "note": "", "runners": [], "roots": [], "discovered": 0, "disclosed": 0, "dynamicTitles": 0,
+    "undisclosed": [{ "runner": "", "platforms": [], "file": "", "evidence": null }],
+    "exclusions": [{ "file": "", "evidence": null, "reason": "" }]
   },
   "waived": { "note": "", "count": 0, "entries": [{ "scenario": "", "platforms": [], "runner": null, "owner": null, "reason": null, "ticket": null, "recordedAt": null, "expiresAt": null }] },
   "floor": { "byPlatform": { "<platform>": { "floor": 0, "actual": 0, "ok": true } }, "unset": [], "ok": true },
@@ -148,6 +154,95 @@ The gate never invokes a runner and never parses a vendor report format.
 Results join to mappings on `runner|file|evidence`. A mapped test with no matching
 result is `notRun` and named in `notRunTests` — never quietly counted as passing.
 
+## Test discovery — the other direction
+
+Validating what the manifest DECLARES can only find defects in the declarations. A
+spec file nobody declared is invisible to that check, which is exactly how undeclared
+end-to-end specs came to sit on default branches under a green gate. The gate
+therefore also walks the project's own roots and requires every test it finds to be
+**named by a mapping or excused by an exclusion**.
+
+Roots, extensions, and the evidence grammar are per-runner **contract data**, not
+source constants — a gate with `e2e/` compiled into it cannot see a project that keeps
+its flows elsewhere, and a hardcoded flow directory is what made a subflow directory
+structurally invisible in the fork this replaces. Keys must be runners declared in
+`runnerPlatforms`; the runner→platform pairing is derived from there, never restated.
+
+```json
+"testDiscovery": {
+  "<runner>": {
+    "roots": ["e2e"],
+    "extensions": [".spec.ts", ".spec.tsx"],
+    "ignore": ["e2e/fixtures"],
+    "evidence": { "kind": "call-title", "functions": ["test", "it"] }
+  },
+  "<flow-runner>": {
+    "roots": [".maestro/flows", ".maestro/subflows"],
+    "extensions": [".yaml", ".yml"],
+    "evidence": { "kind": "line-field", "field": "name" }
+  }
+}
+```
+
+`evidence.kind` is an **allowlist of two grammars**, never a project-supplied regular
+expression — the coverage map is repo data an author edits, and compiling a pattern
+out of it would hand that author the gate's own execution:
+
+| Kind | Reads | Evidence string |
+|---|---|---|
+| `call-title` | `test("…")`, `it.skip('…')`, any declared function name with any member chain | The title, **verbatim from the source** |
+| `line-field` | The first `<field>: …` line in a document | The field value, verbatim. No field ⇒ the file is the unit and carries no title |
+
+**A template-literal title is kept exactly as written** — `` test(`handles ${error.name} failures`) `` yields the evidence `handles ${error.name} failures`. It is never
+interpolated, truncated, or rewritten: the verbatim text is a real substring of the
+file, so a mapping or exclusion naming it stays falsifiable like any other evidence
+string. `testInventory.dynamicTitles` counts them, because an execution result cannot
+be joined to a computed title.
+
+**Disclosure rule.** A mapping or exclusion accounts for a discovered test when it
+names the same `file` **and** its `evidence` string *contains* that test's title.
+Containment in that direction is deliberate: an author may write either the bare title
+or `test("title"`, but one short string can never come to account for every test in a
+file. An exclusion with **no** `evidence` excuses the whole file.
+
+### Exclusion record
+
+```json
+"exclusions": [{ "file": "<path>", "evidence": "<optional exact title>", "reason": "<why this test aligns to no product behavior>" }]
+```
+
+`reason` is required — an exclusion with no stated reason is an undisclosed test with
+extra steps. An exclusion is a standing claim, so it expires by falsification rather
+than by date: `exclusion-stale` fires when its file is gone, when its `evidence`
+matches nothing discovered in that file, or when no configured discovery root covers
+it at all.
+
+### Discovery defect codes
+
+| Code | Fires when | Warnable in bootstrap |
+|---|---|---|
+| `spec-undisclosed` | A discovered test is named by no mapping and no exclusion. | Yes |
+| `exclusion-metadata` | An exclusion names no file, or states no reason. | Yes |
+| `exclusion-stale` | An exclusion no longer excuses anything. | Yes |
+| `discovery-missing` | *(enforced only)* A declared runner has no `testDiscovery` block, so none of its tests can ever be found. | Yes |
+| `discovery-invalid` | The `testDiscovery` block is malformed, names an undeclared runner, escapes the repo, or asks for an unknown evidence kind. | **No** |
+
+`discovery-invalid` is deliberately off the warnable allowlist, on the same reasoning
+as `floor-invalid`: one edit there would silently switch off the only check that can
+see an undeclared test, and a switched-off discovery looks exactly like a clean repo.
+
+## A defect never wedges the artifacts that document it
+
+`--write` regenerates `bdd/coverage-report.json` and `docs/e2e-bdd-coverage.md`
+whenever a report could be built **at all**, no matter how many defects the run found.
+The fleet hit the opposite behavior in a fork that returned no report once it had any
+error: one renamed test title made regeneration refuse to run, so a new waiver could
+not even be recorded until an unrelated string was repaired.
+
+Stale evidence remains a defect and still loses its coverage credit — it simply does
+not hold the paperwork hostage. The only runs that write nothing are the ones with no
+report to write: an absent, malformed, or unsupported coverage map.
+
 ## Compatibility policy
 
 Consumers pin an immutable Lisa tag or SHA (Lisa distribution policy A5); nothing
@@ -167,7 +262,11 @@ here "reaches every repo at once".
   `enforced` mode their missing fields surface as defects, which is the intended
   ratchet on old manifests rather than a parse error.
 - **Defect `code`s are API.** Codes are stable across minor releases; a code is
-  retired only with a schema bump.
+  retired only with a schema bump. `report.schemaVersion` 3 retired `floor-ratchet`
+  and added `coverage-regression` and `obligation-uncovered`; the report's own fields
+  are unchanged, so a v2 consumer keeps working and simply never sees the old code.
+  `coverage-map.schemaVersion` did **not** move: a v2 map reads exactly as before,
+  with its now-unused `coverageFloorBaseline` ignored rather than rejected.
 - **Workflow input `bdd_mode`** — a string, defaulting to `not-adopted`. New states
   would be additive; existing states never change meaning.
 - **Rollback** — repin the caller to the prior Lisa tag. Because the coverage map is
@@ -234,27 +333,68 @@ resting state.
 `verify_enforced` and `bdd_mode` are independent inputs. `verify_enforced` stays OFF
 portfolio-wide; each repo flips `bdd_mode` as its own nightly arms.
 
-## The coverage-floor ratchet
+## Non-regression invariants (the coverage floor is not a ratchet)
 
-`coverageFloor` is per platform and **may rise, may never fall**. A reduction — or
-removing a platform's floor entirely — needs **two artifacts one author cannot
+`coverageFloor` is per platform and is an **absolute bar**: it answers *"is this
+platform below it right now"*, nothing more. Set it once when you adopt, to the
+honest measured number or to `0`, and stop touching it. **Nothing forces it upward
+and lowering it needs no ceremony** — because the number is not what protects
+coverage you already earned.
+
+Three deterministic, per-obligation checks do that, and they are strictly stronger
+than a number: they cannot be satisfied by an offsetting gain elsewhere, they name
+the exact `SCENARIO:platform` at issue, and their exemption lists shrink to zero as
+waivers retire instead of accumulating.
+
+| Defect | Invariant |
+|---|---|
+| `coverage-regression` | An obligation **mapped at the base revision** is still mapped here. |
+| `obligation-uncovered` | An obligation that is **new here** arrives mapped or waived. |
+| `scenario-deleted` | A behavior leaves the contract as `@superseded` with a record, never by deletion. |
+
+`coverage-regression` sees every route out that a percentage cannot: deleting a
+mapping, narrowing its platform list, tagging a covered scenario `@blocked`, or
+swapping an accepted obligation for an easier one while the headline holds steady.
+
+Giving coverage back is legitimate, and takes **two artifacts one author cannot
 produce alone**:
 
-1. A `coverageFloorBaseline` record naming the exact change:
-   `{ platform, from, to, reason, ticket, approvedBy, runUrl, recordedAt }`.
+1. A recorded route — a `retirements` record
+   (`{ scenario, reason, ticket, approvedBy, recordedAt }`) for a behavior the
+   product no longer has, or a `platformWaivers` entry for a runner that cannot
+   decide it.
 2. The maintainer-applied `bdd-floor-baseline` label on the pull request.
 
-Changing the floor in the same PR that changes the code is not an authorization.
-`runUrl` is validated for shape only — the gate never contacts CI or a tracker, so a
-merge can never depend on an external service being reachable.
+Recording the reduction in the same PR that makes it is not an authorization. No
+check contacts CI or a tracker, so a merge can never depend on an external service
+being reachable.
 
-Deleting a scenario is the same move by another route: it shrinks the denominator
-instead of the gap. The contract's answer to a retired behavior is `@superseded`,
-which keeps the audit trail. A genuine removal needs a `retirements` record
-(`{ scenario, reason, ticket, approvedBy, recordedAt }`) **and** the same label.
+`obligation-uncovered` deliberately ignores gaps that predate the change: those are
+**burndown**, listed in the report's `gaps`, and demanding they close here is what
+would stop a brownfield project ever reaching `enforced`.
 
-Both checks need a base revision (`BDD_BASE_SHA`, set from the PR base). Off a pull
-request there is no base, and the gate says so rather than passing silently.
+All three need a base revision (`BDD_BASE_SHA`). **Enforced mode fails without one** —
+a gate that skipped its non-regression checks has not proved what it is about to
+report. Lisa's `quality.yml` resolves one for every event: the PR base, else the fork
+point from the default branch, else the first parent. Bootstrap and local runs stay
+quiet, because neither is making a merge decision.
+
+### Why the ratchet was removed
+
+The floor used to be a ratchet: it could only rise, and lowering it took a
+`coverageFloorBaseline` record naming `{ platform, from, to, reason, ticket,
+approvedBy, runUrl, recordedAt }` plus the same maintainer label. That machinery is
+gone, and `coverageFloorBaseline` is no longer read.
+
+Every route it closed is still closed — by `coverage-regression`,
+`obligation-uncovered`, `floor-missing` (a platform whose floor was removed),
+`floor-invalid` (a floor written so it cannot be evaluated, refused in every adopted
+state), `scenario-deleted`, and the new base-revision requirement. Exactly one thing
+was released: a pull request whose entire content is nudging the number when nothing
+regressed. Across the fleet that pattern produced a great deal of traffic and very
+little signal — one repository moved a single budget across fourteen separate PRs,
+twice doing the same step in parallel — and it was standing in for a property that is
+now checked directly.
 
 ## Tracker-tag grammar (one portfolio grammar)
 
@@ -299,7 +439,7 @@ comes due is a quieter coverage gap.
 | Variable | Meaning |
 |---|---|
 | `BDD_MODE` | Adoption state. Unset means `not-adopted`; an unrecognized value exits 2. |
-| `BDD_BASE_SHA` | Base revision for the ratchet and deletion checks. |
+| `BDD_BASE_SHA` | Base revision for the non-regression and deletion checks. **Required in enforced mode.** |
 | `BDD_PR_LABELS` | Comma-separated PR labels, for the `bdd-floor-baseline` authorization. |
 | `BDD_EXECUTION_RESULTS` | Comma-separated execution-result documents, same as repeated `--results`. |
 | `BDD_COVERAGE_ROOT` | Repo root override, for tests. |

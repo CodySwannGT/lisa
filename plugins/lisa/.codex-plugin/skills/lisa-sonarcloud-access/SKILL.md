@@ -15,7 +15,13 @@ this skill owns the tool selection.
 There is exactly one substrate: the **official SonarQube MCP server**, provided by
 the `sonarqube` plugin and launched by the `sonar` CLI (`sonar run mcp`). It
 authenticates headlessly from environment variables — no browser, no OS keychain —
-so it is the same substrate on a developer machine and in a headless cloud routine:
+so it is the same substrate on a developer machine and in a headless cloud routine.
+
+That makes this skill conformant with `credential-substrate-precedence` as a
+single-substrate access layer: this MCP **is** the configured-provider substrate
+(it is token-authenticated, not browser-OAuth), so there is no interactive tier to
+demote and no second REST tier to add. Identity-match against the configured org
+remains mandatory, as on every substrate.
 
 - `SONARQUBE_CLI_TOKEN` — required (Sonar user/analysis token).
 - `SONARQUBE_CLI_ORG` — required for SonarQube Cloud.

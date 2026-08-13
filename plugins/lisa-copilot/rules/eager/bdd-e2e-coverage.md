@@ -15,7 +15,7 @@ Default locations (a project that already has an equivalent contract keeps its o
 | Artifact | Default path | What it is |
 |---|---|---|
 | Scenarios | `bdd/features/*.feature` | Gherkin, the product-level behavior contract |
-| Coverage map | `bdd/coverage-map.json` | scenario → runner/platform/file/evidence mappings, plus waivers |
+| Coverage map | `bdd/coverage-map.json` | scenario → runner/platform/file/evidence mappings, plus waivers, per-runner test-discovery roots, and exclusions |
 | Generated matrix | `docs/bdd-scenario-matrix.md` | regenerated, never hand-edited |
 | Burndown | `docs/e2e-bdd-coverage.md` | current coverage per platform |
 
@@ -35,6 +35,8 @@ The last three are out of the denominator. Deleting a committed capability to ma
 ## What seals a scenario
 
 Coverage is counted per **required scenario-platform obligation**, and an obligation is sealed only by **aligned e2e automation in the project's configured runner for that platform** — the runner→platform mapping is project configuration (e.g. a web runner covering `web`, a device runner covering `ios`/`android`), never named by this contract. A unit test, a route boot, a screenshot, a fixture, an API test, or a passing test on a *different* platform never seals an obligation: they prove something else. Each mapping names the runner, the platforms, the file, and the evidence string inside it, so the gate can prove the mapping still resolves.
+
+**The gate reads in both directions.** It also walks the test roots the project declares per runner, so an e2e test that exists but that the contract never mentions is a violation — map it to a scenario, or record an exclusion stating why it aligns to no product behavior. Roots are configuration: a subflow or helper directory left undeclared is structurally invisible, which is the same failure as having no gate for it.
 
 **Waivers are dated IOUs, never coverage.** An obligation whose runner genuinely cannot decide it today (no camera on the simulator, no request interception, no provisioned provider credential) is recorded with scenario, platforms, reason, and `recordedAt`. It leaves the denominator; it never counts as covered, and nothing about it asserts the behavior works. A waiver is invalid — and fails the gate — when it names a nonexistent scenario or an undeclared platform, covers an already-excluded scenario, or masks a scenario-platform that already has a mapping. Revisit a waiver when its reason dies.
 

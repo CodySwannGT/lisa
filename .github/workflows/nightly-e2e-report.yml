@@ -1,0 +1,190 @@
+# Nightly E2E Report — reusable workflow (the REPORTING half of the gate)
+#
+# ## Why this is a separate workflow from the gate
+#
+# `nightly-e2e-health.yml` is a REQUIRED status check. It runs on every pull
+# request, it reads Actions run history, and it never writes anything — which is
+# what makes it safe to require. This workflow is its opposite number: it runs on
+# a schedule, it writes, and NOTHING it does can block a pull request.
+#
+# Keeping them apart is the whole design, not tidiness. Filing an issue is
+# REPORTING, not verdict. If issue creation lived inside the gate, a GitHub
+# Issues API that was down, throttled or newly forbidden would turn a perfectly
+# green nightly into a red required check on every open pull request — an outage
+# in a notification channel becoming an outage in the merge queue. The gate's
+# reusable workflow does not even request `issues:` scope, so it could not file
+# an issue if its code tried.
+#
+# ## What it maintains
+#
+# Exactly ONE open tracking issue per suite, refreshed on each red night and
+# closed automatically when a full green run lands. Never one issue per red
+# night: a reporter that files every morning produces a backlog nobody triages
+# and makes the suite's real state illegible from the issue list. The issue is a
+# STATE MIRROR of one suite.
+#
+# Closing is the dangerous direction, because it announces that a suite is
+# healthy. It is gated on the run being COMPLETE — the same row-26 judgement the
+# merge gate uses, asked again here rather than re-derived. A run that skipped an
+# arm (a platform-filtered dispatch, an absent prerequisite) neither closes an
+# issue nor files a false all-clear; the issue simply stays as it was. That is
+# propswap's trap closed: *one spec reporting success would close the tracking
+# issue while the failures that opened it went unrun.*
+#
+# ## Concurrency lives HERE, not in the caller
+#
+# The filing job runs in a non-cancelling, repository-wide concurrency group, so
+# two overlapping nightly reports serialise instead of racing. Two reports racing
+# would both read "no open issue for this suite" and both file one. It is
+# declared in this reusable workflow rather than left to the caller template
+# precisely so an adopter cannot forget it — a forgotten concurrency group
+# produces duplicates, and duplicates are what "one issue per suite" exists to
+# prevent. (The GATE caller uses a per-PR CANCELLING group, correctly: it is a
+# stateless read with no shared state, so a superseded evaluation is pure waste.)
+#
+# Idempotence is the belt to that suspenders: filing looks the suite up by an
+# identity marker in the issue body, so even a report that somehow ran twice
+# refreshes the issue the first one filed.
+#
+# ## Exit code
+#
+# This job's status answers "did REPORTING work", never "is the suite green". A
+# red nightly reported correctly is a SUCCESSFUL report. The job fails only when
+# it could not write what it needed to write — do not make it a required check.
+
+name: 🌙 Nightly E2E Report
+
+on:
+  workflow_call:
+    inputs:
+      suites:
+        description: >-
+          REQUIRED. The same JSON array the gate reads, validated against the
+          same schema. Keep it identical to the gate caller's, or the issues will
+          describe a different set of suites than the one blocking merges.
+        required: true
+        type: string
+      branch:
+        description: >-
+          REQUIRED. The branch whose nightly verdict is being reported — the same
+          branch the gate is armed on.
+        required: true
+        type: string
+      freshness_hours:
+        description: 'Default freshness window, matching the gate.'
+        required: false
+        default: 36
+        type: number
+      issue_label:
+        description: >-
+          The label every tracking issue carries. It is also how this job FINDS
+          the issue it already owns, so changing it orphans the open ones — file
+          them under the new label and close the old by hand, once.
+        required: false
+        default: 'nightly-e2e'
+        type: string
+      guard_script:
+        description: >-
+          Path to the Lisa-shipped guard inside the CALLER repository. Ships via
+          copy-overwrite; run `lisa apply` if it is missing.
+        required: false
+        default: 'scripts/check-nightly-e2e-health.mjs'
+        type: string
+      expected_contract_major:
+        description: >-
+          Major version of the guard contract this workflow revision speaks. A
+          mismatch fails closed rather than reporting under a contract neither
+          half agrees on.
+        required: false
+        default: 1
+        type: number
+      node_version:
+        description: 'Node.js version used to run the guard.'
+        required: false
+        default: '22.21.1'
+        type: string
+      api_max_attempts:
+        description: 'Bounded retries for a throttled or unreachable API.'
+        required: false
+        default: 3
+        type: number
+      api_max_pages:
+        description: "Page cap when listing a run's jobs, and when listing open tracking issues."
+        required: false
+        default: 5
+        type: number
+      api_retry_max_seconds:
+        description: 'Ceiling on any single rate-limit backoff wait.'
+        required: false
+        default: 60
+        type: number
+      timeout_minutes:
+        description: 'Ceiling for the reporting job.'
+        required: false
+        default: 10
+        type: number
+
+# A called workflow's `permissions:` is a CEILING, not a request. `issues: write`
+# is the one scope this half has that the gate half deliberately does not — and
+# it is why they are two files. Nothing here needs `contents: write`.
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  report:
+    name: 🌙 Report
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    # NON-CANCELLING, and repository-wide rather than per-ref. Two reports
+    # racing would both read "no open issue for this suite" and both file one;
+    # `cancel-in-progress: true` would instead kill a report half way through
+    # updating an issue set. Neither is acceptable for a job that writes, so the
+    # second run WAITS. Not keyed on `github.ref` on purpose: two runs on
+    # different refs still write to the same issues.
+    concurrency:
+      group: lisa-nightly-e2e-report-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🔒 Assert the guard is present and contract-compatible
+        env:
+          GUARD: ${{ inputs.guard_script }}
+          EXPECTED_MAJOR: ${{ inputs.expected_contract_major }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$GUARD" ]]; then
+            echo "::error title=Nightly E2E reporter is not installed::'$GUARD' does not exist in this repository. It ships from Lisa via copy-overwrite — run \`lisa apply\` (or set the guard_script input)."
+            exit 1
+          fi
+          version="$(node "$GUARD" --contract-version)"
+          major="${version%%.*}"
+          echo "guard contract version: $version (expected major $EXPECTED_MAJOR)"
+          if [[ "$major" != "$EXPECTED_MAJOR" ]]; then
+            echo "::error title=Nightly E2E contract mismatch::The reusable workflow speaks contract major $EXPECTED_MAJOR but '$GUARD' is $version. Re-pin the caller to a matching Lisa tag, or run \`lisa apply\` at that tag."
+            exit 1
+          fi
+
+      - name: 🌙 File, refresh and close the tracking issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NIGHTLY_SUITES: ${{ inputs.suites }}
+          NIGHTLY_BRANCH: ${{ inputs.branch }}
+          NIGHTLY_FRESHNESS_HOURS: ${{ inputs.freshness_hours }}
+          NIGHTLY_ISSUE_LABEL: ${{ inputs.issue_label }}
+          NIGHTLY_API_MAX_ATTEMPTS: ${{ inputs.api_max_attempts }}
+          NIGHTLY_API_MAX_PAGES: ${{ inputs.api_max_pages }}
+          NIGHTLY_API_RETRY_MAX_SECONDS: ${{ inputs.api_retry_max_seconds }}
+        run: node "${{ inputs.guard_script }}" --report-issues
