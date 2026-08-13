@@ -13,6 +13,12 @@ import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
+// Spawns a full `tsc` typecheck per case. Failed 2 of 12 full-suite runs
+// measured at load ~115 with 38 agent worktrees present, without being touched
+// by the change under test (CodySwannGT/lisa#2490).
+useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANAGED_CONFIG_FILENAME = "eslint.config.ts";

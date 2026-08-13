@@ -8,7 +8,14 @@ import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+
+// `beforeEach` seeds a plugin repo and runs the real `build-plugins.sh`, so
+// every case pays a full shell build. 9.2s of the 10s default, measured at load
+// ~48 on 18 cores. At 16-way concurrency (load 68.5) 15/16 processes failed,
+// every one `Hook timed out in 10000ms`; 0/16 at 60s (CodySwannGT/lisa#2490).
+useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(".");
 const PLUGINS = "plugins";
