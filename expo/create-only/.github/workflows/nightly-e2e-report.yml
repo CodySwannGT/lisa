@@ -1,0 +1,71 @@
+name: 🌙 Nightly E2E Report
+
+# The REPORTING half of the nightly e2e standard, and the companion to
+# `nightly-e2e-health.yml`.
+#
+# The gate tells whoever opened a pull request that the nightly is red. It tells
+# nobody else. A red suite with no open pull requests is invisible, there is
+# nothing to assign, and there is no record that it came back. This workflow
+# keeps exactly ONE open tracking issue per suite: filed the first red night,
+# refreshed every night it is still red, closed automatically the night a full
+# green run lands.
+#
+# ## This is NOT a gate — never make it a required check
+#
+# Its status answers "did reporting work", not "is the suite green". A red
+# nightly reported correctly is a successful report. Requiring this context would
+# hand an issues-API outage the power to block every pull request, which is
+# exactly the coupling the two-workflow split exists to prevent: the gate
+# workflow does not request `issues:` scope at all, so it cannot file, and this
+# one is not required, so it cannot block.
+#
+# ## Wiring this up
+#
+#   1. Keep `suites` and `branch` IDENTICAL to your `nightly-e2e-health.yml`
+#      caller. Two different tables means the issues describe a different set of
+#      suites than the one blocking merges.
+#   2. Schedule it AFTER your nightly suites finish, not before. It reports on
+#      the runs they produced; running it first reports on yesterday's.
+#   3. Leave the `nightly-e2e` label alone once issues exist under it — the label
+#      is how this job finds the issue it already owns.
+#
+# ## Concurrency
+#
+# Deliberately absent here. The non-cancelling group lives in Lisa's reusable
+# workflow, on the job that writes, so an adopter cannot forget it — a forgotten
+# group lets two overlapping reports both read "no open issue" and both file one.
+
+on:
+  schedule:
+    # ~90 minutes after a midnight-UTC nightly, so the suites it reports on have
+    # finished. Move it if yours run at another hour; reporting on a suite that
+    # is still running produces "no completed run" every night.
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Reading the nightly run history — the same read the gate does.
+  actions: read
+  # The one scope the GATE deliberately does not have. Filing lives here so an
+  # issues outage can never redden a required check.
+  issues: write
+
+jobs:
+  report:
+    name: 🌙 Nightly E2E Report
+    # PIN AN IMMUTABLE REF, for the same reason the gate caller does: the two
+    # halves must speak the same contract major, and `@main` can change between
+    # a report and the gate reading the same night.
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@v2.345.1
+    with:
+      branch: dev
+      # KEEP THIS IDENTICAL to the `suites` value in nightly-e2e-health.yml.
+      suites: |
+        [
+          {
+            "label": "Maestro native e2e",
+            "workflow": "maestro-e2e.yml",
+            "match": { "mode": "run" }
+          }
+        ]
