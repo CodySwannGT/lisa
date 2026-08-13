@@ -218,7 +218,12 @@ describe("the contract document and the reporting code stay together", () => {
   });
 
   it("records the reporting half as a MINOR contract bump", () => {
-    expect(guard).toContain('NIGHTLY_E2E_CONTRACT_VERSION = "1.2.0"');
+    // The claim is "this shipped inside major 1", not "the guard is pinned at
+    // the version this half shipped as". Asserting the exact current version
+    // would make every LATER minor — rows 32-35 shipped the next one — fail a
+    // case about a bump that already happened, so the durable assertions are
+    // the MAJOR plus the history the doc records.
+    expect(guard).toMatch(/NIGHTLY_E2E_CONTRACT_VERSION = "1\.\d+\.\d+"/);
     expect(doc).toContain("adding a surface that gates nothing");
     expect(doc).toContain("1.1.0 → 1.2.0");
   });
