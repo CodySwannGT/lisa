@@ -36,7 +36,19 @@ Lisa bug reports (geminisportsai infra `945b39c`, `b9b2ef3`).
 
 ### 1. The canonical host-rules path is `.agents/rules/`
 
-Host-authored, agent-neutral, one directory. Chosen over `agents/rules/` because the
+Host-authored, agent-neutral, one directory.
+
+**This is a canonical *source* path, not a claim that every agent auto-loads it.**
+Only Antigravity discovers `.agents/rules/` natively. Claude Code auto-loads
+`.claude/rules/`, Cursor `.cursor/rules/*.mdc`, Copilot
+`.github/copilot-instructions.md` plus `.github/instructions/*.instructions.md`, and
+Codex builds an instruction chain from `AGENTS.md` files root-down. The `AGENTS.md`
+pointer block (item 2) makes the directory *reachable* on the agents that read
+`AGENTS.md` and follow relative references; it does not make it *eagerly loaded*
+anywhere except Antigravity. Work unit A owns the per-agent delivery bridge and must
+state, per agent, whether the rules arrive eagerly or on-demand — the parity tests
+assert that real behavior rather than uniform delivery (see item 5 for the agy gap,
+which is the one case where the difference is accepted rather than bridged). Chosen over `agents/rules/` because the
 dot-prefixed spelling matches the existing `.agents/` tree (which already holds
 `skills/` and `plugins/`) and because `.agents/rules` is **already reserved** in
 `AUTO_LOADED_RULES_DIR_PREFIXES` (`src/core/project-config.ts:67`) — the blocklist
@@ -47,6 +59,13 @@ ledger-collision protection for free.
 ### 2. Ownership is split and explicit
 
 - `.agents/rules/` is **host-authored**. Lisa never writes rule bodies into it.
+  This holds for work unit B's eager pack too: B does not ship a Lisa-generated pack
+  *into* the host directory. `.agents/rules/` is the pack's **destination rung**, and
+  content arrives there by human-gated promotion through the ladder — the gardener
+  proposes, a human approves the ticket, and the promoted rule is written as host
+  content the host then owns. Lisa's own shared rules never take that route; they stay
+  on the `plugins/src/base/rules/` fan-out below. So there is no generated-file class
+  in `.agents/rules/` and nothing for apply to overwrite or reconcile.
 - Lisa's own shared rules keep originating at `plugins/src/base/rules/` and reaching
   agents through the existing per-agent build fan-out and `inject-rules.sh`.
 - `AGENTS.md` receives a **Lisa-managed pointer block** naming the host-rules
@@ -96,10 +115,16 @@ The eager `wiki-knowledge-source` rule currently says *consult the wiki first* a
 context-expensive than intended. It becomes: the wiki exists, query it when you need
 depth, do not load it at session start. The query skill remains the retrieval path.
 
-A packaging bug is fixed in the same change: the eager rule ships in the **base**
-plugin while `lisa-wiki-query` ships only in the **wiki** plugin, so base-only
-projects get a rule pointing at a skill they do not have. Either condition the rule on
-the wiki plugin's presence or move the skill into base.
+A packaging bug is **identified here and fixed by work unit A**, not by this
+documentation-only change: the eager rule ships in the **base** plugin while
+`lisa-wiki-query` ships only in the **wiki** plugin, so base-only projects get a rule
+pointing at a skill they do not have. Two remedies are open — condition the rule on
+the wiki plugin's presence, or move the skill into base. Choosing between them is
+delegated to work unit A rather than settled here, because the choice turns on
+packaging details (whether base may carry a wiki-shaped skill at all) that A has to
+work out anyway. Until A lands, base-only projects still receive
+`wiki-knowledge-source` without `lisa-wiki-query`; A is not done until that is closed
+with a test proving a base-only install has no dangling rule.
 
 ## Alternatives Considered
 

@@ -3,8 +3,13 @@
 > Source: `docs/wiki-inbox/2026-08-12-lisa-improvement-notes.md` (revised 2026-08-12 —
 > every "current state" claim in it was verified against the codebase; this plan builds
 > on the corrected version).
-> Status: proposed — Phase 0 decisions must be recorded before Phase 2 starts.
-> Work-unit letters (A–J) match the source document's "Suggested work units" table.
+> Status: proposed, **Phase 0 complete** — all six Phase 0 decisions were recorded on
+> 2026-08-12 (see below), so the Phase 2 gate is satisfied. The implementation plan
+> itself stays proposed until each work unit ships.
+> Work-unit letters run **A–N**. A–J match the source document's "Suggested work
+> units" table; K–N were added by the 2026-08-12 fleet survey below and own the
+> fleet-facing work — K fleet rules cleanup, L fleet BDD gate resync, M Lisa bug
+> burn-down, N absorb fleet inventions.
 
 ## Goal
 
@@ -176,10 +181,11 @@ artifact regeneration.
 
 ### WU-L — fleet BDD gate resync *(follows G part 1; fleet-side)*
 
-**Scope.** No downstream adopter runs Lisa's v2 gate, and **no repo runs the gate in
-CI at all** — it went red on gemini's default branch twice in four days unnoticed;
-tunnlai wired it as a jest arm inside Quality Checks (the only enforcement in the
-fleet); propswap runs it by hand. Fixes are hand-carried between forks (the
+**Scope.** No downstream adopter runs Lisa's **v2** gate — every fleet repo runs a
+forked **v1** monolith. And **no repo runs the v2 gate in CI at all**: it went red on
+gemini's default branch twice in four days unnoticed. The only CI enforcement anywhere
+in the fleet is tunnlai's, and it is the *v1* fork wired as a jest arm inside Quality
+Checks; propswap runs its v1 fork by hand. Fixes are hand-carried between forks (the
 wrapped-tag parser bug was fixed independently in gunnertech `53f49f5`, tunnlai
 `efbafd8a`, gemini `b4ff482e1`, propswap `af4bad9a` + `e0106be`). This work unit ends
 the fork family.
@@ -445,8 +451,31 @@ obligation.
    resolves Linear/Notion/Atlassian operations without touching browser auth; pulling
    the token restores MCP fallback.
 
-**Done when.** Every `*-access` skill resolves substrates in the contract's order, and
-both live checks in step 4 pass.
+**Scope note — which skills the contract binds.** Eight `lisa-*-access` skills exist,
+and an audit of their current text (2026-08-12) shows the MCP-first problem is wider
+than the three skills step 2 names. The contract binds the **six multi-substrate**
+skills, all of which resolve MCP before their token/CLI path today and so all need
+re-ordering, not just citing:
+
+- `lisa-linear-access`, `lisa-notion-access`, `lisa-atlassian-access` — named in step 2.
+- `lisa-sentry-access` (MCP → `sentry-cli` → `SENTRY_AUTH_TOKEN` REST),
+  `lisa-posthog-access` (MCP → `POSTHOG_PERSONAL_API_KEY`), and `lisa-jam-access`
+  (MCP → `JAM_PAT` CLI) — **add these to step 2's re-ordering work.** They were
+  missed in the first pass; the headless-session failure mode is identical.
+
+Two are **explicitly out of scope**, and each carries a one-line "out of scope for the
+substrate-precedence contract, because …" note so the exclusion is auditable rather
+than a silent omission:
+
+- `lisa-secrets-access` — it *is* the token source feeding every other skill's tier 1,
+  so it has no substrate tier of its own to order.
+- `lisa-sonarcloud-access` — single substrate (the official SonarQube MCP server,
+  already authenticated headlessly from `SONARQUBE_CLI_TOKEN`), so there is no second
+  tier to prefer and no browser-auth failure mode to fix.
+
+**Done when.** All six multi-substrate `*-access` skills resolve substrates in the
+contract's order, both excluded skills carry their recorded exception note, and both
+live checks in step 4 pass.
 
 ---
 
@@ -458,11 +487,36 @@ findings already folded into WU-G/WU-L: **bugs in Lisa itself** that downstream 
 have been patching around, and **fleet inventions** Lisa should absorb. They feed the
 two work units below plus targeted enrichments noted inline in earlier units.
 
+### ⚠️ Meta-finding (2026-08-12): the fleet's evidence lags current Lisa
+
+**Three** audited rows have now turned out to be **already fixed upstream** once
+checked against current source — including both High rows below:
+
+- The `skip_jobs` substring bug was fixed in `1ced328b7` (2026-07-24) — *before* the
+  downstream rule file documenting it was written.
+- The learnings-ledger scaffolding bug is fixed (template source is
+  `all/create-only/.lisa/PROJECT_LEARNINGS.md`, config validation rejects eager trees,
+  apply/doctor relocate a legacy ledger), and merge-hostility is handled by a shipped
+  union merge driver, `.gitattributes` mapping, write lock, and conflict diagnosis.
+
+**Implication, and it reframes the fleet work:** much of the downstream pain is *"the
+repo has not updated"*, not *"Lisa is broken."* The corollary is that stale downstream
+rule files actively mislead — they document bugs Lisa already fixed, so WU-K must
+**retire** such files rather than promote their content through the ladder.
+
+**Standing instruction for every remaining WU-M row: verify against current source
+before fixing.** Report "already fixed" as a valid, valuable outcome. It also raises
+the priority of the fleet-update work (WU-K/WU-L) relative to upstream bug fixing.
+
+Note this does *not* make the audit worthless — the two "already fixed" rows still
+produced real hardening (a write-boundary guard and a doctor check that did not exist),
+and the live filtered-dispatch exposure was found by the same pass.
+
 ### Bugs in Lisa surfaced downstream → WU-M
 
 | Bug | Evidence | Severity |
 |---|---|---|
-| `quality.yml` `skip_jobs` uses `contains()` substring matching — `test:e2e` falsely skips `test`, and a skipped job reports SUCCESS satisfying a required check | gemini backend-v2 `ci-github-workflows.md` (SE-5511, PR #2713), tunnlai `check-skipped-required-checks.mjs` (TUN-402) | **High — silently disables required gates** |
+| ~~`quality.yml` `skip_jobs` uses `contains()` substring matching~~ — **REFUTED 2026-08-12.** Already fixed upstream in `1ced328b7` (2026-07-24, #2028): every gate in `quality.yml` and `quality-rails.yml` uses the sentinel-comma idiom `contains(format(',{0},', inputs.skip_jobs), ',test,')`, which is exact token matching. Regression tests exist (`tests/integration/quality-workflow.test.ts:154-183`, including the explicit `test:e2e` case) and Lisa already ships its own `check-skipped-required-checks.mjs`. **The downstream rule file is stale — WU-K retires it rather than promoting it.** Two residual gaps filed as follow-ups: no shipped workflow invokes `check:skipped-required-checks`, and whitespace in `skip_jobs` is not trimmed (fails closed) | gemini backend-v2 `ci-github-workflows.md` (SE-5511, PR #2713), tunnlai `check-skipped-required-checks.mjs` (TUN-402) | ~~High~~ → **not a bug** |
 | Enforcement-guard scripts are create-only on install, so a Lisa release fixing a guard never reaches installed repos — propswap had to delete-and-recreate to pick up the #2374 fail-open fixes | propswap `863ffbf3` commit body | **High — security fixes don't propagate** |
 | Lisa 2.232.0 scaffolded `PROJECT_LEARNINGS.md` into `.claude/rules/` (auto-loaded, eager), and the JSONL-in-fenced-block format is merge-hostile: two branches wrote off the same empty blob, the merge took the empty side, **19 captured learnings destroyed** with no error | gemini frontend-v2 (`9d61ce1b8`, `e6a53af3c` vs `origin/dev`) | **High — silent data loss** |
 | `automation-run-record.mjs` trims the live ledger to 50 records at append — at observed cadence the loop's audit trail dies in under a day | tunnlai `check-ledger-archive.mjs` (TUN-369) | Medium |
@@ -480,11 +534,7 @@ two work units below plus targeted enrichments noted inline in earlier units.
 
 - **False-green / zero-coverage family** (the most-repeated theme fleet-wide, fixed ≥8
   times at tunnlai alone): "a suite that ran nothing must not read as green."
-  Propswap's nightly-e2e-health + single-refreshing-tracking-issue machinery is the
-  best-in-class implementation; tunnlai's zero-coverage verdict (an arm that executed
-  0/83 flows blocks even a `success` run) and gemini's dead-monitor rule ("zero events
-  across a monitor's lifetime is itself a signal") are the same invariant. Check
-  overlap with Lisa's just-merged #2416 before building.
+  **#2416 overlap check completed 2026-08-12** — results below; scope is now precise.
 - **Loop memory**: tunnlai's `standing_rulings` field + `standing-rulings.mjs`
   read-side — the intake loop wrote records it never read and re-litigated its own
   rulings (probes six and seven of an answered question).
@@ -528,15 +578,71 @@ two work units below plus targeted enrichments noted inline in earlier units.
   seal-ledger into deterministic ESLint/ast-grep rules with shrink-to-zero
   allowlists. D2's recommendation is validated in the field.
 
+### #2416 overlap check — results (2026-08-12)
+
+**Already shipped; do NOT rebuild.** Lisa's version is stricter than the fleet's on
+several axes and its rationale is better argued:
+
+- Red-nightly-blocks-merges, fail-closed well past `conclusion == failure`
+  (`cancelled`/`skipped`/`neutral`/stale/wrong-branch/renamed-job/API-error all block).
+- The bypass deadlock arm — one audited label, **no self-bypass**, maintainer
+  allowlist, mandatory ticket+reason, 72h source-constant ceiling, merge-time reaper,
+  `bypassed` as a distinct audited verdict, and explicitly **no admin-merge-past-red**.
+- Job-level gate reading (`match.mode: job` / `job_pattern`, nested-reusable name
+  composition, zero-match-is-an-error), plus the inverse `check-skipped-required-checks`
+  guard the fleet lacks. #2416 even deleted `expo/github-rulesets/playwright.json` for
+  being a required context CI unconditionally skipped.
+- Time-boxed bootstrap with an enforced ceiling — a deliberate rejection of propswap's
+  unbounded forever-bootstrap, which `docs/nightly-e2e-gate.md:186-187` names as the
+  anti-pattern.
+
+**Genuinely new — absorb, in this order:**
+
+1. **Filtered/partial-dispatch exclusion — this is a LIVE EXPOSURE, not a gap.** The
+   shipped nightly caller has a `platform` dispatch picker; `platform: android` skips
+   the iOS job while the run still concludes `success`, and the default suites table
+   reads it with `{"mode":"run"}` — so the gate goes green with half the fleet
+   untested. `COUNTED_EVENTS` treats a `workflow_dispatch` identically to a cron run,
+   and nothing inspects run inputs, matrix completeness, or `include_tags`. Cheapest
+   high-value fix in the list; **treat as a WU-M bug row, not a feature.**
+2. **Zero-coverage as a distinct blocking state.** Needs a fourth suite state beside
+   `pass|fail|unknown`, must block even when the run concluded `success`, and must
+   distinguish "count unavailable" from "count zero". Design conflict to resolve
+   honestly: `docs/nightly-e2e-gate.md:33-38` **explicitly refuses artifacts as a
+   result source** (no Node zip reader; artifacts expire) — but tunnlai's mechanism
+   carries the count in the artifact *name*, read from the artifacts *list* in one API
+   call, which defeats both objections. Absorbing it means amending that normative
+   section plus the truth table and its per-row tests.
+3. **One-open-tracking-issue-per-suite**, refreshed nightly, auto-closed on green.
+   Wholly absent — the guard's own bypass report references a tracking issue Lisa never
+   creates (`check-nightly-e2e-health.mjs:970`). Bring the non-cancelling concurrency
+   group for the *filing* job, and gate filing on "this was a full, unfiltered run"
+   (depends on item 1).
+4. **Per-suite bootstrap / first-seen grace.** Bootstrap is workflow-global today, so
+   adding a suite to an armed repo hard-blocks every PR until that suite's first green
+   nightly; the only outs are un-arming every other suite or burning a bypass. Small
+   schema addition, closes a real wedge.
+5. **Maestro flake classification + known-intermittent registry.** Architecturally
+   separate — belongs on the JUnit-producing side (`maestro-native-e2e.yml` already
+   emits XML nobody reads), so scope it independently of the gate.
+
 ### WU-M — Lisa bug burn-down from the fleet audit *(Phase 1; decision-free)*
 
-File one tracked ticket per row of the bugs table (checking first which are already
-filed — #2395 is; the guard-delivery and skip_jobs bugs may overlap existing issues),
+**Verify every row against current source before fixing it, and ticket only the rows
+that survive** — the meta-finding above applies here first. The `skip_jobs` row is
+already **refuted and closed**: fixed upstream in `1ced328b7` (2026-07-24, #2028), so
+it gets no fix ticket and must not be promoted downstream; its two residual gaps are
+filed separately as #2426 and #2427, and WU-K retires the stale downstream rule file
+that still documents it. That leaves **two** High rows, not three.
+
+For each surviving row file one tracked ticket (checking first which are already
+filed — #2395 is; the guard-delivery bug may overlap an existing issue),
 fix in severity order, and where a downstream repo built a compensating guard
 (`check-ledger-archive`, `check-lifecycle-label-config`, `check-skipped-required-checks`,
 `check-lisa-pii`), evaluate absorbing the guard upstream as the regression test for
-the fix. The three High rows are candidates to pull ahead of everything else in this
-plan. **Done when** every row is fixed-or-ticketed, and the fixed ones reach installed
+the fix. The two surviving High rows are candidates to pull ahead of everything else
+in this plan. **Done when** every row is fixed, ticketed, or recorded as refuted with
+the upstream commit that already fixed it, and the fixed ones reach installed
 repos — which itself depends on fixing the guard-delivery row.
 
 ### WU-N — absorb fleet inventions *(Phase 1 start; some pieces land with A/B/D/L)*
@@ -626,6 +732,64 @@ release; WU-E vault repair and WU-I host runs piggyback on the same batches.
 
 ## Sessions
 
+Umbrella work item: **CodySwannGT/lisa#2423**. Each work unit files its own issue.
+
 | Date | Session | Work |
 |---|---|---|
-| 2026-08-12 | (this session) | Plan authored from the revised improvement notes |
+| 2026-08-12 | orchestrator | Plan authored from the revised improvement notes |
+| 2026-08-12 | orchestrator | **Phase 0 complete** — four decision records written, wiki index updated, PR #2425 (auto-merge on) |
+| 2026-08-12 | subagent | WU-M row 1 (`skip_jobs`) **REFUTED** — already fixed in `1ced328b7`; no PR. Residual gaps filed as #2426, #2427 |
+| 2026-08-12 | subagent | WU-M row 3 → PR #2434 (write-boundary guard + doctor stray-ledger check); follow-up #2435 |
+| 2026-08-12 | subagent | WU-M row 2 → PR #2436 (**confirmed**; `applyNonInteractive` returns `stale` under `skipGitCheck`) |
+| 2026-08-12 | orchestrator | Dispatched N-1 (filtered-dispatch exposure), G1, J; adopted existing PR #2410 for N-2 rather than duplicating it; spawned a standing `pr-shepherd` to drive stalled PRs |
+
+**Standing note on merge throughput:** every PR lands in `BLOCKED` even with all
+checks green, because branch protection requires every CodeRabbit thread resolved and
+a stale `CHANGES_REQUESTED` dismissed. Implementation agents open PRs but do not
+shepherd them, so a dedicated shepherd is required or PRs accumulate unmerged.
+
+### Live work-unit status
+
+| WU | State | Notes |
+|---|---|---|
+| Phase 0 (D1–D6) | ✅ done | PR #2425, auto-merge armed |
+| M row 1 (`skip_jobs`) | ✅ closed (refuted) | Already fixed in `1ced328b7`. Retire the stale downstream rule file in K. Residual gaps filed: #2426 (guard never invoked by a shipped workflow), #2427 (whitespace not trimmed) |
+| M row 2 (guard delivery) | ✅ done | **PR #2436 — CONFIRMED**, but the mechanism was *not* the create-only misclassification the downstream commit guessed. `CopyOverwriteStrategy.applyNonInteractive` leaves every differing managed file alone and returns `stale` when `skipGitCheck` is set — exactly the postinstall apply a version bump runs. #2374's follow-ups made staleness *visible* and added opt-in `--refresh-templates`, but a bump passes no flags, so guard fixes shipped to nobody; deleting the file to hit the create path was the only working route. Fix: `src/core/lisa-owned-templates.ts` — paths carrying the `lisa-` namespace segment refresh on any apply (backed up to `.lisabak/` first), while host-customisable files (`tsconfig.json`, `knip.json`, `eslint.config.ts`) keep the conservative behavior; `.lisaignore` still wins. Plus a doctor warn-check for cases apply can't reach (pinned old Lisa, ignored path, never re-applied). Verified with a real `apply` against a scratch project. **This unblocks every fleet-side fix actually reaching installed repos.** |
+| M row 3 (ledger data loss) | ✅ **MERGED** `25a00812` | **PR #2434.** Scaffolding bug + merge-hostility already fixed upstream; two genuinely new arms added — a write-boundary hard-fail (`resolveSafeLearningTarget` refuses eager-tree targets, re-deriving from the *resolved* path so `.lisa/../.claude/rules/x.md` is caught) and a `lisa doctor` stray-ledger check. 29 new tests. Follow-up #2435 (doctor should report an unregistered merge driver) |
+| E (secrets enforcement) | ✅ done | **PR #2437.** One shared validator module so `doctor-secrets` and `resolve-secret verify` cannot disagree; empty note warn→**error** plus well-formedness codes; deliberately does *not* over-enforce (field set / prose quality unchecked, recorded in a test so it doesn't read as an oversight). Real bypasses fixed: `github-status-check.sh` was `source .env.local` (importing every parked token), three setup skills read the keychain with no resolver rung, `config-resolution.md` was a stale pre-chokepoint copy, and `lisa-linear-access` had no rung at all. Follow-up #2438 (four more access layers with bare env reads; keychain fallbacks need a removal date). **Operator impact: the five BWS tenants will newly fail `doctor` until every secret carries a note.** |
+| C (branch plan) | ✅ done | **PR #2439.** New vendor-neutral `derived-branch-plan` rule slug cited by seven surfaces; 3 writers render it, 3 validators gain gate S19, `lisa-implement` revalidates at claim time. Deliberate asymmetry: a *proposed* spec missing the plan FAILs, a *live legacy* item gets `N/A` + a `[lisa-branch-plan]` assumption comment, so an existing queue doesn't redden for a section no human could have added. **Design catch:** both fields name the *same* branch by construction (branch off `origin/<base>`, PR into `<base>`) — a plan naming two is malformed; the forward cherry-pick case travels as a linked follow-up item, documented so nobody "fixes" the invariant by loosening it |
+| F (Figma marker) | ✅ done | **PR #2441** (issue #2430). Marker `DESIGN-SOURCE: none — not in Figma`, paired with the positive `DESIGN-SOURCE: <figma-url>`; spelling **pinned by a test** because a drifted marker silently disarms the gate instead of failing loudly. Deterministic CLI `design-source-gate.mjs` wired blocking into `lisa-review-local` (exempt from confidence filtering) and `lisa-quality-review` (Critical); `lisa-implement` makes the declaration a non-demotable same-PR deliverable, sync-back first when the tool preflight proved Figma access. Fails closed on `undeclared`, `malformed` (any non-figma.com link — a copy of a design can't be updated when the design changes), `conflicting`, `unreadable`, and both unresolved-diff cases. No host collision: the contract "governs whether the design source is declared, never what to build", and preserves the generated-from-RFC provenance |
+| A (rules architecture) | 🔄 in flight | Critical path — B and K depend on it |
+| N scout (#2416 overlap) | ✅ done | Four capabilities already shipped (don't rebuild); five genuinely new, prioritized |
+| N-1 (filtered-dispatch false green) | 🔄 in flight | **Live exposure** — reclassified from feature to bug |
+| N-2 (zero-flow detection) | ✅ **MERGED** `ebb2b658` | **PR #2410** (issue #2409) — adopted rather than duplicated; was DIRTY, driven to merge. Attacks the arm level (a zero-flow arm now fails loudly and distinctly, standing down when a run is *cancelled*) while N-1 attacks the gate level |
+| N-3..5 (tracking issue, per-suite bootstrap, flake classifier) | ⬜ queued | N-3 depends on N-1; N-5 scopes independently on the JUnit side |
+| G1, I | ⬜ queued | Phase 1 |
+| B, D, H, J, K, L, G2 | ⬜ blocked | A→B, A→K, G1→L, D2→H→G2 |
+
+**Orchestrator restart contract:** this file plus the tables above are sufficient to
+resume. Nothing needed to continue lives only in session context.
+
+### Operational notes for every dispatch (learned 2026-08-12)
+
+- **Heredocs are blocked** by the safety-net hook — write commit messages to a file and
+  use `git commit -F <file>`.
+- **The work-item gate blocks commits**: create a GitHub issue, claim it
+  (`status:ready` → `status:in-progress`), then
+  `node scripts/lisa-work-item.mjs bind CodySwannGT/lisa#<N>`. Bind requires the full
+  `owner/repo#N` form and fails unless the issue is claimed.
+- **The upstream-evidence-manifest gate** fires on *any* new tracked file under a
+  governed path (including `plans/` and `docs/`), not just template edits. Run
+  `bun run build:upstream-evidence-manifest` after `git add`, in the same commit.
+- Pre-push runs the full `test:cov` suite — expect a multi-minute push.
+- **A fresh worktree must run `bun install` before pushing** — worktrees can start with
+  an empty `node_modules`, which makes knip fail pre-push and ast-grep/expo tests fail
+  spuriously. Confirmed independently by the WU-C and WU-F agents; it fails identically
+  on clean `main` without an install. Environment, not a code defect.
+- **The manifest can need a *third* commit.** lint-staged's prettier pass rewrites
+  files *after* the post-`git add` manifest generation, so the recorded hash can
+  describe a version that never landed. Re-check the manifest after the commit hooks
+  run, not just after `git add`.
+- Some local test failures are pre-existing and environmental (`ast-grep` binary
+  unavailable): `ast-grep-template`, `expo-eslint-local-config`, `enforcement-gates-e2e`,
+  `check-learnings-budget`. Verify against a clean tree before chasing them.
