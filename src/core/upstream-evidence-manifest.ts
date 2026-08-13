@@ -199,7 +199,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "d69d4b9cf275f5e07a090f5763f80bb946435c33627dfe21d261650cfe88851a",
+      "68194b5e096c8d49579e06aed5e41df71c43c4dc46bbbcb390b4a27cd1e78c7f",
     "expo/create-only/.github/workflows/ci.yml":
       "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -363,7 +363,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "6bbbe6976ec39c516608f69b02a431187d948d63b0b28ab7ad32a052e87ea171",
+      "7d9af483f6150e2f7281f008dd08b56590721f3c86f6b1a3b7548f7838a0137f",
     "nestjs/create-only/.github/workflows/ci.yml":
       "0985668e6d0478f1993bed8ccd398601d8e73376afd8775e1269ae129418152e",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2253,7 +2253,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "c9dd6f6816b35d4d8f684892878d4181b9cb5266a7f2e2814970aa49dc04a001",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "e4a9d255c74a7ddeac3db5fdf47b5c5f8110f49f63576983d7e4ffe23e4a631b",
+      "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2275,7 +2275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
     "typescript/create-only/.github/required-checks.json":
-      "86718597f15cd23527ba32e6490ba2269457a78e18abb257f97bde5076d3dc7d",
+      "49063a033604c8e98f7782e4352d67dea77ac9b949189f166e43044f0af7e4f4",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2299,7 +2299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/claude.yml":
       "fd230bf19769a12b1b3afeeeb1d5f51c44338db974c26ff05dc381f0e1ba2382",
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
-      "ec0d93396043b3d9fe0263a3ffbdc4721b1890020886bd97a09afe779c703adf",
+      "e3eed885502d389e3b9ac3d083b340f5a52e469aceec592a947c56ec5b17cf5c",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
