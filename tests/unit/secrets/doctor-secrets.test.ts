@@ -129,20 +129,79 @@ describe("naming assertion", () => {
 });
 
 describe("note assertion", () => {
-  it("warns on an empty note", () => {
+  it("blocks on an empty note", () => {
+    // The contract has always said the note "must exist and be well-formed",
+    // enforced statically by doctor. A warning does not enforce anything: a
+    // vault full of empty notes reported clean, which is how the notes stayed
+    // empty.
     const { findings, report } = collector();
     checkNotes(providerView({ A_KEY: { value: "v", note: "" } }), report);
-    expect(findings[0].level).toBe("warn");
-    expect(findings[0].message).toMatch(/writes to the wrong system/i);
+    expect(findings[0].level).toBe("error");
+    expect(findings[0].name).toBe("A_KEY");
   });
 
-  it("accepts a populated note", () => {
+  it("blocks on a missing note", () => {
+    const { findings, report } = collector();
+    checkNotes(providerView({ A_KEY: { value: "v" } }), report);
+    expect(findings[0].level).toBe("error");
+  });
+
+  it("accepts a note in the documented shape", () => {
     const { findings, report } = collector();
     checkNotes(
-      providerView({ A_KEY: { value: "v", note: "purpose" } }),
+      providerView({
+        A_KEY: { value: "v", note: "Attio CRM.\nowner: platform-team" },
+      }),
       report
     );
     expect(findings).toHaveLength(0);
+  });
+
+  it("blocks a note with no plain-language purpose", () => {
+    const { findings, report } = collector();
+    checkNotes(
+      providerView({ A_KEY: { value: "v", note: "owner: platform-team" } }),
+      report
+    );
+    expect(findings[0].level).toBe("error");
+    expect(findings[0].message).toMatch(/first line/i);
+  });
+
+  it("blocks a malformed tool line", () => {
+    const { findings, report } = collector();
+    checkNotes(
+      providerView({
+        A_KEY: { value: "v", note: "A token.\ntool: sonar (for CI)" },
+      }),
+      report
+    );
+    expect(findings[0].level).toBe("error");
+    expect(findings[0].message).toContain("sonar (for CI)");
+  });
+
+  it("warns without blocking on a stray separator in a tool line", () => {
+    const { findings, report } = collector();
+    checkNotes(
+      providerView({ A_KEY: { value: "v", note: "A token.\ntools: sonar," } }),
+      report
+    );
+    expect(findings[0].level).toBe("warn");
+  });
+
+  it("attributes every defect to the secret that carries it", () => {
+    // Doctor prints one line per finding, and a finding with no name is a
+    // report the operator cannot act on.
+    const { findings, report } = collector();
+    checkNotes(
+      providerView({
+        A_KEY: { value: "v", note: "" },
+        B_KEY: { value: "v", note: "Fine.\nscope:" },
+      }),
+      report
+    );
+    expect(
+      findings.map(f => f.name).sort((a, b) => a.localeCompare(b))
+    ).toEqual(["A_KEY", "B_KEY"]);
   });
 });
 

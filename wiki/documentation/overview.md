@@ -183,16 +183,25 @@ When you use Claude's native plan mode:
 | Rule | Purpose |
 |------|---------|
 | `coding-philosophy.md` | Immutable patterns, function structure, TDD, YAGNI/SOLID/DRY/KISS |
-| `PROJECT_RULES.md` | Project-specific conventions (package.lisa.json management, JSON handling) |
 | `verfication.md` | Empirical verification requirements (proof commands for every task) |
 
 **Directory structure:**
 ```
-.claude/rules/
+.claude/rules/          # Lisa-delivered rules (Claude-native tree)
 ├── coding-philosophy.md
-├── PROJECT_RULES.md
 └── verfication.md
+
+.agents/rules/          # host-authored operating rules, agent-neutral
+└── <one file per topic>
 ```
+
+**Host rules are separate.** A project's own operating rules live in
+`.agents/rules/` — one agent-neutral directory, host-authored, that Lisa never
+writes rule bodies into. It is not a native auto-load tree for any runtime;
+every agent reaches it through the Lisa-managed pointer block in `AGENTS.md`, so
+it is read once, on demand. The retired single-file `PROJECT_RULES.md` model is
+gone; projects that still carry the file keep it, untouched and authoritative,
+and the pointer block names it during the transition.
 
 **Key distinction:** Rules are auto-loaded at session start and always active. Skills are invoked when relevant to the current task.
 
@@ -521,10 +530,30 @@ Each project type directory contains these subdirectories:
 
 | Subdirectory | Behavior |
 |-------------|----------|
-| `copy-overwrite/` | Files are overwritten on every Lisa run |
+| `copy-overwrite/` | Lisa replaces the file (see ownership below) |
 | `create-only/` | Files are created only if they don't exist (safe to customize) |
 | `copy-contents/` | File contents are merged rather than replaced |
 | `package-lisa/` | Contains `package.lisa.json` for package.json governance |
+
+#### Who owns a `copy-overwrite` file
+
+The `copy-overwrite` trees hold two populations, and an apply that cannot prompt
+(the postinstall one a version bump runs) treats them differently:
+
+- **Lisa-owned artifacts** — anything with a `lisa-` path segment, such as
+  `scripts/lisa-hooks/*` and `scripts/lisa-enforcement-fallback.sh`. Their
+  content *is* the enforcement, and Lisa's own hooks invoke them by exact path,
+  so they are refreshed on every apply, backed up first. This is how a released
+  fix to a guard reaches an already-installed project; before it existed, such
+  fixes silently never shipped.
+- **Everything else** — `tsconfig.json`, `knip.json`, `eslint.config.ts` and
+  friends, which projects legitimately customize. A non-interactive apply leaves
+  those alone and reports them as `Out of date`. Take them with an interactive
+  `lisa apply .`, or in advance with `--refresh-templates[=paths]`.
+
+Either way, `.lisaignore` wins: an ignored path is never a candidate. `lisa
+doctor` reports any Lisa-owned artifact whose installed copy no longer matches
+the shipped one.
 
 ### Inheritance Chain
 
@@ -607,7 +636,7 @@ jest.config.ts            (copy-overwrite, per-stack entry point)
 ### Migration Notes
 
 When Lisa runs on existing projects:
-- **copy-overwrite files** (`tsconfig.json`, `jest.config.ts`) overwrite existing project files
+- **copy-overwrite files** (`tsconfig.json`, `jest.config.ts`) overwrite existing project files once approved — a non-interactive apply reports them as out of date instead (see [Who owns a `copy-overwrite` file](#who-owns-a-copy-overwrite-file))
 - **create-only files** (`tsconfig.local.json`, `jest.config.local.ts`, `jest.thresholds.json`) only created if absent
 - Projects move project-specific tsconfig settings (paths, includes, outDir) into `tsconfig.local.json`
 - Projects move project-specific jest settings (moduleNameMapper, setupFiles) into `jest.config.local.ts`
@@ -914,7 +943,7 @@ Each task in the plan must be:
 
 ### 3. Rules and Skills Compound Over Time
 
-Every project adds to `.claude/rules/PROJECT_RULES.md` through the debrief phase. The `skill-evaluator` agent determines whether learnings warrant new skills, new rules, or can be omitted. This creates an ever-growing knowledge base that improves future implementations.
+Every project accumulates knowledge through the debrief phase — but **debrief never writes rules**. Captured learnings land in the machine-managed ledger (`.lisa/PROJECT_LEARNINGS.md` by default) through the executable contract. The `skill-evaluator` agent routes each candidate to a rung of the six-rung ladder (executable control, eager rule, skill, wiki, keep-in-ledger, retire), and the gardener (`/lisa:learnings:audit`) turns those recommendations into **human-gated tracker tickets**. Host rules in `.agents/rules/` are the human decree surface: only a human, acting on such a ticket, promotes a learning into one. That is what keeps the knowledge base growing without agents rewriting the rules they are governed by.
 
 ### 4. TDD is Non-Negotiable
 
@@ -930,7 +959,7 @@ This ensures AI-generated code is verified, not assumed correct.
 The workflow has built-in human touchpoints:
 - **Before execute:** Human answers research gaps
 - **After execute:** Human reviews before merge
-- **After debrief:** Human can update .claude/rules/PROJECT_RULES.md
+- **After debrief:** Human triages gardener tickets and — only they — updates the host rules in `.agents/rules/`
 
 ---
 
@@ -1052,8 +1081,8 @@ Start small—one rule, one command, one hook—and expand as your team gains co
 | File/Directory | Purpose |
 |----------------|---------|
 | **CLAUDE.md** | Behavioral rules (Always/Never directives) |
-| **.claude/rules/** | Auto-loaded conventions and philosophy |
-| **.claude/rules/PROJECT_RULES.md** | Project-specific conventions |
+| **.claude/rules/** | Auto-loaded conventions and philosophy (Claude-native tree) |
+| **.agents/rules/** | Host-authored operating rules, agent-neutral; reached via the `AGENTS.md` pointer |
 | **.claude/settings.json** | Hooks, plugins, environment config |
 | **.claude/skills/** | Team knowledge and patterns |
 | **.claude/commands/** | Slash command definitions |

@@ -126,6 +126,7 @@ and lets reviewers diff against a single source of truth.
 - **The gardener** (`lisa-learnings-audit`): embeds the AC template above into
   EXECUTABLE-CONTROL promotion tickets and applies the eager-tier admission
   policy when auditing.
-- **PROJECT_RULES.md owners**: that file is human-authored only; machine
+- **Host-rules owners** (`.agents/rules/`, plus any surviving legacy
+  `PROJECT_RULES.md`): that surface is human-authored only; machine
   writes go to the learnings ledger, and promotions out of it arrive as
   gardener tickets governed by this contract.

@@ -30,6 +30,7 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import { parseEnv } from "./envfile.mjs";
+import { validateNote } from "./note-format.mjs";
 import { ENV_KEY, fetchAll } from "./providers.mjs";
 import { materializedPaths, readConfig } from "./surfaces.mjs";
 
@@ -110,6 +111,19 @@ function sourceOf(name, provider, file) {
 }
 
 /**
+ * Say what is wrong with a note, not merely that something is.
+ *
+ * "NO NOTE" against a note that exists but is malformed sends the operator
+ * looking for a missing field they already wrote.
+ * @param {object} [fault] The blocking defect, if any.
+ * @returns {string} A status label for the verify table.
+ */
+function noteStatus(fault) {
+  if (!fault) return "noted";
+  return fault.code === "missing-note" ? "NO NOTE" : `NOTE ${fault.code}`;
+}
+
+/**
  * Verify every declared secret, mirroring the ladder's own order.
  *
  * Checking only the provider would report MISSING for every secret in CI, where
@@ -119,12 +133,20 @@ function sourceOf(name, provider, file) {
  * This command is read-only. Proving that a rotating credential can actually be
  * written back requires a write, so that check lives in the rotation path
  * rather than here.
+ *
+ * The two views are parameters so a test can supply them. Reaching for the
+ * provider CLI is the one thing in here that cannot run in a test, and a check
+ * nobody can test is how the note rule stayed unenforced for so long.
  * @param {object} cfg Resolved configuration.
+ * @param {Map<string, object>} [provider] Provider view.
+ * @param {Map<string, string>} [file] Materialized view.
  * @returns {number} Count of secrets that failed.
  */
-function verify(cfg) {
-  const provider = fetchAll(cfg);
-  const file = readMaterialized(cfg);
+export function verify(
+  cfg,
+  provider = fetchAll(cfg),
+  file = readMaterialized(cfg)
+) {
   const names = cfg.require ?? [
     ...new Set([...provider.keys(), ...file.keys()]),
   ];
@@ -139,13 +161,17 @@ function verify(cfg) {
       provider.get(name)?.value
     );
     const named = ENV_KEY.test(name);
-    const noted = Boolean(provider.get(name)?.note);
-    if (!resolves || !named || !noted) bad += 1;
+    // Presence is not well-formedness. Testing `Boolean(note)` passed a note
+    // that was a single stray character, which is exactly the note an agent
+    // learns nothing from. Same validator doctor uses, so the two agree.
+    const defects = validateNote(provider.get(name)?.note);
+    const noteFault = defects.find(d => d.level === "error");
+    if (!resolves || !named || noteFault) bad += 1;
     console.log(
       `  ${name.padEnd(30)} ${resolves ? "resolves" : "MISSING "} ` +
         `${sourceOf(name, provider, file)} ` +
         `${named ? "name ok" : "NAME NOT UPPER_SNAKE"}  ` +
-        `${noted ? "noted" : "NO NOTE"}` +
+        `${noteStatus(noteFault)}` +
         `${rotating.has(name) ? "  rotating" : ""}`
     );
   }
