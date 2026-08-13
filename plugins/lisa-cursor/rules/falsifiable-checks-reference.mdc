@@ -67,10 +67,32 @@ A clean result is a statement about what the check can perceive, not about the c
 ## How to apply
 
 1. Author the check.
-2. Deliberately break the guarded property.
-3. Confirm the check **fails and names the right file/line**. A failure that does not localize is weak evidence the check is measuring the right thing.
+2. Deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
+3. Confirm the check **fails, names the right file/line, and that exactly one test fails**. A failure that does not localize is weak evidence the check is measuring the right thing.
 4. Restore, and confirm green again.
 5. Report the falsification alongside the result.
+
+### The failure count is part of the evidence
+
+Step 3's cardinality is not pedantry; each deviation names a distinct defect.
+
+- **Zero failures** — the guard is inert. It was authored, it is green, and it asserts nothing about the property it names. The originating incident: a guard pinned one field of a structure and the regression it was written to stop walked straight through it with all fifty tests green, because nothing in the suite touched the field that actually moved.
+- **More than one failure** — the break is too coarse, the guard is over-broad, or unrelated tests share the fixture. Any of the three means the guard's next real failure will not tell the reader what broke, which is most of a guard's value.
+- **Exactly one failure** — the guard localizes. That is the evidence, and it is what gets reported.
+
+### Never narrate a red state you did not run
+
+A guard's red leg, a "before" state, a reproduction of a fixed defect: each is an **observation**, and an observation you did not make is a fabrication however sound the reasoning behind it. The originating incident here was an evidence file asserting "working tree clean" while listing two untracked scripts a few lines further down — internally contradictory, because the clean-tree line was reasoned rather than run.
+
+When the red state no longer exists in your working tree — it was fixed, or it lives at an earlier commit — **reconstruct it in a throwaway detached-HEAD worktree** and run it there:
+
+```
+git worktree add --detach <scratch-path> <sha>
+# run the check in <scratch-path>, capture the real output
+git worktree remove <scratch-path>
+```
+
+This costs seconds, leaves your working tree untouched, and produces genuine output. There is no situation in which writing down what the command *would* have printed is preferable to running it.
 
 For generated or validated inputs, replace steps 2–4 with a direct unit test of the checker against synthetic bad input.
 

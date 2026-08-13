@@ -9,6 +9,11 @@ Skills and rules that use external integrations route through the matching
 `*-access` skill. Do not call vendor MCP tools or REST APIs directly from a
 consumer skill.
 
+Secrets are the same shape: every credential resolves through
+`lisa-secrets-access`, which owns the provider list, the note format, and the
+resolution order. Read it rather than restating it — and never ask a human to
+paste a value the provider can supply.
+
 Resolution order is MCP when available and authenticated, then documented
 token/REST substrate when the env var is set, then a loud error naming the env
 var. Full matrix and migration rules:
