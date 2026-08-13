@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.3](https://github.com/CodySwannGT/lisa/compare/v3.11.2...v3.11.3) (2026-08-13)
+
+
+### Bug Fixes
+
+* **automations:** stop erasing unknown run-record fields from the whole history ([b937a56](https://github.com/CodySwannGT/lisa/commit/b937a56d6ae355522e9fc1aaf7d954a3e2a7c484)), closes [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [CodySwannGT/lisa#2524](https://github.com/CodySwannGT/lisa/issues/2524)
+* **ci:** do not run sg:test before the script exists in the host project ([4518cab](https://github.com/CodySwannGT/lisa/commit/4518cab8a35c2a575e5fb52e6cd00dd346f27aca)), closes [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [#2990](https://github.com/CodySwannGT/lisa/issues/2990) [#2505](https://github.com/CodySwannGT/lisa/issues/2505) [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [CodySwannGT/lisa#2532](https://github.com/CodySwannGT/lisa/issues/2532)
+
 ### [3.11.2](https://github.com/CodySwannGT/lisa/compare/v3.11.1...v3.11.2) (2026-08-13)
 
 
