@@ -781,7 +781,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "1ce689b08f73c13a771630c8ed9803db8665c1dd5191f2f8e97f7d954aeec5ba",
+      "c7dea3e5ad59da3b00993318c2f7f7351693d00207a2fbafb5f00f60fb47bf69",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
@@ -875,7 +875,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "81b6eb911cf5cf6d1913cacf65b6ae298732e0a4e92529aed6767cdf79ab2ec0",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
-      "189f1d0be562c442b5db07efdb87783e964c08016e2761ae58da252bd17ba20b",
+      "5944dd862f949155db1f4e43279041407dc2c920723cee808fa353dc0bdd2c6e",
     "plugins/src/base/scripts/queue-health-classification.mjs":
       "07fd596da5792d8bd29f2d51584c59011d3d06256eae601b27a3c72730b42333",
     "plugins/src/base/scripts/queue-status-build-readers.mjs":
@@ -1037,7 +1037,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "102953b4b8166b28e5c8d16bef852d3d9c1213b59e8d691d0647784f3cfd1be8",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "b3bbe6b1974491dbaba8f1308591bfb65be3bf9cfb644cb903d8266dc8121ffd",
+      "c513b189b75e0589e81d74197718c2c7367e1e426ed910c78bd3e8fea9f9ee34",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
@@ -1295,7 +1295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
-      "ab45fdc00294c4ca9698093cb294a2aaf39a73d714fe1aa6ad686c6c34e157ba",
+      "77f6fb5592dc06b9e949e43a918e8b9197c90197858cb447f26915ae30c62d7c",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
@@ -8885,6 +8885,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
     "tests/unit/strategies/linear-access-history.test.ts": true,
+    "tests/unit/strategies/linear-ready-state-inversion.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
     "tests/unit/strategies/mld-telemetry-contract.test.ts": true,
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
