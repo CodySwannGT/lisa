@@ -133,7 +133,7 @@ async function linkOwnerBeforeDeadline(
   attempt: number
 ): Promise<LockLease> {
   const ownerPath = `${lockPath}.${owner.token}.owner`;
-  const outcome = await publishOwnerLink(ownerPath, lockPath);
+  const outcome = await tryPublishOwnerLink(ownerPath, lockPath);
   if (outcome === "acquired") {
     return { owner, ownerPath };
   }
@@ -174,7 +174,7 @@ type PublishOutcome = "acquired" | "destination-held" | "source-missing";
  * @param lockPath - Destination lock path
  * @returns Why publication succeeded or failed
  */
-async function publishOwnerLink(
+async function tryPublishOwnerLink(
   ownerPath: string,
   lockPath: string
 ): Promise<PublishOutcome> {
@@ -191,6 +191,24 @@ async function publishOwnerLink(
     }
     throw error;
   }
+}
+
+/**
+ * Publish owner metadata, reporting only whether the lock was taken.
+ *
+ * The acquisition path needs to tell "someone else holds it" apart from "my own
+ * owner file went missing", so the outcome lives in
+ * {@link tryPublishOwnerLink}. The reclaim path only ever asks the yes/no
+ * question, and keeping this wrapper leaves that call site untouched.
+ * @param ownerPath - Fully written owner metadata file
+ * @param lockPath - Destination lock path
+ * @returns Whether publication acquired the lock
+ */
+async function publishOwnerLink(
+  ownerPath: string,
+  lockPath: string
+): Promise<boolean> {
+  return (await tryPublishOwnerLink(ownerPath, lockPath)) === "acquired";
 }
 
 /**
@@ -319,7 +337,7 @@ async function deleteObservedGeneration(
   // recycled underneath the checks below, then prove it is still the very
   // inode and ownership this observation judged stale before deleting it.
   const quarantine = `${lockPath}.${crypto.randomUUID()}.stale`;
-  if ((await publishOwnerLink(lockPath, quarantine)) !== "acquired") {
+  if (!(await publishOwnerLink(lockPath, quarantine))) {
     return false;
   }
   try {
