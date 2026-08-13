@@ -18,6 +18,7 @@
  */
 import {
   REPORT_SCHEMA_VERSION,
+  byCodeUnit,
   runnersByPlatform,
   trackerUrl,
 } from "./contract.mjs";
@@ -73,19 +74,24 @@ function buildTestInventory(discovery, contract) {
  * required here" and "everything required here is covered" are different
  * claims, and printing the second for the first is how a platform with no
  * obligations comes to look fully covered.
+ *
+ * `percentage` is ROUNDED FOR DISPLAY and `exact` is not. Only `exact` is ever
+ * compared against a floor: 2000 of 2001 obligations is 99.95002%, which
+ * rounds to 100.0, and a genuinely-below-floor platform reporting `ok: true`
+ * because of a display convention is the same class of false headline this
+ * whole report is built to prevent.
  * @param {readonly object[]} subset - Obligations to count.
  * @param {ReadonlySet<string>} coveredKeys - Keys with an aligned mapping.
- * @returns {object} Covered/total/percentage.
+ * @returns {object} Covered/total/percentage/exact.
  */
 function summarize(subset, coveredKeys) {
   const covered = subset.filter(item => coveredKeys.has(item.key)).length;
+  const exact = subset.length === 0 ? null : (covered / subset.length) * 100;
   return {
     covered,
     total: subset.length,
-    percentage:
-      subset.length === 0
-        ? null
-        : Number(((covered / subset.length) * 100).toFixed(1)),
+    percentage: exact === null ? null : Number(exact.toFixed(1)),
+    exact,
   };
 }
 
@@ -212,7 +218,7 @@ export function buildExecution(mappings, runs) {
     notRunTests: outcomes
       .filter(item => item.result === null)
       .map(item => `${item.runner} ${item.file} :: ${item.evidence}`)
-      .sort(),
+      .sort(byCodeUnit),
   };
 }
 
@@ -268,18 +274,23 @@ function classifyFloor(declared) {
  */
 export function evaluateFloor(contract, byPlatform, platforms) {
   const floors = contract.coverageFloor ?? {};
-  const entries = [...platforms].sort().map(platform => {
+  const entries = [...platforms].sort(byCodeUnit).map(platform => {
     const declared = classifyFloor(floors[platform]);
     // A platform with no obligations reports `null`, not 100. It cannot clear
     // a positive floor by having nothing to measure.
     const actual = byPlatform[platform]?.percentage ?? null;
+    // The UNROUNDED value decides. `actual` above is the display figure and is
+    // kept only so the report and the operator message agree with the rest of
+    // the traceability block.
+    const exact = byPlatform[platform]?.exact ?? null;
     return [
       platform,
       {
         floor: declared.value,
         state: declared.state,
         actual,
-        ok: isFloorMet(declared, actual),
+        exact,
+        ok: isFloorMet(declared, exact),
       },
     ];
   });
@@ -302,7 +313,7 @@ export function evaluateFloor(contract, byPlatform, platforms) {
  * disable enforcement. An unset floor has nothing to clear here; the enforced
  * mode reports its absence separately.
  * @param {{state: string, value: number|null}} declared - The classified floor.
- * @param {number|null} actual - Measured percentage, or null when there are no obligations.
+ * @param {number|null} actual - Measured UNROUNDED percentage, or null when there are no obligations.
  * @returns {boolean} Whether the floor is satisfied.
  */
 function isFloorMet(declared, actual) {
@@ -338,7 +349,10 @@ export function buildTrackerIndex(scenarios, trackers) {
       scenario => scenario.trackers.length === 0
     ).length,
     tags: [...tags.values()]
-      .map(entry => ({ ...entry, scenarios: [...entry.scenarios].sort() }))
+      .map(entry => ({
+        ...entry,
+        scenarios: [...entry.scenarios].sort(byCodeUnit),
+      }))
       .sort((a, b) => a.tag.localeCompare(b.tag)),
   };
 }
@@ -366,7 +380,7 @@ export function buildReport({
   const obligations = declared.filter(item => !waivedKeys.has(item.key));
   const coveredKeys = coverageKeys(scenarios, contract, unresolved);
   const byPlatform = Object.fromEntries(
-    [...platforms].sort().map(platform => [
+    [...platforms].sort(byCodeUnit).map(platform => [
       platform,
       summarize(
         obligations.filter(item => item.platform === platform),
@@ -460,7 +474,7 @@ function countScenarios(scenarios) {
 function byRunnerSummary(contract, obligations, coveredKeys) {
   return Object.fromEntries(
     Object.keys(contract.runnerPlatforms ?? {})
-      .sort()
+      .sort(byCodeUnit)
       .map(runner => [
         runner,
         summarize(

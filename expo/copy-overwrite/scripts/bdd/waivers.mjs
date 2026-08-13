@@ -22,10 +22,16 @@ const REQUIRED_FIELDS = [
 ];
 
 /** ISO calendar date, the only accepted date shape. */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Validate every waiver in the coverage map.
+ *
+ * The evaluation date is validated FIRST and reported as a defect of its own.
+ * Expiry is a lexical `<` comparison against an ISO date, and every comparison
+ * with a non-date string is false — so an unusable `BDD_TODAY` did not merely
+ * skip the expiry check, it silently passed EVERY expired waiver in the repo.
+ * A date the gate cannot read is a finding, never a free pass.
  * @param {object} input - Scenarios, contract, and the evaluation date.
  * @returns {object[]} Defects found.
  */
@@ -34,7 +40,15 @@ export function validateWaivers({ scenarios, contract, today }) {
   const platformRunners = runnersByPlatform(contract.runnerPlatforms);
   const mapped = mappedKeys(contract);
   const seen = new Set();
-  const defects = [];
+  const usableToday = typeof today === "string" && ISO_DATE.test(today);
+  const defects = usableToday
+    ? []
+    : [
+        defect(
+          "waiver-metadata",
+          `the evaluation date ${JSON.stringify(today ?? null)} is not an ISO date (YYYY-MM-DD), so no waiver expiry could be evaluated. Set BDD_TODAY to a calendar date or leave it unset.`
+        ),
+      ];
   for (const [index, waiver] of (contract.platformWaivers ?? []).entries()) {
     const at = `coverage-map.platformWaivers[${index}] ${waiver.scenario ?? "(no scenario)"}`;
     const scenario = byId.get(waiver.scenario);
@@ -43,7 +57,7 @@ export function validateWaivers({ scenarios, contract, today }) {
       defects.push(blocking);
       continue;
     }
-    defects.push(...metadataDefects(waiver, at, today));
+    defects.push(...metadataDefects(waiver, at, usableToday ? today : null));
     defects.push(...runnerDefects(waiver, platformRunners, at));
     defects.push(...platformDefects(waiver, scenario, { mapped, seen }, at));
   }
@@ -96,7 +110,7 @@ function blockingError(waiver, scenario, at) {
  * waiver — the time-box is what stops an IOU from becoming permanent.
  * @param {object} waiver - Raw waiver entry.
  * @param {string} at - Location label.
- * @param {string} today - ISO date the run is evaluated against.
+ * @param {string|null} today - ISO date the run is evaluated against, or null when unusable.
  * @returns {object[]} Defects found.
  */
 function metadataDefects(waiver, at, today) {
@@ -125,6 +139,7 @@ function metadataDefects(waiver, at, today) {
     );
   }
   if (
+    today !== null &&
     waiver.expiresAt &&
     ISO_DATE.test(waiver.expiresAt) &&
     waiver.expiresAt < today

@@ -107,9 +107,9 @@ carrying two shapes has no schema at all. The same document is written to
   "scenarios": { "declared": 0, "required": 0, "excluded": 0, "blocked": 0, "referenceOnly": 0, "superseded": 0 },
   "traceability": {
     "note": "<the traceability-is-not-execution disclaimer>",
-    "overall": { "covered": 0, "total": 0, "percentage": 0 },
-    "byPlatform": { "<platform>": { "covered": 0, "total": 0, "percentage": 0 } },
-    "byRunner":   { "<runner>":   { "covered": 0, "total": 0, "percentage": 0 } }
+    "overall": { "covered": 0, "total": 0, "percentage": 0, "exact": 0 },
+    "byPlatform": { "<platform>": { "covered": 0, "total": 0, "percentage": 0, "exact": 0 } },
+    "byRunner":   { "<runner>":   { "covered": 0, "total": 0, "percentage": 0, "exact": 0 } }
   },
   "execution": {
     "supplied": false,
@@ -125,16 +125,25 @@ carrying two shapes has no schema at all. The same document is written to
     "exclusions": [{ "file": "", "evidence": null, "reason": "" }]
   },
   "waived": { "note": "", "count": 0, "entries": [{ "scenario": "", "platforms": [], "runner": null, "owner": null, "reason": null, "ticket": null, "recordedAt": null, "expiresAt": null }] },
-  "floor": { "byPlatform": { "<platform>": { "floor": 0, "actual": 0, "ok": true } }, "unset": [], "ok": true },
+  "floor": { "byPlatform": { "<platform>": { "floor": 0, "actual": 0, "exact": 0, "ok": true } }, "unset": [], "ok": true },
   "trackers": { "scenariosWithTag": 0, "scenariosWithoutTag": 0, "tags": [{ "tag": "", "url": null, "scenarios": [] }] },
   "gaps": [{ "scenario": "", "name": "", "feature": "", "platform": "", "runners": [] }]
 }
 ```
 
-Output is **deterministic**: every array is sorted by a stable key, and the only date
-in the report comes from the coverage map's `asOf`, never from the clock. Two runs on
-the same tree produce byte-identical JSON. (`BDD_TODAY` overrides "now" for expiry
-evaluation, which is what makes expiry behavior testable.)
+Output is **deterministic**: every array is sorted by a stable key with an explicit
+comparator, and the only date in the report comes from the coverage map's `asOf`,
+never from the clock. Two runs on the same tree produce byte-identical JSON.
+(`BDD_TODAY` overrides "now" for expiry evaluation, which is what makes expiry
+behavior testable. A `BDD_TODAY` that is not an ISO date is a `waiver-metadata`
+defect — and a `bootstrap-metadata` defect in bootstrap — never a date comparison
+that quietly answers "not expired" for everything.)
+
+`percentage` is **rounded to one decimal for display**; `exact` is the unrounded
+value and is the only one a floor is ever compared against. 2000 of 2001
+obligations is 99.95002%, which displays as `100` — a platform must not clear a
+floor of 100 on a rounding convention. Both fields are present on every
+traceability summary and on each `floor.byPlatform` entry.
 
 ### Execution-result documents (`--results <file>`)
 
@@ -183,6 +192,11 @@ structurally invisible in the fork this replaces. Keys must be runners declared 
   }
 }
 ```
+
+`roots` and `ignore` are matched by **whole path segment**, not by character prefix:
+`e2e/live` covers `e2e/live` and `e2e/live/…` and does **not** swallow
+`e2e/live-personas/…`. A root of `.` (or `./`) means the repository root and covers
+every repo-relative path.
 
 `evidence.kind` is an **allowlist of two grammars**, never a project-supplied regular
 expression — the coverage map is repo data an author edits, and compiling a pattern

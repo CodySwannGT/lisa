@@ -77,7 +77,7 @@ import {
   validateScenarios,
   validateTrackerTags,
 } from "./bdd/validate.mjs";
-import { validateWaivers } from "./bdd/waivers.mjs";
+import { ISO_DATE, validateWaivers } from "./bdd/waivers.mjs";
 
 const PACKAGE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -178,6 +178,17 @@ export function validateAdoption(contract, mode, today) {
  */
 function bootstrapDefects(adoption, today) {
   const defects = [];
+  if (!ISO_DATE.test(String(today))) {
+    // The expiry is a lexical comparison against an ISO date, and every
+    // comparison with a non-date is false — so an unreadable evaluation date
+    // would make the time-box unreachable and bootstrap permanent.
+    defects.push(
+      defect(
+        "bootstrap-metadata",
+        `the evaluation date ${JSON.stringify(today ?? null)} is not an ISO date (YYYY-MM-DD), so the bootstrap expiry could not be evaluated`
+      )
+    );
+  }
   if (!adoption.owner) {
     defects.push(
       defect(
@@ -193,14 +204,14 @@ function bootstrapDefects(adoption, today) {
         "bootstrap requires adoption.expiresAt (an ISO date); a bootstrap with no time-box never ends"
       )
     );
-  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(adoption.expiresAt)) {
+  } else if (!ISO_DATE.test(adoption.expiresAt)) {
     defects.push(
       defect(
         "bootstrap-metadata",
         "adoption.expiresAt must be an ISO date (YYYY-MM-DD)"
       )
     );
-  } else if (adoption.expiresAt < today) {
+  } else if (ISO_DATE.test(String(today)) && adoption.expiresAt < today) {
     defects.push(
       defect(
         "bootstrap-expired",
@@ -278,7 +289,7 @@ function validateAll({
       ...defects,
       defect(
         "baseline",
-        `base revision ${options.baseSha} is not readable, so the non-regression checks could not run. A gate that cannot compare against a base does not get to report that nothing regressed.`
+        `base revision ${options.baseSha} is not readable${baseline.error ? ` (${baseline.error})` : ""}, so the non-regression checks could not run. A gate that cannot compare against a base does not get to report that nothing regressed.`
       ),
     ];
   }
@@ -343,16 +354,16 @@ function floorIntegrityDefects(report) {
 
 /**
  * Defects that only exist in enforced mode, where absence must fail.
- * @param {object} input - Contract, scenarios, report, and platforms.
+ *
+ * The platform vocabulary is deliberately NOT a parameter: every platform this
+ * function cares about already reaches it through `report.floor`, which was
+ * built from that same vocabulary. It used to be passed and discarded behind a
+ * `void`, which reads as "unused for now" and hides whether an intended check
+ * was ever written.
+ * @param {object} input - Contract, scenarios, report, and discovery.
  * @returns {object[]} Defects found.
  */
-function enforcedDefects({
-  contract,
-  scenarios,
-  report,
-  platforms,
-  discovery,
-}) {
+function enforcedDefects({ contract, scenarios, report, discovery }) {
   const defects = [];
   if (scenarios.length === 0) {
     defects.push(
@@ -392,13 +403,26 @@ function enforcedDefects({
       defects.push(
         defect(
           "floor-regression",
-          `${platform} traceability coverage ${value.actual}% is below its committed floor of ${value.floor}%`
+          `${platform} traceability coverage ${measured(value)}% is below its committed floor of ${value.floor}%`
         )
       );
     }
   }
-  void platforms;
   return defects;
+}
+
+/**
+ * The measured percentage, printed at enough precision to explain the verdict.
+ *
+ * The floor is decided on the unrounded value, so a platform sitting at
+ * 99.95% must not be told it failed at "100%" — a message that contradicts
+ * its own finding is how an operator concludes the gate is broken.
+ * @param {{actual: number|null, exact: number|null}} value - A floor entry.
+ * @returns {string} The percentage to print.
+ */
+function measured(value) {
+  if (value.exact === null) return String(value.actual);
+  return String(Number(value.exact.toFixed(4)));
 }
 
 /**
@@ -452,7 +476,7 @@ export function run(root, options) {
       discovery,
     }),
     ...(mode === "enforced"
-      ? enforcedDefects({ contract, scenarios, report, platforms, discovery })
+      ? enforcedDefects({ contract, scenarios, report, discovery })
       : []),
   ];
   return result({ mode, defects, report, contract });
@@ -689,6 +713,14 @@ async function main() {
  * When the shared module is absent the same object is emitted unvalidated
  * rather than nothing: a gate that produces no result is indistinguishable
  * from one that passed.
+ *
+ * When the shared module is present but REFUSES the envelope — a schema this
+ * gate's fields no longer satisfy, or a half-copied `scripts/` directory whose
+ * schema document never arrived — that refusal is caught rather than thrown.
+ * An uncaught rejection here produced no envelope at all and a Node-supplied
+ * exit code, which is the one outcome this function exists to rule out. The
+ * fields are emitted with `status: "invalid"`, so the run is machine-readable,
+ * operator-readable, and NONZERO.
  * @param {object} input - The gate run, CLI options, and files written.
  * @returns {Promise<object>} The envelope.
  */
@@ -708,7 +740,17 @@ async function sealEnvelope({ gateRun, options, filesWritten }) {
     );
     return { schemaVersion: "lisa-command-envelope-v1", ...fields };
   }
-  return shared.buildEnvelope(fields);
+  try {
+    return shared.buildEnvelope(fields);
+  } catch (error) {
+    console.error(`[bdd-coverage] ${error.message}`);
+    return {
+      schemaVersion: "lisa-command-envelope-v1",
+      ...fields,
+      status: "invalid",
+      reason: `the result could not be sealed into a valid command envelope: ${error.message}`,
+    };
+  }
 }
 
 /**

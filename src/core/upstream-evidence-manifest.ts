@@ -9,7 +9,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "94dc98e0bbfcf8d43cba035d4805a1c5d61a3a0db88faa791e8e06e34e741f46",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
-      "2011331056b1c86bd181649713a395dbfd2768f9fcd7e37b521d6ad2a9318ea9",
+      "4f76bb7d466eb153a4e1414d06f12856a1242de2cfa4cb4b1b942cf29d8b7f37",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
-      "9dd145c0f9dac6ed252b13d32e130dbab964da6cd357981b58541780ecb2f981",
+      "4a05a0ed70a274827fd2f0fd0c98890c66bee2fde70785b8379943ebe6650473",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
       "fe064a2bd11200ed256fb36e203978f858fccbcaf40708496c066383345900ef",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -167,27 +167,27 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "b19d0c177d8d0460779e07043c92d37555e7721224b6b2134ac2f6d10ab44b33",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "519273668f08db7c14053ba1f25830e4cbb6e34ddf11f06264e72d0f7a80b98d",
+      "4173a1c18d34285ab645314e0a99944f8baa02ae2632264b850c727347c8a836",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "630df2cbb6613534f755d3de1efbb6390a1c1dab5694d97f0ca09b8b7422881c",
+      "12503dd325bbfe95f4f4f7fc9d8284d78210d0f54fa75c9af774b42f20495fe0",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
-      "7366f56fb66f609b17438f3b2b89d0a45aaf012886278b38b0744e69955fa5cc",
+      "d4dd79f24f64d8bd29352582433356b2b67fcca4fcfc4e4b253efa70bccd08be",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "820e8a869a0b46fc11461a655bb82f0c8c60f5b46005fbff48e5d19930d7d25a",
+      "d19b92e3f48bdc213c232175cd3021759080d635326e9675969976c0564d7676",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "9f3c72316d4dd5b5c2e3fa7634f00fb203dfb9235ab9af7183c99105dad7645d",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
-      "d1bf74b01388d107e6869b90a3d1e1d2c03da8124cb2cc14f9cf6d64e2b00ce8",
+      "18afb534f85c904af5da32e4dc0b48e4d2a89895a2866b60a544a790ce8b7afb",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "35fa94358e979b223788d629fb95c3c72adff72a9af4dcd3a71febc317849187",
+      "c3cb36a6b3cf5771f5813cdd22f8273aa367c9de663ed1724c1fb3c59f2fbae9",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
-      "30a7c3471611e740f62f544e613a2ecf095946e7f70c752f62fa51ac58949822",
+      "7c49bf1f430e32f7c2ac1fd90162293e928fe4fdf48db4cb5c8e3266187aac4e",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
-      "afb8dd052733a5f83e6d004eac3437783a707c08810ba9cc65138d898aff83e2",
+      "fa0c379c9ecab9ee2069f2ee41c1971f127b0a859647f911eaa707eb294a93e7",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
-      "4b9ebf80100f478cc5e06d50b4d672ad08ec77a3746a7a109a74e1daf71a55b7",
+      "4a918db61b6bdf3a23cf14c5cebdee88259964c60e4c5869abfebb7d743b181c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "cc6a200155889acff761b2eece1768577bc29e09dac417724d243d7f1d1ec9db",
+      "9ef2ef274602bf49ef5346b55ec95be575e3989e5c19e5c2b566d668ce0fd3ba",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
@@ -8817,6 +8817,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-envelope.test.ts": true,
     "tests/unit/scripts/bdd-exclusions.test.ts": true,
     "tests/unit/scripts/bdd-failopen.test.ts": true,
+    "tests/unit/scripts/bdd-gate-correctness.test.ts": true,
+    "tests/unit/scripts/bdd-gate-defects.test.ts": true,
+    "tests/unit/scripts/bdd-gate-paths.test.ts": true,
     "tests/unit/scripts/bdd-grammar.test.ts": true,
     "tests/unit/scripts/bdd-nonregression.test.ts": true,
     "tests/unit/scripts/bdd-ratchet-removal.test.ts": true,
@@ -8825,6 +8828,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-validation.test.ts": true,
     "tests/unit/scripts/bdd-wiring.test.ts": true,
     "tests/unit/scripts/bdd/regression-support.ts": true,
+    "tests/unit/scripts/bdd/sources.ts": true,
     "tests/unit/scripts/bdd/support.ts": true,
     "tests/unit/scripts/build-cursor-hooks-json.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions-helpers.ts": true,
