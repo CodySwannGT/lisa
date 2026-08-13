@@ -33,6 +33,31 @@
  * own declaration stating that a token it really skips silences a context its
  * ruleset really requires — blocks in every mode.
  *
+ * ## `required_contexts` is a CACHE, and an unstamped cache is NOT AN ANSWER
+ *
+ * The single worst thing this guard can do is render a confident verdict from a
+ * list nobody ever compared against a real ruleset. Measured (#2476): the seed
+ * Lisa shipped claimed `🔗 Work-Item Traceability` was required — no ruleset
+ * required it — and OMITTED SIX contexts that genuinely were. A guard reading
+ * that would clear a genuinely-skipped required check and flag a non-required
+ * one. That is worse than a guard nobody runs, because it teaches people to
+ * trust it.
+ *
+ * So `required_contexts` is treated as a cache of a live fetch, not as
+ * testimony. It is trusted only while `ruleset.baseline_fetched_at` carries a
+ * parseable timestamp no older than SNAPSHOT_MAX_AGE_DAYS. Untranscribed or
+ * expired, the guard REFUSES to answer: every rule that depends on
+ * `required_contexts` is skipped, no ✅ is printed, and the report says NOT
+ * CHECKED and why. The rules that do NOT read `required_contexts` — an
+ * undeclared token, a token written with whitespace — still run, because they
+ * are true regardless of what the ruleset requires.
+ *
+ * Refusal is exit 1, so an explicit `npm run check:skipped-required-checks`
+ * cannot be mistaken for a pass. Under `"enforcement": "warn"` — which is what
+ * Lisa's seeds ship, and only its seeds — refusal is loud and exit 0, because
+ * reddening every repository in a fleet the day an untranscribed seed arrives
+ * is how a gate gets deleted rather than transcribed.
+ *
  * ## Why this exists
  *
  * **GitHub counts a `skipped` required status check as SATISFIED.** A job named
@@ -90,6 +115,18 @@ import { pathToFileURL } from "node:url";
 
 /** Repo-relative path of the per-repo declaration file. */
 export const DECLARATION_PATH = ".github/required-checks.json";
+
+/**
+ * How long a transcribed `required_contexts` snapshot stays trustworthy.
+ *
+ * A SOURCE CONSTANT, not an input: a ceiling somebody can widen from a config
+ * file fails open on exactly the runs nobody tests. Rulesets are edited in an
+ * admin console with no signal in the repository, so an old transcription is
+ * not evidence — it is a memory of evidence. Ninety days is long enough that
+ * the weekly `--remote` run refreshes it many times over, and short enough that
+ * an abandoned repository stops being told its skips are fine.
+ */
+export const SNAPSHOT_MAX_AGE_DAYS = 90;
 
 /**
  * Matches a `skip_jobs:` key and captures everything after the colon.
@@ -418,6 +455,58 @@ export function collectSkipJobTokens(rootDir, workflows) {
 }
 
 /**
+ * Decides whether `required_contexts` may be believed at all.
+ *
+ * The stamp is `ruleset.baseline_fetched_at`, and it means one specific thing:
+ * somebody read this list off a live ruleset on that date. An empty stamp is
+ * the state Lisa's seeds ship in, and the seeds are a GUESS — a guess that was
+ * measured wrong (#2476). No stamp, no answer.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {number} [now] - Current epoch milliseconds, injectable for tests
+ * @returns {{trusted: boolean, reason: string}} Whether to believe the snapshot, and why not
+ */
+export function snapshotTrust(declaration, now = Date.now()) {
+  const stamp = declaration.ruleset?.baseline_fetched_at;
+  if (typeof stamp !== "string" || stamp.trim() === "") {
+    return {
+      trusted: false,
+      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG in this fleet: it claimed "🔍 Quality Checks / 🔗 Work-Item Traceability" was required when no ruleset required it, and omitted six contexts that were. Transcribe the real list, stamp the date, and this guard starts answering.`,
+    };
+  }
+  const fetchedAt = Date.parse(stamp);
+  if (Number.isNaN(fetchedAt)) {
+    return {
+      trusted: false,
+      reason: `\`ruleset.baseline_fetched_at\` is ${JSON.stringify(stamp)}, which is not a date this can read. Use an ISO-8601 timestamp, e.g. "2026-08-13".`,
+    };
+  }
+  const ageDays = (now - fetchedAt) / 86_400_000;
+  if (ageDays > SNAPSHOT_MAX_AGE_DAYS) {
+    return {
+      trusted: false,
+      reason: `\`required_contexts\` was last transcribed ${Math.floor(ageDays)} days ago, past the ${SNAPSHOT_MAX_AGE_DAYS}-day ceiling. Rulesets are edited in an admin console with no signal in this repository, so a stale transcription is a memory of evidence rather than evidence.`,
+    };
+  }
+  return { trusted: true, reason: "" };
+}
+
+/**
+ * The transcription instructions, printed wherever the snapshot is refused.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @returns {string} A copy-pasteable recipe
+ */
+export function transcriptionRecipe(declaration) {
+  const repo = declaration.ruleset?.repo || "OWNER/NAME";
+  return [
+    `  gh api repos/${repo}/rulesets --jq '.[] | "\\(.id) \\(.name)"'`,
+    `  gh api repos/${repo}/rulesets/RULESET_ID --jq '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'`,
+    `Paste the output into \`required_contexts\` byte for byte, record the ids in \`ruleset.ids\`, and set \`ruleset.baseline_fetched_at\` to today.`,
+  ].join("\n");
+}
+
+/**
  * The whole verdict, as a pure function of the two snapshots and what the
  * workflows actually declare.
  *
@@ -438,11 +527,25 @@ export function collectSkipJobTokens(rootDir, workflows) {
  *  5. An exemption for a token nobody skips any more is ORPHANED. Deleting it is
  *     one line, and leaving it teaches readers the exemption list is fiction.
  *
+ * Rules 2, 3 and 4 all read `required_contexts`, so all three are SUPPRESSED
+ * when `trustRequiredContexts` is false. Rules 1 and 5 do not read it and keep
+ * running: whether a token was reviewed, and whether an exemption still refers
+ * to a real skip, are true regardless of what any ruleset requires. Suppressing
+ * a rule is not the same as passing it — the caller reports NOT CHECKED.
+ *
  * @param {object} declaration - The per-repo declaration
  * @param {ReadonlyArray<string>} skipped - Tokens the workflows actually skip
+ * @param {{trustRequiredContexts?: boolean}} [options] - Set
+ *   `trustRequiredContexts: false` to suppress every rule that reads the
+ *   `required_contexts` snapshot
  * @returns {{violations: object[], checked: number}} Violations and how many tokens were examined
  */
-export function evaluateSkippedRequiredChecks(declaration, skipped) {
+export function evaluateSkippedRequiredChecks(
+  declaration,
+  skipped,
+  options = {}
+) {
+  const trustRequired = options.trustRequiredContexts !== false;
   const required = new Set(declaration.required_contexts);
   const declarations = declaration.skip_job_declarations ?? {};
   const ticketPattern = new RegExp(
@@ -460,6 +563,7 @@ export function evaluateSkippedRequiredChecks(declaration, skipped) {
       });
       continue;
     }
+    if (!trustRequired) continue;
     const suppressed = entry.suppressed_contexts ?? [];
     const hits = suppressed.filter(context => required.has(context));
 
@@ -576,22 +680,38 @@ export function compareRulesetBaseline(snapshot, live) {
 /**
  * Runs the guard.
  *
+ * `--remote` reads the ruleset live, so it does not need the cache to be
+ * trustworthy — it is the thing that MAKES it trustworthy. Under `--remote` the
+ * required-context rules therefore run regardless of the stamp, and any
+ * disagreement surfaces as `ruleset_snapshot_drift` rather than as a verdict
+ * about skips.
+ *
  * @param {ReadonlyArray<string>} argv - CLI arguments
- * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string}} The result
+ * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string}} The result
  */
 export function runGuard(argv) {
   const positional = argv.filter(arg => !arg.startsWith("--"));
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
   const collected = collectSkipJobTokens(rootDir, declaration.workflows);
-  const result = evaluateSkippedRequiredChecks(declaration, collected.tokens);
+  const remote = argv.includes("--remote");
+  const live = remote
+    ? fetchLiveRequiredContexts(declaration.ruleset)
+    : undefined;
+  const trust = remote
+    ? { trusted: true, reason: "" }
+    : snapshotTrust(declaration);
+  const result = evaluateSkippedRequiredChecks(
+    live === undefined
+      ? declaration
+      : { ...declaration, required_contexts: live },
+    collected.tokens,
+    { trustRequiredContexts: trust.trusted }
+  );
   const violations = [...collected.violations, ...result.violations];
-  if (argv.includes("--remote")) {
+  if (live !== undefined) {
     violations.push(
-      ...compareRulesetBaseline(
-        declaration.required_contexts,
-        fetchLiveRequiredContexts(declaration.ruleset)
-      )
+      ...compareRulesetBaseline(declaration.required_contexts, live)
     );
   }
   return {
@@ -599,6 +719,8 @@ export function runGuard(argv) {
     checked: result.checked,
     tokens: collected.tokens,
     enforcement: declaration.enforcement ?? "error",
+    trust,
+    recipe: transcriptionRecipe(declaration),
   };
 }
 
@@ -609,7 +731,7 @@ export function runGuard(argv) {
  * @returns {void}
  */
 function main(argv) {
-  /** @type {{violations: object[], checked: number, tokens: string[], enforcement: string}} */
+  /** @type {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string}} */
   let result;
   try {
     result = runGuard(argv);
@@ -631,7 +753,15 @@ function main(argv) {
 
   if (argv.includes("--json")) {
     process.stdout.write(
-      `${JSON.stringify({ ok: result.violations.length === 0, ...result }, null, 2)}\n`
+      `${JSON.stringify(
+        {
+          ok: result.violations.length === 0 && result.trust.trusted,
+          answered: result.trust.trusted,
+          ...result,
+        },
+        null,
+        2
+      )}\n`
     );
     return;
   }
@@ -647,10 +777,39 @@ function main(argv) {
     !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
   const blocking = result.violations.filter(blocks);
   const lines = ["## 🔒 Skipped required checks", ""];
-  if (result.violations.length === 0) {
+
+  // The refusal comes FIRST and replaces the verdict. Printing "✅ none
+  // silences a required check" from a snapshot nobody transcribed is the one
+  // outcome that is worse than never running: it is a confident wrong answer,
+  // and it teaches people to trust it (#2476).
+  if (!result.trust.trusted) {
     lines.push(
-      `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`
+      `⛔ **NOT CHECKED** — this guard cannot say whether any skip silences a required status check, and will not pretend to.`,
+      "",
+      result.trust.reason,
+      "",
+      "```",
+      result.recipe,
+      "```",
+      "",
+      `Meanwhile \`--remote\` answers WITHOUT the cache, because it reads the ruleset live: \`npm run check:skipped-required-checks:remote\`.`,
+      ""
     );
+    process.stderr.write(
+      `::${warnOnly ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
+    );
+  }
+
+  if (result.violations.length === 0) {
+    if (result.trust.trusted) {
+      lines.push(
+        `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`
+      );
+    } else {
+      lines.push(
+        `The rules that do NOT read \`required_contexts\` were still applied to ${result.checked} token(s) and found nothing.`
+      );
+    }
   } else {
     lines.push(
       `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
@@ -676,7 +835,13 @@ function main(argv) {
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
     });
   }
-  if (blocking.length > 0) process.exitCode = 1;
+  // Refusal is a failure, not a pass: an explicit run must never be mistaken
+  // for a clean bill of health. `warn` — which only Lisa's untranscribed seeds
+  // ship — downgrades it, because reddening a whole fleet the day a seed
+  // arrives is how a gate gets deleted instead of transcribed.
+  if (blocking.length > 0 || (!result.trust.trusted && !warnOnly)) {
+    process.exitCode = 1;
+  }
 }
 
 if (

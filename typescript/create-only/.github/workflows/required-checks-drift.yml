@@ -15,6 +15,13 @@
 # reintroduces the false-green class the guard exists to refuse. This workflow
 # never runs on `pull_request`, so it cannot wedge a merge.
 #
+# `--remote` is also the arm that STRUCTURALLY CANNOT LIE (#2476). It evaluates
+# the skip rules against the contexts it just read from the live ruleset, not
+# against the committed cache, so it answers correctly even in a repository
+# whose `required_contexts` has never been transcribed — which is exactly the
+# state the offline arm refuses to answer in. Arming this workflow is therefore
+# the fastest way to get a real answer.
+#
 # Reading a repository ruleset needs a token with administration:read. The
 # default GITHUB_TOKEN generally does not have it, so provide a PAT as the
 # repository secret RULESET_READ_TOKEN. Without it this job goes red rather

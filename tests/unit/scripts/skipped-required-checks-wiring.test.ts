@@ -11,12 +11,19 @@
  *    repo must be able to report findings without going red on the day Lisa
  *    installs the job. A gate that reddens a repository on arrival gets
  *    deleted, not fixed.
+ *  - snapshot trust (#2476) — `required_contexts` is a CACHE of a live ruleset
+ *    fetch, and an unstamped cache is not an answer. The seed Lisa shipped was
+ *    measured wrong: it claimed a context was required that no ruleset
+ *    required, and omitted six that were. A guard reading that would clear a
+ *    genuinely-skipped required check and flag a non-required one — worse than
+ *    a guard nobody runs, because it teaches people to trust it.
  *  - `whitespace_in_skip_token` (#2427) — GitHub Actions expression syntax has
  *    no string-replace, so `skip_jobs: 'test, test:e2e'` cannot be normalized
  *    in the workflow. It fails CLOSED (the job runs), so nothing unverified
  *    ships — but the skip silently did not happen, and until the guard ran in
  *    CI nothing anywhere could say so.
  */
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -39,6 +46,16 @@ interface Violation {
 /** What the guard exports, as this suite consumes it. */
 interface GuardModule {
   readonly VIOLATIONS: Record<string, string>;
+  readonly SNAPSHOT_MAX_AGE_DAYS: number;
+  snapshotTrust(
+    declaration: Record<string, unknown>,
+    now?: number
+  ): { trusted: boolean; reason: string };
+  evaluateSkippedRequiredChecks(
+    declaration: Record<string, unknown>,
+    skipped: readonly string[],
+    options?: { trustRequiredContexts?: boolean }
+  ): { violations: Violation[]; checked: number };
   readSkipJobs(
     contents: string,
     sourcePath: string,
@@ -52,8 +69,11 @@ interface GuardModule {
   runGuard(argv: readonly string[]): {
     violations: Violation[];
     enforcement: string;
+    trust: { trusted: boolean; reason: string };
   };
 }
+
+const DAY_MS = 86_400_000;
 
 /**
  * Creates a throwaway repository with a `.github/workflows` directory.
@@ -64,6 +84,31 @@ interface GuardModule {
 function emptyRepo(prefix: string): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   fs.mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
+  return root;
+}
+
+/**
+ * Builds a repo whose declaration has never been transcribed.
+ *
+ * @param enforcement - Optional `enforcement` value to write
+ * @returns The repository root
+ */
+function untranscribedRepo(enforcement?: string): string {
+  const root = emptyRepo("skipreq-untranscribed-");
+  fs.writeFileSync(
+    path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
+    "      skip_jobs: ''"
+  );
+  fs.writeFileSync(
+    path.join(root, ".github", "required-checks.json"),
+    JSON.stringify({
+      ...(enforcement === undefined ? {} : { enforcement }),
+      ruleset: { repo: "", ids: [], baseline_fetched_at: "" },
+      required_contexts: [],
+      workflows: [CI_WORKFLOW],
+      skip_job_declarations: {},
+    })
+  );
   return root;
 }
 
@@ -147,6 +192,130 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
     });
   });
 
+  describe("an untranscribed `required_contexts` is NOT AN ANSWER (#2476)", () => {
+    const REQUIRED_RULES = ["skipped_required_check"];
+
+    it("refuses an EMPTY `baseline_fetched_at` — the state Lisa's seeds ship in", () => {
+      const trust = mod.snapshotTrust({ ruleset: { baseline_fetched_at: "" } });
+      expect(trust.trusted).toBe(false);
+      // The reason has to name the measured failure, or the next person
+      // "fixes" the refusal by deleting the check.
+      expect(trust.reason).toContain("measured WRONG");
+    });
+
+    it("refuses a MISSING ruleset block, and a stamp it cannot parse", () => {
+      expect(mod.snapshotTrust({}).trusted).toBe(false);
+      expect(
+        mod.snapshotTrust({ ruleset: { baseline_fetched_at: "last tuesday" } })
+          .trusted
+      ).toBe(false);
+    });
+
+    it("trusts a fresh stamp and EXPIRES an old one", () => {
+      const now = Date.parse("2026-08-13T00:00:00Z");
+      const at = (days: number): Record<string, unknown> => ({
+        ruleset: {
+          baseline_fetched_at: new Date(now - days * DAY_MS).toISOString(),
+        },
+      });
+      expect(mod.snapshotTrust(at(1), now).trusted).toBe(true);
+      expect(
+        mod.snapshotTrust(at(mod.SNAPSHOT_MAX_AGE_DAYS - 1), now).trusted
+      ).toBe(true);
+      expect(
+        mod.snapshotTrust(at(mod.SNAPSHOT_MAX_AGE_DAYS + 1), now).trusted
+      ).toBe(false);
+    });
+
+    it("SUPPRESSES every rule that reads `required_contexts` when untrusted", () => {
+      // The false-green rule would otherwise fire off a fabricated list — the
+      // exact "confident wrong answer" #2476 measured.
+      const declaration = {
+        required_contexts: [REQUIRED],
+        workflows: [CI_WORKFLOW],
+        skip_job_declarations: {
+          "test:e2e": {
+            suppressed_contexts: [REQUIRED],
+            ruleset_required: true,
+          },
+        },
+      };
+      expect(
+        mod
+          .evaluateSkippedRequiredChecks(declaration, ["test:e2e"])
+          .violations.map(violation => violation.kind)
+      ).toEqual(REQUIRED_RULES);
+      expect(
+        mod.evaluateSkippedRequiredChecks(declaration, ["test:e2e"], {
+          trustRequiredContexts: false,
+        }).violations
+      ).toEqual([]);
+    });
+
+    it("KEEPS the rules that do not read it — an undeclared token is still undeclared", () => {
+      const violations = mod.evaluateSkippedRequiredChecks(
+        {
+          required_contexts: [REQUIRED],
+          workflows: [CI_WORKFLOW],
+          skip_job_declarations: {},
+        },
+        ["surprise"],
+        { trustRequiredContexts: false }
+      ).violations;
+      expect(violations.map(violation => violation.kind)).toEqual([
+        mod.VIOLATIONS.undeclared,
+      ]);
+    });
+
+    it("reports the refusal through runGuard rather than a clean verdict", () => {
+      const result = mod.runGuard([untranscribedRepo()]);
+      expect(result.trust.trusted).toBe(false);
+      expect(result.violations).toEqual([]);
+    });
+
+    it("the CLI prints NOT CHECKED, never a ✅, and exits non-zero", () => {
+      const run = spawnSync(
+        process.execPath,
+        [path.join(REPO_ROOT, SCRIPT_REL), untranscribedRepo()],
+        { encoding: "utf8" }
+      );
+      expect(run.stdout).toContain("NOT CHECKED");
+      expect(run.stdout).not.toContain("✅");
+      expect(run.status).toBe(1);
+    });
+
+    it("`enforcement: warn` keeps the refusal loud but exits 0", () => {
+      // A fresh install must not redden a whole fleet on arrival — that is how
+      // a gate gets deleted instead of transcribed. It still never says ✅.
+      const run = spawnSync(
+        process.execPath,
+        [path.join(REPO_ROOT, SCRIPT_REL), untranscribedRepo("warn")],
+        { encoding: "utf8" }
+      );
+      expect(run.stdout).toContain("NOT CHECKED");
+      expect(run.stdout).not.toContain("✅");
+      expect(run.status).toBe(0);
+    });
+  });
+
+  describe("the shipped seeds ship UNTRANSCRIBED (#2476)", () => {
+    it.each([
+      "expo/create-only",
+      "nestjs/create-only",
+      "typescript/create-only",
+    ])("%s ships no guessed required_contexts and no stamp", seedDir => {
+      const seed = JSON.parse(
+        fs.readFileSync(
+          path.join(REPO_ROOT, seedDir, ".github/required-checks.json"),
+          "utf-8"
+        )
+      ) as Record<string, never>;
+      expect(seed.required_contexts).toEqual([]);
+      expect(seed.ruleset.baseline_fetched_at).toBe("");
+      expect(mod.snapshotTrust(seed).trusted).toBe(false);
+    });
+  });
+
   describe("`enforcement`, the adoption ramp (#2426)", () => {
     /**
      * Writes a declaration carrying one `enforcement` value.
@@ -164,6 +333,7 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
         path.join(root, ".github", "required-checks.json"),
         JSON.stringify({
           ...(enforcement === undefined ? {} : { enforcement }),
+          ruleset: { baseline_fetched_at: new Date().toISOString() },
           required_contexts: [REQUIRED],
           workflows: [CI_WORKFLOW],
           skip_job_declarations: {},
