@@ -177,7 +177,11 @@ if [ "$IS_LISA_SELF" != "true" ] && [ -z "${CI:-}" ]; then
   if [ "$HOST_HAS_LISA_POSTINSTALL" = "true" ]; then
     echo "Lisa apply deferred to the host project's own postinstall script."
   elif ! LISA_BOOTSTRAP=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
-    echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
+    # Loud but non-fatal, for the same reason as the host-side bootstrap: a
+    # postinstall that exits non-zero aborts the whole install. The durable
+    # signal is the apply receipt this failed run did NOT write, which
+    # `lisa doctor` reports (CodySwannGT/lisa#2467).
+    echo "⚠️  lisa: TEMPLATE APPLY FAILED (error above) - this project is NOT receiving Lisa template or guardrail updates. Diagnose with: node $LISA_DIR/dist/index.js doctor" >&2
   fi
 fi
 
