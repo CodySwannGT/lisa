@@ -48,6 +48,33 @@ same footing as Atlassian writes (acli remains available as an identity-matched
 fallback). The Atlassian write rule is not deleted — it is **generalized**: its
 rationale becomes the contract's rationale rather than one vendor's local note.
 
+**Fallback on a write is bounded by whether the side effect can already have
+happened.** Tier 2 is reached freely on reads, but a provider outage during a write is
+not automatically a fallback trigger: the provider may have accepted the create,
+update, transition, or delete and then failed to return. Retrying that through MCP
+duplicates the side effect or produces divergent state. So, for any **mutating**
+operation:
+
+- **Fallback is permitted only when no side effect can have occurred** — the failure
+  is provably pre-dispatch. That means: no bootstrap credential, identity mismatch,
+  no adapter for the operation, request rejected before transmission, connection
+  refused, DNS failure, or an authoritative 4xx that the provider defines as
+  a no-op rejection.
+- **Fallback is forbidden after an in-flight write of unknown outcome** — timeout,
+  5xx, connection reset mid-request, or any response the client cannot classify. The
+  operation must first **reconcile by reading back** on the *same* substrate tier
+  where possible: re-read the item by its idempotency key or natural key and decide
+  applied-or-not from observed state. Only after reconciliation proves the write did
+  not land may the operation be retried, on either substrate.
+- **When reconciliation is impossible** (the read path is down too), the operation
+  fails closed and surfaces an operator-readable "write outcome unknown — verify
+  before retrying" rather than silently retrying anywhere.
+
+This preserves rather than loosens the Atlassian write safeguards: their
+tenant-binding rule stays, and this adds the outcome-unknown rule that the
+generalization would otherwise have dropped. Work unit J carries the reconciliation
+mechanics per vendor; the contract states the boundary.
+
 `lisa-secrets-access` remains the single chokepoint feeding the token path. Its `tool:`
 note line already declares which CLIs a given credential is expected to drive, which is
 what makes "provider-first" actionable rather than aspirational.
