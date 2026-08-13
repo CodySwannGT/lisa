@@ -8,6 +8,7 @@ import { AutoAcceptPrompter } from "../../src/cli/prompts.js";
 import { DetectorRegistry } from "../../src/detection/index.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { MigrationRegistry } from "../../src/migrations/index.js";
+import { LISA_INVOCATION } from "../../src/migrations/ensure-lisa-postinstall.js";
 import { StrategyRegistry } from "../../src/strategies/index.js";
 import {
   parseLearningsFile,
@@ -454,9 +455,13 @@ describe("Lisa Integration Tests", () => {
 
     it("preserves host-owned config during postinstall-safe apply", async () => {
       await createTypeScriptProject(destDir);
-      const guardedPostinstall =
+      // The duplicated form is the pre-#2467 spelling that still sits in
+      // installed projects; apply must collapse it to the current invocation,
+      // which surfaces failures instead of discarding them.
+      const swallowingPostinstall =
         '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
-      const duplicatedPostinstall = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${guardedPostinstall}`;
+      const guardedPostinstall = LISA_INVOCATION;
+      const duplicatedPostinstall = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${swallowingPostinstall}`;
       const hostPackageJson = {
         name: "host-project",
         dependencies: { typescript: "^5.0.0" },

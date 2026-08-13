@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
+import { recordSuccessfulApply } from "../core/apply-receipt.js";
 import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
@@ -20,6 +21,7 @@ import {
   createDependencies,
   parseRefreshTemplates,
 } from "./shared-options.js";
+import { getPackageVersion } from "./version.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -179,6 +181,48 @@ function buildApplyConfig(parts: {
 }
 
 /**
+ * Persist everything a completed, real (non-validate, non-dry-run) apply owes
+ * the project: its `.lisa.config.json`, any legacy harness migration, and the
+ * receipt proving the apply finished.
+ * @param parts - Resolved state for this invocation
+ * @param parts.destDir - Project directory that was applied to
+ * @param parts.logger - Logger for migration notices
+ * @param parts.config - The config this apply ran with
+ * @param parts.harness - Resolved harness for this invocation
+ * @param parts.persistence - Inputs deciding whether config must be written
+ */
+async function finalizeSuccessfulApply(parts: {
+  destDir: string;
+  logger: ConsoleLogger;
+  config: LisaConfig;
+  harness: Harness;
+  persistence: ProjectConfigPersistenceInput;
+}): Promise<void> {
+  const { destDir, logger, config, harness, persistence } = parts;
+  // Ensure every applied project carries a .lisa.config.json. A missing file is
+  // always backfilled with the resolved harness (the default when no --harness
+  // was passed) so no project is left config-less; an existing file is only
+  // rewritten when --harness actually changes the persisted value.
+  await persistProjectConfigIfNeeded(destDir, persistence);
+  // Rewrite retired legacy harness values (e.g. "both") in place so the
+  // committed config stops carrying a value newer Lisa versions reject.
+  await migrateLegacyHarnessIfNeeded(destDir, logger);
+  // Record that an apply actually completed here. The postinstall bootstrap is
+  // non-fatal by design, so absence of this receipt is the only reliable
+  // evidence that a repo has silently stopped receiving templates — which is
+  // what `lisa doctor` reports (CodySwannGT/lisa#2467).
+  await recordSuccessfulApply(destDir, {
+    lisaVersion: getPackageVersion(),
+    harness,
+    // `--skip-git-check` IS postinstall-safe mode: it skips every agent emit,
+    // so a bump alone can never reconcile `.codex/config.toml` and friends.
+    // Recording which mode ran is what lets doctor say that work is still
+    // outstanding rather than reporting the repo as current.
+    applyMode: config.skipGitCheck ? "postinstall-safe" : "full",
+  });
+}
+
+/**
  * Apply Lisa to the given destination with the given options.
  *
  * This is the relocated action that previously lived inline in
@@ -234,21 +278,19 @@ export async function runApply(
       process.exit(1);
     }
 
-    // Ensure every applied project carries a .lisa.config.json (not on
-    // validate / dry-run). A missing file is always backfilled with the
-    // resolved harness (the default when no --harness was passed) so no
-    // project is left config-less; an existing file is only rewritten when
-    // --harness actually changes the persisted value, avoiding churn.
     if (!options.validate && !dryRun) {
-      await persistProjectConfigIfNeeded(destDir, {
-        fileExists: configFileExists,
-        flagHarness: options.harness,
-        existingHarness: projectConfig.harness,
-        resolvedHarness: harness,
+      await finalizeSuccessfulApply({
+        destDir,
+        logger,
+        config,
+        harness,
+        persistence: {
+          fileExists: configFileExists,
+          flagHarness: options.harness,
+          existingHarness: projectConfig.harness,
+          resolvedHarness: harness,
+        },
       });
-      // Rewrite retired legacy harness values (e.g. "both") in place so the
-      // committed config stops carrying a value newer Lisa versions reject.
-      await migrateLegacyHarnessIfNeeded(destDir, logger);
     }
 
     // After a real apply, surface (read-only) whether any locally-authored

@@ -11,8 +11,46 @@ import type {
 const PACKAGE_JSON = "package.json";
 const CI_GUARD_PREFIX = '[ -n "$CI" ] || ';
 const BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 ";
-const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true`;
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
+const LISA_APPLY_COMMAND = `node ${LISA_MARKER} --yes --skip-git-check .`;
+
+/**
+ * What the operator sees on stderr when the bootstrap apply fails.
+ *
+ * Written for someone scrolling past a wall of install output who may not know
+ * what Lisa is: it says what stopped working (templates and guardrails are no
+ * longer arriving), that the real error is directly above, and the two commands
+ * that reproduce and diagnose it. ASCII and free of `"`, `$`, and backticks so
+ * it survives being embedded in a JSON string inside a `sh -c` command.
+ */
+export const APPLY_FAILURE_NOTICE =
+  "lisa: TEMPLATE APPLY FAILED - this project is NOT receiving Lisa template " +
+  `or guardrail updates. The error is above. Reproduce it with: ${LISA_APPLY_COMMAND} ` +
+  `- then run: node ${LISA_MARKER} doctor`;
+
+/**
+ * The bootstrap invocation chained into a host project's `postinstall`.
+ *
+ * Shape: **loud but non-fatal**. It used to end in `2>/dev/null || true`, which
+ * discarded the apply's stderr and its exit code, so a totally failed apply was
+ * indistinguishable from success and a repo could silently stop receiving
+ * template updates (CodySwannGT/lisa#2467). Stderr now flows through and a
+ * failure adds an explicit warning line.
+ *
+ * It deliberately still exits 0. A postinstall runs inside `npm install` /
+ * `bun install`; exiting non-zero aborts the install and leaves `node_modules`
+ * half-built. Apply legitimately cannot run in plenty of environments (no git
+ * repo, no project config, sandboxed or non-interactive shells), so a hard
+ * failure would convert a template-sync problem into an install outage across
+ * the fleet. The durable signal instead lives in the apply receipt that a
+ * successful apply writes — `lisa doctor` reports a repo whose receipt is
+ * missing or older than the installed Lisa, so the failure is still findable
+ * long after the install output has scrolled away.
+ *
+ * Exported so tests can execute the real script under `sh` rather than assert
+ * on a string.
+ */
+export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}${LISA_APPLY_COMMAND} || echo "${APPLY_FAILURE_NOTICE}" >&2`;
 
 /**
  * Project types that do not use Node.js postinstall hooks (e.g. Rails).
@@ -40,12 +78,20 @@ async function readPackageJson(
 }
 
 /**
- * Legacy Lisa invocation pattern (without CI guard). Existing projects may
- * have this form chained with other commands; we detect and replace it so
- * the CI guard is introduced without duplicating the invocation.
+ * Every historical spelling of the Lisa invocation, so an in-place upgrade
+ * replaces it rather than chaining a second copy in front of it.
+ *
+ * The optional tail covers, in order: the failure-swallowing legacy form
+ * (`2>/dev/null || true`), the current loud-but-non-fatal form
+ * (`|| echo "..." >&2`), and a bare invocation with no tail at all. Guard
+ * prefixes are optional and repeatable because older Lisa versions introduced
+ * them one at a time.
  */
-const LISA_INVOCATION_RE =
-  /(?:(?:\[ -n "\$CI" \] \|\| )|(?:LISA_BOOTSTRAP=1 ))*node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+const LISA_INVOCATION_RE = new RegExp(
+  '(?:(?:\\[ -n "\\$CI" \\] \\|\\| )|(?:LISA_BOOTSTRAP=1 ))*' +
+    "node node_modules/@codyswann/lisa/dist/index\\.js --yes --skip-git-check \\." +
+    '(?: 2>/dev/null \\|\\| true| \\|\\| echo "[^"]*" >&2)?'
+);
 
 /**
  * Compose the new postinstall, prepending the Lisa invocation to any existing command.

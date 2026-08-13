@@ -1,7 +1,7 @@
 /**
  * Convert Claude slash-command markdown into Codex skill markdown.
  */
-import yaml from "js-yaml";
+import { loadYaml } from "../utils/yaml.js";
 
 /** Parsed Claude command frontmatter fields relevant to Codex compatibility */
 interface CommandFrontmatter {
@@ -42,7 +42,7 @@ export function convertCommandToSkill(
   const rawBody = match[2];
 
   const parsedFrontmatter = parseCommandFrontmatter(
-    yaml.load(rawFrontmatter),
+    loadYaml(rawFrontmatter),
     displayName
   );
   const body = rawBody
@@ -71,7 +71,7 @@ export function convertCommandToSkill(
 
 /**
  * Parse the subset of Claude command frontmatter that Codex should preserve.
- * @param parsed - Output of `yaml.load(rawFrontmatter)` (untrusted shape)
+ * @param parsed - Output of `loadYaml(rawFrontmatter)` (untrusted shape)
  * @param displayName - Fallback used when no description is available
  * @returns Command frontmatter relevant to Codex skill conversion
  */

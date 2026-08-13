@@ -172,6 +172,28 @@ bun add --dev --trust @codyswann/lisa
 
 Lisa's dependency `postinstall` runs `lisa apply` for that project. A later
 `bun update @codyswann/lisa` reapplies the updated project-scoped artifacts.
+
+That bootstrap is **loud but non-fatal**: a failed apply prints the real error
+plus a warning naming the consequence, and still exits 0, because a postinstall
+that aborts would break `bun install` in every environment where apply
+legitimately cannot run. The durable signal is
+`lisa doctor` — a successful apply writes `.lisa/apply-receipt.json`, and doctor
+reports any repo whose receipt is missing or older than the installed Lisa
+("this repo has not successfully applied templates since `<version>`"). Run it
+whenever a project seems to have stopped tracking upstream changes; a repo can
+otherwise sit silently stale for months.
+
+The same check covers a second, quieter gap. A package install runs apply in
+**postinstall-safe** mode (`--skip-git-check`), which deliberately skips every
+agent emit — Codex, Claude, agy, Copilot, OpenCode — and the Sonar integration,
+because those rewrite host-owned files. So no `bun install` at any version can
+reconcile `.codex/config.toml`; only a full `lisa apply .` does. Doctor now says
+so instead of reporting such a repo as current.
+
+Lisa drives `js-yaml` through one interop shim and works with the 3.x, 4.x, and
+5.x lines, so a host `overrides`/`resolutions` pin that collapses Lisa's own
+copy is fine. A pin Lisa genuinely cannot drive is reported by `lisa doctor` as
+a named incompatibility rather than a crash.
 Lisa does not register user-wide Codex plugins, skills, hooks, rules, MCP
 servers, or configuration. Other harnesses retain their existing delivery
 behavior. For a new project, run the CLI ephemerally with
