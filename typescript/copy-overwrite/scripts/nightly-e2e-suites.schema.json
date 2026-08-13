@@ -11,6 +11,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["label", "workflow", "match"],
+      "dependentRequired": { "grace_days": ["first_seen"] },
       "properties": {
         "label": {
           "type": "string",
@@ -40,6 +41,17 @@
           "type": "string",
           "pattern": "^[0-9a-f]{40}$",
           "description": "When present, the run's head_sha must equal this exact commit. Use only where the suite is expected to run on a pinned commit; freshness plus the branch filter is the normal staleness control."
+        },
+        "first_seen": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 UTC timestamp naming when this suite entered the table — the ANCHOR of its per-suite grace window (truth-table rows 27-30). Set it when you ADD a suite to an already-armed repo: for `grace_days` (default 14) from this instant, MISSING evidence for THIS suite reports with its expiry but does not block, while every other suite stays armed. Evidence of FAILURE blocks inside the window too. It may NOT be in the future — a future anchor would be a hand-typed expiry under another name, extendable forever by one string edit — and a window running beyond `bootstrap_max_days` FAILS as misconfiguration rather than being clamped. A lapsed anchor is inert, so the field can be left in place."
+        },
+        "grace_days": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "description": "How many days after `first_seen` this suite's grace window lasts. Default 14. Requires `first_seen` — a grace length with no anchor forgives nothing and reads as though it forgives everything. Bounded by the same ceiling as the bootstrap window (`bootstrap_max_days`, hard ceiling 30): per-suite grace spends from the same forgiveness budget, and a grace that could outlive that ceiling is propswap's forever-bootstrap wearing a per-suite hat."
         }
       }
     },
