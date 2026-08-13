@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.4](https://github.com/CodySwannGT/lisa/compare/v3.11.3...v3.11.4) (2026-08-13)
+
+
+### Bug Fixes
+
+* **automations:** stop erasing unknown run-record fields from the whole history ([b937a56](https://github.com/CodySwannGT/lisa/commit/b937a56d6ae355522e9fc1aaf7d954a3e2a7c484)), closes [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [CodySwannGT/lisa#2524](https://github.com/CodySwannGT/lisa/issues/2524)
+
 ### [3.11.3](https://github.com/CodySwannGT/lisa/compare/v3.11.2...v3.11.3) (2026-08-13)
 
 
