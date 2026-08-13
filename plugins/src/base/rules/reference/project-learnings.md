@@ -34,7 +34,7 @@ Each persisted entry has seven fields:
 
 - The **learner agent** at capture time appends or consolidates new entries
   (`persistLearningEntry` / `persistConsolidatedLearning`) from task learnings.
-  It is capture-only: it never appends to `PROJECT_RULES.md`, creates skills, or
+  It is capture-only: it never appends to host rules, creates skills, or
   files upstream issues — promotion is the gardener's ticket-gated job.
 - **`lisa-debrief-apply`** routes accepted debrief findings in the three
   knowledge categories — recurring gotcha, process friction, convention drift —
@@ -42,7 +42,8 @@ Each persisted entry has seven fields:
   `persistConsolidatedLearning`, with consolidation-at-write), provenance drawn
   from the triage row's evidence links and a `high` starting confidence because
   a human Accept is corroboration. It no longer writes to machine-local memory,
-  `PROJECT_RULES.md`, or `AGENTS.md` (the human-authored source of truth, of
+  the host-rules directory `.agents/rules/` (or a surviving legacy
+  `PROJECT_RULES.md`), or `AGENTS.md` (the human-authored source of truth, of
   which `CLAUDE.md` is only a `@AGENTS.md` pointer) for these categories.
 - The **build-intake flows** advance `last_confirmed` at claim time
   (`confirmLearningEntry`, below).
@@ -77,9 +78,10 @@ warning, apply no entry, and do not block unrelated work.
 Precedence:
 
 1. System, developer, user, and repo instructions still outrank learnings.
-2. Committed project rules remain durable human-authored guidance.
+2. Committed host rules (`.agents/rules/`) remain durable human-authored
+   guidance.
 3. Project learnings add recent operational knowledge, but never rewrite or
-   append to `PROJECT_RULES.md`.
+   append to host rules.
 
 ## Task telemetry (MLD) is not context
 

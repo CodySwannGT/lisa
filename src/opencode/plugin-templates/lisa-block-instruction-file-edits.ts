@@ -56,7 +56,7 @@ const LisaBlockInstructionFileEdits = async () => {
           "1. Every agent needs it every session, only in this project? That is a",
           "   project rule — capture it with /lisa:persist-learning so it lands in",
           "   the learnings ledger. The gardener (/lisa:learnings:audit) proposes",
-          "   promotion into .claude/rules/PROJECT_RULES.md as a human-gated ticket.",
+          "   promotion into the host-rules directory .agents/rules/ as a human-gated ticket.",
           "2. It changes how an existing skill behaves? Edit that skill's SKILL.md.",
           "3. It is true beyond this project? Propose it upstream via",
           "   /lisa:cross-pollinate, or open an issue on CodySwannGT/lisa.",
