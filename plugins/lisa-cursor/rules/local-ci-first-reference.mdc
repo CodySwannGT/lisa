@@ -1,0 +1,39 @@
+---
+description: "Local CI First — CI Is Not a Debugger"
+alwaysApply: false
+---
+
+# Local CI First — CI Is Not a Debugger
+
+End-to-end suites — Playwright, Maestro, Cypress, and anything else that only runs in a workflow on a normal day — fail differently from unit tests. The failure is usually environmental (a selector that moved, a fixture that did not seed, a simulator that booted slowly), and the instinct is to guess, push, and read the next CI run.
+
+That instinct is what this rule exists to break. A CI round trip is five to twenty minutes, produces one bit of information per attempt, gives no interactive access to the failing state, and occupies a runner that other work is queued behind. Three speculative pushes cost the better part of an hour and still leave you without a reproduction. The same three attempts run locally take minutes and hand you the actual DOM, the actual screenshot, and the actual stack.
+
+## Reconstruct the invocation, do not approximate it
+
+The workflow file is the specification of what CI ran. Read it and mirror it:
+
+- The **exact command**, including the config file, project/suite selector, and tag filters (`--project=chromium`, `--grep`, `include_tags`).
+- The **environment**: env vars the job sets, the base URL it points at, whether it runs headless, and which secrets it injects. Anything you cannot supply locally is a known difference — write it down rather than assuming it is irrelevant.
+- The **target**: browser version, device or simulator model, OS. Mobile e2e is especially sensitive here; a Maestro flow that passes on one iOS version fails on the next over accessibility-label matching alone.
+- The **fixture and data state**: seed scripts, migrations, and whether the job runs against a fresh database or a shared environment.
+
+Setting all of that up — installing the browser, booting the simulator, seeding the database — is part of doing the work. "Local setup would take a while" is not a reason to use the shared CI queue as a REPL.
+
+## When it genuinely will not reproduce
+
+Some failures are real and local-only-invisible: a race that appears only on a slower runner, a secret that exists only in CI, an artifact that only the CI build produces. That case is legitimate, and the rule's requirement is honesty about it, not denial:
+
+1. **Say so explicitly**, and name what differs — runner OS, CPU count, headless mode, network latency, a device you do not have, a secret you cannot read.
+2. **Change one thing per push, and state what that push is testing.** A push that alters four things and goes green teaches you nothing about which one mattered.
+3. **Add the observability you are missing** — a trace, a video, a screenshot on failure, a verbose log — in the same push, so the next run answers the question rather than repeating it.
+
+## Forbidden
+
+- Pushing a speculative fix "to see if it helps" when the suite has never been run locally.
+- Re-running a failed CI job unchanged in the hope of a different outcome, without labelling the failure as suspected-flake and investigating it as one.
+- Reporting a fix as verified on the strength of a green CI run that followed several red ones, without knowing which change was responsible.
+
+## Relationship to other rules
+
+`empirical-inquiry` says to run the cheapest probe that settles a question; local reproduction *is* that probe for an e2e failure. `verification` requires proof by using the software — a local run of the same suite produces that proof directly, and produces it faster.

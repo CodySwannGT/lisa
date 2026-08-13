@@ -5,6 +5,14 @@ alwaysApply: false
 
 # Integration Access Layer
 
+## Secrets resolve through `lisa-secrets-access`
+
+Credentials follow the same chokepoint discipline as vendor integrations: every secret a session needs resolves through the `lisa-secrets-access` skill, which owns the supported provider list (Bitwarden, 1Password, AWS, Doppler, Vault, env), the note format attached to each secret, the `tool:` declaration of which CLIs a credential drives, and the resolution and verification order.
+
+That contract is deliberately **not restated here or anywhere else.** A second copy of the note format is a copy that drifts, and a drifted copy of a credential contract is worse than no copy, because it is followed. Read the skill.
+
+The one operational consequence worth stating in an always-loaded rule: **do not ask a human to paste a value the configured provider can supply**, and do not read keychains, `.env` files, or provider CLIs directly to work around the skill. If resolution fails, the failure is a bug in the provider bootstrap and gets reported as one.
+
 Every Lisa skill or rule that consumes an external integration MUST route through
 the integration's `*-access` skill instead of calling that vendor's MCP tools or
 REST API directly.
