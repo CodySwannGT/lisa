@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- Main orchestrator class with apply/validate operations */
 import * as fse from "fs-extra";
 import { existsSync } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
@@ -938,15 +938,28 @@ export class Lisa {
 
   /**
    * Record the Lisa version whose plugin set was last fully synced.
+   *
+   * Writes through `node:fs/promises`. `writeFile` is one of the `graceful-fs`
+   * passthroughs Node's ESM loader does not expose on the `fs-extra` namespace,
+   * so `fse.writeFile(...)` was `undefined` in the shipped `dist/` and threw a
+   * `TypeError` into the catch below (#2487) — the marker was never written, and
+   * the version gate it feeds never once took effect.
+   *
+   * Failure stays non-fatal, but is no longer silent. The catch now reports the
+   * real error: a recovery path that says nothing cannot be distinguished from
+   * one that never ran, which is precisely how this went unnoticed. The wording
+   * matches the sibling best-effort plugin steps above.
    * @param version - Lisa package version to record
    * @returns Promise that resolves when the marker is written (best-effort)
    */
   private async writePluginSyncMarker(version: string): Promise<void> {
     try {
       await fse.ensureDir(path.join(this.config.destDir, ".claude"));
-      await fse.writeFile(this.pluginSyncMarkerPath(), `${version}\n`, "utf-8");
-    } catch {
+      await writeFile(this.pluginSyncMarkerPath(), `${version}\n`, "utf-8");
+    } catch (error) {
       // Best-effort: a missing marker only costs a redundant full sync next run.
+      const message = error instanceof Error ? error.message : String(error);
+      this.deps.logger.warn(`Could not record plugin sync marker: ${message}`);
     }
   }
   /* v8 ignore stop */
