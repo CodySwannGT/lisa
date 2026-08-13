@@ -221,7 +221,9 @@ describe("standards check registry", () => {
       "lint",
       "lint_slow",
       "typecheck",
-      "test",
+      // #2485 deleted the bare `test` job: it re-ran `npm test` over the same
+      // suites the two coverage-carrying required contexts below already run,
+      // and its NOT-required red read like the required test gate failing.
       "verification_coverage",
       "test_unit",
       "test_integration",

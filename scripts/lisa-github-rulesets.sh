@@ -351,6 +351,82 @@ strip_config_dropped_checks() {
     else . end'
 }
 
+# Per-repo opt-IN, the mirror of dropRequiredChecks above. Some repositories run
+# a high-signal check that only exists in THAT repository, so it cannot live in
+# a shared template: putting it there would ship a context host projects never
+# report, and a required check that never reports blocks every pull request
+# forever (the #2476 "aspirational seed a guard then trusts" defect).
+#
+# Keyed by ruleset name, because more than one shipped template carries a
+# required_status_checks rule (`base` and `quality checks` both do) and an
+# unkeyed list could not say which one it meant:
+#   { "github": { "rulesets": { "addRequiredChecks": {
+#       "quality checks": [
+#         { "context": "🧩 Plugin artifacts match source", "integration_id": 15368 }
+#       ] } } } }
+#
+# `integration_id` is optional and defaults to GitHub Actions. Contexts already
+# present are not duplicated, and a ruleset with no required_status_checks rule
+# gets one created so an addition is never silently dropped.
+#
+# Additions are applied FIRST, before the no-workflows strip and before
+# dropRequiredChecks, so both of those still win over an addition. That is
+# deliberate: the no-workflows strip is a safety rule (a required Actions check
+# on a repository with no workflows can never report, and would block every pull
+# request), and naming the same context in both lists is operator error whose
+# safe resolution is to drop it rather than to require it.
+add_config_required_checks() {
+  local json="$1"
+  local project_path="$2"
+  local ruleset_name="$3"
+  local config="$project_path/.lisa.config.json"
+
+  if [[ ! -f "$config" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  local added
+  if ! added=$(jq -c --arg name "$ruleset_name" \
+    '.github.rulesets.addRequiredChecks[$name] // []' "$config" 2>/dev/null); then
+    log_warning ".lisa.config.json could not be parsed — ignoring github.rulesets overrides" >&2
+    added="[]"
+  fi
+
+  if [[ "$added" == "[]" || "$added" == "null" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  echo "$json" | jq --argjson added "$added" --argjson actions "$ACTIONS_INTEGRATION_ID" '
+    ($added
+      | map(select(type == "object" and (.context | type) == "string"))
+      | map({ context: .context, integration_id: (.integration_id // $actions) })
+    ) as $checks
+    | if ($checks | length) == 0 then .
+      elif ((.rules // []) | map(select(.type == "required_status_checks")) | length) > 0 then
+        .rules |= map(
+          if .type == "required_status_checks" then
+            .parameters.required_status_checks |= (
+              . as $existing
+              | . + ($checks | map(
+                  select(.context as $c | ($existing | map(.context) | index($c)) | not)
+                ))
+            )
+          else . end
+        )
+      else
+        .rules = ((.rules // []) + [{
+          type: "required_status_checks",
+          parameters: {
+            strict_required_status_checks_policy: false,
+            do_not_enforce_on_create: true,
+            required_status_checks: $checks
+          }
+        }])
+      end'
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
@@ -365,6 +441,7 @@ apply_ruleset() {
 
   local clean_template
   clean_template=$(strip_readonly_fields "$template_content")
+  clean_template=$(add_config_required_checks "$clean_template" "$project_path" "$ruleset_name")
   clean_template=$(strip_actions_checks_if_no_workflows "$clean_template" "$project_path")
   clean_template=$(strip_config_dropped_checks "$clean_template" "$project_path")
 

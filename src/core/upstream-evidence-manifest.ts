@@ -741,7 +741,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "7cfe0ec4a4c7f7b133580ee4b9004b764a99bd98e9d39856c587c8ad45fda920",
+      "b4ecd8196fa2ba0dc7c128c5f2f986a36840aaa5f78d5b739f6fc2a67404df00",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -829,7 +829,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/dependency-trust-classes.md":
       "82216b80d4807e0ad302d04924032cc6a7a95b26f72ea853e378572a5c31821c",
     "plugins/src/base/rules/reference/derived-branch-plan.md":
-      "325245c8a40042f35bd83fabc3d6752724fbb2789d6fddade0e5191442846127",
+      "728ef5366d8d2645cce47e4544a7c175d7a7ba8bd6f7768ddb21e4415d53f4ad",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
     "plugins/src/base/rules/reference/do-it-now.md":
@@ -841,7 +841,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "284eccdf5b0fa29d2927a24ab25ad4aed34b0798e4fdf2e8e7d6fd1b80e3236b",
+      "a0d7c3be070937042d17e98bdb955b87f30be5d298be91e33c1e6883cae2635d",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -919,7 +919,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "e9a536389d2581370f6c470b8a070aaae96660646efc528a7ff7fb25d324a903",
     "plugins/src/base/scripts/design-source-gate.mjs":
-      "2c8121404ac6dd71f74a3080561aa6daecb4f719fdd1360622511d35186bc13f",
+      "4db12844df14cc5dbcbdb96df9273cdce08057bc839493649fa65fccf559953b",
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
@@ -2149,7 +2149,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
     "scripts/lisa-github-rulesets.sh":
-      "920a43ba268421b6fe55096062bd85850468bee9389f6006ad7c671010e7cccb",
+      "8af5d059d29d5ad3723ef1d2d00e73cc873a6a04bd81b0ac92fbd15f272a211b",
     "scripts/lisa-remote-env/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
@@ -2242,6 +2242,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9cd675cbba11457ba70c9c4f853f3e5cf652fe98c508075946f02bf045710ca6",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml":
       "a662cb959ad5d96e4dda09d6dce1d69318e7c13f3d01787658184fd6075c2781",
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml":
+      "1664d70f1c5c37341e9ae29bfbe375d47b2e0df3cf2022c1933af209233109e9",
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member.yml":
+      "2601f136c89e2c70490a9a439f8a077157b09af525f6066fdae751001f8cc0ae",
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep":
       "6792ca57f00ff5a84a4713a08308a8ab3144858b0b0d9f8251b8c26c48948fb7",
     "typescript/copy-overwrite/audit.ignore.config.json":
@@ -2259,7 +2263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "c9dd6f6816b35d4d8f684892878d4181b9cb5266a7f2e2814970aa49dc04a001",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "8eaac3ea96d92b55c418877c1fe338a7c0b3a8f48ef3593258f54a633f761c85",
+      "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2281,7 +2285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
     "typescript/create-only/.github/required-checks.json":
-      "0ec5fbf2fe2dcb366db0d0002357b881053143223a09a25e1dc488a87b142eb2",
+      "16e7693b24a68d38fa2d680bf7231a91939850b1e71a69b67780b1311f1cbf35",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2540,6 +2544,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "ast-grep/rules/harper/require-statuscode-on-thrown-error.yml": true,
     "ast-grep/rules/no-inline-component-in-container.yml": true,
     "ast-grep/rules/no-inline-component-in-view.yml": true,
+    "ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml": true,
+    "ast-grep/rules/no-missing-fs-extra-namespace-member.yml": true,
     "ast-grep/rules/phaser/no-canvas-renderer.yml": true,
     "ast-grep/rules/phaser/no-raw-webgl-context.yml": true,
     "ast-grep/rules/ruby/no-find-by-sql-without-params.yml": true,
@@ -9132,7 +9138,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/repo-scope-claim.test.ts": true,
     "tests/unit/strategies/reset-seed-coverage-rule.test.ts": true,
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
+    "tests/unit/strategies/runtime-behavior-change-consistency.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-decidability.test.ts": true,
+    "tests/unit/strategies/runtime-behavior-change-sources.ts": true,
     "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
     "tests/unit/strategies/session-operating-pack.test.ts": true,
     "tests/unit/strategies/setup-automations-readiness-warning.test.ts": true,
@@ -9227,6 +9235,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep": true,
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml": true,
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml": true,
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml": true,
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member.yml": true,
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep": true,
     "typescript/copy-overwrite/audit.ignore.config.json": true,
     "typescript/copy-overwrite/commitlint.config.cjs": true,

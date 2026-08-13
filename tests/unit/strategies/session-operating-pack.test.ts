@@ -168,9 +168,12 @@ describe.each(ROOTS)("session operating pack in %s", root => {
     }
   });
 
-  it("falsifiable-checks requires exactly one failure from a guard's red leg", () => {
+  it("falsifiable-checks keeps the mutation-proof cardinality yardstick", () => {
+    // Was `toContain("exactly one")` until #2489 corrected the reading: exactly
+    // one is one of two load-bearing outcomes, not the requirement. The full
+    // contract lives in tests/unit/strategies/falsifiable-checks-rule.test.ts.
     const eager = eagerOf(root, FALSIFIABLE_CHECKS);
-    expect(eager).toContain("exactly one");
+    expect(eager).toContain("Exactly one, or several all named for the same");
   });
 
   it("falsifiable-checks forbids narrating a red state that was never run", () => {
