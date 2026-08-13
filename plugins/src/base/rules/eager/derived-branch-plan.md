@@ -32,7 +32,9 @@ A missing or **ambiguous** mapping, a key that is **not unique**, or a branch ab
 
 ## Exemption
 
-Work that declares no runtime behavior change — `runtime_behavior_change = false`, i.e. doc-only, config-only, and type-only items — carries **no `Target Backend Environment`**, therefore has nothing to derive from and **requires no branch plan**. Its **absence is correct**, not a missing section, and no gate may demand one. Containers (an Epic, or a Story/Spike still holding child work) are exempt for the same reason: they are not built directly.
+Work that declares no runtime behavior change — `runtime_behavior_change = false`, i.e. doc-only, config-only, and type-only items — has nothing to derive from and **requires no branch plan**. Its **absence is correct**, not a missing section, and no gate may demand one. Containers (an Epic, or a Story/Spike still holding child work) are exempt for the same reason: they are not built directly.
+
+But the exemption is **declared, never inferred from an absent section**. `Target Backend Environment` is rendered on every leaf, because it is where `runtime_behavior_change` is persisted: an exact configured environment key means `true`, `None — no runtime behavior change: doc-only` (or `config-only` / `type-only`) means `false`, `None — container: state rolls up from children` marks a container, and an **absent section is underivable — never `false`**. On a live item the stored declaration beats any caller assertion, and a contradicting assertion fails S8 rather than being believed. Absence used to be the only signal, which meant the flag every one of S8, S11, S14, and S19 turns on could not be checked against the item at all.
 
 The exemption is one-way. Exempt work that *carries* a branch plan fails validation — branches asserted for work that declared it has no runtime target are hand-authored by definition, which is the second-authority failure this rule exists to prevent.
 

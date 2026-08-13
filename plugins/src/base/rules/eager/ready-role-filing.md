@@ -19,4 +19,8 @@ Filed, not ready, and no `human_gate` is the **incomplete handoff** case — wri
 
 `lisa-repair-intake` sweeps for open items that are neither in the ready role nor marked `[lisa-human-gate]`, and surfaces them rather than promoting them.
 
+## This rule is enforced
+
+The PreToolUse guard `block-direct-issue-create.sh` refuses a direct tracker-creation command (`gh issue create`, `gh api` POST to an issues endpoint, `linear`/`jira`/`acli` creates, equivalent `curl` posts) that carries **no readiness declaration** — no configured build-ready role and no `[lisa-human-gate]` marker. It shipped because this rule as prose did not bind: 13 of 13 issues filed during the session that merged it bypassed it, several by the agent that wrote it, while the one obligation backed by a git hook was honored 50 of 50 times. It stands down where no tracker is configured, and for an operator who set `LISA_ALLOW_DIRECT_ISSUE_CREATE` **in the ambient environment** — never from an inline assignment on the refused command.
+
 Full contract (the per-vendor before/after table, marker format, and recovery sweep): [reference/ready-role-filing.md](../reference/ready-role-filing.md).

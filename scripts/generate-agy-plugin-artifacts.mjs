@@ -245,6 +245,16 @@ const AGY_PLUGIN_HOOKS = [
     agyScript: "block-instruction-file-edits.agy.sh",
     supportScripts: ["block-instruction-file-edits.sh"],
   },
+  {
+    // No arm-only caveat here, unlike the entry above: the canonical guard is
+    // Bash-only, and `run_command` is the whole of its surface.
+    sourceScript: "block-direct-issue-create.sh",
+    hookName: "lisa-block-direct-issue-create",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-direct-issue-create.agy.sh",
+    supportScripts: ["block-direct-issue-create.sh"],
+  },
 ];
 
 /**
