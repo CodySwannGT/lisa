@@ -116,8 +116,10 @@ Every provider has a description field — Bitwarden `note`, 1Password notes, AW
 
 These are two different rules and should not be conflated:
 
-- **Rule A — the note must exist and be well-formed.** Universal: every secret, every provider, every surface. Enforced **statically** by `verify` and by `doctor`. Nothing to do with agents.
+- **Rule A — the note must exist and be well-formed.** Universal: every secret, every provider, every surface. Enforced **statically** by `verify` and by `doctor`, and it **blocks** — a malformed note is an error, not a warning. Nothing to do with agents.
 - **Rule B — an agent must read the note before first use.** Runtime, and **only in lanes where a consumer has latitude**. An agent could do anything with a write-scoped token, and the note is what bounds it. A reviewed workflow step resolving one credential by exact name has no latitude, so gating it there is ceremony that can only fail-closed and never inform.
+
+Rule A blocks because a warning enforced nothing. Both checks previously tested only whether a note was *present*, and reported a warning either way, so a vault of empty notes reported clean — which is precisely why the notes stayed empty. A check that cannot fail is a check nobody acts on.
 
 Format — first line prose, then `key: value` lines:
 
@@ -128,6 +130,22 @@ owner: <name>
 ci: yes - injected by <mechanism>
 docs: <path>
 ```
+
+### What "well-formed" means, exactly
+
+`scripts/note-format.mjs` is the one validator; `verify` and `doctor` both call it, so they cannot reach different verdicts about the same note. It **blocks** on:
+
+| Defect | Why it blocks |
+| --- | --- |
+| `missing-note` | No note at all, empty, or only whitespace. |
+| `no-prose` | Every line is a `key: value` line, so nothing states what the credential *is*. |
+| `empty-field` | A field with nothing after the colon — it promises a fact the reader cannot find. |
+| `empty-tool-line` | A `tool:` line naming no tool: it asks for an install and supplies nothing. |
+| `bad-tool-name` | A `tool:` entry that is not a bare name, so the reader drops it silently. |
+
+It **warns**, without blocking, on `stray-separator` — a trailing or doubled comma in a tool list. The reader handles it; failing a vault over punctuation would only teach operators that the check is noise.
+
+Deliberately **not** checked: which fields a note carries, and how informative the prose is. The documented format mandates neither, and enforcing beyond the prose is the same defect as prose beyond the enforcement, pointing the other way. A line is treated as prose unless the text before its colon is a single bare lowercase token — so "Attio CRM: system of record" is a sentence, not a field.
 
 ### `tool:` — the CLI a secret implies
 
@@ -229,7 +247,7 @@ Cache **in-process only**. Never write a resolved value to disk except through t
 
 - Every name in `require` resolves.
 - Every key matches `^[A-Z][A-Z0-9_]*$`.
-- No secret has an empty note.
+- Every secret's note exists and is well-formed, per the table above. This is an **error**, so a vault that was passing on warnings will newly fail until its notes are written.
 - Every name in `rotating` has a resolvable bootstrap, so its replacement could be persisted.
 - **No secret is readable from two stores.** A value present in both the provider and a local cache is not a duplicate — it is **two live credentials**, one of which is untracked. This is the check most worth having: it catches drift before a deletion turns the forgotten copy into an orphan nobody can revoke.
 
