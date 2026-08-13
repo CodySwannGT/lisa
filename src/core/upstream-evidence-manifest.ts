@@ -199,7 +199,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "fb2f03ba0c595fab1fdf59b018a38acce0f9b25ba15705bf8af498135eb148b4",
+      "d69d4b9cf275f5e07a090f5763f80bb946435c33627dfe21d261650cfe88851a",
     "expo/create-only/.github/workflows/ci.yml":
       "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -362,6 +362,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "350c18b2c588fd628db8a6e82fc5c0b3ffc8a09f1c89b64d1f530350bc64a9ca",
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
+    "nestjs/create-only/.github/required-checks.json":
+      "6bbbe6976ec39c516608f69b02a431187d948d63b0b28ab7ad32a052e87ea171",
     "nestjs/create-only/.github/workflows/ci.yml":
       "0985668e6d0478f1993bed8ccd398601d8e73376afd8775e1269ae129418152e",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2251,7 +2253,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "c9dd6f6816b35d4d8f684892878d4181b9cb5266a7f2e2814970aa49dc04a001",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "86e9df17ea11fe0cd11d54f7fd60f016338e7fe28cdd4b07fab3b0b064b64ffb",
+      "e4a9d255c74a7ddeac3db5fdf47b5c5f8110f49f63576983d7e4ffe23e4a631b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2273,7 +2275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
     "typescript/create-only/.github/required-checks.json":
-      "a490d9d4344bafe8178c6b0b4a9a8a6fff8548ef9cff76ba0562c50040b174ae",
+      "86718597f15cd23527ba32e6490ba2269457a78e18abb257f97bde5076d3dc7d",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2296,6 +2298,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "072cc8290eec15ef6d55c2583e94ae49cda4a56a0fea252556a8fce8170cc540",
     "typescript/create-only/.github/workflows/claude.yml":
       "fd230bf19769a12b1b3afeeeb1d5f51c44338db974c26ff05dc381f0e1ba2382",
+    "typescript/create-only/.github/workflows/required-checks-drift.yml":
+      "ec0d93396043b3d9fe0263a3ffbdc4721b1890020886bd97a09afe779c703adf",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -2724,6 +2728,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "nestjs/create-only/.github/k6/thresholds/normal.json": true,
     "nestjs/create-only/.github/k6/thresholds/relaxed.json": true,
     "nestjs/create-only/.github/k6/thresholds/strict.json": true,
+    "nestjs/create-only/.github/required-checks.json": true,
     "nestjs/create-only/.github/workflows/ci.yml": true,
     "nestjs/create-only/.github/workflows/deploy.yml": true,
     "nestjs/create-only/.zap/baseline.conf": true,
@@ -8852,6 +8857,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
+    "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
@@ -9195,6 +9201,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/create-only/.github/workflows/claude-nightly-test-improvement.yml": true,
     "typescript/create-only/.github/workflows/claude-sync-down-branches.yml": true,
     "typescript/create-only/.github/workflows/claude.yml": true,
+    "typescript/create-only/.github/workflows/required-checks-drift.yml": true,
     "typescript/create-only/.gitleaksignore": true,
     "typescript/create-only/audit.ignore.local.json": true,
     "typescript/create-only/eslint.config.local.ts": true,
