@@ -919,7 +919,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "e9a536389d2581370f6c470b8a070aaae96660646efc528a7ff7fb25d324a903",
     "plugins/src/base/scripts/design-source-gate.mjs":
-      "2c8121404ac6dd71f74a3080561aa6daecb4f719fdd1360622511d35186bc13f",
+      "4db12844df14cc5dbcbdb96df9273cdce08057bc839493649fa65fccf559953b",
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":

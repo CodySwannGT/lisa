@@ -61,3 +61,43 @@ export const annotated = (relPath: string, annotation: string): ChangedFile =>
  */
 export const unannotated = (relPath: string): ChangedFile =>
   changed(relPath, "export const Component = () => null;\n");
+
+/**
+ * Every per-file status that must fail the whole change, paired with a changed
+ * file that provably produces it.
+ *
+ * Stated here as an independent, hardcoded list rather than derived from the
+ * gate's own `VIOLATION_STATUSES`. A table driven by the set under test is
+ * self-matching: deleting a member deletes its own case and stays green, which
+ * is precisely the inertness issue #2492 found. Driving the table from this
+ * list instead — and pinning the gate's set against these keys — makes a
+ * removal fail its own case and an addition fail the pin.
+ */
+export const VIOLATION_VERDICT_CASES: readonly (readonly [
+  string,
+  ChangedFile,
+])[] = [
+  ["undeclared", unannotated("src/components/Undeclared.tsx")],
+  [
+    "malformed",
+    annotated(
+      "src/components/Malformed.tsx",
+      "// DESIGN-SOURCE: see the Slack mock"
+    ),
+  ],
+  [
+    "conflicting",
+    annotated(
+      "src/components/Conflicting.tsx",
+      `// DESIGN-SOURCE: ${FIGMA_URL}\n// ${MARKER}`
+    ),
+  ],
+  [
+    "unreadable",
+    {
+      path: "src/components/Unreadable.tsx",
+      changeType: "modified",
+      content: null,
+    },
+  ],
+];
