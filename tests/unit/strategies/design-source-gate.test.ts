@@ -9,6 +9,13 @@
  * UI surface declare its design source, and by failing closed when it cannot
  * prove one either way. The verdict-level assertions live in the sibling
  * `design-source-gate-verdict` suite.
+ *
+ * Every test here is named for the classification it asserts, never for the
+ * consequence that classification carries. Issue #2492 found six named the
+ * other way — "fails closed when the changed file cannot be read" while
+ * asserting only `status: "unreadable"` — so a reader auditing test names
+ * concluded the fail-closed behavior was covered when nothing checked it.
+ * A name that promises a verdict belongs in the sibling suite, which asserts one.
  * @module tests/unit/strategies/design-source-gate
  */
 import { describe, expect, it } from "vitest";
@@ -79,7 +86,7 @@ describe("design-source gate — per-file classification", () => {
     });
   });
 
-  it("accepts the designated marker as an explicit, recorded exception", () => {
+  it("classifies the designated marker as an explicit, recorded exception", () => {
     expect(
       classifyDesignSource(annotated(PATHS.debugPanel, `// ${MARKER}`))
     ).toMatchObject({ uiSurface: true, status: "marked-exception" });
@@ -97,14 +104,14 @@ describe("design-source gate — per-file classification", () => {
     expect(svelte.reason).toBe("internal-only debug affordance");
   });
 
-  it("fails a UI file that declares nothing at all", () => {
+  it("classifies a UI file that declares nothing at all as undeclared", () => {
     expect(classifyDesignSource(unannotated(PATHS.invented))).toMatchObject({
       uiSurface: true,
       status: "undeclared",
     });
   });
 
-  it("fails closed on an annotation whose value is neither form", () => {
+  it("classifies an annotation whose value is neither form as malformed", () => {
     expect(
       classifyDesignSource(
         annotated(
@@ -115,7 +122,7 @@ describe("design-source gate — per-file classification", () => {
     ).toMatchObject({ status: "malformed" });
   });
 
-  it("fails closed on a non-Figma URL rather than accepting any link", () => {
+  it("classifies a non-Figma URL as malformed rather than accepting any link", () => {
     expect(
       classifyDesignSource(
         annotated(
@@ -126,7 +133,7 @@ describe("design-source gate — per-file classification", () => {
     ).toMatchObject({ status: "malformed" });
   });
 
-  it("fails closed when a file both cites Figma and denies having a source", () => {
+  it("classifies a file that both cites Figma and denies a source as conflicting", () => {
     expect(
       classifyDesignSource(
         annotated(
@@ -137,7 +144,7 @@ describe("design-source gate — per-file classification", () => {
     ).toMatchObject({ status: "conflicting" });
   });
 
-  it("fails closed when the changed file cannot be read", () => {
+  it("classifies a changed file that cannot be read as unreadable", () => {
     expect(
       classifyDesignSource({
         path: "src/components/Gone.tsx",
