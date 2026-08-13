@@ -336,7 +336,7 @@ Each sub-task MUST:
 2. **Include an Empirical Verification Plan** — real user-like verification, NOT unit tests, linting, or typechecking
 3. **Carry its own `## Source Requirement` section** (shared format above) with the full verbatim quote(s) from the Phase 1.4 register — a leaf claimed by build-intake in isolation must be self-explanatory. When a sub-task is split per-repo, every split child inherits the same requirement quote(s).
 
-**Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready role. `lisa-tracker-write` applies the build-ready role here so downstream build intake (`lisa-tracker-build-intake`) claims the leaves and never the Epic or Stories. Apply the build-ready role to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa-tracker-write` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready role. `lisa-tracker-write` applies the build-ready role here so downstream build intake (`lisa-tracker-build-intake`) claims the leaves and never the Epic or Stories. **Pass `build_ready: true` explicitly on every Sub-task create** — per the `ready-role-filing` rule an omitted `build_ready` is NOT build-ready on any tracker, so a decomposition that relies on a vendor default silently produces a queue nothing ever claims. Apply the build-ready role to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa-tracker-write` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
 
 **Verification plan examples by stack:**
 - **Backend APIs**: curl GraphQL/REST calls with auth token, database queries, checking audit entries
@@ -420,6 +420,7 @@ produces broken tickets that downstream skills (triage, journey, evidence) canno
 
 For each sub-task, invoke `lisa-tracker-write` with:
 - issue_type: "Sub-task"
+- build_ready: true  # explicit per `ready-role-filing`; omitted is NOT build-ready on any tracker
 - parent: the parent story key
 - project_key: [PROJECT]
 - prd_source: [the originating PRD URL — mandatory; arms the S16 traceability gate]
