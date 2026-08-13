@@ -14,6 +14,7 @@ import {
   PLAYWRIGHT,
   RATIFIED,
   WEB,
+  commitAll,
   featureSource,
   healthyProject,
   makeProject,
@@ -49,7 +50,11 @@ describe("honest reporting", () => {
     expect(execution.executed).toBeUndefined();
     expect(execution.passed).toBeUndefined();
     expect(String(execution.note)).toContain("not that it ran or passed");
-    const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
+    const root = healthyProject();
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(run.envelope.summary.headline).toContain(
       "no execution evidence supplied"
     );
@@ -69,12 +74,15 @@ describe("honest reporting", () => {
         },
       }
     );
+    const base = commitAll(root);
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: base,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
     const report = runReport(root, {
       BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: base,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
     expect(report.scenarios.declared).toBe(1);
@@ -217,8 +225,12 @@ describe("scale", () => {
       features: { "bulk.feature": featureSource("Bulk", scenarios) },
       files,
     });
+    // Committed, so the base-revision checks are IN the measurement: the
+    // non-regression comparisons are set operations over the same 2000
+    // obligations and must not be where the quadratic term hides.
+    const base = commitAll(root);
     const started = Date.now();
-    const run = runGate(root, { BDD_MODE: ENFORCED });
+    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
     expect(run.status).toBe(0);
     expect(run.envelope.summary.scenariosDeclared).toBe(count);
     expect(run.envelope.summary.traceabilityCovered).toBe(count);

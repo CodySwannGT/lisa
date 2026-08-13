@@ -19,6 +19,10 @@ import {
 const RULESET_REL = "expo/github-rulesets/bdd-coverage.json";
 const DOC_REL = "docs/bdd-coverage-schema.md";
 
+/** The gate's job key, and the job after it, bounding the slice asserted on. */
+const JOB = "bdd_coverage:";
+const NEXT_JOB = "learnings_budget:";
+
 describe("shipped wiring", () => {
   it("ships both entry points and their shared modules as copy-overwrite", () => {
     for (const relative of [
@@ -67,7 +71,7 @@ describe("shipped wiring", () => {
 
   it("wires bdd_coverage behind the three-state bdd_mode input, not script presence", () => {
     const workflow = read(QUALITY_REL);
-    expect(workflow).toContain("bdd_coverage:");
+    expect(workflow).toContain(JOB);
     expect(workflow).toContain("bdd_mode:");
     expect(workflow).toContain("inputs.bdd_mode != 'not-adopted'");
     expect(workflow).toContain("check-bdd-coverage.mjs");
@@ -79,14 +83,25 @@ describe("shipped wiring", () => {
     expect(workflow).toContain("absence is a FAILURE, never a skip");
   });
 
-  it("gives the ratchet the history and PR context it needs", () => {
+  it("gives the non-regression checks the history and PR context they need", () => {
     const workflow = read(QUALITY_REL);
     expect(workflow).toContain("BDD_BASE_SHA");
     expect(workflow).toContain("BDD_PR_LABELS");
-    const job = workflow.slice(workflow.indexOf("bdd_coverage:"));
-    expect(job.slice(0, job.indexOf("learnings_budget:"))).toContain(
-      "fetch-depth: 0"
-    );
+    const job = workflow.slice(workflow.indexOf(JOB));
+    expect(job.slice(0, job.indexOf(NEXT_JOB))).toContain("fetch-depth: 0");
+  });
+
+  it("resolves a base revision on every event, not only on a pull request", () => {
+    // Enforced mode fails without a base, so resolving one cannot be
+    // best-effort: PR base, else the fork point from the default branch, else
+    // the first parent.
+    const workflow = read(QUALITY_REL);
+    const job = workflow.slice(workflow.indexOf(JOB));
+    const block = job.slice(0, job.indexOf(NEXT_JOB));
+    expect(block).toContain("Resolve the base revision");
+    expect(block).toContain("github.event.pull_request.base.sha");
+    expect(block).toContain("git merge-base");
+    expect(block).toContain("BDD_BASE_SHA: ${{ steps.bdd_base.outputs.sha }}");
   });
 
   it("defaults bdd_mode to not-adopted so no repo is enrolled by upgrading", () => {
@@ -118,7 +133,8 @@ describe("shipped wiring", () => {
       "Compatibility policy",
       "report.schemaVersion",
       "Three-state adoption",
-      "coverage-floor ratchet",
+      "Non-regression invariants",
+      "Why the ratchet was removed",
       "Tracker-tag grammar",
       "@gh-wiki-124",
       "Execution-result documents",
