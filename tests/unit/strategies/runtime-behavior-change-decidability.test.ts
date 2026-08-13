@@ -28,79 +28,33 @@
  *
  * Every assertion runs against all six generated skill roots, because the
  * generated artifacts are what agents actually load.
+ *
+ * **Scope, and where the other half lives.** Every assertion in this file is
+ * existential — "some copy of the contract says the right thing" — which pins
+ * the wording against silent deletion and nothing more. That is not enough on
+ * its own: these documents state the grammar twice, in gate S8 and again in
+ * the execution step, so a correct copy can vouch for a broken one. The
+ * universal half — "no copy says the wrong thing" — lives in
+ * `runtime-behavior-change-consistency.test.ts`, and the shared corpus both
+ * files read lives in `runtime-behavior-change-sources.ts`. The three-way
+ * split is the 300-line lint ceiling, not a scope boundary; a coverage probe
+ * that scores by filename must read all three.
  * @module tests/unit/strategies/runtime-behavior-change-decidability
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-const SKILL_ROOTS = [
-  "plugins/src/base/skills",
-  "plugins/lisa/skills",
-  "plugins/lisa/.codex-plugin/skills",
-  "plugins/lisa-cursor/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-copilot/skills",
-] as const;
-
-const RULE_ROOTS = [
-  "plugins/src/base/rules",
-  "plugins/lisa/rules",
-  "plugins/lisa-cursor/rules",
-  "plugins/lisa-copilot/rules",
-] as const;
-
-const SLUG = "derived-branch-plan";
-const FLAG = "runtime_behavior_change";
-const SECTION = "Target Backend Environment";
-/** The machine discriminator. Its exact spelling is the contract. */
-const EXEMPT_PREFIX = "None —";
-
-const WRITERS = [
-  "lisa-github-write-issue",
-  "lisa-jira-write-ticket",
-  "lisa-linear-write-issue",
-] as const;
-
-const VALIDATORS = [
-  "lisa-github-validate-issue",
-  "lisa-jira-validate-ticket",
-  "lisa-linear-validate-issue",
-] as const;
-
-/**
- * Read one skill's SKILL.md from a generated or source root.
- * @param root - The skills root.
- * @param slug - The skill directory name.
- * @returns The file contents.
- */
-const readSkill = (root: string, slug: string): string =>
-  readFileSync(path.resolve(root, slug, "SKILL.md"), "utf-8");
-
-/**
- * Read a rule body, tolerating Cursor's flat `.mdc` layout.
- * @param root - The rules root.
- * @param tier - Either "eager" or "reference".
- * @returns The rule contents.
- */
-const readRule = (root: string, tier: "eager" | "reference"): string => {
-  const nested = path.resolve(root, tier, `${SLUG}.md`);
-  const flat = path.resolve(
-    root,
-    tier === "eager" ? `${SLUG}.mdc` : `${SLUG}-reference.mdc`
-  );
-  try {
-    return readFileSync(nested, "utf-8");
-  } catch (error) {
-    // Fall back only when the nested rule is ABSENT. Catching everything meant
-    // a permissions or encoding failure on the nested path was reported
-    // against the flat one, sending a maintainer to a file that was never the
-    // problem.
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    return readFileSync(flat, "utf-8");
-  }
-};
+import {
+  EXEMPT_PREFIX,
+  FLAG,
+  RULE_ROOTS,
+  SECTION,
+  SKILL_ROOTS,
+  SLUG,
+  VALIDATORS,
+  WRITERS,
+  readRule,
+  readSkill,
+} from "./runtime-behavior-change-sources.js";
 
 describe("the rule persists the behavioral flag instead of asserting it", () => {
   describe.each(RULE_ROOTS)("%s", root => {
