@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["./node_modules/@codyswann/lisa/oxlint/harper-fabric.json"],
+  "extends": ["./.lisa/lisa-oxlint/harper-fabric.json"],
   "ignorePatterns": [
     "build/**",
     "dist/**",
