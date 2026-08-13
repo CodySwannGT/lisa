@@ -10,17 +10,14 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { performance as monotonicClock } from "node:perf_hooks";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 
 const mocks = vi.hoisted(() => ({
   deterministic: undefined as unknown,
   runDeterministic: vi.fn(),
 }));
-
-useIoLatencyBudget();
 
 vi.mock("../../../src/health/deterministic.js", () => ({
   runDeterministicHealth: mocks.runDeterministic,
@@ -38,6 +35,7 @@ import {
   type HealthResult,
   validateHealthResult,
 } from "../../../src/health/contract.js";
+import { startCpuStopwatch } from "../../helpers/cpu-budget.js";
 
 /**
  * Budget used by every case that is *not* about the deadline. It has to be far
@@ -50,6 +48,43 @@ import {
  * because there the deadline is the behavior under test.
  */
 const GENEROUS_TIMEOUT_MS = 60_000;
+/**
+ * Work budget for the cases that guard against super-linear collection —
+ * **CPU** milliseconds, not wall-clock ones.
+ *
+ * The predecessor was a 5,000ms wall-clock bound. It was not under-budgeted:
+ * the cases it covered run in single-digit milliseconds and the abort case in
+ * ~500ms, so it carried 10x-to-500x headroom. It still failed at **10,026ms**
+ * inside a full-suite run of 639 files (CodySwannGT/lisa#2516) on a branch that
+ * never touched `health/`, because wall time bills descheduling as if it were
+ * work. Widening it further would have retired the guard's whole purpose while
+ * leaving the starvation untouched, so the instrument changed instead of the
+ * number. See `tests/helpers/cpu-budget.ts` for the measurements.
+ *
+ * Sizing, all four figures stated with their conditions on 18 cores:
+ *
+ * | condition | wall | CPU |
+ * |---|---|---|
+ * | isolated, load 4.6 | 1.4–1.9ms | 1.8–2.7ms |
+ * | one full suite, load 12 | 3.9–5.9ms | 2.8–4.2ms |
+ * | four concurrent full suites, load 28, 73 vitest processes | 3.4–37.9ms | 3.6–7.0ms |
+ *
+ * | eight concurrent full suites, load 54, 144 vitest processes | 386–3,593ms | 1.4–11.3ms |
+ *
+ * Wall inflated to **3,593ms** for operations that take 1.4ms quiet — a 2,000x
+ * spread that was closing on the old 5,000ms bound. CPU over the identical runs
+ * peaked at **11.3ms**, under 5x its quiet value. That is the whole argument in
+ * two columns.
+ *
+ * 50ms is ~4.4x the worst CPU ever observed here and ~20x the quiet-box figure.
+ * The margin is deliberately much tighter than a wall budget could ever be,
+ * because CPU inflation is bounded where wall inflation is not, and a loose
+ * budget has a real cost: a busy-poll cancellation regression measured at
+ * 114ms of wasted CPU slipped clean under a 250ms first draft of this number.
+ */
+const SUPERLINEAR_CPU_GUARD_MS = 50;
+/** Deadline the abort case configures, in virtual milliseconds. */
+const ABORT_DEADLINE_MS = 500;
 const STARTED_AT = "2026-07-20T12:00:00.000Z";
 const DETERMINISTIC_COMPLETED_AT = "2026-07-20T12:01:00.000Z";
 const AGENTIC_COMPLETED_AT = "2026-07-20T12:02:00.000Z";
@@ -601,20 +636,54 @@ describe("runHealth hostile evaluator degradation", () => {
     }
   );
 
-  it("aborts a timed-out evaluator and returns exact deterministic output", async () => {
-    vi.useFakeTimers();
+  /**
+   * The deadline runs on a virtual clock, and that is the whole fix for
+   * CodySwannGT/lisa#2516.
+   *
+   * `HealthDeadline` reads two clocks: `setTimeout` for expiry and
+   * `node:perf_hooks` `performance.now()` for `remainingMs()`. Vitest's fake
+   * timers replace the first and `globalThis.performance`, but NOT the
+   * `node:perf_hooks` export — they are separate objects here, verified by
+   * measurement — so the spy below is load-bearing rather than belt-and-braces.
+   * Both clocks are pointed at the same virtual time, which makes the deadline
+   * advance only when this test says so.
+   *
+   * That matters because the real failure was never the elapsed-time
+   * assertion. Under starvation the 500ms deadline expired *during evidence
+   * collection*, so `runHealth` degraded before the evaluator was ever
+   * invoked, and the original test — which awaited a promise the evaluator
+   * resolves — hung until vitest's 10,000ms limit. That is the reported
+   * `10026ms`, a test timeout wearing an assertion's clothes. Reproduced 8 of 8
+   * at load 54 with 144 vitest processes, failing on the evaluator-call count.
+   *
+   * Freezing the clock removes the race by construction: no amount of
+   * scheduling delay can consume a budget that only advances on command. The
+   * pre/post checks around the boundary then pin the deadline to the exact
+   * millisecond, which no real-time assertion could ever state.
+   */
+  it("aborts a timed-out evaluator at its exact deadline and returns exact deterministic output", async () => {
     let aborted = false;
-    let evaluatorStarted!: () => void;
-    const started = new Promise<void>(resolve => {
-      evaluatorStarted = resolve;
+    let calls = 0;
+    let liveAtEntry: boolean | undefined;
+    let evaluatorEntered!: () => void;
+    const entered = new Promise<void>(resolve => {
+      evaluatorEntered = resolve;
     });
+
+    vi.useFakeTimers();
+    const clock = vi
+      .spyOn(monotonicClock, "now")
+      .mockImplementation(() => globalThis.performance.now());
     try {
+      const stopwatch = startCpuStopwatch();
       const running = runHealth(projectRoot, {
         agentic: {
           enabled: true,
-          timeoutMs: 500,
+          timeoutMs: ABORT_DEADLINE_MS,
           evaluator: async (_request, signal) => {
-            evaluatorStarted();
+            calls += 1;
+            liveAtEntry = !signal.aborted;
+            evaluatorEntered();
             return new Promise(resolve => {
               signal.addEventListener(
                 "abort",
@@ -628,13 +697,22 @@ describe("runHealth hostile evaluator degradation", () => {
           },
         },
       });
-      await started;
-      await vi.advanceTimersByTimeAsync(500);
+      await entered;
+
+      await vi.advanceTimersByTimeAsync(ABORT_DEADLINE_MS - 1);
+      expect(aborted).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
       const result = await running;
+      const elapsed = stopwatch.elapsed();
 
       expect(result).toBe(mocks.deterministic);
+      expect(calls).toBe(1);
+      expect(liveAtEntry).toBe(true);
       expect(aborted).toBe(true);
+      expect(elapsed.cpuMs).toBeLessThan(SUPERLINEAR_CPU_GUARD_MS);
     } finally {
+      clock.mockRestore();
       vi.useRealTimers();
     }
   });
@@ -681,6 +759,7 @@ describe("runHealth confined evidence collection", () => {
       status: "completed" as const,
       judgments: [],
     }));
+    const stopwatch = startCpuStopwatch();
 
     const result = await runHealth(projectRoot, {
       agentic: { enabled: true, evaluator, timeoutMs: GENEROUS_TIMEOUT_MS },
@@ -688,6 +767,7 @@ describe("runHealth confined evidence collection", () => {
 
     expect(result.mode).toBe("full");
     expect(evaluator).toHaveBeenCalledTimes(1);
+    expect(stopwatch.elapsed().cpuMs).toBeLessThan(SUPERLINEAR_CPU_GUARD_MS);
   });
 
   it("degrades before evaluation when line prefixes expand an excerpt past its byte limit", async () => {
@@ -706,6 +786,7 @@ describe("runHealth confined evidence collection", () => {
       status: "completed" as const,
       judgments: [],
     }));
+    const stopwatch = startCpuStopwatch();
 
     const result = await runHealth(projectRoot, {
       agentic: { enabled: true, evaluator, timeoutMs: GENEROUS_TIMEOUT_MS },
@@ -713,6 +794,7 @@ describe("runHealth confined evidence collection", () => {
 
     expect(result).toBe(mocks.deterministic);
     expect(evaluator).not.toHaveBeenCalled();
+    expect(stopwatch.elapsed().cpuMs).toBeLessThan(SUPERLINEAR_CPU_GUARD_MS);
   });
 
   it("degrades without calling the evaluator for an escaping symlink", async () => {
