@@ -5,8 +5,8 @@
 > `typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs` implement.
 > Every row of §2 is proven by a named case in Lisa's
 > `tests/unit/scripts/nightly-e2e-health.test.ts` (rows 1-16),
-> `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25) and
-> `…-completeness.test.ts` (row 26).
+> `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25),
+> `…-completeness.test.ts` (row 26) and `…-grace.test.ts` (rows 27-30).
 > Changing a row without changing its test is a contract violation.
 >
 > **Plan revision followed:** `2026-08-12-r3` (Portfolio E2E Standards Plan,
@@ -69,9 +69,11 @@ a gate silently stops gating — see §5.
 
 ## 2. The fail-closed truth table
 
-`B` = the bootstrap window is active (see §4). Every row is stated for a single
-suite; the workflow verdict is the worst verdict across suites, with `bypassed`
-applied last (§6).
+`B` = the bootstrap window is active (see §4) **or** this suite's own first-seen
+grace window is (see §4.1) — the two are one rule with two sources, and either
+being open softens the same states. Every row is stated for a single suite; the
+workflow verdict is the worst verdict across suites, with `bypassed` applied
+last (§6).
 
 | # | Observation | B active | After B | Verdict |
 |---|---|---|---|---|
@@ -102,6 +104,10 @@ applied last (§6).
 | 25 | Bootstrap window active and evidence missing | non-blocking | — | **`bootstrap`**, summary states the UTC expiry timestamp |
 | 26 | `mode: "run"` and the run concluded `success`, but a job behind it did **not**: skipped, `cancelled`, `neutral`, or unreadable (empty job list) | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 26 | `mode: "run"` and the run concluded `success`, but a job behind it concluded `failure` / `timed_out` / `action_required` / `startup_failure` (a `continue-on-error` job) | fail | fail | **`fail`** |
+| 27 | A suite declaring `first_seen` inside its grace window, with **missing or unreadable** evidence (any row that resolves to `unknown`: 6–10, 12–13, 15–16, and the skipped-job half of 26) | non-blocking | non-blocking | **`bootstrap`**, the line states this suite's grace expiry — **every other suite stays armed** |
+| 28 | A suite inside its grace window with **evidence of failure** (rows 2–5, 11, 14, and the failed-job half of 26) | fail | fail | **`fail`** |
+| 29 | A suite whose grace window has **lapsed** (`first_seen + grace_days` is in the past) | as if no grace were declared | as if no grace were declared | the row's own verdict — a lapsed anchor is **inert**, never an error |
+| 30 | `first_seen` unparseable, `first_seen` **in the future**, `grace_days` outside `(0, 30]`, `grace_days` without `first_seen`, or `first_seen + grace_days` running beyond `bootstrap_max_days` from the run date | **fail** | **fail** | **`fail`** (invalid configuration) |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -251,6 +257,11 @@ Validation rules, all of which **fail the check** (row 20) rather than warn:
 - A `pattern` must compile, and is compiled **without** the `g` flag (a sticky
   `lastIndex` makes repeated `.test()` calls return alternating answers).
 - `freshness_hours`, when present, is a number in `(0, 720]`.
+- `first_seen`, when present, is a non-empty ISO-8601 UTC timestamp that is not
+  in the future, and `grace_days` is a number in `(0, 30]` that **requires**
+  `first_seen` (§4.1, rows 27–30). Both fail the check rather than being
+  clamped, because a forgiveness window quietly widened is a gate that is looser
+  than it reads.
 - Unknown keys are rejected. A typo'd `freshnessHours` that silently takes the
   default is a gate that is looser than its author believes.
 
@@ -285,6 +296,62 @@ window here is mandatory and bounded.
 - The moment the window lapses, rows 6–10, 12–13, 15–16 and the skipped-job half
   of row 26 flip to `fail` with no further action (row 23). Nothing needs to be
   turned on.
+
+### 4.1 Per-suite first-seen grace — adding a suite is not an outage
+
+`bootstrap_until` is **workflow-global**, and that made the routine act of
+*adding a suite* a repository-wide wedge. The moment a fourth suite lands in the
+`suites` table of an armed repo its evidence is missing (row 9), so **every pull
+request is blocked** from the edit until that suite's first green nightly. The
+only escapes were re-opening the global window — which un-arms the three suites
+that were already working — or burning an audited bypass. Neither is
+proportionate to adding a suite, and both teach people that the gate is
+something to route around rather than something to satisfy.
+
+So a suite may carry its own window:
+
+```json
+{ "label": "Playwright browser e2e",
+  "workflow": "ci.yml",
+  "match": { "mode": "job", "name": "🔍 Quality Checks / 🎭 Playwright E2E Tests" },
+  "first_seen": "2026-08-10T00:00:00Z" }
+```
+
+- `first_seen` — ISO-8601 UTC, the **anchor**: when this suite entered the
+  table. `grace_days` (default **14**) is how long after it the window runs.
+- While that window is open, this suite's **`unknown`** rows render as
+  `⚠️ … not yet blocking — new suite (first seen …); its grace expires <ts>`, and
+  **nothing else changes**: the other suites keep their own verdicts, so three
+  armed suites stay armed while the fourth finds its feet.
+- **Grace forgives absence of evidence, never evidence of failure** (row 28) —
+  the same rule as bootstrap, not a second, looser one.
+- A **lapsed** anchor is inert (row 29). Cleaning the field up is optional on
+  purpose: a guard that fails on stale config buys a churn commit per suite per
+  month, and the first person to hit that deletes the anchor rather than the
+  window.
+
+**Why this is not the forever-bootstrap §4 exists to refuse.** The window is not
+a date somebody types; it is derived from an anchor, and three rules bound it
+(all row 30, all failing as *misconfiguration* rather than clamping, exactly as
+row 24 does):
+
+1. **`first_seen` may not be in the future.** A future anchor is a hand-typed
+   expiry under another name, extendable forever by one string edit. Because it
+   must be in the past, the *most* grace any edit can ever buy is one window
+   from today — the same thing deleting and re-adding the suite would buy, and
+   it says so in the diff: rolling the anchor forward is writing "this suite is
+   new" about a suite that is not, where a reviewer reads it.
+2. **`grace_days` is capped at `BOOTSTRAP_ABSOLUTE_MAX_DAYS` (30)** by schema
+   validation, and requires `first_seen` — a grace length with no anchor
+   forgives nothing while reading as though it forgives everything.
+3. **The resolved window may not run beyond `bootstrap_max_days`** from the
+   moment the gate runs. Per-suite grace spends from the *same forgiveness
+   budget* as the global window, so a repo that tightened the cap to a week
+   cannot buy a fortnight through the side door.
+
+**Use it instead of re-opening `bootstrap_until`.** Widening the global window
+to admit one new suite un-arms every suite that was working; the anchor is the
+narrow tool for the narrow problem.
 
 ## 5. The context-name identity — two strings that disarm the gate silently
 
@@ -523,6 +590,21 @@ repo last applied. Both are per-repo adoption events.
     that could turn a *blocking* observation into a passing one is still major,
     because that skew direction fails **open**, which is the one outcome the
     version check exists to prevent.
+  - **Rows 27–30 (per-suite grace) shipped as `1.2.0`, a minor**, and the
+    reasoning is worth stating because the rows point the *other* way — they can
+    make a currently-blocking suite non-blocking. What the major rule protects
+    against is a **verdict changing for an unchanged observation**, and it does
+    not: for every `suites` table that exists today — none of which carries
+    `first_seen` — the findings are byte-identical. The verdict moves only when
+    an operator *adds* a field, which is the "optional input with a
+    fail-closed-safe default" minor clause, with the default being *absent* and
+    therefore fully armed. Both skew directions still fail closed: a new guard
+    under an old caller sees no anchors and behaves as before, and an old guard
+    under a table carrying `first_seen` rejects the unknown key as row 20 —
+    loudly, naming the config. A major bump would meanwhile **red-wall every
+    adopter pinned to an older tag** (the workflow asserts the guard's major)
+    for a change that cannot fail open, which trades a real outage for a
+    theoretical one.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
@@ -545,7 +627,7 @@ repo last applied. Both are per-repo adoption events.
 | Was | Where | Now |
 |---|---|---|
 | Node script, one repo | tunnl `scripts/check-nightly-e2e-health.mjs` | the shipped guard (its bypass model and context-pinning test are the ancestors of §5/§6) |
-| Bash + `gh` + `jq` library | propswap `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4 |
+| Bash + `gh` + `jq` library | propswap `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4, and the per-suite half of it §4.1 |
 | Second Node script, `unknown`-passes | gemini `scripts/check-nightly-e2e.mjs` | the shipped guard; `DECISIVE_CONCLUSIONS` kept, the fail-open path closed (§2.2) |
 | A ruleset requiring a PR-skipped context | Lisa `expo/github-rulesets/playwright.json` | **deleted**, replaced by `expo/github-rulesets/nightly-e2e-health.json` |
 
