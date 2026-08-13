@@ -21,6 +21,7 @@ This is the inquiry counterpart to the `verification` rule: `verification` prove
 ## What this rule forbids
 
 - Presenting a guess, a recollection, or a documentation summary as established fact when it was cheap to verify and you did not.
+- **Interpreting a diff, or reporting scope, without first establishing your branch position.** Run `git rev-list --count HEAD..origin/<default>` before you read a diff and before you describe how large a change is. A worktree that is thirty commits behind renders everyone else's merged work as though it were part of your change — the observed incident reported it as massive scope creep, in reverse, and the reviewer nearly acted on it. The count is one command and it turns an ambiguous diff into an unambiguous one.
 - "Should work" / "probably" / "the docs say" as the basis for a load-bearing decision that an experiment could have settled.
 - Skipping the probe because the answer "seems obvious" — obvious answers are exactly the ones that quietly drift from reality.
 

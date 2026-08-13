@@ -39,6 +39,23 @@ export interface Job {
   readonly html_url?: string;
 }
 
+/** The resolved bootstrap window. */
+export interface Bootstrap {
+  readonly active: boolean;
+  readonly until: string | null;
+  readonly expiresInDays: number | null;
+}
+
+/**
+ * One suite's resolved first-seen grace window (rows 32-35).
+ *
+ * Same shape as `Bootstrap` plus the anchor it was computed from, because the
+ * anchor is what makes the window bounded and the audit has to show it.
+ */
+export interface SuiteGrace extends Bootstrap {
+  readonly firstSeen: string | null;
+}
+
 /** One suite's finding. */
 export interface Finding {
   readonly label: string;
@@ -46,13 +63,8 @@ export interface Finding {
   readonly reason: string;
   readonly conclusion: string | null;
   readonly url: string | null;
-}
-
-/** The resolved bootstrap window. */
-export interface Bootstrap {
-  readonly active: boolean;
-  readonly until: string | null;
-  readonly expiresInDays: number | null;
+  /** Present only for a suite that declared `first_seen`. */
+  readonly grace?: SuiteGrace;
 }
 
 /** The bypass decision. */
@@ -81,6 +93,7 @@ export interface GateModule {
   readonly BYPASS_ABSOLUTE_MAX_HOURS: number;
   readonly REQUIRED_BYPASS_REASON_PATTERN: string;
   readonly BOOTSTRAP_ABSOLUTE_MAX_DAYS: number;
+  readonly DEFAULT_SUITE_GRACE_DAYS: number;
   readonly ABSOLUTE_MAX_FRESHNESS_HOURS: number;
   readonly ABSOLUTE_MAX_API_ATTEMPTS: number;
   readonly ABSOLUTE_MAX_API_PAGES: number;
@@ -98,6 +111,11 @@ export interface GateModule {
   ): Finding;
   validateSuites(raw: string | undefined): readonly unknown[];
   resolveBootstrap(until: string, maxDays: number, now: Date): Bootstrap;
+  resolveSuiteGrace(
+    suite: Record<string, unknown>,
+    maxDays: number,
+    now: Date
+  ): SuiteGrace;
   evaluateBypass(request: Record<string, unknown>): BypassDecision;
   decide(
     findings: readonly Finding[],

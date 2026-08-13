@@ -14,13 +14,29 @@ A project has a wiki in one of two shapes:
 
 Either way, freshness is not your concern. The query and ingest skills run `scripts/ensure-wiki.mjs` as their own first step, which resolves the wiki root and — for a remote wiki — clones the mirror if missing and fast-forwards it when stale (subject to a short TTL, and tolerant of being offline: it proceeds with the existing mirror and warns rather than blocking). The freshness guarantee lives in the tool, not in the caller's discipline. Do **not** add a separate "make sure the wiki is current" step to your own workflow — calling the skill already does it.
 
-Before researching project background, conventions, ownership, architecture, glossary terms, or "how/why does X work here":
+## Load posture: on demand, not at session start
 
-1. Consult the wiki first via the wiki query skill (`/lisa-wiki-query`, or the runtime's wiki query skill), which resolves the wiki root for you. For a local wiki you may also start from `wiki/index.md` and follow links.
-2. Use what the wiki says as the authoritative answer when it covers the question. Do not re-derive it from raw sources when the wiki already documents it.
-3. Fall back to primary sources (code, tickets, commit history, external docs) only when the wiki is silent, ambiguous, or contradicted by what you observe in the code.
+The wiki is **not** read during session bootstrap, and no flow may add a "load the wiki" step to its startup. This is a deliberate reversal of the rule's earlier "consult the wiki first" posture, recorded in `wiki/decisions/2026-08-12-agent-neutral-host-rules-path.md` section 6 (decision D3). The reasoning is context budget: the wiki is deep declarative knowledge, which is the WIKI rung of the learnings ladder precisely *because* it should be paid for only when routed to. Loading it unconditionally converts an on-demand rung into an eager one and charges every session — including the large majority that never ask a knowledge question — for knowledge they do not use.
+
+What survives the softening is discoverability. An agent must **know the wiki exists and know how to query it**, so that a question needing depth goes to the curated answer instead of a fresh scrape of the codebase. What is dropped is the obligation to consult it before every piece of research, and the framing of the wiki as the authority that outranks primary sources.
+
+When you do need project depth:
+
+1. Call the wiki query skill (`/lisa-wiki-query`, or the runtime's equivalent), which resolves the wiki root for you. For a local wiki you may also start from `wiki/index.md` and follow links.
+2. Prefer what the wiki says over re-deriving the same answer from raw sources — that is what it is curated for.
+3. Fall back to primary sources (code, tickets, commit history, external docs) when the wiki is silent, ambiguous, or contradicted by what you observe in the code.
 4. If you find the wiki is wrong, stale, or missing knowledge that belongs there, surface the gap — and where the project's workflow supports it, capture the correction back into the wiki via its ingestion path (`/lisa-wiki-ingest` or equivalent) rather than leaving the knowledge only in this session.
 
 The wiki documents knowledge; it does not override executable behavior. When the wiki and the running code disagree about what the system actually does, trust the code and treat the wiki as out of date. See the `documentation-source-paths` rule for how source-material directories relate to the wiki.
 
-If the project has neither a local `wiki/` nor a `wiki.source` pointer in `.lisa.config.json`, this rule does not apply.
+## Applicability is the plugin gate, not just the wiki content
+
+This rule ships in the **base** plugin, but the skill it directs you to (`lisa-wiki-query`) ships in the **wiki** plugin. Those are gated differently, and for a period a base-only project received this rule pointing at a skill it did not have — a rule with a dangling instruction, which teaches an agent to distrust its rules.
+
+The applicability condition is therefore stated as the *installation* gate rather than as "does a `wiki/` folder exist". The `lisa-wiki` plugin is selected when `wiki/lisa-wiki.config.json` exists **or** `.lisa.config.json` declares a top-level `wiki` key (`src/core/lisa-plugin-selection.ts`); on Claude Code it is additionally gated by `enabledPlugins["lisa-wiki@lisa"]` in `.claude/settings.json`. When that gate is not satisfied:
+
+- This rule does not apply. There is no wiki to query and no query skill to call.
+- The recovery path is `/lisa-wiki-install`, the bootstrap skill that **base** ships precisely so a project that never enabled the wiki plugin can still discover it. Naming a base-shipped skill is what keeps the instruction reachable in every install.
+- **Never block on the absent skill.** Degrade to primary sources and continue, per the same degrade-never-block posture `readiness-rubric` and `rejection-detection` use for surfaces that may not be installed.
+
+A remote-only wiki declared through `wiki.source` is covered by the `wiki` config key, so the pointer form satisfies the same gate.
