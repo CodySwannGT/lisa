@@ -6,12 +6,13 @@ export * from "./learnings-writer.js";
 export * from "./upstream-attribution-body.js";
 export {
   DEFAULT_PROJECT_LEARNINGS_FILE,
-  DEFAULT_PROJECT_RULES_FILE,
+  HOST_RULES_DIR,
+  LEGACY_PROJECT_RULES_FILE,
   PROJECT_LEARNINGS_FILENAME,
   readProjectConfig,
   resolveLegacyProjectLearningsFile,
+  resolveLegacyProjectRulesFile,
   resolveProjectLearningsFile,
-  resolveProjectRulesFile,
   type LearningsConfig,
   type ProjectConfig,
 } from "./project-config.js";

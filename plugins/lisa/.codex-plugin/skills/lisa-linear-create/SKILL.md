@@ -124,7 +124,9 @@ Items must be created in parent-before-child order so each child can be passed i
 
 1. Invoke `lisa-linear-write-issue` for the Epic (Project). Capture the returned Project ID.
 2. For each Story, invoke `lisa-linear-write-issue` with the Project ID as `parent_project_id`. Capture each Issue identifier.
-3. For each Sub-task, invoke `lisa-linear-write-issue` with the Story Issue ID as `parent_issue_id`.
+3. For each Sub-task, invoke `lisa-linear-write-issue` with the Story Issue ID as `parent_issue_id` and explicit `build_ready: true`.
+
+- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<why a human must judge this first>"`. Filing a leaf with neither is an incomplete handoff and `lisa-linear-write-issue` rejects it.
 
 ### What to pass to each invocation
 

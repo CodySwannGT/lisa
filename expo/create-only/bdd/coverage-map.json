@@ -13,13 +13,27 @@
     "playwright": ["web"],
     "maestro": ["ios", "android"]
   },
+  "testDiscovery": {
+    "_comment": "Where each runner's tests live, so the gate can find a test NOBODY DECLARED. Keys must be runners declared in runnerPlatforms. `roots` are repo-relative directories (list every one — a subflow or helper directory omitted here is structurally invisible to the gate), `extensions` are filename suffixes, optional `ignore` holds repo-relative path prefixes to skip, and `evidence` says how a test is titled: {\"kind\": \"call-title\", \"functions\": [...]} reads test(\"...\") style declarations, {\"kind\": \"line-field\", \"field\": \"name\"} reads a leading document field. Edit these to match this project; a malformed block is refused rather than ignored, because silently discovering nothing looks exactly like a clean repo.",
+    "playwright": {
+      "roots": ["e2e"],
+      "extensions": [".spec.ts", ".spec.tsx", ".spec.js", ".spec.jsx"],
+      "ignore": [],
+      "evidence": { "kind": "call-title", "functions": ["test", "it"] }
+    },
+    "maestro": {
+      "roots": [".maestro/flows", ".maestro/subflows"],
+      "extensions": [".yaml", ".yml"],
+      "ignore": [],
+      "evidence": { "kind": "line-field", "field": "name" }
+    }
+  },
   "coverageFloor": {
-    "_comment": "Committed traceability floor per platform. A ratchet: may rise, may never fall. Seeded at 0 so adopting on a brownfield app never red-gates CI before any scenario exists. Lowering one requires a coverageFloorBaseline record naming the exact change AND the maintainer-applied `bdd-floor-baseline` pull-request label.",
+    "_comment": "Committed traceability floor per platform: an ABSOLUTE BAR answering `is this platform below it right now`, evaluated only in enforced mode. It is NOT a ratchet — set it once at adoption to the honest measured number (or leave it at 0) and stop touching it. Coverage already earned is protected separately and deterministically: an obligation covered at the base revision may not stop being covered, and new behavior arrives mapped or waived. Set a floor for EVERY platform above before flipping adoption.state to enforced.",
     "web": 0,
     "ios": 0,
     "android": 0
   },
-  "coverageFloorBaseline": [],
   "retirements": [],
   "trackers": {
     "_comment": "Tracker-tag grammar is portfolio-wide; the allowed keys and repos are per-repo. Key style: @TUN-123, @SE-6833. Repo-issue style: @gh-2394 (this repo) or @gh-wiki-124 (a sibling repo). Tags are validated for syntax and membership only — the gate never contacts a tracker, so an unreachable issue can never block a merge.",
@@ -34,5 +48,6 @@
   },
   "platformWaivers": [],
   "mappings": [],
+  "_exclusionsComment": "A discovered test must be named by a mapping or by an exclusion. Each entry is {\"file\": \"<path>\", \"evidence\": \"<optional exact title; omit to excuse the whole file>\", \"reason\": \"<why this test aligns to no product behavior>\"} — an exclusion whose file is gone, whose title was renamed, or that no discovery root covers is a defect, never a permanent excuse.",
   "exclusions": []
 }

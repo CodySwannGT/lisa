@@ -5,8 +5,15 @@
 > `typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs` implement.
 > Every row of §2 is proven by a named case in Lisa's
 > `tests/unit/scripts/nightly-e2e-health.test.ts` (rows 1-16),
-> `…-api.test.ts` (rows 17-20) and `…-bypass.test.ts` (rows 21-25).
+> `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25),
+> `…-completeness.test.ts` (row 26) and `…-issues.test.ts` (rows 27-31).
 > Changing a row without changing its test is a contract violation.
+>
+> The gate has **two halves that must not be confused**: the blocking half
+> (`nightly-e2e-health.yml`, a required status check that never writes) and the
+> reporting half (`nightly-e2e-report.yml`, a scheduled job that files and closes
+> tracking issues and gates nothing). §2 is the blocking half; §10 is the
+> reporting half.
 >
 > **Plan revision followed:** `2026-08-12-r3` (Portfolio E2E Standards Plan,
 > §5 WS-1a, Appendix A3/A4/A5, plus the r3 allowlist-never-denylist doctrine
@@ -44,9 +51,14 @@ listed here in the order you should prefer them.
 
 | Mode | What it reads | Use when |
 |---|---|---|
-| `run` | the run's own `conclusion` | the whole workflow **is** the suite (e.g. a dedicated `maestro-e2e.yml`) |
+| `run` | the run's own `conclusion` **and** the conclusion of every job behind it | the whole workflow **is** the suite (e.g. a dedicated `maestro-e2e.yml`) |
 | `job` | the `conclusion` of the job whose name is **exactly** the declared string | the suite is one job inside a larger workflow |
 | `job_pattern` | the `conclusion` of every job whose name matches an **anchored** regex | last resort only |
+
+`run` reads the jobs as well as the run because **GitHub concludes a run
+`success` when its jobs were skipped**. "The whole workflow is the suite" has to
+mean the whole workflow actually ran, or a suite narrowed to one arm reports
+green about the arm it never touched — see row 26 and §2.4.
 
 **`run` and `job` are the machine-readable contract; `job_pattern` is not.** A
 job name is a string the suite publishes on purpose and a repo can pin with a
@@ -66,6 +78,11 @@ a gate silently stops gating — see §5.
 `B` = the bootstrap window is active (see §4). Every row is stated for a single
 suite; the workflow verdict is the worst verdict across suites, with `bypassed`
 applied last (§6).
+
+Rows 1–26 are the **blocking** half: they answer "may this pull request merge?".
+Rows 27–31 live in §10 and answer a different question — "what should the
+tracking issue say?" — decided by a different workflow that gates nothing. The
+numbering is shared so a row is citable by number alone; the halves are not.
 
 | # | Observation | B active | After B | Verdict |
 |---|---|---|---|---|
@@ -94,6 +111,8 @@ applied last (§6).
 | 23 | Bootstrap window declared but already expired, and evidence still missing | — | — | **`fail`** |
 | 24 | Bootstrap window declared beyond `bootstrap_max_days` from the workflow run date | **fail** | **fail** | **`fail`** (invalid configuration) |
 | 25 | Bootstrap window active and evidence missing | non-blocking | — | **`bootstrap`**, summary states the UTC expiry timestamp |
+| 26 | `mode: "run"` and the run concluded `success`, but a job behind it did **not**: skipped, `cancelled`, `neutral`, or unreadable (empty job list) | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 26 | `mode: "run"` and the run concluded `success`, but a job behind it concluded `failure` / `timed_out` / `action_required` / `startup_failure` (a `continue-on-error` job) | fail | fail | **`fail`** |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -129,6 +148,78 @@ value GitHub adds later) is **indecisive** → state `unknown` → row 8.
 
 The set is closed on purpose: a conclusion GitHub introduces after this file was
 written is unknown to us, and an unknown conclusion is not evidence of health.
+
+### 2.4 Row 26 — why a `success` run is not automatically evidence
+
+**GitHub concludes a run `success` when its jobs were skipped.** A skipped job
+does not redden the run that contains it. So a suite that narrowed itself —
+because a dispatch input filtered it, or because its prerequisites were absent —
+finishes green having tested nothing it was asked about, and a gate reading the
+run conclusion alone reports that as last night's verdict.
+
+This is not hypothetical. The nightly caller Lisa ships,
+`expo/create-only/.github/workflows/maestro-e2e.yml`, exposes a `platform`
+dispatch picker (`all` | `android` | `ios`). Dispatching it with
+`platform: android` makes the reusable suite's preflight emit `run_ios=false`,
+which skips the `🍎 Maestro iOS` job — and the run still concludes `success`.
+Read through `{"mode":"run"}`, that one dispatch cleared a **required merge
+gate** for the platform it deliberately did not test. It is propswap's trap
+verbatim (`91874b83`): *the suite declaring itself green on evidence it never
+gathered.*
+
+The **cron** path has the same shape. `maestro-native-e2e.yml` defaults to
+`require_prerequisites: false`, so a missing `EXPO_TOKEN` or a deleted flows
+directory warns and skips every job — and concludes `success`. Nothing about
+that run distinguishes it from a passing suite to a reader of run conclusions.
+
+**The discriminator is "was this run PARTIAL?", never "was this a dispatch?".**
+Two independent reasons, and both are load-bearing:
+
+1. **A dispatch must keep counting.** A full, unfiltered `workflow_dispatch` is
+   the documented unblock path (§7): it is what makes this gate escapable by
+   *fixing* rather than by waiting for tomorrow's cron. A rule of the form
+   "dispatch runs do not count" would delete the only non-bypass escape and turn
+   every red nightly into a day-long merge freeze.
+2. **The filter is unreadable anyway.** The Actions runs API returns no `inputs`
+   field on a workflow run — the object carries `event`, `display_title`,
+   `actor`, `triggering_actor` and so on, and nothing about what the dispatcher
+   typed. Recovering the inputs would mean parsing run *logs*, which are
+   artifacts by another name and are refused for the reasons in §1.
+
+Completeness is readable, and it is the property that actually matters: the
+gate asks the jobs list whether every job behind a `success` run also succeeded.
+That answer covers the filtered dispatch, the prerequisite-skipped cron run, and
+a `continue-on-error` job that failed inside a green run — three different
+causes of one false green, closed by one condition.
+
+Row 26 splits on **what kind** of shortfall it found, because bootstrap must
+keep telling absence apart from failure (§4):
+
+- a **skipped / cancelled / neutral / unreadable** job is *absence of evidence*
+  → `unknown`, which bootstrap may forgive and which blocks once the window
+  closes;
+- a job that **actually failed** inside a green run is *evidence of failure*
+  → `fail`, which bootstrap never forgives.
+
+An **empty** job list lands in the first case rather than passing: a completed
+run always has at least one job, so an empty list means the gate could not read
+them, and "we could not check" never renders as "it is fine" (§2.1).
+
+Row 26 is scoped to `mode: "run"` on purpose. A `job`- or `job_pattern`-scoped
+suite has already declared *which* jobs are the suite, and holding it to the
+skips of jobs it never claimed — a lint job, a Lighthouse job — would redden
+gates that are working correctly.
+
+**If a workflow you declared as `mode: "run"` skips a job on every single run,
+it is not a run-scoped suite.** Row 26 is not misfiring on it; the declaration
+is wrong. `mode: "run"` asserts *the whole workflow is the suite*, and a
+workflow with a permanently-dormant arm has some other job doing the testing.
+Name the jobs that are the suite with `mode: "job"` (best) or an anchored
+`mode: "job_pattern"` (matrix arms), which is the more precise gate in any case.
+The one skip that is *supposed* to redden a run-scoped suite is the dormant
+harness itself — a `maestro-native-e2e.yml` whose preflight skipped everything
+because `EXPO_TOKEN` is missing tested nothing, and `bootstrap_until` (§4), not
+a pass, is how a repo gets breathing room while wiring that up.
 
 ## 3. The `suites` input — structured JSON, schema-validated
 
@@ -198,11 +289,13 @@ window here is mandatory and bounded.
   `⚠️ bootstrap — not blocking; this window expires <timestamp> (in N days)`,
   in the job summary and in the job's `verdict` output. The expiry is always
   visible; there is no quiet bootstrap.
-- **Genuinely red evidence still fails during bootstrap.** Rows 2–5, 11, 14 and
-  17–20 are red inside the window as well as outside it. Bootstrap forgives
-  *absence of evidence*, never *evidence of failure*.
-- The moment the window lapses, rows 6–10, 12–13, 15–16 flip to `fail` with no
-  further action (row 23). Nothing needs to be turned on.
+- **Genuinely red evidence still fails during bootstrap.** Rows 2–5, 11, 14,
+  17–20 and the failed-job half of row 26 are red inside the window as well as
+  outside it. Bootstrap forgives *absence of evidence*, never *evidence of
+  failure*.
+- The moment the window lapses, rows 6–10, 12–13, 15–16 and the skipped-job half
+  of row 26 flip to `fail` with no further action (row 23). Nothing needs to be
+  turned on.
 
 ## 5. The context-name identity — two strings that disarm the gate silently
 
@@ -374,14 +467,16 @@ Job listing (`/runs/{id}/jobs?filter=latest`) **does** paginate, to exhaustion
 up to `api_max_pages` (default 5), because a matrix suite routinely exceeds one
 page and a truncated job list turns "the failing shard is on page 2" into a
 false green. Exhausting the page cap while pages are still full is **red**, not
-a partial read.
+a partial read. Jobs are listed for **every** match mode, `run` included — row
+26 needs them to tell a complete run from one that skipped half of itself.
 
 **Rate limits.** A 403/429 carrying `x-ratelimit-remaining: 0` is retried after
 `x-ratelimit-reset` (bounded by `api_retry_max_seconds`, default 60) up to
 `api_max_attempts` (default 3), then **fails** (row 18). Secondary rate limits
 (`retry-after`) are honoured the same way. The gate issues at most
-`1 + suites × 2` requests on the happy path, which is negligible against the
-5 000/hour installation limit even with every PR re-running it.
+`1 + suites × 3` requests on the happy path (two run lookups plus one job page),
+which is negligible against the 5 000/hour installation limit even with every PR
+re-running it.
 
 **Reruns.** A re-run of the *gate* re-reads history and can legitimately change
 verdict — that is the unblock path working (re-dispatch the suite, re-run the
@@ -392,7 +487,11 @@ conclusion rather than a cached one, a rerun-to-green is picked up immediately.
 `workflow_dispatch` runs count exactly like `schedule` runs, by design: that is
 what makes the gate escapable by *fixing* rather than by *waiting*. Dispatch
 runs are still branch-filtered — a dispatch from someone's feature branch must
-never clear the gate for everybody.
+never clear the gate for everybody — and, since row 26, they must still be
+**whole**: a dispatch that narrowed the suite with a platform / tag / shard
+picker leaves a skipped job and does not clear the gate. Leave the picker on its
+`all` default when dispatching to unblock. Nothing about *being* a dispatch
+disqualifies a run; being a partial one does (§2.4).
 
 **Concurrency.** Gate evaluations are idempotent reads with no shared state, so
 the caller template uses a per-PR `concurrency` group with
@@ -401,6 +500,15 @@ newer one wins and reports. Note the interaction with row 6: a *cancelled gate
 run* reports no check at all (GitHub marks it cancelled), which leaves the
 required context unreported and the PR blocked until the newer run reports —
 blocked, not passed. Fail-closed holds through cancellation.
+
+The **reporting** job (§10) is the exact opposite and must not inherit the gate's
+group: it writes, so a superseded run is not waste to be discarded but work that
+may be half done. It uses a repository-wide group with
+`cancel-in-progress: false`, declared inside Lisa's reusable workflow rather than
+in the caller template — a forgotten group lets two overlapping reports both read
+"no open issue for this suite" and both file one, which is the precise thing
+"one issue per suite" exists to prevent. Same word, opposite settings, for
+opposite reasons: **cancel a read, queue a write.**
 
 ## 8. Versioning, compatibility, and rollback (Appendix A5)
 
@@ -425,7 +533,21 @@ repo last applied. Both are per-repo adoption events.
     rejected.
   - *Minor* — adding an optional input with a fail-closed-safe default, adding
     an output field, adding a match mode, adding a `DECISIVE_CONCLUSIONS`
-    member.
+    member, or **adding a §2 row that can only turn a previously-*passing*
+    observation into a blocking one, never the reverse**.
+  - The last clause is what row 26 shipped under, and it is narrow on purpose.
+    The major-mismatch assertion exists to stop the two halves running *a
+    contract neither agrees on*; the workflow half carries **no** §2 logic at
+    all — every row lives in the guard — so a strictly-tightening row cannot
+    make a skewed pair looser than either half intends, only stricter. Anything
+    that could turn a *blocking* observation into a passing one is still major,
+    because that skew direction fails **open**, which is the one outcome the
+    version check exists to prevent.
+  - Also *minor*: **adding a surface that gates nothing**, such as §10's
+    reporting half. A repository that never installs the reporting caller sees
+    no behaviour change at all, and one that does cannot have its merge gate
+    affected by it — the two halves are separate workflows and the gate holds no
+    `issues:` scope. That is what 1.1.0 → 1.2.0 shipped under.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
@@ -451,6 +573,7 @@ repo last applied. Both are per-repo adoption events.
 | Bash + `gh` + `jq` library | propswap `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4 |
 | Second Node script, `unknown`-passes | gemini `scripts/check-nightly-e2e.mjs` | the shipped guard; `DECISIVE_CONCLUSIONS` kept, the fail-open path closed (§2.2) |
 | A ruleset requiring a PR-skipped context | Lisa `expo/github-rulesets/playwright.json` | **deleted**, replaced by `expo/github-rulesets/nightly-e2e-health.json` |
+| One tracking issue per suite, auto-closed on green | propswap's nightly reporter | §10, with closing gated on row 26 completeness |
 
 ### 9.1 Deleting the `playwright` ruleset is a two-step
 
@@ -471,3 +594,144 @@ gh api -X DELETE "repos/$REPO/rulesets/<id>"
 That is an adopter-PR step, not a Lisa step, and it is called out in the adopter
 checklist for exactly the reason the ruleset is being deleted: a required
 context that PRs skip **looks** like enforcement and is not.
+
+## 10. The tracking issue — the reporting half
+
+A gate tells whoever opened a pull request. It tells **nobody else**. A nightly
+that goes red on a quiet Friday is invisible until Monday's first PR: there is
+nothing to assign, nothing to schedule, and — when it eventually comes back — no
+record that it ever went down. §2 blocks; this section is how anyone finds out.
+
+Until this shipped, the guard's own bypass report already promised the reader
+that *"the tracking issue stays open until a green run lands"*, referencing an
+artefact Lisa never created.
+
+### 10.1 One issue per SUITE, not per red night
+
+The tracking issue is a **state mirror of one suite**, not a log of nightly runs.
+A reporter that files a fresh issue every red morning produces a backlog nobody
+triages and makes the suite's actual state illegible from the issue list — the
+one place an operator looks. So: at most one open issue per suite, refreshed
+while it is red, closed when it is green.
+
+**Identity is an HTML-comment marker in the issue body**, not the title and not
+the label:
+
+```
+<!-- lisa_nightly_e2e_suite:Maestro%20native%20e2e -->
+```
+
+A title gets edited, a label gets renamed, and either would orphan the issue and
+cause a duplicate to be filed the next night. The suite label is encoded down to
+`[A-Za-z0-9_.~%]` so a suite named `evil --> <!--` cannot terminate the comment
+early and make its marker match every other suite's issue — which on a green
+night would close all of them.
+
+A second marker carries a fingerprint of *why* the suite is red. That is what
+lets a refresh rewrite the body every night (free, and nobody is notified) while
+posting a comment (a notification) **only when the evidence actually changed**. A
+comment every night for the same failure trains people to mute the issue that is
+supposed to be alerting them.
+
+### 10.2 The reporting truth table
+
+Read per suite, from that suite's row-1–26 finding. `complete` means row 26 was
+satisfied — the run gathered the evidence its conclusion claims.
+
+| # | Suite finding | Open tracking issue? | Action |
+|---|---|---|---|
+| 27 | `fail` (complete) | none | **create** one issue, labelled `nightly-e2e` |
+| 28 | `fail` (complete) | one or more | **refresh** the oldest — never file a second. Comment only if the evidence changed |
+| 29 | `pass` **and** complete | one or more | **close** every one of them, with an all-clear comment |
+| 30 | `unknown`, **or** any finding that is not complete (`incomplete_run`) | any | **nothing.** Not closed, not filed, not commented |
+| 31 | The Issues API fails for one suite | any | that suite is reported as unhandled, the **other suites still run**, and the *merge gate is unaffected* |
+
+Row 29 closes *every* match rather than only the oldest: a duplicate that got
+filed anyway (by hand, or by a report that raced the concurrency group) is
+cleaned up by the green night rather than left open forever.
+
+### 10.3 Row 30 is the load-bearing one
+
+Closing an issue is a stronger claim than letting a pull request through. It
+announces that a suite is **healthy**, and it is the action that must never fire
+on a run that did not gather the evidence. This is propswap's trap in their
+words: *one spec reporting success would close the tracking issue while the
+failures that opened it went unrun — the suite declaring itself green on evidence
+it never gathered.*
+
+Row 26 already refuses to call a partial run a pass (§2.4), so for the gate this
+is implied. **The reporter asks the completeness question again, in its own
+right** — `isCompleteEvidence` is checked before the state is, so a future
+loosening of row 26 cannot silently re-open the hole through the reporting door.
+Completeness is not re-derived here; row 26's `incomplete_run` token *is* the
+answer.
+
+Note what row 30 does **not** do: it does not file. A partial run is *absence of
+evidence*, and absence of evidence is not evidence of failure. The tracking state
+is simply left exactly as it was, which is the honest answer to "we did not
+find out last night."
+
+Bootstrap (§4) is deliberately absent from this table. The reporter reads each
+suite's raw state rather than the bootstrap-rendered one, and the answer is the
+same either way: an `unknown` suite is left alone, and a genuinely red suite is
+red inside the window too. Bypasses are absent for the same reason — a bypass
+waives the gate for **one pull request**; it does not make the nightly green, and
+the tracking issue stays open until a green run lands.
+
+### 10.4 Filing must never be able to fail the gate
+
+The merge check is *required*. Issue filing is *reporting*. If filing lived
+inside the gate, an Issues API that was down, throttled, or newly forbidden would
+turn a green nightly into a red required check on every open pull request — an
+outage in a notification channel becoming an outage in the merge queue.
+
+The isolation is structural, at three levels, so it does not depend on anyone
+remembering it:
+
+1. **Two workflows.** `nightly-e2e-health.yml` runs on `pull_request` and is
+   required. `nightly-e2e-report.yml` runs on `schedule` and must **never** be
+   made a required check.
+2. **The gate holds no `issues:` scope.** A called workflow's `permissions:` is a
+   ceiling, so the gate could not file an issue if its code tried.
+3. **The gate path performs no writes.** Writes live in `apiWrite`, reachable
+   only from `runReport`, which only the `--report-issues` flag invokes. That is
+   asserted by a test that runs the gate against a fake `fetch` and requires
+   every request to be a `GET`.
+
+Within the report, one suite's failure is recorded and the remaining suites are
+still processed (row 31) — a broken issue is not a reason to stop reporting on
+the others.
+
+**The report job's exit code answers "did reporting work", never "is the suite
+green".** A red nightly reported correctly is a *successful* report. Conflating
+the two would hand operators a second red check meaning something different from
+the first.
+
+### 10.5 The issue body is written for a non-technical operator
+
+Lisa's factories are meant to be operable by people who do not read code, and
+everything that crosses a gate outward has to be readable by whoever is standing
+at it. So the body opens with which suite is down and what to do about it, says
+plainly that the issue closes itself and should not be closed by hand, and keeps
+workflow names, conclusions and reason tokens below a fold.
+
+The instruction it leads with is the one people get wrong: **re-run the whole
+suite**, leaving any platform / tag / shard picker on its `all` default. A
+narrowed re-run does not clear the gate (§2.4), and it will not close the issue
+either.
+
+### 10.6 Seams left open on purpose
+
+Three neighbouring problems are deliberately *not* solved here, and each has a
+clean place to attach:
+
+- **Zero-coverage as a distinct state** would add a fourth suite state beside
+  `pass|fail|unknown`. It attaches at `assessSuite`; row 30 already routes
+  anything that is not `pass`-and-complete to "do nothing", so a new state needs
+  only its own row here to decide whether it files.
+- **Per-suite bootstrap grace** attaches at the suite schema. The reporter reads
+  raw states and is unaffected either way (§10.3).
+- **Flake classification** belongs on the JUnit-producing side, not here. If a
+  suite is ever classified `flaky` rather than `fail`, it becomes one more row in
+  this table — which is the point of stating the table as *finding → action*
+  rather than burying the mapping in code.

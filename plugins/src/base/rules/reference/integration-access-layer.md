@@ -4,24 +4,35 @@ Every Lisa skill or rule that consumes an external integration MUST route throug
 the integration's `*-access` skill instead of calling that vendor's MCP tools or
 REST API directly.
 
-The access skill owns substrate resolution:
+The access skill owns substrate resolution. **The ordering is not this rule's to
+define** — it is the single shared contract in `credential-substrate-precedence`,
+cited identically by every `*-access` skill:
 
-1. MCP, when the tool is available and already authenticated to the configured
-   workspace/account.
-2. Token/REST substrate, only when the documented env var is present.
-3. Loud failure naming the exact env var to set.
+1. **Configured-provider token/CLI substrate** — the path fed by
+   `lisa-secrets-access` — when its bootstrap credential is present AND the
+   resolved substrate identity-matches the configured tenant/workspace/account.
+2. **Interactive MCP**, as a first-class fallback, when the provider path is
+   genuinely unavailable (no bootstrap, no adapter for the operation, provider
+   outage).
+3. Loud failure naming the exact credential to set.
 
-Do not blind-retry a failed or absent MCP. Fall back only after checking the
-documented env var for that vendor, and never silently no-op when neither tier is
-available.
+Identity-match verification is mandatory on **every** substrate, in both
+directions; one authenticated as a different tenant is skipped, never used. See the
+`credential-substrate-precedence` rule for the rationale (headless parity, tenant
+safety, determinism), the guarded-fallback protocol, and what "genuinely
+unavailable" means.
+
+Do not blind-retry a failed or absent substrate, and never silently no-op when no
+tier is available.
 
 Some MCPs authenticate headlessly from an env token and need no separate REST
-tier — the MCP **is** the headless substrate on both developer machines and cloud
-routines. The official SonarQube MCP is one such case (`SONARQUBE_CLI_TOKEN`
+tier — such an MCP **is** the configured-provider substrate on both developer
+machines and cloud routines, so a single-substrate access skill is conformant. The
+official SonarQube MCP is one such case (`SONARQUBE_CLI_TOKEN`
 [+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`]): `lisa-sonarcloud-access` resolves it as a
-single substrate with no hand-rolled REST fallback. Reserve the two-tier
-MCP-then-REST shape for vendors whose MCP is browser-OAuth or keychain-bound and
-therefore dead headless.
+single substrate with no hand-rolled REST fallback. Reserve the multi-tier ladder
+for vendors whose MCP is browser-OAuth or keychain-bound and therefore dead
+headless.
 
 ## Access Skills
 
@@ -60,7 +71,8 @@ When editing any skill listed in the matrix:
   delegate to the matching access skill.
 - Keep operation names coarse and vendor-native. Add new operation rows to the
   access skill instead of embedding REST details in the consumer.
-- Preserve existing MCP behavior as the first tier where Claude/Codex can expose
-  the MCP, but make headless token fallback explicit and gated by the env var.
+- Put the documented token/CLI substrate first and keep the MCP as an explicit,
+  fully supported fallback tier — `credential-substrate-precedence`. Preserving
+  the MCP adapters is required; re-ordering them is not the same as removing them.
 - If a vendor has no documented token substrate, keep the MCP-only behavior and
   fail with a clear "no documented headless substrate" message.

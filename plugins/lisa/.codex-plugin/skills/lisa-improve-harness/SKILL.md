@@ -191,7 +191,7 @@ authority — if any of these hold:
 **On any of those: file a proposed-intervention ticket via `lisa-tracker-write` and STOP.** The
 ticket carries the job contract, the earliest failed handoff, the gap classification with
 evidence, and the proposed change with its expected mechanism; labels `type:harness`,
-`status:blocked` (human-flipped to `status:ready` when approved). Post the result record with
+`status:blocked` plus an explicit `human_gate: "a human approves the proposed harness intervention"` per `ready-role-filing` (human-flipped to `status:ready` when approved). Post the result record with
 `Verdict: bounded-authority-stop`, `Decision: n/a (proposed-intervention, <url>)`, and
 terminate. Implementing it anyway is the failure mode this phase exists to prevent.
 
@@ -341,7 +341,7 @@ Any durable lesson the loop produced is **submitted** to `lisa-persist-learning`
 only write path per the `project-learnings` rule) as a candidate; its hostile-default judge — not
 this skill, and not the caller — decides the disposition. A dropped candidate is recorded in
 `Known limits`, never reported as routed or owned. This skill never writes the learnings file,
-`PROJECT_RULES.md`, or `CLAUDE.md` itself, and never promotes a learning to a higher rung (that
+host rules (`.agents/rules/`), or `CLAUDE.md` itself, and never promotes a learning to a higher rung (that
 is the gardener's ticket-gated job).
 
 ## Idempotency
@@ -483,5 +483,5 @@ its face, because a single-trajectory loop always has limits.
 - **Bounded claims.** One trajectory supports one trajectory's claim. No comparative,
   longitudinal, or population claims; `Known limits` is never empty.
 - **One write path for learnings.** Durable lessons are submitted to `lisa-persist-learning` for
-  judgment; this skill never edits the learnings ledger, `PROJECT_RULES.md`, or a rules tree,
+  judgment; this skill never edits the learnings ledger or any rules tree (host `.agents/rules/` included),
   and never promotes a learning to a higher rung.

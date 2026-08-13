@@ -1,20 +1,39 @@
 /**
- * Base-revision comparisons: the coverage-floor ratchet and the
- * scenario-deletion check.
+ * Base-revision comparisons: the non-regression invariants.
  *
- * Both answer the same question — "did this change make the number look
- * better by lowering the bar instead of raising the work?" — and both need a
- * base revision to answer it, so they share one git read.
+ * Three checks, one question — "did this change make the number look better by
+ * describing less of the product, rather than by covering more of it?" — and
+ * all three need a base revision to answer it, so they share one git read:
+ *
+ *   1. `coverage-regression`   Coverage the repo already accepted cannot be
+ *                              given back.
+ *   2. `obligation-uncovered`  Behavior that is NEW here is mapped or waived.
+ *   3. `scenario-deleted`      A retired behavior is `@superseded` with a
+ *                              record, never quietly deleted.
+ *
+ * These replaced a numeric ratchet on `coverageFloor` (a floor that could only
+ * rise, whose reduction needed a `coverageFloorBaseline` record plus a
+ * maintainer label). The number is still a gate — `floor-regression` still
+ * fails a platform sitting below its committed floor, and `floor-invalid`
+ * still refuses a floor written so it cannot be evaluated — but the floor no
+ * longer carries the non-regression duty, because a number is a bad instrument
+ * for it. A percentage can hold steady while a specific accepted behavior
+ * loses its automation and an easier one gains some; and keeping a number
+ * honest costs a recurring "nudge the value" pull request that proves nothing.
+ * Checks 1 and 2 are strictly stronger: they are per obligation, they cannot
+ * be satisfied by an offsetting gain elsewhere, and they shrink to zero as
+ * waivers retire instead of accumulating.
  *
  * @module scripts/bdd/baseline
  */
 import { spawnSync } from "node:child_process";
 
-import { scenarioIdsIn } from "./parse.mjs";
+import { declaredPlatforms } from "./contract.mjs";
+import { parseFeatureSource, scenarioIdsIn } from "./parse.mjs";
 
 const defect = (code, message) => ({ code, message });
 
-/** The maintainer-applied PR label that authorizes a floor reduction. */
+/** The maintainer-applied PR label that authorizes giving coverage back. */
 export const BASELINE_LABEL = "bdd-floor-baseline";
 
 /**
@@ -53,12 +72,19 @@ function featureFilesAt(root, revision) {
 }
 
 /**
- * Load the base revision's contract and scenario IDs.
+ * Load the base revision's contract and its parsed scenarios.
+ *
+ * The base is parsed against the UNION of the base's and the head's platform
+ * vocabularies. Using head's alone would make a base scenario's `@web` read as
+ * an unknown tag the moment a pull request deleted the web runner from
+ * `runnerPlatforms` — which would turn "I deleted the runner that proved this"
+ * into an invisible change rather than the coverage loss it is.
  * @param {string} root - Repo root.
  * @param {string} revision - Base commit-ish.
- * @returns {{available: boolean, contract: object|null, scenarioIds: Set<string>}} Base state.
+ * @param {ReadonlySet<string>} headPlatforms - The head contract's platforms.
+ * @returns {{available: boolean, contract: object|null, scenarios: object[], scenarioIds: Set<string>}} Base state.
  */
-export function loadBaseline(root, revision) {
+export function loadBaseline(root, revision, headPlatforms = new Set()) {
   const raw = showAtRevision(root, revision, "bdd/coverage-map.json");
   let contract = null;
   if (raw !== null) {
@@ -68,145 +94,211 @@ export function loadBaseline(root, revision) {
       contract = null;
     }
   }
-  const sources = featureFilesAt(root, revision)
-    .map(file => showAtRevision(root, revision, file))
-    .filter(source => source !== null);
+  const documents = featureFilesAt(root, revision)
+    .map(file => ({ file, source: showAtRevision(root, revision, file) }))
+    .filter(document => document.source !== null);
+  const platforms = new Set([
+    ...declaredPlatforms(contract?.runnerPlatforms),
+    ...headPlatforms,
+  ]);
   return {
-    available: raw !== null || sources.length > 0,
+    available: raw !== null || documents.length > 0,
     contract,
-    scenarioIds: scenarioIdsIn(sources),
+    scenarios: documents.flatMap(document =>
+      parseFeatureSource(document.source, document.file, platforms)
+    ),
+    scenarioIds: scenarioIdsIn(documents.map(document => document.source)),
   };
 }
 
 /**
- * The coverage-floor ratchet: a floor may rise, and may never fall.
+ * Every `SCENARIO:platform` a contract's mappings actually claim.
  *
- * Lowering it takes TWO artifacts that one author cannot produce by editing
- * one file: a `coverageFloorBaseline` record naming the exact drop, its
- * reason, ticket, approver and authorizing run, AND the maintainer-applied
- * `bdd-floor-baseline` label on the pull request. Either alone fails.
- * @param {object} input - Base and head contracts plus the PR labels.
- * @returns {object[]} Defects found.
+ * Structural only — it deliberately does NOT ask whether each mapping's
+ * evidence string still resolves. Evidence rot is already its own defect
+ * (`mapping-evidence`) and already drops the obligation out of the reported
+ * percentage; counting it here too would report one act twice and would make
+ * these checks depend on reading files out of a git revision.
+ * @param {readonly object[]} scenarios - Parsed scenarios for that revision.
+ * @param {object|null} contract - That revision's coverage map.
+ * @returns {Set<string>} Accepted keys.
  */
-export function checkRatchet({ baseContract, contract, labels }) {
-  const before = baseContract?.coverageFloor ?? {};
-  const after = contract.coverageFloor ?? {};
-  // A head value that is not a finite number is treated as a REMOVAL, never
-  // as "unchanged". Quoting a floor as "19" would otherwise make the
-  // comparison `"19" < 19` false, recording no drop, while the report treats
-  // the same value as no floor at all — a one-character, single-file edit
-  // that disables enforcement and produces no defect. That is precisely what
-  // the ratchet exists to prevent, so an unusable value fails closed.
-  const drops = Object.keys(before)
-    .filter(platform => isUsableFloor(before[platform]))
-    .filter(
-      platform =>
-        !isUsableFloor(after[platform]) || after[platform] < before[platform]
+export function acceptedKeys(scenarios, contract) {
+  const required = new Set(
+    scenarios.filter(scenario => scenario.required).map(scenario => scenario.id)
+  );
+  const keys = new Set();
+  for (const mapping of contract?.mappings ?? []) {
+    if (!required.has(mapping.scenario)) continue;
+    for (const platform of mapping.platforms ?? []) {
+      keys.add(`${mapping.scenario}:${platform}`);
+    }
+  }
+  return keys;
+}
+
+/**
+ * Every `SCENARIO:platform` a revision OWES — required scenarios expanded over
+ * the platforms they declare, less the ones a waiver removed.
+ * @param {readonly object[]} scenarios - Parsed scenarios for that revision.
+ * @param {object|null} contract - That revision's coverage map.
+ * @returns {Set<string>} Obligation keys.
+ */
+export function obligationKeys(scenarios, contract) {
+  const waived = waivedKeys(contract);
+  const keys = new Set();
+  for (const scenario of scenarios) {
+    if (!scenario.required) continue;
+    for (const platform of scenario.platforms) {
+      const key = `${scenario.id}:${platform}`;
+      if (!waived.has(key)) keys.add(key);
+    }
+  }
+  return keys;
+}
+
+/**
+ * Every `SCENARIO:platform` a waiver removes from the denominator.
+ * @param {object|null} contract - A coverage map.
+ * @returns {Set<string>} Waived keys.
+ */
+function waivedKeys(contract) {
+  return new Set(
+    (contract?.platformWaivers ?? []).flatMap(waiver =>
+      (waiver.platforms ?? []).map(platform => `${waiver.scenario}:${platform}`)
     )
-    .map(platform => ({
-      platform,
-      from: before[platform],
-      to: isUsableFloor(after[platform]) ? after[platform] : null,
-      malformed:
-        after[platform] !== undefined && !isUsableFloor(after[platform]),
-    }));
-  return drops.flatMap(drop => ratchetDefects(drop, contract, labels));
-}
-
-/**
- * Whether a raw `coverageFloor` entry is a usable floor.
- *
- * Mirrors `classifyFloor` in report.mjs; a unit test asserts the two agree,
- * because a disagreement is exactly the gap a quoted value slipped through.
- * @param {unknown} value - The raw entry.
- * @returns {boolean} True when it is a finite number in 0..100.
- */
-export function isUsableFloor(value) {
-  return (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
-    value >= 0 &&
-    value <= 100
   );
 }
 
 /**
- * Describe one observed reduction for the operator.
- * @param {object} drop - The observed reduction.
- * @returns {string} A one-line description.
+ * Split a `SCENARIO:platform` key back into its parts.
+ * @param {string} key - The key.
+ * @returns {{scenario: string, platform: string}} Its parts.
  */
-function describeDrop(drop) {
-  if (drop.malformed) {
-    return `coverageFloor.${drop.platform} is no longer a number (was ${drop.from}); a non-numeric floor disables enforcement, so it counts as a removal`;
-  }
-  return drop.to === null
-    ? `coverageFloor.${drop.platform} was removed (was ${drop.from})`
-    : `coverageFloor.${drop.platform} lowered ${drop.from} → ${drop.to}`;
+function partsOf(key) {
+  const at = key.indexOf(":");
+  return { scenario: key.slice(0, at), platform: key.slice(at + 1) };
 }
 
 /**
- * Defects for one attempted floor reduction.
- * @param {object} drop - The observed reduction.
- * @param {object} contract - Head contract.
+ * Fields a retirement record owes whoever has to re-litigate it later.
+ * Shared with {@link checkDeletions} so the two routes out of the denominator
+ * — deleting the scenario and un-mapping it — cannot demand different proof.
+ */
+const RETIREMENT_FIELDS = ["reason", "ticket", "approvedBy", "recordedAt"];
+
+/**
+ * Whether a scenario has been retired the way the contract requires: a
+ * complete `retirements` record AND the maintainer-applied label. Either alone
+ * is not an authorization — that is the whole point of asking for two
+ * artifacts one author cannot produce by editing one file.
+ * @param {object|undefined} record - The retirements entry, if any.
  * @param {readonly string[]} labels - PR labels.
- * @returns {object[]} Defects found.
+ * @returns {boolean} True when the retirement is authorized and complete.
  */
-function ratchetDefects(drop, contract, labels) {
-  const what = describeDrop(drop);
-  const record = (contract.coverageFloorBaseline ?? []).find(
-    entry =>
-      entry.platform === drop.platform &&
-      entry.from === drop.from &&
-      entry.to === drop.to
-  );
-  const defects = [];
-  if (!record) {
-    defects.push(
-      defect(
-        "floor-ratchet",
-        `${what}: the floor is a ratchet. A reduction needs a coverageFloorBaseline record naming this exact change (platform, from, to, reason, ticket, approvedBy, runUrl).`
-      )
-    );
-  } else {
-    defects.push(...baselineRecordDefects(record, what));
-  }
-  if (!labels.includes(BASELINE_LABEL)) {
-    defects.push(
-      defect(
-        "floor-ratchet",
-        `${what}: requires the maintainer-applied "${BASELINE_LABEL}" label. Changing the floor in the same pull request that changes the code is not an authorization.`
-      )
-    );
-  }
-  return defects;
+function isRetired(record, labels) {
+  if (!record || !labels.includes(BASELINE_LABEL)) return false;
+  return RETIREMENT_FIELDS.every(field => Boolean(record[field]));
 }
 
 /**
- * Completeness of a baseline-update record. `runUrl` is validated for shape
- * only — the gate never contacts a tracker or CI API, so a merge can never
- * depend on one being reachable.
- * @param {object} record - The coverageFloorBaseline entry.
- * @param {string} what - Human description of the drop.
+ * Coverage the repo already accepted cannot be given back.
+ *
+ * This is the invariant that replaced the floor ratchet, and it is deliberately
+ * blind to the percentage: an obligation that was mapped at the base revision
+ * and is not mapped here is a regression even when the headline number went UP
+ * because easier behavior was covered in the same change.
+ *
+ * Keys whose scenario disappeared from the contract entirely are left to
+ * {@link checkDeletions}, which names that act precisely; reporting both would
+ * describe one deletion as two different failures.
+ * @param {object} input - Baseline, head contract and scenarios, and PR labels.
  * @returns {object[]} Defects found.
  */
-function baselineRecordDefects(record, what) {
-  const defects = ["reason", "ticket", "approvedBy", "runUrl", "recordedAt"]
-    .filter(field => !record[field])
-    .map(field =>
-      defect(
-        "floor-ratchet",
-        `${what}: coverageFloorBaseline record has no ${field}`
-      )
-    );
-  if (record.runUrl && !/^https:\/\/\S+$/.test(String(record.runUrl))) {
-    defects.push(
-      defect(
-        "floor-ratchet",
-        `${what}: coverageFloorBaseline.runUrl must be an https URL`
-      )
-    );
+export function checkCoverageRegression({
+  baseline,
+  contract,
+  scenarios,
+  labels,
+}) {
+  const before = acceptedKeys(baseline.scenarios, baseline.contract);
+  const after = acceptedKeys(scenarios, contract);
+  const present = new Set(scenarios.map(scenario => scenario.id));
+  const retired = new Map(
+    (contract.retirements ?? []).map(entry => [entry.scenario, entry])
+  );
+  const waived = waivedKeys(contract);
+  return [...before]
+    .filter(key => !after.has(key) && present.has(partsOf(key).scenario))
+    .sort()
+    .flatMap(key => regressionDefect(key, { retired, waived, labels }));
+}
+
+/**
+ * The defect for one obligation whose accepted coverage disappeared, or none
+ * when it left the denominator through an authorized route.
+ * @param {string} key - The `SCENARIO:platform` key.
+ * @param {object} input - Retirement records, waived keys, and PR labels.
+ * @returns {object[]} Zero or one defect.
+ */
+function regressionDefect(key, { retired, waived, labels }) {
+  const { scenario, platform } = partsOf(key);
+  if (isRetired(retired.get(scenario), labels)) return [];
+  if (waived.has(key) && labels.includes(BASELINE_LABEL)) return [];
+  return [
+    defect(
+      "coverage-regression",
+      `${scenario}:${platform} was covered at the base revision and is not covered here. Coverage this repository already accepted cannot be handed back quietly. Restore the mapping, or take one of the two recorded routes out — a retirements record (${RETIREMENT_FIELDS.join(", ")}) for a behavior the product no longer has, or a platformWaivers entry for a runner that cannot decide it — and get the maintainer-applied "${BASELINE_LABEL}" label on this pull request. ${routeTaken(key, { retired, waived, labels })}`
+    ),
+  ];
+}
+
+/**
+ * Say which half of the authorization is missing, so the operator is told what
+ * to do rather than only what went wrong.
+ * @param {string} key - The `SCENARIO:platform` key.
+ * @param {object} input - Retirement records, waived keys, labels, contract.
+ * @returns {string} A one-sentence next step.
+ */
+function routeTaken(key, { retired, waived, labels }) {
+  const { scenario } = partsOf(key);
+  const record = retired.get(scenario);
+  const authorized = labels.includes(BASELINE_LABEL);
+  if ((record || waived.has(key)) && !authorized) {
+    return `A record is present but the "${BASELINE_LABEL}" label is not: recording a reduction in the same pull request that makes it is not an authorization.`;
   }
-  return defects;
+  if (record) {
+    const missing = RETIREMENT_FIELDS.filter(field => !record[field]);
+    return `Its retirements record is incomplete (no ${missing.join(", no ")}).`;
+  }
+  return "Neither a retirements record nor a waiver was found for it.";
+}
+
+/**
+ * Behavior that is NEW here is mapped or waived.
+ *
+ * The companion to {@link checkCoverageRegression}: without it a repository
+ * could hold every accepted obligation and still let the product outrun its
+ * contract, one unmapped scenario at a time. Pre-existing gaps are untouched —
+ * an obligation that was already owed at the base revision is burndown, not a
+ * regression — which is what lets a brownfield project adopt `enforced`
+ * without first backfilling its whole history.
+ * @param {object} input - Baseline plus the head contract and scenarios.
+ * @returns {object[]} Defects found.
+ */
+export function checkNewObligations({ baseline, contract, scenarios }) {
+  const before = obligationKeys(baseline.scenarios, baseline.contract);
+  const covered = acceptedKeys(scenarios, contract);
+  return [...obligationKeys(scenarios, contract)]
+    .filter(key => !before.has(key) && !covered.has(key))
+    .sort()
+    .map(key => {
+      const { scenario, platform } = partsOf(key);
+      return defect(
+        "obligation-uncovered",
+        `${scenario}:${platform} is new here and nothing covers it. New behavior arrives mapped to an automated test or waived with a dated, owned platformWaivers entry — the contract does not accept a third answer. (Behavior that was already uncovered before this change is burndown, not a defect, and is listed in the report's gaps.)`
+      );
+    });
 }
 
 /**
@@ -245,9 +337,7 @@ function deletionDefects(id, record, labels) {
       ),
     ];
   }
-  const missing = ["reason", "ticket", "approvedBy", "recordedAt"].filter(
-    field => !record[field]
-  );
+  const missing = RETIREMENT_FIELDS.filter(field => !record[field]);
   const defects = missing.map(field =>
     defect("scenario-deleted", `${id}: retirements record has no ${field}`)
   );

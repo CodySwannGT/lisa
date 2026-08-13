@@ -87,14 +87,14 @@ export function getCdkConfig({
 
         // Configuration enforcement - prevent direct process.env access
         // All configuration should go through config module
-        // @see .claude/rules/PROJECT_RULES.md
+        // @see the host rules in .agents/rules/
         "no-restricted-syntax": [
           "error",
           {
             selector:
               "MemberExpression[object.name='process'][property.name='env']",
             message:
-              "Direct process.env access is forbidden. Use config module for type-safe configuration. See .claude/rules/PROJECT_RULES.md.",
+              "Direct process.env access is forbidden. Use config module for type-safe configuration. See the host rules in .agents/rules/.",
           },
         ],
 
