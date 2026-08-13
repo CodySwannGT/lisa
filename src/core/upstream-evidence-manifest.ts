@@ -172,20 +172,22 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "96f6a295bad34c0b52f7f667640243a462cb745998768c21a192c74d1a96dd34",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
+    "expo/copy-overwrite/scripts/bdd/discover.mjs":
+      "820e8a869a0b46fc11461a655bb82f0c8c60f5b46005fbff48e5d19930d7d25a",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
-      "7bb2aa5dbe49fa97d3f14e5400fef3f76e0fd99ab74e88d568a3d037c94c601d",
+      "ab3c9520be5c4c630ec3b6c8489015f24f97888c8687dde108865bbcff93efdb",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "d1bf74b01388d107e6869b90a3d1e1d2c03da8124cb2cc14f9cf6d64e2b00ce8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "47a5adb9fc607e5d330c246218d0b043be14a8527c7ba198b222df03fd96672a",
+      "fa4f51fbb3a0517c4813c4a0dc9edde26d402efa115420cc251aaed7b5dfd5f3",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
-      "4a07425197ddbcc53052a334354325c5d6b1880d586a02c176362bfb5c826a2a",
+      "30a7c3471611e740f62f544e613a2ecf095946e7f70c752f62fa51ac58949822",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
       "afb8dd052733a5f83e6d004eac3437783a707c08810ba9cc65138d898aff83e2",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4b9ebf80100f478cc5e06d50b4d672ad08ec77a3746a7a109a74e1daf71a55b7",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "98fa86e5987e7384c7fd23baa435f86830fb432424134bb7d8141c005af9167b",
+      "d8448a5ad476eb8ad51aa3a6ee5ff90aded974a0ea426682f25df5482d2b279d",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -211,7 +213,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/babel.config.js":
       "faaf96f0d43c724a240a7892584de54ae384eee9ef9d76430d081f37d9f92924",
     "expo/create-only/bdd/coverage-map.json":
-      "7aecd1aca01b73eb20e311281a5e63137bd92d86d49c02fb48bcee9fdc94e07d",
+      "fcf9de0a802341ef8f879f2f9e20db11fc0e25c7caab465ea537c58c22e87fbd",
     "expo/create-only/bdd/features/.keep":
       "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":
@@ -691,7 +693,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/base-rules.md":
       "d3a4bd518acf2c6f4e866042542f9155fdbf5b2fdad5747e1afd097bdef15351",
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md":
-      "2d5afe505153afc32d7bfb835e8e176a418c2485bdfbe811191116809bdf635b",
+      "379c0fcbf69be3f536d99a0034a3fe1548cfd05d37af6c6504a7e921401eb88b",
     "plugins/src/base/rules/eager/claim-archaeology.md":
       "96afa034075593dfb7433c5c990b472a6b6f7320332da42ef54b1f01fa45664b",
     "plugins/src/base/rules/eager/claim-evidence-mapping.md":
@@ -771,7 +773,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "487ea1764c4b636ca4a33b78a90e925f028bb9a54182c0795cd1bbdc437a262d",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "9bfd9f1ebc37cf23a5594552c330adccd3d4dba9ddf7f697f7e2e315294a9117",
+      "16e8f868f9a1dee19a950bdb6619c0985524995c770621ff85458229f5b8926f",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
@@ -2573,6 +2575,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": true,
     "expo/copy-overwrite/scripts/bdd/baseline.mjs": true,
     "expo/copy-overwrite/scripts/bdd/contract.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/discover.mjs": true,
     "expo/copy-overwrite/scripts/bdd/envelope.mjs": true,
     "expo/copy-overwrite/scripts/bdd/parse.mjs": true,
     "expo/copy-overwrite/scripts/bdd/render.mjs": true,
@@ -8626,7 +8629,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
+    "tests/unit/scripts/bdd-discovery.test.ts": true,
     "tests/unit/scripts/bdd-envelope.test.ts": true,
+    "tests/unit/scripts/bdd-exclusions.test.ts": true,
     "tests/unit/scripts/bdd-failopen.test.ts": true,
     "tests/unit/scripts/bdd-grammar.test.ts": true,
     "tests/unit/scripts/bdd-ratchet.test.ts": true,
