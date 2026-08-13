@@ -48,8 +48,10 @@ ideation_ledger_payload:              # optional; forwarded unchanged to the ven
 - **`ready`** → the PRD is created in the source's `ready` PRD role (`prd-ready`), so the PRD-side of
   `lisa-intake` / the `*-prd-intake` scanner auto-claims it on the next cycle.
 
-There is no "omitted = legacy behavior" mode (unlike the ticket-side `build_ready`): there was no
-prior PRD-source-write behavior to preserve, so omitted means `draft`.
+Omitted means `draft` — the not-ready default. This matches the ticket-side `build_ready` contract
+in `ready-role-filing`: on both sides of the pipeline, entering a queue is an **explicit claim** and
+omission is the safe direction. (The ticket side reached that position by removing a per-vendor
+legacy default; the PRD side never had one to remove.)
 
 ## Workflow
 

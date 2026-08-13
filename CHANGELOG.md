@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/CodySwannGT/lisa/compare/v2.353.0...v3.0.0) (2026-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tracker:** an omitted `build_ready` no longer applies the build-ready
+role on GitHub or Linear. Both trackers previously treated omission as ready;
+they now match JIRA, where omission has always meant not-ready. Ready is an
+explicit claim rather than an accident of which tracker a project uses. Any
+downstream caller that omitted `build_ready` on GitHub or Linear and relied on
+implicit ready must now pass `build_ready: true`, or pass a `human_gate`
+reason if the hold is deliberate — a leaf filed with neither is rejected as an
+incomplete handoff. `lisa-github-validate-issue` F4's omitted-to-true
+normalization is removed with it.
+
+🤖 Generated with Claude Code
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Features
+
+* **access:** put the configured-provider substrate ahead of interactive MCP ([5fe9987](https://github.com/CodySwannGT/lisa/commit/5fe9987c56a5c952eb3c53fd8224a2de49aa4b68)), closes [CodySwannGT/lisa#2447](https://github.com/CodySwannGT/lisa/issues/2447)
+* **bdd:** discover e2e specs and enforce exclusions in the v2 gate ([4d1907b](https://github.com/CodySwannGT/lisa/commit/4d1907bb23a031519ccc65cce31e298c786e5924)), closes [CodySwannGT/lisa#2440](https://github.com/CodySwannGT/lisa/issues/2440) [CodySwannGT/lisa#2440](https://github.com/CodySwannGT/lisa/issues/2440)
+* **tracker:** make the ready role an explicit claim on every tracker ([5f0d6e4](https://github.com/CodySwannGT/lisa/commit/5f0d6e46a4a751f1ff28349a54cd1271c4641eba)), closes [CodySwannGT/lisa#2442](https://github.com/CodySwannGT/lisa/issues/2442)
+
+## [2.353.0](https://github.com/CodySwannGT/lisa/compare/v2.352.0...v2.353.0) (2026-08-13)
+
+
+### Features
+
+* **bdd:** discover e2e specs and enforce exclusions in the v2 gate ([4d1907b](https://github.com/CodySwannGT/lisa/commit/4d1907bb23a031519ccc65cce31e298c786e5924)), closes [CodySwannGT/lisa#2440](https://github.com/CodySwannGT/lisa/issues/2440) [CodySwannGT/lisa#2440](https://github.com/CodySwannGT/lisa/issues/2440)
+
+
+### Bug Fixes
+
+* **linear:** reject a `ready` state that is the team's default created state ([67b5aa2](https://github.com/CodySwannGT/lisa/commit/67b5aa2dbecbab8f3ba744a933b9b203bea14017)), closes [CodySwannGT/lisa#2443](https://github.com/CodySwannGT/lisa/issues/2443) [CodySwannGT/lisa#2443](https://github.com/CodySwannGT/lisa/issues/2443)
+* **nightly-e2e:** refuse a green run that only tested half the fleet ([8c86395](https://github.com/CodySwannGT/lisa/commit/8c86395731d87a96cfb0031bb74bc16614b2dd92)), closes [CodySwannGT/lisa#2432](https://github.com/CodySwannGT/lisa/issues/2432) [CodySwannGT/lisa#2432](https://github.com/CodySwannGT/lisa/issues/2432)
+
 ## [2.352.0](https://github.com/CodySwannGT/lisa/compare/v2.351.0...v2.352.0) (2026-08-13)
 
 

@@ -172,7 +172,12 @@ audits the auditor without re-running it.
 
 All project-tracker writes go through **`lisa-tracker-write`** so gardener
 tickets pass the same validation gates as all factory work. Nothing is created
-`status:ready` — the human flips.
+`status:ready` — the human flips. Per `ready-role-filing` that hold is
+**declared, not implied**: every gardener ticket passes
+`human_gate: "a human decides whether this knowledge is promoted, demoted, or
+retired"` so the writer stamps the auditable `[lisa-human-gate]` marker. An
+omitted flag would be indistinguishable from the accidental non-ready filing
+the rule exists to catch.
 
 **Per-item tickets — PROMOTE / DEMOTE** (`issue_type: Task`; GitHub trackers
 carry the `type:Task` label) — one ticket per recommendation, capped by
