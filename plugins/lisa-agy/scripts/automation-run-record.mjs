@@ -41,6 +41,7 @@ export const DEFAULT_AUTOMATION_RUN_HISTORY_MAX_ENTRIES = 50;
  *   readonly runId?: string
  *   readonly ts?: string | Date
  *   readonly maxEntries?: number
+ *   readonly extras?: Readonly<Record<string, unknown>>
  * }} RecordAutomationRunInput
  */
 
@@ -188,7 +189,26 @@ function buildAutomationRunRecord(input) {
     throw new Error("Automation run_id is required.");
   }
 
+  // Unknown keys are preserved rather than dropped. `recordAutomationRun`
+  // rewrites the WHOLE history file on every append, and stored records are
+  // re-validated through this function on read — so dropping an unrecognised
+  // key here does not merely omit it from the new row, it erases it from every
+  // row that already had it. The loss is invisible: the write succeeds, the
+  // file stays valid JSONL, and the reader returns records that look complete.
+  // Consumers get a false all-clear instead of an error (#2524).
+  //
+  // Validated fields are spread LAST so a corrupt or hostile stored row cannot
+  // override `outcome`, `run_id`, or any other checked value with an extra key
+  // of the same name.
+  const extras =
+    input.extras &&
+    typeof input.extras === "object" &&
+    !Array.isArray(input.extras)
+      ? input.extras
+      : {};
+
   return {
+    ...extras,
     ts,
     loop_id: loopId,
     outcome: input.outcome,
@@ -198,6 +218,17 @@ function buildAutomationRunRecord(input) {
     run_id: runId,
   };
 }
+
+/** Keys this module validates explicitly; everything else is passed through. */
+const KNOWN_RECORD_KEYS = new Set([
+  "ts",
+  "loop_id",
+  "outcome",
+  "summary",
+  "runbook",
+  "refs",
+  "run_id",
+]);
 
 /**
  * @param {unknown} value
@@ -215,6 +246,12 @@ function validateStoredRecord(value) {
     runbook: String(value.runbook ?? ""),
     refs: Array.isArray(value.refs) ? value.refs.map(ref => String(ref)) : [],
     runId: String(value.run_id ?? ""),
+    // Carry every unrecognised key forward. Without this, re-validating a
+    // stored record on read silently strips it, and the next append writes the
+    // stripped history back over the file (#2524).
+    extras: Object.fromEntries(
+      Object.entries(value).filter(([key]) => !KNOWN_RECORD_KEYS.has(key))
+    ),
   });
 }
 

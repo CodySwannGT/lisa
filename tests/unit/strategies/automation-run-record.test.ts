@@ -209,3 +209,105 @@ describe("automation run records (#1797)", () => {
     ).resolves.toMatchObject({ records: [], skippedCorruptLines: 0 });
   });
 });
+
+describe("unknown field preservation (#2524)", () => {
+  const stored = (runId: string, extra: Record<string, unknown>): string =>
+    JSON.stringify({
+      ts: BASE_TS,
+      loop_id: LOOP_ID,
+      outcome: NOTHING_NEEDED,
+      summary: "prior run",
+      runbook: RUNBOOK_PATH,
+      refs: [],
+      run_id: runId,
+      ...extra,
+    });
+
+  it("keeps an unknown field on the record it was written with", async () => {
+    const result = await recordAutomationRun({
+      projectRoot: root,
+      loopId: LOOP_ID,
+      outcome: NOTHING_NEEDED,
+      summary: "carries extras",
+      runbook: RUNBOOK_PATH,
+      runId: "run-1",
+      ts: BASE_TS,
+      extras: { standing_rulings: ["ruling-a", "ruling-b"] },
+    });
+
+    expect(result.record).toMatchObject({
+      run_id: "run-1",
+      standing_rulings: ["ruling-a", "ruling-b"],
+    });
+  });
+
+  // The severe case: `recordAutomationRun` rewrites the WHOLE file on append,
+  // so a dropped key is erased from rows that already had it — not merely
+  // omitted from the new one.
+  it("keeps unknown fields on PRIOR rows when a later append rewrites the file", async () => {
+    put(RECORDS_PATH, `${stored("run-1", { standing_rulings: ["kept"] })}\n`);
+
+    await recordAutomationRun({
+      projectRoot: root,
+      loopId: LOOP_ID,
+      outcome: NOTHING_NEEDED,
+      summary: "second run",
+      runbook: RUNBOOK_PATH,
+      runId: "run-2",
+      ts: BASE_TS,
+    });
+
+    const lines = readLines(RECORDS_PATH);
+    expect(lines).toHaveLength(2);
+    expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({
+      run_id: "run-1",
+      standing_rulings: ["kept"],
+    });
+  });
+
+  it("survives a full write → read → append → read round trip", async () => {
+    await recordAutomationRun({
+      projectRoot: root,
+      loopId: LOOP_ID,
+      outcome: NOTHING_NEEDED,
+      summary: "first",
+      runbook: RUNBOOK_PATH,
+      runId: "run-1",
+      ts: BASE_TS,
+      extras: { standing_rulings: ["r1"] },
+    });
+    await recordAutomationRun({
+      projectRoot: root,
+      loopId: LOOP_ID,
+      outcome: NOTHING_NEEDED,
+      summary: "second",
+      runbook: RUNBOOK_PATH,
+      runId: "run-2",
+      ts: BASE_TS,
+    });
+
+    const { records } = await readAutomationRunRecords(
+      path.join(root, RECORDS_PATH)
+    );
+    expect(records[0]).toMatchObject({ standing_rulings: ["r1"] });
+  });
+
+  it("never lets an extra key override a validated field", async () => {
+    put(RECORDS_PATH, `${stored("run-1", { standing_rulings: ["kept"] })}\n`);
+
+    const result = await recordAutomationRun({
+      projectRoot: root,
+      loopId: LOOP_ID,
+      outcome: NOTHING_NEEDED,
+      summary: "hostile extras",
+      runbook: RUNBOOK_PATH,
+      runId: "run-2",
+      ts: BASE_TS,
+      extras: { outcome: "forged", run_id: "forged", standing_rulings: ["ok"] },
+    });
+
+    expect(result.record.outcome).toBe(NOTHING_NEEDED);
+    expect(result.record.run_id).toBe("run-2");
+    expect(result.record).toMatchObject({ standing_rulings: ["ok"] });
+  });
+});
