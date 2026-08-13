@@ -71,6 +71,7 @@ TDD Cycle:
 
 - Write the minimum production code to make the test pass
 - Do not optimize, do not add features beyond what the test requires
+- For any UI surface the implementation adds or changes, the `design-source-of-truth` rule requires its design-source declaration to land in the same commit as the surface it describes — `DESIGN-SOURCE: <figma-url>` when the surface is backed by a Figma node (sync it back first if Figma access exists), or the exception marker `DESIGN-SOURCE: none — not in Figma` when it genuinely is not captured at the source. `scripts/design-source-gate.mjs` fails closed on an undeclared surface. Cite the rule; do not restate its marker grammar here.
 - The goal is the simplest code that makes the test green
 
 ### REFACTOR Phase

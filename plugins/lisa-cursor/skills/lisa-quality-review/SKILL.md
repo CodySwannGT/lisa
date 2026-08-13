@@ -16,6 +16,13 @@ For each changed file, evaluate:
 3. **Test coverage** -- Tests present? Testing behavior, not implementation details? Edge cases covered?
 4. **Documentation** -- JSDoc on new functions explaining "why"? Preambles on new files?
 5. **Code clarity** -- Readable variable names? Unnecessary complexity? Could a new team member understand this?
+6. **Design source** -- For UI surfaces, does each changed file say where its design came from? Run the deterministic gate rather than judging by eye:
+
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT:-.}/scripts/design-source-gate.mjs" --base=main --head=HEAD
+   ```
+
+   Exit 1 is a **Critical** finding under the `design-source-of-truth` rule -- the change is blocked until every UI surface either cites a Figma node (`DESIGN-SOURCE: <figma-url>`, the preferred fix -- sync it back) or carries the exception marker `DESIGN-SOURCE: none — not in Figma`. The gate fails closed: an unreadable file or an uncomputable diff is a FAIL, not a pass. Host design-system rules (`figma-design-system`, `design-system`, `use-the-design-library`, or the project's equivalent) stay authoritative about what to build; this checks only that the source is declared. If the gate script is absent, say so in the review rather than skipping silently.
 
 ## Output Format
 
