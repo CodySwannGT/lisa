@@ -1,0 +1,20 @@
+# Test cases for the ast-grep rules in ../rules/.
+#
+# These run. `ast-grep test` is wired to the `sg:test` package script and to
+# the AST Grep Scan job in Lisa's quality workflow, so a wrong assertion here
+# fails CI. The job counts the YAML files in this directory first: an empty
+# directory is reported as a skipped step with a warning, never as a pass,
+# because `ast-grep test` exits 0 when it finds nothing to run.
+#
+# A test file binds to a rule by its `id:` field, not by its filename — the
+# `<rule-id>-test.yml` convention is for humans reading the tree. Each case
+# listed under `valid:` must produce no diagnostic and each under `invalid:`
+# must produce one, so every rule is asserted in both directions.
+#
+# Every `invalid:` case also needs a snapshot under __snapshots__/ pinning
+# where the rule matched; a missing snapshot fails the run rather than being
+# skipped. Record them with:
+#
+#   ast-grep test --update-all      (or: <package manager> run sg:test -U)
+#
+# See: https://ast-grep.github.io/guide/test-rule.html
