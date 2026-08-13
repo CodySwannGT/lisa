@@ -925,7 +925,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "9d06590e6b99cce33e5fb10bd5b9e7515318133e3635368ef47162abc123bdfa",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "fb41a1e63c5332d47a46e715aff52551f3df867033b5e4f37dfaeee30019b891",
+      "ed46df59bfd1097acad4a5ad960811ffb37b318c94e36e5f78ea3b96c2d76136",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "66a89df3976ddb17af5c31415eeb6192c4c9e0ebba7ab3ee38b4fa6ebadb4955",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -7948,6 +7948,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
     "src/cli/doctor-legacy-overlay.ts": true,
+    "src/cli/doctor-lisa-owned-artifacts.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
     "src/cli/doctor-readiness-audit-allowlist.ts": true,
@@ -8122,6 +8123,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/learnings-stray-ledger.ts": true,
     "src/core/learnings-writer.ts": true,
     "src/core/learnings.ts": true,
+    "src/core/lisa-owned-templates.ts": true,
     "src/core/lisa-plugin-selection.ts": true,
     "src/core/lisa-rules-mirror.ts": true,
     "src/core/lisa-skill-sources.ts": true,
@@ -8376,6 +8378,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
+    "tests/unit/cli/doctor-lisa-owned-artifacts.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
@@ -8546,6 +8549,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-supersede-race.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
+    "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
@@ -8780,6 +8784,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/convergent-review-contract.test.ts": true,
     "tests/unit/strategies/copy-contents-gitignore.test.ts": true,
     "tests/unit/strategies/copy-contents.test.ts": true,
+    "tests/unit/strategies/copy-overwrite-lisa-owned-guards.test.ts": true,
     "tests/unit/strategies/copy-overwrite-refresh-templates.test.ts": true,
     "tests/unit/strategies/copy-overwrite.test.ts": true,
     "tests/unit/strategies/create-only.test.ts": true,
