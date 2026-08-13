@@ -43,6 +43,18 @@ export default [
     ],
   },
   {
+    // Shared test fixtures. `**/*.test.ts` is already exempt from the app's
+    // `process.env` restriction because a test must be able to construct the
+    // environment it puts a subject under; a helper extracted OUT of a test file
+    // to stop three suites drifting onto different environments is the same code
+    // doing the same job, and should not be pushed back inline to satisfy a rule
+    // aimed at application configuration access.
+    files: ["tests/**/support/**"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+  {
     rules: {
       // Lisa's own codebase has existing awaited and nested-function side effects
       // before later declarations. Keep the published rule stricter by default

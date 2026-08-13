@@ -57,7 +57,8 @@ body: |
   ...
 
 # Behavioral flags — caller asserts these so the validator can pick the right gates
-runtime_behavior_change: true     # → requires Target Backend Environment + Validation Journey
+# (on a LIVE item `runtime_behavior_change` is DERIVED from the stored declaration, not taken on assertion — S8)
+runtime_behavior_change: true     # → requires Target Backend Environment + Validation Journey; LIVE items derive it from the stored declaration instead (S8)
 authenticated_surface: true       # → requires Sign-in Required
 artifacts_attached: true          # → requires Source Precedence section
 links: [{ ref: "my-org/my-repo#99", type: "is blocked by" }]   # known issue links (may be empty)
@@ -68,7 +69,7 @@ child_refs: ["my-org/my-repo#601", "my-org/my-repo#602"]   # known child work (s
 prd_source: "https://notion.so/..."    # set when the issue was generated from a PRD — requires the Source Requirement section, see S16
 ```
 
-If the caller passes only an issue ref, fetch via `gh issue view <number> --repo <org>/<repo> --json number,title,body,labels,state,milestone,assignees`, parse the body sections, derive the spec fields, then run gates. The parser lives in `lisa-github-read-issue` (composition).
+If the caller passes only an issue ref, fetch via `gh issue view <number> --repo <org>/<repo> --json number,title,body,labels,state,milestone,assignees`, parse the body sections, derive the spec fields — including `runtime_behavior_change`, derived from the `## Target Backend Environment` declaration per `derived-branch-plan` and authoritative over any caller assertion — then run gates. The parser lives in `lisa-github-read-issue` (composition).
 
 ## Gates
 
@@ -167,7 +168,11 @@ When `issue_type ∉ {Bug, Epic}`, `parent_ref` must be set — **except for a b
 
 #### S8 — Target Backend Environment
 
-When `runtime_behavior_change = true`, the body must contain `## Target Backend Environment`. Read accepted environments from the exact configured keys of `.lisa.config.json` `deploy.branches`, never from a hardcoded list. Accept a human-confirmed bare exact configured key or `Confirmed: <env>`, automated `Inferred: <env> — evidence: <title|body|reproduction|hostname>`, automated `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` when no unique reverse-map exists. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. For legacy bare values, use managed draft markers and current ticket content only; provider edit history is not required. A marker proves automation and requires re-annotation; otherwise unknown provenance plus conflicting evidence fails for confirmation. Validate the annotation shape/source and remote-default branch; validate `<env>` as an exact configured key whenever present. A valid branch-only assumption must not fail solely because its reverse-map is absent or ambiguous. Normalize built-in `prod` ↔ `production` only when exactly one of those keys is configured. No other aliases are valid. Skipped for doc-only / config-only / type-only / Epic.
+Every leaf work unit carries `## Target Backend Environment` in the body. The section is where `runtime_behavior_change` is persisted, so it is rendered for exempt work too — see the declaration grammar at the end of this gate. Read accepted environments from the exact configured keys of `.lisa.config.json` `deploy.branches`, never from a hardcoded list. Accept a human-confirmed bare exact configured key or `Confirmed: <env>`, automated `Inferred: <env> — evidence: <title|body|reproduction|hostname>`, automated `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` when no unique reverse-map exists. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. For legacy bare values, use managed draft markers and current ticket content only; provider edit history is not required. A marker proves automation and requires re-annotation; otherwise unknown provenance plus conflicting evidence fails for confirmation. Validate the annotation shape/source and remote-default branch; validate `<env>` as an exact configured key whenever present. A valid branch-only assumption must not fail solely because its reverse-map is absent or ambiguous. Normalize built-in `prod` ↔ `production` only when exactly one of those keys is configured. No other aliases are valid.
+
+**The section persists `runtime_behavior_change`, so it is never simply skipped.** Work that changes no runtime behavior declares the exemption in place of an environment: `None — no runtime behavior change: doc-only` (or `config-only` / `type-only`). A container (an Epic, or any issue holding child work) declares `None — container: state rolls up from children`. The `None —` prefix is the machine discriminator; the words after it are for the human reading the issue.
+
+Derive the flag from the stored content, never from a caller's word about a live issue: an exact configured environment key means `true`, a `None —` declaration means `false`, and an **absent section means underivable** — never `false`. On a live issue the stored declaration is authoritative, so a caller asserting a `runtime_behavior_change` that contradicts it **FAILs** this gate naming both values rather than silently preferring either; one of the two is wrong, and picking one quietly is how an unauditable gate gets built. A **proposed spec** with no section **FAILs** — `lisa-github-write-issue` must render it before the write. A **live legacy issue** with no section is `N/A` with a repair note routed to claim time: the same asymmetry S19 uses, for the same reason, because failing every existing issue would turn a legacy queue red for a section no human had a way to add.
 
 #### S9 — Sign-in Required
 
@@ -187,7 +192,7 @@ This gate is `product_relevant: false` because cross-repo work units are not a p
 
 #### S11 — Validation Journey present
 
-When `runtime_behavior_change = true`, body must contain `## Validation Journey`. Skipped for doc-only / config-only / type-only / Epic.
+When `runtime_behavior_change = true`, body must contain `## Validation Journey`. Skipped for doc-only / config-only / type-only / Epic. When `runtime_behavior_change` is **underivable** — a live legacy issue whose body carries no Target Backend Environment declaration (S8) — this gate is `N/A` with the same repair note rather than `PASS`, because a requirement conditioned on a flag nobody recorded cannot be asserted either way.
 
 The caller controls strictness via `journey_followup`:
 - `auto` (default): missing section is FAIL with remediation `"Invoke lisa-github-add-journey to append the section after create"`. Callers like `lisa-github-write-issue` know to chain the followup automatically.
@@ -226,7 +231,7 @@ FAIL when the Validation Journey is present but declares zero binding `[EVIDENCE
 
 Parse claiming markers by the exact `[EVIDENCE:` prefix. A cross-work-item pointer in the canonical form `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` is non-claiming. The Lisa 2.223.0 form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` is also accepted as a legacy non-claiming alias; parse it from the right so the final two fields are type/name and a tracker URL may contain `:`. Exclude both forms from the manifest, S14's minimum-marker count, local marker type/name validation, and duplicate-name checks. Independently validate every `EVIDENCE-REF`: the native work-item reference must be non-empty and unambiguous, the artifact type must use the fixed taxonomy, and the name must be non-empty kebab-case. A malformed reference FAILs S14 as an invalid pointer but never becomes a local evidence obligation. A valid canonical or legacy reference may point to a sibling's artifact, but it never satisfies S14 for this issue. Therefore a runtime-changing leaf whose journey contains only `EVIDENCE-REF` entries FAILs S14 for zero local claiming markers, not because a valid legacy reference is malformed. Quoting or code-formatting another issue's `[EVIDENCE: ...]` marker does not make it a reference; writers must convert it to the canonical pipe form.
 
-This gate depends on S11. It is `N/A` for containers — an **Epic**, or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-github-add-journey`.
+This gate depends on S11. It is `N/A` for containers — an **Epic**, or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-github-add-journey`. It is likewise `N/A` with a repair note when `runtime_behavior_change` is **underivable** under S8 — reading an absent declaration as `false` is exactly the silent assumption that made this gate unauditable on a live issue.
 
 #### S15 — Leaf-only build-ready
 
@@ -308,6 +313,7 @@ Enforces the `derived-branch-plan` rule: the `## Branch Plan` section is **deriv
 |---|---|
 | `runtime_behavior_change = false` (doc-only / config-only / type-only) or an Epic/container, with no plan | `N/A` — absence is correct; never demand one |
 | Exempt work **carrying** a `## Branch Plan` | **FAIL** — hand-authored branches on work that declared no runtime target |
+| `runtime_behavior_change` **underivable** (live legacy item, no Target Backend Environment declaration) | `N/A` with a repair note — absence is never read as `false` |
 | Plan matches the recomputed plan | PASS |
 | Plan conflicts with the recomputed plan | **FAIL** |
 | Plan missing the `Derived from:` provenance line and disagreeing | **FAIL** — treated as hand-authored |
@@ -448,7 +454,7 @@ system, and never invent or ask for credentials inline.
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. Resolve `READY_ROLE` from merged `github.labels.build.ready` config (default `status:ready`). If the input is an issue ref, fetch via `gh issue view --json` and derive the spec fields — including `build_ready` (label set contains the resolved `READY_ROLE`, not a hard-coded label) and `child_refs` (native sub-issues plus body task-list / `Blocked by #<n>` parentage, resolved as in `lisa-github-read-issue`) so S15 can classify the issue. Otherwise parse the YAML spec and preserve the proposed `build_ready` value for S15/F4 normalization.
+1. Parse `$ARGUMENTS`. Resolve `READY_ROLE` from merged `github.labels.build.ready` config (default `status:ready`). If the input is an issue ref, fetch via `gh issue view --json` and derive the spec fields — including `runtime_behavior_change` (from the `## Target Backend Environment` declaration: an exact configured environment key → `true`, a `None —` declaration → `false`, an absent section → **underivable**, never `false`), `build_ready` (label set contains the resolved `READY_ROLE`, not a hard-coded label) and `child_refs` (native sub-issues plus body task-list / `Blocked by #<n>` parentage, resolved as in `lisa-github-read-issue`) so S15 can classify the issue. Otherwise parse the YAML spec and preserve the proposed `build_ready` value for S15/F4 normalization.
 2. Confirm `gh auth status` succeeds before any feasibility gate runs.
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only`, run every Feasibility gate.

@@ -38,12 +38,13 @@ const FALLBACK = path.join(
 /** Claude's refusal code. Anything else lets the command through. */
 const BLOCKED = 2;
 
-/** The four guards the fallback replays a payload to. */
+/** The guards the fallback replays a payload to. */
 const GUARDS = [
   "block-no-verify",
   "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
+  "block-direct-issue-create",
 ] as const;
 
 /** Throwaway project roots to remove after each case. */
