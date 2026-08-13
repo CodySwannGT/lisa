@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type CommandResult,
   resolveBunExecutable,
@@ -22,6 +22,22 @@ import {
   type LearningEntry,
 } from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-writer.js";
+
+// Spawns `bun`, `tar`, `mkfifo`, `npm pack`. Failed 2 of 12 full-suite runs at
+// load ~115 untouched by the change under test — marginal under contention, not
+// always slow. Suite-level cost measured 23.6s and 12.8s on quiet boxes; both
+// are WHOLE-SUITE, not per-case. See tests/helpers/io-latency-budget.ts for the
+// rationale, the shared 60s constant, and why this suite's published numbers
+// carry a warning label (CodySwannGT/lisa#2490).
+//
+// The only one of the five that inlines `vi.setConfig` instead of calling
+// `useIoLatencyBudget()`: this file sits one line under the 300-line `max-lines`
+// cap, and the helper's import plus call costs two. Splitting the `describe`
+// blocks across files would have bought the room, but a split suite is what let
+// a filename-scoped mutation probe report zero covering tests for a guard that
+// had four — so the duplicated literal is the cheaper mistake. Keep it equal to
+// IO_LATENCY_TEST_TIMEOUT_MS.
+vi.setConfig({ hookTimeout: 60_000, testTimeout: 60_000 });
 
 const BUN_EXECUTABLE = resolveBunExecutable(
   process.env.npm_execpath ?? process.execPath

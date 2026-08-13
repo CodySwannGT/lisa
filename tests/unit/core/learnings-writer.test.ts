@@ -11,7 +11,21 @@ import {
   renderLearningsFile,
   validateLearningEntry,
 } from "../../../src/core/learnings-writer.js";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+
+// The fsync-heavy arm of CodySwannGT/lisa#2490 rather than the spawn arm: many
+// fsync-paired filesystem transactions, same unbounded latency, same fixed
+// budget. Carries the clearest evidence in the whole issue — a case failed at
+// 10,259ms against the 10,000ms budget (2.6% over) and then passed 5/5 on
+// immediate re-run under the SAME conditions. Unchanged box, changed result:
+// that is no headroom, not load-sensitivity, and no amount of quieting the
+// machine fixes a 2.6% margin.
+//
+// Its `ENOTEMPTY` teardown cascade is a CONSEQUENCE of that timeout, not a
+// second defect: the case is killed mid-write, so cleanup never runs and the
+// next case finds a non-empty directory. Do not chase it as a filesystem bug.
+useIoLatencyBudget();
 
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const VALID_ENTRY = {

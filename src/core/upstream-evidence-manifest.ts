@@ -8524,6 +8524,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
+    "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/nightly-e2e-gate-harness.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
