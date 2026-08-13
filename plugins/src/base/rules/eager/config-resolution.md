@@ -37,9 +37,12 @@ This is the shared slug for the config-bound-transitions policy (the `leaf-only-
 
 ## Project rules and learnings
 
-Resolve hand-authored project rules from `.lisa.config.json`
-`projectRulesFile`, defaulting to `.claude/rules/PROJECT_RULES.md`. Automated
-learnings never append to that file: they use the separate machine-managed
+Host-authored project rules live in the fixed, agent-neutral directory
+`.agents/rules/` — not a configurable file. Every agent reaches it through the
+Lisa-managed pointer block in `AGENTS.md`, so it is read once, on demand. A
+project that still carries the retired `.claude/rules/PROJECT_RULES.md` keeps
+it, untouched and authoritative; the pointer names it too. Automated
+learnings never append to host rules: they use the separate machine-managed
 ledger resolved from `.lisa.config.json` — the optional `learnings.file`
 override, else the default `.lisa/PROJECT_LEARNINGS.md`. The ledger lives in the
 cold `.lisa/` tree (never an auto-loaded rules directory) and is consumed only
