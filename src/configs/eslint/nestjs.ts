@@ -79,14 +79,14 @@ export function getNestjsConfig({
 
         // Configuration enforcement - prevent direct process.env access
         // All configuration should go through ConfigService
-        // @see .claude/rules/PROJECT_RULES.md
+        // @see the host rules in .agents/rules/
         "no-restricted-syntax": [
           "error",
           {
             selector:
               "MemberExpression[object.name='process'][property.name='env']",
             message:
-              "Direct process.env access is forbidden. Use ConfigService for type-safe configuration. See .claude/rules/PROJECT_RULES.md.",
+              "Direct process.env access is forbidden. Use ConfigService for type-safe configuration. See the host rules in .agents/rules/.",
           },
         ],
 

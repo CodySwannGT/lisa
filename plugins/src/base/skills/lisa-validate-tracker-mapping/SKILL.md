@@ -71,7 +71,8 @@ Resolve the **effective** role → name mapping using the same defaults `/lisa:i
 - **Missing / empty tracker**: report `UNRESOLVABLE` with setup guidance (`/lisa:setup:jira`, `/lisa:setup:github`, or `/lisa:setup:linear`). Do not default to JIRA.
 - **JIRA build workflow** (`jira.workflow`): `ready`, `claimed`, optional `review`, `blocked`, and each `done.<env>` (`dev` / `staging` / `production`). Defaults: `Ready`, `In Progress`, `Code Review`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`.
 - **GitHub build/prd labels** (`github.labels.build`, `github.labels.prd`): each configured label string.
-- **Linear build/prd labels** (`linear.labels.build`, `linear.labels.prd`): each configured label/state string.
+- **Linear build workflow** (`linear.workflow`): `ready`, `claimed`, `review`, `blocked`, and each `done.<env>` — native workflow **states**, the Linear analogue of `jira.workflow`, not of `github.labels`. Defaults: `Ready`, `In Progress`, `In Review`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`.
+- **Linear labels** (`linear.labels`): the `prd.*` map plus the one surviving build-lane key, the `human_needed` marker (`linear.labels.build.human_needed`). A config that predates the state model may still carry `ready` / `claimed` / `blocked` / `done` under `linear.labels.build`; those are **inert** — nothing reads them. Do not audit them against the live label set, and do not report them as drift. Report them once as a migration note pointing at `/lisa:setup:linear`, which removes them.
 - **Notion PRD values** (`notion.values`): each configured select-option value, validated against the `notion.statusProperty` property's options.
 - **Confluence PRD parents** (`confluence.parents`): each configured parent page id, validated by existence.
 
@@ -103,7 +104,9 @@ gh label list --repo "$REPO" --limit 200 --json name -q '.[].name'
 
 ### Linear / Notion / Confluence
 
-Enumerate via the corresponding access surface (Linear MCP workflow states + labels; Notion data-source select options for `notion.statusProperty`; Confluence page-exists check per parent id). Same compare-exact-case contract as JIRA.
+Enumerate via the corresponding access surface (`lisa-linear-access` workflow states + labels; Notion data-source select options for `notion.statusProperty`; Confluence page-exists check per parent id). Same compare-exact-case contract as JIRA.
+
+For Linear, `lisa-linear-access operation: list-workflow-states` returns each state's `name`, `type`, `position` and `isTeamDefault` (the access layer sets it from the team's `defaultIssueState`). **Keep `isTeamDefault`** — Step 4 needs it, and it is the only authoritative answer to "which state does this team create Issues into". Do not approximate it with a name guess: `Todo` is merely the stock name, and a team that renamed its `defaultIssueState` is exactly the case a name guess misses.
 
 ## Step 4 — Compare (exact case)
 
@@ -113,10 +116,14 @@ For each `(role, configured-name)` pair, classify against the live name set:
 - **CASE_DRIFT** — a case-insensitive match exists but no exact-case match (e.g. config `"On Stg"` vs live `"ON STG"`). Canonical = the live exact name.
 - **MISSING** — no case-insensitive match exists. The name was renamed beyond recognition or deleted.
 
+One role carries a further check that name-existence cannot express:
+
+- **INVERTED** — Linear only, `ready` only: the configured state exists, but it is the team's **default created state** (`isTeamDefault`). This is worse than a name that does not resolve. The name resolves perfectly, so every existence check passes while the gate runs backwards: `ready` is supposed to mean "a human moved this Issue here", and the team's default means "nobody has touched this". Build-intake claims from that lane, so an INVERTED mapping dispatches work no human ever approved. Measured on the first team it hit: 20 Issues in the claimable lane, 12 never marked ready — including decision tickets shaped like leaves, which the leaf-only gate cannot catch either. Report it even when every other role is VALID.
+
 A project's verdict:
 
 - **VALID** — every role is VALID.
-- **DRIFTED** — at least one CASE_DRIFT or MISSING role, none of which is UNRESOLVABLE.
+- **DRIFTED** — at least one CASE_DRIFT, MISSING, or INVERTED role, none of which is UNRESOLVABLE. An INVERTED `ready` is never VALID, no matter how cleanly it resolves.
 - **UNRESOLVABLE** — the live set couldn't be enumerated (auth mismatch, missing tracker config, access failure). Distinguish this loudly from VALID — an unresolved audit is not a passing audit.
 
 ## Step 5 — Report
@@ -134,7 +141,17 @@ Per project, print a terminal-first section:
   done.production Done              Done                VALID
 ```
 
-End with a roll-up: counts of VALID / DRIFTED / UNRESOLVABLE projects and the exact next command (`… repair=true` when drift is auto-repairable; an admin note when a status is genuinely MISSING).
+An INVERTED `ready` gets a full line rather than a one-word status, because the operator reading it is not necessarily an engineer and the word alone does not convey the stakes:
+
+```
+  ready           Todo              Todo                INVERTED
+      "Todo" is the state this Linear team puts every NEW issue into, so the
+      build queue is currently claiming issues nobody marked ready. Pick or
+      create a state a person moves an issue into (Lisa's default is "Ready")
+      via /lisa:setup:linear, then set linear.workflow.ready to it.
+```
+
+End with a roll-up: counts of VALID / DRIFTED / UNRESOLVABLE projects and the exact next command (`… repair=true` when drift is auto-repairable; an admin note when a status is genuinely MISSING; `/lisa:setup:linear` when a `ready` is INVERTED).
 
 ## Step 6 — Repair (only when `repair=true`)
 
@@ -165,6 +182,18 @@ Compute the closest live candidates (case-insensitive token/substring overlap, t
 > Role `<role>` maps to `<configured>`, which no longer exists in `<vendor>`. Closest live names: `<c1>`, `<c2>`, `<c3>`. Pick the replacement, leave unchanged, or enter a name manually.
 
 Only write on an explicit pick. Never auto-select. If the user leaves it unchanged, keep the project `DRIFTED` and surface the admin remediation (add the status back, or fix it in the tracker).
+
+### INVERTED — never auto-repair
+
+**Never auto-repair an INVERTED `ready`, even with `repair=true`.** Every other classification has one correct answer that the live tracker already knows: CASE_DRIFT has the canonical casing, MISSING has a shortlist of near-matches. INVERTED has neither. The configured name is live and correctly cased; what is wrong is which lane the project chose to mean "build-ready", and nothing in the config or the tracker records what the human intended instead. Guessing would silently repoint the queue at a lane that may hold nothing, or worse, at another lane the team fills automatically — swapping one wrong answer for a quieter one.
+
+The team may also genuinely not have a dedicated ready lane yet, in which case the repair is to **create a state**, not to rewrite a string — `/lisa:validate-tracker-mapping` audits config, it does not mutate the tracker.
+
+So: present the team's non-default states via `AskUserQuestion`, and write `linear.workflow.ready` only on an explicit pick. If none fits, or the user declines, leave the config untouched, keep the project `DRIFTED`, and hand off:
+
+> Linear has no dedicated build-ready state on this team. Run `/lisa:setup:linear` — it offers to create `Ready` and records the mapping.
+
+Until then, say plainly that the build queue is claiming unapproved work and that pausing build intake is the safe interim.
 
 ### Invalidate the verification cache
 

@@ -65,24 +65,80 @@ Error: no Linear access substrate available. Authenticate the Linear MCP or set 
 All GraphQL calls use:
 
 ```bash
+# Resolve the key through the chokepoint before giving up on the environment.
+# Without this rung a project that keeps its credentials in Bitwarden, Doppler,
+# or AWS has no path to the key at all — the ladder stopped at rung one, which
+# is also what left `/lisa:setup:linear` reading an OS keychain directly with
+# nowhere to migrate to. Mirrors `atlassian-access` and `notion-access`.
+read_linear_key() {
+  [ -n "${LINEAR_API_KEY:-}" ] && { echo "$LINEAR_API_KEY"; return; }
+  local resolver
+  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
+                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+    if [ -f "$resolver" ]; then
+      local via_lisa
+      via_lisa=$(node "$resolver" get LINEAR_API_KEY 2>/dev/null) \
+        && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
+      break
+    fi
+  done
+  return 1
+}
+
 linear_graphql() {
   local query="$1"
   local variables="${2:-{}}"
-  [ -n "$LINEAR_API_KEY" ] || {
-    echo "Error: LINEAR_API_KEY is not set." >&2
+  local key
+  key=$(read_linear_key) || {
+    echo "Error: no Linear API key. Set LINEAR_API_KEY, or store it as" >&2
+    echo "LINEAR_API_KEY in this project's secrets provider." >&2
     return 1
   }
   jq -n --arg query "$query" --argjson variables "$variables" \
     '{query:$query, variables:$variables}' |
     curl -sS -X POST "https://api.linear.app/graphql" \
       -H "Content-Type: application/json" \
-      -H "Authorization: '"$LINEAR_API_KEY"'" \
+      -H "Authorization: $key" \
       --data-binary @-
 }
 ```
 
 Map operation names to Linear GraphQL queries/mutations in this access skill.
 Consumers pass business-shaped arguments only; they do not embed GraphQL.
+
+## `list-workflow-states` — the team's states, and which one it creates into
+
+`list-workflow-states team:<ID>` returns one node per state with `id`, `name`,
+`type`, `position`, and **`isTeamDefault`**.
+
+`isTeamDefault` is `true` for the single state named by the team's
+`defaultIssueState` — where Linear puts every brand-new Issue. Callers need it to
+enforce the rule that `linear.workflow.ready` must be a lane a human moves an
+Issue **into**: pointing `ready` at the default inverts the gate, so the
+claimable lane means "nobody has touched this" rather than "a human marked this
+ready", and build-intake dispatches unapproved work. `/lisa:setup:linear` refuses
+to resolve `ready` onto it, and `/lisa:validate-tracker-mapping` classifies a
+config that already does as `INVERTED`.
+
+It belongs on this operation rather than in a separate `get-team` call because
+every caller that needs it is already enumerating states, and a second round trip
+is a second chance for the two answers to disagree. A team with no
+`defaultIssueState` set yields `isTeamDefault: false` on every node — report that
+honestly; do not fall back to guessing by name or position.
+
+```graphql
+query($teamId:String!){
+  team(id:$teamId){
+    defaultIssueState{ id }
+    states(first:100){ nodes{ id name type position } }
+  }
+}
+```
+
+Set `isTeamDefault` per node by comparing `node.id` against
+`team.defaultIssueState.id`. On the MCP substrate, which exposes states without
+the team's default, resolve the default through the team record and join on `id`
+the same way.
 
 ## `history` — transition history (read-only)
 

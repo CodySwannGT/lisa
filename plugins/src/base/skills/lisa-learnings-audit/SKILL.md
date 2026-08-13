@@ -49,9 +49,12 @@ memorized list:
    — stronger than an omission count, because room was not merely tight, a real
    capture was turned away. Drain it every run (see The audit cycle).
 3. **Rules trees** — the plugin `rules/eager/` + `rules/reference/` pairs AND
-   the host project's `.claude/rules/` (e.g. `PROJECT_RULES.md`, which is
-   human-authored only — its existing sections are still audit candidates;
-   first-run candidates come from exactly there).
+   the host project's canonical host-rules directory `.agents/rules/`, plus any
+   retired-but-surviving single-file rules the project still carries
+   (`.claude/rules/PROJECT_RULES.md`, or a legacy `projectRulesFile` path).
+   All of it is human-authored only — the gardener proposes, it never rewrites —
+   and its existing sections are still audit candidates; first-run candidates
+   come from exactly there.
 4. **Skills** — `.claude/skills/` and the plugin skill roots the runtime
    exposes (descriptions are eager context; bodies load on invoke).
 5. **The wiki index** — `wiki/index.md` when the project has a wiki.
