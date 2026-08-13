@@ -117,7 +117,7 @@ WHERE IT GOES INSTEAD — take the first one that fits:
    That is a project rule — but do not write it yourself. Capture it with
    \`/lisa:persist-learning\` so it lands in the learnings ledger with provenance
    and a confidence score. The gardener (\`/lisa:learnings:audit\`) then proposes
-   promotion into \`.claude/rules/PROJECT_RULES.md\` as a human-gated ticket.
+   promotion into the host-rules directory \`.agents/rules/\` as a human-gated ticket.
 
 2. It changes how an existing skill should behave. Edit that skill's SKILL.md.
    Knowledge belongs next to the procedure it modifies, not in a global preamble.

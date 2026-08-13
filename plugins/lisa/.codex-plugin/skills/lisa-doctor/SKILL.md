@@ -56,7 +56,10 @@ as applicable to the current repo:
    and `source` only. If a required CLI, MCP surface, or auth context is unavailable in the current
    runtime, report that explicitly instead of pretending the repo is ready.
 4. **Runtime distribution surfaces** — confirm the command, skill, hook, and related distribution
-   surfaces relevant to this repo are present where Lisa expects them on the active runtime.
+   surfaces relevant to this repo are present where Lisa expects them on the active runtime, and
+   that the Lisa-owned enforcement artifacts (`scripts/lisa-hooks/*`,
+   `scripts/lisa-enforcement-fallback.sh`) match the installed Lisa version rather than an older
+   copy. Present-but-stale is a finding: a guard whose fix never landed enforces the old behavior.
 5. **Automation readiness** — inspect whether the configured queue source/tracker and scheduling
    prerequisites are observable, but do **not** create, edit, or delete automations during doctor.
 6. **Optional GitHub Project coordination** — when `github.projects.v2` is configured, delegate

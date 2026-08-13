@@ -24,16 +24,31 @@
 
 set -euo pipefail
 
-# Auto-load .env.local if it exists (look in script dir and current dir)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-if [[ -f "$PROJECT_ROOT/.env.local" ]]; then
-  # shellcheck source=/dev/null
-  source "$PROJECT_ROOT/.env.local"
-elif [[ -f ".env.local" ]]; then
-  # shellcheck source=/dev/null
-  source ".env.local"
+# Read one setting from .env.local, and only that one.
+#
+# This used to `source` the file. Sourcing is unbounded: it imports every
+# variable the file happens to contain, including whatever tokens an operator
+# has parked there, which quietly made this script a second reader of
+# credentials that belong behind lisa-secrets-access. That is the exact drift
+# the one-store rule exists to prevent.
+#
+# LISA_GITHUB_REPOS is a list of repository names, not a credential, so reading
+# it here is fine. Authentication is `gh`'s own, and any credential this script
+# ever needs must come from the environment or resolve-secret.mjs.
+if [[ -z "${LISA_GITHUB_REPOS:-}" ]]; then
+  for env_file in "$PROJECT_ROOT/.env.local" ".env.local"; do
+    [[ -f "$env_file" ]] || continue
+    repos_line="$(grep -m1 -E '^[[:space:]]*(export[[:space:]]+)?LISA_GITHUB_REPOS=' "$env_file" || true)"
+    [[ -n "$repos_line" ]] || continue
+    repos_value="${repos_line#*=}"
+    repos_value="${repos_value%\"}" && repos_value="${repos_value#\"}"
+    repos_value="${repos_value%\'}" && repos_value="${repos_value#\'}"
+    export LISA_GITHUB_REPOS="$repos_value"
+    break
+  done
 fi
 
 # Colors for output

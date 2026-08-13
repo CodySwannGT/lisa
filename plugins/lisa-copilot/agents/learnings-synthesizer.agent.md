@@ -44,7 +44,7 @@ Map every finding to exactly one category. When a finding could fit two, pick th
 
 A finding that does not fit any of the eight is itself a signal — surface it under an additional ad-hoc category `Uncategorized` with a note explaining why no category fit. Better to surface than to drop.
 
-The destination column is a **hint for the human triaging the row**, not the routing decision: `lisa-debrief-apply` routes on the category, never on this column. Keep the hint honest anyway — a human decides Accept/Reject partly on where the learning will land. The three knowledge categories (recurring gotcha, process friction, convention drift) all land in the committed learnings ledger through the executable contract. Machine-local auto-memory (`project_*.md`, `MEMORY.md`), `PROJECT_RULES.md`, and `AGENTS.md` (whose `CLAUDE.md` is only a `@AGENTS.md` pointer) are **never** destinations — the first is invisible to cloud runs and teammates, and the latter two are human-authored surfaces that agents do not write.
+The destination column is a **hint for the human triaging the row**, not the routing decision: `lisa-debrief-apply` routes on the category, never on this column. Keep the hint honest anyway — a human decides Accept/Reject partly on where the learning will land. The three knowledge categories (recurring gotcha, process friction, convention drift) all land in the committed learnings ledger through the executable contract. Machine-local auto-memory (`project_*.md`, `MEMORY.md`), the host-rules directory `.agents/rules/`, and `AGENTS.md` (whose `CLAUDE.md` is only a `@AGENTS.md` pointer) are **never** destinations — the first is invisible to cloud runs and teammates, and the latter two are human-authored surfaces that agents do not write.
 
 ## Dedupe rules
 

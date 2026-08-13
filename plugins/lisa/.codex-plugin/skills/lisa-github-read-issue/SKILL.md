@@ -48,6 +48,7 @@ Walk the markdown body and capture each top-level `## ` section by name. Standar
 - `Acceptance Criteria` (preserve the Gherkin code-fence verbatim)
 - `Out of Scope`
 - `Target Backend Environment`
+- `Branch Plan` (derived output per `derived-branch-plan` — parsed so callers can *compare* it against a recomputation, never so they can use it as the base branch)
 - `Sign-in Required`
 - `Repository`
 - `Source Artifacts`

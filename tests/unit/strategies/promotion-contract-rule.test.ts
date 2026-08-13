@@ -45,9 +45,15 @@ const REWORK_TRIAGE_PATHS = [
   "plugins/lisa-copilot/skills/lisa-rework-triage/SKILL.md",
 ] as const;
 
+/**
+ * Every host-rules surface that must carry the human-authored-only contract:
+ * the seeded canonical directory shipped to hosts, and Lisa's own surviving
+ * legacy single-file rules (retained during the transition — reclassifying it
+ * is human-gated gardener work, not an automated rewrite).
+ */
 const PROJECT_RULES_PATHS = [
   ".claude/rules/PROJECT_RULES.md",
-  "all/create-only/.claude/rules/PROJECT_RULES.md",
+  "all/create-only/.agents/rules/README.md",
 ] as const;
 
 const read = (relativePath: string): string =>
@@ -153,7 +159,7 @@ describe.each(REWORK_TRIAGE_PATHS)(
 );
 
 describe.each(PROJECT_RULES_PATHS)(
-  "PROJECT_RULES.md human-authored-only contract (%s)",
+  "host-rules human-authored-only contract (%s)",
   rulesPath => {
     const rules = read(rulesPath);
 
