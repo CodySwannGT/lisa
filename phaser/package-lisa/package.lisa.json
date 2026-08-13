@@ -13,6 +13,7 @@
       "knip:check": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
+      "sg:test": "ast-grep test",
       "prepare": "husky install || true"
     },
     "devDependencies": {

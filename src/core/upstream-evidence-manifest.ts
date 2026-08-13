@@ -299,7 +299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "4672b147ff12d0af80516b9c824aa9419b05da1308531d978ea285ae4e3c2b23",
+      "9202ce3a521c3f01da0b663d02263c8f8d40977659c34dedd9beb7b483b8f317",
     "nestjs/copy-overwrite/eslint.config.ts":
       "b44532acdaa1deaab29dcc2171a615242fb26565f538bdb38d8e33dd5a15cd01",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -415,7 +415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-overwrite/.husky/pre-push.verify":
       "fef6694c2fde6178f46c62936d2b19515adce4fc8ac694ea66d8342aa1474ee7",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
-      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "35e9b9011053aa791fe6c6b76129599fff5c65a408bef1498b9fe4dd6f0054eb",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-canvas-renderer.yml":
       "bd0994bbb8f8e6bde2a1a581fb2cb8aa011d91822dabf4366f500359069726b3",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-raw-webgl-context.yml":
@@ -445,7 +445,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "2e01b1ec402f6804a54402e22d02d63f1aa96d3f698e171885b0fff6eb25b271",
+      "9cc4e080742e094b1c6c6e76e53f03887f2b096fc0f15b9417c0238ed36cea2e",
     "plugins/src/base/agents/architecture-specialist.md":
       "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
@@ -1989,7 +1989,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/Gemfile.lisa":
       "8bebf6120fa90d8f971ded8281c4fdac632e524ca0bb80f6268c3eda997f7672",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
-      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "35e9b9011053aa791fe6c6b76129599fff5c65a408bef1498b9fe4dd6f0054eb",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-find-by-sql-without-params.yml":
       "8d47d388f1b7d5cce0d4e58a9455247a10ee93d4cca664e9169dd32b666b10d0",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-params-without-permit.yml":
@@ -2235,7 +2235,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.yamllint":
       "e8a17046b8c1eb4653ed8a2ac6390ce499d505aab2daf81e43feefd5c4959067",
     "typescript/copy-overwrite/ast-grep/rule-tests/.gitkeep":
-      "050c0c64664c0f2ff3d306200cdfff454a0c5dd9879090f477b91d16c636ccdf",
+      "35e9b9011053aa791fe6c6b76129599fff5c65a408bef1498b9fe4dd6f0054eb",
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep":
       "5068239f6c760759362d6a1cc83478d77eef0214fa7f4f23c8d1ce4b56f532c0",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml":
@@ -2341,7 +2341,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "339c86d92be6419bbbcb974162522f5339a5ab6795beb27d60d3594bb6da139f",
+      "ca736c6808d58efdea16abfbe2256a8318bc6d14b035951c1293f7c283919932",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
@@ -8700,6 +8700,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/skills-installer.test.ts": true,
     "tests/unit/codex/skills-less-plugin-noop.test.ts": true,
     "tests/unit/codex/source-authored-openai-yaml.test.ts": true,
+    "tests/unit/config/ast-grep-rule-tests.test.ts": true,
     "tests/unit/config/ast-grep-template.test.ts": true,
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,

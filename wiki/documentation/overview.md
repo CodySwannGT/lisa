@@ -1118,6 +1118,7 @@ Start small—one rule, one command, one hook—and expand as your team gains co
 | `bun run test:integration` | Run integration tests |
 | `bun run knip` | Dead code detection |
 | `bun run sg:scan` | ast-grep pattern scan |
+| `bun run sg:test` | Run the ast-grep rule tests in `ast-grep/rule-tests/` |
 | `bun run format` | Format with Prettier |
 
 ---
