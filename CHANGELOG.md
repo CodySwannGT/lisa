@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.1](https://github.com/CodySwannGT/lisa/compare/v3.11.0...v3.11.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **ci:** correct the [#2523](https://github.com/CodySwannGT/lisa/issues/2523) headroom reading in the promotion ledger ([c02ea95](https://github.com/CodySwannGT/lisa/commit/c02ea955c98ecb5b5b0fe31b51276db3a1482ab7)), closes [#2526](https://github.com/CodySwannGT/lisa/issues/2526) [CodySwannGT/lisa#2506](https://github.com/CodySwannGT/lisa/issues/2506)
+* **ci:** make the ast-grep scan block a merge instead of merely reddening ([981d654](https://github.com/CodySwannGT/lisa/commit/981d6549ad6550866914668c6866e3742dfa81b8)), closes [#2512](https://github.com/CodySwannGT/lisa/issues/2512) [#2512](https://github.com/CodySwannGT/lisa/issues/2512) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2512](https://github.com/CodySwannGT/lisa/issues/2512) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2506](https://github.com/CodySwannGT/lisa/issues/2506) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2490](https://github.com/CodySwannGT/lisa/issues/2490) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [CodySwannGT/lisa#2506](https://github.com/CodySwannGT/lisa/issues/2506)
+
 ## [3.11.0](https://github.com/CodySwannGT/lisa/compare/v3.10.0...v3.11.0) (2026-08-13)
 
 
