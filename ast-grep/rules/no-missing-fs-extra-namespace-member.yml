@@ -1,0 +1,64 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+#
+# Bans `fs-extra` namespace members that do not exist under real Node ESM.
+#
+# The allow list below is an ALLOW list, not a deny list, and that is
+# deliberate. A deny list fails open: any absent member nobody thought to
+# enumerate passes silently, which is the exact rot this rule exists to
+# prevent. An allow list fails closed — an unrecognised member is flagged
+# loudly and a human decides.
+#
+# The list is the set of keys real Node reports for
+# `import * as fse from "fs-extra"`. It is byte-identical across fs-extra
+# 11.1.1, 11.3.3, 11.3.4 and 11.3.5, because the bare specifier always routes
+# through the package `exports` map to the CommonJS entry (`./lib/index.js`)
+# and Node derives the namespace keys with cjs-module-lexer from a re-export
+# shape that has not changed. `lib/esm.mjs` — which does export the JSON
+# helpers — is reachable only via the `fs-extra/esm` subpath, which is a
+# different import.
+#
+# Anti-rot: `tests/unit/core/fs-extra-namespace-callsites.test.ts` in the Lisa
+# monorepo derives this same set from real Node at run time, and
+# `tests/unit/config/ast-grep-template.test.ts` asserts the list below still
+# equals it. If fs-extra ever changes its namespace surface, that pairing goes
+# red centrally instead of this list silently drifting in every host project.
+id: no-missing-fs-extra-namespace-member
+language: typescript
+severity: error
+message: |
+  `fs-extra` does not expose this member on its ESM namespace object.
+
+  `import * as fse from "fs-extra"` resolves to fs-extra's CommonJS entry, so
+  Node derives the namespace keys with cjs-module-lexer. Only fs-extra's own
+  directly-assigned functions survive that. Absent members include every JSON
+  helper (readJson, readJSON, writeJson, outputJson, and their Sync forms),
+  every node:fs passthrough (readFile, writeFile, readdir, stat, existsSync,
+  appendFile, ...), and copySync, moveSync, removeSync, pathExistsSync and
+  outputFileSync.
+
+  The call is `undefined` at run time and throws a TypeError. Unit tests are
+  structurally blind to it: Vitest and Jest resolve the import through CJS
+  interop and hand back the default export's properties, so the call is a
+  function in every test and `undefined` in production. Lisa shipped this
+  defect three times in one release window (#2482, #2487) — once as a crash
+  that stranded seven merged PRs, twice inside error-swallowing `catch` blocks
+  where the TypeError replaced the error being handled.
+
+  Fix by importing the concrete API instead:
+    - file I/O     -> `readFile` / `writeFile` from `node:fs/promises`
+    - JSON         -> read the file, then `JSON.parse` / `JSON.stringify`
+    - whole module -> `import fse from "fs-extra"`. The DEFAULT export does
+                      carry every member and is deliberately not flagged here.
+rule:
+  all:
+    - pattern: $NS.$MEMBER
+    - inside:
+        kind: program
+        stopBy: end
+        has:
+          pattern: import * as $NS from "fs-extra"
+constraints:
+  MEMBER:
+    not:
+      regex: ^(copy|createFile|createFileSync|createLink|createLinkSync|createSymlink|createSymlinkSync|default|emptyDir|emptyDirSync|emptydir|emptydirSync|ensureDir|ensureDirSync|ensureFile|ensureFileSync|ensureLink|ensureLinkSync|ensureSymlink|ensureSymlinkSync|exists|mkdirp|mkdirpSync|mkdirs|mkdirsSync|move|outputFile|pathExists|read|readv|remove|write|writev)$
