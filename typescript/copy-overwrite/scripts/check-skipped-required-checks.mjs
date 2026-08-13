@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * check-skipped-required-checks — refuse a `skip_jobs` token that silences a
- * ruleset-required status check.
+ * check-skipped-required-checks — refuse a required status check that satisfies
+ * without proving anything.
  *
  * Shipped by Lisa (copy-overwrite). Generalized from tunnl's TUN-402 guard: the
  * logic is Lisa's and gets updated fleet-wide, the two REVIEWED SNAPSHOTS it
@@ -10,6 +10,23 @@
  *
  * Usage:
  *   node scripts/check-skipped-required-checks.mjs [rootDir] [--remote] [--json]
+ *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
+ *
+ * ## The family this guard covers
+ *
+ * **Required-and-red is loud; required-and-vacuous is not; advisory-and-stale is
+ * invisible.** All three are the same defect wearing different clothes — a gate
+ * that reports satisfied without having proven anything — and the useful
+ * question is never "did the check pass" but "did the check do anything".
+ *
+ * Two of the three live here:
+ *
+ *  - **Skipped** (`--remote` / offline arm, below): GitHub counts a `skipped`
+ *    required check as SATISFIED, so a `skip_jobs` token makes the gate
+ *    decorative. Static, offline, BLOCKING.
+ *  - **Vacuous** (`--pr` arm): the check really ran and really reported
+ *    `success`, having done no work — measured on CodeRabbit posting
+ *    `success — "Review rate limited"`. Live, per-PR, REPORTING ONLY.
  *
  * ## Where this runs
  *
@@ -96,6 +113,57 @@
  * network and `gh` auth on every run would flake, and a flaky guard gets
  * skipped — which reintroduces exactly the false-green class this file refuses.
  *
+ * ## `--pr` — the VACUOUS arm, and why it only ever reports
+ *
+ * Measured (CodySwannGT/lisa#2497): `CodeRabbit` was in this repository's
+ * required set, and on PRs #2483 and #2484 it posted `success` with the
+ * description `Review rate limited` having performed ZERO reviews. Both merged
+ * on that green, both carried security-relevant changes, both shipped in tag
+ * `v3.5.1`. Branch protection recorded "reviewed" for work nothing reviewed.
+ *
+ * The failure is silent by construction, and this is the whole point:
+ *
+ * ```
+ * gh pr checks <PR> | grep -i coderabbit
+ * CodeRabbit    pass    0    Review rate limited     <- hollow
+ * CodeRabbit    pass    1    Review completed        <- real
+ * ```
+ *
+ * **The status column says `pass` either way. Only the description
+ * distinguishes them.** So anything gating on such a check must read the
+ * description, and `--pr` is the machine-readable form of that one-line triage.
+ *
+ * This arm NEVER blocks — `NEVER_BLOCKING`, enforced regardless of the
+ * declaration's `enforcement` mode. Two independent reasons, both load-bearing:
+ *
+ *  1. A review bot's availability can depend on an org-wide SPENDING CAP. A
+ *     blocking check that fires on a billing state makes merges hostage to
+ *     accounting, which is a worse gate than the one it replaces.
+ *  2. Whether a review bot belongs in the required set at all is a governance
+ *     decision an owner has to make. Shipping the gate before the decision
+ *     would pre-empt it. Detection is what is uncontroversial; act on it.
+ *
+ * ## Proof is matched STRICTLY, no-work LOOSELY
+ *
+ * The two description lists are deliberately asymmetric, because their errors
+ * are not symmetric:
+ *
+ *  - A `proof` phrase must match the whole description (case-insensitive,
+ *    trimmed). Matching here GRANTS CREDIT, and a loose match that grants
+ *    credit is exactly the false green this file exists to refuse.
+ *  - A `no_work` phrase matches as a substring. Matching here DENIES credit,
+ *    so breadth is safe — and it survives a vendor appending detail
+ *    (`Review rate limited (retry in 12m)`).
+ *
+ * Anything matching neither is `unproven` — reported, never silently passed. A
+ * vocabulary nobody enumerated must not read as a pass.
+ *
+ * Unlike `required_contexts`, this vocabulary is NOT repo-specific: `Review
+ * rate limited` is the vendor's own product string, identical in every
+ * repository. That is why shipping it as a default is safe where shipping a
+ * guessed ruleset was not (#2476) — and why a wrong guess here costs one line
+ * of report rather than a red build.
+ *
  * ## Exact string equality, everywhere
  *
  * Every comparison here is `===`. Repos routinely carry confusable pairs — an
@@ -170,6 +238,55 @@ export const VIOLATIONS = Object.freeze({
   badExemption: "exemption_without_valid_ticket",
   remoteDrift: "ruleset_snapshot_drift",
   whitespace: "whitespace_in_skip_token",
+  vacuous: "vacuous_required_check",
+  unproven: "unproven_required_check",
+});
+
+/**
+ * The shipped description vocabulary for review-bot style checks.
+ *
+ * `proof` is matched STRICTLY (whole description, case-insensitive, trimmed)
+ * because a match grants credit. `no_work` is matched LOOSELY (substring)
+ * because a match denies it. See the header for why that asymmetry is the safe
+ * direction.
+ *
+ * Every string here was read off a real check on a real PR in this fleet, not
+ * invented: `Review rate limited` (#2483, #2484, #2495), `Review approved`
+ * (#2350). A repository may extend either list per check without losing these.
+ */
+export const REVIEW_DESCRIPTION_DEFAULTS = Object.freeze({
+  proof: Object.freeze([
+    "review approved",
+    "review completed",
+    "changes requested",
+    "comments posted",
+  ]),
+  no_work: Object.freeze([
+    "rate limited",
+    "review queued",
+    "review skipped",
+    "skipped",
+    "queued",
+    "waiting",
+    "in progress",
+    "no review",
+    "disabled",
+    "quota",
+    "billing",
+  ]),
+});
+
+/**
+ * Verdicts `classifyCheckDescription` returns.
+ *
+ * `unproven` is the FALLBACK on purpose: the absence of a recognised phrase is
+ * the absence of evidence, and this file's whole thesis is that those are not
+ * the same as a pass.
+ */
+export const DESCRIPTION_VERDICTS = Object.freeze({
+  proved: "proved",
+  noWork: "no-work",
+  unproven: "unproven",
 });
 
 /** Enforcement modes a declaration may select. */
@@ -194,6 +311,50 @@ const ALWAYS_BLOCKING = Object.freeze([
   VIOLATIONS.suppressesRequired,
   VIOLATIONS.remoteDrift,
 ]);
+
+/**
+ * Violation kinds that NEVER fail the build, in any enforcement mode.
+ *
+ * The vacuity arm reports and stops there. A required check can go hollow
+ * because a vendor hit an org-wide SPENDING CAP, and a gate that reddens every
+ * PR the moment a bill goes unpaid is a worse gate than the one it is
+ * criticising. Whether such a check belongs in the required set at all is a
+ * governance decision an owner makes in an admin console, not one this script
+ * may pre-empt by turning its own finding into a blocker.
+ *
+ * Detection is the uncontroversial half, and it is the half that was missing:
+ * nothing anywhere could previously tell "the check reported success" apart
+ * from "the check did anything".
+ *
+ * This list is checked BEFORE `ALWAYS_BLOCKING` and before the enforcement
+ * mode, so deleting the `enforcement` key cannot silently arm it.
+ */
+export const NEVER_BLOCKING = Object.freeze([
+  VIOLATIONS.vacuous,
+  VIOLATIONS.unproven,
+]);
+
+/**
+ * Reads `--name=value` or `--name value` out of argv.
+ *
+ * Returns `undefined` for an absent flag and for `--name` with no value, so a
+ * typo cannot be read as an empty PR number and silently examine nothing.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {string} name - The flag, including its leading dashes
+ * @returns {string|undefined} The value, or undefined
+ */
+export function readFlagValue(argv, name) {
+  const inline = argv.find(arg => arg.startsWith(`${name}=`));
+  if (inline !== undefined) {
+    const value = inline.slice(name.length + 1).trim();
+    return value === "" ? undefined : value;
+  }
+  const at = argv.indexOf(name);
+  if (at === -1) return undefined;
+  const next = argv[at + 1];
+  return next === undefined || next.startsWith("--") ? undefined : next;
+}
 
 /**
  * True when a line is a whole-line YAML comment.
@@ -401,6 +562,30 @@ export function loadDeclaration(rootDir) {
       throw new Error(
         `check-skipped-required-checks: \`${token}.suppressed_contexts\` must contain only context strings — they are compared byte for byte against \`required_contexts\`.`
       );
+    }
+  }
+
+  // Same reasoning for the vacuity declarations: a non-object entry would read
+  // as "declared" and then yield an empty vocabulary, quietly examining the
+  // check against defaults the author thought they had overridden.
+  for (const [name, entry] of Object.entries(
+    declaration.evidence_bearing_checks ?? {}
+  )) {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      throw new Error(
+        `check-skipped-required-checks: the declaration for \`${name}\` in \`evidence_bearing_checks\` must be an object — use \`{}\` to accept the shipped description vocabulary.`
+      );
+    }
+    for (const list of ["proof", "no_work"]) {
+      if (entry[list] === undefined) continue;
+      if (
+        !Array.isArray(entry[list]) ||
+        entry[list].some(phrase => typeof phrase !== "string")
+      ) {
+        throw new Error(
+          `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must be an array of description strings.`
+        );
+      }
     }
   }
   return declaration;
@@ -617,6 +802,184 @@ export function evaluateSkippedRequiredChecks(
 }
 
 /**
+ * Decides whether a check's description proves the check did any work.
+ *
+ * @param {string|undefined} description - The check's description, verbatim
+ * @param {{proof?: ReadonlyArray<string>, no_work?: ReadonlyArray<string>}} [vocabulary] -
+ *   Per-check additions. Merged WITH the shipped defaults rather than replacing
+ *   them, so a repository naming one extra proof phrase does not silently lose
+ *   the no-work list that catches the measured defect.
+ * @returns {string} One of `DESCRIPTION_VERDICTS`
+ */
+export function classifyCheckDescription(description, vocabulary = {}) {
+  const text = (description ?? "").trim().toLowerCase();
+  if (text === "") return DESCRIPTION_VERDICTS.unproven;
+
+  // No-work is tested FIRST. The lists are asserted non-overlapping in the
+  // suite, so order cannot change a verdict today — testing the denying rule
+  // first means a future overlap fails safe (denied) rather than granting
+  // credit, which is the direction that matters.
+  const noWork = [
+    ...REVIEW_DESCRIPTION_DEFAULTS.no_work,
+    ...(vocabulary.no_work ?? []),
+  ];
+  if (noWork.some(phrase => text.includes(phrase.trim().toLowerCase()))) {
+    return DESCRIPTION_VERDICTS.noWork;
+  }
+
+  const proof = [
+    ...REVIEW_DESCRIPTION_DEFAULTS.proof,
+    ...(vocabulary.proof ?? []),
+  ];
+  if (proof.some(phrase => text === phrase.trim().toLowerCase())) {
+    return DESCRIPTION_VERDICTS.proved;
+  }
+  return DESCRIPTION_VERDICTS.unproven;
+}
+
+/**
+ * Reports every declared evidence-bearing check that satisfied without proving
+ * it did work.
+ *
+ * A check is examined only when the repository named it in
+ * `evidence_bearing_checks` — matched by EXACT name, like every other
+ * comparison in this file. Most CI jobs ship an empty description, so
+ * flagging them all would bury the one finding that matters, and the obvious
+ * fix for a noisy guard is to delete it.
+ *
+ * Four outcomes per declared check:
+ *
+ *  - Green + a `proof` description → nothing. This is the case the whole
+ *    machine exists to reach.
+ *  - Green + a `no_work` description → `vacuous_required_check`. The measured
+ *    #2483/#2484 defect.
+ *  - Green + anything else → `unproven_required_check`. Not an accusation: a
+ *    statement that this run produced no evidence either way.
+ *  - Absent entirely → `unproven_required_check`. Measured on #2493/#2491/
+ *    #2488, where the bot posted no context at all; "no unresolved review
+ *    threads" there means nobody looked, not that nothing was wrong.
+ *
+ * A RED check is deliberately ignored. Required-and-red is the loud case and
+ * needs no help from here; reporting it too would make this arm indistinguish-
+ * able from ordinary CI noise.
+ *
+ * `required_contexts` changes only the WORDING — whether branch protection
+ * actually recorded this hollow green as a satisfied gate. When that snapshot
+ * is untrusted the finding still stands; the guard just declines to claim
+ * required-ness it has not transcribed.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string, state: string, bucket?: string, description?: string}>} checks -
+ *   Checks as `gh pr checks --json name,state,bucket,description` returns them
+ * @param {{trustRequiredContexts?: boolean}} [options] - Set
+ *   `trustRequiredContexts: false` to stop asserting whether a check is required
+ * @returns {{violations: object[], checked: number}} Violations and how many declared checks were examined
+ */
+export function evaluateVacuousChecks(declaration, checks, options = {}) {
+  const declared = declaration.evidence_bearing_checks ?? {};
+  const trustRequired = options.trustRequiredContexts !== false;
+  const required = new Set(declaration.required_contexts ?? []);
+  const violations = [];
+  let checked = 0;
+
+  for (const [name, entry] of Object.entries(declared)) {
+    checked += 1;
+    const vocabulary = typeof entry === "object" && entry !== null ? entry : {};
+    const found = checks.find(check => check.name === name);
+
+    if (found === undefined) {
+      violations.push({
+        kind: VIOLATIONS.unproven,
+        token: name,
+        message: `\`${name}\` is declared evidence-bearing but did not report on this pull request at all. A report of "no unresolved review threads" from this PR means NOBODY LOOKED, not that nothing was wrong — say which one you observed. (If the context was renamed, fix \`evidence_bearing_checks\`; names are compared byte for byte.)`,
+      });
+      continue;
+    }
+
+    const state = String(found.state ?? "").toUpperCase();
+    if (state === "FAILURE" || state === "ERROR") continue;
+
+    const verdict = classifyCheckDescription(found.description, vocabulary);
+    if (verdict === DESCRIPTION_VERDICTS.proved && state === "SUCCESS") {
+      continue;
+    }
+
+    const requiredNote = !trustRequired
+      ? " Whether it is ruleset-required is NOT KNOWN here — `required_contexts` has not been transcribed, so this cannot say what the merge gate recorded."
+      : required.has(name)
+        ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
+        : " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either.";
+
+    violations.push(
+      verdict === DESCRIPTION_VERDICTS.noWork && state === "SUCCESS"
+        ? {
+            kind: VIOLATIONS.vacuous,
+            token: name,
+            contexts: [name],
+            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
+          }
+        : {
+            kind: VIOLATIONS.unproven,
+            token: name,
+            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
+          }
+    );
+  }
+
+  return { violations, checked };
+}
+
+/**
+ * Reads one pull request's checks, descriptions included.
+ *
+ * `--json` is what makes this usable: the plain `gh pr checks` table is the
+ * human triage, and the description column is the load-bearing one, but only
+ * the JSON form survives being parsed. Both CheckRuns and legacy commit
+ * StatusContexts come back through this single call — CodeRabbit posts the
+ * latter, which `gh pr view --json statusCheckRollup` returns WITHOUT a
+ * description, so that route cannot see the defect at all.
+ *
+ * A non-zero exit is expected and ignored: `gh pr checks` exits 8 while checks
+ * are pending and 1 when any check failed, and both are perfectly readable
+ * states for this arm. Only unparseable output is an error.
+ *
+ * @param {string|number} pr - Pull request number or URL
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
+ * @throws {Error} When `gh` is unavailable or its output cannot be parsed
+ */
+export function fetchPullRequestChecks(pr, repo) {
+  const args = [
+    "pr",
+    "checks",
+    String(pr),
+    "--json",
+    "name,state,bucket,description",
+  ];
+  if (repo) args.push("--repo", repo);
+  let raw;
+  try {
+    raw = execFileSync("gh", args, { encoding: "utf8" });
+  } catch (error) {
+    raw = typeof error?.stdout === "string" ? error.stdout : "";
+    if (raw.trim() === "") {
+      throw new Error(
+        `check-skipped-required-checks: could not read checks for PR ${pr}${repo ? ` in ${repo}` : ""} — ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new TypeError("not an array");
+    return parsed;
+  } catch (error) {
+    throw new Error(
+      `check-skipped-required-checks: \`gh pr checks --json\` returned output this cannot parse (${error instanceof Error ? error.message : String(error)}). Refusing to report "nothing vacuous" from output nobody read.`
+    );
+  }
+}
+
+/**
  * Fetches the live required contexts for every declared ruleset.
  *
  * @param {object} ruleset - `{ repo, ids }` from the declaration
@@ -693,6 +1056,7 @@ export function runGuard(argv) {
   const positional = argv.filter(arg => !arg.startsWith("--"));
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
+  const pr = readFlagValue(argv, "--pr");
   const collected = collectSkipJobTokens(rootDir, declaration.workflows);
   const remote = argv.includes("--remote");
   const live = remote
@@ -714,6 +1078,21 @@ export function runGuard(argv) {
       ...compareRulesetBaseline(declaration.required_contexts, live)
     );
   }
+
+  // The vacuity arm is layered ON TOP of the offline run rather than replacing
+  // it: it is a third variant of one family, so it belongs in one report. Its
+  // findings are `NEVER_BLOCKING`, so adding them cannot change the exit code
+  // the offline arm would have produced on its own.
+  const vacuity =
+    pr === undefined
+      ? undefined
+      : evaluateVacuousChecks(
+          declaration,
+          fetchPullRequestChecks(pr, readFlagValue(argv, "--repo")),
+          { trustRequiredContexts: trust.trusted }
+        );
+  if (vacuity !== undefined) violations.push(...vacuity.violations);
+
   return {
     violations,
     checked: result.checked,
@@ -721,6 +1100,8 @@ export function runGuard(argv) {
     enforcement: declaration.enforcement ?? "error",
     trust,
     recipe: transcriptionRecipe(declaration),
+    pr,
+    evidenceChecked: vacuity?.checked ?? 0,
   };
 }
 
@@ -774,9 +1155,10 @@ function main(argv) {
    * @returns {boolean} True when it blocks
    */
   const blocks = violation =>
-    !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
+    !NEVER_BLOCKING.includes(violation.kind) &&
+    (!warnOnly || ALWAYS_BLOCKING.includes(violation.kind));
   const blocking = result.violations.filter(blocks);
-  const lines = ["## 🔒 Skipped required checks", ""];
+  const lines = ["## 🔒 Required checks that prove nothing", ""];
 
   // The refusal comes FIRST and replaces the verdict. Printing "✅ none
   // silences a required check" from a snapshot nobody transcribed is the one
@@ -803,7 +1185,12 @@ function main(argv) {
   if (result.violations.length === 0) {
     if (result.trust.trusted) {
       lines.push(
-        `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`
+        `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`,
+        ...(result.pr === undefined
+          ? []
+          : [
+              `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.`,
+            ])
       );
     } else {
       lines.push(
@@ -825,6 +1212,16 @@ function main(argv) {
       lines.push(
         "",
         `This declaration sets \`"enforcement": "warn"\`, so everything above except a proven false green (\`${VIOLATIONS.suppressesRequired}\`) is reported without failing the build. Review each finding, fix or declare it, then delete the \`enforcement\` key so this guard can block.`
+      );
+    }
+    if (
+      result.violations.some(violation =>
+        NEVER_BLOCKING.includes(violation.kind)
+      )
+    ) {
+      lines.push(
+        "",
+        `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
       );
     }
   }
