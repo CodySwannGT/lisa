@@ -176,6 +176,8 @@ describe("maestro-native-e2e pre-suite seam", () => {
   });
 
   it("does not run it at all when preflight says the project is unwired", () => {
+    // An unwired project skips every job in the workflow, this one included —
+    // there is nothing to establish state for.
     const result = run("all", { [PRE_SUITE_INPUT]: A_RESET }, {}, "");
     expect(result.jobs[PRE_SUITE].ran).toBe(false);
     expect(result.commandExecutions[PRE_SUITE_INPUT] ?? 0).toBe(0);
@@ -274,11 +276,29 @@ describe("maestro-native-e2e pre-suite seam", () => {
 
   it("changes nothing for an adopter who never sets pre_suite_command", () => {
     const result = run("all", { [SETUP_INPUT]: A_READ });
-    expect(result.jobs[PRE_SUITE].ran).toBe(false);
-    expect(result.jobs[PRE_SUITE].result).toBe("skipped");
-    // `skipped` is on the legs' allowlist, so both still run, twice over.
+    // The JOB runs (see the row-26 test below); its WORK does not.
+    expect(result.commandExecutions[PRE_SUITE_INPUT] ?? 0).toBe(0);
     expect(result.jobs[ANDROID].ran).toBe(true);
     expect(result.jobs[IOS].ran).toBe(true);
     expect(result.commandExecutions[SETUP_INPUT]).toBe(2);
+  });
+
+  it("row 26: no job skips itself in a wired run just because an input is unset", () => {
+    // The nightly health gate's completeness rule treats ANY job behind a
+    // `mode: "run"` suite that concludes something other than `success` as
+    // `incomplete_run` — a BLOCKED merge gate. So a job that skips whenever an
+    // optional input is unset would redden every adopter who does not use that
+    // input. The obvious spelling of the pre-suite guard
+    // (`&& inputs.pre_suite_command != ''` on the JOB) does exactly that, which
+    // is why the work is gated per-step instead.
+    //
+    // A caller passing NOTHING optional is the case that must stay clean.
+    const result = run("all");
+    for (const [name, outcome] of Object.entries(result.jobs)) {
+      expect(`${name}:${outcome.ran}`).toBe(`${name}:true`);
+    }
+    expect(String(workflow.jobs[PRE_SUITE].if)).not.toContain(
+      `inputs.${PRE_SUITE_INPUT} != ''`
+    );
   });
 });
