@@ -8,38 +8,30 @@ name: 🧩 Plugins Sync
 #
 # NOTE: This workflow is repo-specific to the Lisa monorepo and is NOT a Lisa
 # template — do not move it under plugins/src or the create-only template sets.
+# For the same reason its context is NOT in typescript/github-rulesets/
+# quality-checks.json (host projects have no plugins-sync.yml and would wait
+# forever on a check that never reports — the #2476 defect). It is added to
+# THIS repository's ruleset only, via `github.rulesets.addRequiredChecks` in
+# .lisa.config.json.
+#
+# ⚠️ DO NOT ADD A `paths:` FILTER (#2485). `🧩 Plugin artifacts match source` is
+# a REQUIRED status check on `main`. A workflow filtered out by `paths` does not
+# run at all, so its context never reports — GitHub then shows "Expected —
+# Waiting for status to be reported" and the pull request can never merge.
+# Measured, not assumed: PR #2496 touched only .github/workflows/
+# maestro-native-e2e.yml and a test file, and reported no plugins-sync context
+# whatsoever. The job is deterministic, offline, and finishes in ~25s, so it
+# runs on every pull request instead.
 
 on:
   pull_request:
-    paths:
-      - 'plugins/**'
-      - '.claude-plugin/marketplace.json'
-      - 'scripts/build-plugins.sh'
-      - 'scripts/generate-agy-plugin-artifacts.mjs'
-      - 'scripts/generate-codex-plugin-artifacts.mjs'
-      - 'scripts/generate-copilot-plugin-artifacts.mjs'
-      - 'scripts/generate-cursor-plugin-artifacts.mjs'
-      - 'scripts/lib/**'
-      - 'scripts/internal-*-skill-policy.json'
-      - 'scripts/internal-copilot-runtime-probe.json'
-      - 'scripts/check-plugins-sync.sh'
-      - 'scripts/check-learnings-budget.ts'
-      - 'scripts/check-rules-pairing.sh'
-      - 'all/create-only/.lisa/PROJECT_LEARNINGS.md'
-      - 'src/core/**'
-      - 'scripts/clean-dist.mjs'
-      - 'tsconfig.json'
-      - 'tsconfig.local.json'
-      - 'tsconfig/**'
-      - 'bun.lock'
-      - 'package.json'
-      - '.github/workflows/plugins-sync.yml'
   workflow_dispatch:
 
 jobs:
   plugins-sync:
     name: 🧩 Plugin artifacts match source
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - name: '🍞 Setup Bun'

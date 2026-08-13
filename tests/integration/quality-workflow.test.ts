@@ -173,13 +173,78 @@ describe("quality.yml reusable workflow", () => {
     });
 
     // Test hardened to kill mutant M002 (Risk Factor: CI gate correctness / substring skip collision).
-    it("does not let test:e2e skip the plain test job", () => {
-      expect(workflow.jobs.test?.if).toBe(
-        "${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') }}"
+    // `lint` is a strict prefix of `lint_slow`, so this pair exercises the same
+    // collision the deleted `test` / `test:e2e` pair used to (#2485).
+    it("does not let lint_slow skip the plain lint job", () => {
+      expect(workflow.jobs.lint?.if).toBe(
+        "${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}"
       );
-      expect(workflow.jobs.test_e2e?.if).toBe(
-        "${{ !contains(format(',{0},', inputs.skip_jobs), ',test:e2e,') }}"
+      expect(workflow.jobs.lint_slow?.if).toBe(
+        "${{ !contains(format(',{0},', inputs.skip_jobs), ',lint_slow,') }}"
       );
+    });
+
+    // #2485: the bare `test` job (`🧪 Run Tests`, plain `npm test`) is gone. It
+    // duplicated the required `🧪 Run Unit Tests` / `🧪 Run Integration Tests`
+    // contexts and, because it was not required, its alarming-looking red
+    // merged unnoticed on #2456 and #2461. Reintroducing a third near-identical
+    // test context recreates that confusable pair, so this pins its absence.
+    it("ships no bare `test` job and no `🧪 Run Tests` context", () => {
+      expect(workflow.jobs.test).toBeUndefined();
+      expect(Object.values(workflow.jobs).map(job => job.name)).not.toContain(
+        "🧪 Run Tests"
+      );
+      expect(
+        workflow.on.workflow_call?.inputs?.skip_jobs?.description
+      ).not.toMatch(/[(,]test,/u);
+    });
+
+    // #2485 postmortem. Deleting the `test` job left three `needs: [.., test, ..]`
+    // edges and FIVE `needs.test.result` interpolations behind. GitHub rejects
+    // the whole workflow at parse time for a dangling `needs`, so the run
+    // reported `conclusion=failure, jobs=0` — a startup_failure. None of the 8
+    // required contexts could report, because nothing started. In a reusable
+    // workflow every host project calls, that takes fleet CI down.
+    //
+    // It passed lint, typecheck, the full unit suite, and a `grep -n "needs:"`
+    // — the grep showed the multi-line `needs:` keys with their list items on
+    // FOLLOWING lines, so the dependency names were never in the output being
+    // read. A parser sees what a line-oriented grep structurally cannot.
+    describe("job graph integrity (#2485)", () => {
+      for (const [file, getWorkflow, getRaw] of [
+        [QUALITY_WORKFLOW_FILE, () => workflow, () => qualityRaw],
+        [
+          QUALITY_RAILS_WORKFLOW_FILE,
+          () => railsWorkflow,
+          () => qualityRailsRaw,
+        ],
+      ] as const) {
+        it(`${file} has no needs: edge pointing at a missing job`, () => {
+          const jobs = getWorkflow().jobs;
+          const declared = new Set(Object.keys(jobs));
+          const dangling = Object.entries(jobs).flatMap(([job, definition]) =>
+            needsList(definition)
+              .filter(dependency => !declared.has(dependency))
+              .map(dependency => `${job} -> ${dependency}`)
+          );
+
+          expect(dangling).toEqual([]);
+        });
+
+        // The stronger arm: an interpolation does not stop the workflow
+        // parsing, so it fails silently as an empty string rather than loudly.
+        it(`${file} has no needs.<job> interpolation for a missing job`, () => {
+          const declared = new Set(Object.keys(getWorkflow().jobs));
+          const referenced = [
+            ...getRaw().matchAll(/needs\.(?<job>[A-Za-z0-9_-]+)/gu),
+          ].map(match => match.groups?.job ?? "");
+          const unknown = [...new Set(referenced)].filter(
+            job => !declared.has(job)
+          );
+
+          expect(unknown).toEqual([]);
+        });
+      }
     });
 
     // #2427: the sentinel-comma idiom matches EXACT bytes, and GitHub Actions
@@ -215,19 +280,19 @@ describe("quality.yml reusable workflow", () => {
         return !`,${skipJobs},`.includes(needle);
       }
 
-      it("'test,test:e2e' — written correctly, skips both", () => {
-        expect(jobRuns(workflow.jobs.test, "test,test:e2e")).toBe(false);
-        expect(jobRuns(workflow.jobs.test_e2e, "test,test:e2e")).toBe(false);
+      it("'lint,lint_slow' — written correctly, skips both", () => {
+        expect(jobRuns(workflow.jobs.lint, "lint,lint_slow")).toBe(false);
+        expect(jobRuns(workflow.jobs.lint_slow, "lint,lint_slow")).toBe(false);
       });
 
-      it("'test, test:e2e' — the space makes test:e2e RUN anyway (fails closed)", () => {
-        expect(jobRuns(workflow.jobs.test, "test, test:e2e")).toBe(false);
-        expect(jobRuns(workflow.jobs.test_e2e, "test, test:e2e")).toBe(true);
+      it("'lint, lint_slow' — the space makes lint_slow RUN anyway (fails closed)", () => {
+        expect(jobRuns(workflow.jobs.lint, "lint, lint_slow")).toBe(false);
+        expect(jobRuns(workflow.jobs.lint_slow, "lint, lint_slow")).toBe(true);
       });
 
-      it("' test ' — padded on both sides, skips nothing at all", () => {
-        expect(jobRuns(workflow.jobs.test, " test ")).toBe(true);
-        expect(jobRuns(workflow.jobs.lint, " test ")).toBe(true);
+      it("' lint ' — padded on both sides, skips nothing at all", () => {
+        expect(jobRuns(workflow.jobs.lint, " lint ")).toBe(true);
+        expect(jobRuns(workflow.jobs.lint_slow, " lint ")).toBe(true);
       });
 
       it("documents the constraint at the input, in both workflows", () => {

@@ -184,10 +184,12 @@ describe("github-rulesets templates", () => {
   });
 });
 
+const RULESETS_SCRIPT_NAME = "lisa-github-rulesets.sh";
+
 describe("lisa-github-rulesets.sh workflow gating", () => {
   it("contains the workflow-presence guard for Actions-based checks", () => {
     const rulesetsScript = readFileSync(
-      path.join(REPO_ROOT, "scripts", "lisa-github-rulesets.sh"),
+      path.join(REPO_ROOT, "scripts", RULESETS_SCRIPT_NAME),
       "utf8"
     );
     expect(rulesetsScript).toContain("strip_actions_checks_if_no_workflows");
@@ -196,11 +198,25 @@ describe("lisa-github-rulesets.sh workflow gating", () => {
 
   it("supports per-repo required-check opt-outs from .lisa.config.json", () => {
     const rulesetsScript = readFileSync(
-      path.join(REPO_ROOT, "scripts", "lisa-github-rulesets.sh"),
+      path.join(REPO_ROOT, "scripts", RULESETS_SCRIPT_NAME),
       "utf8"
     );
     expect(rulesetsScript).toContain("strip_config_dropped_checks");
     expect(rulesetsScript).toContain("dropRequiredChecks");
+  });
+
+  // #2485: the mirror of the opt-out. Without it, a check that exists in only
+  // one repository can never be required there — the only alternatives are
+  // writing it into a shared template (where host projects would wait forever
+  // on a context they never report, #2476) or a hand-rolled API call outside
+  // the governance surface entirely.
+  it("supports per-repo required-check opt-ins from .lisa.config.json", () => {
+    const rulesetsScript = readFileSync(
+      path.join(REPO_ROOT, "scripts", RULESETS_SCRIPT_NAME),
+      "utf8"
+    );
+    expect(rulesetsScript).toContain("add_config_required_checks");
+    expect(rulesetsScript).toContain("addRequiredChecks");
   });
 
   it("drops config-listed contexts while keeping the rest", () => {

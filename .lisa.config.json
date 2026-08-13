@@ -5,6 +5,16 @@
   "github": {
     "org": "CodySwannGT",
     "repo": "lisa",
+    "rulesets": {
+      "addRequiredChecks": {
+        "quality checks": [
+          {
+            "context": "🧩 Plugin artifacts match source",
+            "integration_id": 15368
+          }
+        ]
+      }
+    },
     "labels": {
       "build": {
         "ready": "status:ready",
