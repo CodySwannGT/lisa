@@ -1,0 +1,21 @@
+{
+  "_comment": "Configuration for `bun run maestro:classify` (scripts/classify-maestro-failures.mjs) — a DIAGNOSTIC that scores a red Maestro run before anybody attributes a regression to it. It gates nothing and cannot change any check's conclusion. This file is create-only: Lisa writes it once and never overwrites your tuned values.",
+
+  "_signInMarkers": "Selectors that identify a subflow as performing sign-in. Preamble identity is DERIVED from these rather than from a list of filenames, so the classifier cannot drift when a gate is edited. Replace the shipped values with the selectors YOUR sign-in flow uses. Leaving them unmatched is safe: nothing qualifies as a preamble and every failure reads as a product failure, which is the direction this tool is required to err in — a false 'product' costs an investigation, a false 'preamble' hides a real regression.",
+  "signInMarkers": ["landing:sign-in", "signin:email-input"],
+
+  "_knownIntermittent": "Flows that fail SOMETIMES on an unchanged build. Every entry MUST carry a `measured` block — `failures`/`runs` from a real repeated run, the ISO date it was measured, and the methodology behind it. An entry missing any of those is reported as a registry defect and annotates nothing, on purpose: an unmeasured 'known flake' entry is exactly how a real regression gets dismissed. Keep the narrative — what was ruled out, the local repro recipe — in your BDD README and point at it from `notes`; this file holds only the claim a machine can check. Remeasure and update `measuredAt` rather than letting a stale rate justify today's failure.",
+  "_exampleEntry": {
+    "flow": "saved-insight-save-and-unsave.yaml",
+    "platforms": ["android"],
+    "measured": {
+      "failures": 2,
+      "runs": 7,
+      "measuredAt": "2026-08-10",
+      "method": "seven local runs on one emulator (1080x2400 @ 420dpi, matching the CI AVD pins) against build 0.0.327, arm-alternated against 0.0.319 to rule out the suspected commit"
+    },
+    "ticket": "TUN-560",
+    "notes": "bdd/README.md#known-intermittent-flows"
+  },
+  "knownIntermittent": []
+}
