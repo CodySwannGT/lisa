@@ -63,17 +63,69 @@ A clean result is a statement about what the check can perceive, not about the c
 
 1. Author the check.
 2. Deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
-3. Confirm the check **fails, names the right file/line, and that exactly one test fails**. A failure that does not localize is weak evidence the check is measuring the right thing.
+3. Confirm the check **fails and names the right file/line**, then read the failure count and the failing test *names* per the yardstick below.
 4. Restore, and confirm green again.
 5. Report the falsification alongside the result.
 
 ### The failure count is part of the evidence
 
-Step 3's cardinality is not pedantry; each deviation names a distinct defect.
+Step 3's cardinality is not pedantry; each deviation names a distinct defect. Run it as four steps, in this order:
 
-- **Zero failures** — the guard is inert. It was authored, it is green, and it asserts nothing about the property it names. The originating incident: a guard pinned one field of a structure and the regression it was written to stop walked straight through it with all fifty tests green, because nothing in the suite touched the field that actually moved.
-- **More than one failure** — the break is too coarse, the guard is over-broad, or unrelated tests share the fixture. Any of the three means the guard's next real failure will not tell the reader what broke, which is most of a guard's value.
-- **Exactly one failure** — the guard localizes. That is the evidence, and it is what gets reported.
+1. **Neuter the protection in production code** — delete the branch, drop the token from the enum, remove the check. Editing a *test* proves nothing about the guard; it only proves the test file is loaded.
+2. **Run the whole suite.** Never a single test file, and never a path filter.
+3. **Count the failures and read their names.** The count alone is ambiguous; the names are what separate "several failures of one regression" from "several unrelated failures."
+4. **Revert, and confirm green again.**
+
+Then read the result:
+
+- **Zero failures** — the guard is inert. It was authored, it is green, and it asserts nothing about the property it names. Two real instances: a guard pinned one field of a structure and the regression it was written to stop walked through it with all fifty tests green; and removing either `conflicting` or `unreadable` from `design-source-gate.mjs`'s `VIOLATION_STATUSES` failed **0 of 38 tests** while flipping the gate's verdict from FAIL to PASS.
+- **Many failures, unrelated to each other** — the break is too coarse, the guard is over-broad, or unrelated tests share a fixture. Any of the three means the guard's next real failure will not tell the reader what broke, which is most of a guard's value.
+- **Exactly one failure, or several all named for the same regression** — the guard localizes. Both readings are load-bearing and correctly scoped. Removing the two-token `--config-env` check failed **3** tests and pinning an index failed **5**; every failing name in both runs described the removed behaviour, so both guards were correct. This is a reading exercise, not arithmetic — "more than one is bad" is the wrong rule.
+
+### A zero is robust to contention; a positive count is not
+
+The obvious objection to any cardinality measured on a shared machine — *"your probe ran on a loaded box, so how do you trust the number?"* — has an asymmetric answer, and the asymmetry is worth stating because it decides which numbers you must re-measure.
+
+**Load can only add failures, never remove them.** A test that passes under contention would also have passed on a quiet machine; contention causes timeouts and lock races, which turn green into red, never red into green. So:
+
+- **A zero stands regardless of what else was running.** If the whole suite reports zero failures attributable to your mutation on a loaded box, a quiet box cannot produce fewer. `0 of 11,270` is `0 of 11,270`.
+- **A non-zero count needs a quiet machine**, because contention inflates it. Failures that are really flakes get miscounted as the guard's, which reads as "over-broad" and gets a correctly-scoped guard deleted.
+
+Practical consequence: an inert-guard finding is safe to report from a busy machine, while the "exactly one, or several all named alike" reading is only trustworthy once you have separated your mutation's failures from the load-flake population — which is what reading the *names* is for.
+
+### Two reasons a real protection reports zero
+
+A cardinality of zero has two distinct innocent causes, and they need different fixes. Rule out both before concluding a guard is inert:
+
+1. **Wrong probe scope** — the probe was scoped to a filename or path and is blind to a split suite. Fix: run the whole suite.
+2. **Wrong quantifier** — the assertions are existential over a corpus that contains duplicates, so a correct copy satisfies them on the broken copy's behalf. Fix: assert the universal negative.
+
+### Never scope the probe by filename
+
+**A cardinality probe scoped to a filename reports zero when a suite splits. Follow the protection, not the path.**
+
+Observed live: a reviewer neutered `before_end_of_options` (an end-of-options security fix), grepped `block-direct-issue-create.test.ts` for coverage, found none, and reported **cardinality 0 — the fix ships untested**. It was relayed as fact and used to question the author's discipline. Re-measuring against the whole suite showed neutering the protection fails **4** tests, each named for it: the suite had split at the 300-effective-line lint ceiling, and the declaration arm — including all five end-of-options tests — had moved to `block-direct-issue-create-declarations.test.ts`.
+
+The false negative fires exactly where this repo is most likely to split a file: at the line cap, on the suites that have grown *because* someone added protections to them. So:
+
+- Never scope the probe by filename or path filter.
+- Never infer absence of coverage from a grep. A grep locates text; it cannot enumerate what a mutation breaks.
+- A prior cardinality-0 finding measured with a path-scoped probe must be **re-measured** with a whole-suite probe before anyone acts on it.
+
+### Assert that no copy is wrong, not that some copy is right
+
+A test asserting that the **correct** marker is *present* passes trivially when the corpus happens to state it twice — the second statement satisfies the assertion no matter what the first one says, so the test survives the exact edit it exists to catch. The falsifiable form asserts the **wrong** spelling is *absent*: it has no second copy to fall back on, and it goes red the moment the wrong form reappears.
+
+Stated as quantifiers, which is the general form:
+
+- **Existential** — *"some copy says the right thing"* — is trivially satisfied by any other copy. A wrong copy is undetectable.
+- **Universal negative** — *"no copy says the wrong thing"* — cannot be satisfied by a correct copy elsewhere.
+
+Observed: a suite over a corpus containing two copies of the same rule returned **cardinality 0** on a real mutation because every assertion was existential. Rewriting the assertions to universal negatives — same code, same corpus, only the quantifier changed — took the same mutation from **0 to 18** failures. The defect it had been hiding: one PR pinned the *execution-step* copy of a rule and left the *gate* copy entirely unpinned, so reverting the gate's "absent section means underivable — never `false`" back to "means `false`" failed **0 of 11,270 tests** while the validator's documented gate contradicted its own execution step.
+
+### Enumerate the property, not the known-bad instance
+
+A universal negative against one hard-coded wrong spelling still only sees that spelling. Assert the **property** instead: *every* marker uses an em-dash catches the en-dash and the missing dash too, which `not.toContain("<one wrong spelling>")` never would. When that generalisation was made, it went red immediately on a wrong marker its own author had just written into rule prose — the discipline catching the person applying it, in the same run.
 
 ### Never narrate a red state you did not run
 
