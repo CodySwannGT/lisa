@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.9.2](https://github.com/CodySwannGT/lisa/compare/v3.9.1...v3.9.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **tests:** give Lisa's own suite a liveness budget it can actually meet ([1d815ac](https://github.com/CodySwannGT/lisa/commit/1d815ac5611ebdc482d2383defb7392871e50ab2)), closes [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [CodySwannGT/lisa#2522](https://github.com/CodySwannGT/lisa/issues/2522)
+
 ### [3.9.1](https://github.com/CodySwannGT/lisa/compare/v3.9.0...v3.9.1) (2026-08-13)
 
 
