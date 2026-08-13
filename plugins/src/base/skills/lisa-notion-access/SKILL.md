@@ -70,6 +70,13 @@ read_notion_token() {
   # Legacy fallback: the OS keychain written by the guided /lisa:setup:notion
   # flow, for projects that have not adopted a credentials provider. Reached only
   # when the chokepoint is absent or has no entry.
+  #
+  # This rung is REMOVED ON 2026-11-01 — a dated migration ramp, not a standing
+  # exemption (see credential-substrate-precedence, "Legacy OS-keychain fallback
+  # — removal date"). A keychain entry is machine-local ambient state no headless
+  # surface can reach, so a project resting on it has no working tier 1 in cron,
+  # CI, or a cloud session. Re-run /lisa:setup:notion before that date to store
+  # NOTION_API_TOKEN through the chokepoint instead.
   case "$(uname -s)" in
     Darwin)  security find-generic-password -s lisa-notion -a "$workspace" -w 2>/dev/null ;;
     Linux)   command -v secret-tool >/dev/null && \
