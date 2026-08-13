@@ -33,9 +33,17 @@
 # true` inverts warn-and-skip into a hard red. Leaving it false forever is a
 # false-green generator — the run concludes `success` having tested nothing, so
 # a deleted flows directory or an expired EXPO_TOKEN is indistinguishable from a
-# passing suite to anything reading this workflow's conclusion (the
-# `nightly-e2e-health.yml` gate reads exactly that). Adopters were hand-rolling
-# their own preflight jobs to get this; use the input instead.
+# passing suite to anything reading this workflow's conclusion. Adopters were
+# hand-rolling their own preflight jobs to get this; use the input instead.
+#
+# What this workflow's SKIPS mean to the health gate: a skipped job does not
+# redden the run that contains it, so `platform: android` (iOS job skipped) and
+# an unwired preflight (every job skipped) both conclude `success`. The
+# `nightly-e2e-health.yml` gate therefore reads the JOBS behind a `success` run,
+# not just its conclusion — see truth-table row 26 and §2.4 of
+# `docs/nightly-e2e-gate.md`. Renaming or removing the per-platform test jobs
+# below is fine; making one of them conclude something other than `success`
+# while the run stays green is what the gate is watching for.
 
 name: 📱 Maestro Native E2E
 
