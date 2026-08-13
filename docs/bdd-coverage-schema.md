@@ -102,7 +102,7 @@ carrying two shapes has no schema at all. The same document is written to
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "asOf": "<ISO date from the coverage map>",
   "scenarios": { "declared": 0, "required": 0, "excluded": 0, "blocked": 0, "referenceOnly": 0, "superseded": 0 },
   "traceability": {
@@ -262,7 +262,11 @@ here "reaches every repo at once".
   `enforced` mode their missing fields surface as defects, which is the intended
   ratchet on old manifests rather than a parse error.
 - **Defect `code`s are API.** Codes are stable across minor releases; a code is
-  retired only with a schema bump.
+  retired only with a schema bump. `report.schemaVersion` 3 retired `floor-ratchet`
+  and added `coverage-regression` and `obligation-uncovered`; the report's own fields
+  are unchanged, so a v2 consumer keeps working and simply never sees the old code.
+  `coverage-map.schemaVersion` did **not** move: a v2 map reads exactly as before,
+  with its now-unused `coverageFloorBaseline` ignored rather than rejected.
 - **Workflow input `bdd_mode`** — a string, defaulting to `not-adopted`. New states
   would be additive; existing states never change meaning.
 - **Rollback** — repin the caller to the prior Lisa tag. Because the coverage map is
@@ -329,27 +333,68 @@ resting state.
 `verify_enforced` and `bdd_mode` are independent inputs. `verify_enforced` stays OFF
 portfolio-wide; each repo flips `bdd_mode` as its own nightly arms.
 
-## The coverage-floor ratchet
+## Non-regression invariants (the coverage floor is not a ratchet)
 
-`coverageFloor` is per platform and **may rise, may never fall**. A reduction — or
-removing a platform's floor entirely — needs **two artifacts one author cannot
+`coverageFloor` is per platform and is an **absolute bar**: it answers *"is this
+platform below it right now"*, nothing more. Set it once when you adopt, to the
+honest measured number or to `0`, and stop touching it. **Nothing forces it upward
+and lowering it needs no ceremony** — because the number is not what protects
+coverage you already earned.
+
+Three deterministic, per-obligation checks do that, and they are strictly stronger
+than a number: they cannot be satisfied by an offsetting gain elsewhere, they name
+the exact `SCENARIO:platform` at issue, and their exemption lists shrink to zero as
+waivers retire instead of accumulating.
+
+| Defect | Invariant |
+|---|---|
+| `coverage-regression` | An obligation **mapped at the base revision** is still mapped here. |
+| `obligation-uncovered` | An obligation that is **new here** arrives mapped or waived. |
+| `scenario-deleted` | A behavior leaves the contract as `@superseded` with a record, never by deletion. |
+
+`coverage-regression` sees every route out that a percentage cannot: deleting a
+mapping, narrowing its platform list, tagging a covered scenario `@blocked`, or
+swapping an accepted obligation for an easier one while the headline holds steady.
+
+Giving coverage back is legitimate, and takes **two artifacts one author cannot
 produce alone**:
 
-1. A `coverageFloorBaseline` record naming the exact change:
-   `{ platform, from, to, reason, ticket, approvedBy, runUrl, recordedAt }`.
+1. A recorded route — a `retirements` record
+   (`{ scenario, reason, ticket, approvedBy, recordedAt }`) for a behavior the
+   product no longer has, or a `platformWaivers` entry for a runner that cannot
+   decide it.
 2. The maintainer-applied `bdd-floor-baseline` label on the pull request.
 
-Changing the floor in the same PR that changes the code is not an authorization.
-`runUrl` is validated for shape only — the gate never contacts CI or a tracker, so a
-merge can never depend on an external service being reachable.
+Recording the reduction in the same PR that makes it is not an authorization. No
+check contacts CI or a tracker, so a merge can never depend on an external service
+being reachable.
 
-Deleting a scenario is the same move by another route: it shrinks the denominator
-instead of the gap. The contract's answer to a retired behavior is `@superseded`,
-which keeps the audit trail. A genuine removal needs a `retirements` record
-(`{ scenario, reason, ticket, approvedBy, recordedAt }`) **and** the same label.
+`obligation-uncovered` deliberately ignores gaps that predate the change: those are
+**burndown**, listed in the report's `gaps`, and demanding they close here is what
+would stop a brownfield project ever reaching `enforced`.
 
-Both checks need a base revision (`BDD_BASE_SHA`, set from the PR base). Off a pull
-request there is no base, and the gate says so rather than passing silently.
+All three need a base revision (`BDD_BASE_SHA`). **Enforced mode fails without one** —
+a gate that skipped its non-regression checks has not proved what it is about to
+report. Lisa's `quality.yml` resolves one for every event: the PR base, else the fork
+point from the default branch, else the first parent. Bootstrap and local runs stay
+quiet, because neither is making a merge decision.
+
+### Why the ratchet was removed
+
+The floor used to be a ratchet: it could only rise, and lowering it took a
+`coverageFloorBaseline` record naming `{ platform, from, to, reason, ticket,
+approvedBy, runUrl, recordedAt }` plus the same maintainer label. That machinery is
+gone, and `coverageFloorBaseline` is no longer read.
+
+Every route it closed is still closed — by `coverage-regression`,
+`obligation-uncovered`, `floor-missing` (a platform whose floor was removed),
+`floor-invalid` (a floor written so it cannot be evaluated, refused in every adopted
+state), `scenario-deleted`, and the new base-revision requirement. Exactly one thing
+was released: a pull request whose entire content is nudging the number when nothing
+regressed. Across the fleet that pattern produced a great deal of traffic and very
+little signal — one repository moved a single budget across fourteen separate PRs,
+twice doing the same step in parallel — and it was standing in for a property that is
+now checked directly.
 
 ## Tracker-tag grammar (one portfolio grammar)
 
@@ -394,7 +439,7 @@ comes due is a quieter coverage gap.
 | Variable | Meaning |
 |---|---|
 | `BDD_MODE` | Adoption state. Unset means `not-adopted`; an unrecognized value exits 2. |
-| `BDD_BASE_SHA` | Base revision for the ratchet and deletion checks. |
+| `BDD_BASE_SHA` | Base revision for the non-regression and deletion checks. **Required in enforced mode.** |
 | `BDD_PR_LABELS` | Comma-separated PR labels, for the `bdd-floor-baseline` authorization. |
 | `BDD_EXECUTION_RESULTS` | Comma-separated execution-result documents, same as repeated `--results`. |
 | `BDD_COVERAGE_ROOT` | Repo root override, for tests. |

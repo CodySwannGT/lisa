@@ -42,17 +42,17 @@ const ENVELOPE_MODULE_PATHS = Object.freeze([
  * adoption-drift, config-*, discovery-invalid) are deliberately absent, so
  * they always fail: a malformed discovery block would silently switch off the
  * only check that can see an undeclared test, exactly as a quoted coverage
- * floor silently switches off the ratchet.
+ * floor silently switches off the bar (`floor-invalid`, likewise absent).
  */
 export const WARNABLE_DEFECT_CODES = Object.freeze([
   "baseline",
+  "coverage-regression",
   "discovery-missing",
   "empty-contract",
   "exclusion-metadata",
   "exclusion-stale",
   "execution-results",
   "floor-missing",
-  "floor-ratchet",
   "floor-regression",
   "mapping-duplicate",
   "mapping-evidence",
@@ -60,6 +60,7 @@ export const WARNABLE_DEFECT_CODES = Object.freeze([
   "mapping-orphan",
   "mapping-platform",
   "mapping-runner",
+  "obligation-uncovered",
   "scenario-deleted",
   "scenario-duplicate-id",
   "scenario-id",

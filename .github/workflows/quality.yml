@@ -145,7 +145,7 @@ on:
         default: false
         type: boolean
       bdd_mode:
-        description: 'BDD behavior-contract adoption state — the ONLY authority for it, because it survives deletion of bdd/. Permitted values are enumerated in the gate as source constants and anything else is refused (allowlist, never denylist): an unrecognized value exits nonzero rather than falling through to a permissive default. `not-adopted` (default): the bdd_coverage job does not run and the check MUST NOT be a required ruleset context. `bootstrap`: the job runs as a visible NON-BLOCKING check that requires a named owner and a hard expiry in bdd/coverage-map.json; contract defects are warnings, but a missing or passed expiry fails so bootstrap cannot become permanent. `enforced`: absence FAILS CLOSED — a missing script, a missing or malformed bdd/coverage-map.json, zero scenarios, zero mappings, any contract defect, a coverage-floor regression, or a deleted scenario all fail loudly; ONLY in this state is the check added to a ruleset. A required context is never auto-skipped: GitHub counts a skipped required check as passing.'
+        description: 'BDD behavior-contract adoption state — the ONLY authority for it, because it survives deletion of bdd/. Permitted values are enumerated in the gate as source constants and anything else is refused (allowlist, never denylist): an unrecognized value exits nonzero rather than falling through to a permissive default. `not-adopted` (default): the bdd_coverage job does not run and the check MUST NOT be a required ruleset context. `bootstrap`: the job runs as a visible NON-BLOCKING check that requires a named owner and a hard expiry in bdd/coverage-map.json; contract defects are warnings, but a missing or passed expiry fails so bootstrap cannot become permanent. `enforced`: absence FAILS CLOSED — a missing script, a missing or malformed bdd/coverage-map.json, zero scenarios, zero mappings, any contract defect, a platform below its committed coverage floor, coverage that was accepted at the base revision and is no longer covered, new behavior nobody mapped or waived, a deleted scenario, or a run with no base revision to compare against all fail loudly; ONLY in this state is the check added to a ruleset. A required context is never auto-skipped: GitHub counts a skipped required check as passing.'
         required: false
         default: 'not-adopted'
         type: string
@@ -688,10 +688,13 @@ jobs:
     #                  carries a named owner and a hard expiry and turns red
     #                  when that expiry passes.
     #   enforced    -> runs, and ABSENCE FAILS CLOSED: no script, no config,
-    #                  zero scenarios, zero mappings, a floor regression, or a
-    #                  deleted scenario are all failures, never skips. Only
-    #                  here is the context added to the ruleset, and adding it
-    #                  and flipping bdd_mode is ONE adoption operation.
+    #                  zero scenarios, zero mappings, a platform below its
+    #                  committed floor, coverage given back, new behavior
+    #                  nobody mapped or waived, a deleted scenario, or no base
+    #                  revision to compare against are all failures, never
+    #                  skips. Only here is the context added to the ruleset,
+    #                  and adding it and flipping bdd_mode is ONE adoption
+    #                  operation.
     #
     # The permitted values are an ALLOWLIST held as source constants in the
     # gate. An unrecognized `bdd_mode` exits nonzero instead of falling through
@@ -707,9 +710,9 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
-          # Full history: the coverage-floor ratchet and the scenario-deletion
-          # check read the base revision of bdd/ to prove the bar was not
-          # lowered to make the number look better.
+          # Full history: the non-regression checks read the base revision of
+          # bdd/ to prove that coverage the repo already accepted is still
+          # there and that new behavior arrived mapped or waived.
           fetch-depth: 0
           persist-credentials: false
 
@@ -736,19 +739,48 @@ jobs:
           echo "::warning title=BDD gate missing::bdd_mode is '$BDD_MODE' but scripts/check-bdd-coverage.mjs does not exist. This is non-blocking in bootstrap."
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # The non-regression checks are the whole of what protects coverage the
+      # repo already accepted, and every one of them needs a base revision. A
+      # run without one used to skip them in silence — a gate reporting a
+      # property it never evaluated — so enforced mode now FAILS without a
+      # base. That makes resolving one non-optional rather than best-effort:
+      # the PR base when there is a pull request, otherwise the fork point
+      # from the default branch. A dispatch on the default branch itself
+      # resolves to HEAD, which compares a tree against itself and honestly
+      # finds no regression, rather than skipping the question.
+      - name: 🧭 Resolve the base revision
+        id: bdd_base
+        if: steps.bdd_script.outputs.exists == 'true'
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          base="$PR_BASE_SHA"
+          if [ -z "$base" ] && [ -n "$DEFAULT_BRANCH" ]; then
+            base="$(git merge-base "origin/$DEFAULT_BRANCH" HEAD 2>/dev/null || true)"
+          fi
+          if [ -z "$base" ]; then
+            base="$(git rev-parse --verify HEAD^ 2>/dev/null || true)"
+          fi
+          if [ -z "$base" ]; then
+            echo "::warning title=BDD base revision::No base revision could be resolved. In enforced mode the gate fails rather than claiming nothing regressed."
+          fi
+          echo "sha=$base" >> "$GITHUB_OUTPUT"
+
       - name: 🧾 Evaluate the BDD behavior contract
         if: steps.bdd_script.outputs.exists == 'true'
         run: node scripts/check-bdd-coverage.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
         env:
           BDD_MODE: ${{ inputs.bdd_mode }}
-          # Base revision for the ratchet + deletion checks. Empty off a PR,
-          # where there is no base to compare against; the gate says so
-          # explicitly rather than passing silently.
-          BDD_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          # Labels authorize a floor reduction or a scenario retirement. They
-          # are maintainer-applied, so an author cannot lower the bar and
-          # authorize the lowering in the same pull request.
+          # Base revision for the non-regression + deletion checks. Enforced
+          # mode requires it; bootstrap runs without one silently, because it
+          # is non-blocking by construction.
+          BDD_BASE_SHA: ${{ steps.bdd_base.outputs.sha }}
+          # Labels authorize giving coverage back — a retirement or a waiver
+          # over an obligation that used to be mapped. They are
+          # maintainer-applied, so an author cannot reduce the contract and
+          # authorize the reduction in the same pull request.
           BDD_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           # Joins the standard command envelope to this run's CI log.
           BDD_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}

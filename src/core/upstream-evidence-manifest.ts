@@ -169,17 +169,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "519273668f08db7c14053ba1f25830e4cbb6e34ddf11f06264e72d0f7a80b98d",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "96f6a295bad34c0b52f7f667640243a462cb745998768c21a192c74d1a96dd34",
+      "630df2cbb6613534f755d3de1efbb6390a1c1dab5694d97f0ca09b8b7422881c",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
-      "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
+      "7366f56fb66f609b17438f3b2b89d0a45aaf012886278b38b0744e69955fa5cc",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
       "820e8a869a0b46fc11461a655bb82f0c8c60f5b46005fbff48e5d19930d7d25a",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
-      "ab3c9520be5c4c630ec3b6c8489015f24f97888c8687dde108865bbcff93efdb",
+      "9f3c72316d4dd5b5c2e3fa7634f00fb203dfb9235ab9af7183c99105dad7645d",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "d1bf74b01388d107e6869b90a3d1e1d2c03da8124cb2cc14f9cf6d64e2b00ce8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "fa4f51fbb3a0517c4813c4a0dc9edde26d402efa115420cc251aaed7b5dfd5f3",
+      "35fa94358e979b223788d629fb95c3c72adff72a9af4dcd3a71febc317849187",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "30a7c3471611e740f62f544e613a2ecf095946e7f70c752f62fa51ac58949822",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
@@ -187,7 +187,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4b9ebf80100f478cc5e06d50b4d672ad08ec77a3746a7a109a74e1daf71a55b7",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "d8448a5ad476eb8ad51aa3a6ee5ff90aded974a0ea426682f25df5482d2b279d",
+      "cc6a200155889acff761b2eece1768577bc29e09dac417724d243d7f1d1ec9db",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -215,7 +215,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/babel.config.js":
       "faaf96f0d43c724a240a7892584de54ae384eee9ef9d76430d081f37d9f92924",
     "expo/create-only/bdd/coverage-map.json":
-      "fcf9de0a802341ef8f879f2f9e20db11fc0e25c7caab465ea537c58c22e87fbd",
+      "ea38c44d5de30516f341b4208469f75990fe9f05bd8e7013cfc4002a52c032a2",
     "expo/create-only/bdd/features/.keep":
       "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
-      "db14245ed89b483912af287bdee917a7a921dc21bb29b49be37fc799c05c413f",
+      "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "plugins/src/base/hooks/threshold-ratchet.sh":
@@ -783,7 +783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "487ea1764c4b636ca4a33b78a90e925f028bb9a54182c0795cd1bbdc437a262d",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "16e8f868f9a1dee19a950bdb6619c0985524995c770621ff85458229f5b8926f",
+      "4ae48d6f54f8558a7aa9b6db24db3a619c9a669aece9a61ca9e58e2e2cf2f370",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
@@ -1977,7 +1977,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "db14245ed89b483912af287bdee917a7a921dc21bb29b49be37fc799c05c413f",
+      "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "rails/copy-overwrite/sgconfig.yml":
       "0ffe058c791d4d323f98104cf78c763bb0356d88739042060ceb86b6b1cb78d7",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2233,7 +2233,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "db14245ed89b483912af287bdee917a7a921dc21bb29b49be37fc799c05c413f",
+      "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "typescript/copy-overwrite/sgconfig.yml":
       "0ffe058c791d4d323f98104cf78c763bb0356d88739042060ceb86b6b1cb78d7",
     "typescript/copy-overwrite/tsconfig.eslint.json":
@@ -8712,11 +8712,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-exclusions.test.ts": true,
     "tests/unit/scripts/bdd-failopen.test.ts": true,
     "tests/unit/scripts/bdd-grammar.test.ts": true,
-    "tests/unit/scripts/bdd-ratchet.test.ts": true,
+    "tests/unit/scripts/bdd-nonregression.test.ts": true,
+    "tests/unit/scripts/bdd-ratchet-removal.test.ts": true,
     "tests/unit/scripts/bdd-render.test.ts": true,
     "tests/unit/scripts/bdd-reporting.test.ts": true,
     "tests/unit/scripts/bdd-validation.test.ts": true,
     "tests/unit/scripts/bdd-wiring.test.ts": true,
+    "tests/unit/scripts/bdd/regression-support.ts": true,
     "tests/unit/scripts/bdd/support.ts": true,
     "tests/unit/scripts/build-cursor-hooks-json.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions-helpers.ts": true,

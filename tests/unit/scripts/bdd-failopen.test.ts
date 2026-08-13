@@ -12,6 +12,7 @@ import {
   BOOTSTRAP,
   COMPLETED,
   ENFORCED,
+  FLOOR_INVALID,
   HEALTHY_FILES,
   HEALTHY_MAP,
   HOME_EVIDENCE,
@@ -35,7 +36,6 @@ import {
 } from "./bdd/support";
 
 const RESULTS_FILE = "results.json";
-const FLOOR_INVALID = "floor-invalid";
 const STALE_TITLE = "renamed away";
 const STALE_SOURCE = `test("${STALE_TITLE}", async () => {});\n`;
 
@@ -69,7 +69,11 @@ describe("a malformed coverage floor cannot disable the floor", () => {
     }
   });
 
-  it("treats quoting a floor as a RATCHET DROP, not as unchanged", () => {
+  it("still refuses a floor quoted AFTER it was a number, with a base to compare", () => {
+    // This case used to be caught by the floor ratchet's base comparison,
+    // which read an unusable head value as a removal. The ratchet is gone and
+    // the hole is not: `floor-invalid` fires on the head value alone, in every
+    // adopted state, so it does not depend on a base revision being available.
     const root = healthyProject({ coverageFloor: { [WEB]: 100 } });
     const base = commitAll(root);
     const map = readMap(root);
@@ -77,7 +81,9 @@ describe("a malformed coverage floor cannot disable the floor", () => {
     writeMap(root, map);
     const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
     expect(run.status).toBe(1);
-    expect(messages(run, "floor-ratchet")[0]).toContain("no longer a number");
+    expect(messages(run, FLOOR_INVALID)[0]).toContain(
+      "silently disables enforcement"
+    );
   });
 
   it("never reports a platform as clearing a floor it cannot evaluate", () => {
@@ -170,7 +176,10 @@ describe("Gherkin feature-level tags are inherited", () => {
       features: { [HOME_FEATURE_FILE]: inheritedSource() },
       files: HEALTHY_FILES,
     });
-    const run = runGate(root, { BDD_MODE: ENFORCED });
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(codes(run)).not.toContain("scenario-platform");
     expect(codes(run)).not.toContain("scenario-provenance");
     expect(run.status).toBe(0);
