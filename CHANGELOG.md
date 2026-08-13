@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.5.1](https://github.com/CodySwannGT/lisa/compare/v3.5.0...v3.5.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **maestro-e2e:** add a once-per-run pre_suite_command seam ([ce9faa5](https://github.com/CodySwannGT/lisa/commit/ce9faa50958d81be04f0e0e69a0f3f1e011d7ea1)), closes [CodySwannGT/lisa#2475](https://github.com/CodySwannGT/lisa/issues/2475)
+
 ## [3.5.0](https://github.com/CodySwannGT/lisa/compare/v3.4.1...v3.5.0) (2026-08-13)
 
 
