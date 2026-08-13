@@ -1,6 +1,8 @@
 /**
- * Contract tests for the Maestro native e2e reusable workflow and its expo
- * caller template. Locks in the regression-prone details learned in
+ * Contract tests for the Maestro native e2e reusable workflow. Its expo caller
+ * template is covered by maestro-caller-template.test.ts, and its opt-in
+ * concurrency mutex by maestro-native-concurrency.test.ts. Locks in the
+ * regression-prone details learned in
  * production (frontend-v2): the one-line maestro command inside
  * android-emulator-runner, the !cancelled() guards so one platform's build
  * failure doesn't skip the other's tests, and graceful skipping while a
@@ -20,15 +22,6 @@ const REUSABLE_YML = path.join(
   "workflows",
   "maestro-native-e2e.yml"
 );
-const CALLER_YML = path.join(
-  REPO_ROOT,
-  "expo",
-  "create-only",
-  ".github",
-  "workflows",
-  "maestro-e2e.yml"
-);
-
 /** Shape of a single `workflow_call` input declaration. */
 interface WorkflowInput {
   description?: string;
@@ -73,18 +66,6 @@ interface ReusableWorkflow {
       secrets?: Record<string, { required?: boolean }>;
     };
   };
-  jobs: Record<string, WorkflowJob>;
-}
-
-/** Root shape of the parsed caller template. */
-interface CallerWorkflow {
-  on: {
-    schedule?: Array<{ cron: string }>;
-    workflow_dispatch?: {
-      inputs?: Record<string, { type?: string; options?: string[] }>;
-    };
-  };
-  concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   jobs: Record<string, WorkflowJob>;
 }
 
@@ -309,38 +290,5 @@ describe("maestro-native-e2e reusable workflow", () => {
       expect(assemble?.run).toContain("grep -o '^MAESTRO_");
       expect(assemble?.run).toContain("--include-tags=$INCLUDE_TAGS");
     }
-  });
-});
-
-describe("expo maestro-e2e caller template", () => {
-  let workflow: CallerWorkflow;
-
-  beforeAll(async () => {
-    workflow = yaml.load(
-      await fs.readFile(CALLER_YML, "utf-8")
-    ) as CallerWorkflow;
-  });
-
-  it("keeps the production cadence: nightly cron plus on-demand dispatch", () => {
-    expect(workflow.on.schedule).toEqual([{ cron: "0 9 * * *" }]);
-    const platform = workflow.on.workflow_dispatch?.inputs?.platform;
-    expect(platform?.type).toBe("choice");
-    expect(platform?.options).toEqual(["all", "android", "ios"]);
-  });
-
-  it("serializes runs without cancelling in-flight suites", () => {
-    expect(workflow.concurrency?.["cancel-in-progress"]).toBe(false);
-  });
-
-  it("delegates to the Lisa reusable workflow and forwards the platform picker", () => {
-    const job = workflow.jobs.maestro;
-    expect(job.uses).toBe(
-      "CodySwannGT/lisa/.github/workflows/maestro-native-e2e.yml@main"
-    );
-    expect(job.with?.platform).toBe("${{ inputs.platform || 'all' }}");
-    expect(job.secrets?.EXPO_TOKEN).toBe("${{ secrets.EXPO_TOKEN }}");
-    expect(job.secrets?.MAESTRO_SECRET_ENV).toBe(
-      "${{ secrets.MAESTRO_SECRET_ENV }}"
-    );
   });
 });

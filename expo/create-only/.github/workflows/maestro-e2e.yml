@@ -69,8 +69,13 @@ on:
 permissions:
   contents: read
 
+# Keyed on the ENVIRONMENT this suite drives, not on the ref. Every run of this
+# workflow targets the same backend no matter which branch dispatched it, so
+# keying on `github.ref` would hand two branches two different groups over one
+# database — which is not exclusion. Rename `-dev` if your suite targets a
+# different environment; keep it a CONSTANT.
 concurrency:
-  group: maestro-e2e-${{ github.ref }}
+  group: maestro-e2e-dev
   cancel-in-progress: false
 
 jobs:
@@ -95,6 +100,17 @@ jobs:
       #
       # Once per PLATFORM, concurrently — read-only, idempotent work only.
       # setup_command: node scripts/maestro/read-platform-config.mjs
+      #
+      # Uncomment when another suite drives the SAME backend — typically a
+      # Playwright nightly calling quality.yml, which takes an input of the same
+      # name. Pass both the identical string and they queue instead of running
+      # at once against one database and one set of test accounts. Key it on the
+      # environment; must differ from this workflow's own group above. Staggered
+      # crons are not a substitute: a run waits for a hosted runner before it
+      # starts, and those waits have been measured at 2h24m and 6h55m — longer
+      # than any stagger, so the suite scheduled first can begin hours after the
+      # one scheduled second.
+      # concurrency_group: 'e2e-shared-test-user-dev'
     secrets:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       MAESTRO_SECRET_ENV: ${{ secrets.MAESTRO_SECRET_ENV }}

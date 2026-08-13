@@ -207,7 +207,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "1063a54717195bb7df479a8ce16e8816b38b8f673be8670888d03e7833a96b7e",
+      "d710fef33e1ba8d520b6a1c58b05a2c943e73a0cad2e317b42f100fdad58482a",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "4185f5083d8da5efa620e8641d6b75e0cb424edd563989c7432892872969797c",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
@@ -8541,6 +8541,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
+    "tests/integration/maestro-caller-template.test.ts": true,
+    "tests/integration/maestro-native-concurrency.test.ts": true,
     "tests/integration/maestro-native-driver-retry.test.ts": true,
     "tests/integration/maestro-native-flake-classification.test.ts": true,
     "tests/integration/maestro-native-flow-runner.test.ts": true,
