@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.6.0](https://github.com/CodySwannGT/lisa/compare/v3.5.4...v3.6.0) (2026-08-13)
+
+
+### Features
+
+* **hooks:** refuse undeclared tracker creations at the tool call ([3f7c1a6](https://github.com/CodySwannGT/lisa/commit/3f7c1a695c697922708dab66901792159f8e6e25)), closes [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486)
+
+
+### Bug Fixes
+
+* **hooks:** close two bypasses in the issue-create guard found by self-review ([c939ddb](https://github.com/CodySwannGT/lisa/commit/c939ddb6ff2624800f5dd438c14ad52fffa218de)), closes [#2469](https://github.com/CodySwannGT/lisa/issues/2469) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486)
+* **hooks:** make the issue-create guard fail closed, not open ([890fb4e](https://github.com/CodySwannGT/lisa/commit/890fb4eb34ebc87fba2c4bbb3dd618a2070a0652)), closes [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486)
+* **hooks:** refuse declarations made after a bare `--`, and state what binds ([dee74ce](https://github.com/CodySwannGT/lisa/commit/dee74ce32e22acb327e703bbfbb5cb77c3ceea4c)), closes [#2495](https://github.com/CodySwannGT/lisa/issues/2495) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486)
+* **tracker:** persist runtime_behavior_change so S8/S11/S14/S19 are decidable ([893ada2](https://github.com/CodySwannGT/lisa/commit/893ada27718e7f97a330dc810ff93947144a6f02)), closes [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486) [CodySwannGT/lisa#2486](https://github.com/CodySwannGT/lisa/issues/2486)
+
 ### [3.5.4](https://github.com/CodySwannGT/lisa/compare/v3.5.3...v3.5.4) (2026-08-13)
 
 
