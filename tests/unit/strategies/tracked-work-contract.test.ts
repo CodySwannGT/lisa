@@ -65,14 +65,18 @@ describe("public lisa-track entry point", () => {
     it("claims before persisting and verifies the binding", () => {
       const skill = read(file);
       const claim = skill.indexOf("lisa-tracker-claim <canonical-ref>");
-      const bind = skill.indexOf(
-        "node scripts/lisa-work-item.mjs bind <canonical-ref>"
+      // `link`, not `bind`: the two spellings do the same work, but harnesses
+      // that scan an argv for string-evaluating shell builtins refuse the bare
+      // token `bind`, which made this documented step unrunnable inside an
+      // isolated worktree. The docs must teach the spelling that always runs.
+      const persist = skill.indexOf(
+        "node scripts/lisa-work-item.mjs link <canonical-ref>"
       );
       const current = skill.indexOf("node scripts/lisa-work-item.mjs current");
 
       expect(claim).toBeGreaterThan(-1);
-      expect(bind).toBeGreaterThan(claim);
-      expect(current).toBeGreaterThan(bind);
+      expect(persist).toBeGreaterThan(claim);
+      expect(current).toBeGreaterThan(persist);
       expect(skill).toMatch(/failed\/unverified claim/i);
       expect(skill).toMatch(/stop before durable project work/i);
     });
@@ -148,7 +152,7 @@ describe("Implement tracked-work gate", () => {
       expect(skill).toContain(TRACKER_WRITE);
       expect(skill).toContain("lisa-tracker-claim <canonical-ref>");
       expect(skill).toContain(
-        "node scripts/lisa-work-item.mjs bind <canonical-ref>"
+        "node scripts/lisa-work-item.mjs link <canonical-ref>"
       );
       expect(skill).toMatch(/No project source.*may be created or changed/is);
     });
@@ -188,7 +192,7 @@ describe("tracked-work rules", () => {
       expect(rule).toMatch(/exactly one.*leaf/is);
       expect(rule).toContain(TRACKER_WRITE);
       expect(rule).toContain("lisa-tracker-claim");
-      expect(rule).toContain("node scripts/lisa-work-item.mjs bind <ref>");
+      expect(rule).toContain("node scripts/lisa-work-item.mjs link <ref>");
       expect(rule).toContain(CLEAR_BINDING);
       expect(rule).toMatch(/only after.*terminal completion/is);
     }

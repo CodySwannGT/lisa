@@ -1376,7 +1376,28 @@ function validatePr(args) {
 
 function main() {
   const [command, ...args] = process.argv.slice(2);
-  if (command === "bind") return bind(args);
+  // `link` and `bind` are the same operation under two names, and the reason is
+  // the argument vector rather than the semantics.
+  //
+  // `bind` is a bash builtin that evaluates a string, so agent harnesses that
+  // scan a command for string-evaluating programs match the bare token wherever
+  // it lands — argv[0] or, as here, a subcommand three words in. Claude Code's
+  // worktree isolation does precisely that, and it refused
+  // `node scripts/lisa-work-item.mjs bind <ref>` outright: the one step Lisa
+  // documents as mandatory before any durable work became impossible to run in
+  // the isolated worktrees Lisa itself tells agents to use. Three agents hit it
+  // in a single session, each independently rediscovering the same
+  // carry-the-trailer-by-hand workaround.
+  //
+  // That guard belongs to the harness, is not Lisa's to narrow, and is doing
+  // something legitimate — so the fix is to stop standing on its toes. `link`
+  // is the spelling the docs teach and the one that works everywhere.
+  //
+  // `bind` is kept forever, not deprecated: it is written into host projects'
+  // checked-in git hooks and CI, and those copies update on their own schedule.
+  // Removing it to tidy up a name would break the very traceability gate this
+  // file exists to enforce, in repositories that had done nothing wrong.
+  if (command === "link" || command === "bind") return bind(args);
   if (command === "current")
     return console.log(JSON.stringify(readState(false), null, 2));
   if (command === "attach-branch") {
@@ -1403,7 +1424,8 @@ function main() {
   if (command === "validate-push") return validatePush(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs bind|current|attach-branch|clear|prepare-commit-msg|validate-commit|validate-push|validate-pr"
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
+      "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
 

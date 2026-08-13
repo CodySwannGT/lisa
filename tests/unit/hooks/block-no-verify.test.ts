@@ -173,6 +173,40 @@ describe("block-no-verify.sh", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    // git accepts `--config-env <name>=<envvar>` as two tokens as well as one.
+    // Guarding only the `=` spelling left the separate form to fall through to
+    // the hooksPath allowlist below, which reads the trailing word as a PATH —
+    // so naming the environment variable `.husky` or `.githooks` walked
+    // straight through the allowlist while the variable itself held /dev/null.
+    // Verified against real git: `env '.husky=/dev/null' git --config-env
+    // core.hooksPath=.husky config --get core.hooksPath` prints /dev/null.
+    it.each([".husky", ".githooks", "HOOKS"])(
+      "blocks the separate-token --config-env core.hooksPath=%s",
+      envVar => {
+        const { status } = runHook(
+          "Bash",
+          `git --config-env core.hooksPath=${envVar} commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it("blocks the separate-token form spelled in mixed case", () => {
+      const { status } = runHook(
+        "Bash",
+        "git --config-env CORE.HOOKSPATH=.husky commit -m bypass"
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("allows separate-token --config-env naming an unrelated setting", () => {
+      const { status } = runHook(
+        "Bash",
+        "git --config-env user.name AUTHOR commit -m normal"
+      );
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
     it.each([".no-hooks-here", "build/empty", "..", "/"])(
       "blocks core.hooksPath redirected to %s",
       hooksPath => {
@@ -202,6 +236,86 @@ describe("block-no-verify.sh", () => {
         'git -c "core.hooksPath=/dev/null" commit -m bypass'
       );
       expect(status).toBe(EXIT_BLOCKED);
+    });
+  });
+
+  describe("blocks the GIT_CONFIG_KEY_<n> env-var config override", () => {
+    // `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
+    // GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config
+    // exactly as `-c core.hooksPath=...` does, disabling every hook, while
+    // matching none of the `-c` / `--config-env=` token shapes. Upstream Lisa
+    // missed it until a downstream fork (propswapllc/frontend 797aa423) caught
+    // it — this suite is what stops the weaker guard coming back.
+    it("blocks the canonical GIT_CONFIG_COUNT/KEY/VALUE triple", () => {
+      const { status, stderr } = runHook(
+        "Bash",
+        "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m bypass"
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("Fix the underlying issue");
+    });
+
+    // A guard that only checked index 0 would be evaded by typing a 1.
+    it.each(["0", "1", "2", "7", "10", "42"])(
+      "blocks GIT_CONFIG_KEY_%s, since the index is arbitrary",
+      index => {
+        const { status } = runHook(
+          "Bash",
+          `GIT_CONFIG_COUNT=${Number(index) + 1} GIT_CONFIG_KEY_${index}=core.hooksPath GIT_CONFIG_VALUE_${index}=/tmp/empty git commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it.each(["CORE.HOOKSPATH", "core.hookspath", "Core.HooksPath"])(
+      "blocks the case variant GIT_CONFIG_KEY_0=%s",
+      value => {
+        // git config names are case-insensitive, so a case-sensitive guard is
+        // bypassed by holding down shift.
+        const { status } = runHook(
+          "Bash",
+          `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=${value} GIT_CONFIG_VALUE_0=/dev/null git commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it("blocks the quoted spelling", () => {
+      const { status } = runHook(
+        "Bash",
+        'GIT_CONFIG_KEY_0="core.hooksPath" GIT_CONFIG_VALUE_0=/dev/null git commit -m bypass'
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("blocks it when routed through env", () => {
+      const { status } = runHook(
+        "Bash",
+        "env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m bypass"
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    // Refused outright rather than allowlisted against GIT_CONFIG_VALUE_<n>,
+    // for the same reason --config-env= is: the value is a separate token that
+    // can be exported earlier, reordered, or omitted entirely, so it is not
+    // something this hook can hold still long enough to vet.
+    it("blocks it even when the paired value is an allowlisted hooks dir", () => {
+      const { status } = runHook(
+        "Bash",
+        "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=.husky git commit -m bypass"
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("allows GIT_CONFIG_KEY_<n> naming an unrelated setting", () => {
+      // Only hook-disabling config is this hook's business; overriding
+      // user.name through the same mechanism is ordinary and must stay allowed.
+      const { status } = runHook(
+        "Bash",
+        'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_VALUE_0=CI git commit -m "normal"'
+      );
+      expect(status).toBe(EXIT_ALLOWED);
     });
   });
 
