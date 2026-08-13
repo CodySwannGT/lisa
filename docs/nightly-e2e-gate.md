@@ -5,7 +5,8 @@
 > `typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs` implement.
 > Every row of §2 is proven by a named case in Lisa's
 > `tests/unit/scripts/nightly-e2e-health.test.ts` (rows 1-16),
-> `…-api.test.ts` (rows 17-20) and `…-bypass.test.ts` (rows 21-25).
+> `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25) and
+> `…-completeness.test.ts` (row 26).
 > Changing a row without changing its test is a contract violation.
 >
 > **Plan revision followed:** `2026-08-12-r3` (Portfolio E2E Standards Plan,
@@ -44,9 +45,14 @@ listed here in the order you should prefer them.
 
 | Mode | What it reads | Use when |
 |---|---|---|
-| `run` | the run's own `conclusion` | the whole workflow **is** the suite (e.g. a dedicated `maestro-e2e.yml`) |
+| `run` | the run's own `conclusion` **and** the conclusion of every job behind it | the whole workflow **is** the suite (e.g. a dedicated `maestro-e2e.yml`) |
 | `job` | the `conclusion` of the job whose name is **exactly** the declared string | the suite is one job inside a larger workflow |
 | `job_pattern` | the `conclusion` of every job whose name matches an **anchored** regex | last resort only |
+
+`run` reads the jobs as well as the run because **GitHub concludes a run
+`success` when its jobs were skipped**. "The whole workflow is the suite" has to
+mean the whole workflow actually ran, or a suite narrowed to one arm reports
+green about the arm it never touched — see row 26 and §2.4.
 
 **`run` and `job` are the machine-readable contract; `job_pattern` is not.** A
 job name is a string the suite publishes on purpose and a repo can pin with a
@@ -94,6 +100,8 @@ applied last (§6).
 | 23 | Bootstrap window declared but already expired, and evidence still missing | — | — | **`fail`** |
 | 24 | Bootstrap window declared beyond `bootstrap_max_days` from the workflow run date | **fail** | **fail** | **`fail`** (invalid configuration) |
 | 25 | Bootstrap window active and evidence missing | non-blocking | — | **`bootstrap`**, summary states the UTC expiry timestamp |
+| 26 | `mode: "run"` and the run concluded `success`, but a job behind it did **not**: skipped, `cancelled`, `neutral`, or unreadable (empty job list) | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 26 | `mode: "run"` and the run concluded `success`, but a job behind it concluded `failure` / `timed_out` / `action_required` / `startup_failure` (a `continue-on-error` job) | fail | fail | **`fail`** |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -129,6 +137,78 @@ value GitHub adds later) is **indecisive** → state `unknown` → row 8.
 
 The set is closed on purpose: a conclusion GitHub introduces after this file was
 written is unknown to us, and an unknown conclusion is not evidence of health.
+
+### 2.4 Row 26 — why a `success` run is not automatically evidence
+
+**GitHub concludes a run `success` when its jobs were skipped.** A skipped job
+does not redden the run that contains it. So a suite that narrowed itself —
+because a dispatch input filtered it, or because its prerequisites were absent —
+finishes green having tested nothing it was asked about, and a gate reading the
+run conclusion alone reports that as last night's verdict.
+
+This is not hypothetical. The nightly caller Lisa ships,
+`expo/create-only/.github/workflows/maestro-e2e.yml`, exposes a `platform`
+dispatch picker (`all` | `android` | `ios`). Dispatching it with
+`platform: android` makes the reusable suite's preflight emit `run_ios=false`,
+which skips the `🍎 Maestro iOS` job — and the run still concludes `success`.
+Read through `{"mode":"run"}`, that one dispatch cleared a **required merge
+gate** for the platform it deliberately did not test. It is propswap's trap
+verbatim (`91874b83`): *the suite declaring itself green on evidence it never
+gathered.*
+
+The **cron** path has the same shape. `maestro-native-e2e.yml` defaults to
+`require_prerequisites: false`, so a missing `EXPO_TOKEN` or a deleted flows
+directory warns and skips every job — and concludes `success`. Nothing about
+that run distinguishes it from a passing suite to a reader of run conclusions.
+
+**The discriminator is "was this run PARTIAL?", never "was this a dispatch?".**
+Two independent reasons, and both are load-bearing:
+
+1. **A dispatch must keep counting.** A full, unfiltered `workflow_dispatch` is
+   the documented unblock path (§7): it is what makes this gate escapable by
+   *fixing* rather than by waiting for tomorrow's cron. A rule of the form
+   "dispatch runs do not count" would delete the only non-bypass escape and turn
+   every red nightly into a day-long merge freeze.
+2. **The filter is unreadable anyway.** The Actions runs API returns no `inputs`
+   field on a workflow run — the object carries `event`, `display_title`,
+   `actor`, `triggering_actor` and so on, and nothing about what the dispatcher
+   typed. Recovering the inputs would mean parsing run *logs*, which are
+   artifacts by another name and are refused for the reasons in §1.
+
+Completeness is readable, and it is the property that actually matters: the
+gate asks the jobs list whether every job behind a `success` run also succeeded.
+That answer covers the filtered dispatch, the prerequisite-skipped cron run, and
+a `continue-on-error` job that failed inside a green run — three different
+causes of one false green, closed by one condition.
+
+Row 26 splits on **what kind** of shortfall it found, because bootstrap must
+keep telling absence apart from failure (§4):
+
+- a **skipped / cancelled / neutral / unreadable** job is *absence of evidence*
+  → `unknown`, which bootstrap may forgive and which blocks once the window
+  closes;
+- a job that **actually failed** inside a green run is *evidence of failure*
+  → `fail`, which bootstrap never forgives.
+
+An **empty** job list lands in the first case rather than passing: a completed
+run always has at least one job, so an empty list means the gate could not read
+them, and "we could not check" never renders as "it is fine" (§2.1).
+
+Row 26 is scoped to `mode: "run"` on purpose. A `job`- or `job_pattern`-scoped
+suite has already declared *which* jobs are the suite, and holding it to the
+skips of jobs it never claimed — a lint job, a Lighthouse job — would redden
+gates that are working correctly.
+
+**If a workflow you declared as `mode: "run"` skips a job on every single run,
+it is not a run-scoped suite.** Row 26 is not misfiring on it; the declaration
+is wrong. `mode: "run"` asserts *the whole workflow is the suite*, and a
+workflow with a permanently-dormant arm has some other job doing the testing.
+Name the jobs that are the suite with `mode: "job"` (best) or an anchored
+`mode: "job_pattern"` (matrix arms), which is the more precise gate in any case.
+The one skip that is *supposed* to redden a run-scoped suite is the dormant
+harness itself — a `maestro-native-e2e.yml` whose preflight skipped everything
+because `EXPO_TOKEN` is missing tested nothing, and `bootstrap_until` (§4), not
+a pass, is how a repo gets breathing room while wiring that up.
 
 ## 3. The `suites` input — structured JSON, schema-validated
 
@@ -198,11 +278,13 @@ window here is mandatory and bounded.
   `⚠️ bootstrap — not blocking; this window expires <timestamp> (in N days)`,
   in the job summary and in the job's `verdict` output. The expiry is always
   visible; there is no quiet bootstrap.
-- **Genuinely red evidence still fails during bootstrap.** Rows 2–5, 11, 14 and
-  17–20 are red inside the window as well as outside it. Bootstrap forgives
-  *absence of evidence*, never *evidence of failure*.
-- The moment the window lapses, rows 6–10, 12–13, 15–16 flip to `fail` with no
-  further action (row 23). Nothing needs to be turned on.
+- **Genuinely red evidence still fails during bootstrap.** Rows 2–5, 11, 14,
+  17–20 and the failed-job half of row 26 are red inside the window as well as
+  outside it. Bootstrap forgives *absence of evidence*, never *evidence of
+  failure*.
+- The moment the window lapses, rows 6–10, 12–13, 15–16 and the skipped-job half
+  of row 26 flip to `fail` with no further action (row 23). Nothing needs to be
+  turned on.
 
 ## 5. The context-name identity — two strings that disarm the gate silently
 
@@ -374,14 +456,16 @@ Job listing (`/runs/{id}/jobs?filter=latest`) **does** paginate, to exhaustion
 up to `api_max_pages` (default 5), because a matrix suite routinely exceeds one
 page and a truncated job list turns "the failing shard is on page 2" into a
 false green. Exhausting the page cap while pages are still full is **red**, not
-a partial read.
+a partial read. Jobs are listed for **every** match mode, `run` included — row
+26 needs them to tell a complete run from one that skipped half of itself.
 
 **Rate limits.** A 403/429 carrying `x-ratelimit-remaining: 0` is retried after
 `x-ratelimit-reset` (bounded by `api_retry_max_seconds`, default 60) up to
 `api_max_attempts` (default 3), then **fails** (row 18). Secondary rate limits
 (`retry-after`) are honoured the same way. The gate issues at most
-`1 + suites × 2` requests on the happy path, which is negligible against the
-5 000/hour installation limit even with every PR re-running it.
+`1 + suites × 3` requests on the happy path (two run lookups plus one job page),
+which is negligible against the 5 000/hour installation limit even with every PR
+re-running it.
 
 **Reruns.** A re-run of the *gate* re-reads history and can legitimately change
 verdict — that is the unblock path working (re-dispatch the suite, re-run the
@@ -392,7 +476,11 @@ conclusion rather than a cached one, a rerun-to-green is picked up immediately.
 `workflow_dispatch` runs count exactly like `schedule` runs, by design: that is
 what makes the gate escapable by *fixing* rather than by *waiting*. Dispatch
 runs are still branch-filtered — a dispatch from someone's feature branch must
-never clear the gate for everybody.
+never clear the gate for everybody — and, since row 26, they must still be
+**whole**: a dispatch that narrowed the suite with a platform / tag / shard
+picker leaves a skipped job and does not clear the gate. Leave the picker on its
+`all` default when dispatching to unblock. Nothing about *being* a dispatch
+disqualifies a run; being a partial one does (§2.4).
 
 **Concurrency.** Gate evaluations are idempotent reads with no shared state, so
 the caller template uses a per-PR `concurrency` group with
@@ -425,7 +513,16 @@ repo last applied. Both are per-repo adoption events.
     rejected.
   - *Minor* — adding an optional input with a fail-closed-safe default, adding
     an output field, adding a match mode, adding a `DECISIVE_CONCLUSIONS`
-    member.
+    member, or **adding a §2 row that can only turn a previously-*passing*
+    observation into a blocking one, never the reverse**.
+  - The last clause is what row 26 shipped under, and it is narrow on purpose.
+    The major-mismatch assertion exists to stop the two halves running *a
+    contract neither agrees on*; the workflow half carries **no** §2 logic at
+    all — every row lives in the guard — so a strictly-tightening row cannot
+    make a skewed pair looser than either half intends, only stricter. Anything
+    that could turn a *blocking* observation into a passing one is still major,
+    because that skew direction fails **open**, which is the one outcome the
+    version check exists to prevent.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently

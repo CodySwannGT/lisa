@@ -16,7 +16,7 @@
 
 JSON_INPUT=$(cat)
 
-# Project rule (.claude/rules/PROJECT_RULES.md): never parse JSON in shell with
+# Project rule (host rules, .agents/rules/): never parse JSON in shell with
 # grep/sed/cut/awk — always use jq. Fail open without jq so we never hard-block
 # the agent on missing tooling.
 command -v jq >/dev/null 2>&1 || exit 0

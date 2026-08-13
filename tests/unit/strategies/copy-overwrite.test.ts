@@ -12,7 +12,7 @@ const KNIP_JSON = "knip.json";
 const TSCONFIG_JSON = "tsconfig.json";
 const IDENTICAL_TXT = "identical.txt";
 const CHANGED_TXT = "changed.txt";
-const VULNERABLE_GUARD = "#!/usr/bin/env bash\n# vulnerable\n";
+const HOST_CUSTOMISED_CONFIG = '{"strict":false}';
 
 describe("CopyOverwriteStrategy", () => {
   let strategy: CopyOverwriteStrategy;
@@ -225,17 +225,20 @@ describe("CopyOverwriteStrategy", () => {
     ).toBe("stale");
   });
 
-  it("reports an out-of-date enforcement guard rather than swallowing it", async () => {
-    // The concrete case: a released fix to a PreToolUse guard reaching a
-    // project that already has the old one. It is still not overwritten
-    // without a prompt, but it can no longer be invisible.
-    const rel = "scripts/lisa-hooks/block-no-verify.sh";
+  it("reports out-of-date host-owned config rather than swallowing it", async () => {
+    // A changed template reaching a project that already has an older, possibly
+    // customised copy. It is still not overwritten without a prompt, but it can
+    // no longer be invisible.
+    //
+    // Lisa's own artifacts take the opposite branch and are delivered here —
+    // see copy-overwrite-lisa-owned-guards.test.ts.
+    const rel = "tsconfig.json";
     const srcFile = path.join(srcDir, rel);
     const destFile = path.join(destDir, rel);
     await fs.ensureDir(path.dirname(srcFile));
     await fs.ensureDir(path.dirname(destFile));
-    await fs.writeFile(srcFile, "#!/usr/bin/env bash\n# fixed\n");
-    await fs.writeFile(destFile, VULNERABLE_GUARD);
+    await fs.writeFile(srcFile, '{"strict":true}');
+    await fs.writeFile(destFile, HOST_CUSTOMISED_CONFIG);
 
     const result = await strategy.apply(
       srcFile,
@@ -249,7 +252,7 @@ describe("CopyOverwriteStrategy", () => {
     // Exact content, not a substring: the contract is that the host file is
     // untouched, and a substring match would still pass if it had been rewritten
     // around that word.
-    expect(await fs.readFile(destFile, "utf-8")).toBe(VULNERABLE_GUARD);
+    expect(await fs.readFile(destFile, "utf-8")).toBe(HOST_CUSTOMISED_CONFIG);
   });
 
   it("creates parent directories when needed", async () => {

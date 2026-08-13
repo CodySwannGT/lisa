@@ -42,6 +42,10 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-08-12 — Credential-Provider Substrate Precedence](decisions/2026-08-12-credential-substrate-precedence.md)
+- [2026-08-12 — In-Session Filed Tickets and the Ready Role](decisions/2026-08-12-in-session-ticket-ready-role.md)
+- [2026-08-12 — Ratchet Policy: Absolute Floors, No Generic Creep](decisions/2026-08-12-ratchet-policy.md)
+- [2026-08-12 — Agent-Neutral Host-Rules Path, agy Delivery, and Wiki Load Posture](decisions/2026-08-12-agent-neutral-host-rules-path.md)
 - [2026-07-25 — The Three-Layer Trust Play (TASC / Measurement SaaS / Lisa)](decisions/2026-07-25-three-layer-trust-play.md)
 - [2026-07-10 — Project-Scoped Codex Delivery](decisions/2026-05-28-codex-skills-canonical-path.md)
 - [2026-05-28 — Pattern B Per-Agent Plugin Variants](decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md)

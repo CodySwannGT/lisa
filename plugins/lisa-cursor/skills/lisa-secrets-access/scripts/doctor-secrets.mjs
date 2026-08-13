@@ -19,6 +19,7 @@
 
 import { createHash } from "node:crypto";
 
+import { validateNote } from "./note-format.mjs";
 import { fetchAll, fetchRotatable } from "./providers.mjs";
 import { readMaterialized } from "./resolve-secret.mjs";
 import { readConfig } from "./surfaces.mjs";
@@ -118,20 +119,23 @@ export function checkNaming(provider, report) {
 }
 
 /**
- * Assert every secret carries a usage note.
+ * Assert every secret carries a usage note in the documented format.
+ *
+ * This blocks rather than warns, and the promotion is the point. The contract
+ * has always said the note "must exist and be well-formed", enforced statically
+ * by `doctor` — but a warning enforces nothing, so a vault of empty notes
+ * reported clean and stayed empty. A check that never fails is a check nobody
+ * acts on.
+ *
+ * The grammar lives in `note-format.mjs` so this and `resolve-secret.mjs verify`
+ * cannot disagree about what a well-formed note is.
  * @param {Map<string, object>} provider Provider view.
  * @param {Function} report Finding collector.
  */
 export function checkNotes(provider, report) {
   for (const [name, entry] of provider) {
-    if (!entry.note?.trim()) {
-      report(
-        "warn",
-        name,
-        "has no usage note. An agent cannot learn this credential's scope " +
-          "without one, and inferring it from the name is exactly the guess " +
-          "that writes to the wrong system"
-      );
+    for (const defect of validateNote(entry?.note)) {
+      report(defect.level, name, defect.message);
     }
   }
 }
