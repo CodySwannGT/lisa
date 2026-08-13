@@ -201,7 +201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "68194b5e096c8d49579e06aed5e41df71c43c4dc46bbbcb390b4a27cd1e78c7f",
+      "9f23b0477f93c3193ab22251dd03251038cfe45c5a2603cb49fdf97cae799442",
     "expo/create-only/.github/workflows/ci.yml":
       "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -365,7 +365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "7d9af483f6150e2f7281f008dd08b56590721f3c86f6b1a3b7548f7838a0137f",
+      "6d40f9e3e89e1a7f533f6a995e1b9e5cc2fa089693b0cfbd8e8f883ae200589a",
     "nestjs/create-only/.github/workflows/ci.yml":
       "0985668e6d0478f1993bed8ccd398601d8e73376afd8775e1269ae129418152e",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -985,7 +985,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ed46df59bfd1097acad4a5ad960811ffb37b318c94e36e5f78ea3b96c2d76136",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "66a89df3976ddb17af5c31415eeb6192c4c9e0ebba7ab3ee38b4fa6ebadb4955",
+      "3919c6161900916090ee315df322938efc5b53bdfabf78efe8683432cf8ae488",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1183,7 +1183,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md":
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
-      "f53f2674888609686cb86204e19863de1494b3975f4ec255711d65165403395d",
+      "10bb42cba995cdd6b945efd6ef3d48578860b9d09c94aefd17c298b53aed5053",
     "plugins/src/base/skills/lisa-qa-checklist/SKILL.md":
       "da1de96ada92d18f5f6b57e2751b95d5da28a6505debdb7ccd823b95bdd1405b",
     "plugins/src/base/skills/lisa-qa-clear/SKILL.md":
@@ -2259,7 +2259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "c9dd6f6816b35d4d8f684892878d4181b9cb5266a7f2e2814970aa49dc04a001",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
+      "8eaac3ea96d92b55c418877c1fe338a7c0b3a8f48ef3593258f54a633f761c85",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2281,7 +2281,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
     "typescript/create-only/.github/required-checks.json":
-      "49063a033604c8e98f7782e4352d67dea77ac9b949189f166e43044f0af7e4f4",
+      "0ec5fbf2fe2dcb366db0d0002357b881053143223a09a25e1dc488a87b142eb2",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2337,7 +2337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "7f121eec2d022cad7e3cf960806fefe7f30ef626cc89f951d322b40f5a9bd5ca",
+      "339c86d92be6419bbbcb974162522f5339a5ab6795beb27d60d3594bb6da139f",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
@@ -8916,6 +8916,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
+    "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
