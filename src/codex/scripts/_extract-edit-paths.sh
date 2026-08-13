@@ -35,7 +35,7 @@ lisa_extract_edit_paths() {
     patch_text="$(printf '%s' "$json" | jq -r '.tool_input.command // empty')"
     [ -n "$patch_text" ] || return 0
     # Walk the patch line-by-line with bash-native string ops (NOT grep/sed on
-    # JSON — see .claude/rules/PROJECT_RULES.md) to pull out every file header.
+    # JSON — see the host rules in .agents/rules/) to pull out every file header.
     while IFS= read -r line; do
       case "$line" in
         "*** Add File: "* | "*** Update File: "* | "*** Delete File: "*)

@@ -12,7 +12,7 @@ Shipped artifacts (copy-overwrite, so `lisa apply` replaces local edits):
 |---|---|
 | `scripts/check-bdd-coverage.mjs` | The gate. Validates the contract, evaluates the ratchet, emits the envelope. |
 | `scripts/bdd-matrix.mjs` | The per-scenario traceability matrix. |
-| `scripts/bdd/*.mjs` | Shared modules: grammar, parser, validators, report, renderer, baseline. |
+| `scripts/bdd/*.mjs` | Shared modules: grammar, parser, validators, discovery, report, renderer, baseline. |
 
 Seeded once, never overwritten (create-only): `bdd/coverage-map.json`, `bdd/features/.keep`.
 
@@ -28,6 +28,7 @@ report never merges them and the burndown never prints one without the others.
 | `execution.executed` | How many mapped tests actually ran in a supplied run. | Whether they passed. |
 | `execution.passed/failed/skipped` | What those runs returned. | Anything about unmapped behavior. |
 | `waived.*` | What is deliberately outside the denominator, with owner, reason, ticket, expiry. | That the behavior works. A waiver is an IOU. |
+| `testInventory.*` | Which test files exist under the declared roots, and how many of them the contract never mentions. | Anything about behaviors nobody wrote a test for — that is `gaps`. |
 
 `traceability` is **traceability coverage**. It is not execution coverage and it is
 not a pass rate — a mapped test that fails on every run still counts as traced. When
@@ -85,9 +86,9 @@ Exit codes come from the envelope contract: `0` for `completed`, `no-op` and
 prose: `adoptionState`, `findingsError`, `findingsWarning`,
 `scenariosDeclared`, `scenariosRequired`, `scenariosExcluded`,
 `traceabilityCovered`, `traceabilityTotal`, `traceabilityPercentage`,
-`executionEvidenceSupplied`, `mappedTests`, `waivedObligations`, `floorOk`, and
-— **only when run evidence was supplied** — `executed`, `passed`, `failed`,
-`skipped`, `notRun`.
+`executionEvidenceSupplied`, `mappedTests`, `testsDiscovered`,
+`testsUndisclosed`, `waivedObligations`, `floorOk`, and — **only when run
+evidence was supplied** — `executed`, `passed`, `failed`, `skipped`, `notRun`.
 
 **Human narration goes to stderr**, so stdout holds exactly one machine-readable
 document.
@@ -118,6 +119,11 @@ carrying two shapes has no schema at all. The same document is written to
     "executed": 0, "passed": 0, "failed": 0, "skipped": 0, "notRun": 0,
     "notRunTests": []
   },
+  "testInventory": {
+    "note": "", "runners": [], "roots": [], "discovered": 0, "disclosed": 0, "dynamicTitles": 0,
+    "undisclosed": [{ "runner": "", "platforms": [], "file": "", "evidence": null }],
+    "exclusions": [{ "file": "", "evidence": null, "reason": "" }]
+  },
   "waived": { "note": "", "count": 0, "entries": [{ "scenario": "", "platforms": [], "runner": null, "owner": null, "reason": null, "ticket": null, "recordedAt": null, "expiresAt": null }] },
   "floor": { "byPlatform": { "<platform>": { "floor": 0, "actual": 0, "ok": true } }, "unset": [], "ok": true },
   "trackers": { "scenariosWithTag": 0, "scenariosWithoutTag": 0, "tags": [{ "tag": "", "url": null, "scenarios": [] }] },
@@ -147,6 +153,95 @@ The gate never invokes a runner and never parses a vendor report format.
 
 Results join to mappings on `runner|file|evidence`. A mapped test with no matching
 result is `notRun` and named in `notRunTests` — never quietly counted as passing.
+
+## Test discovery — the other direction
+
+Validating what the manifest DECLARES can only find defects in the declarations. A
+spec file nobody declared is invisible to that check, which is exactly how undeclared
+end-to-end specs came to sit on default branches under a green gate. The gate
+therefore also walks the project's own roots and requires every test it finds to be
+**named by a mapping or excused by an exclusion**.
+
+Roots, extensions, and the evidence grammar are per-runner **contract data**, not
+source constants — a gate with `e2e/` compiled into it cannot see a project that keeps
+its flows elsewhere, and a hardcoded flow directory is what made a subflow directory
+structurally invisible in the fork this replaces. Keys must be runners declared in
+`runnerPlatforms`; the runner→platform pairing is derived from there, never restated.
+
+```json
+"testDiscovery": {
+  "<runner>": {
+    "roots": ["e2e"],
+    "extensions": [".spec.ts", ".spec.tsx"],
+    "ignore": ["e2e/fixtures"],
+    "evidence": { "kind": "call-title", "functions": ["test", "it"] }
+  },
+  "<flow-runner>": {
+    "roots": [".maestro/flows", ".maestro/subflows"],
+    "extensions": [".yaml", ".yml"],
+    "evidence": { "kind": "line-field", "field": "name" }
+  }
+}
+```
+
+`evidence.kind` is an **allowlist of two grammars**, never a project-supplied regular
+expression — the coverage map is repo data an author edits, and compiling a pattern
+out of it would hand that author the gate's own execution:
+
+| Kind | Reads | Evidence string |
+|---|---|---|
+| `call-title` | `test("…")`, `it.skip('…')`, any declared function name with any member chain | The title, **verbatim from the source** |
+| `line-field` | The first `<field>: …` line in a document | The field value, verbatim. No field ⇒ the file is the unit and carries no title |
+
+**A template-literal title is kept exactly as written** — `` test(`handles ${error.name} failures`) `` yields the evidence `handles ${error.name} failures`. It is never
+interpolated, truncated, or rewritten: the verbatim text is a real substring of the
+file, so a mapping or exclusion naming it stays falsifiable like any other evidence
+string. `testInventory.dynamicTitles` counts them, because an execution result cannot
+be joined to a computed title.
+
+**Disclosure rule.** A mapping or exclusion accounts for a discovered test when it
+names the same `file` **and** its `evidence` string *contains* that test's title.
+Containment in that direction is deliberate: an author may write either the bare title
+or `test("title"`, but one short string can never come to account for every test in a
+file. An exclusion with **no** `evidence` excuses the whole file.
+
+### Exclusion record
+
+```json
+"exclusions": [{ "file": "<path>", "evidence": "<optional exact title>", "reason": "<why this test aligns to no product behavior>" }]
+```
+
+`reason` is required — an exclusion with no stated reason is an undisclosed test with
+extra steps. An exclusion is a standing claim, so it expires by falsification rather
+than by date: `exclusion-stale` fires when its file is gone, when its `evidence`
+matches nothing discovered in that file, or when no configured discovery root covers
+it at all.
+
+### Discovery defect codes
+
+| Code | Fires when | Warnable in bootstrap |
+|---|---|---|
+| `spec-undisclosed` | A discovered test is named by no mapping and no exclusion. | Yes |
+| `exclusion-metadata` | An exclusion names no file, or states no reason. | Yes |
+| `exclusion-stale` | An exclusion no longer excuses anything. | Yes |
+| `discovery-missing` | *(enforced only)* A declared runner has no `testDiscovery` block, so none of its tests can ever be found. | Yes |
+| `discovery-invalid` | The `testDiscovery` block is malformed, names an undeclared runner, escapes the repo, or asks for an unknown evidence kind. | **No** |
+
+`discovery-invalid` is deliberately off the warnable allowlist, on the same reasoning
+as `floor-invalid`: one edit there would silently switch off the only check that can
+see an undeclared test, and a switched-off discovery looks exactly like a clean repo.
+
+## A defect never wedges the artifacts that document it
+
+`--write` regenerates `bdd/coverage-report.json` and `docs/e2e-bdd-coverage.md`
+whenever a report could be built **at all**, no matter how many defects the run found.
+The fleet hit the opposite behavior in a fork that returned no report once it had any
+error: one renamed test title made regeneration refuse to run, so a new waiver could
+not even be recorded until an unrelated string was repaired.
+
+Stale evidence remains a defect and still loses its coverage credit — it simply does
+not hold the paperwork hostage. The only runs that write nothing are the ones with no
+report to write: an absent, malformed, or unsupported coverage map.
 
 ## Compatibility policy
 

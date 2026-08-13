@@ -70,7 +70,13 @@ Kane never files the work item itself. Even when it marks a failure as a confirm
 | User-visible **bug** (broken behavior) | `Bug` | the `ready` flag (default `false`) |
 | **Usability / UX / clarity issue** | `Improvement` | the `ready` flag (default `false`) |
 
-Each finding is a flat leaf, so `build_ready` applies directly — pass it explicitly on every create. Each ticket MUST be a complete spec (the validator rejects thin tickets): a **three-audience description**; for a **bug**, exact reproduction steps, observed-vs-expected, the env / account / interface it occurred at, and evidence; for a **usability issue**, the observed friction, who it affects, **where**, and the proposed improvement; and **Gherkin acceptance criteria** for the fixed behavior.
+Each finding is a flat leaf, so `build_ready` applies directly — pass it explicitly on every create.
+
+**This skill is the named human-gate exception under `ready-role-filing`.** Everywhere else in Lisa, a complete defect found during other work is filed with explicit `build_ready: true` so build-intake claims it next cycle. Exploratory QA is deliberately different, and that difference is ratified rather than drift: its findings are *candidate* defects and usability observations whose **product significance is a human call**, so auto-readying them would push judgment work into the build queue — precisely the failure the gate model exists to prevent. Its default `ready=false` is therefore an **explicit human-gate marker, never a bare omission**: every not-ready create passes `human_gate: "exploratory finding — product significance is a human product call"` alongside `build_ready: false`, and the writer stamps the auditable `[lisa-human-gate]` marker. An operator who wants a pass to feed the queue directly opts in with `ready=true`.
+
+(The sibling `e2e-coverage-gaps` skills are the contrast: a missing automated test is not a product question, so they file `build_ready: true` by default.)
+
+Each ticket MUST be a complete spec (the validator rejects thin tickets): a **three-audience description**; for a **bug**, exact reproduction steps, observed-vs-expected, the env / account / interface it occurred at, and evidence; for a **usability issue**, the observed friction, who it affects, **where**, and the proposed improvement; and **Gherkin acceptance criteria** for the fixed behavior.
 
 ### Idempotency — don't spam duplicates
 

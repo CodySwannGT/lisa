@@ -44,6 +44,7 @@ import {
   EXTRA_WAIVER,
   HOME_MAPPING,
   HOME_ONLY_MAPPINGS,
+  removeExtraSpec,
   twoScenarioProject,
 } from "./bdd/regression-support";
 
@@ -100,10 +101,10 @@ describe("coverage the repo already accepted cannot be given back", () => {
   });
 
   it("accepts that waiver once a maintainer applies the label", () => {
-    const { root, base } = twoScenarioProject({
-      mappings: HOME_ONLY_MAPPINGS,
-      platformWaivers: [EXTRA_WAIVER],
-    });
+    const { root, base } = twoScenarioProject(
+      { mappings: HOME_ONLY_MAPPINGS, platformWaivers: [EXTRA_WAIVER] },
+      removeExtraSpec
+    );
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
@@ -127,10 +128,10 @@ describe("coverage the repo already accepted cannot be given back", () => {
   });
 
   it("accepts a complete retirement carrying the label", () => {
-    const { root, base } = twoScenarioProject({
-      mappings: HOME_ONLY_MAPPINGS,
-      retirements: [EXTRA_RETIREMENT],
-    });
+    const { root, base } = twoScenarioProject(
+      { mappings: HOME_ONLY_MAPPINGS, retirements: [EXTRA_RETIREMENT] },
+      removeExtraSpec
+    );
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,

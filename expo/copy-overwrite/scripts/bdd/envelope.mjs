@@ -39,12 +39,18 @@ const ENVELOPE_MODULE_PATHS = Object.freeze([
  * Everything here is a contract-QUALITY defect: the manifest is legible and
  * the adoption state is coherent, the contract just is not clean yet. Codes
  * about adoption integrity itself (bootstrap-metadata, bootstrap-expired,
- * adoption-drift, config-*) are deliberately absent, so they always fail.
+ * adoption-drift, config-*, discovery-invalid) are deliberately absent, so
+ * they always fail: a malformed discovery block would silently switch off the
+ * only check that can see an undeclared test, exactly as a quoted coverage
+ * floor silently switches off the bar (`floor-invalid`, likewise absent).
  */
 export const WARNABLE_DEFECT_CODES = Object.freeze([
   "baseline",
   "coverage-regression",
+  "discovery-missing",
   "empty-contract",
+  "exclusion-metadata",
+  "exclusion-stale",
   "execution-results",
   "floor-missing",
   "floor-regression",
@@ -62,6 +68,7 @@ export const WARNABLE_DEFECT_CODES = Object.freeze([
   "scenario-platform",
   "scenario-provenance",
   "scenario-steps",
+  "spec-undisclosed",
   "tracker-missing",
   "tracker-orphan",
   "waiver-duplicate",
@@ -206,6 +213,8 @@ export function buildSummary({ adoptionState, report, defects, filesWritten }) {
     traceabilityPercentage: report.traceability.overall.percentage,
     executionEvidenceSupplied: report.execution.supplied,
     mappedTests: report.execution.mappedTests,
+    testsDiscovered: report.testInventory.discovered,
+    testsUndisclosed: report.testInventory.undisclosed.length,
     ...executionCounts(report.execution),
     waivedObligations: report.waived.count,
     floorOk: report.floor.ok,

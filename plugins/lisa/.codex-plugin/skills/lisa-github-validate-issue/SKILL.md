@@ -98,6 +98,7 @@ Per-type content requirements are defined once in the vendor-neutral `work-item-
 | S16 Source Requirement traceability | `product-clarity` | true |
 | S17 Improvement measurability | `acceptance-criteria` | true |
 | S18 Stateless-pickup dry-run | `product-clarity` | true |
+| S19 Branch Plan derivation | `technical` | false |
 | F1 Issue type label exists in repo | `structural` | false |
 | F2 Parent sub-issue exists and is the right type | `structural` | false |
 | F3 Linked issues exist | `structural` | false |
@@ -299,6 +300,26 @@ The autonomy gate, run last, on every build-ready leaf (use the S15 classificati
 
 Zero questions → PASS. Any question → FAIL, with each question listed verbatim as its own remediation line — these are exactly the clarifying comments the caller posts to the source. The structure gates are proxies; this gate checks the readiness property itself: `ready` means a stateless agent can drive this item to its terminal state with zero human clarification (see `work-item-definition-of-ready`).
 
+#### S19 — Branch Plan derivation
+
+Enforces the `derived-branch-plan` rule: the `## Branch Plan` section is **derived only** — recompute it from current config and compare; never trust the rendered branches or read them as input. Resolve the environment under the S8 grammar, map that exact configured key forward through `.lisa.config.json` `deploy.branches`, and require the mapped branch on the remote.
+
+| Case | Verdict |
+|---|---|
+| `runtime_behavior_change = false` (doc-only / config-only / type-only) or an Epic/container, with no plan | `N/A` — absence is correct; never demand one |
+| Exempt work **carrying** a `## Branch Plan` | **FAIL** — hand-authored branches on work that declared no runtime target |
+| Plan matches the recomputed plan | PASS |
+| Plan conflicts with the recomputed plan | **FAIL** |
+| Plan missing the `Derived from:` provenance line and disagreeing | **FAIL** — treated as hand-authored |
+| `Branch from` and `PR into` name two different branches | **FAIL** — malformed; they are the same branch by construction |
+| Derivation hits a stop condition (env absent from `deploy.branches`, ambiguous / non-unique mapping, branch missing on the remote) | **FAIL** — the same stop `lisa-implement` takes; never default to `main` or the remote default |
+| Proposed spec (pre-write) for applicable work with no plan | **FAIL** — `lisa-github-write-issue` must render it before the write |
+| Live **legacy** issue for applicable work with no plan | `N/A` with a repair note — routed to claim time, where `lisa-implement` writes the derived assumption as a comment and proceeds |
+
+Failing a proposed spec is free; failing every existing issue would turn a legacy queue red for a section no human had a way to add, so legacy absence is repaired at claim time instead.
+
+FAIL names both plans (rendered and recomputed) and points the remediation at **the environment, never the branch** — e.g. `"Branch Plan conflicts with the environment mapping. Rendered 'Branch from: release/staging'; recomputed from Target Backend Environment 'production' via deploy.branches → 'main'. Correct the environment, not the branch — the branches are derived. Then re-render."` Never silently choose between the two plans.
+
 ### Feasibility Gates (require GitHub lookups; skip in `--spec-only`)
 
 #### F1 — Issue type label exists in repo
@@ -361,13 +382,17 @@ Per `Phase 5` of `lisa-github-write-issue`, every issue MUST carry
 missing from the proposed spec or live issue, FAIL with the missing label name.
 
 The `status:*` requirement uses this validator's S15 leaf/container classification while preserving
-the writer's documented `build_ready` control-input defaults:
+the writer's documented `build_ready` control-input defaults, which the `ready-role-filing` rule
+fixes at "omitted is NOT build-ready" for every vendor:
 
 1. Classify the issue structurally using the S15 child-resolution rules. A container (any issue
    with child work, plus a childless `Epic`) may omit `status:*`; its state rolls up rather than
    being assigned directly.
-2. For a proposed leaf spec, normalize omitted `build_ready` to `true`, preserving the writer's
-   backward-compatible default-ready behavior. Explicit `build_ready: false` means backlog mode.
+2. For a proposed leaf spec, normalize omitted `build_ready` to `false`, per `ready-role-filing`:
+   ready is an explicit claim, so only `build_ready: true` asserts it. Explicit `build_ready: false`
+   means the same backlog mode. (This validator previously normalized omitted → `true` to mirror
+   GitHub's implicit-ready writer default; both were removed together, and re-introducing either
+   here would just move the leak.)
 3. For a live issue ref, derive `build_ready` from the labels (`true` exactly when the S15-resolved
    `READY_ROLE` from `github.labels.build.ready`, default `status:ready`, is present). A live backlog leaf without a status label
    therefore validates as `build_ready: false`; live data cannot distinguish an explicit false from
@@ -455,6 +480,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S16 Source Requirement traceability — <one-line reason>
 - [PASS|FAIL|N/A] S17 Improvement measurability — <one-line reason>
 - [PASS|FAIL|N/A] S18 Stateless-pickup dry-run — <one-line reason>
+- [PASS|FAIL|N/A] S19 Branch Plan derivation — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type label exists in repo — <one-line reason>

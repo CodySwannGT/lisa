@@ -63,6 +63,11 @@ import {
   checkNewObligations,
   loadBaseline,
 } from "./bdd/baseline.mjs";
+import {
+  disclosureDefects,
+  discoverSpecs,
+  missingDiscoveryDefects,
+} from "./bdd/discover.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
 import { buildReport } from "./bdd/report.mjs";
 import { renderBurndown } from "./bdd/render.mjs";
@@ -249,12 +254,22 @@ export function loadExecutionResults(root, files) {
  * @param {object} input - Root, contract, scenarios, platforms, and options.
  * @returns {object[]} Defects found.
  */
-function validateAll({ root, contract, scenarios, platforms, options, cache }) {
+function validateAll({
+  root,
+  contract,
+  scenarios,
+  platforms,
+  options,
+  cache,
+  discovery,
+}) {
   const defects = [
     ...validateScenarios(scenarios, platforms),
     ...validateTrackerTags(scenarios, contract.trackers),
     ...validateMappings({ root, scenarios, contract, cache }),
     ...validateWaivers({ scenarios, contract, today: options.today }),
+    ...discovery.defects,
+    ...disclosureDefects({ root, contract, discovery }),
   ];
   if (!options.baseSha) return [...defects, ...missingBaseDefects(options)];
   const baseline = loadBaseline(root, options.baseSha, platforms);
@@ -331,7 +346,13 @@ function floorIntegrityDefects(report) {
  * @param {object} input - Contract, scenarios, report, and platforms.
  * @returns {object[]} Defects found.
  */
-function enforcedDefects({ contract, scenarios, report, platforms }) {
+function enforcedDefects({
+  contract,
+  scenarios,
+  report,
+  platforms,
+  discovery,
+}) {
   const defects = [];
   if (scenarios.length === 0) {
     defects.push(
@@ -357,6 +378,7 @@ function enforcedDefects({ contract, scenarios, report, platforms }) {
       )
     );
   }
+  defects.push(...missingDiscoveryDefects(contract, discovery));
   for (const platform of report.floor.unset) {
     defects.push(
       defect(
@@ -403,21 +425,34 @@ export function run(root, options) {
   // so each mapped file is read once no matter how large the manifest.
   const cache = new Map();
   const unresolved = unresolvedEvidenceKeys({ root, contract, cache });
+  // Discovery answers the question the declared half cannot: which tests exist
+  // that the manifest never mentions. It runs before the report so the report
+  // can carry the inventory it produced.
+  const discovery = discoverSpecs({ root, contract });
   const report = buildReport({
     scenarios,
     contract,
     runs: execution.runs,
     platforms,
     unresolved,
+    discovery,
   });
   const defects = [
     ...(versionDefect ? [versionDefect] : []),
     ...validateAdoption(contract, mode, options.today),
     ...execution.defects,
     ...floorIntegrityDefects(report),
-    ...validateAll({ root, contract, scenarios, platforms, options, cache }),
+    ...validateAll({
+      root,
+      contract,
+      scenarios,
+      platforms,
+      options,
+      cache,
+      discovery,
+    }),
     ...(mode === "enforced"
-      ? enforcedDefects({ contract, scenarios, report, platforms })
+      ? enforcedDefects({ contract, scenarios, report, platforms, discovery })
       : []),
   ];
   return result({ mode, defects, report, contract });

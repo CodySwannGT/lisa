@@ -21,11 +21,15 @@
  * its note. Selecting from a known set means the worst a hostile note can do is
  * ask for a CLI Lisa already ships a pinned, checksummed entry for — it can
  * never introduce a URL, a version, or a command.
+ * The matcher itself lives in `note-format.mjs` alongside the validator that
+ * checks these lines, for the same reason the values file keeps its writer and
+ * its parser in one module: two copies of the pattern would let a note pass
+ * `doctor` and then be silently ignored here, with nothing to reveal the
+ * disagreement.
  * @module tools-from-notes
  */
 
-/** Matches `tool: name` or `tools: a, b`, case-insensitively, one per line. */
-const TOOL_LINE = /^[ \t]*tools?[ \t]*:[ \t]*(.+)$/gim;
+import { TOOL_LINE } from "./note-format.mjs";
 
 /**
  * Collect the tool names a set of notes asks for.
