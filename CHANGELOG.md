@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.351.0](https://github.com/CodySwannGT/lisa/compare/v2.350.0...v2.351.0) (2026-08-13)
+
+
+### Features
+
+* **tracker:** derive a visible Branch Plan from the environment mapping ([b2e9035](https://github.com/CodySwannGT/lisa/commit/b2e90350f34987d74ca104abec4e4adfd1f5c61b)), closes [CodySwannGT/lisa#2428](https://github.com/CodySwannGT/lisa/issues/2428) [CodySwannGT/lisa#2428](https://github.com/CodySwannGT/lisa/issues/2428)
+
+
+### Bug Fixes
+
+* **apply:** deliver Lisa-owned enforcement guards on a version bump ([88c7cea](https://github.com/CodySwannGT/lisa/commit/88c7ceae0cf64734a6f1d2634552cec0606c1e8f)), closes [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [CodySwannGT/lisa#2424](https://github.com/CodySwannGT/lisa/issues/2424) [CodySwannGT/lisa#2424](https://github.com/CodySwannGT/lisa/issues/2424)
+* **ci:** make a zero-flow Maestro run fail loudly and distinctly ([adcaeeb](https://github.com/CodySwannGT/lisa/commit/adcaeeb302702dce99a79846c851f079a0697a51)), closes [CodySwannGT/lisa#2409](https://github.com/CodySwannGT/lisa/issues/2409)
+* **ci:** stop expanding flows_dir into the Maestro script text ([f210d0a](https://github.com/CodySwannGT/lisa/commit/f210d0ad3b691503b267fc71b3b1cbca54125173)), closes [CodySwannGT/lisa#2409](https://github.com/CodySwannGT/lisa/issues/2409) [CodySwannGT/lisa#2409](https://github.com/CodySwannGT/lisa/issues/2409)
+* **secrets:** enforce the usage-note contract the prose already claims ([3af076c](https://github.com/CodySwannGT/lisa/commit/3af076c88bb27d35b7802d64b652afafc14bc4bb)), closes [CodySwannGT/lisa#2433](https://github.com/CodySwannGT/lisa/issues/2433) [CodySwannGT/lisa#2433](https://github.com/CodySwannGT/lisa/issues/2433)
+
+
+### Documentation
+
+* **plan:** address CodeRabbit review on the Phase 0 decision records ([91ebc23](https://github.com/CodySwannGT/lisa/commit/91ebc235f37f7b7700b166b9e2008bf39cd51811)), closes [#2425](https://github.com/CodySwannGT/lisa/issues/2425) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+* **plan:** record Phase 0 decisions for the 2026-08-12 improvement notes ([1624f75](https://github.com/CodySwannGT/lisa/commit/1624f754490fed8daf3fc9f615631ed2b135dd97)), closes [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+
 ## [2.350.0](https://github.com/CodySwannGT/lisa/compare/v2.349.1...v2.350.0) (2026-08-13)
 
 
