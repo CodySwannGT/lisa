@@ -56,6 +56,7 @@ import {
   renderLearningsFile,
 } from "./learnings-document.js";
 import {
+  assertLearningsUnchanged,
   assertSafeLearningParents,
   readExistingLearnings,
   resolveSafeLearningTarget,
@@ -106,16 +107,26 @@ async function resolveOverflowTarget(
   return resolveSafeLearningTarget(projectRoot, relative);
 }
 
+/** Overflow entries plus the exact bytes they were parsed from. */
+interface OverflowImage {
+  /** Validated entries, empty when the file does not exist. */
+  readonly entries: readonly LearningEntry[];
+  /** Bytes read, or undefined when the file does not exist. */
+  readonly image: string | undefined;
+}
+
 /**
- * Read the entries currently held in the overflow.
+ * Read the entries currently held in the overflow, retaining the read image so
+ * a locked writer can prove nothing overwrote it before publishing.
  * @param target - Absolute overflow path
- * @returns Validated entries, empty when the file does not exist
+ * @returns Validated entries and the bytes they came from
  */
-async function readOverflowEntries(
-  target: string
-): Promise<readonly LearningEntry[]> {
+async function readOverflowEntries(target: string): Promise<OverflowImage> {
   const existing = await readExistingLearnings(target);
-  return existing === undefined ? [] : parseLearningsFile(existing);
+  return {
+    entries: existing === undefined ? [] : parseLearningsFile(existing),
+    image: existing,
+  };
 }
 
 /** Entries currently awaiting drain, and where they live. */
@@ -138,7 +149,8 @@ export async function readLearningsOverflow(
   projectRoot: string
 ): Promise<LearningsOverflowContents> {
   const { target } = await resolveOverflowTarget(projectRoot);
-  return { file: target, entries: await readOverflowEntries(target) };
+  const { entries } = await readOverflowEntries(target);
+  return { file: target, entries };
 }
 
 /** Outcome of draining entries the gardener has finished with. */
@@ -181,13 +193,13 @@ export async function drainLearningsOverflow(
     // containment guarantee has to be re-established once the read is
     // actually about to happen. Same discipline as the ledger writer.
     await assertSafeLearningParents(root, path.dirname(target));
-    const entries = await readOverflowEntries(target);
+    const { entries, image } = await readOverflowEntries(target);
     const drained = entries
       .filter(entry => requested.has(entry.id))
       .map(entry => entry.id);
     const retained = entries.filter(entry => !requested.has(entry.id));
     if (drained.length > 0) {
-      await publishOverflow(root, target, retained);
+      await publishOverflow(root, target, retained, image);
     }
     return {
       file: target,
@@ -203,17 +215,22 @@ export async function drainLearningsOverflow(
  * @param root - Resolved project root
  * @param target - Absolute overflow path
  * @param entries - Entries the overflow should now hold
+ * @param preImage - Bytes this transaction read under the lock
  */
 async function publishOverflow(
   root: string,
   target: string,
-  entries: readonly LearningEntry[]
+  entries: readonly LearningEntry[],
+  preImage: string | undefined
 ): Promise<void> {
   const rendered = renderLearningsFile(entries);
   assertDocumentBudget(rendered, entries.length, "Learnings overflow");
   await fse.ensureDir(path.dirname(target));
   await writeFileAtomically(target, rendered, {
-    beforeRename: () => assertSafeLearningParents(root, path.dirname(target)),
+    beforeRename: async () => {
+      await assertSafeLearningParents(root, path.dirname(target));
+      await assertLearningsUnchanged(target, preImage);
+    },
   });
 }
 
@@ -244,12 +261,12 @@ export async function preserveDroppedLearning(
   const preserved = await withFileTargetLock(target, async () => {
     // Re-establish containment after the lock wait; see drainLearningsOverflow.
     await assertSafeLearningParents(root, path.dirname(target));
-    const entries = await readOverflowEntries(target);
+    const { entries, image } = await readOverflowEntries(target);
     if (entries.some(current => current.id === entry.id)) {
       return true;
     }
     try {
-      await publishOverflow(root, target, [...entries, entry]);
+      await publishOverflow(root, target, [...entries, entry], image);
       return true;
     } catch (error) {
       if (error instanceof LearningsBudgetError) {

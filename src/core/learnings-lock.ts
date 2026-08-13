@@ -1,5 +1,14 @@
 /** Cross-process serialization for project learnings writes. */
-import { link, lstat, readFile, unlink, writeFile } from "node:fs/promises";
+import { link, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+  withReclaimCapability,
+  type LockGenerationIdentity,
+} from "./learnings-lock-capability.js";
+import {
+  isProcessLive,
+  removeFileIfPresent,
+  statFile,
+} from "./learnings-lock-fs.js";
 
 const MAX_LOCK_ATTEMPTS = 200;
 const LOCK_RETRY_DELAY_MS = 10;
@@ -178,11 +187,56 @@ export async function observeStaleLock(
 
 /**
  * Reclaim only the same lock inode retained in a safe quarantine link.
+ *
+ * Proving the lock is still the inode judged stale and unlinking it are two
+ * syscalls, and POSIX has no "unlink only if still this inode". Every reclaimer
+ * that passed the proof therefore used to unlink whatever sat at the path
+ * afterwards — including a lock a live writer had legitimately acquired in
+ * between, which left two writers holding one "exclusive" lock and silently
+ * dropped a learning (CodySwannGT/lisa#2488). That gap is closed by holding the
+ * generation's exclusive reclaim capability across both syscalls; see
+ * `learnings-lock-capability.ts` for why this cannot interleave rather than
+ * merely interleaving rarely.
  * @param lockPath - Shared lock path
  * @param observation - Snapshot that judged this lock reclaimable
  * @returns Whether the observed lock was reclaimed
  */
 export async function reclaimObservedStaleLock(
+  lockPath: string,
+  observation: StaleLockObservation
+): Promise<boolean> {
+  return withReclaimCapability(
+    lockPath,
+    observedGenerationIdentity(observation),
+    false,
+    async () => deleteObservedGeneration(lockPath, observation)
+  );
+}
+
+/**
+ * Describe the observed generation for the capability that guards it.
+ * @param observation - Snapshot that judged the lock reclaimable
+ * @returns Identity of the generation this reclaim may delete
+ */
+function observedGenerationIdentity(
+  observation: StaleLockObservation
+): LockGenerationIdentity {
+  return {
+    dev: observation.dev,
+    ino: observation.ino,
+    token: observation.owner?.token,
+    pid: observation.owner?.pid,
+    createdAt: observation.owner?.createdAt,
+  };
+}
+
+/**
+ * Delete the observed lock generation while its reclaim capability is held.
+ * @param lockPath - Shared lock path
+ * @param observation - Snapshot that judged this lock reclaimable
+ * @returns Whether the observed lock was reclaimed
+ */
+async function deleteObservedGeneration(
   lockPath: string,
   observation: StaleLockObservation
 ): Promise<boolean> {
@@ -286,38 +340,6 @@ async function sameFile(left: string, right: string): Promise<boolean> {
 }
 
 /**
- * Read file metadata without treating an absent path as an error.
- * @param filePath - Filesystem path
- * @returns File metadata or undefined
- */
-async function statFile(
-  filePath: string
-): Promise<Awaited<ReturnType<typeof lstat>> | undefined> {
-  try {
-    return await lstat(filePath);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return undefined;
-    }
-    throw error;
-  }
-}
-
-/**
- * Remove one path without recursive deletion.
- * @param filePath - Regular file or hard-link path
- */
-async function removeFileIfPresent(filePath: string): Promise<void> {
-  try {
-    await unlink(filePath);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
-  }
-}
-
-/**
  * Narrow parsed lock metadata to the exact ownership shape.
  * @param value - Parsed metadata
  * @returns Whether the metadata is a lock owner
@@ -350,20 +372,6 @@ function isLockOwner(value: unknown): value is LockOwner {
     typeof owner.createdAt === "number" &&
     Number.isSafeInteger(owner.createdAt)
   );
-}
-
-/**
- * Treat permission-denied PID probes as live and missing PIDs as dead.
- * @param pid - Declared owner process id
- * @returns Whether the process may still be alive
- */
-function isProcessLive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ESRCH";
-  }
 }
 
 /**
