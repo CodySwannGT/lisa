@@ -52,3 +52,4 @@ See the `config-resolution` rule for the full configuration schema and skill-map
 - Never accept a tracker value outside `{jira, github, linear}`.
 - Never mutate `$ARGUMENTS` between layers. The vendor skills define their own input contract.
 - Never inline gate logic here. All validation rules live in the vendor skills (`lisa-jira-validate-ticket` / `lisa-github-validate-issue` / `lisa-linear-validate-issue`); this skill only routes.
+- **Readiness is the caller's explicit claim, not this shim's default.** Per the `ready-role-filing` rule, an omitted `build_ready` is **not build-ready** on every vendor, so a caller filing work it expects build-intake to pick up must pass `build_ready: true`, and a caller deliberately holding work outside the queue must pass a `human_gate` reason. This shim normalizes nothing — it forwards `$ARGUMENTS` verbatim and the vendor writers enforce the contract — which is exactly why the caller cannot rely on a vendor default here.

@@ -39,6 +39,23 @@ export const RATIFIED = "ratified-shipped-behavior";
 export const HOME_FEATURE_FILE = "home.feature";
 export const MAP_REL = "bdd/coverage-map.json";
 
+/** Discovery vocabulary, so no test repeats a runner or root literal. */
+export const MAESTRO = "maestro";
+export const E2E_ROOT = "e2e";
+export const SPEC_EXTENSION = ".spec.ts";
+
+/**
+ * The playwright discovery block used by every healthy fixture.
+ *
+ * Declared per runner in the map, never hardcoded in the gate — that is the
+ * whole point of making roots configuration rather than a source constant.
+ */
+export const PLAYWRIGHT_DISCOVERY: Record<string, unknown> = {
+  roots: [E2E_ROOT],
+  extensions: [SPEC_EXTENSION],
+  evidence: { kind: "call-title", functions: ["test"] },
+};
+
 /** Defect codes asserted across more than one case. */
 export const FLOOR_RATCHET = "floor-ratchet";
 export const SCENARIO_DELETED = "scenario-deleted";
@@ -118,6 +135,24 @@ export interface Report {
   readonly floor: { ok: boolean; unset: readonly string[] };
   readonly trackers: { tags: readonly { tag: string; url: string | null }[] };
   readonly gaps: readonly Record<string, unknown>[];
+  readonly testInventory: {
+    readonly runners: readonly string[];
+    readonly discovered: number;
+    readonly disclosed: number;
+    readonly dynamicTitles: number;
+    readonly undisclosed: readonly Record<string, unknown>[];
+    readonly exclusions: readonly Record<string, unknown>[];
+  };
+}
+
+/**
+ * Read a file from inside a fixture project.
+ * @param root - Project root.
+ * @param relativePath - Project-relative path.
+ * @returns File contents.
+ */
+export function readProjectFile(root: string, relativePath: string): string {
+  return fs.readFileSync(path.join(root, relativePath), "utf-8");
 }
 
 /**
@@ -313,6 +348,7 @@ export const HEALTHY_MAP: Record<string, unknown> = {
   asOf: TODAY,
   adoption: { state: ENFORCED },
   runnerPlatforms: { [PLAYWRIGHT]: [WEB] },
+  testDiscovery: { [PLAYWRIGHT]: PLAYWRIGHT_DISCOVERY },
   coverageFloor: { [WEB]: 100 },
   trackers: {
     keys: ["TUN"],

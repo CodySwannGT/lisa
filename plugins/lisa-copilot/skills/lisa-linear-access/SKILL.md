@@ -106,6 +106,40 @@ linear_graphql() {
 Map operation names to Linear GraphQL queries/mutations in this access skill.
 Consumers pass business-shaped arguments only; they do not embed GraphQL.
 
+## `list-workflow-states` — the team's states, and which one it creates into
+
+`list-workflow-states team:<ID>` returns one node per state with `id`, `name`,
+`type`, `position`, and **`isTeamDefault`**.
+
+`isTeamDefault` is `true` for the single state named by the team's
+`defaultIssueState` — where Linear puts every brand-new Issue. Callers need it to
+enforce the rule that `linear.workflow.ready` must be a lane a human moves an
+Issue **into**: pointing `ready` at the default inverts the gate, so the
+claimable lane means "nobody has touched this" rather than "a human marked this
+ready", and build-intake dispatches unapproved work. `/lisa:setup:linear` refuses
+to resolve `ready` onto it, and `/lisa:validate-tracker-mapping` classifies a
+config that already does as `INVERTED`.
+
+It belongs on this operation rather than in a separate `get-team` call because
+every caller that needs it is already enumerating states, and a second round trip
+is a second chance for the two answers to disagree. A team with no
+`defaultIssueState` set yields `isTeamDefault: false` on every node — report that
+honestly; do not fall back to guessing by name or position.
+
+```graphql
+query($teamId:String!){
+  team(id:$teamId){
+    defaultIssueState{ id }
+    states(first:100){ nodes{ id name type position } }
+  }
+}
+```
+
+Set `isTeamDefault` per node by comparing `node.id` against
+`team.defaultIssueState.id`. On the MCP substrate, which exposes states without
+the team's default, resolve the default through the team record and join on `id`
+the same way.
+
 ## `history` — transition history (read-only)
 
 `history id:<ID>` returns an Issue's ordered past state changes — the raw
