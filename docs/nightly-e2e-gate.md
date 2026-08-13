@@ -5,9 +5,15 @@
 > `typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs` implement.
 > Every row of §2 is proven by a named case in Lisa's
 > `tests/unit/scripts/nightly-e2e-health.test.ts` (rows 1-16),
-> `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25) and
-> `…-completeness.test.ts` (row 26).
+> `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25),
+> `…-completeness.test.ts` (row 26) and `…-issues.test.ts` (rows 27-31).
 > Changing a row without changing its test is a contract violation.
+>
+> The gate has **two halves that must not be confused**: the blocking half
+> (`nightly-e2e-health.yml`, a required status check that never writes) and the
+> reporting half (`nightly-e2e-report.yml`, a scheduled job that files and closes
+> tracking issues and gates nothing). §2 is the blocking half; §10 is the
+> reporting half.
 >
 > **Plan revision followed:** `2026-08-12-r3` (Portfolio E2E Standards Plan,
 > §5 WS-1a, Appendix A3/A4/A5, plus the r3 allowlist-never-denylist doctrine
@@ -72,6 +78,11 @@ a gate silently stops gating — see §5.
 `B` = the bootstrap window is active (see §4). Every row is stated for a single
 suite; the workflow verdict is the worst verdict across suites, with `bypassed`
 applied last (§6).
+
+Rows 1–26 are the **blocking** half: they answer "may this pull request merge?".
+Rows 27–31 live in §10 and answer a different question — "what should the
+tracking issue say?" — decided by a different workflow that gates nothing. The
+numbering is shared so a row is citable by number alone; the halves are not.
 
 | # | Observation | B active | After B | Verdict |
 |---|---|---|---|---|
@@ -490,6 +501,15 @@ run* reports no check at all (GitHub marks it cancelled), which leaves the
 required context unreported and the PR blocked until the newer run reports —
 blocked, not passed. Fail-closed holds through cancellation.
 
+The **reporting** job (§10) is the exact opposite and must not inherit the gate's
+group: it writes, so a superseded run is not waste to be discarded but work that
+may be half done. It uses a repository-wide group with
+`cancel-in-progress: false`, declared inside Lisa's reusable workflow rather than
+in the caller template — a forgotten group lets two overlapping reports both read
+"no open issue for this suite" and both file one, which is the precise thing
+"one issue per suite" exists to prevent. Same word, opposite settings, for
+opposite reasons: **cancel a read, queue a write.**
+
 ## 8. Versioning, compatibility, and rollback (Appendix A5)
 
 **"Lisa reaches every repo at once" is false.** A reusable workflow is consumed
@@ -523,6 +543,11 @@ repo last applied. Both are per-repo adoption events.
     that could turn a *blocking* observation into a passing one is still major,
     because that skew direction fails **open**, which is the one outcome the
     version check exists to prevent.
+  - Also *minor*: **adding a surface that gates nothing**, such as §10's
+    reporting half. A repository that never installs the reporting caller sees
+    no behaviour change at all, and one that does cannot have its merge gate
+    affected by it — the two halves are separate workflows and the gate holds no
+    `issues:` scope. That is what 1.1.0 → 1.2.0 shipped under.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
@@ -548,6 +573,7 @@ repo last applied. Both are per-repo adoption events.
 | Bash + `gh` + `jq` library | propswap `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4 |
 | Second Node script, `unknown`-passes | gemini `scripts/check-nightly-e2e.mjs` | the shipped guard; `DECISIVE_CONCLUSIONS` kept, the fail-open path closed (§2.2) |
 | A ruleset requiring a PR-skipped context | Lisa `expo/github-rulesets/playwright.json` | **deleted**, replaced by `expo/github-rulesets/nightly-e2e-health.json` |
+| One tracking issue per suite, auto-closed on green | propswap's nightly reporter | §10, with closing gated on row 26 completeness |
 
 ### 9.1 Deleting the `playwright` ruleset is a two-step
 
@@ -568,3 +594,144 @@ gh api -X DELETE "repos/$REPO/rulesets/<id>"
 That is an adopter-PR step, not a Lisa step, and it is called out in the adopter
 checklist for exactly the reason the ruleset is being deleted: a required
 context that PRs skip **looks** like enforcement and is not.
+
+## 10. The tracking issue — the reporting half
+
+A gate tells whoever opened a pull request. It tells **nobody else**. A nightly
+that goes red on a quiet Friday is invisible until Monday's first PR: there is
+nothing to assign, nothing to schedule, and — when it eventually comes back — no
+record that it ever went down. §2 blocks; this section is how anyone finds out.
+
+Until this shipped, the guard's own bypass report already promised the reader
+that *"the tracking issue stays open until a green run lands"*, referencing an
+artefact Lisa never created.
+
+### 10.1 One issue per SUITE, not per red night
+
+The tracking issue is a **state mirror of one suite**, not a log of nightly runs.
+A reporter that files a fresh issue every red morning produces a backlog nobody
+triages and makes the suite's actual state illegible from the issue list — the
+one place an operator looks. So: at most one open issue per suite, refreshed
+while it is red, closed when it is green.
+
+**Identity is an HTML-comment marker in the issue body**, not the title and not
+the label:
+
+```
+<!-- lisa_nightly_e2e_suite:Maestro%20native%20e2e -->
+```
+
+A title gets edited, a label gets renamed, and either would orphan the issue and
+cause a duplicate to be filed the next night. The suite label is encoded down to
+`[A-Za-z0-9_.~%]` so a suite named `evil --> <!--` cannot terminate the comment
+early and make its marker match every other suite's issue — which on a green
+night would close all of them.
+
+A second marker carries a fingerprint of *why* the suite is red. That is what
+lets a refresh rewrite the body every night (free, and nobody is notified) while
+posting a comment (a notification) **only when the evidence actually changed**. A
+comment every night for the same failure trains people to mute the issue that is
+supposed to be alerting them.
+
+### 10.2 The reporting truth table
+
+Read per suite, from that suite's row-1–26 finding. `complete` means row 26 was
+satisfied — the run gathered the evidence its conclusion claims.
+
+| # | Suite finding | Open tracking issue? | Action |
+|---|---|---|---|
+| 27 | `fail` (complete) | none | **create** one issue, labelled `nightly-e2e` |
+| 28 | `fail` (complete) | one or more | **refresh** the oldest — never file a second. Comment only if the evidence changed |
+| 29 | `pass` **and** complete | one or more | **close** every one of them, with an all-clear comment |
+| 30 | `unknown`, **or** any finding that is not complete (`incomplete_run`) | any | **nothing.** Not closed, not filed, not commented |
+| 31 | The Issues API fails for one suite | any | that suite is reported as unhandled, the **other suites still run**, and the *merge gate is unaffected* |
+
+Row 29 closes *every* match rather than only the oldest: a duplicate that got
+filed anyway (by hand, or by a report that raced the concurrency group) is
+cleaned up by the green night rather than left open forever.
+
+### 10.3 Row 30 is the load-bearing one
+
+Closing an issue is a stronger claim than letting a pull request through. It
+announces that a suite is **healthy**, and it is the action that must never fire
+on a run that did not gather the evidence. This is propswap's trap in their
+words: *one spec reporting success would close the tracking issue while the
+failures that opened it went unrun — the suite declaring itself green on evidence
+it never gathered.*
+
+Row 26 already refuses to call a partial run a pass (§2.4), so for the gate this
+is implied. **The reporter asks the completeness question again, in its own
+right** — `isCompleteEvidence` is checked before the state is, so a future
+loosening of row 26 cannot silently re-open the hole through the reporting door.
+Completeness is not re-derived here; row 26's `incomplete_run` token *is* the
+answer.
+
+Note what row 30 does **not** do: it does not file. A partial run is *absence of
+evidence*, and absence of evidence is not evidence of failure. The tracking state
+is simply left exactly as it was, which is the honest answer to "we did not
+find out last night."
+
+Bootstrap (§4) is deliberately absent from this table. The reporter reads each
+suite's raw state rather than the bootstrap-rendered one, and the answer is the
+same either way: an `unknown` suite is left alone, and a genuinely red suite is
+red inside the window too. Bypasses are absent for the same reason — a bypass
+waives the gate for **one pull request**; it does not make the nightly green, and
+the tracking issue stays open until a green run lands.
+
+### 10.4 Filing must never be able to fail the gate
+
+The merge check is *required*. Issue filing is *reporting*. If filing lived
+inside the gate, an Issues API that was down, throttled, or newly forbidden would
+turn a green nightly into a red required check on every open pull request — an
+outage in a notification channel becoming an outage in the merge queue.
+
+The isolation is structural, at three levels, so it does not depend on anyone
+remembering it:
+
+1. **Two workflows.** `nightly-e2e-health.yml` runs on `pull_request` and is
+   required. `nightly-e2e-report.yml` runs on `schedule` and must **never** be
+   made a required check.
+2. **The gate holds no `issues:` scope.** A called workflow's `permissions:` is a
+   ceiling, so the gate could not file an issue if its code tried.
+3. **The gate path performs no writes.** Writes live in `apiWrite`, reachable
+   only from `runReport`, which only the `--report-issues` flag invokes. That is
+   asserted by a test that runs the gate against a fake `fetch` and requires
+   every request to be a `GET`.
+
+Within the report, one suite's failure is recorded and the remaining suites are
+still processed (row 31) — a broken issue is not a reason to stop reporting on
+the others.
+
+**The report job's exit code answers "did reporting work", never "is the suite
+green".** A red nightly reported correctly is a *successful* report. Conflating
+the two would hand operators a second red check meaning something different from
+the first.
+
+### 10.5 The issue body is written for a non-technical operator
+
+Lisa's factories are meant to be operable by people who do not read code, and
+everything that crosses a gate outward has to be readable by whoever is standing
+at it. So the body opens with which suite is down and what to do about it, says
+plainly that the issue closes itself and should not be closed by hand, and keeps
+workflow names, conclusions and reason tokens below a fold.
+
+The instruction it leads with is the one people get wrong: **re-run the whole
+suite**, leaving any platform / tag / shard picker on its `all` default. A
+narrowed re-run does not clear the gate (§2.4), and it will not close the issue
+either.
+
+### 10.6 Seams left open on purpose
+
+Three neighbouring problems are deliberately *not* solved here, and each has a
+clean place to attach:
+
+- **Zero-coverage as a distinct state** would add a fourth suite state beside
+  `pass|fail|unknown`. It attaches at `assessSuite`; row 30 already routes
+  anything that is not `pass`-and-complete to "do nothing", so a new state needs
+  only its own row here to decide whether it files.
+- **Per-suite bootstrap grace** attaches at the suite schema. The reporter reads
+  raw states and is unaffected either way (§10.3).
+- **Flake classification** belongs on the JUnit-producing side, not here. If a
+  suite is ever classified `flaky` rather than `fail`, it becomes one more row in
+  this table — which is the point of stating the table as *finding → action*
+  rather than burying the mapping in code.
