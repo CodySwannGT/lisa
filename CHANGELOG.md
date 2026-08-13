@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.0](https://github.com/CodySwannGT/lisa/compare/v3.0.0...v3.1.0) (2026-08-13)
+
+
+### Features
+
+* **access:** put the configured-provider substrate ahead of interactive MCP ([5fe9987](https://github.com/CodySwannGT/lisa/commit/5fe9987c56a5c952eb3c53fd8224a2de49aa4b68)), closes [CodySwannGT/lisa#2447](https://github.com/CodySwannGT/lisa/issues/2447)
+* **bdd:** replace the coverage-floor ratchet with per-obligation non-regression ([063ace0](https://github.com/CodySwannGT/lisa/commit/063ace00276f7939d3d1aea8335e585451a0a52e)), closes [CodySwannGT/lisa#2445](https://github.com/CodySwannGT/lisa/issues/2445) [CodySwannGT/lisa#2445](https://github.com/CodySwannGT/lisa/issues/2445)
+* **nightly-e2e:** tell somebody the nightly is red, and stop when it is not ([4f6b575](https://github.com/CodySwannGT/lisa/commit/4f6b575d1fd536c9f31975c3078c702966b62846)), closes [#2446](https://github.com/CodySwannGT/lisa/issues/2446) [CodySwannGT/lisa#2448](https://github.com/CodySwannGT/lisa/issues/2448) [CodySwannGT/lisa#2448](https://github.com/CodySwannGT/lisa/issues/2448)
+
+
+### Bug Fixes
+
+* **rules:** add the missing eager head for credential-substrate-precedence ([83e43bd](https://github.com/CodySwannGT/lisa/commit/83e43bda0d491cfd67e2bc36a020b641126be3e5)), closes [#2451](https://github.com/CodySwannGT/lisa/issues/2451) [CodySwannGT/lisa#2447](https://github.com/CodySwannGT/lisa/issues/2447) [CodySwannGT/lisa#2447](https://github.com/CodySwannGT/lisa/issues/2447)
+
 ## [3.0.0](https://github.com/CodySwannGT/lisa/compare/v2.353.0...v3.0.0) (2026-08-13)
 
 
