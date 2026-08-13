@@ -223,10 +223,20 @@ Before create/update, verify each field is populated where applicable:
 
 ### Build-ready control input (`build_ready`)
 
-`build_ready` is an optional write-control input (default: **omitted**). It governs whether a **leaf** work unit is promoted to the build-ready role on create. It never overrides `leaf-only-lifecycle` — a container is never promoted regardless of `build_ready`. Unlike the label-based trackers, JIRA tickets are **already created not-ready** (in the project's default initial status, e.g. `TODO`/`Backlog`); the build-ready role is the configured `ready` status (`jira.workflow.ready`, default `Ready`), reached by an explicit transition.
+`build_ready` is a write-control input governed by the `ready-role-filing` rule — cite that slug for the full contract; do not restate its per-vendor normalization table here. It decides whether a **leaf** work unit is promoted to the build-ready role on create. It never overrides `leaf-only-lifecycle` — a container is never promoted regardless of `build_ready`. Unlike the label-based trackers, JIRA tickets are **already created not-ready** (in the project's default initial status, e.g. `TODO`/`Backlog`); the build-ready role is the configured `ready` status (`jira.workflow.ready`, default `Ready`), reached by an explicit transition. JIRA is the vendor whose behavior the other two converged onto — this arm is unchanged by that normalization.
 
-- **Omitted** or **`build_ready: false`** → current behavior: leave the ticket in the project's default created status. No transition. A human (or `build_ready: true`) promotes it to the `ready` status later.
+- **Omitted** → **not build-ready**: leave the ticket in the project's default created status. No transition. Ready is an explicit claim, never a vendor default.
+- **`build_ready: false`** → same outcome as omitted, stated deliberately: the ticket waits in the project's default status for a human to promote it.
 - **`build_ready: true`** → after create, transition the **leaf** to the resolved `ready` role so `lisa-intake` / `lisa-jira-build-intake` auto-picks it up (see Phase 6 CREATE step). Resolve the role name with the standard pattern (`.jira.workflow.ready` // `Ready`, local overrides global). Best-effort: if the transition is unreachable, record it and leave the ticket in its default status rather than failing the write.
+
+**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<why a human must judge this first>"`; nothing in the ready status means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the ticket so it is auditable — a visible line plus the verbatim marker:
+
+```text
+Held for a human product call: <reason>.
+<!-- [lisa-human-gate] reason=<short-slug> -->
+```
+
+If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their status rolls up from children, so they need neither.
 
 ## Phase 5.5 — Validate (Pre-write Gate)
 

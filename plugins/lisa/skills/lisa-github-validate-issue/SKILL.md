@@ -361,13 +361,17 @@ Per `Phase 5` of `lisa-github-write-issue`, every issue MUST carry
 missing from the proposed spec or live issue, FAIL with the missing label name.
 
 The `status:*` requirement uses this validator's S15 leaf/container classification while preserving
-the writer's documented `build_ready` control-input defaults:
+the writer's documented `build_ready` control-input defaults, which the `ready-role-filing` rule
+fixes at "omitted is NOT build-ready" for every vendor:
 
 1. Classify the issue structurally using the S15 child-resolution rules. A container (any issue
    with child work, plus a childless `Epic`) may omit `status:*`; its state rolls up rather than
    being assigned directly.
-2. For a proposed leaf spec, normalize omitted `build_ready` to `true`, preserving the writer's
-   backward-compatible default-ready behavior. Explicit `build_ready: false` means backlog mode.
+2. For a proposed leaf spec, normalize omitted `build_ready` to `false`, per `ready-role-filing`:
+   ready is an explicit claim, so only `build_ready: true` asserts it. Explicit `build_ready: false`
+   means the same backlog mode. (This validator previously normalized omitted → `true` to mirror
+   GitHub's implicit-ready writer default; both were removed together, and re-introducing either
+   here would just move the leak.)
 3. For a live issue ref, derive `build_ready` from the labels (`true` exactly when the S15-resolved
    `READY_ROLE` from `github.labels.build.ready`, default `status:ready`, is present). A live backlog leaf without a status label
    therefore validates as `build_ready: false`; live data cannot distinguish an explicit false from

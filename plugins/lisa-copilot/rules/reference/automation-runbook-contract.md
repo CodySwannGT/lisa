@@ -159,7 +159,14 @@ fleet verdict.
 
 A loop that cannot proceed escalates by filing a tracker item (through `lisa-tracker-write`, per
 `tracked-work` and `integration-access-layer`) labeled **`status:blocked`** and **`human-needed`**,
-containing exactly these fields:
+containing exactly these fields.
+
+Every escalation is a **declared human gate** under `ready-role-filing`: it passes
+`human_gate: "<the smallest unresolved choice>"` so the writer stamps the auditable
+`[lisa-human-gate]` marker. An escalation is precisely a filing whose readiness a human owns, so
+omitting the flag and relying on a tracker default would make a deliberate gate indistinguishable
+from the accidental non-ready filing that rule exists to catch.
+
 
 | Field | Content |
 |---|---|
