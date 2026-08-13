@@ -6,7 +6,7 @@
  * `CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml`; the contract both
  * halves implement is `docs/nightly-e2e-gate.md` in Lisa, whose §2 truth table
  * is proven row-by-row by `tests/unit/scripts/nightly-e2e-health*.test.ts`
- * (rows 1-16, `-api` rows 17-20, `-bypass` rows 21-25).
+ * (rows 1-16, `-api` rows 17-20, `-bypass` rows 21-25, `-completeness` row 26).
  *
  * Usage:
  *   node scripts/check-nightly-e2e-health.mjs          # human report, exit 1 when blocked
@@ -38,6 +38,12 @@
  * An unreachable or rate-limited API is a HARD failure after a bounded retry;
  * there is no configuration that renders "we could not check" as "it is fine".
  *
+ * A `success` run is not automatically a fresh `success`, and since row 26 it is
+ * not automatically a COMPLETE one either: GitHub concludes a run `success` when
+ * jobs were skipped, so a suite narrowed to one platform — or one whose
+ * prerequisites were absent — reports green having tested nothing it was asked
+ * about. A run-scoped suite therefore reads the run's jobs as well.
+ *
  * The one forgiving state is the TIME-BOXED bootstrap window (`bootstrap_until`),
  * during which MISSING evidence is reported but does not block, always with its
  * expiry timestamp on screen. Bootstrap forgives absence of evidence, never
@@ -65,7 +71,7 @@ import { pathToFileURL } from "node:url";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.0.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.1.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -565,20 +571,75 @@ export function assessSuite(suite, observation, context) {
     };
   }
 
+  const jobs = observation.jobs ?? [];
+
   if (suite.match.mode === "run") {
     const state = stateForConclusion(run.conclusion);
+    if (state !== SUITE_STATES.pass) {
+      return {
+        ...base,
+        ...seen,
+        state,
+        reason:
+          state === SUITE_STATES.unknown
+            ? "indecisive_conclusion"
+            : "run_conclusion",
+      };
+    }
+
+    // Row 26 — COMPLETENESS. `mode: "run"` means the whole workflow IS the
+    // suite, so the run's own `success` is evidence only when every job behind
+    // it also succeeded.
+    //
+    // GitHub concludes a run `success` when jobs were SKIPPED. That is how a
+    // suite reports green having tested half of itself: the shipped
+    // `maestro-e2e.yml` caller exposes a `platform` dispatch picker, and
+    // `platform: android` leaves the iOS job skipped while the run still
+    // concludes `success`. Read as a run conclusion alone, that filtered
+    // dispatch cleared a required merge gate for an arm that never executed —
+    // propswap's trap, a suite declaring itself green on evidence it never
+    // gathered. The same shape reaches the CRON path: with
+    // `require_prerequisites: false` and no EXPO_TOKEN, every job skips and the
+    // run is still `success`.
+    //
+    // The discriminator is "was this run PARTIAL?", never "was this a
+    // dispatch?" — twice deliberately. The runs API exposes no `inputs` field,
+    // so the filter itself is unreadable; and a full unfiltered dispatch is the
+    // documented unblock path (§7), which must keep counting or the gate stops
+    // being escapable by FIXING.
+    //
+    // An EMPTY job list lands here too: a completed run always has at least one
+    // job, so an empty list is an unread job list, and "we could not check"
+    // never renders as "it is fine".
+    const shortfall = jobs.find(job => job.conclusion !== GREEN_CONCLUSION);
+    if (jobs.length === 0 || shortfall) {
+      const conclusion = shortfall?.conclusion ?? null;
+      return {
+        ...base,
+        ...seen,
+        // The RUN's `success` must not be printed beside a blocked state — the
+        // same self-contradiction the job-scoped modes refuse below.
+        conclusion,
+        url: shortfall?.html_url ?? seen.url,
+        // A skipped arm is ABSENCE of evidence, which bootstrap may forgive; a
+        // job that failed under `continue-on-error` inside a green run is
+        // EVIDENCE OF FAILURE, which it never may.
+        state:
+          stateForConclusion(conclusion) === SUITE_STATES.fail
+            ? SUITE_STATES.fail
+            : SUITE_STATES.unknown,
+        reason: "incomplete_run",
+      };
+    }
+
     return {
       ...base,
       ...seen,
-      state,
-      reason:
-        state === SUITE_STATES.unknown
-          ? "indecisive_conclusion"
-          : "run_conclusion",
+      state: SUITE_STATES.pass,
+      reason: "run_conclusion",
     };
   }
 
-  const jobs = observation.jobs ?? [];
   const matches =
     suite.match.mode === "job"
       ? jobs.filter(job => job.name === suite.match.name)
@@ -903,6 +964,8 @@ const REASON_TEXT = Object.freeze({
     "the run completed without ever producing the job this gate reads. The job was renamed, which silently disarms the gate.",
   pattern_matched_nothing:
     "the job pattern matched zero jobs in the newest run. Zero matches is the signature of a renamed job.",
+  incomplete_run:
+    "the run reported `success`, but it did not run everything: at least one job was skipped, failed under `continue-on-error`, or could not be read. A run that skipped part of itself did not gather the evidence its green claims — a suite re-run for one platform only is not a verdict about the other one. Re-run the suite WITHOUT narrowing it.",
   run_conclusion: "",
   job_conclusion: "",
 });
@@ -979,7 +1042,7 @@ export function formatReport(verdict, context) {
     lines.push(
       `Merges into \`${context.branch}\` are blocked until the nightly e2e suites are green again. To unblock:`,
       "  1. Fix the failure (open the run above — it names the failing spec or flow).",
-      `  2. Re-run the suite from the Actions tab against \`${context.branch}\`. A \`workflow_dispatch\` run counts exactly like a scheduled one, so a green dispatch clears this gate immediately — no waiting for tomorrow.`,
+      `  2. Re-run the suite from the Actions tab against \`${context.branch}\`, running the WHOLE suite. A \`workflow_dispatch\` run counts exactly like a scheduled one, so a green dispatch clears this gate immediately — no waiting for tomorrow. What does not count is a NARROWED re-run: leave any platform / tag / shard picker on its "all" default, because a run that skipped an arm says nothing about that arm.`,
       "  3. Re-run this check on your PR.",
       "",
       `If the failure is in the harness rather than the app — or this IS the PR that fixes the red nightly — a maintainer (not you) can apply the \`${context.bypassLabel}\` label after you add a \`Nightly-E2E-Bypass: <TICKET> <reason>\` line to the PR body. There is no admin-merge-past-red: the audited bypass is the only sanctioned path.`
@@ -1182,7 +1245,10 @@ export async function observe(api, suites, branch, wait) {
               : newest,
           null
         );
-      if (!run || suite.match.mode === "run") {
+      // Jobs are read for EVERY match mode, `run` included. A run-scoped suite
+      // needs them to prove the run was complete (row 26) — a `success` run
+      // that skipped half its jobs is not evidence about the half it skipped.
+      if (!run) {
         return { workflowMissing: false, run, jobs: [] };
       }
       return {

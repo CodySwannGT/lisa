@@ -201,11 +201,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "444367a8cefaa81b484bc6eff5923c34177e10f6a67cbf1befec00c9d0d1d36b",
+      "4bacb1da9ea897345aad77b8ae7ee96861c555aa77a00846f4572da18e9fd6e0",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "4185f5083d8da5efa620e8641d6b75e0cb424edd563989c7432892872969797c",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "f0ca0b9ed28f565e60de14e0fb949d335b308243e108948cd1f7cb1472d30724",
+      "009f43bf5a07574adcad11c09c947d54e1a5877ff4ba51128dd4721ad6877a70",
     "expo/create-only/.zap/baseline.conf":
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
@@ -781,7 +781,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "1ce689b08f73c13a771630c8ed9803db8665c1dd5191f2f8e97f7d954aeec5ba",
+      "c7dea3e5ad59da3b00993318c2f7f7351693d00207a2fbafb5f00f60fb47bf69",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/credential-substrate-precedence.md":
@@ -877,7 +877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "81b6eb911cf5cf6d1913cacf65b6ae298732e0a4e92529aed6767cdf79ab2ec0",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
-      "189f1d0be562c442b5db07efdb87783e964c08016e2761ae58da252bd17ba20b",
+      "5944dd862f949155db1f4e43279041407dc2c920723cee808fa353dc0bdd2c6e",
     "plugins/src/base/scripts/queue-health-classification.mjs":
       "07fd596da5792d8bd29f2d51584c59011d3d06256eae601b27a3c72730b42333",
     "plugins/src/base/scripts/queue-status-build-readers.mjs":
@@ -1039,7 +1039,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "102953b4b8166b28e5c8d16bef852d3d9c1213b59e8d691d0647784f3cfd1be8",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "24207a3f856c5ef423e4ffdb0cdbd7053545048e4b0d0e690422ef8318396667",
+      "e11d891fecd45a7f2d1939de5b735bdd46d66727c3cb7737212c00392103834c",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
@@ -1297,7 +1297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
-      "ab45fdc00294c4ca9698093cb294a2aaf39a73d714fe1aa6ad686c6c34e157ba",
+      "77f6fb5592dc06b9e949e43a918e8b9197c90197858cb447f26915ae30c62d7c",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
@@ -2205,7 +2205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "c1e4bf2287982c9814f168a13f66792c013f557a6028adbc8110ee4214cecf15",
+      "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "86e9df17ea11fe0cd11d54f7fd60f016338e7fe28cdd4b07fab3b0b064b64ffb",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -8704,6 +8704,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-work-item.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-completeness.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
@@ -8891,6 +8892,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
     "tests/unit/strategies/linear-access-history.test.ts": true,
+    "tests/unit/strategies/linear-ready-state-inversion.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
     "tests/unit/strategies/mld-telemetry-contract.test.ts": true,
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
