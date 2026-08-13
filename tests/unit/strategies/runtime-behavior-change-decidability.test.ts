@@ -92,7 +92,12 @@ const readRule = (root: string, tier: "eager" | "reference"): string => {
   );
   try {
     return readFileSync(nested, "utf-8");
-  } catch {
+  } catch (error) {
+    // Fall back only when the nested rule is ABSENT. Catching everything meant
+    // a permissions or encoding failure on the nested path was reported
+    // against the flat one, sending a maintainer to a file that was never the
+    // problem.
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return readFileSync(flat, "utf-8");
   }
 };
@@ -193,6 +198,16 @@ describe("validators derive the flag from the live item", () => {
       const content = readSkill(root, slug);
 
       expect(content).toContain(EXEMPT_PREFIX);
+      // Assert the WRONG spelling is absent, rather than that the right one is
+      // present. Two mutation runs were needed to get this right, and both
+      // failures are the same mistake in different clothes: `toContain` passes
+      // on any one correct occurrence, and so does a regex for the correct
+      // sentence — this file states the grammar twice, in S8 and in the
+      // execution step, so the correct S8 copy vouched for a broken execution
+      // step both times. A validator whose execution step spells the marker
+      // differently from its own grammar reads a correctly-exempt item as
+      // underivable, which is precisely the bug this suite exists to prevent.
+      expect(content).not.toContain("`None -`");
       expect(content).toMatch(
         /absent section (?:means|→) \*\*underivable\*\*|absent section → \*\*underivable\*\*/i
       );

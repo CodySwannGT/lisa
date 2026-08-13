@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "9f2e6709c2ac9279e510b99e53acd2075c915619dec69446029715b5045c1bf1",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "1e80db2f71e5587ce10a15c6a6a2a49966a589e3b198ff61bd66d6a4d6bc47c6",
+      "5eae1b662ada55c4a0737904351ad101fba2b622571562c93f29cf120cca1318",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "4e48dcd9e1144837890359e75cc405280bf5f52cf497e44f294b608ad681580c",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
