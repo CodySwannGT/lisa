@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.5.2](https://github.com/CodySwannGT/lisa/compare/v3.5.1...v3.5.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **maestro-e2e:** never let the pre-suite job conclude `skipped` ([13af671](https://github.com/CodySwannGT/lisa/commit/13af671d7942a218c56e8ae750f51a9a961265e6)), closes [#2478](https://github.com/CodySwannGT/lisa/issues/2478) [CodySwannGT/lisa#2493](https://github.com/CodySwannGT/lisa/issues/2493)
+
 ### [3.5.1](https://github.com/CodySwannGT/lisa/compare/v3.5.0...v3.5.1) (2026-08-13)
 
 
