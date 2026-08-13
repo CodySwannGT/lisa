@@ -1,3 +1,4 @@
+import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
 import { readJsonOrNull } from "../utils/json-utils.js";
@@ -166,9 +167,10 @@ async function findStaleFiles(
 ): Promise<readonly string[]> {
   const checked = await Promise.all(
     [...files].map(async ([name, content]) => {
-      const existing = await fse
-        .readFile(path.join(projectDir, VENDOR_DIR, name), "utf-8")
-        .catch(() => null as string | null);
+      const existing = await readFile(
+        path.join(projectDir, VENDOR_DIR, name),
+        "utf-8"
+      ).catch(() => null as string | null);
       return { name, stale: existing !== content };
     })
   );
@@ -273,10 +275,7 @@ export class EnsureOxlintBaseConfigsMigration implements Migration {
     await fse.ensureDir(vendorDir);
     await Promise.all(
       plan.staleFiles.map(name =>
-        fse.writeFile(
-          path.join(vendorDir, name),
-          plan.files.get(name) as string
-        )
+        writeFile(path.join(vendorDir, name), plan.files.get(name) as string)
       )
     );
 
@@ -285,7 +284,7 @@ export class EnsureOxlintBaseConfigsMigration implements Migration {
       const oxlintrc = (await readJsonOrNull<OxlintConfigLike>(
         oxlintrcPath
       )) as OxlintConfigLike;
-      await fse.writeFile(
+      await writeFile(
         oxlintrcPath,
         `${JSON.stringify({ ...oxlintrc, extends: plan.nextExtends }, null, 2)}\n`
       );

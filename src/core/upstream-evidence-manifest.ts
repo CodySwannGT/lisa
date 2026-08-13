@@ -8696,6 +8696,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
+    "tests/unit/core/fs-extra-namespace-members.test.ts": true,
     "tests/unit/core/host-rules-parity.test.ts": true,
     "tests/unit/core/host-rules-pointer.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
