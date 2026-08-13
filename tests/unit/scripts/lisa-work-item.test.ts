@@ -281,7 +281,12 @@ function wedgeRebase(fixture: Fixture, branch: string): void {
  * this binding exists to serve.
  */
 function stateFilePath(fixture: Fixture): string {
-  return path.join(
+  // `path.resolve`, not `path.join`. `--git-path` answers relatively in a main
+  // checkout (`.git/lisa/...`) but ABSOLUTELY in a linked worktree
+  // (`/repo/.git/worktrees/<name>/lisa/...`), and joining an absolute path onto
+  // the root concatenates instead of resolving — yielding a path that does not
+  // exist, in precisely the linked-worktree case this helper exists to serve.
+  return path.resolve(
     fixture.root,
     git(
       fixture.root,
@@ -416,6 +421,36 @@ function prRange(
 }
 
 describe("work-item binding and commit messages", () => {
+  it("binds inside a linked worktree, whose private state lives under .git/worktrees/", () => {
+    // The binding exists to serve worktree-based agents, but every other case
+    // here runs in a main checkout, where `.git/lisa/` and the worktree's
+    // private dir happen to be the same place. Only a linked worktree tells
+    // `git rev-parse --git-path` apart from a hardcoded `.git/lisa/` — and it
+    // answers with an ABSOLUTE path there, which is what the helper must
+    // resolve rather than join onto the worktree root.
+    const fixture = createFixture();
+    const linked: Fixture = {
+      ...fixture,
+      root: path.join(fixture.root, "linked"),
+    };
+    git(
+      fixture.root,
+      ["worktree", "add", "-q", "-b", "feature/linked", "linked", "main"],
+      fixture.env
+    );
+
+    expect(command(linked, ["bind", "acme/widgets#42"]).status).toBe(0);
+
+    const linkedState = stateFilePath(linked);
+    expect(linkedState).toContain(path.join(".git", "worktrees", "linked"));
+    expect(linkedState).not.toBe(stateFilePath(fixture));
+    expect(JSON.parse(readFileSync(linkedState, "utf8"))).toMatchObject({
+      branch: "feature/linked",
+      provider: "github",
+      ref: "acme/widgets#42",
+    });
+  });
+
   it("merges local config, writes worktree-private state atomically, and preserves the subject", () => {
     const fixture = createFixture(githubConfig("identity"));
     writeFileSync(
