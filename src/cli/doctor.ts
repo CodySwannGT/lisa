@@ -20,6 +20,7 @@ import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
+import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { STARTERS } from "./starters.js";
 import { runUpdateCheck } from "./update-check.js";
 
@@ -357,6 +358,11 @@ export async function runDoctor(
     await checkLearningsMergeDriver(resolvedTarget),
     await checkWorkerEpoch(resolvedTarget),
     checkLegacyCodexOverlay(resolvedTarget),
+    // Environment hygiene rather than project config: accumulated agent
+    // worktrees are what make unrelated unit suites time out under ambient
+    // load, so an operator debugging a red suite needs the count in front of
+    // them (CodySwannGT/lisa#2490).
+    await checkWorktreeHygiene(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),
     checkWiki(resolvedTarget),
     ...(options.readiness === true

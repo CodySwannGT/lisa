@@ -27,6 +27,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
+// Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
+// runs measured at load ~115 with 38 agent worktrees present, without being
+// touched by the change under test. Appears independently in both failure sets
+// collected for CodySwannGT/lisa#2490.
+useIoLatencyBudget();
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
