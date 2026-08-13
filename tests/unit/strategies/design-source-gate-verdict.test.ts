@@ -10,12 +10,17 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { evaluateDesignSource } from "../../../plugins/src/base/scripts/design-source-gate.mjs";
+import {
+  VIOLATION_STATUSES,
+  classifyDesignSource,
+  evaluateDesignSource,
+} from "../../../plugins/src/base/scripts/design-source-gate.mjs";
 
 import {
   FIGMA_URL,
   MARKER,
   PATHS,
+  VIOLATION_VERDICT_CASES,
   annotated,
   changed,
   unannotated,
@@ -138,4 +143,35 @@ describe("design-source gate — change verdict", () => {
     expect(result.verdict).toBe("PASS");
     expect(result.syncBackPreferred).toEqual([]);
   });
+});
+
+describe("design-source gate — every failing status reaches the verdict", () => {
+  // Issue #2492: classifying a file `conflicting` or `unreadable` was asserted,
+  // but nothing asserted the label *caused* a FAIL. Deleting either word from
+  // VIOLATION_STATUSES flipped the gate to PASS with all 38 tests green. These
+  // two tests close the class rather than the two instances.
+  it("pins the failing-status set so no member can be added or removed untested", () => {
+    const byName = (left: string, right: string): number =>
+      left.localeCompare(right);
+
+    expect([...VIOLATION_STATUSES].toSorted(byName)).toEqual(
+      VIOLATION_VERDICT_CASES.map(([status]) => status).toSorted(byName)
+    );
+  });
+
+  it.each(VIOLATION_VERDICT_CASES)(
+    "FAILs the whole change on a lone %s file",
+    (status, file) => {
+      // Guard the fixture first: if it stopped producing this status, the
+      // verdict assertion below would prove nothing about this arm.
+      expect(classifyDesignSource(file).status).toBe(status);
+
+      const result = evaluateDesignSource({ files: [file] });
+
+      expect(result.verdict).toBe("FAIL");
+      expect(result.violations.map(v => v.path)).toEqual([file.path]);
+      expect(result.reasons).toContain(`${status}:${file.path}`);
+      expect(result.summary.violations).toBe(1);
+    }
+  );
 });
