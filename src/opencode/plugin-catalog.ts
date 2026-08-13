@@ -40,6 +40,11 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["*"],
   },
   {
+    id: "block-direct-issue-create",
+    templateFilename: "lisa-block-direct-issue-create.ts",
+    forProjectTypes: ["*"],
+  },
+  {
     id: "block-suppress-directives",
     templateFilename: "lisa-block-suppress-directives.ts",
     forProjectTypes: ["typescript"],

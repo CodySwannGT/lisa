@@ -70,10 +70,15 @@ const BLOCKED = 2;
 /** The command that started all of this. */
 const BYPASS = "git commit --no-verify -m x";
 
+// Every guard the build syncs into `all/copy-overwrite/scripts/lisa-hooks/`.
+// The byte-equality assertion below is what stops a shipped guard drifting from
+// the reviewed one, so a guard missing from this list is an unreviewed guard.
 const GUARDS = [
   "block-no-verify",
   "parity-safety-net",
   "block-shell-json-parsing",
+  "block-instruction-file-edits",
+  "block-direct-issue-create",
 ] as const;
 
 const temporaries: string[] = [];

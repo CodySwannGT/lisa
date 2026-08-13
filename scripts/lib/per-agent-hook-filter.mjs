@@ -60,6 +60,16 @@ const SCRIPT_RULES = {
     agy: true,
     copilot: true,
   },
+  // Bash-only by construction, so every agent that can intercept a shell
+  // command gets the WHOLE guard rather than an arm of it — including agy,
+  // whose `run_command` matcher is exactly the surface this needs.
+  "block-direct-issue-create.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: true,
+    copilot: true,
+  },
   "enforce-team-first.sh": {
     claude: true,
     codex: false,
