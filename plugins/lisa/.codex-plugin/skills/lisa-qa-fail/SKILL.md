@@ -20,7 +20,9 @@ plus any screenshots).
   recently-closed tickets in the affected area, and the current QA-queue set. If an existing ticket
   covers it, that ticket is the target — update it, never file a twin. Only when the
   search documents no match, create a new Bug via `lisa-tracker-write` (which enforces
-  the full quality gates) and treat it as the target. Report which path was taken.
+  the full quality gates) with explicit `build_ready: true` per the `ready-role-filing`
+  rule — omitted is NOT build-ready on any tracker, and a rework Bug nothing claims is
+  an incomplete handoff — and treat it as the target. Report which path was taken.
 
 ## Phase 2 — Structured failure report
 

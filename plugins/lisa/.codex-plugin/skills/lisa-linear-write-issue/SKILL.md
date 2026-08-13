@@ -31,7 +31,7 @@ Linear's data model maps Epic / Story / Sub-task to **different entity types**. 
 | `Bug` | **Issue** | `lisa-linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 | `Spike` | **Issue** | `lisa-linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 
-The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state by default; `build_ready: false` leaves it in the team's default backlog state instead, and a container is never put in `ready` at all (see the Build-ready control input below).
+The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state only on explicit `build_ready: true`; omitted or `false` leaves it in the team's default backlog state, and a container is never put in `ready` at all (see the Build-ready control input below).
 
 ## Phase 1 — Resolve Intent
 
@@ -227,7 +227,7 @@ If the item modifies an existing user-facing surface, a `lisa-product-walkthroug
 
 Before create/update, verify each field is populated where applicable:
 
-- **Workflow state**: set the resolved `ready` state (`linear.workflow.ready`, default `Ready`) on a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **unless `build_ready: false`** (see the Build-ready control input below). A container (Epic Project / Story with sub-issues / Spike) is never put in the build-ready state.
+- **Workflow state**: set the resolved `ready` state (`linear.workflow.ready`, default `Ready`) on a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **only on explicit `build_ready: true`** (see the Build-ready control input below). A container (Epic Project / Story with sub-issues / Spike) is never put in the build-ready state.
 - **Labels**: taxonomy only — `type:<Kind>`, `repo:<name>`, `component:<name>`, and the `prd-intake-feedback` sentinel. Lifecycle is **not** a label on Linear; do not add `status:*` labels.
 - **Native priority field**: 0–4 per Linear's scale; explicit, not "unset".
 - **Native estimate**: per Linear's team-configured estimate scale (often 0–8 Fibonacci); skip for Epic / Spike.
@@ -239,11 +239,20 @@ For Bug / Task / Sub-task, ensure the summary is prefixed with `[<repo-name>]`.
 
 ### Build-ready control input (`build_ready`)
 
-`build_ready` is an optional write-control input (default: **omitted**). It governs whether a **leaf** work unit is created **in the resolved `ready` workflow state**. It never overrides `leaf-only-lifecycle` — a container is never stamped build-ready regardless of `build_ready`. "Not build-ready" is not a special state: the Issue is simply left in the team's default backlog/unstarted state, which a human can promote later. This mirrors `lisa-jira-write-ticket`, because Linear is a state-driven tracker like JIRA, not a label-driven one like GitHub.
+`build_ready` is a write-control input governed by the `ready-role-filing` rule — cite that slug for the full contract; do not restate its per-vendor normalization table here. It decides whether a **leaf** work unit is created **in the resolved `ready` workflow state**. It never overrides `leaf-only-lifecycle` — a container is never stamped build-ready regardless of `build_ready`. "Not build-ready" is not a special state: the Issue is simply left in the team's default backlog/unstarted state, which a human can promote later. This mirrors `lisa-jira-write-ticket`, because Linear is a state-driven tracker like JIRA, not a label-driven one like GitHub.
 
-- **Omitted** → current behavior: a leaf work unit is created in the resolved `ready` state. Preserves what every existing caller (`lisa-plan`, the `*-to-tracker` skills) relies on.
+- **Omitted** → **not build-ready**: the leaf is left in the team's default backlog state. Ready is an explicit claim, never a vendor default. **This is a breaking change** — Linear previously created a leaf directly in the `ready` state on omission, so a caller that relied on that must now pass `build_ready: true`.
 - **`build_ready: false`** → create the leaf **without** the `ready` state, leaving it in the team's default backlog state so it waits for a human to review and promote it into the queue.
 - **`build_ready: true`** → transition the **leaf** to the resolved `ready` state (`.linear.workflow.ready`) so `lisa-intake` / `lisa-linear-build-intake` auto-picks it up. Best-effort: if the state cannot be resolved or the transition is rejected, do not fail the write — leave the Issue in its default state and record the reason.
+
+**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<why a human must judge this first>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the Issue so it is auditable — a visible line plus the verbatim marker:
+
+```text
+Held for a human product call: <reason>.
+<!-- [lisa-human-gate] reason=<short-slug> -->
+```
+
+If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
 
 ## Phase 5.5 — Validate (Pre-write Gate)
 
