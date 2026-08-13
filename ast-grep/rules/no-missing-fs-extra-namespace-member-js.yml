@@ -39,6 +39,24 @@ message: |
     - JSON         -> read the file, then `JSON.parse` / `JSON.stringify`
     - whole module -> `import fse from "fs-extra"`. The DEFAULT export does
                       carry every member and is deliberately not flagged here.
+# Test trees are excluded on purpose — see the TypeScript rule for the full
+# rationale. In short: the defect class is "works under a bundler, `undefined`
+# under real Node", so it can only bite code Node executes directly, and the
+# runtime control in the Lisa monorepo already scopes itself to source trees
+# for exactly that reason. Keep this list in step with the TypeScript rule.
+ignores:
+  - '**/tests/**'
+  - '**/test/**'
+  - '**/__tests__/**'
+  - '**/__mocks__/**'
+  - '**/*.test.js'
+  - '**/*.test.mjs'
+  - '**/*.test.cjs'
+  - '**/*.test.jsx'
+  - '**/*.spec.js'
+  - '**/*.spec.mjs'
+  - '**/*.spec.cjs'
+  - '**/*.spec.jsx'
 rule:
   all:
     - pattern: $NS.$MEMBER
