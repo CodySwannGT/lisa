@@ -50,6 +50,32 @@ message: |
     - JSON         -> read the file, then `JSON.parse` / `JSON.stringify`
     - whole module -> `import fse from "fs-extra"`. The DEFAULT export does
                       carry every member and is deliberately not flagged here.
+# Test trees are excluded on purpose, matching the scope the runtime control
+# already chose. The defect class is "works under a bundler, `undefined` under
+# real Node" — so it can only bite code that Node executes directly. Vitest and
+# Jest resolve `import * as fse from "fs-extra"` through CJS interop and hand
+# back the default export's properties, which is precisely why test files can
+# call `fse.writeJson` forever without ever being wrong.
+#
+# `tests/unit/core/fs-extra-namespace-callsites.test.ts` scopes itself to
+# ["src", "scripts"] for this reason — "trees whose code is executed by Node
+# directly, not through a bundler". This rule matches that scope rather than
+# inventing a second, wider one. Path globs are used instead of a src/scripts
+# allowlist because host project layouts vary (apps/, packages/, lib/) while
+# test directory conventions do not.
+ignores:
+  - '**/tests/**'
+  - '**/test/**'
+  - '**/__tests__/**'
+  - '**/__mocks__/**'
+  - '**/*.test.ts'
+  - '**/*.test.mts'
+  - '**/*.test.cts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.mts'
+  - '**/*.spec.cts'
+  - '**/*.spec.tsx'
 rule:
   all:
     - pattern: $NS.$MEMBER
