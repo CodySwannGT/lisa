@@ -12,7 +12,7 @@ name: 🌙 Nightly E2E Health
 #
 # All the logic lives in Lisa's reusable `nightly-e2e-health.yml` plus the
 # Lisa-shipped guard `scripts/check-nightly-e2e-health.mjs`. The contract —
-# including the 25-row fail-closed truth table and the bypass rules — is
+# including the 30-row fail-closed truth table and the bypass rules — is
 # `docs/nightly-e2e-gate.md` in Lisa. This caller owns only the project-specific
 # values: which suites, which branch, and where the gate is required.
 #
@@ -25,7 +25,10 @@ name: 🌙 Nightly E2E Health
 #   2. Leave `bootstrap_until` set to a date ~2 weeks out while you burn the
 #      suite down. Missing evidence will report but not block, with the expiry
 #      visible on every PR. A red suite still blocks. When the date passes the
-#      gate arms itself with no further action.
+#      gate arms itself with no further action. LATER, when you add a suite to
+#      the armed repo, do NOT re-open this window — give that one suite a
+#      `first_seen` anchor instead (see the note above `suites`), so the suites
+#      that were already gating stay armed.
 #   3. Add the required status check to the ruleset for the branch below. The
 #      context is `🌙 Nightly E2E Health / 🌙 Gate` — the composite of THIS
 #      job's name and the reusable's job name, byte for byte, emoji included.
@@ -130,6 +133,22 @@ jobs:
       #
       # Do NOT add a suite whose job `ci.yml` skips — a skipped job never
       # reports, and the gate would read it as missing evidence forever.
+      #
+      # ADDING A SUITE TO AN ALREADY-ARMED REPO: give it a `first_seen` anchor
+      # rather than re-opening `bootstrap_until`. A new suite has no nightly of
+      # its own yet, so without one it is row 9 (no run at all) and blocks every
+      # pull request from the moment you save this file. `first_seen` forgives
+      # THAT SUITE for 14 days (`grace_days` may shorten it) while every other
+      # suite stays armed — which is exactly what widening the global window
+      # would have destroyed. It may not be in the future, and the window may
+      # not run beyond `bootstrap_max_days`; both are hard failures, not clamps.
+      #
+      #   {
+      #     "label": "Playwright browser e2e",
+      #     "workflow": "ci.yml",
+      #     "match": { "mode": "run" },
+      #     "first_seen": "2026-08-10T00:00:00Z"
+      #   }
       suites: |
         [
           {
