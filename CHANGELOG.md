@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.7.0](https://github.com/CodySwannGT/lisa/compare/v3.6.2...v3.7.0) (2026-08-13)
+
+
+### Features
+
+* **doctor:** report accumulated agent worktrees with a count and repair hint ([29621c0](https://github.com/CodySwannGT/lisa/commit/29621c0ebe0c6db9d98102161b5d69c41ccbb0c9)), closes [#2490](https://github.com/CodySwannGT/lisa/issues/2490) [CodySwannGT/lisa#2490](https://github.com/CodySwannGT/lisa/issues/2490)
+
+
+### Bug Fixes
+
+* **tests:** give five marginal-budget suites a budget that measures the code ([8495eff](https://github.com/CodySwannGT/lisa/commit/8495eff991f5805b0a02f2cc70a1dba33fa4c75d)), closes [#2499](https://github.com/CodySwannGT/lisa/issues/2499) [#2490](https://github.com/CodySwannGT/lisa/issues/2490) [CodySwannGT/lisa#2490](https://github.com/CodySwannGT/lisa/issues/2490)
+
 ### [3.6.2](https://github.com/CodySwannGT/lisa/compare/v3.6.1...v3.6.2) (2026-08-13)
 
 
