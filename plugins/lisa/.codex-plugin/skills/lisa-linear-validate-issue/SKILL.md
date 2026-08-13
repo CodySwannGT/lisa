@@ -96,6 +96,7 @@ Per-type content requirements are defined once in the vendor-neutral `work-item-
 | S16 Source Requirement traceability | `product-clarity` | true |
 | S17 Improvement measurability | `acceptance-criteria` | true |
 | S18 Stateless-pickup dry-run | `product-clarity` | true |
+| S19 Branch Plan derivation | `technical` | false |
 | F1 Issue type valid in team | `structural` | false |
 | F2 Project parent exists and is in same team | `structural` | false |
 | F3 Linked items exist | `structural` | false |
@@ -303,6 +304,26 @@ The autonomy gate, run last, on every build-ready leaf (use the S15 classificati
 
 Zero questions → PASS. Any question → FAIL, with each question listed verbatim as its own remediation line — these are exactly the clarifying comments the caller posts to the source. The structure gates are proxies; this gate checks the readiness property itself: `ready` means a stateless agent can drive this item to its terminal state with zero human clarification (see `work-item-definition-of-ready`).
 
+#### S19 — Branch Plan derivation
+
+Enforces the `derived-branch-plan` rule: the `## Branch Plan` section is **derived only** — recompute it from current config and compare; never trust the rendered branches or read them as input. Resolve the environment under the S8 grammar, map that exact configured key forward through `.lisa.config.json` `deploy.branches`, and require the mapped branch on the remote.
+
+| Case | Verdict |
+|---|---|
+| `runtime_behavior_change = false` (doc-only / config-only / type-only) or a Project/container, with no plan | `N/A` — absence is correct; never demand one |
+| Exempt work **carrying** a `## Branch Plan` | **FAIL** — hand-authored branches on work that declared no runtime target |
+| Plan matches the recomputed plan | PASS |
+| Plan conflicts with the recomputed plan | **FAIL** |
+| Plan missing the `Derived from:` provenance line and disagreeing | **FAIL** — treated as hand-authored |
+| `Branch from` and `PR into` name two different branches | **FAIL** — malformed; they are the same branch by construction |
+| Derivation hits a stop condition (env absent from `deploy.branches`, ambiguous / non-unique mapping, branch missing on the remote) | **FAIL** — the same stop `lisa-implement` takes; never default to `main` or the remote default |
+| Proposed spec (pre-write) for applicable work with no plan | **FAIL** — `lisa-linear-write-issue` must render it before the write |
+| Live **legacy** Issue for applicable work with no plan | `N/A` with a repair note — routed to claim time, where `lisa-implement` writes the derived assumption as a comment and proceeds |
+
+Failing a proposed spec is free; failing every existing Issue would turn a legacy queue red for a section no human had a way to add, so legacy absence is repaired at claim time instead.
+
+FAIL names both plans (rendered and recomputed) and points the remediation at **the environment, never the branch** — e.g. `"Branch Plan conflicts with the environment mapping. Rendered 'Branch from: release/staging'; recomputed from Target Backend Environment 'production' via deploy.branches → 'main'. Correct the environment, not the branch — the branches are derived. Then re-render."` Never silently choose between the two plans.
+
 ### Feasibility Gates (require Linear lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in team
@@ -394,6 +415,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S16 Source Requirement traceability — <one-line reason>
 - [PASS|FAIL|N/A] S17 Improvement measurability — <one-line reason>
 - [PASS|FAIL|N/A] S18 Stateless-pickup dry-run — <one-line reason>
+- [PASS|FAIL|N/A] S19 Branch Plan derivation — <one-line reason>
 
 ### Feasibility Gates  (omit when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in team — <one-line reason>

@@ -2166,11 +2166,15 @@ export class Lisa {
       pc.blue,
       "(identical or create-only)"
     );
+    // Not every overwrite is a human saying yes: Lisa's own artifacts refresh
+    // on any apply, which is how a released guard fix reaches installed
+    // projects. Saying "user approved" here would misreport that as consent
+    // nobody gave.
     this.printStatLine(
       "Overwritten:",
       overwritten,
       pc.yellow,
-      "(user approved)"
+      "(approved or Lisa-owned)"
     );
     this.printStatLine(
       "Out of date:",

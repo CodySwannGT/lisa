@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.350.0](https://github.com/CodySwannGT/lisa/compare/v2.349.1...v2.350.0) (2026-08-13)
+
+
+### Features
+
+* **tracker:** derive a visible Branch Plan from the environment mapping ([b2e9035](https://github.com/CodySwannGT/lisa/commit/b2e90350f34987d74ca104abec4e4adfd1f5c61b)), closes [CodySwannGT/lisa#2428](https://github.com/CodySwannGT/lisa/issues/2428) [CodySwannGT/lisa#2428](https://github.com/CodySwannGT/lisa/issues/2428)
+
+
+### Bug Fixes
+
+* **ci:** make a zero-flow Maestro run fail loudly and distinctly ([adcaeeb](https://github.com/CodySwannGT/lisa/commit/adcaeeb302702dce99a79846c851f079a0697a51)), closes [CodySwannGT/lisa#2409](https://github.com/CodySwannGT/lisa/issues/2409)
+* **ci:** stop expanding flows_dir into the Maestro script text ([f210d0a](https://github.com/CodySwannGT/lisa/commit/f210d0ad3b691503b267fc71b3b1cbca54125173)), closes [CodySwannGT/lisa#2409](https://github.com/CodySwannGT/lisa/issues/2409) [CodySwannGT/lisa#2409](https://github.com/CodySwannGT/lisa/issues/2409)
+* **learnings:** refuse a mis-located ledger and detect a second one ([da46d59](https://github.com/CodySwannGT/lisa/commit/da46d59db06380a05e77fb070c82d9b52f374cb8)), closes [CodySwannGT/lisa#2429](https://github.com/CodySwannGT/lisa/issues/2429)
+* **secrets:** enforce the usage-note contract the prose already claims ([3af076c](https://github.com/CodySwannGT/lisa/commit/3af076c88bb27d35b7802d64b652afafc14bc4bb)), closes [CodySwannGT/lisa#2433](https://github.com/CodySwannGT/lisa/issues/2433) [CodySwannGT/lisa#2433](https://github.com/CodySwannGT/lisa/issues/2433)
+
 ### [2.349.1](https://github.com/CodySwannGT/lisa/compare/v2.349.0...v2.349.1) (2026-08-12)
 
 
