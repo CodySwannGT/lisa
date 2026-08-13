@@ -605,6 +605,47 @@ jobs:
           fi
           echo "✅ Android executed $EXECUTED flow(s)."
 
+      - name: 🔍 Classify Maestro failures (diagnostic, never gating)
+        # Reads the JUnit report this arm just wrote and separates a sign-in
+        # PREAMBLE loss — a flow that reds having tested NOTHING, on an
+        # assertion naming a preamble gate rather than its own subject — from a
+        # real product failure. Without it a reader scoring the run by flow name
+        # counts every preamble loss as a regression; upstream, two consecutive
+        # proof runs lost four flows each that way and one arm was written up as
+        # a product regression that came back green with no code change.
+        #
+        # NON-GATING BY CONSTRUCTION, and three independent things enforce it:
+        # `continue-on-error` on the step, `|| true` absorbing the classifier's
+        # status through the pipe, and a classifier that exits 0 on every
+        # readable report. Any one alone would do; all three are here because
+        # the failure is silent, and a diagnostic that can red a green run — or
+        # green a red one — is worse than no diagnostic at all. The nightly
+        # merge gate reads run HISTORY (`docs/nightly-e2e-gate.md`) and never
+        # this output; keep it that way.
+        #
+        # A repo that has not yet picked up the Lisa-shipped script skips
+        # quietly. This workflow is called by repos on their own update cadence,
+        # so a hard failure here would break arms that are merely behind.
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        shell: bash
+        env:
+          MAESTRO_REPORT: maestro-android-report.xml
+          MAESTRO_PLATFORM: android
+          CLASSIFIER: scripts/classify-maestro-failures.mjs
+        run: |
+          if [[ ! -f "$CLASSIFIER" ]]; then
+            echo "No $CLASSIFIER in this repository — skipping flake classification."
+            exit 0
+          fi
+          if [[ ! -f "$MAESTRO_REPORT" ]]; then
+            echo "No $MAESTRO_REPORT to classify."
+            exit 0
+          fi
+          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" "$MAESTRO_REPORT" \
+            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
+          exit 0
+
       - name: 📤 Upload Maestro debug output
         if: always()
         uses: actions/upload-artifact@v4
@@ -926,6 +967,31 @@ jobs:
             exit 1
           fi
           echo "✅ iOS executed $EXECUTED flow(s)."
+
+      - name: 🔍 Classify Maestro failures (diagnostic, never gating)
+        # Byte-identical to the android job's copy with the platform swapped,
+        # for the reason the flow-count step gives: a reader compares the two
+        # arms of ONE run, which they cannot do if the arms report differently.
+        # See that copy for why this step cannot fail the job.
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        shell: bash
+        env:
+          MAESTRO_REPORT: maestro-ios-report.xml
+          MAESTRO_PLATFORM: ios
+          CLASSIFIER: scripts/classify-maestro-failures.mjs
+        run: |
+          if [[ ! -f "$CLASSIFIER" ]]; then
+            echo "No $CLASSIFIER in this repository — skipping flake classification."
+            exit 0
+          fi
+          if [[ ! -f "$MAESTRO_REPORT" ]]; then
+            echo "No $MAESTRO_REPORT to classify."
+            exit 0
+          fi
+          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" "$MAESTRO_REPORT" \
+            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
+          exit 0
 
       - name: 📤 Upload Maestro debug output
         if: always()

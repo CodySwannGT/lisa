@@ -1,23 +1,18 @@
 ---
-description: "Wiki as Knowledge Source (load-bearing)"
+description: "Wiki as Knowledge Source — Query It on Demand (load-bearing)"
 alwaysApply: true
 ---
 
-# Wiki as Knowledge Source (load-bearing)
+# Wiki as Knowledge Source — Query It on Demand (load-bearing)
 
-If the project has an LLM Wiki, treat it as the canonical source of durable project knowledge. A project has a wiki when **either** a local `wiki/` directory with `index.md` exists **or** `.lisa.config.json` declares a `wiki.source` pointer to a remote wiki repo. Documentation rolls UP into that wiki; individual repos are not expected to carry their own prose docs beyond inline code comments.
+If the project has an LLM Wiki, it is the curated store of durable project knowledge: background, conventions, ownership, architecture, glossary, "how and why does X work here". Documentation rolls UP into that wiki; individual repos are not expected to carry their own prose docs beyond inline code comments.
 
-You never have to fetch or freshness-check the wiki yourself: the query and ingest skills resolve the wiki root and guarantee it exists and is current (via `scripts/ensure-wiki.mjs`) as their own first step — a local wiki resolves instantly, a remote wiki is mirrored/refreshed transparently into a gitignored working copy. Just call the skill.
+**Do not load the wiki at session start.** It is deep knowledge, and paying for it on every session is exactly the cost the on-demand rungs of the `learnings-ladder` exist to avoid. Know it is there; go get it when you actually need depth.
 
-Before researching background, conventions, ownership, architecture, glossary, or "how/why does X work here":
+When you do need it, call `/lisa-wiki-query`. You never have to fetch or freshness-check the wiki yourself — the query and ingest skills resolve the wiki root and guarantee it is current (`scripts/ensure-wiki.mjs`) as their own first step: a local wiki resolves instantly, a remote wiki is mirrored and refreshed transparently. Prefer what the wiki says over re-deriving it from raw sources, and fall back to code, tickets, and history when it is silent, ambiguous, or contradicted by what you observe.
 
-1. **Consult the wiki first.** Use the wiki query skill (`/lisa-wiki-query`), which resolves the wiki root for you; for a local wiki you may also start from `wiki/index.md` directly.
-2. **Use what the wiki says** as the authoritative answer when it covers the question — do not re-derive it from raw sources.
-3. **Fall back to primary sources** (code, tickets, commit history, external docs) only when the wiki is silent, ambiguous, or contradicted by what you observe.
-4. **Surface gaps.** If the wiki is wrong, stale, or missing knowledge that belongs there, flag it — and where the workflow supports it, capture the correction via `/lisa-wiki-ingest`.
+If the wiki is wrong, stale, or missing knowledge that belongs there, capture the correction via `/lisa-wiki-ingest` rather than leaving it in this session. The wiki documents knowledge; it does NOT override executable behavior — when wiki and running code disagree about what the system does, trust the code.
 
-The wiki documents knowledge; it does NOT override executable behavior. When wiki and running code disagree about what the system does, trust the code and treat the wiki as out of date.
-
-If the project has neither a local `wiki/` nor a `wiki.source` pointer, this rule does not apply.
+**Applicability.** This rule applies only when the `lisa-wiki` plugin is installed, which is gated on `wiki/lisa-wiki.config.json` existing or `.lisa.config.json` declaring a `wiki` key. Without that, the query skill is not present and this rule does not apply — run `/lisa-wiki-install` (shipped in base) to enable the wiki. Never treat the absent skill as a blocker.
 
 Full prose: [reference/wiki-knowledge-source.md](wiki-knowledge-source-reference.mdc).

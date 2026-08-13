@@ -86,7 +86,7 @@ import { pathToFileURL } from "node:url";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.2.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.3.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -203,6 +203,24 @@ export const DEFAULT_BYPASS_REASON_PATTERN = REQUIRED_BYPASS_REASON_PATTERN;
 
 /** Hard ceiling on how far out a bootstrap window may sit. */
 export const BOOTSTRAP_ABSOLUTE_MAX_DAYS = 30;
+
+/**
+ * How long a newly declared suite is forgiven for having no evidence yet.
+ *
+ * Bootstrap (§4) is one flag for the whole workflow, which made ADDING a suite
+ * a repository-wide wedge: the moment a fourth suite lands in the table of an
+ * armed repo its evidence is missing (row 9), and every pull request is blocked
+ * until that suite's first green nightly. The escapes were re-opening the
+ * GLOBAL window — un-arming the three suites that were working — or burning an
+ * audited bypass. Neither is a proportionate answer to adding a suite.
+ *
+ * Two weeks is a fortnight of nightlies: long enough to wire a suite up and
+ * burn its first failures down, short enough that forgetting the field is
+ * self-correcting. It is a DEFAULT, and `grace_days` may only shorten it —
+ * the ceiling it is checked against is `bootstrap_max_days`, the same
+ * forgiveness budget the global window spends from (§4.1).
+ */
+export const DEFAULT_SUITE_GRACE_DAYS = 14;
 
 /** Hard ceiling on how stale a run may be and still speak for the branch. */
 export const ABSOLUTE_MAX_FRESHNESS_HOURS = 720;
@@ -326,7 +344,15 @@ export class GateApiError extends Error {
 
 /** Keys a suite entry may carry. Anything else is a typo, and typos fail. */
 const SUITE_KEYS = Object.freeze(
-  new Set(["label", "workflow", "match", "freshness_hours", "required_sha"])
+  new Set([
+    "label",
+    "workflow",
+    "match",
+    "freshness_hours",
+    "required_sha",
+    "first_seen",
+    "grace_days",
+  ])
 );
 
 /** Keys each match mode may carry. */
@@ -488,6 +514,39 @@ export function validateSuites(raw) {
       ) {
         throw new GateConfigError(
           `${where}: \`freshness_hours\` must be a number in (0, ${ABSOLUTE_MAX_FRESHNESS_HOURS}].`
+        );
+      }
+    }
+    // Rows 32-35 — the per-suite grace anchor and its length. Shape only; the
+    // WINDOW is resolved (and rejected) in `resolveSuiteGrace`, which is the
+    // one place the `bootstrap_max_days` ceiling is applied to it.
+    if (entry.first_seen !== undefined) {
+      if (
+        typeof entry.first_seen !== "string" ||
+        entry.first_seen.trim().length === 0
+      ) {
+        throw new GateConfigError(
+          `${where}: \`first_seen\` must be an ISO-8601 UTC timestamp naming when this suite entered the table (e.g. "2026-08-10T00:00:00Z").`
+        );
+      }
+    }
+    if (entry.grace_days !== undefined) {
+      // A knob with no anchor is a gate configured differently than its author
+      // believes — the same defect an ignored key is, so it fails the same way.
+      if (entry.first_seen === undefined) {
+        throw new GateConfigError(
+          `${where}: \`grace_days\` requires \`first_seen\`. A grace length with no anchor forgives nothing and reads as though it forgives everything.`
+        );
+      }
+      const days = entry.grace_days;
+      if (
+        typeof days !== "number" ||
+        !Number.isFinite(days) ||
+        days <= 0 ||
+        days > BOOTSTRAP_ABSOLUTE_MAX_DAYS
+      ) {
+        throw new GateConfigError(
+          `${where}: \`grace_days\` must be a number in (0, ${BOOTSTRAP_ABSOLUTE_MAX_DAYS}]. A grace that outlives the bootstrap ceiling IS propswap's forever-bootstrap, whatever it is called — rejected rather than clamped, so widening it is a reviewable act.`
         );
       }
     }
@@ -777,6 +836,77 @@ export function resolveBootstrap(until, maxDays, now) {
   });
 }
 
+/**
+ * Resolves ONE suite's first-seen grace window (rows 32-35).
+ *
+ * The problem this exists for: bootstrap is workflow-global, so adding a suite
+ * to an armed repo blocks every pull request from the moment of the edit until
+ * that suite's first green nightly — and the only outs were re-opening the
+ * global window (which un-arms every suite that was already working) or an
+ * audited bypass. Neither is proportionate to the routine act of adding a
+ * suite, and both teach people that the gate is something to get around.
+ *
+ * What keeps this from becoming propswap's forever-bootstrap is the ANCHOR.
+ * The window is not a date somebody picks; it is `first_seen + grace_days`,
+ * and `first_seen` MAY NOT BE IN THE FUTURE. A future anchor would make this a
+ * hand-typed expiry under another name, extendable by one string edit forever —
+ * so it fails as misconfiguration, exactly as row 24 fails a bootstrap window
+ * beyond its cap. Rolling the anchor forward is still possible, and it is
+ * meant to be: it means writing "this suite is new" about a suite that is not,
+ * in a diff a reviewer reads.
+ *
+ * The ceiling is `bootstrap_max_days` — the SAME forgiveness budget the global
+ * window spends from, already clamped to `BOOTSTRAP_ABSOLUTE_MAX_DAYS` by
+ * `resolveSecurityLimits`. A grace that could outlive it would be a second,
+ * looser bootstrap wearing a per-suite hat.
+ *
+ * A window that lapsed long ago is INERT, never an error: cleaning the field
+ * up must stay optional, or the design buys a churn commit per suite per month
+ * and the first person to hit it deletes the anchor rather than the window.
+ *
+ * @param {object} suite - A validated suite entry
+ * @param {number} maxDays - Ceiling on how far out any forgiveness window may sit
+ * @param {Date} now - Evaluation instant
+ * @returns {{active: boolean, until: string|null, expiresInDays: number|null, firstSeen: string|null}} The window
+ * @throws {GateConfigError} When the anchor is unparseable, in the future, or the window exceeds the ceiling
+ */
+export function resolveSuiteGrace(suite, maxDays, now) {
+  const raw = suite?.first_seen;
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return Object.freeze({
+      active: false,
+      until: null,
+      expiresInDays: null,
+      firstSeen: null,
+    });
+  }
+  const anchor = Date.parse(raw.trim());
+  if (Number.isNaN(anchor)) {
+    throw new GateConfigError(
+      `\`first_seen\` for suite ${JSON.stringify(suite.label)} is not an ISO-8601 timestamp: ${JSON.stringify(raw)}. Use e.g. "2026-08-10T00:00:00Z".`
+    );
+  }
+  if (anchor > now.getTime()) {
+    throw new GateConfigError(
+      `\`first_seen\` for suite ${JSON.stringify(suite.label)} (${raw}) is in the future. A suite cannot have been first seen tomorrow, and an anchor that may sit in the future is a hand-typed expiry under another name — one string edit and the grace never ends.`
+    );
+  }
+  const graceDays = suite.grace_days ?? DEFAULT_SUITE_GRACE_DAYS;
+  const untilMs = anchor + graceDays * 86_400_000;
+  const daysOut = (untilMs - now.getTime()) / 86_400_000;
+  if (daysOut > maxDays) {
+    throw new GateConfigError(
+      `The first-seen grace for suite ${JSON.stringify(suite.label)} runs ${Math.ceil(daysOut)} days out, beyond \`bootstrap_max_days\` (${maxDays}). Per-suite grace spends from the same forgiveness budget as the bootstrap window, so it fails as misconfiguration rather than being clamped — shorten \`grace_days\`, or raise the cap deliberately in the same review.`
+    );
+  }
+  return Object.freeze({
+    active: untilMs > now.getTime(),
+    until: new Date(untilMs).toISOString(),
+    expiresInDays: Math.max(0, Math.ceil(daysOut)),
+    firstSeen: new Date(anchor).toISOString(),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 4. Bypass — maintainers only, no self-bypass, reason required, auto-expiring
 // ---------------------------------------------------------------------------
@@ -924,13 +1054,21 @@ const BYPASS_REJECTIONS = Object.freeze({
  * carrying a stale label still reports `pass` rather than pretending the label
  * did something.
  *
+ * A finding may carry its OWN window in `finding.grace` (rows 32-35), resolved
+ * per suite from `first_seen`. It softens the same states the global window
+ * softens and nothing more — `unknown` only, never `fail` — so grace forgives
+ * absence of evidence and never evidence of failure, exactly as bootstrap does.
+ * Two windows, one rule; a suite is forgiven when EITHER is open, which is what
+ * lets a repo arm three suites and still add a fourth.
+ *
  * @param {ReadonlyArray<object>} findings - Per-suite findings
  * @param {{bootstrap: object, bypass: object|null}} options - Window and bypass decision
  * @returns {{verdict: string, blocked: boolean, findings: ReadonlyArray<object>, bootstrap: object, bypass: object|null}} The verdict
  */
 export function decide(findings, { bootstrap, bypass = null }) {
   const rendered = findings.map(finding =>
-    finding.state === SUITE_STATES.unknown && bootstrap.active
+    finding.state === SUITE_STATES.unknown &&
+    (bootstrap.active || finding.grace?.active === true)
       ? { ...finding, state: "bootstrap" }
       : finding
   );
@@ -1027,7 +1165,14 @@ export function formatFinding(finding) {
       ? "not yet blocking"
       : finding.state.toUpperCase();
   const conclusion = finding.conclusion ? ` [${finding.conclusion}]` : "";
-  return `${marker} ${finding.label} — ${verdictWord}${conclusion}${when} — ${detail}${link}`;
+  // The per-suite expiry rides on the LINE, not just in the trailing
+  // paragraph: with one suite in grace and three armed, a reader has to be able
+  // to tell which line is forgiven and until when. There is no quiet grace.
+  const grace =
+    finding.state === "bootstrap" && finding.grace?.active
+      ? ` — new suite (first seen ${finding.grace.firstSeen}); its grace expires ${finding.grace.until} (in ${finding.grace.expiresInDays} day(s)), after which this line blocks`
+      : "";
+  return `${marker} ${finding.label} — ${verdictWord}${conclusion}${when} — ${detail}${link}${grace}`;
 }
 
 /**
@@ -1052,6 +1197,19 @@ export function formatReport(verdict, context) {
   if (verdict.bootstrap.active) {
     lines.push(
       `⏳ **Bootstrap window active — expires ${verdict.bootstrap.until} (${verdict.bootstrap.expiresInDays} day(s) from now).** Missing evidence is reported but not blocking until then. Evidence of FAILURE still blocks, inside the window as well as outside it. When the window lapses, every ⚠️ above becomes a ❌ with no further action.`,
+      ""
+    );
+  }
+
+  // Per-suite grace gets its own paragraph for the same reason bootstrap does:
+  // a forgiveness nobody can see is a gate quietly measuring less than it reads
+  // as measuring. Naming the suites keeps "which one is new?" off the reader.
+  const inGrace = verdict.findings.filter(
+    finding => finding.state === "bootstrap" && finding.grace?.active
+  );
+  if (inGrace.length > 0) {
+    lines.push(
+      `🌱 **New-suite grace active for ${inGrace.map(finding => `\`${finding.label}\``).join(", ")}.** A suite gets a bounded window from its \`first_seen\` anchor to produce its first verdict, so adding a suite cannot block every pull request until tomorrow's nightly. Every OTHER suite stays armed, evidence of FAILURE still blocks inside the window, and when the window lapses the line above blocks with no further action.`,
       ""
     );
   }
@@ -1964,13 +2122,20 @@ export async function runGate(env, wait) {
     settings.branch,
     wait
   );
-  const findings = settings.suites.map((suite, index) =>
-    assessSuite(suite, observations[index], {
+  const findings = settings.suites.map((suite, index) => {
+    const finding = assessSuite(suite, observations[index], {
       branch: settings.branch,
       freshnessHours: settings.freshnessHours,
       now,
-    })
-  );
+    });
+    // Resolved for EVERY suite, so a misconfigured anchor fails the gate
+    // whether or not its window is still open — a rule that only runs while it
+    // would forgive something is a rule nobody notices breaking. The window is
+    // attached only when the suite actually declared one, so an untouched
+    // table produces byte-identical findings.
+    const grace = resolveSuiteGrace(suite, settings.bootstrapMaxDays, now);
+    return grace.firstSeen === null ? finding : { ...finding, grace };
+  });
 
   let bypass = null;
   if (settings.pr.number && settings.pr.labels.includes(settings.bypassLabel)) {

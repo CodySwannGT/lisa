@@ -22,6 +22,7 @@ import * as fse from "fs-extra";
 
 import { PROJECT_TYPE_ORDER } from "../core/config.js";
 import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
+import { isLisaSourceRepo } from "../core/self-apply.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
 import {
   matchesAnyPattern,
@@ -31,6 +32,13 @@ import {
 const CHECK_NAME = "Lisa enforcement artifacts current?";
 const COPY_OVERWRITE = "copy-overwrite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Quoted relative module specifiers — `import`/`export from`, `require()`, and
+ * a shell `source`/`.` of a sibling path all spell the target the same way.
+ * Bounded quantifier keeps the scan linear on large files.
+ */
+const RELATIVE_SPECIFIER = /["'`](\.\.?\/[^"'`\n]{1,4096})["'`]/g;
 
 /** One doctor check result, structurally identical to `DoctorCheck`. */
 interface ArtifactCheck {
@@ -122,6 +130,36 @@ async function matchesAnyShipped(
 }
 
 /**
+ * Whether the installed file is a trampoline that re-exports the shipped
+ * template instead of copying it.
+ *
+ * Lisa's own repository is the one host that cannot hold a byte copy of a file
+ * it also ships: the working copy and the template would be two editable
+ * originals of the same guard, free to diverge. It keeps a few-line entrypoint
+ * that re-exports the template, so its hooks and CI run the exact bytes the
+ * fleet gets. Byte comparison necessarily calls that drift; it is the opposite.
+ *
+ * Proof, not pattern-match: the specifier is resolved against the installed
+ * file's own directory and must land exactly on a shipped variant of this same
+ * destination. A stub pointing anywhere else is still drift.
+ * @param installed - Bytes currently installed in the project
+ * @param installedPath - Absolute path of the installed file
+ * @param sources - Absolute paths of the shipped variants
+ * @returns True when the installed file defers to a shipped variant
+ */
+function reExportsShippedTemplate(
+  installed: Buffer,
+  installedPath: string,
+  sources: readonly string[]
+): boolean {
+  const shipped = new Set(sources.map(source => path.resolve(source)));
+  const directory = path.dirname(installedPath);
+  return [...installed.toString("utf8").matchAll(RELATIVE_SPECIFIER)].some(
+    match => shipped.has(path.resolve(directory, match[1] ?? ""))
+  );
+}
+
+/**
  * Report Lisa-owned enforcement artifacts the project has an outdated copy of.
  *
  * Only artifacts the project already has are considered: a missing one means
@@ -148,15 +186,21 @@ export async function checkLisaOwnedArtifacts(
     "utf8"
   ).catch(() => "");
   const ignorePatterns = parseIgnorePatterns(ignoreText);
+  // Gating the trampoline exemption on self-host keeps this check byte-for-byte
+  // unchanged for every real host project: the branch below is unreachable
+  // unless the target's package.json is Lisa itself. A host must not be able to
+  // swap a guard for a thin re-export and have doctor call it current.
+  const selfHost = await isLisaSourceRepo(targetPath);
 
   const results = await Promise.all(
     [...shipped].map(async ([destination, sources]) => {
       if (matchesAnyPattern(destination, ignorePatterns)) return undefined;
-      const installed = await readFile(
-        path.join(targetPath, destination)
-      ).catch(() => undefined);
+      const installedPath = path.join(targetPath, destination);
+      const installed = await readFile(installedPath).catch(() => undefined);
       if (installed === undefined) return undefined;
-      return (await matchesAnyShipped(installed, sources))
+      if (await matchesAnyShipped(installed, sources)) return undefined;
+      return selfHost &&
+        reExportsShippedTemplate(installed, installedPath, sources)
         ? undefined
         : destination;
     })
