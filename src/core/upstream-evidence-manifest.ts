@@ -713,7 +713,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/credential-substrate-precedence.md":
-      "20fbbf6499b079105b5d749fed4da787a22a87c12851f1939572a7a5b2601800",
+      "f6013bc428294e6a1e3321e656dc74ad9ec44236b4e5d46d799c3467da1688bf",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
       "e22888f107906992e863fca50f26c2c4b124da7132535cacfac71e4f3085728f",
     "plugins/src/base/rules/eager/dependency-internalization-kit.md":
@@ -813,7 +813,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/credential-substrate-precedence.md":
-      "7c66b0a06792194a547b50bdb49df51923463f26f4f7a0356f0139c5a9385e4f",
+      "5420156ca98fff0d26d1537fbd54781e70cb801cdb8e770a6caa3cb8acd253c7",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
       "84f9fb8fa0a606307e828ec355ccbf2258beeeb88795dd113abe9bb2c37db39f",
     "plugins/src/base/rules/reference/dependency-internalization-kit.md":
@@ -939,7 +939,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
       "a5863836b8fa9d67825d048e1c2fc086d3df95de33cf110129488959b83cb4b5",
     "plugins/src/base/skills/lisa-atlassian-access/SKILL.md":
-      "d516da35f973a94fedee141a2ae5f2d3bc82dda8263b44fd0bc0b03a8f5a5e08",
+      "6366ccce961217d1c7bcac4dad9c2293ee4dcc395b27c142a3b59c62f00b685c",
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "538e5a3d91482b9e2a055e133b7c1fcf809be51d4ae72a10776aaeeb8df4832a",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
@@ -1045,7 +1045,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-intake/SKILL.md":
       "5ca35517fec4483c000466a4a2e7487b0f75ccec17053ad0b06ec4848027d1a1",
     "plugins/src/base/skills/lisa-jam-access/SKILL.md":
-      "c5adc2de7eb34bc021d95cf6de62033a6b1470741ce6e15d5af49ae196aec711",
+      "eb7255578a3ada2278a0437c4300fed3f28b9b1a4ef2fd4ceed63f3d9ab81ed3",
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "92bc77aac50426b37f954ed24d95bd600ae1a429c2fecd6bbd4317053136bb03",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-nightly-lower-code-complexity/SKILL.md":
       "1d070f368b8fb16e1ba60b13a5334a171287dfa0753bc3ad29554afd8fb7ae5b",
     "plugins/src/base/skills/lisa-notion-access/SKILL.md":
-      "2d1956560ef4ed3b8db9464b29c2a4f03030d27711d4cd6776d87cbeac505416",
+      "e0dc04a24c1ad49284e2f484fb59b46bf0b2876a1a2ef500c95444eda7fed05c",
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
       "cf9be0a2173782696e2c1d2fcbc2fc2ae29c0eefa3815ae951f5afef7d029c94",
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md":
@@ -1151,7 +1151,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
       "b41619f3d0d342af2438afd54cb97db7d2445e54e3fc7bb012292079acbc6a4f",
     "plugins/src/base/skills/lisa-posthog-access/SKILL.md":
-      "00c4bc302923930c93b1c32bdfe41b1ae2e5bdba4ca25678f5c9c3e2bff7ff6b",
+      "841f02d455e333edeb6dc859581fd0422101037281a9142ca4d6d77136a8817e",
     "plugins/src/base/skills/lisa-prd-backlink/SKILL.md":
       "31da3d266e461fe7aaa6a91fd03d68b8f2c0a5399f793606e1efc8a003c7b913",
     "plugins/src/base/skills/lisa-prd-source-write/SKILL.md":
@@ -1241,7 +1241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
       "a5189442dbf970cc49fd089ab03c386c8a205b856e09501f6ad1966321e7e4b5",
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
-      "937393a882f480fcbfe517fbaa0eb44ef557d8e0d567c1c66a17eceb6f6ac0a5",
+      "e8ea8e6e4288385202f88b04e258b6d86f304a05d6dc118ebde6e88a7e8b5f44",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "4fa7f9a83a9998951528c8ffffa930c61b5c316b510356a3e7a90ccb9d5ca123",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
@@ -1293,7 +1293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
       "6ab19c08aa9db7643aa49133ba1d0febf1c1dbdc9a503026a01b1ce0a83f68ab",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
-      "011367d5e0337f3490e9c9bc1f90e04319593a3eae1ee7d32c19d2d9396dbea1",
+      "b98aba73d367a671395a08433a47034fce7ea701d31ef89b6aa866efc4dd3fcb",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
       "50e79afcfabf16d36273325aabb58571c9a0e1cafe7a2865e2da10c6d46571eb",
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
@@ -8098,6 +8098,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/cross-pollinate-nudge.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
+    "src/cli/doctor-learnings-merge-driver.ts": true,
     "src/cli/doctor-legacy-overlay.ts": true,
     "src/cli/doctor-lisa-owned-artifacts.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
@@ -8535,6 +8536,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
+    "tests/unit/cli/doctor-learnings-merge-driver.test.ts": true,
     "tests/unit/cli/doctor-lisa-owned-artifacts.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
