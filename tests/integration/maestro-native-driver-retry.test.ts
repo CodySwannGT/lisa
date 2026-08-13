@@ -102,11 +102,18 @@ describe("maestro-native-e2e iOS driver-startup retry (executed)", () => {
         { mode: 0o755 }
       );
 
-      const script = step.run.replaceAll("${{ inputs.flows_dir }}", dir);
+      // The script is executed VERBATIM — no substitution. The flows dir now
+      // arrives as an env var rather than a `${{ }}` expansion baked into the
+      // script text, which is what closes the shell-injection seam on this
+      // reusable input. Asserting the script needs no rewriting to run is the
+      // proof that no expansion is left in it.
+      expect(step.run).not.toContain("${{");
+      const script = step.run;
       const env = {
         ...process.env,
         PATH: `${bin}:${process.env.PATH ?? ""}`,
         FLOW_RUNNER: stub,
+        FLOWS_DIR: dir,
         MAESTRO_E2E_ARGS: "",
         MAESTRO_DRIVER_STARTUP_TIMEOUT: "240000",
         IOS_SIM_UDID: "STUB-UDID",
