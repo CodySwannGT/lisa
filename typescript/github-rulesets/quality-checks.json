@@ -63,6 +63,10 @@
           {
             "context": "🔍 Quality Checks / 🔗 Work-Item Traceability",
             "integration_id": 15368
+          },
+          {
+            "context": "🔍 Quality Checks / 🔎 AST Grep Scan",
+            "integration_id": 15368
           }
         ]
       }
