@@ -144,6 +144,16 @@ const FS_EXTRA_RULES = [
 const FS_EXTRA_RULE_ID = "no-missing-fs-extra-namespace-member";
 
 /**
+ * A namespace call to a member `fs-extra` does not expose under real Node.
+ *
+ * Shared so the "fires here / stays silent there" pairs differ only by file
+ * path — if the source text varied between them, the comparison would prove
+ * nothing about scoping.
+ */
+const FS_EXTRA_VIOLATION =
+  'import * as fse from "fs-extra";\n\nexport const load = async () => await fse.readJson("a.json");\n';
+
+/**
  * Read the `fs-extra` namespace keys as real Node resolves them.
  *
  * This is the anti-rot half of the control. The shipped ast-grep rules must
@@ -214,7 +224,7 @@ describe("ast-grep stack templates", () => {
     scanExpectingDiagnostic(
       "typescript",
       "src/tools/build.ts",
-      'import * as fse from "fs-extra";\n\nexport const load = async () => await fse.readJson("a.json");\n',
+      FS_EXTRA_VIOLATION,
       FS_EXTRA_RULE_ID
     );
   });
@@ -226,7 +236,7 @@ describe("ast-grep stack templates", () => {
     const violations = scanForRule(
       "typescript",
       "src/tools/violation.ts",
-      'import * as fse from "fs-extra";\n\nexport const load = async () => await fse.readJson("a.json");\n',
+      FS_EXTRA_VIOLATION,
       FS_EXTRA_RULE_ID
     );
     expect(violations).toHaveLength(1);
@@ -257,6 +267,32 @@ describe("ast-grep stack templates", () => {
       FS_EXTRA_RULE_ID
     );
     expect(clean).toEqual([]);
+  });
+
+  it("scopes the fs-extra rule to code Node runs directly, not test trees", () => {
+    // Identical source, two locations. The rule is about "works under a
+    // bundler, undefined under real Node", so it can only bite code Node
+    // executes directly — Vitest and Jest hand back the default export's
+    // properties, which is why test files may call these members forever
+    // without being wrong. This mirrors the scope
+    // tests/unit/core/fs-extra-namespace-callsites.test.ts already chose.
+    const inSource = scanForRule(
+      "typescript",
+      "src/tools/loader.ts",
+      FS_EXTRA_VIOLATION,
+      FS_EXTRA_RULE_ID
+    );
+    const inTests = scanForRule(
+      "typescript",
+      "tests/unit/loader.test.ts",
+      FS_EXTRA_VIOLATION,
+      FS_EXTRA_RULE_ID
+    );
+
+    // Asserted as a pair: the source match is what proves the exclusion below
+    // narrows the rule rather than disabling it.
+    expect(inSource).toHaveLength(1);
+    expect(inTests).toEqual([]);
   });
 
   it("keeps the hardcoded fs-extra allow list equal to what real Node exposes", () => {
