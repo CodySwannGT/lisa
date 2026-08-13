@@ -104,6 +104,17 @@ describe("block-no-verify.sh (Codex variant)", () => {
     );
   });
 
+  // The trailing word names an environment variable, not a path, so spelling
+  // it `.husky` turned the hooksPath allowlist itself into the bypass.
+  it.each([".husky", ".githooks", "HOOKS"])(
+    "denies the separate-token --config-env core.hooksPath=%s",
+    envVar => {
+      expect(
+        decide(`git --config-env core.hooksPath=${envVar} commit -m wip`)
+      ).toBe("deny");
+    }
+  );
+
   it.each(["0", "1", "7", "42"])(
     "denies the GIT_CONFIG_KEY_%s=core.hooksPath env-var config override",
     index => {

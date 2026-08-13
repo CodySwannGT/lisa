@@ -129,6 +129,15 @@ for i, token in enumerate(normalized_tokens):
         spec = token.split("=", 1)[1]
         if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
             sys.exit(1)
+    # git also accepts `--config-env <name>=<envvar>` as two tokens. Guarding
+    # only the `=` spelling let the trailing `core.hooksPath=.husky` fall
+    # through to the allowlist above, which reads `.husky` as a path — but here
+    # it names an ENVIRONMENT VARIABLE, which can hold /dev/null. Checked at the
+    # `--config-env` token, which the loop reaches first.
+    if lowered == "--config-env" and i + 1 < len(normalized_tokens):
+        spec = normalized_tokens[i + 1]
+        if spec.split("=", 1)[0].strip().strip("'\"").lower() == "core.hookspath":
+            sys.exit(1)
     # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
     # GIT_CONFIG_VALUE_0=/dev/null git ...` sets the same command-scope config
     # via env-var-style assignments. The index is arbitrary below
