@@ -139,6 +139,22 @@ describe("block-direct-issue-create.sh", () => {
         "jira rest over curl",
         "curl --request POST https://acme.atlassian.net/rest/api/3/issue --data @payload.json",
       ],
+      // gh's persistent flags may precede the subcommand: cobra strips them
+      // before resolving `create`, and this form was VERIFIED against the real
+      // gh (it reaches "must provide --title and --body", i.e. the subcommand
+      // resolved). A strict positional matcher missed it entirely.
+      [
+        "gh with --repo BEFORE the subcommand",
+        'gh issue --repo o/r create --title "x" --body "y"',
+      ],
+      [
+        "gh with --repo=value before the subcommand",
+        'gh issue --repo=o/r create --title "x"',
+      ],
+      // A shell wrapper is a command in a string, not argv — the outer argv
+      // names bash, so nothing about the create is visible without recursing.
+      ["wrapped in bash -c", `bash -c '${UNDECLARED_CREATE}'`],
+      ["wrapped in sh -c", `sh -c '${UNDECLARED_CREATE}'`],
       ["after a cd", 'cd /tmp && gh issue create --title "x"'],
       ["inside a subshell", '(gh issue create --title "x")'],
       ["via an absolute path", '/opt/homebrew/bin/gh issue create --title "x"'],
@@ -224,6 +240,41 @@ describe("block-direct-issue-create.sh", () => {
       );
 
       expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("refuses when the ready role appears only as free text", () => {
+      // The role is a LABEL. A token that means one thing as a flag value and
+      // another inside a title is exactly the shape that turned #2469's
+      // hardening allowlist into a bypass, so the match is position-scoped.
+      const { status } = runHook(
+        bash('gh issue create --title "status:ready is broken" --body "y"')
+      );
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("refuses when the ready role is only in the body", () => {
+      const { status } = runHook(
+        bash('gh issue create --title "x" --body "set status:ready when done"')
+      );
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("accepts the ready role from a comma-joined label list", () => {
+      const { status } = runHook(
+        bash('gh issue create --title "x" --label "type:Bug,status:ready"')
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("accepts the ready role from --label=value", () => {
+      const { status } = runHook(
+        bash('gh issue create --title "x" --label=status:ready')
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
     });
 
     it("honors a project's non-default ready role as the declaration", () => {
