@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.4.0](https://github.com/CodySwannGT/lisa/compare/v3.3.0...v3.4.0) (2026-08-13)
+
+
+### Features
+
+* **design-source:** fail closed when UI ships with no Figma source (TDD GREEN) ([473c0f8](https://github.com/CodySwannGT/lisa/commit/473c0f8f54570c60230cf5a81c37d059ebc50d21)), closes [CodySwannGT/lisa#2430](https://github.com/CodySwannGT/lisa/issues/2430) [CodySwannGT/lisa#2430](https://github.com/CodySwannGT/lisa/issues/2430)
+
 ## [3.3.0](https://github.com/CodySwannGT/lisa/compare/v3.2.0...v3.3.0) (2026-08-13)
 
 
