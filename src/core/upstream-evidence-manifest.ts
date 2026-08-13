@@ -190,6 +190,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cc6a200155889acff761b2eece1768577bc29e09dac417724d243d7f1d1ec9db",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
+    "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
+      "aadb773bfb994e754cfdf576f59d4bfe020184b21953908d40049ddfe3a93fc1",
     "expo/copy-overwrite/tsconfig.eslint.json":
       "375bb2ee8185e4a57d703e078ad57188f6d45b03b0fcbb16ef049fcf9b14c44b",
     "expo/copy-overwrite/tsconfig.expo.json":
@@ -210,6 +212,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "009f43bf5a07574adcad11c09c947d54e1a5877ff4ba51128dd4721ad6877a70",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "df47b2e5c31d2bb4eee6fb979d8d25b3a5cea572e46be042a9b4c59fbe43af72",
+    "expo/create-only/.maestro/flake-classification.json":
+      "b1259c17a875dcdc0fa2398bb280f084e898f46fefaf51e35c3c5aadcbef5a5d",
     "expo/create-only/.zap/baseline.conf":
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
@@ -251,7 +255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "2a0ea2191abd5b377aed4b525a4a97d3eefb1d9e41c845c02ee0daac75df6b1f",
     "expo/package-lisa/package.lisa.json":
-      "a36a59462e548e685bd199770cb2d567a5965a1c1da6e32ef3e9041b2f9f1446",
+      "34c4a356db67fa55d715a7bb4dafac8249a3793cd330bc920cd1769b58fcdcd0",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -2536,6 +2540,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
+    "docs/maestro-flake-classification.md": true,
     "docs/nightly-e2e-gate.md": true,
     "docs/remote-agent-aws.md": true,
     "docs/wiki-inbox/.gitkeep": true,
@@ -2606,6 +2611,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs": true,
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs": true,
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs": true,
+    "expo/copy-overwrite/scripts/classify-maestro-failures.mjs": true,
     "expo/copy-overwrite/tsconfig.eslint.json": true,
     "expo/copy-overwrite/tsconfig.expo.json": true,
     "expo/copy-overwrite/tsconfig.json": true,
@@ -2616,6 +2622,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml": true,
     "expo/create-only/.github/workflows/nightly-e2e-health.yml": true,
     "expo/create-only/.github/workflows/nightly-e2e-report.yml": true,
+    "expo/create-only/.maestro/flake-classification.json": true,
     "expo/create-only/.zap/baseline.conf": true,
     "expo/create-only/babel.config.js": true,
     "expo/create-only/bdd/coverage-map.json": true,
@@ -8424,6 +8431,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-native-driver-retry.test.ts": true,
+    "tests/integration/maestro-native-flake-classification.test.ts": true,
     "tests/integration/maestro-native-flow-runner.test.ts": true,
     "tests/integration/maestro-native-workflow.test.ts": true,
     "tests/integration/maestro-native-zero-flow.test.ts": true,
@@ -8744,6 +8752,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
     "tests/unit/scripts/lisa-work-item.test.ts": true,
+    "tests/unit/scripts/maestro-flake-classification.test.ts": true,
+    "tests/unit/scripts/maestro-flake-helpers.ts": true,
+    "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-completeness.test.ts": true,
