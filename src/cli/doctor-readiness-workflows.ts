@@ -16,8 +16,8 @@
  */
 import { readdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
-import yaml from "js-yaml";
 import { isJsonObject } from "../sync/json-path.js";
+import { loadYaml } from "../utils/yaml.js";
 
 /** The workflows directory every GitHub repository declares its CI in. */
 const WORKFLOWS_DIR = path.join(".github", "workflows");
@@ -303,7 +303,7 @@ async function parseOneWorkflow(
       path.join(root, WORKFLOWS_DIR, fileName),
       "utf8"
     );
-    const document: unknown = yaml.load(source);
+    const document: unknown = loadYaml(source);
     if (!isJsonObject(document)) {
       return null;
     }

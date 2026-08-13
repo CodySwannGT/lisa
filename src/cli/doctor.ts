@@ -7,6 +7,10 @@ import { migrateInstructionFiles } from "../core/instruction-files-migration.js"
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
 import { createDetectorRegistry } from "../detection/index.js";
+import {
+  checkApplyFreshness,
+  checkYamlRuntime,
+} from "./doctor-apply-freshness.js";
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkLearningsMergeDriver } from "./doctor-learnings-merge-driver.js";
@@ -328,6 +332,11 @@ export async function runDoctor(
   const resolvedTarget = path.resolve(targetPath ?? process.cwd());
   const checks = [
     await checkVersion(deps, options.offline === true),
+    // Runs early and unconditionally: a repo that has silently stopped applying
+    // templates fails every other check's premise, and the two lines below are
+    // the ones that name the cause (CodySwannGT/lisa#2467).
+    await checkApplyFreshness(resolvedTarget),
+    checkYamlRuntime(),
     await checkProjectConfig(resolvedTarget),
     await checkKaneProvider(resolvedTarget, deps),
     await checkSonarProvider(resolvedTarget, deps),

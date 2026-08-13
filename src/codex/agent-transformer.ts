@@ -29,7 +29,7 @@
  * Codex's loader accepts.
  * @module codex/agent-transformer
  */
-import yaml from "js-yaml";
+import { loadYaml } from "../utils/yaml.js";
 
 /**
  * Prefix applied to every Lisa-owned Codex agent name. Provides
@@ -80,7 +80,7 @@ export function parseAgentMarkdown(source: string): ParsedAgent {
   }
   const rawFrontmatter = match[1];
   const rawBody = match[2];
-  const parsed = yaml.load(rawFrontmatter) as unknown;
+  const parsed = loadYaml(rawFrontmatter) as unknown;
   const frontmatter = validateFrontmatter(parsed);
   return { frontmatter, body: rawBody.trimStart() };
 }

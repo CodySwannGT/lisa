@@ -4,8 +4,8 @@
  */
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import yaml from "js-yaml";
 import { isJsonObject } from "../sync/json-path.js";
+import { loadYaml } from "../utils/yaml.js";
 import type { CiWorkflowInputs } from "./ui-ci-quality-jobs-compute.js";
 
 /**
@@ -110,7 +110,7 @@ export async function parseCiWorkflowInputs(
   readCiYml: (projectRoot: string) => Promise<string> = readCiYmlFile
 ): Promise<CiWorkflowInputs> {
   const source = await readCiYml(cwd);
-  const document: unknown = yaml.load(source);
+  const document: unknown = loadYaml(source);
   const withBlock = qualityWithBlock(document);
   if (withBlock === undefined) {
     throw new Error(
