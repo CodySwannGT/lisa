@@ -1,0 +1,11 @@
+# Do It Now (load-bearing)
+
+If something needs to happen eventually and **the factory is allowed to do it**, do it in this session. File the ticket, flip it to ready, add the lint rule, fix the flaky test, update the doc that just went stale. Not in a "follow-up" sentence — now.
+
+**"I'll get to that later" is not an acceptable close** for work that is in scope and permitted. A deferral costs a whole future session its context, and most of them are never picked up at all.
+
+The one exception is an **exterior human gate** — a protected deploy, a held-back PRD, a low-confidence learning, a product call only a person can make. There you do the allowed part now (file it, mark the gate, flip everything you may flip) and say plainly what is waiting on a human and why.
+
+Deferring is itself a decision. If you genuinely should not do it now, say so and say why; never leave it implied, and never leave it only in your own head.
+
+Full prose: [reference/do-it-now.md](../reference/do-it-now.md).

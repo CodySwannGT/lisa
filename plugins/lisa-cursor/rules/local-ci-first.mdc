@@ -1,0 +1,20 @@
+---
+description: "Local CI First — CI Is Not a Debugger (load-bearing)"
+alwaysApply: true
+---
+
+# Local CI First — CI Is Not a Debugger (load-bearing)
+
+When an end-to-end suite fails in CI — Playwright, Maestro, Cypress, or any runner you normally only see in a workflow — **reproduce it locally with the same configuration before pushing another commit.**
+
+Push-and-watch is a ten-minute debugger with no breakpoints, and every red run costs the shared queue as well as your session.
+
+## Mandatory
+
+1. **Reconstruct the invocation from the workflow file**, not from memory: the same command, env vars, config file, browser/device target, and tags CI uses.
+2. **Fix it locally, confirm it green locally, then push once.** Never push a speculative fix "to see if it helps."
+3. **If it genuinely will not reproduce locally, say so explicitly** and name what differs — runner OS, secrets, headless mode, timing, a device CI has and you do not — before you use CI to bisect. Then change one thing per push and say what you are testing.
+
+Setting up the local runner (installing the browser, booting the simulator, seeding the fixture) is part of the work, not a reason to skip this.
+
+Full prose: [reference/local-ci-first.md](local-ci-first-reference.mdc).

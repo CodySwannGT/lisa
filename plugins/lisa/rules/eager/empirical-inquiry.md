@@ -16,6 +16,7 @@ Do not reason your way to a confident-sounding answer from documentation, prior 
 - Presenting a guess, recollection, or doc summary as established fact when it was cheap to verify and you did not.
 - "Should work" / "probably" / "the docs say" as the basis for a load-bearing decision an experiment could have settled.
 - Skipping the probe because the answer "seems obvious" — those are exactly the ones that quietly drift from reality.
+- Interpreting a diff, or reporting scope, before establishing where your checkout sits: run `git rev-list --count HEAD..origin/<default>` first. A worktree 30 commits behind makes everyone else's changes read as yours, and the diff was reported as massive scope creep in reverse.
 - Treating a recorded "not yet" / "pending" / "blocked" / "human-gated" note as current state. It is a claim about the day it was written; probe the live state before planning around it, escalating it, or reporting it as a blocker (`stale-state-claims`).
 
 This is the inquiry counterpart to the `verification` rule (which proves completed work behaves correctly). Both reject "it looks correct" as evidence.

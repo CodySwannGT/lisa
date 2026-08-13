@@ -1,0 +1,46 @@
+---
+description: "Learnings Ladder — Where Does This Go?"
+alwaysApply: false
+---
+
+# Learnings Ladder — Where Does This Go?
+
+## The problem this solves
+
+The taxonomy was never missing. Lisa has had the six-rung ladder since the `skill-evaluator` agent shipped, and the gardener has always routed by it. What was missing is that the taxonomy lived inside an agent definition most sessions never open, so the practical answer to "where does this learning go?" was whichever knowledge file the agent happened to have in context — which is how a single project rules file accretes lint rules, product specs, and incident notes into one undifferentiated blob that every session pays for.
+
+This rule is a pointer, not a second taxonomy. It exists so the routing question is answerable without opening anything.
+
+## The rungs, ordered by what they cost to carry
+
+| Rung | Destination | Enters context | Admission |
+| --- | --- | --- | --- |
+| EXECUTABLE-CONTROL | Lint / ast-grep / type / test / hook / `package.lisa.json` force | Never — the diagnostic fires on violation | Mechanically decidable, stable, and it has recurred |
+| EAGER-RULE | The host rules directory `.agents/rules/`; Lisa's own shipped rules originate in the plugin rules tree | Unconditionally, every session | Earned by failure evidence — repeated misses despite the knowledge being reachable |
+| SKILL | A `SKILL.md` procedure | Description eager; body on invoke | Procedural, multi-step, with a recognizable trigger |
+| WIKI | Wiki page plus an index entry | Only when queried | Durable declarative reference knowledge |
+| KEEP-IN-LEDGER | The learnings ledger (`.lisa/PROJECT_LEARNINGS.md`, or the configured `learnings.file`) | Bounded contract projection only | The default landing zone; probationary and expiring |
+| RETIRE | Nowhere — the prose is deleted | Never | Redundant with a mechanical owner, stale, or superseded |
+
+Each rung also carries an orthogonal **scope**: `project` (apply here) or `upstream` (raise to `CodySwannGT/lisa`). Scope changes where the promotion work is filed; it never changes the rung.
+
+## How to choose
+
+Work down the list and stop at the first honest yes:
+
+1. **Can a machine decide it?** Then it is EXECUTABLE-CONTROL, and prose describing it is redundant. This is the strongest rung and the cheapest to carry: it costs nothing until someone violates it, and then it says exactly what is wrong.
+2. **Is it a procedure with a trigger?** SKILL. The description is what gets loaded eagerly; the body arrives only when invoked.
+3. **Is it reference knowledge someone would go and look up?** WIKI. Deep project knowledge belongs on a rung that is paid for only when routed to — which is why `wiki-knowledge-source` is query-on-demand rather than load-at-startup.
+4. **Otherwise, KEEP-IN-LEDGER.** This is the default and it is not a failure state. Most learnings are provisional, and the ledger is where a candidate proves whether it recurs.
+
+**EAGER-RULE is not on that list on purpose.** It is not something you choose; it is something a candidate earns, on cited evidence that agents repeatedly missed the knowledge even though it was already reachable. The eager tier charges every session on every agent, so admission is demotion-biased and the gardener re-audits the tier on every run — including Lisa's own shipped eager rules. A candidate with no recurrence evidence can reach WIKI, KEEP-IN-LEDGER, or RETIRE, and can never reach EAGER-RULE.
+
+## Capture is yours; promotion is not
+
+The division is deliberate and it is what keeps knowledge surfaces from silently growing:
+
+- **You capture.** Record the learning through `lisa-persist-learning`, with its provenance and evidence. That is the whole of a session's authority here.
+- **The gardener promotes.** `/lisa:learnings:audit` — available as an opt-in weekly automation via `lisa-setup-automations` — audits the ledger, rules trees, skills, and wiki, routes candidates through the `skill-evaluator`, and files **human-gated tracker tickets** for promotions, demotions, and retirements. A human approves each one.
+- **Nothing hand-appends.** Never write a learning directly into `AGENTS.md`, a host rules file, or the human decree surface. Those are human-authored, and an automated append to them is exactly the accretion this ladder exists to stop.
+
+Promotion tickets are themselves governed: `promotion-contract` requires an EXECUTABLE-CONTROL promotion to be atomic — enable the control, fix the existing violation population, ship a remediation-teaching diagnostic, and delete the superseded prose, all in one PR. Promote-without-remove double-pays forever.

@@ -722,22 +722,30 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "43a0932a7b8d4fd075b66bfe778025d808a13d9aa61ae793e9eb2fc8a555a381",
     "plugins/src/base/rules/eager/derived-branch-plan.md":
       "aa88be9f1a6de7a843222585bcc1c593b993e7d5900c8a33a9f38ef8a99d25b4",
+    "plugins/src/base/rules/eager/do-it-now.md":
+      "de0c1565fa7b8a99a7f5d15af1118c3e5eb942a0d893bbb672533149fb82688e",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
       "3a7c2a6264654a3cc44dd326441ba211a39c1c267033cc189c1c635adb84b52b",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
-      "e638352e2426110eb831a2c4c7dbbd302f578009cdc5bc69258bddf3677c2f44",
+      "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670",
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "f26bb06e17f27e2b4d2e45657df6e5b0b3990124d5937a0701d8bf5a7e47d6f8",
+      "7cfe0ec4a4c7f7b133580ee4b9004b764a99bd98e9d39856c587c8ad45fda920",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
-      "f857fd731d65615e6ac4e7bb2dd7cad00cf692749fd1ccf344b3cb9ca1c49877",
+      "e5675ec414d0dcfbbf7a29912f39ea5fb02747aa4e6045493e636cba1e635eb7",
     "plugins/src/base/rules/eager/intent-routing.md":
       "a2ef2397a98fb3d991fcfb39b669e289c1e2b697191cbeb6c071d71eca836207",
     "plugins/src/base/rules/eager/leaf-only-lifecycle.md":
       "270a7b071c0dfabd2c80417e6a63ab462a9ac630dc3d1ae36c68a2fbf6235578",
+    "plugins/src/base/rules/eager/learnings-ladder.md":
+      "58f70031f7ad720254e73db53f4f328f35cdce2a562c8f62e403be842abccab0",
+    "plugins/src/base/rules/eager/local-ci-first.md":
+      "8a0369f3b23c4c9906194ea2d5b6dab44bb82dee753571b7e3e27ed799a289f5",
+    "plugins/src/base/rules/eager/not-blocked-just-waiting.md":
+      "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be",
     "plugins/src/base/rules/eager/observability-audit.md":
       "eef7f612937db85e2fb685f262a651ac0fea195fb79363224281f057dc1a6ef7",
     "plugins/src/base/rules/eager/prd-definition-of-ready.md":
@@ -764,6 +772,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d028c8709d7d3a05b2f9bb8209a0d6bf1aef99e88d5e7d7132909e8d0d4c19d9",
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
+    "plugins/src/base/rules/eager/session-status-updates.md":
+      "bbb42e86b8eb68334b8b9c0bc70beb4895a54015e097bf745fc92156b3e24766",
     "plugins/src/base/rules/eager/settled-decisions.md":
       "f5339c81b8d29f628830e6147314cbb941b9d9e6d87c3834d8fe7adc4b46ef4c",
     "plugins/src/base/rules/eager/stale-state-claims.md":
@@ -779,7 +789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/verification.md":
       "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
-      "418c2f6e8fcf726a7ebfc7cc69210e37dc23cc8b20573e19e1de33cf0587dd17",
+      "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
     "plugins/src/base/rules/eager/work-item-definition-of-ready.md":
       "4285953f749aabee90dd44d7bff7e28a50e0a8c910917a96ebf81abfa425d836",
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
@@ -810,22 +820,30 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "82216b80d4807e0ad302d04924032cc6a7a95b26f72ea853e378572a5c31821c",
     "plugins/src/base/rules/reference/derived-branch-plan.md":
       "672983b5171bf6e377f3d17927fd75e45208ffa6500718c07df1d449ca00f7d0",
+    "plugins/src/base/rules/reference/do-it-now.md":
+      "46fdcc335e115d0f387af398789f443ef8dd3ab17de5f7d95120c31f913a8fce",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
       "555155889c9cf279865b9d8fc554bdd461c96a3ec76a5001dfeb361a71056999",
     "plugins/src/base/rules/reference/empirical-inquiry.md":
-      "85f4552aa4c561677de40fd01bc6cccf5dbcf13865647db9df819d11f3cc3389",
+      "8cb166ab9eff4eb30287822a4d7843f76884d70d683d7c61d6a7ffd4ff9f7159",
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "89015d3c21b38de5f6d871ef6d97f64820d0068cf93c5c3ab58927f65741944f",
+      "284eccdf5b0fa29d2927a24ab25ad4aed34b0798e4fdf2e8e7d6fd1b80e3236b",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
-      "630eded38a921ae878cf647b8ed55237a805717d01090ebe47d2aae9c0e7276d",
+      "6d0f419b315ffcf9bdd14a556a81c05848e8245e2ba850696e72d4cff2e65600",
     "plugins/src/base/rules/reference/intent-routing.md":
       "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "3d6d531fdca61a348fa1dd1bdb4c28fe66c85fb955238ef668a78cce4a36a7a1",
+    "plugins/src/base/rules/reference/learnings-ladder.md":
+      "4b6760e8ec58dea0e646cfa1b0518f468cc959ef3be55e3f87c225ec076f53c7",
+    "plugins/src/base/rules/reference/local-ci-first.md":
+      "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18",
+    "plugins/src/base/rules/reference/not-blocked-just-waiting.md":
+      "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
       "98cf4c849baf0801bd2c46a90e7a072196649d506fbda577cc5c4019d2194551",
     "plugins/src/base/rules/reference/prd-definition-of-ready.md":
@@ -852,6 +870,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "741c49e0544aecfa2c4aadf6a36ef496a1a5d974f71962ae8e33cc625651f0c2",
     "plugins/src/base/rules/reference/security-audit-handling.md":
       "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c",
+    "plugins/src/base/rules/reference/session-status-updates.md":
+      "8c34dc9399d6b20103edb3ed8d214aaa05a97065e4c78d8010f394cd041b3320",
     "plugins/src/base/rules/reference/settled-decisions.md":
       "6c84f309a1f765eba1648d6ace836387bd96b924f245c16cf3629f501ef6bb18",
     "plugins/src/base/rules/reference/stale-state-claims.md":
@@ -867,7 +887,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/verification.md":
       "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
-      "305d38e13984c2a64144f302336405d0ccbec493a6ed3ec67d210fed44940717",
+      "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -3653,6 +3673,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/dependency-internalization-kit.md": true,
     "plugins/lisa-copilot/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/eager/derived-branch-plan.md": true,
+    "plugins/lisa-copilot/rules/eager/do-it-now.md": true,
     "plugins/lisa-copilot/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/eager/empirical-inquiry.md": true,
     "plugins/lisa-copilot/rules/eager/factory-model.md": true,
@@ -3661,6 +3682,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/integration-access-layer.md": true,
     "plugins/lisa-copilot/rules/eager/intent-routing.md": true,
     "plugins/lisa-copilot/rules/eager/leaf-only-lifecycle.md": true,
+    "plugins/lisa-copilot/rules/eager/learnings-ladder.md": true,
+    "plugins/lisa-copilot/rules/eager/local-ci-first.md": true,
+    "plugins/lisa-copilot/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/eager/observability-audit.md": true,
     "plugins/lisa-copilot/rules/eager/prd-definition-of-ready.md": true,
     "plugins/lisa-copilot/rules/eager/prd-lifecycle-rollup.md": true,
@@ -3674,6 +3698,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/report-actionability.md": true,
     "plugins/lisa-copilot/rules/eager/reset-seed-coverage.md": true,
     "plugins/lisa-copilot/rules/eager/security-audit-handling.md": true,
+    "plugins/lisa-copilot/rules/eager/session-status-updates.md": true,
     "plugins/lisa-copilot/rules/eager/settled-decisions.md": true,
     "plugins/lisa-copilot/rules/eager/stale-state-claims.md": true,
     "plugins/lisa-copilot/rules/eager/tool-access-gate.md": true,
@@ -3697,6 +3722,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/dependency-internalization-kit.md": true,
     "plugins/lisa-copilot/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/reference/derived-branch-plan.md": true,
+    "plugins/lisa-copilot/rules/reference/do-it-now.md": true,
     "plugins/lisa-copilot/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/reference/empirical-inquiry.md": true,
     "plugins/lisa-copilot/rules/reference/factory-model.md": true,
@@ -3705,6 +3731,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/integration-access-layer.md": true,
     "plugins/lisa-copilot/rules/reference/intent-routing.md": true,
     "plugins/lisa-copilot/rules/reference/leaf-only-lifecycle.md": true,
+    "plugins/lisa-copilot/rules/reference/learnings-ladder.md": true,
+    "plugins/lisa-copilot/rules/reference/local-ci-first.md": true,
+    "plugins/lisa-copilot/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/reference/observability-audit.md": true,
     "plugins/lisa-copilot/rules/reference/prd-definition-of-ready.md": true,
     "plugins/lisa-copilot/rules/reference/prd-lifecycle-rollup.md": true,
@@ -3718,6 +3747,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/report-actionability.md": true,
     "plugins/lisa-copilot/rules/reference/reset-seed-coverage.md": true,
     "plugins/lisa-copilot/rules/reference/security-audit-handling.md": true,
+    "plugins/lisa-copilot/rules/reference/session-status-updates.md": true,
     "plugins/lisa-copilot/rules/reference/settled-decisions.md": true,
     "plugins/lisa-copilot/rules/reference/stale-state-claims.md": true,
     "plugins/lisa-copilot/rules/reference/tool-access-gate.md": true,
@@ -4100,6 +4130,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/dependency-trust-classes.mdc": true,
     "plugins/lisa-cursor/rules/derived-branch-plan-reference.mdc": true,
     "plugins/lisa-cursor/rules/derived-branch-plan.mdc": true,
+    "plugins/lisa-cursor/rules/do-it-now-reference.mdc": true,
+    "plugins/lisa-cursor/rules/do-it-now.mdc": true,
     "plugins/lisa-cursor/rules/documentation-source-paths-reference.mdc": true,
     "plugins/lisa-cursor/rules/documentation-source-paths.mdc": true,
     "plugins/lisa-cursor/rules/empirical-inquiry-reference.mdc": true,
@@ -4116,6 +4148,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/intent-routing.mdc": true,
     "plugins/lisa-cursor/rules/leaf-only-lifecycle-reference.mdc": true,
     "plugins/lisa-cursor/rules/leaf-only-lifecycle.mdc": true,
+    "plugins/lisa-cursor/rules/learnings-ladder-reference.mdc": true,
+    "plugins/lisa-cursor/rules/learnings-ladder.mdc": true,
+    "plugins/lisa-cursor/rules/local-ci-first-reference.mdc": true,
+    "plugins/lisa-cursor/rules/local-ci-first.mdc": true,
+    "plugins/lisa-cursor/rules/not-blocked-just-waiting-reference.mdc": true,
+    "plugins/lisa-cursor/rules/not-blocked-just-waiting.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit-reference.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit.mdc": true,
     "plugins/lisa-cursor/rules/prd-definition-of-ready-reference.mdc": true,
@@ -4142,6 +4180,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/reset-seed-coverage.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling-reference.mdc": true,
     "plugins/lisa-cursor/rules/security-audit-handling.mdc": true,
+    "plugins/lisa-cursor/rules/session-status-updates-reference.mdc": true,
+    "plugins/lisa-cursor/rules/session-status-updates.mdc": true,
     "plugins/lisa-cursor/rules/settled-decisions-reference.mdc": true,
     "plugins/lisa-cursor/rules/settled-decisions.mdc": true,
     "plugins/lisa-cursor/rules/stale-state-claims-reference.mdc": true,
@@ -6609,6 +6649,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/dependency-internalization-kit.md": true,
     "plugins/lisa/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa/rules/eager/derived-branch-plan.md": true,
+    "plugins/lisa/rules/eager/do-it-now.md": true,
     "plugins/lisa/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa/rules/eager/empirical-inquiry.md": true,
     "plugins/lisa/rules/eager/factory-model.md": true,
@@ -6617,6 +6658,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/integration-access-layer.md": true,
     "plugins/lisa/rules/eager/intent-routing.md": true,
     "plugins/lisa/rules/eager/leaf-only-lifecycle.md": true,
+    "plugins/lisa/rules/eager/learnings-ladder.md": true,
+    "plugins/lisa/rules/eager/local-ci-first.md": true,
+    "plugins/lisa/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/eager/observability-audit.md": true,
     "plugins/lisa/rules/eager/prd-definition-of-ready.md": true,
     "plugins/lisa/rules/eager/prd-lifecycle-rollup.md": true,
@@ -6630,6 +6674,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/report-actionability.md": true,
     "plugins/lisa/rules/eager/reset-seed-coverage.md": true,
     "plugins/lisa/rules/eager/security-audit-handling.md": true,
+    "plugins/lisa/rules/eager/session-status-updates.md": true,
     "plugins/lisa/rules/eager/settled-decisions.md": true,
     "plugins/lisa/rules/eager/stale-state-claims.md": true,
     "plugins/lisa/rules/eager/tool-access-gate.md": true,
@@ -6653,6 +6698,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/dependency-internalization-kit.md": true,
     "plugins/lisa/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa/rules/reference/derived-branch-plan.md": true,
+    "plugins/lisa/rules/reference/do-it-now.md": true,
     "plugins/lisa/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa/rules/reference/empirical-inquiry.md": true,
     "plugins/lisa/rules/reference/factory-model.md": true,
@@ -6661,6 +6707,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/integration-access-layer.md": true,
     "plugins/lisa/rules/reference/intent-routing.md": true,
     "plugins/lisa/rules/reference/leaf-only-lifecycle.md": true,
+    "plugins/lisa/rules/reference/learnings-ladder.md": true,
+    "plugins/lisa/rules/reference/local-ci-first.md": true,
+    "plugins/lisa/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/reference/observability-audit.md": true,
     "plugins/lisa/rules/reference/prd-definition-of-ready.md": true,
     "plugins/lisa/rules/reference/prd-lifecycle-rollup.md": true,
@@ -6674,6 +6723,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/report-actionability.md": true,
     "plugins/lisa/rules/reference/reset-seed-coverage.md": true,
     "plugins/lisa/rules/reference/security-audit-handling.md": true,
+    "plugins/lisa/rules/reference/session-status-updates.md": true,
     "plugins/lisa/rules/reference/settled-decisions.md": true,
     "plugins/lisa/rules/reference/stale-state-claims.md": true,
     "plugins/lisa/rules/reference/tool-access-gate.md": true,
@@ -7222,6 +7272,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/dependency-internalization-kit.md": true,
     "plugins/src/base/rules/eager/dependency-trust-classes.md": true,
     "plugins/src/base/rules/eager/derived-branch-plan.md": true,
+    "plugins/src/base/rules/eager/do-it-now.md": true,
     "plugins/src/base/rules/eager/documentation-source-paths.md": true,
     "plugins/src/base/rules/eager/empirical-inquiry.md": true,
     "plugins/src/base/rules/eager/factory-model.md": true,
@@ -7230,6 +7281,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/integration-access-layer.md": true,
     "plugins/src/base/rules/eager/intent-routing.md": true,
     "plugins/src/base/rules/eager/leaf-only-lifecycle.md": true,
+    "plugins/src/base/rules/eager/learnings-ladder.md": true,
+    "plugins/src/base/rules/eager/local-ci-first.md": true,
+    "plugins/src/base/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/eager/observability-audit.md": true,
     "plugins/src/base/rules/eager/prd-definition-of-ready.md": true,
     "plugins/src/base/rules/eager/prd-lifecycle-rollup.md": true,
@@ -7243,6 +7297,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/report-actionability.md": true,
     "plugins/src/base/rules/eager/reset-seed-coverage.md": true,
     "plugins/src/base/rules/eager/security-audit-handling.md": true,
+    "plugins/src/base/rules/eager/session-status-updates.md": true,
     "plugins/src/base/rules/eager/settled-decisions.md": true,
     "plugins/src/base/rules/eager/stale-state-claims.md": true,
     "plugins/src/base/rules/eager/tool-access-gate.md": true,
@@ -7266,6 +7321,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/dependency-internalization-kit.md": true,
     "plugins/src/base/rules/reference/dependency-trust-classes.md": true,
     "plugins/src/base/rules/reference/derived-branch-plan.md": true,
+    "plugins/src/base/rules/reference/do-it-now.md": true,
     "plugins/src/base/rules/reference/documentation-source-paths.md": true,
     "plugins/src/base/rules/reference/empirical-inquiry.md": true,
     "plugins/src/base/rules/reference/factory-model.md": true,
@@ -7274,6 +7330,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/integration-access-layer.md": true,
     "plugins/src/base/rules/reference/intent-routing.md": true,
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md": true,
+    "plugins/src/base/rules/reference/learnings-ladder.md": true,
+    "plugins/src/base/rules/reference/local-ci-first.md": true,
+    "plugins/src/base/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/reference/observability-audit.md": true,
     "plugins/src/base/rules/reference/prd-definition-of-ready.md": true,
     "plugins/src/base/rules/reference/prd-lifecycle-rollup.md": true,
@@ -7287,6 +7346,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/report-actionability.md": true,
     "plugins/src/base/rules/reference/reset-seed-coverage.md": true,
     "plugins/src/base/rules/reference/security-audit-handling.md": true,
+    "plugins/src/base/rules/reference/session-status-updates.md": true,
     "plugins/src/base/rules/reference/settled-decisions.md": true,
     "plugins/src/base/rules/reference/stale-state-claims.md": true,
     "plugins/src/base/rules/reference/tool-access-gate.md": true,
@@ -8987,6 +9047,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/reset-seed-coverage-rule.test.ts": true,
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
     "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
+    "tests/unit/strategies/session-operating-pack.test.ts": true,
     "tests/unit/strategies/setup-automations-readiness-warning.test.ts": true,
     "tests/unit/strategies/setup-confluence-verified-parent.test.ts": true,
     "tests/unit/strategies/setup-github-prd-verified-label.test.ts": true,
