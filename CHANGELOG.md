@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.5.4](https://github.com/CodySwannGT/lisa/compare/v3.5.3...v3.5.4) (2026-08-13)
+
+
+### Bug Fixes
+
+* **core:** stop two fs-extra namespace calls from failing silently in catch blocks ([639f26d](https://github.com/CodySwannGT/lisa/commit/639f26db10ed951e18af9fd21b73ebdea17ca17b)), closes [#2482](https://github.com/CodySwannGT/lisa/issues/2482) [#2484](https://github.com/CodySwannGT/lisa/issues/2484) [#2484](https://github.com/CodySwannGT/lisa/issues/2484) [CodySwannGT/lisa#2487](https://github.com/CodySwannGT/lisa/issues/2487)
+
 ### [3.5.3](https://github.com/CodySwannGT/lisa/compare/v3.5.2...v3.5.3) (2026-08-13)
 
 
