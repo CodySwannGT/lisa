@@ -44,8 +44,27 @@ export type {
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
 
-/** Default durable project-rules destination used by governance skills. */
-export const DEFAULT_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
+/**
+ * Canonical, agent-neutral directory for **host-authored** operating rules.
+ * One directory, every agent; Lisa never writes rule bodies into it.
+ *
+ * Deliberately NOT a native auto-load tree for any runtime, so every agent
+ * reaches it through exactly one surface — the Lisa-managed pointer block in
+ * `AGENTS.md` — and none double-loads host rules. Fixed rather than
+ * configurable: it is already reserved in `AUTO_LOADED_RULES_DIR_PREFIXES`
+ * (`./learnings-location.js`), which keeps the learnings ledger from ever
+ * resolving inside it.
+ */
+export const HOST_RULES_DIR = ".agents/rules";
+
+/**
+ * The retired single-file rules destination, superseded by
+ * {@link HOST_RULES_DIR}. Migration-only, never a serving default: it locates a
+ * ledger older releases wrote beside it, and names a host's surviving legacy
+ * file in the pointer block so that content stays reachable. Reclassifying it
+ * is human-gated work.
+ */
+export const LEGACY_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
 
 /** Optional `learnings` configuration block in `.lisa.config.json`. */
 export interface LearningsConfig {
@@ -64,7 +83,12 @@ export interface LearningsConfig {
 export interface ProjectConfig {
   /** Target harness(es) for emitted artifacts */
   readonly harness?: Harness;
-  /** Relative path to the project's durable rules file. */
+  /**
+   * @deprecated Retired in favour of the fixed {@link HOST_RULES_DIR}. Still
+   * parsed and preserved on round-trip so an installed project's config keeps
+   * working, and still consulted by the migration paths that need to know where
+   * a pre-directory release put things. Nothing serves rules from it.
+   */
   readonly projectRulesFile?: string;
   /** Optional overrides for the machine-managed learnings ledger. */
   readonly learnings?: LearningsConfig;
@@ -73,15 +97,20 @@ export interface ProjectConfig {
 }
 
 /**
- * Resolve the validated project-rules path from config or its default.
+ * Resolve where a pre-directory release would have kept this project's
+ * single-file rules: the deprecated `projectRulesFile` override when one is
+ * persisted, else {@link LEGACY_PROJECT_RULES_FILE}.
+ *
+ * Migration-only. Callers use it to find a ledger written beside the old file
+ * and to name a surviving legacy file in the `AGENTS.md` pointer — never to
+ * decide where rules should be read from today ({@link HOST_RULES_DIR} answers
+ * that, and it is not configurable).
  * @param config - Parsed project configuration
  * @returns Safe project-relative Markdown path
  */
-export function resolveProjectRulesFile(config: ProjectConfig): string {
-  return validateProjectRulesFile(
-    config.projectRulesFile ?? DEFAULT_PROJECT_RULES_FILE,
-    PROJECT_CONFIG_FILENAME
-  );
+export function resolveLegacyProjectRulesFile(config: ProjectConfig): string {
+  const configured = config.projectRulesFile ?? LEGACY_PROJECT_RULES_FILE;
+  return validateProjectRulesFile(configured, PROJECT_CONFIG_FILENAME);
 }
 
 /**
@@ -103,20 +132,18 @@ export function resolveProjectLearningsFile(config: ProjectConfig): string {
 }
 
 /**
- * Resolve the ledger's LEGACY location — the sibling of `projectRulesFile`,
- * where releases before the `.lisa/` relocation kept it. Used only by the
- * apply/doctor relocation so an existing file can be found and moved to the new
- * canonical path; never a serving path.
+ * Resolve the ledger's LEGACY location — the sibling of the retired single-file
+ * rules path, where releases before the `.lisa/` relocation kept it. Used only
+ * by the apply/doctor relocation so an existing file can be found and moved to
+ * the new canonical path; never a serving path.
  * @param config - Parsed project configuration
  * @returns Legacy project-relative learnings Markdown path
  */
 export function resolveLegacyProjectLearningsFile(
   config: ProjectConfig
 ): string {
-  return path.posix.join(
-    path.posix.dirname(resolveProjectRulesFile(config)),
-    PROJECT_LEARNINGS_FILENAME
-  );
+  const dir = path.posix.dirname(resolveLegacyProjectRulesFile(config));
+  return path.posix.join(dir, PROJECT_LEARNINGS_FILENAME);
 }
 
 /**

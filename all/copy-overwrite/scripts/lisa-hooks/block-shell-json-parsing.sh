@@ -3,7 +3,7 @@
 # Text tools (grep/sed/cut/awk) break on valid JSON — multiline values, escaped
 # quotes, reordered keys, nested objects — producing silently wrong output
 # instead of errors. jq is the required tool for structural JSON reads and
-# writes in shell. Promoted from PROJECT_RULES.md prose to an executable
+# writes in shell. Promoted from host-rules prose to an executable
 # control by the learnings gardener (issue #1787).
 #
 # Precision-first: this hook fires only on high-confidence STRUCTURAL parsing
