@@ -282,8 +282,11 @@ describe("ast-grep rule tests are wired to a runnable script", () => {
 
 describe("ast-grep rule tests are wired into CI", () => {
   it("runs the rule-test script in the TypeScript-family quality workflow", () => {
+    // `endsWith`, not `includes` — the skip notice mentions `sg:test` in its
+    // remediation text, and matching that would let the notice stand in for
+    // the invocation.
     expectGatedRuleTestStep(".github/workflows/quality.yml", run =>
-      run.includes("run sg:test")
+      run.trim().endsWith("run sg:test")
     );
   });
 
