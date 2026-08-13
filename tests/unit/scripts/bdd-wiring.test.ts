@@ -31,6 +31,7 @@ describe("shipped wiring", () => {
       "expo/copy-overwrite/scripts/bdd/report.mjs",
       "expo/copy-overwrite/scripts/bdd/render.mjs",
       "expo/copy-overwrite/scripts/bdd/baseline.mjs",
+      "expo/copy-overwrite/scripts/bdd/discover.mjs",
       "expo/copy-overwrite/scripts/bdd/envelope.mjs",
     ]) {
       expect(fs.existsSync(path.join(REPO_ROOT, relative)), relative).toBe(
@@ -53,6 +54,40 @@ describe("shipped wiring", () => {
     expect(
       fs.existsSync(path.join(REPO_ROOT, "expo/create-only/bdd/features/.keep"))
     ).toBe(true);
+  });
+
+  it("seeds a discovery block for every runner it seeds a platform for", () => {
+    // A seeded runner with no roots can never find an undeclared test, and the
+    // seed is create-only — whatever ships here is what most repos will run.
+    const seed = JSON.parse(read(SEED_MAP_REL)) as {
+      runnerPlatforms: Record<string, unknown>;
+      testDiscovery: Record<string, { roots: string[]; evidence: unknown }>;
+    };
+    const runners = Object.keys(seed.runnerPlatforms).filter(
+      key => !key.startsWith("_")
+    );
+    expect(runners.length).toBeGreaterThan(0);
+    for (const runner of runners) {
+      expect(seed.testDiscovery[runner]?.roots.length, runner).toBeGreaterThan(
+        0
+      );
+      expect(seed.testDiscovery[runner]?.evidence, runner).toBeTruthy();
+    }
+    // The subflow directory the fleet's hardcoded roots could not see.
+    expect(seed.testDiscovery.maestro.roots).toContain(".maestro/subflows");
+  });
+
+  it("documents discovery and exclusions in the versioned schema doc", () => {
+    const doc = read(DOC_REL);
+    for (const needle of [
+      "testDiscovery",
+      "spec-undisclosed",
+      "exclusion-stale",
+      "discovery-invalid",
+      "never wedges the artifacts",
+    ]) {
+      expect(doc, needle).toContain(needle);
+    }
   });
 
   it("exposes the gate and matrix on the standard package script surface", () => {
