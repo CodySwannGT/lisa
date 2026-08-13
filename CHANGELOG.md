@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.5.3](https://github.com/CodySwannGT/lisa/compare/v3.5.2...v3.5.3) (2026-08-13)
+
+
+### Bug Fixes
+
+* **learnings:** make stale-lock reclaim atomic so no live lock is ever deleted ([63e645d](https://github.com/CodySwannGT/lisa/commit/63e645dedf307148f02f8e9cb8cf153e18ce183c)), closes [CodySwannGT/lisa#2488](https://github.com/CodySwannGT/lisa/issues/2488)
+
 ### [3.5.2](https://github.com/CodySwannGT/lisa/compare/v3.5.1...v3.5.2) (2026-08-13)
 
 
