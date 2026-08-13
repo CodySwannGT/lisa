@@ -11,11 +11,14 @@ import {
   utimes,
   writeFile,
 } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const execFileAsync = promisify(execFile);
 
 import {
   HEALTH_RESULT_PATH,
@@ -327,27 +330,28 @@ describe("health result storage", () => {
     const moduleUrl = pathToFileURL(
       path.resolve("src/core/learnings-lock.ts")
     ).href;
-    const child = spawn(
-      process.execPath,
+    // Run under `bun`, not `process.execPath`: inside vitest that path is
+    // node, which strips types but does NOT rewrite a `./x.js` specifier to
+    // `./x.ts`, so a node child can only import a lock module that happens to
+    // have no relative imports at all — an accidental property nothing
+    // declared, which broke the moment `learnings-lock.ts` grew a sibling.
+    // `execFileAsync("bun", ["--eval", ...])` is how the repo's other
+    // cross-process lock test already spawns its writers.
+    const child = execFileAsync(
+      "bun",
       [
-        "-e",
+        "--eval",
         `const { withFileTargetLock } = await import(${JSON.stringify(moduleUrl)}); const { writeFile } = await import("node:fs/promises"); await withFileTargetLock(process.argv.at(-2), async () => { await writeFile(process.argv.at(-1), "held"); await new Promise(resolve => setTimeout(resolve, 150)); });`,
         target,
         marker,
       ],
-      { stdio: ["ignore", "pipe", "pipe"] }
+      { cwd: path.resolve(".") }
     );
     await vi.waitFor(async () => {
       expect(await readFile(marker, "utf8")).toBe("held");
     });
     const pending = writeLatestHealthResult(projectRoot, validResult());
-    await new Promise<void>((resolve, reject) => {
-      child.once("error", reject);
-      child.once("exit", code => {
-        if (code === 0) resolve();
-        else reject(new Error(`health lock child exited ${String(code)}`));
-      });
-    });
+    await child;
     expect((await pending).status).toBe("written");
   });
 
