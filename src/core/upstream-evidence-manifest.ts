@@ -2149,7 +2149,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
     "scripts/lisa-github-rulesets.sh":
-      "920a43ba268421b6fe55096062bd85850468bee9389f6006ad7c671010e7cccb",
+      "8af5d059d29d5ad3723ef1d2d00e73cc873a6a04bd81b0ac92fbd15f272a211b",
     "scripts/lisa-remote-env/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
@@ -2263,7 +2263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "c9dd6f6816b35d4d8f684892878d4181b9cb5266a7f2e2814970aa49dc04a001",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "8eaac3ea96d92b55c418877c1fe338a7c0b3a8f48ef3593258f54a633f761c85",
+      "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2285,7 +2285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
     "typescript/create-only/.github/required-checks.json":
-      "0ec5fbf2fe2dcb366db0d0002357b881053143223a09a25e1dc488a87b142eb2",
+      "16e7693b24a68d38fa2d680bf7231a91939850b1e71a69b67780b1311f1cbf35",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":

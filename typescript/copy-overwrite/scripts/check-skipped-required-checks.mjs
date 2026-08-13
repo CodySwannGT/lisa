@@ -168,10 +168,19 @@
  *
  * Every comparison here is `===`. Repos routinely carry confusable pairs — an
  * external app's required `SonarCloud Code Analysis` beside a skippable,
- * NOT-required in-workflow `🔍 SonarCloud SAST`; `🧪 Run Tests` beside
- * `🧪 Run Unit Tests`. A `includes` / `startsWith` / case-folded match would
- * report a false positive on a legitimate skip, and the natural fix for a false
- * alarm is to delete the guard.
+ * NOT-required in-workflow `🔍 SonarCloud SAST`; `🧹 Lint` beside
+ * `🐢 Slow Lint Rules`, whose skip tokens `lint` and `lint_slow` are a strict
+ * prefix pair. A `includes` / `startsWith` / case-folded match would report a
+ * false positive on a legitimate skip, and the natural fix for a false alarm is
+ * to delete the guard.
+ *
+ * Lisa's `quality.yml` used to carry the worst pair of all — a NOT-required
+ * `🧪 Run Tests` beside the required `🧪 Run Unit Tests` — and it merged red on
+ * two PRs because "Run Tests failed" reads like the required test gate failing.
+ * That job was deleted outright in #2485 rather than renamed: it was pure
+ * duplication of the two coverage-carrying required contexts. If your own repo
+ * still has a near-duplicate advisory check, prefer deleting it to relying on a
+ * reader to tell three similar names apart.
  *
  * @module scripts/check-skipped-required-checks
  */
