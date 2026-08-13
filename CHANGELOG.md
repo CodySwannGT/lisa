@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.5.0](https://github.com/CodySwannGT/lisa/compare/v3.4.1...v3.5.0) (2026-08-13)
+
+
+### Features
+
+* **access:** give four access layers a provider rung and date the keychain ramp ([fd96f5f](https://github.com/CodySwannGT/lisa/commit/fd96f5fa37f0393c350ac3ef06e46e9c655e217e)), closes [#2437](https://github.com/CodySwannGT/lisa/issues/2437) [CodySwannGT/lisa#2438](https://github.com/CodySwannGT/lisa/issues/2438) [#2423](https://github.com/CodySwannGT/lisa/issues/2423) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+* **doctor:** report a learnings merge driver git cannot actually run ([e117ea2](https://github.com/CodySwannGT/lisa/commit/e117ea264d11a46f7268bffe7f3bd943e101da17)), closes [CodySwannGT/lisa#2435](https://github.com/CodySwannGT/lisa/issues/2435) [#2423](https://github.com/CodySwannGT/lisa/issues/2423) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+
+
+### Bug Fixes
+
+* **bdd:** repair the nine real defects in the vendored v2 gate sources ([c3c45f0](https://github.com/CodySwannGT/lisa/commit/c3c45f0088094bdb3d6c21755024a387b3e4f190)), closes [#1](https://github.com/CodySwannGT/lisa/issues/1) [#2](https://github.com/CodySwannGT/lisa/issues/2) [#4](https://github.com/CodySwannGT/lisa/issues/4) [#9](https://github.com/CodySwannGT/lisa/issues/9) [#6](https://github.com/CodySwannGT/lisa/issues/6) [#8](https://github.com/CodySwannGT/lisa/issues/8) [#10](https://github.com/CodySwannGT/lisa/issues/10) [#5](https://github.com/CodySwannGT/lisa/issues/5) [#7](https://github.com/CodySwannGT/lisa/issues/7) [#8](https://github.com/CodySwannGT/lisa/issues/8) [CodySwannGT/lisa#2468](https://github.com/CodySwannGT/lisa/issues/2468)
+* **ci:** refuse to answer from an untranscribed required-checks snapshot ([56dd4e0](https://github.com/CodySwannGT/lisa/commit/56dd4e048c21e7c222d635502de2c25466995d55)), closes [#2472](https://github.com/CodySwannGT/lisa/issues/2472) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [CodySwannGT/lisa#2476](https://github.com/CodySwannGT/lisa/issues/2476)
+* **ci:** run the skipped-required-check guard, and report a spaced skip_jobs token ([123336a](https://github.com/CodySwannGT/lisa/commit/123336a26011b7efc32f006a62998a3f9088be3f)), closes [CodySwannGT/lisa#2426](https://github.com/CodySwannGT/lisa/issues/2426)
+* **migrations:** read and write through node:fs/promises, not the fs-extra namespace ([3533889](https://github.com/CodySwannGT/lisa/commit/3533889cfb86825c53b61f2f1fb674b122aedef9)), closes [#2471](https://github.com/CodySwannGT/lisa/issues/2471) [#2472](https://github.com/CodySwannGT/lisa/issues/2472) [#2473](https://github.com/CodySwannGT/lisa/issues/2473) [CodySwannGT/lisa#2482](https://github.com/CodySwannGT/lisa/issues/2482)
+* **oxlint:** resolve extended config without node_modules so worktrees can commit ([e445dbe](https://github.com/CodySwannGT/lisa/commit/e445dbe516408b4d0ee40a20f9453858914c3184)), closes [CodySwannGT/lisa#2465](https://github.com/CodySwannGT/lisa/issues/2465)
+* **postinstall:** surface failed applies instead of discarding them ([d1c66de](https://github.com/CodySwannGT/lisa/commit/d1c66de5d2565a49aca085b740f015c6bff439cc)), closes [geminisportsai/ask-gemini#734](https://github.com/geminisportsai/ask-gemini/issues/734) [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [CodySwannGT/lisa#2467](https://github.com/CodySwannGT/lisa/issues/2467)
+
 ### [3.4.1](https://github.com/CodySwannGT/lisa/compare/v3.4.0...v3.4.1) (2026-08-13)
 
 
