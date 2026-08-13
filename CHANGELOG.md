@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.349.1](https://github.com/CodySwannGT/lisa/compare/v2.349.0...v2.349.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **bdd:** close six ways the coverage gate could report what it had not proven ([b71e494](https://github.com/CodySwannGT/lisa/commit/b71e4944424f78daa98928c81be38f821bafec73)), closes [gunnertech/frontend#388](https://github.com/gunnertech/frontend/issues/388) [#2412](https://github.com/CodySwannGT/lisa/issues/2412) [CodySwannGT/lisa#2421](https://github.com/CodySwannGT/lisa/issues/2421)
+
+## [2.349.0](https://github.com/CodySwannGT/lisa/compare/v2.348.0...v2.349.0) (2026-08-12)
+
+
+### Features
+
+* **ci:** ship the fail-closed nightly-e2e-health reusable gate ([9db8917](https://github.com/CodySwannGT/lisa/commit/9db8917505e0ebd0efcf8f74d40b9c334903ff53)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+
+
+### Bug Fixes
+
+* **ci:** close five more fail-open paths found in review ([75c2d8f](https://github.com/CodySwannGT/lisa/commit/75c2d8fb8ec7d19751c88e332ef087db813c328b)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+* **ci:** make every gate limit a source constant, not an env override ([3960c5e](https://github.com/CodySwannGT/lisa/commit/3960c5ef8ae049aa7c995422b96f1e545efa8765)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+* **ci:** paginate bypass-label attribution, oldest-first API ([fa7a4d7](https://github.com/CodySwannGT/lisa/commit/fa7a4d7eacaa81de668472c0691d716cfff332c4)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+* **ci:** stop a job-scoped finding reporting the RUN's conclusion ([348a41f](https://github.com/CodySwannGT/lisa/commit/348a41ff6c905cc20c00024ef7fece68a6eed16a)), closes [CodySwannGT/lisa#2415](https://github.com/CodySwannGT/lisa/issues/2415)
+
+## [2.348.0](https://github.com/CodySwannGT/lisa/compare/v2.346.0...v2.348.0) (2026-08-12)
+
+
+### Features
+
+* **bdd:** ship the BDD coverage gate with three-state adoption and a floor ratchet ([d8e0aef](https://github.com/CodySwannGT/lisa/commit/d8e0aef6f624b8582cbe382cc72d8a0c137fb840)), closes [#2393](https://github.com/CodySwannGT/lisa/issues/2393) [#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2412](https://github.com/CodySwannGT/lisa/issues/2412)
+
+
+### Bug Fixes
+
+* **ci:** stop the build-cache key from hashing node_modules ([89dfeda](https://github.com/CodySwannGT/lisa/commit/89dfedadc1043efed1196c5ab1cad651c77b5563)), closes [CodySwannGT/lisa#2418](https://github.com/CodySwannGT/lisa/issues/2418)
+
+
+### Code Refactoring
+
+* **bdd:** answer WS-1c's command envelope and invert the fail-open logic ([bbdaa69](https://github.com/CodySwannGT/lisa/commit/bbdaa6948a9dfef71857230d0d7875aad93c1190)), closes [#2413](https://github.com/CodySwannGT/lisa/issues/2413) [CodySwannGT/lisa#2412](https://github.com/CodySwannGT/lisa/issues/2412)
+
+## [2.347.0](https://github.com/CodySwannGT/lisa/compare/v2.346.0...v2.347.0) (2026-08-12)
+
+
+### Features
+
+* **bdd:** ship the BDD coverage gate with three-state adoption and a floor ratchet ([d8e0aef](https://github.com/CodySwannGT/lisa/commit/d8e0aef6f624b8582cbe382cc72d8a0c137fb840)), closes [#2393](https://github.com/CodySwannGT/lisa/issues/2393) [#2393](https://github.com/CodySwannGT/lisa/issues/2393) [CodySwannGT/lisa#2412](https://github.com/CodySwannGT/lisa/issues/2412)
+
+
+### Bug Fixes
+
+* **ci:** stop the build-cache key from hashing node_modules ([89dfeda](https://github.com/CodySwannGT/lisa/commit/89dfedadc1043efed1196c5ab1cad651c77b5563)), closes [CodySwannGT/lisa#2418](https://github.com/CodySwannGT/lisa/issues/2418)
+
+
+### Code Refactoring
+
+* **bdd:** answer WS-1c's command envelope and invert the fail-open logic ([bbdaa69](https://github.com/CodySwannGT/lisa/commit/bbdaa6948a9dfef71857230d0d7875aad93c1190)), closes [#2413](https://github.com/CodySwannGT/lisa/issues/2413) [CodySwannGT/lisa#2412](https://github.com/CodySwannGT/lisa/issues/2412)
+
+## [2.346.0](https://github.com/CodySwannGT/lisa/compare/v2.345.1...v2.346.0) (2026-08-12)
+
+
+### Features
+
+* **rules:** ship the reset/seed coverage contract and its anti-drift check ([79c5698](https://github.com/CodySwannGT/lisa/commit/79c56982d82709acff770775736a2ef7aaa2eee2)), closes [CodySwannGT/lisa#2411](https://github.com/CodySwannGT/lisa/issues/2411)
+
 ### [2.345.1](https://github.com/CodySwannGT/lisa/compare/v2.345.0...v2.345.1) (2026-08-12)
 
 

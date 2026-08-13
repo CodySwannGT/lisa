@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "lisa-state-contract-v1",
+  "contractVersion": "REPLACE-ME-state-v1",
+  "mode": "contract",
+  "owner": "REPLACE-ME-team-or-role",
+  "environments": [
+    {
+      "name": "dev",
+      "identitySource": "REPLACE-ME: how the environment identity is resolved SERVER-SIDE. A caller-supplied --stage, URL or public build-time variable is a request to check against this, never the answer.",
+      "resetAllowed": true
+    },
+    {
+      "name": "production",
+      "identitySource": "REPLACE-ME",
+      "resetAllowed": false
+    }
+  ],
+  "fixtureIdentity": {
+    "description": "REPLACE-ME: how a fixture-owned record is recognized. Everything the reset may delete must match this; anything else belongs to someone real.",
+    "idPattern": "REPLACE-ME-or-remove",
+    "reservedPrincipals": []
+  },
+  "entities": [
+    {
+      "id": "REPLACE-ME.example_table",
+      "kind": "table",
+      "policy": "fixture-owned",
+      "reason": "REPLACE-ME: one sentence a reviewer can check.",
+      "owner": "REPLACE-ME",
+      "ownership": "REPLACE-ME: the predicate identifying records the reset may delete. Never 'everything in this entity'.",
+      "sweptBy": "REPLACE-ME: the routine that actually removes them. A fixture-owned entity nothing sweeps is the leak this contract exists to catch."
+    }
+  ],
+  "assurances": {
+    "preserves-non-fixture-data": { "evidence": "REPLACE-ME: test or role" },
+    "rejects-reserved-id-collision": { "evidence": "REPLACE-ME" },
+    "rejects-foreign-references": { "evidence": "REPLACE-ME" },
+    "requires-write-acknowledgment": { "evidence": "REPLACE-ME" },
+    "converges-on-second-apply": { "evidence": "REPLACE-ME" },
+    "verifies-exact-counts": { "evidence": "REPLACE-ME" },
+    "production-fails-closed": { "evidence": "REPLACE-ME" },
+    "guard-at-the-choke-point": { "evidence": "REPLACE-ME" },
+    "enumerates-before-mutating": { "evidence": "REPLACE-ME" }
+  },
+  "waivers": []
+}

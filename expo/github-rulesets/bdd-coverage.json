@@ -1,22 +1,17 @@
 {
-  "name": "playwright",
+  "name": "bdd-behavior-contract",
   "target": "branch",
   "enforcement": "active",
   "conditions": {
     "ref_name": {
       "exclude": [],
-      "include": ["refs/heads/staging"]
+      "include": ["~DEFAULT_BRANCH"]
     }
   },
   "bypass_actors": [
     {
       "actor_id": null,
       "actor_type": "DeployKey",
-      "bypass_mode": "always"
-    },
-    {
-      "actor_id": 5,
-      "actor_type": "RepositoryRole",
       "bypass_mode": "always"
     }
   ],
@@ -28,7 +23,7 @@
         "do_not_enforce_on_create": true,
         "required_status_checks": [
           {
-            "context": "🔍 Quality Checks / 🎭 Playwright E2E Tests",
+            "context": "🔍 Quality Checks / 🧾 BDD Behavior Contract",
             "integration_id": 15368
           }
         ]
