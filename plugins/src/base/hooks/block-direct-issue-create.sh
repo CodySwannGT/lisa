@@ -172,8 +172,10 @@ Filed, not ready, and no \`human_gate\` is the incomplete-handoff case, and
 attached. See the \`ready-role-filing\` rule for the full contract.
 
 If you must run the CLI directly, the command has to carry one of the two
-declarations itself: the configured build-ready role \`$ready_role\`, or a
-\`[lisa-human-gate]\` marker in the body it submits.
+declarations itself: the configured build-ready role \`$ready_role\` as the
+value of a \`--label\` / \`--status\` / \`--state\` flag (not in the title or
+body — a role named in prose is not a role applied), or a \`[lisa-human-gate]\`
+marker in the body it submits.
 
 OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
 environment before starting the session. It is deliberately not reachable by
@@ -206,6 +208,28 @@ HUMAN_GATE_MARKER = "[lisa-human-gate]"
 
 # Wrapper programs that prefix a real command rather than being one.
 WRAPPERS = {"env", "command", "sudo", "nohup", "time", "nice", "xargs", "exec"}
+
+# Shells that take a whole command as a STRING argument. `bash -c 'gh issue
+# create …'` has an argv naming only bash, so nothing about the creation is
+# visible without re-tokenizing the nested string. Bounded depth: a guard that
+# can be made to recurse forever is its own denial of service.
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+MAX_NESTING_DEPTH = 3
+
+# Flags whose value is a label / workflow-state assignment. The build-ready role
+# is matched ONLY here, never anywhere in the command text.
+#
+# This is the lesson of the `block-no-verify` hardening that introduced its own
+# bypass (#2469): a token means different things in different positions, so a
+# check that ignores position can always be satisfied from the wrong one. A
+# free-text scan for the role let `gh issue create --title "status:ready is
+# broken"` declare readiness out of a bug report's TITLE.
+#
+# Long forms only, and deliberately so. Short flags are per-CLI: `-s` is
+# `--state` on `gh issue list` and `--summary` on other trackers, and accepting
+# it would re-open the same hole one letter smaller. Every Lisa writer emits the
+# long form.
+LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
 
 # Flags whose value is a file the create is about to submit as the body. The
 # human-gate marker lives in the body, and every Lisa writer composes the body
@@ -266,21 +290,13 @@ def strip_heredocs(text):
     return "\n".join(output)
 
 
-try:
-    tokens = shlex.split(strip_heredocs(command), posix=True)
-except ValueError:
-    # An unparseable command cannot be classified. Allow, like the interpreter
-    # probe above: refusing everything we cannot read would block the session.
-    print("ALLOW")
-    sys.exit(0)
-
-# The inline-override check runs over EVERY token in the whole command, so it
-# catches `X=1 gh …`, `env X=1 gh …`, and `export X=1 && gh …` alike. Scoping
-# it to the creating segment would have missed the export form, which is the
-# one an agent reaches for first.
-inline_override = any(
-    token.strip("'\"").startswith(OVERRIDE_NAME + "=") for token in tokens
-)
+# The inline-override check runs over the WHOLE raw command text, not over
+# parsed tokens, so it catches `X=1 gh …`, `env X=1 gh …`, `export X=1 && gh …`,
+# and the same forms buried inside a nested `bash -c '…'` string alike. Any
+# appearance of the assignment disqualifies the ambient override: this is the
+# one place the guard deliberately over-matches, because a false positive costs
+# a human one retry and a false negative costs the entire control.
+inline_override = (OVERRIDE_NAME + "=") in command
 
 SEPARATOR_CHARS = set("();&|{}")
 
@@ -353,15 +369,75 @@ def program_and_args(argv):
 
 
 def non_flag(args):
-    """The positional arguments, in order.
+    """The positional arguments, with flag values removed.
+
+    A bare "does not start with a dash" filter reads a flag's VALUE as a
+    positional, which is what let `gh issue --repo o/r create` through: `o/r`
+    landed in the positional list and pushed `create` out of the slot a strict
+    index check was watching. That form is not hypothetical — gh accepts it,
+    because cobra strips a persistent flag before resolving the subcommand.
+
+    A token is treated as a flag value when the token before it is a flag that
+    carries no `=`. `--repo=o/r` therefore consumes nothing.
 
     Args:
         args: A command's arguments (argv without the program).
 
     Returns:
-        Arguments that do not start with a dash.
+        The positional arguments, in order.
     """
-    return [token for token in args if not token.startswith("-")]
+    positional = []
+    previous_takes_value = False
+    for token in args:
+        if token.startswith("-") and token != "-":
+            previous_takes_value = "=" not in token
+            continue
+        if previous_takes_value:
+            previous_takes_value = False
+            continue
+        positional.append(token)
+    return positional
+
+
+def has_subcommand(positional, first, second):
+    """Whether two subcommand words appear adjacently among the positionals.
+
+    Matched as an adjacent PAIR anywhere rather than at a fixed index, because a
+    global flag can precede the subcommand chain and shift it.
+
+    Args:
+        positional: The filtered positional arguments.
+        first: The group subcommand, e.g. "issue".
+        second: The verb, e.g. "create".
+
+    Returns:
+        True when `first` is immediately followed by `second`.
+    """
+    return any(
+        positional[index] == first and positional[index + 1] == second
+        for index in range(len(positional) - 1)
+    )
+
+
+def flag_values(args, names):
+    """Every value assigned to one of the named flags.
+
+    Args:
+        args: A command's arguments.
+        names: The flag spellings to collect.
+
+    Returns:
+        The raw values, unsplit and unquoted.
+    """
+    values = []
+    for index, token in enumerate(args):
+        if token in names and index + 1 < len(args):
+            values.append(args[index + 1])
+        if "=" in token:
+            head, value = token.split("=", 1)
+            if head in names:
+                values.append(value)
+    return values
 
 
 def is_write_request(args):
@@ -404,7 +480,7 @@ def creation_signature(program, args):
     joined = " ".join(args)
 
     if program == "gh":
-        if positional[:2] == ["issue", "create"]:
+        if has_subcommand(positional, "issue", "create"):
             return "gh issue create"
         if positional[:1] == ["api"]:
             if "createIssue" in joined or "issueCreate" in joined:
@@ -415,7 +491,7 @@ def creation_signature(program, args):
         return None
 
     if program in {"linear", "jira"}:
-        if positional[:2] == ["issue", "create"]:
+        if has_subcommand(positional, "issue", "create"):
             return "%s issue create" % program
         return None
 
@@ -472,10 +548,18 @@ def declares_readiness(args):
     Returns:
         True when the build-ready role or a human-gate marker is present.
     """
-    joined = " ".join(args)
-    if ready_role and ready_role in joined:
-        return True
-    if HUMAN_GATE_MARKER in joined:
+    if ready_role:
+        for raw in flag_values(args, LABEL_FLAGS):
+            candidates = [
+                part.strip().strip("'\"") for part in raw.split(",")
+            ]
+            if ready_role in candidates:
+                return True
+    # The human-gate marker is matched anywhere, and that asymmetry is
+    # deliberate: it is a marker with no other meaning, so its presence in the
+    # title or body IS the declaration. The build-ready role is an ordinary
+    # string that appears in prose about the queue all the time.
+    if HUMAN_GATE_MARKER in " ".join(args):
         return True
     # The human-gate marker lives in the body, and every Lisa writer composes
     # the body in a file. The build-ready role deliberately does NOT count from
@@ -492,23 +576,53 @@ def declares_readiness(args):
     return False
 
 
-for argv in segment(tokens):
-    program, args = program_and_args(argv)
-    if program is None:
-        continue
-    signature = creation_signature(program, args)
-    if signature is None:
-        continue
-    # The ambient override is the human operator's. An inline assignment is the
-    # agent granting itself the exemption, so it disqualifies the override
-    # rather than supplying it — and it does so even when a legitimate ambient
-    # override is also present, because at that point the command no longer
-    # needs the inline one and its presence is only ever an attempt to reach it.
-    if ambient_override and not inline_override:
-        continue
-    if declares_readiness(args):
-        continue
-    print("REFUSE %s" % signature)
+def scan(command_text, depth):
+    """Find the first undeclared creation in a command string.
+
+    Args:
+        command_text: A shell command, possibly containing nested `sh -c`.
+        depth: Current nesting depth.
+
+    Returns:
+        A refusal signature, or None.
+    """
+    try:
+        raw_tokens = shlex.split(strip_heredocs(command_text), posix=True)
+    except ValueError:
+        return None
+    for argv in segment(raw_tokens):
+        program, args = program_and_args(argv)
+        if program is None:
+            continue
+        if program in SHELLS:
+            if depth >= MAX_NESTING_DEPTH:
+                continue
+            for index, token in enumerate(args):
+                if token == "-c" and index + 1 < len(args):
+                    nested = scan(args[index + 1], depth + 1)
+                    if nested is not None:
+                        return nested
+            continue
+        signature = creation_signature(program, args)
+        if signature is None:
+            continue
+        # The ambient override is the human operator's. An inline assignment is
+        # the agent granting itself the exemption, so it disqualifies the
+        # override rather than supplying it — and it does so even when a
+        # legitimate ambient override is also present, because at that point the
+        # command no longer needs the inline one and its presence is only ever
+        # an attempt to reach it.
+        if ambient_override and not inline_override:
+            continue
+        if declares_readiness(args):
+            continue
+        return signature
+    return None
+
+
+found = scan(command, 0)
+if found is not None:
+    print("REFUSE %s" % found)
     sys.exit(0)
 
 print("ALLOW")

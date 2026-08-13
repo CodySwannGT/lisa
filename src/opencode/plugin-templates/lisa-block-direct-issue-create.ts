@@ -31,16 +31,31 @@ export /**
  */
 const LisaBlockDirectIssueCreate = async () => {
   const HUMAN_GATE_MARKER = "[lisa-human-gate]";
+  /**
+   * A label / workflow-state assignment and its value.
+   *
+   * Long forms only, deliberately: short flags are per-CLI (`-s` is `--state`
+   * on one and `--summary` on another), so accepting them would re-open the
+   * free-text hole one letter smaller. Every Lisa writer emits the long form.
+   */
+  const LABEL_FLAG =
+    /--(?:label|labels|add-label|status|state)(?:=|\s+)(['"]?)([^'"\s]+)\1/g;
   const CREATION_SIGNATURES: readonly {
     readonly re: RegExp;
     readonly name: string;
   }[] = [
-    { re: /(^|[;&|(\s])gh\s+issue\s+create\b/, name: "gh issue create" },
     {
-      re: /(^|[;&|(\s])linear\s+issue\s+create\b/,
+      re: /(^|[;&|(\s])gh\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
+      name: "gh issue create",
+    },
+    {
+      re: /(^|[;&|(\s])linear\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
       name: "linear issue create",
     },
-    { re: /(^|[;&|(\s])jira\s+issue\s+create\b/, name: "jira issue create" },
+    {
+      re: /(^|[;&|(\s])jira\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
+      name: "jira issue create",
+    },
     {
       re: /(^|[;&|(\s])acli\s+[^;&|]*\b(workitem|issue)s?\s+create\b/,
       name: "acli … create",
@@ -102,8 +117,19 @@ const LisaBlockDirectIssueCreate = async () => {
         entry.re.test(command)
       );
       if (!signature) return;
-      if (command.includes(readyRole) || command.includes(HUMAN_GATE_MARKER))
-        return;
+      // The build-ready role counts ONLY as the value of a label / state flag.
+      // A free-text scan of the command let a bug report's own title declare
+      // readiness — `gh issue create --title "status:ready is broken"` — which
+      // is the same position-blind matching that turned #2469's hardening
+      // allowlist into a bypass. The human-gate marker is matched anywhere by
+      // contrast, because it is a marker with no other meaning.
+      const declaresRole = [...command.matchAll(LABEL_FLAG)].some(match =>
+        (match[2] ?? "")
+          .split(",")
+          .map(part => part.trim())
+          .includes(readyRole)
+      );
+      if (declaresRole || command.includes(HUMAN_GATE_MARKER)) return;
       throw new Error(
         [
           `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
