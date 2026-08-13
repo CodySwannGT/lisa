@@ -8,6 +8,7 @@ import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
 import { createDetectorRegistry } from "../detection/index.js";
 import { checkKaneProvider } from "./doctor-kane.js";
+import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
@@ -331,6 +332,11 @@ export async function runDoctor(
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
+    // Runs AFTER the instruction-files check because that check performs the
+    // legacy ledger relocation. A project whose ledger merely needs moving is
+    // repaired first and passes here; only a genuine second ledger survives to
+    // be reported.
+    await checkLearningsLedger(resolvedTarget),
     await checkWorkerEpoch(resolvedTarget),
     checkLegacyCodexOverlay(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),

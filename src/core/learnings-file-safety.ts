@@ -7,9 +7,24 @@ import {
   conflictMarkerError,
   findConflictMarkerInBytes,
 } from "./learnings-document.js";
+import {
+  eagerContextRejection,
+  findEagerContextSurface,
+} from "./learnings-location.js";
 
 /**
- * Resolve the configured target without permitting project-root escape.
+ * Resolve the configured target without permitting project-root escape, and
+ * without permitting an auto-loaded rules tree.
+ *
+ * The eager-tree arm is the write boundary's own guard, deliberately duplicated
+ * from `learnings.file` config validation rather than delegated to it. Lisa
+ * 2.232.0 scaffolded the ledger into `.claude/rules/` and every downstream
+ * project happily wrote there: the raw ledger entered eager context in every
+ * session, and a merge-hostile file sat where nothing watched it until 19
+ * captured learnings vanished in a silent merge. Every writer — ledger,
+ * overflow, apply's relocation — funnels through this function, so failing
+ * loudly HERE means no future caller can reintroduce that placement by
+ * synthesizing a path that never passed through config validation.
  * @param projectRoot - Host project root
  * @param relativeFile - Configured project-relative file
  * @returns Resolved root and target paths
@@ -23,6 +38,15 @@ export function resolveSafeLearningTarget(
   if (target === root || !target.startsWith(`${root}${path.sep}`)) {
     throw new Error(
       "Unsafe projectRulesFile: learnings path escapes project root"
+    );
+  }
+  // Re-derive the relative path from the RESOLVED target rather than trusting
+  // the caller's string: `.lisa/../.claude/rules/x.md` is an eager-tree write
+  // that no prefix test on the raw input would catch.
+  const surface = findEagerContextSurface(path.relative(root, target));
+  if (surface !== undefined) {
+    throw new Error(
+      `Refusing to use ${relativeFile} as a learnings ledger: ${eagerContextRejection(surface)}`
     );
   }
   return { root, target };
