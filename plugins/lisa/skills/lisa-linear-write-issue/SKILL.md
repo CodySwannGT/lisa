@@ -103,7 +103,10 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 [Explicit list of what this item does NOT cover. Forces scope discipline.]
 
 ## Target Backend Environment
-[Required when the item changes runtime behavior. Use an exact
+[ALWAYS required on a leaf — the SECTION is unconditional, only its
+ VALUE is conditional. It is where `runtime_behavior_change` is
+ persisted, so omitting it records nothing rather than recording "no".
+ When the item changes runtime behavior, use an exact
  `deploy.branches` key. A human-confirmed value is a bare key or
  `Confirmed: <env>`. An automated evidence write is
  `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated
@@ -116,8 +119,11 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
  exemption in place of an environment: `None — no runtime behavior change:
  doc-only` (or `config-only` / `type-only`). A Project/container declares
  `None — container: state rolls up from children`. Visible prose, not an HTML
- comment, for the same reason the Branch Plan provenance line is: JIRA's ADF has
- no comment node. See the `derived-branch-plan` rule.]
+ comment, for the same reason the Branch Plan provenance line is: a marker that
+ survives in only one representation cannot be a vendor-neutral discriminator,
+ and every tracker this contract binds stores its body in some rich-text or
+ structured form that need not preserve HTML comments. A declaration a reader
+ can see is one every backend can store. See the `derived-branch-plan` rule.]
 
 ## Branch Plan
 [GENERATED, never hand-authored. Render only when the item has a Target

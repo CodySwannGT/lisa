@@ -389,7 +389,7 @@ system, and never invent or ask for credentials inline.
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's an identifier, fetch the item and derive the spec from the fetched fields — including `runtime_behavior_change` (from the `## Target Backend Environment` declaration: an exact configured environment key → `true`, a `None -` declaration → `false`, an absent section → **underivable**, never `false`), `build_ready` (the Issue's state is the configured `ready` state) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item. Otherwise parse the YAML spec.
+1. Parse `$ARGUMENTS`. If it's an identifier, fetch the item and derive the spec from the fetched fields — including `runtime_behavior_change` (from the `## Target Backend Environment` declaration: an exact configured environment key → `true`, a `None —` declaration → `false`, an absent section → **underivable**, never `false`), `build_ready` (the Issue's state is the configured `ready` state) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item. Otherwise parse the YAML spec.
 2. Resolve team ID via `lisa-linear-access operation: list-teams({query: <teamKey>})` if any feasibility gate will run.
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only` (dry-run), run every Feasibility gate. Collect results.

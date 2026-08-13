@@ -83,7 +83,10 @@ h2. Out of Scope
 [Explicit list of what this ticket does NOT cover. Forces scope discipline.]
 
 h2. Target Backend Environment
-[Required when the ticket changes runtime behavior. Use an exact
+[ALWAYS required on a leaf — the SECTION is unconditional, only its
+ VALUE is conditional. It is where `runtime_behavior_change` is
+ persisted, so omitting it records nothing rather than recording "no".
+ When the ticket changes runtime behavior, use an exact
  `deploy.branches` key. A human-confirmed value is a bare key or
  `Confirmed: <env>`. An automated evidence write is
  `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated

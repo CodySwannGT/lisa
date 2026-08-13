@@ -206,54 +206,82 @@ ambient_override = os.environ.get("LISA_GUARD_AMBIENT_OVERRIDE", "")
 OVERRIDE_NAME = "LISA_ALLOW_DIRECT_ISSUE_CREATE"
 HUMAN_GATE_MARKER = "[lisa-human-gate]"
 
-# Wrapper programs that prefix a real command rather than being one.
-WRAPPERS = {"env", "command", "sudo", "nohup", "time", "nice", "xargs", "exec"}
-
-# Shells that take a whole command as a STRING argument. `bash -c 'gh issue
-# create …'` has an argv naming only bash, so nothing about the creation is
-# visible without re-tokenizing the nested string. Bounded depth: a guard that
-# can be made to recurse forever is its own denial of service.
-SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
-MAX_NESTING_DEPTH = 3
-
-# Flags whose value is a label / workflow-state assignment. The build-ready role
-# is matched ONLY here, never anywhere in the command text.
+# ---------------------------------------------------------------------------
+# WHY THIS IS A TOKEN SCAN AND NOT A PROGRAM RESOLVER
 #
-# This is the lesson of the `block-no-verify` hardening that introduced its own
-# bypass (#2469): a token means different things in different positions, so a
-# check that ignores position can always be satisfied from the wrong one. A
-# free-text scan for the role let `gh issue create --title "status:ready is
-# broken"` declare readiness out of a bug report's TITLE.
+# The first version of this classifier asked "what program is being invoked?"
+# and answered it by stripping a fixed allowlist of wrapper programs. That
+# question is unbounded, so the allowlist could never be complete, and every
+# gap failed OPEN: an unrecognised prefix became the resolved program,
+# classification returned "not a creation", and the guard allowed. A
+# branch-enumerating probe found 36 fail-opens, including `nice -n 10 gh issue
+# create` — and `nice` is POSIX, present on every host, so one prepended token
+# defeated the whole control end to end.
 #
-# Long forms only, and deliberately so. Short flags are per-CLI: `-s` is
-# `--state` on `gh issue list` and `--summary` on other trackers, and accepting
-# it would re-open the same hole one letter smaller. Every Lisa writer emits the
-# long form.
-LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
+# Enumerating command SHAPES had scored 21/21 against that same code. The
+# lesson is the method, not the list: probe the parser's decision points
+# (tokenise, split, locate, classify, declare), not the attacks you can think
+# of.
+#
+# So the question is inverted. Instead of "what program is this?" — unbounded —
+# the classifier asks "does this command line invoke a tracker CLI in a
+# creation mode?", which is bounded by a tracker list we already maintain.
+# Every token is examined; anything before the CLI token is irrelevant by
+# construction. `nice`, `stdbuf`, `caffeinate`, `xcrun`, `arch`, `script`,
+# `timeout`, `env -i`, `sudo -u`, `xargs -I{}`, absolute paths, and every
+# wrapper nobody has thought of yet all collapse into one code path.
+#
+# THE DEFAULT ANSWER TO "I DO NOT UNDERSTAND THIS" IS NOW REFUSE.
+# Tokenisation failure, a nesting bound, an unparsed operand: each refuses with
+# an explanation rather than passing. An operator who hits a false refusal says
+# so and the recogniser widens; an agent who hits a false allow says nothing,
+# which is the entire problem.
+# ---------------------------------------------------------------------------
 
-# Flags whose value is a file the create is about to submit as the body. The
-# human-gate marker lives in the body, and every Lisa writer composes the body
-# in a temp file to avoid quoting hell — so a guard that only read the command
-# line would miss the declaration it is asking for.
+# Tracker CLIs. Bounded and reviewable, unlike the wrapper space.
+TRACKER_CLIS = {"gh", "jira", "linear", "acli"}
+HTTP_CLIS = {"curl", "http", "httpie", "wget"}
+
+# Text that looks like a tracker creation even when it cannot be tokenised.
+# Used ONLY on the tokenise-failure path, where the choice is between refusing
+# and permitting something we demonstrably cannot read. Deliberately narrower
+# than "mentions a tracker CLI" so an ordinary unparseable command
+# (`echo 'it's fine`) still passes.
+UNPARSEABLE_CREATION = re.compile(
+    r"\b(?:gh|jira|linear)\b[^\n]*?\bissue\b[^\n]*?\bcreate\b"
+    r"|\bacli\b[^\n]*?\b(?:workitem|issue)s?\b[^\n]*?\bcreate\b"
+    r"|\bcreateIssue\b|\bissueCreate\b"
+    r"|repos/[^/\s]+/[^/\s]+/issues"
+    r"|atlassian\.net/rest/api/[^/\s]+/issue",
+    re.IGNORECASE,
+)
+
 BODY_FILE_FLAGS = {"--body-file", "-F", "--input", "--data-binary"}
-
+LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
 POST_METHOD_FLAGS = {"-X", "--request", "--method"}
-# Field/payload flags that imply a write on the CLIs we intercept.
 POST_PAYLOAD_FLAGS = {
-    "-d",
-    "--data",
-    "--data-raw",
-    "--data-binary",
-    "-f",
-    "-F",
-    "--raw-field",
-    "--field",
-    "--input",
+    "-d", "--data", "--data-raw", "--data-binary",
+    "-f", "-F", "--raw-field", "--field", "--input",
 }
+# Flags whose VALUE is a payload field. `-f path=repos/o/r/issues` must not be
+# read as an endpoint: it is data being sent, not the address being posted to.
+PAYLOAD_VALUE_FLAGS = {"-f", "-F", "--raw-field", "--field"}
 
 GITHUB_ISSUES_PATH = re.compile(r"repos/[^/\s]+/[^/\s]+/issues/?$")
 GITHUB_ISSUES_URL = re.compile(r"api\.github\.com/repos/[^/\s]+/[^/\s]+/issues")
 JIRA_ISSUE_URL = re.compile(r"atlassian\.net/rest/api/[^/\s]+/issue")
+GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
+
+MAX_NESTING_DEPTH = 3
+# Operators that can be GLUED to an adjacent word (`true&&gh issue create`),
+# so they must be split out of a token. Braces and parentheses are deliberately
+# absent: shlex collapses a quoted argument into one token, so a GraphQL
+# payload arrives as `query=mutation{issueCreate(input:{})…}` and splitting on
+# braces tore it into fragments — silently un-refusing every GraphQL creation.
+# Standalone grouping punctuation is handled at segment and basename level
+# instead, where it cannot reach into a payload's contents.
+GLUED_OPERATORS = ("&&", "||", ";;", ";", "|", "&")
+SEGMENT_BOUNDARIES = set(GLUED_OPERATORS) | {"(", ")", "{", "}"}
 
 
 def strip_heredocs(text):
@@ -290,154 +318,133 @@ def strip_heredocs(text):
     return "\n".join(output)
 
 
-# The inline-override check runs over the WHOLE raw command text, not over
-# parsed tokens, so it catches `X=1 gh …`, `env X=1 gh …`, `export X=1 && gh …`,
-# and the same forms buried inside a nested `bash -c '…'` string alike. Any
-# appearance of the assignment disqualifies the ambient override: this is the
-# one place the guard deliberately over-matches, because a false positive costs
-# a human one retry and a false negative costs the entire control.
-inline_override = (OVERRIDE_NAME + "=") in command
+def explode_operators(tokens):
+    """Split shell control operators glued to adjacent words.
 
-SEPARATOR_CHARS = set("();&|{}")
+    `true&&gh issue create` tokenises as one word `true&&gh`, whose basename is
+    not `gh`, so the creation hid behind the operator. Splitting them out means
+    an operator can never be load-bearing punctuation inside a token.
+
+    Args:
+        tokens: Tokens from shlex.
+
+    Returns:
+        Tokens with operators separated out.
+    """
+    pattern = re.compile(
+        "(" + "|".join(re.escape(op) for op in GLUED_OPERATORS) + ")"
+    )
+    exploded = []
+    for token in tokens:
+        for piece in pattern.split(token):
+            if piece:
+                exploded.append(piece)
+    return exploded
 
 
-def segment(raw_tokens):
+def segment(tokens):
     """Split a token stream into individual commands at shell operators.
 
     Args:
-        raw_tokens: Tokens from shlex.
+        tokens: Exploded tokens.
 
     Returns:
-        A list of argv lists, one per command in the pipeline/list.
+        A list of argv lists.
     """
     segments = []
     current = []
-    for token in raw_tokens:
-        if token and set(token) <= SEPARATOR_CHARS:
+    for token in tokens:
+        if token in SEGMENT_BOUNDARIES:
             segments.append(current)
             current = []
             continue
-        # Only parentheses and the statement terminator are peeled off the ends
-        # of a token. Braces deliberately are NOT: shlex has already collapsed
-        # a quoted argument into one token, so `-d '{"query":"mutation{…}"}'`
-        # arrives as a single token that both starts and ends with a brace.
-        # Peeling those read the JSON payload as a shell group and split the
-        # command in half, which silently un-refused every GraphQL creation
-        # posted over curl. A bare `{` or `}` used as real shell grouping is
-        # still caught by the whole-token separator check above.
-        stripped = token.lstrip("(")
-        if stripped != token:
-            segments.append(current)
-            current = []
-        token = stripped
-        trailing = token.rstrip(");")
-        if trailing != token:
-            token = trailing
-            if token:
-                current.append(token)
-            segments.append(current)
-            current = []
-            continue
-        if token:
-            current.append(token)
+        current.append(token)
     segments.append(current)
     return [item for item in segments if item]
 
 
-def program_and_args(argv):
-    """Strip env assignments and wrapper programs to find the real command.
+def basename(token):
+    """The final path component of a token, quotes stripped.
 
     Args:
-        argv: One command's tokens.
+        token: A shell token.
 
     Returns:
-        A (program basename, remaining args) tuple, or (None, []) if empty.
+        The basename.
     """
-    index = 0
-    while index < len(argv):
-        token = argv[index]
-        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", token):
-            index += 1
-            continue
-        if token.rsplit("/", 1)[-1] in WRAPPERS:
-            index += 1
-            continue
-        break
-    if index >= len(argv):
-        return None, []
-    return argv[index].rsplit("/", 1)[-1], argv[index + 1 :]
+    return token.strip("'\"").strip("(){}").rsplit("/", 1)[-1]
 
 
-def non_flag(args):
-    """The positional arguments, with flag values removed.
+def is_flag_value(args, index):
+    """Whether the token at `index` is the value of the preceding flag.
 
-    A bare "does not start with a dash" filter reads a flag's VALUE as a
-    positional, which is what let `gh issue --repo o/r create` through: `o/r`
-    landed in the positional list and pushed `create` out of the slot a strict
-    index check was watching. That form is not hypothetical — gh accepts it,
-    because cobra strips a persistent flag before resolving the subcommand.
-
-    A token is treated as a flag value when the token before it is a flag that
-    carries no `=`. `--repo=o/r` therefore consumes nothing.
-
-    Args:
-        args: A command's arguments (argv without the program).
-
-    Returns:
-        The positional arguments, in order.
-    """
-    positional = []
-    previous_takes_value = False
-    for token in args:
-        if token.startswith("-") and token != "-":
-            previous_takes_value = "=" not in token
-            continue
-        if previous_takes_value:
-            previous_takes_value = False
-            continue
-        positional.append(token)
-    return positional
-
-
-def has_subcommand(positional, first, second):
-    """Whether two subcommand words appear adjacently among the positionals.
-
-    Matched as an adjacent PAIR anywhere rather than at a fixed index, because a
-    global flag can precede the subcommand chain and shift it.
-
-    Args:
-        positional: The filtered positional arguments.
-        first: The group subcommand, e.g. "issue".
-        second: The verb, e.g. "create".
-
-    Returns:
-        True when `first` is immediately followed by `second`.
-    """
-    return any(
-        positional[index] == first and positional[index + 1] == second
-        for index in range(len(positional) - 1)
-    )
-
-
-def flag_values(args, names):
-    """Every value assigned to one of the named flags.
+    This is the single position question the classifier keeps having to ask,
+    and getting it wrong is what produced three separate bypasses: the role
+    read from a `--title`, the role read past `--`, and a subcommand read as a
+    flag's value. It is answered in exactly one place now.
 
     Args:
         args: A command's arguments.
-        names: The flag spellings to collect.
+        index: The position to test.
 
     Returns:
-        The raw values, unsplit and unquoted.
+        True when the previous token is a flag that carries no `=`.
     """
-    values = []
-    for index, token in enumerate(args):
-        if token in names and index + 1 < len(args):
-            values.append(args[index + 1])
-        if "=" in token:
-            head, value = token.split("=", 1)
-            if head in names:
-                values.append(value)
-    return values
+    if index == 0:
+        return False
+    previous = args[index - 1]
+    return previous.startswith("-") and previous != "-" and "=" not in previous
+
+
+def bare_index(args, word, start=0):
+    """Index of `word` appearing as itself rather than as a flag's value.
+
+    Args:
+        args: A command's arguments.
+        word: The word to locate.
+        start: Index to search from.
+
+    Returns:
+        The index, or -1.
+    """
+    for index in range(start, len(args)):
+        if args[index] == word and not is_flag_value(args, index):
+            return index
+    return -1
+
+
+def invokes_verb(args, groups, verb):
+    """Whether a group word is followed later by a bare verb.
+
+    Deliberately tolerant of anything between them, because a flag may sit
+    between the group and the verb — `gh issue --repo o/r create` is accepted
+    by cobra, which strips persistent flags before resolving the subcommand.
+    Tolerance is safe here only because the verb itself must be bare: that is
+    what keeps `gh issue list --search create` from reading as a creation.
+
+    Args:
+        args: A command's arguments.
+        groups: Acceptable group words, e.g. {"issue", "workitem"}.
+        verb: The verb, e.g. "create".
+
+    Returns:
+        True when the invocation names the verb.
+    """
+    # The bare-token filter is applied to the VERB only, never to the group
+    # word, and the asymmetry is the point. `--verbose` is boolean, so treating
+    # the token after any flag as that flag's value swallowed `api` in
+    # `gh --verbose api …` and `issue` in `gh --verbose issue create`. Being
+    # permissive about the group costs nothing, because the verb still has to
+    # match; being permissive about the VERB is what would read
+    # `gh issue list --search create` as a creation. Over-include where the
+    # consequence is another check, filter where the consequence is a refusal.
+    for group in groups:
+        if group not in args:
+            continue
+        group_at = args.index(group)
+        if bare_index(args, verb, group_at + 1) >= 0:
+            return True
+    return False
 
 
 def is_write_request(args):
@@ -457,64 +464,111 @@ def is_write_request(args):
             head, value = token.split("=", 1)
             if head in POST_METHOD_FLAGS and value.upper() == "POST":
                 return True
-        if token.upper() in {"-XPOST", "-XPOST="}:
+        if token.upper() == "-XPOST":
             return True
         if token in POST_PAYLOAD_FLAGS:
             return True
     return False
 
 
-def creation_signature(program, args):
-    """Classify a command as a tracker-creation call.
+def endpoint_tokens(args, pattern):
+    """Tokens naming an API endpoint, excluding payload values.
+
+    Scans every token rather than a filtered positional list, because a BOOLEAN
+    flag has no value to skip and filtering swallowed the endpoint behind one:
+    `gh api -X POST --silent repos/o/r/issues -f title=x` hid the endpoint
+    behind `--silent`. Payload values are excluded the other way, so
+    `-f path=repos/o/r/issues` is not mistaken for the address being posted to.
 
     Args:
-        program: The command's basename.
-        args: Its arguments.
+        args: A command's arguments.
+        pattern: The endpoint regex.
 
     Returns:
-        A short human-readable signature, or None when this is not a creation.
+        Matching endpoint tokens.
+    """
+    found = []
+    for index, token in enumerate(args):
+        if "=" in token:
+            continue
+        if index > 0 and args[index - 1] in PAYLOAD_VALUE_FLAGS:
+            continue
+        if pattern.search(token):
+            found.append(token)
+    return found
+
+
+def creation_signature(name, args):
+    """Classify a tracker CLI invocation as a creation.
+
+    Args:
+        name: The CLI basename.
+        args: Every token after it in this segment.
+
+    Returns:
+        A short human-readable signature, or None.
     """
     if "--help" in args or "-h" in args:
         return None
-    positional = non_flag(args)
     joined = " ".join(args)
 
-    if program == "gh":
-        if has_subcommand(positional, "issue", "create"):
+    if name == "gh":
+        if invokes_verb(args, {"issue"}, "create"):
             return "gh issue create"
-        if positional[:1] == ["api"]:
-            if "createIssue" in joined or "issueCreate" in joined:
-                return "gh api graphql createIssue"
-            if any(GITHUB_ISSUES_PATH.search(token) for token in positional):
-                if is_write_request(args):
-                    return "gh api POST .../issues"
+        # Same reasoning: `api` is located without the flag-value filter, since
+        # an endpoint match and a write method must both also hold.
+        if "api" in args:
+            if GRAPHQL_CREATE.search(joined):
+                return "gh api graphql issue creation"
+            if endpoint_tokens(args, GITHUB_ISSUES_PATH) and is_write_request(args):
+                return "gh api POST .../issues"
         return None
 
-    if program in {"linear", "jira"}:
-        if has_subcommand(positional, "issue", "create"):
-            return "%s issue create" % program
+    if name in {"linear", "jira"}:
+        if invokes_verb(args, {"issue", "issues"}, "create"):
+            return "%s issue create" % name
         return None
 
-    if program == "acli":
-        if "create" in positional and (
-            {"workitem", "workitems", "issue", "issues"} & set(positional)
-        ):
+    if name == "acli":
+        if invokes_verb(args, {"workitem", "workitems", "issue", "issues"}, "create"):
             return "acli … create"
         return None
 
-    if program in {"curl", "http", "wget"}:
+    if name in HTTP_CLIS:
         if not is_write_request(args):
             return None
         for token in args:
             if GITHUB_ISSUES_URL.search(token):
-                return "%s POST api.github.com/…/issues" % program
+                return "%s POST api.github.com/…/issues" % name
             if JIRA_ISSUE_URL.search(token):
-                return "%s POST …/rest/api/…/issue" % program
-            if "api.linear.app/graphql" in token and "issueCreate" in joined:
-                return "%s POST api.linear.app/graphql issueCreate" % program
+                return "%s POST …/rest/api/…/issue" % name
+            if "api.linear.app/graphql" in token and GRAPHQL_CREATE.search(joined):
+                return "%s POST api.linear.app/graphql issueCreate" % name
         return None
 
     return None
+
+
+def before_end_of_options(args):
+    """The arguments up to a bare `--`.
+
+    Everything after `--` is an operand, not a flag, so it cannot reach the
+    created item — crediting a declaration from there is the same mistake as
+    reading the role out of a title, one position over.
+
+    The two CLIs available for testing disagree about it, which is why the
+    guard cannot lean on any of them being strict: gh 2.96.0 rejects a
+    post-`--` flag outright, while `acli` parses straight past it and proceeds
+    to create the work item with the trailing `--status` silently unapplied.
+    That made it a live bypass on the JIRA path, verified by running it.
+
+    Args:
+        args: A command's arguments.
+
+    Returns:
+        The arguments preceding the first bare `--`.
+    """
+    return args[: args.index("--")] if "--" in args else args
 
 
 def body_file_paths(args):
@@ -539,30 +593,6 @@ def body_file_paths(args):
     return paths
 
 
-def before_end_of_options(args):
-    """The arguments up to a bare `--`.
-
-    Everything after `--` is an operand, not a flag, so it cannot reach the
-    created item — crediting a declaration from there is the same mistake as
-    reading the role out of a title, one position over.
-
-    The two installed CLIs disagree about it, which is exactly why the guard
-    cannot lean on any of them being strict: gh 2.96.0 rejects a post-`--`
-    flag outright, while `acli` parses straight past it and proceeds to create
-    the work item with the trailing `--status` silently unapplied. That made
-    this a live bypass on the JIRA path, verified by running it. `jira`,
-    `linear`, `http`, and `wget` were not installed and are UNVERIFIED, so the
-    guard fails closed for every path rather than assuming gh's strictness.
-
-    Args:
-        args: A command's arguments.
-
-    Returns:
-        The arguments preceding the first bare `--`.
-    """
-    return args[: args.index("--")] if "--" in args else args
-
-
 def declares_readiness(raw_args):
     """Whether the create carries one of the two required declarations.
 
@@ -575,9 +605,7 @@ def declares_readiness(raw_args):
     args = before_end_of_options(raw_args)
     if ready_role:
         for raw in flag_values(args, LABEL_FLAGS):
-            candidates = [
-                part.strip().strip("'\"") for part in raw.split(",")
-            ]
+            candidates = [part.strip().strip("'\"") for part in raw.split(",")]
             if ready_role in candidates:
                 return True
     # The human-gate marker is matched anywhere, and that asymmetry is
@@ -586,11 +614,6 @@ def declares_readiness(raw_args):
     # string that appears in prose about the queue all the time.
     if HUMAN_GATE_MARKER in " ".join(args):
         return True
-    # The human-gate marker lives in the body, and every Lisa writer composes
-    # the body in a file. The build-ready role deliberately does NOT count from
-    # a file: it is a label applied on the command line, so accepting it from
-    # body prose would let the words "status:ready" in a description satisfy a
-    # gate about a label.
     for path in body_file_paths(args):
         try:
             with open(path, encoding="utf-8", errors="replace") as handle:
@@ -601,49 +624,120 @@ def declares_readiness(raw_args):
     return False
 
 
-def scan(command_text, depth):
-    """Find the first undeclared creation in a command string.
+def flag_values(args, names):
+    """Every value assigned to one of the named flags.
 
     Args:
-        command_text: A shell command, possibly containing nested `sh -c`.
+        args: A command's arguments.
+        names: The flag spellings to collect.
+
+    Returns:
+        The raw values, unsplit and unquoted.
+    """
+    values = []
+    for index, token in enumerate(args):
+        if token in names and index + 1 < len(args):
+            values.append(args[index + 1])
+        if "=" in token:
+            head, value = token.split("=", 1)
+            if head in names:
+                values.append(value)
+    return values
+
+
+def nested_operands(argv):
+    """Command strings this argv hands to another interpreter.
+
+    Position-scoped rather than shell-allowlisted: the operand after `-c` (or
+    after `eval`) is a command by the calling convention itself, whoever the
+    program is. That covers `bash -c`, `sh -c`, `zsh -c`, `python -c`, and the
+    POSIX builtin `eval`, without an allowlist to keep complete.
+
+    Recursing into arbitrary trailing quoted operands was considered and
+    rejected: it re-refuses `git commit -m "the gh issue create guard"`, which
+    is an ordinary and correct command. `ssh host '…'` is therefore NOT
+    intercepted — a documented limit, since that runs against another host's
+    tracker config and needs that host's own guard.
+
+    Args:
+        argv: One command's tokens.
+
+    Returns:
+        Nested command strings.
+    """
+    operands = []
+    for index, token in enumerate(argv):
+        if index + 1 >= len(argv):
+            continue
+        if token == "-c" or token.endswith("-c") and token.startswith("-"):
+            operands.append(argv[index + 1])
+        elif basename(token) == "eval":
+            operands.append(argv[index + 1])
+    return operands
+
+
+def scan(text, depth):
+    """Find the first undeclared tracker creation in a command string.
+
+    Args:
+        text: A shell command.
         depth: Current nesting depth.
 
     Returns:
-        A refusal signature, or None.
+        A refusal signature, or None when nothing creation-shaped was found.
     """
     try:
-        raw_tokens = shlex.split(strip_heredocs(command_text), posix=True)
+        tokens = explode_operators(
+            shlex.split(strip_heredocs(text), posix=True)
+        )
     except ValueError:
+        # Bash's grammar is not shlex's. `gh issue create --title x #'` is a
+        # comment to bash, which strips it and RUNS the create, while shlex
+        # raises on the unbalanced quote. Two appended characters, no binary
+        # required. "I could not parse it" must never mean "it is fine".
+        if UNPARSEABLE_CREATION.search(text):
+            return "an unparseable command that reads as a tracker creation"
         return None
-    for argv in segment(raw_tokens):
-        program, args = program_and_args(argv)
-        if program is None:
-            continue
-        if program in SHELLS:
-            if depth >= MAX_NESTING_DEPTH:
+
+    for argv in segment(tokens):
+        for index, token in enumerate(argv):
+            name = basename(token)
+            if name not in TRACKER_CLIS and name not in HTTP_CLIS:
                 continue
-            for index, token in enumerate(args):
-                if token == "-c" and index + 1 < len(args):
-                    nested = scan(args[index + 1], depth + 1)
-                    if nested is not None:
-                        return nested
-            continue
-        signature = creation_signature(program, args)
-        if signature is None:
-            continue
-        # The ambient override is the human operator's. An inline assignment is
-        # the agent granting itself the exemption, so it disqualifies the
-        # override rather than supplying it — and it does so even when a
-        # legitimate ambient override is also present, because at that point the
-        # command no longer needs the inline one and its presence is only ever
-        # an attempt to reach it.
-        if ambient_override and not inline_override:
-            continue
-        if declares_readiness(args):
-            continue
-        return signature
+            args = argv[index + 1 :]
+            signature = creation_signature(name, args)
+            if signature is None:
+                continue
+            # The ambient override is the human operator's. An inline
+            # assignment is the agent granting itself the exemption, so it
+            # disqualifies the override rather than supplying it.
+            if ambient_override and not inline_override:
+                continue
+            if declares_readiness(args):
+                continue
+            return signature
+
+        for operand in nested_operands(argv):
+            if depth >= MAX_NESTING_DEPTH:
+                # Refuse at the bound rather than skipping past it. Skipping
+                # made a creation inside a 4th `bash -c` layer pass, which is
+                # the depth cap being used as the bypass.
+                if UNPARSEABLE_CREATION.search(operand):
+                    return "a tracker creation nested past the inspection depth"
+                continue
+            nested = scan(operand, depth + 1)
+            if nested is not None:
+                return nested
     return None
 
+
+# The inline-override check runs over the WHOLE raw command text, not over
+# parsed tokens, so it catches `X=1 gh …`, `env X=1 gh …`, `export X=1 && gh …`,
+# and the same forms buried inside a nested `bash -c '…'` string alike. Any
+# appearance of the assignment disqualifies the ambient override: this is the
+# one place the guard deliberately over-matches, because a false positive costs
+# a human one retry and a false negative costs the entire control.
+inline_override = (OVERRIDE_NAME + "=") in command
 
 found = scan(command, 0)
 if found is not None:
@@ -651,6 +745,7 @@ if found is not None:
     sys.exit(0)
 
 print("ALLOW")
+
 PY
 
 set +e
