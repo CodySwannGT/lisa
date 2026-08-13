@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "//": [
+    "Promotion ledger for required status contexts — CodySwannGT/lisa#2509.",
+    "A check may only become a required status context if its budget has proven headroom.",
+    "Enforced by scripts/check-required-check-promotions.mjs, which runs inside",
+    "tests/unit/scripts/required-check-promotions.repo.test.ts and therefore inside the",
+    "already-required '🔍 Quality Checks / 🧪 Run Unit Tests' context. Read that script's",
+    "module preamble before editing this file: it explains what counts as proof and why.",
+    "",
+    "status 'proven' requires budget_ms, observed_worst_ms, a >=2x margin, the machine",
+    "conditions, and a description of the run that REPRODUCED the failure the budget",
+    "prevents. Sizing from runs that passed is circular and is refused.",
+    "",
+    "status 'grandfathered' is for contexts that were already required on 2026-08-13, when",
+    "this ledger was written. It reports debt instead of failing. It is not an amnesty: the",
+    "entry must state what is unproven, and the context must appear in grandfathered_contexts",
+    "below. That list is FROZEN — a new promotion cannot join it, it must prove headroom."
+  ],
+  "grandfathered_frozen_on": "2026-08-13",
+  "grandfathered_contexts": [
+    "CodeRabbit",
+    "GitGuardian Security Checks",
+    "Quality Checks / Code Quality",
+    "Quality Checks / Lint",
+    "Quality Checks / Security",
+    "Quality Checks / 🔗 Work-Item Traceability",
+    "🌙 Nightly E2E Health / 🌙 Gate",
+    "🔍 Quality Checks / 🏗️ Build",
+    "🔍 Quality Checks / 📐 Check Formatting",
+    "🔍 Quality Checks / 🔍 Type Check",
+    "🔍 Quality Checks / 🔒 Security Scan",
+    "🔍 Quality Checks / 🔗 Work-Item Traceability",
+    "🔍 Quality Checks / 🧪 Run Integration Tests",
+    "🔍 Quality Checks / 🧪 Run Unit Tests",
+    "🔍 Quality Checks / 🧹 Lint",
+    "🔍 Quality Checks / 🧾 BDD Behavior Contract",
+    "🧩 Plugin artifacts match source"
+  ],
+  "promotions": [
+    {
+      "context": "🔍 Quality Checks / 🧹 Lint",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "lint",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. No wall-clock budget on this job's path has ever been measured against a reproduced failure; the job budget is inherited from the workflow, not derived from a measurement."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🔍 Type Check",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "typecheck",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Budget never measured against a reproduced failure. `tsc` is an external process with unbounded latency under contention — the exact mechanism #2490 documents — so this is a real gap, not a formality."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🏗️ Build",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "build",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Budget never measured against a reproduced failure."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 📐 Check Formatting",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "format",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Budget never measured against a reproduced failure."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🔒 Security Scan",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "npm_security_scan",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Budget never measured against a reproduced failure. This job also depends on an external advisory service, so its worst case is not bounded by this repository at all."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🧪 Run Unit Tests",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "test_unit",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "THE outstanding debt this ledger exists to record. Three known-marginal budgets ride inside this required context. (1) sonar-secrets' 60s budget was sized BY ANALOGY in #2490 — its 16-way paired probe ran against plugin-sync-scripts, not against sonar-secrets — and has never been re-measured against a reproduced sonar-secrets timeout; the suite failed 3 of 5 pre-push attempts across loads from 5 to ~300 vitest workers, including one run with only FIVE workers and 11,275 of 11,276 tests passing, so the honest claim is a budget that loses at any load, just less often when the box is quiet. (2) learnings-writer failed at 10,259ms against a 10,000ms budget — 2.6% over — then passed 5/5 on immediate re-run under unchanged conditions. (3) check-learnings-budget's `npm pack` takes 23.6s quiet and 45.8s loaded. #2509 scope item 3 names sonar-secrets as the first to re-measure. (4) A SIXTH suite, observed while writing this ledger on 2026-08-13: tests/unit/scripts/lisa-github-rulesets.test.ts timed out at 10,000ms on two of six cases, with a DIFFERENT pair failing on each of two consecutive runs, at load 27.01 on 18 cores with 57 sibling vitest processes live. It spawns `git init` and `bash` synchronously per case and is not wired to the io-latency budget helper — confirming #2490's warning that the five-suite roster is not a closed set. Deliberately NOT widened here: a timeout gives a lower bound, never an observed worst case, so nothing measured so far can size a budget for it. Widening it by analogy is the exact error this ledger refuses. (5) #2523 raised the whole suite's budget from 10s to 60s in Lisa's create-only vitest.config.local.ts, correctly scoped away from the fleet default so no downstream project inherits a looser budget it has no evidence for. That fix is genuinely measurement-backed — thirteen failing runs, a ruled-out table covering load, parallelism, disk, memory, spawn latency and fsync, and an empirical check that the override applies. It is NOT recorded as proven headroom, for one reason that this ledger's own ratio rule makes visible: #2523 cites an observed worst of 60,245ms and sets the budget to 60,000ms, which is 0.996x — below its own measured worst case, and far below the 2x floor. If that figure is a file-level elapsed time rather than a single test's duration then the ratio is unknown rather than inverted, but either way it is not proven, and the same near-miss shape as learnings-writer's 10,259ms against 10,000ms. Re-measure the per-test worst case before treating the unit-test path as having headroom."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🧪 Run Integration Tests",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "test_integration",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Budget never measured against a reproduced failure. #2490 states explicitly that the five suites wired to the io-latency budget are NOT a closed set — a nine-run sample elsewhere caught three more — so absence from that roster is not evidence of headroom here."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🔗 Work-Item Traceability",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "work_item_traceability",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Budget never measured against a reproduced failure. The job calls the tracker API, so its worst case depends on a third party rather than on this repository."
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🧾 BDD Behavior Contract",
+      "integration_id": 15368,
+      "declared_in": ["expo/github-rulesets/bdd-coverage.json"],
+      "caller_workflow": "expo/create-only/.github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "bdd_coverage",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509, on Expo projects only. Budget never measured against a reproduced failure, and never measured on a real Expo project from this repository."
+      }
+    },
+    {
+      "context": "🌙 Nightly E2E Health / 🌙 Gate",
+      "integration_id": 15368,
+      "declared_in": ["expo/github-rulesets/nightly-e2e-health.json"],
+      "caller_workflow": "expo/create-only/.github/workflows/nightly-e2e-health.yml",
+      "caller_job": "health",
+      "called_workflow": ".github/workflows/nightly-e2e-health.yml",
+      "job_id": "gate",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509, on Expo projects only. The gate is fail-closed by design (#2416), which makes an unproven budget MORE consequential rather than less: a timeout reads as a failed health check and blocks merge. Never measured against a reproduced failure."
+      }
+    },
+    {
+      "context": "🧩 Plugin artifacts match source",
+      "integration_id": 15368,
+      "declared_in": [".lisa.config.json"],
+      "caller_workflow": ".github/workflows/plugins-sync.yml",
+      "caller_job": "plugins-sync",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Promoted in #2510, hours before this ledger was written, so it is an incumbent by a narrow margin. #2510 reports the job as deterministic, offline, and ~25s, and removed the `paths:` filter that would have deadlocked it (measured on PR #2496) — but ~25s is a sample of runs that PASSED, which is precisely the circular sizing #2509 refuses. Re-measure against a reproduced failure before treating this entry as proven."
+      }
+    },
+    {
+      "context": "Quality Checks / Lint",
+      "integration_id": 15368,
+      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality-rails.yml",
+      "job_id": "lint",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509, on Rails projects only. No budget on any Rails path has ever been measured from this repository."
+      }
+    },
+    {
+      "context": "Quality Checks / Code Quality",
+      "integration_id": 15368,
+      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality-rails.yml",
+      "job_id": "code-quality",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509, on Rails projects only. No budget on any Rails path has ever been measured from this repository."
+      }
+    },
+    {
+      "context": "Quality Checks / Security",
+      "integration_id": 15368,
+      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality-rails.yml",
+      "job_id": "security",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509, on Rails projects only. No budget on any Rails path has ever been measured from this repository."
+      }
+    },
+    {
+      "context": "Quality Checks / 🔗 Work-Item Traceability",
+      "integration_id": 15368,
+      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality-rails.yml",
+      "job_id": "work_item_traceability",
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509, on Rails projects only. Budget never measured against a reproduced failure. Note the mixed naming in this template — three non-emoji contexts and this emoji one — which is not a mistake: quality-rails.yml genuinely names its newer jobs with emoji and its older jobs without. Verify the job name, never the convention."
+      }
+    },
+    {
+      "context": "CodeRabbit",
+      "integration_id": 347564,
+      "declared_in": ["all/github-rulesets/base.json"],
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size — but it carries a worse debt of the same family: CodeRabbit reports `success — \"Review rate limited\"`, a green that proves nothing was reviewed. A hollow green satisfies a required context exactly as a real one does. Tracked by the `--pr` arm of check-skipped-required-checks, which reports and does not block."
+      }
+    },
+    {
+      "context": "GitGuardian Security Checks",
+      "integration_id": 46505,
+      "declared_in": ["all/github-rulesets/base.json"],
+      "headroom": {
+        "status": "grandfathered",
+        "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size; its worst case belongs to a third party and is not measurable from this repository."
+      }
+    }
+  ]
+}
