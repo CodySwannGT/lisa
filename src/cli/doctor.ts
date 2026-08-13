@@ -11,6 +11,7 @@ import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
+import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
@@ -330,6 +331,7 @@ export async function runDoctor(
     await checkKaneProvider(resolvedTarget, deps),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
+    await checkLisaOwnedArtifacts(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the
