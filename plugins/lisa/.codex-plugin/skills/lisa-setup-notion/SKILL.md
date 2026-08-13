@@ -164,6 +164,23 @@ read_notion_token() {
   local slug=$(echo "$workspace" | tr '[:upper:]-' '[:lower:]_')
   local varname="NOTION_API_TOKEN_${slug}"
   [ -n "${!varname}" ] && { echo "${!varname}"; return; }
+  # Preferred path: the single secrets chokepoint. It owns the one-store rule
+  # and the surface ladder, so anything it can answer must not be read out of an
+  # OS keychain here — a second reader is how the same credential ends up living
+  # in two places and drifting. Keep this identical to `notion-access`.
+  local resolver
+  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
+                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+    if [ -f "$resolver" ]; then
+      local via_lisa
+      via_lisa=$(node "$resolver" get NOTION_API_TOKEN 2>/dev/null) \
+        && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
+      break
+    fi
+  done
+  # Legacy fallback: the OS keychain written by the guided flow below, for
+  # projects that have not adopted a credentials provider. Reached only when the
+  # chokepoint is absent or has no entry.
   case "$(uname -s)" in
     Darwin)  security find-generic-password -s lisa-notion -a "$workspace" -w 2>/dev/null ;;
     Linux)   command -v secret-tool >/dev/null && secret-tool lookup service lisa-notion account "$workspace" 2>/dev/null ;;

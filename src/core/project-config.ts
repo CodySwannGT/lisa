@@ -19,9 +19,21 @@ import {
   type Harness,
 } from "./config.js";
 import {
+  DEFAULT_PROJECT_LEARNINGS_FILE,
+  PROJECT_LEARNINGS_FILENAME,
+  eagerContextRejection,
+  findEagerContextSurface,
+} from "./learnings-location.js";
+import {
   validateVerificationConfig,
   type VerificationConfig,
 } from "./project-config-kane.js";
+
+export {
+  AUTO_LOADED_RULES_DIR_PREFIXES,
+  DEFAULT_PROJECT_LEARNINGS_FILE,
+  PROJECT_LEARNINGS_FILENAME,
+} from "./learnings-location.js";
 
 export type {
   BrowserVerificationConfig,
@@ -40,7 +52,8 @@ export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
  * reaches it through exactly one surface — the Lisa-managed pointer block in
  * `AGENTS.md` — and none double-loads host rules. Fixed rather than
  * configurable: it is already reserved in `AUTO_LOADED_RULES_DIR_PREFIXES`
- * below, which keeps the learnings ledger from ever resolving inside it.
+ * (`./learnings-location.js`), which keeps the learnings ledger from ever
+ * resolving inside it.
  */
 export const HOST_RULES_DIR = ".agents/rules";
 
@@ -52,54 +65,6 @@ export const HOST_RULES_DIR = ".agents/rules";
  * is human-gated work.
  */
 export const LEGACY_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
-
-/** Fixed filename for the machine-managed project-learnings ledger. */
-export const PROJECT_LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
-
-/**
- * Default location for the machine-managed learnings ledger.
- *
- * The ledger lives beside other machine-managed state under `.lisa/`, NOT in an
- * auto-loaded rules tree. Anything under `.claude/rules/` (and the equivalents
- * other runtimes inject) is read raw into every session — placing the ledger
- * there double-loads it and bypasses the executable contract's budget and
- * validation. `.lisa/` is cold: the ledger is consumed only through the
- * contract's bounded projection.
- */
-export const DEFAULT_PROJECT_LEARNINGS_FILE = path.posix.join(
-  ".lisa",
-  PROJECT_LEARNINGS_FILENAME
-);
-
-/**
- * Directory prefixes that one or more runtimes inject raw at session start. The
- * learnings ledger must never resolve inside any of them, or the relocation's
- * whole point — keeping the raw file out of eager context — is defeated. Kept
- * conservative and explicit rather than agent-exhaustive; extend it as new
- * eager rule trees are added.
- */
-const AUTO_LOADED_RULES_DIR_PREFIXES = [
-  ".claude/rules",
-  ".cursor/rules",
-  ".github/instructions",
-  ".agents/rules",
-] as const;
-
-/**
- * Repo-root instruction files that runtimes auto-load whole at session start
- * (AGENTS.md for Codex/Cursor/Copilot/agy/OpenCode; CLAUDE.md for Claude). A
- * `learnings.file` override must never resolve to one of these, or the ledger
- * would again be injected raw.
- */
-const ROOT_EAGER_INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
-
-/**
- * Non-root instruction files the generators maintain and runtimes auto-load
- * (Copilot reads `.github/copilot-instructions.md`). Matched by exact path.
- */
-const EAGER_INSTRUCTION_FILE_PATHS = [
-  ".github/copilot-instructions.md",
-] as const;
 
 /** Optional `learnings` configuration block in `.lisa.config.json`. */
 export interface LearningsConfig {
@@ -460,25 +425,10 @@ function validateLearningsFile(value: unknown, source: string): string {
     source,
     "learnings.file"
   );
-  const normalized = path.posix.normalize(safe);
-  const lowered = normalized.toLowerCase();
-  const insideEagerTree = AUTO_LOADED_RULES_DIR_PREFIXES.some(
-    prefix => normalized === prefix || normalized.startsWith(`${prefix}/`)
-  );
-  const isRootEagerFile =
-    path.posix.dirname(normalized) === "." &&
-    ROOT_EAGER_INSTRUCTION_FILES.some(name => name.toLowerCase() === lowered);
-  const isNamedEagerFile = EAGER_INSTRUCTION_FILE_PATHS.some(
-    filePath => filePath.toLowerCase() === lowered
-  );
-  if (insideEagerTree || isRootEagerFile || isNamedEagerFile) {
-    const surfaces = [
-      ...AUTO_LOADED_RULES_DIR_PREFIXES,
-      ...ROOT_EAGER_INSTRUCTION_FILES,
-      ...EAGER_INSTRUCTION_FILE_PATHS,
-    ].join(", ");
+  const surface = findEagerContextSurface(safe);
+  if (surface !== undefined) {
     throw new Error(
-      `Invalid learnings.file in ${source}: the ledger must not live in an auto-loaded rules tree or instruction file (${surfaces}); the default ${DEFAULT_PROJECT_LEARNINGS_FILE} is the recommended location`
+      `Invalid learnings.file in ${source}: ${eagerContextRejection(surface)}`
     );
   }
   return safe;
