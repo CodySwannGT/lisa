@@ -294,8 +294,17 @@ export function classifyDesignSource(file, config) {
   return { ...base, status: "undeclared" };
 }
 
-/** Per-file statuses that fail the gate. */
-const VIOLATION_STATUSES = new Set([
+/**
+ * Per-file statuses that fail the gate.
+ *
+ * Exported so the suite can pin the set itself, not just its members' behavior.
+ * Classifying a file `unreadable` is not a guard; *failing the change* because
+ * of it is. Issue #2492 measured the difference: with only classification
+ * asserted, deleting `conflicting` or `unreadable` from this list flipped the
+ * verdict to PASS with the whole suite still green. The pinning test now fails
+ * on any edit to this set — a removal and an addition alike.
+ */
+export const VIOLATION_STATUSES = new Set([
   "undeclared",
   "malformed",
   "conflicting",

@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.8.1](https://github.com/CodySwannGT/lisa/compare/v3.8.0...v3.8.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **ci:** repair the dangling `test` edges that broke workflow startup ([eebf234](https://github.com/CodySwannGT/lisa/commit/eebf23490bb55082eddce70c32e5f8f74d26baca)), closes [CodySwannGT/lisa#2485](https://github.com/CodySwannGT/lisa/issues/2485)
+* **ci:** require the parity check, delete the duplicate test job ([1ee06f2](https://github.com/CodySwannGT/lisa/commit/1ee06f2260153592447b20003322ac799a713ab5)), closes [#2485](https://github.com/CodySwannGT/lisa/issues/2485) [#2469](https://github.com/CodySwannGT/lisa/issues/2469) [#2451](https://github.com/CodySwannGT/lisa/issues/2451) [#2457](https://github.com/CodySwannGT/lisa/issues/2457) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2496](https://github.com/CodySwannGT/lisa/issues/2496) [#1397](https://github.com/CodySwannGT/lisa/issues/1397) [#1578](https://github.com/CodySwannGT/lisa/issues/1578) [#2456](https://github.com/CodySwannGT/lisa/issues/2456) [#2461](https://github.com/CodySwannGT/lisa/issues/2461) [CodySwannGT/lisa#2485](https://github.com/CodySwannGT/lisa/issues/2485)
+
+
+### Documentation
+
+* **plan:** record the 2026-08-13 governance findings and dogfooding audit ([f3c687a](https://github.com/CodySwannGT/lisa/commit/f3c687a10269b0ffd9a910750a0840b2edbbe5df)), closes [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [#2485](https://github.com/CodySwannGT/lisa/issues/2485) [#2492](https://github.com/CodySwannGT/lisa/issues/2492) [#2489](https://github.com/CodySwannGT/lisa/issues/2489) [#2491](https://github.com/CodySwannGT/lisa/issues/2491) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+
+## [3.8.0](https://github.com/CodySwannGT/lisa/compare/v3.7.0...v3.8.0) (2026-08-13)
+
+
+### Features
+
+* **ast-grep:** ban fs-extra namespace members that do not exist under Node ESM ([27c9d73](https://github.com/CodySwannGT/lisa/commit/27c9d7335c3a80254344dd547ac06850edc01bf9)), closes [#2482](https://github.com/CodySwannGT/lisa/issues/2482) [#2487](https://github.com/CodySwannGT/lisa/issues/2487) [#2500](https://github.com/CodySwannGT/lisa/issues/2500) [CodySwannGT/lisa#2494](https://github.com/CodySwannGT/lisa/issues/2494)
+* **ci:** detect a required check that satisfies while doing no work ([764fd48](https://github.com/CodySwannGT/lisa/commit/764fd48a00c57fd2611f6a58ac8b9a9fb9d82039)), closes [#2483](https://github.com/CodySwannGT/lisa/issues/2483) [#2484](https://github.com/CodySwannGT/lisa/issues/2484) [#2483](https://github.com/CodySwannGT/lisa/issues/2483) [#2350](https://github.com/CodySwannGT/lisa/issues/2350) [CodySwannGT/lisa#2497](https://github.com/CodySwannGT/lisa/issues/2497)
+* **rules:** name the wrong-quantifier cause of a zero cardinality ([032287c](https://github.com/CodySwannGT/lisa/commit/032287c0636f96a7a3f8160bd0306d7e25e3eb6c)), closes [CodySwannGT/lisa#2489](https://github.com/CodySwannGT/lisa/issues/2489)
+* **rules:** ship the cardinality yardstick in falsifiable-checks ([3db642b](https://github.com/CodySwannGT/lisa/commit/3db642bab5e44c14e63a42c0d1202639ce0b6468)), closes [CodySwannGT/lisa#2489](https://github.com/CodySwannGT/lisa/issues/2489)
+* **rules:** state the contention asymmetry for cardinality readings ([a1ba680](https://github.com/CodySwannGT/lisa/commit/a1ba68085ab84a2b6eae7a6ed9769ad3bb1412b7)), closes [#2501](https://github.com/CodySwannGT/lisa/issues/2501) [CodySwannGT/lisa#2489](https://github.com/CodySwannGT/lisa/issues/2489)
+
+
+### Bug Fixes
+
+* **ast-grep:** scope the fs-extra rule to code Node runs directly ([f7d6060](https://github.com/CodySwannGT/lisa/commit/f7d606019ec9bb4bf408dc1b7dc84c9bd2a66d23)), closes [CodySwannGT/lisa#2494](https://github.com/CodySwannGT/lisa/issues/2494)
+
 ## [3.7.0](https://github.com/CodySwannGT/lisa/compare/v3.6.2...v3.7.0) (2026-08-13)
 
 

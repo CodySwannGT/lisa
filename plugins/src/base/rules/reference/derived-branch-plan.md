@@ -85,9 +85,25 @@ Stated plainly, because the session that produced this contract exists to make e
 
 This is **not** an executable control. `ready-role-filing`'s sibling guard is a hook that exits 2 and physically refuses a tool call; nothing here refuses anything. What enforces this contract is a validator agent reading `SKILL.md` and choosing to apply it — the same rung of the ladder that failed to bind 13 filings out of 13.
 
-What the regression suite adds is narrower than enforcement and worth naming precisely: it pins the **wording** across all six generated skill roots, so the contract cannot be silently deleted, softened, or lost in a regeneration. It cannot catch a validator that documents the rule and then ignores it at runtime.
+The regression suite has two halves. **Why they bind differently is `falsifiable-checks`' subject, not this rule's** — read the quantifier guidance there. What belongs here is the measurement, because this contract happens to be where it was taken.
 
-That is the ceiling for now rather than a shortcut, because `SKILL.md` *is* the validators' execution substrate — there is no compiled artifact underneath to attach a hook to. The honest summary is: absence-as-`false` was undecidable and is now *decidable*, which is a real improvement and a strictly weaker claim than *enforced*. Treat a gate verdict resting on this contract as evidence, not proof, until a deterministic checker exists to read the declaration off a live item.
+- `runtime-behavior-change-decidability.test.ts` asserts the wording is *present* across all six generated skill roots. It pins the contract against silent deletion or a lossy regeneration, and proves nothing about any particular copy.
+- `runtime-behavior-change-consistency.test.ts` asserts no copy says the *wrong* thing, over every occurrence in the corpus: every declaration marker uses the em-dash discriminator, every absence-derivation site resolves to *underivable* within its own sentence, and no phrasing maps an absent section to `false` or hands authority back to the caller.
+
+This document states its rule **twice** — once in gate S8, once in the execution step — which is what made the gap observable. `lisa-linear-validate-issue` once spelled the discriminator with an ASCII hyphen in its execution step while its own S8 used the em-dash, and 192 assertions stayed green through that mutation twice running. The fix pinned the execution step and left S8's copy bare. Mutating each site separately, whole suite, before and after the second half landed:
+
+| mutated site | before | after |
+|---|---|---|
+| execution step reads an absent section as `false` | 18 | 36 |
+| **gate S8's prose reads an absent section as `false`** | **0** | **18** |
+| writers stop rendering the section | 36 | 54 |
+| a caller's assertion beats the stored declaration | 18 | 36 |
+
+Zero out of 11,270 — same file, same rule, same commit, one site pinned and its twin bare.
+
+(The wrong spelling is deliberately not written out above. This section sits inside the corpus the consistency suite scans, and the first draft of it quoted the defect as an illustration and failed its own check.)
+
+**The executable half of this contract is nothing.** Both suites read markdown. `SKILL.md` *is* the validators' execution substrate — there is no compiled artifact underneath to attach a hook to, so there is no function to call and no return value to assert. What they prove is that the instruction the agent reads is internally consistent; what neither can prove is that the agent then obeys it. Absence-as-`false` was undecidable, is now *decidable* and *non-contradictory*, and both of those are strictly weaker than *enforced*. Treat a gate verdict resting on this contract as evidence, not proof, until a deterministic checker exists to read the declaration off a live item.
 
 This costs nothing in derivation difficulty. A single-environment project — Lisa itself is one, `deploy.branches: { production: main }` — recomputes every applicable item to the same branch. The gate was never hard to satisfy; it was impossible to *audit*, and those are different problems with different fixes. Weakening S19 would have fixed neither.
 
