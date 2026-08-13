@@ -98,6 +98,61 @@ describe("falsifiable-checks rule contract", () => {
       expect(reference).toMatch(/names? the right file\/line/i);
     });
 
+    it("states the mutation probe as production-code, whole-suite, read-names", () => {
+      // The yardstick was decided in wiki/decisions/2026-08-12-ratchet-policy.md
+      // and lived only there (#2489), so the rule told an author to run the
+      // break without telling them how to read the result. Each of the three
+      // steps is pinned because dropping any one restores a known false
+      // reading: neutering a test instead of production code proves only that
+      // the file loads; a single-file run under-counts; a bare count cannot
+      // separate one regression's failures from collateral.
+      expect(eager).toContain("in production code");
+      expect(eager).toContain("whole suite");
+      expect(eager).toContain("read their names");
+      expect(reference).toContain("Neuter the protection in production code");
+      expect(reference).toContain("Run the whole suite");
+      expect(reference).toContain("Count the failures and read their names");
+    });
+
+    it("reads many-but-all-named-alike as load-bearing, not over-broad", () => {
+      // Naive arithmetic is the defect this correction shipped against:
+      // removing the two-token `--config-env` check failed 3 tests and pinning
+      // an index failed 5, every name describing the removed behaviour. Both
+      // guards were correctly scoped.
+      expect(eager).toContain("Zero");
+      expect(eager).toContain("Many, unrelated");
+      expect(eager).toContain("Exactly one, or several all named for the same");
+      expect(reference).toContain(
+        "Exactly one failure, or several all named for the same regression"
+      );
+      // Asserted as an absence, not a presence: a presence check for the
+      // corrected wording passes trivially once the file says it twice, while
+      // the superseded wording has nowhere to hide.
+      expect(eager).not.toContain("many means it is over-broad");
+      expect(reference).not.toContain("**More than one failure**");
+    });
+
+    it("forbids scoping the cardinality probe by filename or grep", () => {
+      // The false negative that forced the correction: a probe scoped to
+      // block-direct-issue-create.test.ts read cardinality 0 on a live
+      // end-of-options security fix whose tests had moved to a sibling file at
+      // the 300-effective-line lint ceiling. A whole-suite re-measure showed 4
+      // failures, each named for the protection.
+      expect(eager).toContain("Never scope the probe by filename");
+      expect(eager).toContain("never infer absent coverage from a grep");
+      expect(reference).toContain("Follow the protection, not the path");
+      expect(reference).toMatch(/re-measured/);
+    });
+
+    it("requires the falsifiable form to assert the wrong spelling is absent", () => {
+      expect(eager).toContain(
+        "Assert the wrong spelling is absent, not the right one present"
+      );
+      expect(reference).toMatch(
+        /passes trivially when the file happens to state it twice/
+      );
+    });
+
     it("scopes negative results to what the check can perceive", () => {
       expect(eager).toMatch(/blind spot|scoped to what the check can see/i);
       // The three scoping axes that produced real misses.
