@@ -112,6 +112,14 @@ describe("falsifiable-checks rule contract", () => {
       expect(reference).toContain("Neuter the protection in production code");
       expect(reference).toContain("Run the whole suite");
       expect(reference).toContain("Count the failures and read their names");
+      // Measurement validity under contention, which decides which numbers
+      // have to be re-measured on a quiet box. Load turns green into red and
+      // never the reverse, so a zero survives a busy machine while a positive
+      // count is inflated by flakes and must not be read as "over-broad".
+      expect(eager).toContain("zero is robust to contention");
+      expect(reference).toContain(
+        "Load can only add failures, never remove them"
+      );
     });
 
     it("reads many-but-all-named-alike as load-bearing, not over-broad", () => {

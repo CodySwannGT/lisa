@@ -82,6 +82,17 @@ Then read the result:
 - **Many failures, unrelated to each other** — the break is too coarse, the guard is over-broad, or unrelated tests share a fixture. Any of the three means the guard's next real failure will not tell the reader what broke, which is most of a guard's value.
 - **Exactly one failure, or several all named for the same regression** — the guard localizes. Both readings are load-bearing and correctly scoped. Removing the two-token `--config-env` check failed **3** tests and pinning an index failed **5**; every failing name in both runs described the removed behaviour, so both guards were correct. This is a reading exercise, not arithmetic — "more than one is bad" is the wrong rule.
 
+### A zero is robust to contention; a positive count is not
+
+The obvious objection to any cardinality measured on a shared machine — *"your probe ran on a loaded box, so how do you trust the number?"* — has an asymmetric answer, and the asymmetry is worth stating because it decides which numbers you must re-measure.
+
+**Load can only add failures, never remove them.** A test that passes under contention would also have passed on a quiet machine; contention causes timeouts and lock races, which turn green into red, never red into green. So:
+
+- **A zero stands regardless of what else was running.** If the whole suite reports zero failures attributable to your mutation on a loaded box, a quiet box cannot produce fewer. `0 of 11,270` is `0 of 11,270`.
+- **A non-zero count needs a quiet machine**, because contention inflates it. Failures that are really flakes get miscounted as the guard's, which reads as "over-broad" and gets a correctly-scoped guard deleted.
+
+Practical consequence: an inert-guard finding is safe to report from a busy machine, while the "exactly one, or several all named alike" reading is only trustworthy once you have separated your mutation's failures from the load-flake population — which is what reading the *names* is for.
+
 ### Two reasons a real protection reports zero
 
 A cardinality of zero has two distinct innocent causes, and they need different fixes. Rule out both before concluding a guard is inert:
