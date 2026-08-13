@@ -903,7 +903,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
-      "89143e06975d8333b137fd2bdb5f12bcd703403752337f00c25d18fefba6a4c8",
+      "a499794a20f82a1e311ef4cb5188dd890f25b970e19e788d6945f2d5898dc9d2",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
       "b1054acf4a5cbbe5354bd62a22b96533bcbc69b6cb9245976ceb8af638a04494",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
