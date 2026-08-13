@@ -195,6 +195,126 @@ function droppedChecks(
 }
 
 /**
+ * Read the per-repo required-check opt-INs for one ruleset.
+ *
+ * Mirrors `add_config_required_checks` in scripts/lisa-github-rulesets.sh. A
+ * repository-specific high-signal check cannot live in a shared template — host
+ * projects would inherit a context they never report, and a required check that
+ * never reports blocks every pull request (#2476). It is declared per repo
+ * instead, and this reader is what keeps `lisa health` from calling the
+ * resulting live ruleset "drifted".
+ * @param config
+ * @param rulesetName
+ */
+function addedChecks(
+  config: Readonly<Record<string, unknown>>,
+  rulesetName: string
+): readonly Readonly<Record<string, unknown>>[] {
+  const github = config.github;
+  const rulesets =
+    github !== null && typeof github === "object" && !Array.isArray(github)
+      ? Reflect.get(github, "rulesets")
+      : undefined;
+  const additions =
+    rulesets !== null &&
+    typeof rulesets === "object" &&
+    !Array.isArray(rulesets)
+      ? Reflect.get(rulesets, "addRequiredChecks")
+      : undefined;
+  const forRuleset =
+    additions !== null &&
+    typeof additions === "object" &&
+    !Array.isArray(additions)
+      ? Reflect.get(additions, rulesetName)
+      : undefined;
+  if (!Array.isArray(forRuleset)) return [];
+  return forRuleset.flatMap(entry => {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      return [];
+    }
+    const context = Reflect.get(entry, "context");
+    if (typeof context !== "string") return [];
+    const integration = Reflect.get(entry, "integration_id");
+    return [
+      {
+        context,
+        integration_id:
+          typeof integration === "number"
+            ? integration
+            : ACTIONS_INTEGRATION_ID,
+      },
+    ];
+  });
+}
+
+/**
+ * Merge per-repo additions into a template's rules, exactly as apply does.
+ *
+ * Runs BEFORE the no-workflows strip and before `dropRequiredChecks`, so both
+ * of those still win over an addition — matching the shell applier's ordering.
+ * @param rules
+ * @param added
+ */
+function withAddedChecks(
+  rules: unknown,
+  added: readonly Readonly<Record<string, unknown>>[]
+): unknown {
+  if (added.length === 0) return rules;
+  const existing = Array.isArray(rules) ? rules : [];
+  const hasRequiredRule = existing.some(
+    rule =>
+      rule !== null &&
+      typeof rule === "object" &&
+      Reflect.get(rule, "type") === "required_status_checks"
+  );
+  if (!hasRequiredRule) {
+    return [
+      ...existing,
+      {
+        type: "required_status_checks",
+        parameters: {
+          strict_required_status_checks_policy: false,
+          do_not_enforce_on_create: true,
+          required_status_checks: added,
+        },
+      },
+    ];
+  }
+  return existing.map(rule => {
+    if (
+      rule === null ||
+      typeof rule !== "object" ||
+      Reflect.get(rule, "type") !== "required_status_checks"
+    ) {
+      return rule;
+    }
+    const parameters = Reflect.get(rule, "parameters");
+    if (parameters === null || typeof parameters !== "object") return rule;
+    const checks = Reflect.get(parameters, "required_status_checks");
+    if (!Array.isArray(checks)) return rule;
+    const present = new Set(
+      checks.flatMap(check => {
+        const context =
+          check !== null && typeof check === "object"
+            ? Reflect.get(check, "context")
+            : undefined;
+        return typeof context === "string" ? [context] : [];
+      })
+    );
+    return {
+      ...rule,
+      parameters: {
+        ...parameters,
+        required_status_checks: [
+          ...checks,
+          ...added.filter(check => !present.has(String(check.context))),
+        ],
+      },
+    };
+  });
+}
+
+/**
  * Apply workflow and configured required-check normalization used by apply.
  * @param rules
  * @param hasWorkflows
@@ -265,7 +385,14 @@ export async function expectedRulesets(
         const projected = projectRuleset(parsed);
         const normalized = {
           ...projected,
-          rules: normalizeExpectedRules(projected.rules, hasWorkflows, dropped),
+          rules: normalizeExpectedRules(
+            withAddedChecks(
+              projected.rules,
+              addedChecks(config, projected.name)
+            ),
+            hasWorkflows,
+            dropped
+          ),
         };
         if (!Array.isArray(normalized.rules) || normalized.rules.length > 0) {
           // eslint-disable-next-line functional/immutable-data -- most-specific stack wins in the bounded plan
