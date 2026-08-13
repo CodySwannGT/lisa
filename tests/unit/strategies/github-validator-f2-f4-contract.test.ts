@@ -93,11 +93,15 @@ describe.each(VALIDATOR_PATHS)(
       expect(f4).toMatch(/leaf \| `false` \| omitted \| \*\*PASS\*\*/);
     });
 
-    it("preserves the omitted writer input as default-ready for proposed leaves", () => {
+    // Per `ready-role-filing` (WU-D): omitted is NOT build-ready on every
+    // vendor, so the validator's old compensating omitted → `true`
+    // normalization is gone with GitHub's implicit-ready writer default.
+    it("normalizes the omitted writer input to not-ready for proposed leaves", () => {
       expect(f4).toMatch(
-        /proposed leaf spec[^.]*omitted `build_ready` to `true`/i
+        /proposed leaf spec[^.]*omitted `build_ready` to `false`/i
       );
-      expect(f4).toMatch(/backward-compatible default-ready behavior/i);
+      expect(f4).toContain("ready-role-filing");
+      expect(f4).not.toMatch(/normalize omitted `build_ready` to `true`/);
     });
 
     it("requires status:ready for build_ready:true leaves", () => {
