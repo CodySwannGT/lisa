@@ -2242,6 +2242,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9cd675cbba11457ba70c9c4f853f3e5cf652fe98c508075946f02bf045710ca6",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml":
       "a662cb959ad5d96e4dda09d6dce1d69318e7c13f3d01787658184fd6075c2781",
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml":
+      "1e23c39fdb8a6295d1fa50dc80e92d7945b4bcfd4e78bd3fb8eb0606e02d2629",
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member.yml":
+      "c69c7ca0ab2f88f23ab6a740d7bf7d975aa0433ba5410aee184046d513aaf727",
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep":
       "6792ca57f00ff5a84a4713a08308a8ab3144858b0b0d9f8251b8c26c48948fb7",
     "typescript/copy-overwrite/audit.ignore.config.json":
@@ -2540,6 +2544,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "ast-grep/rules/harper/require-statuscode-on-thrown-error.yml": true,
     "ast-grep/rules/no-inline-component-in-container.yml": true,
     "ast-grep/rules/no-inline-component-in-view.yml": true,
+    "ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml": true,
+    "ast-grep/rules/no-missing-fs-extra-namespace-member.yml": true,
     "ast-grep/rules/phaser/no-canvas-renderer.yml": true,
     "ast-grep/rules/phaser/no-raw-webgl-context.yml": true,
     "ast-grep/rules/ruby/no-find-by-sql-without-params.yml": true,
@@ -9224,6 +9230,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep": true,
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml": true,
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml": true,
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml": true,
+    "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member.yml": true,
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep": true,
     "typescript/copy-overwrite/audit.ignore.config.json": true,
     "typescript/copy-overwrite/commitlint.config.cjs": true,
