@@ -19,6 +19,7 @@ import {
   ENFORCED,
   INVALID,
   NOT_ADOPTED,
+  commitAll,
   healthyProject,
   makeProject,
   runGate,
@@ -56,7 +57,11 @@ describe("standard command envelope conformance", () => {
   });
 
   it("emits an envelope the shared validator accepts, on a clean contract", () => {
-    const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
+    const root = healthyProject();
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(validateEnvelope(run.envelope)).toEqual({ valid: true, errors: [] });
     expect(run.envelope.capability).toBe("bdd-coverage");
     expect(run.envelope.mode).toBe("real");

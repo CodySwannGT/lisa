@@ -10,6 +10,30 @@
  * File families the ratchet watches. `kind` selects the extractor;
  * `direction` applies to numeric-leaf kinds ("min" values may only rise,
  * "max" values may only fall).
+ *
+ * PER-FAMILY POLICY, reviewed 2026-08-12. A family keeps its ratchet unless a
+ * NAMED deterministic non-regression invariant replaces the property the
+ * ratchet was providing — deleting a ratchet deletes that property with it, so
+ * "this generates churn" is a reason to find a replacement, never a reason to
+ * delete on its own:
+ *
+ *   coverage / simplecov / e2e   KEPT. Here the ratchet IS the non-regression
+ *     invariant, and no per-item equivalent exists short of committing a
+ *     per-file coverage baseline — an artifact that only ever accumulates.
+ *     Revisit if one appears.
+ *   stryker                      KEPT. `thresholds.break` is an absolute floor,
+ *     kept outright; the mutate-list comparison detects EXEMPTION ADDITIONS
+ *     rather than creep, and has no number for a pull request to nudge.
+ *   eslint / rubocop / k6 / lisa-config   KEPT, unchanged.
+ *
+ * Exactly one family was replaced, and it is not watched here and never was:
+ * the BDD traceability floor, whose numeric ratchet gave way to per-obligation
+ * checks. See `expo/copy-overwrite/scripts/bdd/baseline.mjs`.
+ *
+ * Retiring a family is SEQUENCED: the replacement invariant lands, then a
+ * `thresholdRatchet.allow` entry merges from the base side, then the mechanism
+ * changes. Never the reverse — this checker is precisely what stops a change
+ * granting itself the exception that permits it.
  */
 export const FAMILIES = [
   {
