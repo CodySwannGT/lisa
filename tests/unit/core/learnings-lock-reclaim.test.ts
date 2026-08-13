@@ -1,11 +1,12 @@
 /** Stale-lock reclaim must never delete a lock it did not judge stale. */
 import { spawnSync } from "node:child_process";
-import { link, lstat, readFile, writeFile } from "node:fs/promises";
+import { link, lstat, readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   observeStaleLock,
   reclaimObservedStaleLock,
+  type StaleLockObservation,
 } from "../../../src/core/learnings-lock.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -126,7 +127,96 @@ describe("stale lock reclaim", () => {
       token: live.token,
     });
   });
+
+  it("admits exactly one deleter when several reclaimers share one observation", async () => {
+    // The CodySwannGT/lisa#2488 race: proving the lock is still the inode
+    // judged stale and unlinking it are two syscalls, so every reclaimer that
+    // proved it used to unlink whatever sat there afterwards — including a
+    // lock a live writer had legitimately acquired in between. Exclusivity per
+    // generation is what makes that impossible, so it is asserted directly:
+    // more than one `true` here IS the data-loss bug.
+    await publishLock(lockPath, reapedPid());
+    const observation = await observeStaleLock(lockPath);
+    expect(observation).not.toBeNull();
+
+    const reclaimed = await Promise.all(
+      Array.from({ length: 8 }, async () =>
+        reclaimObservedStaleLock(lockPath, observation!)
+      )
+    );
+
+    expect(reclaimed.filter(Boolean)).toHaveLength(1);
+    await expect(lstat(lockPath)).rejects.toThrow(/ENOENT/u);
+  });
+
+  it("refuses to reclaim while another live process holds the capability", async () => {
+    await publishLock(lockPath, reapedPid());
+    const observation = await observeStaleLock(lockPath);
+    await writeFile(
+      await capabilityPathFor(lockPath, observation!),
+      JSON.stringify({ pid: process.pid, createdAt: Date.now() }),
+      { encoding: "utf8", flag: "wx" }
+    );
+
+    expect(await reclaimObservedStaleLock(lockPath, observation!)).toBe(false);
+    await expect(lstat(lockPath)).resolves.toBeDefined();
+  });
+
+  it("recovers a capability abandoned by a crashed reclaimer", async () => {
+    // A crash between taking the capability and deleting the lock must not
+    // wedge the generation forever: a holder whose process is provably gone
+    // executes no unlink, so displacing it cannot create a second deleter.
+    await publishLock(lockPath, reapedPid());
+    const observation = await observeStaleLock(lockPath);
+    const capability = await capabilityPathFor(lockPath, observation!);
+    await writeFile(
+      capability,
+      JSON.stringify({ pid: reapedPid(), createdAt: Date.now() - 60_000 }),
+      { encoding: "utf8", flag: "wx" }
+    );
+
+    expect(await reclaimObservedStaleLock(lockPath, observation!)).toBe(true);
+    await expect(lstat(lockPath)).rejects.toThrow(/ENOENT/u);
+    await expect(lstat(capability)).rejects.toThrow(/ENOENT/u);
+  });
+
+  it("leaves no capability or quarantine litter behind after a reclaim", async () => {
+    await publishLock(lockPath, reapedPid());
+    const observation = await observeStaleLock(lockPath);
+
+    expect(await reclaimObservedStaleLock(lockPath, observation!)).toBe(true);
+
+    const leftovers = (await readdir(tempDir)).filter(
+      name => name.endsWith(".reclaim") || name.endsWith(".stale")
+    );
+    expect(leftovers).toEqual([]);
+  });
 });
+
+/**
+ * Re-derive the capability path the reclaim path computes for an observation.
+ * Deliberately recomputed from the public observation rather than exported, so
+ * a change to the naming scheme fails these tests instead of hiding behind a
+ * shared helper.
+ * @param lockPath - Shared lock path
+ * @param observation - Snapshot that judged the lock reclaimable
+ * @returns Capability path guarding that generation
+ */
+async function capabilityPathFor(
+  lockPath: string,
+  observation: StaleLockObservation
+): Promise<string> {
+  const { createHash } = await import("node:crypto");
+  const identity = JSON.stringify([
+    observation.dev,
+    observation.ino,
+    observation.owner?.token ?? null,
+    observation.owner?.pid ?? null,
+    observation.owner?.createdAt ?? null,
+  ]);
+  const digest = createHash("sha256").update(identity).digest("hex");
+  return `${lockPath}.${digest.slice(0, 32)}.reclaim`;
+}
 
 /**
  * Delete one path, tolerating an already-absent file.

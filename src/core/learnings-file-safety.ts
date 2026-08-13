@@ -102,6 +102,47 @@ export async function readExistingLearnings(
   }
 }
 
+/** A locked ledger transaction found its read-image already overwritten. */
+export class LearningsConcurrentWriteError extends Error {
+  /**
+   * Build the operator-readable concurrent-write diagnosis.
+   * @param target - Resolved learnings file path
+   */
+  constructor(target: string) {
+    super(
+      `Refusing to publish project learnings: ${target} changed after this ` +
+        `write read it, so publishing would erase another writer's entry. ` +
+        `Nothing was written and no entry was lost — retry the capture. If ` +
+        `this repeats, the ledger lock is not holding.`
+    );
+    this.name = "LearningsConcurrentWriteError";
+  }
+}
+
+/**
+ * Prove the ledger still holds the bytes this transaction read before letting
+ * an atomic rename publish over them.
+ *
+ * The ledger is read-modify-write, so a writer that publishes over an image it
+ * did not read erases whatever landed in between. The lock is what prevents
+ * that, and this is the arm that makes a lock failure LOUD: the whole class of
+ * bugs here (CodySwannGT/lisa#2488, and the 19 entries lost to a merge before
+ * it) is defined by nothing noticing. This detects an interloper rather than
+ * excluding one — it is the second line, not the lock — but it converts a
+ * silent lost learning into a failed capture the caller can retry.
+ * @param target - Resolved learnings file path
+ * @param preImage - Content this transaction read under the lock
+ */
+export async function assertLearningsUnchanged(
+  target: string,
+  preImage: string | undefined
+): Promise<void> {
+  const current = await readExistingLearnings(target);
+  if (current !== preImage) {
+    throw new LearningsConcurrentWriteError(target);
+  }
+}
+
 /**
  * Throw the shared conflict diagnosis when an over-budget file is corrupted.
  *
