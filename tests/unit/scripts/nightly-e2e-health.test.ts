@@ -3,8 +3,9 @@
  *
  * `docs/nightly-e2e-gate.md` §2 is the specification; this file and its
  * siblings `nightly-e2e-health-api.test.ts` (rows 17-20, the gate's own failure
- * modes) and `nightly-e2e-health-bypass.test.ts` (rows 21-25, bootstrap and
- * bypass) are the proof. Every `row N` case corresponds to the numbered row of
+ * modes), `nightly-e2e-health-bypass.test.ts` (rows 21-25, bootstrap and
+ * bypass) and `nightly-e2e-health-completeness.test.ts` (row 26, a run-scoped
+ * green must be a COMPLETE run) are the proof. Every `row N` case corresponds to the numbered row of
  * that table, so a behaviour change that is not also a documentation change
  * fails here. That pairing is the point: a gate's contract written only in
  * prose is a contract until the next refactor.
@@ -14,6 +15,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   BRANCH,
   type Finding,
+  GREEN_JOB,
   type GateModule,
   type Job,
   NOW,
@@ -45,6 +47,11 @@ describe("nightly e2e gate — truth table rows 1-16", () => {
    * @param observation.jobs - The run's jobs, for the job match modes
    * @param observation.workflowMissing - True when the API 404s the workflow file
    * @returns The finding
+   *
+   * The default job list is ONE GREEN JOB rather than an empty array: a
+   * completed run always has jobs, and since row 26 a run-scoped suite reads
+   * them. Defaulting to `[]` would make every row below assert against an
+   * observation the API cannot produce.
    */
   function assess(
     suite: Record<string, unknown>,
@@ -56,7 +63,7 @@ describe("nightly e2e gate — truth table rows 1-16", () => {
   ): Finding {
     return mod.assessSuite(
       { label: "suite", workflow: "e2e.yml", ...suite },
-      { run: null, jobs: [], workflowMissing: false, ...observation },
+      { run: null, jobs: [GREEN_JOB], workflowMissing: false, ...observation },
       { branch: BRANCH, freshnessHours: 36, now: NOW }
     );
   }
