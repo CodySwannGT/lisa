@@ -9,7 +9,7 @@
  */
 import * as fs from "node:fs";
 
-import { runnersByPlatform } from "./contract.mjs";
+import { byCodeUnit, runnersByPlatform } from "./contract.mjs";
 import { resolveInsideRepo } from "./parse.mjs";
 
 /**
@@ -43,7 +43,7 @@ export function validateScenarios(scenarios, platforms) {
       defects.push(
         defect(
           "scenario-platform",
-          `${at} declares no platform; expected one of ${[...platforms].sort().join(", ") || "(none configured)"}`
+          `${at} declares no platform; expected one of ${[...platforms].sort(byCodeUnit).join(", ") || "(none configured)"}`
         )
       );
     }

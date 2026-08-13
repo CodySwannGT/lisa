@@ -20,7 +20,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { declaredPlatforms, trackerUrl } from "./bdd/contract.mjs";
+import { byCodeUnit, declaredPlatforms, trackerUrl } from "./bdd/contract.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
 import { indexResults } from "./bdd/report.mjs";
 import { loadExecutionResults } from "./check-bdd-coverage.mjs";
@@ -128,7 +128,7 @@ export function renderMatrix(root, resultFiles) {
   const results = indexResults(execution.runs);
   const byScenario = mappingsByScenario(contract);
   const waived = waivedKeys(contract);
-  const runners = Object.keys(contract.runnerPlatforms ?? {}).sort();
+  const runners = Object.keys(contract.runnerPlatforms ?? {}).sort(byCodeUnit);
   const byFeature = new Map();
   for (const scenario of scenarios) {
     byFeature.set(scenario.feature, [
