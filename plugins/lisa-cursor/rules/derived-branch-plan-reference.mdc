@@ -63,6 +63,29 @@ A plan whose two fields name **two different branches** is malformed and fails v
 
 **Never guess.** There is no fallback that quietly substitutes `main`, the remote default branch, or the branch of a sibling environment to keep a write from failing — a silent guess here is the exact failure this contract exists to prevent, and a stopped write is cheap next to a wrong-branch merge. The remote default branch enters only through the `Assumption:` form the environment grammar already defines, and only recorded as an assumption.
 
+## The exemption is declared, never inferred from absence
+
+`runtime_behavior_change` is what S8, S11, S14, and S19 all branch on, and it began life as a **caller-asserted validator input** — the three validators still list it under "Behavioral flags — caller asserts these". Nothing ever persisted it. But the live-item path says: fetch the item, *parse the body sections, derive the spec fields*, then run the gates — and this one field could not be derived from anything the writer had stored. So on re-validation the gate believed whatever the caller claimed about the item it was supposedly checking. `lisa-*-verify` could not produce a truthful verdict, and neither could a human auditor reading the item.
+
+Absence could not stand in for the flag either, because absence is what the two opposite cases look like. An item with no `Target Backend Environment` is either correctly exempt or wrongly missing a required section, and nothing on the item told them apart.
+
+So the flag is persisted, in the section it is already about. **`Target Backend Environment` is rendered on every leaf**, and its content carries the declaration:
+
+| Content | `runtime_behavior_change` | Meaning |
+|---|---|---|
+| An exact configured `deploy.branches` key — bare, `Confirmed:`, `Inferred:`, or `Assumption:` per the environment grammar | `true` | applicable work, targeting that environment |
+| `None — no runtime behavior change: doc-only` (or `config-only`, `type-only`) | `false` | exempt by declaration |
+| `None — container: state rolls up from children` | `false` | an Epic/Project, or an item holding child work |
+| The section is absent | **underivable** | a legacy item written before this contract |
+
+The `None —` prefix is the machine discriminator; the words after it are for the human reading the item. It is deliberately **visible prose rather than an HTML comment**, for exactly the reason the provenance line is: JIRA's ADF has no comment node, so a marker that only exists in markdown cannot be a vendor-neutral discriminator.
+
+**Persisted beats asserted.** On a live item the stored declaration is authoritative. A caller asserting a `runtime_behavior_change` that contradicts it does not override it — the disagreement fails S8, naming both values, because one of the two is wrong and silently preferring either is how an unauditable gate gets built. On a *proposed* spec nothing is persisted yet, so the caller's assertion is the input and the writer's job is to render it.
+
+**Underivable is its own verdict, never `false`.** A legacy item with no section gets `N/A` plus a repair note from every flag-dependent gate, repaired at claim time beside the legacy branch-plan repair — the same asymmetry, for the same reason. What must never happen is reading absence as `false`, which is the silent assumption that made S8, S11, S14, and S19 undecidable on a live item in the first place.
+
+This costs nothing in derivation difficulty. A single-environment project — Lisa itself is one, `deploy.branches: { production: main }` — recomputes every applicable item to the same branch. The gate was never hard to satisfy; it was impossible to *audit*, and those are different problems with different fixes. Weakening S19 would have fixed neither.
+
 ## Gate S19 — Branch Plan derivation
 
 Registered in all three validators as `| S19 Branch Plan derivation | technical | false |`. The gate **recomputes** the plan from current config and compares; it never reads the rendered branches as input.
@@ -71,6 +94,7 @@ Registered in all three validators as `| S19 Branch Plan derivation | technical 
 |---|---|
 | Exempt work (`runtime_behavior_change = false`, or a container) with no plan | `N/A` |
 | Exempt work **carrying** a plan | **FAIL** — hand-authored branches on work that declared no runtime target |
+| `runtime_behavior_change` **underivable** (live legacy item, no Target Backend Environment declaration) | `N/A` with a repair note — absence is never read as `false` |
 | Applicable work, plan present, matches recomputed plan | PASS |
 | Applicable work, plan present, disagrees with recomputed plan | **FAIL** |
 | Applicable work, plan present, missing the provenance line and disagreeing | **FAIL** (hand-authored) |

@@ -729,7 +729,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/dependency-trust-classes.md":
       "43a0932a7b8d4fd075b66bfe778025d808a13d9aa61ae793e9eb2fc8a555a381",
     "plugins/src/base/rules/eager/derived-branch-plan.md":
-      "aa88be9f1a6de7a843222585bcc1c593b993e7d5900c8a33a9f38ef8a99d25b4",
+      "2e4d5a142d7a33da3d01a6a8b3c79cf8b89769b9039c8672f1a14badba30d172",
     "plugins/src/base/rules/eager/design-source-of-truth.md":
       "d85886aa5832f7952bc0768871a335f33a4899ce598bb1a114feb5f300cbc7f2",
     "plugins/src/base/rules/eager/do-it-now.md":
@@ -829,7 +829,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/dependency-trust-classes.md":
       "82216b80d4807e0ad302d04924032cc6a7a95b26f72ea853e378572a5c31821c",
     "plugins/src/base/rules/reference/derived-branch-plan.md":
-      "672983b5171bf6e377f3d17927fd75e45208ffa6500718c07df1d449ca00f7d0",
+      "17f51e313ab78afa10c3217c8e9715965fccef565a05d52eaaece23d06710ebe",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
     "plugins/src/base/rules/reference/do-it-now.md":
@@ -1025,17 +1025,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "b5015eb515f1ad9a442af7e23eaa6f1b204f106a8729bf7ec2b991b9ff509aa9",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "3035c2a384bcb7d642ae6d2555ecc42d31fc5d42616122161980d0603bd160d9",
+      "d58e970f4a76d3fa3984c5b3054c2710dc0b5c9bb7f3c1890ae89844e53ff395",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "0d8dce0fff60591d1efff30e340c2cbbef2e8a849ed650389f2391518580ca53",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
-      "f2f9991be42b0fd98f5c3f414d96e8756485c7b56aceb20d7db7f87255cc88e6",
+      "00082b1eebee32db5d5fe788f6068c369ab35552e353f762a0505e9c368a5963",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "262f8a1bcfad4c5dd4456cfaaf1b71abf9697a0da588966e58ff491acd3c17e8",
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "4f25d131a3fb6168a2bbfa9085e048f6662d6ef30f2d9d91b46884d72c427b6f",
+      "8771c97cc31d96339754e5d999483e94b6cc868ec32e6a62acb6e99793b56602",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1079,11 +1079,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "9f2e6709c2ac9279e510b99e53acd2075c915619dec69446029715b5045c1bf1",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "b2712182f7d92b3a25a4951ed66b38c73bf7695459d2eb3823075be395bc7e5c",
+      "1e80db2f71e5587ce10a15c6a6a2a49966a589e3b198ff61bd66d6a4d6bc47c6",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "4e48dcd9e1144837890359e75cc405280bf5f52cf497e44f294b608ad681580c",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
-      "f1ef73a31631b0b8b765e86a4c2138b87a2b127b6fb6d0e0187f930e9ce7da38",
+      "ea22b8f22139046d6240f9ffa4219ee2779ff40567ee788b470c77938e72de29",
     "plugins/src/base/skills/lisa-jsdoc-best-practices/SKILL.md":
       "7cf0729966ac0afcab6e2c043f192772a9e9e7c72fae61e55b300e97308f970e",
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
@@ -1113,11 +1113,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "3190bbf85223c7a0508f8bc894fd2c21fc9dce4c977a5af2252191d09c0c6f97",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "43ae9b111b1256c6424b3da4c5cc5e228febd145d0717aeeb481600c90d8153b",
+      "96c8e3dc57309ed7d081832767738132fce1548add0edfe83642dd7581f8ac46",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "d11a58bd7c2b773a973fe8f8ad19a2621f038327ee2d8afa3039bd72885f5e97",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "d637be6e90f3a088c6108092cecd189b738640cdbc44215bf98e40f3a1b5acb3",
+      "65d558cf9c90e83e981c03f8e3714827a2e5140fa3174509520facc0ef74989f",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -9111,6 +9111,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/repo-scope-claim.test.ts": true,
     "tests/unit/strategies/reset-seed-coverage-rule.test.ts": true,
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
+    "tests/unit/strategies/runtime-behavior-change-decidability.test.ts": true,
     "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
     "tests/unit/strategies/session-operating-pack.test.ts": true,
     "tests/unit/strategies/setup-automations-readiness-warning.test.ts": true,
