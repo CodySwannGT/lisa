@@ -10,6 +10,7 @@
       "knip": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
+      "sg:test": "ast-grep test",
       "build": "tsc",
       "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
       "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs",

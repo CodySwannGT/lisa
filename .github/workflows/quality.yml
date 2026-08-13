@@ -2164,6 +2164,38 @@ jobs:
         run: ${{ inputs.package_manager }} run sg:scan
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Counts rule-test files rather than trusting the runner's exit code.
+      # `ast-grep test` exits 0 on an empty test directory, and a host project
+      # ships ast-grep/rule-tests/ empty, so an ungated step would report
+      # success having asserted nothing about any rule.
+      #
+      # Discovery is not suffix-based: ast-grep loads every YAML file directly
+      # inside testDir and binds it to a rule by its `id`. __snapshots__ is a
+      # subdirectory and .gitkeep is not YAML, so -maxdepth 1 over *.yml/*.yaml
+      # counts exactly what the runner will run.
+      - name: 🔍 Check for ast-grep rule tests
+        id: check_rule_tests
+        if: steps.check_config.outputs.has_config == 'true'
+        run: |
+          TESTS_DIR="ast-grep/rule-tests"
+          if [ -d "$TESTS_DIR" ]; then
+            TEST_COUNT=$(find "$TESTS_DIR" -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) | wc -l | tr -d ' ')
+            if [ "$TEST_COUNT" -gt 0 ]; then
+              echo "has_rule_tests=true" >> $GITHUB_OUTPUT
+              echo "rule_test_count=$TEST_COUNT" >> $GITHUB_OUTPUT
+            else
+              echo "has_rule_tests=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has_rule_tests=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Run ast-grep rule tests
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true'
+        run: ${{ inputs.package_manager }} run sg:test
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: ⏭️ AST Grep Skipped (no config)
         if: steps.check_config.outputs.has_config != 'true'
         run: |
@@ -2175,6 +2207,14 @@ jobs:
         run: |
           echo "::warning::ast-grep scan skipped - no rules defined in ast-grep/rules/"
           echo "To enable ast-grep scanning, add rule YAML files to ast-grep/rules/"
+
+      - name: ⏭️ AST Grep Rule Tests Skipped (none defined)
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests != 'true'
+        run: |
+          echo "::warning::ast-grep rule tests skipped - no rule test files in ast-grep/rule-tests/"
+          echo "This job going green does NOT mean any ast-grep rule has test coverage."
+          echo "To cover a rule, add ast-grep/rule-tests/<rule-id>-test.yml with valid/invalid cases,"
+          echo "then run '${{ inputs.package_manager }} run sg:test --update-all' to record its snapshot."
 
   floor_collisions:
     name: 🧱 Security Floor Collisions
