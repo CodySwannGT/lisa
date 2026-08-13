@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.8.2](https://github.com/CodySwannGT/lisa/compare/v3.8.1...v3.8.2) (2026-08-13)
+
+
+### Documentation
+
+* **plan:** record the 2026-08-13 governance findings and dogfooding audit ([f3c687a](https://github.com/CodySwannGT/lisa/commit/f3c687a10269b0ffd9a910750a0840b2edbbe5df)), closes [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [#2485](https://github.com/CodySwannGT/lisa/issues/2485) [#2492](https://github.com/CodySwannGT/lisa/issues/2492) [#2489](https://github.com/CodySwannGT/lisa/issues/2489) [#2491](https://github.com/CodySwannGT/lisa/issues/2491) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423) [CodySwannGT/lisa#2423](https://github.com/CodySwannGT/lisa/issues/2423)
+
 ### [3.8.1](https://github.com/CodySwannGT/lisa/compare/v3.8.0...v3.8.1) (2026-08-13)
 
 
