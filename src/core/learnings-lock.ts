@@ -1,4 +1,5 @@
 /** Cross-process serialization for project learnings writes. */
+import { randomInt } from "node:crypto";
 import { link, readFile, unlink, writeFile } from "node:fs/promises";
 import {
   withReclaimCapability,
@@ -10,9 +11,32 @@ import {
   statFile,
 } from "./learnings-lock-fs.js";
 
-const MAX_LOCK_ATTEMPTS = 200;
-const LOCK_RETRY_DELAY_MS = 10;
 const STALE_LOCK_MS = 30_000;
+/**
+ * Wall-clock budget for one acquisition. This used to be a fixed 200-attempt
+ * count, which made the real waiting time a function of how fast the machine
+ * could spin the retry loop: on a loaded machine every attempt costs more, so
+ * the same 200 attempts bought a different amount of waiting on every run and a
+ * waiter abandoned locks that were still legitimately held
+ * (CodySwannGT/lisa#2474). The budget is deliberately not shorter than
+ * `STALE_LOCK_MS`: a waiter that gave up sooner could expire before the stale
+ * lock it is waiting on ever became reclaimable.
+ */
+const LOCK_ACQUIRE_TIMEOUT_MS = 30_000;
+const LOCK_RETRY_DELAY_MS = 10;
+/**
+ * Jitter added to each retry so contenders that lost the same race do not wake
+ * in lockstep and collide again on the next one.
+ */
+const LOCK_RETRY_JITTER_MS = 10;
+/**
+ * Attempts between stale-lock probes. Probing costs a stat plus a read, and a
+ * lock cannot become stale between two consecutive 10ms retries, so probing on
+ * every attempt only multiplies filesystem pressure under contention — which is
+ * exactly when the lock is hardest to acquire. Attempt zero always probes so a
+ * lock left behind by a dead writer is still reclaimed immediately.
+ */
+const STALE_PROBE_ATTEMPT_INTERVAL = 25;
 
 /** Ownership metadata published atomically with each lock. */
 interface LockOwner {
@@ -56,7 +80,7 @@ export async function withFileTargetLock<T>(
     pid: process.pid,
     createdAt: Date.now(),
   } as const;
-  const lease = await acquireLock(lockPath, owner, 0);
+  const lease = await acquireLock(lockPath, owner);
   try {
     return await operation();
   } finally {
@@ -66,36 +90,116 @@ export async function withFileTargetLock<T>(
 
 /**
  * Publish complete owner metadata atomically via a hard link.
+ *
+ * The owner file is written once and then re-linked on every retry. Rewriting
+ * and deleting it per attempt cost two extra filesystem operations for every
+ * contender on every 10ms tick, which is pure amplification precisely when the
+ * filesystem is already the contended resource.
  * @param lockPath - Shared lock path
  * @param owner - Unique owner metadata
- * @param attempt - Current retry count
  * @returns Acquired lock lease
  */
 async function acquireLock(
   lockPath: string,
+  owner: LockOwner
+): Promise<LockLease> {
+  const ownerPath = `${lockPath}.${owner.token}.owner`;
+  await writeOwnerFile(ownerPath, owner);
+  try {
+    return await linkOwnerBeforeDeadline(
+      lockPath,
+      owner,
+      Date.now() + LOCK_ACQUIRE_TIMEOUT_MS,
+      0
+    );
+  } catch (error) {
+    await removeFileIfPresent(ownerPath);
+    throw error;
+  }
+}
+
+/**
+ * Retry publication until the lock is acquired or the wall-clock budget ends.
+ * @param lockPath - Shared lock path
+ * @param owner - Unique owner metadata
+ * @param expiresAt - Absolute wall-clock end of the acquisition budget
+ * @param attempt - Current retry count, used only to pace stale probes
+ * @returns Acquired lock lease
+ */
+async function linkOwnerBeforeDeadline(
+  lockPath: string,
   owner: LockOwner,
+  expiresAt: number,
   attempt: number
 ): Promise<LockLease> {
   const ownerPath = `${lockPath}.${owner.token}.owner`;
+  const outcome = await tryPublishOwnerLink(ownerPath, lockPath);
+  if (outcome === "acquired") {
+    return { owner, ownerPath };
+  }
+  if (Date.now() >= expiresAt) {
+    throw new Error(`Timed out waiting for file lock: ${lockPath}`);
+  }
+  if (outcome === "source-missing") {
+    await writeOwnerFile(ownerPath, owner);
+  }
+  if (attempt % STALE_PROBE_ATTEMPT_INTERVAL === 0) {
+    await reclaimStaleLock(lockPath);
+  }
+  await delay(LOCK_RETRY_DELAY_MS + randomInt(0, LOCK_RETRY_JITTER_MS + 1));
+  return linkOwnerBeforeDeadline(lockPath, owner, expiresAt, attempt + 1);
+}
+
+/**
+ * Write owner metadata exclusively so two writers can never share one file.
+ * @param ownerPath - Per-call owner metadata path
+ * @param owner - Unique owner metadata
+ */
+async function writeOwnerFile(
+  ownerPath: string,
+  owner: LockOwner
+): Promise<void> {
   await writeFile(ownerPath, JSON.stringify(owner), {
     encoding: "utf8",
     flag: "wx",
   });
-  const acquired = await publishOwnerLink(ownerPath, lockPath);
-  if (acquired) {
-    return { owner, ownerPath };
-  }
-  await removeFileIfPresent(ownerPath);
-  if (attempt >= MAX_LOCK_ATTEMPTS) {
-    throw new Error(`Timed out waiting for file lock: ${lockPath}`);
-  }
-  await reclaimStaleLock(lockPath);
-  await delay(LOCK_RETRY_DELAY_MS);
-  return acquireLock(lockPath, owner, attempt + 1);
 }
+
+/** Result of one hard-link publication attempt. */
+type PublishOutcome = "acquired" | "destination-held" | "source-missing";
 
 /**
  * Try to hard-link fully written owner metadata into the lock path.
+ * @param ownerPath - Fully written owner metadata file
+ * @param lockPath - Destination lock path
+ * @returns Why publication succeeded or failed
+ */
+async function tryPublishOwnerLink(
+  ownerPath: string,
+  lockPath: string
+): Promise<PublishOutcome> {
+  try {
+    await link(ownerPath, lockPath);
+    return "acquired";
+  } catch (error) {
+    const { code } = error as NodeJS.ErrnoException;
+    if (code === "EEXIST") {
+      return "destination-held";
+    }
+    if (code === "ENOENT") {
+      return "source-missing";
+    }
+    throw error;
+  }
+}
+
+/**
+ * Publish owner metadata, reporting only whether the lock was taken.
+ *
+ * The acquisition path needs to tell "someone else holds it" apart from "my own
+ * owner file went missing", so the outcome lives in
+ * {@link tryPublishOwnerLink}. The reclaim path only ever asks the yes/no
+ * question, and keeping this wrapper leaves that call site untouched.
  * @param ownerPath - Fully written owner metadata file
  * @param lockPath - Destination lock path
  * @returns Whether publication acquired the lock
@@ -104,18 +208,7 @@ async function publishOwnerLink(
   ownerPath: string,
   lockPath: string
 ): Promise<boolean> {
-  try {
-    await link(ownerPath, lockPath);
-    return true;
-  } catch (error) {
-    if (
-      (error as NodeJS.ErrnoException).code === "EEXIST" ||
-      (error as NodeJS.ErrnoException).code === "ENOENT"
-    ) {
-      return false;
-    }
-    throw error;
-  }
+  return (await tryPublishOwnerLink(ownerPath, lockPath)) === "acquired";
 }
 
 /**
