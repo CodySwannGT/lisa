@@ -110,7 +110,14 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
  generic default is `Assumption: <env> — remote default branch <branch>`.
  Without a unique reverse-map use `Assumption: remote default branch <branch>`.
  Human confirmation replaces the automated annotation with a bare key or
- `Confirmed: <env>`. Skip only for doc/config/type-only items.]
+ `Confirmed: <env>`. ALWAYS render this section — it is where
+ `runtime_behavior_change` is persisted, and an absent section reads as
+ *underivable*, not exempt. Work that changes no runtime behavior declares the
+ exemption in place of an environment: `None — no runtime behavior change:
+ doc-only` (or `config-only` / `type-only`). A Project/container declares
+ `None — container: state rolls up from children`. Visible prose, not an HTML
+ comment, for the same reason the Branch Plan provenance line is: JIRA's ADF has
+ no comment node. See the `derived-branch-plan` rule.]
 
 ## Branch Plan
 [GENERATED, never hand-authored. Render only when the item has a Target

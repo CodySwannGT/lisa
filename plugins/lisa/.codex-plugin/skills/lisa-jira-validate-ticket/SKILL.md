@@ -55,7 +55,8 @@ description: |             # Full description text — every required section
   ...
 
 # Behavioral flags — caller asserts these so the validator can pick the right gates
-runtime_behavior_change: true     # → requires Target Backend Environment + Validation Journey
+# (on a LIVE item `runtime_behavior_change` is DERIVED from the stored declaration, not taken on assertion — S8)
+runtime_behavior_change: true     # → requires Target Backend Environment + Validation Journey; LIVE items derive it from the stored declaration instead (S8)
 authenticated_surface: true       # → requires Sign-in Required
 artifacts_attached: true          # → requires Source Precedence section
 links: [{ key: "PROJ-99", type: "is blocked by" }]   # known issue links (may be empty)
@@ -65,7 +66,7 @@ child_refs: ["PROJ-601", "PROJ-602"]   # known child work (sub-tasks / "is block
 prd_source: "https://notion.so/..."    # set when the ticket was generated from a PRD — requires the Source Requirement section, see S16
 ```
 
-If the caller passes only a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket key: <KEY>`, derive the same fields from the fetched data — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket — then run gates.
+If the caller passes only a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket key: <KEY>`, derive the same fields from the fetched data — including `runtime_behavior_change` (derived from the `Target Backend Environment` declaration per `derived-branch-plan`, and authoritative over any caller assertion), `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket — then run gates.
 
 ## Gates
 
@@ -170,7 +171,11 @@ When `issue_type ∉ {Bug, Epic}`, `parent_key` must be set — **except for a b
 
 #### S8 — Target Backend Environment
 
-When `runtime_behavior_change = true`, the description must contain a `Target Backend Environment` section (`h2.` / `##` in proposed text, or an ADF heading in live JIRA). Read accepted environments from the exact configured keys of `.lisa.config.json` `deploy.branches`, never from a hardcoded list. Accept a human-confirmed bare exact configured key or `Confirmed: <env>`, automated `Inferred: <env> — evidence: <title|body|reproduction|hostname>`, automated `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` when no unique reverse-map exists. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. For legacy bare values, use managed draft markers and current ticket content only; provider edit history is not required. A marker proves automation and requires re-annotation; otherwise unknown provenance plus conflicting evidence fails for confirmation. Validate the annotation shape/source and remote-default branch; validate `<env>` as an exact configured key whenever present. A valid branch-only assumption must not fail solely because its reverse-map is absent or ambiguous. Normalize built-in `prod` ↔ `production` only when exactly one of those keys is configured. No other aliases are valid. Skipped for doc-only / config-only / type-only / Epic.
+Every leaf work unit carries a `Target Backend Environment` section in the description (`h2.` / `##` in proposed text, or an ADF heading in live JIRA). The section is where `runtime_behavior_change` is persisted, so it is rendered for exempt work too — see the declaration grammar at the end of this gate. Read accepted environments from the exact configured keys of `.lisa.config.json` `deploy.branches`, never from a hardcoded list. Accept a human-confirmed bare exact configured key or `Confirmed: <env>`, automated `Inferred: <env> — evidence: <title|body|reproduction|hostname>`, automated `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` when no unique reverse-map exists. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. For legacy bare values, use managed draft markers and current ticket content only; provider edit history is not required. A marker proves automation and requires re-annotation; otherwise unknown provenance plus conflicting evidence fails for confirmation. Validate the annotation shape/source and remote-default branch; validate `<env>` as an exact configured key whenever present. A valid branch-only assumption must not fail solely because its reverse-map is absent or ambiguous. Normalize built-in `prod` ↔ `production` only when exactly one of those keys is configured. No other aliases are valid.
+
+**The section persists `runtime_behavior_change`, so it is never simply skipped.** Work that changes no runtime behavior declares the exemption in place of an environment: `None — no runtime behavior change: doc-only` (or `config-only` / `type-only`). A container (an Epic, or any ticket holding child work) declares `None — container: state rolls up from children`. The `None —` prefix is the machine discriminator; the words after it are for the human reading the ticket.
+
+Derive the flag from the stored content, never from a caller's word about a live ticket: an exact configured environment key means `true`, a `None —` declaration means `false`, and an **absent section means underivable** — never `false`. On a live ticket the stored declaration is authoritative, so a caller asserting a `runtime_behavior_change` that contradicts it **FAILs** this gate naming both values rather than silently preferring either; one of the two is wrong, and picking one quietly is how an unauditable gate gets built. A **proposed spec** with no section **FAILs** — `lisa-jira-write-ticket` must render it before the write. A **live legacy ticket** with no section is `N/A` with a repair note routed to claim time: the same asymmetry S19 uses, for the same reason, because failing every existing ticket would turn a legacy queue red for a section no human had a way to add.
 
 #### S9 — Sign-in Required
 
@@ -188,7 +193,7 @@ This gate is `product_relevant: false` because cross-repo work units are not a p
 
 #### S11 — Validation Journey present
 
-When `runtime_behavior_change = true`, description must contain a `Validation Journey` section (`h2.` / `##` in proposed text, or an ADF heading in live JIRA). Skipped for doc-only / config-only / type-only / Epic.
+When `runtime_behavior_change = true`, description must contain a `Validation Journey` section (`h2.` / `##` in proposed text, or an ADF heading in live JIRA). Skipped for doc-only / config-only / type-only / Epic. When `runtime_behavior_change` is **underivable** — a live legacy ticket whose description carries no Target Backend Environment declaration (S8) — this gate is `N/A` with the same repair note rather than `PASS`, because a requirement conditioned on a flag nobody recorded cannot be asserted either way.
 
 The caller controls the strictness by passing `journey_followup: "auto"` or `journey_followup: "none"` in the spec:
 - `auto` (default): if the section is absent, return `FAIL` with remediation `"Invoke lisa-jira-add-journey to append the section after create"`. Callers like `lisa-jira-write-ticket` know to chain `lisa-jira-add-journey` automatically, so this counts as a fixable failure they can resolve in-line — they re-run validation after appending.
@@ -229,7 +234,7 @@ FAIL when the Validation Journey is present but declares zero binding `[EVIDENCE
 
 Parse claiming markers by the exact `[EVIDENCE:` prefix. A cross-work-item pointer in the canonical form `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` is non-claiming. The Lisa 2.223.0 form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` is also accepted as a legacy non-claiming alias; parse it from the right so the final two fields are type/name and a tracker URL may contain `:`. Exclude both forms from the manifest, S14's minimum-marker count, local marker type/name validation, and duplicate-name checks. Independently validate every `EVIDENCE-REF`: the native work-item reference must be non-empty and unambiguous, the artifact type must use the fixed taxonomy, and the name must be non-empty kebab-case. A malformed reference FAILs S14 as an invalid pointer but never becomes a local evidence obligation. A valid canonical or legacy reference may point to a sibling's artifact, but it never satisfies S14 for this ticket. Therefore a runtime-changing leaf whose journey contains only `EVIDENCE-REF` entries FAILs S14 for zero local claiming markers, not because a valid legacy reference is malformed. Quoting or code-formatting another ticket's `[EVIDENCE: ...]` marker does not make it a reference; writers must convert it to the canonical pipe form.
 
-This gate depends on S11. It is `N/A` for containers — an **Epic**, or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-jira-add-journey`.
+This gate depends on S11. It is `N/A` for containers — an **Epic**, or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-jira-add-journey`. It is likewise `N/A` with a repair note when `runtime_behavior_change` is **underivable** under S8 — reading an absent declaration as `false` is exactly the silent assumption that made this gate unauditable on a live ticket.
 
 #### S15 — Leaf-only build-ready
 
@@ -310,6 +315,7 @@ Enforces the `derived-branch-plan` rule: the `Branch Plan` section (`h2.` / `##`
 |---|---|
 | `runtime_behavior_change = false` (doc-only / config-only / type-only) or an Epic/container, with no plan | `N/A` — absence is correct; never demand one |
 | Exempt work **carrying** a `Branch Plan` | **FAIL** — hand-authored branches on work that declared no runtime target |
+| `runtime_behavior_change` **underivable** (live legacy item, no Target Backend Environment declaration) | `N/A` with a repair note — absence is never read as `false` |
 | Plan matches the recomputed plan | PASS |
 | Plan conflicts with the recomputed plan | **FAIL** |
 | Plan missing the `Derived from:` provenance line and disagreeing | **FAIL** — treated as hand-authored |
@@ -377,7 +383,7 @@ system, and never invent or ask for credentials inline.
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket` and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket. When the fetched description is ADF, walk the document tree and extract section headings from ADF `heading` nodes, then collect the text between heading nodes for section-specific gates. If the fetched description is a single paragraph containing literal Markdown/wiki heading markers, treat that as a formatting failure rather than accepting substring matches. Otherwise parse the YAML spec.
+1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket` and derive the spec from the fetched fields — including `runtime_behavior_change` (from the `Target Backend Environment` declaration: an exact configured environment key → `true`, a `None —` declaration → `false`, an absent section → **underivable**, never `false`), `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket. When the fetched description is ADF, walk the document tree and extract section headings from ADF `heading` nodes, then collect the text between heading nodes for section-specific gates. If the fetched description is a single paragraph containing literal Markdown/wiki heading markers, treat that as a formatting failure rather than accepting substring matches. Otherwise parse the YAML spec.
 2. If any feasibility gate will run, invoke `lisa-atlassian-access` `operation: list-sites` once to confirm the configured site is reachable (it enforces connection match against `.lisa.config.json`).
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only` (dry-run), run every Feasibility gate. Collect results.
