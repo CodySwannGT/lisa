@@ -441,6 +441,13 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 
 **`ready` must never resolve to the team's DEFAULT state.** `Todo` is where Linear puts a brand-new issue, so using it for `ready` inverts the gate: the lane stops meaning "a human flipped this to build-ready" and starts meaning "nobody has touched this". Measured on the first team migrated: 20 issues in the lane, only 8 ever explicitly marked ready. JIRA avoids this because `jira.workflow.ready` is a dedicated `Ready` status while a fresh ticket lands in the project default.
 
+**That rule is enforced, not merely stated — a correct default is only half the fix.** The default is `Ready`, but any project can override `linear.workflow.ready`, and an override reproduces the inversion exactly. Two arms catch it, deliberately split by what each can see:
+
+- **Static, always-on.** The queue-contract resolver refuses a `ready` naming a stock default created state (`Todo`, `To Do`, `Backlog`, `Triage`) and throws rather than resolving. It needs no network, so it runs everywhere, including offline and in CI. It cannot see a team that renamed its default.
+- **Live, authoritative.** `/lisa:validate-tracker-mapping` compares the configured `ready` against the team's real `defaultIssueState` (surfaced as `isTeamDefault` on `lisa-linear-access operation: list-workflow-states`) and classifies a match as `INVERTED` — never `VALID`, and never auto-repaired, because nothing records what lane the human meant instead.
+
+`INVERTED` is not a name-resolution failure; it is the opposite. The name resolves perfectly, which is precisely why every existence check passes while the gate runs backwards.
+
 **Linear state resolution is `type`-aware.** When a configured name is missing, a lifecycle skill may fall back to the team's states by `type` — `claimed`/`review` → the lowest-position `started`, `blocked` → `started` or `unstarted`, terminal `done` → `completed` — but only to *read*. **`ready` has no fallback on purpose:** every candidate would be the team's default unstarted state, which is exactly the inversion described above. A missing `ready` state is reported, never guessed; it must never invent a state to write into. Missing states are a setup defect, repaired by `/lisa:setup:linear`, not papered over at runtime.
 
 `blocked` is what every vendor agent flips to when triage finds unresolved ambiguities or the build path is blocked by something the agent can't resolve. Different from `claimed` because it explicitly signals "human attention required."
