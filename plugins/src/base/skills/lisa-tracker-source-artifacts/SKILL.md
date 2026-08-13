@@ -93,6 +93,8 @@ Mocks define visual *intent*, not implementation shortcut. Every UI-touching tic
 
 If no existing component fits, building a new one is an explicit decision that must be recorded in the ticket (with rationale) before implementation. Lovable-generated components are never the reuse target — always use the project's own components.
 
+The divergence note above covers the **ticket** side of this event. The **code** side is governed by the `design-source-of-truth` rule: a UI surface built with no Figma source behind it is either synced back to Figma and annotated `DESIGN-SOURCE: <figma-url>`, or explicitly marked `DESIGN-SOURCE: none — not in Figma`, and review fails closed if neither happened. Cite the rule for the code obligation rather than restating it here — a ticket comment closes with the ticket, the annotation stays with the surface.
+
 ## 8. Preservation gate (run after creating tickets)
 
 Before declaring done, verify every extracted artifact is reachable from the created tickets.
