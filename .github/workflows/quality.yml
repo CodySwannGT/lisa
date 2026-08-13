@@ -2886,7 +2886,6 @@ jobs:
       [
         lint,
         typecheck,
-        test,
         test_unit,
         test_integration,
         test_e2e,
@@ -2993,7 +2992,10 @@ jobs:
           echo "✅ **164.312(b)**: Audit logging enabled with ${{ inputs.audit_retention_days }}-day retention" >> $GITHUB_STEP_SUMMARY
 
           # Integrity - 164.312(c)(1)
-          if [ "${{ needs.test.result }}" == "success" ]; then
+          # Asserted from the two REQUIRED coverage-carrying contexts rather
+          # than the deleted bare `test` job (#2485). Strictly stronger: the
+          # old job re-ran the same suites without coverage and could not block.
+          if [ "${{ needs.test_unit.result }}" == "success" ] && [ "${{ needs.test_integration.result }}" == "success" ]; then
             echo "✅ **164.312(c)(1)**: Data integrity validated through testing" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **164.312(c)(1)**: Testing failed or skipped" >> $GITHUB_STEP_SUMMARY
@@ -3056,7 +3058,11 @@ jobs:
           # Count quality checks
           [ "${{ needs.lint.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
           [ "${{ needs.typecheck.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
-          [ "${{ needs.test.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
+          # Repointed from the deleted bare `test` job to the required unit
+          # coverage gate (#2485). Deleting the line instead would have left
+          # TOTAL_CONTROLS at 4 with only 3 achievable, permanently understating
+          # the compliance score.
+          [ "${{ needs.test_unit.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
           [ "${{ needs.build.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
           TOTAL_CONTROLS=$((TOTAL_CONTROLS + 4))
 
@@ -3099,7 +3105,6 @@ jobs:
         install_dependencies,
         lint,
         typecheck,
-        test,
         test_unit,
         test_integration,
         test_e2e,
@@ -3154,7 +3159,6 @@ jobs:
                 quality: {
                   lint: '${{ needs.lint.result }}',
                   typecheck: '${{ needs.typecheck.result }}',
-                  test: '${{ needs.test.result }}',
                   test_unit: '${{ needs.test_unit.result }}',
                   test_integration: '${{ needs.test_integration.result }}',
                   test_e2e: '${{ needs.test_e2e.result }}',
@@ -3308,7 +3312,6 @@ jobs:
         install_dependencies,
         lint,
         typecheck,
-        test,
         test_unit,
         test_integration,
         test_e2e,
@@ -3359,7 +3362,6 @@ jobs:
           echo "| Install Dependencies | ${{ needs.install_dependencies.result }} | Setup |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Type Check | ${{ needs.typecheck.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tests | ${{ needs.test.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.test_unit.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration Tests | ${{ needs.test_integration.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| E2E Tests | ${{ needs.test_e2e.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
@@ -3390,7 +3392,6 @@ jobs:
 
           [ "${{ needs.lint.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.typecheck.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
-          [ "${{ needs.test.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.test_unit.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.test_integration.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.test_e2e.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))

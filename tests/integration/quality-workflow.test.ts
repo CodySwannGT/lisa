@@ -199,6 +199,54 @@ describe("quality.yml reusable workflow", () => {
       ).not.toMatch(/[(,]test,/u);
     });
 
+    // #2485 postmortem. Deleting the `test` job left three `needs: [.., test, ..]`
+    // edges and FIVE `needs.test.result` interpolations behind. GitHub rejects
+    // the whole workflow at parse time for a dangling `needs`, so the run
+    // reported `conclusion=failure, jobs=0` — a startup_failure. None of the 8
+    // required contexts could report, because nothing started. In a reusable
+    // workflow every host project calls, that takes fleet CI down.
+    //
+    // It passed lint, typecheck, the full unit suite, and a `grep -n "needs:"`
+    // — the grep showed the multi-line `needs:` keys with their list items on
+    // FOLLOWING lines, so the dependency names were never in the output being
+    // read. A parser sees what a line-oriented grep structurally cannot.
+    describe("job graph integrity (#2485)", () => {
+      for (const [file, getWorkflow, getRaw] of [
+        [QUALITY_WORKFLOW_FILE, () => workflow, () => qualityRaw],
+        [
+          QUALITY_RAILS_WORKFLOW_FILE,
+          () => railsWorkflow,
+          () => qualityRailsRaw,
+        ],
+      ] as const) {
+        it(`${file} has no needs: edge pointing at a missing job`, () => {
+          const jobs = getWorkflow().jobs;
+          const declared = new Set(Object.keys(jobs));
+          const dangling = Object.entries(jobs).flatMap(([job, definition]) =>
+            needsList(definition)
+              .filter(dependency => !declared.has(dependency))
+              .map(dependency => `${job} -> ${dependency}`)
+          );
+
+          expect(dangling).toEqual([]);
+        });
+
+        // The stronger arm: an interpolation does not stop the workflow
+        // parsing, so it fails silently as an empty string rather than loudly.
+        it(`${file} has no needs.<job> interpolation for a missing job`, () => {
+          const declared = new Set(Object.keys(getWorkflow().jobs));
+          const referenced = [
+            ...getRaw().matchAll(/needs\.(?<job>[A-Za-z0-9_-]+)/gu),
+          ].map(match => match.groups?.job ?? "");
+          const unknown = [...new Set(referenced)].filter(
+            job => !declared.has(job)
+          );
+
+          expect(unknown).toEqual([]);
+        });
+      }
+    });
+
     // #2427: the sentinel-comma idiom matches EXACT bytes, and GitHub Actions
     // expression syntax has no string-replace function to trim with — the
     // available string functions are contains/startsWith/endsWith/format/join/
