@@ -1,0 +1,53 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+#
+# JavaScript-language twin of `no-missing-fs-extra-namespace-member.yml`.
+#
+# ast-grep binds one parser per rule: `language: typescript` scans only
+# .ts/.mts/.cts, so .js/.mjs/.cjs would otherwise be an unguarded gap — and a
+# guard with a silent hole is the failure mode this rule exists to prevent.
+# Build scripts and tooling in TypeScript projects are routinely .mjs, and
+# fs-extra is exactly the kind of dependency they reach for.
+#
+# The `constraints` block MUST stay byte-identical to the TypeScript rule.
+# `tests/unit/config/ast-grep-template.test.ts` asserts both files carry the
+# same allow list AND that it still equals the set real Node reports, so these
+# two cannot drift apart or drift away from reality unnoticed.
+#
+# See the TypeScript rule for the full rationale on why this is an allow list
+# rather than a deny list, and why the set is stable across fs-extra 11.x.
+id: no-missing-fs-extra-namespace-member-js
+language: javascript
+severity: error
+message: |
+  `fs-extra` does not expose this member on its ESM namespace object.
+
+  `import * as fse from "fs-extra"` resolves to fs-extra's CommonJS entry, so
+  Node derives the namespace keys with cjs-module-lexer. Only fs-extra's own
+  directly-assigned functions survive that. Absent members include every JSON
+  helper (readJson, readJSON, writeJson, outputJson, and their Sync forms),
+  every node:fs passthrough (readFile, writeFile, readdir, stat, existsSync,
+  appendFile, ...), and copySync, moveSync, removeSync, pathExistsSync and
+  outputFileSync.
+
+  The call is `undefined` at run time and throws a TypeError, and unit tests
+  cannot see it — Vitest and Jest resolve the import through CJS interop and
+  hand back the default export's properties.
+
+  Fix by importing the concrete API instead:
+    - file I/O     -> `readFile` / `writeFile` from `node:fs/promises`
+    - JSON         -> read the file, then `JSON.parse` / `JSON.stringify`
+    - whole module -> `import fse from "fs-extra"`. The DEFAULT export does
+                      carry every member and is deliberately not flagged here.
+rule:
+  all:
+    - pattern: $NS.$MEMBER
+    - inside:
+        kind: program
+        stopBy: end
+        has:
+          pattern: import * as $NS from "fs-extra"
+constraints:
+  MEMBER:
+    not:
+      regex: ^(copy|createFile|createFileSync|createLink|createLinkSync|createSymlink|createSymlinkSync|default|emptyDir|emptyDirSync|emptydir|emptydirSync|ensureDir|ensureDirSync|ensureFile|ensureFileSync|ensureLink|ensureLinkSync|ensureSymlink|ensureSymlinkSync|exists|mkdirp|mkdirpSync|mkdirs|mkdirsSync|move|outputFile|pathExists|read|readv|remove|write|writev)$
