@@ -1,9 +1,9 @@
 /**
- * Wiring contract for the nightly e2e gate's PER-SUITE grace (rows 27-30).
+ * Wiring contract for the nightly e2e gate's PER-SUITE grace (rows 32-35).
  *
  * The behaviour is proven in `tests/unit/scripts/nightly-e2e-health-grace.test.ts`.
  * What no unit test can see is whether the four surfaces that must agree still
- * do: the normative doc (`docs/nightly-e2e-gate.md` §2 rows 27-30 and §4.1),
+ * do: the normative doc (`docs/nightly-e2e-gate.md` §2 rows 32-35 and §4.1),
  * the guard that implements them, the JSON Schema an editor validates a
  * `suites` table against, and the caller template that tells an operator which
  * knob to reach for. A field the guard accepts and the schema rejects is a
@@ -54,9 +54,9 @@ describe("per-suite grace — doc, guard, schema and caller agree", () => {
     expect(doc).toContain(
       "Grace forgives absence of evidence, never evidence of failure"
     );
-    // Rows 27-30 exist in the numbered table, not only in prose — §2 is what
+    // Rows 32-35 exist in the numbered table, not only in prose — §2 is what
     // the per-row tests are named after.
-    for (const row of ["| 27 |", "| 28 |", "| 29 |", "| 30 |"]) {
+    for (const row of ["| 32 |", "| 33 |", "| 34 |", "| 35 |"]) {
       expect(read(DOC_REL)).toContain(row);
     }
   });
@@ -66,8 +66,8 @@ describe("per-suite grace — doc, guard, schema and caller agree", () => {
     // one is major". These rows can — but only for a table an operator edited,
     // never for an unchanged observation. That distinction is the whole
     // argument for the minor, so it has to be findable rather than inferred.
-    expect(doc).toContain("shipped as `1.2.0`, a minor");
-    expect(read(GUARD_REL)).toContain('NIGHTLY_E2E_CONTRACT_VERSION = "1.2.0"');
+    expect(doc).toContain("shipped as `1.2.0` → `1.3.0`, a minor");
+    expect(read(GUARD_REL)).toContain('NIGHTLY_E2E_CONTRACT_VERSION = "1.3.0"');
     // The workflow still asserts MAJOR 1: a major bump would red-wall every
     // adopter pinned to an older tag for a change that cannot fail open.
     expect(read(REUSABLE_REL)).toContain("default: 1");

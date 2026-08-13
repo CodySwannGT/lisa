@@ -1,6 +1,6 @@
 ---
 name: lisa-notion-access
-description: "Vendor-neutral access layer for Notion. Every notion-* skill MUST delegate through this skill rather than invoking the Notion REST API or any Notion MCP directly. Resolves a substrate per operation in this order: (1) Notion MCP if authenticated and the configured prdDatabaseId is fetchable through it (identity-match), (2) curl + Bearer auth + internal-integration token. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Notion workspace are skipped, not used."
+description: "Vendor-neutral access layer for Notion. Every notion-* skill MUST delegate through this skill rather than invoking the Notion REST API or any Notion MCP directly. Per the credential-substrate-precedence contract, resolves a substrate per operation in this order: (1) curl + Bearer auth + internal-integration token when the token is present and identity-matches the configured workspace, (2) Notion MCP as fallback if authenticated and the configured prdDatabaseId is fetchable through it. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Notion workspace are skipped, not used."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -38,20 +38,15 @@ DB_ID=$(jq -r '.notion.prdDatabaseId // empty' .lisa.config.json)
 [ -z "$DB_ID" ]     && { echo "Error: notion.prdDatabaseId not set. Run /lisa:setup:notion." >&2; exit 1; }
 ```
 
-Probe each tier in order; the first that's ready AND identity-matches is the substrate for this operation. Identity-match is verified before any operation; substrates authenticated as a different workspace are skipped, not used.
+Probe each tier in order; the first that's ready AND identity-matches is the substrate for this operation. The ordering is the shared `credential-substrate-precedence` contract — the configured-provider token substrate leads, the interactive MCP is the fallback — not a Notion-local choice. Identity-match is verified before any operation; substrates authenticated as a different workspace are skipped, not used, at **every** tier.
 
 ```bash
 substrate=""
 
-# Tier 1: Notion MCP (identity-matched by fetching the configured PRD database)
-# Pseudo-code; actual call is the MCP tool invocation.
-# Try to fetch DB_ID through the MCP. Success → MCP is authed to the right workspace.
-# 404 / object_not_found → MCP is authed elsewhere (or unauthenticated). Skip.
-if mcp_notion_can_fetch_database "$DB_ID"; then
-  substrate="mcp"
-fi
-
-# Tier 2: curl + API token
+# Tier 1: curl + API token — the configured-provider substrate, resolved through
+# lisa-secrets-access. Leads because it is identical on a laptop, in CI, in a cloud
+# routine, and in a subagent, and because its workspace binding travels with the
+# request instead of coming from ambient browser-session state.
 read_notion_token() {
   local workspace="$1"
   [ -n "$NOTION_API_TOKEN" ] && { echo "$NOTION_API_TOKEN"; return; }
@@ -120,10 +115,26 @@ if [ -n "$TOKEN" ]; then
               "https://api.notion.com/v1/users/me")
   me_workspace=$(echo "$me" | jq -r '.bot.workspace_name // .bot.workspace_id // empty')
   if [ -n "$me_workspace" ] && [ "$me_workspace" = "$WORKSPACE" ]; then
-    : ${substrate:=curl}
+    substrate="curl"
   elif [ -n "$me_workspace" ]; then
+    # A present-but-wrong token fails the gate rather than deferring to the MCP.
+    # Silently succeeding through an MCP authenticated elsewhere is the exact bug
+    # the precedence contract exists to surface.
     echo "Warning: Notion token belongs to workspace '$me_workspace' but config declares '$WORKSPACE'. Skipping curl tier." >&2
   fi
+fi
+
+# Tier 2: Notion MCP — first-class fallback, used when tier 1 is genuinely
+# unavailable (no token, no curl adapter for the operation, or Notion API outage).
+# Identity-matched by fetching the configured PRD database.
+# Pseudo-code; actual call is the MCP tool invocation.
+# Try to fetch DB_ID through the MCP. Success → MCP is authed to the right workspace.
+# 404 / object_not_found → MCP is authed elsewhere (or unauthenticated). Skip.
+if mcp_notion_can_fetch_database "$DB_ID"; then
+  : ${substrate:=mcp}
+  # Mark the MCP available even when curl already won tier 1 — the dispatch table
+  # falls through to it for operations curl has no adapter for.
+  mcp_available=true
 fi
 
 # Fail loudly with actionable remediation if nothing works.
@@ -136,14 +147,19 @@ if [ -z "$substrate" ]; then
   cat >&2 <<EOF
 Error: no Notion access substrate available for workspace '$WORKSPACE'.
 
-Attempted:
-  MCP    — $([ "$plugin_enabled_global" = "true" ] || [ "$plugin_enabled_project" = "true" ] || [ "$plugin_enabled_local" = "true" ] && echo "plugin enabled but not authenticated or cannot fetch configured prdDatabaseId" || echo "plugin not enabled in any settings.json scope")
+Attempted (in credential-substrate-precedence order):
   curl   — no NOTION_API_TOKEN found for $WORKSPACE (env, slug-suffixed env, or keychain) OR token belongs to a different workspace
+  MCP    — $([ "$plugin_enabled_global" = "true" ] || [ "$plugin_enabled_project" = "true" ] || [ "$plugin_enabled_local" = "true" ] && echo "plugin enabled but not authenticated or cannot fetch configured prdDatabaseId" || echo "plugin not enabled in any settings.json scope")
 
-Remediation paths (pick one):
+Remediation paths (the first is the contract's primary path):
 
-1. Install the Notion MCP plugin (local scope — per-developer, gitignored).
-   This is the simplest path for single-workspace developers.
+1. Provision an internal-integration API token — works headless, in CI, and in
+   multi-workspace setups, and is the substrate this project resolves first.
+
+     Run /lisa:setup:notion — guided flow with clipboard-piped keychain store.
+
+2. Install the Notion MCP plugin (local scope — per-developer, gitignored).
+   The supported fallback when no credentials provider is configured.
 
    Run in your terminal:
 
@@ -156,10 +172,6 @@ Remediation paths (pick one):
    invoke 'mcp__plugin_notion_notion__authenticate' to complete OAuth.
    Also share the configured prdDatabaseId with the integration via
    the page's '•••' menu → Connections.
-
-2. Provision an internal-integration API token (headless / CI / multi-workspace).
-
-     Run /lisa:setup:notion — guided flow with clipboard-piped keychain store.
 
 EOF
   exit 1
@@ -225,14 +237,15 @@ exec_op() {
 ## Invariants
 
 - Caller skills never call `curl https://api.notion.com/...` or any `mcp__*notion*` tool directly. They invoke this skill via the Skill tool with an operation name and arguments.
-- Substrate is selected per skill invocation following the tier ladder. The first tier that's available AND identity-matches `notion.workspaceId` wins.
-- The connection-match check is mandatory at every tier. Skipping it (because "the user obviously meant this workspace") is forbidden — silent cross-workspace operations are exactly the multi-account hazard this design exists to prevent.
+- Substrate is selected per skill invocation following the tier ladder defined by the shared `credential-substrate-precedence` contract — internal-integration token first, Notion MCP as fallback. The first tier that's available AND identity-matches `notion.workspaceId` wins. Do not restate or locally override the ordering here.
+- The Notion MCP stays a first-class fallback, not a removed tier: it is the substrate whenever no token is configured, the operation has no curl adapter, or the Notion API is failing.
+- The connection-match check is mandatory at every tier. Skipping it (because "the user obviously meant this workspace") is forbidden — silent cross-workspace operations are exactly the multi-account hazard this design exists to prevent. A present-but-wrong token fails the gate rather than deferring to an MCP authenticated somewhere else.
 - API tokens never mutate. If the configured workspace's token is wrong or missing, fail loudly and tell the user to run `/lisa:setup:notion`.
 - `Notion-Version` is pinned to `2022-06-28` — the version every existing notion-* skill targets. Bumping it is a coordinated change across the access skill and all callers.
 
 ## Headless behavior
 
-In a headless / non-interactive context (no TTY, `CI=true`, or `-p` mode), the MCP tier is unavailable (its OAuth flow needs a browser). The ladder collapses to curl + `NOTION_API_TOKEN`. Same skill code runs identically; only the substrate changes.
+In a headless / non-interactive context (no TTY, `CI=true`, or `-p` mode), the MCP tier is unavailable (its OAuth flow needs a browser) and the ladder collapses to curl + `NOTION_API_TOKEN` — which is already tier 1 interactively. That is the point of the ordering: headless and interactive sessions take the **same primary path**, so a credential problem reproduces on a laptop instead of only in cron (`credential-substrate-precedence`, "headless parity"). Same skill code runs identically; only the availability of the fallback changes.
 
 ## Per-page sharing prerequisite
 

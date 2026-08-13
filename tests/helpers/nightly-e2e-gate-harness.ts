@@ -47,7 +47,7 @@ export interface Bootstrap {
 }
 
 /**
- * One suite's resolved first-seen grace window (rows 27-30).
+ * One suite's resolved first-seen grace window (rows 32-35).
  *
  * Same shape as `Bootstrap` plus the anchor it was computed from, because the
  * anchor is what makes the window bounded and the audit has to show it.
@@ -116,10 +116,6 @@ export interface GateModule {
     maxDays: number,
     now: Date
   ): SuiteGrace;
-  runGate(
-    env: Record<string, string | undefined>,
-    wait?: () => Promise<void>
-  ): Promise<unknown>;
   evaluateBypass(request: Record<string, unknown>): BypassDecision;
   decide(
     findings: readonly Finding[],
@@ -157,6 +153,29 @@ export interface GateModule {
     maxSeconds: number
   ): number;
   resolveSettings(env: Record<string, string | undefined>): unknown;
+  readonly TRACKING_ISSUE_LABEL: string;
+  readonly INCOMPLETE_EVIDENCE_REASON: string;
+  suiteMarker(label: string): string;
+  isCompleteEvidence(finding: { readonly reason: string }): boolean;
+  planIssueActions(
+    findings: readonly Finding[],
+    openIssues: readonly TrackedIssue[],
+    context: { branch: string; label: string; now: Date }
+  ): readonly IssuePlanEntry[];
+  applyIssuePlan(
+    api: Record<string, unknown>,
+    plan: readonly IssuePlanEntry[],
+    wait?: () => Promise<void>
+  ): Promise<readonly IssueResult[]>;
+  fetchTrackingIssues(
+    api: Record<string, unknown>,
+    label: string,
+    wait?: () => Promise<void>
+  ): Promise<readonly TrackedIssue[]>;
+  runGate(
+    env: Record<string, string | undefined>,
+    wait?: () => Promise<void>
+  ): Promise<Verdict>;
   fetchLabelEvent(
     api: Record<string, unknown>,
     prNumber: number,
@@ -208,6 +227,52 @@ export const STATE = Object.freeze({
   fail: "fail",
   unknown: "unknown",
 });
+
+/** Tracking-issue actions (§10 of the contract). */
+export const ISSUE_ACTION = Object.freeze({
+  create: "create",
+  refresh: "refresh",
+  close: "close",
+  none: "none",
+});
+
+/** Why the reporter chose an action, as a stable token per §10 row. */
+export const ISSUE_REASON = Object.freeze({
+  redFiled: "red_filed",
+  redRefreshed: "red_refreshed",
+  greenComplete: "green_complete",
+  greenUntracked: "green_untracked",
+  evidenceIncomplete: "evidence_incomplete",
+  evidenceMissing: "evidence_missing",
+});
+
+/** One suite's reporting plan. */
+export interface IssuePlanEntry {
+  readonly label: string;
+  readonly action: string;
+  readonly reason: string;
+  readonly state: string;
+  readonly issues: readonly number[];
+  readonly title: string | null;
+  readonly body: string | null;
+  readonly comment: string | null;
+}
+
+/** An open issue as the reporter reads it. */
+export interface TrackedIssue {
+  readonly number: number;
+  readonly body?: string | null;
+  readonly pull_request?: Record<string, unknown>;
+}
+
+/** The outcome of one planned action. */
+export interface IssueResult {
+  readonly label: string;
+  readonly action: string;
+  readonly ok: boolean;
+  readonly issues: readonly number[];
+  readonly error: string | null;
+}
 
 /**
  * Loads the guard.

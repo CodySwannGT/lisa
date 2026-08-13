@@ -191,7 +191,7 @@ authority — if any of these hold:
 **On any of those: file a proposed-intervention ticket via `lisa-tracker-write` and STOP.** The
 ticket carries the job contract, the earliest failed handoff, the gap classification with
 evidence, and the proposed change with its expected mechanism; labels `type:harness`,
-`status:blocked` (human-flipped to `status:ready` when approved). Post the result record with
+`status:blocked` plus an explicit `human_gate: "a human approves the proposed harness intervention"` per `ready-role-filing` (human-flipped to `status:ready` when approved). Post the result record with
 `Verdict: bounded-authority-stop`, `Decision: n/a (proposed-intervention, <url>)`, and
 terminate. Implementing it anyway is the failure mode this phase exists to prevent.
 

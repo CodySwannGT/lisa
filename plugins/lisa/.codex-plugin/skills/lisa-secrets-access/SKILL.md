@@ -10,6 +10,14 @@ Single chokepoint for reading credentials. Caller skills MUST go through this â€
 
 The rule this exists to enforce: **a secret lives in exactly one store.** Every local cache is a copy that will eventually drift from its source, and a drifted copy is indistinguishable from a valid one until something fails in production.
 
+This skill is also the chokepoint that feeds **tier 1** of the shared
+`credential-substrate-precedence` contract: every `*-access` skill resolves its
+configured-provider token or CLI credential here, ahead of any interactive MCP. That
+is what makes "provider-first" actionable rather than aspirational â€” including the
+`tool:` note line below, which declares which CLI a given credential is expected to
+drive. This skill decides *where a credential comes from*; it never decides substrate
+ordering, which is settled once in that contract.
+
 ## Two axes, not one
 
 A **provider** is where secrets live. A **surface** is where the running code lives, and it determines how secrets reach that code. These are independent: the same Bitwarden project serves a laptop, a CI runner, and a remote agent container, but each obtains its values differently.

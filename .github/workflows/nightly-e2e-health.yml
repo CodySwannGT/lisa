@@ -33,7 +33,7 @@
 # stale run, a wrong-branch run, a renamed job, and an unreadable API ALL block.
 # `cancelled` blocks because otherwise cancelling a run would be a one-click way
 # to clear a merge gate. There is no configuration that renders "we could not
-# check" as "it is fine". The full truth table — 30 rows, each proven by a named
+# check" as "it is fine". The full truth table — 35 rows, each proven by a named
 # test — is `docs/nightly-e2e-gate.md` §2.
 #
 # The only forgiving state is a TIME-BOXED window, and there are two sources for
