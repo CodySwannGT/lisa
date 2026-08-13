@@ -32,6 +32,24 @@ const DEFAULT_LINEAR_BUILD_DONE = {
   production: "Done",
 };
 
+// The state names a stock Linear team creates brand-new Issues into. `ready`
+// must name a lane a human moves an Issue INTO, so it may never be one of
+// these: the claimable lane would stop meaning "a human flipped this to
+// build-ready" and start meaning "nobody has touched this", and build-intake
+// would dispatch work nobody approved.
+//
+// This list is a STATIC backstop for the stock names, which is the case that
+// actually bit us. It cannot see a team that renamed its default — only the
+// live `Team.defaultIssueState` can, which is why `/lisa:validate-tracker-mapping`
+// carries the authoritative arm (`INVERTED`) and this one carries the arm that
+// needs no network and therefore always runs.
+const LINEAR_STOCK_DEFAULT_CREATED_STATES = [
+  "todo",
+  "to do",
+  "backlog",
+  "triage",
+];
+
 const DEFAULT_GITHUB_LINEAR_PRD_ROLES = {
   draft: "prd-draft",
   ready: "prd-ready",
@@ -273,6 +291,35 @@ export function resolvePrdLifecycleRoles(
 }
 
 /**
+ * Reject a Linear `ready` override that names a state a stock team creates
+ * brand-new Issues into.
+ *
+ * Failing loudly is the safe direction. An operator staring at a hard error has
+ * a broken queue; an operator with a silently inverted gate has agents shipping
+ * work no human approved, which is the failure mode that produced this guard.
+ *
+ * @param {string} configured The resolved `linear.workflow.ready` name.
+ * @returns {string} The same name, once it is proven not to be a default lane.
+ * @throws {Error} When the name is a stock default created state.
+ */
+function assertLinearReadyIsNotDefaultState(configured) {
+  const normalized = configured.trim().toLowerCase();
+
+  if (!LINEAR_STOCK_DEFAULT_CREATED_STATES.includes(normalized)) {
+    return configured;
+  }
+
+  throw new Error(
+    `linear.workflow.ready is set to "${configured.trim()}", which is where Linear puts a ` +
+      "brand-new Issue. That inverts the build-ready gate: the claimable lane would mean " +
+      '"nobody has touched this" instead of "a human marked this ready", so intake would ' +
+      "claim untouched backlog items. Point linear.workflow.ready at a dedicated state a " +
+      "human moves Issues into (the default is `Ready`), then re-run /lisa:setup:linear to " +
+      "create it if the team does not have one."
+  );
+}
+
+/**
  * Resolve the build lifecycle roles for the configured tracker vendor.
  *
  * @param {Record<string, any>} config
@@ -307,7 +354,9 @@ export function resolveBuildLifecycleRoles(
         vendor: "linear",
         kind: "workflow",
         roles: {
-          ready: config.linear?.workflow?.ready || "Ready",
+          ready: assertLinearReadyIsNotDefaultState(
+            config.linear?.workflow?.ready || "Ready"
+          ),
           claimed: config.linear?.workflow?.claimed || "In Progress",
           review: config.linear?.workflow?.review || "In Review",
           blocked: config.linear?.workflow?.blocked || "Blocked",
