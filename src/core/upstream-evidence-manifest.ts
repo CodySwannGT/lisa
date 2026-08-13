@@ -708,6 +708,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fc9231ae27b09dadd4ec5a9a694f2a4fefa5e55e67be8eed3ccba1fdcb68a7a2",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
+    "plugins/src/base/rules/eager/credential-substrate-precedence.md":
+      "20fbbf6499b079105b5d749fed4da787a22a87c12851f1939572a7a5b2601800",
     "plugins/src/base/rules/eager/dependency-decision-records.md":
       "e22888f107906992e863fca50f26c2c4b124da7132535cacfac71e4f3085728f",
     "plugins/src/base/rules/eager/dependency-internalization-kit.md":
@@ -3639,6 +3641,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/coding-philosophy.md": true,
     "plugins/lisa-copilot/rules/eager/config-resolution.md": true,
     "plugins/lisa-copilot/rules/eager/convergent-review.md": true,
+    "plugins/lisa-copilot/rules/eager/credential-substrate-precedence.md": true,
     "plugins/lisa-copilot/rules/eager/dependency-decision-records.md": true,
     "plugins/lisa-copilot/rules/eager/dependency-internalization-kit.md": true,
     "plugins/lisa-copilot/rules/eager/dependency-trust-classes.md": true,
@@ -4081,6 +4084,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/convergent-review-reference.mdc": true,
     "plugins/lisa-cursor/rules/convergent-review.mdc": true,
     "plugins/lisa-cursor/rules/credential-substrate-precedence-reference.mdc": true,
+    "plugins/lisa-cursor/rules/credential-substrate-precedence.mdc": true,
     "plugins/lisa-cursor/rules/dependency-decision-records-reference.mdc": true,
     "plugins/lisa-cursor/rules/dependency-decision-records.mdc": true,
     "plugins/lisa-cursor/rules/dependency-internalization-kit-reference.mdc": true,
@@ -6593,6 +6597,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/coding-philosophy.md": true,
     "plugins/lisa/rules/eager/config-resolution.md": true,
     "plugins/lisa/rules/eager/convergent-review.md": true,
+    "plugins/lisa/rules/eager/credential-substrate-precedence.md": true,
     "plugins/lisa/rules/eager/dependency-decision-records.md": true,
     "plugins/lisa/rules/eager/dependency-internalization-kit.md": true,
     "plugins/lisa/rules/eager/dependency-trust-classes.md": true,
@@ -7205,6 +7210,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/coding-philosophy.md": true,
     "plugins/src/base/rules/eager/config-resolution.md": true,
     "plugins/src/base/rules/eager/convergent-review.md": true,
+    "plugins/src/base/rules/eager/credential-substrate-precedence.md": true,
     "plugins/src/base/rules/eager/dependency-decision-records.md": true,
     "plugins/src/base/rules/eager/dependency-internalization-kit.md": true,
     "plugins/src/base/rules/eager/dependency-trust-classes.md": true,
