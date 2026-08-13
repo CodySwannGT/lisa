@@ -8098,6 +8098,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/cross-pollinate-nudge.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
+    "src/cli/doctor-learnings-merge-driver.ts": true,
     "src/cli/doctor-legacy-overlay.ts": true,
     "src/cli/doctor-lisa-owned-artifacts.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,

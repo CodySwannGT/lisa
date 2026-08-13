@@ -9,6 +9,7 @@ import { probeSonarReadiness } from "../core/sonar-integration.js";
 import { createDetectorRegistry } from "../detection/index.js";
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
+import { checkLearningsMergeDriver } from "./doctor-learnings-merge-driver.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
@@ -339,6 +340,12 @@ export async function runDoctor(
     // repaired first and passes here; only a genuine second ledger survives to
     // be reported.
     await checkLearningsLedger(resolvedTarget),
+    // Immediately after, and for the same reason that check runs late: both
+    // resolve the configured ledger path, which the instruction-files check may
+    // have just relocated. Reporting the merge arm second is also the order an
+    // operator can act in — which ledger is canonical, then whether this
+    // checkout can actually run the union merge that protects it.
+    await checkLearningsMergeDriver(resolvedTarget),
     await checkWorkerEpoch(resolvedTarget),
     checkLegacyCodexOverlay(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),
