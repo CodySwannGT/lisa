@@ -31,7 +31,16 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Platform(s) to run'
+        # NARROWING THIS DOES NOT CLEAR THE NIGHTLY GATE. Picking `android` or
+        # `ios` skips the other platform's job, and GitHub still concludes the
+        # run `success` — a skipped job does not redden its run. The
+        # nightly-e2e-health gate reads the jobs behind a `success` run for
+        # exactly this reason (truth-table row 26 in Lisa's
+        # `docs/nightly-e2e-gate.md`), so a narrowed run reports
+        # `incomplete_run` and keeps blocking. Use these options to iterate on
+        # one platform; dispatch with `all` when the point is to clear a red
+        # nightly.
+        description: 'Platform(s) to run — use `all` when dispatching to clear the nightly gate'
         type: choice
         default: all
         options:
