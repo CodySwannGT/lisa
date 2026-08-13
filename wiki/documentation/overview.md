@@ -521,10 +521,30 @@ Each project type directory contains these subdirectories:
 
 | Subdirectory | Behavior |
 |-------------|----------|
-| `copy-overwrite/` | Files are overwritten on every Lisa run |
+| `copy-overwrite/` | Lisa replaces the file (see ownership below) |
 | `create-only/` | Files are created only if they don't exist (safe to customize) |
 | `copy-contents/` | File contents are merged rather than replaced |
 | `package-lisa/` | Contains `package.lisa.json` for package.json governance |
+
+#### Who owns a `copy-overwrite` file
+
+The `copy-overwrite` trees hold two populations, and an apply that cannot prompt
+(the postinstall one a version bump runs) treats them differently:
+
+- **Lisa-owned artifacts** — anything with a `lisa-` path segment, such as
+  `scripts/lisa-hooks/*` and `scripts/lisa-enforcement-fallback.sh`. Their
+  content *is* the enforcement, and Lisa's own hooks invoke them by exact path,
+  so they are refreshed on every apply, backed up first. This is how a released
+  fix to a guard reaches an already-installed project; before it existed, such
+  fixes silently never shipped.
+- **Everything else** — `tsconfig.json`, `knip.json`, `eslint.config.ts` and
+  friends, which projects legitimately customize. A non-interactive apply leaves
+  those alone and reports them as `Out of date`. Take them with an interactive
+  `lisa apply .`, or in advance with `--refresh-templates[=paths]`.
+
+Either way, `.lisaignore` wins: an ignored path is never a candidate. `lisa
+doctor` reports any Lisa-owned artifact whose installed copy no longer matches
+the shipped one.
 
 ### Inheritance Chain
 
@@ -607,7 +627,7 @@ jest.config.ts            (copy-overwrite, per-stack entry point)
 ### Migration Notes
 
 When Lisa runs on existing projects:
-- **copy-overwrite files** (`tsconfig.json`, `jest.config.ts`) overwrite existing project files
+- **copy-overwrite files** (`tsconfig.json`, `jest.config.ts`) overwrite existing project files once approved — a non-interactive apply reports them as out of date instead (see [Who owns a `copy-overwrite` file](#who-owns-a-copy-overwrite-file))
 - **create-only files** (`tsconfig.local.json`, `jest.config.local.ts`, `jest.thresholds.json`) only created if absent
 - Projects move project-specific tsconfig settings (paths, includes, outDir) into `tsconfig.local.json`
 - Projects move project-specific jest settings (moduleNameMapper, setupFiles) into `jest.config.local.ts`
