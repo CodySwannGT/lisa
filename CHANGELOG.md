@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.9.1](https://github.com/CodySwannGT/lisa/compare/v3.9.0...v3.9.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **tests:** make agentic health timeout tests scheduler-independent ([6612df0](https://github.com/CodySwannGT/lisa/commit/6612df0c180ae9f2c29550e341a5998c0b413ef5)), closes [CodySwannGT/lisa#2516](https://github.com/CodySwannGT/lisa/issues/2516)
+
 ## [3.9.0](https://github.com/CodySwannGT/lisa/compare/v3.8.2...v3.9.0) (2026-08-13)
 
 
