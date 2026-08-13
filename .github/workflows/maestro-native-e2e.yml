@@ -81,8 +81,13 @@
 # state, so a suite that runs after it failed is a suite running against
 # unknown state — its greens prove nothing and its reds are unattributable.
 # The platform legs allowlist the pre-suite job results they will start after
-# (`success` and `skipped` — skipped is "no command was configured"); every
-# other result, including any GitHub adds later, keeps them from starting.
+# (`success` and `skipped`); every other result, including any GitHub adds
+# later, keeps them from starting.
+#
+# Note that the pre-suite JOB runs in every wired run whether or not a command
+# was supplied — an unset `pre_suite_command` skips the job's STEPS, not the
+# job. That is not a stylistic choice: see the job's own comment and the health
+# gate paragraph below.
 #
 # Graceful degradation: when EXPO_TOKEN is not provisioned or the flows
 # directory does not exist, every job skips with a warning instead of
@@ -104,6 +109,13 @@
 # `docs/nightly-e2e-gate.md`. Renaming or removing the per-platform test jobs
 # below is fine; making one of them conclude something other than `success`
 # while the run stays green is what the gate is watching for.
+#
+# That rule binds EVERY job here, not only the platform ones, and it is why the
+# pre-suite job below runs unconditionally in a wired run instead of skipping
+# itself when no `pre_suite_command` is supplied. A job that skips whenever an
+# optional input is unset would report `incomplete_run` — a blocked merge gate —
+# on every adopter that does not use the seam. Before adding a job to this
+# workflow, ask what it concludes in a run where the caller passed nothing.
 
 name: 📱 Maestro Native E2E
 
@@ -431,7 +443,18 @@ jobs:
     # marks the whole job failed. Without this, an Android build failure would
     # skip the pre-suite job and the surviving iOS leg would then run against
     # state nobody established. Same rationale as the platform jobs below.
-    if: ${{ !cancelled() && needs.preflight.outputs.should_run == 'true' && inputs.pre_suite_command != '' }}
+    #
+    # DELIBERATELY NOT gated on `inputs.pre_suite_command != ''`, even though
+    # that reads like the obvious guard. The nightly health gate's completeness
+    # rule (row 26) treats ANY job in a `mode: "run"` suite that concludes
+    # something other than `success` as `incomplete_run` — that is what stops a
+    # platform-narrowed dispatch from clearing a merge gate for an arm that
+    # never ran. A pre-suite job that SKIPS itself whenever the input is unset
+    # would therefore turn every green nightly into a blocked one for every
+    # adopter who does not use this seam — which is all of them on the day this
+    # lands. So the JOB always runs in a wired run and the WORK is gated
+    # per-step below; an unused seam costs a few seconds and concludes green.
+    if: ${{ !cancelled() && needs.preflight.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.pre_suite_timeout_minutes }}
     outputs:
@@ -439,16 +462,27 @@ jobs:
       # output is the only channel that reaches the platform legs.
       maestro_env: ${{ steps.capture.outputs.maestro_env }}
     steps:
+      - name: 🈳 No pre-suite command configured
+        # The visible half of the always-run decision above: a reader opening a
+        # green job with every step skipped should not have to work out whether
+        # something silently failed to fire.
+        if: ${{ inputs.pre_suite_command == '' }}
+        run: |
+          echo "No pre_suite_command was supplied; nothing to establish before the suites."
+          echo "See this workflow's header for which work belongs in this seam."
+
       - name: 📥 Checkout repository
+        if: ${{ inputs.pre_suite_command != '' }}
         uses: actions/checkout@v6
 
       - name: 🥟 Setup Bun
-        if: ${{ inputs.pre_suite_install_dependencies && inputs.package_manager == 'bun' }}
+        if: ${{ inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies && inputs.package_manager == 'bun' }}
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: 🔧 Setup Node.js
+        if: ${{ inputs.pre_suite_command != '' }}
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
@@ -458,7 +492,7 @@ jobs:
         # Opt-in: the platform legs install nothing, so the default keeps this
         # job's toolchain identical to theirs. A command that needs
         # node_modules asks for it rather than every adopter paying an install.
-        if: ${{ inputs.pre_suite_install_dependencies }}
+        if: ${{ inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies }}
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
@@ -477,6 +511,7 @@ jobs:
         # moved between the two seams without rewiring what it can read. E2E_*
         # names (not MAESTRO_*) keep the multiline inputs out of any MAESTRO_*
         # scan.
+        if: ${{ inputs.pre_suite_command != '' }}
         env:
           E2E_ENV_INPUT: ${{ inputs.maestro_env }}
           E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
@@ -490,6 +525,7 @@ jobs:
         # The cross-job counterpart to $GITHUB_ENV. Created empty so the command
         # can append unconditionally, and named in $GITHUB_ENV so the command
         # reads it the same way it would read $GITHUB_ENV.
+        if: ${{ inputs.pre_suite_command != '' }}
         run: |
           EXPORT_FILE="$RUNNER_TEMP/maestro-pre-suite-env"
           : > "$EXPORT_FILE"
@@ -501,10 +537,12 @@ jobs:
         # the whole contract: the command's purpose is establishing known state,
         # so "it failed but test anyway" produces a suite whose greens prove
         # nothing and whose reds are unattributable.
+        if: ${{ inputs.pre_suite_command != '' }}
         run: ${{ inputs.pre_suite_command }}
 
       - name: 📦 Capture pre-suite exports
         id: capture
+        if: ${{ inputs.pre_suite_command != '' }}
         shell: bash
         run: |
           # ALLOWLIST, not denylist, and both lists are SOURCE CONSTANTS —
@@ -573,12 +611,14 @@ jobs:
     # failed, the download-artifact step fails fast with a clear error.
     #
     # The pre-suite clause is an ALLOWLIST of results this job will start
-    # after, not a denylist of ones it won't: `success` (the command ran) and
-    # `skipped` (no command configured — the default for every adopter who
-    # never sets one). `failure`, `cancelled`, and anything GitHub adds later
-    # all fall through to "do not start". `!cancelled()` deliberately does NOT
-    # cover this — it is what lets a job run despite a failed dependency, which
-    # is right for a build artifact and wrong for established state.
+    # after, not a denylist of ones it won't: `success` (the job ran — with or
+    # without a command) and `skipped` (the preflight said this project is not
+    # wired, in which case run_android is false anyway; kept so the allowlist
+    # stays correct if that guard ever changes). `failure`, `cancelled`, and
+    # anything GitHub adds later all fall through to "do not start".
+    # `!cancelled()` deliberately does NOT cover this — it is what lets a job
+    # run despite a failed dependency, which is right for a build artifact and
+    # wrong for established state.
     if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) }}
     steps:
       - name: 📥 Checkout repository
