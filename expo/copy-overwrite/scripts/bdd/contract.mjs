@@ -9,8 +9,16 @@
  * @module scripts/bdd/contract
  */
 
-/** Report/envelope schema emitted by the gate. See docs/bdd-coverage-schema.md. */
-export const REPORT_SCHEMA_VERSION = 2;
+/**
+ * Report/envelope schema emitted by the gate. See docs/bdd-coverage-schema.md.
+ *
+ * v3 retired the `floor-ratchet` defect code — defect codes are API, and the
+ * compatibility policy retires one only with a bump. The report's own fields
+ * are unchanged, and `coverage-map.schemaVersion` is untouched: a v2 map still
+ * reads exactly as before, its now-unused `coverageFloorBaseline` simply
+ * ignored.
+ */
+export const REPORT_SCHEMA_VERSION = 3;
 
 /** Coverage-map schema versions this gate can read. */
 export const SUPPORTED_MAP_SCHEMA_VERSIONS = [1, 2];

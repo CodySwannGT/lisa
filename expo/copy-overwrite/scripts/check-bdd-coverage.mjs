@@ -17,9 +17,17 @@
  *                passed expiry is a failure, so bootstrap cannot become
  *                permanent.
  *   enforced     Absence fails. A missing config, a malformed manifest, zero
- *                scenarios, zero mappings, any contract defect, a floor
- *                regression, or a deleted scenario all fail loudly. Only in
+ *                scenarios, zero mappings, any contract defect, a platform
+ *                below its committed floor, coverage given back, new behavior
+ *                nobody mapped or waived, a deleted scenario, or a run with no
+ *                base revision to compare against all fail loudly. Only in
  *                this state is the check a required ruleset context.
+ *
+ * The committed `coverageFloor` is an ABSOLUTE BAR, not a ratchet: it answers
+ * "is this platform below the bar right now", and nothing stops a project
+ * lowering it. Non-regression is a separate, deterministic job done per
+ * obligation in `bdd/baseline.mjs` — see that module for why a number was the
+ * wrong instrument for it.
  *
  * A required context is NEVER auto-skipped: GitHub counts a skipped required
  * check as passing, which is the exact anti-pattern this gate exists to
@@ -49,7 +57,12 @@ import {
   loadEnvelopeModule,
   subjectFor,
 } from "./bdd/envelope.mjs";
-import { checkDeletions, checkRatchet, loadBaseline } from "./bdd/baseline.mjs";
+import {
+  checkCoverageRegression,
+  checkDeletions,
+  checkNewObligations,
+  loadBaseline,
+} from "./bdd/baseline.mjs";
 import {
   disclosureDefects,
   discoverSpecs,
@@ -258,30 +271,54 @@ function validateAll({
     ...discovery.defects,
     ...disclosureDefects({ root, contract, discovery }),
   ];
-  if (!options.baseSha) return defects;
-  const baseline = loadBaseline(root, options.baseSha);
+  if (!options.baseSha) return [...defects, ...missingBaseDefects(options)];
+  const baseline = loadBaseline(root, options.baseSha, platforms);
   if (!baseline.available) {
     return [
       ...defects,
       defect(
         "baseline",
-        `base revision ${options.baseSha} is not readable; the ratchet and deletion checks could not run`
+        `base revision ${options.baseSha} is not readable, so the non-regression checks could not run. A gate that cannot compare against a base does not get to report that nothing regressed.`
       ),
     ];
   }
   return [
     ...defects,
-    ...checkRatchet({
-      baseContract: baseline.contract,
+    ...checkCoverageRegression({
+      baseline,
       contract,
+      scenarios,
       labels: options.labels,
     }),
+    ...checkNewObligations({ baseline, contract, scenarios }),
     ...checkDeletions({
       baseIds: baseline.scenarioIds,
       scenarios,
       contract,
       labels: options.labels,
     }),
+  ];
+}
+
+/**
+ * Enforced mode owes a base revision.
+ *
+ * Non-regression is the whole of what protects accepted coverage now that the
+ * floor is a plain bar rather than a ratchet, and every one of those checks
+ * needs a base. Running without one used to skip them in silence, which is a
+ * gate reporting a property it never evaluated. Bootstrap stays quiet — it is
+ * non-blocking by construction — and a local run outside CI is not making a
+ * merge decision, so neither is asked for a base it does not have.
+ * @param {object} options - Parsed CLI/environment options.
+ * @returns {object[]} Zero or one defect.
+ */
+function missingBaseDefects(options) {
+  if (options.mode !== "enforced") return [];
+  return [
+    defect(
+      "baseline",
+      "enforced mode requires BDD_BASE_SHA: without a base revision the gate cannot tell coverage that was given back from coverage that was never there, so it refuses to claim either."
+    ),
   ];
 }
 

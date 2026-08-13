@@ -26,6 +26,7 @@ import {
   RATIFIED,
   WEB,
   codes,
+  commitAll,
   featureSource,
   healthyProject,
   makeProject,
@@ -102,44 +103,48 @@ describe("a discovered spec must be declared or excluded", () => {
   });
 
   it("passes once an exclusion names it with a reason", () => {
-    const run = runGate(
-      healthyProject(
-        {
-          exclusions: [
-            {
-              file: STRAY_SPEC,
-              evidence: STRAY_TITLE,
-              reason: SMOKE_REASON,
-            },
-          ],
-        },
-        { files: { [STRAY_SPEC]: STRAY_SOURCE } }
-      ),
-      { BDD_MODE: ENFORCED }
+    // Committed, because enforced mode also requires a base revision for its
+    // non-regression checks and this case asserts a fully clean run.
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            evidence: STRAY_TITLE,
+            reason: SMOKE_REASON,
+          },
+        ],
+      },
+      { files: { [STRAY_SPEC]: STRAY_SOURCE } }
     );
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(codes(run)).not.toContain(UNDISCLOSED);
     expect(run.status).toBe(0);
   });
 
   it("treats an exclusion with no evidence as covering the whole file", () => {
-    const run = runGate(
-      healthyProject(
-        {
-          exclusions: [
-            {
-              file: STRAY_SPEC,
-              reason: "vendor smoke suite, not product behavior",
-            },
-          ],
-        },
-        {
-          files: {
-            [STRAY_SPEC]: `${STRAY_SOURCE}test("and another", async () => {});\n`,
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            reason: "vendor smoke suite, not product behavior",
           },
-        }
-      ),
-      { BDD_MODE: ENFORCED }
+        ],
+      },
+      {
+        files: {
+          [STRAY_SPEC]: `${STRAY_SOURCE}test("and another", async () => {});\n`,
+        },
+      }
     );
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(run.status).toBe(0);
   });
 
@@ -241,21 +246,22 @@ describe("a template-literal title is used verbatim, never mangled", () => {
   const DYNAMIC_SOURCE = `test(\`${DYNAMIC_TITLE}\`, async () => {});\n`;
 
   it("discloses it against the source text exactly as written", () => {
-    const run = runGate(
-      healthyProject(
-        {
-          exclusions: [
-            {
-              file: DYNAMIC_SPEC,
-              evidence: DYNAMIC_TITLE,
-              reason: DYNAMIC_REASON,
-            },
-          ],
-        },
-        { files: { [DYNAMIC_SPEC]: DYNAMIC_SOURCE } }
-      ),
-      { BDD_MODE: ENFORCED }
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: DYNAMIC_SPEC,
+            evidence: DYNAMIC_TITLE,
+            reason: DYNAMIC_REASON,
+          },
+        ],
+      },
+      { files: { [DYNAMIC_SPEC]: DYNAMIC_SOURCE } }
     );
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(codes(run)).not.toContain(UNDISCLOSED);
     expect(codes(run)).not.toContain(EXCLUSION_STALE);
     expect(run.status).toBe(0);

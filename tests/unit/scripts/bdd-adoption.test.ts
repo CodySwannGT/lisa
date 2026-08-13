@@ -22,6 +22,7 @@ import {
   NOT_ADOPTED,
   SCRIPT_ABS,
   codes,
+  commitAll,
   healthyMapping,
   healthyProject,
   makeProject,
@@ -94,7 +95,14 @@ describe("three-state adoption", () => {
   });
 
   it("enforced: passes a healthy contract", () => {
-    const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
+    // Enforced mode owes a base revision: the non-regression checks are what
+    // protect coverage already earned, and a gate that skipped them has not
+    // proved the thing it is about to report.
+    const root = healthyProject();
+    const run = runGate(root, {
+      BDD_MODE: ENFORCED,
+      BDD_BASE_SHA: commitAll(root),
+    });
     expect(run.envelope.findings).toEqual([]);
     expect(run.status).toBe(0);
     expect(run.envelope.status).toBe(COMPLETED);

@@ -29,12 +29,11 @@
     }
   },
   "coverageFloor": {
-    "_comment": "Committed traceability floor per platform. A ratchet: may rise, may never fall. Seeded at 0 so adopting on a brownfield app never red-gates CI before any scenario exists. Lowering one requires a coverageFloorBaseline record naming the exact change AND the maintainer-applied `bdd-floor-baseline` pull-request label.",
+    "_comment": "Committed traceability floor per platform: an ABSOLUTE BAR answering `is this platform below it right now`, evaluated only in enforced mode. It is NOT a ratchet — set it once at adoption to the honest measured number (or leave it at 0) and stop touching it. Coverage already earned is protected separately and deterministically: an obligation covered at the base revision may not stop being covered, and new behavior arrives mapped or waived. Set a floor for EVERY platform above before flipping adoption.state to enforced.",
     "web": 0,
     "ios": 0,
     "android": 0
   },
-  "coverageFloorBaseline": [],
   "retirements": [],
   "trackers": {
     "_comment": "Tracker-tag grammar is portfolio-wide; the allowed keys and repos are per-repo. Key style: @TUN-123, @SE-6833. Repo-issue style: @gh-2394 (this repo) or @gh-wiki-124 (a sibling repo). Tags are validated for syntax and membership only — the gate never contacts a tracker, so an unreachable issue can never block a merge.",
