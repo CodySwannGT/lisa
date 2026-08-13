@@ -9,6 +9,7 @@
  */
 import * as fse from "fs-extra";
 import * as path from "node:path";
+import { readJsonOrNull } from "../utils/json-utils.js";
 import type { ProjectType } from "./config.js";
 
 /** Lisa plugins that are selected by explicit project configuration. */
@@ -23,17 +24,28 @@ type LisaProjectConfig = Readonly<Record<string, unknown>>;
 /**
  * Read project configuration without making a missing or malformed optional
  * file fatal to Codex emission.
+ *
+ * Reads through `readJsonOrNull` rather than the `fs-extra` namespace: `readJson`
+ * is one of the `graceful-fs` passthroughs Node's ESM loader does not expose, so
+ * `fse.readJson(...)` was `undefined` in the shipped `dist/` and threw a
+ * `TypeError` straight into the `catch` this function used to have (#2487). Every
+ * project therefore read as unconfigured, and the standalone `wiki` / `openclaw`
+ * plugins keyed off this config were never once selected.
+ *
+ * The old `catch` is gone rather than repaired. It could only ever mask the
+ * failure of its own recovery, and it did not even cover the case it looked like
+ * it covered: a file parsing to `null` threw no error here and crashed
+ * downstream on property access instead.
  * @param destDir Host project root.
  * @returns Parsed project configuration, or an empty object.
  */
 async function readProjectConfig(destDir: string): Promise<LisaProjectConfig> {
-  try {
-    return (await fse.readJson(
-      path.join(destDir, ".lisa.config.json")
-    )) as LisaProjectConfig;
-  } catch {
-    return {};
-  }
+  const parsed = await readJsonOrNull<unknown>(
+    path.join(destDir, ".lisa.config.json")
+  );
+  return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    ? (parsed as LisaProjectConfig)
+    : {};
 }
 
 /**
