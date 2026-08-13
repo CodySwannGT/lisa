@@ -148,6 +148,53 @@ describe("block-no-verify.agy.sh", () => {
     );
   });
 
+  // Parity with the Claude hook. These vectors reached agy sessions after they
+  // were already closed on Claude, which is the failure mode the parity rule
+  // exists to prevent: a bypass that survives by picking a different harness.
+  it("denies core.hooksPath redirected to a directory that merely has no hooks", () => {
+    expect(
+      decide(payload("git -c core.hooksPath=/tmp/empty commit -m wip"))
+    ).toBe("deny");
+  });
+
+  it.each(["CORE.HOOKSPATH", "core.hookspath", "Core.HooksPath"])(
+    "denies the case variant %s, since git config names are case-insensitive",
+    variable => {
+      expect(
+        decide(payload(`git -c ${variable}=/var/no-hooks commit -m wip`))
+      ).toBe("deny");
+    }
+  );
+
+  it("denies --config-env=core.hooksPath, which reads the path from an env var", () => {
+    expect(
+      decide(payload("git --config-env=core.hooksPath=HOOKS commit -m wip"))
+    ).toBe("deny");
+  });
+
+  it.each(["0", "1", "7", "42"])(
+    "denies the GIT_CONFIG_KEY_%s=core.hooksPath env-var config override",
+    index => {
+      expect(
+        decide(
+          payload(
+            `GIT_CONFIG_COUNT=${Number(index) + 1} GIT_CONFIG_KEY_${index}=core.hooksPath GIT_CONFIG_VALUE_${index}=/dev/null git commit -m wip`
+          )
+        )
+      ).toBe("deny");
+    }
+  );
+
+  it("allows GIT_CONFIG_KEY_<n> naming an unrelated setting", () => {
+    expect(
+      decide(
+        payload(
+          "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_VALUE_0=CI git commit -m wip"
+        )
+      )
+    ).toBe("allow");
+  });
+
   it("allows on empty stdin (fail open, no crash)", () => {
     expect(decide("")).toBe("allow");
   });

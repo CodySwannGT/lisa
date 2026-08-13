@@ -9,9 +9,11 @@ Use `lisa-track` as the single entry point:
 1. An explicit ticket is live-read through `lisa-tracker-read` and rejected if it is missing, inaccessible, terminal, a container, outside the configured project, or outside the current repository.
 2. A plain-text request or specification file is searched conservatively within the configured project. Reuse only one uniquely high-confidence matching live leaf. If no unique match exists, create exactly one complete single-repository leaf through `lisa-tracker-write`; never create a thin placeholder or a container.
 3. Idempotently claim the resolved leaf through `lisa-tracker-claim`, which reuses the vendor build-intake claim semantics and post-read verifies the claimed-or-later state.
-4. Before any durable repository work, persist the canonical reference with `node scripts/lisa-work-item.mjs bind <ref>` and verify the worktree-local binding.
+4. Before any durable repository work, persist the canonical reference with `node scripts/lisa-work-item.mjs link <ref>` and verify the worktree-local binding.
 
-The sequence is strict: **live validate/create -> claim -> bind -> durable work**. A tracker answer of no, and any claim or binding failure, blocks the work. A tracker that cannot be reached — `gh` absent, or its credential refused — does not block a commit: the offline checks still run, the skip is loud on stderr, and the required `Work-Item Traceability` check re-runs the live checks with credentials before anything merges. Any other tracker failure still blocks. Tool presence or stale session text is not access.
+`link` is the spelling to use. `bind` is accepted as a permanent alias for the identical operation, but some agent harnesses — Claude Code's worktree isolation among them — refuse any command line containing the bare token `bind`, because it names a shell builtin that evaluates a string. Inside an isolated worktree that refusal makes the `bind` spelling unrunnable, so reach for `link` and never work around a blocked binding by hand-writing `Work-Item:` trailers.
+
+The sequence is strict: **live validate/create -> claim -> link -> durable work**. A tracker answer of no, and any claim or binding failure, blocks the work. A tracker that cannot be reached — `gh` absent, or its credential refused — does not block a commit: the offline checks still run, the skip is loud on stderr, and the required `Work-Item Traceability` check re-runs the live checks with credentials before anything merges. Any other tracker failure still blocks. Tool presence or stale session text is not access.
 
 ## One canonical identity
 
