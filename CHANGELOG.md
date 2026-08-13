@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.2](https://github.com/CodySwannGT/lisa/compare/v3.11.1...v3.11.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **tests:** complete the health abort fix and restore the guards it dropped ([4d6b427](https://github.com/CodySwannGT/lisa/commit/4d6b427cf66e52ecda471e5939e5e964bb9721c1)), closes [CodySwannGT/lisa#2516](https://github.com/CodySwannGT/lisa/issues/2516) [CodySwannGT/lisa#2523](https://github.com/CodySwannGT/lisa/issues/2523) [#2521](https://github.com/CodySwannGT/lisa/issues/2521) [CodySwannGT/lisa#2516](https://github.com/CodySwannGT/lisa/issues/2516)
+
 ### [3.11.1](https://github.com/CodySwannGT/lisa/compare/v3.11.0...v3.11.1) (2026-08-13)
 
 
