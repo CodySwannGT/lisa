@@ -20,7 +20,42 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { byCodeUnit } from "./contract.mjs";
 import { listFiles, posix, resolveInsideRepo } from "./parse.mjs";
+
+/**
+ * Normalize a repo-relative path or path prefix to one comparable spelling.
+ *
+ * `./e2e/`, `e2e`, and `e2e/` all name the same directory, and the repo root
+ * is spelled `.` in a `roots` list but never appears in a repo-relative file
+ * path at all. Comparing the raw strings made those spellings disagree.
+ * @param {string} value - A repo-relative path or prefix.
+ * @returns {string} Its canonical form; the empty string means the repo root.
+ */
+const canonicalPath = value =>
+  posix(String(value))
+    .replace(/^\.\/+/, "")
+    .replace(/\/+$/, "")
+    .replace(/^\.$/, "");
+
+/**
+ * Whether a repo-relative path lies at or under a path prefix, SEGMENT-WISE.
+ *
+ * A raw `startsWith` treats a prefix as a character prefix, so an ignore entry
+ * of `e2e/live` also swallowed `e2e/live-personas/…` — silently hiding a whole
+ * directory of undeclared tests, which is the one thing discovery exists to
+ * find. Matching is therefore on path segments: `e2e/live` covers `e2e/live`
+ * and `e2e/live/…` and nothing else.
+ * @param {string} relative - A repo-relative path.
+ * @param {string} prefix - A repo-relative path prefix.
+ * @returns {boolean} Whether the path is covered by the prefix.
+ */
+export function isUnderPrefix(relative, prefix) {
+  const target = canonicalPath(relative);
+  const root = canonicalPath(prefix);
+  if (root === "") return true;
+  return target === root || target.startsWith(`${root}/`);
+}
 
 /**
  * Build one defect record, always naming the entity it is about.
@@ -213,12 +248,18 @@ function callTitles(source, functions) {
   );
   const found = [];
   for (const match of source.matchAll(pattern)) {
+    // Exactly one of the three quoting alternatives participates in any match,
+    // so the others are genuinely `undefined` here. The tests are written by
+    // TYPE rather than against `undefined`: the intent is "did this call carry
+    // a usable title" and "did that title come from a template literal", and
+    // stating it that way is both what the code means and unambiguous to a
+    // static analyser reading the declared `string` element type.
     const template = match[3];
     const evidence = match[1] ?? match[2] ?? template;
-    if (evidence === undefined || evidence.length === 0) continue;
+    if (typeof evidence !== "string" || evidence.length === 0) continue;
     found.push({
       evidence,
-      dynamic: template !== undefined && template.includes("${"),
+      dynamic: typeof template === "string" && template.includes("${"),
     });
   }
   return found;
@@ -247,13 +288,15 @@ function lineField(source, field) {
  * @returns {object[]} Discovered specs.
  */
 function discoverRunner({ root, runner, config, contract }) {
-  const platforms = [...(contract.runnerPlatforms?.[runner] ?? [])].sort();
+  const platforms = [...(contract.runnerPlatforms?.[runner] ?? [])].sort(
+    byCodeUnit
+  );
   const ignore = config.ignore ?? [];
   const specs = [];
   for (const declaredRoot of config.roots) {
     for (const file of filesUnder(root, declaredRoot, config)) {
       const relative = posix(path.relative(root, file));
-      if (ignore.some(prefix => relative.startsWith(prefix))) continue;
+      if (ignore.some(prefix => isUnderPrefix(relative, prefix))) continue;
       const source = fs.readFileSync(file, "utf8");
       for (const found of extract(source, config.evidence)) {
         specs.push({ runner, platforms, file: relative, ...found });
@@ -306,7 +349,7 @@ export function discoverSpecs({ root, contract }) {
   const specs = [];
   const roots = [];
   for (const [runner, config] of configs) {
-    roots.push(...config.roots.map(entry => posix(entry).replace(/\/+$/, "")));
+    roots.push(...config.roots.map(canonicalPath));
     specs.push(...discoverRunner({ root, runner, config, contract }));
   }
   return {
@@ -315,8 +358,8 @@ export function discoverSpecs({ root, contract }) {
         `${b.file}${b.evidence ?? ""}`
       )
     ),
-    runners: [...configs.keys()].sort(),
-    roots: [...new Set(roots)].sort(),
+    runners: [...configs.keys()].sort(byCodeUnit),
+    roots: [...new Set(roots)].sort(byCodeUnit),
     defects,
   };
 }
@@ -445,11 +488,11 @@ function exclusionStale({ root, exclusion, discovery, at, subject }) {
       ),
     ];
   }
-  if (!discovery.roots.some(entry => exclusion.file.startsWith(`${entry}/`))) {
+  if (!discovery.roots.some(entry => isUnderPrefix(exclusion.file, entry))) {
     return [
       defect(
         "exclusion-stale",
-        `${at}: ${exclusion.file} is covered by no configured discovery root (${discovery.roots.join(", ") || "none declared"}), so the exclusion suppresses nothing`,
+        `${at}: ${exclusion.file} is covered by no configured discovery root (${discovery.roots.map(entry => entry || ".").join(", ") || "none declared"}), so the exclusion suppresses nothing`,
         subject
       ),
     ];
@@ -491,7 +534,7 @@ export function missingDiscoveryDefects(contract, discovery) {
   return Object.keys(contract.runnerPlatforms ?? {})
     .filter(runner => !runner.startsWith("_"))
     .filter(runner => !discovery.runners.includes(runner))
-    .sort()
+    .sort(byCodeUnit)
     .map(runner =>
       defect(
         "discovery-missing",

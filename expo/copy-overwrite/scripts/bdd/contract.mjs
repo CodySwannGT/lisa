@@ -20,6 +20,25 @@
  */
 export const REPORT_SCHEMA_VERSION = 3;
 
+/**
+ * THE comparator every ordering in this gate uses.
+ *
+ * `Array.prototype.sort()` with no comparator coerces each element to a string
+ * and compares UTF-16 code units, which is right for the identifier lists this
+ * gate sorts and catastrophically wrong the first time someone sorts numbers
+ * (`[2, 10]` becomes `[10, 2]`). Stating the comparator makes that choice
+ * deliberate rather than inherited, and it reproduces the previous ordering
+ * exactly — deliberately NOT `localeCompare`, whose result depends on the
+ * runner's ICU data and would reorder committed report artifacts.
+ * @param {string} a - Left value.
+ * @param {string} b - Right value.
+ * @returns {number} Negative, zero, or positive.
+ */
+export const byCodeUnit = (a, b) => {
+  if (a < b) return -1;
+  return a > b ? 1 : 0;
+};
+
 /** Coverage-map schema versions this gate can read. */
 export const SUPPORTED_MAP_SCHEMA_VERSIONS = [1, 2];
 
@@ -115,7 +134,7 @@ export function runnersByPlatform(runnerPlatforms) {
       index.set(platform, [...(index.get(platform) ?? []), runner]);
     }
   }
-  for (const runners of index.values()) runners.sort();
+  for (const runners of index.values()) runners.sort(byCodeUnit);
   return index;
 }
 

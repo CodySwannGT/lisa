@@ -27,14 +27,87 @@
  * @module scripts/bdd/baseline
  */
 import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
-import { declaredPlatforms } from "./contract.mjs";
+import { byCodeUnit, declaredPlatforms } from "./contract.mjs";
 import { parseFeatureSource, scenarioIdsIn } from "./parse.mjs";
 
 const defect = (code, message) => ({ code, message });
 
 /** The maintainer-applied PR label that authorizes giving coverage back. */
 export const BASELINE_LABEL = "bdd-floor-baseline";
+
+/**
+ * Fixed absolute locations git is installed at, tried before anything on PATH.
+ *
+ * Handing a bare command name to the process spawner delegates the choice of
+ * binary to whatever `PATH` happens to say, so any writable directory earlier
+ * on it decides what this gate executes. The gate reads a base revision to
+ * decide whether a pull request may merge, which makes that a real
+ * substitution risk and not a theoretical one.
+ */
+const GIT_CANDIDATES = Object.freeze([
+  "/usr/bin/git",
+  "/usr/local/bin/git",
+  "/opt/homebrew/bin/git",
+  "/bin/git",
+  "C:\\Program Files\\Git\\cmd\\git.exe",
+]);
+
+/** Resolved git path, or null; computed once per process. */
+let gitBinary;
+
+/**
+ * Whether a path names a file that exists.
+ * @param {string} candidate - Absolute path.
+ * @returns {boolean} Whether it is a regular file.
+ */
+function isFile(candidate) {
+  try {
+    return fs.statSync(candidate).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve git to an ABSOLUTE, verified path.
+ *
+ * Fixed system locations first, then each `PATH` entry resolved to an absolute
+ * path and confirmed to be a real file — a lookup, never a delegation, so the
+ * command actually executed is one this process chose and checked.
+ * @returns {string|null} The absolute path, or null when git is not installed.
+ */
+export function resolveGit() {
+  if (gitBinary !== undefined) return gitBinary;
+  const fromPath = (process.env.PATH ?? "")
+    .split(path.delimiter)
+    .filter(Boolean)
+    .flatMap(entry => ["git", "git.exe"].map(name => path.join(entry, name)))
+    .filter(candidate => path.isAbsolute(candidate));
+  gitBinary =
+    [...GIT_CANDIDATES, ...fromPath].find(candidate => isFile(candidate)) ??
+    null;
+  return gitBinary;
+}
+
+/**
+ * Run one git command at an absolute path, or report that git is unavailable.
+ * @param {string} root - Repo root.
+ * @param {readonly string[]} args - Arguments after the binary.
+ * @returns {{ok: boolean, stdout: string}} The verdict and its output.
+ */
+function git(root, args) {
+  const binary = resolveGit();
+  if (!binary) return { ok: false, stdout: "" };
+  const result = spawnSync(binary, [...args], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return { ok: result.status === 0, stdout: result.stdout ?? "" };
+}
 
 /**
  * Read one path at a git revision.
@@ -44,12 +117,8 @@ export const BASELINE_LABEL = "bdd-floor-baseline";
  * @returns {string|null} File contents, or null when absent at that revision.
  */
 export function showAtRevision(root, revision, relative) {
-  const result = spawnSync("git", ["show", `${revision}:${relative}`], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  return result.status === 0 ? result.stdout : null;
+  const result = git(root, ["show", `${revision}:${relative}`]);
+  return result.ok ? result.stdout : null;
 }
 
 /**
@@ -59,12 +128,15 @@ export function showAtRevision(root, revision, relative) {
  * @returns {string[]} Repo-relative feature paths.
  */
 function featureFilesAt(root, revision) {
-  const result = spawnSync(
-    "git",
-    ["ls-tree", "-r", "--name-only", revision, "--", "bdd/features"],
-    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
-  );
-  if (result.status !== 0) return [];
+  const result = git(root, [
+    "ls-tree",
+    "-r",
+    "--name-only",
+    revision,
+    "--",
+    "bdd/features",
+  ]);
+  if (!result.ok) return [];
   return result.stdout
     .split("\n")
     .map(line => line.trim())
@@ -79,20 +151,32 @@ function featureFilesAt(root, revision) {
  * an unknown tag the moment a pull request deleted the web runner from
  * `runnerPlatforms` — which would turn "I deleted the runner that proved this"
  * into an invisible change rather than the coverage loss it is.
+ *
+ * A base coverage map that EXISTS but does not parse makes the baseline
+ * UNAVAILABLE rather than empty. An empty `before` set produces no
+ * `coverage-regression` and no `scenario-deleted` finding at all, so treating
+ * an unreadable map as "nothing was covered before" would let one malformed
+ * character on the base revision switch off every non-regression check while
+ * the gate still reported that nothing regressed.
  * @param {string} root - Repo root.
  * @param {string} revision - Base commit-ish.
  * @param {ReadonlySet<string>} headPlatforms - The head contract's platforms.
- * @returns {{available: boolean, contract: object|null, scenarios: object[], scenarioIds: Set<string>}} Base state.
+ * @returns {{available: boolean, error: string|null, contract: object|null, scenarios: object[], scenarioIds: Set<string>}} Base state.
  */
 export function loadBaseline(root, revision, headPlatforms = new Set()) {
   const raw = showAtRevision(root, revision, "bdd/coverage-map.json");
   let contract = null;
+  let error = null;
   if (raw !== null) {
     try {
       contract = JSON.parse(raw);
-    } catch {
+    } catch (parseError) {
       contract = null;
+      error = `bdd/coverage-map.json at that revision is not valid JSON: ${parseError.message}`;
     }
+  }
+  if (raw === null && !resolveGit()) {
+    error = "git was not found, so no base revision could be read";
   }
   const documents = featureFilesAt(root, revision)
     .map(file => ({ file, source: showAtRevision(root, revision, file) }))
@@ -102,7 +186,8 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
     ...headPlatforms,
   ]);
   return {
-    available: raw !== null || documents.length > 0,
+    available: error === null && (raw !== null || documents.length > 0),
+    error,
     contract,
     scenarios: documents.flatMap(document =>
       parseFeatureSource(document.source, document.file, platforms)
@@ -230,7 +315,7 @@ export function checkCoverageRegression({
   const waived = waivedKeys(contract);
   return [...before]
     .filter(key => !after.has(key) && present.has(partsOf(key).scenario))
-    .sort()
+    .sort(byCodeUnit)
     .flatMap(key => regressionDefect(key, { retired, waived, labels }));
 }
 
@@ -291,7 +376,7 @@ export function checkNewObligations({ baseline, contract, scenarios }) {
   const covered = acceptedKeys(scenarios, contract);
   return [...obligationKeys(scenarios, contract)]
     .filter(key => !before.has(key) && !covered.has(key))
-    .sort()
+    .sort(byCodeUnit)
     .map(key => {
       const { scenario, platform } = partsOf(key);
       return defect(
@@ -317,7 +402,7 @@ export function checkDeletions({ baseIds, scenarios, contract, labels }) {
   );
   return [...baseIds]
     .filter(id => !present.has(id))
-    .sort()
+    .sort(byCodeUnit)
     .flatMap(id => deletionDefects(id, retired.get(id), labels));
 }
 
