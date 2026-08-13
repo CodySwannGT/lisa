@@ -14,6 +14,7 @@ import {
   ID_PATTERN,
   LIFECYCLE_TAGS,
   PROVENANCE_PATTERN,
+  byCodeUnit,
   parseTrackerTag,
 } from "./contract.mjs";
 
@@ -87,7 +88,7 @@ export function listFiles(directory, predicate) {
       else if (entry.isFile() && predicate(full)) found.push(full);
     }
   }
-  return found.sort();
+  return found.sort(byCodeUnit);
 }
 
 /**
@@ -130,6 +131,12 @@ function categorize(tags, platforms) {
  * Tags accumulate until a `Feature:` or `Scenario:` consumes them, matching
  * Gherkin's own tag scoping. `Scenario Outline` is treated as one scenario:
  * the contract counts behaviors, not example rows.
+ *
+ * `Background:` steps are Gherkin's way of saying "every scenario in this
+ * feature starts here", so they SEED each scenario's primary steps. Ignoring
+ * them made a conforming feature file — Given in the Background, When/Then in
+ * each scenario — report `scenario-steps` defects it did not have, which in
+ * enforced mode fails a repo for writing correct Gherkin.
  * @param {string} source - File contents.
  * @param {string} file - Repo-relative path, for error locations.
  * @param {ReadonlySet<string>} platforms - The project's declared platform vocabulary.
@@ -144,6 +151,8 @@ export function parseFeatureSource(source, file, platforms) {
   let featureLine = 0;
   let pending = [];
   let current = null;
+  let background = null;
+  let backgroundSteps = [];
   for (let index = 0; index < lines.length; index += 1) {
     const trimmed = lines[index].trim();
     if (trimmed.startsWith("#")) continue;
@@ -164,6 +173,16 @@ export function parseFeatureSource(source, file, platforms) {
       featureIdTags = pending.filter(tag => ID_PATTERN.test(tag));
       featureLine = index + 1;
       pending = [];
+      current = null;
+      background = null;
+      backgroundSteps = [];
+      continue;
+    }
+    if (/^Background:/.test(trimmed)) {
+      // Background is per-Feature, so it replaces any previous one rather than
+      // accumulating, and its steps are collected instead of a scenario's.
+      backgroundSteps = [];
+      background = backgroundSteps;
       current = null;
       continue;
     }
@@ -189,14 +208,17 @@ export function parseFeatureSource(source, file, platforms) {
         featureLine,
         ...grouped,
         required: grouped.lifecycle.length === 0,
-        primarySteps: [],
+        primarySteps: [...backgroundSteps],
       };
       scenarios.push(current);
+      background = null;
       pending = [];
       continue;
     }
     const step = /^(Given|When|Then)\b/.exec(trimmed);
-    if (step && current) current.primarySteps.push(step[1]);
+    if (!step) continue;
+    if (background) background.push(step[1]);
+    else if (current) current.primarySteps.push(step[1]);
   }
   return scenarios;
 }

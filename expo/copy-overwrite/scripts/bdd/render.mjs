@@ -7,6 +7,7 @@
  *
  * @module scripts/bdd/render
  */
+import { byCodeUnit } from "./contract.mjs";
 
 /**
  * Format a coverage figure, refusing to print "100%" for an empty
@@ -175,7 +176,7 @@ function gapSections(report) {
       const rows = [...entries.entries()]
         .map(
           ([id, value]) =>
-            `| ${cell(id)} | ${cell(value.name)} | ${cell(value.platforms.sort().join(", "))} |`
+            `| ${cell(id)} | ${cell(value.name)} | ${cell([...value.platforms].sort(byCodeUnit).join(", "))} |`
         )
         .join("\n");
       return `### ${cell(feature)}\n\n| Scenario | Behavior with no mapped proof | Platforms |\n|---|---|---|\n${rows}`;

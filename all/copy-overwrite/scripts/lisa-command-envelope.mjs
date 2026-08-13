@@ -33,10 +33,41 @@ const SCHEMA_PATH = path.join(
   "lisa-command-envelope.v1.schema.json"
 );
 
-/** The published envelope schema, read from the shipped JSON document. */
-export const COMMAND_ENVELOPE_SCHEMA = JSON.parse(
-  fs.readFileSync(SCHEMA_PATH, "utf8")
-);
+/**
+ * Read the shipped schema document, or explain why it could not be read.
+ *
+ * A throw at module scope happens before any handler runs, so an adopter with a
+ * partially-copied `scripts/` directory got a raw ENOENT stack from an import
+ * they never made directly — and any caller that merely wanted to VALIDATE
+ * something died on load. Reading it into a nullable value instead turns that
+ * into a first-class, fail-closed validation error with the missing path named
+ * in it.
+ * @returns {{schema: object|null, error: string|null}} The schema or the reason.
+ */
+function readSchemaDocument() {
+  try {
+    return {
+      schema: JSON.parse(fs.readFileSync(SCHEMA_PATH, "utf8")),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      schema: null,
+      error: `the published envelope schema is not readable at ${SCHEMA_PATH} (${error.message}); scripts/schemas/ must be copied alongside scripts/`,
+    };
+  }
+}
+
+const SCHEMA_DOCUMENT = readSchemaDocument();
+
+/**
+ * The published envelope schema, read from the shipped JSON document.
+ *
+ * `null` when the document is missing — see {@link readSchemaDocument}. Every
+ * consumer must treat that as a validation FAILURE, never as "no schema to
+ * check against".
+ */
+export const COMMAND_ENVELOPE_SCHEMA = SCHEMA_DOCUMENT.schema;
 
 /**
  * Statuses that may exit 0.
@@ -67,6 +98,9 @@ export function exitCodeForStatus(status) {
  * @returns {{ valid: boolean, errors: string[] }} Validation outcome
  */
 export function validateEnvelope(envelope) {
+  if (!COMMAND_ENVELOPE_SCHEMA) {
+    return { valid: false, errors: [SCHEMA_DOCUMENT.error] };
+  }
   const base = validateAgainstSchema(envelope, COMMAND_ENVELOPE_SCHEMA);
   if (!base.valid) {
     return base;
@@ -154,6 +188,12 @@ export function emitEnvelope(envelope, io = {}) {
  */
 export function main(argv) {
   if (argv.includes("--print-schema")) {
+    if (!COMMAND_ENVELOPE_SCHEMA) {
+      process.stderr.write(
+        `[command-envelope] FAIL: ${SCHEMA_DOCUMENT.error}\n`
+      );
+      return 1;
+    }
     process.stdout.write(
       `${JSON.stringify(COMMAND_ENVELOPE_SCHEMA, null, 2)}\n`
     );
