@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.10.0](https://github.com/CodySwannGT/lisa/compare/v3.9.2...v3.10.0) (2026-08-13)
+
+
+### Features
+
+* **ci:** refuse a required status context whose headroom nobody proved ([02fb6d8](https://github.com/CodySwannGT/lisa/commit/02fb6d8e7ea59b96a7e09065ee6996f1507a4fcc)), closes [#2496](https://github.com/CodySwannGT/lisa/issues/2496) [#2490](https://github.com/CodySwannGT/lisa/issues/2490) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [CodySwannGT/lisa#2509](https://github.com/CodySwannGT/lisa/issues/2509)
+
+
+### Bug Fixes
+
+* **ast-grep:** run the rule tests instead of only shipping them ([7b3d768](https://github.com/CodySwannGT/lisa/commit/7b3d76866ffb94fb09359e9e431f703bafa58dcd)), closes [#2494](https://github.com/CodySwannGT/lisa/issues/2494) [CodySwannGT/lisa#2505](https://github.com/CodySwannGT/lisa/issues/2505)
+
 ### [3.9.2](https://github.com/CodySwannGT/lisa/compare/v3.9.1...v3.9.2) (2026-08-13)
 
 
