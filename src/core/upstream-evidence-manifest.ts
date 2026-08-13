@@ -8604,6 +8604,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/host-rules-parity.test.ts": true,
     "tests/unit/core/host-rules-pointer.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
+    "tests/unit/core/instruction-files-self-host.test.ts": true,
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,
     "tests/unit/core/kane-readiness.test.ts": true,
