@@ -2074,6 +2074,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "007430c2d6938efcc79ccbfd5717ebe2c7cf66b4de9a21a3e67b8db7f3600349",
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
+    "scripts/check-required-check-promotions.mjs":
+      "2693787413a276f7493c0fac1407a2e61630b2978d20acebb0ee5463c4678660",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
@@ -2429,6 +2431,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/GITHUB_ACTIONS.md": true,
     ".github/dependabot.yml": true,
     ".github/pull_request_template.md": true,
+    ".github/required-check-promotions.json": true,
     ".github/workflows/auto-update-pr-branches-dispatch.yml": true,
     ".github/workflows/auto-update-pr-branches.yml": true,
     ".github/workflows/build.yml": true,
@@ -8057,6 +8060,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-plugins-sync.sh": true,
+    "scripts/check-required-check-promotions.mjs": true,
     "scripts/check-rules-pairing.sh": true,
     "scripts/check-security-floors.mjs": true,
     "scripts/check-state-classification.mjs": true,
@@ -8915,6 +8919,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
+    "tests/unit/scripts/required-check-promotions-helpers.ts": true,
+    "tests/unit/scripts/required-check-promotions.repo.test.ts": true,
+    "tests/unit/scripts/required-check-promotions.test.ts": true,
+    "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
