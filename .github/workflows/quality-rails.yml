@@ -43,7 +43,22 @@ on:
         type: string
         default: 'test'
       skip_jobs:
-        description: 'Comma-separated list of jobs to skip (lint, security, test, mutation, code_quality, secret_scanning, sg_scan, learnings_budget, threshold_ratchet, work_item_traceability, license_compliance, zap_baseline)'
+        # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
+        # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
+        # has no string-replace function — the available string functions are
+        # contains/startsWith/endsWith/format/join/toJSON/fromJSON/hashFiles —
+        # so this workflow cannot trim for you. `'test, mutation'` yields the
+        # token `" mutation"`, which matches nothing, and the job RUNS. That
+        # fails closed, so nothing unverified ships; it just silently does not
+        # do what you asked.
+        #
+        # The list below was itself written with spaces until #2427, which is
+        # how easy this is to get wrong. Rails projects do not ship
+        # `scripts/check-skipped-required-checks.mjs` (it is a TypeScript-stack
+        # copy-overwrite file), so unlike quality.yml there is no
+        # `🔒 Skipped Required Checks` job here to report a spaced token — on
+        # this workflow the constraint is documentation only.
+        description: 'Comma-separated list of jobs to skip, with NO SPACES — tokens are matched exactly, so `test, mutation` silently skips nothing. (lint,security,test,mutation,code_quality,secret_scanning,sg_scan,learnings_budget,threshold_ratchet,work_item_traceability,license_compliance,zap_baseline)'
         required: false
         type: string
         default: ''

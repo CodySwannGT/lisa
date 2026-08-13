@@ -11,6 +11,28 @@
  * Usage:
  *   node scripts/check-skipped-required-checks.mjs [rootDir] [--remote] [--json]
  *
+ * ## Where this runs
+ *
+ * Lisa's `quality.yml` runs the OFFLINE arm on every pull request, and the
+ * shipped `required-checks-drift.yml` runs `--remote` on a weekly schedule.
+ * That split is deliberate and is argued under "Why this is a DECLARATION
+ * guard" below: the enforced PR path may not depend on network or `gh` auth,
+ * and the snapshot it enforces may not be allowed to rot unwatched.
+ *
+ * ## `enforcement`
+ *
+ * A declaration may set `"enforcement": "warn"` to report violations without
+ * failing the build. The seeds Lisa ships start there ON PURPOSE: a seed cannot
+ * know which contexts a given repository's ruleset requires, so a seeded repo
+ * that has never been reviewed would otherwise go red on its first Lisa update
+ * for skips that may be entirely legitimate — and a gate that reddens a
+ * repository the day it arrives gets deleted, not fixed. Absent the key the
+ * guard ENFORCES: a declaration somebody hand-wrote is an opt-in.
+ *
+ * `warn` is a ramp, not a licence: `skipped_required_check` — the repository's
+ * own declaration stating that a token it really skips silences a context its
+ * ruleset really requires — blocks in every mode.
+ *
  * ## Why this exists
  *
  * **GitHub counts a `skipped` required status check as SATISFIED.** A job named
@@ -110,7 +132,31 @@ export const VIOLATIONS = Object.freeze({
   orphaned: "orphaned_exemption",
   badExemption: "exemption_without_valid_ticket",
   remoteDrift: "ruleset_snapshot_drift",
+  whitespace: "whitespace_in_skip_token",
 });
+
+/** Enforcement modes a declaration may select. */
+const ENFORCEMENT_MODES = Object.freeze(["error", "warn"]);
+
+/**
+ * Violation kinds that block even under `"enforcement": "warn"`.
+ *
+ * `warn` is an ADOPTION RAMP for hygiene findings — an undeclared token, a
+ * snapshot that has drifted from the code — in a repository nobody has reviewed
+ * yet. It is not a licence for a PROVEN false green. Reaching
+ * `skipped_required_check` requires the repository's own declaration to say
+ * both that a context is ruleset-required AND that a token it actually skips
+ * silences it; that is a reviewed state, and shipping past it is the exact
+ * defect this file exists to refuse.
+ *
+ * `ruleset_snapshot_drift` blocks for the same reason: it only fires under an
+ * explicit `--remote` on a repository that filled in its ruleset ids, and it is
+ * measured against live truth rather than inferred from a seed.
+ */
+const ALWAYS_BLOCKING = Object.freeze([
+  VIOLATIONS.suppressesRequired,
+  VIOLATIONS.remoteDrift,
+]);
 
 /**
  * True when a line is a whole-line YAML comment.
@@ -170,13 +216,25 @@ export function unquoteScalar(rawValue) {
 /**
  * Splits a comma list into unique, non-empty tokens.
  *
+ * `preserveWhitespace` keeps each token EXACTLY as written, which is the only
+ * way to see the defect in `skip_jobs: 'test, test:e2e'`. GitHub Actions has no
+ * string-replace in expression syntax, so the sentinel-comma idiom
+ * (`contains(format(',{0},', inputs.skip_jobs), ',test:e2e,')`) compares raw
+ * bytes: the token there is `" test:e2e"`, which never matches `,test:e2e,` and
+ * the job runs. That fails CLOSED, so it is a papercut rather than a hole — but
+ * it silently does not do what the operator asked, and nothing else in the
+ * pipeline can see it, because by the time the guard has trimmed it looks
+ * identical to a correctly written skip.
+ *
  * @param {string} commaList - Tokens joined by commas
+ * @param {boolean} [preserveWhitespace] - Return tokens exactly as written
  * @returns {string[]} Unique tokens in first-seen order
  */
-function tokenize(commaList) {
+function tokenize(commaList, preserveWhitespace = false) {
   const out = [];
-  for (const token of commaList.split(",").map(part => part.trim())) {
-    if (token !== "" && !out.includes(token)) out.push(token);
+  for (const part of commaList.split(",")) {
+    const token = preserveWhitespace ? part : part.trim();
+    if (token.trim() !== "" && !out.includes(token)) out.push(token);
   }
   return out;
 }
@@ -195,10 +253,12 @@ function tokenize(commaList) {
  * @param {string} contents - Full text of a workflow file
  * @param {string} sourcePath - Repo-relative path, used only to name the file in
  *   a throw. Never an absolute path.
+ * @param {{preserveWhitespace?: boolean}} [options] - `preserveWhitespace`
+ *   returns each token exactly as written instead of trimmed
  * @returns {string[]} Every declared skip token, de-duplicated
  * @throws {Error} When a `skip_jobs` key is not an inline scalar
  */
-export function readSkipJobs(contents, sourcePath) {
+export function readSkipJobs(contents, sourcePath, options = {}) {
   const all = [];
   contents.split("\n").forEach((line, index) => {
     if (isCommentLine(line)) return;
@@ -224,7 +284,7 @@ export function readSkipJobs(contents, sourcePath) {
             .map(found => found[1])
             .join(",");
 
-    for (const token of tokenize(source)) {
+    for (const token of tokenize(source, options.preserveWhitespace === true)) {
       if (!all.includes(token)) all.push(token);
     }
   });
@@ -270,6 +330,14 @@ export function loadDeclaration(rootDir) {
       `check-skipped-required-checks: \`workflows\` must list at least one workflow file whose \`skip_jobs\` this guard reads.`
     );
   }
+  if (
+    declaration.enforcement !== undefined &&
+    !ENFORCEMENT_MODES.includes(declaration.enforcement)
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: \`enforcement\` must be one of ${ENFORCEMENT_MODES.map(mode => `"${mode}"`).join(", ")}, not ${JSON.stringify(declaration.enforcement)}. Omit it to enforce — a typo silently downgrading this guard to advice is the fail-open shape it exists to refuse.`
+    );
+  }
 
   // Validate the SHAPE of every declaration, not just its presence. A truthy
   // non-object entry (`"test:e2e": true`, or a string) reads as "declared" at
@@ -308,14 +376,21 @@ export function loadDeclaration(rootDir) {
  * guard that silently reads nothing reports a clean bill of health for a
  * repository it never looked at.
  *
+ * A token written with surrounding whitespace is reported HERE rather than
+ * downstream, because trimming has already erased the evidence by the time the
+ * coherence rules run. The trimmed form is still carried into the evaluation:
+ * over-reporting a skip that does not actually happen is the safe direction,
+ * and the whitespace violation beside it explains why the token appeared.
+ *
  * @param {string} rootDir - Repository root
  * @param {ReadonlyArray<string>} workflows - Repo-relative workflow paths
- * @returns {{tokens: string[], sources: Record<string, string[]>}} Tokens and where each came from
+ * @returns {{tokens: string[], sources: Record<string, string[]>, violations: object[]}} Tokens, where each came from, and how each was written
  */
 export function collectSkipJobTokens(rootDir, workflows) {
   const tokens = [];
   /** @type {Record<string, string[]>} */
   const sources = {};
+  const violations = [];
   for (const relative of workflows) {
     const path = resolve(rootDir, relative);
     if (!existsSync(path)) {
@@ -323,12 +398,23 @@ export function collectSkipJobTokens(rootDir, workflows) {
         `check-skipped-required-checks: \`workflows\` names ${relative}, which does not exist. A guard that reads nothing reports a clean bill of health for a repository it never looked at.`
       );
     }
-    for (const token of readSkipJobs(readFileSync(path, "utf8"), relative)) {
+    const contents = readFileSync(path, "utf8");
+    for (const token of readSkipJobs(contents, relative)) {
       if (!tokens.includes(token)) tokens.push(token);
       sources[token] = [...(sources[token] ?? []), relative];
     }
+    for (const raw of readSkipJobs(contents, relative, {
+      preserveWhitespace: true,
+    })) {
+      if (raw === raw.trim()) continue;
+      violations.push({
+        kind: VIOLATIONS.whitespace,
+        token: raw.trim(),
+        message: `\`skip_jobs\` in ${relative} lists ${JSON.stringify(raw)} — the token carries whitespace. GitHub Actions expression syntax has no string-replace, so \`skip_jobs\` is matched as an exact comma-delimited token and the surrounding space makes it match NOTHING: the job runs as if you had never listed it. That fails closed, so nothing unverified ships — but the skip you asked for silently did not happen. Write the list with no spaces: \`skip_jobs: 'a,b'\`, never \`skip_jobs: 'a, b'\`.`,
+      });
+    }
   }
-  return { tokens, sources };
+  return { tokens, sources, violations };
 }
 
 /**
@@ -491,15 +577,15 @@ export function compareRulesetBaseline(snapshot, live) {
  * Runs the guard.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
- * @returns {{violations: object[], checked: number, tokens: string[]}} The result
+ * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string}} The result
  */
 export function runGuard(argv) {
   const positional = argv.filter(arg => !arg.startsWith("--"));
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
-  const { tokens } = collectSkipJobTokens(rootDir, declaration.workflows);
-  const result = evaluateSkippedRequiredChecks(declaration, tokens);
-  const violations = [...result.violations];
+  const collected = collectSkipJobTokens(rootDir, declaration.workflows);
+  const result = evaluateSkippedRequiredChecks(declaration, collected.tokens);
+  const violations = [...collected.violations, ...result.violations];
   if (argv.includes("--remote")) {
     violations.push(
       ...compareRulesetBaseline(
@@ -508,7 +594,12 @@ export function runGuard(argv) {
       )
     );
   }
-  return { violations, checked: result.checked, tokens };
+  return {
+    violations,
+    checked: result.checked,
+    tokens: collected.tokens,
+    enforcement: declaration.enforcement ?? "error",
+  };
 }
 
 /**
@@ -518,7 +609,7 @@ export function runGuard(argv) {
  * @returns {void}
  */
 function main(argv) {
-  /** @type {{violations: object[], checked: number, tokens: string[]}} */
+  /** @type {{violations: object[], checked: number, tokens: string[], enforcement: string}} */
   let result;
   try {
     result = runGuard(argv);
@@ -545,6 +636,16 @@ function main(argv) {
     return;
   }
 
+  const warnOnly = result.enforcement === "warn";
+  /**
+   * True when a violation still fails the build under the active mode.
+   *
+   * @param {{kind: string}} violation - One violation
+   * @returns {boolean} True when it blocks
+   */
+  const blocks = violation =>
+    !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
+  const blocking = result.violations.filter(blocks);
   const lines = ["## 🔒 Skipped required checks", ""];
   if (result.violations.length === 0) {
     lines.push(
@@ -552,13 +653,19 @@ function main(argv) {
     );
   } else {
     lines.push(
-      `❌ ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
+      `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
       ""
     );
     for (const violation of result.violations) {
       lines.push(`- **${violation.kind}** — ${violation.message}`);
       process.stderr.write(
-        `::error title=${violation.kind}::${violation.message.split("\n")[0]}\n`
+        `::${blocks(violation) ? "error" : "warning"} title=${violation.kind}::${violation.message.split("\n")[0]}\n`
+      );
+    }
+    if (warnOnly) {
+      lines.push(
+        "",
+        `This declaration sets \`"enforcement": "warn"\`, so everything above except a proven false green (\`${VIOLATIONS.suppressesRequired}\`) is reported without failing the build. Review each finding, fix or declare it, then delete the \`enforcement\` key so this guard can block.`
       );
     }
   }
@@ -569,7 +676,7 @@ function main(argv) {
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
     });
   }
-  if (result.violations.length > 0) process.exitCode = 1;
+  if (blocking.length > 0) process.exitCode = 1;
 }
 
 if (

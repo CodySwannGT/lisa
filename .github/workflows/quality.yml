@@ -55,7 +55,17 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
+        # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
+        # has no string-replace function — the available string functions are
+        # contains/startsWith/endsWith/format/join/toJSON/fromJSON/hashFiles —
+        # so this workflow cannot trim for you. `'test, test:e2e'` yields the
+        # token `" test:e2e"`, which matches nothing, and the job RUNS. That
+        # fails closed, so nothing unverified ships; it just silently does not
+        # do what you asked. `scripts/check-skipped-required-checks.mjs` reports
+        # exactly this as `whitespace_in_skip_token`, and the
+        # `🔒 Skipped Required Checks` job below runs it on every pull request.
+        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `test, test:e2e` silently skips nothing. (lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -1815,6 +1825,65 @@ jobs:
           include-hidden-files: true
           retention-days: 1
           if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Skipped required checks (#2426)
+  # ---------------------------------------------------------------------------
+  # GitHub counts a SKIPPED required status check as SATISFIED. A job named in
+  # `skip_jobs` still reports a green checkmark against its required context
+  # having run zero steps in zero seconds, so that merge gate can never be red
+  # and therefore can never block anything. Measured twice in this portfolio:
+  # tunnl (TUN-402) and gemini, whose ruleset required
+  # `🔍 Quality Checks / 🎭 Playwright E2E Tests` while its ci.yml skipped it.
+  #
+  # Lisa shipped the guard, the npm scripts and the seeded declaration, but no
+  # workflow ran it — so adopters had to wire it by hand and none did. This job
+  # is that wiring.
+  #
+  # OFFLINE arm on purpose. The `:remote` arm reads the live ruleset over the
+  # network with `gh`, and the enforced pull-request path may not depend on
+  # network or auth: a flaky gate gets skipped, and a skipped gate is the exact
+  # false-green class this check exists to refuse. Two snapshots in one repo
+  # cannot see a ruleset edited in the admin console, so the remote arm runs on
+  # a schedule instead — `.github/workflows/required-checks-drift.yml`, shipped
+  # create-only beside this workflow's caller.
+  #
+  # Both `[ ! -f ]` guards below are load-bearing, and they are why this cannot
+  # redden a repository for a reason unrelated to skipped checks: a project
+  # without the script (non-TypeScript stacks, anything not yet re-applied) or
+  # without the declaration reports a notice and passes. What it will not do is
+  # read nothing and call that a clean bill of health — it says which piece is
+  # missing. Seeded-but-unreviewed repositories are handled a level down, by the
+  # seed's `"enforcement": "warn"`.
+  skipped_required_checks:
+    name: 🔒 Skipped Required Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',skipped_required_checks,') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🔒 Refuse a skip that silences a required check
+        run: |
+          if [ ! -f scripts/check-skipped-required-checks.mjs ]; then
+            echo "scripts/check-skipped-required-checks.mjs not present — project not yet on this template; skipping."
+            exit 0
+          fi
+          if [ ! -f .github/required-checks.json ]; then
+            echo "No .github/required-checks.json — this guard rests on a reviewed snapshot that cannot be derived from the repository. Lisa ships a seed; run \`lisa apply\` to get it. Skipping."
+            exit 0
+          fi
+          node scripts/check-skipped-required-checks.mjs
 
   # Threshold ratchet: quality thresholds may tighten, never weaken. Compares
   # every watched gate file (coverage/e2e/eslint thresholds, stryker break,
