@@ -14,13 +14,16 @@
  * `output.args.command`. Throwing in `tool.execute.before` cancels the tool
  * call and surfaces the message to the agent.
  *
- * Two deliberate simplifications against the shell original, both in the
+ * The port matches on the raw command text rather than tokenising it, which
+ * makes it naturally immune to the prefix and tokenisation bypass classes the
+ * shell guard had to be restructured to close — an unrecognised wrapper is just
+ * more text before the CLI name. Two deliberate differences remain, both in the
  * permissive direction so this port can never refuse something the canonical
  * guard would allow:
- *   - the build-ready role is read from `.lisa.config.json` when present and
- *     falls back to `status:ready`, matching the shell guard's resolution;
  *   - `--body-file` contents are not read, so an OpenCode caller declaring a
- *     human gate puts the `[lisa-human-gate]` marker on the command line.
+ *     human gate puts the `[lisa-human-gate]` marker on the command line;
+ *   - remote execution (`ssh host '…'`) is not intercepted, matching the shell
+ *     guard's documented limit.
  *
  * NOTE: This file is a template Lisa copies verbatim into a host project's
  * `.opencode/plugin/`. It is intentionally excluded from this repo's tsconfig
@@ -45,23 +48,29 @@ const LisaBlockDirectIssueCreate = async () => {
     readonly name: string;
   }[] = [
     {
-      re: /(^|[;&|(\s])gh\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
+      re: /(^|[;&|("'\s])gh\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
       name: "gh issue create",
     },
     {
-      re: /(^|[;&|(\s])linear\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
+      re: /(^|[;&|("'\s])linear\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
       name: "linear issue create",
     },
     {
-      re: /(^|[;&|(\s])jira\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
+      re: /(^|[;&|("'\s])jira\s+issue\s+(?:--?\S+(?:[= ]\S+)?\s+)*create(\s|$)/,
       name: "jira issue create",
     },
     {
-      re: /(^|[;&|(\s])acli\s+[^;&|]*\b(workitem|issue)s?\s+create\b/,
+      re: /(^|[;&|("'\s])acli\s+[^;&|]*\b(workitem|issue)s?\s+create\b/,
       name: "acli … create",
     },
     {
-      re: /\b(createIssue|issueCreate)\b/,
+      // Scoped to a tracker API call on purpose. A bare mutation NAME is just a
+      // word: `git commit -m "fix issueCreate typo"` and `rg issueCreate` are
+      // ordinary commands, and matching them made the guard refuse work it has
+      // no business refusing. The mutation only means a creation when it is
+      // being SENT, so `gh api` or an HTTP write to Linear's endpoint must
+      // appear on the same command.
+      re: /(?:(^|[;&|("'\s])gh\s+[^;&|]*\bapi\b|api\.linear\.app\/graphql)[^;&|]*\b(createIssue|issueCreate)\b/,
       name: "a GraphQL issue-creation mutation",
     },
     {
@@ -74,28 +83,59 @@ const LisaBlockDirectIssueCreate = async () => {
     },
   ];
 
-  const readyRole = await (async () => {
+  interface LisaConfig {
+    tracker?: string;
+    github?: { labels?: { build?: { ready?: string } } };
+    jira?: { workflow?: { ready?: string } };
+    linear?: { workflow?: { ready?: string } };
+  }
+
+  /**
+   * Read one config file, tolerating absence.
+   * @param file Path relative to the project root.
+   * @returns The parsed config, or an empty object.
+   */
+  const readConfig = async (file: string): Promise<LisaConfig> => {
     try {
-      const raw = await Bun.file(".lisa.config.json").text();
-      const config = JSON.parse(raw) as {
-        tracker?: string;
-        github?: { labels?: { build?: { ready?: string } } };
-        jira?: { workflow?: { ready?: string } };
-        linear?: { workflow?: { ready?: string } };
-      };
-      // No configured tracker means no `lisa-tracker-write` to route through —
-      // the bootstrapping case, detected rather than asserted.
-      if (!config.tracker) return undefined;
-      return (
-        config.github?.labels?.build?.ready ??
-        config.jira?.workflow?.ready ??
-        config.linear?.workflow?.ready ??
-        "status:ready"
-      );
+      return JSON.parse(await Bun.file(file).text()) as LisaConfig;
     } catch {
-      return undefined;
+      return {};
     }
-  })();
+  };
+
+  /**
+   * The configured build-ready role, or undefined when no tracker is set.
+   *
+   * Keyed off the resolved `tracker` rather than provider precedence: reading
+   * whichever provider block happened to appear first could hand a GitHub label
+   * to a Linear project, so the guard and the writer would disagree about what
+   * a declaration even looks like. The local overlay is layered over the base
+   * with field-level precedence, matching how `lisa-tracker-read` and
+   * `lisa-tracker-write` resolve it — a project that overrides its tracker only
+   * in `.lisa.config.local.json` was previously invisible here.
+   *
+   * Resolved once per session at plugin init. That is a deliberate snapshot: a
+   * config edit mid-session needs a session restart to take effect, which is
+   * the same lifetime as the rest of this plugin's state.
+   * @returns The role token, or undefined.
+   */
+  const resolveReadyRole = async (): Promise<string | undefined> => {
+    const base = await readConfig(".lisa.config.json");
+    const local = await readConfig(".lisa.config.local.json");
+    const tracker = local.tracker ?? base.tracker;
+    // No configured tracker means no `lisa-tracker-write` to route through —
+    // the bootstrapping case, detected rather than asserted.
+    if (!tracker) return undefined;
+    const pick = (config: LisaConfig): string | undefined => {
+      if (tracker === "github") return config.github?.labels?.build?.ready;
+      if (tracker === "jira") return config.jira?.workflow?.ready;
+      if (tracker === "linear") return config.linear?.workflow?.ready;
+      return undefined;
+    };
+    return pick(local) ?? pick(base) ?? "status:ready";
+  };
+
+  const readyRole = await resolveReadyRole();
 
   return {
     "tool.execute.before": async (
