@@ -13,10 +13,14 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
 const mocks = vi.hoisted(() => ({
   deterministic: undefined as unknown,
   runDeterministic: vi.fn(),
 }));
+
+useIoLatencyBudget();
 
 vi.mock("../../../src/health/deterministic.js", () => ({
   runDeterministicHealth: mocks.runDeterministic,
@@ -46,14 +50,6 @@ import {
  * because there the deadline is the behavior under test.
  */
 const GENEROUS_TIMEOUT_MS = 60_000;
-/**
- * Upper bound for the cases that guard against super-linear collection. These
- * operations take single-digit milliseconds, so this is a ~500x margin: it
- * still catches a quadratic or backtracking regression by orders of magnitude
- * while staying clear of the scheduling noise a loaded machine adds. The old
- * 1s bound was ~100x, which parallel load could reach.
- */
-const SUPERLINEAR_GUARD_MS = 5_000;
 const STARTED_AT = "2026-07-20T12:00:00.000Z";
 const DETERMINISTIC_COMPLETED_AT = "2026-07-20T12:01:00.000Z";
 const AGENTIC_COMPLETED_AT = "2026-07-20T12:02:00.000Z";
@@ -606,37 +602,41 @@ describe("runHealth hostile evaluator degradation", () => {
   );
 
   it("aborts a timed-out evaluator and returns exact deterministic output", async () => {
+    vi.useFakeTimers();
     let aborted = false;
     let evaluatorStarted!: () => void;
     const started = new Promise<void>(resolve => {
       evaluatorStarted = resolve;
     });
-    const startedAt = performance.now();
-    const running = runHealth(projectRoot, {
-      agentic: {
-        enabled: true,
-        timeoutMs: 500,
-        evaluator: async (_request, signal) => {
-          evaluatorStarted();
-          return new Promise(resolve => {
-            signal.addEventListener(
-              "abort",
-              () => {
-                aborted = true;
-                resolve({ status: "unavailable" });
-              },
-              { once: true }
-            );
-          });
+    try {
+      const running = runHealth(projectRoot, {
+        agentic: {
+          enabled: true,
+          timeoutMs: 500,
+          evaluator: async (_request, signal) => {
+            evaluatorStarted();
+            return new Promise(resolve => {
+              signal.addEventListener(
+                "abort",
+                () => {
+                  aborted = true;
+                  resolve({ status: "unavailable" });
+                },
+                { once: true }
+              );
+            });
+          },
         },
-      },
-    });
-    await started;
-    const result = await running;
+      });
+      await started;
+      await vi.advanceTimersByTimeAsync(500);
+      const result = await running;
 
-    expect(result).toBe(mocks.deterministic);
-    expect(aborted).toBe(true);
-    expect(performance.now() - startedAt).toBeLessThan(SUPERLINEAR_GUARD_MS);
+      expect(result).toBe(mocks.deterministic);
+      expect(aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("degrades when completed output exceeds the final 200-finding capacity", async () => {
@@ -681,7 +681,6 @@ describe("runHealth confined evidence collection", () => {
       status: "completed" as const,
       judgments: [],
     }));
-    const startedAt = performance.now();
 
     const result = await runHealth(projectRoot, {
       agentic: { enabled: true, evaluator, timeoutMs: GENEROUS_TIMEOUT_MS },
@@ -689,7 +688,6 @@ describe("runHealth confined evidence collection", () => {
 
     expect(result.mode).toBe("full");
     expect(evaluator).toHaveBeenCalledTimes(1);
-    expect(performance.now() - startedAt).toBeLessThan(SUPERLINEAR_GUARD_MS);
   });
 
   it("degrades before evaluation when line prefixes expand an excerpt past its byte limit", async () => {
@@ -708,7 +706,6 @@ describe("runHealth confined evidence collection", () => {
       status: "completed" as const,
       judgments: [],
     }));
-    const startedAt = performance.now();
 
     const result = await runHealth(projectRoot, {
       agentic: { enabled: true, evaluator, timeoutMs: GENEROUS_TIMEOUT_MS },
@@ -716,7 +713,6 @@ describe("runHealth confined evidence collection", () => {
 
     expect(result).toBe(mocks.deterministic);
     expect(evaluator).not.toHaveBeenCalled();
-    expect(performance.now() - startedAt).toBeLessThan(SUPERLINEAR_GUARD_MS);
   });
 
   it("degrades without calling the evaluator for an escaping symlink", async () => {
