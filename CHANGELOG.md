@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.4.1](https://github.com/CodySwannGT/lisa/compare/v3.4.0...v3.4.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **hooks:** block the GIT_CONFIG_KEY_<n> hooksPath bypass and stop colliding with `bind` ([db0b449](https://github.com/CodySwannGT/lisa/commit/db0b44946ed9985a4080865e472906df3a582fac)), closes [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [CodySwannGT/lisa#2466](https://github.com/CodySwannGT/lisa/issues/2466) [CodySwannGT/lisa#2466](https://github.com/CodySwannGT/lisa/issues/2466)
+* **hooks:** close the separate-token --config-env hooksPath bypass ([c7d7b24](https://github.com/CodySwannGT/lisa/commit/c7d7b242a75448dcd3dc5389cb846cfa8ef9861e)), closes [CodySwannGT/lisa#2466](https://github.com/CodySwannGT/lisa/issues/2466) [CodySwannGT/lisa#2466](https://github.com/CodySwannGT/lisa/issues/2466)
+
 ## [3.4.0](https://github.com/CodySwannGT/lisa/compare/v3.3.0...v3.4.0) (2026-08-13)
 
 
