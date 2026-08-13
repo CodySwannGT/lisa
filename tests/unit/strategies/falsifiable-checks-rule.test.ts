@@ -144,12 +144,29 @@ describe("falsifiable-checks rule contract", () => {
       expect(reference).toMatch(/re-measured/);
     });
 
-    it("requires the falsifiable form to assert the wrong spelling is absent", () => {
+    it("requires universal-negative assertions over existential ones", () => {
+      // An existential assertion ("some copy says the right thing") over a
+      // corpus with duplicates is satisfied by the correct copy, so the broken
+      // copy is undetectable. Rewriting one suite to universal negatives took
+      // the same mutation from 0 to 18 failures — same code, same corpus, only
+      // the quantifier changed. This is the second innocent cause of a zero,
+      // distinct from a filename-scoped probe.
       expect(eager).toContain(
-        "Assert the wrong spelling is absent, not the right one present"
+        "Assert that no copy is wrong, not that some copy is right"
       );
-      expect(reference).toMatch(
-        /passes trivially when the file happens to state it twice/
+      expect(reference).toContain("Universal negative");
+      expect(reference).toContain("0 to 18");
+      expect(reference).toContain("Wrong quantifier");
+      expect(reference).toContain("Wrong probe scope");
+    });
+
+    it("requires enumerating the property, not the known-bad instance", () => {
+      // A universal negative against one hard-coded wrong spelling still only
+      // sees that spelling; asserting every marker uses an em-dash also catches
+      // the en-dash and the missing dash.
+      expect(eager).toContain("Enumerate the property");
+      expect(reference).toContain(
+        "Enumerate the property, not the known-bad instance"
       );
     });
 
