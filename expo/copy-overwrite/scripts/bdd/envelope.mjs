@@ -43,10 +43,10 @@ const ENVELOPE_MODULE_PATHS = Object.freeze([
  */
 export const WARNABLE_DEFECT_CODES = Object.freeze([
   "baseline",
+  "coverage-regression",
   "empty-contract",
   "execution-results",
   "floor-missing",
-  "floor-ratchet",
   "floor-regression",
   "mapping-duplicate",
   "mapping-evidence",
@@ -54,6 +54,7 @@ export const WARNABLE_DEFECT_CODES = Object.freeze([
   "mapping-orphan",
   "mapping-platform",
   "mapping-runner",
+  "obligation-uncovered",
   "scenario-deleted",
   "scenario-duplicate-id",
   "scenario-id",

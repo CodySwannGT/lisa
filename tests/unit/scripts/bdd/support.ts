@@ -40,10 +40,14 @@ export const HOME_FEATURE_FILE = "home.feature";
 export const MAP_REL = "bdd/coverage-map.json";
 
 /** Defect codes asserted across more than one case. */
-export const FLOOR_RATCHET = "floor-ratchet";
+export const COVERAGE_REGRESSION = "coverage-regression";
+export const OBLIGATION_UNCOVERED = "obligation-uncovered";
 export const SCENARIO_DELETED = "scenario-deleted";
+export const BASELINE = "baseline";
+export const FLOOR_INVALID = "floor-invalid";
+export const FLOOR_MISSING = "floor-missing";
+export const FLOOR_REGRESSION = "floor-regression";
 export const MAPPING_FILE = "mapping-file";
-export const EXTRA_ID = "BDD-EXTRA-001";
 
 /**
  * Absolute git path, preferring fixed system locations over a PATH lookup so

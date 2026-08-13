@@ -48,7 +48,7 @@ platforms it requires and that each named platform has a configured runner.
   "schemaVersion": 1,
   "asOf": "<ISO date>",
   "runnerPlatforms": { "<runner>": ["<platform>", "..."] },
-  "coverageFloor": { "<platform>": "<0-100, the committed floor — may rise, never falls>" },
+  "coverageFloor": { "<platform>": "<0-100, an absolute bar checked in enforced mode — not a ratchet, set once and left alone>" },
   "platformWaivers": [
     {
       "scenario": "BDD-DOMAIN-NNN",
@@ -94,19 +94,29 @@ Two commands, wired into the project's script surface and into CI:
    - an invalid waiver (nonexistent scenario, undeclared platform, already-excluded scenario, a
      `runner` that does not cover the waived platform under `runnerPlatforms`, or one that masks an
      existing mapping);
-   - a regression against the project's committed `coverageFloor` per platform.
+   - a platform sitting below its committed `coverageFloor`;
+   - coverage given back: an obligation mapped at the base revision that nothing maps here;
+   - new behavior nobody mapped or waived.
 
 The percentage measures **aligned automation inventory, not the latest run result**. A mapped test
 that currently fails is a red CI check, a separate signal; the map only asserts the automation
 exists and still says what it claimed. Both facts are required — a green gate over a red suite is
 not coverage.
 
-### Coverage floor, not coverage target
+### Coverage floor, not coverage target — and not a ratchet
 
-Projects adopting this contract mid-life start below 100% and must not be blocked by that. The gate
-enforces a **ratchet**: the committed floor per platform may rise and may never fall. Recorded in
-`coverageFloor`, it is bumped by regenerating the matrix after a frontend work item raises it by the
-obligations it seals; it is never asked to clear the whole backlog.
+Projects adopting this contract mid-life start below 100% and must not be blocked by that. The
+committed `coverageFloor` per platform is an **absolute bar** answering "is this platform below it
+right now". Set it once at adoption to the honest measured number (or `0`) and leave it: nothing
+forces it upward, and lowering it needs no ceremony.
+
+What stops coverage sliding backwards is checked directly, per obligation, against the base
+revision — **an obligation that was mapped may not stop being mapped, and new behavior arrives
+mapped or waived**. Giving coverage back is legitimate but takes two artifacts one author cannot
+produce alone: a recorded route (a `retirements` record or a `platformWaivers` entry) plus the
+maintainer-applied `bdd-floor-baseline` label. Gaps that predate the change are burndown, never a
+gate failure — which is what lets a brownfield project adopt `enforced` without first backfilling
+its whole history.
 
 ## Waivers versus `@blocked`
 
@@ -162,7 +172,8 @@ A repo with no contract yet, taking its first frontend work item:
    into the project's script surface, and the CI invocation of the check.
 3. **Write only this item's scenarios.** The first item is not a backfill project. Pre-existing
    uncovered behavior becomes burndown in `docs/e2e-bdd-coverage.md`, and the floor starts where the
-   repo actually is.
+   repo actually is. That is a one-time act, not a recurring one: from here on the floor stays put
+   and what protects each new obligation is the per-obligation check, not the number.
 4. **Seal this item's obligations** and commit the regenerated matrix and burndown with the change.
 
 If a required platform has **no** e2e runner at all, that obligation is never left as a bare `N/A` —
