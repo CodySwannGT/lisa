@@ -1853,8 +1853,18 @@ jobs:
   # without the script (non-TypeScript stacks, anything not yet re-applied) or
   # without the declaration reports a notice and passes. What it will not do is
   # read nothing and call that a clean bill of health — it says which piece is
-  # missing. Seeded-but-unreviewed repositories are handled a level down, by the
-  # seed's `"enforcement": "warn"`.
+  # missing.
+  #
+  # A SEEDED repository is the dangerous case, and it is handled inside the
+  # guard (#2476). `required_contexts` is a CACHE of a live ruleset fetch, and
+  # Lisa's seed ships it EMPTY and unstamped because Lisa cannot know what your
+  # ruleset requires — an earlier seed shipped a guess that was measured wrong
+  # in this fleet, claiming one context was required that no ruleset required
+  # and omitting six that were. Until `ruleset.baseline_fetched_at` is stamped,
+  # the guard prints NOT CHECKED and suppresses every rule that reads the
+  # cache. It never prints a ✅ it cannot support. Refusal is exit 1 except
+  # under the seed's `"enforcement": "warn"`, which keeps a fresh install loud
+  # rather than red.
   skipped_required_checks:
     name: 🔒 Skipped Required Checks
     runs-on: ubuntu-latest

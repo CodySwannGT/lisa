@@ -1,11 +1,13 @@
 {
   "_readme": [
     "See typescript/create-only/.github/required-checks.json in Lisa for the full rationale. In short: GitHub counts a SKIPPED required status check as SATISFIED, so a `skip_jobs` token that silences a required context makes the merge gate decorative.",
-    "This expo seed declares the three tokens the shipped ci.yml skips. Every one of them is currently NOT ruleset-required, so nothing here is a false green — but the declaration exists so that the day one of them BECOMES required, the guard says so instead of the gate quietly going hollow.",
-    "Transcribe `required_contexts` byte for byte from your ruleset and keep it current with `--remote`.",
-    "The nightly-gate context is listed because Lisa ships expo/github-rulesets/nightly-e2e-health.json requiring it on dev. No skip_jobs token silences it today, so nothing is a false green — it is here so that the day one does, the guard says so instead of staying quiet.",
-    "Lisa's quality.yml runs the offline arm of this guard on every pull request. This seed ships `\"enforcement\": \"warn\"` because Lisa cannot know which contexts YOUR ruleset requires: findings are reported in the job summary and the build still passes, EXCEPT a proven false green (`skipped_required_check`), which blocks in every mode. Review the findings, then DELETE the `enforcement` key so the guard can block.",
-    "`skip_jobs` is matched as an exact comma-delimited token and GitHub Actions expression syntax has no string-replace, so write the list with no spaces: `skip_jobs: 'a,b'`, never `skip_jobs: 'a, b'`. A spaced token matches nothing and the job runs — this guard reports that as `whitespace_in_skip_token`."
+    "This seed declares the three tokens the shipped ci.yml skips, so that the day one of them is required the guard can say so instead of the gate quietly going hollow. The `ruleset_required: false` on each is a DEFAULT, not a measurement — it is only meaningful once you have transcribed `required_contexts` from your own ruleset, which is what stamping `baseline_fetched_at` asserts.",
+    "⚠️ `required_contexts` SHIPS EMPTY AND UNSTAMPED ON PURPOSE. Lisa cannot know what YOUR ruleset requires, and an earlier version of this seed shipped a guess that was measured WRONG (#2476): it claimed `🔗 Work-Item Traceability` was required when no ruleset required it, and omitted six contexts that were. Until `ruleset.baseline_fetched_at` carries the date you transcribed the real list, the guard reports NOT CHECKED rather than answering from fiction.",
+    "To arm it: gh api repos/OWNER/NAME/rulesets --jq '.[] | \"\\\\(.id) \\\\(.name)\"' to find the ids, then gh api repos/OWNER/NAME/rulesets/ID --jq '.rules[] | select(.type==\"required_status_checks\") | .parameters.required_status_checks[].context' for the contexts. Paste them into `required_contexts` BYTE FOR BYTE, fill in `ruleset.repo` / `ruleset.ids`, and set `baseline_fetched_at` to today.",
+    "A transcription expires after 90 days, because a ruleset can be edited with no signal in this repository. The shipped `.github/workflows/required-checks-drift.yml` runs `--remote` weekly to catch that; `--remote` reads the ruleset live and so answers even when the cache is untrusted.",
+    "Lisa's quality.yml runs the offline arm on every pull request. This seed ships `\"enforcement\": \"warn\"`, which downgrades findings AND the NOT-CHECKED refusal to reports so a fresh install does not go red on arrival. Delete the key once you have transcribed the list — then it blocks.",
+    "`skip_jobs` is matched as an exact comma-delimited token and GitHub Actions expression syntax has no string-replace, so write the list with no spaces: `skip_jobs: 'a,b'`, never `skip_jobs: 'a, b'`. A spaced token matches nothing and the job runs — reported as `whitespace_in_skip_token`.",
+    "`_example_required_contexts` below is a STARTING POINT FOR TYPING, never read by the guard. Verify every line against your own ruleset before promoting any of it."
   ],
   "enforcement": "warn",
   "ruleset": {
@@ -17,7 +19,8 @@
     ".github/workflows/ci.yml"
   ],
   "exemption_ticket_pattern": "^[A-Z][A-Z0-9]+-\\d+$",
-  "required_contexts": [
+  "required_contexts": [],
+  "_example_required_contexts": [
     "🔍 Quality Checks / 🧹 Lint",
     "🔍 Quality Checks / 🔍 Type Check",
     "🔍 Quality Checks / 🏗️ Build",
