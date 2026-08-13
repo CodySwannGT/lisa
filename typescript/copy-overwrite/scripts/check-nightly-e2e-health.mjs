@@ -6,12 +6,27 @@
  * `CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml`; the contract both
  * halves implement is `docs/nightly-e2e-gate.md` in Lisa, whose §2 truth table
  * is proven row-by-row by `tests/unit/scripts/nightly-e2e-health*.test.ts`
- * (rows 1-16, `-api` rows 17-20, `-bypass` rows 21-25, `-completeness` row 26).
+ * (rows 1-16, `-api` rows 17-20, `-bypass` rows 21-25, `-completeness` row 26,
+ * `-issues` rows 27-31).
  *
  * Usage:
  *   node scripts/check-nightly-e2e-health.mjs          # human report, exit 1 when blocked
  *   node scripts/check-nightly-e2e-health.mjs --json   # machine report, always exit 0
  *   node scripts/check-nightly-e2e-health.mjs --contract-version
+ *   node scripts/check-nightly-e2e-health.mjs --report-issues  # the REPORTING half
+ *
+ * ## Two halves, and only one of them writes
+ *
+ * The default invocation is the merge GATE: a required status check that reads
+ * run history and writes nothing. `--report-issues` is the REPORTING half (§10),
+ * driven by `nightly-e2e-report.yml` on a schedule, which maintains exactly one
+ * open tracking issue per suite — filed on the first red night, refreshed while
+ * it stays red, closed when a complete green run lands.
+ *
+ * They are separate because filing is reporting, not verdict. Issue writes live
+ * behind `apiWrite`, reachable only from `runReport`; the gate path cannot reach
+ * them, and the gate's reusable workflow requests no `issues:` scope. An Issues
+ * API that is down must never be able to redden a required check.
  *
  * Zero dependencies and no install step, on purpose: a gate that sits on every
  * pull request has to be cheap enough to stay uncontroversial, and a gate that
@@ -71,7 +86,7 @@ import { pathToFileURL } from "node:url";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.1.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.2.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -110,6 +125,27 @@ export const SUITE_STATES = Object.freeze({
   pass: "pass",
   fail: "fail",
   unknown: "unknown",
+});
+
+/**
+ * The reason token row 26 stamps on a run that did not run everything.
+ *
+ * Named as a constant rather than repeated as a literal because the REPORTING
+ * half (§10) asks the completeness question in its own right: closing a tracking
+ * issue is the reporter declaring a suite healthy, and it must never do that on
+ * evidence the suite never gathered.
+ */
+export const INCOMPLETE_EVIDENCE_REASON = "incomplete_run";
+
+/** The label that identifies a tracking issue this reporter owns. */
+export const TRACKING_ISSUE_LABEL = "nightly-e2e";
+
+/** What the reporter may do about one suite (§10). */
+export const ISSUE_ACTIONS = Object.freeze({
+  create: "create",
+  refresh: "refresh",
+  close: "close",
+  none: "none",
 });
 
 // ---------------------------------------------------------------------------
@@ -628,7 +664,7 @@ export function assessSuite(suite, observation, context) {
           stateForConclusion(conclusion) === SUITE_STATES.fail
             ? SUITE_STATES.fail
             : SUITE_STATES.unknown,
-        reason: "incomplete_run",
+        reason: INCOMPLETE_EVIDENCE_REASON,
       };
     }
 
@@ -964,7 +1000,7 @@ const REASON_TEXT = Object.freeze({
     "the run completed without ever producing the job this gate reads. The job was renamed, which silently disarms the gate.",
   pattern_matched_nothing:
     "the job pattern matched zero jobs in the newest run. Zero matches is the signature of a renamed job.",
-  incomplete_run:
+  [INCOMPLETE_EVIDENCE_REASON]:
     "the run reported `success`, but it did not run everything: at least one job was skipped, failed under `continue-on-error`, or could not be read. A run that skipped part of itself did not gather the evidence its green claims — a suite re-run for one platform only is not a verdict about the other one. Re-run the suite WITHOUT narrowing it.",
   run_conclusion: "",
   job_conclusion: "",
@@ -1030,7 +1066,7 @@ export function formatReport(verdict, context) {
           `  - ${finding.label} — ${finding.conclusion ?? finding.reason}${finding.url ? `: ${finding.url}` : ""}`
       ),
       "",
-      "The nightly is still red. This waives the gate for THIS pull request only; the tracking issue stays open until a green run lands."
+      `The nightly is still red. This waives the gate for THIS pull request only; the tracking issue — filed and maintained by the \`nightly-e2e-report\` workflow, one per suite — stays open until a green run lands.`
     );
   } else if (verdict.blocked) {
     if (verdict.bypass && !verdict.bypass.valid) {
@@ -1052,6 +1088,290 @@ export function formatReport(verdict, context) {
       "Last night's e2e verdict is not red. Nothing here blocks this pull request."
     );
   }
+  return `${lines.join("\n")}\n`;
+}
+
+// ---------------------------------------------------------------------------
+// 6.1 The tracking issue — §10 of the contract
+// ---------------------------------------------------------------------------
+//
+// The gate blocks merges, which tells whoever opened a pull request. It tells
+// NOBODY ELSE. A red nightly with no open pull requests is invisible, there is
+// nothing to assign, and there is no record that the suite came back. This half
+// closes that: exactly ONE open tracking issue per suite, refreshed on each red
+// night and closed when a full green run lands.
+//
+// One per SUITE, never one per red night. A reporter that files every morning
+// produces a backlog nobody triages and makes the suite's actual state illegible
+// from the issue list. The issue is a STATE MIRROR of one suite.
+//
+// Filing is REPORTING, not verdict, and the two are kept apart structurally:
+// this code runs only from `runReport` (the scheduled reporting workflow), never
+// from `runGate` (the required status check). The gate's reusable workflow does
+// not even request `issues:` scope, so an issues API that is down, throttled or
+// forbidden cannot turn a green nightly into a red pull request.
+
+/**
+ * Whether a finding rests on evidence the suite actually gathered.
+ *
+ * Row 26 already refuses to call a partial run a pass, so for the GATE this is
+ * implied. The reporter asks it separately and on purpose: closing a tracking
+ * issue is a stronger claim than letting a pull request through — it announces
+ * that a suite is healthy — and it is the one action that must never fire on a
+ * run that skipped part of itself. propswap's trap, in their words: *one spec
+ * reporting success would close the tracking issue while the failures that
+ * opened it went unrun.* Asking the question here means a future loosening of
+ * row 26 cannot silently re-open that hole.
+ *
+ * @param {{reason: string}} finding - A finding from `assessSuite`
+ * @returns {boolean} True when the run was complete
+ */
+export function isCompleteEvidence(finding) {
+  return finding.reason !== INCOMPLETE_EVIDENCE_REASON;
+}
+
+/**
+ * Percent-encodes a string down to `[A-Za-z0-9_.~%]`, comment-safe.
+ *
+ * `encodeURIComponent` alone leaves `-`, `!`, `'`, `(`, `)` and `*` untouched.
+ * Only `>` can actually terminate an HTML comment and that one it does escape,
+ * so this is belt and braces — but a marker is an identity, and an identity that
+ * needs a paragraph explaining why it *happens* to be safe is one refactor away
+ * from not being.
+ *
+ * @param {string} value - Arbitrary text
+ * @returns {string} An inert encoding of it
+ */
+function inertEncode(value) {
+  return encodeURIComponent(value).replace(
+    /[-!'()*]/g,
+    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+/**
+ * The HTML-comment marker that ties one issue to one suite.
+ *
+ * Identity has to survive an edited title, a renamed label and a human's
+ * rewording, so it lives in the body as a comment rather than in anything a
+ * person is likely to touch. The suite label is encoded, which is not
+ * decoration: a suite called `evil --> <!--` would otherwise terminate the
+ * comment early and make its marker match every other suite's issue — which on
+ * a green night would close them all.
+ *
+ * @param {string} label - The suite label
+ * @returns {string} A marker unique to that suite
+ */
+export function suiteMarker(label) {
+  return `<!-- lisa_nightly_e2e_suite:${inertEncode(label)} -->`;
+}
+
+/**
+ * A compact fingerprint of *why* a suite is red, embedded in the issue body.
+ *
+ * It is what lets a refresh tell "still the same failure" from "a different
+ * failure now", so the reporter can rewrite the body every night (free) while
+ * commenting (a notification) only when something actually changed.
+ *
+ * @param {object} finding - A finding
+ * @returns {string} An opaque, comment-safe stamp
+ */
+function evidenceMarker(finding) {
+  return `<!-- lisa_nightly_e2e_evidence:${inertEncode(
+    [finding.reason, finding.conclusion ?? "", finding.url ?? ""].join("|")
+  )} -->`;
+}
+
+/**
+ * The issue title for one suite.
+ *
+ * @param {object} finding - A finding
+ * @returns {string} A title
+ */
+function issueTitle(finding) {
+  return `🌙 Nightly e2e is not green: ${finding.label}`;
+}
+
+/**
+ * The issue body — written for whoever is standing at the gate.
+ *
+ * Lisa's factories are meant to be operable by people who do not read code
+ * (AGENTS.md), and a tracking issue is one of the artefacts that crosses the
+ * gate outward. So it opens with what broke and what to do, and keeps the
+ * machine detail below a fold.
+ *
+ * @param {object} finding - A finding
+ * @param {{branch: string, now: Date}} context - Reporting context
+ * @returns {string} Markdown
+ */
+function issueBody(finding, context) {
+  const detail = REASON_TEXT[finding.reason] || "";
+  const runLine = finding.url
+    ? `[the run that reported it](${finding.url})`
+    : "the Actions tab";
+  return [
+    suiteMarker(finding.label),
+    evidenceMarker(finding),
+    "",
+    `## The \`${finding.label}\` end-to-end suite is not passing on \`${context.branch}\``,
+    "",
+    `**What this means.** Pull requests into \`${context.branch}\` are blocked until this suite is green again. That is deliberate: merging on top of a red suite is how a nightly ends up measuring days of accumulated damage instead of the change that broke it.`,
+    "",
+    "**What to do, in order.**",
+    "",
+    `1. Open ${runLine} and read what failed.`,
+    "2. Fix it, or — if the failure is in the test harness rather than the product — say so in a comment here so the next person does not re-diagnose it.",
+    `3. Re-run the **whole** suite against \`${context.branch}\`. Leave any platform / tag / shard picker on its \`all\` default: a run that skipped an arm says nothing about that arm, and will not clear the gate.`,
+    "",
+    "**You do not need to close this issue.** It closes itself the moment a full green run lands, and it is refreshed automatically every night it is still red. Closing it by hand while the suite is red just means tonight re-opens the question.",
+    "",
+    "<details><summary>Details</summary>",
+    "",
+    "| | |",
+    "|---|---|",
+    `| Suite | ${finding.label} |`,
+    `| Workflow | \`${finding.workflow ?? "—"}\` |`,
+    `| Branch | \`${context.branch}\` |`,
+    `| Newest run | ${finding.conclusion ?? "—"}${finding.createdAt ? ` at ${finding.createdAt}` : ""}${finding.event ? ` via \`${finding.event}\`` : ""} |`,
+    `| Why it is not green | ${detail || finding.reason} |`,
+    `| Last checked | ${context.now.toISOString()} |`,
+    "",
+    "</details>",
+    "",
+    "<sub>Filed and maintained by Lisa's nightly e2e reporter. The contract is `docs/nightly-e2e-gate.md` §10.</sub>",
+  ].join("\n");
+}
+
+/**
+ * Decides what to do about every suite's tracking issue. PURE.
+ *
+ * Every HTTP call lives in `applyIssuePlan`, so the whole decision — including
+ * the one that must never misfire, closing — is testable without a network.
+ *
+ * @param {ReadonlyArray<object>} findings - Findings from `assessSuite`, RAW
+ *   (never run through `decide`, whose bootstrap rendering would hide a suite's
+ *   real state from the reporter)
+ * @param {ReadonlyArray<object>} openIssues - Open issues carrying the label
+ * @param {{branch: string, label: string, now: Date}} context - Reporting context
+ * @returns {ReadonlyArray<object>} One plan entry per suite
+ */
+export function planIssueActions(findings, openIssues, context) {
+  return Object.freeze(
+    findings.map(finding => {
+      const marker = suiteMarker(finding.label);
+      const matches = openIssues
+        // `GET /repos/{owner}/{repo}/issues` returns PULL REQUESTS as well as
+        // issues. Mistaking one for the tracking issue would comment on
+        // somebody's pull request and then CLOSE it the night the suite went
+        // green.
+        .filter(issue => !issue.pull_request)
+        .filter(issue => (issue.body ?? "").includes(marker))
+        .slice()
+        .sort((left, right) => left.number - right.number);
+      const numbers = Object.freeze(matches.map(issue => issue.number));
+      const base = {
+        label: finding.label,
+        state: finding.state,
+        issues: numbers,
+        title: null,
+        body: null,
+        comment: null,
+      };
+      const quiet = reason => ({
+        ...base,
+        action: ISSUE_ACTIONS.none,
+        reason,
+      });
+
+      // Evidence the suite never gathered decides NOTHING. It does not close an
+      // issue (that would be an all-clear the run cannot support) and it does
+      // not open one (absence of evidence is not evidence of failure). The
+      // existing issue simply stays as it was.
+      if (!isCompleteEvidence(finding)) return quiet("evidence_incomplete");
+
+      if (finding.state === SUITE_STATES.fail) {
+        if (matches.length === 0) {
+          return {
+            ...base,
+            action: ISSUE_ACTIONS.create,
+            reason: "red_filed",
+            title: issueTitle(finding),
+            body: issueBody(finding, context),
+          };
+        }
+        // The oldest open match is the canonical one. A second match means a
+        // duplicate got filed anyway (a hand-filed issue, or a race that beat
+        // the concurrency group); refreshing the oldest keeps the history in one
+        // place, and the green night closes every duplicate at once.
+        const unchanged = (matches[0].body ?? "").includes(
+          evidenceMarker(finding)
+        );
+        return {
+          ...base,
+          issues: Object.freeze([matches[0].number]),
+          action: ISSUE_ACTIONS.refresh,
+          reason: "red_refreshed",
+          title: issueTitle(finding),
+          body: issueBody(finding, context),
+          // A comment is a notification. One every night for the same failure
+          // trains people to mute the issue that is supposed to be alerting
+          // them, so only a CHANGE in the evidence earns one.
+          comment: unchanged
+            ? null
+            : `🔴 Still not green, and the evidence changed.\n\n${formatFinding(finding)}`,
+        };
+      }
+
+      if (finding.state === SUITE_STATES.pass) {
+        if (matches.length === 0) return quiet("green_untracked");
+        return {
+          ...base,
+          action: ISSUE_ACTIONS.close,
+          reason: "green_complete",
+          comment: `✅ Closing automatically: a complete green run landed for **${finding.label}** on \`${context.branch}\`.${finding.url ? `\n\n${finding.url}` : ""}`,
+        };
+      }
+
+      return quiet("evidence_missing");
+    })
+  );
+}
+
+/**
+ * Renders the reporting outcome for the job log and summary.
+ *
+ * @param {ReadonlyArray<object>} results - Output of `applyIssuePlan`
+ * @param {{branch: string}} context - Reporting context
+ * @returns {string} Markdown
+ */
+export function formatIssueReport(results, context) {
+  const say = {
+    create: "filed a tracking issue",
+    refresh: "refreshed the open tracking issue",
+    close: "closed the tracking issue — the suite is green again",
+    none: "left the tracking state alone",
+  };
+  const lines = [
+    "## 🌙 Nightly E2E tracking issues",
+    "",
+    `Branch: \`${context.branch}\``,
+    "",
+  ];
+  for (const result of results) {
+    const where = result.issues.length
+      ? ` (#${result.issues.join(", #")})`
+      : "";
+    lines.push(
+      result.ok
+        ? `- ✅ **${result.label}** — ${say[result.action] ?? result.action}${where} [${result.reason}]`
+        : `- ⚠️ **${result.label}** — could not ${result.action} its tracking issue${where}: ${result.error}`
+    );
+  }
+  lines.push(
+    "",
+    "This job REPORTS; it does not gate. Nothing here can block a pull request — the merge gate is a separate workflow that never writes.",
+    ""
+  );
   return `${lines.join("\n")}\n`;
 }
 
@@ -1261,6 +1581,215 @@ export async function observe(api, suites, branch, wait) {
 }
 
 /**
+ * One write against the Issues API, with the same bounded retry as `apiGet`.
+ *
+ * Deliberately a SEPARATE function rather than a `method` parameter on
+ * `apiGet`: everything the merge gate calls must be provably read-only, and a
+ * shared function with a write mode makes that a matter of reading argument
+ * lists. Nothing on the gate path can reach this.
+ *
+ * @param {object} api - `{ apiUrl, repo, token, maxAttempts, retryMaxSeconds }`
+ * @param {string} method - `POST` or `PATCH`
+ * @param {string} path - API path beginning with `/`
+ * @param {object} payload - JSON body
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep, for tests
+ * @returns {Promise<object>} The created or updated resource
+ * @throws {GateApiError} When the write did not land
+ */
+export async function apiWrite(api, method, path, payload, wait = sleep) {
+  let lastProblem = "unknown";
+  for (let attempt = 1; attempt <= api.maxAttempts; attempt += 1) {
+    let response;
+    try {
+      response = await fetch(`${api.apiUrl}${path}`, {
+        method,
+        headers: {
+          accept: "application/vnd.github+json",
+          authorization: `Bearer ${api.token}`,
+          "content-type": "application/json",
+          "x-github-api-version": "2022-11-28",
+          "user-agent": "lisa-nightly-e2e-health",
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      lastProblem = `network error: ${error instanceof Error ? error.message : String(error)}`;
+      if (attempt < api.maxAttempts)
+        await wait(
+          retryDelayMs({ headers: null }, attempt, api.retryMaxSeconds)
+        );
+      continue;
+    }
+    if (response.ok) return await response.json();
+    const remaining = response.headers?.get?.("x-ratelimit-remaining");
+    const throttled =
+      response.status === 429 || (response.status === 403 && remaining === "0");
+    if ((response.status === 401 || response.status === 403) && !throttled) {
+      throw new GateApiError(
+        `The Issues API returned ${response.status} for ${method} ${path}. The reporting job needs \`permissions: issues: write\`. (The merge gate does NOT — it is a separate workflow that never writes, so this cannot block anyone's pull request.)`
+      );
+    }
+    if (response.status === 404) {
+      throw new GateApiError(
+        `The Issues API returned 404 for ${method} ${path}. Either Issues are disabled on this repository or the target issue no longer exists.`
+      );
+    }
+    lastProblem = `HTTP ${response.status}`;
+    if (attempt < api.maxAttempts) {
+      await wait(retryDelayMs(response, attempt, api.retryMaxSeconds));
+    }
+  }
+  throw new GateApiError(
+    `The Issues API stayed unwritable for ${method} ${path} after ${api.maxAttempts} attempts (${lastProblem}).`
+  );
+}
+
+/**
+ * Every OPEN issue carrying the tracking label, paginated to exhaustion.
+ *
+ * Read through the issues LIST rather than the search API on purpose. Search is
+ * an index with its own latency, and an index that has not caught up yet reports
+ * "no issue for this suite" — which is exactly how a reporter files a duplicate
+ * every night. The list endpoint is immediately consistent.
+ *
+ * An unknown label simply matches nothing (an empty list, not an error), which
+ * is what makes the very first run — before the label exists — file rather than
+ * fail.
+ *
+ * @param {object} api - API coordinates
+ * @param {string} label - The tracking label
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<ReadonlyArray<object>>} Open issues
+ */
+export async function fetchTrackingIssues(api, label, wait) {
+  const issues = [];
+  for (let page = 1; page <= api.maxPages; page += 1) {
+    const query = new URLSearchParams({
+      state: "open",
+      labels: label,
+      per_page: "100",
+      page: String(page),
+    });
+    const result = await apiGet(
+      api,
+      `/repos/${api.repo}/issues?${query}`,
+      wait
+    );
+    if (result === null) {
+      throw new GateApiError(
+        `Could not list issues for ${api.repo} (404). Issues are probably disabled on this repository, so the nightly reporter has nowhere to file. Enable Issues or stop scheduling the reporting workflow.`
+      );
+    }
+    const batch = Array.isArray(result.body) ? result.body : [];
+    issues.push(...batch);
+    if (batch.length < 100) return Object.freeze(issues);
+  }
+  throw new GateApiError(
+    `More than \`api_max_pages\` (${api.maxPages}) pages of open \`${label}\` issues. Refusing to file against a truncated list, which would duplicate an issue this reporter already owns.`
+  );
+}
+
+/**
+ * Executes a plan. One suite's failure never abandons the others.
+ *
+ * Sequential rather than parallel: these are writes to one issue set, and a
+ * burst of them is exactly what GitHub's secondary rate limits exist to slow
+ * down. Ordered execution also makes the job log readable top to bottom.
+ *
+ * @param {object} api - API coordinates
+ * @param {ReadonlyArray<object>} plan - Output of `planIssueActions`
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<ReadonlyArray<object>>} One result per plan entry
+ */
+export async function applyIssuePlan(api, plan, wait) {
+  const results = [];
+  for (const entry of plan) {
+    const base = {
+      label: entry.label,
+      action: entry.action,
+      reason: entry.reason,
+      issues: entry.issues,
+    };
+    try {
+      if (entry.action === ISSUE_ACTIONS.create) {
+        const created = await apiWrite(
+          api,
+          "POST",
+          `/repos/${api.repo}/issues`,
+          {
+            title: entry.title,
+            body: entry.body,
+            labels: [api.issueLabel ?? TRACKING_ISSUE_LABEL],
+          },
+          wait
+        );
+        results.push({
+          ...base,
+          issues: Object.freeze([created.number]),
+          ok: true,
+          error: null,
+        });
+        continue;
+      }
+      if (entry.action === ISSUE_ACTIONS.refresh) {
+        const [number] = entry.issues;
+        await apiWrite(
+          api,
+          "PATCH",
+          `/repos/${api.repo}/issues/${number}`,
+          { title: entry.title, body: entry.body },
+          wait
+        );
+        if (entry.comment) {
+          await apiWrite(
+            api,
+            "POST",
+            `/repos/${api.repo}/issues/${number}/comments`,
+            { body: entry.comment },
+            wait
+          );
+        }
+        results.push({ ...base, ok: true, error: null });
+        continue;
+      }
+      if (entry.action === ISSUE_ACTIONS.close) {
+        for (const number of entry.issues) {
+          if (entry.comment) {
+            await apiWrite(
+              api,
+              "POST",
+              `/repos/${api.repo}/issues/${number}/comments`,
+              { body: entry.comment },
+              wait
+            );
+          }
+          await apiWrite(
+            api,
+            "PATCH",
+            `/repos/${api.repo}/issues/${number}`,
+            { state: "closed", state_reason: "completed" },
+            wait
+          );
+        }
+        results.push({ ...base, ok: true, error: null });
+        continue;
+      }
+      results.push({ ...base, ok: true, error: null });
+    } catch (error) {
+      // One suite's reporting failure must not silence the rest. Recorded, not
+      // thrown: the caller decides the job's exit code once, having seen every
+      // suite.
+      results.push({
+        ...base,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return Object.freeze(results);
+}
+
+/**
  * Reads who most recently applied the bypass label, from the PR's issue events.
  *
  * PAGINATED, and that is not defensive padding. The issue-events API returns
@@ -1383,7 +1912,11 @@ export function resolveSettings(env) {
       maxAttempts: limits.apiMaxAttempts,
       maxPages: limits.apiMaxPages,
       retryMaxSeconds: limits.apiRetryMaxSeconds,
+      // Carried on the API coordinates so the reporting writes cannot be
+      // labelled differently from the reads that look for them.
+      issueLabel: env.NIGHTLY_ISSUE_LABEL || TRACKING_ISSUE_LABEL,
     },
+    issueLabel: env.NIGHTLY_ISSUE_LABEL || TRACKING_ISSUE_LABEL,
     branch,
     suites: validateSuites(env.NIGHTLY_SUITES),
     freshnessHours: limits.freshnessHours,
@@ -1471,6 +2004,96 @@ export async function runGate(env, wait) {
 }
 
 /**
+ * Runs the REPORTING half: files, refreshes and closes the tracking issues.
+ *
+ * Reads exactly what the gate reads and assesses it with exactly the same
+ * classifier, so the issue and the merge gate can never disagree about whether a
+ * suite is red. What it does NOT do is call `decide`: that renders `unknown` as
+ * `bootstrap` while a window is open, and the reporter needs each suite's real
+ * state. (Bootstrap changes nothing here anyway — an `unknown` suite is left
+ * alone either way, and a genuinely red one is red inside the window too.)
+ *
+ * The bypass is likewise absent by construction: a bypass waives the gate for
+ * ONE pull request, it does not make the nightly green, and the tracking issue
+ * stays open until a green run lands.
+ *
+ * @param {NodeJS.ProcessEnv} env - The environment
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<object>} Findings, plan and per-suite results
+ */
+export async function runReport(env, wait) {
+  const settings = resolveSettings(env);
+  const now = new Date();
+  const observations = await observe(
+    settings.api,
+    settings.suites,
+    settings.branch,
+    wait
+  );
+  const findings = settings.suites.map((suite, index) =>
+    assessSuite(suite, observations[index], {
+      branch: settings.branch,
+      freshnessHours: settings.freshnessHours,
+      now,
+    })
+  );
+  const plan = planIssueActions(
+    findings,
+    await fetchTrackingIssues(settings.api, settings.issueLabel, wait),
+    { branch: settings.branch, label: settings.issueLabel, now }
+  );
+  return {
+    findings,
+    plan,
+    results: await applyIssuePlan(settings.api, plan, wait),
+    settings,
+  };
+}
+
+/**
+ * The reporting entry point, as the scheduled workflow invokes it.
+ *
+ * Its exit code answers "did REPORTING work", never "is the suite green". A red
+ * nightly reported correctly is a SUCCESSFUL report — conflating the two would
+ * hand operators a second red check that means something different from the
+ * first one.
+ *
+ * @param {boolean} asJson - Emit the machine record instead of prose
+ * @returns {Promise<void>} Resolves once the report is written
+ */
+async function reportIssues(asJson) {
+  let outcome;
+  try {
+    outcome = await runReport(process.env);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(
+      `::error title=Nightly E2E reporting failed::${message.split("\n")[0]}\n`
+    );
+    process.stdout.write(`${message}\n`);
+    process.exitCode = 1;
+    return;
+  }
+  const { settings, ...machine } = outcome;
+  if (asJson) {
+    process.stdout.write(`${JSON.stringify(machine, null, 2)}\n`);
+  } else {
+    const report = formatIssueReport(machine.results, {
+      branch: settings.branch,
+    });
+    process.stdout.write(report);
+    await appendSummary(report);
+  }
+  const failed = machine.results.filter(result => !result.ok);
+  for (const result of failed) {
+    process.stderr.write(
+      `::error title=Nightly E2E tracking issue not updated::${result.label} — ${result.error}\n`
+    );
+  }
+  if (failed.length > 0) process.exitCode = 1;
+}
+
+/**
  * CLI.
  *
  * @param {ReadonlyArray<string>} argv - Arguments
@@ -1482,6 +2105,9 @@ async function main(argv) {
     return;
   }
   const asJson = argv.includes("--json");
+  // The reporting half is opt-in at the call site, which is what keeps the
+  // default invocation — the required status check — provably read-only.
+  if (argv.includes("--report-issues")) return await reportIssues(asJson);
 
   /** @type {object} */
   let verdict;

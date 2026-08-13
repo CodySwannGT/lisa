@@ -206,6 +206,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4185f5083d8da5efa620e8641d6b75e0cb424edd563989c7432892872969797c",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "009f43bf5a07574adcad11c09c947d54e1a5877ff4ba51128dd4721ad6877a70",
+    "expo/create-only/.github/workflows/nightly-e2e-report.yml":
+      "df47b2e5c31d2bb4eee6fb979d8d25b3a5cea572e46be042a9b4c59fbe43af72",
     "expo/create-only/.zap/baseline.conf":
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
@@ -2203,7 +2205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
+      "e497015ea207f43492dcb8a32918066ff061588af71c684531f38dbc1f2ed89c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "86e9df17ea11fe0cd11d54f7fd60f016338e7fe28cdd4b07fab3b0b064b64ffb",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -2393,6 +2395,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
     ".github/workflows/nightly-e2e-health.yml": true,
+    ".github/workflows/nightly-e2e-report.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
     ".github/workflows/quality-rails.yml": true,
@@ -2597,6 +2600,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/.github/workflows/maestro-e2e.yml": true,
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml": true,
     "expo/create-only/.github/workflows/nightly-e2e-health.yml": true,
+    "expo/create-only/.github/workflows/nightly-e2e-report.yml": true,
     "expo/create-only/.zap/baseline.conf": true,
     "expo/create-only/babel.config.js": true,
     "expo/create-only/bdd/coverage-map.json": true,
@@ -8384,6 +8388,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-workflow.test.ts": true,
     "tests/integration/maestro-native-zero-flow.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
+    "tests/integration/nightly-e2e-report-workflow.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -8696,6 +8701,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-completeness.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-issues.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
