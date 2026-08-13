@@ -92,6 +92,21 @@ h2. Target Backend Environment
  Human confirmation replaces the automated annotation with a bare key or
  `Confirmed: <env>`. Skip only for doc/config/type-only tickets.]
 
+h2. Branch Plan
+[GENERATED, never hand-authored. Render only when the ticket has a Target
+ Backend Environment; omit entirely when `runtime_behavior_change = false`
+ (doc-only / config-only / type-only) or for an Epic/container — absence is
+ correct there. Derive per the `derived-branch-plan` rule: resolve the
+ environment, map it forward through `.lisa.config.json` `deploy.branches`,
+ and prove the branch exists on the remote. Do not accept caller-supplied
+ branches; recompute them. Exactly three lines:
+   Branch from: <branch>
+   PR into: <branch>
+   Derived from: Target Backend Environment <env> via .lisa.config.json deploy.branches
+ Both fields name the same branch by construction. A missing, ambiguous, or
+ non-unique mapping, or a branch absent from the remote, STOPS the write —
+ never default to `main` or the remote default to keep the write alive.]
+
 h2. Sign-in Required
 [Include this section ONLY if the work touches authenticated surfaces.
  Specify: the account/role to sign in as, where to get the credentials

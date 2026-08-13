@@ -18,6 +18,14 @@ const REUSABLE_YML = path.join(
   "maestro-native-e2e.yml"
 );
 
+/**
+ * The template expansion for the flows directory. It must appear ONLY in a
+ * step's `env:` map — never inside a script body, where GitHub substitutes it
+ * into the text before bash parses it and a caller-supplied value becomes
+ * executable shell.
+ */
+const FLOWS_DIR_EXPANSION = "${{ inputs.flows_dir }}";
+
 /** Shape of a single `workflow_call` input declaration. */
 interface WorkflowInput {
   default?: unknown;
@@ -70,9 +78,15 @@ describe("maestro-native flow_runner seam", () => {
     );
     const script = String(emulator?.with?.script ?? "");
     const runnerLine =
-      'if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}; fi';
+      'if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug "$FLOWS_DIR"; fi';
 
     expect(emulator?.env?.FLOW_RUNNER).toBe("${{ inputs.flow_runner }}");
+    // The flows dir reaches the script as an env var, never as a `${{ }}`
+    // expansion inside the script text — a template expansion is substituted
+    // before bash parses the line, which is a shell-injection seam on a
+    // reusable input a caller may wire to event-controlled data.
+    expect(emulator?.env?.FLOWS_DIR).toBe(FLOWS_DIR_EXPANSION);
+    expect(script).not.toContain(FLOWS_DIR_EXPANSION);
     expect(script).toContain(runnerLine);
     expect(
       script.split("\n").filter(line => line.includes("maestro test"))
@@ -85,11 +99,19 @@ describe("maestro-native flow_runner seam", () => {
     );
 
     expect(iosRun?.env?.FLOW_RUNNER).toBe("${{ inputs.flow_runner }}");
+    // Same injection seam as the Android arm: env var in, no `${{ }}` in the
+    // script text.
+    expect(iosRun?.env?.FLOWS_DIR).toBe(FLOWS_DIR_EXPANSION);
+    expect(iosRun?.run).not.toContain(FLOWS_DIR_EXPANSION);
     expect(iosRun?.run).toContain(
-      'bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}'
+      'bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"'
     );
-    expect(iosRun?.run).toContain(
-      "maestro test ${{ inputs.flows_dir }} \\\n    $MAESTRO_E2E_ARGS"
+    // Indentation-agnostic on purpose: the invocation now lives inside a
+    // `run_suite()` function so the driver-startup retry can call it twice,
+    // which shifts it two columns. What matters is that the flows dir and the
+    // assembled args still reach the same command, not how deep it sits.
+    expect(iosRun?.run.replace(/\n\s+/g, " ")).toContain(
+      'maestro test "$FLOWS_DIR" \\ $MAESTRO_E2E_ARGS'
     );
   });
 });

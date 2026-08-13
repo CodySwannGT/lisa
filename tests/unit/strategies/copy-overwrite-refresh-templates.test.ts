@@ -190,24 +190,28 @@ describe("CopyOverwriteStrategy", () => {
       expect(await fs.readFile(destFile, "utf-8")).toBe(VULNERABLE_GUARD);
     });
 
-    it("changes nothing when the flag is absent", async () => {
+    it("changes nothing host-owned when the flag is absent", async () => {
       // The default has to stay conservative — this is the behaviour that was
       // protecting customised host config all along.
+      //
+      // Lisa's own artifacts no longer need the flag: a version bump delivers
+      // them, which is what the flag was standing in for. The flag still exists
+      // for everything Lisa does not own, which is what this pins.
       const { srcFile, destFile } = await stage(
-        GUARD,
-        FIXED_GUARD,
-        VULNERABLE_GUARD
+        TSCONFIG_JSON,
+        '{"strict":true}',
+        "{}"
       );
 
       const result = await strategy.apply(
         srcFile,
         destFile,
-        GUARD,
+        TSCONFIG_JSON,
         createContext({ skipGitCheck: true })
       );
 
       expect(result.action).toBe("stale");
-      expect(await fs.readFile(destFile, "utf-8")).toBe(VULNERABLE_GUARD);
+      expect(await fs.readFile(destFile, "utf-8")).toBe("{}");
     });
   });
 });

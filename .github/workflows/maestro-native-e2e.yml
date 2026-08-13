@@ -139,6 +139,16 @@ on:
         required: false
         default: 90
         type: number
+      maestro_version:
+        description: 'Pin the Maestro CLI to an exact version (e.g. 2.7.0). Empty installs whatever get.maestro.mobile.dev currently serves. Deliberately empty by default — see the install step.'
+        required: false
+        default: ''
+        type: string
+      ios_driver_startup_timeout_ms:
+        description: 'MAESTRO_DRIVER_STARTUP_TIMEOUT for the iOS XCUITest driver, in milliseconds. Bounds how long Maestro waits for the driver to bind its port before abandoning the whole suite.'
+        required: false
+        default: 240000
+        type: number
     secrets:
       EXPO_TOKEN:
         description: 'Expo token for EAS builds. When absent, the whole suite skips with a warning.'
@@ -334,9 +344,43 @@ jobs:
           java-version: '17'
 
       - name: 🧰 Install Maestro
+        env:
+          MAESTRO_VERSION_PIN: ${{ inputs.maestro_version }}
         run: |
+          # `maestro_version` is empty by default, which installs whatever
+          # get.maestro.mobile.dev serves today. That is a deliberate choice,
+          # not an oversight: pinning on a single bad night would be an
+          # assumption dressed as a fix. The version REPORT step below is what
+          # makes the pin decision answerable from history instead of from a
+          # guess — and it prints the RESOLVED version, so a pin that fails to
+          # take shows up as a wrong number rather than as a silent no-op.
+          if [[ -n "$MAESTRO_VERSION_PIN" ]]; then
+            export MAESTRO_VERSION="$MAESTRO_VERSION_PIN"
+          fi
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: 🔎 Report toolchain versions
+        # To the JOB LOG and the step summary, never only to the debug
+        # artifact. TunnlAI could not test "did Maestro 2.8.0 regress iOS
+        # driver startup?" against its own history precisely because the
+        # version existed nowhere but inside artifacts that had aged out.
+        # A version you cannot read after the fact is a version you cannot
+        # correlate with a failure.
+        run: |
+          MAESTRO_RESOLVED=$(maestro --version 2>&1 | tail -1)
+          {
+            echo "### 🤖 Android toolchain"
+            echo ""
+            echo "| tool | version |"
+            echo "| --- | --- |"
+            echo "| Maestro CLI | \`${MAESTRO_RESOLVED}\` |"
+            echo "| Maestro pin requested | \`${MAESTRO_VERSION_PIN:-(unpinned)}\` |"
+            echo "| Java | \`$(java -version 2>&1 | head -1)\` |"
+            echo "| Node | \`$(node --version)\` |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          MAESTRO_VERSION_PIN: ${{ inputs.maestro_version }}
 
       - name: 🔓 Enable KVM for emulator
         run: |
@@ -398,6 +442,12 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           FLOW_RUNNER: ${{ inputs.flow_runner }}
+          # Passed through `env` rather than expanded into the script body.
+          # A `${{ }}` expansion is substituted into the script TEXT before
+          # bash parses it, so a caller wiring this reusable input to
+          # event-controlled data (a branch or issue title) could inject shell
+          # commands. As an env var the value is only ever data.
+          FLOWS_DIR: ${{ inputs.flows_dir }}
         with:
           api-level: 34
           arch: x86_64
@@ -436,7 +486,124 @@ jobs:
             adb shell input keyevent KEYCODE_HOME
             adb shell dumpsys power | grep -q 'mWakefulness=Awake'
             adb shell dumpsys window | grep -q 'isKeyguardShowing=false'
-            if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}; fi
+            if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug "$FLOWS_DIR"; fi
+
+      - name: 🔢 Count executed flows
+        # The iOS job carries a byte-identical copy of this step (with the
+        # platform swapped). Keep them in lockstep: the whole point is that a
+        # downstream reader can compare the two arms of ONE run, which it
+        # cannot do if the arms count differently. This file already duplicates
+        # `Apply maestro env` and `Assemble Maestro flags` between the arms for
+        # the same reason — a reusable workflow cannot call a composite action
+        # that lives beside it, because the checkout in these jobs is the
+        # CALLER's repository, not Lisa's.
+        #
+        # NOT `always()`: a suite CANCELLED by the job timeout has usually run
+        # many flows and simply never got to write its report, and reporting
+        # that as "executed 0" would libel a slow suite as a dead one.
+        id: flows
+        if: ${{ !cancelled() }}
+        # See the run step's note: the default `run` shell has no pipefail,
+        # and this step is tested by executing this exact text with pipefail
+        # ON. Pin the shell so what CI runs and what the test proves are the
+        # same program.
+        shell: bash
+        run: |
+          REPORT="maestro-android-report.xml"
+          if [[ -f "$REPORT" ]]; then
+            REPORT_PRESENT=true
+            # Count the `<testcase` elements the run actually wrote rather than
+            # trusting the aggregate `tests="N"` attribute. The elements are
+            # what happened; the attribute is what the writer claimed.
+            # `{ grep ... || true; }` around each match: a report with no
+            # matches is a legitimate READING — it is precisely the zero-flow
+            # case — not an error. Under `pipefail` an unabsorbed grep miss
+            # would abort this step before the assertion below ever got to
+            # name what happened, and the job would exit 1 with the generic
+            # message this whole change exists to replace.
+            EXECUTED=$( { grep -o '<testcase' "$REPORT" || true; } | wc -l | tr -d ' ')
+            FAILURES=$( { grep -m1 -o 'failures="[0-9]*"' "$REPORT" || true; } | tr -dc '0-9')
+          else
+            REPORT_PRESENT=false
+            EXECUTED=0
+            FAILURES=0
+          fi
+          EXECUTED=${EXECUTED:-0}
+          FAILURES=${FAILURES:-0}
+          {
+            echo "platform=android"
+            echo "report_present=$REPORT_PRESENT"
+            echo "executed=$EXECUTED"
+            echo "failures=$FAILURES"
+          } | tee maestro-android-flowcount.txt >> "$GITHUB_OUTPUT"
+          {
+            echo "### 🤖 Android flows executed: **$EXECUTED** (failures: $FAILURES)"
+            echo ""
+            echo "JUnit report written: \`$REPORT_PRESENT\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📤 Upload Maestro JUnit report
+        # Split out from the debug bundle below on purpose, and this is the
+        # ONLY upload that may use `if-no-files-found: error`.
+        #
+        # Flipping the combined upload to `error` would have been a placebo for
+        # the bug this step exists to catch: `error` fires only when NOTHING in
+        # the path matched, and in the failure that motivated this
+        # (TunnlAI/frontend run 31584986248) `maestro-debug/` existed and only
+        # the report was missing — so the combined upload would still have gone
+        # quietly green. A report-only path is what makes an absent report an
+        # error instead of a 5 KB artifact nobody opens.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-report
+          path: maestro-android-report.xml
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: 📤 Publish executed-flow count
+        # The COUNT IS THE ARTIFACT NAME, deliberately. Two properties fall out
+        # of that and neither is available any other way:
+        #
+        #  1. A downstream gate reads the count from the artifacts LIST — one
+        #     cheap API call, no download. The Android debug bundle alone runs
+        #     to ~40 MB; a merge gate that had to fetch it would never be
+        #     installed on the pull-request path.
+        #  2. The name outlives the bytes. Expired artifacts still appear in
+        #     the list, so "how many flows did that arm run three months ago?"
+        #     stays answerable after the payload is gone.
+        #
+        # A human reading the run page gets it for free: the artifact is
+        # literally called `maestro-android-flowcount-0` on a night that tested
+        # nothing.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-flowcount-${{ steps.flows.outputs.executed }}
+          path: maestro-android-flowcount.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 🚨 Assert flows executed
+        # The loud half. Without this a suite that ran zero flows and a suite
+        # that ran every flow with twenty failures both exit 1 and are
+        # indistinguishable in CI — which is how an entire arm can be switched
+        # off for a week without anyone noticing.
+        if: ${{ !cancelled() }}
+        env:
+          REPORT_PRESENT: ${{ steps.flows.outputs.report_present }}
+          EXECUTED: ${{ steps.flows.outputs.executed }}
+        shell: bash
+        run: |
+          if [[ "$REPORT_PRESENT" != "true" ]]; then
+            echo "::error title=ZERO FLOWS EXECUTED (android)::The Android arm TESTED NOTHING. maestro-android-report.xml was never written, so no flow reached its first assertion. This is NOT an ordinary flow failure — this run proved nothing about the app. Open the maestro-android-results artifact for why the runner never started a flow."
+            exit 1
+          fi
+          if [[ "$EXECUTED" -eq 0 ]]; then
+            echo "::error title=ZERO FLOWS EXECUTED (android)::The Android arm TESTED NOTHING. maestro-android-report.xml records 0 executed flows. This is NOT an ordinary flow failure — this run proved nothing about the app."
+            exit 1
+          fi
+          echo "✅ Android executed $EXECUTED flow(s)."
 
       - name: 📤 Upload Maestro debug output
         if: always()
@@ -455,6 +622,14 @@ jobs:
           # showing what was on screen instead. Both native suites were
           # undiagnosable after the fact for exactly this reason.
           include-hidden-files: true
+          # `ignore` is CORRECT here and must stay. This bundle is at its most
+          # valuable on the runs where it is incomplete — a cancelled suite, a
+          # job that died before Maestro started — and erroring on those turns
+          # the one diagnostic upload into more noise on an already-failed job.
+          # The absent-report hole this used to leave is closed above, by the
+          # report-only upload (`if-no-files-found: error`) and the zero-flow
+          # assertion. Do not "fix" this line; fixing it here would restore a
+          # placebo and change nothing about what gets detected.
           if-no-files-found: ignore
           retention-days: 7
 
@@ -483,7 +658,13 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🧰 Install Maestro
+        env:
+          MAESTRO_VERSION_PIN: ${{ inputs.maestro_version }}
         run: |
+          # See the android job's copy for why this is unpinned by default.
+          if [[ -n "$MAESTRO_VERSION_PIN" ]]; then
+            export MAESTRO_VERSION="$MAESTRO_VERSION_PIN"
+          fi
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
@@ -507,6 +688,43 @@ jobs:
           xcrun simctl boot "$UDID" || true # already-booted is fine
           xcrun simctl bootstatus "$UDID"
           xcrun simctl install "$UDID" "$APP_PATH"
+          # Carried forward so the run step can recycle THIS simulator on a
+          # driver-startup retry instead of re-deriving it and possibly
+          # picking a different device mid-job.
+          SIM_NAME=$(xcrun simctl list devices --json \
+            | jq -r --arg u "$UDID" '[.devices[] | .[] | select(.udid==$u)][0].name')
+          SIM_OS=$(xcrun simctl list devices --json \
+            | jq -r --arg u "$UDID" '.devices | to_entries[] | select(.value[]?.udid==$u) | .key' | head -1)
+          {
+            echo "IOS_SIM_UDID=$UDID"
+            echo "IOS_APP_PATH=$APP_PATH"
+            echo "IOS_SIM_NAME=$SIM_NAME"
+            echo "IOS_SIM_OS=$SIM_OS"
+          } >> "$GITHUB_ENV"
+
+      - name: 🔎 Report toolchain versions
+        # To the JOB LOG, not only to the debug artifact — see the android
+        # job's copy. The iOS arm additionally records Xcode and the simulator
+        # OS because `macos-15` is an image GitHub re-rolls underneath us, and
+        # a driver-startup failure that correlates with an image change is
+        # indistinguishable from one that correlates with a CLI change unless
+        # both numbers are on the record for every run.
+        env:
+          MAESTRO_VERSION_PIN: ${{ inputs.maestro_version }}
+        run: |
+          MAESTRO_RESOLVED=$(maestro --version 2>&1 | tail -1)
+          {
+            echo "### 🍎 iOS toolchain"
+            echo ""
+            echo "| tool | version |"
+            echo "| --- | --- |"
+            echo "| Maestro CLI | \`${MAESTRO_RESOLVED}\` |"
+            echo "| Maestro pin requested | \`${MAESTRO_VERSION_PIN:-(unpinned)}\` |"
+            echo "| Xcode | \`$(xcodebuild -version 2>&1 | tr '\n' ' ')\` |"
+            echo "| macOS | \`$(sw_vers -productVersion)\` |"
+            echo "| Simulator | \`${IOS_SIM_NAME} / ${IOS_SIM_OS}\` |"
+            echo "| Driver startup budget | \`${{ inputs.ios_driver_startup_timeout_ms }} ms\` |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: 🧩 Apply maestro env
         # See the android job — E2E_* names keep the multiline inputs out of
@@ -558,18 +776,156 @@ jobs:
       - name: 📱 Run Maestro flows on simulator
         env:
           FLOW_RUNNER: ${{ inputs.flow_runner }}
+          # Passed through `env` rather than expanded into the script body.
+          # A `${{ }}` expansion is substituted into the script TEXT before
+          # bash parses it, so a caller wiring this reusable input to
+          # event-controlled data (a branch or issue title) could inject shell
+          # commands. As an env var the value is only ever data.
+          FLOWS_DIR: ${{ inputs.flows_dir }}
+          # An EXPLICIT, caller-overridable budget for the XCUITest driver's
+          # port bind. Leaving this unset does not mean "no opinion" — it means
+          # the CLI's built-in 120 s applies by accident, and when it expired on
+          # TunnlAI/frontend run 31584986248 the job discarded all 83 planned
+          # flows without a single one starting. 240 s is chosen to be
+          # unambiguously more than "the default was not enough" while still
+          # being a small fraction of the suite ceiling, so a genuinely wedged
+          # simulator still fails fast rather than burning the job timeout.
+          #
+          # Raising this is NOT a fix for a driver that never binds — it only
+          # buys a slow one more room. The retry below is what covers a driver
+          # that fails to come up at all.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: ${{ inputs.ios_driver_startup_timeout_ms }}
+        # EXPLICIT `shell: bash` is load-bearing, not style. The default `run`
+        # shell is `bash -e {0}` WITHOUT pipefail, and every suite invocation
+        # below is piped into `tee` — so without this the exit status read
+        # would be tee's (always 0) and a failed suite would report success.
+        shell: bash
         run: |
           # MAESTRO_E2E_ARGS is a flag list that needs word splitting.
           # shellcheck disable=SC2086
-          if [ -n "$FLOW_RUNNER" ]; then
-            bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS ${{ inputs.flows_dir }}
-          else
-            maestro test ${{ inputs.flows_dir }} \
-              $MAESTRO_E2E_ARGS \
-              --format junit \
-              --output maestro-ios-report.xml \
-              --debug-output maestro-debug
+          run_suite() {
+            if [ -n "$FLOW_RUNNER" ]; then
+              bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"
+            else
+              maestro test "$FLOWS_DIR" \
+                $MAESTRO_E2E_ARGS \
+                --format junit \
+                --output maestro-ios-report.xml \
+                --debug-output maestro-debug
+            fi
+          }
+
+          # Retry ONLY on driver startup, never on flow failures. A blanket
+          # retry would double a four-hour suite every time one assertion
+          # reds, and would also paper over the real regressions this suite
+          # exists to find. The signature below is the exception Maestro
+          # throws when the XCUITest runner never binds its port — the whole
+          # suite is lost before flow 1, so re-running it costs nothing that
+          # was not already lost.
+          DRIVER_FAILURE='IOSDriverTimeoutException|iOS driver not ready in time'
+
+          if run_suite 2>&1 | tee maestro-ios-run-1.log; then
+            exit 0
           fi
+
+          if ! grep -Eq "$DRIVER_FAILURE" maestro-ios-run-1.log; then
+            echo "::notice::Suite failed on flow results, not on driver startup — not retrying."
+            exit 1
+          fi
+
+          echo "::warning title=iOS driver failed to start::The XCUITest driver did not bind its port within ${MAESTRO_DRIVER_STARTUP_TIMEOUT}ms and NO flow executed. Recycling the simulator and retrying once."
+          xcrun simctl shutdown "$IOS_SIM_UDID" || true
+          xcrun simctl erase "$IOS_SIM_UDID" || true
+          xcrun simctl boot "$IOS_SIM_UDID"
+          xcrun simctl bootstatus "$IOS_SIM_UDID"
+          xcrun simctl install "$IOS_SIM_UDID" "$IOS_APP_PATH"
+
+          if run_suite 2>&1 | tee maestro-ios-run-2.log; then
+            echo "::notice title=iOS driver recovered on retry::The first attempt lost the driver; the retry ran the suite. Treat repeated warnings of this kind as a real defect, not as noise — see the flow-count artifact for what each attempt actually ran."
+            exit 0
+          fi
+          exit 1
+
+      - name: 🔢 Count executed flows
+        # Byte-identical to the android job's copy with the platform swapped —
+        # see the comment there for why the duplication is deliberate and why
+        # this is not `always()`.
+        id: flows
+        if: ${{ !cancelled() }}
+        # See the run step's note: the default `run` shell has no pipefail,
+        # and this step is tested by executing this exact text with pipefail
+        # ON. Pin the shell so what CI runs and what the test proves are the
+        # same program.
+        shell: bash
+        run: |
+          REPORT="maestro-ios-report.xml"
+          if [[ -f "$REPORT" ]]; then
+            REPORT_PRESENT=true
+            # `{ grep ... || true; }` around each match: a report with no
+            # matches is a legitimate READING — it is precisely the zero-flow
+            # case — not an error. Under `pipefail` an unabsorbed grep miss
+            # would abort this step before the assertion below ever got to
+            # name what happened, and the job would exit 1 with the generic
+            # message this whole change exists to replace.
+            EXECUTED=$( { grep -o '<testcase' "$REPORT" || true; } | wc -l | tr -d ' ')
+            FAILURES=$( { grep -m1 -o 'failures="[0-9]*"' "$REPORT" || true; } | tr -dc '0-9')
+          else
+            REPORT_PRESENT=false
+            EXECUTED=0
+            FAILURES=0
+          fi
+          EXECUTED=${EXECUTED:-0}
+          FAILURES=${FAILURES:-0}
+          {
+            echo "platform=ios"
+            echo "report_present=$REPORT_PRESENT"
+            echo "executed=$EXECUTED"
+            echo "failures=$FAILURES"
+          } | tee maestro-ios-flowcount.txt >> "$GITHUB_OUTPUT"
+          {
+            echo "### 🍎 iOS flows executed: **$EXECUTED** (failures: $FAILURES)"
+            echo ""
+            echo "JUnit report written: \`$REPORT_PRESENT\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📤 Upload Maestro JUnit report
+        # See the android job's copy: report-only path, so an ABSENT report is
+        # an error rather than a quiet 5 KB artifact.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-report
+          path: maestro-ios-report.xml
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: 📤 Publish executed-flow count
+        # The count is the artifact NAME on purpose — see the android copy.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-flowcount-${{ steps.flows.outputs.executed }}
+          path: maestro-ios-flowcount.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 🚨 Assert flows executed
+        # The loud half — see the android copy.
+        if: ${{ !cancelled() }}
+        env:
+          REPORT_PRESENT: ${{ steps.flows.outputs.report_present }}
+          EXECUTED: ${{ steps.flows.outputs.executed }}
+        shell: bash
+        run: |
+          if [[ "$REPORT_PRESENT" != "true" ]]; then
+            echo "::error title=ZERO FLOWS EXECUTED (ios)::The iOS arm TESTED NOTHING. maestro-ios-report.xml was never written, so no flow reached its first assertion. This is NOT an ordinary flow failure — this run proved nothing about the app. Open the maestro-ios-results artifact for why the runner never started a flow."
+            exit 1
+          fi
+          if [[ "$EXECUTED" -eq 0 ]]; then
+            echo "::error title=ZERO FLOWS EXECUTED (ios)::The iOS arm TESTED NOTHING. maestro-ios-report.xml records 0 executed flows. This is NOT an ordinary flow failure — this run proved nothing about the app."
+            exit 1
+          fi
+          echo "✅ iOS executed $EXECUTED flow(s)."
 
       - name: 📤 Upload Maestro debug output
         if: always()
@@ -578,9 +934,13 @@ jobs:
           name: maestro-ios-results
           path: |
             maestro-ios-report.xml
+            maestro-ios-run-1.log
+            maestro-ios-run-2.log
             maestro-debug
           # See the Android upload above: `maestro-debug/.maestro/` is hidden,
           # and without this the artifact is the junit XML and nothing else.
           include-hidden-files: true
+          # `ignore` is correct here and must stay — see the android copy for
+          # why flipping it would be a placebo.
           if-no-files-found: ignore
           retention-days: 7
