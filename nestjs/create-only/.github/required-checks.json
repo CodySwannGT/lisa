@@ -1,9 +1,8 @@
 {
   "_readme": [
     "See typescript/create-only/.github/required-checks.json in Lisa for the full rationale. In short: GitHub counts a SKIPPED required status check as SATISFIED, so a `skip_jobs` token that silences a required context makes the merge gate decorative.",
-    "This expo seed declares the three tokens the shipped ci.yml skips. Every one of them is currently NOT ruleset-required, so nothing here is a false green — but the declaration exists so that the day one of them BECOMES required, the guard says so instead of the gate quietly going hollow.",
+    "This nestjs seed declares the three tokens the shipped ci.yml skips. Every one of them is currently NOT ruleset-required, so nothing here is a false green — but the declaration exists so that the day one of them BECOMES required, the guard says so instead of the gate quietly going hollow.",
     "Transcribe `required_contexts` byte for byte from your ruleset and keep it current with `--remote`.",
-    "The nightly-gate context is listed because Lisa ships expo/github-rulesets/nightly-e2e-health.json requiring it on dev. No skip_jobs token silences it today, so nothing is a false green — it is here so that the day one does, the guard says so instead of staying quiet.",
     "Lisa's quality.yml runs the offline arm of this guard on every pull request. This seed ships `\"enforcement\": \"warn\"` because Lisa cannot know which contexts YOUR ruleset requires: findings are reported in the job summary and the build still passes, EXCEPT a proven false green (`skipped_required_check`), which blocks in every mode. Review the findings, then DELETE the `enforcement` key so the guard can block.",
     "`skip_jobs` is matched as an exact comma-delimited token and GitHub Actions expression syntax has no string-replace, so write the list with no spaces: `skip_jobs: 'a,b'`, never `skip_jobs: 'a, b'`. A spaced token matches nothing and the job runs — this guard reports that as `whitespace_in_skip_token`."
   ],
@@ -25,8 +24,7 @@
     "🔍 Quality Checks / 🔒 Security Scan",
     "🔍 Quality Checks / 🧪 Run Unit Tests",
     "🔍 Quality Checks / 🧪 Run Integration Tests",
-    "🔍 Quality Checks / 🔗 Work-Item Traceability",
-    "🌙 Nightly E2E Health / 🌙 Gate"
+    "🔍 Quality Checks / 🔗 Work-Item Traceability"
   ],
   "skip_job_declarations": {
     "test:e2e": {
@@ -34,7 +32,7 @@
         "🔍 Quality Checks / 🧪 Run E2E Tests"
       ],
       "ruleset_required": false,
-      "reason": "A fresh Expo project has no `test:e2e` script. Lisa's quality callee guards each job on script existence, so un-skipping it would produce a real run that succeeds having tested nothing — a worse false green than the skip. Not a required context, so skipping removes a check rather than faking one."
+      "reason": "A NestJS API's end-to-end suite needs a database and a booted app, which the shipped ci.yml does not provision. Lisa's quality callee guards each job on script existence, so un-skipping it without that scaffolding would produce a run that succeeds having tested nothing — a worse false green than the skip. Not a required context, so skipping removes a check rather than faking one."
     },
     "playwright_e2e": {
       "suppressed_contexts": [
@@ -42,14 +40,14 @@
         "🔍 Quality Checks / 🎭 Playwright E2E Tests"
       ],
       "ruleset_required": false,
-      "reason": "Note this ONE token silences TWO jobs. Neither is a required context. Browser e2e is gated by the nightly suite plus `🌙 Nightly E2E Health`, not by a PR-time Playwright run — which is exactly why the old `playwright` ruleset template was deleted: it required a context PRs skip, and GitHub counts skipped as satisfied."
+      "reason": "Note this ONE token silences TWO jobs — the mapping is not a mechanical transform, which is why this file is a reviewed snapshot rather than something derived. Neither is a required context: a headless API has no browser surface for Playwright to drive."
     },
     "zap_baseline": {
       "suppressed_contexts": [
         "🔍 Quality Checks / 🕷️ OWASP ZAP Baseline"
       ],
       "ruleset_required": false,
-      "reason": "DAST needs a deployed target and is run against staging, not on every PR. Not a required context."
+      "reason": "The shipped ci.yml runs ZAP as its own `zap` job against a deployed target after quality passes, not inside the quality callee. Not a required context."
     }
   }
 }

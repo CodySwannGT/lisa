@@ -49,7 +49,6 @@ interface GuardModule {
     snapshot: readonly string[],
     live: readonly string[]
   ): Violation[];
-  runGuard(argv: readonly string[]): { violations: Violation[] };
 }
 
 const REQUIRED = "🔍 Quality Checks / 🧪 Run E2E Tests";
@@ -336,6 +335,7 @@ describe("check-skipped-required-checks", () => {
   describe("the shipped seeds are coherent against the shipped ci.yml templates", () => {
     it.each([
       ["expo", "expo/create-only", "expo/create-only"],
+      ["nestjs", "nestjs/create-only", "nestjs/create-only"],
       ["typescript", "typescript/create-only", "typescript/create-only"],
     ])(
       "%s: its required-checks.json declares every token its ci.yml skips",

@@ -181,6 +181,118 @@ describe("quality.yml reusable workflow", () => {
         "${{ !contains(format(',{0},', inputs.skip_jobs), ',test:e2e,') }}"
       );
     });
+
+    // #2427: the sentinel-comma idiom matches EXACT bytes, and GitHub Actions
+    // expression syntax has no string-replace function to trim with — the
+    // available string functions are contains/startsWith/endsWith/format/join/
+    // toJSON/fromJSON/hashFiles. So a spaced list cannot be normalized in the
+    // workflow, and the constraint is documented at the input instead. These
+    // cases pin which way the resulting mistake falls: CLOSED, meaning the job
+    // runs and nothing unverified ships. If a future change makes a spaced
+    // token skip MORE than an unspaced one, that is a hole and this fails.
+    describe("whitespace in the skip list (#2427)", () => {
+      const SENTINEL =
+        /!contains\(format\(',\{0\},', inputs\.skip_jobs\), '(?<needle>[^']*)'\)/u;
+
+      /**
+       * Evaluates a job's shipped `if:` the way GitHub Actions would.
+       *
+       * Derived from the workflow's own expression rather than re-implemented,
+       * so the test cannot drift away from what actually ships.
+       *
+       * @param job Parsed workflow job.
+       * @param skipJobs The `skip_jobs` input value a caller passed.
+       * @returns True when the job would RUN.
+       */
+      function jobRuns(
+        job: WorkflowJob | undefined,
+        skipJobs: string
+      ): boolean {
+        const needle = SENTINEL.exec(job?.if ?? "")?.groups?.needle;
+        if (needle === undefined) {
+          throw new Error(`no sentinel-comma guard in: ${String(job?.if)}`);
+        }
+        return !`,${skipJobs},`.includes(needle);
+      }
+
+      it("'test,test:e2e' — written correctly, skips both", () => {
+        expect(jobRuns(workflow.jobs.test, "test,test:e2e")).toBe(false);
+        expect(jobRuns(workflow.jobs.test_e2e, "test,test:e2e")).toBe(false);
+      });
+
+      it("'test, test:e2e' — the space makes test:e2e RUN anyway (fails closed)", () => {
+        expect(jobRuns(workflow.jobs.test, "test, test:e2e")).toBe(false);
+        expect(jobRuns(workflow.jobs.test_e2e, "test, test:e2e")).toBe(true);
+      });
+
+      it("' test ' — padded on both sides, skips nothing at all", () => {
+        expect(jobRuns(workflow.jobs.test, " test ")).toBe(true);
+        expect(jobRuns(workflow.jobs.lint, " test ")).toBe(true);
+      });
+
+      it("documents the constraint at the input, in both workflows", () => {
+        // The fix that cannot be written in expression syntax has to be
+        // written where the operator types the value.
+        for (const parsed of [workflow, railsWorkflow]) {
+          expect(
+            parsed.on.workflow_call?.inputs?.skip_jobs?.description
+          ).toMatch(/NO SPACES/u);
+        }
+      });
+    });
+  });
+
+  // #2426: Lisa shipped the guard, the npm scripts and a seeded declaration,
+  // but no workflow ran it — so adopters had to wire it by hand and none did.
+  describe("the skipped-required-check guard is actually invoked", () => {
+    it("runs the OFFLINE arm as a job on every pull request", () => {
+      const job = workflow.jobs.skipped_required_checks;
+      expect(job).toBeDefined();
+      expect(job?.if).toBe(
+        "${{ !contains(format(',{0},', inputs.skip_jobs), ',skipped_required_checks,') }}"
+      );
+      const run = job?.steps?.map(step => step.run ?? "").join("\n") ?? "";
+      expect(run).toContain("node scripts/check-skipped-required-checks.mjs");
+      // The enforced pull-request path may not depend on network or `gh` auth:
+      // a flaky gate gets skipped, and a skipped gate is the false-green class
+      // this guard exists to refuse. The remote arm runs on a schedule instead.
+      expect(run).not.toContain("--remote");
+    });
+
+    it("passes rather than reddens when the script or the snapshot is absent", () => {
+      const run =
+        workflow.jobs.skipped_required_checks?.steps
+          ?.map(step => step.run ?? "")
+          .join("\n") ?? "";
+      expect(run).toContain(
+        "[ ! -f scripts/check-skipped-required-checks.mjs ]"
+      );
+      expect(run).toContain("[ ! -f .github/required-checks.json ]");
+    });
+
+    it("runs the REMOTE arm on a schedule, because offline snapshots rot", () => {
+      const drift = yaml.load(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "typescript",
+            CREATE_ONLY_DIR,
+            ...GITHUB_WORKFLOWS_PARTS,
+            "required-checks-drift.yml"
+          ),
+          "utf8"
+        )
+      ) as { on?: Record<string, unknown>; jobs?: Record<string, WorkflowJob> };
+      expect(drift.on).toHaveProperty("schedule");
+      // Never on pull_request: a network-dependent check must not be able to
+      // wedge a merge.
+      expect(drift.on).not.toHaveProperty("pull_request");
+      const run =
+        drift.jobs?.drift?.steps?.map(step => step.run ?? "").join("\n") ?? "";
+      expect(run).toContain(
+        "node scripts/check-skipped-required-checks.mjs --remote"
+      );
+    });
   });
 
   describe("template skip_jobs defaults", () => {
