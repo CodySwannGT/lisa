@@ -173,6 +173,40 @@ describe("block-no-verify.sh", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    // git accepts `--config-env <name>=<envvar>` as two tokens as well as one.
+    // Guarding only the `=` spelling left the separate form to fall through to
+    // the hooksPath allowlist below, which reads the trailing word as a PATH —
+    // so naming the environment variable `.husky` or `.githooks` walked
+    // straight through the allowlist while the variable itself held /dev/null.
+    // Verified against real git: `env '.husky=/dev/null' git --config-env
+    // core.hooksPath=.husky config --get core.hooksPath` prints /dev/null.
+    it.each([".husky", ".githooks", "HOOKS"])(
+      "blocks the separate-token --config-env core.hooksPath=%s",
+      envVar => {
+        const { status } = runHook(
+          "Bash",
+          `git --config-env core.hooksPath=${envVar} commit -m bypass`
+        );
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it("blocks the separate-token form spelled in mixed case", () => {
+      const { status } = runHook(
+        "Bash",
+        "git --config-env CORE.HOOKSPATH=.husky commit -m bypass"
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("allows separate-token --config-env naming an unrelated setting", () => {
+      const { status } = runHook(
+        "Bash",
+        "git --config-env user.name AUTHOR commit -m normal"
+      );
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
     it.each([".no-hooks-here", "build/empty", "..", "/"])(
       "blocks core.hooksPath redirected to %s",
       hooksPath => {

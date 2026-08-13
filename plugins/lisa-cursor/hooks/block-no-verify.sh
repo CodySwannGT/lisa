@@ -186,6 +186,20 @@ for i, token in enumerate(normalized_tokens):
         spec = token.split("=", 1)[1]
         if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
             sys.exit(1)
+    # git accepts `--config-env <name>=<envvar>` as TWO tokens as well as one,
+    # and guarding only the `=` spelling was worse than missing the separate
+    # form outright: the trailing `core.hooksPath=.husky` then fell through to
+    # the allowlist above, which reads `.husky` as a PATH and permits it. But
+    # here it is an ENVIRONMENT VARIABLE NAME, and `env '.husky=/dev/null' git
+    # --config-env core.hooksPath=.husky` really does resolve hooksPath to
+    # /dev/null. The allowlist was being used as the bypass.
+    #
+    # Checked at the `--config-env` token, which the loop reaches first, so the
+    # refusal happens before the value token can be mistaken for a path.
+    if lowered == "--config-env" and i + 1 < len(normalized_tokens):
+        spec = normalized_tokens[i + 1]
+        if spec.split("=", 1)[0].strip().strip("'\"").lower() == "core.hookspath":
+            sys.exit(1)
     # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
     # GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config the
     # same way `-c core.hooksPath=...` does — env-var-style assignments ahead of

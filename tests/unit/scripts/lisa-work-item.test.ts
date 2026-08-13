@@ -270,9 +270,25 @@ function wedgeRebase(fixture: Fixture, branch: string): void {
     throw new Error("unexpected rebase head-name");
 }
 
-/** Path to the worktree-private binding state a successful bind/link writes. */
+/**
+ * Path to the worktree-private binding state a successful link/bind writes.
+ *
+ * Resolved through `git rev-parse --git-path`, the same call the CLI itself
+ * uses, rather than hardcoding `.git/lisa/`. In a LINKED worktree those are not
+ * the same place — the real file lands in `.git/worktrees/<name>/lisa/` — so a
+ * hardcoded path would quietly stop describing the thing under test the moment
+ * these fixtures grew a linked worktree, which is precisely the environment
+ * this binding exists to serve.
+ */
 function stateFilePath(fixture: Fixture): string {
-  return path.join(fixture.root, ".git", "lisa", "work-item.json");
+  return path.join(
+    fixture.root,
+    git(
+      fixture.root,
+      ["rev-parse", "--git-path", "lisa/work-item.json"],
+      fixture.env
+    )
+  );
 }
 
 /** Bind the work item on the current branch and add one tracked commit. */
@@ -409,7 +425,7 @@ describe("work-item binding and commit messages", () => {
 
     const bound = command(fixture, ["bind", "acme/widgets#42"]);
     expect(bound.status).toBe(0);
-    const stateFile = path.join(fixture.root, ".git", "lisa", "work-item.json");
+    const stateFile = stateFilePath(fixture);
     expect(JSON.parse(readFileSync(stateFile, "utf8"))).toMatchObject({
       branch: "feature/tracked",
       provider: "github",
