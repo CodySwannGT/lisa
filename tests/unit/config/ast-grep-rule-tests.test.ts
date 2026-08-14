@@ -39,6 +39,8 @@ const RULE_TEST_BIN = "ast-grep test";
  * notice stand in for the invocation.
  */
 const RULE_TEST_INVOCATION = `${LOCAL_BIN_DIR}/${RULE_TEST_BIN}`;
+/** The CLI the step falls back to when the project has not installed one. */
+const PINNED_CLI = "@ast-grep/cli@0.40.4";
 const RULE_TEST_GATE =
   "steps.check_rule_tests.outputs.has_rule_tests == 'true'";
 
@@ -407,8 +409,10 @@ describe("ast-grep rule tests are wired into CI", () => {
     // Depending on the binary instead removes the split entirely.
     expect(runStep.run).not.toContain(RULE_TEST_SCRIPT);
     expect(runStep.run).toContain(RULE_TEST_INVOCATION);
-    // Pinned, so a consumer with no local CLI still runs a known version.
-    expect(runStep.run).toContain("@ast-grep/cli@");
+    // The exact pin, not merely the package name: a fallback that floats is
+    // a different guarantee from one that runs a known version, and the
+    // difference has to be visible here rather than in a consumer's CI.
+    expect(runStep.run).toContain(PINNED_CLI);
   });
 
   it("does not gate the rule tests on anything a host project must supply", () => {
