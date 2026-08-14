@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.7](https://github.com/CodySwannGT/lisa/compare/v3.14.6...v3.14.7) (2026-08-14)
+
+
+### Bug Fixes
+
+* **ci:** move the permissions floor onto jobs so traceability can inherit ([f5ce729](https://github.com/CodySwannGT/lisa/commit/f5ce7294b5b36dc83f187c60d949eadfd305c2bf)), closes [PropSwapLLC/backend#976](https://github.com/PropSwapLLC/backend/issues/976) [geminisportsai/backend-v2#2999](https://github.com/geminisportsai/backend-v2/issues/2999) [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [#1769](https://github.com/CodySwannGT/lisa/issues/1769) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [CodySwannGT/lisa#2571](https://github.com/CodySwannGT/lisa/issues/2571)
+
 ### [3.14.6](https://github.com/CodySwannGT/lisa/compare/v3.14.5...v3.14.6) (2026-08-14)
 
 ### [3.14.5](https://github.com/CodySwannGT/lisa/compare/v3.14.4...v3.14.5) (2026-08-14)
