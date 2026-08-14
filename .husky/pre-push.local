@@ -1,3 +1,33 @@
+# Leftover merge-conflict marker gate (issue #2552).
+#
+# PR #2548 pushed six generated parity SKILL.md files containing literal
+# `<<<<<<< HEAD` blocks and passed every gate: the parity gate greps for the pin
+# VALUE (present inside the conflict block), the test suite parses frontmatter
+# and never the body, and `🧩 Plugin artifacts match source` compared two copies
+# that were broken identically. Nothing read the bytes. This does.
+#
+# Tracked files only, and only a COMPLETE `<<<<<<< / ======= / >>>>>>>` triple
+# counts, so an untracked scratch file or prose quoting one side of a conflict
+# cannot block a push.
+
+echo "🩹 Checking for leftover merge-conflict markers..."
+
+CONFLICT_MARKER_OUT="$(mktemp)"
+node scripts/check-conflict-markers.mjs >"$CONFLICT_MARKER_OUT" 2>&1
+CONFLICT_MARKER_EXIT=$?
+
+if [ "$CONFLICT_MARKER_EXIT" -ne 0 ]; then
+  echo "❌ Push blocked: leftover merge-conflict markers in tracked files:"
+  cat "$CONFLICT_MARKER_OUT"
+  echo ""
+  echo "Finish the merge/rebase before pushing. Never resolve this with"
+  echo "--no-verify: the markers are in the bytes that would ship."
+  rm -f "$CONFLICT_MARKER_OUT"
+  exit 1
+fi
+echo "✅ No leftover conflict markers"
+rm -f "$CONFLICT_MARKER_OUT"
+
 # Third-party plugin parity drift gate (issue #1955).
 #
 # Repo-local (this file is the .husky/pre-push extension slot, so it survives
@@ -78,3 +108,41 @@ else
   exit 1
 fi
 rm -f "$PARITY_DRIFT_ERR"
+
+# Routing-artifact validity gate (issue #2552).
+#
+# The block above reads skill FRONTMATTER only. `parity/plugin-routing/*.json`
+# is the other half of the same contract — and the pre-flight gate for
+# `implement-plugin-parity` — so until now it could sit red indefinitely while
+# every push reported green. Three consecutive safety-net refreshes moved the
+# `synced-from` stamp and left the artifact behind for exactly that reason.
+#
+# Gate semantics:
+#   - exit 1 (an artifact violates the contract) → BLOCK. Wrong on any machine.
+#   - exit 2 (usage/operational: the routing dir is gone, a filesystem error)
+#     → BLOCK. A gate that cannot run is not a gate that passed; treating that
+#     as a warning is how a gate becomes vacuous in the first place.
+#
+# "No plugin cache on this machine" is NOT exit 2 here. The validator reports
+# an unconfirmable version as `unverifiable` and still exits 0, so a fresh clone
+# or CI runner keeps every schema/routing/coverage gate and loses only the
+# version comparison it genuinely cannot make.
+
+echo "🧭 Validating plugin routing artifacts..."
+
+ROUTING_VALIDATE_OUT="$(mktemp)"
+node scripts/plugin-routing-validate.mjs >"$ROUTING_VALIDATE_OUT" 2>&1
+ROUTING_VALIDATE_EXIT=$?
+
+if [ "$ROUTING_VALIDATE_EXIT" -ne 0 ]; then
+  echo "❌ Push blocked: plugin routing artifacts failed validation:"
+  cat "$ROUTING_VALIDATE_OUT"
+  echo ""
+  echo "Fix now and include it in this push: bring each artifact's"
+  echo "upstreamVersion and routing block back in line with its skill pin."
+  echo "Details: node scripts/plugin-routing-validate.mjs"
+  rm -f "$ROUTING_VALIDATE_OUT"
+  exit 1
+fi
+echo "✅ $(tail -n 1 "$ROUTING_VALIDATE_OUT")"
+rm -f "$ROUTING_VALIDATE_OUT"

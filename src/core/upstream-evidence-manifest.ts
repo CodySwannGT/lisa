@@ -2070,6 +2070,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
       "b98f0e4789ce903ebf704abaa649c6d4a4721ce0cf2b5caf4ccddeb04fc0d5e0",
+    "scripts/check-conflict-markers.mjs":
+      "e2b25dd56eb3742f074ae5b8ece13ef194518e70e5bac4c2f49e3b819d3f7dc4",
     "scripts/check-duplicate-versions.mjs":
       "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
     "scripts/check-learnings-budget.ts":
@@ -2169,7 +2171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/plugin-parity-drift.mjs":
       "34235c4c75c8735aaca96e3e0a52073ba1dee8bad54c85af01c3cf9912d0ea57",
     "scripts/plugin-routing-validate.mjs":
-      "eb38cf139eb04a27dd6493ff6f766945060d5bf73a35856bd3da4c8e4110e2ba",
+      "ddb2fcd950cbd66ca642e946aef33fd0bb2e7c4081ee96c19d4628a7d45694b8",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/remote-agent-aws-setup.sh":
@@ -8063,6 +8065,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/merge/.claude/settings.json": true,
     "scratchpad/decision-points.sh": true,
     "scripts/build-plugins.sh": true,
+    "scripts/check-conflict-markers.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-plugins-sync.sh": true,
@@ -8832,6 +8835,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
+    "tests/unit/hooks/parity-push-gate.test.ts": true,
     "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-body-quote-state.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-continuation.test.ts": true,
@@ -8895,6 +8899,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd/sources.ts": true,
     "tests/unit/scripts/bdd/support.ts": true,
     "tests/unit/scripts/build-cursor-hooks-json.test.ts": true,
+    "tests/unit/scripts/check-conflict-markers.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions-helpers.ts": true,
     "tests/unit/scripts/check-duplicate-versions.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
@@ -8934,6 +8939,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
+    "tests/unit/scripts/plugin-routing-validate-cache-visibility.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-helpers.ts": true,
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,
