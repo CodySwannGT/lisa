@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.4](https://github.com/CodySwannGT/lisa/compare/v3.14.3...v3.14.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* **maestro:** stop leg_order escalating the caller's grant and failing on a flaky API ([37f1c5b](https://github.com/CodySwannGT/lisa/commit/37f1c5b7fd2e303d5136cc74a025eb4bd870db39)), closes [#2563](https://github.com/CodySwannGT/lisa/issues/2563) [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [CodySwannGT/lisa#2566](https://github.com/CodySwannGT/lisa/issues/2566)
+
 ### [3.14.3](https://github.com/CodySwannGT/lisa/compare/v3.14.2...v3.14.3) (2026-08-14)
 
 
