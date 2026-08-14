@@ -28,6 +28,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import { withoutOwnershipHeader } from "../../../scripts/materialize-copy-overwrite.mjs";
 
 // Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
 // runs measured at load ~115 with 38 agent worktrees present, without being
@@ -190,7 +191,14 @@ describe("the shipped wrapper", () => {
   it("is byte-identical to the reviewed original", () => {
     // Copies rot. The guards beside it get the same assertion for the same
     // reason: synced by the build, pinned by a test.
-    expect(readFileSync(SHIPPED, "utf8")).toBe(readFileSync(SOURCE, "utf8"));
+    //
+    // Minus the ownership header, which the build stamps on as it materializes
+    // the copy (#2547) — the shipped file is a copy-overwrite asset and has to
+    // say so, while the source here is the file maintainers edit and must not.
+    // Stripped with the generator's own function so the two cannot disagree.
+    expect(withoutOwnershipHeader(readFileSync(SHIPPED, "utf8"), SHIPPED)).toBe(
+      readFileSync(SOURCE, "utf8")
+    );
   });
 });
 

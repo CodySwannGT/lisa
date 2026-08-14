@@ -30,6 +30,11 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import {
+  hasOwnershipHeader,
+  withoutOwnershipHeader,
+} from "../../../scripts/materialize-copy-overwrite.mjs";
+
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
 
@@ -81,6 +86,32 @@ const GUARDS = [
   "block-direct-issue-create",
 ] as const;
 
+/**
+ * Everything the build materializes into `all/copy-overwrite/scripts/`.
+ *
+ * `sonar-secrets.sh` ships beside the guards but is not dispatched like one, so
+ * it stays out of `GUARDS` above — and had no byte-equality pin at all until
+ * the ownership stamp gave every generated copy a reason to be enumerated in
+ * one place. The dispatcher is here for the same reason: these seven plus the
+ * six ratchet copies are the thirteen assets #2547 is about, and a fourteenth
+ * added to the build without appearing here is the failure this list exists to
+ * make loud.
+ */
+const MATERIALIZED: readonly { shipped: string; source: string }[] = [
+  ...GUARDS.map(guard => ({
+    shipped: path.join(SHIPPED_HOOKS, `${guard}.sh`),
+    source: path.join(PLUGIN_HOOKS, `${guard}.sh`),
+  })),
+  {
+    shipped: path.join(SHIPPED_HOOKS, "sonar-secrets.sh"),
+    source: path.join(PLUGIN_HOOKS, "sonar-secrets.sh"),
+  },
+  {
+    shipped: SHIPPED_FALLBACK,
+    source: path.join(REPO_ROOT, SCRIPTS, FALLBACK_NAME),
+  },
+];
+
 const temporaries: string[] = [];
 
 afterEach(() => {
@@ -90,20 +121,47 @@ afterEach(() => {
 });
 
 describe("the guards a host project receives", () => {
-  it.each(GUARDS)("%s is byte-identical to the reviewed original", guard => {
-    // Copies rot. The remote-env scripts sat 74 lines behind their asset until
-    // exactly this assertion was added, so the shipped guard gets the same
-    // treatment as the ratchet: synced by the build, pinned by a test.
-    expect(readFileSync(path.join(SHIPPED_HOOKS, `${guard}.sh`), "utf8")).toBe(
-      readFileSync(path.join(PLUGIN_HOOKS, `${guard}.sh`), "utf8")
-    );
-  });
+  it.each(MATERIALIZED)(
+    "$shipped is byte-identical to the reviewed original",
+    ({ shipped, source }) => {
+      // Copies rot. The remote-env scripts sat 74 lines behind their asset until
+      // exactly this assertion was added, so the shipped guard gets the same
+      // treatment as the ratchet: synced by the build, pinned by a test.
+      //
+      // Compared with the ownership stamp stripped, using the generator's own
+      // stripper (#2547) — re-implementing the removal here would let the test
+      // keep passing against a stamp the build no longer writes.
+      expect(
+        withoutOwnershipHeader(readFileSync(shipped, "utf8"), shipped),
+        shipped
+      ).toBe(readFileSync(source, "utf8"));
+    }
+  );
 
-  it("ships the dispatcher unchanged too", () => {
-    expect(readFileSync(SHIPPED_FALLBACK, "utf8")).toBe(
-      readFileSync(path.join(REPO_ROOT, SCRIPTS, FALLBACK_NAME), "utf8")
-    );
-  });
+  it.each(MATERIALIZED)(
+    "$shipped states that it is replaced",
+    ({ shipped }) => {
+      // The direction the stripping above cannot see. A shipped guard that reads
+      // as editable is the expensive failure: a consumer repo hardened its
+      // block-no-verify.sh, the next sync reverted it, and the loss surfaced only
+      // because two of that repo's own tests started failing.
+      expect(hasOwnershipHeader(readFileSync(shipped, "utf8")), shipped).toBe(
+        true
+      );
+    }
+  );
+
+  it.each(MATERIALIZED)(
+    "$source, which maintainers edit, is not told it will be overwritten",
+    ({ source }) => {
+      // The other half of the contract. Moving the header upstream would have
+      // been the easy fix and a fresh instance of #2538's defect — these source
+      // files are durable, and a warning on them deters correct edits.
+      expect(hasOwnershipHeader(readFileSync(source, "utf8")), source).toBe(
+        false
+      );
+    }
+  );
 });
 
 /**

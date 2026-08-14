@@ -11,23 +11,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "6b198f088cd3cd862d4357fbb069b1ad5d3afeb7be594f2bf1ff603b092a8354",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
-      "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
+      "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
+      "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
+      "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
+      "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "3ff7255f395a9552366faaac34d383f4c95fecfb39882cd1d57854356422fe61",
+      "83a8b8108654086afb6a6f23a8f09f9f041eb2cd4094c5531fa7ab1f75e873dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
-      "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
+      "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "d9ea58150aa27e7f0aa9a4ef155ed446d30bdfc932d01c64e2b8ca211aa0de7b",
+      "1d4fbe135f1bb4e861d286a6512ed201d4522250dfe3f9eba6584bc5ff166a95",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
-      "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
+      "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -153,7 +153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-ui-standards/rules/no-direct-rn-imports.js":
       "e25d0c26e865ea72c4914a7c3f10ff92bd084efd04f8665c896b1d9eed923299",
     "expo/copy-overwrite/.easignore.extra":
-      "bb3cefcd1623ac81e4c04d565b2de9a0a7bb7fcd7b2878e860147eb0846a66b9",
+      "1d30dac09405c41e23f6212553abacea478d7759b69c18edac0c0053f00e0d37",
     "expo/copy-overwrite/eslint.config.ts":
       "889ff793099bb65f969c2ccdf1690c8748f20e489999c1a80ae160dfb19f0531",
     "expo/copy-overwrite/eslint.expo.ts":
@@ -1985,7 +1985,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-contents/scripts/lisa-mutation.sh":
       "ed4ab6e8b612adb14f6ae0b160cf044e06fd3d5f6089eb4681a7c6c02a0f2abe",
     "rails/copy-overwrite/.rubocop.yml":
-      "5da977f7ac17634ae6658edd273a4ab0f1b7641e9958d23147e493593964186a",
+      "641857d3540f8b5a4524e3815ce4e1162ab4010b0d8663b1edb2abdad41dbf09",
     "rails/copy-overwrite/.versionrc":
       "b6c4c0258819fa186a91d96cdeac7a017f36cfe1d2c59ccb69cff75c1a8598e0",
     "rails/copy-overwrite/Gemfile.lisa":
@@ -1993,31 +1993,31 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-find-by-sql-without-params.yml":
-      "8d47d388f1b7d5cce0d4e58a9455247a10ee93d4cca664e9169dd32b666b10d0",
+      "313278315d8c8b0c0b0d905d78d56640c29fa5e367fc020a16d1868f7e44be83",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-params-without-permit.yml":
-      "8d2d8e1316a1412028fcdf57e9163cc23efd17e2893cb206da8fdcd3e66e7065",
+      "87b1a9cabe0752a5b97c247cb9e0abfc737c2cde15ef3fee27a8e258d10db868",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-raw-sql-in-where.yml":
-      "e68126e681324dadae4748150a504a6eb8d26239514ab276d48f8f8232f4a948",
+      "5a60062a92ceede29dd091523c9e30def305075a229ebaf94cb611d8c2bb5f84",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-skip-before-action-without-scope.yml":
-      "f0b5164c4bcd4f811268fd2d729e795ffa0f136df1753e1ab6a2fca2ec963840",
+      "da03a58620aff4cb3b191e7ec78566438bf5cdd2366a5a3be667774d5f7e2bbe",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-unsafe-send.yml":
-      "b66774133fa7fe7cc62645e4f790e4e32bbfe718a6fc6bf38f3267d751a8f9cd",
+      "eb3eb2d96462f28d6815cf0261af2ed2b18e7258ec88a3338f8ae17c5741d583",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-update-columns.yml":
-      "29a68b4994bccb9605fa13efc20c50102d38dfd2dcd96a3bbf9eb01d67efd2da",
+      "5036436ebb4baa703987f3a818d0e33411daa07656611c334fb110316f98cd99",
     "rails/copy-overwrite/ast-grep/utils/.gitkeep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "rails/copy-overwrite/config/initializers/version.rb":
-      "fa664a84f407877b5ddbd3709a2352b30e4dc6fbce538a8503bad6c52448dc86",
+      "703bdfcceb031f38d19ddebe7ae3d432051f0d444ab7467b406ddd8e451ec9c7",
     "rails/copy-overwrite/lefthook.yml":
-      "28bb382b9171a04fb92ebafc1f1522b8639f5edc4fcffcc6940e7fba3460fb4e",
+      "3ae82d0a6ad86708d8ceaa1f9a3bbe12ef64e8fa12a0248bed5e3180bb431c68",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
+      "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
+      "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
+      "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2069,7 +2069,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "b98f0e4789ce903ebf704abaa649c6d4a4721ce0cf2b5caf4ccddeb04fc0d5e0",
+      "2ae01e074226393086369b8e7db807baa14ae61fe4f8aa89b149be0835d7e664",
     "scripts/check-conflict-markers.mjs":
       "e2b25dd56eb3742f074ae5b8ece13ef194518e70e5bac4c2f49e3b819d3f7dc4",
     "scripts/check-duplicate-versions.mjs":
@@ -2166,6 +2166,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
+    "scripts/materialize-copy-overwrite.mjs":
+      "3f8dea8027087b83d0f985dc070a529b5e62755643d946684d780b86c498a411",
     "scripts/migrate-deploy-order.sh":
       "77d909b4cbbfc05169a79168d7868600ea7f56f846feefb7d5121618c54800c3",
     "scripts/plugin-parity-drift.mjs":
@@ -2227,7 +2229,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "8dbddc0297ca574d150b3e669550320bd2df6e592c083317626f53a91f36d349",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "eb70191370c5481c8e1ec30bc1c19dac4611f678219c46012f5a32e49989af90",
+      "c6ea804e74b62ee11ec881909fb0d6fe7088e44e9af3d832fad91a7aa5df0d8b",
     "typescript/copy-overwrite/.github/dependabot.yml":
       "73330408894b35567b068dd12dcb2edd0b01235fd63547938c62ca0dbc0485e2",
     "typescript/copy-overwrite/.lintstagedrc.json":
@@ -2247,9 +2249,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep":
       "5068239f6c760759362d6a1cc83478d77eef0214fa7f4f23c8d1ce4b56f532c0",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml":
-      "9cd675cbba11457ba70c9c4f853f3e5cf652fe98c508075946f02bf045710ca6",
+      "cb3c9ba6ee7849f767f9c95423f271447254564dc97122a3c871c8d76c9f688b",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml":
-      "a662cb959ad5d96e4dda09d6dce1d69318e7c13f3d01787658184fd6075c2781",
+      "6ecf2527ded51d3ede76f80bb7f376e557bcf596523b5ca03e2afd2962a45d37",
     "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml":
       "a1c25176b326e26070870d65dcd6e4651880f4121563fc0082022e7f525e5e1b",
     "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member.yml":
@@ -2273,7 +2275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "1bcd3f065465731df4eb02b93b73a0162d287e365ed1a396138d97d71d403b31",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
+      "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "3c037e2f0d2c7ae48d3b8c798522847910daef671a787393997fc71107cc7ead",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
@@ -2281,9 +2283,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "a6041930ca4536f3a76e4f54976ff846ab575f5f07a2356722eedcb06795e684",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
+      "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
+      "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
@@ -8113,6 +8115,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
+    "scripts/materialize-copy-overwrite.mjs": true,
     "scripts/migrate-deploy-order.sh": true,
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
