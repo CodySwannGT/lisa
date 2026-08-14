@@ -225,14 +225,22 @@ export function terminalLifecycleLabels(config) {
  * issue #2539 describes, where only the auto-complete direction was ever
  * repaired and the reverse rotted unobserved.
  *
+ * `excludeLabels` removes labels from consideration entirely. Callers MUST pass
+ * the untrusted set here: `open-label-closed-state` is a repair direction that
+ * WRITES (it advances the label to the terminal `done` role), so without this a
+ * bot-applied label the classifier just refused to believe would still drive a
+ * real label write — the guard would launder the very input it rejected.
+ *
  * @param {{
  *   readonly labels?: readonly (string | { readonly name?: string })[]
  *   readonly state?: string
  *   readonly terminalLabels?: readonly string[]
+ *   readonly excludeLabels?: readonly string[]
  * }} input
  * @returns {{
  *   readonly drifts: readonly { direction: string, label: string }[]
  *   readonly directionsWalked: readonly string[]
+ *   readonly excluded: readonly string[]
  * }}
  */
 export function detectLifecycleDrift(input = {}) {
@@ -241,12 +249,23 @@ export function detectLifecycleDrift(input = {}) {
       String(label).trim().toLowerCase()
     )
   );
+  const excluded = new Set(
+    (Array.isArray(input.excludeLabels) ? input.excludeLabels : []).map(label =>
+      String(label).trim().toLowerCase()
+    )
+  );
   const closed =
     String(input.state ?? "")
       .trim()
       .toLowerCase() === "closed";
-  const lifecycleLabels = normalizeLabelNames(input.labels).filter(
+  const allLifecycleLabels = normalizeLabelNames(input.labels).filter(
     isLifecycleLabel
+  );
+  const skipped = allLifecycleLabels.filter(label =>
+    excluded.has(label.trim().toLowerCase())
+  );
+  const lifecycleLabels = allLifecycleLabels.filter(
+    label => !excluded.has(label.trim().toLowerCase())
   );
 
   const drifts = lifecycleLabels.flatMap(label => {
@@ -260,7 +279,11 @@ export function detectLifecycleDrift(input = {}) {
     return [];
   });
 
-  return { drifts, directionsWalked: LIFECYCLE_DRIFT_DIRECTIONS };
+  return {
+    drifts,
+    directionsWalked: LIFECYCLE_DRIFT_DIRECTIONS,
+    excluded: skipped,
+  };
 }
 
 /**
@@ -450,10 +473,14 @@ async function main() {
     issueAuthor: issue.user ?? issue.author,
     windowSeconds: payload.windowSeconds,
   });
+  // Untrusted labels are excluded here rather than at the call site: the
+  // `open-label-closed-state` direction WRITES, so a caller that forgot to pass
+  // them would launder a label the classifier just rejected into a real write.
   const drift = detectLifecycleDrift({
     labels: issue.labels,
     state: issue.state,
     terminalLabels: terminalLifecycleLabels(payload.config),
+    excludeLabels: trust.untrusted.map(entry => entry.label),
   });
 
   process.stdout.write(`${JSON.stringify({ ...trust, ...drift }, null, 2)}\n`);

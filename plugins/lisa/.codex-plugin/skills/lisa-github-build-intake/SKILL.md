@@ -178,14 +178,38 @@ If none of the configured role labels exist on the repo → label convention not
 Before treating any candidate's lifecycle labels as meaningful, resolve which ones are trustworthy:
 
 ```bash
-gh api "repos/<org>/<repo>/issues/<n>" > /tmp/lisa-issue.json
-gh api "repos/<org>/<repo>/issues/<n>/timeline?per_page=100" --paginate > /tmp/lisa-timeline.json
-jq -n --slurpfile i /tmp/lisa-issue.json --slurpfile t /tmp/lisa-timeline.json \
-      --slurpfile c .lisa.config.json \
+TRUST_DIR=$(mktemp -d)
+trap 'rm -rf "$TRUST_DIR"' EXIT
+
+gh api "repos/<org>/<repo>/issues/<n>" > "$TRUST_DIR/issue.json"
+
+# --paginate emits ONE ARRAY PER PAGE. Reading `$t[0]` would pass only page one,
+# silently dropping later label events — the newest of which is exactly the
+# application this classifier keys on. --slurp + `add` flattens all pages.
+gh api "repos/<org>/<repo>/issues/<n>/timeline?per_page=100" --paginate --slurp \
+  > "$TRUST_DIR/pages.json"
+jq 'add // []' "$TRUST_DIR/pages.json" > "$TRUST_DIR/timeline.json"
+
+# Resolve config the SAME way `read_role` does: the local file overrides the
+# global one key by key. Reading only `.lisa.config.json` would resolve a stale
+# terminal `done` label for any project that overrides it locally, and
+# `lisa-repair-intake` WRITES on the drift direction that mistake produces.
+# Both files are optional — a missing one must not abort the cycle.
+jq -s '(.[0] // {}) * (.[1] // {})' \
+  <(cat .lisa.config.json 2>/dev/null || echo '{}') \
+  <(cat .lisa.config.local.json 2>/dev/null || echo '{}') \
+  > "$TRUST_DIR/config.json"
+
+jq -n --slurpfile i "$TRUST_DIR/issue.json" \
+      --slurpfile t "$TRUST_DIR/timeline.json" \
+      --slurpfile c "$TRUST_DIR/config.json" \
       '{issue: $i[0], timeline: $t[0], config: $c[0]}' \
-  > /tmp/lisa-trust-input.json
-node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < /tmp/lisa-trust-input.json
+  > "$TRUST_DIR/input.json"
+
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < "$TRUST_DIR/input.json"
 ```
+
+The temp directory is **per invocation**. Fixed `/tmp/lisa-*.json` paths let two concurrent intake cycles interleave one issue's metadata with another's timeline, which yields a confident verdict about an item that was never examined.
 
 The classifier returns `trusted`, `untrusted`, `unknownProvenance`, and a per-label `evaluated` list carrying the actor and the latency behind each decision. **Use `trusted` wherever this skill would otherwise read the raw label set**, and specifically:
 

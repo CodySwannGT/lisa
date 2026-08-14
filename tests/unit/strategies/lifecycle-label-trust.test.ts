@@ -210,6 +210,51 @@ describe("bidirectional lifecycle drift (#2539)", () => {
     ).toEqual([]);
   });
 
+  it("excludes an untrusted label from the writing drift direction", () => {
+    const result = detectLifecycleDrift({
+      labels: [IN_PROGRESS],
+      state: "closed",
+      terminalLabels: TERMINAL,
+      excludeLabels: [IN_PROGRESS],
+    });
+
+    expect(result.drifts).toEqual([]);
+    expect(result.excluded).toEqual([IN_PROGRESS]);
+  });
+
+  it("still walks both directions while excluding a label", () => {
+    expect(
+      detectLifecycleDrift({
+        labels: [IN_PROGRESS],
+        state: "closed",
+        terminalLabels: TERMINAL,
+        excludeLabels: [IN_PROGRESS],
+      }).directionsWalked
+    ).toEqual([TERMINAL_OPEN, OPEN_CLOSED]);
+  });
+
+  it("keeps repairing trusted labels alongside an excluded one", () => {
+    const result = detectLifecycleDrift({
+      labels: [IN_PROGRESS, READY],
+      state: "closed",
+      terminalLabels: TERMINAL,
+      excludeLabels: [IN_PROGRESS],
+    });
+
+    expect(result.drifts).toEqual([{ direction: OPEN_CLOSED, label: READY }]);
+    expect(result.excluded).toEqual([IN_PROGRESS]);
+  });
+
+  it("reports nothing excluded when no exclusions are supplied", () => {
+    expect(
+      detectLifecycleDrift({
+        labels: [READY],
+        state: "open",
+        terminalLabels: TERMINAL,
+      }).excluded
+    ).toEqual([]);
+  });
+
   it("finds no drift when label and native state agree", () => {
     expect(
       detectLifecycleDrift({
