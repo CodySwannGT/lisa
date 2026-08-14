@@ -560,6 +560,60 @@ native-open / active / unresolved:
 4. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
    an actionable setup error must be surfaced. Do not spam already-closed terminal items.
 
+### Lifecycle label contradicts native state — walk BOTH directions
+
+A lifecycle label can lie in two ways, and historically only one of them had an owner:
+
+| label | native state | owned by |
+|---|---|---|
+| terminal `done` role | still open / active | the `Build terminal-open` section above |
+| non-terminal role (`ready`, `claimed`, `blocked`, or any other `status:` member) | closed / completed | **nothing, until now** |
+
+A pass that walks one direction leaves the other accumulating silently. Measured on the Linear TUN
+board: **TUN-556 and TUN-503 both carry a terminal `status:done` while still natively open in
+`On Dev`** — invisible to intake and indistinguishable from handled, exactly like a bot-applied
+`status:in-progress` on GitHub.
+
+Resolve both directions in one pass with the shipped detector, which always reports
+`directionsWalked` covering both, so a "clean" verdict is an assertion that both were examined:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < /tmp/lisa-trust-input.json
+```
+
+1. **`terminal-label-open-state`** → hand to the `Build terminal-open → native close` section above.
+   Do not restate its rules; the terminality test lives there (intermediate env rungs like
+   `status:on-dev` / `status:on-stg` are **not** terminal).
+2. **`open-label-closed-state`** → the previously unowned direction. The item is natively closed or
+   completed while still wearing a non-terminal lifecycle role. Advance the label to the env-resolved
+   terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a write on
+   **Lisa's own** lifecycle surface, not a contest with another writer.
+3. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
+   `status:*` label (see `config-resolution`). A `status:*` label there is leftover cruft that no
+   repair direction reads, which is precisely why TUN-556 and TUN-503 rotted. Treat Linear's native
+   state as authoritative and remove the contradicting stale label; never move the state to match a
+   label.
+
+Membership in the lifecycle namespace is decided by the **`status:` prefix**, never a pinned member
+list — the live family has drifted 7 → 6 members, and a literal set fails silently by simply not
+matching the member it stopped covering.
+
+### Bot-authored lifecycle label → distrust, never revert (read-only)
+
+`status:*` labels written by a **bot** actor within the plausibility window of the item's creation are
+not lifecycle signals — see `lisa-github-build-intake` Phase 2b for the measurement and the
+classifier. Report them here so an operator can see how much of the board is wearing a label nobody
+chose:
+
+- list each item alongside the untrusted label, the bot login, and the latency, from the classifier's
+  `untrusted` array;
+- list `unknownProvenance` labels separately — trusted, but unattributable;
+- **do not unlabel and do not relabel.** The bot re-applies on each subsequent review event, so a
+  reverting reconciler produces a label-flap loop that is worse than the defect. Repair happens by
+  intake declining to *believe* the label, which is idempotent and writes nothing.
+
+This class is deliberately **read-only** and never counts toward the repair cap's actionable work.
+
 ### Build parent rollup reconciliation (intermediate-env or terminal close-out)
 
 For each parent/container item (an Epic, a Linear Project, or any item — of any type — with open child work),

@@ -168,6 +168,36 @@ gh label list --repo <org>/<repo> --json name \
 
 If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue matching the resolved assignee filter (or any open issue when the filter is empty) → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
 
+#### 2b. Lifecycle-label trust resolution (bot-authored labels are not signals)
+
+**A `status:*` label is only a lifecycle signal if a trustworthy actor applied it.** Third-party GitHub Apps write labels through the same API humans do, and at least one — `coderabbitai[bot]` — stamps `status:*` on issues seconds after filing. Measured on CodySwannGT/lisa#2460–#2540: seven of eight bot-applied lifecycle labels landed 26–118s after creation. Those labels are guesses wearing the costume of the intake contract, and they break the queue in **both** directions:
+
+- a bot-applied **`$CLAIMED`** makes an unworked issue look like somebody's active work, so no cycle picks it up and no human re-examines it (#2470 sat unworked for a day this way);
+- a bot-applied **`$READY`** puts an issue into the build queue that no human ever flipped ready (#2538), inverting the gate the ready role exists to be.
+
+Before treating any candidate's lifecycle labels as meaningful, resolve which ones are trustworthy:
+
+```bash
+gh api "repos/<org>/<repo>/issues/<n>" > /tmp/lisa-issue.json
+gh api "repos/<org>/<repo>/issues/<n>/timeline?per_page=100" --paginate > /tmp/lisa-timeline.json
+jq -n --slurpfile i /tmp/lisa-issue.json --slurpfile t /tmp/lisa-timeline.json \
+      --slurpfile c .lisa.config.json \
+      '{issue: $i[0], timeline: $t[0], config: $c[0]}' \
+  > /tmp/lisa-trust-input.json
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < /tmp/lisa-trust-input.json
+```
+
+The classifier returns `trusted`, `untrusted`, `unknownProvenance`, and a per-label `evaluated` list carrying the actor and the latency behind each decision. **Use `trusted` wherever this skill would otherwise read the raw label set**, and specifically:
+
+- a candidate whose `$READY` is **untrusted** is **not claimable** — skip it and leave it for a human to flip genuinely ready; report it in the summary rather than dispatching it;
+- a candidate whose `$CLAIMED` is **untrusted** is **not claimed** — if its `$READY` is trusted it stays a normal candidate, exactly as if the bot label were absent.
+
+**Never unlabel to correct this.** The bot re-applies its label on each subsequent review event, so reverting produces a label-flap loop that is worse than the defect. The guard is that intake stops *believing* the label; it writes nothing. Distrust is idempotent and cannot race.
+
+A label whose provenance cannot be established (applied at creation, which GitHub records no `labeled` event for) is trusted but listed in `unknownProvenance` — failing closed there would ignore the human `status:ready` that opens the queue. Report that list; do not silently drop it.
+
+Lifecycle membership is decided by the **`status:` prefix**, never by a pinned member list. The live family has drifted 7 → 6 members, and a literal set breaks silently: an unrecognised member simply fails to match, so the guard would report clean on exactly the case it stopped covering.
+
 ### Phase 3 — Process the first eligible ready issue
 
 #### 3a.0 Repo-scope gate (claim only current-repo issues)
