@@ -24,6 +24,13 @@
  * itself an exception in the same change that weakens a gate. `key: "*"`
  * allows every key in the file.
  *
+ * One exception, and only one: a PROMOTION between deploy-chain branches
+ * (`--base` + `--head`, both named in `deploy.branches`, head upstream of
+ * base, head fully containing base). There the allow list is read from the
+ * head, because the change under review is the baseline plus history that has
+ * already passed this same gate. See `isPromotion` for why that is the only
+ * discriminator that holds.
+ *
  * Extraction lives in threshold-ratchet-families.mjs; comparison rules in
  * threshold-ratchet-compare.mjs. Zero dependencies.
  */
@@ -132,6 +139,148 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
 }
 
 /**
+ * Strip a remote prefix so `origin/staging` and `staging` compare equal to a
+ * branch name declared in `.lisa.config.json`.
+ * @param {string} ref Git ref, possibly remote-qualified
+ * @returns {string} Bare branch name
+ */
+function bareBranch(ref) {
+  return ref.replace(/^refs\/heads\//u, "").replace(/^origin\//u, "");
+}
+
+/**
+ * The deploy chain, earliest environment first, from `deploy.branches`.
+ *
+ * Declaration order IS the chain order — that is already how Lisa reads it
+ * (dev → staging → production), and it is what makes "upstream of" decidable.
+ * @param {unknown} config Parsed `.lisa.config.json`
+ * @returns {string[]} Branch names in chain order
+ */
+function deployChain(config) {
+  const branches = config?.deploy?.branches;
+  if (!branches || typeof branches !== "object") return [];
+  return Object.values(branches).filter(b => typeof b === "string" && b !== "");
+}
+
+/**
+ * Whether this is a promotion of one deploy-chain branch into the next.
+ *
+ * A promotion carries approved history into a branch that is behind, so the
+ * exemptions it brings with it are not new — each one already faced this gate
+ * on the upstream branch. Reading the allow list from the baseline there
+ * reports every one of them as newly added, and the documented remedy is
+ * circular: recording them means adding `thresholdRatchet.allow` entries,
+ * which is itself the Tier 3 change being blocked. That deadlocked the whole
+ * promotion lane (#2531).
+ *
+ * The discriminator is branch IDENTITY, not ancestry. "The head contains the
+ * base" is true of any ordinary topic branch that is up to date with its base
+ * — and a repository with a strict up-to-date branch-protection rule REQUIRES
+ * that of every PR — so ancestry alone would hand self-approval to exactly the
+ * changes Tier 3 exists to stop. Being a deploy-chain branch cannot be
+ * arranged by a topic branch: those branches are protected, so everything on
+ * them arrived through a reviewed PR that passed this same ratchet.
+ *
+ * Ancestry is still required, as a second condition rather than the only one:
+ * a head that has diverged from its base is not "the baseline plus approved
+ * history", and the strict reading should stand.
+ *
+ * The chain is read from the BASELINE config, so a change cannot declare
+ * itself a promotion by adding `deploy.branches` entries in the same commit.
+ * @param {string} root Repo root
+ * @param {unknown} baselineConfig `.lisa.config.json` at the baseline
+ * @param {string | undefined} baseRef Ref being merged into
+ * @param {string | undefined} headRef Ref being merged from
+ * @returns {boolean} True when the allow list may be read from the head
+ */
+function isPromotion(root, baselineConfig, baseRef, headRef) {
+  if (!baseRef || !headRef) return false;
+  const chain = deployChain(baselineConfig);
+  const basePosition = chain.indexOf(bareBranch(baseRef));
+  const headPosition = chain.indexOf(bareBranch(headRef));
+  if (basePosition === -1 || headPosition === -1) return false;
+  if (headPosition >= basePosition) return false;
+  // Empty string on success, null when git exits non-zero or the ref is bogus.
+  if (git(["merge-base", "--is-ancestor", baseRef, headRef], root) !== null) {
+    return true;
+  }
+  // Both ARE deploy-chain branches, so this is a promotion that has diverged —
+  // typically a hotfix that landed on the base and was never synced down. The
+  // strict reading is correct here, but silence would leave an operator
+  // guessing why this promotion behaves differently from the last one.
+  process.stderr.write(
+    `threshold-ratchet: ${bareBranch(headRef)} does not contain ` +
+      `${bareBranch(baseRef)}, so this promotion is not the baseline plus ` +
+      `approved history and the allow list is read from the baseline. Sync ` +
+      `${bareBranch(baseRef)} down into ${bareBranch(headRef)} first.\n`
+  );
+  return false;
+}
+
+/**
+ * Resolve the allow list and say where it came from.
+ * @param {string} root Repo root
+ * @param {string} baselineRef Ref the comparison baselines against
+ * @param {"hook"|"staged"|"base"} mode Comparison mode
+ * @param {string | undefined} baseRef Base ref (base mode only)
+ * @param {string | undefined} headRef Head ref (base mode only)
+ * @returns {{ entries: object[], promotion: boolean, note: string | null }}
+ *   Entries, whether this is a promotion, and an audit line to print when the
+ *   entries came from anywhere but the baseline
+ */
+function resolveAllowList(root, baselineRef, mode, baseRef, headRef) {
+  const baselineConfig = parseJson(
+    git(["show", `${baselineRef}:.lisa.config.json`], root)
+  );
+  if (mode !== "base" || !isPromotion(root, baselineConfig, baseRef, headRef)) {
+    return {
+      entries: extractAllowEntries(baselineConfig),
+      promotion: false,
+      note: null,
+    };
+  }
+  return {
+    entries: extractAllowEntries(
+      parseJson(git(["show", "HEAD:.lisa.config.json"], root))
+    ),
+    promotion: true,
+    note:
+      `threshold-ratchet: promotion ${bareBranch(headRef)} → ` +
+      `${bareBranch(baseRef)}; both are deploy-chain branches declared at ` +
+      `${baselineRef} and the head fully contains the base, so the allow list ` +
+      `is read from the head. Exemptions below were approved upstream, not by ` +
+      `this change.`,
+  };
+}
+
+/**
+ * Split off the allow-entry additions a promotion is carrying forward.
+ *
+ * `applyAllowList` never drops an `allow-added` finding, from either side —
+ * an exception must not approve its own creation. That is right for an
+ * ordinary PR and wrong for a promotion, where the entry is not being created:
+ * it already exists on the upstream branch, where its creation faced this same
+ * unconditional block and needed a human to clear it. Without this the fix
+ * would be cosmetic — a promotion carrying an approved exemption also carries
+ * the `.lisa.config.json` diff that records it, so it would still be blocked
+ * by the finding for the record of its own approval.
+ *
+ * Only `allow-added` is carried. An actual threshold weakening in the same
+ * promotion still has to be covered by an allow entry.
+ * @param {Array<{ type: string }>} findings All findings from the change
+ * @param {boolean} promotion Whether the change is a recognised promotion
+ * @returns {{ carried: object[], rest: object[] }} Findings excused as already
+ *   approved upstream, and findings still subject to the allow list
+ */
+function partitionCarriedEntries(findings, promotion) {
+  if (!promotion) return { carried: [], rest: findings };
+  return {
+    carried: findings.filter(f => f.type === "allow-added"),
+    rest: findings.filter(f => f.type !== "allow-added"),
+  };
+}
+
+/**
  * Decide the exit code when the ratchet cannot determine what changed.
  *
  * `staged` and `base` are enforcement gates — pre-commit and CI. A gate that
@@ -161,9 +310,11 @@ function undeterminable(mode, reason) {
  * @param {"hook"|"staged"|"base"} mode Comparison mode
  * @param {string | undefined} [baseRef] Base ref (base mode only)
  * @param {string[] | undefined} [onlyFiles] Restrict to these paths (hook mode)
+ * @param {string | undefined} [headRef] Head ref (base mode only), used solely
+ *   to recognise a promotion between deploy-chain branches
  * @returns {number} Process exit code (2 for hook mode, 1 otherwise; 0 clean)
  */
-function run(mode, baseRef, onlyFiles) {
+function run(mode, baseRef, onlyFiles, headRef) {
   const root = git(["rev-parse", "--show-toplevel"])?.trim();
   if (!root) return undeterminable(mode, "not a git repository");
   const plan = resolvePlan(mode, root, baseRef, onlyFiles);
@@ -205,13 +356,21 @@ function run(mode, baseRef, onlyFiles) {
   );
   if (findings.length === 0) return 0;
 
-  const baselineConfig = parseJson(
-    git(["show", `${plan.baselineRef}:.lisa.config.json`], root)
+  const allow = resolveAllowList(
+    root,
+    plan.baselineRef,
+    mode,
+    baseRef,
+    headRef
   );
-  const { blocked, allowed } = applyAllowList(
-    findings,
-    extractAllowEntries(baselineConfig)
-  );
+  const split = partitionCarriedEntries(findings, allow.promotion);
+  const { blocked, allowed } = applyAllowList(split.rest, allow.entries);
+  if (allow.note) process.stdout.write(`${allow.note}\n`);
+  for (const finding of split.carried) {
+    process.stdout.write(
+      `threshold-ratchet: carried forward by this promotion, approved upstream — ${finding.message}\n`
+    );
+  }
   for (const finding of allowed) {
     process.stdout.write(
       `threshold-ratchet: allowed by .lisa.config.json exception — ${finding.message}\n`
@@ -257,11 +416,16 @@ function runHookMode() {
  */
 function main() {
   const args = process.argv.slice(2);
+  const headIndex = args.indexOf("--head");
+  const headRef = headIndex === -1 ? undefined : args[headIndex + 1];
   if (args[0] === "--staged") return run("staged");
-  if (args[0] === "--base") return run("base", args[1]);
+  // `--head` is optional and additive: a caller that omits it gets exactly the
+  // behavior that shipped before promotions were recognised, so an older
+  // workflow driving a newer script stays strict rather than silently relaxing.
+  if (args[0] === "--base") return run("base", args[1], undefined, headRef);
   if (args[0] === "--hook") return runHookMode();
   process.stderr.write(
-    "usage: threshold-ratchet.mjs --hook | --staged | --base <ref>\n"
+    "usage: threshold-ratchet.mjs --hook | --staged | --base <ref> [--head <ref>]\n"
   );
   return 0;
 }

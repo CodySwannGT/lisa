@@ -135,6 +135,7 @@ jobs:
       - name: 📐 Compare thresholds against merge-base
         env:
           BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           if [ -z "$BASE_REF" ]; then
             echo "Not a pull request — nothing to ratchet against."
@@ -148,7 +149,17 @@ jobs:
             echo "Base ref origin/$BASE_REF is not available in this checkout — cannot evaluate the ratchet."
             exit 1
           fi
-          node scripts/check-threshold-ratchet.mjs --base "origin/$BASE_REF"
+          # The head branch NAME, so the ratchet can tell a promotion between
+          # deploy-chain branches from an ordinary PR (#2531). Passed only when
+          # the branch resolves in this checkout — a fork PR's head ref does
+          # not, and an unresolvable head must leave the gate strict, never
+          # relax it. Omitting the flag is the pre-#2531 behavior exactly.
+          if git rev-parse --verify "origin/$HEAD_REF" >/dev/null 2>&1; then
+            node scripts/check-threshold-ratchet.mjs \
+              --base "origin/$BASE_REF" --head "origin/$HEAD_REF"
+          else
+            node scripts/check-threshold-ratchet.mjs --base "origin/$BASE_REF"
+          fi
 
   # ---------------------------------------------------------------------------
   # Server-side backstop for work-item traceability (#1978, fleet rollout #2046)
