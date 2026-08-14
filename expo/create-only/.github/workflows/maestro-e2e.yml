@@ -71,11 +71,15 @@ on:
 
 permissions:
   contents: read
-  # Read-only, and only this run's own job list. It is what
-  # `serialize_platform_legs` below needs to know when the iOS leg has
-  # finished — a called workflow cannot hold a permission the caller did not
-  # grant, so dropping this line turns that input into a red job rather than a
-  # silent no-op. Harmless when the input is off.
+  # Read-only, and only this run's own job list. It is granted HERE, in the
+  # caller, because that is the only place it can safely be granted: a called
+  # workflow that DECLARES a scope its caller did not grant is a
+  # `startup_failure` for the whole run. So this line plus the forwarded
+  # LEG_ORDER_TOKEN secret below are what let `serialize_platform_legs` read
+  # when the iOS leg finished.
+  #
+  # Drop this line and nothing breaks — the ordering job reports the gap and
+  # lets the Android leg start. You lose the ordering, not the suite.
   actions: read
 
 # Keyed on the ENVIRONMENT this suite drives, not on the ref. Every run of this
@@ -126,10 +130,19 @@ jobs:
       # other's session, so the loser hits a sign-in screen mid-suite and fails
       # an assertion that has nothing wrong with it. This runs iOS first, then
       # Android. It is ordering, not gating: a FAILING iOS leg still releases
-      # Android, so turning it on never narrows what gets tested. Requires the
-      # `actions: read` permission above. Leave it off if your legs use
-      # per-platform accounts — the concurrency is free coverage in that case.
+      # Android, so turning it on never narrows what gets tested. Needs the
+      # `actions: read` permission above AND the LEG_ORDER_TOKEN secret below;
+      # without either it reports the gap and runs the legs concurrently rather
+      # than failing. Leave it off if your legs use per-platform accounts — the
+      # concurrency is free coverage in that case. The cost when on is the suite
+      # taking iOS PLUS Android instead of the slower of the two.
       # serialize_platform_legs: true
     secrets:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       MAESTRO_SECRET_ENV: ${{ secrets.MAESTRO_SECRET_ENV }}
+      # Only read when serialize_platform_legs is true. A forwarded secret
+      # carries THIS workflow's token and therefore THIS workflow's
+      # `actions: read` — which is why the scope can be granted above without
+      # the reusable workflow having to declare it and startup-fail every caller
+      # that grants less. Harmless to pass when the input is off.
+      LEG_ORDER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
