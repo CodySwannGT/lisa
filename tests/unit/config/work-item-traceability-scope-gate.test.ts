@@ -119,6 +119,9 @@ function runStep(options: {
     ...process.env,
     PATH: `${bin}:${process.env["PATH"] ?? ""}`,
     GITHUB_REPOSITORY: "acme/widget",
+    // Actions always sets this; the harness did not, which is how the first
+    // draft of the diagnostic printed `.../actions/runs/` with no id.
+    GITHUB_RUN_ID: "987654321",
     LISA_PR_NUMBER: "42",
     LISA_PR_BASE_SHA: "aaaa",
     LISA_PR_HEAD_SHA: "bbbb",
@@ -164,6 +167,37 @@ describe.each(WORKFLOW_FILES)(
       expect(result.output).not.toContain("STUB_VALIDATOR_RAN");
     });
 
+    it("separates the caller-gap cause from the stale-upstream cause", () => {
+      // These two faults print the same check, the same exit code and — until
+      // now — the same sentence, which blamed the caller. `rerun` replays the
+      // reusable-workflow SHA the ORIGINAL run resolved, so a fresh attempt can
+      // execute stale upstream code with nothing in the UI saying so. Four
+      // separate misdiagnoses traced to that one line, including a fix being
+      // scored as ineffective when it had never actually run.
+      const result = runStep({ workflow, ghExitCode: 1, tracker: "github" });
+
+      expect(result.output).toContain("Cause A");
+      expect(result.output).toContain("Cause B");
+      // Naming both is not enough — the reader needs the discriminator.
+      expect(result.output).toContain("referenced_workflows");
+      expect(result.output).toContain("only a NEW push re-resolves");
+      // And a pointer to the ground truth, which is the runner's own log group
+      // rather than anything this message asserts about itself.
+      expect(result.output).toContain("GITHUB_TOKEN Permissions");
+    });
+
+    it("interpolates the run's own ids into the discriminating command", () => {
+      // A remediation command the reader has to hand-edit is one they will get
+      // wrong. The printed `gh api` call must be copy-pasteable as-is.
+      const result = runStep({ workflow, ghExitCode: 1, tracker: "github" });
+
+      expect(result.output).toMatch(
+        /gh api repos\/[^/\s]+\/[^/\s]+\/actions\/runs\/\d+/
+      );
+      // jq interpolation must survive the shell's double quotes intact.
+      expect(result.output).toContain(String.raw`"\(.path)@\(.ref) \(.sha)"`);
+    });
+
     it("never reports success on a missing scope, whatever the tracker", () => {
       for (const tracker of ["github", "jira", "linear"]) {
         const result = runStep({
@@ -180,8 +214,12 @@ describe.each(WORKFLOW_FILES)(
         });
 
         expect(result.status, `tracker ${tracker}`).not.toBe(0);
+        // Assert the intent — the missing scope is named — rather than the exact
+        // sentence, which was reworded to separate the caller-gap cause from the
+        // stale-upstream cause. Pinning prose makes a message improvement read as
+        // a regression.
         expect(result.output, `tracker ${tracker}`).toContain(
-          "does not grant 'pull-requests: read'"
+          "'pull-requests: read'"
         );
       }
     });

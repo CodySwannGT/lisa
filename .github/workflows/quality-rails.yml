@@ -252,8 +252,21 @@ jobs:
           # and it FAILS rather than exits 0: a check that cannot verify must
           # not report success (#2476, #2497). The repair is always in the
           # CALLER's ci.yml, which is the only place the grant can come from.
+          # Two different faults print here, and they used to share one line:
+          # a caller genuinely missing the grant, and a run that resolved a STALE
+          # upstream. `rerun` replays the reusable-workflow SHA the original run
+          # resolved, so a fresh attempt can execute old code with no sign of it
+          # anywhere in the UI. Four separate misdiagnoses traced to that
+          # ambiguity, so the message now names both and hands over the command
+          # that tells them apart. This job cannot resolve its own SHA itself:
+          # that needs `actions: read`, and requesting a scope the caller may not
+          # hold is a startup_failure for the caller's whole run.
           scope_gap() {
-            echo "::error::Work-Item Traceability could verify NOTHING: the calling workflow does not grant '$1'. Add contents/issues/pull-requests read to the quality job's permissions in this repo's .github/workflows/ci.yml, or run 'lisa apply' to have Lisa add the block for you."
+            echo "::error::Work-Item Traceability could verify NOTHING: the token reached this job without '$1', so the gate refused rather than report a success it had not earned."
+            echo "::error::Cause A — this repo's caller does not grant it. Add contents/issues/pull-requests read to the quality job's permissions in .github/workflows/ci.yml, or run 'lisa apply' to have Lisa add the block."
+            echo "::error::Cause B — this run resolved a STALE upstream. A re-run replays the reusable-workflow SHA the original run resolved; only a NEW push re-resolves @main."
+            echo "::error::Tell them apart: gh api repos/${GITHUB_REPOSITORY:-<owner>/<repo>}/actions/runs/${GITHUB_RUN_ID:-<run-id>} --jq '.referenced_workflows[]|\"\(.path)@\(.ref) \(.sha)\"' — if that sha predates the fix you want, it is Cause B and no caller edit will help."
+            echo "::error::The scopes this job actually received are listed above under 'GITHUB_TOKEN Permissions'. If '$1' is absent there, the grant never arrived; the group is the ground truth, not this message."
             exit 1
           }
           pr_probe="repos/${GITHUB_REPOSITORY}/pulls?per_page=1"
