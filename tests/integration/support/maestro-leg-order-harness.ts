@@ -130,6 +130,36 @@ export const startRefusingApi = (status: number): Promise<FakeApi> =>
   );
 
 /**
+ * Starts a fake jobs API that fails `failures` times, then serves `jobs`.
+ *
+ * The failures are 5xx — the transport-flake shape the poll loop must ride out
+ * rather than treat as a verdict.
+ *
+ * @param failures How many leading requests answer 502.
+ * @param jobs The job list served from then on.
+ * @returns The base URL and a shutdown hook.
+ */
+export const startFlakyApi = (
+  failures: number,
+  jobs: ApiJob[]
+): Promise<FakeApi> => {
+  const script: ApiJob[][] = Array.from({ length: failures }, () => []);
+  const remaining = script[Symbol.iterator]();
+  return publish(
+    http.createServer((_request, response) => {
+      const step = remaining.next();
+      if (step.done !== true) {
+        response.writeHead(502, { "content-type": "text/html" });
+        response.end("<html>bad gateway</html>");
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ total_count: jobs.length, jobs }));
+    })
+  );
+};
+
+/**
  * Runs the leg-ordering wait step's REAL shell against a fake jobs API.
  *
  * Deliberately asynchronous. The fake API lives in the test process, so a
@@ -171,6 +201,7 @@ export const runWaitStep = (
           PRE_SUITE_TIMEOUT_MINUTES: "1",
           DISCOVERY_SLACK_MINUTES: "1",
           MAX_PAGES: "10",
+          MAX_TRANSIENT: "5",
           ...overrides,
         },
       },
