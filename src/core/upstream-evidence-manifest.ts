@@ -926,6 +926,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
+    "plugins/src/base/scripts/lifecycle-label-trust.mjs":
+      "954c3618faa7f623303a43021425160e0681801b10b4c8980cbad9e0b4fdfef7",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "8592c7359ee6cdb35995a882c8bb27e7b9c404074067fd272c70013e44e04b71",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
@@ -1007,7 +1009,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "6b3bbe8ff85c7cb20412dcfcab3d7506a3efc67907cb749622c329fb4130baf4",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "8666ee2ac982168b292f5ddcf397f5c444a7d8dfbad056b67e1c1a7682853b70",
+      "9024898dd83ee386a776014742f13c6da8210b2a10e3d979c34cda352f164165",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1203,7 +1205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "475963ed64d9e72a6cbd6cbb61c8b57a419f2e1805e3ddfa76066047c590deeb",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "aa43509858efe5b8967596cfc33e462ac1bd7aae0633564057cc2fc98d64fa4f",
+      "b9cc5064f24eead0c2f446951eb098a31b8e34c1d5e78929112d0685a6ce9de9",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "4d460993fac6021219ca23eee29b1b9afa7c37479dddc662b2fcfaca510edd68",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -3352,6 +3354,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/design-source-gate.mjs": true,
     "plugins/lisa-agy/scripts/doctor-report.mjs": true,
     "plugins/lisa-agy/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa-agy/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-agy/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-agy/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa-agy/scripts/queue-contract-resolution.mjs": true,
@@ -3813,6 +3816,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/design-source-gate.mjs": true,
     "plugins/lisa-copilot/scripts/doctor-report.mjs": true,
     "plugins/lisa-copilot/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa-copilot/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-copilot/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-copilot/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa-copilot/scripts/queue-contract-resolution.mjs": true,
@@ -4260,6 +4264,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/design-source-gate.mjs": true,
     "plugins/lisa-cursor/scripts/doctor-report.mjs": true,
     "plugins/lisa-cursor/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa-cursor/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-cursor/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-cursor/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa-cursor/scripts/queue-contract-resolution.mjs": true,
@@ -6798,6 +6803,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/design-source-gate.mjs": true,
     "plugins/lisa/scripts/doctor-report.mjs": true,
     "plugins/lisa/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa/scripts/queue-contract-resolution.mjs": true,
@@ -7426,6 +7432,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/design-source-gate.mjs": true,
     "plugins/src/base/scripts/doctor-report.mjs": true,
     "plugins/src/base/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/src/base/scripts/lifecycle-label-trust.mjs": true,
     "plugins/src/base/scripts/plugin-sync-explain.mjs": true,
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/src/base/scripts/queue-contract-resolution.mjs": true,
@@ -9145,6 +9152,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
+    "tests/unit/strategies/lifecycle-label-trust-contract.test.ts": true,
+    "tests/unit/strategies/lifecycle-label-trust-resolution.test.ts": true,
+    "tests/unit/strategies/lifecycle-label-trust.test.ts": true,
     "tests/unit/strategies/linear-access-history.test.ts": true,
     "tests/unit/strategies/linear-ready-state-inversion.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
@@ -9197,6 +9207,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/setup-linear-prd-verified-label.test.ts": true,
     "tests/unit/strategies/setup-notion-prd-verified-status.test.ts": true,
     "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
+    "tests/unit/strategies/support/lifecycle-label-trust.ts": true,
     "tests/unit/strategies/tagged-merge.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
     "tests/unit/strategies/two-way-pr-ticket-linking.test.ts": true,
