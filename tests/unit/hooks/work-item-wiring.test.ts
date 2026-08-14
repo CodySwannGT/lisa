@@ -293,12 +293,17 @@ describe("work-item Git enforcement wiring", () => {
       expect(job?.permissions).toBeUndefined();
     });
 
-    it("reports rather than blocks when the inherited token cannot read the tracker", () => {
+    it("blocks rather than reports when the inherited token cannot read the PR", () => {
       const validate = steps.find(step => step.run?.includes(VALIDATE_PR));
-      // Without issues:read the validator cannot read the issue at all. That
-      // is a caller-configuration gap, not a traceability failure — blocking
-      // there would wedge every PR in a repo nobody can unwedge.
-      expect(validate?.run).toContain("issues:read");
+      // This used to warn and `exit 0`, which reported SUCCESS for a gate that
+      // had verified nothing — measured green on a private consumer whose PR
+      // carried no trailer, no body line and no backlink (#2476). A check that
+      // cannot verify must not claim it did, so the readiness probe now fails
+      // and names the exact scope and the exact caller-side edit.
+      expect(validate?.run).toContain("pull-requests: read");
+      expect(validate?.run).toContain("issues: read");
+      expect(validate?.run).toContain("scope_gap");
+      expect(validate?.run).toContain(".github/workflows/ci.yml");
     });
 
     it("stays skippable so a repo can adopt tracked work on its own schedule", () => {

@@ -20,8 +20,42 @@ const CALLER_USES =
 /** A job key inside `jobs:` — two-space indent, no value on the line. */
 const JOB_KEY = /^ {2}\S[^:]*:\s*$/u;
 
-/** Scopes the work_item_traceability job needs from the caller's token. */
-const REQUIRED_SCOPES: readonly string[] = ["issues", "pull-requests"];
+/** Distinguishes the rails reusable workflow from the standard one. */
+const RAILS_CALLER = /quality-rails\.yml@/u;
+
+/** One `scope: level` pair the caller must grant. */
+type Scope = readonly [name: string, level: string];
+
+/**
+ * Scopes the caller must grant, per reusable workflow.
+ *
+ * `contents: read` is the floor both workflows declare. `issues: read` and
+ * `pull-requests: read` are what work_item_traceability's `gh issue view` and
+ * `gh pr view` need, and a reusable workflow may only DOWNGRADE the caller's
+ * grant — so if the caller does not hold them, that job can never enforce
+ * anything.
+ *
+ * quality-rails.yml additionally declares `checks: write` and
+ * `pull-requests: write` at the workflow level. A called workflow that requests
+ * more than the caller granted is a startup_failure for the ENTIRE run (#2049),
+ * so a rails caller must be granted at least those levels — writing
+ * `pull-requests: read` there would take the whole workflow down.
+ */
+const SCOPES_BY_WORKFLOW: Readonly<
+  Record<"rails" | "standard", readonly Scope[]>
+> = {
+  standard: [
+    ["contents", "read"],
+    ["issues", "read"],
+    ["pull-requests", "read"],
+  ],
+  rails: [
+    ["contents", "read"],
+    ["checks", "write"],
+    ["issues", "read"],
+    ["pull-requests", "write"],
+  ],
+};
 
 /** Tracker credentials, by the `tracker` value that actually needs them. */
 const TRACKER_SECRETS: Readonly<Record<string, readonly string[]>> = {
@@ -51,7 +85,7 @@ interface Block {
  */
 function findCallerJob(
   lines: readonly string[]
-): { start: number; end: number } | null {
+): { start: number; end: number; usesAt: number } | null {
   const usesAt = lines.findIndex(line => CALLER_USES.test(line));
   if (usesAt < 0) return null;
 
@@ -63,6 +97,7 @@ function findCallerJob(
   return {
     start: start < 0 ? 0 : start,
     end: after < 0 ? lines.length : after,
+    usesAt,
   };
 }
 
@@ -131,11 +166,20 @@ async function readTracker(projectDir: string): Promise<string | null> {
 interface Plan {
   readonly text: string | null;
   readonly lines: readonly string[];
-  readonly job: { start: number; end: number } | null;
+  readonly job: { start: number; end: number; usesAt: number } | null;
   readonly permissions: Block | null;
-  readonly missingScopes: readonly string[];
+  readonly missingScopes: readonly Scope[];
   readonly secrets: Block | null;
   readonly missingSecrets: readonly string[];
+}
+
+/**
+ * Render the scope lines of a caller `permissions:` block.
+ * @param scopes - Scope/level pairs to render
+ * @returns Indented YAML lines
+ */
+function scopeLines(scopes: readonly Scope[]): readonly string[] {
+  return scopes.map(([name, level]) => `      ${name}: ${level}`);
 }
 
 /**
@@ -148,11 +192,24 @@ interface Plan {
  * backstop runs but reports not-enforceable forever. This migration closes that
  * gap in place.
  *
- * Deliberately conservative, because it edits a file the host owns:
+ * A caller with NO `permissions:` block is the BROKEN shape, not the safe one.
+ * It was previously skipped on the premise that the repo default is "typically
+ * permissive"; measurement disproved that (#2476). On two private consumers a
+ * block-less caller job received `contents: read` + `metadata: read`, so
+ * `gh pr view` and `gh issue view` both failed and the gate could never pass —
+ * while a sibling repo whose caller granted the two read scopes ran the real
+ * validation. Those repos can never self-heal through the copy strategies
+ * either, because `.github/workflows/ci.yml` is create-only. So this migration
+ * now writes the block when it is absent.
  *
- * - Patches an EXISTING `permissions:` block only. A caller with no block
- *   inherits the repo default (typically permissive, so already sufficient);
- *   inventing a block there would RESTRICT scopes the called jobs may rely on.
+ * Still deliberately conservative, because it edits a file the host owns:
+ *
+ * - Grants read-only scopes for `quality.yml`, whose 32 jobs were audited to
+ *   need no write scope (#1769), so an invented block cannot cost a job access
+ *   it uses today. `quality-rails.yml` declares `checks: write` and
+ *   `pull-requests: write` at the workflow level, and a caller granting less
+ *   than the called workflow declares is a startup_failure for the whole run
+ *   (#2049) — so a rails caller is granted those levels, never `read`.
  * - Never downgrades: a scope already granted at `write` is left alone.
  * - Never rewrites `secrets: inherit` into an explicit map — that is the host's
  *   choice and converting it changes what the called workflow receives.
@@ -187,6 +244,10 @@ export class EnsureQualityCallerScopesMigration implements Migration {
     const job = findCallerJob(lines);
     if (!job) return { ...empty, text, lines };
 
+    const required =
+      SCOPES_BY_WORKFLOW[
+        RAILS_CALLER.test(lines[job.usesAt] as string) ? "rails" : "standard"
+      ];
     const permissions = findBlock(lines, "permissions", job);
     const granted = new Set(
       permissions
@@ -196,9 +257,9 @@ export class EnsureQualityCallerScopesMigration implements Migration {
             .filter((key): key is string => Boolean(key))
         : []
     );
-    const missingScopes = permissions
-      ? REQUIRED_SCOPES.filter(scope => !granted.has(scope))
-      : [];
+    // With no block at all NOTHING is granted, so the whole set is missing —
+    // that is the case this migration exists to repair.
+    const missingScopes = required.filter(([name]) => !granted.has(name));
 
     const tracker = await readTracker(ctx.projectDir);
     const wanted = (tracker ? TRACKER_SECRETS[tracker] : undefined) ?? [];
@@ -253,12 +314,26 @@ export class EnsureQualityCallerScopesMigration implements Migration {
     // Apply insertions bottom-up so each earlier index stays valid against the
     // array the previous step produced.
     const insertions = [
-      plan.permissions && plan.missingScopes.length > 0
-        ? {
-            at: plan.permissions.end,
-            text: plan.missingScopes.map(scope => `      ${scope}: read`),
-          }
-        : null,
+      plan.missingScopes.length === 0
+        ? null
+        : plan.permissions
+          ? {
+              at: plan.permissions.end,
+              text: scopeLines(plan.missingScopes),
+            }
+          : {
+              // No block: write a whole one immediately above `uses:`, which is
+              // the one key a caller job always has.
+              at: (plan.job as { usesAt: number }).usesAt,
+              text: [
+                "    # A reusable workflow may only DOWNGRADE the caller's grant, so the",
+                "    # work-item traceability job can enforce nothing the caller does not",
+                "    # hold. With no block here the job received contents+metadata read",
+                "    # only, and its `gh pr view` / `gh issue view` calls failed (#2476).",
+                "    permissions:",
+                ...scopeLines(plan.missingScopes),
+              ],
+            },
       plan.secrets && plan.missingSecrets.length > 0
         ? {
             at: plan.secrets.end,
@@ -284,7 +359,9 @@ export class EnsureQualityCallerScopesMigration implements Migration {
 
     const parts = [
       plan.missingScopes.length > 0
-        ? `permissions (${plan.missingScopes.join(", ")})`
+        ? `permissions (${plan.missingScopes
+            .map(([name, level]) => `${name}: ${level}`)
+            .join(", ")})`
         : null,
       plan.missingSecrets.length > 0
         ? `tracker secrets (${plan.missingSecrets.join(", ")})`
