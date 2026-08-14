@@ -2189,33 +2189,35 @@ jobs:
           else
             echo "has_rule_tests=false" >> $GITHUB_OUTPUT
           fi
-          # The tests existing does not mean the RUNNER exists. `sg:test` ships
-          # via package.lisa.json, which only reaches a host project on its next
-          # `lisa apply` — but this workflow is consumed at @main, so the step
-          # arrives immediately and the script does not. Gating on the test files
-          # alone turned every repo that already had rule tests red the moment
-          # #2525 merged (`error: Script not found "sg:test"`). See #2532.
-          if node -e "process.exit(require('./package.json').scripts?.['sg:test']?0:1)" 2>/dev/null; then
-            echo "has_test_script=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_test_script=false" >> $GITHUB_OUTPUT
-          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Invokes the ast-grep binary directly, never a `sg:test` package.json
+      # script. Everything that TRIGGERS this step — sgconfig.yml and the
+      # rule-test files — is shipped by Lisa, but a script alias lives in the
+      # host project's package.json, which Lisa only rewrites on `lisa apply`.
+      # Trigger and target travel by different routes at different speeds, so
+      # they can never be guaranteed to agree: this workflow is consumed at
+      # @main, so #2525's step reached every consumer immediately while the
+      # script did not, and each one went red on `Script not found "sg:test"`
+      # (#2532). Gating on the script existing (the first patch) traded that
+      # for a step that reports success having run nothing, which is the worse
+      # failure. The binary has no such split — it is present in any project
+      # whose sg:scan already works, and npx fetches it when it is not — so the
+      # step is self-sufficient and the whole failure class is gone (#2530).
+      #
+      # `sg:test` stays in package.lisa.json as a local developer alias. CI no
+      # longer depends on it.
       - name: 🧪 Run ast-grep rule tests
-        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true' && steps.check_rule_tests.outputs.has_test_script == 'true'
-        run: ${{ inputs.package_manager }} run sg:test
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      # Warn loudly rather than failing: a missing `sg:test` is a not-yet-applied
-      # Lisa version, not a defect in this project's code, and failing the shared
-      # gate for it takes CI down fleet-wide. The wording states plainly that the
-      # rule tests did NOT run, so this cannot become the silent false-green that
-      # #2525 set out to prevent.
-      - name: ⚠️ ast-grep rule tests present but not runnable
-        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true' && steps.check_rule_tests.outputs.has_test_script != 'true'
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true'
         run: |
-          echo "::warning::${{ steps.check_rule_tests.outputs.rule_test_count }} ast-grep rule test file(s) exist but were NOT RUN: package.json has no 'sg:test' script. This job going green does NOT mean any ast-grep rule has test coverage. Run 'lisa apply' to add the script (Lisa #2532)."
+          # The project's own pinned CLI first, so CI runs the same version as
+          # `sg:scan` and the developer's machine. npx only when it has none.
+          if [ -x "node_modules/.bin/ast-grep" ]; then
+            exec node_modules/.bin/ast-grep test
+          fi
+          echo "::notice::@ast-grep/cli is not a dependency of this project; running the Lisa-pinned CLI via npx."
+          exec npx --yes --package "@ast-grep/cli@0.40.4" ast-grep test
+        working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ AST Grep Skipped (no config)
         if: steps.check_config.outputs.has_config != 'true'
@@ -2235,7 +2237,7 @@ jobs:
           echo "::warning::ast-grep rule tests skipped - no rule test files in ast-grep/rule-tests/"
           echo "This job going green does NOT mean any ast-grep rule has test coverage."
           echo "To cover a rule, add ast-grep/rule-tests/<rule-id>-test.yml with valid/invalid cases,"
-          echo "then run '${{ inputs.package_manager }} run sg:test --update-all' to record its snapshot."
+          echo "then run 'ast-grep test --update-all' to record its snapshot."
 
   floor_collisions:
     name: 🧱 Security Floor Collisions
