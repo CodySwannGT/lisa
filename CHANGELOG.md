@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.9](https://github.com/CodySwannGT/lisa/compare/v3.11.8...v3.11.9) (2026-08-14)
+
+
+### Bug Fixes
+
+* **ci:** make work-item traceability fail when it cannot verify, and repair block-less callers ([e08cd22](https://github.com/CodySwannGT/lisa/commit/e08cd22dc6930e63908fa3d0652e20cf387363ec)), closes [#2049](https://github.com/CodySwannGT/lisa/issues/2049) [#1769](https://github.com/CodySwannGT/lisa/issues/1769) [CodySwannGT/lisa#2476](https://github.com/CodySwannGT/lisa/issues/2476)
+* **parity:** catch both routing artifacts up to their skill pins ([04337df](https://github.com/CodySwannGT/lisa/commit/04337df15d38407a5f5a2acecd794d2f0255dffe)), closes [CodySwannGT/lisa#2544](https://github.com/CodySwannGT/lisa/issues/2544) [CodySwannGT/lisa#2544](https://github.com/CodySwannGT/lisa/issues/2544)
+
 ### [3.11.8](https://github.com/CodySwannGT/lisa/compare/v3.11.7...v3.11.8) (2026-08-14)
 
 
