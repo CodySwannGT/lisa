@@ -101,11 +101,18 @@
 # set". The job's own comment records the three alternatives and why each was
 # rejected. Consequences worth knowing:
 #
-#   • It needs the `actions: read` permission, and a called workflow cannot hold
-#     a permission its CALLER did not grant. A caller with only `contents: read`
-#     gets a named 403 from that job — not a silent revert to concurrency.
-#   • If that job fails or times out, Android still runs. The run goes red and
-#     the legs overlap for that night, which is exactly today's behavior.
+#   • Reading the jobs API needs `actions: read`, and that scope must arrive as
+#     the forwarded `LEG_ORDER_TOKEN` secret — NOT as a `permissions:` entry in
+#     this file. A called workflow requesting a scope its caller never granted
+#     is a `startup_failure` for the CALLER'S ENTIRE RUN, decided before the run
+#     starts, so no `if:` and no unset input can contain it. That is the #2046
+#     rule; this feature broke it once (#2566) and the job carries the full note.
+#   • NO degraded path fails this job. A missing token, a 403, a flaky API, a
+#     renamed iOS job — each warns loudly and lets Android start, which is the
+#     behaviour every run had before this feature existed. Failing instead would
+#     be worse than the contention: row 26 of the nightly gate turns any
+#     non-success job into a `fail` verdict for the whole suite, blocking the
+#     merge gate on a night when both legs were green.
 #   • Opting IN costs an idle ubuntu-latest runner for as long as the iOS suite
 #     takes, plus one held job slot. The default path does not pay it: with the
 #     input unset the job runs no steps and ends in seconds. Wall clock is the
@@ -409,6 +416,20 @@ on:
         required: false
       MAESTRO_SECRET_ENV:
         description: 'Newline-separated KEY=VALUE pairs of sensitive flow variables (e.g. test-account passwords), forwarded like maestro_env. GitHub masks each line in logs.'
+        required: false
+      LEG_ORDER_TOKEN:
+        description: >-
+          Token used ONLY by the leg-ordering job to read this run's own job
+          list, and only when serialize_platform_legs is true. Pass the calling
+          workflow's own secrets.GITHUB_TOKEN from a caller whose own
+          `permissions:` block includes `actions: read` — a forwarded secret
+          carries the
+          CALLER's scopes, which is what lets this workflow read the jobs API
+          without DECLARING a scope. Declaring one instead would be a
+          `startup_failure` for the entire run of every caller granting less
+          (#2046), which is why this is a secret and not a `permissions:` entry.
+          Absent or unscoped, the ordering job reports the gap and lets the
+          Android leg start — it never fails the run over it.
         required: false
 
 permissions:
@@ -774,11 +795,24 @@ jobs:
     needs: [preflight, build]
     if: ${{ !cancelled() && needs.preflight.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      # Reading this run's own job list. A caller whose token is narrower than
-      # this gets a named 403 from the step below rather than a silent pass.
-      actions: read
+    # DELIBERATELY no `permissions:` block, and this is not a style choice — it
+    # is the #2046 rule, which this job originally broke. A called workflow may
+    # only DOWNGRADE the caller's grant: requesting a scope the caller never
+    # held is a `startup_failure` for the ENTIRE run, not a skipped job, and it
+    # is decided BEFORE the run starts — so `if:` never runs, and having
+    # `serialize_platform_legs` unset does not save you. An `actions: read`
+    # declared here would therefore have broken every caller granting less,
+    # including on paths where this job does nothing. See the identical comment
+    # on `quality.yml`'s work_item_traceability job, and the regression test in
+    # tests/unit/hooks/work-item-wiring.test.ts; the counterpart guard for this
+    # workflow is in tests/integration/maestro-leg-order.test.ts.
+    #
+    # The scope this job actually needs travels as a SECRET instead
+    # (`LEG_ORDER_TOKEN`), because a secret carries the CALLER's token and its
+    # scopes without this workflow declaring anything. Opting in stays entirely
+    # self-service: no migration, no release sequencing, and no way for an
+    # adopter who never opted in to be affected.
+    #
     # Its own input rather than a sum of the two budgets it actually spans:
     # GitHub Actions expressions have NO arithmetic operators, so
     # `pre_suite_timeout_minutes + suite_timeout_minutes` is a syntax error, not
@@ -794,7 +828,13 @@ jobs:
         # for a job that will never exist.
         if: ${{ inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          # The CALLER's token, forwarded as a secret. `github.token` here would
+          # be this workflow's own token, capped by the `contents: read` above
+          # and therefore never able to read the jobs list — and widening that
+          # cap is the escalation the job comment forbids. Empty when the caller
+          # did not wire the secret, which the script reports and releases on
+          # rather than failing.
+          GH_TOKEN: ${{ secrets.LEG_ORDER_TOKEN }}
           API_URL: ${{ github.api_url }}
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
@@ -812,31 +852,95 @@ jobs:
           # the whole pre-suite budget. The slack is added in the shell below
           # because GitHub Actions expressions have no arithmetic.
           PRE_SUITE_TIMEOUT_MINUTES: ${{ inputs.pre_suite_timeout_minutes }}
-          DISCOVERY_SLACK_MINUTES: '5'
+          # Must absorb pre_suite's RUNNER ACQUISITION as well as its budget —
+          # this job only learns the iOS leg exists once pre_suite concludes,
+          # and pre_suite cannot conclude before it gets a runner.
+          DISCOVERY_SLACK_MINUTES: '15'
           MAX_PAGES: '10'
+          # Consecutive transport failures tolerated before giving up. A 90
+          # minute iOS suite is ~270 requests at this poll interval, so treating
+          # a single 502 as fatal would make the ordering itself the flakiest
+          # thing in the run.
+          MAX_TRANSIENT: '5'
         run: |
-          set -euo pipefail
+          set -uo pipefail
           DISCOVERY_SECONDS=$(( (PRE_SUITE_TIMEOUT_MINUTES + DISCOVERY_SLACK_MINUTES) * 60 ))
           page_file="$(mktemp)"
           started=$SECONDS
-          discovered=false
+          transient=0
+
+          # EVERY degraded path lands here, and none of them fails the job.
+          #
+          # `leg_order` can only ever DELAY the Android leg. When it cannot tell
+          # what the iOS leg is doing it has two options and both are bad:
+          # release Android (the legs overlap for one night — exactly the
+          # behaviour of every run before this feature existed) or fail (which
+          # row 26 of the nightly gate turns into a `fail` verdict for the whole
+          # suite, blocking the merge gate on a night when both legs were green
+          # — see docs/nightly-e2e-gate.md). Releasing is strictly the smaller
+          # harm, so the annotation is the alarm and the run stays green.
+          #
+          # What this must NEVER do is claim the iOS leg finished. It says the
+          # ordering was skipped and why.
+          release() {
+            # Deliberately worded to share NO phrase with the success line
+            # above it. These two messages are the only way a reader — or the
+            # test suite — can tell "the legs were ordered" from "the ordering
+            # was abandoned", so a substring common to both would blur exactly
+            # the distinction that matters.
+            echo "::warning title=Leg order could not order the legs::$1 The Android leg is starting anyway, so the two platform legs may overlap for this run — which is the behaviour serialize_platform_legs was turned on to avoid. No claim is made about the iOS suite's state; the ordering was skipped."
+            exit 0
+          }
+
+          if [[ -z "${GH_TOKEN// }" ]]; then
+            release "No LEG_ORDER_TOKEN secret was passed, so this run's job list cannot be read. In the calling workflow, forward its own secrets.GITHUB_TOKEN as the LEG_ORDER_TOKEN secret, and add 'actions: read' to that workflow's own permissions block. It has to be a forwarded secret rather than a permission declared in the reusable workflow: a called workflow requesting a scope its caller never granted is a startup_failure for the entire run."
+          fi
+
           while true; do
             total=0
             pending=0
             page=1
+            sweep_ok=true
             while true; do
-              if ! curl -fsSL \
+              # Capture the status rather than relying on `-f`, so a permission
+              # problem (permanent, and fixable only by the caller) is told
+              # apart from a 502 (transient, and fixed by asking again).
+              status="$(curl -sSL \
                 -H "Authorization: Bearer $GH_TOKEN" \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 -o "$page_file" \
-                "$API_URL/repos/$REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs?per_page=100&page=$page"; then
-                echo "::error title=Leg order could not read this run's jobs::GET /repos/$REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs failed. The usual cause is token scope: serialize_platform_legs needs \`actions: read\`, and a called workflow cannot hold a permission the CALLER did not grant. Add \`actions: read\` to the calling workflow's permissions block."
-                exit 1
+                -w '%{http_code}' \
+                "$API_URL/repos/$REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs?per_page=100&page=$page")" || status="000"
+              case "$status" in
+                200) ;;
+                401|403|404)
+                  release "The jobs API answered HTTP $status, which is a token problem and will not fix itself by retrying. The LEG_ORDER_TOKEN secret must carry 'actions: read' — grant that scope in the CALLING workflow's own permissions block, and forward that workflow's secrets.GITHUB_TOKEN as LEG_ORDER_TOKEN."
+                  ;;
+                *)
+                  transient=$(( transient + 1 ))
+                  if [[ "$transient" -ge "$MAX_TRANSIENT" ]]; then
+                    release "The jobs API failed $transient times in a row (last: HTTP $status)."
+                  fi
+                  echo "Jobs API returned HTTP $status (transient $transient/$MAX_TRANSIENT); retrying."
+                  sweep_ok=false
+                  break
+                  ;;
+              esac
+              matched="$(jq --arg name "$IOS_JOB_NAME" '[.jobs[]? | select(.name | endswith($name))] | length' "$page_file" 2>/dev/null)" || matched=""
+              unfinished="$(jq --arg name "$IOS_JOB_NAME" '[.jobs[]? | select(.name | endswith($name)) | select(.status != "completed")] | length' "$page_file" 2>/dev/null)" || unfinished=""
+              returned="$(jq '.jobs? // [] | length' "$page_file" 2>/dev/null)" || returned=""
+              # A 200 carrying something that is not the expected JSON — an HTML
+              # error page, a truncated body — must not be read as "no jobs".
+              if [[ -z "$matched" || -z "$unfinished" || -z "$returned" ]]; then
+                transient=$(( transient + 1 ))
+                if [[ "$transient" -ge "$MAX_TRANSIENT" ]]; then
+                  release "The jobs API returned $transient unparseable bodies in a row."
+                fi
+                echo "Jobs API body was not the expected JSON (transient $transient/$MAX_TRANSIENT); retrying."
+                sweep_ok=false
+                break
               fi
-              matched="$(jq --arg name "$IOS_JOB_NAME" '[.jobs[] | select(.name | endswith($name))] | length' "$page_file")"
-              unfinished="$(jq --arg name "$IOS_JOB_NAME" '[.jobs[] | select(.name | endswith($name)) | select(.status != "completed")] | length' "$page_file")"
-              returned="$(jq '.jobs | length' "$page_file")"
               total=$(( total + matched ))
               pending=$(( pending + unfinished ))
               if [[ "$returned" -lt 100 ]]; then
@@ -844,37 +948,46 @@ jobs:
               fi
               page=$(( page + 1 ))
               if [[ "$page" -gt "$MAX_PAGES" ]]; then
-                echo "::error title=Leg order could not enumerate this run's jobs::More than $MAX_PAGES pages of jobs. Refusing to report the iOS leg finished on a job list this step could not read to the end."
-                exit 1
+                release "This run has more than $MAX_PAGES pages of jobs, so the job list could not be read to the end."
               fi
             done
+            if [[ "$sweep_ok" != "true" ]]; then
+              sleep "$POLL_SECONDS"
+              continue
+            fi
+            # A clean sweep resets the streak: MAX_TRANSIENT counts CONSECUTIVE
+            # failures, so a flaky hour does not accumulate into a false verdict.
+            transient=0
             # The absent case is NOT the done case. Zero matching jobs means
             # "iOS has not been created yet" or "the name constant is stale",
-            # and neither of those is "iOS finished". Reporting success here
-            # would be a guard that passes because it looked at nothing.
+            # and neither of those is "iOS finished". Reporting the leg complete
+            # here would be a guard that passes because it looked at nothing —
+            # so this path releases with a warning that says exactly that,
+            # rather than claiming a terminal iOS leg.
             if [[ "$total" -eq 0 ]]; then
               if [[ $(( SECONDS - started )) -ge "$DISCOVERY_SECONDS" ]]; then
-                echo "::error title=Leg order never found the iOS leg::No job in this run has a name ending in '$IOS_JOB_NAME' after ${DISCOVERY_SECONDS}s. Either the iOS job was renamed without updating IOS_JOB_NAME in this workflow, or it never entered the run. Not reporting the iOS leg complete on evidence that does not exist."
-                exit 1
+                release "No job in this run has a name ending in '$IOS_JOB_NAME' after ${DISCOVERY_SECONDS}s. Either the iOS job was renamed without updating IOS_JOB_NAME in this workflow, or it never entered the run."
               fi
               echo "iOS leg not in the job list yet; waiting ($(( SECONDS - started ))s elapsed)."
               sleep "$POLL_SECONDS"
               continue
             fi
-            discovered=true
             if [[ "$pending" -eq 0 ]]; then
               # Terminal is terminal. A FAILED iOS leg releases Android exactly
-              # like a passing one — the point of this gate is that the two legs
+              # like a passing one — the point of this job is that the two legs
               # never touch the persona at the same time, not that Android is
               # only worth running when iOS was green. Gating on conclusion
               # would let one flaky iOS flow silently halve the suite.
+              #
+              # This is the ONLY line that may claim the iOS leg finished, and
+              # it is reachable only with at least one matching job, all of
+              # them `completed`.
               echo "iOS leg finished ($total job(s), terminal). Releasing the Android leg."
-              break
+              exit 0
             fi
             echo "iOS leg still running ($pending of $total job(s) not completed); waiting."
             sleep "$POLL_SECONDS"
           done
-          echo "discovered=$discovered"
 
       - name: 🚦 Report the ordering decision
         env:
