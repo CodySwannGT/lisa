@@ -2117,7 +2117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "d8806197a723f0c2b50a8155ffc5b6f0abc30c68dc2385cb80b0dd066d061231",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
-      "0f2a5fffad380e85125d2e68ca43b8b12a0d93c710b8980fb8dc869e6b6da020",
+      "977d447ff5bf1b5254a66a7386e4fd8e7bf9c8f3e7a5b8d61cedb771b97002f2",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "de1eb5adaa6252b4abe5859933bff0ab2a52e19cc5a3fc5a41018fbb57b766d1",
     "scripts/github-status-check.sh":

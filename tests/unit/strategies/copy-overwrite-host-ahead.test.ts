@@ -25,6 +25,7 @@ import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 const HOST_CONFIG = "tsconfig.json";
+const HOST_AHEAD = "host-ahead";
 
 /** What upstream ships today. */
 const LISA_GUARD =
@@ -126,7 +127,7 @@ describe("CopyOverwriteStrategy: a host copy that may be ahead", () => {
       versionBumpContext(ledgerOf([LISA_GUARD, OLD_LISA_GUARD]))
     );
 
-    expect(result.action).toBe("host-ahead");
+    expect(result.action).toBe(HOST_AHEAD);
     expect(result.note).toContain("git-config-key");
     expect(await fs.readFile(destFile, "utf8")).toBe(HARDENED_GUARD);
   });
@@ -142,7 +143,7 @@ describe("CopyOverwriteStrategy: a host copy that may be ahead", () => {
       versionBumpContext(ledgerOf([LISA_GUARD, OLD_LISA_GUARD]))
     );
 
-    expect(result.action).toBe("host-ahead");
+    expect(result.action).toBe(HOST_AHEAD);
     expect(await fs.readFile(destFile, "utf8")).toBe(edited);
   });
 
@@ -163,20 +164,23 @@ describe("CopyOverwriteStrategy: a host copy that may be ahead", () => {
     expect(backedUp).toContain(destFile);
   });
 
-  it("refreshes once upstream declares everything the host declared", async () => {
-    const absorbed =
-      "#!/usr/bin/env bash\n# lisa-guard-capabilities: no-verify-abbrev, git-config-key\necho upstream\n";
-    const { srcFile, destFile } = await stage(absorbed, HARDENED_GUARD);
+  it("keeps a copy carrying Lisa's marker but bytes Lisa never shipped", async () => {
+    // A host that hardens a Lisa guard edits a copy of Lisa's file, so it keeps
+    // Lisa's marker line while its bytes diverge. Reading "declares nothing
+    // extra" as permission to overwrite is the original defect wearing the new
+    // mechanism's clothes.
+    const inheritedMarker = `${LISA_GUARD}# extra hardening nobody declared\n`;
+    const { srcFile, destFile } = await stage(LISA_GUARD, inheritedMarker);
 
     const result = await strategy.apply(
       srcFile,
       destFile,
       GUARD,
-      versionBumpContext(ledgerOf([LISA_GUARD]))
+      versionBumpContext(ledgerOf([LISA_GUARD, OLD_LISA_GUARD]))
     );
 
-    expect(result.action).toBe("overwritten");
-    expect(await fs.readFile(destFile, "utf8")).toBe(absorbed);
+    expect(result.action).toBe(HOST_AHEAD);
+    expect(await fs.readFile(destFile, "utf8")).toBe(inheritedMarker);
   });
 
   it("still refreshes an artifact no ledger entry covers", async () => {

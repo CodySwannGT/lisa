@@ -94,6 +94,25 @@ function lisaOwnedSources() {
 }
 
 /**
+ * The bytes currently on disk for a tracked source.
+ *
+ * Read from the working tree rather than `HEAD:` so an author who edits a guard
+ * and regenerates gets *their* new hash recorded. Reading HEAD would record the
+ * pre-edit bytes and force a commit-then-regenerate-then-amend dance, and the
+ * `--check` gate would be asserting against a version nobody is shipping. In CI
+ * the working tree is the checked-out commit, so the two agree there.
+ * @param {string} source - Repo-relative source path
+ * @returns {Buffer|undefined} File contents, or undefined when unreadable
+ */
+function workingCopy(source) {
+  try {
+    return readFileSync(path.join(repoRoot, source));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Hex sha256 of a blob's bytes.
  * @param {Buffer} bytes - Blob contents
  * @returns {string} Lower-case hex digest
@@ -112,8 +131,8 @@ function digest(bytes) {
  */
 function historicalHashes(source) {
   const hashes = [];
-  const current = git(["show", `HEAD:${source}`]);
-  if (current !== "") hashes.push(digest(Buffer.from(current, "binary")));
+  const current = workingCopy(source);
+  if (current !== undefined) hashes.push(digest(current));
 
   // `--name-only` is what makes rename-following actually work. Asking for the
   // commit list alone and then reading `<rev>:<source>` fails for every revision
@@ -205,22 +224,56 @@ for (const [destination, sources] of lisaOwnedSources()) {
   ledger.set(destination, [...known].sort());
 }
 
-const rendered = render(ledger);
 if (process.argv.includes("--check")) {
-  let actual = "";
-  try {
-    actual = readFileSync(outputPath, "utf8");
-  } catch {
-    actual = "";
+  checkCurrentBytesAreRecorded();
+} else {
+  writeFileSync(outputPath, render(ledger));
+  process.stdout.write(`Wrote ${ledger.size} ledger entries.\n`);
+}
+
+/**
+ * Assert the one property that actually protects refresh: every Lisa-owned file
+ * Lisa ships *right now* has its current hash recorded.
+ *
+ * Deliberately narrower than "the file equals a fresh regeneration". That
+ * stricter form looks safer and is not: the history walk depends on clone depth
+ * and on merge topology, so a byte-exact check fails whenever CI's view of
+ * history differs from the author's. It did exactly that here — `autoupdate`
+ * merged `main` into the PR branch, main carried other merged template changes,
+ * the walk found hashes the author's run never saw, and a correct ledger was
+ * reported out of date. With many PRs in flight it would mean every merge
+ * reddens every other open PR.
+ *
+ * Historical hashes appearing later are purely additive, and being additive they
+ * cannot cause harm: an extra known-good hash can only let refresh replace a
+ * copy that genuinely came from an older Lisa. What must never happen is the
+ * *current* bytes going unrecorded — a guard edited without regenerating would
+ * stop being recognised as Lisa's own, and refresh would silently stop
+ * delivering it. That is the failure this gate exists to catch, and it is
+ * deterministic everywhere.
+ */
+function checkCurrentBytesAreRecorded() {
+  const recorded = existingLedger();
+  const missing = [];
+  for (const [destination, sources] of lisaOwnedSources()) {
+    const known = new Set(recorded.get(destination) ?? []);
+    for (const source of sources) {
+      const current = workingCopy(source);
+      if (current === undefined) continue;
+      if (!known.has(digest(current))) missing.push(source);
+    }
   }
-  if (actual !== rendered) {
+  if (missing.length > 0) {
     process.stderr.write(
-      "Lisa-owned hash ledger is out of date. Run `bun run build:lisa-owned-hash-ledger` and commit the result.\n"
+      `Lisa-owned hash ledger does not record the bytes currently shipped for:\n${missing
+        .map(source => `  ${source}`)
+        .join(
+          "\n"
+        )}\nRun \`bun run build:lisa-owned-hash-ledger\` and commit the result.\n`
     );
     process.exit(1);
   }
-  process.stdout.write("Lisa-owned hash ledger is current.\n");
-} else {
-  writeFileSync(outputPath, rendered);
-  process.stdout.write(`Wrote ${ledger.size} ledger entries.\n`);
+  process.stdout.write(
+    `Lisa-owned hash ledger records every shipped artifact (${recorded.size} entries).\n`
+  );
 }
