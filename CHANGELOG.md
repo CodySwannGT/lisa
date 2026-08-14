@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.14.0](https://github.com/CodySwannGT/lisa/compare/v3.13.2...v3.14.0) (2026-08-14)
+
+
+### Features
+
+* **maestro:** order the platform legs so one persona is not driven twice at once ([724f373](https://github.com/CodySwannGT/lisa/commit/724f3737dfcda157a864aa9d6d9d784c7924e2f3)), closes [CodySwannGT/lisa#2540](https://github.com/CodySwannGT/lisa/issues/2540)
+
+
+### Bug Fixes
+
+* **apply:** own every enforcement script Lisa ships, not just the lisa- ones ([5285008](https://github.com/CodySwannGT/lisa/commit/5285008cf5c873e532111ac3c51725c1757a7c98)), closes [#2551](https://github.com/CodySwannGT/lisa/issues/2551) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2556](https://github.com/CodySwannGT/lisa/issues/2556) [CodySwannGT/lisa#2551](https://github.com/CodySwannGT/lisa/issues/2551)
+
+### [3.13.2](https://github.com/CodySwannGT/lisa/compare/v3.13.1...v3.13.2) (2026-08-14)
+
+
+### Bug Fixes
+
+* **parity:** make the push gate read the artifacts it vouches for ([39a316e](https://github.com/CodySwannGT/lisa/commit/39a316e1f548c82b5b2dcea4019e5bef2b23232c)), closes [#2402](https://github.com/CodySwannGT/lisa/issues/2402) [#2546](https://github.com/CodySwannGT/lisa/issues/2546) [#2548](https://github.com/CodySwannGT/lisa/issues/2548) [CodySwannGT/lisa#2552](https://github.com/CodySwannGT/lisa/issues/2552)
+
+### [3.13.1](https://github.com/CodySwannGT/lisa/compare/v3.13.0...v3.13.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **apply:** gate the ledger on current bytes, not byte-exact regeneration ([0a9e16b](https://github.com/CodySwannGT/lisa/commit/0a9e16b373c0a1464b22f757df48016a88c23bb3)), closes [CodySwannGT/lisa#2470](https://github.com/CodySwannGT/lisa/issues/2470)
+* **apply:** stop a capability marker from authorising an overwrite ([7c69a36](https://github.com/CodySwannGT/lisa/commit/7c69a36738ab9c39fded59e36a02c3b2c8e3751d)), closes [#2554](https://github.com/CodySwannGT/lisa/issues/2554) [CodySwannGT/lisa#2470](https://github.com/CodySwannGT/lisa/issues/2470)
+
 ## [3.13.0](https://github.com/CodySwannGT/lisa/compare/v3.12.0...v3.13.0) (2026-08-14)
 
 

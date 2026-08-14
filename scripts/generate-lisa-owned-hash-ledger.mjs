@@ -28,6 +28,7 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 const outputPath = path.join(repoRoot, "src/core/lisa-owned-hash-ledger.ts");
 const COPY_OVERWRITE = "copy-overwrite";
 const LISA_NAMESPACE_PREFIX = "lisa-";
+const ENFORCEMENT_TREE = "scripts/";
 
 /**
  * Run a git command in the repository and return stdout as latin1 text.
@@ -51,27 +52,32 @@ function git(args) {
 }
 
 /**
- * Whether a destination path sits in the namespace Lisa owns outright.
+ * Whether a destination path sits in the territory Lisa owns outright.
  *
  * Mirrors `isLisaOwnedTemplate` in `src/core/lisa-owned-templates.ts`. The
  * duplication is deliberate — this script runs before the TypeScript build, so
  * it cannot import the compiled module — and a test asserts the two agree.
  *
- * This is also the ledger's boundary, and it is inherited rather than chosen.
- * The `lisa-` path segment is what decides which files refresh at all, so a file
- * outside it is never refreshed after its initial create and has nothing for
- * provenance to decide — recording hashes for it would add a regeneration gate
- * to ~120 more templates and buy nothing today. If that predicate is ever
- * replaced (CodySwannGT/lisa#2491 tracks it freezing non-`lisa-` guards at
- * whatever version first landed), widening enrolment is this one function: the
- * ledger answers "has Lisa ever shipped these bytes here?" for any managed path.
+ * This is also the ledger's boundary, and it is inherited rather than chosen:
+ * whatever refresh acts on is what provenance has to be able to judge. That is
+ * why the two widened together in CodySwannGT/lisa#2551. This function's earlier
+ * self predicted it — "widening enrolment is this one function" — and the note
+ * is worth keeping, because the direction of the dependency is the load-bearing
+ * part: enrolment must never lag the predicate. `classifyHostCopy` returns
+ * `unenrolled` for a path it has no hashes for, and refresh reads that as
+ * permission to overwrite, so a file the predicate newly owns but the ledger has
+ * not recorded is not merely unprotected — it is clobbered on the next apply.
+ * A test asserts the containment in that direction so the two cannot drift.
  * @param {string} destination - Repo-relative destination path
  * @returns {boolean} True when Lisa owns the file outright
  */
 function isLisaOwned(destination) {
-  return destination
-    .split("/")
-    .some(segment => segment.startsWith(LISA_NAMESPACE_PREFIX));
+  return (
+    destination.startsWith(ENFORCEMENT_TREE) ||
+    destination
+      .split("/")
+      .some(segment => segment.startsWith(LISA_NAMESPACE_PREFIX))
+  );
 }
 
 /**

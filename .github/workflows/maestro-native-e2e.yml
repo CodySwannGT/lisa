@@ -65,6 +65,53 @@
 # displaced run tests nothing and stomps nothing, whereas two concurrent runs
 # corrupt each other's fixtures and produce reds nobody can attribute.
 #
+# ── ORDERING THE TWO PLATFORM LEGS (`serialize_platform_legs`) ───────────────
+#
+# The concurrency group above is the WRONG tool for one specific problem, and
+# reaching for it there costs a day. It excludes whole workflow CALLS from each
+# other — this suite versus the Playwright suite. Inside one call, `android` and
+# `ios` are sibling jobs with identical `needs` and no edge between them, so
+# they always ran at the same time and a shared group changes nothing about it.
+#
+# That matters when both legs sign in as the SAME test persona. Two sign-ins
+# against one account invalidate each other's session, and the loser is logged
+# out mid-suite: it then asserts on an authenticated screen and finds the
+# sign-in screen. The failure is indistinguishable from a product defect by
+# inspection, and it moves between flows from night to night.
+#
+# Measured, not theorized. On geminisportsai/frontend-v2 the Maestro suite on
+# `dev` was 1 success in 6 runs; run 31757559016 failed 2 of 38 Android flows on
+# `id: ^(?:SIGNIN.INPUT_PHONE|TAB_BAR.S…` while the iOS leg passed — a sign-in
+# screen where a tab bar was expected. On TunnlAI/frontend, flow failure rate
+# was 33% while the legs overlapped and 16% after one leg finished, across two
+# runs.
+#
+# `serialize_platform_legs: true` runs iOS to completion first, then Android.
+# It is OFF by default, because a project whose legs use per-platform accounts
+# gets its whole suite in the length of its slowest leg and should keep that.
+#
+# ORDERING, NOT GATING. A FAILING iOS leg still releases Android. Anything else
+# would let a single flaky iOS flow delete the Android suite from the night and
+# report the narrower result under the same green check — trading a contention
+# bug for a coverage bug, which is the worse of the two.
+#
+# The mechanism is a `leg_order` job that Android depends on and that polls this
+# run's own job list for the iOS job. It is indirect because `needs` cannot hold
+# an expression: there is no way to write "depend on `ios` only when an input is
+# set". The job's own comment records the three alternatives and why each was
+# rejected. Consequences worth knowing:
+#
+#   • It needs the `actions: read` permission, and a called workflow cannot hold
+#     a permission its CALLER did not grant. A caller with only `contents: read`
+#     gets a named 403 from that job — not a silent revert to concurrency.
+#   • If that job fails or times out, Android still runs. The run goes red and
+#     the legs overlap for that night, which is exactly today's behavior.
+#   • Opting IN costs an idle ubuntu-latest runner for as long as the iOS suite
+#     takes, plus one held job slot. The default path does not pay it: with the
+#     input unset the job runs no steps and ends in seconds. Wall clock is the
+#     larger bill either way — the suite now takes iOS PLUS Android rather than
+#     the slower of the two, which is the actual price of not sharing a persona.
+#
 # ── TWO SETUP SEAMS, AND WHICH ONE YOU WANT ──────────────────────────────────
 #
 # `pre_suite_command` — runs EXACTLY ONCE per workflow run, in its own job that
@@ -321,6 +368,41 @@ on:
         required: false
         default: ''
         type: string
+      serialize_platform_legs:
+        description: >-
+          Run the iOS leg to completion BEFORE the Android leg starts, instead of
+          running both at once. Set this when the two legs authenticate as the
+          SAME test persona: concurrently they mutate one server-side session,
+          and the loser gets logged out mid-suite and asserts against a sign-in
+          screen where an authenticated screen was expected. That failure looks
+          exactly like a product defect and is not one — see the "Ordering the
+          two platform legs" section in this file's header for the measurements.
+          `concurrency_group` does NOT do this: it serializes whole workflow
+          CALLS against each other (Maestro vs Playwright), not leg against leg
+          inside one call. Default false = both legs start together, prior
+          behavior preserved byte for byte. A failing iOS leg never suppresses
+          Android — ordering here is "after", never "only if it passed". The
+          cost of turning it on is the suite taking iOS PLUS Android instead of
+          the slower of the two, and one idle ubuntu-latest runner held for the
+          length of the iOS suite; leave it off if your legs use per-platform
+          accounts, because the concurrency is free coverage in that case.
+        required: false
+        default: false
+        type: boolean
+      serialize_timeout_minutes:
+        description: >-
+          Ceiling for the leg-ordering job, which only does anything when
+          serialize_platform_legs is on. That job waits through the pre-suite
+          job AND the whole iOS suite, so it must exceed
+          pre_suite_timeout_minutes + suite_timeout_minutes — and it cannot be
+          derived from them, because GitHub Actions expressions have no
+          arithmetic operators at all. Raise it in lockstep if you raise either
+          of those. Timing out here does not lose the Android leg: that job runs
+          on `!cancelled()`, so a blown budget degrades to today's concurrent
+          legs with a red job naming the cause.
+        required: false
+        default: 150
+        type: number
     secrets:
       EXPO_TOKEN:
         description: 'Expo token for EAS builds. When absent, the whole suite skips with a warning.'
@@ -662,9 +744,163 @@ jobs:
             echo "Pre-suite command exported: $(echo "$PAIRS" | tr ' ' '\n' | cut -d= -f1 | tr '\n' ' ')"
           fi
 
+  leg_order:
+    name: 🚦 Leg order (iOS → Android)
+    # The Android leg depends on THIS job, and this job is what waits for the
+    # iOS leg. The indirection is forced: `needs` cannot contain an expression,
+    # so `android` cannot conditionally depend on `ios`. The three alternatives
+    # were each worse:
+    #
+    #   • `needs: [ios]` on android outright — serializes EVERY adopter,
+    #     including the ones with per-platform personas who are paying nothing
+    #     for concurrency today.
+    #   • a second, duplicated android job wired `needs: [ios]`, picked by `if`
+    #     — 400 duplicated lines, and whichever copy is unused concludes
+    #     `skipped` on every run, which the nightly health gate's row 26 reads
+    #     as `incomplete_run` for every adopter (docs/nightly-e2e-gate.md §2.4).
+    #   • job-level `concurrency` shared between the two legs — that is mutual
+    #     exclusion with no ORDER, and the owner asked for iOS first.
+    #
+    # Runs beside `pre_suite`, not after it, so the default path pays nothing:
+    # with the input unset this job does no work and concludes while `pre_suite`
+    # is still running, and `android` was already waiting on `pre_suite` anyway.
+    # Its start time is therefore unchanged.
+    #
+    # DELIBERATELY NOT gated on `inputs.serialize_platform_legs`, for the same
+    # reason `pre_suite` is not gated on `pre_suite_command != ''`: a job that
+    # skips itself whenever the input is unset turns every green nightly into a
+    # blocked one for every adopter who does not use the seam. The JOB always
+    # runs in a wired run and the WORK is gated per-step below.
+    needs: [preflight, build]
+    if: ${{ !cancelled() && needs.preflight.outputs.should_run == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Reading this run's own job list. A caller whose token is narrower than
+      # this gets a named 403 from the step below rather than a silent pass.
+      actions: read
+    # Its own input rather than a sum of the two budgets it actually spans:
+    # GitHub Actions expressions have NO arithmetic operators, so
+    # `pre_suite_timeout_minutes + suite_timeout_minutes` is a syntax error, not
+    # a value. tests/integration/maestro-leg-order.test.ts pins the default here
+    # above the sum of those two defaults so the three cannot drift apart
+    # silently.
+    timeout-minutes: ${{ inputs.serialize_timeout_minutes }}
+    steps:
+      - name: 🚦 Wait for the iOS leg to finish
+        # Three conditions, all required. Serialization is opt-in; and there is
+        # nothing to order unless BOTH legs are actually in this run, so a
+        # platform-narrowed dispatch falls straight through instead of waiting
+        # for a job that will never exist.
+        if: ${{ inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          API_URL: ${{ github.api_url }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          # Matched as a SUFFIX of the API's job name: a reusable workflow's
+          # jobs are reported as `<caller job name> / <this job name>`, so an
+          # equality test would never match. Pinned against `jobs.ios.name` by
+          # tests/integration/maestro-leg-order.test.ts, because a renamed iOS
+          # job with a stale constant here is a gate that waits for nothing.
+          IOS_JOB_NAME: 🍎 Maestro iOS
+          POLL_SECONDS: '20'
+          # How long the iOS job may take to APPEAR in the job list. This job
+          # starts beside `pre_suite`, and iOS does not exist as a queued job
+          # until `pre_suite` concludes, so the discovery window has to cover
+          # the whole pre-suite budget. The slack is added in the shell below
+          # because GitHub Actions expressions have no arithmetic.
+          PRE_SUITE_TIMEOUT_MINUTES: ${{ inputs.pre_suite_timeout_minutes }}
+          DISCOVERY_SLACK_MINUTES: '5'
+          MAX_PAGES: '10'
+        run: |
+          set -euo pipefail
+          DISCOVERY_SECONDS=$(( (PRE_SUITE_TIMEOUT_MINUTES + DISCOVERY_SLACK_MINUTES) * 60 ))
+          page_file="$(mktemp)"
+          started=$SECONDS
+          discovered=false
+          while true; do
+            total=0
+            pending=0
+            page=1
+            while true; do
+              if ! curl -fsSL \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                -o "$page_file" \
+                "$API_URL/repos/$REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs?per_page=100&page=$page"; then
+                echo "::error title=Leg order could not read this run's jobs::GET /repos/$REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs failed. The usual cause is token scope: serialize_platform_legs needs \`actions: read\`, and a called workflow cannot hold a permission the CALLER did not grant. Add \`actions: read\` to the calling workflow's permissions block."
+                exit 1
+              fi
+              matched="$(jq --arg name "$IOS_JOB_NAME" '[.jobs[] | select(.name | endswith($name))] | length' "$page_file")"
+              unfinished="$(jq --arg name "$IOS_JOB_NAME" '[.jobs[] | select(.name | endswith($name)) | select(.status != "completed")] | length' "$page_file")"
+              returned="$(jq '.jobs | length' "$page_file")"
+              total=$(( total + matched ))
+              pending=$(( pending + unfinished ))
+              if [[ "$returned" -lt 100 ]]; then
+                break
+              fi
+              page=$(( page + 1 ))
+              if [[ "$page" -gt "$MAX_PAGES" ]]; then
+                echo "::error title=Leg order could not enumerate this run's jobs::More than $MAX_PAGES pages of jobs. Refusing to report the iOS leg finished on a job list this step could not read to the end."
+                exit 1
+              fi
+            done
+            # The absent case is NOT the done case. Zero matching jobs means
+            # "iOS has not been created yet" or "the name constant is stale",
+            # and neither of those is "iOS finished". Reporting success here
+            # would be a guard that passes because it looked at nothing.
+            if [[ "$total" -eq 0 ]]; then
+              if [[ $(( SECONDS - started )) -ge "$DISCOVERY_SECONDS" ]]; then
+                echo "::error title=Leg order never found the iOS leg::No job in this run has a name ending in '$IOS_JOB_NAME' after ${DISCOVERY_SECONDS}s. Either the iOS job was renamed without updating IOS_JOB_NAME in this workflow, or it never entered the run. Not reporting the iOS leg complete on evidence that does not exist."
+                exit 1
+              fi
+              echo "iOS leg not in the job list yet; waiting ($(( SECONDS - started ))s elapsed)."
+              sleep "$POLL_SECONDS"
+              continue
+            fi
+            discovered=true
+            if [[ "$pending" -eq 0 ]]; then
+              # Terminal is terminal. A FAILED iOS leg releases Android exactly
+              # like a passing one — the point of this gate is that the two legs
+              # never touch the persona at the same time, not that Android is
+              # only worth running when iOS was green. Gating on conclusion
+              # would let one flaky iOS flow silently halve the suite.
+              echo "iOS leg finished ($total job(s), terminal). Releasing the Android leg."
+              break
+            fi
+            echo "iOS leg still running ($pending of $total job(s) not completed); waiting."
+            sleep "$POLL_SECONDS"
+          done
+          echo "discovered=$discovered"
+
+      - name: 🚦 Report the ordering decision
+        env:
+          SERIALIZE: ${{ inputs.serialize_platform_legs }}
+          RUN_IOS: ${{ needs.preflight.outputs.run_ios }}
+          RUN_ANDROID: ${{ needs.preflight.outputs.run_android }}
+        run: |
+          if [[ "$SERIALIZE" != "true" ]]; then
+            echo "serialize_platform_legs is off — both platform legs start together (default behavior)."
+          elif [[ "$RUN_IOS" != "true" || "$RUN_ANDROID" != "true" ]]; then
+            echo "Only one platform leg is in this run (ios=$RUN_IOS android=$RUN_ANDROID) — nothing to order."
+          else
+            echo "iOS leg complete; the Android leg is released."
+          fi
+
   android:
     name: 🤖 Maestro Android
-    needs: [preflight, build, pre_suite]
+    # `leg_order` is in `needs` purely for the EDGE — it is what makes GitHub
+    # hold this job until that one concludes, and `leg_order` is what waits for
+    # the iOS leg when serialization is on. It deliberately appears in no `if`
+    # clause below: the existing `!cancelled()` is what lets this job run when
+    # `leg_order` fails or times out, so a broken serializer degrades to today's
+    # concurrent behavior (loudly, with a red job) instead of dropping the
+    # entire Android suite. Contrast `pre_suite`, which IS result-gated, because
+    # established state is a precondition for testing and mere ordering is not.
+    needs: [preflight, build, pre_suite, leg_order]
     runs-on: ubuntu-latest
     # Caller-tunable, defaulting to 90 to match the iOS job: the 60 inherited
     # from frontend-v2's original workflow started timing out once its suite

@@ -40,6 +40,13 @@ describe("isLisaOwnedTemplate", () => {
   });
 
   it("does not own files a project legitimately customises", () => {
+    // `scripts/check-threshold-ratchet.mjs` was listed here until #2551 and is
+    // deliberately gone. It was added by 88c7ceae0 — the #2374 fix itself —
+    // which enumerated the files then lacking a `lisa-` segment and read that
+    // absence as host ownership. It is not: it is the threshold ratchet gate,
+    // "quality thresholds may tighten, never weaken", and a host's override is
+    // a `thresholdRatchet.allow` entry in `.lisa.config.json`, never an edit to
+    // the checker. Listing it here fossilised the defect as intent.
     for (const hostOwned of [
       "tsconfig.json",
       "knip.json",
@@ -47,7 +54,6 @@ describe("isLisaOwnedTemplate", () => {
       ".prettierrc.json",
       "lefthook.yml",
       ".github/workflows/ci.yml",
-      "scripts/check-threshold-ratchet.mjs",
       ".lisa.config.json",
       ".lisa/PROJECT_LEARNINGS.md",
     ]) {
