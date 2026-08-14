@@ -95,6 +95,16 @@
  *     Re-measured in isolation at load 31 the same test takes 2,499ms — 24x,
  *     not 0.996x, a 24-fold error in the unsafe direction.
  *
+ *     The class is not specific to test timeouts. #2520 chased an actionlint
+ *     invocation reported as taking "25 minutes". It was not slow: a
+ *     3,490-line workflow returns in 0s while a 217-line one hangs, and the
+ *     minimal repro is 28 lines. It is a spin inside actionlint's shellcheck
+ *     integration — ~850% CPU across 37 threads, zero children — so it never
+ *     terminates. The 25 minutes was the observer's patience, not the
+ *     command's cost, and NO budget would have been generous enough. That is
+ *     what `observed_on` refuses: a number produced by a run that did not
+ *     finish is not a measurement of how long the work takes.
+ *
  *     A missing `observed_on` is refused rather than grandfathered. Every
  *     `proven` entry in the ledger when this clause shipped had already
  *     recorded, in prose, that its worst case came from runs that completed, so
