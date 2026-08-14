@@ -158,3 +158,26 @@ Both artifacts are corrected here. Wiring the validator into the push gate or CI
 is what would actually close the loop; it is recorded as a follow-up rather than
 done inline, because the validator was red on arrival and enabling it as a gate
 would newly block every push — a gate-policy change that deserves its own review.
+
+### Follow-up closed — 2026-08-14, issue #2552
+
+That review happened and the wiring landed. `.husky/pre-push.local` now runs
+`plugin-routing-validate.mjs` alongside the drift detector, so a lagging artifact
+blocks the push that creates it. Re-running the sentry lag by hand (artifact back
+to `1.3.1` against the `1.3.2` cache) blocks with
+`upstreamVersion 1.3.1 != cache max 1.3.2` **while the drift gate on the same run
+still reports `✅ Plugin parity pins are current`** — which is precisely the
+half-blind reading that let the lag survive three refreshes.
+
+Enabling it did not newly block anyone. A machine with no plugin cache used to be
+a hard failure for every artifact (`no semver in the cache to confirm`); the
+validator now reports that as **unverifiable** and still exits 0, keeping the
+schema, routing, coverage, and anti-pattern gates. A cacheless clone therefore
+validates strictly more than before, not less.
+
+The same issue also closed the hole PR #2548 walked through: six generated parity
+`SKILL.md` files carrying literal `<<<<<<< HEAD` blocks passed everything,
+because the pin value sat *inside* the conflict block. `check-conflict-markers.mjs`
+reads the bytes of every tracked file, in the push gate and in the required
+`🧩 Plugin artifacts match source` job — the latter because a cloud agent never
+runs the local hook.
