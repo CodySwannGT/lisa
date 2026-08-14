@@ -41,7 +41,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.lisaignore":
       "3c9827e7e98daa46510b5357cd6dd9406da1821e64cc46d2eea9f311cd6d06b9",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
-      "12d2204d34195ad4f81082e90a25dbbf7d2493debcc50c1cd37b32dc4648fc17",
+      "bb0e67a52ea5badd0f291961c3a9fb25559f1f35e3042642d389a49eb47f7e31",
     "all/create-only/specs/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "all/create-only/state/README.md":
@@ -81,13 +81,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "98bd4b784a5a0a96bedc40c209f5bf5afe97fa422c200533d4544990a69a5c1a",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "2746e78fb0fbe7b23b30bbcb0f83171e16f6804fd467b3d41d3c69970572af3f",
+      "ed60ebd52c726843300f5b33c88fbb2cb0e646bac9c03bbddef517cc947500fa",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/tsconfig.local.json":
       "d26253827e21fd7c41d30565fe3d339675f119e00bb24c5713a01f57ccd06602",
     "cdk/create-only/vitest.config.local.ts":
-      "476738b351114a0efbcd3ae4ce1cf016307b55ee41ed8e87c35e28e4639d98f5",
+      "a70a6d2a4f210304cf84b8017b2c628c0ef689712c4f745ef45e1fcfffac4050",
     "cdk/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "cdk/deletions.json":
@@ -205,23 +205,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/required-checks.json":
       "9f23b0477f93c3193ab22251dd03251038cfe45c5a2603cb49fdf97cae799442",
     "expo/create-only/.github/workflows/ci.yml":
-      "bf75c9d3b4f4a2cb24c2214d9fc27a9cb2247a6694b0cf02c40032b4d3e87cd9",
+      "88b186c48a51a53aec40ea4b6e515b7333b8e086f8b358f323208a2bb42aeed3",
     "expo/create-only/.github/workflows/deploy.yml":
-      "0978b1f4e19e1ff66bb8cdd037d36a3751d4e917db7ceb5bcf100fad36768516",
+      "27f5037db910501f8d76f828f91a605e3c4d321d1df362d317c440ab7abc9f14",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "d710fef33e1ba8d520b6a1c58b05a2c943e73a0cad2e317b42f100fdad58482a",
+      "805256e2922abb8d08c00e833adb4f0c521e62cc7259ee5c0524475d496914f1",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
-      "4185f5083d8da5efa620e8641d6b75e0cb424edd563989c7432892872969797c",
+      "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "fb2a4c5d3731c5aa52573d2d2f2313561141172718195a05b5a7217168b7ae84",
+      "9852ce44177be171aca0c0f66136c88ae654409d7bcfc8bad989eedc18980780",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "df47b2e5c31d2bb4eee6fb979d8d25b3a5cea572e46be042a9b4c59fbe43af72",
+      "5fccbcbb3f121eb80b165e6403ef131d4ed71da9b9f58386fa0db66daf4026f9",
     "expo/create-only/.maestro/flake-classification.json":
       "b1259c17a875dcdc0fa2398bb280f084e898f46fefaf51e35c3c5aadcbef5a5d",
     "expo/create-only/.zap/baseline.conf":
       "ab18d74ba5270dd5d795e740cd6b1292bb78dc36c79a20c1e7b752d14c0c55f5",
     "expo/create-only/babel.config.js":
-      "faaf96f0d43c724a240a7892584de54ae384eee9ef9d76430d081f37d9f92924",
+      "86503c2f3ccf13749e1c7674c97ab8df4cb28a8d346bd5ddcb65787290b5a9a3",
     "expo/create-only/bdd/coverage-map.json":
       "ea38c44d5de30516f341b4208469f75990fe9f05bd8e7013cfc4002a52c032a2",
     "expo/create-only/bdd/features/.keep":
@@ -229,19 +229,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/e2e.thresholds.json":
       "23ac9bab7fe84cfa542785156425e020af9baabdbeb1a53293ae7e2395e4dd92",
     "expo/create-only/jest.config.local.ts":
-      "edf524bbf37e83883ade6bb60a8904aa2243eda7a9ca3448265761c3ca517df6",
+      "0647741c9df4cecc1b7c285e28bfbec217994f0b7984eecf81ca47095e936754",
     "expo/create-only/jest.config.react-native-mock.js":
-      "21bda73cf5b79fda3ed95be47c1898444bb7e659a26705afa03999b4fcf73c28",
+      "f146fea09b0308ac3332f1f06cf8f22ee5c88b06b5fd227860b36204566de5f1",
     "expo/create-only/jest.setup.local.ts":
-      "c69a0a6dcd6f4125cef9fff334761f4cd37f5436c7e3b6097a89694cdc33a933",
+      "f0266cf872f41b6599e476e135f0b8947c3d226abe5bc4e02fb4087c836abac0",
     "expo/create-only/jest.setup.pre.local.js":
-      "28ae10884bebe757f025008cebe943f1d5788117ff084efabd33f40db2ea1851",
+      "92d24da88f69ac3d5325d2221b570308d13e81d02deaa936c24866ed1acd8363",
     "expo/create-only/lighthouserc-config.json":
       "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
     "expo/create-only/lighthouserc.js":
       "8e6fb0a37cd2884cec32378fcd8e213bc7489d2b9e9ad862e61c90435b2679a7",
     "expo/create-only/scripts/zap-baseline.sh":
-      "55220e236a4241ada13a98a0e25ba3e6517b804f652342ff9adebf57ec79d9d5",
+      "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
       "f44e9c8af4a975c1ce04ba59229c3e88006d47ef47cf60872a3e075c045192e8",
     "expo/create-only/tsconfig.json":
@@ -287,13 +287,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "37cf03c11e892f58c8fb818bbf35242af0e0e920f5d6a5f4716defccbb8d064d",
+      "c9b57fcdc97576e7f232f18dd3fbb47ccc3b609516113cb625d818a5b2613aae",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
-      "0315cd74dbe463da373b6a2fb75d48f46959df4232a31573fb84b1a4ed8e4e36",
+      "925ee1068e53d46fd0374299c1ee73d0b791e201169772cd509946ef503de8f5",
     "harper-fabric/create-only/.zap/baseline.conf":
       "68aae4b1b9b5b7253b5aeb792d72b58f64e5eda1dcf8f3062bd9d77494a5a22f",
     "harper-fabric/create-only/scripts/zap-baseline.sh":
-      "da139276b637080f9877362ce6f9667c1ffd57c9d18ec851999ce4328f309577",
+      "00f5a2bdf6c9ecf0d7a1c74ec629364b09bab1f79c4ea71779826288702d76aa",
     "harper-fabric/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "harper-fabric/merge/.claude/settings.json":
@@ -371,15 +371,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
+      "8011a4f93b55239c07ed1119b13a7445d1ac500f1b50995487e712ffadf4201f",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
-      "de3a66a780076f98d5c6306c03b5decac8afbc9ff37583e5e6463c56f3399e3e",
+      "9d81fdb3419753ca4ec5509e37365543d7608c7a9924635ef1acb4734cb3bbd1",
     "nestjs/create-only/tsconfig.local.json":
       "0b720ddad0d18f52dadf33bdc4a0aec0eb65c506bc8ebb692f880bdf31d1011d",
     "nestjs/create-only/vitest.config.local.ts":
-      "476738b351114a0efbcd3ae4ce1cf016307b55ee41ed8e87c35e28e4639d98f5",
+      "a70a6d2a4f210304cf84b8017b2c628c0ef689712c4f745ef45e1fcfffac4050",
     "nestjs/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "nestjs/deletions.json":
@@ -391,7 +391,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/package-lisa/package.lisa.json":
       "f54fbe079e12caa89f1b768a851e71cd1c30e37918ca309c50add4379102381d",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
-      "c21af3c31626abfe4dcbfdd42917f7e01753045a1ba6eba87b014e7f8c18db10",
+      "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
       "4a17f67b6ac09e239f4afb3cf71ecd42e1b6890164008aa8e654f3110b1d65fd",
     "oxlint/base.json":
@@ -2023,45 +2023,45 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/ci.yml":
       "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
     "rails/create-only/.github/workflows/claude-code-review-response.yml":
-      "bfbe3127c4941c35886d324d439ae0302fbccd74a11cb4decf05a21195efa0e9",
+      "def0d5fdbb3415f1531dcadfca9c357c637cf090d3a86017ae45cf94dba50087",
     "rails/create-only/.github/workflows/claude-nightly-code-complexity.yml":
-      "3943137c81ed212d7d3f35f7d7f6242a984fda43ed29a5f565ab5c2923d92606",
+      "1dd8e4a790321d2de9aceb0d612bfa074ec4bddc604dac8d4146845cbf4526a1",
     "rails/create-only/.github/workflows/claude-nightly-test-coverage.yml":
-      "f7f2eeb05ddd18e196c4b292c0a846e765ed8b67ddeacfc6b19c3d676d91e459",
+      "e136b4a96932a38d6ae6ff170b0caebef8277a33d49741162f554dd3457d524f",
     "rails/create-only/.github/workflows/claude-nightly-test-improvement.yml":
-      "9195acb1564f960bc5831c82b1ad9ae2ce94460458e5b58d3b827e0eb1deb84b",
+      "7af881e5e79336d7cf3424c1031c0e3629de1ef8fdf9967f91b274975f5bd57e",
     "rails/create-only/.github/workflows/claude-sync-down-branches.yml":
-      "072cc8290eec15ef6d55c2583e94ae49cda4a56a0fea252556a8fce8170cc540",
+      "e63fa223b7f324c340635940c841d4872531d025129cbbddc1b7e55a89745c5e",
     "rails/create-only/.github/workflows/deploy.yml":
-      "e87c9f59fe653b29cb8a1a4d78b5d433f051366fe985035d56bd922fbd9603f8",
+      "0c00b70e3ff0213f4ce80ce80123e7edeb6e0896aaa13e806d14693f6fcf6320",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
-      "73dbc96f1370e2a5afa474b0a1063f6b752c60c620220c4b057d0a71c42cde1d",
+      "9ee28ad14e4688e58827510eb9b7197d9a368fc670821145a08f7542e2e216d8",
     "rails/create-only/.reek.yml":
-      "383a70f946c0a2824a3f357623224d94c63ee9a8b8de924e8a3879a6017fc09f",
+      "d2fca1f6367719b002ea51c76e10cb9e08b1c34991b4386696f79a1a36c6a385",
     "rails/create-only/.rspec":
       "06245e25d7cf46b4fbde27b5faa0df0d4110e11918eeb5848de4ab2aff897b59",
     "rails/create-only/.rubocop.local.yml":
       "241045ea0d161b45f3401a6198ce7f500fe108babc6c5b23bf520b531b3c1765",
     "rails/create-only/.rubocop_todo.yml":
-      "2f99205f6b7b97b04700a74036de03e018ca791832b5d5c4df7104f50b3cfee5",
+      "2b35494aef30e0ffac4f00fed16f06a6f0ed7929b683f008f3185efded3ba37f",
     "rails/create-only/.simplecov":
       "76aea970faa9692967e79abe7d88fadd03510dda81599e34424a4711a431743a",
     "rails/create-only/VERSION":
       "6b13789e43e5485634533de16a65d8ba9d34c4c9758588b665805435f80eb115",
     "rails/create-only/mutation.gate.yml":
-      "8d3e6faa70b7755d12515870e41aa43e7aa75b607dfefb9720d964f61ee303c8",
+      "aa3599015e28c1efddb03004730897c76696fe72ed1a9ef1c7761533490effec",
     "rails/create-only/rubocop.thresholds.yml":
-      "9fca7bc50863f83dfc57700b9f54f5a7661f6bc153c8db502676fe2caa72a32b",
+      "8f1c2a5f31a66525fbb31b985011d88fb22b64248412b783752e90fe4ca14219",
     "rails/create-only/simplecov.thresholds.json":
       "b9ad3eb44861aa16afffd1ddc7135911b539e3ecac71f2332d68ba3c8ba2e7f7",
     "rails/create-only/sonar-project.properties":
       "58f0618863149a49aa39dc96eca498e8338f24e7d0237fb654ac85920ba57e15",
     "rails/create-only/spec/rails_helper.rb":
-      "aa94dcec9eea6d238c7210ca9ee88ba009061f1ba59bd042eaf09b8f98582689",
+      "5a96010d99c78f75713fc44fed6bba5f2631f94f5d1cc08d96f80601faeee843",
     "rails/create-only/spec/spec_helper.rb":
-      "4308dcddf2ee1b65986ff206a0feac62c8e3a1cae842b115fd2945b7563ed9cd",
+      "56ca48d2519ece7a856fe7941ea8acf2d9f1d53aee03321f230300907dc20712",
     "rails/deletions.json":
       "eeadf9a2b1677913199a235091a8d6190477f3e2a5fd598d62cf658cb59a8099",
     "rails/github-rulesets/quality-checks.json":
@@ -2293,39 +2293,39 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/required-checks.json":
       "16e7693b24a68d38fa2d680bf7231a91939850b1e71a69b67780b1311f1cbf35",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
-      "347f8a3830efdc3ad701fae0858994f4e45df8100844e91948b017b98115a28c",
+      "504aa5a04ce88a01d5b0407efd240d691a0cf8fac208a6ecfbf931f43f1437c3",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
-      "cf185555bcbe8e9957333abcae2e0c20e00875f8d867f70134efbd2a5c974ee5",
+      "4a379369c1dedd1751a24508cb1146e39beca6b92f4d31e0d32cb2e03eafe67e",
     "typescript/create-only/.github/workflows/ci.yml":
       "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
     "typescript/create-only/.github/workflows/claude-ci-auto-fix.yml":
-      "a9155c10d0c28eba0f77ec5bc2a2d99b0eeb5d499218aac81948d3f27e6aa4fb",
+      "17e99a1b0b5afefa0f374c5ffd614bf35ee0f6dd68f21b1c97446a03d9cddd04",
     "typescript/create-only/.github/workflows/claude-code-review-response.yml":
-      "68bc8b53c2d4c58ab49b176796d27214415608fe94130e1f465c0bd41a100443",
+      "55853fbc3a072edec4bc3699cd45287b801e5299fbf33780a6f1ae8072a204ee",
     "typescript/create-only/.github/workflows/claude-deploy-auto-fix.yml":
-      "5e0f7282b1b97a308bc5b95f6a4ef784d4dfbd02f3126bf9254fbf4576606daf",
+      "5d1a569cbb13abf39f8303a7102ad78850d487a9c6be53026df47119714f4332",
     "typescript/create-only/.github/workflows/claude-nightly-code-complexity.yml":
-      "bab5b2b88e537c3e091a564883098dda23059c1b771da0160065ebccbd75011c",
+      "813d409a4f431d46edf5a2937012dae83a65f5c0bb6c5008de3dec53aa674fdf",
     "typescript/create-only/.github/workflows/claude-nightly-test-coverage.yml":
-      "f8c31ea92be8d55223da86aea807ce67f287e7d50e49a7891537d05a035bb9fc",
+      "82fb935e0793f92727aac40f056e52c9996788d6329a2bbcc41837a72be28619",
     "typescript/create-only/.github/workflows/claude-nightly-test-improvement.yml":
-      "71e3acf398a8968ff7e86ada750a814f63a66ec23b0fe1005dfaa65f4b810c68",
+      "4ea64d78865e00dc575cfc62fc30ff53ca9e6c0b3fc32f45927781a0968d2095",
     "typescript/create-only/.github/workflows/claude-sync-down-branches.yml":
-      "072cc8290eec15ef6d55c2583e94ae49cda4a56a0fea252556a8fce8170cc540",
+      "e63fa223b7f324c340635940c841d4872531d025129cbbddc1b7e55a89745c5e",
     "typescript/create-only/.github/workflows/claude.yml":
-      "fd230bf19769a12b1b3afeeeb1d5f51c44338db974c26ff05dc381f0e1ba2382",
+      "9db35bb1b803679284708a18e2eb5a9c8a33b55f93629c3ed2ab11217d76caed",
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
-      "e3eed885502d389e3b9ac3d083b340f5a52e469aceec592a947c56ec5b17cf5c",
+      "c1a828f42c8ea6c3108f82b081d8a0999ae2c8ac9b556e7ebb2053b353838ce0",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
       "096eba7c600446a2f906369a6ff747804a51b9ad3153ca10d9a1d673e416b337",
     "typescript/create-only/eslint.config.local.ts":
-      "8de2ca92cd08eb91989dbb809d4918322f002f998f36b714367c4a7a2fae4b17",
+      "9194ea9f5d7696a5354022475774813aebde504bbf53a4fecbe1e97f2af75b2b",
     "typescript/create-only/eslint.thresholds.json":
       "a89afdbd12c2e2a2564e83cfe7a5c5ba8d4da3eb02bc476b19f18c2a0bda7228",
     "typescript/create-only/jest.config.local.ts":
-      "ccb0872e62e8bd50e949f5a082e1655394478f98d9ae9c05f089f629c6f53307",
+      "5d5603e5b79ab0379cda135159ad83aef3ec914fa037c83fc7176363b64c8422",
     "typescript/create-only/jest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/create-only/mutation.gate.json":
@@ -2335,7 +2335,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
-      "476738b351114a0efbcd3ae4ce1cf016307b55ee41ed8e87c35e28e4639d98f5",
+      "a70a6d2a4f210304cf84b8017b2c628c0ef689712c4f745ef45e1fcfffac4050",
     "typescript/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/deletions.json":

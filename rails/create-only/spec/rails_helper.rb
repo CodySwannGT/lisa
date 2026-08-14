@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 
 require 'spec_helper'
 
