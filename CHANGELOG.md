@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.1](https://github.com/CodySwannGT/lisa/compare/v3.14.0...v3.14.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **apply:** own every enforcement script Lisa ships, not just the lisa- ones ([5285008](https://github.com/CodySwannGT/lisa/commit/5285008cf5c873e532111ac3c51725c1757a7c98)), closes [#2551](https://github.com/CodySwannGT/lisa/issues/2551) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2556](https://github.com/CodySwannGT/lisa/issues/2556) [CodySwannGT/lisa#2551](https://github.com/CodySwannGT/lisa/issues/2551)
+
 ## [3.14.0](https://github.com/CodySwannGT/lisa/compare/v3.13.2...v3.14.0) (2026-08-14)
 
 
