@@ -415,7 +415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-overwrite/.husky/pre-push.verify":
       "fef6694c2fde6178f46c62936d2b19515adce4fc8ac694ea66d8342aa1474ee7",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
-      "35e9b9011053aa791fe6c6b76129599fff5c65a408bef1498b9fe4dd6f0054eb",
+      "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-canvas-renderer.yml":
       "bd0994bbb8f8e6bde2a1a581fb2cb8aa011d91822dabf4366f500359069726b3",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-raw-webgl-context.yml":
@@ -1989,7 +1989,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/Gemfile.lisa":
       "8bebf6120fa90d8f971ded8281c4fdac632e524ca0bb80f6268c3eda997f7672",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
-      "35e9b9011053aa791fe6c6b76129599fff5c65a408bef1498b9fe4dd6f0054eb",
+      "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-find-by-sql-without-params.yml":
       "8d47d388f1b7d5cce0d4e58a9455247a10ee93d4cca664e9169dd32b666b10d0",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-params-without-permit.yml":
@@ -2237,7 +2237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.yamllint":
       "e8a17046b8c1eb4653ed8a2ac6390ce499d505aab2daf81e43feefd5c4959067",
     "typescript/copy-overwrite/ast-grep/rule-tests/.gitkeep":
-      "35e9b9011053aa791fe6c6b76129599fff5c65a408bef1498b9fe4dd6f0054eb",
+      "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep":
       "5068239f6c760759362d6a1cc83478d77eef0214fa7f4f23c8d1ce4b56f532c0",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml":
