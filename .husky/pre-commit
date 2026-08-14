@@ -85,4 +85,20 @@ fi
 # Run lint-staged for incremental lint and format checks
 echo "🚀 Running lint-staged..."
 $EXECUTOR lint-staged --config .lintstagedrc.json
+LINT_STAGED_STATUS=$?
+if [ $LINT_STAGED_STATUS -ne 0 ]; then
+  exit $LINT_STAGED_STATUS
+fi
+
+# Generated artifacts must vouch for the bytes committed beside them. Runs AFTER
+# lint-staged on purpose: reformatting a staged template moves its bytes, so a
+# check placed above would sign off on bytes that no longer exist. Absent in host
+# projects, which have the hook but none of Lisa's generators.
+if [ -f "scripts/check-derived-artifacts.mjs" ] && command -v node >/dev/null 2>&1; then
+  echo "🧾 Checking generated artifacts..."
+  node scripts/check-derived-artifacts.mjs --staged
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
+fi
 # END: AI GUARDRAILS
