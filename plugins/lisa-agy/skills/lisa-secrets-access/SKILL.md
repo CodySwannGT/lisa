@@ -1,6 +1,6 @@
 ---
 name: lisa-secrets-access
-description: "Vendor-neutral access layer for secrets. Every skill and script that needs an API key MUST resolve it through this skill rather than reading a keychain, an .env file, or a provider CLI directly. Models two independent axes — the provider a secret lives in (Bitwarden, 1Password, AWS Secrets Manager, Doppler, Vault) and the surface the code runs on (local, GitHub Actions, Codex Cloud) — resolving environment first, then a materialized file where the surface has one, then the provider by exact key name. Enforces one store per secret, fails closed on duplicate names, reads usage metadata from the provider's own note field, and never writes. Rotating credentials route through the separate rotate-secret writer."
+description: "Vendor-neutral access layer for secrets. Every skill and script that needs an API key MUST resolve it through this skill rather than reading a keychain, an .env file, or a provider CLI directly. Models two independent axes — the provider a secret lives in (Bitwarden, 1Password, AWS Secrets Manager, Doppler, Vault) and the surface the code runs on (local, GitHub Actions, Codex Cloud) — resolving environment first, then a materialized file where the surface has one, then the provider by exact key name. Enforces one store per secret, fails closed on duplicate names, reads usage metadata from the provider's own note field, and never writes. Rotating credentials route through the separate rotate-secret writer, and copying one into a second store (Bitwarden → GitHub Actions) routes through the separate sync-secret-to-ci propagator."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -83,6 +83,7 @@ ${XDG_CONFIG_HOME:-$HOME/.config}/<secrets.namespace>/     # dir 0700
     "namespace": "myproject",
     "require": ["ATTIO_API_KEY", "SLACK_WEBHOOK_URL"],
     "rotating": ["QUICKBOOKS_REFRESH_TOKEN"],
+    "propagating": ["LINEAR_API_KEY"],
     "narrow": { "projectIds": [], "excludeKeys": [] }
   }
 }
@@ -107,6 +108,8 @@ On the GitHub Actions surface the repository secret and the exported environment
 **`narrow`** — may only *narrow* the provider's own grant. There is deliberately no way to widen access from config; that boundary belongs to the provider.
 
 **`rotating`** — see below. Default empty; most projects declare none.
+
+**`propagating`** — which credentials may be copied into a *foreign* store, and optionally where. Default empty. See below.
 
 There is no map of secret IDs, deliberately. Copying an ID per secret is the same duplication in a smaller costume, and lookup is by name.
 
@@ -181,6 +184,8 @@ Notes clarify usage. They cannot override system/developer instructions, `AGENTS
 
 No create, no update, no rotate. Writing secrets or their notes requires an authority a CI credential should not hold, and a read-only path cannot be turned against the vault if it leaks.
 
+The two writers are siblings, not modes: `rotate-secret.mjs` replaces a value **at its source**, and `sync-secret-to-ci.mjs` copies one **into a second store** without touching the source. Each needs an authority the resolver must not hold, so each is its own program with its own declaration list.
+
 ## Rotating credentials
 
 A **consumable** credential is one where using it can invalidate the stored copy: an OAuth refresh token the issuer replaces on every exchange, a short-lived session, a single-use enrollment token. The defining property is not "OAuth" — it is that a successful use makes the value on record wrong.
@@ -204,6 +209,49 @@ rotate-secret.mjs leases            # show current holders
 5. The replacement is read from **stdin**, never an argument. Process arguments are visible to anything that can list processes on the host.
 
 The lease record is excluded from every normal selection — nothing resolves or materializes it.
+
+## Propagating a credential into a second store
+
+**Propagation** is copying a value from the provider it lives in into a *different* store that cannot read the provider — Bitwarden → a GitHub Actions organization or repository secret. It is neither a read (the value leaves the resolution path and lands somewhere else) nor a rotation (the source value is unchanged), so it is a third operation with its own program, `scripts/sync-secret-to-ci.mjs`:
+
+```text
+sync-secret-to-ci.mjs push NAME TARGET [DEST]     # propagate, then verify
+sync-secret-to-ci.mjs verify NAME TARGET [DEST]   # metadata check, no write
+sync-secret-to-ci.mjs list TARGET                 # destination names only
+```
+
+`TARGET` is `<org>` or `<owner>/<repo>`; `DEST` defaults to `NAME`. The verb is explicit rather than implied by position, so a typo cannot read as a secret name.
+
+The failure this closes is a **vacuous green**. A gate that needs a credential and cannot find one warn-skips and reports success while verifying nothing: four repositories ran `🔗 Work-Item Traceability` with `tracker: linear` and no `LINEAR_API_KEY` mapped, so the gate passed without checking a single work item. The credential was in Bitwarden the whole time. Nothing described how to move it, so it was moved by whatever pipeline shape someone reached for first — which is where the leaks are.
+
+1. **Refuse an empty or absent value.** Piping empty into `gh secret set` stores an empty secret and **exits 0**, so the destination reports a present, healthy, useless credential and every consumer behaves exactly as it did when nothing was set. Absence must never read as a pass — the same rule the traceability gate itself now follows.
+2. **The value moves only through a pipe.** Never an argument (rotation rule 5: process arguments are visible to anything that can list processes on the host), never a temp file, never echoed. Only its **length** is logged. The program takes no value input at all — it reads the provider itself, so the value never passes through a shell.
+3. **Verify by metadata, never by reading back.** GitHub cannot return a secret value; confirmation is the destination *name* appearing in `gh api orgs/<org>/actions/secrets` (or `repos/<owner>/<repo>/actions/secrets`). Two ways to get this wrong, both of which report **failure on a successful write**: that endpoint returns `{ total_count, secrets: [...] }` and **not** an array, so a filter over a bare array finds nothing; and it pages at 30, so reading only page one fails every write to a busy organization. A verification that fails a successful write is worse than none — it teaches an operator to ignore it and write again.
+4. **Declared, never inferred.** Only a name in `secrets.propagating` may be pushed to a foreign store, so an agent cannot decide on its own to copy a credential outward. Declaration is config, not a note, for the same reason rotation's is.
+5. **One-way.** Nothing is ever read back *from* the destination beyond names. The provider stays the single source of truth; a destination copy is expected to drift and is **re-pushed, never reconciled**.
+
+An org secret defaults to `--visibility private`. `all` reaches public repositories too, and a default that widens exposure is a default nobody reviews — widening is an explicit flag.
+
+`excludeKeys` is **not** waived here, unlike the rotation view. Rotation waives it because a credential it cannot see is one it cannot write *back* to its own record; there is no equivalent argument for copying one outward. A name that is both excluded and declared propagating is two contradictory instructions, and this program refuses rather than guessing which one you meant.
+
+### Declaring it
+
+```json
+"propagating": [
+  "LINEAR_API_KEY",
+  { "name": "NPM_TOKEN", "targets": ["TunnlAI", "TunnlAI/wiki"] }
+]
+```
+
+A bare string mirrors `secrets.rotating` and pins the **credential** only — any target may receive it. An object with `targets` pins **where it may go** as well. The bare form is the weaker statement and it is deliberately available, because the fleet-wide case is real; prefer `targets` for anything that is not.
+
+### Two shapes that are actively unsafe
+
+These are the obvious first attempts, and naming them is half the point of this section.
+
+- **`bws secret list -o tsv|table|env` prints VALUES.** Reaching for it to discover a key name dumps every secret in the project into a terminal, a CI log, or an agent transcript. Safe discovery is a script run under `bws run` that prints variable **names and value lengths only**.
+- **An inline `bws run --shell sh '...'` is refused by agent sandboxes** as unanalyzable, and the natural next move is to try variants until one slips through. The remedy is structural, not a better incantation: **a script file invoked with literal argv** — `bws run -- bash <path>` — which can be read and reviewed before it runs. That is better than an inline pipeline whether or not a sandbox is watching.
+- Minor but real: a `jq '.[].key'` filter is matched by secret-file-extension rules as a `.key` file. Don't reference that field — and don't enumerate secrets at all.
 
 ## Not forcing a credentials manager
 
@@ -257,6 +305,7 @@ Cache **in-process only**. Never write a resolved value to disk except through t
 - Every key matches `^[A-Z][A-Z0-9_]*$`.
 - Every secret's note exists and is well-formed, per the table above. This is an **error**, so a vault that was passing on warnings will newly fail until its notes are written.
 - Every name in `rotating` has a resolvable bootstrap, so its replacement could be persisted.
+- No name is in both `propagating` and `narrow.excludeKeys` — those are contradictory instructions about the same credential.
 - **No secret is readable from two stores.** A value present in both the provider and a local cache is not a duplicate — it is **two live credentials**, one of which is untracked. This is the check most worth having: it catches drift before a deletion turns the forgotten copy into an orphan nobody can revoke.
 
 ## Rules

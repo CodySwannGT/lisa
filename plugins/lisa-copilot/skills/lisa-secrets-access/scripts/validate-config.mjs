@@ -109,6 +109,65 @@ function isDownloadKind(method) {
 }
 
 /**
+ * Validate `secrets.propagating`, which carries two shapes on purpose.
+ *
+ * A bare string mirrors `secrets.rotating`: it pins which *credential* may be
+ * copied into a foreign store, and any target may receive it. An object adds
+ * `targets`, pinning *where it may go* as well — the stronger statement, and the
+ * one worth making for anything not intended fleet-wide.
+ *
+ * Checked here rather than folded into the `require`/`rotating` loop because
+ * that loop assumes every entry is a string, and quietly rejecting the object
+ * form would leave the stronger declaration unusable.
+ * @param {unknown} propagating The declaration, if present.
+ * @returns {string[]} Problems found.
+ */
+function validatePropagating(propagating) {
+  if (propagating === undefined || propagating === null) return [];
+  if (!Array.isArray(propagating)) {
+    return [
+      `secrets.propagating must be an array of exact key names, or of ` +
+        `{ name, targets } objects`,
+    ];
+  }
+  const problems = [];
+  for (const entry of propagating) {
+    const name = typeof entry === "string" ? entry : entry?.name;
+    if (typeof name !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(name)) {
+      problems.push(
+        `secrets.propagating entry ${JSON.stringify(entry)} has no exact ` +
+          `UPPER_SNAKE_CASE name. Lookup is never fuzzy.`
+      );
+      continue;
+    }
+    if (typeof entry === "string") continue;
+    const targets = entry.targets;
+    if (targets === undefined) continue;
+    if (!Array.isArray(targets) || targets.length === 0) {
+      problems.push(
+        `secrets.propagating["${name}"].targets must be a non-empty array of ` +
+          `"<org>" or "<owner>/<repo>". Omit it to allow any target.`
+      );
+      continue;
+    }
+    for (const target of targets) {
+      if (
+        typeof target !== "string" ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)?$/.test(
+          target
+        )
+      ) {
+        problems.push(
+          `secrets.propagating["${name}"] target ${JSON.stringify(target)} is ` +
+            `neither an organization nor an owner/repo.`
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+/**
  * Validate the `secrets` block.
  * @param {object|undefined} secrets The block, if present.
  * @returns {string[]} Problems found.
@@ -161,6 +220,23 @@ export function validateSecrets(secrets) {
             `UPPER_SNAKE_CASE environment-variable name. Lookup is never fuzzy.`
         );
       }
+    }
+  }
+
+  problems.push(...validatePropagating(secrets.propagating));
+
+  // Excluding a name from every surface and declaring it copyable to a foreign
+  // store are opposite instructions about the same credential. The propagator
+  // refuses at push time; catching it here means the contradiction surfaces in
+  // review rather than the first time someone needs the push to work.
+  const excluded = new Set(secrets.narrow?.excludeKeys ?? []);
+  for (const entry of secrets.propagating ?? []) {
+    const name = typeof entry === "string" ? entry : entry?.name;
+    if (typeof name === "string" && excluded.has(name)) {
+      problems.push(
+        `secrets.propagating["${name}"] is also in secrets.narrow.excludeKeys. ` +
+          `Those say opposite things about the same credential.`
+      );
     }
   }
 
