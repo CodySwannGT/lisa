@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.14.0](https://github.com/CodySwannGT/lisa/compare/v3.13.2...v3.14.0) (2026-08-14)
+
+
+### Features
+
+* **maestro:** order the platform legs so one persona is not driven twice at once ([724f373](https://github.com/CodySwannGT/lisa/commit/724f3737dfcda157a864aa9d6d9d784c7924e2f3)), closes [CodySwannGT/lisa#2540](https://github.com/CodySwannGT/lisa/issues/2540)
+
+
+### Bug Fixes
+
+* **apply:** own every enforcement script Lisa ships, not just the lisa- ones ([5285008](https://github.com/CodySwannGT/lisa/commit/5285008cf5c873e532111ac3c51725c1757a7c98)), closes [#2551](https://github.com/CodySwannGT/lisa/issues/2551) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2556](https://github.com/CodySwannGT/lisa/issues/2556) [CodySwannGT/lisa#2551](https://github.com/CodySwannGT/lisa/issues/2551)
+
 ### [3.13.2](https://github.com/CodySwannGT/lisa/compare/v3.13.1...v3.13.2) (2026-08-14)
 
 
