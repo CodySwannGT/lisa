@@ -25,6 +25,16 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   merge-base), with lowering permitted only via a `thresholdRatchet.allow` entry
   merged from the baseline side.
 
+  *Amended 2026-08-13 (#2531):* "from the baseline side" deadlocked the promotion lane.
+  On a `dev` → `staging` promotion the baseline is the branch that is behind, so an
+  exemption already approved upstream reads as newly added — and the remedy (record it
+  in `thresholdRatchet.allow`) is itself the Tier 3 change being blocked. The allow list
+  is now read from the head for a promotion between branches named in `deploy.branches`,
+  where the head is upstream of the base and fully contains it. The discriminator is
+  branch identity, not ancestry: a strict up-to-date branch-protection rule makes "the
+  head contains the base" true of every ordinary PR, so ancestry alone would have
+  retired Tier 3 entirely.
+
 Brownfield onboarding depends on ratchets: a red project adopts incrementally instead
 of being blocked until fully remediated.
 
