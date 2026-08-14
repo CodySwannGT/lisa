@@ -2,7 +2,7 @@
 name: lisa-parity-safety-net-rules
 description: "View, set, and verify the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: safety-net@cc-marketplace@2.0.3
+synced-from: safety-net@cc-marketplace@2.0.4
 ---
 
 # Parity Safety-Net Rules
@@ -24,7 +24,7 @@ project-specific rules on top of those built-ins.
 > against Lisa conventions — it does **not** port or invoke upstream plugin
 > code.
 >
-> **Drift tracking.** Pinned to `safety-net@cc-marketplace@2.0.3`.
+> **Drift tracking.** Pinned to `safety-net@cc-marketplace@2.0.4`.
 > `scripts/plugin-parity-drift.mjs` compares this pin against the upstream
 > version in the plugin cache and flags staleness. **Do not port or copy upstream
 > plugin code.**
@@ -34,7 +34,22 @@ project-specific rules on top of those built-ins.
 > rule-management skill or Lisa's project-local ERE rule contract, and Lisa does
 > not currently ship hooks for those runtimes, so no behavior is absorbed here.
 >
-> **Known gap at the 2.0.3 pin.** Upstream 2.0.0 rebuilt its engine and added two
+> **2.0.4 review.** Method, so the next person can re-run it rather than trust
+> it: hash the sorted (relative path, content) manifest of every rule-bearing
+> directory in the plugin cache under both versions, then diff the trees
+> excluding `dist/`, `.git/`, and `node_modules/`. Result — `src/` (230 files),
+> `skills/` (1), and `hooks/` (1) are byte-identical across 2.0.3 and 2.0.4
+> (`src` digest `7e346e205fbd1aa7` both sides). The only non-generated
+> differences are the `version` string in `package.json`, `kimi.plugin.json`,
+> and `.claude-plugin/plugin.json`, plus a test-harness fix in
+> `tests/cli/cli-statusline.test.ts` that tolerates EPIPE when an oversized
+> payload is flushed at the bounded reader's cap. Everything else is rebuilt
+> `dist/` output. No rule, guard family, or skill surface moved, so nothing is
+> absorbed here — and, critically, **2.0.4 does not close the gap recorded
+> below**, which therefore carries forward unchanged rather than being dropped
+> at the new pin.
+>
+> **Known gap at the 2.0.4 pin.** Upstream 2.0.0 rebuilt its engine and added two
 > guard families this hook does **not** mirror: `secret.*` (blocks reading or
 > copying SSH keys, `.env` files, cloud credentials, and coding-CLI credential
 > stores) and `rm.git-metadata` (blocks deleting the `.git` control plane). Both

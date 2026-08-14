@@ -1143,7 +1143,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-safety-net-rules/SKILL.md":
-      "f240857de2f14938009ddd212c56601269fd9e1aec33a766cd09da5bea5656e0",
+      "4b00da1ced810e8604572a0ae36bbd3188835fce22413fc73a214741973f9255",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "edb513a9d29b3faeccce71d92596e12bc1f35e44fe3af1349bd7bd473fee98af",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
@@ -2075,7 +2075,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
-      "2693787413a276f7493c0fac1407a2e61630b2978d20acebb0ee5463c4678660",
+      "f644f0feb246f36a79efaa6b820409605c637813e158aea425982b863bb6ed7c",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
