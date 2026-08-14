@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.15.0](https://github.com/CodySwannGT/lisa/compare/v3.14.8...v3.15.0) (2026-08-14)
+
+
+### Features
+
+* **secrets:** add a propagate contract for copying a secret into a second store ([87a2c5d](https://github.com/CodySwannGT/lisa/commit/87a2c5dbfb5648ba8a05bc0130544a4e79d41029)), closes [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [CodySwannGT/lisa#2575](https://github.com/CodySwannGT/lisa/issues/2575)
+
 ### [3.14.8](https://github.com/CodySwannGT/lisa/compare/v3.14.7...v3.14.8) (2026-08-14)
 
 
