@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse hook for Bash: a safety net that blocks destructive shell commands
 # before they run. Lisa-native reimplementation of the upstream
 # `safety-net@cc-marketplace` plugin's PreToolUse Bash-guard (parity work,

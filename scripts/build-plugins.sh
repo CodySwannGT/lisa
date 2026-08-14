@@ -12,6 +12,20 @@ SRC_DIR="$PLUGINS_DIR/src"
 # Read version from package.json so plugins stay in sync with Lisa releases
 VERSION=$(node -e "console.log(require('$ROOT_DIR/package.json').version)")
 
+# Materialize a Lisa-owned source file into a copy-overwrite/ template tree.
+#
+# Never a plain `cp`. These destinations are `copy-overwrite` assets, and a
+# `copy-overwrite` asset that reads as editable silently loses downstream
+# hardening on the next sync — already observed on block-no-verify.sh. They are
+# also the only assets that cannot carry a hand-typed ownership header, because
+# this script would erase it on the next build (#2547). So the header is stamped
+# here, as the file is generated: the authored source stays honest about being
+# editable, the shipped copy states that it is replaced, and the two cannot
+# disagree because one produces the other.
+materialize() {
+  node "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" "$1" "$2"
+}
+
 inject_version() {
   local manifest="$1"
   if [ -f "$manifest" ]; then
@@ -82,11 +96,12 @@ if [ -f "$SRC_DIR/base/hooks/threshold-ratchet.mjs" ]; then
     mkdir -p "$ratchet_scripts_dir"
     # The entry point takes the template check-* naming; its relative imports
     # (threshold-ratchet-*.mjs) keep their canonical names in both trees.
-    cp "$SRC_DIR/base/hooks/threshold-ratchet.mjs" \
+    materialize "$SRC_DIR/base/hooks/threshold-ratchet.mjs" \
       "$ratchet_scripts_dir/check-threshold-ratchet.mjs"
-    cp "$SRC_DIR/base/hooks/threshold-ratchet-families.mjs" \
-      "$SRC_DIR/base/hooks/threshold-ratchet-compare.mjs" \
-      "$ratchet_scripts_dir/"
+    for ratchet_module in threshold-ratchet-families threshold-ratchet-compare; do
+      materialize "$SRC_DIR/base/hooks/$ratchet_module.mjs" \
+        "$ratchet_scripts_dir/$ratchet_module.mjs"
+    done
   done
 fi
 
@@ -108,7 +123,7 @@ fi
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create; do
   if [ -f "$SRC_DIR/base/hooks/$guard.sh" ]; then
-    cp "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
+    materialize "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
     chmod +x "$HOST_GUARD_DIR/$guard.sh"
   fi
 done
@@ -122,7 +137,8 @@ done
 # guards are, not because it is dispatched the same way.
 if [ -f "$SRC_DIR/base/hooks/sonar-secrets.sh" ]; then
   mkdir -p "$HOST_GUARD_DIR"
-  cp "$SRC_DIR/base/hooks/sonar-secrets.sh" "$HOST_GUARD_DIR/sonar-secrets.sh"
+  materialize "$SRC_DIR/base/hooks/sonar-secrets.sh" \
+    "$HOST_GUARD_DIR/sonar-secrets.sh"
   chmod +x "$HOST_GUARD_DIR/sonar-secrets.sh"
 fi
 
@@ -132,7 +148,7 @@ fi
 # and an unconditional copy fails the whole build there.
 if [ -f "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" ]; then
   mkdir -p "$ROOT_DIR/all/copy-overwrite/scripts"
-  cp "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" \
+  materialize "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" \
     "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-fallback.sh"
   chmod +x "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-fallback.sh"
 fi

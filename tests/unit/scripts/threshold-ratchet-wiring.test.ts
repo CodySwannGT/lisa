@@ -10,6 +10,11 @@ import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import {
+  hasOwnershipHeader,
+  withoutOwnershipHeader,
+} from "../../../scripts/materialize-copy-overwrite.mjs";
+
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const HOOKS_REL = "plugins/src/base/hooks";
 const RATCHET_MODULES = [
@@ -33,16 +38,44 @@ function read(relativePath: string): string {
 
 describe("threshold-ratchet wiring", () => {
   it("template copies are byte-identical to the canonical modules", () => {
+    // Compared with the ownership header stripped, because the build stamps one
+    // on as it materializes each copy (#2547). The stripper is the generator's
+    // own, so "the copy minus its stamp" has exactly one definition — a test
+    // that re-implemented the removal could pass against a stamp the build no
+    // longer writes.
     for (const dir of TEMPLATE_SCRIPT_DIRS) {
-      expect(
-        read(`${dir}/${ENTRY_TEMPLATE_NAME}`),
-        `${dir}/${ENTRY_TEMPLATE_NAME}`
-      ).toBe(read(`${HOOKS_REL}/threshold-ratchet.mjs`));
+      const entry = `${dir}/${ENTRY_TEMPLATE_NAME}`;
+      expect(withoutOwnershipHeader(read(entry), entry), entry).toBe(
+        read(`${HOOKS_REL}/threshold-ratchet.mjs`)
+      );
       for (const module of RATCHET_MODULES) {
-        expect(read(`${dir}/${module}`), `${dir}/${module}`).toBe(
+        const copy = `${dir}/${module}`;
+        expect(withoutOwnershipHeader(read(copy), copy), copy).toBe(
           read(`${HOOKS_REL}/${module}`)
         );
       }
+    }
+  });
+
+  it("stamps the ownership header on every ratchet copy, and on no canonical module", () => {
+    // The stripping above would keep passing if the stamp silently stopped
+    // being written, so the stamp gets its own assertion — in both directions.
+    // The canonical modules under plugins/src are the files maintainers edit;
+    // telling them they will be overwritten is the false statement #2538 exists
+    // to remove, so the header must appear on the copy and nowhere else.
+    for (const dir of TEMPLATE_SCRIPT_DIRS) {
+      for (const name of [ENTRY_TEMPLATE_NAME, ...RATCHET_MODULES]) {
+        expect(
+          hasOwnershipHeader(read(`${dir}/${name}`)),
+          `${dir}/${name}`
+        ).toBe(true);
+      }
+    }
+    for (const module of [...RATCHET_MODULES, "threshold-ratchet.mjs"]) {
+      expect(
+        hasOwnershipHeader(read(`${HOOKS_REL}/${module}`)),
+        `${HOOKS_REL}/${module}`
+      ).toBe(false);
     }
   });
 
