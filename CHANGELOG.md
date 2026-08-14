@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.8](https://github.com/CodySwannGT/lisa/compare/v3.14.7...v3.14.8) (2026-08-14)
+
+
+### Bug Fixes
+
+* **ci:** separate the three causes the traceability scope-gap error collapsed ([d348658](https://github.com/CodySwannGT/lisa/commit/d348658e1b50d76fd54b2d4c6ba310eadcf30745)), closes [#2571](https://github.com/CodySwannGT/lisa/issues/2571) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [CodySwannGT/lisa#2573](https://github.com/CodySwannGT/lisa/issues/2573)
+
 ### [3.14.7](https://github.com/CodySwannGT/lisa/compare/v3.14.6...v3.14.7) (2026-08-14)
 
 
