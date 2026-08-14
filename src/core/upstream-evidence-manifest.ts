@@ -209,7 +209,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "27f5037db910501f8d76f828f91a605e3c4d321d1df362d317c440ab7abc9f14",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "889084395ca48e07d01725158bf8b091e5c19f1800d5f4beee777e2b95530246",
+      "cb7ae17a845f4a0cab21b8eb87291f2746610880c6a611731520ee1b925ecf85",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
