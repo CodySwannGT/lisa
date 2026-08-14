@@ -2119,7 +2119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "d8806197a723f0c2b50a8155ffc5b6f0abc30c68dc2385cb80b0dd066d061231",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
-      "977d447ff5bf1b5254a66a7386e4fd8e7bf9c8f3e7a5b8d61cedb771b97002f2",
+      "6227966f11514cf5d03f35cfa2f876bede9ceabc133c1ff9f4c5abc2c8cc9a3d",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "de1eb5adaa6252b4abe5859933bff0ab2a52e19cc5a3fc5a41018fbb57b766d1",
     "scripts/github-status-check.sh":
@@ -8785,6 +8785,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-supersede-race.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
+    "tests/unit/core/lisa-owned-enforcement-scripts.test.ts": true,
     "tests/unit/core/lisa-owned-provenance.test.ts": true,
     "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
@@ -9060,6 +9061,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/convergent-review-contract.test.ts": true,
     "tests/unit/strategies/copy-contents-gitignore.test.ts": true,
     "tests/unit/strategies/copy-contents.test.ts": true,
+    "tests/unit/strategies/copy-overwrite-enforcement-scripts.test.ts": true,
     "tests/unit/strategies/copy-overwrite-host-ahead.test.ts": true,
     "tests/unit/strategies/copy-overwrite-lisa-owned-guards.test.ts": true,
     "tests/unit/strategies/copy-overwrite-refresh-templates.test.ts": true,
