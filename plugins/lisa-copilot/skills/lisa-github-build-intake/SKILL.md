@@ -168,6 +168,60 @@ gh label list --repo <org>/<repo> --json name \
 
 If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue matching the resolved assignee filter (or any open issue when the filter is empty) → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
 
+#### 2b. Lifecycle-label trust resolution (bot-authored labels are not signals)
+
+**A `status:*` label is only a lifecycle signal if a trustworthy actor applied it.** Third-party GitHub Apps write labels through the same API humans do, and at least one — `coderabbitai[bot]` — stamps `status:*` on issues seconds after filing. Measured on CodySwannGT/lisa#2460–#2540: seven of eight bot-applied lifecycle labels landed 26–118s after creation. Those labels are guesses wearing the costume of the intake contract, and they break the queue in **both** directions:
+
+- a bot-applied **`$CLAIMED`** makes an unworked issue look like somebody's active work, so no cycle picks it up and no human re-examines it (#2470 sat unworked for a day this way);
+- a bot-applied **`$READY`** puts an issue into the build queue that no human ever flipped ready (#2538), inverting the gate the ready role exists to be.
+
+Before treating any candidate's lifecycle labels as meaningful, resolve which ones are trustworthy:
+
+```bash
+TRUST_DIR=$(mktemp -d)
+trap 'rm -rf "$TRUST_DIR"' EXIT
+
+gh api "repos/<org>/<repo>/issues/<n>" > "$TRUST_DIR/issue.json"
+
+# --paginate emits ONE ARRAY PER PAGE. Reading `$t[0]` would pass only page one,
+# silently dropping later label events — the newest of which is exactly the
+# application this classifier keys on. --slurp + `add` flattens all pages.
+gh api "repos/<org>/<repo>/issues/<n>/timeline?per_page=100" --paginate --slurp \
+  > "$TRUST_DIR/pages.json"
+jq 'add // []' "$TRUST_DIR/pages.json" > "$TRUST_DIR/timeline.json"
+
+# Resolve config the SAME way `read_role` does: the local file overrides the
+# global one key by key. Reading only `.lisa.config.json` would resolve a stale
+# terminal `done` label for any project that overrides it locally, and
+# `lisa-repair-intake` WRITES on the drift direction that mistake produces.
+# Both files are optional — a missing one must not abort the cycle.
+jq -s '(.[0] // {}) * (.[1] // {})' \
+  <(cat .lisa.config.json 2>/dev/null || echo '{}') \
+  <(cat .lisa.config.local.json 2>/dev/null || echo '{}') \
+  > "$TRUST_DIR/config.json"
+
+jq -n --slurpfile i "$TRUST_DIR/issue.json" \
+      --slurpfile t "$TRUST_DIR/timeline.json" \
+      --slurpfile c "$TRUST_DIR/config.json" \
+      '{issue: $i[0], timeline: $t[0], config: $c[0]}' \
+  > "$TRUST_DIR/input.json"
+
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < "$TRUST_DIR/input.json"
+```
+
+The temp directory is **per invocation**. Fixed `/tmp/lisa-*.json` paths let two concurrent intake cycles interleave one issue's metadata with another's timeline, which yields a confident verdict about an item that was never examined.
+
+The classifier returns `trusted`, `untrusted`, `unknownProvenance`, and a per-label `evaluated` list carrying the actor and the latency behind each decision. **Use `trusted` wherever this skill would otherwise read the raw label set**, and specifically:
+
+- a candidate whose `$READY` is **untrusted** is **not claimable** — skip it and leave it for a human to flip genuinely ready; report it in the summary rather than dispatching it;
+- a candidate whose `$CLAIMED` is **untrusted** is **not claimed** — if its `$READY` is trusted it stays a normal candidate, exactly as if the bot label were absent.
+
+**Never unlabel to correct this.** The bot re-applies its label on each subsequent review event, so reverting produces a label-flap loop that is worse than the defect. The guard is that intake stops *believing* the label; it writes nothing. Distrust is idempotent and cannot race.
+
+A label whose provenance cannot be established (applied at creation, which GitHub records no `labeled` event for) is trusted but listed in `unknownProvenance` — failing closed there would ignore the human `status:ready` that opens the queue. Report that list; do not silently drop it.
+
+Lifecycle membership is decided by the **`status:` prefix**, never by a pinned member list. The live family has drifted 7 → 6 members, and a literal set breaks silently: an unrecognised member simply fails to match, so the guard would report clean on exactly the case it stopped covering.
+
 ### Phase 3 — Process the first eligible ready issue
 
 #### 3a.0 Repo-scope gate (claim only current-repo issues)
