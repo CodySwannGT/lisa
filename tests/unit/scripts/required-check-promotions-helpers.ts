@@ -42,6 +42,7 @@ export function provenHeadroom(): Record<string, unknown> {
     status: "proven",
     budget_ms: 600_000,
     observed_worst_ms: 180,
+    observed_on: "pass",
     reproduced:
       "planted a violating fixture and confirmed the check exits 1, then removed it and confirmed exit 0",
     measured_on: "bun run sg:scan at origin/main b671524a7",
