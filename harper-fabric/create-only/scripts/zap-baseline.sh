@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+
 # OWASP ZAP Baseline Scan - Harper Fabric app
 # Builds the Harper app, starts it locally when no deployed target is supplied,
 # and runs a ZAP baseline scan via Docker.

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+
 # OWASP ZAP Baseline Scan — NestJS GraphQL API
 # Builds and starts the NestJS server, then runs a ZAP baseline scan via Docker.
 # Outputs an HTML report to zap-report.html in the project root.
