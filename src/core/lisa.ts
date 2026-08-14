@@ -139,6 +139,15 @@ export class Lisa {
    * back to the silence this exists to end.
    */
   private readonly stalePaths: string[] = [];
+  /**
+   * Lisa-owned artifacts this apply deliberately did not replace, each with the
+   * reason spelled out for whoever reads the output.
+   *
+   * Full sentences rather than paths, because this is the one outcome an
+   * operator cannot act on from the filename: "we left yours alone because it
+   * defends something ours does not" is the entire message.
+   */
+  private readonly hostAheadNotes: string[] = [];
   private detectedTypes: ProjectType[] = [];
   private ignorePatterns: IgnorePatterns = {
     patterns: [],
@@ -1916,6 +1925,12 @@ export class Lisa {
         this.counters.stale++;
         this.stalePaths.push(result.relativePath);
         break;
+      case "host-ahead":
+        this.counters.hostAhead++;
+        this.hostAheadNotes.push(
+          result.note ?? `${result.relativePath}: kept your copy.`
+        );
+        break;
       case "overwritten":
         this.counters.overwritten++;
         break;
@@ -1964,6 +1979,13 @@ export class Lisa {
           this.config.dryRun
             ? `Out of date, would not be updated: ${result.relativePath}`
             : `Out of date, not updated: ${result.relativePath}`
+        );
+        break;
+      case "host-ahead":
+        this.deps.logger.warn(
+          this.config.dryRun
+            ? `Would keep your copy: ${result.relativePath}`
+            : `Kept your copy: ${result.relativePath}`
         );
         break;
       case "overwritten":
@@ -2164,6 +2186,7 @@ export class Lisa {
       );
     }
     this.printStaleDetail();
+    this.printHostAheadDetail();
   }
 
   /**
@@ -2207,6 +2230,7 @@ export class Lisa {
       );
     }
     this.printStaleDetail();
+    this.printHostAheadDetail();
   }
 
   /**
@@ -2234,6 +2258,29 @@ export class Lisa {
     );
     logger.info(
       "Review the differences and run `lisa apply .` interactively to take them, or add paths to .lisaignore to keep yours."
+    );
+  }
+
+  /**
+   * Report Lisa-owned artifacts this apply chose not to replace.
+   *
+   * Reported as good news, not as a warning about the project: keeping a guard
+   * that is stronger than Lisa's is the correct outcome, and phrasing it as a
+   * problem would push an operator to "fix" it by discarding their own
+   * hardening — the exact loss the check exists to prevent.
+   */
+  private printHostAheadDetail(): void {
+    if (this.counters.hostAhead === 0) return;
+    const { logger } = this.deps;
+
+    logger.info(
+      `${this.counters.hostAhead} Lisa-owned file(s) look stronger in your project than in Lisa, so your version was kept:`
+    );
+    for (const note of this.hostAheadNotes) {
+      logger.info(`  ${note}`);
+    }
+    logger.info(
+      "Nothing is broken. Lisa only replaces one of its own files when it can prove your copy came from an older Lisa."
     );
   }
 

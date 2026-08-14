@@ -3,6 +3,7 @@ import type {
   FileOperationResult,
   LisaConfig,
 } from "../core/config.js";
+import type { HashLedger } from "../core/lisa-owned-provenance.js";
 
 /**
  * Context for strategy execution
@@ -20,6 +21,19 @@ export interface StrategyContext {
     sourcePath: string,
     destPath: string
   ) => Promise<boolean>;
+
+  /**
+   * Known-good hashes proving which contents Lisa has shipped at each path.
+   *
+   * Injected rather than imported so a test can state which bytes count as a
+   * genuine past release. Without that seam a test can only stage invented
+   * content, which the classifier correctly reads as host-modified — so every
+   * "refresh delivers the fix" test would be asserting the upgrade path while
+   * exercising the downgrade-protection path instead.
+   *
+   * Defaults to Lisa's real shipping history when omitted.
+   */
+  readonly hashLedger?: HashLedger;
 }
 
 /**
