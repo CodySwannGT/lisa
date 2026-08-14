@@ -158,6 +158,14 @@ export function cacheMaxVersion(cacheRoot, name, marketplace) {
  * contract): a semver value must equal the cache max; `"unknown"` is valid only
  * when the cache has no semver anywhere.
  *
+ * A semver `upstreamVersion` with NO semver in the cache is deliberately not an
+ * error. It means THIS machine cannot see the plugin (fresh clone, CI runner,
+ * plugin uninstalled) — not that the artifact is wrong. `isVersionUnverifiable`
+ * reports that state separately so the caller can warn instead of blocking,
+ * mirroring how the drift detector treats `not-installed` (issue #2552). Every
+ * other gate — schema, routing, coverage, anti-patterns — still runs, so a
+ * cacheless machine validates strictly more than it used to.
+ *
  * @param {unknown} upstreamVersion - the artifact's `upstreamVersion`.
  * @param {string | null} cacheMax - resolved max semver, or null.
  * @returns {string[]} validation error messages (empty when valid).
@@ -174,14 +182,25 @@ function validateVersion(upstreamVersion, cacheMax) {
     ];
   }
   if (cacheMax === null) {
-    return [
-      `upstreamVersion ${upstreamVersion} but no semver in the cache to confirm`,
-    ];
+    return [];
   }
   if (compareSemver(upstreamVersion, cacheMax) !== 0) {
     return [`upstreamVersion ${upstreamVersion} != cache max ${cacheMax}`];
   }
   return [];
+}
+
+/**
+ * True iff the artifact pins a semver `upstreamVersion` that this machine has
+ * no cached copy to confirm against. A cache-visibility fact, not a contract
+ * violation — reported so the push gate can warn without blocking.
+ *
+ * @param {unknown} upstreamVersion - the artifact's `upstreamVersion`.
+ * @param {string | null} cacheMax - resolved max semver, or null.
+ * @returns {boolean} whether the version claim is unverifiable here.
+ */
+export function isVersionUnverifiable(upstreamVersion, cacheMax) {
+  return cacheMax === null && isValidSemver(upstreamVersion);
 }
 
 /**
@@ -430,14 +449,20 @@ function truncate(text) {
  * @param {string} routingDir - the routing directory.
  * @param {string} file - the artifact filename (`*.json`).
  * @param {string} cacheRoot - the installed-plugin cache root.
- * @returns {{ file: string, errors: string[] }} the per-file result.
+ * @returns {{ file: string, errors: string[], unverifiable: boolean }}
+ *   the per-file result. `unverifiable` means the version claim could not be
+ *   confirmed on this machine; it never blocks.
  */
 function validateFile(routingDir, file, cacheRoot) {
   let artifact;
   try {
     artifact = JSON.parse(fs.readFileSync(path.join(routingDir, file), "utf8"));
   } catch (error) {
-    return { errors: [`invalid JSON: ${error.message}`], file };
+    return {
+      errors: [`invalid JSON: ${error.message}`],
+      file,
+      unverifiable: false,
+    };
   }
   const hasIds =
     artifact !== null &&
@@ -455,13 +480,21 @@ function validateFile(routingDir, file, cacheRoot) {
     filename: file,
     mdExists,
   });
-  return { errors, file };
+  const upstreamVersion =
+    artifact !== null && typeof artifact === "object"
+      ? artifact.upstreamVersion
+      : undefined;
+  return {
+    errors,
+    file,
+    unverifiable: isVersionUnverifiable(upstreamVersion, cacheMax),
+  };
 }
 
 /**
  * Assemble the machine-readable report.
  *
- * @param {ReadonlyArray<{ file: string, errors: string[] }>} results - per-file results.
+ * @param {ReadonlyArray<{ file: string, errors: string[], unverifiable?: boolean }>} results - per-file results.
  * @param {{ cacheRoot: string, routingDir: string }} opts - resolved options.
  * @returns {Record<string, unknown>} the report object.
  */
@@ -475,6 +508,7 @@ export function buildReport(results, opts) {
     summary: {
       invalid,
       scanned: results.length,
+      unverifiable: results.filter(r => r.unverifiable === true).length,
       valid: results.length - invalid,
     },
   };
@@ -483,20 +517,27 @@ export function buildReport(results, opts) {
 /**
  * Render the human-readable report.
  *
- * @param {{ results: ReadonlyArray<{ file: string, errors: string[] }>, summary: { scanned: number, valid: number, invalid: number } }} report - report object.
+ * @param {{ results: ReadonlyArray<{ file: string, errors: string[], unverifiable?: boolean }>, summary: { scanned: number, valid: number, invalid: number, unverifiable: number } }} report - report object.
  * @returns {string} the rendered report.
  */
 function humanReport(report) {
-  const lines = report.results.map(r =>
-    r.errors.length === 0
-      ? `✓ ${r.file}`
-      : `✗ ${r.file}\n${r.errors.map(e => `    - ${e}`).join("\n")}`
-  );
+  const lines = report.results.map(r => {
+    if (r.errors.length > 0) {
+      return `✗ ${r.file}\n${r.errors.map(e => `    - ${e}`).join("\n")}`;
+    }
+    return r.unverifiable === true
+      ? `⚠ ${r.file} (version unverifiable: plugin not in this machine's cache)`
+      : `✓ ${r.file}`;
+  });
   const s = report.summary;
+  const unverifiable =
+    s.unverifiable > 0
+      ? `, ${s.unverifiable} unverifiable on this machine`
+      : "";
   return [
     ...lines,
     "",
-    `${s.valid}/${s.scanned} routing artifacts valid, ${s.invalid} invalid`,
+    `${s.valid}/${s.scanned} routing artifacts valid, ${s.invalid} invalid${unverifiable}`,
   ].join("\n");
 }
 

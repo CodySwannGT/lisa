@@ -33,6 +33,7 @@ export const STAMP_ACTION = `scaffold Lisa-native skill stamped synced-from: ${P
 export interface FileResult {
   readonly file: string;
   readonly errors: readonly string[];
+  readonly unverifiable?: boolean;
 }
 
 /** The machine-readable routing-validation report. */
@@ -42,6 +43,7 @@ export interface RoutingReport {
     readonly scanned: number;
     readonly valid: number;
     readonly invalid: number;
+    readonly unverifiable: number;
   };
   readonly results: readonly FileResult[];
 }
@@ -70,12 +72,31 @@ export function runValidate(args: readonly string[]): {
       report: (stdout.trim() === ""
         ? {
             schemaVersion: 1,
-            summary: { scanned: 0, valid: 0, invalid: 0 },
+            summary: { scanned: 0, valid: 0, invalid: 0, unverifiable: 0 },
             results: [],
           }
         : JSON.parse(stdout)) as RoutingReport,
     };
   }
+}
+
+/**
+ * Build an expected report summary. Keeps the assertions to one line each so
+ * the test file stays inside its max-lines budget.
+ *
+ * @param scanned - artifacts scanned.
+ * @param valid - artifacts with no blocking errors.
+ * @param invalid - artifacts with ≥1 blocking error.
+ * @param unverifiable - artifacts whose version this machine cannot confirm.
+ * @returns The expected summary object.
+ */
+export function summaryOf(
+  scanned: number,
+  valid: number,
+  invalid: number,
+  unverifiable = 0
+): RoutingReport["summary"] {
+  return { invalid, scanned, unverifiable, valid };
 }
 
 /** The validation context shape consumed by validateArtifact. */

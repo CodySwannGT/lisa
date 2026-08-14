@@ -29,6 +29,7 @@ import {
   PLUGIN_NAME,
   ROUTING_DIR_FLAG,
   runValidate,
+  summaryOf,
   VALID_DIR,
 } from "./plugin-routing-validate-helpers";
 
@@ -57,7 +58,7 @@ describe("plugin-routing-validate end-to-end", () => {
       "--json",
     ]);
     expect(code).toBe(0);
-    expect(report.summary).toEqual({ scanned: 1, valid: 1, invalid: 0 });
+    expect(report.summary).toEqual(summaryOf(1, 1, 0));
   });
 
   it("exits 1 and reports the bad outcome for an invalid artifact", () => {
@@ -69,7 +70,7 @@ describe("plugin-routing-validate end-to-end", () => {
       "--json",
     ]);
     expect(code).toBe(1);
-    expect(report.summary).toEqual({ scanned: 1, valid: 0, invalid: 1 });
+    expect(report.summary).toEqual(summaryOf(1, 0, 1));
     expect(has(report.results[0]?.errors ?? [], "outcome invalid")).toBe(true);
   });
 
@@ -87,7 +88,7 @@ describe("plugin-routing-validate end-to-end", () => {
     const { code, report } = runValidate(["--bogus"]);
     expect(code).toBe(2);
     expect(report.schemaVersion).toBe(1);
-    expect(report.summary).toEqual({ scanned: 0, valid: 0, invalid: 0 });
+    expect(report.summary).toEqual(summaryOf(0, 0, 0));
     expect(report.results).toEqual([]);
   });
 });
@@ -280,15 +281,6 @@ describe("validateArtifact version contract", () => {
           cacheMax: "9.9.9",
         }),
         "!= cache max"
-      )
-    ).toBe(true);
-  });
-
-  it("flags a semver upstream with no semver in the cache", () => {
-    expect(
-      has(
-        validateArtifact(baseArtifact(), { ...baseContext(), cacheMax: null }),
-        "no semver in the cache"
       )
     ).toBe(true);
   });
