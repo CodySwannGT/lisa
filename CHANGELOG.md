@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.13.0](https://github.com/CodySwannGT/lisa/compare/v3.12.0...v3.13.0) (2026-08-14)
+
+
+### Features
+
+* **apply:** prove a Lisa-owned copy is stale before overwriting it ([8e274ba](https://github.com/CodySwannGT/lisa/commit/8e274babd704633ae6ca526315c10ba742b67119)), closes [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [#2491](https://github.com/CodySwannGT/lisa/issues/2491) [CodySwannGT/lisa#2470](https://github.com/CodySwannGT/lisa/issues/2470)
+
+
+### Bug Fixes
+
+* **state:** regenerate the stale Lisa-owned hash ledger ([0e25b98](https://github.com/CodySwannGT/lisa/commit/0e25b98960115e6fe134e1ca1df9354fb8aa8a04)), closes [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2545](https://github.com/CodySwannGT/lisa/issues/2545) [#2491](https://github.com/CodySwannGT/lisa/issues/2491) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2557](https://github.com/CodySwannGT/lisa/issues/2557) [CodySwannGT/lisa#2557](https://github.com/CodySwannGT/lisa/issues/2557)
+* **templates:** make silence a failure, not an exemption, in create-only ([f0509a9](https://github.com/CodySwannGT/lisa/commit/f0509a92b9dedd28c165b20a3f11fad5437ae223)), closes [#2538](https://github.com/CodySwannGT/lisa/issues/2538) [#2545](https://github.com/CodySwannGT/lisa/issues/2545) [#2538](https://github.com/CodySwannGT/lisa/issues/2538) [#2545](https://github.com/CodySwannGT/lisa/issues/2545) [#2547](https://github.com/CodySwannGT/lisa/issues/2547) [CodySwannGT/lisa#2549](https://github.com/CodySwannGT/lisa/issues/2549)
+
 ## [3.12.0](https://github.com/CodySwannGT/lisa/compare/v3.11.9...v3.12.0) (2026-08-14)
 
 
