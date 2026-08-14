@@ -21,6 +21,11 @@ import { fileURLToPath } from "node:url";
 import * as fse from "fs-extra";
 
 import { PROJECT_TYPE_ORDER } from "../core/config.js";
+import {
+  classifyHostCopy,
+  mayRefreshLisaOwned,
+} from "../core/lisa-owned-provenance.js";
+import type { HashLedger } from "../core/lisa-owned-provenance.js";
 import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
 import { isLisaSourceRepo } from "../core/self-apply.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
@@ -160,17 +165,26 @@ function reExportsShippedTemplate(
 }
 
 /**
- * Report Lisa-owned enforcement artifacts the project has an outdated copy of.
+ * Report Lisa-owned enforcement artifacts that differ from what Lisa ships.
+ *
+ * Two different findings, deliberately not merged. An *outdated* copy is fixed
+ * by running apply. A *modified* copy is one apply will now refuse to touch, so
+ * telling the operator to run apply would send them round a loop that never
+ * terminates and make the protection look like a bug. Both still warn — a guard
+ * nobody can account for is worth a line either way, and staying silent about a
+ * downstream edit would let a project quietly swap a guard for a stub.
  *
  * Only artifacts the project already has are considered: a missing one means
  * the stack does not apply here, not that something drifted.
  * @param targetPath - Project path to inspect
  * @param lisaRoot - Installed Lisa package root (injected by tests)
+ * @param ledger - Known-good hashes, defaulting to Lisa's shipping history
  * @returns Doctor check result
  */
 export async function checkLisaOwnedArtifacts(
   targetPath: string,
-  lisaRoot: string = defaultLisaRoot()
+  lisaRoot: string = defaultLisaRoot(),
+  ledger?: HashLedger
 ): Promise<ArtifactCheck> {
   const shipped = await shippedArtifacts(lisaRoot);
   if (shipped.size === 0) {
@@ -199,25 +213,92 @@ export async function checkLisaOwnedArtifacts(
       const installed = await readFile(installedPath).catch(() => undefined);
       if (installed === undefined) return undefined;
       if (await matchesAnyShipped(installed, sources)) return undefined;
-      return selfHost &&
+      if (
+        selfHost &&
         reExportsShippedTemplate(installed, installedPath, sources)
-        ? undefined
-        : destination;
+      )
+        return undefined;
+      const outdated = await isProvablyStale(
+        installed,
+        destination,
+        sources,
+        ledger
+      );
+      return [destination, outdated ? "stale" : "modified"] as const;
     })
   );
-  const stale = results
-    .filter((item): item is string => item !== undefined)
-    .sort((left, right) => left.localeCompare(right));
+  return summarise(
+    results.filter(
+      (item): item is readonly [string, Finding] => item !== undefined
+    )
+  );
+}
 
-  return stale.length === 0
-    ? {
-        name: CHECK_NAME,
-        status: "ok",
-        detail: "Enforcement guards match the installed Lisa version",
-      }
-    : {
-        name: CHECK_NAME,
-        status: "warn",
-        detail: `Outdated Lisa-owned guards (run \`npx lisa apply .\` to refresh): ${stale.join(", ")}`,
-      };
+/** Which of the two findings an artifact produced. */
+type Finding = "stale" | "modified";
+
+/**
+ * Turn the per-artifact findings into one doctor line.
+ * @param findings - Destination paths paired with what was found
+ * @returns Doctor check result
+ */
+function summarise(
+  findings: readonly (readonly [string, Finding])[]
+): ArtifactCheck {
+  const pick = (wanted: Finding): string[] =>
+    findings
+      .filter(([, finding]) => finding === wanted)
+      .map(([destination]) => destination)
+      .sort((left, right) => left.localeCompare(right));
+
+  const stale = pick("stale");
+  const modified = pick("modified");
+  if (stale.length === 0 && modified.length === 0) {
+    return {
+      name: CHECK_NAME,
+      status: "ok",
+      detail: "Enforcement guards match the installed Lisa version",
+    };
+  }
+
+  const parts = [
+    stale.length > 0
+      ? `Outdated Lisa-owned guards (run \`npx lisa apply .\` to refresh): ${stale.join(", ")}`
+      : "",
+    modified.length > 0
+      ? `Lisa-owned guards edited in this project, so apply will keep yours rather than overwrite them: ${modified.join(", ")}`
+      : "",
+  ].filter(part => part.length > 0);
+  return { name: CHECK_NAME, status: "warn", detail: parts.join(". ") };
+}
+
+/**
+ * Whether a differing installed guard is genuinely behind Lisa's.
+ *
+ * Doctor and apply have to agree, or the operator gets contradictory
+ * instructions: doctor telling somebody to run `lisa apply .` to fix a file
+ * apply will then deliberately refuse to touch is a loop with no exit, and it
+ * reads as a broken tool rather than as the protection it is. So a copy apply
+ * would preserve is not reported here either — it is not outdated, and calling
+ * it outdated invites the operator to discard their own hardening.
+ * @param installed - Bytes currently installed in the project
+ * @param destination - Repo-relative destination path
+ * @param sources - Absolute paths of the shipped variants
+ * @param ledger - Known-good hashes, defaulting to Lisa's shipping history
+ * @returns True when every shipped variant considers the installed copy stale
+ */
+async function isProvablyStale(
+  installed: Buffer,
+  destination: string,
+  sources: readonly string[],
+  ledger?: HashLedger
+): Promise<boolean> {
+  const shipped = await Promise.all(
+    sources.map(async source => readFile(source))
+  );
+  return shipped.every(candidate =>
+    mayRefreshLisaOwned(
+      classifyHostCopy(destination, installed, candidate, ledger)
+    )
+  );
 }

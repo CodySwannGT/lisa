@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "dd1aea1b9fdd0da023bf704b331b350bc14620f4364afa5001c6690fcbc940cc",
+      "3ff7255f395a9552366faaac34d383f4c95fecfb39882cd1d57854356422fe61",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -659,7 +659,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "81c51041f8cb47bf79692c485c4f42ac7ed0a5a830821dc514cb468bc7a06b83",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "dd1aea1b9fdd0da023bf704b331b350bc14620f4364afa5001c6690fcbc940cc",
+      "3ff7255f395a9552366faaac34d383f4c95fecfb39882cd1d57854356422fe61",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -2114,6 +2114,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "70d283eed7cb7c1351d13cf0497f06dec175562c5918921c404393a76f11278f",
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "d8806197a723f0c2b50a8155ffc5b6f0abc30c68dc2385cb80b0dd066d061231",
+    "scripts/generate-lisa-owned-hash-ledger.mjs":
+      "0f2a5fffad380e85125d2e68ca43b8b12a0d93c710b8980fb8dc869e6b6da020",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "de1eb5adaa6252b4abe5859933bff0ab2a52e19cc5a3fc5a41018fbb57b766d1",
     "scripts/github-status-check.sh":
@@ -8080,6 +8082,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-codex-plugin-artifacts.mjs": true,
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
     "scripts/generate-cursor-plugin-artifacts.mjs": true,
+    "scripts/generate-lisa-owned-hash-ledger.mjs": true,
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
     "scripts/install-claude-plugins.sh": true,
@@ -8283,6 +8286,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
     "src/core/git-service.ts": true,
+    "src/core/guard-capabilities.ts": true,
     "src/core/host-rules-pointer.ts": true,
     "src/core/index.ts": true,
     "src/core/instruction-files-migration.ts": true,
@@ -8312,6 +8316,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/learnings-stray-ledger.ts": true,
     "src/core/learnings-writer.ts": true,
     "src/core/learnings.ts": true,
+    "src/core/lisa-owned-hash-ledger.ts": true,
+    "src/core/lisa-owned-provenance.ts": true,
     "src/core/lisa-owned-templates.ts": true,
     "src/core/lisa-plugin-selection.ts": true,
     "src/core/lisa-rules-mirror.ts": true,
@@ -8769,6 +8775,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-supersede-race.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
+    "tests/unit/core/lisa-owned-provenance.test.ts": true,
     "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
@@ -8906,6 +8913,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
+    "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-work-item.test.ts": true,
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
@@ -9037,6 +9045,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/convergent-review-contract.test.ts": true,
     "tests/unit/strategies/copy-contents-gitignore.test.ts": true,
     "tests/unit/strategies/copy-contents.test.ts": true,
+    "tests/unit/strategies/copy-overwrite-host-ahead.test.ts": true,
     "tests/unit/strategies/copy-overwrite-lisa-owned-guards.test.ts": true,
     "tests/unit/strategies/copy-overwrite-refresh-templates.test.ts": true,
     "tests/unit/strategies/copy-overwrite.test.ts": true,

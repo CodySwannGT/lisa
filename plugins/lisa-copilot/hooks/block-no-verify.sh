@@ -5,9 +5,22 @@
 # check. See feedback_never_no_verify in user memory.
 #
 # Blocked bypass vectors:
-#   1. the --no-verify long flag (any subcommand, any position, incl. subshells);
+#   1. --no-verify, and any prefix abbreviation git would accept for it;
 #   2. HUSKY=0 / HUSKY_SKIP_HOOKS=... — disables husky-managed git hooks;
-#   3. core.hooksPath pointed at /dev/null or set empty — disables ALL git hooks.
+#   3. core.hooksPath pointed anywhere but an allowlisted in-repo hooks dir;
+#   4. --config-env=core.hooksPath=VAR, in both the one- and two-token spellings;
+#   5. GIT_CONFIG_KEY_<n>=core.hooksPath env-var-style command-scope config.
+#
+# The line below is what lets `lisa apply` tell a downstream copy of this guard
+# that is BEHIND from one that is AHEAD. Byte comparison cannot: both look like
+# "differs from mine", and guessing "behind" is how a fork's stronger guard gets
+# silently replaced by a weaker upstream one. Refresh compares the two declared
+# sets, and refuses to overwrite a copy declaring anything this one does not.
+#
+# Add a name here in the same commit that closes a vector. A hardening that
+# forgets to is invisible to refresh, and shows up as an unexplained diff at
+# review time instead of a named capability.
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
