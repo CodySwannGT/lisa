@@ -7,13 +7,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "8104ccd32d7e6137cae706511c5037d11d6b6045b8e2a9bb7b3a48a81c053cfa",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
-      "94dc98e0bbfcf8d43cba035d4805a1c5d61a3a0db88faa791e8e06e34e741f46",
+      "ac539349c86a7b5b0083ec0e6aaf0eb4c3e40fbd4dc31511c6460a2bad7af9a5",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
-      "4f76bb7d466eb153a4e1414d06f12856a1242de2cfa4cb4b1b942cf29d8b7f37",
+      "e06cb11f1418fe94564cea527a22b039f53b7ab10c1cd182264a31e52bba9fa8",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "3c7a0234b4f5609fce49e44711d2ec86af8cf7fb82b0831e4450e3347ecefe45",
+      "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -27,9 +27,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
-      "4a05a0ed70a274827fd2f0fd0c98890c66bee2fde70785b8379943ebe6650473",
+      "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "fe064a2bd11200ed256fb36e203978f858fccbcaf40708496c066383345900ef",
+      "c78df9d5f0f3fc388ff60a7db5898478a2a4d6d7325833f10384b5a8c62bb34a",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -59,11 +59,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
-      "074fe7a638ed95210339a9215abf75fa52bb10e678f2fd58523ff8a9d32ea4b6",
+      "5b6f329449a492cf6264b4db6a9bfea60e93458be25a83785cfd3ac0df62e578",
     "cdk/copy-overwrite/eslint.config.ts":
-      "f1917ade3f1170ac8027110b44499732b9d9d3a2d42f256e37cd09930970298c",
+      "1d7c8d9d3c2dd68ed418175b9e0da9c5029ebaa887b1dc8dd7aa37d91b99314d",
     "cdk/copy-overwrite/eslint.slow.config.ts":
-      "f71f9e99501c1b727e051494dd5925b2ec81ffff6c5224525bb02bfd14c9380d",
+      "6e12ea8f0a7847a2552e398e626b718ae26ebde22f252abfb95381cc529c5733",
     "cdk/copy-overwrite/knip.json":
       "9943d889ceea52fd6fbbf5dd0e789c7573dc73bf218fbf048b19a0f820085f15",
     "cdk/copy-overwrite/tsconfig.cdk.json":
@@ -73,11 +73,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/tsconfig.json":
       "bd960df819bb1ce01163ac4b28721eea3f07d482f6c454cfea9a8dc90191033a",
     "cdk/copy-overwrite/vitest.cdk.ts":
-      "aea238d214b7eb4c532cebe5bf732dc30b9fd04d938a215bd34a5ec2eff17046",
+      "030158b11bec4f10b39585feb98f498981f307faa1fa314c7522e6def5d73c94",
     "cdk/copy-overwrite/vitest.config.ts":
-      "ce14179d4ab31011bb012ee1669af7d86b5189bdf2934e0bd9dd666a30e3d01e",
+      "c7f309d4f43d9188b9c067cb4900b2bdbacfbd28d135a6a2e6313cb0a37b030f",
     "cdk/create-only/.github/workflows/ci.yml":
-      "dc384ef9bd46af723cafd8d140f6d58d2630cfa8a7b07104254d8ecd4a556636",
+      "98bd4b784a5a0a96bedc40c209f5bf5afe97fa422c200533d4544990a69a5c1a",
     "cdk/create-only/.github/workflows/deploy.yml":
       "2746e78fb0fbe7b23b30bbcb0f83171e16f6804fd467b3d41d3c69970572af3f",
     "cdk/create-only/cdk.json":
@@ -153,47 +153,47 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/.easignore.extra":
       "bb3cefcd1623ac81e4c04d565b2de9a0a7bb7fcd7b2878e860147eb0846a66b9",
     "expo/copy-overwrite/eslint.config.ts":
-      "5b3515a7c154a414fc6ad8535dd3434c74378b3805a56e0f13d0b74930ef1004",
+      "889ff793099bb65f969c2ccdf1690c8748f20e489999c1a80ae160dfb19f0531",
     "expo/copy-overwrite/eslint.expo.ts":
-      "64850a605648dfc0d78ebc827c704bcb9386d4ac047406c829c7ee0a4d0d55e9",
+      "9386672ae12703ef7f9066f7f478c95d902cc5bbd37dfd57ea507d80a05726d6",
     "expo/copy-overwrite/eslint.slow.config.ts":
-      "2f81cce4df52fa8bd2caf72917add1b470d0a2e2fa1382e57e2665e02cca2363",
+      "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
-      "530763cef1fa749fd637d56d3cd04d4149a1dcdd4ea774532b1bf29d0132cbc3",
+      "b58454a9cf55cf5c1449457fe8eae8390471c57787bdee05b5e34710aa89950a",
     "expo/copy-overwrite/jest.expo.ts":
-      "d303c0ef0cc35c65c046838a2026569aa01b4997c39c83dce658c999355c0029",
+      "e6d7dffc4c83fccc02e0b2d2a52e10de30c8c00a12de44184e960bd6155edcd6",
     "expo/copy-overwrite/jest.setup.pre.js":
-      "8ed599504ce30a71ee840a0faac2da238cfc7ff77e5d37ae39275808aecc6bc5",
+      "8bd71ed2d461de77c55bef123e5e782d51ce7d4e5a38bfc0c662f0b86d506f9d",
     "expo/copy-overwrite/jest.setup.ts":
-      "102b22e857eb9deebfa18a44b680f8d95496dafcceaa3e65b6774b8e4a0e74f1",
+      "826ab9387f73b19f1faa2ee4263344a64f6fa34fa872ba1162fef9d81406e556",
     "expo/copy-overwrite/knip.json":
       "b19d0c177d8d0460779e07043c92d37555e7721224b6b2134ac2f6d10ab44b33",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "4173a1c18d34285ab645314e0a99944f8baa02ae2632264b850c727347c8a836",
+      "c2ae09e979cb60c5accf108650f1356614018549db4eb4aee1c6191d069a8313",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "12503dd325bbfe95f4f4f7fc9d8284d78210d0f54fa75c9af774b42f20495fe0",
+      "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
-      "d4dd79f24f64d8bd29352582433356b2b67fcca4fcfc4e4b253efa70bccd08be",
+      "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "d19b92e3f48bdc213c232175cd3021759080d635326e9675969976c0564d7676",
+      "2e5aade29ad47b4924d446e168631f4296d5e4f92b2daedbc2b6d9e9bf241eaf",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
-      "9f3c72316d4dd5b5c2e3fa7634f00fb203dfb9235ab9af7183c99105dad7645d",
+      "2b44e2baffd2bde541c95ed267f4a6962b421e3e7d2723d5f4660f8829c19645",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
-      "18afb534f85c904af5da32e4dc0b48e4d2a89895a2866b60a544a790ce8b7afb",
+      "53eb89417516f3125a879076a31d50e3738e21163367d475532274fbb41c732e",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "c3cb36a6b3cf5771f5813cdd22f8273aa367c9de663ed1724c1fb3c59f2fbae9",
+      "4678673c39b9f1aeeffc27265804566becb8373d47757d1ba8e28bdd0da21662",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
-      "7c49bf1f430e32f7c2ac1fd90162293e928fe4fdf48db4cb5c8e3266187aac4e",
+      "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
-      "fa0c379c9ecab9ee2069f2ee41c1971f127b0a859647f911eaa707eb294a93e7",
+      "82e89c8af789705cb992768510d1c23f84471bbca3028b3a07b577f10cfb26bf",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
-      "4a918db61b6bdf3a23cf14c5cebdee88259964c60e4c5869abfebb7d743b181c",
+      "4b62574a0d59476f050c704888e114ce7baae6c996bb3a2b043c168f74823490",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "9ef2ef274602bf49ef5346b55ec95be575e3989e5c19e5c2b566d668ce0fd3ba",
+      "36eb042310a754b67b5e4cfcd35bfb8f8fbed132e51b7daf6128ce03d987ac87",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "30cf7d860ecd3b838b8608f38da10fcddb4e7e90a0867438f411d68346a5f129",
+      "1b67cdc161191e9b2c51cef37ae864e57b2411d06df81bc5b8facff53c214f83",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
-      "aadb773bfb994e754cfdf576f59d4bfe020184b21953908d40049ddfe3a93fc1",
+      "7c550e8af431293b6b8d7ca2cfd777a07ec798fd3880275d8c12f7423d4d168b",
     "expo/copy-overwrite/tsconfig.eslint.json":
       "375bb2ee8185e4a57d703e078ad57188f6d45b03b0fcbb16ef049fcf9b14c44b",
     "expo/copy-overwrite/tsconfig.expo.json":
@@ -237,7 +237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/lighthouserc-config.json":
       "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
     "expo/create-only/lighthouserc.js":
-      "5d46e590bd187a5e6392f5a958835ad671f6cdcc66b6748f656df4fe89eddaab",
+      "8e6fb0a37cd2884cec32378fcd8e213bc7489d2b9e9ad862e61c90435b2679a7",
     "expo/create-only/scripts/zap-baseline.sh":
       "55220e236a4241ada13a98a0e25ba3e6517b804f652342ff9adebf57ec79d9d5",
     "expo/create-only/stryker.conf.json":
@@ -263,19 +263,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-contents/gitignore":
       "d091c40fd0ea3068491f1be0d6510090ae872ca95d0d058ef4595d6492d13897",
     "harper-fabric/copy-overwrite/.github/dependabot.yml":
-      "e28fde0d906478b3fb7d6b7fc16f7fc5a4a0a20d8160f547f2b4be97c90578b7",
+      "9ec1e10d139783c129f00fe4a22a74a91e65f5252a3c71b4bf5548d3fcf0d110",
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml":
-      "d8227671ebec99255c2adac8ef76ec29cdfa5b8f4c56fe376a37dab08accc0cc",
+      "1fef0b72f890869e656dbe3b9463c83725ea8ca8e24e50b58d93c68502603fd0",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-early-return-in-search-loop.yml":
-      "c25106e1d4ee3566c70824ba4ecbc2ee0345014008aedb4fac56d0be23029264",
+      "8b9f1c93ebdd4f760978df01b166de90a78e751f7b4c907bded98f2862b4ac01",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-empty-conditions-with-sort.yml":
-      "d735e92ea25a4d8fbac8b45e06d73baf8b7cf0b38068623663b928dd6850e26e",
+      "716642455575045ecda3de8f275939993dee9065ac04bba30fe2fbb15d092cb2",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-full-table-scan.yml":
-      "00f49de6372a3a2825e9e38b6d2d86ac1580e28c1e2e8c8fa07bee0cfe2ac0aa",
+      "147bd3f3c2f82812acc3fdadb21d484594ec31a2e8015a2c90e041f659da92b5",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/require-statuscode-on-thrown-error.yml":
-      "a0d97da93395422ede05444a5b751825cca5d03df4cd8f7155915f444343e76a",
+      "8b39e0f5621b6bffac53ad16df2e02a1cf9cd49ee51e8775bccb40c22d5b065d",
     "harper-fabric/copy-overwrite/eslint.config.ts":
-      "3a58754fe25bbe3a00d967f4f9e735a5bc58c82add1fdf836b085774f5d8edbe",
+      "fbe0202102fb6b6018bf0c5fe86d6d7f8b8ad6069363045436ce01c3068fdc5e",
     "harper-fabric/copy-overwrite/knip.json":
       "fd4d3a4c329275d3429dfe67c0b50bd6951d23bec50a4eafe9b4a8911a0d22ca",
     "harper-fabric/copy-overwrite/tsconfig.eslint.json":
@@ -283,7 +283,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/tsconfig.json":
       "64b9f2e919160568712e2641b125aa21bec486532249a7b17e4fb2f4bb3988cc",
     "harper-fabric/copy-overwrite/vitest.config.ts":
-      "d24cd8d91b9942d8e0bd205ac41e103d49f2cb1e961bcdab259a56f5112e0151",
+      "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
       "37cf03c11e892f58c8fb818bbf35242af0e0e920f5d6a5f4716defccbb8d064d",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
@@ -301,11 +301,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/package-lisa/package.lisa.json":
       "9202ce3a521c3f01da0b663d02263c8f8d40977659c34dedd9beb7b483b8f317",
     "nestjs/copy-overwrite/eslint.config.ts":
-      "b44532acdaa1deaab29dcc2171a615242fb26565f538bdb38d8e33dd5a15cd01",
+      "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
-      "e3073700e1b609f0cd3b788b6e1bdbef5ce999c9f42f30f993d490630f5bc50a",
+      "50986c80ebfcbef86b6c24d6a50ace0964d43fe85c65a732230388caffab453c",
     "nestjs/copy-overwrite/eslint.slow.config.ts":
-      "c93b0a46addda0bbe8eecc48ca47405d8668a9f09c5daf79b45200e189476019",
+      "602a21f47370a0a947e92bced1b93bf8fa4c146e07c944ffe1d56ef50914a688",
     "nestjs/copy-overwrite/knip.json":
       "b82d60bb642af7edca4e850f1c76eb21fec8257eee75a2bbd7ad1a9103183b2b",
     "nestjs/copy-overwrite/tsconfig.build.json":
@@ -319,9 +319,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/tsconfig.spec.json":
       "c94b97ece66d5e19231244eb3e32bff3a40c13188474a1e0d17db08c37fc10b7",
     "nestjs/copy-overwrite/vitest.config.ts":
-      "2d66d293989a4f34b34a0d452bc95532e878b62ad49098c4f82eaec56c7ae183",
+      "e4d4095c4a6452a3bbc1f4a64677c60bc1dde58b2653d1aa364aac6bd44a35e8",
     "nestjs/copy-overwrite/vitest.nestjs.ts":
-      "b9f57045ed219d28eeacc1e47f48c6f08ff29219d5fcbc51abe409afcb9658bc",
+      "18aef942beb656da8566c41419c005055c1816cc42482f796e4870f3e4891ab4",
     "nestjs/create-only/.github/k6/BROWSER_TESTING_NOTE.md":
       "7895bd154311aff6a730a11148338ecf71dd339811288b975eacad60265dbe5d",
     "nestjs/create-only/.github/k6/INTEGRATION_GUIDE.md":
@@ -331,33 +331,33 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/SCENARIO_SELECTION_GUIDE.md":
       "64c2e83e2871fc187e227252a17522c4ba70d75685f67a0be6980c64803bfd35",
     "nestjs/create-only/.github/k6/examples/customer-deploy-integration.yml":
-      "1852278e428dd0c2c1d1e135dd02804ed63fb0e6eeaaf3dc0fbbbcfbc90f58fc",
+      "d275c7217bd06f0728967284197ee99a039c607e55f0dcd3198007bbafcc25c2",
     "nestjs/create-only/.github/k6/examples/data-driven-test.js":
-      "2ed7850ec4fb7a473b33fff0dcd49e829742910699d2f6966269b25fdd712681",
+      "557e0dca440176f8b4d6574f743a25d2a158b6d7e4ab36360affa4a3a56d7e03",
     "nestjs/create-only/.github/k6/scenarios/load.js":
-      "5f950d1df2cde483cc86add0ed6d1db008aee4317729aa595f61b18b32c8f077",
+      "bde97e31a99dd0d0416d172b57c7943ffb204b646d424c31cc0380d4f3503b37",
     "nestjs/create-only/.github/k6/scenarios/load.json":
       "1970bee0b48024cd1c38515522c78dd8aeacad09606880b227d49721afa44d37",
     "nestjs/create-only/.github/k6/scenarios/smoke.js":
-      "a16b7b636d5a156dd19db3223ce787e22360eea72c46d92266aaa3701a13b2ae",
+      "4a09443e2eb6b35eae33eb93f6fc6518f60a9a8b6d6fdaf9609a35125fe804f7",
     "nestjs/create-only/.github/k6/scenarios/smoke.json":
       "eb6d80b580cadc7ea137fad5acae93b06096cd2162404f7054889e1af9208886",
     "nestjs/create-only/.github/k6/scenarios/soak.js":
-      "a52f98dd38d5e5d6f80bd62fc39c89a8e398c60f167127b5b576d775f1409165",
+      "f9346b74724e7cae890f039469fbd4929af5060d27b3b20104aa5c190604a43e",
     "nestjs/create-only/.github/k6/scenarios/soak.json":
       "00e3d43e434f67d19d4591d8b3e3ece0b2106f2f65f0efe618723bc2e0e23b2c",
     "nestjs/create-only/.github/k6/scenarios/spike.js":
-      "5b0442a277e3d8b686c3d79bedfc39a9c9588db529b1aa3791e3650c517ffe54",
+      "4ca74a63be050054086d751060e3dcc4909a7c129dfb8df1becd946bb16fff4a",
     "nestjs/create-only/.github/k6/scenarios/spike.json":
       "53ca5e0cd1887539a859b37d4e4bb17e73b6810e0aee880d69ed68eaab3c9ab1",
     "nestjs/create-only/.github/k6/scenarios/stress.js":
-      "bf0ee9fd6681b9cf6eb41693e25a02cc3bcfc2696915ee447f824eebd61315e0",
+      "449a3c42cc30637f7f65d90e6948222ed1480c328e8082faab042140eac47947",
     "nestjs/create-only/.github/k6/scenarios/stress.json":
       "f4eee2327dbd2ed6de6d0c4b9913e61e72f543c575de679f198a8580b1e2bfb8",
     "nestjs/create-only/.github/k6/scripts/api-test.js":
-      "7bed91388d8030bae7d26c4ae9641fd0ebceea97dc6b0b8c4770b3fc0e774ef1",
+      "521e871a57e1304c306bcb8739c41b37357da97ed660539a944c12e0f4f0b4fa",
     "nestjs/create-only/.github/k6/scripts/default-test.js":
-      "aab96fe69889fac79080b5ca4009976079dd362659cb0dda3e467918de6d0291",
+      "f49c00e46f462f44d35bd634ff9f0698bf6a418419e097678c5d8a6121f6ba1f",
     "nestjs/create-only/.github/k6/thresholds/normal.json":
       "1842cf0b617380ce641781589b4084b03aac1beeb4803a696b3ae6329710ad44",
     "nestjs/create-only/.github/k6/thresholds/relaxed.json":
@@ -367,7 +367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/required-checks.json":
       "6d40f9e3e89e1a7f533f6a995e1b9e5cc2fa089693b0cfbd8e8f883ae200589a",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "0985668e6d0478f1993bed8ccd398601d8e73376afd8775e1269ae129418152e",
+      "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
     "nestjs/create-only/.github/workflows/deploy.yml":
       "78abfa87639cb7506418dd34387963a0557614933d823e6fa0413395166b945b",
     "nestjs/create-only/.zap/baseline.conf":
@@ -411,29 +411,29 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-contents/gitignore":
       "4b8d1a5817d35f64f5d4859f9184ebe2e1dc42e63f8e9269fff233e2ec258d6c",
     "phaser/copy-overwrite/.github/workflows/ci.yml":
-      "7b037b5961569a09e8407e6b9bf9a91377208f76bc309680870c2b56ff2f4813",
+      "240874d6ec028ccd2406ff88007e37d7283d6f66cb287ffbd6fad908ba83246d",
     "phaser/copy-overwrite/.husky/pre-push.verify":
-      "fef6694c2fde6178f46c62936d2b19515adce4fc8ac694ea66d8342aa1474ee7",
+      "d03bc6d18e20c368d37abd4d1000589cbbfb67afab0ad58da4f18ed73ec65ee9",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-canvas-renderer.yml":
-      "bd0994bbb8f8e6bde2a1a581fb2cb8aa011d91822dabf4366f500359069726b3",
+      "6bd12358ba4147e11758b9b128404fc48964e6d1b7b1a046080c20b6f8d756f7",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-raw-webgl-context.yml":
-      "a66b00c9df86e33c58d3ea1ed8f7a83599282f79b93654b8666248fb96d4fa5a",
+      "1171bc19922cef9d09511531856ade7499e76a4174551d58d1b7a642082719e0",
     "phaser/copy-overwrite/ast-grep/utils/.gitkeep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "phaser/copy-overwrite/eslint.config.ts":
-      "f48fdf87cc578f032311f45e2a9a6f11bf143b84f8f9c464cc4b26041c5c2607",
+      "c33affb87b49667a0ec8586fd71af6dce5feaeaaecb481bff0c24a11d14ae1ba",
     "phaser/copy-overwrite/knip.json":
       "2962d422d9c561a092134943a4b2c96e8ec0a1fff7f7fe633b5844a517a06e73",
     "phaser/copy-overwrite/sgconfig.yml":
-      "0ffe058c791d4d323f98104cf78c763bb0356d88739042060ceb86b6b1cb78d7",
+      "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "phaser/copy-overwrite/tsconfig.eslint.json":
       "f68ef61ca6ba5081db23a13e18b845e00487407cf2d3b8cbceea6f85f2b01498",
     "phaser/copy-overwrite/tsconfig.json":
       "8d9ce60a68b5e29213c4251ae35e68bc22c7128e49659d5a8967de6a16d620e5",
     "phaser/copy-overwrite/vitest.config.ts":
-      "9e66ea703255ccfe8e00292f2438d30d008df5caa30c9fe948d5054c0f628195",
+      "dc925a5b7f268f7c284abdf9b7c5d4384980ad66252fbb5e9186ae7203fb9388",
     "phaser/create-only/tsconfig.local.json":
       "aec26141fe80709ab19fbfb5dda945e59f8f9d718d5cfcb023ad48f0eead88f5",
     "phaser/create-only/wiki/lisa-wiki.config.json":
@@ -1987,7 +1987,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/.versionrc":
       "b6c4c0258819fa186a91d96cdeac7a017f36cfe1d2c59ccb69cff75c1a8598e0",
     "rails/copy-overwrite/Gemfile.lisa":
-      "8bebf6120fa90d8f971ded8281c4fdac632e524ca0bb80f6268c3eda997f7672",
+      "c73ab0f02fe764ce2953761272d5302ef1f5cc17f346c70697f2d638a11b5a4d",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-find-by-sql-without-params.yml":
@@ -2011,15 +2011,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
-      "e7121a0ee9e1bf7c01cd2ab55f563dd6d9ab75990739bb6ddf571a513efa10e9",
+      "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "rails/copy-overwrite/sgconfig.yml":
-      "0ffe058c791d4d323f98104cf78c763bb0356d88739042060ceb86b6b1cb78d7",
+      "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
-      "ad53014bdd6cf15bfadfaef7740b6094c3c7bd044f9d176c4938154da983529d",
+      "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
     "rails/create-only/.github/workflows/claude-code-review-response.yml":
       "bfbe3127c4941c35886d324d439ae0302fbccd74a11cb4decf05a21195efa0e9",
     "rails/create-only/.github/workflows/claude-nightly-code-complexity.yml":
@@ -2041,7 +2041,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.rspec":
       "06245e25d7cf46b4fbde27b5faa0df0d4110e11918eeb5848de4ab2aff897b59",
     "rails/create-only/.rubocop.local.yml":
-      "16709cd10072004d96c3a910c9e202d83231e7bae9ab9e215c70dd767a6499ff",
+      "241045ea0d161b45f3401a6198ce7f500fe108babc6c5b23bf520b531b3c1765",
     "rails/create-only/.rubocop_todo.yml":
       "2f99205f6b7b97b04700a74036de03e018ca791832b5d5c4df7104f50b3cfee5",
     "rails/create-only/.simplecov":
@@ -2219,23 +2219,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
-      "0185adc91889a7c2a41b3609fe529ac89ff8149600f8d00aa8065ea3c397c0d1",
+      "8dbddc0297ca574d150b3e669550320bd2df6e592c083317626f53a91f36d349",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
       "eb70191370c5481c8e1ec30bc1c19dac4611f678219c46012f5a32e49989af90",
     "typescript/copy-overwrite/.github/dependabot.yml":
-      "6db1f1e6469845da81d2d724a446cc3feb42c970907796d3a1dee1eabfc7ba6b",
+      "73330408894b35567b068dd12dcb2edd0b01235fd63547938c62ca0dbc0485e2",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "5a2f5f9ad454e7b9e1e065cb3b1768f6a9897e453b0afee508b98c96bfa67138",
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "b7c97cd02b184381e1e4debcb9544d9a9e37be147d58897866347713d0a045d1",
+      "eb7778d31dc0ee67cdcb7d843c8cce4cc46d96a7faab14f8d1e313b7a62048a3",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
       "96d51e3087892bb795788dbd0ca3e5ebe7b67252e58adae5bbc469eaf424af35",
     "typescript/copy-overwrite/.yamllint":
-      "e8a17046b8c1eb4653ed8a2ac6390ce499d505aab2daf81e43feefd5c4959067",
+      "685de50b905e024ac8882cdf6443850e96a44744ac03366cae636ceb384dd4e0",
     "typescript/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "bbbdb778ba76fa0bf120a9d49325e726adafc6a833e8d56a87c449a33a818cbd",
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep":
@@ -2245,33 +2245,33 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml":
       "a662cb959ad5d96e4dda09d6dce1d69318e7c13f3d01787658184fd6075c2781",
     "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml":
-      "1664d70f1c5c37341e9ae29bfbe375d47b2e0df3cf2022c1933af209233109e9",
+      "a1c25176b326e26070870d65dcd6e4651880f4121563fc0082022e7f525e5e1b",
     "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member.yml":
-      "2601f136c89e2c70490a9a439f8a077157b09af525f6066fdae751001f8cc0ae",
+      "599df22bafdcf588a4cceac134dbca203266fd77ae4ac0c33b351b545372488c",
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep":
       "6792ca57f00ff5a84a4713a08308a8ab3144858b0b0d9f8251b8c26c48948fb7",
     "typescript/copy-overwrite/audit.ignore.config.json":
       "84ad811f25a9a309994153e1eb6117f9db90432f8e79e48065adec36494835bf",
     "typescript/copy-overwrite/commitlint.config.cjs":
-      "72f3c0ac2e14929938f358f59d4932687107a9bd389a90aa8d9c100d7cb450f7",
+      "a9f07b7097eee82e531dedfe3c1011ec61dc8c85c26d5430314a5999dc0675cc",
     "typescript/copy-overwrite/eslint.config.ts":
-      "2959e30c73c191279c1d68d816bb66654e3dd857cf871dcc265c3a0610fe502a",
+      "1a2f6eb5dd19a7dfc445c61bac8bd08a5f8908f023655c920aff08b633b30fb6",
     "typescript/copy-overwrite/eslint.ignore.config.json":
       "04dcd754829cf93bf0ba0d76e4031d28cb7149afa658575d02bb13bf73f7880e",
     "typescript/copy-overwrite/eslint.slow.config.ts":
-      "f66d04381940936544931d7f20ffd4e43c38b8a907d56ffa101e2236371d8c94",
+      "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "c9dd6f6816b35d4d8f684892878d4181b9cb5266a7f2e2814970aa49dc04a001",
+      "5e64dad2e2ee08fabd99398c957cbe4dfc3b0a7243aae424c8e83f29283e503c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
+      "1bcd3f065465731df4eb02b93b73a0162d287e365ed1a396138d97d71d403b31",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
-      "3c1d27d0668fc66a18cb014f2b607878f0a88c178a773fbe964b8e46b19e86d6",
+      "3c037e2f0d2c7ae48d3b8c798522847910daef671a787393997fc71107cc7ead",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "7d8d24dea151ef2178807046e97aea7ebfadd9c88eb50347feb7bb4bb190227d",
+      "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "a6041930ca4536f3a76e4f54976ff846ab575f5f07a2356722eedcb06795e684",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2279,13 +2279,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "typescript/copy-overwrite/sgconfig.yml":
-      "0ffe058c791d4d323f98104cf78c763bb0356d88739042060ceb86b6b1cb78d7",
+      "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
       "8a8ae5e201b18887b8eeda5eb569747221695524d4193ea03b4338b97b7fa642",
     "typescript/copy-overwrite/tsconfig.json":
       "8f4257fcd2cfd4b23e83e0fdd4908d41ee8f1ae75bb95d632e653a0ac13d58e4",
     "typescript/copy-overwrite/vitest.config.ts":
-      "da92f06cc3ce68462c6f2f3d95adb1b1464591ce383a24e3334dc986e0c1e0fb",
+      "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
       "16e7693b24a68d38fa2d680bf7231a91939850b1e71a69b67780b1311f1cbf35",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
@@ -2293,7 +2293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
       "cf185555bcbe8e9957333abcae2e0c20e00875f8d867f70134efbd2a5c974ee5",
     "typescript/create-only/.github/workflows/ci.yml":
-      "dac98b7ab5a7397461e459b2553101bfdc6451d28b42f3b0115056b62cfb8b1d",
+      "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
     "typescript/create-only/.github/workflows/claude-ci-auto-fix.yml":
       "a9155c10d0c28eba0f77ec5bc2a2d99b0eeb5d499218aac81948d3f27e6aa4fb",
     "typescript/create-only/.github/workflows/claude-code-review-response.yml":
@@ -9195,6 +9195,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,
+    "tests/unit/templates/template-ownership-header.test.ts": true,
     "tests/unit/transaction/backup.test.ts": true,
     "tests/unit/utils/atomic-file-write.test.ts": true,
     "tests/unit/utils/directory-sync.test.ts": true,
