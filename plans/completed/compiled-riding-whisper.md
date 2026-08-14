@@ -109,14 +109,13 @@ Update the workflow description section (already added) to mention:
 
 ## Verification
 
-1. **Syntax check**: `actionlint` on the modified reusable workflow
-2. **Single-repo test**: Manual dispatch with a known `ticket_key` -- verify:
+1. **Single-repo test**: Manual dispatch with a known `ticket_key` -- verify:
    - Relevance check runs (searches codebase)
    - If relevant: comments are posted with `[lisa]` prefix (since the repo is `lisa`)
    - Label added is `claude-triaged-lisa` (not generic `claude-triaged`)
-3. **Multi-repo test**: Run from two different repos pointing at the same Jira project:
+2. **Multi-repo test**: Run from two different repos pointing at the same Jira project:
    - First repo triages and posts comments with `[repo-1]` prefix
    - Second repo triages the SAME ticket: reads repo-1's comments, posts only additive `[repo-2]` findings
    - Both repos add their own repo-scoped labels
-4. **Irrelevant ticket test**: Run against a ticket that has no related code in the repo -- verify it adds the label and skips without posting comments
-5. **Format check**: `prettier --check` on modified files
+3. **Irrelevant ticket test**: Run against a ticket that has no related code in the repo -- verify it adds the label and skips without posting comments
+4. **Format check**: `prettier --check` on modified files
