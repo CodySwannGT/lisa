@@ -1,8 +1,14 @@
 import * as fse from "fs-extra";
-import { copyFile } from "node:fs/promises";
+import { copyFile, readFile } from "node:fs/promises";
 import { mayRefreshTemplate } from "../core/config.js";
 import type { FileOperationResult } from "../core/config.js";
 import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
+import {
+  classifyHostCopy,
+  describePreserved,
+  mayRefreshLisaOwned,
+} from "../core/lisa-owned-provenance.js";
+import type { HashLedger } from "../core/lisa-owned-provenance.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 
@@ -100,11 +106,19 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
    * so the create path would recreate them. Lisa owns those files outright —
    * see `isLisaOwnedTemplate` — so they refresh here, backed up first, and a
    * project that wants to keep its own copy says so in `.lisaignore`.
+   *
+   * That refresh is unconditional only where Lisa can prove the installed copy
+   * is behind. "Differs from mine" is not that proof — it is equally consistent
+   * with the host being *ahead*, which is how `propswapllc/frontend` had a guard
+   * they had hardened themselves silently replaced by a weaker upstream one. So
+   * a Lisa-owned artifact is now classified before it is replaced, and anything
+   * short of proof that it is stale leaves the host's copy alone with an
+   * explanation. See `classifyHostCopy`.
    * @param sourcePath - Packaged template path
    * @param destPath - Installed file path
    * @param relativePath - Repo-relative path for reporting
    * @param context - Strategy context with config and callbacks
-   * @returns Whether the file was refreshed or left out of date
+   * @returns Whether the file was refreshed, preserved, or left out of date
    */
   private async applyNonInteractive(
     sourcePath: string,
@@ -113,12 +127,23 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     context: StrategyContext
   ): Promise<FileOperationResult> {
     const { config, backupFile } = context;
+    const lisaOwned = isLisaOwnedTemplate(relativePath);
 
     if (
-      !isLisaOwnedTemplate(relativePath) &&
+      !lisaOwned &&
       !mayRefreshTemplate(relativePath, config.refreshTemplates)
     ) {
       return { relativePath, strategy: this.name, action: "stale" };
+    }
+
+    if (lisaOwned) {
+      const preserved = await this.preserveIfHostAhead(
+        sourcePath,
+        destPath,
+        relativePath,
+        context.hashLedger
+      );
+      if (preserved !== undefined) return preserved;
     }
 
     // Backed up first: opting in to an overwrite is not opting out of being
@@ -128,5 +153,51 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       await copyFile(sourcePath, destPath);
     }
     return { relativePath, strategy: this.name, action: "overwritten" };
+  }
+
+  /**
+   * Hold back a Lisa-owned refresh that cannot be proved to be an upgrade.
+   *
+   * Returns a result only when the file is being preserved, so the caller falls
+   * through to its normal refresh path in every provably-safe case — a host copy
+   * that matches a past Lisa release still gets replaced, which is what keeps
+   * genuine drift from accumulating forever.
+   *
+   * A read failure is not treated as permission to overwrite. If the installed
+   * bytes cannot be read they cannot be classified, and a classifier that
+   * defaults to "overwrite" when it is confused is the original defect wearing a
+   * different hat.
+   * @param sourcePath - Packaged template path
+   * @param destPath - Installed file path
+   * @param relativePath - Repo-relative path for reporting
+   * @param ledger - Known-good hashes, defaulting to Lisa's shipping history
+   * @returns A `host-ahead` result when the copy is preserved, else undefined
+   */
+  private async preserveIfHostAhead(
+    sourcePath: string,
+    destPath: string,
+    relativePath: string,
+    ledger?: HashLedger
+  ): Promise<FileOperationResult | undefined> {
+    const [hostBytes, lisaBytes] = await Promise.all([
+      readFile(destPath).catch(() => undefined),
+      readFile(sourcePath).catch(() => undefined),
+    ]);
+    if (hostBytes === undefined || lisaBytes === undefined) return undefined;
+
+    const verdict = classifyHostCopy(
+      relativePath,
+      hostBytes,
+      lisaBytes,
+      ledger
+    );
+    if (mayRefreshLisaOwned(verdict)) return undefined;
+
+    return {
+      relativePath,
+      strategy: this.name,
+      action: "host-ahead",
+      note: describePreserved(relativePath, verdict),
+    };
   }
 }

@@ -8,6 +8,7 @@
  * @module tests/unit/cli/doctor-lisa-owned-artifacts
  */
 import * as fs from "fs-extra";
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -67,6 +68,23 @@ function trampolineFor(projectDir: string, lisaRoot: string): string {
   return `#!/usr/bin/env node\n\n// The installed copy lives under all/copy-overwrite.\nimport { runCli } from "${specifier}";\n\nrunCli();\n`;
 }
 
+/**
+ * A ledger declaring `OLD_GUARD` to be bytes Lisa genuinely published.
+ *
+ * That is what a project sitting on an older release actually has. Omitting it
+ * would make the fixture content Lisa never shipped, which the check correctly
+ * reads as a downstream edit rather than as drift — so a test meaning to
+ * exercise "outdated" would quietly exercise "modified" instead.
+ * @returns Hash ledger for injection
+ */
+function shippedLedger(): Readonly<Record<string, readonly string[]>> {
+  return {
+    [GUARD]: [
+      createHash("sha256").update(Buffer.from(OLD_GUARD)).digest("hex"),
+    ],
+  };
+}
+
 describe("checkLisaOwnedArtifacts", () => {
   let tempDir: string;
   let lisaRoot: string;
@@ -92,10 +110,37 @@ describe("checkLisaOwnedArtifacts", () => {
   it("warns and names the guard when the project has an older copy", async () => {
     await fs.outputFile(path.join(projectDir, GUARD), OLD_GUARD);
 
-    const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
+    const check = await checkLisaOwnedArtifacts(
+      projectDir,
+      lisaRoot,
+      shippedLedger()
+    );
 
     expect(check.status).toBe(WARN);
     expect(check.detail).toContain(GUARD);
+    expect(check.detail).toContain("Outdated");
+  });
+
+  it("tells an operator to run apply only when apply would actually help", async () => {
+    // A downstream edit is still worth a warn — a project that swapped a guard
+    // for a stub should not get silence — but it must not be labelled outdated,
+    // because apply will now deliberately keep the project's copy. Sending the
+    // operator to `lisa apply .` here is a loop with no exit.
+    await fs.outputFile(
+      path.join(projectDir, GUARD),
+      "#!/usr/bin/env bash\n# hardened downstream\n"
+    );
+
+    const check = await checkLisaOwnedArtifacts(
+      projectDir,
+      lisaRoot,
+      shippedLedger()
+    );
+
+    expect(check.status).toBe(WARN);
+    expect(check.detail).toContain(GUARD);
+    expect(check.detail).not.toContain("Outdated");
+    expect(check.detail).toContain("keep yours");
   });
 
   it("passes when the guard matches what Lisa ships", async () => {
