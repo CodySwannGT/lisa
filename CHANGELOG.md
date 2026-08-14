@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.6](https://github.com/CodySwannGT/lisa/compare/v3.11.4...v3.11.6) (2026-08-14)
+
+
+### Bug Fixes
+
+* **ci:** invoke ast-grep directly so the rule-test step is self-sufficient ([896155f](https://github.com/CodySwannGT/lisa/commit/896155fedf4d88df3170cc8bf2b9f5ca11ccca97)), closes [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [#2533](https://github.com/CodySwannGT/lisa/issues/2533) [#2530](https://github.com/CodySwannGT/lisa/issues/2530) [CodySwannGT/lisa#2530](https://github.com/CodySwannGT/lisa/issues/2530)
+* **ratchet:** let a promotion carry an exemption its upstream already approved ([d5bc18d](https://github.com/CodySwannGT/lisa/commit/d5bc18d57142d010184b31fcd2fe24491a1696db)), closes [TunnlAI/frontend#527](https://github.com/TunnlAI/frontend/issues/527) [CodySwannGT/lisa#2531](https://github.com/CodySwannGT/lisa/issues/2531)
+
 ### [3.11.5](https://github.com/CodySwannGT/lisa/compare/v3.11.4...v3.11.5) (2026-08-14)
 
 
