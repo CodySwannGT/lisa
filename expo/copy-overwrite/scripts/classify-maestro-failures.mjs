@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * classify-maestro-failures — tell a preamble loss apart from a product
  * regression when reading a Maestro JUnit report.
