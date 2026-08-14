@@ -209,7 +209,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "27f5037db910501f8d76f828f91a605e3c4d321d1df362d317c440ab7abc9f14",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "805256e2922abb8d08c00e833adb4f0c521e62cc7259ee5c0524475d496914f1",
+      "889084395ca48e07d01725158bf8b091e5c19f1800d5f4beee777e2b95530246",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
@@ -8566,6 +8566,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
+    "tests/integration/maestro-leg-order-wait.test.ts": true,
+    "tests/integration/maestro-leg-order.test.ts": true,
     "tests/integration/maestro-native-concurrency.test.ts": true,
     "tests/integration/maestro-native-driver-retry.test.ts": true,
     "tests/integration/maestro-native-flake-classification.test.ts": true,
@@ -8587,6 +8589,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-tamper.test.ts": true,
     "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
+    "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
