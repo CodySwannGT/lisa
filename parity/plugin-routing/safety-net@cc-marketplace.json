@@ -3,8 +3,8 @@
   "plugin": "safety-net@cc-marketplace",
   "pluginName": "safety-net",
   "marketplace": "cc-marketplace",
-  "upstreamVersion": "2.0.1",
-  "analyzedAt": "2026-08-11",
+  "upstreamVersion": "2.0.4",
+  "analyzedAt": "2026-08-14",
   "status": "approved",
   "components": [
     {
@@ -26,8 +26,8 @@
     "codex": {
       "outcome": "reimplement",
       "actions": [
-        "keep the Lisa-native PreToolUse hook (plugins/src/base/hooks/parity-safety-net.sh, fanned out via the per-agent hook generators from #1054–1058) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.1",
-        "keep the consolidated lisa-parity-safety-net-rules skill as the Lisa-native equivalent of the upstream cc-safety-net rule-management skill, stamped synced-from: safety-net@cc-marketplace@2.0.1"
+        "keep the Lisa-native PreToolUse hook (plugins/src/base/hooks/parity-safety-net.sh, fanned out via the per-agent hook generators from #1054–1058) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.4",
+        "keep the consolidated lisa-parity-safety-net-rules skill as the Lisa-native equivalent of the upstream cc-safety-net rule-management skill, stamped synced-from: safety-net@cc-marketplace@2.0.4"
       ],
       "rationale": "A hook-bearing plugin has no MCP/LSP re-point. Upstream 2.0 does now publish a native Codex integration (`cc-safety-net install --codex`), which would ordinarily outrank reimplement in the preference order — but it is an npx/Node installer that writes per-agent config outside Lisa's distribution model, and #1960 already made the Lisa hook canonical on every agent precisely so one audited guard set ships identically everywhere without an npx dependency. Keeping reimplement preserves that decision; the vendor-integration option is flagged for owner review in the addendum rather than taken unilaterally."
     },
@@ -39,8 +39,8 @@
     "agy": {
       "outcome": "reimplement",
       "actions": [
-        "keep the Lisa-native PreToolUse hook (plugins/src/base/hooks/parity-safety-net.sh, fanned out via the per-agent hook generators from #1054–1058) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.1",
-        "keep the consolidated lisa-parity-safety-net-rules skill as the Lisa-native equivalent of the upstream cc-safety-net rule-management skill, stamped synced-from: safety-net@cc-marketplace@2.0.1"
+        "keep the Lisa-native PreToolUse hook (plugins/src/base/hooks/parity-safety-net.sh, fanned out via the per-agent hook generators from #1054–1058) as the canonical Bash guard, stamped synced-from: safety-net@cc-marketplace@2.0.4",
+        "keep the consolidated lisa-parity-safety-net-rules skill as the Lisa-native equivalent of the upstream cc-safety-net rule-management skill, stamped synced-from: safety-net@cc-marketplace@2.0.4"
       ],
       "rationale": "Curated third-party plugins are not in agy's fan-out, so agy receives nothing natively. Upstream 2.0 ships an Antigravity CLI installer, but the same npx-dependency and dual-engine objections as Codex apply; the Lisa hook stays canonical and the vendor option is flagged for owner review."
     },

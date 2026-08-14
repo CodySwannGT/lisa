@@ -76,9 +76,9 @@ maps to an upstream plugin publishing semver still carries its `synced-from` pin
 | ----------------------------------- | --------------------------------------------- |
 | `parity-code-simplifier`            | `code-simplifier@claude-plugins-official@1.0.0`     |
 | `parity-coderabbit`                 | `coderabbit@claude-plugins-official@1.1.1`          |
-| `parity-safety-net-rules`           | `safety-net@cc-marketplace@2.0.1`                   |
-| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.3.1`              |
-| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.3.1`              |
+| `parity-safety-net-rules`           | `safety-net@cc-marketplace@2.0.4`                   |
+| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.3.2`              |
+| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.3.2`              |
 | `parity-code-review`                | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 | `parity-skill-creator`              | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 
