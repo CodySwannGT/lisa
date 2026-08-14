@@ -118,6 +118,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-threshold-ratchet.mjs": Object.freeze([
     "04f660131bf50864239eb09cbf4d9555e53921254f6ab45ff2b85c173e160901",
     "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
+    "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
     "49dee610439f4f21aecb0420a0cc72f5d3595a36f2489970053096190b9909c4",
     "6da00221189ed0f8a2938f15e02bcc2633d44f5f05489979fbb94202bc45a6d4",
     "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
@@ -147,10 +148,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-destructive-guard.mjs": Object.freeze([
     "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
+    "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
   ]),
   "scripts/lisa-enforcement-fallback.sh": Object.freeze([
     "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
     "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
+    "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
     "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
     "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
@@ -166,8 +169,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "60a4f94ec671b2372f7492680ab327d97aff686588ce85791f54e0fbd098b0ca",
     "73e94b73830d8961026947d99bf4ac5f959b5bca025203b913d8a6363cbe2b9f",
     "847dfca48823a495fc3de47dfdb4b26e49d6808c6570c46d024a99793df1d370",
+    "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
+    "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "6f52076e3488821d638b6dd45b5faca527d92b181cc12e6e5033859e0786c8a7",
     "850cfc23852eb752114ae1e938a1c7bcf34bc50c85d3aaca0c02311cc8c0ef70",
     "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
@@ -182,6 +187,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "3b93a0affab6413e3c14a6f43de5acb586286ed1819ece0a66b30429b4d00490",
     "3ff7255f395a9552366faaac34d383f4c95fecfb39882cd1d57854356422fe61",
     "7790a560850c9d38709dbaccdaa10733e632c1bd4d975cbec7e3cc5a8650b36a",
+    "83a8b8108654086afb6a6f23a8f09f9f041eb2cd4094c5531fa7ab1f75e873dc",
     "a6ed91576efebb6ba40cfa4e9d8a3e8566314909210ae8d5860be62a3feb4cff",
     "aa95a84f9f9224914947a09b858535aa8bd052199ff64cb53768cf78fb69b687",
     "b9f299cb9d3ad75b71296376ae2c40eb207a3b2706dafdaa41fc586050a53aad",
@@ -190,6 +196,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-hooks/block-shell-json-parsing.sh": Object.freeze([
     "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
+    "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
     "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
   ]),
@@ -199,6 +206,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "1162ffd16cef3b23282d2f5207abcb88429462a74a9df1035f0df4968f6dd456",
     "14fc5e292aebf83dd24fec12fb32e2beb509a9324f127a24a64d5c5d4d05c576",
     "1bf3512bb94923a6cb25b1e7a619a3fc8e1336bffa16f499b459aaee3eaed66d",
+    "1d4fbe135f1bb4e861d286a6512ed201d4522250dfe3f9eba6584bc5ff166a95",
     "388cf8847581d96a1ff8ea98290a33a5f96d67cdd502ea807a0b8d88efe90e19",
     "64546813f168fb446f39e34bc674fd3af85b15bd5e7f4f6bf4503463e701a7b9",
     "772202ddd42d626625ff719666afbbe83445d8bae1bc7c0fb5ffdcb402be83f8",
@@ -213,6 +221,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fa8f4a6517eacd9266feb7afd62398cdf2075d4824cac24b45bb64ad0cd18c86",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
+    "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "945453fb275a58aa7185e150e6b05e5810739750928ab5bd6edfbf87d1c8aa0d",
     "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
@@ -259,11 +268,13 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "67b5769dde341d06799c7a49c1fbcd46d92df1268177cc575e704e5a8a2d3096",
     "8bc4b379d7057b2fecf9cb35820c39efad0a65df7df49073786f996cc2a74810",
     "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
+    "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
   ]),
   "scripts/threshold-ratchet-families.mjs": Object.freeze([
     "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "93190f926689725418c1ec9eae15c55910b128cff6e3cb10185e466c7b90cc4f",
     "db14245ed89b483912af287bdee917a7a921dc21bb29b49be37fc799c05c413f",
+    "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
     "fee19c88c89eed5a2949dea42c4a4c794f04aabf0e36c71cdda70ffaaf2b17c9",
   ]),
 });

@@ -51,6 +51,30 @@ const HEADERS = {
 const COMMENTABLE = /\.(ya?ml|[cm]?js|tsx?|sh|rb)$/u;
 
 /**
+ * The only `copy-overwrite` file formats allowed to say nothing, each with the
+ * reason it cannot.
+ *
+ * Enumerated, and asserted to be exhaustive, because a category boundary that
+ * nobody has to write down is how #2549 happened: `COMMENTABLE` above quietly
+ * excused every file it did not match, so a create-only workflow with no header
+ * at all was invisible to the guard meant to govern it. Here the whole lane is
+ * the population and this map is the whole exception list — a template in a
+ * format that is not written down below fails, and someone has to decide
+ * whether it gets a header or an entry.
+ *
+ * Note what is NOT here. `.prettierignore`, `.yamllint`, `.gitleaksignore.local`,
+ * `Gemfile.lisa`, `pre-push.verify`, `.easignore.extra` and a `.md` all take a
+ * comment and all carry the header, so none of them needs an excuse.
+ */
+const NO_COMMENT_SYNTAX: Record<string, string> = {
+  ".json": "JSON has no comment syntax at all",
+  ".versionrc": "a JSON body under a dotfile name",
+  ".nvmrc": "a bare version string — nvm reads the whole file as the version",
+  ".gitkeep": "must stay empty; content defeats the placeholder",
+  ".keep": "must stay empty; content defeats the placeholder",
+};
+
+/**
  * Line-1 constructs that stop working if the header lands above them, so
  * finding one on line 2 means the header displaced it.
  */
@@ -207,13 +231,122 @@ describe("template ownership headers state their real contract (#2538)", () => {
     expect(silent).toEqual([]);
   });
 
+  it("leaves no commentable copy-overwrite template silent about who owns it (#2547)", async () => {
+    // The #2549 assertion above, pointed at the other lane — and this is the
+    // lane where silence costs the most. A create-only file that says nothing
+    // is read as maybe-Lisa's and left alone; a copy-overwrite file that says
+    // nothing is read as editable and edited, and the next sync deletes the
+    // edit without telling anyone. That already happened to a consumer repo's
+    // hardened `block-no-verify.sh`.
+    const silent: string[] = [];
+    let audited = 0;
+    for (const lane of LANES) {
+      for (const file of await templateFiles(lane, "copy-overwrite")) {
+        if (!COMMENTABLE.test(file)) continue;
+        audited += 1;
+        const contents = await readFile(file, "utf8");
+        if (!HEADERS["copy-overwrite"].every(line => contents.includes(line))) {
+          silent.push(path.relative(process.cwd(), file));
+        }
+      }
+    }
+
+    expect(audited).toBeGreaterThan(50);
+    expect(silent).toEqual([]);
+  });
+
+  it("exempts only copy-overwrite formats that cannot hold a comment (#2547)", async () => {
+    // The population here is the WHOLE lane, not the commentable slice, because
+    // `COMMENTABLE` is itself an exemption and an exemption nobody writes down
+    // is the #2549 defect in a different costume. Every file either states its
+    // contract or its format appears in `NO_COMMENT_SYNTAX` with a reason.
+    const unexplained: string[] = [];
+    const exemptionsUsed = new Set<string>();
+    let audited = 0;
+
+    for (const lane of LANES) {
+      for (const file of await templateFiles(lane, "copy-overwrite")) {
+        audited += 1;
+        const contents = await readFile(file, "utf8");
+        if (HEADERS["copy-overwrite"].every(line => contents.includes(line))) {
+          continue;
+        }
+        // `.nvmrc` and `.gitkeep` are dotfiles, and `extname` reports no
+        // extension for those — falling back to the whole name is what lets
+        // them be named in the exemption list rather than slipping past it.
+        const extension = path.extname(file) || path.basename(file);
+        if (extension in NO_COMMENT_SYNTAX) {
+          exemptionsUsed.add(extension);
+          continue;
+        }
+        unexplained.push(path.relative(process.cwd(), file));
+      }
+    }
+
+    expect(audited).toBeGreaterThan(100);
+    expect(unexplained).toEqual([]);
+    // A written-down excuse for a format the lane no longer ships is a hole
+    // waiting for a file to fall into it, so the list has to stay used.
+    const byName = (a: string, b: string): number => a.localeCompare(b);
+    expect([...exemptionsUsed].sort(byName)).toEqual(
+      Object.keys(NO_COMMENT_SYNTAX).sort(byName)
+    );
+  });
+
+  it("cannot generate a copy-overwrite asset without stamping the header (#2547)", async () => {
+    // Thirteen copy-overwrite assets are not authored where they ship: the
+    // build materializes them from `plugins/src/base/hooks/` and from
+    // `scripts/lisa-enforcement-fallback.sh`. A header typed into those copies
+    // is erased on the next `bun run build`, which is why #2545 could correct
+    // 86 files and not these.
+    //
+    // The fix stamps the header during generation, so the assertion that keeps
+    // it true is about the GENERATOR, not about today's thirteen files. A
+    // fourteenth asset added with a bare `cp` into a copy-overwrite tree would
+    // pass every file-list check above by simply not being in the list — this
+    // one fails on the `cp` itself.
+    const build = await readFile(
+      path.join(process.cwd(), "scripts", "build-plugins.sh"),
+      "utf8"
+    );
+
+    // Matched on the `cp` itself rather than on a `copy-overwrite` substring in
+    // the destination: two of the four sync sites write through a shell
+    // variable (`$HOST_GUARD_DIR`, `$ratchet_scripts_dir`), so a path-shaped
+    // filter reads them as harmless. Measured — the first version of this
+    // assertion did exactly that and sat green while a reverted call site was
+    // shipping headerless guards.
+    //
+    // So the rule is an allowlist of one: the plugin tree copy, which lands in
+    // `plugins/` and is not a template. Any other `cp` has to be justified here
+    // before it can ship.
+    const PLUGIN_TREE_COPY = 'cp -r "$src/." "$out/"';
+    const copies = build
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => !line.startsWith("#"))
+      .filter(line => /(^|\s)cp\s/u.test(line));
+
+    expect(copies).toEqual([PLUGIN_TREE_COPY]);
+    // And the stamping helper is actually reached, so deleting the sync
+    // altogether would not read as a pass.
+    expect(build).toContain("materialize-copy-overwrite.mjs");
+  });
+
   it("keeps the header below a shebang and a Ruby magic comment", async () => {
     // Placement is not cosmetic. A `#!` line that stops being line 1 stops
     // being a shebang, and `# frozen_string_literal: true` silently stops
     // applying if anything but a shebang precedes it — so a careless header
     // insert is a behavior change wearing a comment's clothes.
+    // Both lanes. The generated copy-overwrite hooks are shebang scripts the
+    // build now writes a header into (#2547), so this is exactly where a
+    // placement bug would be introduced by machine rather than by hand.
     const files = (
-      await Promise.all(LANES.map(lane => templateFiles(lane, "create-only")))
+      await Promise.all(
+        STRATEGIES.flatMap(strategy =>
+          LANES.map(lane => templateFiles(lane, strategy))
+        )
+      )
     )
       .flat()
       .filter(file => COMMENTABLE.test(file));
