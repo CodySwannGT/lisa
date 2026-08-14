@@ -15,6 +15,7 @@
  * @module tests/unit/strategies/copy-overwrite-refresh-templates
  */
 import * as fs from "fs-extra";
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
 
@@ -66,6 +67,17 @@ describe("CopyOverwriteStrategy", () => {
       config,
       backupFile: async () => {},
       promptOverwrite: async () => true,
+      // `VULNERABLE_GUARD` stands for the old release a project is still
+      // running, so the ledger has to say Lisa published it. Left out, those
+      // bytes match no release, refresh preserves them as a possible downstream
+      // hardening, and these tests would silently stop testing the flag.
+      hashLedger: {
+        "scripts/lisa-hooks/block-no-verify.sh": [
+          createHash("sha256")
+            .update(Buffer.from(VULNERABLE_GUARD))
+            .digest("hex"),
+        ],
+      },
     };
   }
 

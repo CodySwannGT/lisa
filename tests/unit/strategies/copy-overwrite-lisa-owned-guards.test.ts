@@ -15,6 +15,7 @@
  * @module tests/unit/strategies/copy-overwrite-lisa-owned-guards
  */
 import * as fs from "fs-extra";
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
 
@@ -51,6 +52,13 @@ describe("CopyOverwriteStrategy: Lisa-owned artifacts on a version bump", () => 
   /**
    * Build the context a postinstall apply runs with: non-interactive, and with
    * no `--refresh-templates` opt-in, because a version bump passes none.
+   *
+   * The ledger states that `FAIL_OPEN_GUARD` really is a set of bytes Lisa once
+   * published, which is what a project sitting on an old release actually has.
+   * Without it these fixtures would be content Lisa never shipped — indisputably
+   * a downstream edit — and refresh would correctly preserve them, so every
+   * assertion below would be exercising the downgrade-protection path while
+   * claiming to test the upgrade path.
    * @param overrides - Configuration overrides
    * @returns Strategy context representing a postinstall apply
    */
@@ -67,10 +75,14 @@ describe("CopyOverwriteStrategy: Lisa-owned artifacts on a version bump", () => 
       harness: "claude",
       ...overrides,
     };
+    const shipped = createHash("sha256")
+      .update(Buffer.from(FAIL_OPEN_GUARD))
+      .digest("hex");
     return {
       config,
       backupFile: async () => {},
       promptOverwrite: async () => true,
+      hashLedger: { [GUARD]: [shipped], [FALLBACK]: [shipped] },
     };
   }
 

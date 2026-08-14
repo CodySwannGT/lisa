@@ -276,11 +276,29 @@ export interface FileOperationResult {
      * go undelivered while the summary read exactly like a clean no-op.
      */
     | "stale"
+    /**
+     * A Lisa-owned artifact whose installed copy could not be proved to be
+     * behind Lisa's, so it was preserved rather than overwritten.
+     *
+     * Emphatically not "stale" — that word says the file is out of date, and
+     * here the likeliest reason it differs is that it is *ahead*. Filing the two
+     * under one label would reproduce the original defect in the reporting: an
+     * operator reading "out of date" about a guard they deliberately hardened
+     * would fix the wrong thing.
+     */
+    | "host-ahead"
     | "overwritten"
     | "appended"
     | "merged"
     | "created";
   readonly linesAdded?: number;
+  /**
+   * Operator-readable explanation of a non-obvious outcome, shown verbatim.
+   *
+   * Carries the "why" for `host-ahead`, where the path alone tells an operator
+   * nothing actionable and the whole point is to say what would have been lost.
+   */
+  readonly note?: string;
 }
 
 /**
@@ -291,6 +309,8 @@ export interface OperationCounters {
   skipped: number;
   /** Managed files left out of date because this apply could not overwrite them. */
   stale: number;
+  /** Lisa-owned artifacts preserved because the installed copy may be ahead. */
+  hostAhead: number;
   overwritten: number;
   appended: number;
   merged: number;
@@ -330,6 +350,7 @@ export function createInitialCounters(): OperationCounters {
     copied: 0,
     skipped: 0,
     stale: 0,
+    hostAhead: 0,
     overwritten: 0,
     appended: 0,
     merged: 0,
