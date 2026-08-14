@@ -8,6 +8,13 @@
  * genuinely reports failure when a rule test is wrong, and the CI wiring that
  * invokes it is gated on test files existing, so a project with none gets a
  * warning instead of a green step that measured nothing.
+ *
+ * A fourth property was added after the CI step took the fleet down: it must
+ * be self-sufficient. Gating it on a `sg:test` script the host project has to
+ * supply produced first a hard failure in every unpinned consumer and then,
+ * once that was patched, a step that reported success having run nothing. The
+ * last describe block executes the shipped step body against real project
+ * trees so both of those regressions are caught here rather than in CI.
  */
 import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
@@ -17,9 +24,23 @@ import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const AST_GREP = path.join(REPO_ROOT, "node_modules/.bin/ast-grep");
+/** Where a package manager puts executables, in this repo and in a consumer. */
+const LOCAL_BIN_DIR = "node_modules/.bin";
+const AST_GREP = path.join(REPO_ROOT, LOCAL_BIN_DIR, "ast-grep");
+/** The TypeScript-family reusable workflow these tests assert on. */
+const TS_QUALITY_WORKFLOW = ".github/workflows/quality.yml";
 const RULE_TESTS_DIR = "ast-grep/rule-tests";
 const RULE_TEST_SCRIPT = "sg:test";
+const SCAN_BIN = "ast-grep scan";
+const RULE_TEST_BIN = "ast-grep test";
+/**
+ * The rule-test invocation, distinguished from the skip notice's remediation
+ * text, which also names `ast-grep test`. Matching loosely would let the
+ * notice stand in for the invocation.
+ */
+const RULE_TEST_INVOCATION = `${LOCAL_BIN_DIR}/${RULE_TEST_BIN}`;
+/** The CLI the step falls back to when the project has not installed one. */
+const PINNED_CLI = "@ast-grep/cli@0.40.4";
 const RULE_TEST_GATE =
   "steps.check_rule_tests.outputs.has_rule_tests == 'true'";
 
@@ -38,6 +59,12 @@ const MANIFESTS_FORCING_AST_GREP = [
   "phaser/package-lisa/package.lisa.json",
   "harper-fabric/package-lisa/package.lisa.json",
 ] as const;
+
+/**
+ * Absolute, so the interpreter is not resolved through a writeable PATH.
+ * GitHub-hosted runners and every developer machine ship bash here.
+ */
+const BASH = "/bin/bash";
 
 /** ast-grep's root config file name. */
 const SGCONFIG = "sgconfig.yml";
@@ -108,6 +135,81 @@ function runRuleTests(configPath: string): {
       ""
     ),
   };
+}
+
+/**
+ * Build a scratch project shaped like a real consumer that has NOT yet run
+ * `lisa apply`: ast-grep config and rule tests present, `sg:test` absent from
+ * package.json, and `@ast-grep/cli` installed as a dependency.
+ *
+ * This is the shape that broke the fleet — `geminisportsai/backend-v2` had
+ * exactly this — so it is the shape the CI step has to survive.
+ * @returns Absolute path to the scratch project root
+ */
+function consumerWithoutRuleTestScript(): string {
+  const projectDir = path.dirname(copyAstGrepPayload());
+  const binDir = path.join(projectDir, LOCAL_BIN_DIR);
+  const manifest = `${JSON.stringify(
+    { name: "consumer", version: "1.0.0", scripts: { "sg:scan": SCAN_BIN } },
+    undefined,
+    2
+  )}\n`;
+  fs.writeFileSync(path.join(projectDir, "package.json"), manifest, "utf-8");
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.symlinkSync(AST_GREP, path.join(binDir, "ast-grep"));
+  return projectDir;
+}
+
+/**
+ * Run the workflow's rule-test step body verbatim in a project directory.
+ *
+ * Executes the shell the runner would execute, not a paraphrase of it, so the
+ * assertions below measure the shipped step rather than a description of it.
+ * @param workflowPath - Workflow file relative to the repository root
+ * @param projectDir - Directory to run the step body in
+ * @returns Exit status and de-coloured output
+ */
+function runRuleTestStep(
+  workflowPath: string,
+  projectDir: string
+): { readonly status: number | null; readonly output: string } {
+  const step = sgScanSteps(workflowPath).find(candidate =>
+    (candidate.name ?? "").includes("Run ast-grep rule tests")
+  );
+  if (step?.run === undefined) {
+    throw new Error(`No rule-test step in ${workflowPath}`);
+  }
+  const result = spawnSync(BASH, ["-c", step.run], {
+    cwd: projectDir,
+    encoding: "utf-8",
+  });
+  return {
+    status: result.status,
+    output: `${result.stdout ?? ""}${result.stderr ?? ""}`.replace(
+      ANSI_PATTERN,
+      ""
+    ),
+  };
+}
+
+/**
+ * Overwrite a rule test with assertions that are inverted, so the rule tests
+ * genuinely fail rather than merely being absent.
+ * @param projectDir - Scratch project root
+ */
+function breakOneRuleTest(projectDir: string): void {
+  fs.writeFileSync(
+    path.join(projectDir, RULE_TESTS_DIR, "phaser-no-canvas-renderer-test.yml"),
+    [
+      "id: phaser-no-canvas-renderer",
+      "valid:",
+      "  - 'const config = { type: Phaser.CANVAS };'",
+      "invalid:",
+      "  - 'const config = { type: Phaser.WEBGL };'",
+      "",
+    ].join("\n"),
+    "utf-8"
+  );
 }
 
 /**
@@ -261,7 +363,7 @@ describe("ast-grep rule tests are wired to a runnable script", () => {
     const manifest = JSON.parse(readText("package.json")) as {
       scripts: Record<string, string>;
     };
-    expect(manifest.scripts[RULE_TEST_SCRIPT]).toBe("ast-grep test");
+    expect(manifest.scripts[RULE_TEST_SCRIPT]).toBe(RULE_TEST_BIN);
   });
 
   it("forces the rule-test script onto every stack that forces the scan script", () => {
@@ -274,19 +376,16 @@ describe("ast-grep rule tests are wired to a runnable script", () => {
 
       // Paired: a stack that scans but cannot test its rules is the state this
       // ticket removed, so the two scripts must travel together.
-      expect(scripts["sg:scan"]).toBe("ast-grep scan");
-      expect(scripts[RULE_TEST_SCRIPT]).toBe("ast-grep test");
+      expect(scripts["sg:scan"]).toBe(SCAN_BIN);
+      expect(scripts[RULE_TEST_SCRIPT]).toBe(RULE_TEST_BIN);
     }
   });
 });
 
 describe("ast-grep rule tests are wired into CI", () => {
-  it("runs the rule-test script in the TypeScript-family quality workflow", () => {
-    // `endsWith`, not `includes` — the skip notice mentions `sg:test` in its
-    // remediation text, and matching that would let the notice stand in for
-    // the invocation.
-    expectGatedRuleTestStep(".github/workflows/quality.yml", run =>
-      run.trim().endsWith("run sg:test")
+  it("runs the rule tests in the TypeScript-family quality workflow", () => {
+    expectGatedRuleTestStep(TS_QUALITY_WORKFLOW, run =>
+      run.includes(RULE_TEST_INVOCATION)
     );
   });
 
@@ -295,5 +394,73 @@ describe("ast-grep rule tests are wired into CI", () => {
       ".github/workflows/quality-rails.yml",
       run => run.trim() === "sg test"
     );
+  });
+
+  it("invokes the ast-grep binary, never a host-project package script", () => {
+    const steps = sgScanSteps(TS_QUALITY_WORKFLOW);
+    const runStep = stepRunning(steps, run =>
+      run.includes(RULE_TEST_INVOCATION)
+    );
+
+    // The whole failure class in #2530: everything that TRIGGERS this step is
+    // shipped by Lisa, while a `package.json` script alias only arrives on the
+    // host project's next `lisa apply`. The workflow is consumed at @main, so
+    // the two travel at different speeds and cannot be kept in agreement.
+    // Depending on the binary instead removes the split entirely.
+    expect(runStep.run).not.toContain(RULE_TEST_SCRIPT);
+    expect(runStep.run).toContain(RULE_TEST_INVOCATION);
+    // The exact pin, not merely the package name: a fallback that floats is
+    // a different guarantee from one that runs a known version, and the
+    // difference has to be visible here rather than in a consumer's CI.
+    expect(runStep.run).toContain(PINNED_CLI);
+  });
+
+  it("does not gate the rule tests on anything a host project must supply", () => {
+    const steps = sgScanSteps(TS_QUALITY_WORKFLOW);
+    const runStep = stepRunning(steps, run =>
+      run.includes(RULE_TEST_INVOCATION)
+    );
+
+    // The first patch for the fleet outage gated the step on `sg:test`
+    // existing, which stopped the red but replaced it with a step that
+    // reported success having run nothing — strictly worse than the bug. The
+    // gate must be the rule-test FILES and nothing else.
+    expect(runStep.if).toContain(RULE_TEST_GATE);
+    expect(runStep.if).not.toContain("has_test_script");
+    expect(
+      steps.some(step => (step.run ?? "").includes("has_test_script"))
+    ).toBe(false);
+  });
+});
+
+/**
+ * Executes the shipped step against real project trees. Asserting on the YAML
+ * proves what the step SAYS; these prove what it DOES.
+ */
+describe("the CI rule-test step bites", () => {
+  it("passes in a consumer that has rule tests but no sg:test script", () => {
+    const projectDir = consumerWithoutRuleTestScript();
+    const onDisk = countRuleTestFiles(path.join(projectDir, RULE_TESTS_DIR));
+    const { status, output } = runRuleTestStep(TS_QUALITY_WORKFLOW, projectDir);
+    fs.rmSync(projectDir, { recursive: true, force: true });
+
+    // Was `error: Script not found "sg:test"` — the fleet outage in #2530.
+    expect(output).not.toContain("Script not found");
+    // Green because the tests ran and passed, not because nothing ran.
+    expect(output).toContain(`Running ${onDisk} tests`);
+    expect(output).toContain(`${onDisk} passed; 0 failed`);
+    expect(status).toBe(0);
+  });
+
+  it("still fails that same consumer when a rule test is genuinely wrong", () => {
+    const projectDir = consumerWithoutRuleTestScript();
+    breakOneRuleTest(projectDir);
+    const { status, output } = runRuleTestStep(TS_QUALITY_WORKFLOW, projectDir);
+    fs.rmSync(projectDir, { recursive: true, force: true });
+
+    // The control that matters: removing the script dependency must not have
+    // made the step unable to report failure.
+    expect(output).toContain("FAIL phaser-no-canvas-renderer");
+    expect(status).not.toBe(0);
   });
 });
