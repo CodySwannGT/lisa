@@ -235,23 +235,35 @@ jobs:
             exit 0
           fi
           tracker="$(node -p 'require("./.lisa.config.json").tracker' 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+          # Token-scope readiness — see the quality.yml counterpart. Checked
+          # first because every arm of this gate goes through the GitHub API,
+          # and it FAILS rather than exits 0: a check that cannot verify must
+          # not report success (#2476, #2497). The repair is always in the
+          # CALLER's ci.yml, which is the only place the grant can come from.
+          scope_gap() {
+            echo "::error::Work-Item Traceability could verify NOTHING: the calling workflow does not grant '$1'. Add contents/issues/pull-requests read to the quality job's permissions in this repo's .github/workflows/ci.yml, or run 'lisa apply' to have Lisa add the block for you."
+            exit 1
+          }
+          pr_probe="repos/${GITHUB_REPOSITORY}/pulls?per_page=1"
+          if [ -n "${LISA_PR_NUMBER:-}" ]; then
+            pr_probe="repos/${GITHUB_REPOSITORY}/pulls/${LISA_PR_NUMBER}"
+          fi
+          if ! gh api "$pr_probe" >/dev/null 2>&1; then
+            scope_gap "pull-requests: read"
+          fi
+          if [ "$tracker" = "github" ] && \
+             ! gh api "repos/${GITHUB_REPOSITORY}/issues?per_page=1" >/dev/null 2>&1; then
+            scope_gap "issues: read"
+          fi
+          # Tracker-credential readiness stays warn-and-skip: mapping a secret
+          # is a different axis from granting a token scope, and #2476 scoped
+          # only the scope gap. A KNOWN remaining fail-open.
           if [ "$tracker" = "jira" ] && { [ -z "${JIRA_API_TOKEN:-}" ] || [ -z "${JIRA_LOGIN:-}" ]; }; then
             echo "::warning::tracker is jira but JIRA_API_TOKEN/JIRA_LOGIN are not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map both secrets in the caller's ci.yml to enable it."
             exit 0
           fi
           if [ "$tracker" = "linear" ] && [ -z "${LINEAR_API_KEY:-}" ]; then
             echo "::warning::tracker is linear but LINEAR_API_KEY is not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map the secret in the caller's ci.yml to enable it."
-            exit 0
-          fi
-          # Token-scope readiness (github tracker): the inherited caller token
-          # may lack issues:read, in which case the validator cannot read the
-          # tracker issue at all. That is a caller-configuration gap, not a
-          # traceability failure, so name it and skip rather than blocking a PR
-          # nobody can unblock. Repos whose ci.yml grants issues:read enforce
-          # for real.
-          if [ "$tracker" = "github" ] && \
-             ! gh api "repos/${GITHUB_REPOSITORY}/issues?per_page=1" >/dev/null 2>&1; then
-            echo "::warning::The caller workflow does not grant issues:read, so the tracker issue cannot be read and work-item traceability is NOT enforced. Add 'issues: read' to the quality job's permissions in this repo's .github/workflows/ci.yml to enable it."
             exit 0
           fi
           node scripts/lisa-work-item.mjs validate-pr

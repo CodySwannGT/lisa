@@ -8734,6 +8734,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-cdk.test.ts": true,
     "tests/unit/config/vitest-nestjs.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
+    "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
