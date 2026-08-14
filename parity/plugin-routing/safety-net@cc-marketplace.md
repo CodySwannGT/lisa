@@ -1,7 +1,7 @@
 # Parity routing review — `safety-net@cc-marketplace`
 
 - **Plugin:** `safety-net@cc-marketplace`
-- **Upstream version:** `2.0.1`
+- **Upstream version:** `2.0.4`
 - **Analyzed:** 2026-08-11 (re-review; previously 2026-07-22 at 1.0.6, originally 2026-05-30 at 0.9.0)
 - **Status:** `approved`
 
@@ -120,3 +120,41 @@ Deciding whether to suppress the Lisa hook/skill for Copilot specifically (so
 the vendor runner is the sole guard there) is the same owner-level call as the
 Codex/agy vendor-integration question above, and is left open pending that
 decision.
+
+## Addendum — 2026-08-14, catching this artifact up to the 2.0.4 pin
+
+The `synced-from` pin itself moved to `2.0.4` separately, in `a0ad92f7d`, on the
+strength of a surface comparison recorded in that commit message: a digest of the
+sorted (path, content) manifest of every rule-bearing directory in the plugin
+cache came out identical across 2.0.3 and 2.0.4 — `src/` 230 files at digest
+`7e346e205fbd1aa7` on both, `skills/` and `hooks/` byte-identical — leaving only
+`version` strings, per-integration manifests, rebuilt `dist/` output, and one
+statusline test-harness fix. **Nothing was absorbed, and nothing needs to be.**
+Combined with the 2.0.3 review (Kimi Code + Amp installer support, no
+rule-contract change), the whole 2.0.1 → 2.0.4 range leaves Lisa's
+reimplementation untouched.
+
+This addendum only brings **this artifact** up to that pin. It had been left at
+`2.0.1`.
+
+**The two guard-family gaps are unchanged** and still deferred: `secret.*` and
+`rm.git-metadata`, tracked in `parity/FOLLOWUPS.md` §5.
+
+### Process note — the artifact keeps lagging the skill pin
+
+This is the third consecutive safety-net refresh to move the `synced-from` stamp
+and leave the routing artifact behind. When this correction was written the skill
+read `2.0.4` while this artifact still read `2.0.1`, and the sentry artifact read
+`1.3.1` against a `1.3.2` skill pin.
+
+**The push gate structurally cannot catch it.** `.husky/pre-push.local` runs
+`plugin-parity-drift.mjs`, which reads only skill frontmatter. So
+`plugin-routing-validate.mjs` can sit red indefinitely while every push stays
+green, and the thing that finally trips over it is the next
+`implement-plugin-parity` run, for which the validator is the pre-flight gate.
+The lag is not an attention failure — nothing in the loop reports it.
+
+Both artifacts are corrected here. Wiring the validator into the push gate or CI
+is what would actually close the loop; it is recorded as a follow-up rather than
+done inline, because the validator was red on arrival and enabling it as a gate
+would newly block every push — a gate-policy change that deserves its own review.
