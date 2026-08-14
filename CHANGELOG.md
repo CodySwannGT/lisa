@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.11.7](https://github.com/CodySwannGT/lisa/compare/v3.11.6...v3.11.7) (2026-08-14)
+
+
+### Bug Fixes
+
+* **ci:** refuse a headroom entry sized from a run the budget terminated ([5263c31](https://github.com/CodySwannGT/lisa/commit/5263c317acb5e1b954b564b286941ab94e1d69a1)), closes [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2523](https://github.com/CodySwannGT/lisa/issues/2523) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2523](https://github.com/CodySwannGT/lisa/issues/2523) [CodySwannGT/lisa#2528](https://github.com/CodySwannGT/lisa/issues/2528)
+* **templates:** state each lane's real ownership contract in its header ([a40d58b](https://github.com/CodySwannGT/lisa/commit/a40d58b2420ea5cbebbc06ed94a45b0cb6ea7886)), closes [#2538](https://github.com/CodySwannGT/lisa/issues/2538) [CodySwannGT/lisa#2538](https://github.com/CodySwannGT/lisa/issues/2538)
+
+
+### Documentation
+
+* **ci:** cite a non-test instance of a duration that measures nothing ([10dcaf9](https://github.com/CodySwannGT/lisa/commit/10dcaf93ba897cd392c943ee7aec454603d6cf5e)), closes [#2520](https://github.com/CodySwannGT/lisa/issues/2520) [CodySwannGT/lisa#2528](https://github.com/CodySwannGT/lisa/issues/2528)
+
 ### [3.11.6](https://github.com/CodySwannGT/lisa/compare/v3.11.4...v3.11.6) (2026-08-14)
 
 
