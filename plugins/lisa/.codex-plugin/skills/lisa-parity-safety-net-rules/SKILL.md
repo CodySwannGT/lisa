@@ -34,6 +34,7 @@ project-specific rules on top of those built-ins.
 > rule-management skill or Lisa's project-local ERE rule contract, and Lisa does
 > not currently ship hooks for those runtimes, so no behavior is absorbed here.
 >
+<<<<<<< HEAD
 > **2.0.4 review.** Method, so the next person can re-run it rather than trust
 > it: hash the sorted (relative path, content) manifest of every rule-bearing
 > directory in the plugin cache under both versions, then diff the trees
@@ -48,6 +49,16 @@ project-specific rules on top of those built-ins.
 > absorbed here — and, critically, **2.0.4 does not close the gap recorded
 > below**, which therefore carries forward unchanged rather than being dropped
 > at the new pin.
+=======
+> **2.0.4 review.** Upstream 2.0.3–2.0.4 changed three things: the version string
+> in `plugin.json` / `kimi.plugin.json` / `package.json`, a rebuilt `dist/`
+> bundle, and one fix inside upstream's **own** test harness
+> (`tests/cli/cli-statusline.test.ts` now tolerates `EPIPE` when flushing an
+> oversized payload into a bounded reader). No upstream rule, guard family, or
+> skill surface changed, so there is nothing for Lisa to absorb and the known gap
+> below is unchanged. Verified by diffing the cached 2.0.3 and 2.0.4 trees
+> excluding `.git`/`dist`: those four files are the entire delta.
+>>>>>>> b4b3aff42 (chore(parity): refresh the safety-net pin to 2.0.4 (no-op review))
 >
 > **Known gap at the 2.0.4 pin.** Upstream 2.0.0 rebuilt its engine and added two
 > guard families this hook does **not** mirror: `secret.*` (blocks reading or
