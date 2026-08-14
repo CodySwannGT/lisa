@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.5](https://github.com/CodySwannGT/lisa/compare/v3.14.4...v3.14.5) (2026-08-14)
+
+
+### Bug Fixes
+
+* **intake:** address CodeRabbit review on lifecycle-label trust ([2b506f0](https://github.com/CodySwannGT/lisa/commit/2b506f0f5a852ac0d54c811595d4634fcc04a018)), closes [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2494](https://github.com/CodySwannGT/lisa/issues/2494) [CodySwannGT/lisa#2539](https://github.com/CodySwannGT/lisa/issues/2539)
+* **intake:** stop believing bot-authored lifecycle labels ([ee022e1](https://github.com/CodySwannGT/lisa/commit/ee022e168a09894c3be2263f7954085053694561)), closes [#2460](https://github.com/CodySwannGT/lisa/issues/2460) [-#2540](https://github.com/CodySwannGT/-/issues/2540) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2538](https://github.com/CodySwannGT/lisa/issues/2538) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2494](https://github.com/CodySwannGT/lisa/issues/2494) [#2470](https://github.com/CodySwannGT/lisa/issues/2470) [#2494](https://github.com/CodySwannGT/lisa/issues/2494) [CodySwannGT/lisa#2539](https://github.com/CodySwannGT/lisa/issues/2539)
+
 ### [3.14.4](https://github.com/CodySwannGT/lisa/compare/v3.14.3...v3.14.4) (2026-08-14)
 
 
