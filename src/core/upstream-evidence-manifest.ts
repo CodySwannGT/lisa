@@ -2070,6 +2070,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
       "b98f0e4789ce903ebf704abaa649c6d4a4721ce0cf2b5caf4ccddeb04fc0d5e0",
+    "scripts/check-derived-artifacts.mjs":
+      "1a35cc935515d29f0223a87d56dbfd5537aba19162d9d20e70fce8255688b76f",
     "scripts/check-duplicate-versions.mjs":
       "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
     "scripts/check-learnings-budget.ts":
@@ -2217,7 +2219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
-      "0a2274ae48d9cccad9bf32afdce757113776814dbc1fa1221b50c933e616ab3b",
+      "3a10db0ec1eb9bf5ff42cbcded2d6412a833ee31107d43c5b4c3d32baf84d330",
     "typescript/copy-contents/.husky/pre-push":
       "bb929b9fa108586e5591e80e5d3682d6540fc681543f1e02d7a626022bbffb15",
     "typescript/copy-contents/.husky/prepare-commit-msg":
@@ -8063,6 +8065,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/merge/.claude/settings.json": true,
     "scratchpad/decision-points.sh": true,
     "scripts/build-plugins.sh": true,
+    "scripts/check-derived-artifacts.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-plugins-sync.sh": true,
@@ -8904,6 +8907,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
+    "tests/unit/scripts/derived-artifact-staleness.test.ts": true,
     "tests/unit/scripts/destructive-production-guard.test.ts": true,
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
