@@ -71,6 +71,12 @@ on:
 
 permissions:
   contents: read
+  # Read-only, and only this run's own job list. It is what
+  # `serialize_platform_legs` below needs to know when the iOS leg has
+  # finished — a called workflow cannot hold a permission the caller did not
+  # grant, so dropping this line turns that input into a red job rather than a
+  # silent no-op. Harmless when the input is off.
+  actions: read
 
 # Keyed on the ENVIRONMENT this suite drives, not on the ref. Every run of this
 # workflow targets the same backend no matter which branch dispatched it, so
@@ -114,6 +120,16 @@ jobs:
       # than any stagger, so the suite scheduled first can begin hours after the
       # one scheduled second.
       # concurrency_group: 'e2e-shared-test-user-dev'
+      #
+      # Uncomment when both platform legs sign in as the SAME test account. The
+      # legs run concurrently by default and each one's sign-in invalidates the
+      # other's session, so the loser hits a sign-in screen mid-suite and fails
+      # an assertion that has nothing wrong with it. This runs iOS first, then
+      # Android. It is ordering, not gating: a FAILING iOS leg still releases
+      # Android, so turning it on never narrows what gets tested. Requires the
+      # `actions: read` permission above. Leave it off if your legs use
+      # per-platform accounts — the concurrency is free coverage in that case.
+      # serialize_platform_legs: true
     secrets:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       MAESTRO_SECRET_ENV: ${{ secrets.MAESTRO_SECRET_ENV }}
