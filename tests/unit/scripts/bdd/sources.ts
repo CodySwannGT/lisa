@@ -52,8 +52,14 @@ export function vendorGateWithoutSchemas(project: string): string {
       path.join(scripts, "bdd", name)
     );
   }
+  // The envelope's own code dependencies. `lisa-destructive-guard.mjs` is a
+  // HARD dependency deliberately: it carries the production refusal, and an
+  // envelope that degraded gracefully when the guard was missing would turn a
+  // half-finished copy into a silently unguarded one. This fixture models a
+  // copy missing `scripts/schemas/`, not one missing modules.
   for (const name of [
     "lisa-command-envelope.mjs",
+    "lisa-destructive-guard.mjs",
     "lisa-schema-validate.mjs",
   ]) {
     fs.copyFileSync(

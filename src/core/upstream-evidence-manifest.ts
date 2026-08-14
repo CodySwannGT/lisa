@@ -9,7 +9,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "ac539349c86a7b5b0083ec0e6aaf0eb4c3e40fbd4dc31511c6460a2bad7af9a5",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
-      "e06cb11f1418fe94564cea527a22b039f53b7ab10c1cd182264a31e52bba9fa8",
+      "6b198f088cd3cd862d4357fbb069b1ad5d3afeb7be594f2bf1ff603b092a8354",
+    "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
+      "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -779,7 +781,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/report-actionability.md":
       "7c4d5b2bea93b7cd5bb8694fa7c06f4ca8f94a19eb17832f1ccc5354b0207163",
     "plugins/src/base/rules/eager/reset-seed-coverage.md":
-      "d028c8709d7d3a05b2f9bb8209a0d6bf1aef99e88d5e7d7132909e8d0d4c19d9",
+      "ff47c2813439e03e5cd559d7bf32cc4c7ae83544fc5616db6b9ee0e5675b6ee4",
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
     "plugins/src/base/rules/eager/session-status-updates.md":
@@ -2504,6 +2506,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-contents/gitignore": true,
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
+    "all/copy-overwrite/scripts/lisa-destructive-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh": true,
@@ -2583,6 +2586,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/package-lisa/package.lisa.json": true,
     "commitlint.config.cjs": true,
     "docs/bdd-coverage-schema.md": true,
+    "docs/design/reset-production-absence.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
@@ -8893,6 +8897,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
+    "tests/unit/scripts/destructive-production-guard.test.ts": true,
+    "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
