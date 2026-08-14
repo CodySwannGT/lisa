@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.13.1](https://github.com/CodySwannGT/lisa/compare/v3.13.0...v3.13.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **apply:** gate the ledger on current bytes, not byte-exact regeneration ([0a9e16b](https://github.com/CodySwannGT/lisa/commit/0a9e16b373c0a1464b22f757df48016a88c23bb3)), closes [CodySwannGT/lisa#2470](https://github.com/CodySwannGT/lisa/issues/2470)
+* **apply:** stop a capability marker from authorising an overwrite ([7c69a36](https://github.com/CodySwannGT/lisa/commit/7c69a36738ab9c39fded59e36a02c3b2c8e3751d)), closes [#2554](https://github.com/CodySwannGT/lisa/issues/2554) [CodySwannGT/lisa#2470](https://github.com/CodySwannGT/lisa/issues/2470)
+
 ## [3.13.0](https://github.com/CodySwannGT/lisa/compare/v3.12.0...v3.13.0) (2026-08-14)
 
 
