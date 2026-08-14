@@ -1,3 +1,6 @@
+<!-- This file is managed by Lisa and IS replaced on each `lisa` run. -->
+<!-- Do not edit directly — durable changes belong upstream in Lisa. -->
+
 # GitHub Actions Configuration
 
 This directory contains the CI/CD workflows and automation for the project. This document explains how to configure and use the GitHub Actions workflows.

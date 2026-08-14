@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse hook for Bash: blocks commands that bypass git's verification hooks.
 # Bypassing pre-commit/pre-push hooks (which exist for a reason) is blocked in
 # all of its forms; the fix is to address the underlying issue, not silence the
