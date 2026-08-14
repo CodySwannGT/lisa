@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.14.2](https://github.com/CodySwannGT/lisa/compare/v3.14.1...v3.14.2) (2026-08-14)
+
+
+### Bug Fixes
+
+* **build:** stamp the ownership header as the build generates copy-overwrite assets ([706c714](https://github.com/CodySwannGT/lisa/commit/706c71498953d2eb8bb1cb7151249ddcd308fef1)), closes [#2545](https://github.com/CodySwannGT/lisa/issues/2545) [#2545](https://github.com/CodySwannGT/lisa/issues/2545) [#2549](https://github.com/CodySwannGT/lisa/issues/2549) [#2549](https://github.com/CodySwannGT/lisa/issues/2549) [#2549](https://github.com/CodySwannGT/lisa/issues/2549) [CodySwannGT/lisa#2547](https://github.com/CodySwannGT/lisa/issues/2547)
+* **hooks:** gate generated artifacts at commit time, not post-merge ([8f03ccc](https://github.com/CodySwannGT/lisa/commit/8f03ccc704e4bb8401987e7cf7cf6c31a0f761d0)), closes [#2557](https://github.com/CodySwannGT/lisa/issues/2557) [#2556](https://github.com/CodySwannGT/lisa/issues/2556) [#2556](https://github.com/CodySwannGT/lisa/issues/2556) [#2560](https://github.com/CodySwannGT/lisa/issues/2560) [CodySwannGT/lisa#2559](https://github.com/CodySwannGT/lisa/issues/2559)
+
 ### [3.14.1](https://github.com/CodySwannGT/lisa/compare/v3.14.0...v3.14.1) (2026-08-14)
 
 
