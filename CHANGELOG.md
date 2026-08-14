@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.12.0](https://github.com/CodySwannGT/lisa/compare/v3.11.9...v3.12.0) (2026-08-14)
+
+
+### Features
+
+* **apply:** prove a Lisa-owned copy is stale before overwriting it ([8e274ba](https://github.com/CodySwannGT/lisa/commit/8e274babd704633ae6ca526315c10ba742b67119)), closes [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [#2491](https://github.com/CodySwannGT/lisa/issues/2491) [CodySwannGT/lisa#2470](https://github.com/CodySwannGT/lisa/issues/2470)
+* **state:** make the reset/reseed production refusal executable ([5142b18](https://github.com/CodySwannGT/lisa/commit/5142b180b79bd16e18fb9c545eaf08483391fa76)), closes [CodySwannGT/lisa#2491](https://github.com/CodySwannGT/lisa/issues/2491)
+
 ### [3.11.9](https://github.com/CodySwannGT/lisa/compare/v3.11.8...v3.11.9) (2026-08-14)
 
 
