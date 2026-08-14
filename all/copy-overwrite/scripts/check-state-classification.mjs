@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * check-state-classification — the anti-drift half of the `reset-seed-coverage`
  * rule.

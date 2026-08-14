@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * lisa-schema-validate — dependency-free validator for the JSON Schema subset
  * Lisa's shipped contract schemas use.
