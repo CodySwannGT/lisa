@@ -33,15 +33,34 @@
  * apply after the change is the one that clobbers — it fails exactly once, on the
  * case that matters most.
  *
+ * ## Why the ledger is the *only* proof of staleness
+ *
+ * An earlier draft let capability markers authorise an overwrite too: if the
+ * host declared capabilities and Lisa declared all of them, upstream had
+ * "absorbed" the hardening, so refreshing was assumed safe. Running it against
+ * the real ledger and a real guard showed that this reintroduces the original
+ * bug outright.
+ *
+ * A host hardening a Lisa guard edits a *copy of Lisa's file*, so it keeps
+ * Lisa's marker line. Its declared set therefore equals Lisa's while its bytes
+ * carry undeclared changes — and the shortcut overwrote them without ever
+ * consulting the ledger. That is precisely the propswap case, silently reverted
+ * again by the mechanism meant to prevent it.
+ *
+ * So capabilities may only ever justify *keeping* the host's copy. Declaring
+ * nothing is not evidence of having changed nothing, and no marker comparison
+ * can account for bytes nobody declared. Overwriting requires positive proof
+ * from the ledger, and nothing else.
+ *
  * ## How the standoff ends
  *
- * Refusing forever is its own failure: genuine drift would accumulate and never
- * be fixed. Capability markers are the release valve. When the host declares
- * capabilities and Lisa's copy declares all of them, upstream has absorbed the
- * host's hardening, so overwriting restores parity instead of removing
- * protection — and refresh resumes automatically, with no operator action. A
- * host that hardened without declaring gets told to do one of the two things
- * that end the standoff: land it upstream, or declare it.
+ * Refusing forever would be its own failure, so the exits are explicit rather
+ * than automatic. A `provably-stale` copy always refreshes, which is the common
+ * case and keeps upgrades flowing. A `host-modified` copy is reported on every
+ * apply and by `lisa doctor` until someone resolves it — by landing the change
+ * upstream, or by taking Lisa's copy via `--refresh-templates`. Lisa does not
+ * end that standoff on its own, because every way of doing so amounts to
+ * deleting work it cannot account for.
  * @module core/lisa-owned-provenance
  */
 import { createHash } from "node:crypto";
@@ -70,10 +89,8 @@ export type ProvenanceVerdict =
       readonly kind: "host-ahead";
       readonly extraCapabilities: readonly string[];
     }
-  /** Content Lisa never shipped, with nothing declared. Preserve and report. */
+  /** Content Lisa never shipped. Preserve and report. */
   | { readonly kind: "host-modified" }
-  /** Declared hardening that upstream now also has. Safe to refresh. */
-  | { readonly kind: "absorbed-upstream" }
   /** Hash matches a Lisa release. Genuinely stale, so refresh it. */
   | { readonly kind: "provably-stale" }
   /** Artifact carries no provenance yet; behave exactly as before this change. */
@@ -128,7 +145,6 @@ export function classifyHostCopy(
   if (extraCapabilities.length > 0) {
     return { kind: HOST_AHEAD, extraCapabilities };
   }
-  if (hostCapabilities.size > 0) return { kind: "absorbed-upstream" };
 
   const known = ledger[normalise(relativePath)];
   if (known === undefined || known.length === 0) return { kind: "unenrolled" };
@@ -177,6 +193,6 @@ export function describePreserved(
   verdict: PreservedVerdict
 ): string {
   return verdict.kind === HOST_AHEAD
-    ? `${relativePath}: your copy guards against ${verdict.extraCapabilities.join(", ")}, which Lisa's copy does not. Kept yours. To take Lisa's copy later, contribute your hardening upstream — refresh resumes on its own once Lisa declares it too.`
+    ? `${relativePath}: your copy guards against ${verdict.extraCapabilities.join(", ")}, which Lisa's copy does not. Kept yours. Nothing to do unless you want Lisa's version instead — contributing your hardening upstream is the way to get both, or run \`lisa apply\` with \`--refresh-templates\` to take Lisa's copy and drop yours.`
     : `${relativePath}: this file was edited in your project — its contents match no Lisa release, so Lisa cannot tell whether it is out of date or deliberately stronger. Kept yours. Review the difference, then either contribute the change upstream or add a \`lisa-guard-capabilities:\` line naming what it defends.`;
 }

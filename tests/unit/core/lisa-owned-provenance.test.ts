@@ -24,6 +24,7 @@ import type { HashLedger } from "../../../src/core/lisa-owned-provenance.js";
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 const HOST_AHEAD = "host-ahead";
 const GIT_CONFIG_KEY = "git-config-key";
+const HOST_MODIFIED = "host-modified";
 
 /** A guard declaring the vectors upstream currently closes. */
 const LISA_GUARD = Buffer.from(
@@ -73,7 +74,7 @@ describe("classifyHostCopy: which copy is ahead", () => {
       ledgerOf({ [GUARD]: [LISA_GUARD] })
     );
 
-    expect(verdict).toEqual({ kind: "host-modified" });
+    expect(verdict).toEqual({ kind: HOST_MODIFIED });
     expect(mayRefreshLisaOwned(verdict)).toBe(false);
   });
 
@@ -111,17 +112,26 @@ describe("classifyHostCopy: which copy is ahead", () => {
     });
   });
 
-  it("resumes overwriting once Lisa declares everything the host declared", () => {
-    // The release valve. Without it a host-modified file is preserved forever
-    // and genuine drift never gets fixed.
-    const absorbed = Buffer.from(
-      "#!/usr/bin/env bash\n# lisa-guard-capabilities: no-verify-abbrev, husky-env, git-config-key\necho upstream\n"
+  it("keeps a copy carrying Lisa's own marker but bytes Lisa never shipped", () => {
+    // The regression that an end-to-end run against the real ledger caught. A
+    // host hardening a Lisa guard edits a copy of Lisa's file, so it inherits
+    // Lisa's marker line: its declared set equals Lisa's while its bytes carry
+    // undeclared changes. Treating "declared nothing extra" as permission to
+    // overwrite reverts exactly the hardening this exists to protect.
+    const inheritedMarker = Buffer.concat([
+      LISA_GUARD,
+      Buffer.from("# extra hardening nobody declared\n"),
+    ]);
+
+    const verdict = classifyHostCopy(
+      GUARD,
+      inheritedMarker,
+      LISA_GUARD,
+      ledgerOf({ [GUARD]: [LISA_GUARD] })
     );
 
-    const verdict = classifyHostCopy(GUARD, HARDENED_GUARD, absorbed, {});
-
-    expect(verdict).toEqual({ kind: "absorbed-upstream" });
-    expect(mayRefreshLisaOwned(verdict)).toBe(true);
+    expect(verdict).toEqual({ kind: HOST_MODIFIED });
+    expect(mayRefreshLisaOwned(verdict)).toBe(false);
   });
 
   it("reports identical copies without consulting the ledger", () => {
@@ -183,7 +193,7 @@ describe("describePreserved: what the operator is told", () => {
   });
 
   it("tells an operator of an undeclared edit how to end the standoff", () => {
-    const message = describePreserved(GUARD, { kind: "host-modified" });
+    const message = describePreserved(GUARD, { kind: HOST_MODIFIED });
 
     expect(message).toContain(GUARD);
     expect(message).toContain("lisa-guard-capabilities:");
