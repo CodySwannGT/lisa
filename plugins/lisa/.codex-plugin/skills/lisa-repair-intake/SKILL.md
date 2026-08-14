@@ -575,11 +575,49 @@ board: **TUN-556 and TUN-503 both carry a terminal `status:done` while still nat
 `status:in-progress` on GitHub.
 
 Resolve both directions in one pass with the shipped detector, which always reports
-`directionsWalked` covering both, so a "clean" verdict is an assertion that both were examined:
+`directionsWalked` covering both, so a "clean" verdict is an assertion that both were examined.
+
+**Build the classifier input inside this cycle. Never consume a temp file another skill wrote.**
+repair-intake runs as its own cycle, so borrowing `lisa-github-build-intake`'s scratch file fails
+two ways: absent, the redirect fails and `set -e` aborts the whole cycle; stale from an earlier run
+on a *different* item, the resolver classifies that other item and this section reports `drifts: []`
+while `directionsWalked` still claims both directions were walked. That is precisely the
+silent-clean verdict this section promises cannot happen.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < /tmp/lisa-trust-input.json
+TRUST_DIR=$(mktemp -d)
+trap 'rm -rf "$TRUST_DIR"' EXIT
+
+gh api "repos/<org>/<repo>/issues/<n>" > "$TRUST_DIR/issue.json"
+
+# --paginate emits ONE ARRAY PER PAGE; --slurp + `add` flattens all of them so a
+# label event on page two is not silently dropped.
+gh api "repos/<org>/<repo>/issues/<n>/timeline?per_page=100" --paginate --slurp \
+  > "$TRUST_DIR/pages.json"
+jq 'add // []' "$TRUST_DIR/pages.json" > "$TRUST_DIR/timeline.json"
+
+# Same resolution `read_role` uses: local overrides global, both optional.
+# Resolving a stale terminal `done` here would make the true terminal label look
+# like `open-label-closed-state` — and that direction WRITES.
+jq -s '(.[0] // {}) * (.[1] // {})' \
+  <(cat .lisa.config.json 2>/dev/null || echo '{}') \
+  <(cat .lisa.config.local.json 2>/dev/null || echo '{}') \
+  > "$TRUST_DIR/config.json"
+
+jq -n --slurpfile i "$TRUST_DIR/issue.json" \
+      --slurpfile t "$TRUST_DIR/timeline.json" \
+      --slurpfile c "$TRUST_DIR/config.json" \
+      '{issue: $i[0], timeline: $t[0], config: $c[0]}' \
+  > "$TRUST_DIR/input.json"
+
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < "$TRUST_DIR/input.json"
 ```
+
+**Untrusted labels are excluded from `drifts` before any repair runs** — the classifier does this
+itself, so repair must **never act on a label the classifier refused to believe**. Without it, a
+bot-applied label on a natively closed item would be advanced to the terminal `done` role by the
+`open-label-closed-state` repair, laundering the exact input the guard rejected into a real write.
+The `excluded` array reports what was held back; surface it, do not repair it.
 
 1. **`terminal-label-open-state`** → hand to the `Build terminal-open → native close` section above.
    Do not restate its rules; the terminality test lives there (intermediate env rungs like
@@ -588,6 +626,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < /tmp/lisa-trust
    completed while still wearing a non-terminal lifecycle role. Advance the label to the env-resolved
    terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a write on
    **Lisa's own** lifecycle surface, not a contest with another writer.
+   Apply the leaf/container check from the **Lifecycle ownership guard** section *before* this
+   branch: repair-intake owns container repair, so a natively-closed `ready` **leaf** is skipped
+   here and left to the build lane rather than claimed by this pass.
 3. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
    `status:*` label (see `config-resolution`). A `status:*` label there is leftover cruft that no
    repair direction reads, which is precisely why TUN-556 and TUN-503 rotted. Treat Linear's native
