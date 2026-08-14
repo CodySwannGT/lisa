@@ -1,6 +1,6 @@
 /**
- * This file is managed by Lisa.
- * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ * Seeded by Lisa on first setup — this file is YOURS.
+ * Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
  */
 
 /**

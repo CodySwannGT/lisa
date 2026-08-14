@@ -1,6 +1,6 @@
 /**
- * This file is managed by Lisa.
- * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ * This file is managed by Lisa and IS replaced on each `lisa` run.
+ * Do not edit directly — durable changes belong upstream in Lisa.
  *
  * @jest-config-loader esbuild-register
  */

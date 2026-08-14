@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# This file is managed by Lisa. Do not edit directly.
-# These gems are governance-critical and will be overwritten on every `lisa` run.
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
 
 # Runtime governance (all environments)
 gem "strong_migrations", "~> 2.5"

@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * Provider-neutral work-item binding and Git enforcement for Lisa projects.
  * State is private to the current linked worktree; durable linkage lives in
