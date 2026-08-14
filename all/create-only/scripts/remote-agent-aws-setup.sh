@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+
 # Installed by Lisa. The authoritative implementation is shipped by the
 # lisa-setup-remote-aws skill and the @codyswann/lisa package.
 

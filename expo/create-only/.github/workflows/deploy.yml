@@ -1,4 +1,5 @@
-# This file is created by Lisa (create-only — edit freely, Lisa won't overwrite it).
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 
 # This is an example deployment workflow that demonstrates the recommended pattern:
 # 1. Call the release.yml workflow to create a release
