@@ -32,7 +32,14 @@ const ledger = (): {
   grandfathered_contexts: string[];
   promotions: {
     context: string;
-    headroom: { status: string; debt?: string };
+    headroom: {
+      status: string;
+      debt?: string;
+      observed_on?: string;
+      budget_ms?: number;
+      observed_worst_ms?: number;
+      budgets?: { observed_on?: string }[];
+    };
   }[];
 } =>
   JSON.parse(readFileSync(path.join(REPO_ROOT, LEDGER_RELATIVE_PATH), "utf8"));
@@ -70,6 +77,39 @@ describe("Lisa's own required-check promotions", () => {
       .promotions.filter(p => p.headroom.status === "grandfathered")
       .map(p => p.context);
     expect(grandfathered.filter(c => !frozen.has(c))).toEqual([]);
+  });
+
+  it("states the provenance of every proven measurement, with none grandfathered out of it", () => {
+    // #2528 refuses a missing `observed_on` outright rather than exempting the
+    // entries that predate it. That is affordable precisely here: every proven
+    // entry in this ledger already recorded, in prose, that its worst case came
+    // from runs that COMPLETED, so backfilling states what was already proved.
+    // A grandfather clause would have exempted the only entries the new rule
+    // could bind on, which is the "prose is enough" failure #2509 exists to
+    // refute.
+    const proven = ledger().promotions.filter(
+      p => p.headroom.status === "proven"
+    );
+    expect(proven.length).toBeGreaterThan(0);
+    expect(proven.map(p => p.headroom.observed_on)).toEqual(
+      proven.map(() => "pass")
+    );
+    for (const entry of proven) {
+      for (const budget of entry.headroom.budgets ?? []) {
+        expect(budget.observed_on).toBe("pass");
+      }
+    }
+  });
+
+  it("publishes no worst case at or above the budget it justifies", () => {
+    // The self-refuting pairing #2523 shipped: 60,245ms cited against a
+    // 60,000ms budget. Checked here on the live ledger, not only on fixtures.
+    for (const entry of ledger().promotions) {
+      if (entry.headroom.status !== "proven") continue;
+      expect(entry.headroom.observed_worst_ms).toBeLessThan(
+        entry.headroom.budget_ms ?? 0
+      );
+    }
   });
 
   it("is wired to a package script so an operator can run it by hand", () => {
