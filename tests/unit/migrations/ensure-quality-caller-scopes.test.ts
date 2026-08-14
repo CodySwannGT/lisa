@@ -145,17 +145,73 @@ describe("EnsureQualityCallerScopesMigration", () => {
     expect(updated.match(/issues: read/gu)).toHaveLength(1);
   });
 
-  it("leaves a caller with no permissions block alone", async () => {
-    // No block means the job inherits the repo default, which is typically
-    // permissive enough already. Inventing a block would RESTRICT scopes the
-    // called jobs may rely on.
+  it("invents a permissions block when the caller has none", async () => {
+    // The no-block case is the BROKEN one, not the safe one (#2476). A caller
+    // job with no `permissions:` gets the repo default, which on every modern
+    // repo is `contents: read` + `metadata: read` — measured on two private
+    // consumers, where `gh pr view` and `gh issue view` both failed.
     await writeCi(`jobs:
   quality:
+    name: Quality Checks
     uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
     secrets: inherit
 `);
 
-    expect(await migration.applies(createContext())).toBe(false);
+    expect(await migration.applies(createContext())).toBe(true);
+    await migration.apply(createContext());
+    const { load } = await import("js-yaml");
+    const parsed = load(await readCi()) as {
+      jobs: Record<string, { permissions?: Record<string, string> }>;
+    };
+
+    expect(parsed.jobs["quality"]?.permissions).toEqual({
+      contents: "read",
+      issues: "read",
+      "pull-requests": "read",
+    });
+  });
+
+  it("invents the rails caller's block with the write scopes that workflow declares", async () => {
+    // quality-rails.yml declares `checks: write` + `pull-requests: write` at
+    // the workflow level. A caller granting less than the called workflow
+    // declares is a startup_failure for the whole run, so a read-only block
+    // here would be worse than no block at all.
+    await writeCi(`jobs:
+  quality:
+    uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main
+`);
+
+    await migration.apply(createContext());
+    const { load } = await import("js-yaml");
+    const parsed = load(await readCi()) as {
+      jobs: Record<string, { permissions?: Record<string, string> }>;
+    };
+
+    expect(parsed.jobs["quality"]?.permissions).toEqual({
+      contents: "read",
+      checks: "write",
+      issues: "read",
+      "pull-requests": "write",
+    });
+  });
+
+  it("grants a rails caller pull-requests at write, never read", async () => {
+    // Same startup_failure trap reached from the other side: patching an
+    // existing block must not insert `pull-requests: read` below the
+    // `pull-requests: write` that quality-rails.yml declares.
+    await writeCi(`jobs:
+  quality:
+    permissions:
+      contents: read
+    uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main
+`);
+
+    await migration.apply(createContext());
+    const updated = await readCi();
+
+    expect(updated).toContain("      pull-requests: write");
+    expect(updated).not.toContain("      pull-requests: read");
+    expect(updated).toContain("      checks: write");
   });
 
   it("never rewrites secrets: inherit into an explicit map", async () => {
