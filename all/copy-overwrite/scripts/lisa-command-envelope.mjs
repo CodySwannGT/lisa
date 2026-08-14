@@ -25,6 +25,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { destructiveDenial } from "./lisa-destructive-guard.mjs";
 import { validateAgainstSchema } from "./lisa-schema-validate.mjs";
 
 /** Pinned envelope schema version. */
@@ -125,6 +126,15 @@ export function validateEnvelope(envelope) {
   }
   if (envelope.mode === "declared-noop" && envelope.status !== "no-op") {
     errors.push('mode "declared-noop" requires status "no-op"');
+  }
+  // The production boundary lives here, at the one interface every reset, seed,
+  // and verify adapter must pass through, rather than in each adapter. A
+  // destructive run against a production-resolved (or unresolvable) environment
+  // has no representable success envelope, so it can never exit 0 — reporting
+  // the refusal stays available, which is the only outcome that should be.
+  const denial = destructiveDenial(envelope);
+  if (denial && SUCCESS_STATUSES.includes(envelope.status)) {
+    errors.push(`${denial.code}: ${denial.message}`);
   }
   return { valid: errors.length === 0, errors };
 }
