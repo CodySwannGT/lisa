@@ -18,7 +18,11 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-command-envelope.mjs": Object.freeze([
     "2011331056b1c86bd181649713a395dbfd2768f9fcd7e37b521d6ad2a9318ea9",
     "4f76bb7d466eb153a4e1414d06f12856a1242de2cfa4cb4b1b942cf29d8b7f37",
+    "6b198f088cd3cd862d4357fbb069b1ad5d3afeb7be594f2bf1ff603b092a8354",
     "e06cb11f1418fe94564cea527a22b039f53b7ab10c1cd182264a31e52bba9fa8",
+  ]),
+  "scripts/lisa-destructive-guard.mjs": Object.freeze([
+    "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
   ]),
   "scripts/lisa-enforcement-fallback.sh": Object.freeze([
     "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
