@@ -69,6 +69,38 @@
  *     `measured_on_subject` separately makes that mechanically visible instead
  *     of a footnote in a report.
  *
+ *  6. **A worst case must come from a run that COMPLETED, and must be below the
+ *     budget it justifies** (#2528). Two clauses, one rule:
+ *
+ *     *Do not size a budget from the duration of a run that failed on time.*
+ *     This is the mirror of clause 3. #2509 says do not size from runs that
+ *     passed, because the sample excludes the failure mode; the mirror says do
+ *     not size from the DURATION of a run the budget terminated, because that
+ *     duration is the starvation, not the work. The failing-run version is
+ *     strictly worse: it does not merely omit information, it INVERTS the
+ *     ratio — the more contended the box was, the safer the resulting budget
+ *     looks. So `observed_on` must say `"pass"`, meaning the measured run
+ *     completed inside its budget. (That is a statement about TIME, not about
+ *     the check's verdict: a run that reproduces a real violation and exits 1
+ *     in 30s completed, and is `"pass"` here.)
+ *
+ *     *And an entry claiming a worst case at or above its own budget refuses
+ *     itself*, needing no knowledge of the test, the machine, or the workload.
+ *     #2523 cited 60,245ms while setting the budget to 60,000ms. The ratio in
+ *     clause 4 already rejects that arithmetically at 0.996x, but it reports a
+ *     THIN MARGIN when the defect is an IMPOSSIBLE CLAIM, and a message that
+ *     misnames the defect sends the reader off to re-measure when they should
+ *     be re-reading. The tell was on the face of the number: a test cannot run
+ *     60s against a 10s budget, so 60,245ms was wall clock spent waiting.
+ *     Re-measured in isolation at load 31 the same test takes 2,499ms — 24x,
+ *     not 0.996x, a 24-fold error in the unsafe direction.
+ *
+ *     A missing `observed_on` is refused rather than grandfathered. Every
+ *     `proven` entry in the ledger when this clause shipped had already
+ *     recorded, in prose, that its worst case came from runs that completed, so
+ *     backfilling the field only restates what was already proved. Exempting
+ *     them would have exempted the only entries the clause could bind on.
+ *
  * ## The ratchet, and why incumbents are not simply exempted
  *
  * Contexts already required when this guard shipped may declare
@@ -315,7 +347,45 @@ function budgetProblems(budget) {
       },
     ];
   }
+  // A budgets[] entry publishes its OWN observed_worst_ms, so it can be a
+  // starved figure exactly as the block-level one can. Checking provenance
+  // first: a ratio computed from a duration that measures contention is
+  // arithmetic on the wrong number, so the reader needs the provenance before
+  // the margin.
+  const provenance = provenanceProblems(budget.observed_on);
+  if (provenance.length > 0) return provenance;
   return ratioProblems(budget.budget_ms, budget.observed_worst_ms);
+}
+
+/**
+ * Validate where an observed worst case was measured (#2528).
+ *
+ * `observed_on` records whether the run that produced `observed_worst_ms`
+ * COMPLETED within its budget (`"pass"`) or was terminated by it (`"fail"`).
+ * That is a claim about time, not about the check's verdict — a run that
+ * reproduces a real violation and exits 1 well inside its budget completed.
+ *
+ * @param {unknown} observedOn - the declared provenance.
+ * @returns {{ rule: string, detail: string }[]} problems, empty when sound.
+ */
+function provenanceProblems(observedOn) {
+  if (observedOn === "pass") return [];
+  if (observedOn === "fail") {
+    return [
+      {
+        rule: "headroom-measured-on-failing-run",
+        detail:
+          'observed_worst_ms was taken from a run the budget terminated ("observed_on": "fail"); that duration is the starvation, not the work, and the more contended the box was the safer the budget looks — re-measure on a run that completed, in isolation',
+      },
+    ];
+  }
+  return [
+    {
+      rule: "headroom-evidence-missing",
+      detail:
+        'headroom.observed_on must be "pass": the run that produced observed_worst_ms must have COMPLETED within its budget, because a duration reported alongside a timeout measures contention, not cost',
+    },
+  ];
 }
 
 /**
@@ -337,6 +407,17 @@ function ratioProblems(budgetMs, observedMs) {
         rule: "headroom-evidence-missing",
         detail:
           "headroom needs a positive budget_ms and a positive observed_worst_ms",
+      },
+    ];
+  }
+  // Checked before the ratio, and reported as its own defect: an entry whose
+  // worst case is not below the budget it justifies can never be valid, and
+  // "thin margin" would misname it. See clause 6 in the module preamble.
+  if (observedMs >= budgetMs) {
+    return [
+      {
+        rule: "headroom-worst-case-exceeds-budget",
+        detail: `observed worst ${observedMs}ms is not below the ${budgetMs}ms budget it justifies, so the entry disproves itself; a worst case at or above its own budget is usually elapsed time from a run the budget terminated, which measures contention rather than cost (#2528)`,
       },
     ];
   }
@@ -393,6 +474,8 @@ export function headroomProblems(headroom) {
       problems.push({ rule: "headroom-evidence-missing", detail });
     }
   }
+  if (problems.length > 0) return problems;
+  problems.push(...provenanceProblems(headroom.observed_on));
   if (problems.length > 0) return problems;
   problems.push(
     ...ratioProblems(headroom.budget_ms, headroom.observed_worst_ms)
