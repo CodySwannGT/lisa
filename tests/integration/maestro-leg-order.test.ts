@@ -121,14 +121,56 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
 
     it("is reachable from the shipped caller template", () => {
       // The template is create-only, so this is the wiring NEW adopters get.
-      // `actions: read` is the half nobody would guess: a called workflow
-      // cannot hold a permission the caller did not grant, so without it the
-      // input produces a red job instead of an ordering.
+      // The scope is granted in the CALLER and travels as a forwarded secret —
+      // see the permissions guard below for why it cannot be declared in the
+      // reusable workflow.
       const permissions = caller.permissions as Record<string, string>;
+      const text = fs.readFileSync(CALLER_YML, "utf-8");
       expect(permissions.actions).toBe("read");
-      expect(fs.readFileSync(CALLER_YML, "utf-8")).toContain(
-        `# ${SERIALIZE}: true`
-      );
+      expect(text).toContain(`# ${SERIALIZE}: true`);
+      expect(text).toContain("LEG_ORDER_TOKEN:");
+    });
+
+    it("takes the ordering token as a secret, not a declared scope", () => {
+      const secrets = (
+        (raw.on as Record<string, Record<string, unknown>>).workflow_call as {
+          secrets: Record<string, Record<string, unknown>>;
+        }
+      ).secrets;
+      expect(secrets.LEG_ORDER_TOKEN).toBeDefined();
+      expect(secrets.LEG_ORDER_TOKEN.required).toBe(false);
+    });
+  });
+
+  describe("the #2046 rule — no job may escalate the caller's grant", () => {
+    it("declares no job-level permissions block anywhere in this workflow", () => {
+      // THE regression guard for #2566. A called workflow may only DOWNGRADE
+      // the caller's grant: requesting a scope the caller never held is a
+      // `startup_failure` for the ENTIRE run, decided BEFORE the run starts —
+      // so the job's `if:` never runs and an unset `serialize_platform_legs`
+      // does not save anyone. The first cut of this feature declared
+      // `actions: read` here and would have broken every caller granting less,
+      // on every path, including ones where the job does nothing.
+      //
+      // This mirrors tests/unit/hooks/work-item-wiring.test.ts, which pins the
+      // same property on quality.yml's work_item_traceability job. The scope
+      // this job needs arrives as the forwarded LEG_ORDER_TOKEN secret, which
+      // carries the CALLER's token and therefore declares nothing.
+      //
+      // Asserted over EVERY job, not just leg_order: the rule is a property of
+      // the file, and the next job added here is the one most likely to break
+      // it.
+      const declaring = Object.entries(workflow.jobs)
+        .filter(([, job]) => (job as { permissions?: unknown }).permissions)
+        .map(([name]) => name);
+      expect(declaring).toEqual([]);
+    });
+
+    it("keeps the workflow-level grant at contents: read", () => {
+      // The negative control for the assertion above. Moving the escalation up
+      // to the workflow level would satisfy a per-job check while causing the
+      // identical startup_failure, so the ceiling is pinned too.
+      expect(raw.permissions).toEqual({ contents: "read" });
     });
   });
 
