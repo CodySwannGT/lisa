@@ -91,13 +91,12 @@ on:
         description: 'Linear API key (only when tracker is linear)'
         required: false
 
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-
 jobs:
   lint:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: Lint
     runs-on: ubuntu-latest
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
@@ -119,6 +118,10 @@ jobs:
   # non-bypassable layer. Human-approved exceptions live in .lisa.config.json
   # (thresholdRatchet.allow) and are honored only once merged into the base.
   threshold_ratchet:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: 📐 Threshold Ratchet
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -179,6 +182,15 @@ jobs:
     # Requesting a scope the caller never held is a startup_failure for the
     # ENTIRE run, and these workflows are consumed @main by repos whose ci.yml
     # is create-only and can never self-heal.
+    #
+    # That inheritance only works because this workflow declares no
+    # workflow-level `permissions:` block. It used to, and a workflow-level
+    # block is a CEILING that zeroes every scope it omits for any job without
+    # its own — so this job was capped at the top-level set regardless of the
+    # caller. Here the omitted scope was `issues: read`, so the `gh issue view`
+    # arm could never have worked on `tracker: github` even though
+    # `pull-requests: write` was present and the PR arm looked healthy. Each job
+    # now carries its own copy of the old floor; this one is blank on purpose.
 
     steps:
       - name: 📥 Checkout repository
@@ -269,6 +281,10 @@ jobs:
           node scripts/lisa-work-item.mjs validate-pr
 
   security:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: Security
     runs-on: ubuntu-latest
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',security,') }}
@@ -288,6 +304,10 @@ jobs:
         run: bundle exec bundler-audit check --update
 
   test-postgres:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: Test (PostgreSQL)
     runs-on: ubuntu-latest
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
@@ -324,6 +344,10 @@ jobs:
         run: bundle exec rspec
 
   test-mysql:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: Test (MySQL)
     runs-on: ubuntu-latest
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'mysql' }}
@@ -363,6 +387,10 @@ jobs:
         run: bundle exec rspec
 
   mutation:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: 🧬 Mutation Testing Gate
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -413,6 +441,10 @@ jobs:
           fi
 
   code-quality:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: Code Quality
     runs-on: ubuntu-latest
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',code_quality,') }}
@@ -435,6 +467,10 @@ jobs:
         run: bundle exec flay app/ lib/
 
   secret_scanning:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: 🔐 GitGuardian Secret Detection
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -491,6 +527,10 @@ jobs:
           echo "To enable secret detection, add GITGUARDIAN_API_KEY to your repository secrets"
 
   sg_scan:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: 🔎 AST Grep Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -623,6 +663,10 @@ jobs:
           grep -qE "learnings budget passed|no learnings file" learnings-budget.out
 
   license_compliance:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: 📜 FOSSA License Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -657,6 +701,10 @@ jobs:
           echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"
 
   zap_baseline:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     name: 🕷️ OWASP ZAP Baseline
     runs-on: ubuntu-latest
     timeout-minutes: 20
