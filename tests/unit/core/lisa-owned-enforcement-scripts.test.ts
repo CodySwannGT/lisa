@@ -135,29 +135,20 @@ describe("Lisa-owned enforcement scripts (#2551)", () => {
     }
   });
 
-  it("refreshes a newly-owned gate whose bytes are a past Lisa release", () => {
-    // End to end against the REAL shipped ledger, not a fixture: the bytes of
-    // the previous release of this gate are what a lagging adopter is actually
-    // running, and delivering to them is the entire point of the ticket.
-    const [, previous] = git([
-      "log",
-      "--follow",
-      "--format=%H",
-      "--",
-      STATE_GATE_SOURCE,
-    ])
-      .split("\n")
-      .filter(line => line !== "");
-
-    // A one-revision history would make this pass while proving nothing.
-    expect(previous).toBeDefined();
-
-    const hostBytes = Buffer.from(
-      git(["show", `${previous}:${STATE_GATE_SOURCE}`]),
-      "binary"
-    );
-    const lisaBytes = readFileSync(path.join(REPO_ROOT, STATE_GATE_SOURCE));
-    expect(hostBytes.equals(lisaBytes)).toBe(false);
+  it("refreshes a newly-owned gate whose bytes are a released Lisa version", () => {
+    // End to end against the REAL shipped ledger, not a fixture.
+    //
+    // The host runs today's released bytes and Lisa publishes the next version
+    // — the ordinary upgrade, and the one the ticket says never arrives. Framed
+    // this way rather than by reading an older revision out of git, because
+    // `git log --follow` returns a single revision under CI's shallow clone, so
+    // a history-based fixture asserts nothing there. The ledger records the
+    // shipped bytes, which is the durable half of the same fact.
+    const hostBytes = readFileSync(path.join(REPO_ROOT, STATE_GATE_SOURCE));
+    const lisaBytes = Buffer.concat([
+      hostBytes,
+      Buffer.from("\n// next release\n"),
+    ]);
 
     const verdict = classifyHostCopy(STATE_GATE, hostBytes, lisaBytes);
 
