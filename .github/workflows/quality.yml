@@ -243,12 +243,12 @@ concurrency:
 # granting >= read keep working, and no job relies on a write scope.
 # Jobs that touch neither the repository nor the API declare `permissions: {}`.
 # Never widen this floor — grant a job its minimal scope at the job level.
-permissions:
-  contents: read
 
 jobs:
   # Central dependency installation job to optimize performance
   install_dependencies:
+    permissions:
+      contents: read
     name: 📦 Install Dependencies
     runs-on: ubuntu-latest
     outputs:
@@ -355,6 +355,8 @@ jobs:
           echo "cache-hit=${{ steps.cache-modules.outputs.cache-hit }}" >> $GITHUB_OUTPUT
         id: cache-status
   lint:
+    permissions:
+      contents: read
     name: 🧹 Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -411,6 +413,8 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
   lint_slow:
+    permissions:
+      contents: read
     name: 🐢 Slow Lint Rules
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -452,6 +456,8 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
   typecheck:
+    permissions:
+      contents: read
     name: 🔍 Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -513,6 +519,8 @@ jobs:
   # A caller still passing `skip_jobs: 'test'` is inert rather than broken.
 
   verification_coverage:
+    permissions:
+      contents: read
     name: ✅ Verification Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -541,6 +549,8 @@ jobs:
           VERIFY_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
 
   e2e_coverage:
+    permissions:
+      contents: read
     name: 🧭 E2E Route Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -601,6 +611,8 @@ jobs:
         run: echo "Skipping e2e route coverage - scripts/check-e2e-coverage.mjs not found"
 
   state_classification:
+    permissions:
+      contents: read
     name: 🧬 State Classification
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -656,6 +668,8 @@ jobs:
         run: echo "Skipping state classification - scripts/check-state-classification.mjs not found"
 
   bdd_coverage:
+    permissions:
+      contents: read
     name: 🧾 BDD Behavior Contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -791,6 +805,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   learnings_budget:
+    permissions:
+      contents: read
     name: 📚 Learnings Budget
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -855,6 +871,8 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
   test_unit:
+    permissions:
+      contents: read
     name: 🧪 Run Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -1004,6 +1022,8 @@ jobs:
         run: echo "Skipping unit tests - test:unit script not found in package.json"
 
   test_mutation:
+    permissions:
+      contents: read
     name: 🧬 Mutation Testing Gate
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1072,6 +1092,8 @@ jobs:
         run: echo "Skipping mutation-testing gate - test:mutation script not found in package.json"
 
   test_integration:
+    permissions:
+      contents: read
     name: 🧪 Run Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1139,6 +1161,8 @@ jobs:
         run: echo "Skipping integration tests - test:integration script not found in package.json"
 
   test_e2e:
+    permissions:
+      contents: read
     name: 🧪 Run E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -1225,6 +1249,8 @@ jobs:
         run: echo "Skipping E2E tests - test:e2e script not found in package.json"
 
   maestro_e2e:
+    permissions:
+      contents: read
     name: 📱 Maestro Cloud E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1333,6 +1359,8 @@ jobs:
           fi
 
   playwright_e2e:
+    permissions:
+      contents: read
     name: 🎭 Playwright E2E Tests
     needs: playwright_e2e_setup
     runs-on: ubuntu-latest
@@ -1547,6 +1575,8 @@ jobs:
   # ruleset regardless of shard count. Runs always so the unsuffixed check
   # is emitted even when `playwright_shards = 1`.
   playwright_e2e_aggregate:
+    permissions:
+      contents: read
     name: 🎭 Playwright E2E Tests
     needs: playwright_e2e
     runs-on: ubuntu-latest
@@ -1650,6 +1680,8 @@ jobs:
           exit 1
 
   format:
+    permissions:
+      contents: read
     name: 📐 Check Formatting
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1691,6 +1723,8 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
   build:
+    permissions:
+      contents: read
     name: 🏗️ Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -1838,6 +1872,8 @@ jobs:
   # under the seed's `"enforcement": "warn"`, which keeps a fresh install loud
   # rather than red.
   skipped_required_checks:
+    permissions:
+      contents: read
     name: 🔒 Skipped Required Checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1876,6 +1912,8 @@ jobs:
   # Human-approved exceptions live in .lisa.config.json (thresholdRatchet.allow)
   # and are honored only once merged into the base branch.
   threshold_ratchet:
+    permissions:
+      contents: read
     name: 📐 Threshold Ratchet
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1949,19 +1987,31 @@ jobs:
     # DELIBERATELY no `permissions:` block. This job needs pull-requests:read
     # (`gh pr view`) and issues:read (`gh issue view`), but a called workflow
     # may only DOWNGRADE the caller's grant: requesting a scope the caller never
-    # held is a startup_failure for the ENTIRE run, not a skipped job. These
-    # workflows are consumed @main by repos whose ci.yml is create-only, so an
-    # escalation here would break every one of them — including on push paths
-    # where this job does not even run. Inheriting the caller's token instead
-    # keeps the blast radius inside this job.
+    # held is a startup_failure for the ENTIRE run, not a skipped job (#2046,
+    # #2566). These workflows are consumed @main by repos whose ci.yml is
+    # create-only, so an escalation here would break every one of them —
+    # including on push paths where this job does not even run. Inheriting the
+    # caller's token instead keeps the blast radius inside this job.
     #
-    # Measured, not assumed (#2476): on a private consumer whose caller job
-    # granted contents/issues/pull-requests read, this job's `gh` calls
-    # succeeded and the real validation ran; on a private consumer whose caller
-    # job had NO permissions block, they failed. So the caller's grant is the
-    # only lever, and the readiness probe below FAILS when it is missing — it
-    # used to exit 0 with a warning, which reported success for a gate that had
-    # verified nothing.
+    # "Inherits the caller's grant" is only true because this workflow declares
+    # NO workflow-level `permissions:` block. A workflow-level block is not a
+    # floor — it is a CEILING that also zeroes every scope it omits, for every
+    # job that declares none of its own. This workflow used to carry
+    # `permissions: contents: read` at the top, and that silently capped this
+    # job at contents+metadata no matter what the caller granted. Each job now
+    # carries its own copy of that floor instead; this one, and only this one,
+    # is left blank on purpose. Do not reintroduce a workflow-level block.
+    #
+    # Corrects the record from #2476, which claimed this was measured working on
+    # a consumer granting all three scopes. It was not: on 2026-08-14 two
+    # consumers granting contents/issues/pull-requests read both received
+    # `Contents: read, Metadata: read` and nothing else. The earlier red result
+    # was read as a genuine missing trailer when it was this scope gap.
+    #
+    # The readiness probe below FAILS when a scope is missing — it used to exit 0
+    # with a warning, which reported success for a gate that had verified
+    # nothing. That strictness is correct and must stay; the bug was the
+    # plumbing, not the refusal.
 
     steps:
       - name: 📥 Checkout repository
@@ -2094,6 +2144,8 @@ jobs:
           node scripts/lisa-work-item.mjs validate-pr
 
   dead_code:
+    permissions:
+      contents: read
     name: 🗑️ Dead Code Detection
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2141,6 +2193,8 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
   sg_scan:
+    permissions:
+      contents: read
     name: 🔎 AST Grep Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2284,6 +2338,8 @@ jobs:
           echo "then run 'ast-grep test --update-all' to record its snapshot."
 
   floor_collisions:
+    permissions:
+      contents: read
     name: 🧱 Security Floor Collisions
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -2326,6 +2382,8 @@ jobs:
           node "$script" | tee -a "$GITHUB_STEP_SUMMARY"
 
   npm_security_scan:
+    permissions:
+      contents: read
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -2529,6 +2587,8 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
   sonarcloud:
+    permissions:
+      contents: read
     name: 🔍 SonarCloud SAST
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -2619,6 +2679,8 @@ jobs:
           echo "To enable SonarCloud analysis, add SONAR_TOKEN to your repository secrets"
 
   snyk:
+    permissions:
+      contents: read
     name: 🛡️ Snyk Dependency Scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -2690,6 +2752,8 @@ jobs:
           echo "To enable Snyk vulnerability scanning, add SNYK_TOKEN to your repository secrets"
 
   secret_scanning:
+    permissions:
+      contents: read
     name: 🔐 GitGuardian Secret Detection
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -2747,6 +2811,8 @@ jobs:
           echo "To enable secret detection, add GITGUARDIAN_API_KEY to your repository secrets"
 
   license_compliance:
+    permissions:
+      contents: read
     name: 📜 FOSSA License Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -2785,6 +2851,8 @@ jobs:
           echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"
 
   zap_baseline:
+    permissions:
+      contents: read
     name: 🕷️ OWASP ZAP Baseline
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -3204,6 +3272,8 @@ jobs:
 
   # Audit logging job
   audit_logger:
+    permissions:
+      contents: read
     name: 📊 Audit Logger
     runs-on: ubuntu-latest
     if: always()
@@ -3363,6 +3433,8 @@ jobs:
 
   # Approval gate for production deployments
   approval_gate:
+    permissions:
+      contents: read
     name: 🚦 Approval Gate
     runs-on: ubuntu-latest
     if: ${{ inputs.require_approval == true && inputs.compliance_framework != 'none' && inputs.approval_environment != '' }}

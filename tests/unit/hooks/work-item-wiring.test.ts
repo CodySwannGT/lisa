@@ -61,6 +61,8 @@ function seedRepository(root: string): void {
 
 /** Minimal shape of the pieces of `ci.yml` this suite asserts on. */
 interface CiWorkflow {
+  /** Workflow-level block. Must stay absent — see the ceiling-not-floor test. */
+  readonly permissions?: Record<string, string>;
   readonly jobs?: Record<
     string,
     {
@@ -280,6 +282,33 @@ describe("work-item Git enforcement wiring", () => {
 
         expect(resolveBase({ baseRef: "main", baseSha: tip, root })).toBe(tip);
       });
+    });
+
+    it("declares no workflow-level permissions block, so blank means inherit", () => {
+      // A workflow-level block is not a floor, it is a CEILING: it also sets
+      // every scope it omits to `none` for any job declaring none of its own.
+      // Both files used to carry one, which silently capped work_item_traceability
+      // at the top-level set no matter what the caller granted — contents+metadata
+      // in quality.yml, and no `issues: read` in quality-rails.yml. Two consumers
+      // granting all three read scopes were measured receiving only
+      // `Contents: read, Metadata: read` (2026-08-14).
+      //
+      // The fix cannot be to ADD the scopes here: requesting a scope the caller
+      // never held startup_fails the caller's ENTIRE run (#2046, #2566). So the
+      // old floor was pushed down onto each job individually and the top-level
+      // block removed, which leaves this job's blank block meaning what it says.
+      expect(ci.permissions).toBeUndefined();
+    });
+
+    it("gives every other job an explicit block, so blank is never accidental", () => {
+      // With no workflow-level block, a job added without a `permissions:` key
+      // silently inherits the caller's full grant. That is correct for exactly
+      // one job and a silent widening everywhere else, so the blank must be
+      // unique and deliberate rather than a default.
+      const blank = Object.entries(ci.jobs ?? {})
+        .filter(([, candidate]) => candidate?.permissions === undefined)
+        .map(([name]) => name);
+      expect(blank).toEqual(["work_item_traceability"]);
     });
 
     it("never escalates permissions above the caller's grant", () => {

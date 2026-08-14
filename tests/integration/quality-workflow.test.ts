@@ -602,11 +602,14 @@ describe("quality.yml reusable workflow", () => {
   describe("verification coverage labels", () => {
     it("passes event labels to the coverage script without live GitHub context", () => {
       const job = workflow.jobs.verification_coverage;
-      // The job declares no permissions of its own, so it resolves to the
-      // workflow-level least-privilege floor (#1769). What must never change
-      // is that it gains no `pull-requests` scope — the gate reads PR labels
-      // from the event payload, not the API.
-      expect(workflow.permissions).toEqual({ contents: "read" });
+      // This job used to inherit the workflow-level floor (#1769); that floor is
+      // now written onto each job directly, because as a workflow-level block it
+      // also zeroed the scopes it omitted for work_item_traceability. The scope
+      // this job resolves to is unchanged — assert it where it now lives.
+      //
+      // What must never change is that it gains no `pull-requests` scope: the
+      // gate reads PR labels from the event payload, not the API.
+      expect(job.permissions).toEqual({ contents: "read" });
       expect(job.permissions?.["pull-requests"]).toBeUndefined();
 
       const steps = job.steps ?? [];
@@ -736,12 +739,47 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("least-privilege permissions floor", () => {
-    it("declares a workflow-level contents:read floor", () => {
-      // #1769: quality.yml is consumed fleet-wide via @main. Reusable-workflow
-      // tokens can only be downgraded relative to the caller's grant, so a
-      // read-only floor is safe for every consumer while capping consumers
-      // whose caller job declares no `permissions:` block of its own.
-      expect(workflow.permissions).toEqual({ contents: "read" });
+    it("declares NO workflow-level floor, because a floor is really a ceiling", () => {
+      // Reverses #1769, which assumed a workflow-level block only *caps* callers
+      // that grant too much. It does the opposite as well: it sets every scope it
+      // OMITS to `none` for every job declaring none of its own. `contents: read`
+      // here therefore capped work_item_traceability at contents+metadata no
+      // matter what the caller granted.
+      //
+      // Measured 2026-08-14: PropSwapLLC/backend and geminisportsai/backend-v2
+      // both granted contents/issues/pull-requests read on the calling job and
+      // both received `Contents: read, Metadata: read`. The gate reported
+      // "could verify NOTHING" and named the caller — which was already correct.
+      //
+      // The fix cannot be to add the scopes here. A called workflow requesting a
+      // scope the caller never held is a startup_failure for the caller's ENTIRE
+      // run (#2046, #2566), and these workflows are consumed @main by repos whose
+      // ci.yml is create-only. So the old floor moved down onto every job that
+      // relied on it, byte-for-byte, and only work_item_traceability is left
+      // blank — the one job that must inherit the caller's grant.
+      expect(workflow.permissions).toBeUndefined();
+    });
+
+    it("keeps the old floor on every job that used to inherit it", () => {
+      // The floor-move must not have widened anything. Every job except the one
+      // deliberate blank carries an explicit block, so a job added later cannot
+      // silently inherit the caller's full grant.
+      const blank = Object.entries(workflow.jobs)
+        .filter(([, job]) => job.permissions === undefined)
+        .map(([name]) => name);
+      expect(blank).toEqual(["work_item_traceability"]);
+
+      for (const [jobName, job] of Object.entries(workflow.jobs)) {
+        if (jobName === "work_item_traceability") {
+          continue;
+        }
+        // Either the moved floor, or a stricter block the job already declared.
+        const scopes = job.permissions ?? {};
+        expect(
+          scopes.contents === "read" || Object.keys(scopes).length === 0,
+          `${jobName} lost or widened the moved floor: ${JSON.stringify(scopes)}`
+        ).toBe(true);
+      }
     });
 
     it("gives summary-only jobs an empty permissions block", () => {
