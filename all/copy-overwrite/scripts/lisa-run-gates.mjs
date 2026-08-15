@@ -336,17 +336,48 @@ export function runGates({
   const results = [];
   let blocked = false;
 
+  // One command proves every gate that names it, so it runs once.
+  //
+  // Two gates legitimately share a prover: a coverage-instrumented suite proves
+  // `test-correctness` by passing and `coverage-adequacy` by clearing its
+  // threshold. Running it twice cannot prove more than running it once, and it
+  // is not merely wasteful — measured here, the second run of an identical
+  // `test:cov` failed seconds after the first passed. A red that means nothing
+  // costs the register the same trust a false pass does, because it teaches
+  // whoever reads it to retry rather than look.
+  const proved = new Map();
+
   // Each verdict is printed as it is reached, not batched at the end: a push
   // gate can run for minutes, and an operator watching a hook needs to know
   // which gate is being proved right now, not only what the tally was.
   for (const gate of resolved) {
-    const outcome = blocked
-      ? { state: STATE.NOT_RUN, detail: "not run", code: null }
-      : (classifyStatic(gate) ?? execute(gate, exec));
-    results.push({ ...gate, ...outcome });
+    // A shared result is honoured even once blocked. The command genuinely ran
+    // and its answer is known, so reporting NOT-RUN here would understate what
+    // was proved — the mirror image of overstating it, and just as untrue.
+    const shared = gate.command ? proved.get(gate.command) : undefined;
+    const outcome = shared
+      ? {
+          ...shared.outcome,
+          detail: `${shared.outcome.detail} (proved by the ${shared.id} run)`,
+        }
+      : blocked
+        ? { state: STATE.NOT_RUN, detail: "not run", code: null }
+        : (classifyStatic(gate) ?? execute(gate, exec));
+
+    // Only an execution is shareable. A skip reason comes from this gate's own
+    // `needs`, so another gate naming the same command may still be able to run.
+    if (!shared && gate.command && outcome.code !== null) {
+      proved.set(gate.command, { id: gate.id, outcome });
+    }
+
+    results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
     out(formatLine(outcome.state, gate, outcome.detail));
     const unproved =
       outcome.state === STATE.FAILED || outcome.state === STATE.UNPROVABLE;
+    // The strictest level wins when gates share a prover. Letting a required
+    // gate inherit only the pass, or letting a failure count only against the
+    // optional gate that ran first, would be the original defect again: a
+    // required gate satisfied by a run that failed.
     if (unproved && gate.level === "required") blocked = true;
   }
 

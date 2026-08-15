@@ -272,6 +272,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "c705d400f51a3a08ada085fc1107c3dce558f9a717528fc1fe9315aa6b97a5e6",
     "e00f16cdc399c8ee61c7a3972469fbb4b662e0fff00bd9d3d6910f3f27a5f04c",
     "e429308896cf0450b2e5dfae9a580dde1a8da351503998c07ca3506e8b2ffdce",
+    "ed643bb28356e9c3f7e351227e690763d6b5e275a78d232cd9dba2d1fc55cffe",
   ]),
   "scripts/lisa-schema-validate.mjs": Object.freeze([
     "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",

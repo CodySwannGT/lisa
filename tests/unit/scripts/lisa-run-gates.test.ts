@@ -31,40 +31,10 @@ import {
   type GateRun,
   REQUIRED_AT_COMMIT,
   RUNNER,
+  sink,
+  stubExec,
   STYLE,
 } from "./lisa-run-gates-fixtures.js";
-
-/**
- * A recording executor that answers from a fixed map of command → exit code.
- * @param codes Exit code per command; anything unlisted passes.
- * @returns The executor plus the commands it was actually asked to run.
- */
-function stubExec(codes: Record<string, number | null>): {
-  exec: (command: string) => number | null;
-  calls: string[];
-} {
-  const calls: string[] = [];
-  return {
-    calls,
-    exec: (command: string): number | null => {
-      calls.push(command);
-      const code = codes[command];
-      // `=== undefined`, never `?? 0`: a stubbed `null` means "killed by a
-      // signal", and `??` would quietly turn that into a passing gate —
-      // reproducing inside the test harness the exact defect under test.
-      return code === undefined ? 0 : code;
-    },
-  };
-}
-
-/**
- * Collects the runner's operator-facing output for assertion.
- * @returns The collected lines plus the sink to hand the runner.
- */
-function sink(): { lines: string[]; out: (line: string) => void } {
-  const lines: string[] = [];
-  return { lines, out: (line: string) => lines.push(line) };
-}
 
 describe("runGates: required failures block", () => {
   const gates = {
