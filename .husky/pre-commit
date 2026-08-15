@@ -43,6 +43,61 @@ else
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate-driven checks.
+#
+# A gate is a PROPERTY the project must hold; `.lisa.config.json` names the task
+# that proves it. `gitleaks` is not a gate — credential leakage is, and gitleaks
+# is one way to prove it. When a `gates` block exists, that registry decides
+# what runs at the `commit` moment, not the hardcoded list further down.
+#
+# BACKWARD COMPATIBILITY — read before changing any of this. Most installed
+# projects have NO `gates` block. The switch between the two paths is explicit:
+#
+#   exit 0  → every required gate was proved. Skip the hardcoded steps.
+#   exit 1  → a required gate FAILED. Block the commit.
+#   exit 78 → the registry declined this moment — either no `gates` block at
+#             all, or a block that says nothing about a property the steps
+#             below prove. Run them, exactly as before. The runner prints
+#             which it was.
+#   other   → the runner itself could not run (config unreadable, crash).
+#             Nothing was proved. Say so loudly and run the hardcoded steps.
+#
+# A runner that never ran is never treated as "all gates passed". That is why
+# only a literal 0 sets LISA_GATES_RAN.
+# ---------------------------------------------------------------------------
+LISA_GATES_RAN=0
+GATE_RUNNER="scripts/lisa-run-gates.mjs"
+if [ ! -f "$GATE_RUNNER" ]; then
+  GATE_RUNNER="all/copy-overwrite/scripts/lisa-run-gates.mjs"
+fi
+if [ -f "$GATE_RUNNER" ] && command -v node >/dev/null 2>&1; then
+  node "$GATE_RUNNER" --moment=commit
+  GATE_STATUS=$?
+  if [ $GATE_STATUS -eq 0 ]; then
+    LISA_GATES_RAN=1
+  elif [ $GATE_STATUS -eq 1 ]; then
+    echo ""
+    echo "❌ Commit blocked: a required gate failed. See the FAILED line above."
+    echo ""
+    exit 1
+  elif [ $GATE_STATUS -eq 78 ]; then
+    echo "ℹ️  The gate registry did not take this moment; running the built-in checks."
+  else
+    echo ""
+    echo "⚠️  The gate runner could not run (exit $GATE_STATUS)."
+    echo "   Nothing was proved by the gate registry — this is NOT a pass."
+    echo "   Running the built-in checks instead."
+    echo ""
+  fi
+else
+  echo "ℹ️  Gate runner unavailable; running the built-in checks."
+fi
+
+if [ "$LISA_GATES_RAN" -eq 0 ]; then
+# BEGIN: built-in checks — the pre-registry path, kept byte-for-byte so a
+# project without a `gates` block behaves exactly as it did before.
+
 # Check for Gitleaks and run secret detection
 echo "🔐 Checking for secrets with Gitleaks..."
 if command -v gitleaks >/dev/null 2>&1; then
@@ -100,5 +155,8 @@ if [ -f "scripts/check-derived-artifacts.mjs" ] && command -v node >/dev/null 2>
   if [ $? -ne 0 ]; then
     exit 1
   fi
+fi
+
+# END: built-in checks
 fi
 # END: AI GUARDRAILS

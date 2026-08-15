@@ -38,6 +38,54 @@ fi
 
 echo "📦 Using package manager: $PACKAGE_MANAGER"
 
+# ---------------------------------------------------------------------------
+# Gate-driven checks. See the matching block in .husky/pre-commit for the full
+# contract; the exit-code routing is identical, at the `push` moment.
+#
+#   exit 0  → every required gate was proved. Skip the built-in steps.
+#   exit 1  → a required gate FAILED. Block the push.
+#   exit 78 → the registry declined this moment — either no `gates` block at
+#             all, or a block that says nothing about a property the steps
+#             below prove. Run them, exactly as before. The runner prints
+#             which it was.
+#   other   → the runner itself could not run. Nothing was proved. Say so
+#             loudly and run the built-in steps.
+#
+# The project-specific extension slots at the bottom of this file run either
+# way — they are project behaviour, not registry gates.
+# ---------------------------------------------------------------------------
+LISA_GATES_RAN=0
+GATE_RUNNER="scripts/lisa-run-gates.mjs"
+if [ ! -f "$GATE_RUNNER" ]; then
+  GATE_RUNNER="all/copy-overwrite/scripts/lisa-run-gates.mjs"
+fi
+if [ -f "$GATE_RUNNER" ] && command -v node >/dev/null 2>&1; then
+  node "$GATE_RUNNER" --moment=push
+  GATE_STATUS=$?
+  if [ $GATE_STATUS -eq 0 ]; then
+    LISA_GATES_RAN=1
+  elif [ $GATE_STATUS -eq 1 ]; then
+    echo ""
+    echo "❌ Push blocked: a required gate failed. See the FAILED line above."
+    echo ""
+    exit 1
+  elif [ $GATE_STATUS -eq 78 ]; then
+    echo "ℹ️  The gate registry did not take this moment; running the built-in checks."
+  else
+    echo ""
+    echo "⚠️  The gate runner could not run (exit $GATE_STATUS)."
+    echo "   Nothing was proved by the gate registry — this is NOT a pass."
+    echo "   Running the built-in checks instead."
+    echo ""
+  fi
+else
+  echo "ℹ️  Gate runner unavailable; running the built-in checks."
+fi
+
+if [ "$LISA_GATES_RAN" -eq 0 ]; then
+# BEGIN: built-in checks — the pre-registry path, kept byte-for-byte so a
+# project without a `gates` block behaves exactly as it did before.
+
 # Run the whole-project type check once before code leaves the machine. It is
 # intentionally not a pre-commit gate because TypeScript cannot check only the
 # staged files and rebuilding the full program makes small commits too slow.
@@ -179,7 +227,36 @@ else
     # devDependencies too and the gate fails on dev-only CVEs that never ship —
     # the SE-5221 false positive. bun honours `--production` even though
     # `bun audit --help` omits it from the flag list.
-    AUDIT_JSON=$(bun audit --production --json 2>/dev/null || true)
+    # Normalize bun's transport before parsing, or this gate FAILS OPEN.
+    #
+    # Measured: bun can return gzip-compressed JSON on stdout while reporting a
+    # parse error on stderr. The previous single-line form captured that binary
+    # into AUDIT_JSON, the jq filter below then failed, UNFIXED_HIGH came back
+    # empty, UNFIXED_COUNT resolved to empty, `-gt 0` was false, and the hook
+    # printed "No high or critical vulnerabilities found" and allowed the push.
+    # A security gate reporting success having parsed nothing.
+    #
+    # Lisa's own .husky/pre-push was patched for this; this shipped copy was
+    # not, so every host project on this template carried the fail-open. Keep
+    # the two in step — two copies of one check cannot be kept aligned by
+    # intention, which is exactly how this drifted.
+    AUDIT_OUTPUT="$(mktemp)"
+    bun audit --production --json > "$AUDIT_OUTPUT" 2>/dev/null || true
+    if [ ! -s "$AUDIT_OUTPUT" ]; then
+      AUDIT_JSON="{}"
+    elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
+      AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+    else
+      DECOMPRESSED_AUDIT_OUTPUT="$(mktemp)"
+      gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
+      if jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
+        AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
+      else
+        AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+      fi
+      rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
+    fi
+    rm -f "$AUDIT_OUTPUT"
     UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq -r --arg ids "$AUDIT_EXCLUSIONS" '
       ($ids | split(" ") | map(select(length > 0))) as $ex
       | [ .[]? | .[]?
@@ -336,6 +413,9 @@ fi
 #     echo "✅ Lighthouse CI performance audit passed"
 #   fi
 # fi
+
+# END: built-in checks
+fi
 
 # Managed verification (UAT) extension slot (see .husky/pre-push.verify).
 # Opt-in project types (e.g. phaser) ship this snippet via Lisa; it mirrors the

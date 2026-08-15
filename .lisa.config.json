@@ -78,6 +78,94 @@
       }
     }
   },
+  "gates": {
+    "runner": "bun run",
+    "code-style": {
+      "commit": "required",
+      "pull-request": "required"
+    },
+    "code-style-slow": {
+      "push": "required",
+      "pull-request": "optional"
+    },
+    "format-conformance": {
+      "pull-request": "required"
+    },
+    "type-correctness": {
+      "push": "required",
+      "pull-request": "required"
+    },
+    "build-integrity": {
+      "pull-request": "required"
+    },
+    "test-correctness": {
+      "push": "required",
+      "pull-request": "required"
+    },
+    "test-integration": {
+      "push": "required",
+      "pull-request": "required"
+    },
+    "coverage-adequacy": {
+      "run": "test:cov",
+      "push": "required"
+    },
+    "structural-rules": {
+      "run": "sg:scan",
+      "commit": "required",
+      "pull-request": "optional"
+    },
+    "traceability": {
+      "pull-request": "required"
+    },
+    "threshold-monotonicity": {
+      "push": "optional"
+    },
+    "dead-code": {
+      "run": "knip:check",
+      "push": "required",
+      "pull-request": "optional"
+    },
+    "artifact-freshness": {
+      "commit": "required"
+    },
+    "conflict-residue": {
+      "push": "required",
+      "pull-request": "optional"
+    },
+    "version-duplication": {
+      "pull-request": "optional"
+    }
+  },
+  "policy": {
+    "on_drift": "repair",
+    "merge": {
+      "squash": false,
+      "merge_commit": true,
+      "rebase": false,
+      "auto_merge": true,
+      "delete_branch_on_merge": true,
+      "allow_update_branch": true
+    },
+    "history": {
+      "linear": false,
+      "signed_commits": false,
+      "commit_signoff": false
+    },
+    "protect": {
+      "force_push": true,
+      "deletion": true,
+      "up_to_date_before_merge": false,
+      "conversation_resolution": true,
+      "dismiss_stale_reviews": false,
+      "require_last_push_approval": false
+    },
+    "repository": {
+      "has_issues": true,
+      "has_wiki": false,
+      "default_branch": "main"
+    }
+  },
   "_lisaSync": {
     "populated": {
       "quality.mutation.gate": {
