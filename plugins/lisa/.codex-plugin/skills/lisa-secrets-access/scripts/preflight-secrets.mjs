@@ -86,8 +86,9 @@ export function requiredNames(cfg) {
  * @returns {string[]} At least one reason.
  */
 function whyRequired(name, reasons, declared) {
+  const routingReasons = Object.hasOwn(reasons, name) ? reasons[name] : [];
   const causes = [
-    ...(reasons[name] ?? []),
+    ...(routingReasons ?? []),
     ...(declared.includes(name) ? ["declared in secrets.require"] : []),
   ];
   return causes.length
