@@ -18,9 +18,10 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -128,12 +129,15 @@ describe("design-source-gate's guard was loose, not silent", () => {
   // merely ENDED WITH its own basename, so it kept running through a symlink —
   // the failure is over-matching, and the symlink cases above cannot see it.
   const own = path.resolve(LANE, DESIGN_GATE);
-  const ownUrl = `file://${own}`;
+  const ownUrl = pathToFileURL(own).href;
 
   it("refuses a different file that happens to share the basename", () => {
     // The old spelling accepted this: another checkout, a vendored copy, or any
     // path ending in `design-source-gate.mjs` ran this module's body.
-    const decoy = path.join(tmpdir(), "elsewhere", DESIGN_GATE);
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-payload-decoy-"));
+    temps.push(root);
+    const decoy = path.join(root, DESIGN_GATE);
+    writeFileSync(decoy, "export {};\n");
     expect(invokedAsScript(ownUrl, decoy)).toBe(false);
   });
 
