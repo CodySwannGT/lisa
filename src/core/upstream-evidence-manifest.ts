@@ -919,7 +919,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
-      "a499794a20f82a1e311ef4cb5188dd890f25b970e19e788d6945f2d5898dc9d2",
+      "77ea269502b97300c400916ee851dc85082a9237ce3d4468688455084d96413a",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
       "b1054acf4a5cbbe5354bd62a22b96533bcbc69b6cb9245976ceb8af638a04494",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
@@ -933,9 +933,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-status-run-history.mjs":
       "a07f0d1af412f0d2747a9cbe82fa0edbeb8cc8dd4bdf4c51526e779090f08208",
     "plugins/src/base/scripts/cross-pollinate.mjs":
-      "e9a536389d2581370f6c470b8a070aaae96660646efc528a7ff7fb25d324a903",
+      "08b17213a484e4c873283e2af674df579593c7ff20c95a06d71ae88c0b83f937",
     "plugins/src/base/scripts/design-source-gate.mjs":
-      "4db12844df14cc5dbcbdb96df9273cdce08057bc839493649fa65fccf559953b",
+      "5eadc5184a8c22d1d35c8be1bf4589aeedff0d1aa578563e4d33cdb193dbc5af",
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
@@ -943,7 +943,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
-      "8592c7359ee6cdb35995a882c8bb27e7b9c404074067fd272c70013e44e04b71",
+      "5c8857d28e6b2e9d59b13c983dfbccc3e3fe5573ce6221bd9d7eb9b95629f4ab",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "81b6eb911cf5cf6d1913cacf65b6ae298732e0a4e92529aed6767cdf79ab2ec0",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
@@ -9064,6 +9064,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
+    "tests/unit/scripts/plugin-payload-entry-guards.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-cache-visibility.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-helpers.ts": true,
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,

@@ -45,6 +45,15 @@ const SHIPPED_SCRIPT_DIRS = [
   "all/copy-overwrite/scripts",
   "typescript/copy-overwrite/scripts",
   "expo/copy-overwrite/scripts",
+  // Added after measuring that this lane had never been swept: four of its
+  // eighteen modules carried a defective guard and NONE carried a correct one.
+  // That it was uniformly wrong rather than mixed is the tell — no rule had
+  // ever applied here. These ship inside a plugin payload, which has no
+  // `./lib/` to import the shared helper from, so they define the rule inline
+  // and satisfy the sweep through the same exemption `preflight-secrets.mjs`
+  // uses: the file that DEFINES the rule is excused, by reason rather than by
+  // name.
+  "plugins/src/base/scripts",
 ] as const;
 
 /**
@@ -279,7 +288,14 @@ describe("shared entry guard wiring", () => {
     const swept = subjects.length;
     // A rename or a moved tree would empty the sweep and let it pass by
     // testing nothing, which is the failure mode this whole file exists for.
-    expect(swept).toBeGreaterThan(10);
+    //
+    // Raised from 10 when `plugins/src/base/scripts` joined the lane list: 42
+    // modules are swept today, so a floor of 10 would have survived losing
+    // three quarters of them. The floor tracks the real count with enough slack
+    // for ordinary churn, and is deliberately not `=== 42`, which would turn
+    // every added script into a failing test that teaches people to edit the
+    // number without reading why it is there.
+    expect(swept).toBeGreaterThan(35);
     expect(offenders).toEqual([]);
   });
 
