@@ -131,6 +131,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
     "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
     "49dee610439f4f21aecb0420a0cc72f5d3595a36f2489970053096190b9909c4",
+    "6bcf8b88b1d5ade1aa7c7902ba12af1df7b0b13d4e69c49a24f76a92474c93ec",
     "6da00221189ed0f8a2938f15e02bcc2633d44f5f05489979fbb94202bc45a6d4",
     "e1e3f22b33267212b90f915f83821559d1a45cab5b16c7164b86bd6c7b53549b",
   ]),
@@ -168,6 +169,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-destructive-guard.mjs": Object.freeze([
     "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
     "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
+    "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
   ]),
   "scripts/lisa-enforcement-fallback.sh": Object.freeze([
     "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
@@ -286,6 +288,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "4c263fef48c03b3b6c623ea8a6cd55505bfaf28197e5072226ea35f9f3d26885",
     "5eb31c284e820a51312d4484f0669128007326af55ee515923fec33700d003a1",
     "6a8be8577242588f14ab52b25b2a22b6def53aefa9513b4d3d7c49f4d8027079",
+    "83e7f1257bfee293bcdcdafef4272f40fcdca2d9e43ceb9df647c13c8277423d",
     "9223856be4618fb1e3e731b259ae5bf5328decc322f0b4a0d0fd18d6b12cd45a",
     "96a87c131606b3edd43e52485e68f8ffbf5c528cb4beb7a1185263519a9632ce",
     "ab0dede91c5c8a07984ae13aa48ec70cdcd2fa691b59617bc4b57998dc79a51c",

@@ -23,6 +23,11 @@ import { cleanGitEnv } from "../../helpers/test-utils.js";
 
 const HOOK_PATH = path.resolve(".husky/commit-msg");
 const BASH_PATH = "/bin/bash";
+// git runs hooks through `sh`, not bash, and the two disagree about `echo`:
+// bash prints `a\cb` verbatim while sh honours the XSI meaning of `\c` and
+// stops output there. Tests that only ever run the hook under bash therefore
+// cannot see any shell-portability defect, which is how #2143 survived.
+const SH_PATH = "/bin/sh";
 const GIT_PATH = "/usr/bin/git";
 const VALID_SUBJECT = "fix: clarify hook output";
 const PASSING_COMMITLINT_BIN = "exit 0\n";
@@ -203,10 +208,14 @@ fi\n`
 /**
  * Run the real commit-msg hook against the temp project's commit message.
  * @param project - Temporary project directory.
+ * @param shell - Interpreter to run the hook under; `sh` matches what git uses.
  * @returns The completed hook process.
  */
-function runHook(project: string): ReturnType<typeof spawnSync> {
-  return spawnSync(BASH_PATH, [HOOK_PATH, "COMMIT_EDITMSG"], {
+function runHook(
+  project: string,
+  shell: string = BASH_PATH
+): ReturnType<typeof spawnSync> {
+  return spawnSync(shell, [HOOK_PATH, "COMMIT_EDITMSG"], {
     cwd: project,
     encoding: "utf8",
     env: cleanGitEnv(process.env, {
@@ -226,3 +235,44 @@ function writeBin(project: string, name: string, body: string): void {
   writeFileSync(binPath, `#!/usr/bin/env bash\n${body}`);
   chmodSync(binPath, 0o755);
 }
+
+describe("commit message content cannot break the hook's own parsing", () => {
+  const BACKSLASH_C_SUBJECT = String.raw`fix: use \copy for the bulk load`;
+
+  it("accepts a valid trailer after a subject containing an XSI escape", () => {
+    // Run under `sh`, deliberately. Under bash this passes with or without the
+    // fix, so a bash-only assertion here would be a test that cannot fail.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        BACKSLASH_C_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        "Co-authored-by: Claude <noreply@anthropic.com>",
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project, SH_PATH);
+
+    // The trailer is present and correctly formed. Rejecting here means the
+    // hook truncated the message before matching, then blamed the trailer.
+    expect(result.stdout).not.toContain("must include AI co-authorship");
+    expect(result.status).toBe(0);
+  });
+
+  it("still rejects a message that genuinely lacks a trailer", () => {
+    // The control: the fix must not turn the co-authorship gate into a pass.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: `${BACKSLASH_C_SUBJECT}\n\n${WORK_ITEM_TRAILER}\n`,
+    });
+
+    const result = runHook(project, SH_PATH);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("must include AI co-authorship");
+  });
+});

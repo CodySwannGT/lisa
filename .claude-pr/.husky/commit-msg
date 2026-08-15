@@ -35,9 +35,16 @@ JIRA_KEY=$(echo "$BRANCH_NAME" | grep -E "(^|/)($JIRA_PROJECT_KEY)-[0-9]+" | gre
 if [ -n "$JIRA_KEY" ]; then
   # Read the current commit message
   COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+# `printf '%s\n'`, never `echo "$COMMIT_MSG"`. Under a POSIX/XSI `echo` the
+# backslash escapes are interpreted, and `\c` means "stop output here" — so a
+# message containing `\copy`, `\cite`, or a Windows path like `C:\config` is
+# silently truncated at that point before grep ever sees it. The
+# `Co-Authored-By:` trailer is always the last line, so it is always the part
+# lost, and the hook then rejects a commit whose trailer is present and
+# correctly formatted while pointing the author at the trailer.
   
   # Check if the Jira key is already in the commit message
-  if ! echo "$COMMIT_MSG" | grep -q "\[$JIRA_KEY\]"; then
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -q "\[$JIRA_KEY\]"; then
     # Append the Jira key to the commit message
     echo "$COMMIT_MSG [$JIRA_KEY]" > "$COMMIT_MSG_FILE"
     echo "🎫 Auto-appended Jira key: [$JIRA_KEY]"
@@ -70,13 +77,13 @@ fi
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
 # Skip AI co-authorship check for merge commits (e.g., from git pull)
-if echo "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)"; then
+if printf '%s\n' "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)"; then
   echo "🔀 Merge commit detected, skipping AI co-authorship check"
   exit 0
 fi
 
 # Skip AI co-authorship check for automated release commits (e.g., from standard-version in CI)
-if echo "$COMMIT_MSG" | grep -qE "^chore\(release\):"; then
+if printf '%s\n' "$COMMIT_MSG" | grep -qE "^chore\(release\):"; then
   echo "🚀 Release commit detected, skipping AI co-authorship check"
   exit 0
 fi
@@ -86,7 +93,7 @@ echo "🤖 Checking for AI co-authorship..."
 # Accept attribution from any supported coding agent (Claude or Codex),
 # case-insensitively. Claude Code emits "Co-Authored-By: Claude"; the Codex CLI
 # emits "Co-authored-by: Codex <noreply@openai.com>".
-if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex)"; then
+if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex)"; then
   echo ""
   echo "❌ Commit message must include AI co-authorship!"
   echo ""
