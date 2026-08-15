@@ -29,8 +29,9 @@
  * @module preflight-tools
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { probe, readRemoteEnvConfig } from "./setup-remote-env.mjs";
 import { currentPlatform, planToolchain } from "./toolchain.mjs";
@@ -45,16 +46,28 @@ const BLOCKING = new Set(["missing", "invalid"]);
  * The floor is implied by `tracker`, `secrets.provider` and `quality`, none of
  * which sit under `remoteEnv` — so this reads the root rather than reusing
  * `readRemoteEnvConfig`, which deliberately returns only its own block.
+ *
+ * **Absent and damaged are not the same answer.** A project with no
+ * `.lisa.config.json` declares no tools, and `{}` states that correctly. A file
+ * that exists and does not parse states nothing — and returning `{}` for it
+ * derives an empty floor, which reports `ok` precisely when the declaration
+ * this check exists to enforce could not be read. That is the vacuous green
+ * `preflight-secrets` refuses in its own header, so this throws instead, the
+ * same way `readConfig` in `surfaces.mjs` does.
  * @param {string} [cwd] Directory to look in.
- * @returns {object} Parsed config root, empty when absent or damaged.
+ * @returns {object} Parsed config root, empty only when the file is absent.
+ * @throws {Error} When the file exists but cannot be read or parsed.
  */
 export function readConfigRoot(cwd = process.cwd()) {
   const path = join(cwd, ".lisa.config.json");
   if (!existsSync(path)) return {};
   try {
     return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return {};
+  } catch (err) {
+    throw new Error(
+      `${path} is not readable, so the tools it requires could not be ` +
+        `derived and nothing was checked: ${err.message}`
+    );
   }
 }
 
@@ -177,12 +190,53 @@ export function reportTools(result) {
  * CLI entry point. Prints the report and exits non-zero when anything blocks.
  */
 function main() {
-  const result = preflightTools();
+  let result;
+  try {
+    result = preflightTools();
+  } catch (err) {
+    // A config that cannot be read is its own outcome, and it is not "ok". Said
+    // in the operator's vocabulary rather than as a stack trace, because this
+    // text is what the session-start hook injects for someone to act on.
+    console.error(
+      [
+        `Tooling preflight could NOT be completed.`,
+        ``,
+        `  reason: ${err.message}`,
+        ``,
+        `Nothing was checked, so this is not a report that the toolchain is`,
+        `fine. Repair the configuration, then start a new session.`,
+      ].join("\n")
+    );
+    process.exit(1);
+  }
   const text = reportTools(result);
   if (text) console.error(text);
   if (result.blocked.length) process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Whether this module is the entry point node was asked to run.
+ *
+ * Both sides are realpath'd rather than compared as text: `import.meta.url` is
+ * the resolved path while `process.argv[1]` is whatever the caller typed, so a
+ * symlinked path — every git worktree, and every `/tmp` path on macOS — makes a
+ * raw comparison false. The module then loads, runs nothing, and exits 0, which
+ * is a readiness check reporting clean because it never ran. Same rule and same
+ * reasoning as `scripts/lib/invoked-as-script.mjs`, written out here because a
+ * plugin payload has no `./lib/` to import from.
+ * @param {string} moduleUrl This module's own `import.meta.url`.
+ * @param {string} [argv1] Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the CLI body should run.
+ */
+function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   main();
 }

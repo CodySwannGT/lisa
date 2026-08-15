@@ -64,9 +64,9 @@ describe("reconcileContexts", () => {
 
   it("treats an empty live list as everything missing, not as agreement", () => {
     const result = reconcileContexts({ declared: [LINT, TYPES], live: [] });
-    expect(result.missing).toEqual(
-      [TYPES, LINT].sort((a, b) => a.localeCompare(b))
-    );
+    // Written out rather than sorted here: re-running the implementation's own
+    // comparator over the expectation would agree with any order it produced.
+    expect(result.missing).toEqual([TYPES, LINT]);
     expect(result.matched).toEqual([]);
   });
 });

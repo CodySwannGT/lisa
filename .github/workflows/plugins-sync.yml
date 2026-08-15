@@ -55,3 +55,41 @@ jobs:
         run: bun run check:rules-pairing
       - name: Check canonical project learnings budget
         run: bun run check:learnings-budget
+
+      # Below: CI arms for gates that were enforced ONLY by a local git hook.
+      #
+      # A hook is forgeable by whoever runs it. Shell expansion makes the set of
+      # ways to write `--no-verify` unbounded — `flag=--no-verify; git commit
+      # "$flag"` already defeats the text matcher — so widening that matcher is
+      # an arms race lost by definition. What is bounded, and what actually
+      # matters, is the set of guarantees with no server-side arm: those are the
+      # ones a bypass silently costs you. Everything else is re-run here anyway,
+      # so skipping a hook buys a red pull request, not a bad merge.
+      #
+      # These two close that gap. A cloud agent, a hookless clone, or anyone
+      # past the matcher still meets them, because the runner is not theirs.
+      - name: Check generated artifacts match their sources
+        # Was pre-commit only. `check-derived-artifacts.mjs --staged` inspects
+        # the index, so it is structurally unable to run here — nothing is
+        # staged in CI and it would report clean having examined no files.
+        # `check:artifacts` re-derives from the tree instead, which is the same
+        # question asked in a way that has an answer at this moment.
+        run: bun run check:artifacts
+
+      - name: Check commit messages follow the convention
+        # Was commit-msg only. Validates every commit the pull request adds,
+        # not just the tip: a bypassed hook leaves a malformed message in the
+        # middle of a branch that a tip-only check would never see.
+        run: |
+          npx commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
+      # NOT added here, deliberately: upstream plugin parity
+      # (`plugin-parity-drift.mjs`, `plugin-routing-validate.mjs`). Both read
+      # the installed plugin cache at `~/.claude/plugins/cache`, which does not
+      # exist on a runner — so a CI arm would compare against nothing and report
+      # green having proved nothing. That is the exact defect this block exists
+      # to prevent, and a known-uncovered gate is safer than a vacuous one.
+      # Covering it needs the cache provisioned in CI first.

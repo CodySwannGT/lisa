@@ -32,6 +32,8 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import { fetchAll } from "./providers.mjs";
 import { readConfig } from "./surfaces.mjs";
@@ -66,13 +68,31 @@ export function requiredNames(cfg) {
   const names = [...new Set([...(cfg.requiredFloor ?? []), ...declared])];
   return names
     .sort((left, right) => left.localeCompare(right))
-    .map(name => ({
-      name,
-      reasons: [
-        ...(reasons[name] ?? []),
-        ...(declared.includes(name) ? ["declared in secrets.require"] : []),
-      ],
-    }));
+    .map(name => ({ name, reasons: whyRequired(name, reasons, declared) }));
+}
+
+/**
+ * Why one name is required, never empty.
+ *
+ * `report` renders this as "NAME — required because <reasons>", so an empty
+ * list prints a sentence that stops mid-clause and tells the operator nothing
+ * about which line of config to change. A name can reach the required set
+ * through the floor without a routing reason — anything that hands `preflight`
+ * a `requiredFloor` it did not derive from `routing` does exactly that — so the
+ * renderer needs a cause it can always print.
+ * @param {string} name The credential name.
+ * @param {Record<string, string[]>} reasons Routing-derived causes.
+ * @param {string[]} declared Names listed in `secrets.require`.
+ * @returns {string[]} At least one reason.
+ */
+function whyRequired(name, reasons, declared) {
+  const causes = [
+    ...(reasons[name] ?? []),
+    ...(declared.includes(name) ? ["declared in secrets.require"] : []),
+  ];
+  return causes.length
+    ? causes
+    : ["it is in this project's resolved secrets floor"];
 }
 
 /**
@@ -198,17 +218,40 @@ function substrateSatisfies(name, probe) {
 }
 
 /**
+ * How long a substrate probe may take before it counts as no answer.
+ *
+ * `gh auth status` contacts GitHub, and this runs on the session-start path.
+ * Unbounded, a hung connection holds the session open for as long as the child
+ * lives — the `catch` cannot help, because it is only reached once the call
+ * returns. Five seconds is far beyond a healthy round trip and far below the
+ * point where a person concludes the agent is broken.
+ */
+const PROBE_TIMEOUT_MS = 5000;
+
+/**
  * Run a substrate probe, treating any failure as "did not satisfy".
  *
  * Output is discarded rather than captured. The probe's job is to answer a
  * yes/no question with its exit status, and a command that can print a
  * credential is one whose stdout should never enter this process.
+ *
+ * A timeout throws, which the catch maps to false — the fail-closed answer. The
+ * credential is then checked against the environment, the materialized file and
+ * the provider as if no substrate existed, so a slow network costs a stricter
+ * check rather than a wrong verdict.
+ *
+ * Exported so the bound itself can be proved against a real slow command. A
+ * timeout that only exists as an option object is a claim; one that has been
+ * watched cut a hanging child off is a control.
  * @param {{command: string, args: string[]}} substrate Probe definition.
  * @returns {boolean} True when the command exited zero.
  */
-function runProbe(substrate) {
+export function runProbe(substrate) {
   try {
-    execFileSync(substrate.command, substrate.args, { stdio: "ignore" });
+    execFileSync(substrate.command, substrate.args, {
+      stdio: "ignore",
+      timeout: PROBE_TIMEOUT_MS,
+    });
     return true;
   } catch {
     return false;
@@ -252,6 +295,29 @@ function main() {
   if (result.verdict !== "ok") process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Whether this module is the entry point node was asked to run.
+ *
+ * Both sides are realpath'd rather than compared as text: `import.meta.url` is
+ * the resolved path while `process.argv[1]` is whatever the caller typed, so a
+ * symlinked path — every git worktree, and every `/tmp` path on macOS — makes a
+ * raw comparison false. The module then loads, runs nothing, and exits 0, which
+ * is a readiness check reporting clean because it never ran. Same rule and same
+ * reasoning as `scripts/lib/invoked-as-script.mjs`, written out here because a
+ * plugin payload has no `./lib/` to import from.
+ * @param {string} moduleUrl This module's own `import.meta.url`.
+ * @param {string} [argv1] Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the CLI body should run.
+ */
+function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   main();
 }

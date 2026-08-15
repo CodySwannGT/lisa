@@ -63,8 +63,8 @@ export function routingFloor(routing = {}) {
   const tracker = normalize(routing.tracker);
   const source = normalize(routing.source);
   const names = [
-    ...(TRACKER_CREDENTIALS[tracker] ?? []),
-    ...(SOURCE_CREDENTIALS[source] ?? []),
+    ...credentialsFor(TRACKER_CREDENTIALS, tracker),
+    ...credentialsFor(SOURCE_CREDENTIALS, source),
   ];
   return [...new Set(names)].sort((left, right) => left.localeCompare(right));
 }
@@ -83,13 +83,32 @@ export function routingFloorReasons(routing = {}) {
   const tracker = normalize(routing.tracker);
   const source = normalize(routing.source);
   const reasons = {};
-  for (const name of TRACKER_CREDENTIALS[tracker] ?? []) {
+  for (const name of credentialsFor(TRACKER_CREDENTIALS, tracker)) {
     reasons[name] = [`tracker is "${tracker}"`];
   }
-  for (const name of SOURCE_CREDENTIALS[source] ?? []) {
+  for (const name of credentialsFor(SOURCE_CREDENTIALS, source)) {
     reasons[name] = [...(reasons[name] ?? []), `source is "${source}"`];
   }
   return reasons;
+}
+
+/**
+ * Look a vendor up without consulting anything it inherited.
+ *
+ * A routing value reaches these maps as an arbitrary string from a config file,
+ * and plain indexing answers `constructor` and `__proto__` with inherited
+ * members rather than with undefined — so `?? []` never fires and spreading the
+ * result throws `not iterable`. `routingFloor` runs inside `readConfig`, which
+ * means a typo in `tracker` would abort configuration loading with an
+ * iterability error, in place of the documented behavior: an unrecognised
+ * vendor contributes nothing, and routing dispatch reports the typo in its own
+ * vocabulary.
+ * @param {Record<string, string[]>} map Credential map to read.
+ * @param {string} key Normalized vendor name.
+ * @returns {string[]} Declared credentials, empty for anything not declared.
+ */
+function credentialsFor(map, key) {
+  return Object.hasOwn(map, key) ? map[key] : [];
 }
 
 /**

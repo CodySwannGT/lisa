@@ -103,6 +103,44 @@ A registry that disagrees with the repository is worse than a permissive one.
 found running `ast-grep scan` at commit — the registry was silently discarding a
 real gate, and was corrected rather than the repository.
 
+## The handover is one property at a time
+
+A git hook proves things the registry can also prove, so when a `gates` block
+takes a moment the hook's built-in steps must stand down — or the work is done
+twice. The question is what licenses that.
+
+**Not the runner's exit code.** Exit 0 says the gates that were *declared*
+passed. It says nothing about whether the block covers the properties the
+built-in steps prove, so using it as an all-or-nothing switch lets a block that
+declares `code-style` and is silent about `credential-leakage` delete the secret
+scan by omission. That is the subsystem's own defect class — a control
+returning success for an input it never examined.
+
+So the runner writes the properties it covers to the file named by
+`--coverage`, one gate id per line, and each built-in step consults only its
+own. A half-declared block loses nothing: the registry runs what it declares,
+the hook runs the rest. Three consequences fall out of it:
+
+- **The vocabulary is a contract.** `BUILTIN_FLOOR` and `CONDITIONAL_FLOOR` in
+  `lisa-run-gates.mjs` are the only ids a hook may name, and each entry records
+  the exact condition the shell branches on — a package script, or a file on
+  disk. A step whose property is not in that vocabulary always runs.
+- **Conditional steps are per project.** `lint:slow`, `knip`, `test:mutation`
+  and the derived-artifact check self-skip where they are unwired, so a project
+  without them loses nothing; a project *with* them is proving that property on
+  every push, and silence about the matching gate must not delete it.
+- **Some steps cannot be handed over at all.** The commit-time threshold
+  ratchet has no registry counterpart legal at `commit`
+  (`threshold-monotonicity` is push-onward and compares against `HEAD^`, while
+  the commit check compares the staged change), so it sits outside the handover
+  and always runs.
+
+Every route to "I do not know" — no coverage file, an empty one, a runner that
+could not run, an inexact match — runs the built-in step. A caller that does not
+pass `--coverage` is an older hook whose only lever is all-or-nothing, and for
+that one the runner still withholds the whole moment until the block is
+complete.
+
 ## Requirements follow the work, not the surface
 
 A gate declares `needs: {tools, secrets}`. Whatever runs at a moment therefore
@@ -144,7 +182,11 @@ vendors decorate their own strings (`Review rate limited (retry in 12m)`).
 
 **Count-shaped** (`run`): a gate declares what nonzero work proves it ran —
 tests executed, mutants generated, rules loaded, URLs scanned. Absent a count,
-work is **unknown**, which reports as hollow rather than passing.
+work is **unknown**, which should report as hollow rather than passing —
+**planned, not yet built**. `lisa-run-gates.mjs` carries the `work` phrase and
+classifies on the exit code alone, so today a `run` gate that did no work
+reports `passed`. Listed under Open items; the description-shaped half above
+is implemented.
 
 Three responses, per gate: `report` (default), `wait`, `block`. `wait` requires
 a bound — an unbounded wait blocks a pull request with no signal, and the
@@ -252,8 +294,14 @@ guess.
   `include: ["src/**/*"]`, `exclude: ["**/*.test.ts", ...]`), so the
   `🔍 Type Check` gate has never checked a test file. Three agents shipped
   `@returns {object}` without CI noticing.
-- `security:audit`, `check:work-item` and `check:thresholds` have no package
-  script, so three currently-required contexts cannot yet be derived.
+- `security:audit` has no package script, so the `dependency-vulnerability`
+  gate cannot yet be wired and its required context cannot be derived.
+  `check:work-item` and `check:thresholds` now exist in `package.json`.
+- Count-shaped hollow detection is **specified but not implemented** for `run`
+  gates. `lisa-run-gates.mjs` carries each gate's `work` phrase through
+  `resolveMoment` and never inspects it — it classifies purely on the exit
+  code, so a `run` gate that did no work reports `passed`, not hollow. Until a
+  count is read, that half of the model is a claim rather than a control.
 - A gate enforced *inside another job* (`conflict-residue` runs within the
   Plugin-artifacts job) has no context of its own, so it cannot be declared
   `required` without naming a context that does not exist.
