@@ -433,9 +433,49 @@ function main() {
   return 0;
 }
 
-const isDirectRun =
-  process.argv[1] &&
-  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
-if (isDirectRun) {
+/**
+ * True when `moduleUrl` names the module node was asked to run.
+ *
+ * The one implementation of this lives at `scripts/lib/invoked-as-script.mjs`,
+ * and every other shipped entry point imports it. This file cannot: it is
+ * materialized from `plugins/src/base/hooks/`, where it also runs as an
+ * agent-time hook, and a plugin payload has no `./lib/` to import from. So the
+ * rule is written out here rather than pointed at — the same accommodation
+ * `preflight-secrets.mjs` makes, for the same reason.
+ *
+ * Both sides are realpath'd. The previous spelling compared
+ * `fileURLToPath(import.meta.url)` against `path.resolve(process.argv[1])`, and
+ * `resolve` makes a path absolute without following symlinks. `import.meta.url`
+ * is the REAL path — node resolves ESM through realpath unless
+ * `--preserve-symlinks` or `--preserve-symlinks-main` is set — while `argv[1]`
+ * is whatever the caller typed. Reached through a symlinked checkout, a git
+ * worktree, or a `/tmp` path on macOS (`/tmp` being a symlink to `/private/tmp`),
+ * the two disagreed, `main()` never ran, and the process exited 0.
+ *
+ * For a CHECK that is a fail-OPEN, not a mild degradation: no output, exit 0,
+ * the npm script "succeeds", and the ratchet silently stops having an opinion.
+ * It was measured, not theorised — every control in the #2531 promotion tests
+ * no-opped until the fixture directory was realpath'd.
+ *
+ * Realpathing BOTH sides rather than only `argv[1]` matters under
+ * `--preserve-symlinks-main`, which tells node not to resolve the main entry:
+ * normalizing one side then compares a real path against a symlinked one and
+ * answers `false` for an entry point that WAS invoked directly. Any resolution
+ * error returns `false` — node loaded the entry from that path moments ago, so
+ * a path that will not resolve now is not the path this module came through.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(argv1) === fs.realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   process.exit(main());
 }

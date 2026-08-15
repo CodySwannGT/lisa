@@ -9079,6 +9079,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-promotion.test.ts": true,
+    "tests/unit/scripts/threshold-ratchet-symlinked-entry.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
