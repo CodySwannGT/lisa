@@ -64,15 +64,22 @@ fi
 
 # Check for Co-Authored-By line (skip for merge commits)
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+# `printf '%s\n'`, never `echo "$COMMIT_MSG"`. Under a POSIX/XSI `echo` the
+# backslash escapes are interpreted, and `\c` means "stop output here" — so a
+# message containing `\copy`, `\cite`, or a Windows path like `C:\config` is
+# silently truncated at that point before grep ever sees it. The
+# `Co-Authored-By:` trailer is always the last line, so it is always the part
+# lost, and the hook then rejects a commit whose trailer is present and
+# correctly formatted while pointing the author at the trailer.
 
 # Skip AI co-authorship check for merge commits (e.g., from git pull)
-if echo "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)"; then
+if printf '%s\n' "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)"; then
   echo "🔀 Merge commit detected, skipping AI co-authorship check"
   exit 0
 fi
 
 # Skip AI co-authorship check for automated release commits (e.g., from standard-version in CI)
-if echo "$COMMIT_MSG" | grep -qE "^chore\(release\):"; then
+if printf '%s\n' "$COMMIT_MSG" | grep -qE "^chore\(release\):"; then
   echo "🚀 Release commit detected, skipping AI co-authorship check"
   exit 0
 fi
@@ -83,7 +90,7 @@ echo "🤖 Checking for AI co-authorship..."
 # Claude Code emits "Co-Authored-By: Claude"; Codex can emit
 # "Co-authored-by: Codex <noreply@openai.com>"; OpenCode-authored commits
 # should identify OpenCode and include model/effort metadata trailers.
-if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex|OpenCode)"; then
+if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex|OpenCode)"; then
   echo ""
   echo "❌ Commit message must include AI co-authorship!"
   echo ""
@@ -106,15 +113,15 @@ if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex|OpenCode)"; 
   exit 1
 fi
 
-if echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*OpenCode"; then
+if printf '%s\n' "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*OpenCode"; then
   missing_opencode_metadata=0
-  if ! echo "$COMMIT_MSG" | grep -Eiq "^AI-Agent:[[:space:]]*OpenCode[[:space:]]*$"; then
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "^AI-Agent:[[:space:]]*OpenCode[[:space:]]*$"; then
     missing_opencode_metadata=1
   fi
-  if ! echo "$COMMIT_MSG" | grep -Eiq "^AI-Model:[[:space:]]*[^[:space:]].*$"; then
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "^AI-Model:[[:space:]]*[^[:space:]].*$"; then
     missing_opencode_metadata=1
   fi
-  if ! echo "$COMMIT_MSG" | grep -Eiq "^AI-Effort:[[:space:]]*[^[:space:]].*$"; then
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "^AI-Effort:[[:space:]]*[^[:space:]].*$"; then
     missing_opencode_metadata=1
   fi
 
