@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.17.3](https://github.com/CodySwannGT/lisa/compare/v3.17.2...v3.17.3) (2026-08-15)
+
+
+### Bug Fixes
+
+* **destructive-guard:** match capability names per segment, not whole ([713d689](https://github.com/CodySwannGT/lisa/commit/713d6891615691446776c3058e83abdf5928fbb9)), closes [TunnlAI/frontend#536](https://github.com/TunnlAI/frontend/issues/536) [CodySwannGT/lisa#2584](https://github.com/CodySwannGT/lisa/issues/2584) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
+* **hooks:** read the commit message with printf, not echo ([ed172e2](https://github.com/CodySwannGT/lisa/commit/ed172e2d3e455fd63372c3a519dcf8b593e71c2d)), closes [CodySwannGT/lisa#2143](https://github.com/CodySwannGT/lisa/issues/2143) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
+* **ratchet:** realpath both sides of the entry guard ([99b68c5](https://github.com/CodySwannGT/lisa/commit/99b68c56e7444c36a2f7091d16cf3c4bdf9450a0)), closes [#2531](https://github.com/CodySwannGT/lisa/issues/2531) [#2581](https://github.com/CodySwannGT/lisa/issues/2581) [CodySwannGT/lisa#2582](https://github.com/CodySwannGT/lisa/issues/2582) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
+* **work-item:** compare pull-request backlinks exactly, not by substring ([16a120d](https://github.com/CodySwannGT/lisa/commit/16a120dc944ec43f1f7360f5fc0ad59a5cde884a)), closes [#123](https://github.com/CodySwannGT/lisa/issues/123) [#12](https://github.com/CodySwannGT/lisa/issues/12) [CodySwannGT/lisa#2586](https://github.com/CodySwannGT/lisa/issues/2586) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
+
 ### [3.17.2](https://github.com/CodySwannGT/lisa/compare/v3.17.1...v3.17.2) (2026-08-15)
 
 
