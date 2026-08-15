@@ -999,9 +999,48 @@ function validateLive(ref, contract = trackerContract()) {
   }
 }
 
-function textContainsBacklink(value, prUrl) {
+/**
+ * Punctuation that can hug a URL in prose or markdown, stripped before compare.
+ *
+ * A URL is recognised as a whitespace-delimited token, so anything a writer
+ * wraps around it — `<url>`, a trailing full stop, a closing bracket — would
+ * otherwise make an exact comparison fail against a backlink that is perfectly
+ * valid. Being too strict here fails closed and merely annoys; being too loose
+ * is the defect below.
+ */
+const URL_EDGES = /^[<([]+|[>)\].,;:]+$/g;
+
+/**
+ * The URLs a comment offers as backlinks, as discrete tokens.
+ * @param {string} text Comment body.
+ * @returns {string[]} Whitespace-delimited tokens, trimmed of edge punctuation.
+ */
+function backlinkTokens(text) {
+  return text.split(/\s+/).map(token => token.replace(URL_EDGES, ""));
+}
+
+/**
+ * Whether a value carries a backlink to exactly this pull request.
+ *
+ * The comparison is token equality, not containment. `value.includes(prUrl)`
+ * was a substring test against a URL ending in the PR number, so a comment
+ * linking PR #123 satisfied the gate for PR #12 — `.../pull/12` is a prefix of
+ * `.../pull/123`. That is a fail-open in the check whose entire job is proving
+ * a change is bound to its own work item, and it fails silently: the check goes
+ * green and reports the binding verified.
+ *
+ * Both native paths already compare with `===`. Only this fallback was loose,
+ * and it is the path GitHub Issues actually uses, having no native PR-link
+ * field. Exported so the comparison can be asserted directly — a permissive
+ * comparison returns `true` rather than throwing, so nothing observable changes
+ * without an assertion on the returned boolean.
+ * @param {unknown} value Comment body, or a structure containing one.
+ * @param {string} prUrl The pull request URL that must be linked.
+ * @returns {boolean} True when this exact pull request is linked.
+ */
+export function textContainsBacklink(value, prUrl) {
   if (typeof value === "string")
-    return value.includes(MARKER) && value.includes(prUrl);
+    return value.includes(MARKER) && backlinkTokens(value).includes(prUrl);
   if (Array.isArray(value))
     return value.some(item => textContainsBacklink(item, prUrl));
   if (value && typeof value === "object")

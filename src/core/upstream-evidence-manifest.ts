@@ -13,7 +13,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
-      "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
+      "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -39,7 +39,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "b4e8aea72219f2c568429686a2ff1acd0da75ca26f244a66f3c4334297c8cd8e",
+      "83e7f1257bfee293bcdcdafef4272f40fcdca2d9e43ceb9df647c13c8277423d",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -711,7 +711,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
-      "1e46e6ca651e87e7814a4f486af5784ed2f7a8a48eadcaa7d3fef26e380929f9",
+      "693b16d982635eef3c2d7564069623058c22c09a5784ccb0db5003cd55cdc637",
     "plugins/src/base/hooks/threshold-ratchet.sh":
       "b86f4d0b554e44fd119ad8a8920cd0ba6c9dbe779f7ee219d381cf0629453990",
     "plugins/src/base/hooks/ticket-sync-reminder.sh":
@@ -2039,7 +2039,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/lefthook.yml":
       "3ae82d0a6ad86708d8ceaa1f9a3bbe12ef64e8fa12a0248bed5e3180bb431c68",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
+      "6bcf8b88b1d5ade1aa7c7902ba12af1df7b0b13d4e69c49a24f76a92474c93ec",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2249,7 +2249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "3ab9b5d3c3998307be86be038b39a945f542ff425f795f305db23ceba8eb21b7",
+      "85336c4d2c5bf5e16dd1b12b8c80668363d64b22e3c2e123955cf00e357fc22d",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
@@ -2307,7 +2307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
+      "6bcf8b88b1d5ade1aa7c7902ba12af1df7b0b13d4e69c49a24f76a92474c93ec",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "0cddac03366644cdc99cc239e74520ac420d475b461a40a21728e43756872b07",
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -9016,6 +9016,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
     "tests/unit/scripts/derived-artifact-staleness.test.ts": true,
+    "tests/unit/scripts/destructive-capability-compound-names.test.ts": true,
     "tests/unit/scripts/destructive-production-guard.test.ts": true,
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
@@ -9078,11 +9079,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-promotion.test.ts": true,
+    "tests/unit/scripts/threshold-ratchet-symlinked-entry.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
