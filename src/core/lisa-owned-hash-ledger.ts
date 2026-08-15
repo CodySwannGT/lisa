@@ -188,6 +188,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "7249cbe9f8fddfa6087331fa7fccd9df9813f5ba764623b747273a0ebbcbb576",
     "79b646d543b541c096d79526fa09dbda3408667ba1a99ee833f94668b181433b",
     "7d89a49da89895a3e377702d0049e1dbcc7ea666dcfa3749874f0986db31ee1a",
+    "9195c267d98f2fa8071fc0bd2d5623a7ab82f82d136bdb23061f89a2c1db6efe",
     "dbca450e5a17133841ab015e71808feb028996f8297fda362dbeca4f07af2352",
     "e7d928c3b2d878c7a9ec9589894dfc3feaba54b8913c87be0550c34a1431ed9f",
   ]),
@@ -259,10 +260,13 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "a630bde6cddae283776b8d34763a3642edbea8096d583a90ec6d43a9588ca8a6",
   ]),
   "scripts/lisa-reconcile-policy.mjs": Object.freeze([
+    "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
     "4b383ff960d7da53e0dd46e37632ef55c5a38b004fb4aabfe91a25a9fe02d88f",
     "9b613888c4c1cc6cc2b1fb6e162a4c766012eab0ec4f8b7f2ac1bc3da6622c97",
   ]),
   "scripts/lisa-run-gates.mjs": Object.freeze([
+    "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
+    "c705d400f51a3a08ada085fc1107c3dce558f9a717528fc1fe9315aa6b97a5e6",
     "e00f16cdc399c8ee61c7a3972469fbb4b662e0fff00bd9d3d6910f3f27a5f04c",
     "e429308896cf0450b2e5dfae9a580dde1a8da351503998c07ca3506e8b2ffdce",
   ]),

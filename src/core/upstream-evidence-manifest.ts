@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "e7d928c3b2d878c7a9ec9589894dfc3feaba54b8913c87be0550c34a1431ed9f",
+      "9195c267d98f2fa8071fc0bd2d5623a7ab82f82d136bdb23061f89a2c1db6efe",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -33,9 +33,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "9b613888c4c1cc6cc2b1fb6e162a4c766012eab0ec4f8b7f2ac1bc3da6622c97",
+      "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "e00f16cdc399c8ee61c7a3972469fbb4b662e0fff00bd9d3d6910f3f27a5f04c",
+      "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -699,7 +699,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.sh":
       "d9ea58150aa27e7f0aa9a4ef155ed446d30bdfc932d01c64e2b8ca211aa0de7b",
     "plugins/src/base/hooks/secrets-preflight.sh":
-      "a693b8514f8f04dcde324e7a9e9ccb79c3558298a9fe39f92fbae4d4601d9df6",
+      "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
     "plugins/src/base/hooks/shell-write-nudge.sh":
@@ -1249,7 +1249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
-      "693f58abc32d6316fc069ffcb07a4fd0b6d5af7e229293b3bc5cb786877470b1",
+      "a42b69ddac1ab9a03cd5dc15707563fd75d8661437bb2113219cffd1baa3363d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
@@ -1261,7 +1261,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "546dc1c2f279cee6db56c0f55c01aabae0c316842f32d3219c5af6d638936a9c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs":
-      "f4e1897e8a148e0dfb7c67b856ae56a0cce43261abce25a6cbb5b88f5c79e98b",
+      "fa1bdeda4e38bbd149f993ab0288f11b7ba6f2a3b9bf91a5918de7356e21f786",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "945957bbb54d184a07703cf727844f0838810d33dd385b068934b571252934e6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
@@ -1311,7 +1311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
       "3b9be11691d81a896fc779c37fb6d69e8e7222f95e23f84aa03d4e590f9d9108",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
-      "2013d95e670f80a3a69065e42a67214046fb9f910895cf567c19019474c93279",
+      "eb8ee672fbfdb0ab41dde5f17337dae59912f18eafa6f15a05fd203906d16352",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
       "b4b831f8900360bbb36922edcddaef6bbe4b3730cb21cf0a365d76b914bcbe4e",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
@@ -2253,9 +2253,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
-      "d6d0a217c8a801691a50722c9d6cca3d86e8d82543693985107318645c43d490",
+      "c29bb23a8466dd7f1e04ecbd2df5faaa5eb286f261cff948b9451430c0ca716b",
     "typescript/copy-contents/.husky/pre-push":
-      "1695372d3ba33b164c313c42887e82aa9c56757a22edde3110dcb5a5cfa489d9",
+      "13da67af0060558dd0a81320efe2719ff23ca3e8488000479e063f5ae9025f2c",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -8930,6 +8930,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback-status-aggregation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
+    "tests/unit/hooks/gate-coverage-handover.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
@@ -8945,6 +8946,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/pre-push-audit-transport-parity.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
+    "tests/unit/hooks/secrets-preflight-hook.test.ts": true,
     "tests/unit/hooks/sonar-secrets.test.ts": true,
     "tests/unit/hooks/support/direct-issue-create.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
@@ -9034,7 +9036,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-units.test.ts": true,
+    "tests/unit/scripts/lisa-reconcile-policy-verdicts.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates.test.ts": true,
@@ -9096,6 +9100,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/neutral-tenant-var.test.ts": true,
     "tests/unit/secrets/note-enforcement-parity.test.ts": true,
     "tests/unit/secrets/note-format.test.ts": true,
+    "tests/unit/secrets/preflight-hardening.test.ts": true,
     "tests/unit/secrets/preflight-secrets.test.ts": true,
     "tests/unit/secrets/preflight-tools.test.ts": true,
     "tests/unit/secrets/profile-sourcing.test.ts": true,

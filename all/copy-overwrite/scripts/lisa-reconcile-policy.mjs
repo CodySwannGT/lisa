@@ -47,6 +47,27 @@
  * read in the audit log as a routine reconciliation. So the default is: add,
  * report, and require a human to ask for the removal.
  *
+ * That is also why an EXTRA context does not FAIL `on_drift: block`. It is
+ * reported by name in every mode, and it still makes the verdict DRIFT — there
+ * genuinely is a difference between the declaration and the repository. But
+ * blocking on it would make `block` a mode no repository with a SonarCloud or
+ * CodeRabbit check can ever satisfy, since by construction nothing declares
+ * those and this script refuses to remove them. A check that cannot pass while
+ * the repository is correct gets one fix from whoever is blocked by it —
+ * `--prune`, or deleting the check — and both of those lose protection. So
+ * `block` fails on the drift a repair could converge: MISSING contexts, and
+ * settings drift. Under `--prune` an EXTRA becomes removable, and therefore
+ * blocking, because the operator has said it should be.
+ *
+ * ## Only a workflow context is pinned to the Actions app
+ *
+ * A required check can name the app allowed to post it. Every context Lisa
+ * derives from a `run` gate is posted by GitHub Actions, so it is pinned. An
+ * `await` gate's context is posted by somebody else entirely — that is what
+ * awaiting means — and pinning `CodeRabbit` to the Actions integration would
+ * require a status that the only app able to post it can never satisfy. Those
+ * are added unpinned, which is GitHub's "any source".
+ *
  * ## The alias window
  *
  * `--previous=a,b` is passed through to `contextsFor`'s `previousLabels`, which
@@ -76,15 +97,23 @@
  *                             [--dry-run] [--prune] [--json]
  *
  * Exit codes:
- *   0  matched, or drift under `repair`/`report`
- *   1  drift under `block`, or a repair write that failed
+ *   0  matched, or drift under `repair`/`report`, or EXTRA-only drift under
+ *      `block`
+ *   1  convergeable drift under `block`, or a repair write that failed
  *   2  UNPROVEN — nothing was measured
  * @module lisa-reconcile-policy
  */
 
 import { spawnSync } from "node:child_process";
 
-import { contextsFor, POLICY_SCHEMA, readGates } from "./lisa-gates.mjs";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
+import {
+  contextsFor,
+  POLICY_SCHEMA,
+  readGates,
+  resolveMoment,
+} from "./lisa-gates.mjs";
 
 /**
  * A ruleset as GitHub returns it. Permissive on purpose: the API adds fields,
@@ -175,6 +204,9 @@ import { contextsFor, POLICY_SCHEMA, readGates } from "./lisa-gates.mjs";
  * @property {boolean} dryRun Whether writing was suppressed.
  * @property {boolean} prune Whether EXTRA contexts may be removed.
  * @property {string} verdict One of `VERDICT`.
+ * @property {boolean|null} blocking Whether the measured drift is the kind a
+ *   repair could converge, and therefore the kind `block` fails on. Null when
+ *   nothing was measured, for the same reason the sets are.
  * @property {Unproven|null} unproven Why nothing was measured, when nothing was.
  * @property {ContextDrift|null} contexts Context comparison, or null.
  * @property {SettingsDrift|null} settings Policy comparison, or null.
@@ -619,23 +651,50 @@ export function repairTarget(rulesets, named = null) {
 }
 
 /**
+ * The contexts at this moment that some other app posts.
+ *
+ * An `await` gate names a signal Lisa does not produce — `CodeRabbit`,
+ * `SonarCloud Code Analysis`. The name travels separately from the derived list
+ * because by the time `contextsFor` has flattened both kinds to strings, the
+ * one fact a writer needs about them — who is allowed to post this — is gone.
+ * @param {object} gates The gates block.
+ * @param {string} moment The moment contexts were derived for.
+ * @returns {string[]} Awaited context names, required ones only.
+ */
+export function awaitedContexts(gates, moment) {
+  return resolveMoment({ gates, moment })
+    .filter(gate => gate.level === "required" && gate.mode === "await")
+    .map(gate => gate.awaits)
+    .filter(Boolean);
+}
+
+/**
  * Rewrite a ruleset's required contexts, returning a writable payload.
  * @param {Ruleset} ruleset The live ruleset.
  * @param {object} [options] Edit inputs.
  * @param {string[]} [options.add] Contexts to require.
  * @param {string[]} [options.remove] Contexts to stop requiring.
+ * @param {string[]} [options.awaited] Of `add`, the ones an external app posts.
  * @returns {Ruleset} A payload with read-only fields stripped.
  */
-export function rulesetPayload(ruleset, { add = [], remove = [] } = {}) {
+export function rulesetPayload(
+  ruleset,
+  { add = [], remove = [], awaited = [] } = {}
+) {
   const payload = structuredClone(ruleset);
   for (const field of READ_ONLY_RULESET_FIELDS) delete payload[field];
 
   const rules = payload.rules ?? [];
   const rule = rules.find(entry => entry?.type === "required_status_checks");
-  const additions = add.map(context => ({
-    context,
-    integration_id: ACTIONS_INTEGRATION_ID,
-  }));
+  // Pinning the integration is what stops another writer satisfying a check
+  // Actions is supposed to post. Applied to an awaited context it does the
+  // opposite: it names the one app that will never post it, and the required
+  // check then blocks every pull request forever.
+  const additions = add.map(context =>
+    awaited.includes(context)
+      ? { context }
+      : { context, integration_id: ACTIONS_INTEGRATION_ID }
+  );
 
   if (!rule) {
     payload.rules = [
@@ -678,9 +737,17 @@ export function rulesetPayload(ruleset, { add = [], remove = [] } = {}) {
  * @param {LivePolicy} options.live Result of `readLivePolicy`.
  * @param {boolean} options.prune Whether EXTRA contexts may be removed.
  * @param {string|null} options.rulesetName Explicit target ruleset.
+ * @param {string[]} [options.awaited] Contexts an external app posts.
  * @returns {RepairAction[]} Planned actions.
  */
-export function planRepairs({ contexts, settings, live, prune, rulesetName }) {
+export function planRepairs({
+  contexts,
+  settings,
+  live,
+  prune,
+  rulesetName,
+  awaited = [],
+}) {
   const plan = [];
   const removable = prune ? contexts.extra.map(entry => entry.context) : [];
 
@@ -698,6 +765,7 @@ export function planRepairs({ contexts, settings, live, prune, rulesetName }) {
         payload: rulesetPayload(ruleset, {
           add: contexts.missing,
           remove: removable,
+          awaited,
         }),
       });
     }
@@ -812,6 +880,8 @@ export function applyRepairs({ repo, gh, plan }) {
  * @param {boolean} [options.prune] Allow removal of EXTRA contexts.
  * @param {string} [options.onDrift] Override `policy.on_drift`.
  * @param {string|null} [options.rulesetName] Explicit repair target.
+ * @param {boolean} [options.ghMissing] Whether resolving `repo` failed because
+ *   `gh` is not installed, rather than because nothing named the repository.
  * @returns {Reconciliation} The reconciliation result.
  */
 export function reconcile({
@@ -826,6 +896,7 @@ export function reconcile({
   prune = false,
   onDrift = policy?.on_drift ?? "repair",
   rulesetName = null,
+  ghMissing = false,
 }) {
   const declared = contextsFor(gates, { moment, workflowName, previousLabels });
   const base = { repo, moment, declared, onDrift, dryRun, prune };
@@ -834,10 +905,14 @@ export function reconcile({
     return {
       ...base,
       verdict: VERDICT.UNPROVEN,
+      blocking: null,
       unproven: unproven(
-        UNPROVEN.NO_REPO,
-        "no OWNER/NAME could be resolved from --repo, .lisa.config.json " +
-          "(github.org + github.repo), or `gh repo view`"
+        ghMissing ? UNPROVEN.NO_CLI : UNPROVEN.NO_REPO,
+        ghMissing
+          ? "no OWNER/NAME was configured and `gh repo view` could not be " +
+              "asked, because the gh executable was not found on PATH"
+          : "no OWNER/NAME could be resolved from --repo, .lisa.config.json " +
+              "(github.org + github.repo), or `gh repo view`"
       ).unproven,
       contexts: null,
       settings: null,
@@ -852,6 +927,7 @@ export function reconcile({
     return {
       ...base,
       verdict: VERDICT.UNPROVEN,
+      blocking: null,
       unproven: live.unproven,
       contexts: null,
       settings: null,
@@ -866,8 +942,22 @@ export function reconcile({
     contexts.missing.length > 0 ||
     contexts.extra.length > 0 ||
     settings.drift.length > 0;
+  // Every difference is DRIFT and every difference is reported. Only the part a
+  // repair could converge decides `block`, so the mode stays passable on a
+  // repository whose only EXTRA is a check this script refuses to remove.
+  const blocking =
+    contexts.missing.length > 0 ||
+    settings.drift.length > 0 ||
+    (prune && contexts.extra.length > 0);
   const plan = drifted
-    ? planRepairs({ contexts, settings, live, prune, rulesetName })
+    ? planRepairs({
+        contexts,
+        settings,
+        live,
+        prune,
+        rulesetName,
+        awaited: awaitedContexts(gates, moment),
+      })
     : [];
   const outcomes =
     drifted && onDrift === "repair" && !dryRun
@@ -877,6 +967,7 @@ export function reconcile({
   return {
     ...base,
     verdict: drifted ? VERDICT.DRIFT : VERDICT.MATCHED,
+    blocking,
     unproven: null,
     contexts,
     settings,
@@ -898,10 +989,16 @@ export function reconcile({
 export function exitCodeFor(result) {
   if (result.verdict === VERDICT.UNPROVEN) return 2;
   if (result.verdict === VERDICT.MATCHED) return 0;
-  if (result.outcomes.some(outcome => outcome.note && !outcome.applied)) {
-    return 1;
-  }
-  return result.onDrift === "block" ? 1 : 0;
+  // A `manual` outcome is an instruction printed for a human, and `applyRepairs`
+  // records it as `applied: false` because nothing was written — not because a
+  // write was attempted and refused. Counting it as a failed write reports the
+  // routine EXTRA-context notice as a broken repair, which `render` already
+  // knows better than to do.
+  const writeFailed = result.outcomes.some(
+    outcome => outcome.action.kind !== "manual" && !outcome.applied
+  );
+  if (writeFailed) return 1;
+  return result.onDrift === "block" && result.blocking ? 1 : 0;
 }
 
 /**
@@ -957,6 +1054,16 @@ export function render(result) {
         : `  FAILED   ${describePlan(outcome.action)}: ${outcome.note}`
     );
   }
+  if (result.onDrift === "block" && result.verdict === VERDICT.DRIFT) {
+    lines.push(
+      result.blocking
+        ? `  (on_drift=block: this run FAILS.)`
+        : `  (on_drift=block: this run passes. The only difference is EXTRA ` +
+            `context(s), which this script will not remove and which nothing ` +
+            `declares — blocking on them would leave --prune as the only way ` +
+            `out, and that deletes live protection.)`
+    );
+  }
   if (result.dryRun) lines.push(`  (--dry-run: nothing was written)`);
   return lines.join("\n");
 }
@@ -979,15 +1086,22 @@ function describePlan(action) {
 
 /**
  * Resolve `OWNER/NAME` from a flag, the config, or `gh`.
+ *
+ * Reports WHY it failed, not just that it did. A machine with no `gh` and no
+ * `github` block in its config fails here first, and collapsing that into "no
+ * repository could be resolved" sends the reader to edit a config file when the
+ * fix is installing a CLI — the same conflation `ghRunner` exists to avoid one
+ * layer down.
  * @param {string|null} flagged An explicit `--repo`.
  * @param {object} config Parsed `.lisa.config.json`.
  * @param {Function} gh Injected runner.
- * @returns {string|null} The repository, or null when nothing resolved it.
+ * @returns {{repo: string|null, ghMissing: boolean}} The repository, or null
+ *   with the reason it stayed null.
  */
 export function resolveRepo(flagged, config, gh) {
-  if (flagged) return flagged;
+  if (flagged) return { repo: flagged, ghMissing: false };
   const { org, repo } = config?.github ?? {};
-  if (org && repo) return `${org}/${repo}`;
+  if (org && repo) return { repo: `${org}/${repo}`, ghMissing: false };
   let result;
   try {
     result = gh([
@@ -999,10 +1113,10 @@ export function resolveRepo(flagged, config, gh) {
       ".nameWithOwner",
     ]);
   } catch {
-    return null;
+    return { repo: null, ghMissing: false };
   }
   const name = result?.ok ? result.stdout.trim() : "";
-  return name || null;
+  return { repo: name || null, ghMissing: Boolean(result?.missing) };
 }
 
 /**
@@ -1020,8 +1134,10 @@ function main() {
     throw new Error(`--on-drift must be one of ${ON_DRIFT.join(", ")}`);
   }
 
+  const { repo, ghMissing } = resolveRepo(flag("repo"), config, ghRunner);
   const result = reconcile({
-    repo: resolveRepo(flag("repo"), config, ghRunner),
+    repo,
+    ghMissing,
     gates,
     policy,
     gh: ghRunner,
@@ -1048,7 +1164,7 @@ function main() {
   process.exitCode = exitCodeFor(result);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (invokedAsScript(import.meta.url)) {
   try {
     main();
   } catch (err) {

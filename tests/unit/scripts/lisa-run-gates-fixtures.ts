@@ -7,7 +7,7 @@
  */
 
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -52,6 +52,7 @@ export const LINT_COMMAND = `${RUNNER} ${LINT_TASK}`;
 export const LEAKAGE = "credential-leakage";
 export const LEAKAGE_COMMAND = `${RUNNER} security:check-for-leaks`;
 export const FORMAT = "format-conformance";
+export const STRUCTURAL = "structural-rules";
 export const STYLE = "code-style";
 export const COMMIT = "commit";
 export const PUSH = "push";
@@ -70,16 +71,25 @@ export const SCRIPT = path.join(
  * No configuration passed in reaches a state where a gate command could run.
  * @param config Contents for `.lisa.config.json`, or null to omit the file.
  * @param moment The moment to ask for.
+ * @param files Extra files to place, keyed by path relative to the project
+ *   root. The conditional floor is decided by what a project has wired, so
+ *   proving it needs a project that has wired something.
  * @returns The finished child process.
  */
 export function runCli(
   config: string | null,
-  moment: string
+  moment: string,
+  files: Record<string, string> = {}
 ): SpawnSyncReturns<string> {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-run-gates-"));
   try {
     if (config !== null) {
       writeFileSync(path.join(root, ".lisa.config.json"), config);
+    }
+    for (const [relative, contents] of Object.entries(files)) {
+      const target = path.join(root, relative);
+      mkdirSync(path.dirname(target), { recursive: true });
+      writeFileSync(target, contents);
     }
     return spawnSync(process.execPath, [SCRIPT, `--moment=${moment}`], {
       cwd: root,

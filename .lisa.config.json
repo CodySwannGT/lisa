@@ -9,7 +9,7 @@
       "addRequiredChecks": {
         "quality checks": [
           {
-            "context": "🧩 Plugin artifacts match source",
+            "context": "\ud83e\udde9 Plugin artifacts match source",
             "integration_id": 15368
           }
         ]
@@ -81,7 +81,10 @@
   "gates": {
     "runner": "bun run",
     "code-style": {
-      "commit": "required",
+      "commit": {
+        "level": "required",
+        "run": "lint:staged"
+      },
       "pull-request": "required"
     },
     "code-style-slow": {
@@ -100,7 +103,8 @@
     },
     "test-correctness": {
       "push": "required",
-      "pull-request": "required"
+      "pull-request": "required",
+      "run": "test:cov"
     },
     "test-integration": {
       "push": "required",

@@ -34,7 +34,10 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { readGates, resolveMoment } from "./lisa-gates.mjs";
 
 /**
@@ -67,16 +70,26 @@ export const EXIT = Object.freeze({
  * reporting a clean run. Deleting a guarantee is not something a partial
  * migration should be able to do by omission.
  *
- * Listed here are only the steps the built-in path always attempts. The
- * conditional ones (`lint:slow`, `knip`, `test:mutation`, the threshold
- * ratchet) self-skip when unconfigured, so their absence from a gates block is
- * not evidence of anything.
+ * Listed here are only the steps the built-in path always attempts. The ones
+ * that run only when the project wired them live in `CONDITIONAL_FLOOR`,
+ * because "this project has no `lint:slow` script" and "this project has one
+ * and the registry is silent about it" are opposite situations.
+ *
+ * Together the two lists are also the vocabulary of `--coverage`: a hook can
+ * only stand a built-in step down against a name that appears here, so a
+ * property omitted from these lists is one whose step always runs.
+ *
+ * `structural-rules` is on the commit list because `.lintstagedrc.json` runs
+ * `ast-grep scan` on every staged file unconditionally — the same evidence that
+ * made the registry declare the gate commit-legal. Leaving it off meant
+ * lint-staged proved a property no list named.
  */
 export const BUILTIN_FLOOR = Object.freeze({
   commit: Object.freeze([
     "code-style",
     "credential-leakage",
     "format-conformance",
+    "structural-rules",
   ]),
   push: Object.freeze([
     "coverage-adequacy",
@@ -84,6 +97,56 @@ export const BUILTIN_FLOOR = Object.freeze({
     "test-correctness",
     "test-integration",
     "type-correctness",
+  ]),
+});
+
+/**
+ * Floor properties whose built-in step runs only when the project wired it.
+ *
+ * The unconditional floor above answers "would the built-in path prove this
+ * anywhere". This one answers it for THIS project, which is the question that
+ * actually decides whether handing the moment over loses a guarantee. A
+ * repository with a `lint:slow` script has slow lint proved on every push; if
+ * its gates block is silent about `code-style-slow`, exiting 0 deletes that
+ * proof and nothing replaces it. A repository without the script loses
+ * nothing, because the built-in step prints "skipping" and moves on.
+ *
+ * Keyed by what the hook itself tests: a package script for the `$RUNNER`
+ * steps, a file on disk for the `node scripts/...` ones. Read the hook, not
+ * the intention — these two lists are one contract expressed twice, and the
+ * only defence against drift is that each entry names the exact condition the
+ * shell branches on.
+ *
+ * The commit-time threshold ratchet is deliberately absent: it has no registry
+ * counterpart that is legal at `commit` (`threshold-monotonicity` is
+ * push-onward, and the commit check compares STAGED changes rather than
+ * `HEAD^`), so it cannot be handed over at all. The hook runs it outside the
+ * handover instead.
+ */
+export const CONDITIONAL_FLOOR = Object.freeze({
+  commit: Object.freeze([
+    Object.freeze({
+      id: "artifact-freshness",
+      scripts: Object.freeze([]),
+      files: Object.freeze(["scripts/check-derived-artifacts.mjs"]),
+    }),
+  ]),
+  push: Object.freeze([
+    Object.freeze({
+      id: "code-style-slow",
+      scripts: Object.freeze(["lint:slow"]),
+      files: Object.freeze([]),
+    }),
+    Object.freeze({
+      id: "dead-code",
+      scripts: Object.freeze(["knip:check", "knip"]),
+      files: Object.freeze([]),
+    }),
+    Object.freeze({
+      id: "test-meaningfulness",
+      scripts: Object.freeze(["test:mutation"]),
+      files: Object.freeze([]),
+    }),
   ]),
 });
 
@@ -311,11 +374,73 @@ export function runGates({
  * @param {object} options Inputs.
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment being run.
- * @returns {string[]} Undeclared floor gate ids, sorted.
+ * @param {string[]} [options.wired] Conditional floor ids this project wired,
+ *   from `wiredConditionalFloor`. Empty by default so the comparison stays
+ *   pure: what the project has installed is a separate reading of the disk.
+ * @returns {string[]} Undeclared floor gate ids.
  */
-export function undeclaredFloor({ gates, moment }) {
-  const floor = BUILTIN_FLOOR[moment] ?? [];
+export function undeclaredFloor({ gates, moment, wired = [] }) {
+  const floor = [...(BUILTIN_FLOOR[moment] ?? []), ...wired];
   return floor.filter(id => gates?.[id]?.[moment] === undefined);
+}
+
+/**
+ * Floor properties this moment's gates block DOES declare — its exact
+ * complement, and the answer `--coverage` writes out.
+ *
+ * Presence, not level, for the same reason: `"off"` is a decision on the
+ * record. A property declared off is one the project has said it does not want
+ * proved, and the built-in step standing down is that decision taking effect;
+ * silence is the case where nobody decided anything, and there the step runs.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment being run.
+ * @param {string[]} [options.wired] Conditional floor ids this project wired.
+ * @returns {string[]} Declared floor gate ids.
+ */
+export function coveredFloor({ gates, moment, wired = [] }) {
+  const floor = [...(BUILTIN_FLOOR[moment] ?? []), ...wired];
+  return floor.filter(id => gates?.[id]?.[moment] !== undefined);
+}
+
+/**
+ * Which conditional floor steps this project has actually wired.
+ *
+ * An unreadable `package.json` counts every scripted entry as wired. The
+ * question being answered is "may this moment be handed to the registry", and
+ * the answer under uncertainty has to be no — guessing "not wired" would hand
+ * over a moment whose built-in steps might have been proving something.
+ * @param {object} options Inputs.
+ * @param {string} options.moment The moment being run.
+ * @param {string} [options.cwd] Project root.
+ * @returns {string[]} Conditional floor gate ids in force here.
+ */
+export function wiredConditionalFloor({ moment, cwd = process.cwd() }) {
+  const scripts = readPackageScripts(cwd);
+  return (CONDITIONAL_FLOOR[moment] ?? [])
+    .filter(
+      entry =>
+        entry.files.some(file => existsSync(join(cwd, file))) ||
+        entry.scripts.some(
+          name => scripts === null || Object.hasOwn(scripts, name)
+        )
+    )
+    .map(entry => entry.id);
+}
+
+/**
+ * The `scripts` block of a project's `package.json`.
+ * @param {string} cwd Project root.
+ * @returns {Record<string, string>|null} The scripts, or null when unreadable.
+ */
+function readPackageScripts(cwd) {
+  const path = join(cwd, "package.json");
+  if (!existsSync(path)) return {};
+  try {
+    return JSON.parse(readFileSync(path, "utf8"))?.scripts ?? {};
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -334,13 +459,35 @@ function spawnExec(command) {
 }
 
 /**
- * Read `--moment=<value>` from the argument list.
+ * Read a `--name=<value>` flag from the argument list.
  * @param {string[]} argv Arguments after the script name.
- * @returns {string|null} The moment, or null when absent.
+ * @param {string} name Flag name, without dashes.
+ * @returns {string|null} The value, or null when the flag is absent.
  */
-function readMoment(argv) {
-  const hit = argv.find(arg => arg.startsWith("--moment="));
-  return hit ? hit.slice("--moment=".length) : null;
+function readFlag(argv, name) {
+  const hit = argv.find(arg => arg.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : null;
+}
+
+/**
+ * Write the covered ids where the calling hook can read them.
+ *
+ * One id per line and nothing else — no diagnostics, no blank-line padding —
+ * because the reader is `grep -Fqx` in a shell, and anything else in this file
+ * is something a hook could mistake for a property it may stand down.
+ * @param {string} path File to write.
+ * @param {string[]} ids Covered gate ids.
+ * @returns {boolean} Whether the file was written.
+ */
+function writeCoverage(path, ids) {
+  try {
+    writeFileSync(path, ids.length ? `${ids.join("\n")}\n` : "");
+    return true;
+  } catch (err) {
+    console.error(`⚠️  Could not record gate coverage: ${err.message}`);
+    console.error("   The built-in checks will all run.");
+    return false;
+  }
 }
 
 /**
@@ -348,9 +495,13 @@ function readMoment(argv) {
  * @returns {number} The process exit code.
  */
 function main() {
-  const moment = readMoment(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const moment = readFlag(argv, "moment");
+  const coveragePath = readFlag(argv, "coverage");
   if (!moment) {
-    console.error("usage: lisa-run-gates.mjs --moment=<moment>");
+    console.error(
+      "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>]"
+    );
     return EXIT.RUNNER_FAILED;
   }
 
@@ -368,14 +519,38 @@ function main() {
   // The gates BLOCK is the migration switch. Its absence means this project
   // has not adopted the registry, so the caller must run its hardcoded steps.
   if (!config.gates || Object.keys(config.gates).length === 0) {
+    if (coveragePath) writeCoverage(coveragePath, []);
     return EXIT.NO_GATES;
   }
 
-  // A half-written block is an unmigrated project, not a migrated one with
-  // fewer guarantees. Fall back rather than let omission delete a property,
-  // and name what is missing so finishing the migration is a mechanical edit.
-  const missing = undeclaredFloor({ gates: config.gates, moment });
-  if (missing.length) {
+  const wired = wiredConditionalFloor({ moment });
+  const missing = undeclaredFloor({ gates: config.gates, moment, wired });
+
+  // `--coverage` is how a caller says "I skip my built-in steps ONE AT A TIME,
+  // against the names in this file". Such a caller does not need the moment
+  // withheld from it: a property it never sees named keeps its own step, so a
+  // half-written block loses nothing and the project gets the gates it did
+  // declare. Without the flag the caller is an older hook whose only lever is
+  // all-or-nothing, and for that one the moment is still withheld below.
+  if (coveragePath) {
+    if (
+      !writeCoverage(
+        coveragePath,
+        coveredFloor({ gates: config.gates, moment, wired })
+      )
+    ) {
+      return EXIT.RUNNER_FAILED;
+    }
+    if (missing.length) {
+      console.log(
+        `ℹ️  The gates block says nothing about ${missing.join(", ")} at ` +
+          `${moment}; the built-in check for ${missing.length === 1 ? "it" : "each of them"} still runs.`
+      );
+    }
+  } else if (missing.length) {
+    // A half-written block is an unmigrated project, not a migrated one with
+    // fewer guarantees. Fall back rather than let omission delete a property,
+    // and name what is missing so finishing the migration is a mechanical edit.
     console.log(
       `ℹ️  The gates block says nothing about ${missing.join(", ")} at ` +
         `${moment}, and the built-in checks prove ${missing.length === 1 ? "it" : "them"}.`
@@ -405,7 +580,14 @@ function main() {
   return result.blocked ? EXIT.BLOCKED : EXIT.PROVED;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Through the shared helper, not a hand-rolled comparison: a guard that
+// answers "no" for an entry point reached through a symlink — which is every
+// git worktree, and every /tmp path on macOS — makes this module load, run
+// nothing, and exit 0, which the hooks read as "every required gate was
+// proved" and skip every built-in check on. The most dangerous shape of the
+// defect this subsystem exists to stop, in the file that decides whether the
+// others run.
+if (invokedAsScript(import.meta.url)) {
   try {
     process.exit(main());
   } catch (err) {

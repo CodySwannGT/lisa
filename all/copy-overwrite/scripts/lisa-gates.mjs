@@ -74,6 +74,9 @@ export const MOMENTS = [
 /** Moment families that take an `:<environment>` suffix. */
 export const MOMENT_FAMILIES = ["pre-deploy", "post-deploy"];
 
+/** Keys on a gate entry that are settings rather than moments. */
+export const GATE_FIELDS = new Set(["run", "needs", "task"]);
+
 /** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
 
@@ -544,7 +547,21 @@ function validateGate(id, gate) {
   problems.push(...validateNeeds(id, gate));
 
   for (const [moment, value] of Object.entries(gate)) {
-    if (!isMoment(moment)) continue;
+    // A key that is neither a known field nor a well-formed moment is a typo,
+    // and skipping it silently is the hole this validator exists to close:
+    // `pull_request` with an underscore reads as a configured gate and enables
+    // nothing at all. Same shape as a misspelled gate id, one level down.
+    if (!isMoment(moment)) {
+      if (!GATE_FIELDS.has(moment)) {
+        const near = nearest(moment, [...MOMENTS, ...MOMENT_FAMILIES]);
+        problems.push(
+          `gates."${id}"."${moment}" is not a moment Lisa knows` +
+            (near ? `. Did you mean "${near}"?` : "") +
+            ` Nothing runs at it, so whatever it was meant to enable is off.`
+        );
+      }
+      continue;
+    }
     problems.push(
       ...validateMoment(id, moment, value, known, interceptor, gate.run)
     );

@@ -26,6 +26,7 @@ import {
   LEAKAGE,
   REQUIRED_AT_COMMIT,
   runCli,
+  STRUCTURAL,
   STYLE,
 } from "./lisa-run-gates-fixtures.js";
 
@@ -36,7 +37,7 @@ describe("a half-written gates block cannot delete a guarantee", () => {
         gates: { [STYLE]: REQUIRED_AT_COMMIT },
         moment: COMMIT,
       })
-    ).toEqual([LEAKAGE, FORMAT]);
+    ).toEqual([LEAKAGE, FORMAT, STRUCTURAL]);
   });
 
   it("counts an explicit off as a decision, not as silence", () => {
@@ -46,6 +47,9 @@ describe("a half-written gates block cannot delete a guarantee", () => {
           [STYLE]: REQUIRED_AT_COMMIT,
           [LEAKAGE]: { commit: "off" },
           [FORMAT]: REQUIRED_AT_COMMIT,
+          // lint-staged runs `ast-grep scan` on every staged file, so the
+          // structural-rules property is one of the things it proves.
+          [STRUCTURAL]: REQUIRED_AT_COMMIT,
         },
         moment: COMMIT,
       })

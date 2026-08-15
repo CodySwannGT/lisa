@@ -52,55 +52,90 @@ fi
 # what runs at the `commit` moment, not the hardcoded list further down.
 #
 # BACKWARD COMPATIBILITY — read before changing any of this. Most installed
-# projects have NO `gates` block. The switch between the two paths is explicit:
+# projects have NO `gates` block. The exit codes are the switch:
 #
-#   exit 0  → every required gate was proved. Skip the hardcoded steps.
+#   exit 0  → the declared gates at this moment ran and none of them blocked.
 #   exit 1  → a required gate FAILED. Block the commit.
-#   exit 78 → the registry declined this moment — either no `gates` block at
-#             all, or a block that says nothing about a property the steps
-#             below prove. Run them, exactly as before. The runner prints
-#             which it was.
+#   exit 78 → there is no `gates` block at all. Nothing is covered.
 #   other   → the runner itself could not run (config unreadable, crash).
-#             Nothing was proved. Say so loudly and run the hardcoded steps.
+#             Nothing was proved. Say so loudly and cover nothing.
 #
-# A runner that never ran is never treated as "all gates passed". That is why
-# only a literal 0 sets LISA_GATES_RAN.
+# ONE STEP AT A TIME, NOT ALL OR NOTHING. Exit 0 says the declared gates
+# passed. It does not say the registry covers every property the steps below
+# prove — so it cannot be the thing that skips them wholesale. A block that
+# declares `code-style` and says nothing about `credential-leakage` would then
+# delete the secret scan by omission, which is the failure this whole subsystem
+# exists to prevent: a control returning success for an input it never
+# examined.
+#
+# So the runner writes the properties it covers into $LISA_GATE_COVERAGE, one
+# gate id per line, and every built-in step below stands down only against its
+# OWN property. A half-declared block therefore loses nothing: the registry
+# runs what it declares and the built-ins run the rest.
+#
+# Fail-safe by construction: no coverage file, an empty one, a runner that
+# could not run, or no exact match, all mean the built-in step runs.
 # ---------------------------------------------------------------------------
-LISA_GATES_RAN=0
 GATE_RUNNER="scripts/lisa-run-gates.mjs"
 if [ ! -f "$GATE_RUNNER" ]; then
   GATE_RUNNER="all/copy-overwrite/scripts/lisa-run-gates.mjs"
 fi
+LISA_GATE_COVERAGE=""
 if [ -f "$GATE_RUNNER" ] && command -v node >/dev/null 2>&1; then
-  node "$GATE_RUNNER" --moment=commit
+  LISA_GATE_COVERAGE="$(mktemp "${TMPDIR:-/tmp}/lisa-gate-coverage.XXXXXXXX")" || LISA_GATE_COVERAGE=""
+  trap 'rm -f "$LISA_GATE_COVERAGE"' EXIT
+  if [ -n "$LISA_GATE_COVERAGE" ]; then
+    node "$GATE_RUNNER" --moment=commit --coverage="$LISA_GATE_COVERAGE"
+  else
+    # No temp file, so nothing can be covered and every built-in step runs.
+    node "$GATE_RUNNER" --moment=commit
+  fi
   GATE_STATUS=$?
-  if [ $GATE_STATUS -eq 0 ]; then
-    LISA_GATES_RAN=1
-  elif [ $GATE_STATUS -eq 1 ]; then
+  if [ $GATE_STATUS -eq 1 ]; then
     echo ""
     echo "❌ Commit blocked: a required gate failed. See the FAILED line above."
     echo ""
     exit 1
-  elif [ $GATE_STATUS -eq 78 ]; then
-    echo "ℹ️  The gate registry did not take this moment; running the built-in checks."
-  else
-    echo ""
-    echo "⚠️  The gate runner could not run (exit $GATE_STATUS)."
-    echo "   Nothing was proved by the gate registry — this is NOT a pass."
-    echo "   Running the built-in checks instead."
-    echo ""
+  fi
+  if [ $GATE_STATUS -ne 0 ]; then
+    # Anything other than a clean run: discard whatever is in the file. A
+    # runner that crashed midway may have written coverage before it failed,
+    # and coverage from a run that did not finish is not evidence.
+    if [ -n "$LISA_GATE_COVERAGE" ]; then
+      : > "$LISA_GATE_COVERAGE"
+    fi
+    if [ $GATE_STATUS -ne 78 ]; then
+      echo ""
+      echo "⚠️  The gate runner could not run (exit $GATE_STATUS)."
+      echo "   Nothing was proved by the gate registry — this is NOT a pass."
+      echo "   Running the built-in checks instead."
+      echo ""
+    fi
   fi
 else
   echo "ℹ️  Gate runner unavailable; running the built-in checks."
 fi
 
-if [ "$LISA_GATES_RAN" -eq 0 ]; then
-# BEGIN: built-in checks — the pre-registry path, kept byte-for-byte so a
+# Whether a declared gate covers every property named, so the built-in step
+# that proves them can stand down. Exact whole-line matching: a gate id that is
+# a prefix of another must never satisfy it.
+lisa_gate_covers() {
+  [ -n "$LISA_GATE_COVERAGE" ] || return 1
+  [ -s "$LISA_GATE_COVERAGE" ] || return 1
+  for _lisa_gate in "$@"; do
+    grep -Fqx -- "$_lisa_gate" "$LISA_GATE_COVERAGE" || return 1
+  done
+  return 0
+}
+
+# BEGIN: built-in checks — the pre-registry path, kept step for step so a
 # project without a `gates` block behaves exactly as it did before.
 
 # Check for Gitleaks and run secret detection
 echo "🔐 Checking for secrets with Gitleaks..."
-if command -v gitleaks >/dev/null 2>&1; then
+if lisa_gate_covers credential-leakage; then
+  echo "ℹ️  Covered by the credential-leakage gate; the built-in scan stands down."
+elif command -v gitleaks >/dev/null 2>&1; then
   # Run gitleaks on staged files. Lisa keeps the host-owned allowlist in
   # .gitleaksignore and shared managed entries in .gitleaksignore.local.
   GITLEAKS_IGNORE_ARGS=""
@@ -164,10 +199,49 @@ fi
 #   exit 1
 # fi
 
+# Run lint-staged for incremental lint and format checks. It proves three
+# properties in one pass — oxlint/eslint, prettier, and `ast-grep scan` — so it
+# stands down only when a gate is declared for every one of them.
+if lisa_gate_covers code-style format-conformance structural-rules; then
+  echo "ℹ️  Lint, format and structural rules are covered by gates; lint-staged stands down."
+else
+  echo "🚀 Running lint-staged..."
+  $EXECUTOR lint-staged --config .lintstagedrc.json
+  LINT_STAGED_STATUS=$?
+  if [ $LINT_STAGED_STATUS -ne 0 ]; then
+    exit $LINT_STAGED_STATUS
+  fi
+fi
+
+# Generated artifacts must vouch for the bytes committed beside them. Runs AFTER
+# lint-staged on purpose: reformatting a staged template moves its bytes, so a
+# check placed above would sign off on bytes that no longer exist. Absent in host
+# projects, which have the hook but none of Lisa's generators.
+if lisa_gate_covers artifact-freshness; then
+  echo "ℹ️  Covered by the artifact-freshness gate; the built-in check stands down."
+elif [ -f "scripts/check-derived-artifacts.mjs" ] && command -v node >/dev/null 2>&1; then
+  echo "🧾 Checking generated artifacts..."
+  node scripts/check-derived-artifacts.mjs --staged
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
+fi
+
+# END: built-in checks
+
 # Threshold ratchet: quality thresholds may tighten, never weaken. The staged
 # change is compared against HEAD by the same deterministic comparator the
 # agent-time hooks and CI run; human-approved exceptions live in
 # .lisa.config.json under thresholdRatchet.allow.
+#
+# OUTSIDE the gate-registry handover, deliberately. Every other built-in step
+# here has a registry gate that can replace it, so the runner refuses to take
+# the moment until the block declares one — see BUILTIN_FLOOR and
+# CONDITIONAL_FLOOR in lisa-run-gates.mjs. This one has no such counterpart:
+# `threshold-monotonicity` is push-onward and compares against HEAD^, while
+# this compares the STAGED change. Leaving it inside the handover would let a
+# complete gates block delete it at commit with nothing put in its place, which
+# is precisely the deletion-by-omission the floor exists to prevent.
 if [ -f "scripts/check-threshold-ratchet.mjs" ] && command -v node >/dev/null 2>&1; then
   echo "📐 Checking threshold ratchet..."
   node scripts/check-threshold-ratchet.mjs --staged
@@ -179,28 +253,5 @@ if [ -f "scripts/check-threshold-ratchet.mjs" ] && command -v node >/dev/null 2>
     echo ""
     exit 1
   fi
-fi
-
-# Run lint-staged for incremental lint and format checks
-echo "🚀 Running lint-staged..."
-$EXECUTOR lint-staged --config .lintstagedrc.json
-LINT_STAGED_STATUS=$?
-if [ $LINT_STAGED_STATUS -ne 0 ]; then
-  exit $LINT_STAGED_STATUS
-fi
-
-# Generated artifacts must vouch for the bytes committed beside them. Runs AFTER
-# lint-staged on purpose: reformatting a staged template moves its bytes, so a
-# check placed above would sign off on bytes that no longer exist. Absent in host
-# projects, which have the hook but none of Lisa's generators.
-if [ -f "scripts/check-derived-artifacts.mjs" ] && command -v node >/dev/null 2>&1; then
-  echo "🧾 Checking generated artifacts..."
-  node scripts/check-derived-artifacts.mjs --staged
-  if [ $? -ne 0 ]; then
-    exit 1
-  fi
-fi
-
-# END: built-in checks
 fi
 # END: AI GUARDRAILS
