@@ -48,20 +48,6 @@ const SHIPPED_SCRIPT_DIRS = [
 ] as const;
 
 /**
- * `check-threshold-ratchet.mjs` and its two sibling modules are materialized
- * from `plugins/src/base/hooks/`, where they also RUN as agent-time hooks. A
- * `./lib/` import there would have to resolve inside the plugin payload, which
- * is a larger change than this one; until that happens they keep their own
- * guard and are excused here by name rather than by a pattern that would also
- * excuse a future offender silently.
- */
-const MATERIALIZED_FROM_HOOKS = new Set([
-  "check-threshold-ratchet.mjs",
-  "threshold-ratchet-compare.mjs",
-  "threshold-ratchet-families.mjs",
-]);
-
-/**
  * Guard spellings that are wrong, each matched by shape rather than by exact
  * text so a reformat cannot slip one past.
  */
@@ -276,9 +262,17 @@ describe("shared entry guard wiring", () => {
   });
 
   it("leaves no hand-rolled entry guard in any shipped .mjs", () => {
+    // The only exemption is defining the rule rather than importing it. Three
+    // threshold-ratchet modules used to be excused BY NAME, because they are
+    // materialized from `plugins/src/base/hooks/` where a `./lib/` import
+    // cannot resolve inside the plugin payload. That exemption is retired: the
+    // one that has an entry point now writes the guard out inline, and the two
+    // sibling modules turned out to have no entry guard at all — they are
+    // imported, never invoked — so there was nothing to excuse. A name-based
+    // exemption is worth removing on its own account: it excuses a FILE rather
+    // than a reason, so it keeps excusing that file after the reason expires.
     const subjects = SHIPPED_SCRIPT_DIRS.flatMap(shippedModules).filter(
       relativePath =>
-        !MATERIALIZED_FROM_HOOKS.has(path.basename(relativePath)) &&
         !read(relativePath).includes("export function invokedAsScript")
     );
     const offenders = subjects.flatMap(guardOffences);

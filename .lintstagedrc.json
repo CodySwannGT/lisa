@@ -1,7 +1,7 @@
 {
   "*.{js,mjs,ts,tsx}": [
     "oxlint --fix --no-error-on-unmatched-pattern",
-    "eslint --quiet --cache --fix --no-error-on-unmatched-pattern --no-warn-ignored",
+    "eslint --quiet --cache --fix --no-error-on-unmatched-pattern --no-warn-ignored --no-config-lookup -c eslint.config.ts",
     "ast-grep scan"
   ],
   "*.{json,mjs,js,ts,jsx,tsx,html,md,mdx,css,scss,yaml,yml,graphql}": [
