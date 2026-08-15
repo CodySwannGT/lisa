@@ -17,7 +17,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "7249cbe9f8fddfa6087331fa7fccd9df9813f5ba764623b747273a0ebbcbb576",
+      "7d89a49da89895a3e377702d0049e1dbcc7ea666dcfa3749874f0986db31ee1a",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8982,6 +8982,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
+    "tests/unit/scripts/lisa-gates-fixtures.ts": true,
+    "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
     "tests/unit/scripts/lisa-gates.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,

@@ -1,46 +1,80 @@
 /**
- * Tests for the gate registry and resolver.
+ * Tests for the gate registry, policy schema, and config-key audit.
  *
- * The assertions that matter most are about the failure modes this design
+ * The assertions that carry weight are the ones about failure modes this design
  * exists to prevent: a misspelled gate id must not read as an enabled
- * guarantee, a gate enabled with nothing to run must not pass silently, and a
- * renamed CI job must be able to keep its old branch-protection context alive
- * while the fleet catches up.
+ * guarantee, an awaited check that can never fire must be refused, an unbounded
+ * wait must be refused, and a gate that is `off` must never produce a
+ * branch-protection context — because a skipped required check counts as
+ * satisfied on GitHub.
  * @module tests/unit/scripts/lisa-gates
  */
 
 import { describe, expect, it } from "vitest";
 
 import {
-  contextsFor,
-  gateFloor,
+  auditConfigKeys,
+  isMoment,
   REGISTRY,
-  resolveStage,
   validateGates,
+  validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  LOCAL_REVIEW,
+  NATIVE_E2E_TASK,
+  PRE_DEPLOY_PROD,
+  PULL_REQUEST,
+  REVIEW_BOT,
+} from "./lisa-gates-fixtures.js";
 
-const QUALITY = "🔍 Quality Checks";
-const MUTATION_TASK = "test:mutation";
+/**
+ * Registry lookup that keeps TypeScript out of the way in assertions.
+ * @param id - Gate id to look up
+ * @returns The registry definition for that gate
+ */
+const definition = (id: string) =>
+  (REGISTRY as Record<string, { moments: string[] }>)[id];
 
 describe("REGISTRY", () => {
-  it("marks intercepting gates as lisa-implemented", () => {
-    // These refuse an action before it happens. A project task cannot do that:
-    // by the time it ran, the thing it prevents has already run.
-    const intercepting = [
-      "verification-bypass",
-      "destructive-safety",
-      "instruction-integrity",
-    ] as const;
-    for (const id of intercepting) {
-      expect(REGISTRY[id].implementation).toBe("lisa");
-    }
-  });
-
-  it("gives every gate a label, since rulesets match by exact string", () => {
+  it("gives every gate a label, summary, task and legal moments", () => {
     for (const [id, gate] of Object.entries(REGISTRY)) {
       expect(gate.label, id).toBeTruthy();
       expect(gate.summary, id).toBeTruthy();
+      expect(gate.task, id).toBeTruthy();
+      expect(gate.moments.length, id).toBeGreaterThan(0);
     }
+  });
+
+  it("confines deploy-only gates to deploy moments", () => {
+    // Nothing is deployed at commit time for a DAST scan to point at.
+    for (const id of [
+      "runtime-web-vulnerability",
+      "performance-budget",
+      "load-capacity",
+      "accessibility",
+    ]) {
+      expect(definition(id).moments, id).toEqual(["pre-deploy", "post-deploy"]);
+    }
+  });
+
+  it("keeps type-aware lint out of commit", () => {
+    expect(definition("code-style-slow").moments).not.toContain("commit");
+  });
+});
+
+describe("isMoment", () => {
+  it("accepts fixed moments and environment-suffixed families", () => {
+    expect(isMoment("commit")).toBe(true);
+    expect(isMoment(PRE_DEPLOY_PROD)).toBe(true);
+    expect(isMoment("post-deploy:staging")).toBe(true);
+  });
+
+  it("rejects a family with no environment", () => {
+    expect(isMoment("pre-deploy")).toBe(false);
+  });
+
+  it("rejects an invented moment", () => {
+    expect(isMoment("on-save")).toBe(false);
   });
 });
 
@@ -51,232 +85,239 @@ describe("validateGates", () => {
         "credential-leakage": {
           run: "security:check-for-leaks",
           commit: "required",
-          ci: { pull_request: "required" },
+          [PULL_REQUEST]: "required",
         },
       })
     ).toEqual([]);
   });
 
-  it("rejects an unknown gate id and suggests the nearest real one", () => {
-    // The failure this prevents is invisible: a misspelled gate reads as an
-    // enabled guarantee and runs nothing at all.
-    const problems = validateGates({ "credential-leakge": { run: "x" } });
+  it("rejects an unknown gate id and suggests the nearest", () => {
+    const problems = validateGates({
+      "credential-leakge": { commit: "required" },
+    });
     expect(problems.join(" ")).toContain("not a gate Lisa knows");
     expect(problems.join(" ")).toContain('Did you mean "credential-leakage"?');
   });
 
-  it("accepts a custom gate behind the x- prefix", () => {
+  it("redirects a policy-enforced guarantee to the policy block", () => {
+    // Nothing runs and nothing produces a verdict; the response to a violation
+    // is to repair a setting, not to block a change.
+    const problems = validateGates({
+      "review-completion": { [PULL_REQUEST]: "required" },
+    });
+    expect(problems.join(" ")).toContain("repository policy, not a gate");
+    expect(problems.join(" ")).toContain('Declare it under "policy"');
+  });
+
+  it("rejects an illegal moment for the gate", () => {
+    const problems = validateGates({
+      "code-style-slow": { run: "lint:slow", commit: "required" },
+    });
+    expect(problems.join(" ")).toContain('cannot run at "commit"');
+    expect(problems.join(" ")).toContain("Legal moments: push");
+  });
+
+  it("rejects a deploy-only gate at pull-request", () => {
+    const problems = validateGates({
+      "load-capacity": { [PULL_REQUEST]: "required" },
+    });
+    expect(problems.join(" ")).toContain('cannot run at "pull-request"');
+  });
+
+  it("accepts a deploy gate at an environment-suffixed moment", () => {
     expect(
       validateGates({
-        "x-vendor-policy": {
-          run: "policy:check",
-          ci: { pull_request: "optional" },
+        "load-capacity": { [PRE_DEPLOY_PROD]: "required" },
+      })
+    ).toEqual([]);
+  });
+
+  it("rejects awaiting a signal before a pull request exists", () => {
+    // An awaited check that can never fire is a declared guarantee that never
+    // runs — the silent hole in its purest form.
+    const problems = validateGates({
+      "code-review": { push: { level: "required", await: REVIEW_BOT } },
+    });
+    expect(problems.join(" ")).toContain("no pull request yet");
+  });
+
+  it("accepts a gate proved differently at different moments", () => {
+    expect(
+      validateGates({
+        "code-review": {
+          push: { level: "optional", run: LOCAL_REVIEW },
+          [PULL_REQUEST]: { level: "required", await: REVIEW_BOT },
         },
       })
     ).toEqual([]);
   });
 
-  it("does not suggest a gate when nothing is close", () => {
-    const problems = validateGates({ "totally-unrelated-thing": { run: "x" } });
-    expect(problems.join(" ")).toContain("not a gate Lisa knows");
-    expect(problems.join(" ")).not.toContain("Did you mean");
+  it("rejects declaring both provers at one moment", () => {
+    const problems = validateGates({
+      "code-review": {
+        [PULL_REQUEST]: {
+          level: "required",
+          await: REVIEW_BOT,
+          run: LOCAL_REVIEW,
+        },
+      },
+    });
+    expect(problems.join(" ")).toContain("one prover");
   });
 
-  it("rejects a gate that is enabled but names nothing to run", () => {
-    const problems = validateGates({ "code-style": { commit: "required" } });
-    expect(problems.join(" ")).toContain('names no "run" task');
+  it("rejects an unbounded wait", () => {
+    // A pull request blocked with no signal, whose fastest fix is deleting the
+    // requirement — which is how a gate ends up removed rather than satisfied.
+    const problems = validateGates({
+      "code-review": {
+        [PULL_REQUEST]: {
+          level: "required",
+          await: REVIEW_BOT,
+          evidence: { on_hollow: "wait" },
+        },
+      },
+    });
+    expect(problems.join(" ")).toContain("wait_minutes is not a positive");
   });
 
-  it("does not demand a run task for a gate Lisa implements", () => {
+  it("accepts a bounded wait", () => {
     expect(
       validateGates({
-        "verification-bypass": { agent: { PreToolUse: "required" } },
+        "code-review": {
+          [PULL_REQUEST]: {
+            level: "required",
+            await: REVIEW_BOT,
+            evidence: {
+              on_hollow: "wait",
+              wait_minutes: 30,
+              on_timeout: "block",
+            },
+          },
+        },
       })
     ).toEqual([]);
   });
 
-  it("rejects delegating a gate that must intercept", () => {
+  it("rejects an unknown hollow response", () => {
+    const problems = validateGates({
+      "code-review": {
+        [PULL_REQUEST]: {
+          level: "required",
+          await: REVIEW_BOT,
+          evidence: { on_hollow: "ignore" },
+        },
+      },
+    });
+    expect(problems.join(" ")).toContain("expected report, wait, block");
+  });
+
+  it("rejects a non-UPPER_SNAKE needed secret", () => {
+    const problems = validateGates({
+      "e2e-native": {
+        run: NATIVE_E2E_TASK,
+        needs: { secrets: ["maestro-key"] },
+        [PULL_REQUEST]: "optional",
+      },
+    });
+    expect(problems.join(" ")).toContain("UPPER_SNAKE_CASE");
+  });
+
+  it("rejects delegating an interceptor to a task", () => {
     const problems = validateGates({
       "verification-bypass": {
         run: "security:no-verify",
-        agent: { PreToolUse: "required" },
+        "pre-tool": "required",
       },
     });
     expect(problems.join(" ")).toContain("cannot be delegated");
   });
 
-  it("rejects an unknown enforcement level", () => {
-    const problems = validateGates({
-      "code-style": { run: "lint", commit: "yes" },
-    });
-    expect(problems.join(" ")).toContain("expected required, optional, off");
-  });
-
-  it("rejects an unknown agent event", () => {
-    const problems = validateGates({
-      "code-style": { run: "lint", agent: { OnSave: "required" } },
-    });
-    expect(problems.join(" ")).toContain('event "OnSave"');
-  });
-
-  it("reports every problem rather than the first", () => {
-    const problems = validateGates({
-      "code-style": { run: "lint", commit: "maybe" },
-      "unknown-gate": {},
-    });
-    expect(problems.length).toBeGreaterThan(1);
-  });
-});
-
-describe("resolveStage", () => {
-  const gates = {
-    "code-style": {
-      run: "lint",
-      commit: "required",
-      ci: { pull_request: "required" },
-    },
-    "test-meaningfulness": {
-      run: MUTATION_TASK,
-      ci: { pull_request: "optional" },
-    },
-    "dead-code": { run: "knip", commit: "off" },
-    "verification-bypass": { agent: { PreToolUse: "required" } },
-  };
-
-  it("returns only gates enabled at the stage, with their command", () => {
-    const resolved = resolveStage({
-      gates,
-      stage: "commit",
-      runner: "bun run",
-    });
-    expect(resolved).toEqual([
-      {
-        id: "code-style",
-        level: "required",
-        run: "lint",
-        command: "bun run lint",
-        label: "🧹 Lint",
-      },
-    ]);
-  });
-
-  it("treats an explicit off exactly like an absent stage", () => {
-    const resolved = resolveStage({ gates, stage: "push" });
-    expect(resolved).toEqual([]);
-  });
-
-  it("resolves an agent event", () => {
-    const resolved = resolveStage({ gates, stage: "agent:PreToolUse" });
-    expect(resolved.map(gate => gate.id)).toEqual(["verification-bypass"]);
-    expect(resolved[0]?.command).toBeNull();
-  });
-
-  it("resolves a ci environment and keeps the level distinct", () => {
-    const resolved = resolveStage({ gates, stage: "ci:pull_request" });
-    expect(resolved.map(gate => [gate.id, gate.level])).toEqual([
-      ["code-style", "required"],
-      ["test-meaningfulness", "optional"],
-    ]);
-  });
-
-  it("returns nothing for an environment no gate names", () => {
-    expect(resolveStage({ gates, stage: "ci:production" })).toEqual([]);
-  });
-});
-
-describe("contextsFor", () => {
-  const gates = {
-    "code-style": { run: "lint", ci: { pull_request: "required" } },
-    "test-meaningfulness": {
-      run: MUTATION_TASK,
-      ci: { pull_request: "optional" },
-    },
-  };
-
-  it("derives required contexts, so the list stops being transcribed by hand", () => {
-    expect(contextsFor(gates, { workflowName: QUALITY })).toEqual([
-      `${QUALITY} / 🧹 Lint`,
-    ]);
-  });
-
-  it("omits optional gates, which are not merge blockers", () => {
-    expect(contextsFor(gates, { workflowName: QUALITY })).not.toContain(
-      `${QUALITY} / 🧬 Mutation Testing Gate`
-    );
-  });
-
-  it("keeps a retired label alive during a rename", () => {
-    // Downstream repositories call the shared workflow unpinned, so a rename
-    // lands everywhere before any ruleset is reconciled. Both contexts must
-    // report or pull requests wait indefinitely — and the fastest way out of
-    // that is deleting the requirement, which is how a rename removes a gate.
-    const contexts = contextsFor(gates, {
-      workflowName: QUALITY,
-      previousLabels: ["🧹 Lint (legacy)"],
-    });
-    expect(contexts).toContain(`${QUALITY} / 🧹 Lint`);
-    expect(contexts).toContain(`${QUALITY} / 🧹 Lint (legacy)`);
-  });
-
-  it("de-duplicates when a retired label equals a current one", () => {
-    const contexts = contextsFor(gates, {
-      workflowName: QUALITY,
-      previousLabels: ["🧹 Lint"],
-    });
-    expect(contexts).toEqual([`${QUALITY} / 🧹 Lint`]);
-  });
-
-  it("scopes contexts to one environment", () => {
-    // A gate required before a production deploy is not thereby a merge
-    // blocker on a pull request. Collapsing the two would silently promote
-    // every deploy-time gate into branch protection.
-    const deployOnly = {
-      "test-meaningfulness": {
-        run: MUTATION_TASK,
-        ci: { pull_request: "optional", production: "required" },
-      },
-    };
-    expect(contextsFor(deployOnly, { workflowName: QUALITY })).toEqual([]);
+  it("accepts an interceptor declaring only where it is enforced", () => {
     expect(
-      contextsFor(deployOnly, {
-        workflowName: QUALITY,
-        environment: "production",
-      })
-    ).toEqual([`${QUALITY} / 🧬 Mutation Testing Gate`]);
+      validateGates({ "verification-bypass": { "pre-tool": "required" } })
+    ).toEqual([]);
   });
 
-  it("requires a gate once even when several environments require it", () => {
-    const contexts = contextsFor(
-      {
-        "code-style": {
-          run: "lint",
-          ci: { pull_request: "required", production: "required" },
-        },
-      },
-      { workflowName: QUALITY }
-    );
-    expect(contexts).toEqual([`${QUALITY} / 🧹 Lint`]);
+  it("accepts a custom gate behind the x- prefix", () => {
+    expect(
+      validateGates({
+        "x-vendor-policy": { run: "policy:check", [PULL_REQUEST]: "optional" },
+      })
+    ).toEqual([]);
+  });
+
+  it("rejects a custom gate with no prover, since Lisa has no default", () => {
+    const problems = validateGates({
+      "x-vendor-policy": { [PULL_REQUEST]: "optional" },
+    });
+    expect(problems.join(" ")).toContain("names no prover");
   });
 });
 
-describe("gateFloor", () => {
-  it("implies traceability from a declared tracker", () => {
-    expect(gateFloor({ tracker: "github" })).toEqual({
-      traceability: 'tracker is "github"',
-    });
+describe("validatePolicy", () => {
+  it("accepts a well-formed policy", () => {
+    expect(
+      validatePolicy({
+        merge: {
+          squash: true,
+          merge_commit: false,
+          delete_branch_on_merge: true,
+        },
+        protect: { force_push: false, up_to_date_before_merge: true },
+        on_drift: "repair",
+      })
+    ).toEqual([]);
   });
 
-  it("implies credential readiness from a real provider", () => {
-    expect(gateFloor({ secrets: { provider: "bitwarden" } })).toHaveProperty(
-      "credential-availability"
+  it("rejects an unknown section with a suggestion", () => {
+    expect(validatePolicy({ merg: { squash: true } }).join(" ")).toContain(
+      'Did you mean "merge"?'
     );
   });
 
-  it("does not imply credential readiness from the env provider", () => {
-    expect(gateFloor({ secrets: { provider: "env" } })).toEqual({});
+  it("rejects an unknown setting", () => {
+    expect(
+      validatePolicy({ merge: { squash_merge: true } }).join(" ")
+    ).toContain("not a setting Lisa manages");
   });
 
-  it("implies nothing from an empty config", () => {
-    expect(gateFloor({})).toEqual({});
+  it("rejects a wrongly typed setting", () => {
+    expect(validatePolicy({ merge: { squash: "yes" } }).join(" ")).toContain(
+      "must be a boolean, got string"
+    );
+  });
+
+  it("rejects an unknown drift response", () => {
+    expect(validatePolicy({ on_drift: "ignore" }).join(" ")).toContain(
+      "expected repair, report, block"
+    );
+  });
+});
+
+describe("auditConfigKeys", () => {
+  it("says nothing about keys Lisa reads", () => {
+    expect(
+      auditConfigKeys({ tracker: "github", gates: {}, policy: {} })
+    ).toEqual([]);
+  });
+
+  it("catches a typo that would otherwise look like configuration", () => {
+    // `"trackr": "github"` produced no error, no warning, and every skill
+    // failing with "'tracker' is not set".
+    const findings = auditConfigKeys({ trackr: "github" });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.message).toContain('Did you mean "tracker"?');
+  });
+
+  it("names a retired key and what replaced it", () => {
+    const findings = auditConfigKeys({
+      projectRulesFile: ".claude/rules/X.md",
+    });
+    expect(findings[0]?.message).toContain("retired");
+    expect(findings[0]?.message).toContain(".agents/rules/");
+  });
+
+  it("ignores Lisa's metadata namespace and the project's own", () => {
+    expect(auditConfigKeys({ _lisaSync: {}, "x-internal": {} })).toEqual([]);
   });
 });
