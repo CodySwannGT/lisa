@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.15.1](https://github.com/CodySwannGT/lisa/compare/v3.15.0...v3.15.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **scripts:** realpath both sides of the entry guard, not just argv[1] ([c5be727](https://github.com/CodySwannGT/lisa/commit/c5be727a817e4e80dedeb16f51602484d970fcc8)), closes [#2581](https://github.com/CodySwannGT/lisa/issues/2581) [CodySwannGT/lisa#2580](https://github.com/CodySwannGT/lisa/issues/2580)
+* **scripts:** ship the shared entry guard and cell escaper Lisa's consumers import ([cd66132](https://github.com/CodySwannGT/lisa/commit/cd661320486681ce31e498713f338383108b583b)), closes [#2577](https://github.com/CodySwannGT/lisa/issues/2577) [CodySwannGT/lisa#2580](https://github.com/CodySwannGT/lisa/issues/2580)
+
 ## [3.15.0](https://github.com/CodySwannGT/lisa/compare/v3.14.8...v3.15.0) (2026-08-14)
 
 
