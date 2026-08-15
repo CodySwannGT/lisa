@@ -18,6 +18,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { bootstrapKeyFor } from "./providers.mjs";
+import { routingFloor } from "./routing-floor.mjs";
 
 /**
  * Capabilities, per surface.
@@ -188,7 +189,7 @@ export function materializedPaths(namespace, env = process.env) {
  * provider means the environment *is* the provider. A credentials manager is
  * the preferred path, never a required one.
  * @param {string} [cwd] Directory to look in.
- * @returns {object} Resolved configuration with defaults applied.
+ * @returns {{provider: string, bootstrap: {sources: string[], key: string|null}, require: string[]|null, requiredFloor: readonly string[], rotating: string[], namespace: string, narrow: object, surface: string, routing: {tracker?: string, source?: string}, capabilities: object}} Resolved configuration with defaults applied.
  */
 export function readConfig(cwd = process.cwd(), env = process.env) {
   const path = join(cwd, ".lisa.config.json");
@@ -203,13 +204,19 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   // so they can come from the environment instead. Everything else keeps its
   // default, and an environment that sets neither still gets the old behaviour.
   if (!existsSync(path)) return withSurface(fromEnvironment(env));
-  let cfg;
+  let root;
   try {
-    cfg = JSON.parse(readFileSync(path, "utf8")).secrets;
+    root = JSON.parse(readFileSync(path, "utf8"));
   } catch (err) {
     throw new Error(`.lisa.config.json is not readable: ${err.message}`);
   }
-  if (!cfg) return withSurface(DEFAULTS);
+  const cfg = root.secrets;
+  // Read outside the `secrets` block on purpose. The routing that implies a
+  // credential is declared once, at the top level, and restating it under
+  // `secrets` would be a second copy free to disagree with the one every other
+  // skill dispatches on.
+  const routing = { tracker: root.tracker, source: root.source };
+  if (!cfg) return withSurface({ ...DEFAULTS, routing });
   const provider = cfg.provider ?? DEFAULTS.provider;
   const namespace = assertNamespace(cfg.namespace ?? DEFAULTS.namespace);
   return withSurface({
@@ -221,6 +228,7 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
     namespace,
     narrow: { ...DEFAULTS.narrow, ...(cfg.narrow ?? {}) },
     surface: cfg.surface ?? null,
+    routing,
   });
 }
 
@@ -339,11 +347,51 @@ function fromEnvironment(env) {
 }
 
 /**
- * Attach the resolved surface and its capabilities to a configuration.
+ * Attach the resolved surface, its capabilities, and the required sets.
+ *
+ * `require` is flattened here rather than at each caller because this is the
+ * one place that knows the surface, and a surface-scoped list cannot be read
+ * without it.
  * @param {object} cfg Configuration without surface resolution.
- * @returns {object} The same configuration plus `surface` and `capabilities`.
+ * @returns {object} The same configuration plus surface-derived fields.
  */
 function withSurface(cfg) {
   const surface = detectSurface(cfg.surface);
-  return { ...cfg, surface, capabilities: SURFACES[surface] };
+  return {
+    ...cfg,
+    surface,
+    capabilities: SURFACES[surface],
+    require: resolveRequire(cfg.require, surface),
+    requiredFloor: routingFloor(cfg.routing ?? {}),
+  };
+}
+
+/**
+ * Flatten a `require` declaration for one surface.
+ *
+ * Two shapes are accepted. An array is every surface — the original meaning,
+ * and still correct for the many projects whose credentials do not vary. An
+ * object opts into scoping: `all` applies everywhere and a key matching the
+ * surface adds to it.
+ *
+ * Scoping exists because the required set genuinely differs by where the agent
+ * runs. `CLAUDE_ROUTINE_TOKEN` is mandatory on `claude-web` and meaningless on
+ * a laptop; asserting one flat list everywhere would fail a developer's session
+ * over a credential only a cloud surface uses, and the reliable response to a
+ * check that fails for the wrong reason is to stop believing it.
+ *
+ * Returns `null` — not `[]` — when nothing is declared, because the two mean
+ * different things downstream: `null` leaves resolution un-narrowed, while an
+ * empty array would declare that the project needs no secrets and make
+ * `assertDeclared` reject every name.
+ * @param {string[]|Record<string, string[]>|null|undefined} raw Declaration.
+ * @param {string} surface Resolved surface key.
+ * @returns {string[]|null} Names required on this surface, or null.
+ */
+function resolveRequire(raw, surface) {
+  if (!raw) return null;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== "object") return null;
+  const names = [...(raw.all ?? []), ...(raw[surface] ?? [])];
+  return names.length ? [...new Set(names)] : null;
 }

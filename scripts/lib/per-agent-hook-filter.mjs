@@ -70,6 +70,24 @@ const SCRIPT_RULES = {
     agy: true,
     copilot: true,
   },
+  // Portable everywhere the agent has a session-start event, because the
+  // question it answers — can this agent reach the credentials its work needs
+  // — is not vendor-specific. It only reads config and asks the provider for
+  // names, so nothing in it depends on a Claude-only capability.
+  //
+  // Documented gap: agy has no SessionStart event at all, so it cannot receive
+  // this and its sessions get no credential preflight. The compensating rung is
+  // shared rather than agent-layer — `lisa doctor` and CI run the same
+  // `preflight-secrets.mjs` and exit non-zero on it — which is the layer
+  // AGENTS.md requires a gap be compensated at when a harness cannot represent
+  // a control.
+  "secrets-preflight.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false,
+    copilot: true,
+  },
   "enforce-team-first.sh": {
     claude: true,
     codex: false,

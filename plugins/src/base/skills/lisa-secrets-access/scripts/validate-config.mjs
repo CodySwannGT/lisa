@@ -206,22 +206,11 @@ export function validateSecrets(secrets) {
     );
   }
 
-  for (const field of ["require", "rotating"]) {
-    const value = secrets[field];
-    if (value === undefined || value === null) continue;
-    if (!Array.isArray(value)) {
-      problems.push(`secrets.${field} must be an array of exact key names`);
-      continue;
-    }
-    for (const name of value) {
-      if (typeof name !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(name)) {
-        problems.push(
-          `secrets.${field} entry ${JSON.stringify(name)} is not an exact ` +
-            `UPPER_SNAKE_CASE environment-variable name. Lookup is never fuzzy.`
-        );
-      }
-    }
-  }
+  // `rotating` is a flat list on every surface. `require` also accepts a
+  // surface-scoped object, because the required set genuinely differs by where
+  // the agent runs — see `resolveRequire` in surfaces.mjs.
+  validateKeyList("rotating", secrets.rotating, problems);
+  validateRequire(secrets.require, problems);
 
   problems.push(...validatePropagating(secrets.propagating));
 
@@ -263,6 +252,73 @@ export function validateSecrets(secrets) {
  * @param {object} entry The entry or platform block.
  * @param {string[]} problems Accumulator.
  */
+/**
+ * Whether a value parses as a dotted version the comparator can order.
+ * @param {unknown} value Candidate version.
+ * @returns {boolean} True for "20", "1.2", "1.2.3" and similar.
+ */
+function isVersionish(value) {
+  return typeof value === "string" && /^\d+(\.\d+)*$/.test(value.trim());
+}
+
+/**
+ * Validate a flat list of exact environment-variable names.
+ * @param {string} field Config field name, for messages.
+ * @param {unknown} value The declared value.
+ * @param {string[]} problems Collector.
+ */
+function validateKeyList(field, value, problems) {
+  if (value === undefined || value === null) return;
+  if (!Array.isArray(value)) {
+    problems.push(`secrets.${field} must be an array of exact key names`);
+    return;
+  }
+  for (const name of value) {
+    if (typeof name !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(name)) {
+      problems.push(
+        `secrets.${field} entry ${JSON.stringify(name)} is not an exact ` +
+          `UPPER_SNAKE_CASE environment-variable name. Lookup is never fuzzy.`
+      );
+    }
+  }
+}
+
+/**
+ * Validate `require` in either of its two shapes.
+ *
+ * An array means every surface. An object scopes per surface, with `all`
+ * applying everywhere. Unknown keys are rejected rather than ignored: a typo
+ * like `github_actions` for `github-actions` would otherwise resolve to an
+ * empty list and silently assert nothing on the one surface it was written
+ * for — a declaration that reads as protection and delivers none.
+ * @param {unknown} value The declared value.
+ * @param {string[]} problems Collector.
+ */
+function validateRequire(value, problems) {
+  if (value === undefined || value === null) return;
+  if (Array.isArray(value)) {
+    validateKeyList("require", value, problems);
+    return;
+  }
+  if (typeof value !== "object") {
+    problems.push(
+      `secrets.require must be an array of key names, or an object keyed by ` +
+        `surface with an optional "all" entry`
+    );
+    return;
+  }
+  for (const [key, names] of Object.entries(value)) {
+    if (key !== "all" && !SURFACES.has(key)) {
+      problems.push(
+        `secrets.require key "${key}" is not a known surface. ` +
+          `Known: all, ${[...SURFACES].join(", ")}.`
+      );
+      continue;
+    }
+    validateKeyList(`require.${key}`, names, problems);
+  }
+}
+
 function validateInstallArtifact(label, entry, problems) {
   if (!INSTALL_METHODS.has(entry.install)) {
     problems.push(
@@ -308,7 +364,23 @@ export function validateRemoteEnv(remoteEnv) {
   const problems = [];
 
   for (const tool of remoteEnv.tools?.require ?? []) {
-    if (!tool.name) problems.push("remoteEnv.tools.require entry has no name");
+    if (!tool.name) {
+      problems.push("remoteEnv.tools.require entry has no name");
+      continue;
+    }
+    // `minVersion` was accepted unvalidated while `install` entries had their
+    // shape checked in full. The asymmetry mattered: the value is fed to a
+    // version comparison, so `minVersion: "twenty"` sorted below every real
+    // version and the requirement silently passed for any installed release —
+    // a declared constraint that enforced nothing.
+    if (tool.minVersion !== undefined && !isVersionish(tool.minVersion)) {
+      problems.push(
+        `remoteEnv require "${tool.name}" has minVersion ` +
+          `${JSON.stringify(tool.minVersion)}, which is not a dotted version ` +
+          `like "20" or "1.2.3". It is compared numerically, so a value that ` +
+          `does not parse would accept every installed version.`
+      );
+    }
   }
   for (const tool of remoteEnv.tools?.install ?? []) {
     if (!tool.name) {
