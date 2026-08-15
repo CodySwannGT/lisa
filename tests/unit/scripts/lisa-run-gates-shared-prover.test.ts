@@ -33,6 +33,7 @@ const CORRECTNESS = "test-correctness";
 const SHARED_TASK = "test:cov";
 const SHARED_COMMAND = `${RUNNER} ${SHARED_TASK}`;
 const SHARED = { level: "required", run: SHARED_TASK };
+const REVIEW = "code-review";
 
 /**
  * Declare both gates at commit, at the levels a case needs.
@@ -98,6 +99,42 @@ describe("gates that share one prover", () => {
     expect(result.blocked).toBe(true);
     expect(verdict(result, COVERAGE)?.state).toBe(STATE.FAILED);
     expect(verdict(result, CORRECTNESS)?.state).toBe(STATE.FAILED);
+  });
+
+  it("does not re-run a command killed by a signal", () => {
+    // `execute` reports `code: null` for a terminated command, so inferring
+    // "did this run?" from the exit code treats a kill as never having happened
+    // — and sends the next gate to run the whole suite the operator has just
+    // interrupted. The verdicts alone cannot catch this: re-running produces
+    // the same two failures, so the assertion has to be on the executor.
+    const { result, calls } = run({ [SHARED_COMMAND]: null });
+    expect(calls).toEqual([SHARED_COMMAND]);
+    expect(verdict(result, COVERAGE)?.state).toBe(STATE.FAILED);
+    expect(verdict(result, CORRECTNESS)?.state).toBe(STATE.FAILED);
+    expect(verdict(result, CORRECTNESS)?.provedBy).toBe(COVERAGE);
+  });
+
+  it("lets a gate that cannot run say so, rather than inherit a verdict", () => {
+    // Structural, not a live regression: every skip today also resolves to a
+    // null command, so the cache lookup was already unreachable for a skipped
+    // gate. Deciding the gate's own skip *before* consulting the cache makes
+    // that correct by construction rather than by coincidence, which matters
+    // the moment a skip reason arrives that coexists with a command.
+    const { lines } = run();
+    const awaited = runGates({
+      gates: {
+        [COVERAGE]: { [COMMIT]: SHARED },
+        [REVIEW]: { [COMMIT]: { level: "required", await: "CodeRabbit" } },
+      },
+      moment: COMMIT,
+      runner: RUNNER,
+      exec: stubExec({}).exec,
+      out: () => undefined,
+    }) as GateRun;
+
+    expect(verdict(awaited, REVIEW)?.state).toBe(STATE.SKIPPED);
+    expect(verdict(awaited, REVIEW)?.provedBy).toBeNull();
+    expect(lines.join("\n")).not.toContain(REVIEW);
   });
 
   it("blocks when the required gate shares a prover with an optional one", () => {
