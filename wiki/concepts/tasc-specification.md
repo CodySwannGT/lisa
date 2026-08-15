@@ -1,7 +1,7 @@
 # TASC — Trust in Autonomous Software Criteria
 
 Canonical source: [`spec/tasc-0.1-draft.md`](../../spec/tasc-0.1-draft.md)
-(version 0.6.0-draft, 2026-07-28 — the 0.1 file name is retained so existing
+(version 0.7.0-draft, 2026-08-13 — the 0.1 file name is retained so existing
 references stay valid). This page is the wiki synthesis; the spec file is
 authoritative.
 
@@ -30,17 +30,22 @@ provisional pending trademark diligence.
   — AC5.6, advisory-control adherence — AC5.7, declared control obligations as
   machine-readable artifacts — AC5.8, and the bidirectionally reconciled control
   register — AC5.9), identity & credentials,
-  operations & recovery (incl. autonomy-rate and delivery-effectiveness
-  measurement — AC7.4, AC7.5), change management
-  (incl. "the agent program is code" and "model change is system change", distributional qualification, observed rollout promotion, plus type-keyed work-item readiness with the stateless-pickup check — AC8.6, and requirement-atom intake validation with fit criteria under AC8.4), and
+  operations & recovery (incl. durable unattended scheduling, bounded deployment
+  recovery, autonomy-rate and delivery-effectiveness measurement — AC7.1–AC7.5),
+  change management (incl. "the agent program is code" and "model change is
+  system change", distributional qualification, evidence-based routing by task
+  class, bounded rejected-work healing, observed rollout promotion, plus
+  type-keyed work-item readiness with the stateless-pickup check — AC8.6, and
+  requirement-atom intake validation with fit criteria under AC8.4), and
   supply chain (model vendors as subservice organizations).
 - **Supplemental categories**: SI (Software Integrity — mandatory for
   production software, unlike SOC 2's optional Processing Integrity, and
   covering generative/randomized testing and defect replay as well as unit
-  behavior, coverage, efficacy, E2E, load, independent verification, and output
-  provenance and licensing — SI10), DP
-  (Data Protection), UX (User-Facing Integrity), each condition-scoped by the
-  earned inapplicability rule.
+  behavior, coverage, efficacy, requirement-mapped and risk-tiered E2E, load,
+  independent verification, and output provenance and licensing — SI10), DP
+  (Data Protection), UX (User-Facing Integrity, now including measured visual
+  and interaction conformance — UX4–UX5), each condition-scoped by the earned
+  inapplicability rule.
 - **Attestation types**: Type I (design) and Type II (operating effectiveness)
   at SOC 2 parity, plus **Type C — continuous, machine-verified attestation**
   built on exercised evidence with freshness lifetimes. Type C has no SOC 2
@@ -84,8 +89,34 @@ stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
 The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 114 questions across 16 groups,
-each group citing the criteria it evidences.
+instrument referenced by the spec's Annex B — 122 questions across 16 groups.
+Conversational operator questions are the default view; the formal criterion,
+requirement, and expected evidence expand from the same canonical question model,
+so there is no second questionnaire to drift.
+
+## Revision 0.7.0 — operator copy and outcome proof
+
+The readiness instrument was audited against the practical questions operators
+ask when deciding whether agents can work unattended. Most concerns were already
+covered, but eight outcome gaps remained: durable scheduling and automatic work
+claiming; model, effort, and tool routing by task class; requirement-to-journey
+coverage; risk-tiered E2E execution; destination-repository control activation;
+mechanical visual conformance; pre-CI enforcement parity; and failed-deployment
+recovery. The intake now asks each directly, and rejected CI work now requires a
+bounded repair, rerun, independent-verification, and escalation loop.
+
+The presentation contract also changed. Each canonical item carries a plain-language
+question plus its formal criteria, requirement, expected evidence, outcome choices,
+and implementing mechanism. The console leads with the question and keeps control
+detail expandable. Annex B explicitly rejects separately maintained formal and
+informal questionnaires because their mappings can drift.
+
+Normatively, 0.7.0 strengthens AC5.2 at repository boundaries, AC7.1–AC7.2 for
+durable scheduling and failed deployments, AC8.1 for bounded rejection healing,
+AC8.3 for task-class routing, and SI4 for complete requirement-to-journey mapping
+with efficient but non-weakening execution. UX4 adds mechanical visual conformance;
+UX5 adds interaction conformance across states, responsive behavior, and
+accessibility behavior.
 
 ## Revision 0.6.0 — declared controls and output provenance
 
@@ -293,7 +324,7 @@ survived. The load-bearing additions:
 
 ## Status And Open Items
 
-Draft 0.6.0. Open: outcome-vocabulary finalization (AC2.2), a non-normative
+Draft 0.7.0. Open: outcome-vocabulary finalization (AC2.2), a non-normative
 schema for declared control obligations (AC5.8), a bounded
 retry-then-escalate rule for SI10 regeneration, ISO 27001 / SSDF
 crosswalk annexes, governance venue, trademark diligence, full re-keying of

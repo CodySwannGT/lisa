@@ -1535,12 +1535,31 @@
         font-size: 13px;
         color: var(--ink);
       }
-      .intake-help {
-        display: block;
-        margin-top: 2px;
+      .intake-control-detail {
+        margin-top: 5px;
+        max-width: 68ch;
         font-size: 11px;
         color: var(--muted);
-        max-width: 60ch;
+      }
+      .intake-control-detail summary {
+        width: fit-content;
+        cursor: pointer;
+        color: var(--accent);
+        font-weight: 650;
+        list-style-position: inside;
+      }
+      .intake-control-detail-body {
+        display: grid;
+        gap: 5px;
+        margin-top: 6px;
+        padding: 8px 10px;
+        border-left: 2px solid var(--line-strong);
+        background: var(--surface2);
+        border-radius: 0 6px 6px 0;
+      }
+      .intake-control-detail-body b {
+        color: var(--ink);
+        font-weight: 650;
       }
       .intake-item .control {
         justify-content: flex-end;
@@ -5097,7 +5116,7 @@
       /* ---------------------------------- Readiness (intake) ---------------------------------- */
       DATA.sections.readiness = {
         title: "Readiness",
-        desc: "The onboarding questionnaire — and the working Annex B self-assessment instrument of TASC (spec/tasc-0.1-draft.md). Answer what you use for each thing an autonomous factory depends on, and the meter shows how ready you are; each group cites the TASC criteria it evidences. Every question has a detailed home elsewhere in the console; this is the flat version you fill out first. Nothing is required all at once — an unanswered question is a known gap, not a failure.",
+        desc: "The conversational onboarding questionnaire — and the working Annex B self-assessment instrument of TASC (spec/tasc-0.1-draft.md). Answer how you make each control real; expand Control detail for its formal requirement, criteria, and expected evidence. The meter shows how ready you are. Nothing is required all at once — an unanswered question is a known gap, not a failure.",
         src: "intake · maps onto .lisa.config.json",
         blocks: [
           {
@@ -5208,6 +5227,30 @@
                     ],
                   },
                   {
+                    q: "What durable scheduler keeps agents moving when nobody prompts them?",
+                    help: "Unattended work needs more than a place to run: a durable scheduler must claim the next eligible item, survive a closed laptop, record every trigger, and make missed-run behavior explicit.",
+                    criteria: "AC7.1",
+                    formal:
+                      "Factories MUST run from declared durable schedulers that claim eligible work without human prompting and define observable behavior for missed runs.",
+                    evidence:
+                      "Scheduler registration, trigger history, queue-claim record, an exercised missed-run recovery, and an independent liveness signal.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Durable scheduler + automatic claims + exercised missed-run recovery",
+                      "Durable scheduler, claims or missed runs handled manually",
+                      "Laptop-dependent scheduler",
+                      "Humans start each run",
+                    ],
+                    via: [
+                      "CI scheduler",
+                      "Vendor-hosted scheduler",
+                      "Self-hosted durable scheduler",
+                      "Local scheduler",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "Which coding agents operate this project?",
                     help: "The staff that run the factories. More than one is normal — parity is maintained across all of them.",
                     kind: "multiselect",
@@ -5286,6 +5329,30 @@
                       "Braintrust",
                       "Langfuse / LangSmith",
                       "In-house evals",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "How are model, effort, and tool configuration assigned by task class?",
+                    help: "Qualification says a model can do work; routing decides which work it should do. Capability is heterogeneous, so a global leaderboard or whichever model an agent happens to choose is not an assignment policy.",
+                    criteria: "AC8.3 · AC8.7",
+                    formal:
+                      "Model, effort, and tool assignments MUST be declared per task class and supported by entity-owned, distributional qualification evidence no broader than the evaluated class.",
+                    evidence:
+                      "Versioned routing policy, task-class definitions, qualifying evaluation results, fallback behavior, and assignment records from actual runs.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Evidence-based routing per task class, with qualified fallback",
+                      "One default configuration qualified across the complete work mix",
+                      "Informal routing by cost or reputation",
+                      "Each agent chooses",
+                    ],
+                    via: [
+                      "Policy-as-code router",
+                      "Evaluation platform",
+                      "Workflow configuration",
+                      "In-house routing service",
                       "None",
                     ],
                   },
@@ -5485,6 +5552,55 @@
                       "Selenium",
                       "Maestro",
                       "Detox",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "Does every user-facing requirement and critical state map to an executable end-to-end journey?",
+                    help: "Owning an E2E tool proves no coverage. The governed artifact is a requirement-to-journey matrix covering critical paths plus loading, empty, error, permission, responsive, and accessibility states where applicable.",
+                    criteria: "SI4 · UX5",
+                    formal:
+                      "Every user-facing requirement and critical interaction state MUST map to an executable journey against a running build, with unmapped requirements reported as release-blocking gaps.",
+                    evidence:
+                      "Current requirement-to-journey matrix, executable journey identifiers, state and viewport inventory, and a seeded unmapped-requirement failure.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Complete live matrix; unmapped requirements block release",
+                      "Critical journeys mapped, secondary states incomplete",
+                      "Tests exist without a coverage map",
+                      "No executable journey coverage",
+                    ],
+                    via: [
+                      "Generated traceability matrix",
+                      "Test-management platform",
+                      "Requirements-linked test metadata",
+                      "In-house coverage registry",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "How is end-to-end proof tiered without weakening the release gate?",
+                    help: "Running every journey serially on every commit wastes time; skipping slow journeys before release weakens the control. Tier by changed surface and risk, parallelize the required release suite, and move fresh exploration outside the per-change critical path.",
+                    criteria: "SI4 · SI9 · AC8.1",
+                    formal:
+                      "The ADS MUST select and parallelize E2E proof by declared change and risk rules while ensuring every applicable critical journey passes before release.",
+                    evidence:
+                      "Suite-tier policy, change-to-journey selector tests, shard aggregation proof, release-gate configuration, and scheduled exploratory-run history.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Risk-selected per change + parallel full applicable release gate + continuous exploration",
+                      "Parallel full suite on every change",
+                      "Fast smoke in CI, slow coverage after release",
+                      "Slow tests are skipped when they become inconvenient",
+                    ],
+                    via: [
+                      "Playwright projects / shards",
+                      "CI test selection",
+                      "Test-impact analysis",
+                      "Device-cloud matrix",
+                      "In-house orchestrator",
                       "None",
                     ],
                   },
@@ -5763,6 +5879,30 @@
                     ],
                   },
                   {
+                    q: "When an agent crosses repositories, how are the destination repository's controls activated?",
+                    help: "Cross-repository work changes the authority boundary. The agent must re-resolve the destination's rules, hooks, skills, permissions, and evidence contract instead of carrying the originating repository's policy across or trusting a foreign instruction file automatically.",
+                    criteria: "AC3.2 · AC5.2–AC5.3 · AC5.9",
+                    formal:
+                      "At every repository boundary, the ADS MUST trust-gate local instructions, resolve the destination repository's declared controls, and prove equivalent enforcement before acting there.",
+                    evidence:
+                      "Boundary-transition log, destination control-register resolution, hook and skill activation proof, permission re-evaluation, and a seeded conflicting-policy exercise.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Destination controls re-resolved and exercised at every boundary",
+                      "Destination instructions loaded, enforcement not re-proven",
+                      "Originating repository rules follow the agent",
+                      "No cross-repository governance",
+                    ],
+                    via: [
+                      "Per-repository policy resolver",
+                      "Isolated workspaces / containers",
+                      "Control-register reconciliation",
+                      "Trust-gated instruction loader",
+                      "None",
+                    ],
+                  },
+                  {
                     q: "Can an agent add a new dependency unreviewed?",
                     help: "Models hallucinate plausible package names and attackers register them (slopsquatting), alongside classic typosquats. An agent that can install unreviewed is the softest supply-chain target there is.",
                     kind: "select",
@@ -5901,6 +6041,11 @@
                   {
                     q: "Is your house coding style enforced automatically?",
                     help: "Whatever conventions you've chosen — immutability, functional patterns, error handling, naming. This is elective: having no house style is a valid answer. But a style you've decided on and don't enforce is the exposed case, because an agent will drift from what it was never made to follow.",
+                    criteria: "SI7",
+                    formal:
+                      "Declared coding philosophies and development methods — including immutability or test-first development where adopted — MUST be represented by executable controls or measured as advisory controls.",
+                    evidence:
+                      "Versioned standards declaration, enforcing rules or red-green test-first trace, advisory adherence measurement, and seeded conforming and violating examples.",
                     kind: "select",
                     options: [
                       "Codified and enforced",
@@ -6000,6 +6145,32 @@
                       "No UI in this project",
                     ],
                   },
+                  {
+                    q: "Is every implemented screen mechanically compared with its source design?",
+                    help: "Design-system inputs constrain how a screen is built; they do not prove the rendered outcome matches. Compare the running implementation across declared viewports, themes, and interaction states, with reviewed tolerances rather than an agent's visual assertion.",
+                    criteria: "UX4 · §7",
+                    formal:
+                      "Implemented user interfaces MUST pass independent, mechanical visual conformance against the approved source design across the declared viewport and state matrix before release.",
+                    evidence:
+                      "Approved design reference, viewport and state matrix, visual-diff artifacts, declared tolerances, independent adjudication, and a seeded visual mismatch.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Mechanical visual comparison across declared viewports and states, independently adjudicated",
+                      "Automated snapshots without an approved design reference",
+                      "Human or agent eyeballing",
+                      "No visual conformance check",
+                      "No UI in this project",
+                    ],
+                    via: [
+                      "Playwright visual comparisons",
+                      "Chromatic",
+                      "Percy",
+                      "Applitools",
+                      "Design-tool comparison",
+                      "None",
+                    ],
+                  },
                 ],
               },
               {
@@ -6048,14 +6219,46 @@
                     ],
                   },
                   {
-                    q: "When a gate rejects agent output, what happens?",
-                    help: "TASC AC8.1. The published ideal is regenerate-from-spec — a hand-patched artifact has mixed provenance nobody can cleanly attribute. Agents iterating on their own output is the common middle ground; humans quietly patching agent work is the provenance leak.",
+                    q: "When CI or another gate rejects agent output, what happens next?",
+                    help: "A rejection should automatically return the failure evidence and original specification to a bounded remediation loop. The loop reruns the authoritative gate, obtains independent verification, and escalates with a decision-ready packet rather than retrying forever or waiting for a human to notice.",
+                    criteria: "AC8.1 · AC7.3 · §7",
+                    formal:
+                      "Rejected agent work MUST enter a bounded automatic repair, rerun, and independent-verification loop; exhaustion MUST produce a decision-ready escalation without weakening the gate.",
+                    evidence:
+                      "Repair-loop configuration, attempt bound, gate rerun history, independent success marker, and an exercised exhaustion-to-escalation path.",
                     kind: "select",
-                    value: "The agent patches its own output",
+                    value:
+                      "Bounded automatic repair, rerun, and independent verification",
                     options: [
-                      "Regenerated from the spec",
-                      "The agent patches its own output",
+                      "Bounded automatic repair, rerun, and independent verification",
+                      "Regenerated from the spec once, then decision-ready escalation",
+                      "The agent patches once; a human notices further failure",
                       "A human patches it by hand",
+                      "Retries indefinitely or silently stalls",
+                    ],
+                  },
+                  {
+                    q: "Which authoritative gates run before work reaches CI?",
+                    help: "CI remains the authority, but discovering formatting, structure, secret, test, or policy failures only after a remote run wastes the factory's slowest feedback loop. Agent and Git hooks should mirror the applicable server-side controls from the same source and be drift-checked.",
+                    criteria: "AC5.2 · AC5.8–AC5.9",
+                    formal:
+                      "Applicable authoritative controls MUST have equivalent pre-CI mirrors generated from the same declared obligations, with drift against the server-side enforcement detected automatically.",
+                    evidence:
+                      "Control-to-hook mapping, generated hook artifacts, parity test, seeded local rejection, seeded legitimate allowance, and server-side backstop proof.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Agent hooks + Git hooks generated from authoritative controls and drift-checked",
+                      "Some local mirrors, configured separately",
+                      "Developer convention only",
+                      "Nothing — CI discovers every failure",
+                    ],
+                    via: [
+                      "Agent pre-tool hooks",
+                      "pre-commit / pre-push hooks",
+                      "Policy-as-code generator",
+                      "Local CI runner",
+                      "None",
                     ],
                   },
                   {
@@ -6177,6 +6380,30 @@
                       "Platform-native (Vercel / Amplify)",
                       "git revert + redeploy",
                       "In-house",
+                      "None",
+                    ],
+                  },
+                  {
+                    q: "When a deployment fails before reaching users, what heals it?",
+                    help: "A failed deployment is different from a successful release that later proves unhealthy. Classify the failure, retry only idempotent and transient operations, repair reproducible configuration or infrastructure defects through the normal change path, and stop at a declared bound.",
+                    criteria: "AC7.2–AC7.3 · AC8.5",
+                    formal:
+                      "Failed deployments MUST enter a bounded, idempotent recovery path that distinguishes transient retry from change-requiring repair and emits a decision-ready escalation when recovery is exhausted.",
+                    evidence:
+                      "Failure classifier, idempotency proof, retry bound, repair work-item history, deployment rerun evidence, and an exercised terminal escalation.",
+                    introduced: "0.7.0",
+                    kind: "select",
+                    options: [
+                      "Classified bounded retry or repair, redeployed and verified automatically",
+                      "Automatic blind retry",
+                      "Alert sent; a human repairs it",
+                      "Pipeline remains failed until someone notices",
+                    ],
+                    via: [
+                      "Deployment orchestrator",
+                      "Workflow repair automation",
+                      "Infrastructure reconciliation",
+                      "Incident automation",
                       "None",
                     ],
                   },
@@ -11311,8 +11538,40 @@
             row.appendChild(el("span", "intake-dot"));
             const text = el("div");
             text.appendChild(el("div", "intake-q", esc(item.q)));
-            if (item.help)
-              text.appendChild(el("span", "intake-help", esc(item.help)));
+            const detail = el("details", "intake-control-detail");
+            detail.appendChild(el("summary", "", "Control detail"));
+            const detailBody = el("div", "intake-control-detail-body");
+            const criteria =
+              item.criteria ||
+              group.criteria ||
+              (group.label.match(/\(([^)]+)\)/) || [])[1];
+            if (criteria) {
+              const criterion = el("div");
+              criterion.innerHTML = "<b>Criteria:</b> " + esc(String(criteria));
+              detailBody.appendChild(criterion);
+            }
+            const requirement = item.formal || item.help;
+            if (requirement) {
+              const formal = el("div");
+              formal.innerHTML =
+                "<b>Requirement:</b> " + esc(String(requirement));
+              detailBody.appendChild(formal);
+            }
+            if (item.formal && item.help) {
+              const why = el("div");
+              why.innerHTML = "<b>Why it matters:</b> " + esc(item.help);
+              detailBody.appendChild(why);
+            }
+            const evidence = el("div");
+            evidence.innerHTML =
+              "<b>Evidence:</b> " +
+              esc(
+                item.evidence ||
+                  "Current configuration, its authoritative enforcement point, and recent exercised evidence that the control blocks or permits the intended case."
+              );
+            detailBody.appendChild(evidence);
+            detail.appendChild(detailBody);
+            text.appendChild(detail);
             row.appendChild(text);
             // Reuse buildControl so the answer widgets match the rest of the
             // console and pick up dirty-state tracking.
