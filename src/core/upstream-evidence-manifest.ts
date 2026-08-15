@@ -8760,6 +8760,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-automations-map.test.ts": true,
     "tests/unit/cli/ui-automations-probe.test.ts": true,
     "tests/unit/cli/ui-ci-quality-jobs.test.ts": true,
+    "tests/unit/cli/ui-ci-traceability-job.test.ts": true,
     "tests/unit/cli/ui-cmd.test.ts": true,
     "tests/unit/cli/ui-config-write.test.ts": true,
     "tests/unit/cli/ui-confined-project-read.test.ts": true,
