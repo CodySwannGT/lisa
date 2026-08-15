@@ -34,6 +34,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Full history: the commit-message gate below validates every commit
+          # the pull request adds, and the default shallow clone does not
+          # contain the base commit, so `commitlint --from <base>` fails in
+          # `getHistoryCommits` before it lints anything. It failed loudly
+          # rather than passing vacuously, which is the correct direction — but
+          # it is exactly the sort of thing a check verified only locally will
+          # get wrong, since a local clone always has the history.
+          fetch-depth: 0
       - name: '🍞 Setup Bun'
         uses: oven-sh/setup-bun@v2
         with:
