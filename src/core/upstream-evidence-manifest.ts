@@ -941,7 +941,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
-      "51ab13da31727d1967a93ed13f9932bf81f4f20c3af99e5a81706f17984cea43",
+      "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "8592c7359ee6cdb35995a882c8bb27e7b9c404074067fd272c70013e44e04b71",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":

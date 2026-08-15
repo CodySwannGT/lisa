@@ -261,7 +261,11 @@ export function claimedLifecycleLabel(config) {
  */
 export function resolveClaimability({ trusted, config }) {
   const claimed = claimedLifecycleLabel(config);
-  if (!(trusted ?? []).includes(claimed)) {
+  const normalizedClaimed = claimed.toLowerCase();
+  const hasTrustedClaim = (trusted ?? []).some(
+    label => String(label).trim().toLowerCase() === normalizedClaimed
+  );
+  if (!hasTrustedClaim) {
     return { claimable: true, reason: null };
   }
   return {

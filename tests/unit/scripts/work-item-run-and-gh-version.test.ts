@@ -119,7 +119,10 @@ describe("run: a child that never started", () => {
   });
 
   it("leaves a successful command's output untouched", () => {
-    const result = run("node", ["-e", "process.stdout.write('hello')"]);
+    const result = run(process.execPath, [
+      "-e",
+      "process.stdout.write('hello')",
+    ]);
     expect(result.stdout).toBe("hello");
     expect(result.status).toBe(0);
   });
