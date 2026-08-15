@@ -95,6 +95,29 @@ export const STATE_FAMILIES = ["continuous"];
 /** Keys on a gate entry that are settings rather than moments. */
 export const GATE_FIELDS = new Set(["run", "needs", "task"]);
 
+/**
+ * Registry flag: this gate's task may rewrite the working tree.
+ *
+ * It exists to order execution, because a gate that rewrites files invalidates
+ * every verdict already reached about them. Measured, not theorised: gates run
+ * alphabetically, so `artifact-freshness` proved a generated manifest current,
+ * `code-style` then ran `lint:staged` and prettier reformatted the very sources
+ * that manifest hashes, and the commit landed with a manifest describing bytes
+ * that no longer existed. The freshness gate reported PASSED about a tree that
+ * was not the tree committed — the organising defect in a new costume.
+ *
+ * So rewriters sort ahead of verifiers, and every verdict afterwards describes
+ * the bytes that actually ship.
+ *
+ * The flag is deliberately *may*, and deliberately registry-only. A project can
+ * point `format-conformance` at `format:check` (which rewrites nothing) or at
+ * `format` (which rewrites everything), and Lisa cannot tell which from here.
+ * Ordering a non-rewriter early costs nothing — order among independent gates
+ * was already arbitrary — while missing a real rewriter costs a false pass.
+ * Asking projects to declare it would put the safe answer in the hands of
+ * whoever remembers to type it, which is how the defect got here.
+ */
+
 /** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
 
@@ -133,6 +156,7 @@ export const REGISTRY = Object.freeze({
     summary: "Code conforms to the project's lint rules.",
     task: "lint",
     moments: COMMIT_ONWARD,
+    mayRewrite: true,
   },
   "code-style-slow": {
     label: "🐢 Slow Lint Rules",
@@ -145,6 +169,7 @@ export const REGISTRY = Object.freeze({
     summary: "Files match the project's formatter.",
     task: "format:check",
     moments: COMMIT_ONWARD,
+    mayRewrite: true,
   },
   "type-correctness": {
     label: "🔍 Type Check",
@@ -930,9 +955,16 @@ export function resolveMoment({ gates, moment, runner = "npm run" }) {
       label: definition?.label ?? id,
       work: definition?.work ?? null,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
+      mayRewrite: definition?.mayRewrite === true,
     });
   }
-  return resolved.sort((left, right) => left.id.localeCompare(right.id));
+  // Rewriters first, then alphabetical within each group. See `mayRewrite`:
+  // a verdict reached before a formatter runs describes bytes that never ship.
+  return resolved.sort(
+    (left, right) =>
+      Number(right.mayRewrite) - Number(left.mayRewrite) ||
+      left.id.localeCompare(right.id)
+  );
 }
 
 /**

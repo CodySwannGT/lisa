@@ -57,6 +57,9 @@ describe("resolveMoment", () => {
         label: "🧹 Lint",
         work: null,
         evidence: null,
+        // Lint rewrites the tree when pointed at a `--fix` task, so it sorts
+        // ahead of every gate that verifies the tree. See lisa-gates-order.
+        mayRewrite: true,
       },
     ]);
   });
