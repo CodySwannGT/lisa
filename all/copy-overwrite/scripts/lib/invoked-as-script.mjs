@@ -10,9 +10,15 @@
  *
  * The obvious spelling is `import.meta.url === pathToFileURL(process.argv[1]).href`,
  * and it is wrong in a way that cannot be seen in review. `import.meta.url` is
- * always the REAL path — node resolves ESM through `realpath` unless
- * `--preserve-symlinks` is set — while `argv[1]` is whatever spelling the caller
- * typed. Reached through a symlinked checkout, a symlinked bin shim, or a
+ * normally the REAL path — node resolves ESM through `realpath` unless
+ * `--preserve-symlinks` or `--preserve-symlinks-main` is set — while `argv[1]`
+ * is whatever spelling the caller typed. Naming only the first of those two
+ * flags is what let a second instance of this very defect survive review here:
+ * `--preserve-symlinks-main` is a SEPARATE flag that applies to the entry
+ * module specifically, which is exactly the module this guard runs in, so it is
+ * the one that matters most and the one easiest to leave out. See the section
+ * on realpathing both sides below.
+ * Reached through a symlinked checkout, a symlinked bin shim, or a
  * `/tmp` path on macOS (`/tmp` is itself a symlink to `/private/tmp`), the two
  * differ, the guard is false, `main()` never runs, and the process exits 0
  * having done nothing.

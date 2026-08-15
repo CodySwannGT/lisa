@@ -11,6 +11,7 @@
  * and without any downstream signal at all.
  * @module tests/unit/scripts/invoked-as-script
  */
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -183,6 +184,37 @@ describe("invokedAsScript", () => {
 
     // BOTH sides carry the symlinked spelling, which is what the flag produces.
     expect(invokedAsScript(pathToFileURL(link).href, link)).toBe(true);
+  });
+
+  it("BITE: a real script reached through a symlink under --preserve-symlinks-main runs its body", () => {
+    // The unit case above pins the comparison; this pins the thing that
+    // actually matters — that a CHECK invoked this way does its work instead of
+    // exiting 0 in silence. It spawns node for real, because the flag's whole
+    // effect is on how node populates `import.meta.url` for the entry module,
+    // which cannot be simulated from inside an already-loaded test process.
+    //
+    // Verified to bite: with the one-sided `realpathSync(argv1) ===
+    // fileURLToPath(moduleUrl)`, the flagged run prints nothing and exits 0 —
+    // a passing gate that checked nothing.
+    const dir = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.tmpdir(), "invoked-as-script-cli-"))
+    );
+    const helper = path.join(REPO_ROOT, CANONICAL_REL);
+    const script = path.join(dir, "gate.mjs");
+    const link = path.join(dir, "gate-link.mjs");
+    fs.writeFileSync(
+      script,
+      `import { invokedAsScript } from ${JSON.stringify(pathToFileURL(helper).href)};\n` +
+        `if (invokedAsScript(import.meta.url)) console.log("RAN");\n`
+    );
+    fs.symlinkSync(script, link);
+
+    for (const argv of [[link], ["--preserve-symlinks-main", link]]) {
+      const run = spawnSync(process.execPath, argv, { encoding: "utf-8" });
+      expect(run.status, argv.join(" ")).toBe(0);
+      // Exit 0 is NOT the assertion — a no-op guard also exits 0. The output is.
+      expect(run.stdout.trim(), argv.join(" ")).toBe("RAN");
+    }
   });
 
   it("is false for a module that was merely imported", () => {
