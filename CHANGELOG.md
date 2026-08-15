@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.18.0](https://github.com/CodySwannGT/lisa/compare/v3.17.3...v3.18.0) (2026-08-15)
+
+
+### Features
+
+* **console,health:** surface the work-item traceability gate ([36d8880](https://github.com/CodySwannGT/lisa/commit/36d8880fae0edfb9d0b4fa283c9c149f6bc04b68)), closes [#2009](https://github.com/CodySwannGT/lisa/issues/2009) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585)
+
+
+### Bug Fixes
+
+* **intake:** a trusted claim makes an issue unclaimable ([82d9420](https://github.com/CodySwannGT/lisa/commit/82d942045bb9ac65d2abaa53d23b871a20df4b30)), closes [#2539](https://github.com/CodySwannGT/lisa/issues/2539) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585)
+* **intake:** normalize trusted claim labels ([12998de](https://github.com/CodySwannGT/lisa/commit/12998de59c084438d5e0bf56cb3600734457fd92)), closes [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585)
+* **work-item:** give run() a stdout, and name an out-of-date gh ([361711f](https://github.com/CodySwannGT/lisa/commit/361711f8a3807b6fb12fe3d5afb43c67696f7caf)), closes [#2180](https://github.com/CodySwannGT/lisa/issues/2180) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585) [CodySwannGT/lisa#2585](https://github.com/CodySwannGT/lisa/issues/2585)
+
 ### [3.17.3](https://github.com/CodySwannGT/lisa/compare/v3.17.2...v3.17.3) (2026-08-15)
 
 
