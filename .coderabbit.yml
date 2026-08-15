@@ -57,3 +57,66 @@ issue_enrichment:
     enabled: true
   labeling:
     auto_apply_labels: true
+    # `labeling_instructions` is an ALLOWLIST: when it is present CodeRabbit
+    # suggests only from this list. That is the whole point of it being here —
+    # the classification labels below are genuinely useful, and the lifecycle
+    # family (`status:*`) is the one that must never be written by a bot.
+    #
+    # Measured five times on 2026-08-15, the fastest at EIGHT SECONDS, and once
+    # over an explicit `status:in-progress` a human had applied moments earlier.
+    # `status:done` is a TERMINAL role: the work-item gate refuses to bind or
+    # validate against a terminal item, so each of those issues blocked its own
+    # pull request until somebody noticed and stripped the label by hand.
+    #
+    # The reason it cannot be fixed with a faster/slower threshold is that the
+    # label comes from a classifier with no view of whether work happened. It is
+    # not a near-miss on an issue eight seconds old; it is the opposite of true.
+    #
+    # `human-needed` is deliberately absent too. Whether a human must rule on
+    # something is a human's call, and Lisa applies it itself through the
+    # `[lisa-human-gate]` marker at filing time.
+    labeling_instructions:
+      - label: 'type:Bug'
+        instructions: 'Apply when the issue reports incorrect behaviour in shipped code.'
+      - label: 'type:Task'
+        instructions: 'Apply to a single unit of work that is not a defect and not a user-facing story.'
+      - label: 'type:Story'
+        instructions: 'Apply when the issue describes user-facing behaviour to build.'
+      - label: 'type:Improvement'
+        instructions: 'Apply when the issue refines something that already works.'
+      - label: 'type:Epic'
+        instructions: 'Apply when the issue is a parent tracking several child items.'
+      - label: 'type:Sub-task'
+        instructions: 'Apply when the issue is a child of a larger tracked item.'
+      - label: 'points:1'
+        instructions: 'Apply for a trivial change, roughly one file and no new tests.'
+      - label: 'points:2'
+        instructions: 'Apply for a small change confined to one module.'
+      - label: 'points:3'
+        instructions: 'Apply for a change spanning a few modules with new tests.'
+      - label: 'points:5'
+        instructions: 'Apply for a change spanning several subsystems or needing design.'
+      - label: 'points:8'
+        instructions: 'Apply for a large change that should probably be split.'
+      - label: 'component:ci'
+        instructions: 'Apply when the issue concerns GitHub Actions workflows or CI configuration.'
+      - label: 'component:cli'
+        instructions: 'Apply when the issue concerns the Lisa command-line surface under src/cli.'
+      - label: 'component:docs'
+        instructions: 'Apply when the issue concerns documentation outside the wiki.'
+      - label: 'component:doctor'
+        instructions: 'Apply when the issue concerns lisa doctor or its checks.'
+      - label: 'component:plugins'
+        instructions: 'Apply when the issue concerns plugins/, agent plugins, hooks, or their generated variants.'
+      - label: 'component:skills'
+        instructions: 'Apply when the issue concerns skills or commands.'
+      - label: 'component:tests'
+        instructions: 'Apply when the issue concerns the test suites or their harnesses.'
+      - label: 'component:wiki'
+        instructions: 'Apply when the issue concerns wiki/ content.'
+      - label: 'component:wiki-cli'
+        instructions: 'Apply when the issue concerns the wiki command-line surface.'
+      - label: 'repo:lisa'
+        instructions: 'Apply to every issue filed in this repository.'
+      - label: 'self-hardening'
+        instructions: "Apply when the issue fixes a defect in Lisa's own guards, gates, or enforcement."
