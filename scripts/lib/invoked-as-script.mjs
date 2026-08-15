@@ -46,6 +46,19 @@
  * was loaded through. Comparing an unnormalized spelling instead would answer
  * "maybe" with a confident "yes".
  *
+ * ## Why BOTH sides are realpath'd, not just `argv[1]`
+ *
+ * "`import.meta.url` is always the real path" is true by default and false under
+ * `--preserve-symlinks-main`, which tells node not to resolve the main entry.
+ * Normalizing only `argv[1]` then compares a real path against a symlinked one
+ * and answers `false` for an entry point that WAS invoked directly — the same
+ * fail-open this module exists to remove, reappearing on the flag that most
+ * looks like it should not matter. Measured: a symlinked entry point reports
+ * `true` normally and `false` under the flag.
+ *
+ * Realpathing both sides is free in the ordinary case, where `moduleUrl` is
+ * already canonical and `realpathSync` is the identity.
+ *
  * @module scripts/lib/invoked-as-script
  */
 import { realpathSync } from "node:fs";
@@ -54,9 +67,10 @@ import { fileURLToPath } from "node:url";
 /**
  * True when `moduleUrl` names the module node was asked to run.
  *
- * `import.meta.url` is already the REAL path, so `argv[1]` is realpath'd before
- * comparison — see the module remarks for why a raw comparison silently answers
- * "no" under a symlinked path.
+ * Both sides are realpath'd before comparison — see the module remarks for why a
+ * raw comparison silently answers "no" under a symlinked path, and why
+ * normalizing only `argv[1]` leaves the same hole open under
+ * `--preserve-symlinks-main`.
  * @param {string} moduleUrl - The caller's own `import.meta.url`.
  * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
  * @returns {boolean} Whether the caller should run its CLI body.
@@ -66,7 +80,7 @@ export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
   // undefined. Nothing was asked to run, so nothing should.
   if (!argv1) return false;
   try {
-    return realpathSync(argv1) === fileURLToPath(moduleUrl);
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
   } catch {
     return false;
   }

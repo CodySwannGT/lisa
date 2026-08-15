@@ -131,6 +131,24 @@ const shippedModules = (relativeDir: string): string[] => {
     );
 };
 
+/**
+ * A throwaway module plus a symlink pointing at it.
+ *
+ * Both spellings are returned because which one each side carries is the whole
+ * subject: node hands the module its REAL path by default and its SYMLINKED
+ * path under `--preserve-symlinks-main`, while `argv[1]` is always whatever the
+ * caller typed.
+ * @returns The module's real path and the symlink to it.
+ */
+const symlinkedModule = (): { real: string; link: string } => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "invoked-as-script-"));
+  const real = path.join(dir, "real.mjs");
+  const link = path.join(dir, "link.mjs");
+  fs.writeFileSync(real, "export default 1;\n");
+  fs.symlinkSync(real, link);
+  return { real, link };
+};
+
 describe("invokedAsScript", () => {
   it("is true for the module node was asked to run", () => {
     const file = path.join(REPO_ROOT, CANONICAL_REL);
@@ -141,11 +159,7 @@ describe("invokedAsScript", () => {
     // The failing case in the wild. Every Lisa-driven agent works in a git
     // worktree and macOS resolves /tmp through a symlink, so this is the
     // ordinary path, not an exotic one.
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "invoked-as-script-"));
-    const real = path.join(dir, "real.mjs");
-    const link = path.join(dir, "link.mjs");
-    fs.writeFileSync(real, "export default 1;\n");
-    fs.symlinkSync(real, link);
+    const { real, link } = symlinkedModule();
 
     // `import.meta.url` is always the REAL path — node resolves ESM through
     // realpath — so the module URL is built from the realpath here, exactly as
@@ -157,11 +171,23 @@ describe("invokedAsScript", () => {
     ).toBe(true);
   });
 
+  it("is true when moduleUrl KEEPS the symlink, as --preserve-symlinks-main leaves it", () => {
+    // "`import.meta.url` is always the real path" holds by default and fails
+    // under `--preserve-symlinks-main`, which tells node not to resolve the main
+    // entry. Realpathing only argv[1] then compares a real path against a
+    // symlinked one and answers false for an entry point that WAS invoked
+    // directly — the same fail-open this module exists to remove, on the flag
+    // that most looks like it should not matter. Measured against a real
+    // symlinked entry point: true normally, false under the flag.
+    const { link } = symlinkedModule();
+
+    // BOTH sides carry the symlinked spelling, which is what the flag produces.
+    expect(invokedAsScript(pathToFileURL(link).href, link)).toBe(true);
+  });
+
   it("is false for a module that was merely imported", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "invoked-as-script-"));
-    const entry = path.join(dir, "entry.mjs");
-    const other = path.join(dir, "other.mjs");
-    fs.writeFileSync(entry, "export default 1;\n");
+    const { real: entry } = symlinkedModule();
+    const other = path.join(path.dirname(entry), "other.mjs");
     fs.writeFileSync(other, "export default 2;\n");
 
     expect(invokedAsScript(pathToFileURL(other).href, entry)).toBe(false);
