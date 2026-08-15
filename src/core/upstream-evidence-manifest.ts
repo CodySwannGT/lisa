@@ -9,7 +9,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "b218927f64a3db4f37762b60014e29d85a46899f4a0d17fcecc7782ce48bc499",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
-      "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
+      "302b3578d333717f61d0181a69f7b23a8bdf735c59fd5e95dc2da3da05896670",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
@@ -201,7 +201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
-      "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
+      "302b3578d333717f61d0181a69f7b23a8bdf735c59fd5e95dc2da3da05896670",
     "expo/copy-overwrite/tsconfig.eslint.json":
       "375bb2ee8185e4a57d703e078ad57188f6d45b03b0fcbb16ef049fcf9b14c44b",
     "expo/copy-overwrite/tsconfig.expo.json":
@@ -2153,7 +2153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/internal-opencode-skill-policy.json":
       "d7191650d8a12727549b67df61dbfa61e16cfb9cc31e461cd98d253ceab1612a",
     "scripts/lib/invoked-as-script.mjs":
-      "2d45e967ce6f49891e7920a407231b4d49309563a0979fb84f9985b27b3c2368",
+      "610f5ee26bf747f2172b89bb42ad21c4ccbd54a36dc833ac28291f94060dc25f",
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
@@ -2295,7 +2295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "0cddac03366644cdc99cc239e74520ac420d475b461a40a21728e43756872b07",
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
-      "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
+      "302b3578d333717f61d0181a69f7b23a8bdf735c59fd5e95dc2da3da05896670",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":

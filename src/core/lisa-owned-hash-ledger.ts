@@ -149,6 +149,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
   ]),
   "scripts/lib/invoked-as-script.mjs": Object.freeze([
+    "302b3578d333717f61d0181a69f7b23a8bdf735c59fd5e95dc2da3da05896670",
     "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
   ]),
   "scripts/lisa-clean-git-env.sh": Object.freeze([
