@@ -8822,6 +8822,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/source-authored-openai-yaml.test.ts": true,
     "tests/unit/config/ast-grep-rule-tests.test.ts": true,
     "tests/unit/config/ast-grep-template.test.ts": true,
+    "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
