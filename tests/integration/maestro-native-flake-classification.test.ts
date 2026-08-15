@@ -39,6 +39,20 @@ const CLASSIFIER_SRC = path.join(
   CLASSIFIER_FILE
 );
 
+/**
+ * The classifier's own module dependencies, as repo-relative paths under the
+ * lane's `scripts/` directory.
+ *
+ * Installed alongside it because the scratch project is a real vendored
+ * checkout, not a stub: without them node fails the import outright, and the
+ * step reads back as a classifier that found nothing rather than one that could
+ * not start.
+ */
+const CLASSIFIER_DEPENDENCIES = [
+  path.join("lib", "invoked-as-script.mjs"),
+  path.join("bdd", "markdown-cell.mjs"),
+];
+
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
 
@@ -160,6 +174,12 @@ function scratchProject(options: {
   fs.ensureDirSync(path.join(dir, SCRIPTS_DIR));
   if (options.classifier === "real") {
     fs.copySync(CLASSIFIER_SRC, installedClassifier);
+    for (const dependency of CLASSIFIER_DEPENDENCIES) {
+      fs.copySync(
+        path.join(REPO_ROOT, "expo", "copy-overwrite", SCRIPTS_DIR, dependency),
+        path.join(dir, SCRIPTS_DIR, dependency)
+      );
+    }
     fs.ensureDirSync(flowsDir);
     fs.writeFileSync(
       path.join(flowsDir, "card-detail.yaml"),

@@ -1,0 +1,76 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
+/**
+ * invoked-as-script — the one implementation of "was this module run as the CLI
+ * entry point?", shared by every guarded `.mjs` entry point Lisa ships.
+ *
+ * @remarks
+ * ## Why this is shared rather than copied
+ *
+ * The obvious spelling is `import.meta.url === pathToFileURL(process.argv[1]).href`,
+ * and it is wrong in a way that cannot be seen in review. `import.meta.url` is
+ * always the REAL path — node resolves ESM through `realpath` unless
+ * `--preserve-symlinks` is set — while `argv[1]` is whatever spelling the caller
+ * typed. Reached through a symlinked checkout, a symlinked bin shim, or a
+ * `/tmp` path on macOS (`/tmp` is itself a symlink to `/private/tmp`), the two
+ * differ, the guard is false, `main()` never runs, and the process exits 0
+ * having done nothing.
+ *
+ * That failure mode is not symmetric. A no-op GENERATOR usually fails closed —
+ * whatever consumes its output notices the missing artifact. A no-op CHECK
+ * fails **OPEN**: it prints nothing, exits 0, and the npm script "succeeds", so
+ * a gate that is meant to block a merge silently stops having an opinion. Every
+ * `check-*.mjs` in this tree is in the second category, and git worktrees —
+ * which every Lisa-driven agent uses — put a symlinked path on that code path
+ * as a matter of routine.
+ *
+ * ## `moduleUrl` is REQUIRED, and is the FIRST parameter
+ *
+ * A deliberate deviation from the obvious signature
+ * `invokedAsScript(argv1 = process.argv[1], moduleUrl = import.meta.url)`. A
+ * defaulted `import.meta.url` inside a SHARED module resolves to *this* file,
+ * which is never anybody's `process.argv[1]` — so a caller that forgot the
+ * second argument would get `false` forever and no-op silently. That is exactly
+ * the fail-open defect this module exists to remove, re-introduced by its own
+ * convenience default. Making it required and first means a call site cannot be
+ * written wrong.
+ *
+ * ## Why ANY resolution error returns false
+ *
+ * `realpathSync` throws ENOENT, EACCES, ELOOP and ENOTDIR, not just ENOENT. A
+ * fallback that narrows to ENOENT and then compares `resolve(argv1)` reinstates
+ * the un-normalized comparison the realpath exists to avoid, so the symlink
+ * defect survives on precisely the path meant to be the safety net.
+ *
+ * Returning `false` on an unresolvable `argv[1]` is sound rather than merely
+ * convenient: node resolved and LOADED the entry point from that path moments
+ * earlier, so a path that cannot be resolved now is not the path this module
+ * was loaded through. Comparing an unnormalized spelling instead would answer
+ * "maybe" with a confident "yes".
+ *
+ * @module scripts/lib/invoked-as-script
+ */
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+/**
+ * True when `moduleUrl` names the module node was asked to run.
+ *
+ * `import.meta.url` is already the REAL path, so `argv[1]` is realpath'd before
+ * comparison — see the module remarks for why a raw comparison silently answers
+ * "no" under a symlinked path.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  // `node -e`, `node --eval`, `node --print` and the REPL leave `argv[1]`
+  // undefined. Nothing was asked to run, so nothing should.
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === fileURLToPath(moduleUrl);
+  } catch {
+    return false;
+  }
+}

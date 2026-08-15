@@ -80,7 +80,7 @@
  * @module scripts/check-nightly-e2e-health
  */
 
-import { pathToFileURL } from "node:url";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
  * Contract version of the gate, asserted by the reusable workflow against its
@@ -2368,9 +2368,6 @@ async function writeOutputs(machine) {
   );
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   await main(process.argv.slice(2));
 }

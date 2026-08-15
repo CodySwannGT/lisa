@@ -21,12 +21,13 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { byCodeUnit, declaredPlatforms, trackerUrl } from "./bdd/contract.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
 import { indexResults } from "./bdd/report.mjs";
 import { loadExecutionResults } from "./check-bdd-coverage.mjs";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const PACKAGE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -250,5 +251,4 @@ function main() {
   console.log(`[bdd-matrix] wrote ${OUT_REL}`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
-  main();
+if (invokedAsScript(import.meta.url)) main();
