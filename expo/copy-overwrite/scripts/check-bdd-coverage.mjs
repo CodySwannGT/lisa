@@ -43,7 +43,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import {
   ADOPTION_STATES,
@@ -81,6 +81,7 @@ import {
   validateTrackerTags,
 } from "./bdd/validate.mjs";
 import { ISO_DATE, validateWaivers } from "./bdd/waivers.mjs";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const PACKAGE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -796,5 +797,4 @@ function printHuman(gateRun, envelope) {
   console.error(`[bdd-coverage] ${envelope.summary.headline}`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
-  main();
+if (invokedAsScript(import.meta.url)) main();

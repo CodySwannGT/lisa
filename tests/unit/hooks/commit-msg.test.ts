@@ -35,6 +35,9 @@ const WORK_ITEM_TRAILER = `Work-Item: ${WORK_ITEM_REF}`;
 const TRACKER_SCRIPT = path.resolve(
   "all/copy-overwrite/scripts/lisa-work-item.mjs"
 );
+const ENTRY_GUARD_SCRIPT = path.resolve(
+  "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"
+);
 
 let tempDirs: string[] = [];
 
@@ -157,7 +160,7 @@ function createProject(options: ProjectOptions): string {
   const gitEnv = cleanGitEnv(process.env);
   tempDirs.push(project);
   mkdirSync(path.join(project, "node_modules", ".bin"), { recursive: true });
-  mkdirSync(path.join(project, "scripts"), { recursive: true });
+  mkdirSync(path.join(project, "scripts/lib"), { recursive: true });
   writeFileSync(path.join(project, "package-lock.json"), "{}\n");
   writeFileSync(
     path.join(project, ".lisa.config.json"),
@@ -167,6 +170,12 @@ function createProject(options: ProjectOptions): string {
   copyFileSync(
     TRACKER_SCRIPT,
     path.join(project, "scripts/lisa-work-item.mjs")
+  );
+  // The shared entry guard the tracker imports. Missing it turns every
+  // diagnostic this suite asserts on into an ERR_MODULE_NOT_FOUND stack.
+  copyFileSync(
+    ENTRY_GUARD_SCRIPT,
+    path.join(project, "scripts/lib/invoked-as-script.mjs")
   );
   writeBin(project, options.binName, options.binBody);
   writeBin(
