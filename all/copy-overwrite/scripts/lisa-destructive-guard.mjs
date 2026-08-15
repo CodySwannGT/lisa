@@ -146,11 +146,40 @@ export function classifyEnvironment(value) {
  */
 export function isDestructive(fields) {
   const capability = normalize(fields?.capability);
-  if (DESTRUCTIVE_CAPABILITIES.includes(capability)) {
+  if (isDestructiveName(capability)) {
     return true;
   }
   const summary = fields?.summary ?? {};
   return Number(summary.deleted) > 0 || Number(summary.created) > 0;
+}
+
+/**
+ * Whether a capability name declares a destructive operation.
+ *
+ * Matched per hyphen-separated segment as well as whole, because the envelope
+ * schema admits any `^[a-z][a-z0-9-]*$` while this list holds only bare verbs.
+ * A compound name — `reset-database`, `db-teardown`, `seed-all` — matched
+ * nothing and the name arm returned false.
+ *
+ * The counts arm does not save that case. It fires only when a run *reports*
+ * rows touched, so the bypass needs a compound name and a silent summary, and
+ * an operation that deletes without reporting is precisely what a destructive
+ * guard exists for. The name arm is the primary control; counts are a backstop.
+ *
+ * Segment matching, not substring matching: `presets` contains `reset` but is
+ * not a segment of it, so it stays non-destructive. `migrate-down` still
+ * matches as a whole name, since neither `migrate` nor `down` is destructive
+ * alone and promoting either would refuse ordinary forward migrations.
+ * @param {string} capability - Normalized capability name
+ * @returns {boolean} True when any part of the name is a destructive verb
+ */
+function isDestructiveName(capability) {
+  if (DESTRUCTIVE_CAPABILITIES.includes(capability)) {
+    return true;
+  }
+  return capability
+    .split("-")
+    .some(segment => DESTRUCTIVE_CAPABILITIES.includes(segment));
 }
 
 /**

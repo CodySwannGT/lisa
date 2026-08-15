@@ -9016,6 +9016,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
     "tests/unit/scripts/derived-artifact-staleness.test.ts": true,
+    "tests/unit/scripts/destructive-capability-compound-names.test.ts": true,
     "tests/unit/scripts/destructive-production-guard.test.ts": true,
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
