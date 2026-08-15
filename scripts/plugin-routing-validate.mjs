@@ -36,7 +36,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { compareSemver, isValidSemver } from "./plugin-parity-drift.mjs";
 
 const REPO_ROOT = path.resolve(
@@ -639,9 +641,6 @@ export function main(argv, io = {}) {
   return results.every(r => r.errors.length === 0) ? 0 : 1;
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   process.exit(main(process.argv.slice(2)));
 }

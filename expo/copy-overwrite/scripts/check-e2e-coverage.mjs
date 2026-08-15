@@ -32,7 +32,8 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 export const defaultThresholds = {
   playwright: { routes: 80 },
@@ -389,9 +390,6 @@ function main() {
 }
 
 // Run only when invoked directly — importing for tests must have no side effects.
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   main();
 }

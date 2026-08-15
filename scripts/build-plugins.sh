@@ -153,6 +153,35 @@ if [ -f "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" ]; then
   chmod +x "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-fallback.sh"
 fi
 
+# The shared ESM entry guard, into every lane that has a consumer of it.
+#
+# Downstream, all of these land flat in one `scripts/` directory, so a single
+# `scripts/lib/invoked-as-script.mjs` serves every lane and `./lib/...` resolves
+# from each. Inside THIS repo the lanes are separate trees and Lisa's own unit
+# tests import the lane copies directly, so each lane that imports the helper
+# must carry it or those imports fail to resolve. Synced from one canonical
+# source rather than hand-copied, for the same reason the ratchet above is: a
+# unit test asserts byte-equality, so the three copies can never drift.
+#
+# `all` is applied to every project type before the stack lanes, so the copies
+# in `typescript` and `expo` are redundant at apply time — they exist for
+# in-repo resolution and are byte-identical, so whichever lane writes last
+# writes the same bytes.
+#
+# Guarded on the GENERATOR as well as the source. This script is run against
+# isolated fixtures that vendor `scripts/lib/` but not the repository's own
+# `scripts/*.mjs`, so testing the source alone would find it present and then
+# fail the whole build on a missing materializer.
+if [ -f "$ROOT_DIR/scripts/lib/invoked-as-script.mjs" ] &&
+  [ -f "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" ]; then
+  for guard_lane in all typescript expo; do
+    guard_lib_dir="$ROOT_DIR/$guard_lane/copy-overwrite/scripts/lib"
+    mkdir -p "$guard_lib_dir"
+    materialize "$ROOT_DIR/scripts/lib/invoked-as-script.mjs" \
+      "$guard_lib_dir/invoked-as-script.mjs"
+  done
+fi
+
 # Stack-specific plugins (NO base copy)
 STACKS=(typescript expo nestjs cdk harper-fabric phaser rails)
 for stack in "${STACKS[@]}"; do

@@ -104,7 +104,9 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { cell } from "./bdd/markdown-cell.mjs";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
  * Wait commands whose `timeout:` is a ceiling the command burns before failing.
@@ -667,7 +669,7 @@ export function renderMarkdown({ report, failures, defects }) {
         ? `${failure.intermittent.ratePercent}% (${failure.intermittent.failures}/${failure.intermittent.runs}, measured ${failure.intermittent.measuredAt})`
         : "—";
       lines.push(
-        `| \`${failure.flow}\` | ${escapeCell(failure.message)} | ${known} |`
+        `| \`${failure.flow}\` | ${cell(failure.message)} | ${known} |`
       );
     }
     lines.push("");
@@ -694,15 +696,6 @@ export function renderMarkdown({ report, failures, defects }) {
     );
   }
   return lines.join("\n");
-}
-
-/**
- * Escape a value so it cannot break out of a markdown table cell.
- * @param {string} value - Raw text
- * @returns {string} Escaped text
- */
-function escapeCell(value) {
-  return String(value).replace(/\|/g, "\\|").replace(/\n/g, " ");
 }
 
 /**
@@ -770,9 +763,6 @@ function main(argv) {
   }
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   main(process.argv.slice(2));
 }
