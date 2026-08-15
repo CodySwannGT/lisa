@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.17.1](https://github.com/CodySwannGT/lisa/compare/v3.17.0...v3.17.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **gates:** run rewriting gates before the gates that verify the tree ([247a9d7](https://github.com/CodySwannGT/lisa/commit/247a9d7c7a2d92cd87a71fd0fc102fbadaac16b7)), closes [CodySwannGT/lisa#2590](https://github.com/CodySwannGT/lisa/issues/2590) [CodySwannGT/lisa#2590](https://github.com/CodySwannGT/lisa/issues/2590)
+
 ## [3.17.0](https://github.com/CodySwannGT/lisa/compare/v3.16.0...v3.17.0) (2026-08-15)
 
 
