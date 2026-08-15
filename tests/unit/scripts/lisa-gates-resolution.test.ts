@@ -1,0 +1,207 @@
+/**
+ * Tests for gate resolution, needs derivation, and branch-protection contexts.
+ *
+ * The load-bearing assertion here is that an `off` gate produces no context.
+ * GitHub counts a SKIPPED required check as satisfied, so a gate that does not
+ * run must never appear in the required list — and because one declaration
+ * drives both the job condition and the context list, it cannot.
+ * @module tests/unit/scripts/lisa-gates-resolution
+ */
+
+import { describe, expect, it } from "vitest";
+
+import {
+  contextsFor,
+  EVIDENCE_DEFAULTS,
+  needsAt,
+  resolveMoment,
+} from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  LINT_LABEL,
+  LINT_TASK,
+  LOCAL_REVIEW,
+  NATIVE_E2E_TASK,
+  PRE_DEPLOY_PROD,
+  PULL_REQUEST,
+  QUALITY,
+  REVIEW_BOT,
+} from "./lisa-gates-fixtures.js";
+
+describe("resolveMoment", () => {
+  const gates = {
+    "code-style": {
+      run: LINT_TASK,
+      commit: "required",
+      [PULL_REQUEST]: "required",
+    },
+    "test-meaningfulness": { [PULL_REQUEST]: "optional" },
+    "dead-code": { push: "off" },
+    "verification-bypass": { "pre-tool": "required" },
+    "code-review": {
+      push: { level: "optional", run: LOCAL_REVIEW },
+      [PULL_REQUEST]: { level: "required", await: REVIEW_BOT },
+    },
+  };
+
+  it("returns only gates enabled at the moment, with their command", () => {
+    expect(
+      resolveMoment({ gates, moment: "commit", runner: "bun run" })
+    ).toEqual([
+      {
+        id: "code-style",
+        level: "required",
+        mode: "run",
+        awaits: null,
+        task: LINT_TASK,
+        command: "bun run lint",
+        label: "🧹 Lint",
+        work: null,
+        evidence: null,
+      },
+    ]);
+  });
+
+  it("uses the registry default when a gate names no task", () => {
+    const resolved = resolveMoment({
+      gates: { "test-meaningfulness": { [PULL_REQUEST]: "optional" } },
+      moment: PULL_REQUEST,
+      runner: "bun run",
+    });
+    expect(resolved[0]?.command).toBe("bun run test:mutation");
+  });
+
+  it("treats an explicit off exactly like an absent moment", () => {
+    expect(
+      resolveMoment({ gates, moment: "push" }).map(gate => gate.id)
+    ).toEqual(["code-review"]);
+  });
+
+  it("marks an interceptor as intercepted rather than runnable", () => {
+    const [gate] = resolveMoment({ gates, moment: "pre-tool" });
+    expect(gate?.mode).toBe("intercept");
+    expect(gate?.command).toBeNull();
+  });
+
+  it("extends evidence defaults rather than replacing them", () => {
+    const [gate] = resolveMoment({
+      gates: {
+        "code-review": {
+          [PULL_REQUEST]: {
+            level: "required",
+            await: "Greptile",
+            evidence: { no_work: ["seat limit exceeded"] },
+          },
+        },
+      },
+      moment: PULL_REQUEST,
+    });
+    expect(gate?.evidence.no_work).toContain("seat limit exceeded");
+    // Removing a default would narrow detection with no signal it was narrowed.
+    for (const phrase of EVIDENCE_DEFAULTS.no_work) {
+      expect(gate?.evidence.no_work).toContain(phrase);
+    }
+  });
+
+  it("defaults an awaited gate to reporting rather than blocking", () => {
+    const [gate] = resolveMoment({
+      gates: {
+        "code-review": {
+          [PULL_REQUEST]: { level: "required", await: REVIEW_BOT },
+        },
+      },
+      moment: PULL_REQUEST,
+    });
+    expect(gate?.evidence.on_hollow).toBe("report");
+  });
+});
+
+describe("needsAt", () => {
+  const gates = {
+    "e2e-native": {
+      run: NATIVE_E2E_TASK,
+      needs: { tools: ["maestro"], secrets: ["MAESTRO_API_KEY"] },
+      [PULL_REQUEST]: "optional",
+      [PRE_DEPLOY_PROD]: "required",
+    },
+    "code-style": { run: LINT_TASK, commit: "required" },
+  };
+
+  it("unions what the gates at that moment need", () => {
+    const needs = needsAt({ gates, moment: PULL_REQUEST });
+    expect(needs.tools).toEqual(["maestro"]);
+    expect(needs.secrets).toEqual(["MAESTRO_API_KEY"]);
+  });
+
+  it("needs nothing where no gate requiring it runs", () => {
+    // The requirement follows the work, not the surface.
+    expect(needsAt({ gates, moment: "commit" })).toEqual({
+      tools: [],
+      secrets: [],
+      reasons: {},
+    });
+  });
+
+  it("names the gate that caused each requirement", () => {
+    const needs = needsAt({ gates, moment: PRE_DEPLOY_PROD });
+    expect(needs.reasons.maestro).toContain("e2e-native");
+  });
+});
+
+describe("contextsFor", () => {
+  const gates = {
+    "code-style": { run: LINT_TASK, [PULL_REQUEST]: "required" },
+    "test-meaningfulness": { [PULL_REQUEST]: "optional" },
+    "load-capacity": { [PRE_DEPLOY_PROD]: "required" },
+    "code-review": { [PULL_REQUEST]: { level: "required", await: REVIEW_BOT } },
+  };
+
+  it("derives required contexts, so the list stops being transcribed", () => {
+    expect(contextsFor(gates, { workflowName: QUALITY })).toEqual([
+      LINT_LABEL,
+      REVIEW_BOT,
+    ]);
+  });
+
+  it("uses the signal's own name for an awaited gate", () => {
+    // A bot posts under its own context, not the calling workflow's.
+    expect(contextsFor(gates, { workflowName: QUALITY })).toContain(REVIEW_BOT);
+  });
+
+  it("omits optional gates, which are not merge blockers", () => {
+    expect(contextsFor(gates, { workflowName: QUALITY })).not.toContain(
+      `${QUALITY} / 🧬 Mutation Testing Gate`
+    );
+  });
+
+  it("omits an off gate entirely, which is what makes off safe", () => {
+    // GitHub counts a SKIPPED required check as satisfied, so a gate that does
+    // not run must never appear here. One declaration drives both.
+    expect(
+      contextsFor(
+        { "code-style": { run: LINT_TASK, [PULL_REQUEST]: "off" } },
+        { workflowName: QUALITY }
+      )
+    ).toEqual([]);
+  });
+
+  it("scopes contexts to one moment", () => {
+    expect(contextsFor(gates, { workflowName: QUALITY })).not.toContain(
+      `${QUALITY} / 📈 Load Capacity`
+    );
+    expect(
+      contextsFor(gates, {
+        workflowName: QUALITY,
+        moment: PRE_DEPLOY_PROD,
+      })
+    ).toEqual([`${QUALITY} / 📈 Load Capacity`]);
+  });
+
+  it("keeps a retired label alive during a rename", () => {
+    const contexts = contextsFor(gates, {
+      workflowName: QUALITY,
+      previousLabels: ["🧹 Lint (legacy)"],
+    });
+    expect(contexts).toContain(LINT_LABEL);
+    expect(contexts).toContain(`${QUALITY} / 🧹 Lint (legacy)`);
+  });
+});

@@ -120,6 +120,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+          }
+        ]
       }
     ],
     "sessionEnd": [

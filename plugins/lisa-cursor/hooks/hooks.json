@@ -57,6 +57,9 @@
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
       }
     ],
     "subagentStart": [
