@@ -426,7 +426,7 @@ The verdict ladder is:
 
 ```sh
 node scripts/lisa-gates.mjs validate                    # shape + unknown gate ids
-node scripts/lisa-gates.mjs list --stage=ci:pull_request
+node scripts/lisa-gates.mjs list --moment=pull-request
 node scripts/lisa-gates.mjs contexts                    # branch-protection contexts
 ```
 
@@ -448,6 +448,56 @@ release. Downstream repositories call the shared workflow unpinned, so a renamed
 repository before any of them has reconciled — and a required context that never reports leaves
 pull requests waiting indefinitely. The fastest way out of that is deleting the requirement, which
 is how a rename ends up removing a guarantee. Emitting both labels for one release avoids it.
+
+### Reconciling against the live ruleset
+
+`contexts` says what the repository *should* require. Reconciliation asks whether GitHub agrees:
+
+```sh
+node scripts/lisa-reconcile-policy.mjs --dry-run              # read-only: what would change
+node scripts/lisa-reconcile-policy.mjs --on-drift=report      # report, write nothing
+node scripts/lisa-reconcile-policy.mjs --on-drift=block       # exit 1 on any drift, for CI
+node scripts/lisa-reconcile-policy.mjs                        # honors policy.on_drift
+node scripts/lisa-reconcile-policy.mjs --previous="🧽 Lint"   # keep a renamed context required
+node scripts/lisa-reconcile-policy.mjs --prune                # also remove EXTRA contexts
+```
+
+It reads the live ruleset and repository settings through `gh`, compares them against the derived
+contexts and the `policy` block, and reports three sets: **MISSING** (declared, not live), **EXTRA**
+(live, not declared), **MATCHED**. `--dry-run` never writes, whatever `policy.on_drift` says.
+
+Three behaviors need an operator to understand them before reading a report.
+
+**1. `UNPROVEN` is not a pass.** If `gh` is missing, unauthenticated, or the API errors — a private
+repository on a plan without rulesets answers `403` — the verdict is `UNPROVEN` and the exit code is
+`2`. It is neither of its neighbours, and the distinction is the same one the secrets preflight
+draws with `unreachable`: reported as clean it is a vacuous green, clean precisely because nothing
+was learned; reported as drift it sends someone to fix a ruleset that may be perfectly correct. The
+drift sets come back `null` rather than empty, because empty is what a clean repository looks like.
+`on_drift` does not soften this — not even `report` — because `on_drift` decides what to do about a
+drift that was *measured*, and here nothing was. Map it to doctor's `WARN`/`FAIL` on the same rule
+as any other unavailable check surface: never `PASS`.
+
+**2. An `EXTRA` context is reported, never removed.** Lisa does not own the whole required list.
+`SonarCloud Code Analysis`, `GitGuardian Security Checks`, and `CodeRabbit` are posted by external
+apps that no gates block declares, so `contextsFor` cannot derive them and every one of them is
+EXTRA by construction. Under `repair` the script therefore ADDS what is missing and leaves what is
+extra alone, naming each one. Removing them requires `--prune`, and the right way to clear the list
+is one at a time: each EXTRA context is either an app to keep, or a gate that belongs in
+`.lisa.config.json` — decide which before pruning anything.
+
+**3. Keep both names during a rename.** `--previous=<old label>` requires the old and the new
+context simultaneously for one release. Without it the reconciliation reports the still-live old
+context as EXTRA (and `--prune` would delete it) while in-flight pull requests wait on a context
+that will never report again.
+
+Repair writes exactly two things: required contexts on a ruleset, and repository settings. Policy
+carried by the *shape* of a rule — linear history, signed commits, force-push and deletion
+protection, conversation resolution — is compared here and repaired by
+`scripts/lisa-github-rulesets.sh`, which owns rule construction; the reconciler reports those and
+names that script rather than reshaping rules it did not build. When more than one ruleset requires
+status checks it refuses to guess which owns the derived contexts and asks for `--ruleset=<name>`,
+because writing to the wrong one enforces a context under a different ref-name condition.
 
 ## Secrets configuration
 

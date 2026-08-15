@@ -55,6 +55,23 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
+        # ⚠️ PREFER `gates` IN .lisa.config.json. `skip_jobs` is retained
+        # because repositories pass it today, but it is unsafe by
+        # construction: GitHub counts a SKIPPED required status check as
+        # SATISFIED, so a job named here reports GREEN against a context its
+        # ruleset still requires, having run zero steps. That gate can never
+        # be red and therefore can never block anything — measured twice in
+        # this portfolio (see the `skipped_required_checks` job below).
+        #
+        # The safe replacement is to set the gate to `off` (or `optional`) in
+        # the `gates` block of .lisa.config.json. It cannot produce a vacuous
+        # green, because ONE declaration drives BOTH sides: the job condition
+        # and the required-context list, which `contextsFor` in
+        # scripts/lisa-gates.mjs derives from the same entry and which emits a
+        # context only for `required`. A gate turned off vanishes from the
+        # ruleset instead of silently satisfying it. `skip_jobs` cannot offer
+        # that, because it is a workflow input and nothing edits the ruleset.
+        #
         # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
         # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
         # has no string-replace function — the available string functions are
@@ -390,10 +407,86 @@ jobs:
             bun install --frozen-lockfile
           fi
 
+      # ─── Gate façade ─────────────────────────────────────────────────────
+      # THE CONTRACT (stated once here; the other converted jobs point back).
+      #
+      # A gate is a PROPERTY that must hold, not a tool. `oxlint` is not a
+      # gate — *code style* is the gate, and oxlint is one way to prove it.
+      # Lisa owns the vocabulary (`code-style`); the PROJECT owns the
+      # implementation, by naming one of its own tasks in the `gates` block of
+      # .lisa.config.json. Resolution goes through the shipped registry,
+      # scripts/lisa-gates.mjs, so this workflow never has to know what the
+      # project lints with. Swapping oxlint for biome is one line of project
+      # config and nothing here.
+      #
+      # THE FALLBACK is deliberate and load-bearing. `configured` is false —
+      # and the steps below run TODAY'S hardcoded invocation, byte for byte —
+      # whenever nothing resolves, which covers every one of:
+      #   * no scripts/lisa-gates.mjs (project predates the registry),
+      #   * no `gates` block (the state of essentially every installed
+      #     project right now, including Lisa itself),
+      #   * this gate not declared at the `pull-request` moment,
+      #   * this gate declared `off` or `await`-proved rather than run.
+      # An unmigrated project therefore behaves EXACTLY as it does today.
+      #
+      # Note what the fallback does NOT do: it never turns the job into a
+      # no-op. This job's `name:` is a branch-protection context, and a
+      # required context that runs zero steps reports GREEN — that is the
+      # `skip_jobs` defect (see the header). Retiring a gate means dropping it
+      # from the required-context list, which is derived from the same
+      # declaration by `contextsFor`, so the two can never disagree.
+      #
+      # WHY THE RESOLVE STEP IS REPEATED IN NINE JOBS. GitHub Actions has no
+      # YAML anchors and no step-level reuse without a separate composite
+      # action, so the only single-copy option is a resolver JOB whose outputs
+      # the nine read through `needs:` — and that is refused, because a
+      # `needs:` parent that fails or is cancelled leaves its dependents
+      # SKIPPED, and a skipped required check counts as SATISFIED. Nine
+      # independent resolutions is what keeps each context unable to be
+      # satisfied by something other than its own gate. The repeated text is
+      # therefore an INVOCATION, not a reimplementation: the resolver is
+      # scripts/lisa-gates.mjs and the only thing that differs between copies
+      # is GATE_ID. tests/integration/quality-gate-facade.test.ts asserts all
+      # nine blocks are byte-identical once GATE_ID is normalised, so they
+      # cannot drift apart the way two hand-maintained copies would.
+      #
+      # Two properties of the resolve step below are load-bearing:
+      #   * Nothing discards stderr, and `pipefail` is on. A malformed
+      #     .lisa.config.json fails the step loudly instead of reading as "no
+      #     gate is configured" and quietly falling back to tooling the
+      #     project may have deliberately replaced.
+      #   * `plain()` rejects anything that is not a bare word, because
+      #     .lisa.config.json is a file a pull request can edit and the
+      #     resolved value reaches a shell. Flags are allowed; `$( )`,
+      #     backticks, `;`, `&&` and quotes are not.
+      - name: 🎛️ Resolve the code-style gate
+        id: gate
+        env:
+          GATE_ID: code-style
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🦀 Verify oxlint is installed
-        # oxlint is REQUIRED in the Phase 2 hybrid pipeline. Fail loudly if a
-        # downstream project skipped its installation; the slow ESLint pass
-        # alone is no longer a complete lint and must not silently substitute.
+        # FALLBACK ONLY. oxlint is REQUIRED in the Phase 2 hybrid pipeline.
+        # Fail loudly if a downstream project skipped its installation; the
+        # slow ESLint pass alone is no longer a complete lint and must not
+        # silently substitute. A project that declared its own `code-style`
+        # task has said what proves the property, so demanding oxlint of it
+        # would be this workflow overriding the project's own answer.
+        if: steps.gate.outputs.configured != 'true'
         run: |
           if [ ! -x "node_modules/.bin/oxlint" ]; then
             echo "::error::oxlint is required but not installed at node_modules/.bin/oxlint. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '${{ inputs.package_manager }} install'."
@@ -402,11 +495,24 @@ jobs:
           echo "oxlint $(./node_modules/.bin/oxlint --version | head -1) found."
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧹 Run the code-style gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧹 Run linter (oxlint + eslint)
-        # The `lint` npm script in package.lisa.json is forced to
+        # FALLBACK. The `lint` npm script in package.lisa.json is forced to
         # "oxlint && eslint . --quiet" by Lisa governance, so this single
         # step runs both linters in sequence. Per-project script semantics
         # (e.g. Lisa itself uses --disable-nested-config) are preserved.
+        if: steps.gate.outputs.configured != 'true'
         run: ${{ inputs.package_manager }} run lint
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -449,7 +555,43 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the code-style-slow gate
+        id: gate
+        env:
+          GATE_ID: code-style-slow
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🐢 Run the code-style-slow gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🐢 Run slow lint rules
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        if: steps.gate.outputs.configured != 'true'
         run: ${{ inputs.package_manager }} run lint:slow
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -492,7 +634,43 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the type-correctness gate
+        id: gate
+        env:
+          GATE_ID: type-correctness
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Run the type-correctness gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Run type check
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        if: steps.gate.outputs.configured != 'true'
         run: ${{ inputs.package_manager }} run typecheck
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -907,6 +1085,28 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the test-correctness gate
+        id: gate
+        env:
+          GATE_ID: test-correctness
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for test:unit script
         id: check_script
         run: |
@@ -921,6 +1121,14 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Service containers and coverage env are ENVIRONMENT, not tooling, and
+      # a project that named its own `test-correctness` task still needs its
+      # database up. They stay keyed off the `test:unit` script rather than the
+      # gate because Lisa force-ships that script into every host package.json,
+      # so a configured project has it too — and because the exact condition
+      # string is asserted in tests/integration/quality-workflow.test.ts. The
+      # residual gap (a configured project that deleted `test:unit` gets no
+      # service containers) needs that assertion relaxed in the same change.
       - name: 🧰 Start coverage service containers
         if: steps.check_script.outputs.exists == 'true' && inputs.coverage_services != ''
         env:
@@ -1003,8 +1211,21 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_ENV, `${lines.join("\n")}\n`);
           NODE
 
+      - name: 🧪 Run the test-correctness gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧪 Run unit tests with coverage
-        if: steps.check_script.outputs.exists == 'true'
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'true'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm run test:cov
@@ -1018,7 +1239,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip unit tests (no test:unit script)
-        if: steps.check_script.outputs.exists == 'false'
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured != 'true'
         run: echo "Skipping unit tests - test:unit script not found in package.json"
 
   test_mutation:
@@ -1142,8 +1363,43 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the test-integration gate
+        id: gate
+        env:
+          GATE_ID: test-integration
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Run the test-integration gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧪 Run integration tests
-        if: steps.check_script.outputs.exists == 'true'
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'true'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm run test:integration
@@ -1157,7 +1413,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip integration tests (no test:integration script)
-        if: steps.check_script.outputs.exists == 'false'
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured != 'true'
         run: echo "Skipping integration tests - test:integration script not found in package.json"
 
   test_e2e:
@@ -1716,7 +1972,43 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the format-conformance gate
+        id: gate
+        env:
+          GATE_ID: format-conformance
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📐 Run the format-conformance gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 📐 Check formatting
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        if: steps.gate.outputs.configured != 'true'
         run: ${{ inputs.package_manager }} run format:check
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -1757,6 +2049,28 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             bun install --frozen-lockfile
           fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the build-integrity gate
+        id: gate
+        env:
+          GATE_ID: build-integrity
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Same build-input fingerprint the playwright_e2e job uses, and for the
@@ -1802,8 +2116,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
+      # Both build steps carry the same cache-hit guard. The parentheses are
+      # load-bearing: GitHub Actions binds `&&` tighter than `||`, so without
+      # them `A || B && C` would parse as `A || (B && C)` and the configured
+      # gate would run on a cache hit.
+      - name: 🏗️ Run the build-integrity gate
+        # Both build steps carry the same cache-hit guard. The parentheses are
+        # load-bearing: GitHub Actions binds `&&` tighter than `||`, so without
+        # them `A || B && C` would parse as `A || (B && C)` and this step would
+        # run on a cache hit.
+        if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured == 'true' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🏗️ Build project
-        if: inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true'
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured != 'true' }}
         run: ${{ inputs.package_manager }} run build
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -2193,10 +2528,45 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the dead-code gate
+        id: gate
+        env:
+          GATE_ID: dead-code
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🗑️ Run the dead-code gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🗑️ Run dead code detection (knip)
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
         # The script was renamed knip -> knip:check (expo-doctor flags scripts
         # that shadow node_modules/.bin entries); fall back to the legacy name
         # for projects that haven't re-applied Lisa yet.
+        if: steps.gate.outputs.configured != 'true'
         run: |
           if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
             ${{ inputs.package_manager }} run knip:check
@@ -2242,8 +2612,48 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above. Every ast-grep-specific step in this job — the two
+      # discovery checks, the scan, the rule tests, and the ⏭️ notices — hangs
+      # off `check_config`, so gating that one step on the fallback path takes
+      # the whole ast-grep pipeline with it when the project named its own
+      # structural-rules task. The "(no config)" notice is gated too, because
+      # otherwise it would warn about a missing sgconfig.yml that a project
+      # using a different structural linter is right not to have.
+      - name: 🎛️ Resolve the structural-rules gate
+        id: gate
+        env:
+          GATE_ID: structural-rules
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔎 Run the structural-rules gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for sgconfig.yml
         id: check_config
+        if: steps.gate.outputs.configured != 'true'
         run: |
           if [ -f "sgconfig.yml" ]; then
             echo "has_config=true" >> $GITHUB_OUTPUT
@@ -2331,7 +2741,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ AST Grep Skipped (no config)
-        if: steps.check_config.outputs.has_config != 'true'
+        if: steps.gate.outputs.configured != 'true' && steps.check_config.outputs.has_config != 'true'
         run: |
           echo "::warning::ast-grep scan skipped - no sgconfig.yml found"
           echo "To enable ast-grep scanning, add sgconfig.yml to your project root"

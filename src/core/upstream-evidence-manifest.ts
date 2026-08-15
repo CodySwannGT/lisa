@@ -17,7 +17,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "7d89a49da89895a3e377702d0049e1dbcc7ea666dcfa3749874f0986db31ee1a",
+      "e7d928c3b2d878c7a9ec9589894dfc3feaba54b8913c87be0550c34a1431ed9f",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -30,6 +30,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "1d4fbe135f1bb4e861d286a6512ed201d4522250dfe3f9eba6584bc5ff166a95",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
+    "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
+      "9b613888c4c1cc6cc2b1fb6e162a4c766012eab0ec4f8b7f2ac1bc3da6622c97",
+    "all/copy-overwrite/scripts/lisa-run-gates.mjs":
+      "e00f16cdc399c8ee61c7a3972469fbb4b662e0fff00bd9d3d6910f3f27a5f04c",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -991,7 +995,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "9d06590e6b99cce33e5fb10bd5b9e7515318133e3635368ef47162abc123bdfa",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "b040b91fa15303b80c2d37dc828f7ce79e0db8bc8f3afba4c1ec9fa392dfcc4c",
+      "3202e5ce094c499c401a0fe554ea02fb75f08ae9d0d7f3fca30b1df338b3fc40",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "3919c6161900916090ee315df322938efc5b53bdfabf78efe8683432cf8ae488",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -2237,9 +2241,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
-      "3a10db0ec1eb9bf5ff42cbcded2d6412a833ee31107d43c5b4c3d32baf84d330",
+      "d6d0a217c8a801691a50722c9d6cca3d86e8d82543693985107318645c43d490",
     "typescript/copy-contents/.husky/pre-push":
-      "bb929b9fa108586e5591e80e5d3682d6540fc681543f1e02d7a626022bbffb15",
+      "1695372d3ba33b164c313c42887e82aa9c56757a22edde3110dcb5a5cfa489d9",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -2538,6 +2542,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh": true,
+    "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
+    "all/copy-overwrite/scripts/lisa-run-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs": true,
     "all/copy-overwrite/scripts/lisa-work-item.mjs": true,
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json": true,
@@ -2609,6 +2615,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/package-lisa/package.lisa.json": true,
     "commitlint.config.cjs": true,
     "docs/bdd-coverage-schema.md": true,
+    "docs/design/gates-and-policy.md": true,
     "docs/design/reset-production-absence.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
@@ -8634,6 +8641,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
+    "tests/integration/quality-gate-facade-fixture.ts": true,
+    "tests/integration/quality-gate-facade.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -8904,6 +8913,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
+    "tests/unit/hooks/pre-push-audit-transport-parity.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/sonar-secrets.test.ts": true,
     "tests/unit/hooks/support/direct-issue-create.ts": true,
@@ -8984,11 +8994,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
+    "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
+    "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
+    "tests/unit/scripts/lisa-reconcile-policy-units.test.ts": true,
+    "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
+    "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates.test.ts": true,
     "tests/unit/scripts/lisa-work-item.test.ts": true,
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,

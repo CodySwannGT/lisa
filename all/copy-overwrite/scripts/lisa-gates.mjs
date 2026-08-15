@@ -182,7 +182,13 @@ export const REGISTRY = Object.freeze({
     label: "🔎 AST Grep Scan",
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
-    moments: PUSH_ONWARD,
+    // Commit-legal, corrected from push-onward against the evidence:
+    // `.lintstagedrc.json` already runs `ast-grep scan` on staged files at
+    // commit time. Declaring it push-onward made an enforcement that
+    // demonstrably happens unrepresentable in config — a registry that
+    // disagrees with the repository is worse than one that is merely
+    // permissive, because it silently discards a real gate.
+    moments: COMMIT_ONWARD,
     work: "rules loaded",
   },
   "dead-code": {
