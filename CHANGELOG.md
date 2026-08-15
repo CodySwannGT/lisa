@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.18.2](https://github.com/CodySwannGT/lisa/compare/v3.18.1...v3.18.2) (2026-08-15)
+
+
+### Bug Fixes
+
+* **intake:** stop the review bot writing lifecycle labels ([b33c624](https://github.com/CodySwannGT/lisa/commit/b33c624552a69e4da1fb7782cceb062fd4118409)), closes [CodySwannGT/lisa#2589](https://github.com/CodySwannGT/lisa/issues/2589) [CodySwannGT/lisa#2589](https://github.com/CodySwannGT/lisa/issues/2589) [CodySwannGT/lisa#2589](https://github.com/CodySwannGT/lisa/issues/2589)
+
 ### [3.18.1](https://github.com/CodySwannGT/lisa/compare/v3.18.0...v3.18.1) (2026-08-15)
 
 
