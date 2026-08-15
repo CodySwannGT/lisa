@@ -147,7 +147,19 @@ const CHILD_TIMEOUT_MS = Number(
   process.env.LISA_WORK_ITEM_TIMEOUT_MS || 30_000
 );
 
-function run(command, args, options = {}) {
+/**
+ * Run a child process, with the module's shared failure conventions.
+ *
+ * Exported so the stdout guarantee below can be asserted against a real spawn
+ * failure rather than a mocked one — the defect it fixes only appears when
+ * `spawnSync` genuinely declines to start a child, which a stub cannot stage
+ * convincingly.
+ * @param {string} command - Executable to run.
+ * @param {string[]} args - Arguments to pass.
+ * @param {object} [options] - cwd, env, input, timeout, allowFailure, error.
+ * @returns {object} The spawnSync result, with stdout and stderr always strings.
+ */
+export function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? process.cwd(),
     encoding: "utf8",
@@ -172,7 +184,18 @@ function run(command, args, options = {}) {
       options.error ?? `${command} ${args.join(" ")} failed`
     );
   }
-  return result;
+  // `spawnSync` reports `stdout`/`stderr` as null when the child never ran —
+  // an absent binary, a permissions failure, a timeout. Callers passing
+  // `allowFailure` then reach straight for `.stdout.trim()`, and every one of
+  // them would throw `Cannot read properties of null`: an unrelated TypeError
+  // in place of the real cause, on the path specifically written to tolerate
+  // failure. Normalizing here rather than at each call site means a caller
+  // added later inherits the guarantee instead of having to remember it.
+  return {
+    ...result,
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+  };
 }
 
 function git(args, options = {}) {
@@ -699,7 +722,77 @@ function githubHierarchy(ref, contract, number) {
   return states;
 }
 
+/**
+ * The oldest `gh` that understands every field this module asks for.
+ *
+ * `closedByPullRequestsReferences` landed in gh 2.73.0. An older CLI does not
+ * fail informatively — it reports an unknown-field error naming a JSON key,
+ * which reads like a Lisa bug rather than an out-of-date tool.
+ */
+const GH_MINIMUM = [2, 73, 0];
+
+let ghVersionChecked = false;
+
+/**
+ * Whether one dotted version sorts before another.
+ *
+ * Compared part by part rather than as numbers or text, because both of the
+ * obvious shortcuts are wrong in ways that would silently misjudge: `2.9.0`
+ * parses as the float 2.9 and beats `2.73.0`, and string comparison puts "2.9"
+ * after "2.73" for the same reason.
+ * @param {number[]} actual The version found.
+ * @param {number[]} minimum The version required.
+ * @returns {boolean} True when `actual` precedes `minimum`.
+ */
+function isOlder(actual, minimum) {
+  const first = minimum.findIndex((part, index) => actual[index] !== part);
+  return first !== -1 && actual[first] < minimum[first];
+}
+
+/**
+ * Refuse early when the installed `gh` predates a field this module needs.
+ *
+ * Deliberately NOT fail-closed on an unreadable version. This is a diagnostic,
+ * not a gate: its whole job is turning an obscure downstream error into a
+ * sentence naming the real problem. Blocking because `gh --version` printed
+ * something unfamiliar would invent a failure where the tool may be perfectly
+ * capable, and the call that follows still surfaces any genuine incompatibility
+ * on its own. So an unparseable version means "say nothing and let the real
+ * call speak", never "assume it is fine" — nothing is being reported as proved.
+ *
+ * Checked once per process: this sits on the path of every tracker read, and a
+ * subprocess per call to re-learn an answer that cannot change mid-run is pure
+ * cost.
+ * @param {Function} [exec] Command runner, injected for tests.
+ * @returns {void}
+ */
+export function assertGhVersion(exec = run) {
+  if (ghVersionChecked) return;
+  ghVersionChecked = true;
+  const printed = exec("gh", ["--version"], { allowFailure: true }).stdout;
+  const found = /gh version (\d+)\.(\d+)\.(\d+)/u.exec(printed ?? "");
+  if (!found) return;
+
+  const actual = found.slice(1, 4).map(Number);
+  if (!isOlder(actual, GH_MINIMUM)) return;
+  throw new TrackingError(
+    `gh ${actual.join(".")} is too old for work-item tracking, which needs ` +
+      `${GH_MINIMUM.join(".")} or newer.\nThe pull-request backlink is read ` +
+      `from the "closedByPullRequestsReferences" field, added in gh ` +
+      `${GH_MINIMUM.join(".")}.\nUpgrade the GitHub CLI, then retry.`
+  );
+}
+
+/**
+ * Reset the once-per-process version memo. Exported for tests only.
+ * @returns {void}
+ */
+export function resetGhVersionCheck() {
+  ghVersionChecked = false;
+}
+
 function githubIssue(ref, contract) {
+  assertGhVersion();
   const number = ref.slice(ref.lastIndexOf("#") + 1);
   const result = run(
     "gh",
