@@ -53,7 +53,8 @@ interface QualityJobSpec {
     | "verify_enforced"
     | "compliance_framework"
     | "zap_target_url"
-    | "require_approval";
+    | "require_approval"
+    | "traceability_declared";
 }
 
 /** Jobs shown in the console Quality jobs table, in display order. */
@@ -113,6 +114,11 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
     label: "🚦 Approval Gate",
     gate: "require_approval",
   },
+  {
+    id: "work_item",
+    label: "🔗 Work-Item Traceability",
+    gate: "traceability_declared",
+  },
 ];
 
 /**
@@ -134,6 +140,49 @@ function mutationGateEnabled(config: JsonObject): boolean {
 }
 
 /**
+ * Why each gate kind closes its job, keyed by kind.
+ *
+ * A table rather than a chain of conditionals: every entry answers the same
+ * question in the same shape, so adding a gate is one row instead of one more
+ * branch through a function that grows harder to read with each kind.
+ */
+const GATE_CLOSERS: Record<
+  NonNullable<QualityJobSpec["gate"]>,
+  {
+    closed: (inputs: CiWorkflowInputs, config: JsonObject) => boolean;
+    reason: string;
+  }
+> = {
+  mutation: {
+    closed: (_inputs, config) => !mutationGateEnabled(config),
+    reason: "mutation gate is disabled",
+  },
+  verify_enforced: {
+    closed: inputs => !inputs.verifyEnforced,
+    reason: "verify_enforced is off",
+  },
+  compliance_framework: {
+    closed: inputs =>
+      inputs.complianceFramework.length === 0 ||
+      inputs.complianceFramework === "none" ||
+      inputs.complianceFramework === "(none)",
+    reason: "no compliance_framework configured",
+  },
+  zap_target_url: {
+    closed: inputs => inputs.zapTargetUrl.length === 0,
+    reason: "zap_target_url is not set",
+  },
+  require_approval: {
+    closed: inputs => !inputs.requireApproval,
+    reason: "require_approval is off",
+  },
+  traceability_declared: {
+    closed: (_inputs, config) => traceabilityOff(config),
+    reason: "gates.traceability is off",
+  },
+};
+
+/**
  * Resolve a config/workflow gate into an off-reason, or undefined when open.
  * @param gate - Gate kind on the job spec
  * @param inputs - ci.yml inputs
@@ -145,27 +194,30 @@ function gateOffReason(
   inputs: CiWorkflowInputs,
   config: JsonObject
 ): string | undefined {
-  if (gate === "mutation" && !mutationGateEnabled(config)) {
-    return "mutation gate is disabled";
+  if (!gate) return undefined;
+  const closer = GATE_CLOSERS[gate];
+  return closer.closed(inputs, config) ? closer.reason : undefined;
+}
+
+/**
+ * Whether the project has switched the work-item traceability gate off.
+ *
+ * Absence is NOT off. A project that never mentions the gate still runs the
+ * built-in check — the gates block narrows and overrides, it does not enable —
+ * so treating an undeclared gate as inactive would show the console a job as
+ * disabled while CI keeps enforcing it. Only an explicit `off` is off.
+ * @param config - Merged Lisa config
+ * @returns True only when the gate is explicitly declared off
+ */
+function traceabilityOff(config: JsonObject): boolean {
+  if (!isJsonObject(config.gates) || !isJsonObject(config.gates.traceability)) {
+    return false;
   }
-  if (gate === "verify_enforced" && !inputs.verifyEnforced) {
-    return "verify_enforced is off";
+  const declared = config.gates.traceability["pull-request"];
+  if (typeof declared === "string") {
+    return declared === "off";
   }
-  if (
-    gate === "compliance_framework" &&
-    (inputs.complianceFramework.length === 0 ||
-      inputs.complianceFramework === "none" ||
-      inputs.complianceFramework === "(none)")
-  ) {
-    return "no compliance_framework configured";
-  }
-  if (gate === "zap_target_url" && inputs.zapTargetUrl.length === 0) {
-    return "zap_target_url is not set";
-  }
-  if (gate === "require_approval" && !inputs.requireApproval) {
-    return "require_approval is off";
-  }
-  return undefined;
+  return isJsonObject(declared) && declared.level === "off";
 }
 
 /**

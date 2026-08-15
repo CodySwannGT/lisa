@@ -259,6 +259,10 @@ describe("runHealth deterministic-first behavior", () => {
     ]);
     expect(request?.config).toEqual({
       quality: { mutation: { gate: { enabled: false } } },
+      // Reported so an evaluator can judge it. `null` is NOT off: an undeclared
+      // gate still runs its built-in check, so this says "on Lisa's default",
+      // never "not enforced".
+      gates: { traceability: { level: null } },
     });
     expect(JSON.stringify(request)).not.toContain("config-secret");
     expect(JSON.stringify(request)).not.toContain(
@@ -268,6 +272,7 @@ describe("runHealth deterministic-first behavior", () => {
     expect(Object.isFrozen(request?.deterministicFindings)).toBe(true);
     expect(Object.isFrozen(request?.deterministicFindings[0])).toBe(true);
     expect(Object.isFrozen(request?.config.quality.mutation.gate)).toBe(true);
+    expect(Object.isFrozen(request?.config.gates.traceability)).toBe(true);
     expect(Object.isFrozen(request?.artifacts)).toBe(true);
     expect(request?.artifacts.map(artifact => artifact.path)).toEqual([
       ".github/workflows/ci.yml",

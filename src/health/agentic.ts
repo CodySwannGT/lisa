@@ -29,6 +29,7 @@ import {
   readProjectText,
   resolveProjectPath,
 } from "./read-only-fs.js";
+import { isJsonObject } from "../sync/json-path.js";
 
 const DEFAULT_AGENTIC_TIMEOUT_MS = 60_000;
 const MAX_AGENTIC_ARTIFACTS = 67;
@@ -85,6 +86,15 @@ export interface AgenticHealthRequest {
         readonly gate: { readonly enabled: boolean | null };
       };
     };
+    /**
+     * Declared level of the work-item traceability gate, or null when the
+     * project never mentions it. Null is NOT off: an undeclared gate still runs
+     * its built-in check, so an evaluator told "null" must read that as
+     * "running on Lisa's default", never as "not enforced".
+     */
+    readonly gates: {
+      readonly traceability: { readonly level: string | null };
+    };
   };
   readonly artifacts: readonly AgenticHealthArtifact[];
 }
@@ -140,6 +150,9 @@ export interface HealthOptions extends DeterministicHealthOptions {
 interface AgenticConfigProjection {
   readonly quality: {
     readonly mutation: { readonly gate: { readonly enabled: boolean | null } };
+  };
+  readonly gates: {
+    readonly traceability: { readonly level: string | null };
   };
 }
 
@@ -285,7 +298,37 @@ async function readAgenticConfig(
         gate: Object.freeze({ enabled }),
       }),
     }),
+    gates: Object.freeze({
+      traceability: Object.freeze({
+        level: traceabilityLevel(local) ?? traceabilityLevel(committed),
+      }),
+    }),
   });
+}
+
+/**
+ * The declared pull-request level of the traceability gate, or null.
+ *
+ * Local config wins over committed, matching how the mutation gate above
+ * resolves — a developer's local override is the effective answer, and
+ * reporting the committed value while the local one governs would describe a
+ * configuration nobody is running.
+ * @param config - A parsed config object, or null when the file is absent
+ * @returns The declared level, or null when this file does not declare it
+ */
+function traceabilityLevel(
+  config: Readonly<Record<string, unknown>> | null | undefined
+): string | null {
+  const gates = config?.gates;
+  if (!isJsonObject(gates) || !isJsonObject(gates.traceability)) {
+    return null;
+  }
+  const declared = gates.traceability["pull-request"];
+  if (typeof declared === "string") return declared;
+  if (isJsonObject(declared) && typeof declared.level === "string") {
+    return declared.level;
+  }
+  return null;
 }
 
 /** Collect confined project evidence with hard per-file and aggregate bounds. */
