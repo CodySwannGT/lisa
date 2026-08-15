@@ -61,6 +61,17 @@ describe("resolveClaimability", () => {
     );
   });
 
+  it("matches a trusted claim with different casing", () => {
+    const config = {
+      github: { labels: { build: { claimed: "Status:In-Progress" } } },
+    };
+    const verdict = resolveClaimability({
+      trusted: [READY, " status:in-progress "],
+      config,
+    });
+    expect(verdict.claimable).toBe(false);
+  });
+
   it("survives a missing or malformed trusted list", () => {
     expect(resolveClaimability({ config: {} }).claimable).toBe(true);
     expect(
