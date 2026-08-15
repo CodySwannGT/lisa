@@ -41,7 +41,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   diffStaleKeys,
   extractCallerJobs,
@@ -320,9 +322,6 @@ export function main(argv, io = {}) {
   return results.some(r => r.status === "stale") ? 1 : 0;
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   process.exit(main(process.argv.slice(2)));
 }

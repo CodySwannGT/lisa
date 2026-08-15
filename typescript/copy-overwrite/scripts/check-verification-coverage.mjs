@@ -27,7 +27,8 @@
  * @module scripts/check-verification-coverage
  */
 import { execSync } from "node:child_process";
-import { pathToFileURL } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const BEHAVIORAL_TYPES = new Set(["feat", "fix"]);
 const EXEMPT_LABEL = "verification-exempt";
@@ -237,10 +238,7 @@ async function main() {
 }
 
 // Run only when invoked directly — importing for tests must have no side effects.
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   main().catch(error => {
     console.error(`[verification-coverage] FAIL: ${error.message}`);
     process.exit(1);

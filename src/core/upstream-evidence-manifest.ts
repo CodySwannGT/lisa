@@ -7,9 +7,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "8104ccd32d7e6137cae706511c5037d11d6b6045b8e2a9bb7b3a48a81c053cfa",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
-      "ac539349c86a7b5b0083ec0e6aaf0eb4c3e40fbd4dc31511c6460a2bad7af9a5",
+      "b218927f64a3db4f37762b60014e29d85a46899f4a0d17fcecc7782ce48bc499",
+    "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
+      "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
-      "6b198f088cd3cd862d4357fbb069b1ad5d3afeb7be594f2bf1ff603b092a8354",
+      "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
@@ -31,7 +33,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "c78df9d5f0f3fc388ff60a7db5898478a2a4d6d7325833f10384b5a8c62bb34a",
+      "b4e8aea72219f2c568429686a2ff1acd0da75ca26f244a66f3c4334297c8cd8e",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -171,7 +173,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "b19d0c177d8d0460779e07043c92d37555e7721224b6b2134ac2f6d10ab44b33",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "c2ae09e979cb60c5accf108650f1356614018549db4eb4aee1c6191d069a8313",
+      "97473cebb89562115320cb9154fb834e671deafea74ea52d34e0bc1511db3ee6",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
       "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
@@ -180,10 +182,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2e5aade29ad47b4924d446e168631f4296d5e4f92b2daedbc2b6d9e9bf241eaf",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "2b44e2baffd2bde541c95ed267f4a6962b421e3e7d2723d5f4660f8829c19645",
+    "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
+      "82f5881f9b1c743f572297e42cdf9acc6102d28cea909a9b6454042b091f8e44",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "53eb89417516f3125a879076a31d50e3738e21163367d475532274fbb41c732e",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "4678673c39b9f1aeeffc27265804566becb8373d47757d1ba8e28bdd0da21662",
+      "bf64e239b4218bcb83f89e2b9ce1975b5b681450c3828ec0ade620de01a387b4",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
@@ -191,11 +195,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4b62574a0d59476f050c704888e114ce7baae6c996bb3a2b043c168f74823490",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "36eb042310a754b67b5e4cfcd35bfb8f8fbed132e51b7daf6128ce03d987ac87",
+      "19cbbd7d368a99457212f2e1f9b37e6352cab6d459eb7dd11adb154f0c627c84",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "1b67cdc161191e9b2c51cef37ae864e57b2411d06df81bc5b8facff53c214f83",
+      "b284a59b3ce5dfa8fa4e6b9c5789c6c9c08120eaf957a91453fc659322feab28",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
-      "7c550e8af431293b6b8d7ca2cfd777a07ec798fd3880275d8c12f7423d4d168b",
+      "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
+    "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
+      "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "expo/copy-overwrite/tsconfig.eslint.json":
       "375bb2ee8185e4a57d703e078ad57188f6d45b03b0fcbb16ef049fcf9b14c44b",
     "expo/copy-overwrite/tsconfig.expo.json":
@@ -2075,9 +2081,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "2ae01e074226393086369b8e7db807baa14ae61fe4f8aa89b149be0835d7e664",
+      "a2d935155a71e61c927c4a83e4a4151248fc13961214d7a57f5021e7bc3a8779",
     "scripts/check-conflict-markers.mjs":
-      "e2b25dd56eb3742f074ae5b8ece13ef194518e70e5bac4c2f49e3b819d3f7dc4",
+      "78c286ed6d7cce3a030fd7561fbe6285e2051d34540640f016b86ef89e3fb08b",
     "scripts/check-derived-artifacts.mjs":
       "1a35cc935515d29f0223a87d56dbfd5537aba19162d9d20e70fce8255688b76f",
     "scripts/check-duplicate-versions.mjs":
@@ -2111,7 +2117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-opencode-plugin-templates.mjs":
       "bef79103c293b73d7c37e8a8c9fa1b4f1f2e53367898a6326b12f8a0ba8ddc43",
     "scripts/detect-stale-workflow-inputs.mjs":
-      "204e64ccbd87de0edde0045668814638181dec2fa439fa4d8f06a0aaf5082af4",
+      "5ecf75354fee8beff7e6d02a78c5742de3cb6cd6753669966714411dcb0611d7",
     "scripts/fix-namespace-test-assertions.mjs":
       "bfed6f27753660b38457c3f0a032a6c866691666d2d5d61fc10c3fb2f4f4f412",
     "scripts/fix-test-assertions-pass2.mjs":
@@ -2146,6 +2152,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-opencode-skill-policy.json":
       "d7191650d8a12727549b67df61dbfa61e16cfb9cc31e461cd98d253ceab1612a",
+    "scripts/lib/invoked-as-script.mjs":
+      "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
@@ -2179,9 +2187,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/migrate-deploy-order.sh":
       "77d909b4cbbfc05169a79168d7868600ea7f56f846feefb7d5121618c54800c3",
     "scripts/plugin-parity-drift.mjs":
-      "34235c4c75c8735aaca96e3e0a52073ba1dee8bad54c85af01c3cf9912d0ea57",
+      "d3aa919d721a5ab6f475133a49fd5b7ca86b6ae1dfd5b6443039ce04eb3d6f77",
     "scripts/plugin-routing-validate.mjs":
-      "ddb2fcd950cbd66ca642e946aef33fd0bb2e7c4081ee96c19d4628a7d45694b8",
+      "e4278b4fb12d33c2043dc9d987d8995dbff6efb23151f57a2b7423ae3c777bcc",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/remote-agent-aws-setup.sh":
@@ -2279,13 +2287,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "5e64dad2e2ee08fabd99398c957cbe4dfc3b0a7243aae424c8e83f29283e503c",
+      "5f47f02563671a25ad14dc69210f1f52e9141e0e53a27bafce52d41899aa9d21",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "1bcd3f065465731df4eb02b93b73a0162d287e365ed1a396138d97d71d403b31",
+      "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "46b7c2213112306af9702c910a9bcf485ea0b46154e46f0afe8fb8b5b0ba6c08",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
-      "3c037e2f0d2c7ae48d3b8c798522847910daef671a787393997fc71107cc7ead",
+      "0cddac03366644cdc99cc239e74520ac420d475b461a40a21728e43756872b07",
+    "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
+      "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
@@ -2519,6 +2529,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-contents/.gitattributes": true,
     "all/copy-contents/gitignore": true,
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
+    "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
@@ -2668,6 +2679,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/scripts/bdd/contract.mjs": true,
     "expo/copy-overwrite/scripts/bdd/discover.mjs": true,
     "expo/copy-overwrite/scripts/bdd/envelope.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs": true,
     "expo/copy-overwrite/scripts/bdd/parse.mjs": true,
     "expo/copy-overwrite/scripts/bdd/render.mjs": true,
     "expo/copy-overwrite/scripts/bdd/report.mjs": true,
@@ -2676,6 +2688,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs": true,
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs": true,
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs": true,
+    "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "expo/copy-overwrite/tsconfig.eslint.json": true,
     "expo/copy-overwrite/tsconfig.expo.json": true,
     "expo/copy-overwrite/tsconfig.json": true,
@@ -8127,6 +8140,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-copilot-skill-policy.json": true,
     "scripts/internal-cursor-skill-policy.json": true,
     "scripts/internal-opencode-skill-policy.json": true,
+    "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
@@ -8924,6 +8938,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-gate-defects.test.ts": true,
     "tests/unit/scripts/bdd-gate-paths.test.ts": true,
     "tests/unit/scripts/bdd-grammar.test.ts": true,
+    "tests/unit/scripts/bdd-markdown-cell.test.ts": true,
     "tests/unit/scripts/bdd-nonregression.test.ts": true,
     "tests/unit/scripts/bdd-ratchet-removal.test.ts": true,
     "tests/unit/scripts/bdd-render.test.ts": true,
@@ -8957,6 +8972,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
+    "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
@@ -9327,6 +9343,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs": true,
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs": true,
+    "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json": true,
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
