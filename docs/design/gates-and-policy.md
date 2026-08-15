@@ -10,7 +10,7 @@ Tracking issue: CodySwannGT/lisa#2579.
 
 Every decision below is downstream of one failure mode: **a check reporting
 satisfied without having proved anything.** It has appeared in this repository in
-at least five distinct forms, each found only after it had already let something
+at least six distinct forms, each found only after it had already let something
 through:
 
 | form | evidence |
@@ -20,6 +20,7 @@ through:
 | advisory-and-confusable | a not-required `🧪 Run Tests` beside the required `🧪 Run Unit Tests` merged red on two PRs (#2485) |
 | passing-with-no-work | `passWithNoTests: true` ships in five stack configs, so a unit-test gate can report green having run zero tests |
 | declared-but-uncallable | `secrets.require` was documented as a startup assertion whose only caller was a bash line inside a SKILL.md |
+| verified-then-invalidated | gates ran alphabetically, so `artifact-freshness` proved the evidence manifest current and `code-style` then reformatted the sources it hashes — a PASSED verdict about a tree that was not the tree committed (#2590) |
 
 The rule that falls out, and the one to apply when a new case is ambiguous:
 
