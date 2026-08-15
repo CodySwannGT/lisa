@@ -39,6 +39,9 @@
  * `status:` PREFIX and terminality is resolved from live config.
  */
 
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 /** Lifecycle labels are identified by this prefix, never by a pinned set. */
 export const LIFECYCLE_LABEL_PREFIX = "status:";
 
@@ -215,6 +218,58 @@ export function terminalLifecycleLabels(config) {
     return [production.trim()];
   }
   return [DEFAULT_TERMINAL_LIFECYCLE_LABEL];
+}
+
+/** The claimed role's label when config names none. */
+const DEFAULT_CLAIMED_LIFECYCLE_LABEL = "status:in-progress";
+
+/**
+ * The lifecycle label that means "somebody is already on this", from config.
+ * @param {unknown} config a parsed `.lisa.config.json`-shaped object
+ * @returns {string} the claimed role's label
+ */
+export function claimedLifecycleLabel(config) {
+  const claimed = readPath(config, ["github", "labels", "build", "claimed"]);
+  return typeof claimed === "string" && claimed.trim().length > 0
+    ? claimed.trim()
+    : DEFAULT_CLAIMED_LIFECYCLE_LABEL;
+}
+
+/**
+ * Whether intake may claim this issue, and why not when it may not.
+ *
+ * The scan filters on the ready role alone, so an issue carrying BOTH ready and
+ * claimed comes back as a candidate. Trust resolution then rescues the case
+ * where a bot applied the claim — but says nothing about the case where a
+ * *human* did, which is the strongest claim signal there is and the one that
+ * was being ignored. An issue a person marked in-progress is somebody's active
+ * work; dispatching a second agent onto it is how two branches end up fixing
+ * the same thing.
+ *
+ * Returned as a verdict rather than left to the skill's prose. This repository
+ * has measured the difference: executable controls hold, prose rules are
+ * followed by roughly nobody, including their own author. The scan already
+ * calls this classifier, so the answer arrives where the decision is made.
+ *
+ * A claim is only believed when TRUSTED, which is what keeps this from undoing
+ * the bot fix: a reflexive bot label leaves the issue claimable exactly as if
+ * it were absent.
+ * @param {object} options inputs
+ * @param {readonly string[]} options.trusted labels the classifier believes
+ * @param {unknown} options.config a parsed `.lisa.config.json`-shaped object
+ * @returns {{claimable: boolean, reason: string|null}} the verdict
+ */
+export function resolveClaimability({ trusted, config }) {
+  const claimed = claimedLifecycleLabel(config);
+  if (!(trusted ?? []).includes(claimed)) {
+    return { claimable: true, reason: null };
+  }
+  return {
+    claimable: false,
+    reason:
+      `already carries a trusted "${claimed}", so somebody is working it; ` +
+      `intake must not dispatch a second agent onto the same issue`,
+  };
 }
 
 /**
@@ -482,11 +537,48 @@ async function main() {
     terminalLabels: terminalLifecycleLabels(payload.config),
     excludeLabels: trust.untrusted.map(entry => entry.label),
   });
+  // Computed from `trust.trusted`, never from the raw label set: a bot-applied
+  // claim must leave the issue claimable exactly as if it were absent, which is
+  // the whole point of the trust pass above.
+  const claim = resolveClaimability({
+    trusted: trust.trusted,
+    config: payload.config,
+  });
 
-  process.stdout.write(`${JSON.stringify({ ...trust, ...drift }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ...trust, ...drift, ...claim }, null, 2)}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * True when `moduleUrl` names the module node was asked to run.
+ *
+ * Both sides are realpath'd. The previous spelling compared `import.meta.url`
+ * against a `file://` string built from `process.argv[1]`, which compares a
+ * real path against whatever the caller typed — so reached through a symlinked
+ * checkout, a git worktree, or a `/tmp` path on macOS the two disagreed and
+ * `main()` never ran. This module writes its verdict to stdout, so a no-op
+ * leaves the caller parsing an empty payload: no untrusted labels, no
+ * unclaimable verdict, everything believed. A guard that fails open on the
+ * component whose job is deciding what to believe.
+ *
+ * Written out rather than imported: this is a plugin payload, which has no
+ * `./lib/` to resolve against. Same rule and same reasoning as
+ * `scripts/lib/invoked-as-script.mjs`.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   main().catch(error => {
     process.stderr.write(`${error.message}\n`);
     process.exitCode = 1;
