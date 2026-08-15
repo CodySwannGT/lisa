@@ -9272,6 +9272,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
     "tests/unit/strategies/lifecycle-label-claimability.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-contract.test.ts": true,
+    "tests/unit/strategies/lifecycle-label-trust-entry-guard.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-resolution.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust.test.ts": true,
     "tests/unit/strategies/linear-access-history.test.ts": true,
