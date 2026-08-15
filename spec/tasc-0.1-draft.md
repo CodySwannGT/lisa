@@ -1,6 +1,6 @@
 # TASC — Trust in Autonomous Software Criteria
 
-**Version:** 0.6.0-draft · **Date:** 2026-07-28 · **Status:** Working draft for circulation
+**Version:** 0.7.0-draft · **Date:** 2026-08-13 · **Status:** Working draft for circulation
 
 **License:** CC BY 4.0 (intended). **Governance:** This document is intended for open,
 vendor-neutral governance (working group or foundation). No conforming tool vendor may
@@ -542,7 +542,11 @@ focus (non-authoritative guidance).
   the change.
 - **AC5.2 Mirror consistency.** Local and agent-layer enforcement MUST be generated
   from the same source of truth as the authoritative tier (AC5.8), with drift
-  detection.
+  detection. When an agent crosses a repository boundary, it MUST re-resolve the
+  destination repository's declared controls, trust-gate its instruction surfaces,
+  and prove the applicable mirrors active before acting there. Controls from the
+  originating repository MUST NOT silently substitute for or override the destination
+  repository's obligations.
 - **AC5.3 Staff parity.** Enforcement MUST be equivalent across every agent in the
   staff roster. Where an agent's harness cannot represent a control, the gap MUST be
   documented and compensated at a shared layer — never silently dropped.
@@ -641,6 +645,9 @@ focus (non-authoritative guidance).
 
 - **AC7.1 Scheduled operation.** Loops MUST be registered on declared schedulers
   with documented triggers per environment, including behavior for missed runs.
+  A loop expected to run without a laptop open MUST use a durable scheduler, MUST
+  claim its next eligible work without human prompting, and MUST expose liveness
+  independently of whether it found work.
 - **AC7.2 Incident and rollback.** An agent-caused production failure MUST have a
   defined path: detection (AC4), rollback or remediation, and an incident record
   feeding intake. Rollback MUST exist and MUST be exercised (P1) — an unexercised
@@ -650,7 +657,11 @@ focus (non-authoritative guidance).
   and **the control that should have prevented it**. Where no such control
   existed, that absence is itself a finding and MUST enter the learning-promotion
   path (AC4.5); "an agent did it" is a description of the mechanism, never a
-  disposition of the incident.
+  disposition of the incident. A failed deployment that does not reach users MUST
+  enter a separately observable, bounded recovery path: transient operations MAY be
+  retried only where idempotency is proven; reproducible configuration, application,
+  or infrastructure defects MUST re-enter the standard change path; and exhaustion
+  MUST escalate under AC7.3.
 - **AC7.3 Self-recovery escalation.** When the ADS itself cannot proceed (broken
   access, tooling, or substrate), it MUST emit a *recovery required* outcome with a
   decision-ready packet (AC2.4). Silent stalls are conformance failures.
@@ -684,7 +695,10 @@ focus (non-authoritative guidance).
   because the reviewer is saturated. When a gate rejects agent-produced work, remediation
   SHOULD be regeneration from the specification rather than manual patching of
   the artifact: a hand-patched artifact has mixed provenance that AC1.2 cannot
-  cleanly attribute. Independent review MUST NOT be relied on as the primary
+  cleanly attribute. Rejection MUST enter a bounded repair, authoritative-gate
+  rerun, and independent-verification loop; exhausting its declared attempt bound
+  MUST produce a decision-ready AC7.3 escalation without weakening or bypassing
+  the gate. Independent review MUST NOT be relied on as the primary
   defect-detection control where change volume exceeds the capacity to review
   changes meaningfully; the entity MUST be able to name the control that
   actually catches defects and support it with detection evidence, not with the
@@ -722,7 +736,11 @@ focus (non-authoritative guidance).
   successful runs are inadmissible as qualification evidence — they measure a
   task mix that is not the entity's, at a precision their own run-to-run
   variance does not support. Vendor-forced changes MUST trigger the same
-  qualification.
+  qualification. Where the ADS varies model, effort, or tool configuration by
+  task class, the routing policy MUST be versioned and each assignment MUST be
+  supported by AC8.7 evidence for that class; qualification MUST NOT be generalized
+  beyond the task classes evaluated. One default configuration is conforming only
+  where its qualification represents the complete declared work mix.
 - **AC8.4 Intake validation.** Work MUST be admitted to implementation only through
   an adversarial intake gate that rejects ambiguity and verifies the system has
   provable access to the tooling the work requires; rejections MUST be raised to a
@@ -836,8 +854,16 @@ focus (non-authoritative guidance).
   class. Agent-authored tests are characteristically thorough in the obvious
   cases and absent in the adversarial ones, so their existence, count, and
   coverage percentage are not evidence of efficacy under this criterion.
-- **SI4 End-to-end proof.** For each user-facing surface, critical journeys MUST be
-  exercised end-to-end against a running build before release.
+- **SI4 End-to-end proof.** For each user-facing surface, every user-facing
+  requirement and critical interaction state MUST map to an executable journey,
+  and applicable critical journeys MUST be exercised end-to-end against a running
+  build before release. The mapping MUST cover loading, empty, error, permission,
+  responsive, and accessibility states where applicable, and an unmapped requirement
+  MUST be a release-blocking finding. Execution MAY be selected by changed surface
+  and declared risk and MAY be parallelized, but selection MUST be deterministic and
+  the release gate MUST prove every applicable critical journey passed. Continuous
+  exploratory generation belongs outside the per-change critical path under SI9;
+  it MUST NOT substitute for the mapped release proof.
 - **SI5 Independent verification.** After deployment, the shipped result MUST be
   verified by using the software — driving it as a user would — by an actor
   independent of the author (AC1.3), including conformance of the result to its
@@ -939,6 +965,14 @@ focus (non-authoritative guidance).
 - **UX3 Design-code mapping.** Where a design tool is in use, design components
   SHOULD be mapped to their code counterparts so implementation is a lookup, not an
   interpretation.
+- **UX4 Visual conformance.** Implemented interfaces MUST be mechanically compared
+  with the approved source design across the entity's declared viewport, theme, and
+  interaction-state matrix. Tolerances MUST be declared and ratcheted (AC5.4), and
+  ADS-produced visual evidence MUST be adjudicated independently (§7).
+- **UX5 Interaction conformance.** Intended user journeys, state transitions,
+  responsive behavior, and accessibility behavior MUST be represented in the SI4
+  requirement-to-journey mapping and exercised against the running interface.
+  Visual similarity alone MUST NOT be treated as evidence of UX conformance.
 
 ---
 
@@ -973,7 +1007,10 @@ A questionnaire-form self-assessment (the *readiness intake*) maps one-or-more
 questions to each criterion, pairing each outcome question with the mechanism
 ("via") implementing it. The instrument is maintained alongside this specification;
 conforming measurement tools SHOULD present it as their intake and derive criterion
-coverage from its answers.
+coverage from its answers. The intake SHOULD present conversational operator copy by
+default and expose the formal criterion, requirement, and expected evidence as control
+detail from the same canonical question model; two independently maintained formal and
+informal questionnaires are non-conforming because their mappings can drift.
 
 ### Annex C — Illustrative controls (non-normative)
 
@@ -1031,7 +1068,17 @@ system descriptions; no specific product confers conformance.
 
 ---
 
-*End of draft 0.6.0. Changes from 0.5.0, drawn from practitioner review: the
+*End of draft 0.7.0. Changes from 0.6.0: Annex B now defines one canonical
+question model with conversational operator copy and formal control detail rather
+than two questionnaires that can drift. The readiness instrument adds durable
+unattended scheduling, model routing by task class, requirement-to-journey coverage,
+risk-tiered E2E execution, destination-repository control activation, mechanical
+visual conformance, pre-CI enforcement parity, and failed-deployment recovery.
+AC5.2, AC7.1–AC7.2, AC8.1, AC8.3, and SI4 carry the corresponding normative
+obligations; UX4 and UX5 add outcome-level visual and interaction conformance to the
+previously input-focused UX category.*
+
+*Changes in 0.6.0 from 0.5.0, drawn from practitioner review: the
 specification described at length what controls must do without ever requiring
 an entity to be able to enumerate them. AC5.8 closes the first half — every
 control obligation MUST exist as a versioned, machine-readable artifact naming

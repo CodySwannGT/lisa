@@ -2373,7 +2373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
-      "400088617ed6f16b4e52da5bfa81242d75cb09bc3ad6929eadb9f06e5365b4b6",
+      "8952fdef959d76c75cbb3aa50467f396e14a56cc8d092c543a6a2a0b88590520",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2610,6 +2610,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/merge/.oxlintrc.json": true,
     "cdk/package-lisa/package.lisa.json": true,
     "commitlint.config.cjs": true,
+    "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
     "docs/design/reset-production-absence.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
@@ -8506,6 +8507,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-live-status.spec.ts": true,
     "tests/e2e/ui-observability-providers.spec.ts": true,
     "tests/e2e/ui-plugins.spec.ts": true,
+    "tests/e2e/ui-readiness-intake.spec.ts": true,
     "tests/e2e/ui-readonly-affordance.spec.ts": true,
     "tests/e2e/ui-setup-readiness.spec.ts": true,
     "tests/e2e/ui-stacks.spec.ts": true,
@@ -8720,6 +8722,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-health.test.ts": true,
     "tests/unit/cli/ui-lisa-version-probe.test.ts": true,
     "tests/unit/cli/ui-observability-providers-probe.test.ts": true,
+    "tests/unit/cli/ui-readiness-intake.test.ts": true,
     "tests/unit/cli/ui-setup-readiness-endpoint-confinement.test.ts": true,
     "tests/unit/cli/ui-setup-readiness-endpoint.test.ts": true,
     "tests/unit/cli/ui-setup-readiness-renderer.test.ts": true,
