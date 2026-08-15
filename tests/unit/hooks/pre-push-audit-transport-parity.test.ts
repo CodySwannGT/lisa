@@ -112,6 +112,7 @@ function stubBun(mode: string): string {
 case "${mode}" in
   blank) echo "error: Lockfile not found" >&2; exit 1 ;;
   garbage) printf 'this is not json' ;;
+  empty-success) exit 0 ;;
   gzipped) printf '%s' '${DIRTY_PAYLOAD}' | gzip -c ;;
   clean) printf '%s' '${CLEAN_PAYLOAD}' ;;
   dirty) printf '%s' '${DIRTY_PAYLOAD}' ;;
@@ -193,6 +194,13 @@ describe.each(HOOKS)("%s blocks when it audited nothing", relative => {
     // bun's own diagnosis is the fastest route to the cause, so it is kept
     // rather than sent to /dev/null.
     expect(stderr).toContain("Lockfile not found");
+  });
+
+  it("refuses successful empty output as unaudited", () => {
+    const { status, stdout, stderr } = runAudit(relative, "empty-success");
+    expect(status).toBe(1);
+    expect(stdout).not.toContain(CLEAN_VERDICT);
+    expect(stderr).toContain("nothing was audited");
   });
 
   it("refuses a payload that is neither JSON nor gzip", () => {

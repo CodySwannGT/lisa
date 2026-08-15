@@ -89,6 +89,16 @@ describe("every required credential names a cause", () => {
     expect(entry.name).toBe(GH_TOKEN);
   });
 
+  it("does not read inherited routing reasons for credential names", () => {
+    for (const name of INHERITED) {
+      const [entry] = requiredNames({ requiredFloor: [name], require: [] });
+      expect(entry).toEqual({
+        name,
+        reasons: ["it is in this project's resolved secrets floor"],
+      });
+    }
+  });
+
   it("never renders a report that stops at 'required because'", () => {
     const text = report(
       {

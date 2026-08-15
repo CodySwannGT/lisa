@@ -86,6 +86,7 @@ jobs:
         run: bun run check:artifacts
 
       - name: Check commit messages follow the convention
+        if: github.event_name == 'pull_request'
         # Was commit-msg only. Validates every commit the pull request adds,
         # not just the tip: a bypassed hook leaves a malformed message in the
         # middle of a branch that a tip-only check would never see.
