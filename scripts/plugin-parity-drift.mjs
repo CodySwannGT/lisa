@@ -40,7 +40,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -608,10 +610,7 @@ export function main(argv, io = {}) {
   return results.every(r => r.status === "ok") ? 0 : 1;
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   // exitCode (not process.exit): when stdout is a pipe, writes are async and
   // process.exit() truncates the report mid-flush (observed: a consumer's
   // $(...) capture stopped at the first 512-byte chunk). Setting exitCode lets

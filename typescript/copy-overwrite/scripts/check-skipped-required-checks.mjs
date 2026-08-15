@@ -191,7 +191,8 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /** Repo-relative path of the per-repo declaration file. */
 export const DECLARATION_PATH = ".github/required-checks.json";
@@ -1253,9 +1254,6 @@ function main(argv) {
   }
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   main(process.argv.slice(2));
 }

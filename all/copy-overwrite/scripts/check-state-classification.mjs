@@ -40,8 +40,9 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   buildEnvelope,
   emitEnvelope,
@@ -604,9 +605,6 @@ export function main(argv) {
 }
 
 // Run only when invoked directly — importing for tests must have no side effects.
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   process.exitCode = main(process.argv.slice(2));
 }
