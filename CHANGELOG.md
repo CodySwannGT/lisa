@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.16.0](https://github.com/CodySwannGT/lisa/compare/v3.15.1...v3.16.0) (2026-08-15)
+
+
+### Features
+
+* **spec:** revise TASC to 0.7.0 and land its Annex B instrument ([fa654f1](https://github.com/CodySwannGT/lisa/commit/fa654f1208c25bcf1715a6e64110db1fca44d883)), closes [CodySwannGT/lisa#2587](https://github.com/CodySwannGT/lisa/issues/2587) [CodySwannGT/lisa#2587](https://github.com/CodySwannGT/lisa/issues/2587)
+
 ### [3.15.1](https://github.com/CodySwannGT/lisa/compare/v3.15.0...v3.15.1) (2026-08-15)
 
 
