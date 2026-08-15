@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.17.2](https://github.com/CodySwannGT/lisa/compare/v3.17.1...v3.17.2) (2026-08-15)
+
+
+### Bug Fixes
+
+* **gates:** decide a gate's own skip before consulting a shared result ([33bcc89](https://github.com/CodySwannGT/lisa/commit/33bcc8976b0bf1853846e613bd7610ca322fcb75)), closes [CodySwannGT/lisa#2592](https://github.com/CodySwannGT/lisa/issues/2592) [CodySwannGT/lisa#2592](https://github.com/CodySwannGT/lisa/issues/2592)
+* **gates:** run one command once, however many gates name it ([47b79e9](https://github.com/CodySwannGT/lisa/commit/47b79e9116857c989fbd70813788af6d6f4f46ac)), closes [CodySwannGT/lisa#2592](https://github.com/CodySwannGT/lisa/issues/2592) [CodySwannGT/lisa#2592](https://github.com/CodySwannGT/lisa/issues/2592)
+
+
+### Documentation
+
+* **gates:** record verified-then-invalidated as a sixth defect form ([4588e8f](https://github.com/CodySwannGT/lisa/commit/4588e8f63bc21c13fd498eae5c40253726db58ae)), closes [#2590](https://github.com/CodySwannGT/lisa/issues/2590) [CodySwannGT/lisa#2592](https://github.com/CodySwannGT/lisa/issues/2592) [CodySwannGT/lisa#2592](https://github.com/CodySwannGT/lisa/issues/2592)
+
 ### [3.17.1](https://github.com/CodySwannGT/lisa/compare/v3.17.0...v3.17.1) (2026-08-15)
 
 
