@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.18.1](https://github.com/CodySwannGT/lisa/compare/v3.18.0...v3.18.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **scripts:** sweep the plugin payload for hand-rolled entry guards ([a3709ce](https://github.com/CodySwannGT/lisa/commit/a3709ce615fceb6fac2584c027ec97bcbd4d386b)), closes [#2597](https://github.com/CodySwannGT/lisa/issues/2597) [CodySwannGT/lisa#2597](https://github.com/CodySwannGT/lisa/issues/2597) [CodySwannGT/lisa#2597](https://github.com/CodySwannGT/lisa/issues/2597) [CodySwannGT/lisa#2597](https://github.com/CodySwannGT/lisa/issues/2597)
+
 ## [3.18.0](https://github.com/CodySwannGT/lisa/compare/v3.17.3...v3.18.0) (2026-08-15)
 
 
