@@ -32,6 +32,8 @@ export type GateOutcome = {
   state: string;
   detail: string;
   code: number | null;
+  /** The gate whose run proved this one, when they share a command. */
+  provedBy: string | null;
 };
 
 /** What `runGates` reports about a whole moment. */
@@ -98,4 +100,42 @@ export function runCli(
   } finally {
     rmSync(root, { force: true, recursive: true });
   }
+}
+
+/**
+ * A recording executor that answers from a fixed map of command → exit code.
+ * @param codes Exit code per command; anything unlisted passes.
+ * @returns The executor plus the commands it was actually asked to run.
+ */
+export function stubExec(codes: Record<string, number | null>): {
+  exec: (command: string) => number | null;
+  calls: string[];
+} {
+  const calls: string[] = [];
+  return {
+    calls,
+    exec: (command: string): number | null => {
+      // A recorder exists to accumulate. Rebinding a new array each call would
+      // make `calls` a snapshot the caller already holds, so it would record
+      // nothing — the mutation is the whole mechanism, confined to this stub.
+      // eslint-disable-next-line functional/immutable-data -- accumulating is the mechanism
+      calls.push(command);
+      const code = codes[command];
+      // `=== undefined`, never `?? 0`: a stubbed `null` means "killed by a
+      // signal", and `??` would quietly turn that into a passing gate —
+      // reproducing inside the test harness the exact defect under test.
+      return code === undefined ? 0 : code;
+    },
+  };
+}
+
+/**
+ * Collects the runner's operator-facing output for assertion.
+ * @returns The collected lines plus the sink to hand the runner.
+ */
+export function sink(): { lines: string[]; out: (line: string) => void } {
+  const lines: string[] = [];
+  // Accumulates for the same reason `stubExec` does; see the note there.
+  // eslint-disable-next-line functional/immutable-data -- accumulating is the mechanism
+  return { lines, out: (line: string) => lines.push(line) };
 }

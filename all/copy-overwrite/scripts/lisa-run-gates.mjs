@@ -312,6 +312,49 @@ function summarise(result) {
 }
 
 /**
+ * Reach one gate's verdict, and report how it was reached.
+ *
+ * The order of the three sources is the whole content of this function. A
+ * gate's own skip is decided first, because a skip comes from `needs` — a
+ * missing tool, an absent credential — which is a fact about this gate and not
+ * about the command. A gate that cannot run must say so rather than inherit a
+ * verdict from a sibling that could.
+ *
+ * A shared result is honoured next, and honoured even once the run is blocked.
+ * The command genuinely ran and its answer is known, so reporting NOT-RUN there
+ * would understate what was proved — the mirror image of overstating it, and
+ * just as untrue.
+ * @param {GateOutcome} gate The resolved gate.
+ * @param {{proved: Map<string, object>, blocked: boolean, exec: Function}} ctx Run state.
+ * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
+ */
+function verdictFor(gate, { proved, blocked, exec }) {
+  const own = classifyStatic(gate);
+  if (own) return { outcome: own, shared: undefined, ran: false };
+
+  const shared = gate.command ? proved.get(gate.command) : undefined;
+  if (shared) {
+    return {
+      outcome: {
+        ...shared.outcome,
+        detail: `${shared.outcome.detail} (proved by the ${shared.id} run)`,
+      },
+      shared,
+      ran: false,
+    };
+  }
+
+  if (blocked) {
+    return {
+      outcome: { state: STATE.NOT_RUN, detail: "not run", code: null },
+      shared: undefined,
+      ran: false,
+    };
+  }
+  return { outcome: execute(gate, exec), shared: undefined, ran: true };
+}
+
+/**
  * Run every gate declared at one moment.
  *
  * `exec` is injected rather than imported so tests never spawn a process, and
@@ -336,17 +379,45 @@ export function runGates({
   const results = [];
   let blocked = false;
 
+  // One command proves every gate that names it, so it runs once.
+  //
+  // Two gates legitimately share a prover: a coverage-instrumented suite proves
+  // `test-correctness` by passing and `coverage-adequacy` by clearing its
+  // threshold. Running it twice cannot prove more than running it once, and it
+  // is not merely wasteful — measured here, the second run of an identical
+  // `test:cov` failed seconds after the first passed. A red that means nothing
+  // costs the register the same trust a false pass does, because it teaches
+  // whoever reads it to retry rather than look.
+  const proved = new Map();
+
   // Each verdict is printed as it is reached, not batched at the end: a push
   // gate can run for minutes, and an operator watching a hook needs to know
   // which gate is being proved right now, not only what the tally was.
   for (const gate of resolved) {
-    const outcome = blocked
-      ? { state: STATE.NOT_RUN, detail: "not run", code: null }
-      : (classifyStatic(gate) ?? execute(gate, exec));
-    results.push({ ...gate, ...outcome });
+    const { outcome, shared, ran } = verdictFor(gate, {
+      proved,
+      blocked,
+      exec,
+    });
+
+    // Only what this iteration actually executed is shareable, and `ran` says
+    // so explicitly rather than being inferred from the exit code. `execute`
+    // reports `code: null` for a command killed by a signal, so an exit-code
+    // test would treat a terminated run as never having happened and send the
+    // next gate to run it again — re-running a whole suite an operator has
+    // just interrupted.
+    if (ran && gate.command) {
+      proved.set(gate.command, { id: gate.id, outcome });
+    }
+
+    results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
     out(formatLine(outcome.state, gate, outcome.detail));
     const unproved =
       outcome.state === STATE.FAILED || outcome.state === STATE.UNPROVABLE;
+    // The strictest level wins when gates share a prover. Letting a required
+    // gate inherit only the pass, or letting a failure count only against the
+    // optional gate that ran first, would be the original defect again: a
+    // required gate satisfied by a run that failed.
     if (unproved && gate.level === "required") blocked = true;
   }
 
