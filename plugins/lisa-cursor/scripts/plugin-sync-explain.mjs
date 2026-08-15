@@ -19,6 +19,8 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 export const PLUGIN_SYNC_CLASSIFICATIONS = [
   "SOURCE_NOT_BUILT",
@@ -556,7 +558,41 @@ function linkedWorktreeGitDir(root) {
   return path.isAbsolute(gitDir) ? gitDir : path.resolve(root, gitDir);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * True when `moduleUrl` names the module node was asked to run.
+ *
+ * Both sides are realpath'd. The previous spelling compared `import.meta.url`
+ * against a `file://` string built from `process.argv[1]`, which pits a real
+ * path against whatever the caller typed — so reached through a symlinked
+ * checkout, a git worktree, or a `/tmp` path on macOS the two disagreed, the
+ * body never ran, and the process exited 0 having done nothing. Every
+ * Lisa-driven agent runs in a worktree, so that is the routine path, not an
+ * exotic one.
+ *
+ * Written out rather than imported: this ships inside a plugin payload, which
+ * has no `./lib/` to resolve against. Same rule and same reasoning as
+ * `scripts/lib/invoked-as-script.mjs`.
+ *
+ * Realpathing BOTH sides matters under `--preserve-symlinks-main`, which tells
+ * node not to resolve the main entry: normalizing only `argv[1]` then compares
+ * a real path against a symlinked one and answers false for an entry point that
+ * WAS invoked directly. Any resolution error returns false — node loaded the
+ * entry from that path moments earlier, so a path that will not resolve now is
+ * not the path this module came through.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   try {
     const report = explainPluginSync(process.argv[2] ?? process.cwd());
     process.stdout.write(report.text);
