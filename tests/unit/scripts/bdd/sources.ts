@@ -35,11 +35,14 @@ export function sourceCode(relativePath: string): string {
  * @returns The scripts directory.
  */
 export function vendorGateWithoutSchemas(project: string): string {
-  // The real path, because the gate's own entry guard compares `process.argv[1]`
-  // against `import.meta.url`, and macOS `os.tmpdir()` is a symlink — passing
-  // the symlinked spelling makes Node's `main` block never run at all.
+  // The real path. The gate's entry guard now realpaths `process.argv[1]`
+  // itself, so the symlinked spelling of macOS `os.tmpdir()` no longer makes
+  // `main` silently never run — but the fixture keeps resolving it, so a
+  // regression in the guard shows up as the guard's own test failing rather
+  // than as this whole suite going quiet.
   const scripts = path.join(fs.realpathSync(project), "scripts");
   fs.mkdirSync(path.join(scripts, "bdd"), { recursive: true });
+  fs.mkdirSync(path.join(scripts, "lib"), { recursive: true });
   for (const name of fs.readdirSync(path.join(REPO_ROOT, GATE_DIR))) {
     const from = path.join(REPO_ROOT, GATE_DIR, name);
     if (fs.statSync(from).isFile()) {
@@ -52,6 +55,13 @@ export function vendorGateWithoutSchemas(project: string): string {
       path.join(scripts, "bdd", name)
     );
   }
+  // The shared entry guard, which every vendored entry point imports. Copied
+  // for the same reason the three modules below are: this fixture models a copy
+  // missing `scripts/schemas/`, not one missing code.
+  fs.copyFileSync(
+    path.join(REPO_ROOT, SHARED_DIR, "lib", "invoked-as-script.mjs"),
+    path.join(scripts, "lib", "invoked-as-script.mjs")
+  );
   // The envelope's own code dependencies. `lisa-destructive-guard.mjs` is a
   // HARD dependency deliberately: it carries the production refusal, and an
   // envelope that degraded gracefully when the guard was missing would turn a

@@ -106,6 +106,7 @@ function gateRepo(skill: string): string {
   for (const dir of [
     ".husky",
     SCRIPTS_DIR,
+    path.join(SCRIPTS_DIR, "lib"),
     ROUTING_DIR,
     ".claude/skills",
     path.dirname(SKILL_PATH),
@@ -119,6 +120,13 @@ function gateRepo(skill: string): string {
       path.join(root, SCRIPTS_DIR, script)
     );
   }
+  // The shared entry guard every gate script imports. Without it the scripts
+  // die on ERR_MODULE_NOT_FOUND and the hook's own diagnostics never run, which
+  // reads back as a gate failure rather than a missing fixture file.
+  copyFileSync(
+    path.resolve(SCRIPTS_DIR, "lib", "invoked-as-script.mjs"),
+    path.join(root, SCRIPTS_DIR, "lib", "invoked-as-script.mjs")
+  );
   // A real, schema-valid routing artifact + its paired .md companion.
   for (const entry of [ARTIFACT, "has-manifest@demo-marketplace.md"]) {
     copyFileSync(

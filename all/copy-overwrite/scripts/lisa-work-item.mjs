@@ -18,7 +18,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
@@ -1463,9 +1464,6 @@ export function runCli() {
 // This branch covers a host project, where the file is copied to
 // `scripts/lisa-work-item.mjs` and invoked directly. Lisa's own checkout keeps
 // a re-exporting entrypoint instead, which calls runCli() itself.
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (invokedAsScript(import.meta.url)) {
   runCli();
 }

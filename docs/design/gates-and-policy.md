@@ -25,6 +25,43 @@ The rule that falls out, and the one to apply when a new case is ambiguous:
 
 > **A check that could not run must never render as a check that passed.**
 
+And the reason this matters more than an ordinary bug: **a gate that reports
+success having proved nothing is strictly worse than no gate at all, because it
+retires the suspicion that would otherwise prompt someone to look.** No gate
+leaves a known hole. A vacuous gate closes the hole on paper and leaves it open
+in fact — and the closing is what stops anyone checking.
+
+## A guard is only proven by a bite control
+
+Every rule below describes how to *build* a gate. This one is about how to know
+it works, and it is the cheapest high-value practice in the whole subsystem:
+
+> **Force the guard to fire once on a deliberate violation, or you have shipped
+> a green light wired to nothing.**
+
+Write the test, confirm it fails against the unfixed artifact, then fix and
+confirm it passes. The pre-push audit fix did this — three of five assertions
+fail against the pre-fix copy — and that RED step is the only reason the fix is
+trustworthy where the original was not. Nothing else distinguishes a guard that
+works from one that merely runs.
+
+**A gate that can never fail and a gate that can never pass are the same defect
+class**, and neither is visible without deliberately mutating the thing under
+test. Both have shipped here:
+
+- *never fails*: the audit above; a proximity guard satisfied by its own doc
+  comment; a required E2E check where `skipped` counted as satisfied
+- *never passes*: a worktree-exclusion guard that read a non-empty `lintFiles()`
+  result as proof of linting, when an explicitly-passed ignored path returns an
+  *ignored warning* rather than nothing; a Maestro assertion targeting a testID
+  the component overrides on exactly the branch under test
+
+The never-passes case is the more insidious of the two, because it *looks*
+strict. A gate nobody can satisfy gets waived, and the waiver outlives the bug.
+
+So the RED proof belongs in the guard-authoring path itself, not in whoever
+happens to remember it.
+
 ## Gate versus policy
 
 A **gate** is a property of a *change*. Something runs, produces a verdict, and

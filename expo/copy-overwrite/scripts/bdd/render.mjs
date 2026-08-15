@@ -11,6 +11,7 @@
  * @module scripts/bdd/render
  */
 import { byCodeUnit } from "./contract.mjs";
+import { cell } from "./markdown-cell.mjs";
 
 /**
  * Format a coverage figure, refusing to print "100%" for an empty
@@ -24,20 +25,6 @@ const fmt = value =>
   value.total === 0 || value.percentage === null
     ? "n/a (no obligations)"
     : `${value.covered}/${value.total} (${value.percentage.toFixed(1)}%)`;
-
-/**
- * Make author-supplied text safe inside a Markdown table cell.
- *
- * Waiver reasons and scenario titles are repo data. A single `|` ends the
- * cell early and shifts every column after it, so the Ticket and Expires
- * columns silently misreport — in a generated file nobody re-reads.
- * @param {unknown} text - Arbitrary cell content.
- * @returns {string} Text safe to interpolate into a table row.
- */
-const cell = text =>
-  String(text ?? "")
-    .replace(/\|/g, "\\|")
-    .replace(/\r?\n/g, " ");
 
 /**
  * Render the per-platform traceability table.
