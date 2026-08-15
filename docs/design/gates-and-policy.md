@@ -244,6 +244,106 @@ That rule earned itself before shipping: three contexts currently required on
 produce no derived context, so a ruleset regenerated from config alone would
 have dropped them.
 
+## The interface is the evidence shape
+
+A task name is not an interface. If Lisa standardises only *how to invoke*, the
+register records "test:cov passed" and cites nothing — as true of a scrupulous
+project as a careless one. Standardising what comes **back** is what lets jest
+and vitest both satisfy `coverage-adequacy`, and what lets an attestation quote
+a number instead of a verdict.
+
+Every implementation emits the same envelope, whatever tool produced it:
+
+```json
+{
+  "gate": "coverage-adequacy",
+  "status": "pass | fail | unknown",
+  "work": 412,
+  "measures": { "statements": 87.4, "branches": 71.2, "threshold": 80 },
+  "prover": { "tool": "vitest", "version": "4.1.9" },
+  "observed_at": "2026-08-15T18:02:11Z",
+  "max_age_minutes": 1440
+}
+```
+
+- **`status`** is three-valued. `unknown` is not a synonym for `fail`.
+- **`work`** is the count that proves it *ran*. `null` forces `unknown` — the
+  `passWithNoTests` hole closed structurally rather than by vigilance.
+- **`measures`** is what an attestation actually cites.
+- **`prover`** records which implementation produced it. Vendor-neutrality means
+  Lisa does not *mandate* a tool, not that it declines to *record* one; an
+  auditor asking "what measured this?" deserves an answer.
+
+Per-gate measures are small and mostly obvious: coverage reports its metrics and
+threshold, mutation its mutants and score, load its percentiles and error rate,
+scanners their findings by severity. Generative testing is the one with a
+distinctive shape, because SI9 asks for a *declared inventory* rather than a
+verdict:
+
+```json
+{ "invariants": 12, "dimensions": ["unicode", "depth", "size"],
+  "cases_generated": 120000, "counterexamples": 0, "seed": "0x4f2a…" }
+```
+
+`seed` matters disproportionately: a property run that found nothing is only
+meaningful if someone can re-run *that* exploration. Without it the evidence is
+unreproducible, which is a strange thing for evidence to be.
+
+## What Lisa owes, and what the project owes
+
+Lisa defines interfaces; projects implement them. `test:cov` is the interface,
+vitest or jest the implementation; `load-capacity` is the interface, k6 or
+JMeter the implementation. Lisa ships defaults two ways — deterministic starters
+or an agent implementing the interface for a given stack — and the project makes
+the final call.
+
+**No conformance policing.** An early draft proposed mandatory probes to prove
+an adapter really detects what it claims. That was the wrong threat model:
+`off` already exists, is one word, and is honest, so faking an adapter costs
+more effort and buys the same outcome. Nobody rational picks deceit. The
+register stays honest by making honesty cheaper, not by making deceit
+impossible.
+
+Which puts the obligation somewhere unexpected: **`off` must read as a declared
+scope boundary, never as an admission of guilt.** If it carries stigma, people
+fake instead — and the policing that was rejected on principle becomes necessary
+in practice, having been caused by the rendering.
+
+Probes survive as a *development aid* inside the adapter-generating skill —
+"point it at something returning 500s and check it notices" — which is guidance
+toward an implementation, not a gate over one.
+
+## Continuous gates gate a state, not a change
+
+Every other moment blocks a diff. A scheduled run has none: by the time a
+nightly fails, whatever it covered merged hours ago. What it establishes is
+whether a target is healthy, so the enforcement point is **promotion out of
+it** — a red `continuous:staging` means staging is not promotable, which a
+`pre-deploy:production` gate can require.
+
+TASC SI9 requires this directly for generated testing: confining generation to
+the per-change gate explores far less of the input space than generating new
+cases against a stable one. It applies just as forcefully to a CVE published
+today, which makes yesterday's dependency scan wrong with no change at all.
+
+Two hazards, both new flavours of the organising defect:
+
+**Stale evidence.** A change-triggered gate's evidence is inherently fresh — it
+ran on that diff. A scheduled gate's has an age, and a green from six days ago
+proves nothing about today. Evidence read past its bound yields `unknown`, never
+`pass`. The corollary is uncomfortable and correct: a scheduler that quietly
+died must block promotion rather than let last week's result stand in for this
+week's, which is AC7.1's liveness requirement arriving from another direction.
+
+**A frozen pipeline nobody is watching.** A gate that fails at 3am has no human
+attached to it the way a pull request does. So a failing continuous gate must
+produce a run outcome and route into intake rather than sit red — AC7.3's
+*recovery-required*, and the shape the QA loop already uses.
+
+Blocking is the default because promoting off a known-bad environment is worse
+than a stalled promotion. It is configurable through the same three levels as
+everything else: `required` blocks, `optional` reports, `off` does not run.
+
 ## Substrate precedence
 
 Where a capability has several substrates (CLI/API token, vendor CLI, MCP),

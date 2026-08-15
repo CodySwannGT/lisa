@@ -254,3 +254,11 @@ expo-env.d.ts
 
 # Playwright MCP scratch output (never committed; keep out of the evidence manifest)
 .playwright-mcp/
+
+# Local document-rendering scratch. `tmp/` holds intermediate render inputs and
+# per-page images; `output/` holds the rendered artifacts. Both are reproducible
+# from the committed source documents, so committing them would carry megabytes
+# of binaries that no code reads — nothing in src/, scripts/, or tests/ resolves
+# either path.
+tmp/
+output/

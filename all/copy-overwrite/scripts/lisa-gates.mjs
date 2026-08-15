@@ -72,7 +72,25 @@ export const MOMENTS = [
 ];
 
 /** Moment families that take an `:<environment>` suffix. */
-export const MOMENT_FAMILIES = ["pre-deploy", "post-deploy"];
+export const MOMENT_FAMILIES = ["pre-deploy", "post-deploy", "continuous"];
+
+/**
+ * Moments that gate a *state* rather than a change.
+ *
+ * Every other moment blocks a diff: the commit, the push, the merge, the
+ * deploy. A continuous gate has no diff to block — it runs on a schedule
+ * against a stable target, and by the time it fails whatever it covered merged
+ * hours ago. What it establishes is whether that target is healthy, and the
+ * enforcement point is therefore *promotion out of it*: a red
+ * `continuous:staging` means staging is not promotable, which a
+ * `pre-deploy:production` gate can require.
+ *
+ * TASC SI9 requires this directly for generated testing — confining generation
+ * to the per-change gate explores far less of the input space than generating
+ * new cases against a stable one. It applies equally to a CVE published today,
+ * which makes yesterday's dependency scan wrong with no change at all.
+ */
+export const STATE_FAMILIES = ["continuous"];
 
 /** Keys on a gate entry that are settings rather than moments. */
 export const GATE_FIELDS = new Set(["run", "needs", "task"]);
@@ -90,7 +108,8 @@ const COMMIT_ONWARD = [
 const PUSH_ONWARD = ["push", "pull-request", "pre-deploy", "post-deploy"];
 const PR_ONWARD = ["pull-request", "pre-deploy", "post-deploy"];
 const PR_ONLY = ["pull-request"];
-const DEPLOY_ONLY = ["pre-deploy", "post-deploy"];
+const DEPLOY_ONLY = ["pre-deploy", "post-deploy", "continuous"];
+const CONTINUOUS_ONLY = ["continuous"];
 const SESSION_ONWARD = ["session-start", ...COMMIT_ONWARD];
 
 /**
@@ -171,15 +190,27 @@ export const REGISTRY = Object.freeze({
     label: "🎭 Playwright E2E Tests",
     summary: "Browser journeys pass end to end.",
     task: "test:e2e",
-    moments: PR_ONWARD,
+    moments: [...PR_ONWARD, "continuous"],
     work: "specs run",
   },
   "e2e-native": {
     label: "📱 Maestro Native E2E",
     summary: "Native device journeys pass end to end.",
     task: "test:e2e:native",
-    moments: PR_ONWARD,
+    moments: [...PR_ONWARD, "continuous"],
     work: "flows run",
+  },
+  "generative-testing": {
+    label: "🎲 Generative Testing",
+    summary:
+      "Invariants hold against generated inputs, not just imagined ones.",
+    task: "test:property",
+    // Continuous is the point, not an option. TASC SI9: "at equal compute,
+    // re-running one suite against every change explores far less of the input
+    // space than generating new cases against a stable one." A property suite
+    // pinned to the per-change gate re-walks the same ground forever.
+    moments: [...PR_ONWARD, "continuous"],
+    work: "cases generated",
   },
   "structural-rules": {
     label: "🔎 AST Grep Scan",
@@ -210,14 +241,16 @@ export const REGISTRY = Object.freeze({
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
     task: "security:audit",
-    moments: PUSH_ONWARD,
+    // Continuous matters most here: a CVE published today makes yesterday's
+    // green wrong with no change to trigger a re-scan.
+    moments: [...PUSH_ONWARD, "continuous"],
     work: "manifests scanned",
   },
   "static-security": {
     label: "🔍 Static Security Analysis",
     summary: "Static analysis finds no security defect.",
     task: "security:sast",
-    moments: PR_ONWARD,
+    moments: [...PR_ONWARD, "continuous"],
     work: "files analysed",
   },
   "runtime-web-vulnerability": {
@@ -342,6 +375,90 @@ export const INTERCEPTORS = Object.freeze({
   "structured-data-handling":
     "Structured formats are parsed with real parsers.",
 });
+
+/**
+ * The shape every gate's implementation emits, whatever tool produced it.
+ *
+ * The task name alone is not an interface. If Lisa standardises only *how to
+ * invoke*, the attestation records "test:cov passed" and cites nothing — true
+ * of a scrupulous project as much as a careless one. Standardising what comes
+ * *back* is what lets jest and vitest both satisfy `coverage-adequacy`, and
+ * what lets the register quote a number instead of a verdict.
+ *
+ * Four fields, each earning its place:
+ *
+ * - `status` — three-valued. `unknown` is not a synonym for `fail`.
+ * - `work` — the count that proves it RAN. `null` forces `unknown`, which is
+ *   the `passWithNoTests` hole closed structurally rather than by vigilance.
+ * - `measures` — what an attestation actually cites.
+ * - `prover` — which implementation produced it. Vendor-neutrality means Lisa
+ *   does not *mandate* a tool, not that it declines to *record* one; an auditor
+ *   asking "what measured this?" deserves an answer.
+ *
+ * `observed_at` and `max_age_minutes` exist for continuous gates. A gate tied
+ * to a change carries inherently fresh evidence — it ran on that diff. A gate
+ * that runs on a schedule does not, and a green from six days ago proves
+ * nothing about today. Evidence read past its bound yields `unknown`, never
+ * `pass`: a scheduler that quietly died must block promotion rather than let
+ * last week's result stand in for this week's.
+ */
+export const EVIDENCE_FIELDS = Object.freeze({
+  gate: "string",
+  status: "pass | fail | unknown",
+  work: "number | null",
+  measures: "object",
+  prover: "{ tool, version }",
+  observed_at: "ISO-8601",
+  max_age_minutes: "number | null",
+});
+
+/** Verdict an evidence envelope can carry. */
+export const EVIDENCE_STATUS = ["pass", "fail", "unknown"];
+
+/**
+ * Read a verdict from an evidence envelope, honouring work and freshness.
+ *
+ * Two demotions to `unknown`, both deliberate, both cases where the naive read
+ * is `pass`:
+ *
+ * - the gate declares a work count and the implementation emitted none, so
+ *   nothing shows it ran;
+ * - the evidence is older than its own bound, so it describes a state that may
+ *   no longer exist.
+ *
+ * Neither is a failure and neither is a pass. Collapsing either into `pass` is
+ * the defect this whole subsystem exists to prevent; collapsing either into
+ * `fail` blames a project for a gap in observation.
+ * @param {object} evidence The emitted envelope.
+ * @param {object} [definition] Registry entry, for whether work is expected.
+ * @param {number} [nowMs] Clock, injected for tests.
+ * @returns {{status: string, reason: string|null}} Effective verdict.
+ */
+export function readEvidence(evidence, definition = {}, nowMs = Date.now()) {
+  if (!evidence || !EVIDENCE_STATUS.includes(evidence.status)) {
+    return { status: "unknown", reason: "no evidence was emitted" };
+  }
+  if (evidence.status !== "pass") {
+    return { status: evidence.status, reason: null };
+  }
+  if (definition.work && (evidence.work ?? null) === null) {
+    return {
+      status: "unknown",
+      reason: `reported pass but no ${definition.work} count, so nothing shows it ran`,
+    };
+  }
+  const bound = evidence.max_age_minutes;
+  if (bound && evidence.observed_at) {
+    const ageMinutes = (nowMs - Date.parse(evidence.observed_at)) / 60000;
+    if (Number.isFinite(ageMinutes) && ageMinutes > bound) {
+      return {
+        status: "unknown",
+        reason: `evidence is ${Math.round(ageMinutes)} minutes old, past its ${bound}-minute bound`,
+      };
+    }
+  }
+  return { status: "pass", reason: null };
+}
 
 /** Description phrases that grant or deny credit for an awaited signal. */
 export const EVIDENCE_DEFAULTS = Object.freeze({
