@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.17.0](https://github.com/CodySwannGT/lisa/compare/v3.16.0...v3.17.0) (2026-08-15)
+
+
+### Features
+
+* **gates:** assert credential and tooling readiness at session start ([891a19d](https://github.com/CodySwannGT/lisa/commit/891a19d1442712a417b37e201d0b6a30147ea453)), closes [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+* **gates:** model gates as properties on one moment axis, plus repo policy ([820ebdf](https://github.com/CodySwannGT/lisa/commit/820ebdfa6648efdacc791edb77c07f8b0c7b87c5)), closes [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+* **gates:** standardize the evidence envelope and add the continuous moment ([7f683f6](https://github.com/CodySwannGT/lisa/commit/7f683f6fe317c2fe77d7f6c98c32e90e23ba452d)), closes [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+
+
+### Bug Fixes
+
+* **ci:** give the commit-message gate the history it needs ([0bef2c0](https://github.com/CodySwannGT/lisa/commit/0bef2c0a1219fb7993c3541f18e0d3521fbdf313)), closes [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+* **ci:** stop persisting the checkout token in plugins-sync ([7542521](https://github.com/CodySwannGT/lisa/commit/7542521d588695ab50ed4bd81040ab684f4c6e59)), closes [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+* **gates:** address readiness gate review comments ([ba1c602](https://github.com/CodySwannGT/lisa/commit/ba1c60283b010ae1b9eb21fbd87ff5281f996b85)), closes [codyswanngt/lisa#2579](https://github.com/codyswanngt/lisa/issues/2579)
+* **gates:** close the review findings, including a regression this PR introduced ([e121473](https://github.com/CodySwannGT/lisa/commit/e1214737953538d90c0730772af8771b4dfa6d3a)), closes [#2583](https://github.com/CodySwannGT/lisa/issues/2583) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+* **security:** stop the shipped pre-push audit failing open, and wire the gates ([c83c570](https://github.com/CodySwannGT/lisa/commit/c83c5703f736d773617182584f723ff986437190)), closes [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579) [CodySwannGT/lisa#2579](https://github.com/CodySwannGT/lisa/issues/2579)
+
 ## [3.16.0](https://github.com/CodySwannGT/lisa/compare/v3.15.1...v3.16.0) (2026-08-15)
 
 
