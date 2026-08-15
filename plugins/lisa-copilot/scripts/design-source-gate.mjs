@@ -35,7 +35,8 @@
  * Exit 0 = PASS, 1 = FAIL (any violation, or anything unresolvable), 2 = usage.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 /** The one designated marker for UI deliberately not captured in Figma. */
 export const DESIGN_SOURCE_NONE_MARKER = "DESIGN-SOURCE: none — not in Figma";
@@ -534,6 +535,36 @@ export function runCli(argv) {
   return result.verdict === "PASS" ? 0 : 1;
 }
 
-if (process.argv[1]?.endsWith("design-source-gate.mjs")) {
+/**
+ * True when `moduleUrl` names the module node was asked to run.
+ *
+ * The previous spelling tested whether `process.argv[1]` ENDED WITH this
+ * module's basename, which is looser still than the `file://` comparison the
+ * sibling modules used: any path ending in `design-source-gate.mjs` satisfied
+ * it, including a different copy of this file in another checkout, and a
+ * rename silently turned the guard off with nothing to notice.
+ *
+ * Both sides are realpath'd instead. Reached through a symlinked checkout, a
+ * git worktree, or a `/tmp` path on macOS the naive comparisons disagree, the
+ * body never runs, and the process exits 0 having done nothing — and every
+ * Lisa-driven agent runs in a worktree, so that is the routine path.
+ *
+ * Written out rather than imported: this ships inside a plugin payload, which
+ * has no `./lib/` to resolve against. Same rule and reasoning as
+ * `scripts/lib/invoked-as-script.mjs`.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   process.exit(runCli(process.argv.slice(2)));
 }
