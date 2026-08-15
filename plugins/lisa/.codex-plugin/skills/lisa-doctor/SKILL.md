@@ -422,14 +422,43 @@ The verdict ladder is:
 - `READY_WITH_WARNINGS` — no `FAIL`, but one or more `WARN`.
 - `NOT_READY` — one or more `FAIL`.
 
+## Gate configuration
+
+```sh
+node scripts/lisa-gates.mjs validate                    # shape + unknown gate ids
+node scripts/lisa-gates.mjs list --stage=ci:pull_request
+node scripts/lisa-gates.mjs contexts                    # branch-protection contexts
+```
+
+A gate is a **property** — *credential leakage* — not a tool. `gitleaks` is one way to prove
+that property, and which way is the project's choice: each gate names a task in the project's own
+runner, so swapping the tool changes one line of project config and nothing in Lisa.
+
+`validate` refuses an unknown gate id rather than ignoring it. A misspelled `credential-leakge`
+would otherwise read as an enabled guarantee and run nothing at all — the same silent-hole shape
+as a skipped required check. Gates a project invents carry an `x-` prefix, which Lisa runs without
+pretending to understand.
+
+`contexts` is the value that replaces a hand-transcribed branch-protection list. It is scoped to
+one environment: a gate required before a production deploy is **not** thereby a merge blocker on a
+pull request, and collapsing the two would promote every deploy-time gate into branch protection.
+
+When reconciling a ruleset against it, pass `--previous=` with any label retired in the last
+release. Downstream repositories call the shared workflow unpinned, so a renamed job reaches every
+repository before any of them has reconciled — and a required context that never reports leaves
+pull requests waiting indefinitely. The fastest way out of that is deleting the requirement, which
+is how a rename ends up removing a guarantee. Emitting both labels for one release avoids it.
+
 ## Secrets configuration
 
 Run the secrets health checks through the skill that owns the contract, rather than reimplementing
 any part of it here:
 
 ```sh
-node .claude/skills/lisa-secrets-access/scripts/validate-config.mjs   # shape
-node .claude/skills/lisa-secrets-access/scripts/doctor-secrets.mjs    # health
+node .claude/skills/lisa-secrets-access/scripts/validate-config.mjs      # shape
+node .claude/skills/lisa-secrets-access/scripts/preflight-secrets.mjs    # credential readiness
+node .claude/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs    # tooling readiness
+node .claude/skills/lisa-secrets-access/scripts/doctor-secrets.mjs       # health
 ```
 
 Run the validator first. It checks only the *shape* of the `secrets`, `remoteEnv`, and
@@ -437,6 +466,33 @@ Run the validator first. It checks only the *shape* of the `secrets`, `remoteEnv
 would otherwise surface somewhere unhelpful: a container failing mid-setup, a scheduled loop that
 never fires, a dispatch naming a surface nobody provisioned. The health check then asks whether the
 credentials actually resolve.
+
+The preflight in the middle is the same check the SessionStart hook runs, and it is here for the
+half the hook deliberately cannot do. The hook injects its verdict into an agent's context and
+never blocks — killing a session over a credential it may not need would tax every session for a
+minority need, and a control people route around enforces nothing. Doctor is where the same
+verdict is allowed to be a non-zero exit.
+
+It reports three outcomes, and the third carries the weight. `ok` and `missing` are self-evident.
+**`unreachable`** means the provider itself could not be asked — no CLI, no bootstrap token, an API
+that errored — and it is neither of its neighbours. Reported as `ok` it would be a vacuous green,
+clean precisely because nothing was learned. Reported as `missing` it would blame the vault for a
+fault in this machine's access and send someone to grant a credential that was never absent. Both
+fail; they differ in what they tell the reader to fix.
+
+The tooling preflight asks the same question about CLIs, and it is a *caller* of
+`planToolchain` rather than a second implementation — that distinction is the point.
+`verify-remote-env.mjs` previously ran its own toolchain loop which never consulted
+`minVersion`, so a container verified clean against a `node` older than the manifest
+demanded while the plan-side check rejected exactly that. One function now answers the
+question everywhere.
+
+It needs only two verdicts. A local binary cannot fail to be asked the way a vault can,
+and the analogous trap — a tool present at an unparseable version — already fails closed
+upstream, because an unknown version loses every `minVersion` comparison. What it does add
+is a split credentials have no equivalent for: a missing tool with a pinned, checksummed
+`install` entry is something Lisa can place itself, so it reports an action and exits zero,
+while a tool nothing can provision blocks and exits non-zero.
 
 It reports without ever printing a value, and compares two copies of the same credential by digest.
 Map its findings into the doctor's own verdicts: `error` → `FAIL`, `warn` → `WARN`.

@@ -25,8 +25,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { readRemoteEnvConfig } from "./setup-remote-env.mjs";
-import { extractVersion } from "./toolchain.mjs";
+import { probe, readRemoteEnvConfig } from "./setup-remote-env.mjs";
+import { planToolchain } from "./toolchain.mjs";
 
 /** Collected results, so every check runs before anything reports failure. */
 const results = [];
@@ -84,39 +84,21 @@ function node(args) {
 
 /**
  * Assert each declared tool is present at its pinned or minimum version.
+ *
+ * Delegates every decision to `planToolchain` rather than probing here. This
+ * function used to run its own loop, and the copy silently forgot `minVersion`:
+ * a `require` entry passed as long as the binary answered `--version` at all,
+ * so a container verified clean against a node older than the manifest
+ * demanded. The plan-side check rejected exactly what this one accepted.
+ *
+ * That is the same failure the note validators had before one shared module
+ * replaced them, and it recurs for the same reason — two implementations of one
+ * question cannot be kept in step by intention. There is now one.
  * @param {object} tools Toolchain manifest.
  */
 function verifyToolchain(tools) {
-  for (const tool of tools.require ?? []) {
-    try {
-      const out = execFileSync(tool.name, ["--version"], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      });
-      check(true, `tool ${tool.name}`, extractVersion(out) ?? "present");
-    } catch {
-      check(false, `tool ${tool.name}`, "required but not present");
-    }
-  }
-  for (const tool of tools.install ?? []) {
-    try {
-      const out = execFileSync(tool.name, ["--version"], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      });
-      const found = extractVersion(out);
-      check(
-        found === tool.version,
-        `tool ${tool.name}`,
-        `${found} (pin ${tool.version})`
-      );
-    } catch {
-      check(
-        false,
-        `tool ${tool.name}`,
-        `pinned ${tool.version} but not installed`
-      );
-    }
+  for (const step of planToolchain(tools, probe, "remote")) {
+    check(step.action === "present", `tool ${step.name}`, step.reason);
   }
 }
 

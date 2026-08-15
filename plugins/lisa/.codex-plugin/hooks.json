@@ -114,6 +114,15 @@
             "command": "${PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+          }
+        ]
       }
     ],
     "SubagentStart": [
