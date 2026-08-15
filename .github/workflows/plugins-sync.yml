@@ -43,6 +43,12 @@ jobs:
           # it is exactly the sort of thing a check verified only locally will
           # get wrong, since a local clone always has the history.
           fetch-depth: 0
+          # Nothing after checkout touches the remote: `bun install` resolves
+          # from the lockfile, the checks are offline, and commitlint reads the
+          # history `fetch-depth: 0` already fetched. So the token has no reason
+          # to outlive the checkout step, and leaving it in .git/config lends
+          # authenticated push access to every command that follows.
+          persist-credentials: false
       - name: '🍞 Setup Bun'
         uses: oven-sh/setup-bun@v2
         with:
