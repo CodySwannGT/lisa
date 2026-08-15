@@ -941,7 +941,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
-      "954c3618faa7f623303a43021425160e0681801b10b4c8980cbad9e0b4fdfef7",
+      "51ab13da31727d1967a93ed13f9932bf81f4f20c3af99e5a81706f17984cea43",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "8592c7359ee6cdb35995a882c8bb27e7b9c404074067fd272c70013e44e04b71",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
@@ -1023,7 +1023,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "6b3bbe8ff85c7cb20412dcfcab3d7506a3efc67907cb749622c329fb4130baf4",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "9024898dd83ee386a776014742f13c6da8210b2a10e3d979c34cda352f164165",
+      "ad703d7e7a9f13de6e708fc31fa321b329295b0cc8b31de8804c2fdc3b2fa7fa",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -9269,6 +9269,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
+    "tests/unit/strategies/lifecycle-label-claimability.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-contract.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-resolution.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust.test.ts": true,
