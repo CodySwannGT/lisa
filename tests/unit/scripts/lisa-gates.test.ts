@@ -53,7 +53,14 @@ describe("REGISTRY", () => {
       "load-capacity",
       "accessibility",
     ]) {
-      expect(definition(id).moments, id).toEqual(["pre-deploy", "post-deploy"]);
+      // `continuous` joined this family deliberately: these need something
+      // running to point at, and a schedule provides that as readily as a
+      // deploy does. What stays excluded is every change-triggered moment.
+      expect(definition(id).moments, id).toEqual([
+        "pre-deploy",
+        "post-deploy",
+        "continuous",
+      ]);
     }
   });
 
