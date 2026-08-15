@@ -6,245 +6,451 @@
  * The gate registry: what Lisa guarantees, and where each guarantee is proved.
  *
  * A **gate is a property**, not a tool. `gitleaks` is not a gate — *credential
- * leakage* is the gate, and gitleaks is one way to prove it. Catalogued as tools,
- * the same guarantee appears three times under three names and no one can see
- * that a fourth is missing; catalogued as properties, the question "which
- * guarantees rest on a single mechanism" has an answer.
+ * leakage* is the gate, and gitleaks is one way to prove it. Catalogued as
+ * tools, one guarantee appears three times under three names and nobody can see
+ * that a fourth is missing; catalogued as properties, "which guarantees rest on
+ * a single mechanism" has an answer.
  *
- * That split is the whole design. **Lisa owns the vocabulary; the project owns
- * the implementation.** Lisa's workflows and hooks say "run the credential-leakage
- * gate"; the project says what that means by pointing it at one of its own task
- * names. A project swapping gitleaks for something else changes one line of its
- * own config and nothing in Lisa.
+ * **Lisa owns the vocabulary; the project owns the implementation.** Lisa says
+ * "prove credential leakage"; the project says what that means by naming one of
+ * its own tasks. Swapping gitleaks for trufflehog changes one line of project
+ * config and nothing in Lisa.
  *
- * ## Stages
+ * ## One axis: the moment
  *
- * A gate declares where it is proved, and each stage carries an enforcement
- * level rather than a boolean:
+ * A gate declares *when* it runs. Not *where* — the surface a session is on is
+ * detected, not declared, and asking someone to restate it in config is how you
+ * end up with `local`/`remote` in one subsystem and five real surfaces in
+ * another. What a gate needs in order to run is expressed as `needs`, and the
+ * surface falls out of wherever that moment happens to occur.
  *
- * - `required` — blocks. The action does not happen.
- * - `optional` — runs and reports, never blocks.
- * - `off` — does not run. Also the meaning of an absent stage.
+ * ## Two proof modes
  *
- * The three-state vocabulary is deliberate and matches the readiness preflight:
- * a check that *could not run* must never be recorded as a check that *passed*,
- * and a check that merely reports must never be mistaken for one that gates.
+ * `run` executes a task and reads its exit code. `await` watches for an
+ * external signal — a review bot, a SAST service — and reads its verdict. Which
+ * applies is the project's choice, not the gate's: Snyk can be a CLI you run or
+ * an app that reports. A gate may use different modes at different moments,
+ * which is the normal shape for code review: an agentic review before push, a
+ * bot on the pull request.
  *
- * ## Why some gates cannot be facaded
+ * ## Green is not proof
  *
- * A few gates intercept an action *before* it happens — refusing `--no-verify`,
- * refusing a destructive command. Those cannot be a project script, because by
- * the time a script could run, the thing it was meant to prevent has already
- * run. They are marked `implementation: "lisa"`: the project may still say where
- * they are enforced, but not what implements them.
+ * The defect this design is organised against is a check reporting satisfied
+ * without having proved anything. It has two forms and both are handled here.
+ *
+ * A required `CodeRabbit` context posted `success` with the description
+ * "Review rate limited", having reviewed nothing, on two security-relevant pull
+ * requests that then merged. That is the `await` form, caught by description.
+ *
+ * `passWithNoTests: true` ships in five stack configs, so a unit-test gate can
+ * report green having run zero tests. That is the `run` form, caught by a work
+ * count. No description is involved and no vendor is at fault.
+ *
+ * The response is configurable, with one exception. You may configure whether
+ * to stop; you may not configure it into having been proved. A hollow result is
+ * recorded as unproved in every mode, or `on_hollow: report` becomes a way to
+ * launder an unreviewed merge.
  * @module lisa-gates
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Enforcement levels a stage may carry, weakest last. */
+/** Enforcement levels a moment may carry. */
 export const LEVELS = ["required", "optional", "off"];
 
-/** Agent hook events a gate may bind to. */
-export const AGENT_EVENTS = [
-  "SessionStart",
-  "UserPromptSubmit",
-  "PreToolUse",
-  "PostToolUse",
-  "SubagentStart",
-  "Stop",
-  "SessionEnd",
+/** What to do when a gate reports success without evidence of work. */
+export const HOLLOW_RESPONSES = ["report", "wait", "block"];
+
+/** Fixed moments. Two more families take an environment suffix. */
+export const MOMENTS = [
+  "session-start",
+  "pre-tool",
+  "commit",
+  "push",
+  "pull-request",
 ];
 
-/** Prefix marking a gate this project invented. */
+/** Moment families that take an `:<environment>` suffix. */
+export const MOMENT_FAMILIES = ["pre-deploy", "post-deploy"];
+
+/** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
+
+const COMMIT_ONWARD = [
+  "commit",
+  "push",
+  "pull-request",
+  "pre-deploy",
+  "post-deploy",
+];
+const PUSH_ONWARD = ["push", "pull-request", "pre-deploy", "post-deploy"];
+const PR_ONWARD = ["pull-request", "pre-deploy", "post-deploy"];
+const PR_ONLY = ["pull-request"];
+const DEPLOY_ONLY = ["pre-deploy", "post-deploy"];
+const SESSION_ONWARD = ["session-start", ...COMMIT_ONWARD];
 
 /**
  * Lisa's canonical gates.
  *
- * `label` is the CI job name, and it is load-bearing: a repository ruleset names
- * required checks by exact string, so this value is what a branch-protection
- * context is built from. Changing one is a fleet-wide rename — see
- * `contextsFor` and the alias window it supports.
+ * `label` is the CI job name and it is load-bearing: a repository ruleset names
+ * required checks by exact string, so this is what a branch-protection context
+ * is built from.
  *
- * `implementation: "lisa"` marks a gate whose mechanism cannot be delegated;
- * everything else is proved by a project task named in config.
+ * `moments` is the closed set of places a gate may legally be declared. It
+ * exists to make wrong configurations unrepresentable rather than merely
+ * discouraged: type-aware lint at commit needs a whole-project build, and a
+ * DAST scan at commit has nothing deployed to point at.
+ *
+ * `work` names what a nonzero count proves, for gates that can otherwise
+ * succeed having done nothing.
  */
 export const REGISTRY = Object.freeze({
-  "credential-leakage": {
-    label: "🔐 Credential Leakage",
-    summary: "No secret enters the repository, an artifact, or a log.",
-    implementation: "project",
+  "code-style": {
+    label: "🧹 Lint",
+    summary: "Code conforms to the project's lint rules.",
+    task: "lint",
+    moments: COMMIT_ONWARD,
   },
-  "credential-availability": {
-    label: "🔑 Credential Readiness",
-    summary: "Every credential the work needs resolves before work is claimed.",
-    implementation: "project",
+  "code-style-slow": {
+    label: "🐢 Slow Lint Rules",
+    summary: "Type-aware lint rules pass.",
+    task: "lint:slow",
+    moments: PUSH_ONWARD,
   },
-  "tool-availability": {
-    label: "🧰 Tooling Readiness",
-    summary: "Every CLI the work needs is present at its required version.",
-    implementation: "project",
+  "format-conformance": {
+    label: "📐 Check Formatting",
+    summary: "Files match the project's formatter.",
+    task: "format:check",
+    moments: COMMIT_ONWARD,
   },
   "type-correctness": {
     label: "🔍 Type Check",
     summary: "The project compiles.",
-    implementation: "project",
+    task: "typecheck",
+    moments: PUSH_ONWARD,
+  },
+  "build-integrity": {
+    label: "🏗️ Build",
+    summary: "The project builds.",
+    task: "build",
+    moments: PUSH_ONWARD,
   },
   "test-correctness": {
     label: "🧪 Run Unit Tests",
-    summary: "The test suite passes.",
-    implementation: "project",
+    summary: "The unit suite passes.",
+    task: "test:unit",
+    moments: PUSH_ONWARD,
+    work: "tests run",
+  },
+  "test-integration": {
+    label: "🧪 Run Integration Tests",
+    summary: "The integration suite passes.",
+    task: "test:integration",
+    moments: PUSH_ONWARD,
+    work: "tests run",
   },
   "test-meaningfulness": {
     label: "🧬 Mutation Testing Gate",
     summary: "Tests fail when the code they cover is wrong.",
-    implementation: "project",
+    task: "test:mutation",
+    moments: PR_ONWARD,
+    work: "mutants generated",
   },
   "coverage-adequacy": {
     label: "✅ Verification Coverage",
-    summary:
-      "The things that must be proved are covered by something that runs.",
-    implementation: "project",
+    summary: "What must be proved is covered by something that runs.",
+    task: "test:coverage",
+    moments: PUSH_ONWARD,
+    work: "files measured",
   },
-  "code-style": {
-    label: "🧹 Lint",
-    summary: "Code conforms to the project's lint and format rules.",
-    implementation: "project",
+  "e2e-browser": {
+    label: "🎭 Playwright E2E Tests",
+    summary: "Browser journeys pass end to end.",
+    task: "test:e2e",
+    moments: PR_ONWARD,
+    work: "specs run",
+  },
+  "e2e-native": {
+    label: "📱 Maestro Native E2E",
+    summary: "Native device journeys pass end to end.",
+    task: "test:e2e:native",
+    moments: PR_ONWARD,
+    work: "flows run",
   },
   "structural-rules": {
     label: "🔎 AST Grep Scan",
     summary: "Structural rules lint cannot express are respected.",
-    implementation: "project",
+    task: "lint:structural",
+    moments: PUSH_ONWARD,
+    work: "rules loaded",
   },
   "dead-code": {
     label: "🗑️ Dead Code Detection",
     summary: "No unused exports or dependencies.",
-    implementation: "project",
+    task: "check:dead-code",
+    moments: PUSH_ONWARD,
+  },
+  "credential-leakage": {
+    label: "🔐 Credential Leakage",
+    summary: "No secret enters the repository, an artifact, or a log.",
+    task: "security:check-for-leaks",
+    moments: COMMIT_ONWARD,
   },
   "dependency-vulnerability": {
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
-    implementation: "project",
+    task: "security:audit",
+    moments: PUSH_ONWARD,
+    work: "manifests scanned",
   },
   "static-security": {
-    label: "🔍 SonarCloud SAST",
+    label: "🔍 Static Security Analysis",
     summary: "Static analysis finds no security defect.",
-    implementation: "project",
+    task: "security:sast",
+    moments: PR_ONWARD,
+    work: "files analysed",
   },
   "runtime-web-vulnerability": {
-    label: "🕷️ OWASP ZAP Baseline",
-    summary: "The running application passes a baseline DAST scan.",
-    implementation: "project",
+    label: "🕷️ DAST Baseline",
+    summary: "The running application passes a baseline dynamic scan.",
+    task: "security:dast",
+    moments: DEPLOY_ONLY,
+    work: "URLs scanned",
   },
   "license-compliance": {
-    label: "📜 FOSSA License Check",
+    label: "📜 Licence Check",
     summary: "Every dependency licence is permitted.",
-    implementation: "project",
+    task: "security:licenses",
+    moments: PR_ONWARD,
+  },
+  "code-review": {
+    label: "👁️ Code Review",
+    summary: "The change was reviewed by something that read it.",
+    task: "review:local",
+    moments: ["push", "pull-request"],
+  },
+  "performance-budget": {
+    label: "⚡ Performance Budget",
+    summary: "Pages stay inside their performance budget.",
+    task: "perf:check",
+    moments: DEPLOY_ONLY,
+    work: "pages measured",
+  },
+  "load-capacity": {
+    label: "📈 Load Capacity",
+    summary: "The service holds up under its expected load.",
+    task: "perf:load",
+    moments: DEPLOY_ONLY,
+    work: "requests issued",
+  },
+  accessibility: {
+    label: "♿ Accessibility",
+    summary: "Pages meet the declared accessibility standard.",
+    task: "a11y:check",
+    moments: DEPLOY_ONLY,
+    work: "pages audited",
   },
   traceability: {
     label: "🔗 Work-Item Traceability",
     summary: "Every change is bound to a live tracker item.",
-    implementation: "project",
+    task: "check:work-item",
+    moments: PR_ONLY,
   },
   "commit-conformance": {
     label: "📝 Commit Message",
-    summary: "Commit messages follow conventional commits.",
-    implementation: "project",
+    summary: "Commit messages follow the declared convention.",
+    task: "check:commit-msg",
+    moments: COMMIT_ONWARD,
   },
   "threshold-monotonicity": {
     label: "📐 Threshold Ratchet",
     summary: "Quality thresholds may tighten, never loosen.",
-    implementation: "project",
+    task: "check:thresholds",
+    moments: PUSH_ONWARD,
   },
   "artifact-freshness": {
     label: "🧾 Generated Artifacts",
     summary: "Generated files match the source they describe.",
-    implementation: "project",
+    task: "check:artifacts",
+    moments: COMMIT_ONWARD,
   },
   "conflict-residue": {
     label: "🩹 Conflict Markers",
     summary: "No leftover merge-conflict markers in tracked files.",
-    implementation: "project",
+    task: "check:conflict-markers",
+    moments: COMMIT_ONWARD,
   },
   "version-duplication": {
     label: "🧮 Duplicate Versions",
     summary: "One declared version per dependency.",
-    implementation: "project",
+    task: "check:duplicate-versions",
+    moments: COMMIT_ONWARD,
   },
-  "performance-budget": {
-    label: "⚡ Performance Budget",
-    summary: "The application stays inside its performance budget.",
-    implementation: "project",
+  "credential-availability": {
+    label: "🔑 Credential Readiness",
+    summary: "Every credential the work needs resolves before work is claimed.",
+    task: "readiness:secrets",
+    moments: SESSION_ONWARD,
   },
-  "review-completion": {
-    label: "👀 Review Completion",
-    summary: "Every review thread is resolved before merge.",
-    implementation: "lisa",
-  },
-  "branch-protection": {
-    label: "🛡️ Branch Protection",
-    summary: "No direct commits to an environment branch.",
-    implementation: "lisa",
-  },
-  "verification-bypass": {
-    label: "🚫 Verification Bypass",
-    summary: "Verification hooks cannot be disabled.",
-    implementation: "lisa",
-  },
-  "destructive-safety": {
-    label: "☢️ Destructive Operations",
-    summary: "Destructive commands are refused where they cannot be undone.",
-    implementation: "lisa",
-  },
-  "instruction-integrity": {
-    label: "📕 Instruction Files",
-    summary: "Agents cannot rewrite their own instruction files.",
-    implementation: "lisa",
-  },
-  "orchestration-conformance": {
-    label: "🎯 Orchestration",
-    summary: "Lifecycle flows follow the required orchestration.",
-    implementation: "lisa",
-  },
-  "structured-data-handling": {
-    label: "🧷 Structured Data",
-    summary: "Structured formats are parsed with real parsers.",
-    implementation: "lisa",
+  "tool-availability": {
+    label: "🧰 Tooling Readiness",
+    summary: "Every CLI the work needs is present at its required version.",
+    task: "readiness:tools",
+    moments: SESSION_ONWARD,
   },
 });
 
 /**
- * Gates a project's own routing makes mandatory.
+ * Guarantees the platform enforces, which no task can implement.
  *
- * The same derivation the credential and tooling floors use, for the same
- * reason: a guarantee implied by configuration the project already wrote should
- * not depend on someone also remembering to enable it. A project that names a
- * tracker has said it wants work traceable to that tracker.
- * @param {object} config Parsed `.lisa.config.json` root.
- * @returns {Record<string, string>} Gate id to the reason it is implied.
+ * These were briefly modelled as gates with `implementation: "lisa"`, which was
+ * a category error: nothing runs and nothing produces a verdict. They are
+ * repository *policy* — a declared state that has either drifted or not — and
+ * belong in the `policy` block, where the response to a violation is to repair
+ * the setting rather than to block a change.
  */
-export function gateFloor(config = {}) {
-  const floor = {};
-  if (config.tracker) {
-    floor.traceability = `tracker is "${config.tracker}"`;
-  }
-  if (config.secrets?.provider && config.secrets.provider !== "env") {
-    floor["credential-availability"] =
-      `secrets.provider is "${config.secrets.provider}"`;
-  }
-  return floor;
-}
+export const POLICY_ENFORCED = Object.freeze([
+  "review-completion",
+  "branch-protection",
+  "up-to-date-before-merge",
+  "linear-history",
+  "signed-commits",
+]);
 
 /**
- * Read the `gates` block, with the runner separated from the gates themselves.
+ * Gates enforced by intercepting an action before it happens.
+ *
+ * A task cannot implement these: by the time one could run, the thing it
+ * prevents has already run. The project may say where they are enforced; it may
+ * not say what implements them.
+ */
+export const INTERCEPTORS = Object.freeze({
+  "verification-bypass": "Verification hooks cannot be disabled.",
+  "destructive-safety": "Destructive commands are refused where irreversible.",
+  "instruction-integrity": "Agents cannot rewrite their instruction files.",
+  "orchestration-conformance": "Lifecycle flows follow required orchestration.",
+  "structured-data-handling":
+    "Structured formats are parsed with real parsers.",
+});
+
+/** Description phrases that grant or deny credit for an awaited signal. */
+export const EVIDENCE_DEFAULTS = Object.freeze({
+  // Matched strictly — whole description, case-insensitive — because a match
+  // GRANTS credit and a substring would let "review skipped" satisfy "review".
+  proof: Object.freeze([
+    "review approved",
+    "review completed",
+    "changes requested",
+    "comments posted",
+  ]),
+  // Matched loosely as substrings because a match DENIES credit, and the vendor
+  // decorates its own strings: "Review rate limited (retry in 12m)".
+  no_work: Object.freeze([
+    "rate limited",
+    "review queued",
+    "review skipped",
+    "skipped",
+    "queued",
+    "waiting",
+    "in progress",
+    "no review",
+    "disabled",
+    "quota",
+    "billing",
+  ]),
+});
+
+/**
+ * Repository policy Lisa asserts.
+ *
+ * Policy differs from a gate in what failure means. A gate failing says stop
+ * the change; a policy having drifted says put the setting back. That is why
+ * `on_drift` defaults to repair and a gate never does.
+ */
+export const POLICY_SCHEMA = Object.freeze({
+  merge: Object.freeze({
+    squash: "boolean",
+    merge_commit: "boolean",
+    rebase: "boolean",
+    auto_merge: "boolean",
+    delete_branch_on_merge: "boolean",
+    allow_update_branch: "boolean",
+  }),
+  history: Object.freeze({
+    linear: "boolean",
+    signed_commits: "boolean",
+    commit_signoff: "boolean",
+  }),
+  protect: Object.freeze({
+    force_push: "boolean",
+    deletion: "boolean",
+    up_to_date_before_merge: "boolean",
+    conversation_resolution: "boolean",
+    dismiss_stale_reviews: "boolean",
+    require_last_push_approval: "boolean",
+  }),
+  repository: Object.freeze({
+    has_issues: "boolean",
+    has_wiki: "boolean",
+    default_branch: "string",
+  }),
+});
+
+/** How to respond when reality has drifted from declared policy. */
+export const DRIFT_RESPONSES = ["repair", "report", "block"];
+
+/** Top-level `.lisa.config.json` keys Lisa reads. */
+export const KNOWN_CONFIG_KEYS = Object.freeze([
+  "harness",
+  "tracker",
+  "source",
+  "atlassian",
+  "jira",
+  "confluence",
+  "github",
+  "notion",
+  "linear",
+  "deploy",
+  "quality",
+  "gates",
+  "policy",
+  "intake",
+  "monitor",
+  "secrets",
+  "remoteEnv",
+  "automations",
+  "usage",
+  "wiki",
+  "learnings",
+  "health",
+  "verification",
+]);
+
+/**
+ * Keys Lisa used to read, with what to say about each.
+ *
+ * Distinguished from merely unrecognised keys because Lisa *knows* what these
+ * were and can say something useful. An unrecognised key might be a typo or a
+ * deliberate annotation; a retired one is neither.
+ */
+export const RETIRED_CONFIG_KEYS = Object.freeze({
+  projectRulesFile:
+    "retired — host rules now live in the fixed directory .agents/rules/. " +
+    "The key is still parsed so installed projects keep applying, but nothing " +
+    "serves rules from it.",
+});
+
+/**
+ * Read the config, splitting the runner out of the gates block.
  * @param {string} [cwd] Directory to look in.
- * @returns {{runner: string, gates: object, config: object}} Parsed block.
+ * @returns {{runner: string, gates: object, policy: object, config: object}} Parsed config.
  */
 export function readGates(cwd = process.cwd()) {
   const path = join(cwd, ".lisa.config.json");
-  if (!existsSync(path)) return { runner: "npm run", gates: {}, config: {} };
+  if (!existsSync(path)) {
+    return { runner: "npm run", gates: {}, policy: {}, config: {} };
+  }
   let config;
   try {
     config = JSON.parse(readFileSync(path, "utf8"));
@@ -252,135 +458,454 @@ export function readGates(cwd = process.cwd()) {
     throw new Error(`.lisa.config.json is not readable: ${err.message}`);
   }
   const { runner = "npm run", ...gates } = config.gates ?? {};
-  return { runner, gates, config };
+  return { runner, gates, policy: config.policy ?? {}, config };
 }
 
 /**
- * Validate a gates block, returning every problem rather than the first.
- *
- * An unknown gate id is an error and not a silent pass, because the failure it
- * prevents is invisible: a misspelled `credential-leakge` would read as an
- * enabled guarantee and run nothing at all. That is the same shape as every
- * other defect this subsystem exists to catch, so it fails loudly and suggests
- * the nearest real name.
+ * Whether a moment string is one Lisa understands.
+ * @param {string} moment Candidate moment.
+ * @returns {boolean} True when well-formed.
+ */
+export function isMoment(moment) {
+  if (MOMENTS.includes(moment)) return true;
+  const [family, environment] = moment.split(":");
+  return MOMENT_FAMILIES.includes(family) && Boolean(environment);
+}
+
+/**
+ * The family a moment belongs to, for comparison against a gate's legal set.
+ * @param {string} moment A well-formed moment.
+ * @returns {string} `pre-deploy` for `pre-deploy:production`, else the moment.
+ */
+export function momentFamily(moment) {
+  const [family] = moment.split(":");
+  return MOMENT_FAMILIES.includes(family) ? family : moment;
+}
+
+/**
+ * Validate the gates block, returning every problem rather than the first.
  * @param {object} gates The gates block, runner already removed.
  * @returns {string[]} Problems, empty when valid.
  */
 export function validateGates(gates) {
   const problems = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {
-    const known = Object.hasOwn(REGISTRY, id);
-    const custom = id.startsWith(CUSTOM_PREFIX);
-
-    if (!known && !custom) {
-      const near = nearestGate(id);
-      problems.push(
-        `gates."${id}" is not a gate Lisa knows` +
-          (near ? `. Did you mean "${near}"?` : "") +
-          ` Prefix a gate of your own with "${CUSTOM_PREFIX}" — Lisa will run ` +
-          `it without pretending to understand it.`
-      );
-      continue;
-    }
-    if (!gate || typeof gate !== "object" || Array.isArray(gate)) {
-      problems.push(`gates."${id}" must be an object`);
-      continue;
-    }
-    if (known && REGISTRY[id].implementation === "lisa" && gate.run) {
-      problems.push(
-        `gates."${id}" declares run "${gate.run}", but this gate intercepts an ` +
-          `action before it happens and cannot be delegated to a task — by the ` +
-          `time a task could run, the thing it prevents has already run. ` +
-          `Declare where it is enforced, not what implements it.`
-      );
-    }
-    if (needsRun(id, gate) && !gate.run) {
-      problems.push(
-        `gates."${id}" is enabled somewhere but names no "run" task, so ` +
-          `nothing would execute.`
-      );
-    }
-    problems.push(...validateStages(id, gate));
+    problems.push(...validateGate(id, gate));
   }
   return problems;
 }
 
 /**
- * Validate the stage map of one gate.
- * @param {string} id Gate id, for messages.
- * @param {object} gate The gate entry.
+ * Validate one gate entry.
+ * @param {string} id Gate id.
+ * @param {object} gate The entry.
  * @returns {string[]} Problems.
  */
-function validateStages(id, gate) {
+function validateGate(id, gate) {
   const problems = [];
-  for (const stage of ["commit", "push"]) {
-    if (gate[stage] !== undefined && !LEVELS.includes(gate[stage])) {
+  const known = Object.hasOwn(REGISTRY, id);
+  const interceptor = Object.hasOwn(INTERCEPTORS, id);
+
+  if (POLICY_ENFORCED.includes(id)) {
+    return [
+      `gates."${id}" is repository policy, not a gate — nothing runs and ` +
+        `nothing produces a verdict. Declare it under "policy" instead, where ` +
+        `drift is repaired rather than blocking a change.`,
+    ];
+  }
+  if (!known && !interceptor && !id.startsWith(CUSTOM_PREFIX)) {
+    const near = nearest(id, [
+      ...Object.keys(REGISTRY),
+      ...Object.keys(INTERCEPTORS),
+    ]);
+    return [
+      `gates."${id}" is not a gate Lisa knows` +
+        (near ? `. Did you mean "${near}"?` : "") +
+        ` Prefix a gate of your own with "${CUSTOM_PREFIX}" — Lisa will run ` +
+        `it without pretending to understand it.`,
+    ];
+  }
+  if (!gate || typeof gate !== "object" || Array.isArray(gate)) {
+    return [`gates."${id}" must be an object`];
+  }
+  if (interceptor && gate.run) {
+    problems.push(
+      `gates."${id}" names a task, but this gate intercepts an action before ` +
+        `it happens and cannot be delegated — by the time a task could run, ` +
+        `the thing it prevents has already run.`
+    );
+  }
+  problems.push(...validateNeeds(id, gate));
+
+  for (const [moment, value] of Object.entries(gate)) {
+    if (!isMoment(moment)) continue;
+    problems.push(
+      ...validateMoment(id, moment, value, known, interceptor, gate.run)
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate one moment entry on a gate.
+ * @param {string} id Gate id.
+ * @param {string} moment The moment key.
+ * @param {*} value Level string, or a prover object.
+ * @param {boolean} known Whether the gate is in the registry.
+ * @param {boolean} interceptor Whether the gate intercepts.
+ * @param {string} [gateRun] A task declared once for the whole gate.
+ * @returns {string[]} Problems.
+ */
+function validateMoment(id, moment, value, known, interceptor, gateRun) {
+  const problems = [];
+  const entry = typeof value === "string" ? { level: value } : (value ?? {});
+
+  if (!LEVELS.includes(entry.level)) {
+    problems.push(
+      `gates."${id}"."${moment}" has level ${JSON.stringify(entry.level)}; ` +
+        `expected ${LEVELS.join(", ")}`
+    );
+  }
+  if (known && !REGISTRY[id].moments.includes(momentFamily(moment))) {
+    problems.push(
+      `gates."${id}" cannot run at "${moment}". ${REGISTRY[id].summary} ` +
+        `Legal moments: ${REGISTRY[id].moments.join(", ")}.`
+    );
+  }
+  if (entry.await) {
+    if (["commit", "push", "session-start", "pre-tool"].includes(moment)) {
       problems.push(
-        `gates."${id}".${stage} is "${gate[stage]}"; expected ${LEVELS.join(", ")}`
+        `gates."${id}"."${moment}" awaits "${entry.await}", but there is no ` +
+          `pull request yet for a signal to post against. An awaited check ` +
+          `that can never fire is a declared guarantee that never runs.`
+      );
+    }
+    if (entry.run) {
+      problems.push(
+        `gates."${id}"."${moment}" declares both run and await; a moment has ` +
+          `one prover.`
+      );
+    }
+    problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
+  }
+  if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
+    problems.push(
+      `gates."${id}"."${moment}" names no prover and Lisa has no default task ` +
+        `for a custom gate, so nothing would execute.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate an awaited signal's evidence block.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {object} evidence The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validateEvidence(id, moment, evidence) {
+  const problems = [];
+  const where = `gates."${id}"."${moment}".evidence`;
+  const response = evidence.on_hollow ?? "report";
+
+  if (!HOLLOW_RESPONSES.includes(response)) {
+    problems.push(
+      `${where}.on_hollow is ${JSON.stringify(response)}; expected ` +
+        `${HOLLOW_RESPONSES.join(", ")}`
+    );
+  }
+  if (response === "wait") {
+    // An unbounded wait is a pull request blocked with no signal, and the
+    // fastest way out is deleting the requirement — which is how a gate ends
+    // up removed rather than satisfied.
+    if (!Number.isFinite(evidence.wait_minutes) || evidence.wait_minutes <= 0) {
+      problems.push(
+        `${where}.on_hollow is "wait" but wait_minutes is not a positive ` +
+          `number. An unbounded wait blocks the pull request with no signal.`
+      );
+    }
+    if (!HOLLOW_RESPONSES.includes(evidence.on_timeout ?? "block")) {
+      problems.push(
+        `${where}.on_timeout is ${JSON.stringify(evidence.on_timeout)}; ` +
+          `expected ${HOLLOW_RESPONSES.join(", ")}`
       );
     }
   }
-  for (const [event, level] of Object.entries(gate.agent ?? {})) {
-    if (!AGENT_EVENTS.includes(event)) {
-      problems.push(
-        `gates."${id}".agent has event "${event}"; known: ${AGENT_EVENTS.join(", ")}`
-      );
-    }
-    if (!LEVELS.includes(level)) {
-      problems.push(
-        `gates."${id}".agent."${event}" is "${level}"; expected ${LEVELS.join(", ")}`
-      );
-    }
-  }
-  for (const [env, level] of Object.entries(gate.ci ?? {})) {
-    if (!LEVELS.includes(level)) {
-      problems.push(
-        `gates."${id}".ci."${env}" is "${level}"; expected ${LEVELS.join(", ")}`
-      );
+  for (const field of ["proof", "no_work"]) {
+    if (evidence[field] !== undefined && !Array.isArray(evidence[field])) {
+      problems.push(`${where}.${field} must be an array of phrases`);
     }
   }
   return problems;
 }
 
 /**
- * Whether a gate is enabled anywhere and therefore needs something to run.
+ * Validate a gate's declared needs.
  * @param {string} id Gate id.
- * @param {object} gate The gate entry.
- * @returns {boolean} True when some stage is not `off`.
+ * @param {object} gate The entry.
+ * @returns {string[]} Problems.
  */
-function needsRun(id, gate) {
-  if (REGISTRY[id]?.implementation === "lisa") return false;
-  const levels = [
-    gate.commit,
-    gate.push,
-    ...Object.values(gate.agent ?? {}),
-    ...Object.values(gate.ci ?? {}),
-  ];
-  return levels.some(level => level === "required" || level === "optional");
+function validateNeeds(id, gate) {
+  const problems = [];
+  if (gate.needs === undefined) return problems;
+  if (typeof gate.needs !== "object" || Array.isArray(gate.needs)) {
+    return [`gates."${id}".needs must be an object with tools and/or secrets`];
+  }
+  for (const field of ["tools", "secrets"]) {
+    if (gate.needs[field] === undefined) continue;
+    if (!Array.isArray(gate.needs[field])) {
+      problems.push(`gates."${id}".needs.${field} must be an array of names`);
+      continue;
+    }
+    if (field !== "secrets") continue;
+    for (const name of gate.needs.secrets) {
+      if (typeof name !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(name)) {
+        problems.push(
+          `gates."${id}".needs.secrets entry ${JSON.stringify(name)} is not ` +
+            `an exact UPPER_SNAKE_CASE variable name. Lookup is never fuzzy.`
+        );
+      }
+    }
+  }
+  return problems;
 }
 
 /**
- * The closest known gate id, for a did-you-mean suggestion.
- * @param {string} id The unrecognised id.
+ * Validate the policy block.
+ * @param {object} policy The policy block.
+ * @returns {string[]} Problems.
+ */
+export function validatePolicy(policy) {
+  const problems = [];
+  if (!policy || typeof policy !== "object") return problems;
+
+  const response = policy.on_drift ?? "repair";
+  if (!DRIFT_RESPONSES.includes(response)) {
+    problems.push(
+      `policy.on_drift is ${JSON.stringify(response)}; expected ` +
+        `${DRIFT_RESPONSES.join(", ")}`
+    );
+  }
+  for (const [section, fields] of Object.entries(policy)) {
+    if (section === "on_drift") continue;
+    if (!Object.hasOwn(POLICY_SCHEMA, section)) {
+      const near = nearest(section, Object.keys(POLICY_SCHEMA));
+      problems.push(
+        `policy."${section}" is not a policy section Lisa knows` +
+          (near ? `. Did you mean "${near}"?` : "")
+      );
+      continue;
+    }
+    if (!fields || typeof fields !== "object") {
+      problems.push(`policy."${section}" must be an object`);
+      continue;
+    }
+    for (const [field, value] of Object.entries(fields)) {
+      const expected = POLICY_SCHEMA[section][field];
+      if (!expected) {
+        const near = nearest(field, Object.keys(POLICY_SCHEMA[section]));
+        problems.push(
+          `policy.${section}."${field}" is not a setting Lisa manages` +
+            (near ? `. Did you mean "${near}"?` : "")
+        );
+        continue;
+      }
+      if (typeof value !== expected) {
+        problems.push(
+          `policy.${section}.${field} must be a ${expected}, got ${typeof value}`
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+/**
+ * Report config keys Lisa does not read.
+ *
+ * Unknown fields used to be preserved silently on round-trip, which meant a
+ * typo looked exactly like configuration and did nothing: `"trackr": "github"`
+ * produced no error, no warning, and every vendor-neutral skill failing with
+ * "'tracker' is not set". Reported rather than deleted, because you cannot know
+ * a key a human wrote was meaningless.
+ * @param {object} config Parsed config root.
+ * @returns {Array<{key: string, level: string, message: string}>} Findings.
+ */
+export function auditConfigKeys(config) {
+  const findings = [];
+  for (const key of Object.keys(config ?? {})) {
+    // `_` is Lisa's own metadata namespace (`_lisaSync`); `x-` is the
+    // project's. Both are deliberate, neither is a typo.
+    if (key.startsWith("_") || key.startsWith(CUSTOM_PREFIX)) continue;
+    if (Object.hasOwn(RETIRED_CONFIG_KEYS, key)) {
+      findings.push({
+        key,
+        level: "warn",
+        message: `${key} is ${RETIRED_CONFIG_KEYS[key]}`,
+      });
+      continue;
+    }
+    if (KNOWN_CONFIG_KEYS.includes(key)) continue;
+    const near = nearest(key, KNOWN_CONFIG_KEYS);
+    findings.push({
+      key,
+      level: "warn",
+      message:
+        `${key} is not a key Lisa reads` +
+        (near ? `. Did you mean "${near}"?` : "") +
+        ` Nothing consumes it, so whatever it was meant to configure is unset.`,
+    });
+  }
+  return findings;
+}
+
+/**
+ * Resolve which gates run at one moment, and how.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment to resolve.
+ * @param {string} [options.runner] Task-runner prefix.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
+ */
+export function resolveMoment({ gates, moment, runner = "npm run" }) {
+  const resolved = [];
+  for (const [id, gate] of Object.entries(gates ?? {})) {
+    const raw = gate?.[moment];
+    if (raw === undefined) continue;
+    const entry = typeof raw === "string" ? { level: raw } : raw;
+    if (!entry?.level || entry.level === "off") continue;
+
+    const definition = REGISTRY[id];
+    const task = entry.run ?? gate.run ?? definition?.task ?? null;
+    const intercepts = Object.hasOwn(INTERCEPTORS, id);
+
+    resolved.push({
+      id,
+      level: entry.level,
+      mode: entry.await ? "await" : intercepts ? "intercept" : "run",
+      awaits: entry.await ?? null,
+      task: entry.await || intercepts ? null : task,
+      command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
+      label: definition?.label ?? id,
+      work: definition?.work ?? null,
+      evidence: entry.await ? mergeEvidence(entry.evidence) : null,
+    });
+  }
+  return resolved.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+/**
+ * Merge a project's evidence phrases onto the defaults.
+ *
+ * Extend, never replace. Removing a `no_work` phrase narrows detection with no
+ * signal that it was narrowed — a green that looks reviewed and is not. A
+ * shipped default that misfires for some vendor is an upstream bug to fix once,
+ * not something each project suppresses locally.
+ * @param {object} [evidence] Project evidence block.
+ * @returns {object} Merged evidence.
+ */
+function mergeEvidence(evidence = {}) {
+  return {
+    proof: [...EVIDENCE_DEFAULTS.proof, ...(evidence.proof ?? [])],
+    no_work: [...EVIDENCE_DEFAULTS.no_work, ...(evidence.no_work ?? [])],
+    on_hollow: evidence.on_hollow ?? "report",
+    wait_minutes: evidence.wait_minutes ?? null,
+    on_timeout: evidence.on_timeout ?? "block",
+  };
+}
+
+/**
+ * The tools and credentials the gates at one moment require.
+ *
+ * This replaces guessing a floor from `tracker` and `secrets.provider`. A gate
+ * states what it needs; whatever runs at this moment therefore needs the union.
+ * Surface never enters into it — the requirement follows the work.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment to resolve.
+ * @returns {{tools: string[], secrets: string[], reasons: Record<string, string>}} Union.
+ */
+export function needsAt({ gates, moment }) {
+  const tools = new Set();
+  const secrets = new Set();
+  const reasons = {};
+  for (const gate of resolveMoment({ gates, moment })) {
+    const declared = gates[gate.id]?.needs ?? {};
+    for (const tool of declared.tools ?? []) {
+      tools.add(tool);
+      reasons[tool] = `the ${gate.id} gate runs at ${moment}`;
+    }
+    for (const secret of declared.secrets ?? []) {
+      secrets.add(secret);
+      reasons[secret] = `the ${gate.id} gate runs at ${moment}`;
+    }
+  }
+  return {
+    tools: [...tools].sort((a, b) => a.localeCompare(b)),
+    secrets: [...secrets].sort((a, b) => a.localeCompare(b)),
+    reasons,
+  };
+}
+
+/**
+ * The branch-protection contexts a gates block implies at one moment.
+ *
+ * Derived rather than transcribed. The hand-maintained snapshot this replaces
+ * shipped empty, carried a 90-day expiry, and had already been measured wrong
+ * in both directions — because nothing could derive the truth and nothing could
+ * tell you the copy had gone stale.
+ *
+ * Only `required` produces a context, and that is what makes `optional` and
+ * `off` safe: a skipped required check counts as satisfied on GitHub, so a gate
+ * that is off must never appear here — and because the job condition and this
+ * list come from one declaration, it cannot.
+ * @param {object} gates The gates block.
+ * @param {object} [options] Context options.
+ * @returns {string[]} Sorted, de-duplicated contexts.
+ */
+export function contextsFor(gates, options = {}) {
+  const {
+    moment = "pull-request",
+    workflowName = "🔍 Quality Checks",
+    previousLabels = [],
+  } = options;
+
+  const contexts = resolveMoment({ gates, moment })
+    .filter(gate => gate.level === "required")
+    // An awaited signal posts under its own name; a run job posts under the
+    // calling workflow's.
+    .map(gate =>
+      gate.mode === "await" ? gate.awaits : `${workflowName} / ${gate.label}`
+    );
+
+  for (const label of previousLabels) {
+    contexts.push(`${workflowName} / ${label}`);
+  }
+  return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * The closest known name, for a did-you-mean suggestion.
+ * @param {string} value The unrecognised value.
+ * @param {string[]} candidates Known names.
  * @returns {string|null} A near match, or null when nothing is close.
  */
-function nearestGate(id) {
+function nearest(value, candidates) {
   let best = null;
   let bestScore = Infinity;
-  for (const candidate of Object.keys(REGISTRY)) {
-    const score = distance(id, candidate);
+  for (const candidate of candidates) {
+    const score = distance(value, candidate);
     if (score < bestScore) {
       bestScore = score;
       best = candidate;
     }
   }
-  // A third of the name may differ before a suggestion stops being helpful and
-  // starts being a guess that sends the reader to the wrong gate.
-  return bestScore <= Math.max(2, Math.floor(id.length / 3)) ? best : null;
+  return bestScore <= Math.max(2, Math.floor(value.length / 3)) ? best : null;
 }
 
 /**
- * Levenshtein distance, iterative and allocation-light.
+ * Levenshtein distance.
  * @param {string} a First string.
  * @param {string} b Second string.
  * @returns {number} Edit distance.
@@ -404,86 +929,6 @@ function distance(a, b) {
 }
 
 /**
- * Resolve which gates run at one stage, and how strictly.
- *
- * The floor is unioned in so a guarantee implied by routing is enforced even
- * when the gates block never mentions it — but only where the project has
- * given it somewhere to run, because Lisa cannot invent a task name.
- * @param {object} options Resolution inputs.
- * @param {object} options.gates The gates block.
- * @param {string} options.stage `commit`, `push`, `agent:<Event>`, or `ci:<env>`.
- * @param {string} [options.runner] Task-runner prefix.
- * @returns {Array<{id: string, level: string, run: string|null, command: string|null, label: string}>} Resolved gates.
- */
-export function resolveStage({ gates, stage, runner = "npm run" }) {
-  const [kind, key] = stage.split(":");
-  const resolved = [];
-
-  for (const [id, gate] of Object.entries(gates ?? {})) {
-    const level =
-      kind === "agent"
-        ? (gate.agent ?? {})[key]
-        : kind === "ci"
-          ? (gate.ci ?? {})[key]
-          : gate[kind];
-    if (!level || level === "off") continue;
-    resolved.push({
-      id,
-      level,
-      run: gate.run ?? null,
-      command: gate.run ? `${runner} ${gate.run}` : null,
-      label: REGISTRY[id]?.label ?? id,
-    });
-  }
-  return resolved.sort((left, right) => left.id.localeCompare(right.id));
-}
-
-/**
- * The branch-protection contexts a gates block implies.
- *
- * This is the value that replaces a hand-transcribed snapshot. A repository
- * ruleset names required checks by exact string, and until now that list was
- * copied out of an admin console by hand, carried a 90-day expiry, and shipped
- * empty because Lisa could not know it. Derived from a declaration instead, the
- * transcription and its clock stop being necessary.
- *
- * `previousLabels` exists for the one dangerous moment. Downstream repositories
- * call the shared workflow unpinned, so a renamed job reaches every repository
- * on its next run — before any of them has reconciled its ruleset. A required
- * context that never reports leaves pull requests waiting indefinitely, and the
- * fastest way out of that is to delete the requirement, which is how a rename
- * ends up removing a guarantee. Emitting the old context alongside the new one
- * for a release keeps both reporting while repositories catch up.
- * Scoped to one environment on purpose. A gate required before a production
- * deploy is not thereby a merge blocker on a pull request, and collapsing the
- * two would silently promote every deploy-time gate into branch protection —
- * blocking merges on checks that were never meant to run yet.
- * @param {object} gates The gates block.
- * @param {object} [options] Context options.
- * @param {string} [options.environment] Which `ci` environment to derive for.
- * @param {string} [options.workflowName] The calling workflow's display name.
- * @param {string[]} [options.previousLabels] Retired labels still worth requiring.
- * @returns {string[]} Sorted, de-duplicated context strings.
- */
-export function contextsFor(gates, options = {}) {
-  const {
-    environment = "pull_request",
-    workflowName = "🔍 Quality Checks",
-    previousLabels = [],
-  } = options;
-
-  const contexts = [];
-  for (const [id, gate] of Object.entries(gates ?? {})) {
-    if ((gate.ci ?? {})[environment] !== "required") continue;
-    contexts.push(`${workflowName} / ${REGISTRY[id]?.label ?? id}`);
-  }
-  for (const label of previousLabels) {
-    contexts.push(`${workflowName} / ${label}`);
-  }
-  return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
-}
-
-/**
  * CLI entry point.
  */
 function main() {
@@ -492,32 +937,50 @@ function main() {
     const hit = rest.find(arg => arg.startsWith(`--${name}=`));
     return hit ? hit.slice(name.length + 3) : null;
   };
-  const { runner, gates, config } = readGates();
+  const { runner, gates, policy, config } = readGates();
 
   if (command === "validate") {
-    const problems = validateGates(gates);
-    for (const problem of problems) console.error(`  ${problem}`);
-    if (problems.length) {
-      console.error(`\n${problems.length} gate configuration problem(s).`);
+    const blocking = [...validateGates(gates), ...validatePolicy(policy)];
+    const advisory = auditConfigKeys(config).map(finding => finding.message);
+    for (const problem of [...blocking, ...advisory]) {
+      console.error(`  ${problem}`);
+    }
+    if (blocking.length) {
+      console.error(`\n${blocking.length} blocking configuration problem(s).`);
       process.exit(1);
     }
-    console.log("gates: configuration is valid");
+    if (advisory.length) {
+      console.log(
+        `\n${advisory.length} advisory finding(s); nothing blocking.`
+      );
+      return;
+    }
+    console.log("gates and policy: configuration is valid");
     return;
   }
 
   if (command === "list") {
-    const stage = flag("stage");
-    if (!stage) throw new Error("usage: lisa-gates.mjs list --stage=<stage>");
-    const resolved = resolveStage({ gates, stage, runner });
-    if (flag("json") !== null || rest.includes("--json")) {
+    const moment = flag("moment");
+    if (!moment)
+      throw new Error("usage: lisa-gates.mjs list --moment=<moment>");
+    const resolved = resolveMoment({ gates, moment, runner });
+    if (rest.includes("--json")) {
       console.log(JSON.stringify(resolved, null, 2));
       return;
     }
     for (const gate of resolved) {
-      console.log(
-        `${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${gate.command ?? "(lisa-internal)"}`
-      );
+      const how =
+        gate.mode === "await"
+          ? `await ${gate.awaits}`
+          : (gate.command ?? "(intercepted by Lisa)");
+      console.log(`${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}`);
     }
+    return;
+  }
+
+  if (command === "needs") {
+    const moment = flag("moment") ?? "session-start";
+    console.log(JSON.stringify(needsAt({ gates, moment }), null, 2));
     return;
   }
 
@@ -529,7 +992,7 @@ function main() {
     console.log(
       JSON.stringify(
         contextsFor(gates, {
-          environment: flag("env") ?? "pull_request",
+          moment: flag("moment") ?? "pull-request",
           workflowName: flag("workflow") ?? "🔍 Quality Checks",
           previousLabels,
         }),
@@ -540,12 +1003,16 @@ function main() {
     return;
   }
 
-  if (command === "floor") {
-    console.log(JSON.stringify(gateFloor(config), null, 2));
+  if (command === "audit-config") {
+    const findings = auditConfigKeys(config);
+    for (const finding of findings) console.error(`  ${finding.message}`);
+    console.log(`${findings.length} config key finding(s).`);
     return;
   }
 
-  throw new Error("usage: lisa-gates.mjs validate|list|contexts|floor");
+  throw new Error(
+    "usage: lisa-gates.mjs validate|list|needs|contexts|audit-config"
+  );
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
