@@ -216,6 +216,21 @@ The classifier returns `trusted`, `untrusted`, `unknownProvenance`, and a per-la
 - a candidate whose `$READY` is **untrusted** is **not claimable** — skip it and leave it for a human to flip genuinely ready; report it in the summary rather than dispatching it;
 - a candidate whose `$CLAIMED` is **untrusted** is **not claimed** — if its `$READY` is trusted it stays a normal candidate, exactly as if the bot label were absent.
 
+#### 2c. A trusted claim is a skip reason
+
+The scan filters on `--label "$READY"` alone, so an issue carrying **both** `$READY` and `$CLAIMED` comes back as a candidate. The rules above rescue the case where a *bot* applied the claim; they say nothing about the case where a **human** did — which is the strongest claim signal there is, and the one that was being ignored. An issue a person marked in-progress is somebody's active work, and dispatching a second agent onto it is how two branches end up fixing the same thing.
+
+The classifier answers this directly, so the skill does not have to reason about it:
+
+```json
+{ "claimable": false,
+  "reason": "already carries a trusted \"status:in-progress\", so somebody is working it; intake must not dispatch a second agent onto the same issue" }
+```
+
+**A candidate with `claimable: false` is skipped and reported with its `reason`.** It is not an error and not a stall — it is the queue working. Never strip the claim to make it claimable: that is the label-flap the section above refuses, aimed at a human this time.
+
+`claimable` is computed from the **trusted** set, not the raw labels, which is what keeps it from undoing 2b — a bot-applied claim leaves the issue claimable exactly as if it were absent.
+
 **Never unlabel to correct this.** The bot re-applies its label on each subsequent review event, so reverting produces a label-flap loop that is worse than the defect. The guard is that intake stops *believing* the label; it writes nothing. Distrust is idempotent and cannot race.
 
 A label whose provenance cannot be established (applied at creation, which GitHub records no `labeled` event for) is trusted but listed in `unknownProvenance` — failing closed there would ignore the human `status:ready` that opens the queue. Report that list; do not silently drop it.
