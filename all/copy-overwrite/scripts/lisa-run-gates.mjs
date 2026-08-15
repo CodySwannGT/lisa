@@ -312,6 +312,49 @@ function summarise(result) {
 }
 
 /**
+ * Reach one gate's verdict, and report how it was reached.
+ *
+ * The order of the three sources is the whole content of this function. A
+ * gate's own skip is decided first, because a skip comes from `needs` — a
+ * missing tool, an absent credential — which is a fact about this gate and not
+ * about the command. A gate that cannot run must say so rather than inherit a
+ * verdict from a sibling that could.
+ *
+ * A shared result is honoured next, and honoured even once the run is blocked.
+ * The command genuinely ran and its answer is known, so reporting NOT-RUN there
+ * would understate what was proved — the mirror image of overstating it, and
+ * just as untrue.
+ * @param {GateOutcome} gate The resolved gate.
+ * @param {{proved: Map<string, object>, blocked: boolean, exec: Function}} ctx Run state.
+ * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
+ */
+function verdictFor(gate, { proved, blocked, exec }) {
+  const own = classifyStatic(gate);
+  if (own) return { outcome: own, shared: undefined, ran: false };
+
+  const shared = gate.command ? proved.get(gate.command) : undefined;
+  if (shared) {
+    return {
+      outcome: {
+        ...shared.outcome,
+        detail: `${shared.outcome.detail} (proved by the ${shared.id} run)`,
+      },
+      shared,
+      ran: false,
+    };
+  }
+
+  if (blocked) {
+    return {
+      outcome: { state: STATE.NOT_RUN, detail: "not run", code: null },
+      shared: undefined,
+      ran: false,
+    };
+  }
+  return { outcome: execute(gate, exec), shared: undefined, ran: true };
+}
+
+/**
  * Run every gate declared at one moment.
  *
  * `exec` is injected rather than imported so tests never spawn a process, and
@@ -351,22 +394,19 @@ export function runGates({
   // gate can run for minutes, and an operator watching a hook needs to know
   // which gate is being proved right now, not only what the tally was.
   for (const gate of resolved) {
-    // A shared result is honoured even once blocked. The command genuinely ran
-    // and its answer is known, so reporting NOT-RUN here would understate what
-    // was proved — the mirror image of overstating it, and just as untrue.
-    const shared = gate.command ? proved.get(gate.command) : undefined;
-    const outcome = shared
-      ? {
-          ...shared.outcome,
-          detail: `${shared.outcome.detail} (proved by the ${shared.id} run)`,
-        }
-      : blocked
-        ? { state: STATE.NOT_RUN, detail: "not run", code: null }
-        : (classifyStatic(gate) ?? execute(gate, exec));
+    const { outcome, shared, ran } = verdictFor(gate, {
+      proved,
+      blocked,
+      exec,
+    });
 
-    // Only an execution is shareable. A skip reason comes from this gate's own
-    // `needs`, so another gate naming the same command may still be able to run.
-    if (!shared && gate.command && outcome.code !== null) {
+    // Only what this iteration actually executed is shareable, and `ran` says
+    // so explicitly rather than being inferred from the exit code. `execute`
+    // reports `code: null` for a command killed by a signal, so an exit-code
+    // test would treat a terminated run as never having happened and send the
+    // next gate to run it again — re-running a whole suite an operator has
+    // just interrupted.
+    if (ran && gate.command) {
       proved.set(gate.command, { id: gate.id, outcome });
     }
 
