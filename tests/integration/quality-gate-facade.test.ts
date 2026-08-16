@@ -124,7 +124,7 @@ describe("quality.yml gate façade", () => {
     );
 
     it("resolves every gate with one byte-identical block, differing only in GATE_ID", () => {
-      // Twelve copies exist because the single-copy alternative — a resolver job
+      // Thirteen copies exist because the single-copy alternative — a resolver job
       // read through `needs:` — leaves dependents SKIPPED when it fails, and a
       // skipped required check counts as satisfied. Copies that cannot be
       // deduplicated must instead be prevented from drifting, so this compares
