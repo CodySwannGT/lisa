@@ -164,6 +164,19 @@ describe(".lisaignore declares project ownership", () => {
     expect(runGuard(MANAGED)).toBe(0);
   });
 
+  it("allows when any pattern uses a leading !, matching the real matcher", () => {
+    // Not gitignore negation. The real matcher hands patterns to minimatch,
+    // which negates by default and combines them with `.some()`, so one `!x`
+    // line reports every OTHER path as ignored. Measured upstream:
+    //   patterns=["!scripts/a.mjs"] path=scripts/b.mjs -> ignored=true
+    // Reproducing that exactly would disable the guard on a typo; reproducing
+    // the intuitive reading would block files the matcher treats as ignored.
+    // Both are wrong, so it allows — the direction this function errs
+    // everywhere else.
+    ignoreFile("!scripts/something-else.mjs\n");
+    expect(runGuard(MANAGED)).toBe(0);
+  });
+
   it.each([
     ["comments and blank lines only", "# nothing here\n\n"],
     ["an unrelated entry", "scripts/other.mjs\n"],
