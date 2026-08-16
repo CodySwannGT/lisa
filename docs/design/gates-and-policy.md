@@ -246,6 +246,33 @@ That rule earned itself before shipping: three contexts currently required on
 produce no derived context, so a ruleset regenerated from config alone would
 have dropped them.
 
+## A template change lands on a schedule nobody chose
+
+Consumer `package.json` scripts are Lisa-managed through the `package-lisa`
+merge, and `bun install` runs `lisa apply` in the consumer repos. So a template
+edit does not reach a project when someone decides to take it — it reaches them
+at **the next arbitrary developer's or agent's install**, mid-session, to
+somebody who never read the pull request.
+
+That is fine when the change is additive. It is not fine when the change removes
+a tolerance, which is exactly the shape of "no backward compatibility" work:
+deleting `--passWithNoTests` from four package templates changes what a green
+build means, for four repositories, at an unpredictable moment.
+
+**So verify the blast radius is empty BEFORE merging, not after.** For #2603 that
+meant enumerating every consumer's integration-test collection and confirming
+none was empty — four repositories, measured, before the flag was removed. Had
+one been empty, the correct response was to stage its declaration first and
+merge second, not to merge and let it be discovered at install time.
+
+The residual risk is honest and worth naming: a consumer that appears *later*
+with an empty collection meets the change at install time with no warning. A
+measured-empty blast radius is a statement about the consumers that exist today,
+not a property of the change.
+
+Credit for the principle to the session that measured it rather than to this
+document.
+
 ## The interface is the evidence shape
 
 A task name is not an interface. If Lisa standardises only *how to invoke*, the
