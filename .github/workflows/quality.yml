@@ -2235,6 +2235,89 @@ jobs:
   # cache. It never prints a ✅ it cannot support. Refusal is exit 1 except
   # under the seed's `"enforcement": "warn"`, which keeps a fresh install loud
   # rather than red.
+  # Gate-config validity. `lisa-gates.mjs validate` catches an unknown gate id,
+  # a moment a gate cannot legally run at, and a malformed level — each with a
+  # did-you-mean. It has always existed and, until this job, nothing ever ran
+  # it: its only callers were prose lines inside lisa-doctor SKILL.md files, so
+  # a typo'd gate id resolved to nothing and read as a working declaration.
+  # That is `declared-but-uncallable` applied to config validation itself.
+  #
+  # DELIBERATELY NOT A GATE, and deliberately not skippable via `skip_jobs`.
+  # A project that could declare this `off` — or name it in `skip_jobs` — could
+  # switch off validation OF ITS OWN gate declarations, which is the circularity
+  # that manufactures vacuous greens in the first place. Everything else in this
+  # workflow answers to the config; this is the one job that judges it.
+  gate_config_validity:
+    permissions:
+      contents: read
+    name: 🧭 Gate Config Validity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧭 Validate the gates block
+        run: |
+          set -euo pipefail
+          # Resolution order prefers the PACKAGE copy over the in-repo one.
+          # The same file ships inside @codyswann/lisa, so a consumer already
+          # has it under node_modules whether or not it was copied in; reading
+          # it from there is one versioned copy instead of a per-repo fork that
+          # silently stops receiving fixes. The in-repo path stays first-class
+          # only until the copies are retired, and the third entry is Lisa
+          # validating itself, where node_modules holds no copy of Lisa.
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" \
+            "scripts/lisa-gates.mjs" \
+            "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+          if [ -z "${RESOLVER:-}" ]; then
+            # A project with no gates block has nothing to validate and is not
+            # yet on this template. One WITH a gates block and no resolver is a
+            # different thing entirely: its declarations govern the required
+            # contexts and nothing can check them, so that fails rather than
+            # passing quietly.
+            if [ -f .lisa.config.json ] && node -e 'process.exit(Object.keys((require("./.lisa.config.json").gates)||{}).length ? 0 : 1)'; then
+              echo "::error::.lisa.config.json declares a gates block but no lisa-gates.mjs could be found to validate it. Run \`lisa apply\` so the resolver is installed."
+              exit 1
+            fi
+            echo "No gates resolver and no gates block — project not yet on the gate registry; nothing to validate."
+            exit 0
+          fi
+
+          echo "Validating .lisa.config.json gates via $RESOLVER"
+          node "$RESOLVER" validate
+        working-directory: ${{ inputs.working_directory || '.' }}
+
   skipped_required_checks:
     permissions:
       contents: read
