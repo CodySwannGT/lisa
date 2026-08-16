@@ -21,9 +21,27 @@ export interface WorkflowJob {
   outputs?: Record<string, string>;
 }
 
-/** Root shape of a parsed GitHub Actions workflow. */
+/** Shape of one `workflow_call` input declaration. */
+export interface WorkflowInput {
+  description?: string;
+  required?: boolean;
+  default?: unknown;
+  type?: string;
+}
+
+/**
+ * Root shape of a parsed GitHub Actions workflow.
+ *
+ * `on` survives as a string key because js-yaml parses with the YAML 1.2 core
+ * schema, where it is not the boolean it would be under YAML 1.1.
+ */
 export interface ParsedWorkflow {
   jobs: Record<string, WorkflowJob>;
+  on?: {
+    workflow_call?: {
+      inputs?: Record<string, WorkflowInput>;
+    };
+  };
 }
 
 /**
