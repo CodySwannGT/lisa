@@ -239,6 +239,44 @@ export const REGISTRY = Object.freeze({
     moments: [...PR_ONWARD, "continuous"],
     work: "flows run",
   },
+  // ---------------------------------------------------------------------
+  // Environment facade. Lisa defines and enforces the interface; each project
+  // supplies what happens behind it. Lisa ships NO implementation, so a
+  // project declaring one of these without an adapter gets a red gate rather
+  // than a silent pass — measured: a required gate whose npm script is absent
+  // exits 1.
+  //
+  // THE TASK IS THE VERIFY, NOT THE RESET, and that is a safety property
+  // rather than a naming preference. `environment:reset` is a PRECONDITION a
+  // workflow calls before a suite; if it were the gate's task, declaring the
+  // gate `required` at pull-request would converge a shared environment on
+  // every pull request. That hazard is not hypothetical — tunnlai/frontend
+  // already runs an unconditional reset job that is destructive to shared dev
+  // data on every invocation.
+  //
+  // `environment:reset:verify` is safe to run anywhere precisely because it
+  // exercises only the REFUSAL path: it calls the reset entry point directly,
+  // outside the project's own client, against a target the guard must reject,
+  // and fails if the call succeeds. That distinguishes a server-side guard
+  // from a client-side one by behaviour alone, without Lisa knowing anything
+  // about the implementation — which is what the facade requires. A guard the
+  // caller can edit is not one guard location.
+  "environment-reset": {
+    label: "♻️ Environment Reset Guard",
+    summary:
+      "The environment reset exists, and its guard cannot be bypassed by calling it directly.",
+    task: "environment:reset:verify",
+    moments: [...PR_ONWARD, "continuous"],
+    work: "refusals proved",
+  },
+  "environment-reseed": {
+    label: "🌱 Environment Reseed Guard",
+    summary:
+      "The environment reseed exists, and its guard cannot be bypassed by calling it directly.",
+    task: "environment:reseed:verify",
+    moments: [...PR_ONWARD, "continuous"],
+    work: "refusals proved",
+  },
   "generative-testing": {
     label: "🎲 Generative Testing",
     summary:
