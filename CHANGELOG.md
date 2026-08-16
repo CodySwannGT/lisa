@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.19.0](https://github.com/CodySwannGT/lisa/compare/v3.18.2...v3.19.0) (2026-08-16)
+
+
+### Features
+
+* **health:** add the scheduled drift consumer ([00ba2ed](https://github.com/CodySwannGT/lisa/commit/00ba2ed0b973ba0d006c2edad511c88e00dfce6d)), closes [#3](https://github.com/CodySwannGT/lisa/issues/3) [#1516](https://github.com/CodySwannGT/lisa/issues/1516) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530)
+
+
+### Bug Fixes
+
+* **health:** invoke the health skill, not an invented CLI flag ([2125964](https://github.com/CodySwannGT/lisa/commit/21259647d6ed4ec43df60b61d74571a9f5b06cf3)), closes [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530)
+
+
+### Documentation
+
+* **health:** correct drift planner contract ([c21351e](https://github.com/CodySwannGT/lisa/commit/c21351e46317244ce376ae9bd7a1cbd65a6a425c)), closes [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530)
+* **health:** say why the drift planner collapses repeated checks ([2326487](https://github.com/CodySwannGT/lisa/commit/232648792d9a298d0ce260b4cd12f2c7723461f0)), closes [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530)
+* **health:** state what the drift dedupe does not guarantee ([023eff9](https://github.com/CodySwannGT/lisa/commit/023eff9b802ed84c129475ceb2815991c203794e)), closes [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530) [CodySwannGT/lisa#1530](https://github.com/CodySwannGT/lisa/issues/1530)
+
 ### [3.18.2](https://github.com/CodySwannGT/lisa/compare/v3.18.1...v3.18.2) (2026-08-15)
 
 
