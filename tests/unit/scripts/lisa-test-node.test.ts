@@ -2,8 +2,7 @@
  * Tests for the `.mjs` suite runner.
  *
  * The assertions that carry weight are the two silences this script exists to
- * break, and neither is visible from an exit code — so neither is asserted by
- * one. `node --test` exits 0 when its glob matches nothing, and that glob
+ * break. `node --test` exits 0 when its glob matches nothing, and that glob
  * descends into `node_modules`, so the naive one-line script would both run
  * other people's suites and report a clean pass having run none of yours.
  * @module tests/unit/scripts/lisa-test-node
@@ -149,12 +148,12 @@ describe("run", () => {
 });
 
 describe("main", () => {
-  it("reports the empty case out loud rather than exiting quietly", () => {
-    // `node --test` exits 0 on a glob matching nothing, so the exit code
-    // cannot carry this distinction. The transcript has to.
+  it("fails the empty case out loud rather than exiting quietly", () => {
+    // `node --test` exits 0 on a glob matching nothing, so this wrapper must
+    // make the empty collection explicit and red.
     const out = transcript();
     const status = main({ write: out.write, cwd: project([]) });
-    expect(status).toBe(0);
+    expect(status).toBe(1);
     expect(out.read()).toContain("collected 0");
     expect(out.read()).toContain("nothing to run");
   });

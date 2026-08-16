@@ -33,10 +33,9 @@
  * have reproduced the bug inside its own fix.
  *
  * So collection is done here, explicitly, and **the count is always printed**.
- * Zero collected is a legitimate answer — a project may simply have no such
- * tests — but it is never a silent one. Anyone reading the log can tell "ran
- * nothing" from "ran everything and all passed", which is precisely the
- * distinction that was missing.
+ * Zero collected is a failure, not a quiet pass. A project that genuinely has no
+ * such tests should disable the gate in `.lisa.config.json`, where the decision
+ * is visible and the required context is dropped instead of vacuously satisfied.
  *
  * ## What this does NOT do
  *
@@ -133,13 +132,13 @@ export function main({ write, cwd, exec } = {}) {
   out(`lisa-test-node: collected ${files.length} *.test.mjs suite(s)\n`);
   for (const file of files) out(`  ${file}\n`);
   if (!files.length) {
-    // Reported, never silent. See the module note on why zero is legitimate
-    // but must be visible.
+    // Reported, never silent, and never green: empty collection is the defect
+    // this runner exists to prevent.
     out(
       "lisa-test-node: nothing to run. This is only correct if this project " +
         "genuinely has no .mjs suites.\n"
     );
-    return 0;
+    return 1;
   }
   return exec ? run(files, exec) : run(files);
 }
