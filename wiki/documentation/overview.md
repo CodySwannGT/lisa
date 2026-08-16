@@ -540,8 +540,11 @@ Each project type directory contains these subdirectories:
 The `copy-overwrite` trees hold two populations, and an apply that cannot prompt
 (the postinstall one a version bump runs) treats them differently:
 
-- **Lisa-owned artifacts** — anything with a `lisa-` path segment, such as
-  `scripts/lisa-hooks/*` and `scripts/lisa-enforcement-fallback.sh`. Their
+- **Lisa-owned artifacts** — per `isLisaOwnedTemplate`, **the entire `scripts/`
+  tree** plus anything carrying a `lisa-` path segment anywhere else. The
+  `lisa-` prefix is the more visible half of that rule and the easier one to
+  mistake for the whole of it: `scripts/bdd/render.mjs` has no `lisa-` segment
+  and is still Lisa-owned. Their
   content *is* the enforcement, and Lisa's own hooks invoke them by exact path,
   so they are refreshed on every apply, backed up first. This is how a released
   fix to a guard reaches an already-installed project; before it existed, such
