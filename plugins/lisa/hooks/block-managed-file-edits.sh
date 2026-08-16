@@ -67,6 +67,49 @@ if [ -f "$project_root/package.json" ] &&
   exit 0
 fi
 
+# Whether the project has claimed a path in `.lisaignore`.
+#
+# THIS IS THE OWNERSHIP QUESTION, and it decides whether blocking is right at
+# all. `lisa apply` skips an ignored path — it logs `Kept (.lisaignore)` and
+# counts it as ignored rather than overwritten — so the file is the project's,
+# its edits survive, and refusing them would be refusing someone access to their
+# own file. `doctor-lisa-owned-artifacts` already consults this list; this guard
+# did not, which would have blocked deliberate forks.
+#
+# The real matcher is minimatch in `src/utils/ignore-patterns.ts` and cannot be
+# reproduced faithfully in shell. This covers the common shapes — exact path,
+# directory prefix, glob, and a bare pattern matching any segment — and where it
+# is unsure it ALLOWS. Wrongly allowing costs an edit that apply may overwrite,
+# which is the behaviour before this guard existed; wrongly blocking locks
+# someone out of a file they own.
+lisaignored() {
+  local rel="$1"
+  local list="$project_root/.lisaignore"
+  [ -f "$list" ] || return 1
+  local pattern
+  while IFS= read -r pattern || [ -n "$pattern" ]; do
+    pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+    pattern="${pattern%"${pattern##*[![:space:]]}"}"
+    [ -n "$pattern" ] || continue
+    case "$pattern" in \#*) continue ;; esac
+    case "$pattern" in
+      */)
+        case "$rel" in "${pattern%/}"/* | "${pattern%/}") return 0 ;; esac
+        ;;
+    esac
+    # shellcheck disable=SC2254 -- the pattern is a glob on purpose.
+    case "$rel" in $pattern) return 0 ;; esac
+    case "$pattern" in
+      */*) ;;
+      *)
+        # shellcheck disable=SC2254 -- ditto, matched against the basename.
+        case "${rel##*/}" in $pattern) return 0 ;; esac
+        ;;
+    esac
+  done <"$list"
+  return 1
+}
+
 # Whether a host-relative path is shipped as a copy-overwrite template.
 #
 # A few stat calls rather than an enumeration: the same relative path is probed
@@ -81,6 +124,8 @@ managed_source() {
   local rel="${candidate#"$project_root"/}"
   rel="${rel#./}"
   [ -n "$rel" ] || return 1
+  # Claimed by the project, so not ours to refuse.
+  lisaignored "$rel" && return 1
   local stack
   for stack in "$package_root"/*/copy-overwrite; do
     [ -d "$stack" ] || continue
@@ -122,7 +167,17 @@ WHERE IT GOES INSTEAD — take the first one that fits:
    proves each one, so a project can substitute its own task without touching a
    shipped file.
 
-4. You believe this file should not be Lisa-managed at all. That is a real
+4. This project has deliberately FORKED this file and means to keep its own
+   version. Then say so: add the path to \`.lisaignore\`. \`lisa apply\` skips an
+   ignored path — it reports \`Kept (.lisaignore)\` rather than overwriting — so
+   the fork survives, this guard stops refusing it, and the divergence is
+   declared where the next person can see it rather than discovered later.
+
+   Take this route only if the fork is intended. A file edited locally WITHOUT
+   being ignored is not a fork, it is an edit with a deletion scheduled against
+   it, and it stops receiving upstream fixes while still looking current.
+
+5. You believe this file should not be Lisa-managed at all. That is a real
    argument and it belongs upstream, not in a local edit that will be erased.
 
 If a human explicitly asked for this edit, they can re-run with
