@@ -44,8 +44,20 @@ export interface ConvertedJob {
 /** The condition selecting the project's own task. */
 export const CONFIGURED = "steps.gate.outputs.configured == 'true'";
 
-/** The condition selecting Lisa's shipped tooling. */
-export const NOT_CONFIGURED = "steps.gate.outputs.configured != 'true'";
+/**
+ * The condition selecting Lisa's shipped tooling.
+ *
+ * `== 'false'`, deliberately, not `!= 'true'`. There are THREE states, and the
+ * negative form collapses two of them: a project that declared the gate `off`
+ * and a project that never mentioned it both failed `!= 'true'`, so the
+ * fallback ran either way and `off` could not turn a job off. That shipped, and
+ * two zero-suite repositories went red on a job whose declaration said not to
+ * run it.
+ */
+export const NOT_CONFIGURED = "steps.gate.outputs.configured == 'false'";
+
+/** The condition value emitted when the project declared the gate `off`. */
+export const DECLARED_OFF = "steps.gate.outputs.configured == 'off'";
 
 /**
  * The twelve jobs converted to the gate façade.

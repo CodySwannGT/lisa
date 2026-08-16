@@ -10,7 +10,7 @@ Tracking issue: CodySwannGT/lisa#2579.
 
 Every decision below is downstream of one failure mode: **a check reporting
 satisfied without having proved anything.** It has appeared in this repository in
-at least eight distinct forms, each found only after it had already let something
+at least nine distinct forms, each found only after it had already let something
 through:
 
 | form | evidence |
@@ -22,6 +22,7 @@ through:
 | declared-but-uncallable | `secrets.require` was documented as a startup assertion whose only caller was a bash line inside a SKILL.md |
 | enforced-off-the-path | 23 of 37 `.test.mjs` suites downstream were wired only into `.husky/pre-push.local` (measured); a pre-push hook cannot run where no local push happens — auto-merge, a merge performed in the UI, a change committed CI-side — so a pass/fail guard would have called them protected. The count is measured; the non-firing is inferred from how git hooks work, not observed. (`[skip ci]` is the converse and does NOT belong here: the hook fires, CI does not — a gap in the other direction) |
 | verified-then-invalidated | gates ran alphabetically, so `artifact-freshness` proved the evidence manifest current and `code-style` then reformatted the sources it hashes — a PASSED verdict about a tree that was not the tree committed (#2590) |
+| declared-but-ungoverning | `off` did not turn a job off. `resolveMoment` dropped an `off` gate, so the CI façade wrote `configured=false` — the same value it writes for a gate never mentioned — and the fallback fired on `!= 'true'`, which both states satisfy. Lisa's built-in tooling therefore ran regardless of the declaration. Harmless where the fallback reproduces what the project already did; not harmless for `test-node-suites`, whose fallback FAILS on zero collected, so two zero-suite repositories declared it `off`, validated clean locally, and still went red — one on a deploy. A declaration that governs nothing is worse than none, because it reads as a decision that was taken (fixed: three states, `true` / `false` / `off`) |
 | selected-nothing | a moment is read as a KEY on each gate, so an unrecognised one matched nothing and resolved to `[]`, which every consumer read as "this project declares no gates here". Measured before the fix: `lisa-gates.mjs list --moment=continous:dev` printed `[]` and exited 0, and `lisa-run-gates.mjs --moment=continous:dev` printed `✅ 0 proved, 0 failed ... of 0 gate(s) declared` and exited 0 — the line the husky hooks read as "every required gate was proved". One typo deselected the entire registry and reported success. Unreachable from outside while every call site passed the literal `pull-request`; adding the `moment` input to `quality.yml` is what would have made it caller-reachable, so `resolveMoment` now refuses a moment that cannot exist. `[]` remains a truthful answer for a real moment at which nothing is declared — the guard distinguishes the two, which is the whole point |
 
 The rule that falls out, and the one to apply when a new case is ambiguous:
