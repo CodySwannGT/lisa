@@ -119,11 +119,9 @@ this order:
      single distinct branch, so there is nothing to back-sync, the chain is the empty no-op, and
      `deploy.order` is not required. Do not WARN.
    - `WARN` when `deploy.branches` resolves to **more than one distinct** branch but `deploy.order`
-     is absent. Config-driven back-sync (`reusable-claude-sync-down-branches.yml`) cannot derive a
-     source→target chain without the env ranking; the repo must either add `deploy.order`
-     (low→high, e.g. `["dev","staging","production"]`) or pass an explicit `chain` in its
-     `claude-sync-down-branches.yml` wrapper. WARN not FAIL because the explicit-chain override is
-     a valid configuration.
+     is absent. Config-driven back-sync cannot derive a source→target chain without the env
+     ranking; the repo must add `deploy.order` (low→high, e.g.
+     `["dev","staging","production"]`).
    - `FAIL` when `deploy.order` is present but its env-name set does not exactly match the keys of
      `deploy.branches` (every env in one must appear in the other). A mismatch silently breaks the
      derived chain.

@@ -9,6 +9,11 @@
     ".claude/skills/plan-lower-code-complexity",
     ".claude/skills/plan-reduce-max-lines",
     ".claude/skills/plan-reduce-max-lines-per-function",
-    ".claude/rules/rails-conventions.md"
+    ".claude/rules/rails-conventions.md",
+    ".github/workflows/claude-code-review-response.yml",
+    ".github/workflows/claude-nightly-code-complexity.yml",
+    ".github/workflows/claude-nightly-test-coverage.yml",
+    ".github/workflows/claude-nightly-test-improvement.yml",
+    ".github/workflows/claude-sync-down-branches.yml"
   ]
 }

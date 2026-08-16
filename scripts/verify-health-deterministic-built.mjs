@@ -278,7 +278,7 @@ try {
     "offline starter inspection remains an explicit warning"
   );
 
-  const callerPath = path.join(project, ".github", "workflows", "claude.yml");
+  const callerPath = path.join(project, ".github", "workflows", "ci.yml");
   const callerOriginal = await readFile(callerPath, "utf8");
   await writeFile(
     callerPath,
