@@ -550,6 +550,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d1f520ffedaa1ca331c232c9e113ca8e7868a1e93028ff9d45a2bc32d7ce45e2",
     "plugins/src/base/commands/git/submit-pr.md":
       "131ba633e9bc4379e0ed63f30752076b1aa5b5552d8f542624bc8d4451135773",
+    "plugins/src/base/commands/health-drift-cron.md":
+      "bb656bdc2e03d77d6f34eeda82e05ae62bc9ca899ac14d3a1e9524875afcf954",
     "plugins/src/base/commands/health.md":
       "f74536619029160e20240c3f1eaf02b300aaecd2a649651fd8ce6bf78f881c70",
     "plugins/src/base/commands/implement.md":
@@ -1050,6 +1052,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "91c36d0a5fdc06bee1819e705d312317d42ecda67308b141f1a65b80e45bfbc0",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "262f8a1bcfad4c5dd4456cfaaf1b71abf9697a0da588966e58ff491acd3c17e8",
+    "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md":
+      "adbfa470e2c7d80b4dfd131761e21512c36b7f739e60c2e7682b90d358410190",
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
@@ -1279,7 +1283,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "4fa7f9a83a9998951528c8ffffa930c61b5c316b510356a3e7a90ccb9d5ca123",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "3ad004148a54571a50df90f23abec71e8510ef3ea3562ac812f8e2e11beb157a",
+      "4bf86639bca29641686fd124d7d4b6c177775063930a309e2c33f808e33d505f",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
       "f639c3f174378f0068b9c9d56e59b356c6da988730a1390c61e4348b4a4073ac",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
@@ -3313,6 +3317,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/git/commit.md": true,
     "plugins/lisa-agy/commands/lisa/git/prune.md": true,
     "plugins/lisa-agy/commands/lisa/git/submit-pr.md": true,
+    "plugins/lisa-agy/commands/lisa/health-drift-cron.md": true,
     "plugins/lisa-agy/commands/lisa/health.md": true,
     "plugins/lisa-agy/commands/lisa/implement.md": true,
     "plugins/lisa-agy/commands/lisa/improve-harness.md": true,
@@ -3447,6 +3452,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-github-verify/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-health-drift-cron/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-health/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-improve-code-complexity/SKILL.md": true,
@@ -3676,6 +3682,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/git/commit.md": true,
     "plugins/lisa-copilot/commands/lisa/git/prune.md": true,
     "plugins/lisa-copilot/commands/lisa/git/submit-pr.md": true,
+    "plugins/lisa-copilot/commands/lisa/health-drift-cron.md": true,
     "plugins/lisa-copilot/commands/lisa/health.md": true,
     "plugins/lisa-copilot/commands/lisa/implement.md": true,
     "plugins/lisa-copilot/commands/lisa/improve-harness.md": true,
@@ -3916,6 +3923,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-github-verify/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-health-drift-cron/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-health/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-improve-code-complexity/SKILL.md": true,
@@ -4130,6 +4138,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/git/commit.md": true,
     "plugins/lisa-cursor/commands/lisa/git/prune.md": true,
     "plugins/lisa-cursor/commands/lisa/git/submit-pr.md": true,
+    "plugins/lisa-cursor/commands/lisa/health-drift-cron.md": true,
     "plugins/lisa-cursor/commands/lisa/health.md": true,
     "plugins/lisa-cursor/commands/lisa/implement.md": true,
     "plugins/lisa-cursor/commands/lisa/improve-harness.md": true,
@@ -4371,6 +4380,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-github-verify/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-health-drift-cron/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-health/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-implement/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-improve-code-complexity/SKILL.md": true,
@@ -6331,6 +6341,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-github-write-issue/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-write-prd/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-write-prd/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-health-drift-cron/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-health-drift-cron/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-health/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-health/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-implement/SKILL.md": true,
@@ -6673,6 +6685,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/git/commit.md": true,
     "plugins/lisa/commands/git/prune.md": true,
     "plugins/lisa/commands/git/submit-pr.md": true,
+    "plugins/lisa/commands/health-drift-cron.md": true,
     "plugins/lisa/commands/health.md": true,
     "plugins/lisa/commands/implement.md": true,
     "plugins/lisa/commands/improve-harness.md": true,
@@ -6967,6 +6980,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-github-write-issue/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-github-write-prd/SKILL.md": true,
     "plugins/lisa/skills/lisa-github-write-prd/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-health-drift-cron/SKILL.md": true,
+    "plugins/lisa/skills/lisa-health-drift-cron/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-health/SKILL.md": true,
     "plugins/lisa/skills/lisa-health/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-implement/SKILL.md": true,
@@ -7309,6 +7324,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/git/commit.md": true,
     "plugins/src/base/commands/git/prune.md": true,
     "plugins/src/base/commands/git/submit-pr.md": true,
+    "plugins/src/base/commands/health-drift-cron.md": true,
     "plugins/src/base/commands/health.md": true,
     "plugins/src/base/commands/implement.md": true,
     "plugins/src/base/commands/improve-harness.md": true,
@@ -7559,6 +7575,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-github-verify/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md": true,
+    "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md": true,
     "plugins/src/base/skills/lisa-health/SKILL.md": true,
     "plugins/src/base/skills/lisa-implement/SKILL.md": true,
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md": true,
@@ -8444,6 +8461,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/health/contract.ts": true,
     "src/health/deadline.ts": true,
     "src/health/deterministic.ts": true,
+    "src/health/drift-tickets.ts": true,
     "src/health/evaluation-protocol.ts": true,
     "src/health/finding-utils.ts": true,
     "src/health/governance-probes.ts": true,
@@ -8911,6 +8929,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/deadline.test.ts": true,
     "tests/unit/health/deterministic-regressions.test.ts": true,
     "tests/unit/health/deterministic.test.ts": true,
+    "tests/unit/health/drift-tickets.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
