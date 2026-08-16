@@ -58,7 +58,9 @@ describe("quality.yml gate façade", () => {
         expect(resolve).toBeDefined();
         expect(resolve?.env?.GATE_ID).toBe(gate);
         expect(resolve?.run).toContain("scripts/lisa-gates.mjs");
-        expect(resolve?.run).toContain("--moment=pull-request");
+        // The moment itself is asserted in quality-gate-moment-input.test.ts;
+        // here it only has to reach the resolver.
+        expect(resolve?.run).toContain("--moment=");
       }
     );
 
@@ -103,7 +105,7 @@ describe("quality.yml gate façade", () => {
     );
 
     it("resolves every gate with one byte-identical block, differing only in GATE_ID", () => {
-      // Nine copies exist because the single-copy alternative — a resolver job
+      // Ten copies exist because the single-copy alternative — a resolver job
       // read through `needs:` — leaves dependents SKIPPED when it fails, and a
       // skipped required check counts as satisfied. Copies that cannot be
       // deduplicated must instead be prevented from drifting, so this compares
