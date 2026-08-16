@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.26.0](https://github.com/CodySwannGT/lisa/compare/v3.24.0...v3.26.0) (2026-08-16)
+
+
+### Features
+
+* **doctor:** check reusable-workflow callers use the ref their role requires ([2af82bc](https://github.com/CodySwannGT/lisa/commit/2af82bcbd85ee2f19b3edba15eb344a874708166)), closes [CodySwannGT/lisa#2618](https://github.com/CodySwannGT/lisa/issues/2618) [CodySwannGT/lisa#2618](https://github.com/CodySwannGT/lisa/issues/2618) [CodySwannGT/lisa#2618](https://github.com/CodySwannGT/lisa/issues/2618)
+* **gates:** façade the dependency audit ([142b99b](https://github.com/CodySwannGT/lisa/commit/142b99b18a0ce91496cb2a6b3d94cbdbe5f65bb2)), closes [#2612](https://github.com/CodySwannGT/lisa/issues/2612) [#2606](https://github.com/CodySwannGT/lisa/issues/2606) [CodySwannGT/lisa#2622](https://github.com/CodySwannGT/lisa/issues/2622) [CodySwannGT/lisa#2622](https://github.com/CodySwannGT/lisa/issues/2622) [CodySwannGT/lisa#2622](https://github.com/CodySwannGT/lisa/issues/2622)
+
+
+### Bug Fixes
+
+* **doctor:** ignore commented reusable refs ([6682e1b](https://github.com/CodySwannGT/lisa/commit/6682e1be3086a4c590414919bae332ce5e987bc4)), closes [CodySwannGT/lisa#2618](https://github.com/CodySwannGT/lisa/issues/2618)
+
 ## [3.25.0](https://github.com/CodySwannGT/lisa/compare/v3.24.0...v3.25.0) (2026-08-16)
 
 
