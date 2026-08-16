@@ -151,6 +151,23 @@ describe("Lisa ships no implementation behind the facade", () => {
     }
   );
 
+  it.each(FACADE)(
+    "$job's guidance names the task the gate actually runs",
+    ({ job, fallback, task }) => {
+      // The message is the only instruction an operator gets, and it shipped
+      // naming the GATE ID where the TASK belongs — `environment-reset:verify`
+      // against a real task of `environment:reset:verify`. Anyone following it
+      // would add a package script no gate ever invokes, then be unable to see
+      // why the gate stayed unconfigured. Derived from the registry rather
+      // than repeated as a literal, so the two cannot drift apart again.
+      const body = stepNamed(job, fallback)?.run ?? "";
+      expect(body).toContain(task);
+      // The exact mistake that shipped: the gate id with `:verify` appended.
+      const gateIdShape = `${task.replace(/^environment:/, "environment-").replace(":verify", "")}:verify`;
+      expect(body).not.toContain(gateIdShape);
+    }
+  );
+
   it.each(FACADE)("$job carries no continue-on-error", ({ job }) => {
     const definition = workflow.jobs[job] as Record<string, unknown>;
     expect(definition["continue-on-error"]).toBeUndefined();
