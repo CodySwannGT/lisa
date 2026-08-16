@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "2afa67f8f8b762bc462246d3d0839f34e3ee84ed4daad8d6e187ae21026040bc",
+      "75b3bed6034e81ece759b4566291f26be9c6f51ebd3444ae9232964588a71a66",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8682,6 +8682,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/autofix-ownership-guards.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
+    "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/gate-config-validity-job.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,

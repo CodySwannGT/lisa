@@ -343,6 +343,64 @@ Probes survive as a *development aid* inside the adapter-generating skill —
 "point it at something returning 500s and check it notices" — which is guidance
 toward an implementation, not a gate over one.
 
+## The environment facade, and why it verifies when nothing else does
+
+`environment-reset` and `environment-reseed` are the first gates where Lisa
+ships **no implementation at all**. Lisa names the interface —
+`environment:reset`, `environment:reseed` — and every project supplies what
+happens behind it and whether it is required, optional, or off. Nothing else in
+the registry works this way, so two consequences are worth stating.
+
+**The gate's task is the VERIFY, not the reset.** A gate whose task were
+`environment:reset` would converge a shared environment on every pull request
+that declared it required. That is not hypothetical: a repository in this
+portfolio already runs an unconditional reset job, destructive to shared dev
+data, on every invocation including `workflow_dispatch`. So the reset itself is
+a **precondition** a workflow calls before a suite, outside gate ordering
+entirely, and the gate runs `environment:reset:verify`.
+
+Ordering is why it cannot be otherwise even in principle. Gates sort
+alphabetically, and `e2e-browser` and `e2e-native` both sort *before*
+`environment-reset` — so a reset-as-gate would run after the suites it exists
+to precede. A reset is not a verdict about the world; it is a change to the
+world, and the registry's `mayRewrite` flag covers that hazard only at
+working-tree scope.
+
+**This is not the conformance policing rejected above, and the difference is
+the failure mode.** That section reasoned about a *dishonest* adapter and
+concluded correctly that `off` is cheaper than deceit, so nobody rational
+fakes one. The reset case fails differently: the adapter is written in good
+faith and its guard is simply in the wrong place. The instance that prompted
+this — `assertAllowedResetUrl`, re-checked before every fetch — is careful
+engineering that happens to live **client-side**, where the caller can edit it.
+Nobody was faking anything, so a mechanism that only deters deceit catches
+nothing here.
+
+It is also a different risk class. A load-capacity adapter that overstates
+itself yields a weaker signal. A reset guard that can be stepped around can be
+pointed at production.
+
+**What is verified is unbypassability, not location.** "One guard location,
+inside the lambda" is the means; the property is that the guard cannot be
+stepped around. Lisa cannot inspect where a guard lives without knowing the
+implementation, which the facade forbids — but it can require a behaviour:
+
+> Call the reset entry point **directly, outside the project's own client**,
+> against a target the guard must reject. Require a refusal.
+
+A server-side guard refuses. A client-side guard is not on that path, so the
+call succeeds and the gate goes red. That distinguishes the two architectures
+by behaviour alone, needs no knowledge of the implementation, and turns an
+architectural assertion into something that can actually fail. It is also safe
+to run anywhere, because it exercises only the refusal path and converges
+nothing.
+
+`work` is `"refusals proved"` rather than a count of entities touched: a reset
+that converged nothing may be perfectly correct, so **these gates must not
+inherit the fail-on-zero rule** that `test-node-suites` carries. Zero suites
+collected proves nothing; zero entities converged can mean the environment was
+already clean.
+
 ## Continuous gates gate a state, not a change
 
 Every other moment blocks a diff. A scheduled run has none: by the time a

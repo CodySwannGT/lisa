@@ -48,7 +48,7 @@ export const CONFIGURED = "steps.gate.outputs.configured == 'true'";
 export const NOT_CONFIGURED = "steps.gate.outputs.configured != 'true'";
 
 /**
- * The ten jobs converted to the gate façade.
+ * The twelve jobs converted to the gate façade.
  *
  * Kept exhaustive by `quality-gate-moment-input.test.ts`, which fails if the
  * workflow contains a resolve step this list omits. `test_node_suites` shipped
@@ -134,6 +134,23 @@ export const CONVERTED: ConvertedJob[] = [
     fallbackSteps: ["🧪 Run .mjs suites (lisa-test-node)"],
   },
   {
+    job: "environment_reset",
+    jobName: "♻️ Environment Reset Guard",
+    gate: "environment-reset",
+    gateStep: "♻️ Run the environment-reset gate",
+    // Lisa ships no implementation behind the environment facade, so this
+    // fallback announces the absence rather than substituting for it. The
+    // structure is still the façade's, which is why the drift assertions apply.
+    fallbackSteps: ["♻️ No environment reset adapter declared"],
+  },
+  {
+    job: "environment_reseed",
+    jobName: "🌱 Environment Reseed Guard",
+    gate: "environment-reseed",
+    gateStep: "🌱 Run the environment-reseed gate",
+    fallbackSteps: ["🌱 No environment reseed adapter declared"],
+  },
+  {
     job: "dead_code",
     jobName: "🗑️ Dead Code Detection",
     gate: "dead-code",
@@ -159,7 +176,7 @@ export const CONVERTED: ConvertedJob[] = [
  * Steps that carried `continue-on-error` BEFORE this conversion.
  *
  * A failing job that reports green is the exact defect the façade exists to
- * prevent, so the set is pinned rather than checked only on the ten jobs:
+ * prevent, so the set is pinned rather than checked only on the twelve jobs:
  * growing it anywhere in this workflow has to fail here.
  */
 export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
