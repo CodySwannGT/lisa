@@ -1,6 +1,9 @@
 # BEGIN: AI GUARDRAILS
 
-WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
+WORK_ITEM_SCRIPT="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-work-item.mjs"
+if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
+  WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
+fi
 if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
   WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
 fi
@@ -58,7 +61,10 @@ echo "📦 Using package manager: $PACKAGE_MANAGER"
 # The project-specific extension slots at the bottom of this file run either
 # way — they are project behaviour, not registry gates.
 # ---------------------------------------------------------------------------
-GATE_RUNNER="scripts/lisa-run-gates.mjs"
+GATE_RUNNER="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs"
+if [ ! -f "$GATE_RUNNER" ]; then
+  GATE_RUNNER="scripts/lisa-run-gates.mjs"
+fi
 if [ ! -f "$GATE_RUNNER" ]; then
   GATE_RUNNER="all/copy-overwrite/scripts/lisa-run-gates.mjs"
 fi

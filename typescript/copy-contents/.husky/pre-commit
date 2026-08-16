@@ -76,7 +76,10 @@ fi
 # Fail-safe by construction: no coverage file, an empty one, a runner that
 # could not run, or no exact match, all mean the built-in step runs.
 # ---------------------------------------------------------------------------
-GATE_RUNNER="scripts/lisa-run-gates.mjs"
+GATE_RUNNER="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs"
+if [ ! -f "$GATE_RUNNER" ]; then
+  GATE_RUNNER="scripts/lisa-run-gates.mjs"
+fi
 if [ ! -f "$GATE_RUNNER" ]; then
   GATE_RUNNER="all/copy-overwrite/scripts/lisa-run-gates.mjs"
 fi
