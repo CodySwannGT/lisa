@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.26.2](https://github.com/CodySwannGT/lisa/compare/v3.26.1...v3.26.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* **scripts:** three shipped guards could report success without doing the work ([1426aa3](https://github.com/CodySwannGT/lisa/commit/1426aa3b1f15d260f3bca06fc00d679b242712b5)), closes [#2610](https://github.com/CodySwannGT/lisa/issues/2610) [CodySwannGT/lisa#2626](https://github.com/CodySwannGT/lisa/issues/2626) [CodySwannGT/lisa#2626](https://github.com/CodySwannGT/lisa/issues/2626) [CodySwannGT/lisa#2626](https://github.com/CodySwannGT/lisa/issues/2626)
+
 ### [3.26.1](https://github.com/CodySwannGT/lisa/compare/v3.26.0...v3.26.1) (2026-08-16)
 
 
