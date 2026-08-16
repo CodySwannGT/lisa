@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.23.1](https://github.com/CodySwannGT/lisa/compare/v3.23.0...v3.23.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **hooks:** let the git hooks find Lisa's scripts in the installed package ([335e0bb](https://github.com/CodySwannGT/lisa/commit/335e0bbe29bc305e765327efa601347b881c672a)), closes [#2612](https://github.com/CodySwannGT/lisa/issues/2612) [CodySwannGT/lisa#2613](https://github.com/CodySwannGT/lisa/issues/2613) [CodySwannGT/lisa#2613](https://github.com/CodySwannGT/lisa/issues/2613) [CodySwannGT/lisa#2613](https://github.com/CodySwannGT/lisa/issues/2613)
+
 ## [3.23.0](https://github.com/CodySwannGT/lisa/compare/v3.22.0...v3.23.0) (2026-08-16)
 
 
