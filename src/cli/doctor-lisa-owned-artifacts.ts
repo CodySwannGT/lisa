@@ -208,7 +208,12 @@ export async function checkLisaOwnedArtifacts(
 
   const results = await Promise.all(
     [...shipped].map(async ([destination, sources]) => {
-      if (matchesAnyPattern(destination, ignorePatterns)) return undefined;
+      // Ignored is UNASSESSED, not clean. Reported as such below, because a
+      // `.lisaignore` entry on a Lisa-owned guard suppresses the divergence
+      // warning while changing nothing about the divergence — and the ok line
+      // then states conformance that was never established.
+      if (matchesAnyPattern(destination, ignorePatterns))
+        return [destination, "ignored"] as const;
       const installedPath = path.join(targetPath, destination);
       const installed = await readFile(installedPath).catch(() => undefined);
       if (installed === undefined) return undefined;
@@ -234,8 +239,8 @@ export async function checkLisaOwnedArtifacts(
   );
 }
 
-/** Which of the two findings an artifact produced. */
-type Finding = "stale" | "modified";
+/** Which finding an artifact produced. */
+type Finding = "stale" | "modified" | "ignored";
 
 /**
  * Turn the per-artifact findings into one doctor line.
@@ -253,11 +258,19 @@ function summarise(
 
   const stale = pick("stale");
   const modified = pick("modified");
+  const ignored = pick("ignored");
   if (stale.length === 0 && modified.length === 0) {
+    // Named rather than folded into the pass. A guard excluded by
+    // `.lisaignore` was never compared, so claiming it matches asserts
+    // something no comparison established — and the file it most often hides
+    // is a fork the project has stopped noticing.
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail: "Enforcement guards match the installed Lisa version",
+      detail:
+        ignored.length > 0
+          ? `Enforcement guards match the installed Lisa version; ${ignored.length} not assessed (.lisaignore): ${ignored.join(", ")}`
+          : "Enforcement guards match the installed Lisa version",
     };
   }
 

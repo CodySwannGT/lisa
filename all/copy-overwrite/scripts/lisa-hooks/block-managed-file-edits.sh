@@ -4,16 +4,30 @@
 
 # PreToolUse hook: refuse agent writes to files Lisa overwrites on every apply.
 #
-# Lisa ships templates in three modes, and only one of them destroys host edits:
+# Lisa ships templates in three modes, and only one of them is unsafe to edit:
 #
-#   copy-overwrite — replaced wholesale on every `lisa apply`. An edit here is
-#                    gone at the next `bun install`, silently.
+#   copy-overwrite — see below; the harm depends on the file.
 #   copy-contents  — Lisa APPENDS its lines; host content survives.
 #   create-only    — skipped when the file exists; the host owns it outright.
 #
 # So this guard covers copy-overwrite and nothing else. Blocking the other two
 # would stop agents editing files they are supposed to own, which is worse than
 # the problem being solved.
+#
+# WITHIN copy-overwrite there are two populations with OPPOSITE consequences,
+# and an earlier version of this guard described only one of them:
+#
+#   hash-tracked guards (the `.mjs` scripts, listed in the Lisa-owned ledger)
+#     — an edit classifies as `host-modified` and `lisa apply` PRESERVES it.
+#       The file silently forks and stops receiving upstream fixes while looking
+#       current. Nothing is deleted; that is what makes it hard to notice.
+#   everything else (`.json` configs and friends)
+#     — replaced wholesale on the next apply, which runs on every install.
+#       The edit vanishes.
+#
+# The refusal branches on ledger membership so it states the consequence that
+# actually applies, rather than describing both and leaving the reader to work
+# out which they are in.
 #
 # Measured, not hypothetical. Nothing enforced this, so downstream copies were
 # edited and then silently diverged: `classify-maestro-failures.mjs` reached
@@ -113,6 +127,13 @@ lisaignored() {
   return 1
 }
 
+# A candidate rewritten relative to the project, so an absolute target from a
+# tool payload and a relative one from a shell command classify identically.
+relative_path() {
+  local rel="${1#"$project_root"/}"
+  printf '%s' "${rel#./}"
+}
+
 # Whether a host-relative path is shipped as a copy-overwrite template.
 #
 # A few stat calls rather than an enumeration: the same relative path is probed
@@ -123,9 +144,8 @@ managed_source() {
   case "$candidate" in
     */node_modules/* | node_modules/* | */dist/* | dist/*) return 1 ;;
   esac
-  # Normalise to a project-relative path so an absolute target still matches.
-  local rel="${candidate#"$project_root"/}"
-  rel="${rel#./}"
+  local rel
+  rel="$(relative_path "$candidate")"
   [ -n "$rel" ] || return 1
   # Claimed by the project, so not ours to refuse.
   lisaignored "$rel" && return 1
@@ -140,19 +160,44 @@ managed_source() {
   return 1
 }
 
+# Whether a destination is a ledger-tracked Lisa-owned guard.
+#
+# The two populations behind this guard have OPPOSITE consequences, so the
+# refusal has to know which one it is looking at rather than describing both and
+# leaving the reader to guess. A guard in the content-hash ledger classifies as
+# `host-modified` once edited and `lisa apply` PRESERVES it; anything else is
+# replaced wholesale. Both are bad, for different reasons, and the right next
+# step differs too.
+ledger_tracked() {
+  local rel="$1"
+  local ledger="$package_root/dist/core/lisa-owned-hash-ledger.js"
+  [ -f "$ledger" ] || return 1
+  grep -q "\"$rel\"" "$ledger" 2>/dev/null
+}
+
 refuse() {
   local target="$1"
   local source="$2"
+  local rel="$3"
+  local consequence
+  if ledger_tracked "$rel"; then
+    consequence="This is a Lisa-owned guard, tracked by content hash. \`lisa apply\`
+will PRESERVE your edit rather than overwrite it — and that is the trap. The
+file silently forks: it keeps looking current while every upstream fix stops
+reaching it. One repository in this fleet is carrying 243 lines of divergence
+nobody knew about, in a guard that had quietly stopped receiving fixes."
+  else
+    consequence="This template is not hash-tracked, so \`lisa apply\` REPLACES it
+wholesale — and apply runs on every \`bun install\`. Your edit survives until the
+next install and then vanishes, with nothing reporting that it had."
+  fi
   cat >&2 <<EOF
 BLOCKED: refusing to write \`$target\`.
 
-WHY: this file is Lisa-managed. It is shipped as a **copy-overwrite** template
-(\`$source\` in the installed package) and is replaced wholesale on every
-\`lisa apply\` — which runs on every \`bun install\`. Your edit would survive
-until the next install and then vanish, with nothing reporting that it had.
+WHY: this file is Lisa-managed, shipped as a **copy-overwrite** template
+(\`$source\` in the installed package).
 
-That is not hypothetical: downstream copies edited this way diverged silently
-until they stopped receiving upstream fixes entirely.
+$consequence
 
 WHERE IT GOES INSTEAD — take the first one that fits:
 
@@ -171,14 +216,20 @@ WHERE IT GOES INSTEAD — take the first one that fits:
    shipped file.
 
 4. This project has deliberately FORKED this file and means to keep its own
-   version. Then say so: add the path to \`.lisaignore\`. \`lisa apply\` skips an
-   ignored path — it reports \`Kept (.lisaignore)\` rather than overwriting — so
-   the fork survives, this guard stops refusing it, and the divergence is
-   declared where the next person can see it rather than discovered later.
+   version. What to do depends on which population it is, and \`.lisaignore\` is
+   the WRONG answer for a hash-tracked guard:
 
-   Take this route only if the fork is intended. A file edited locally WITHOUT
-   being ignored is not a fork, it is an edit with a deletion scheduled against
-   it, and it stops receiving upstream fixes while still looking current.
+   - **A Lisa-owned guard (hash-tracked).** Do NOT add it to \`.lisaignore\`. The
+     ledger already preserves your version, so ignoring it buys nothing — and it
+     silences the standoff \`lisa doctor\` reports on every run, replacing a true
+     warning with the line "Enforcement guards match the installed Lisa
+     version", which is then false. A visible, resolvable fork becomes a silent
+     permanent one. Keep the warning and resolve the fork: upstream what is
+     general, or accept the standoff knowingly. To make this one edit, use the
+     override below.
+   - **Any other template.** \`.lisaignore\` is the right answer. Nothing else
+     preserves it, and the entry declares the divergence where the next person
+     can see it.
 
 5. You believe this file should not be Lisa-managed at all. That is a real
    argument and it belongs upstream, not in a local edit that will be erased.
@@ -200,7 +251,7 @@ case "$tool_name" in
     while IFS= read -r candidate; do
       [ -n "$candidate" ] || continue
       if source_path="$(managed_source "$candidate")"; then
-        refuse "$candidate" "$source_path"
+        refuse "$candidate" "$source_path" "$(relative_path "$candidate")"
       fi
     done <<EOF
 $paths
@@ -215,7 +266,7 @@ EOF
     while IFS= read -r token; do
       [ -n "$token" ] || continue
       if source_path="$(managed_source "$token")"; then
-        refuse "$token" "$source_path"
+        refuse "$token" "$source_path" "$(relative_path "$token")"
       fi
     done <<EOF
 $(printf '%s' "$command_str" |
