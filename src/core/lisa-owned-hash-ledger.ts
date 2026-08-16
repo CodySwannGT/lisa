@@ -177,6 +177,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
     "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
+    "aafd027c4b6092da15d0389f9e8dcedbd9105e9083057e2da39f78fd5f72e0df",
     "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
     "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
   ]),
@@ -216,6 +217,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8996e0bcbf1db085a5d99734e797c91f5025997bd967bc374efff8348dac14c2",
     "be1e77fb0ddb246eddae71ebac25e972c3c9e8079514e0dc78d0b73df919464c",
     "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
+  ]),
+  "scripts/lisa-hooks/block-managed-file-edits.sh": Object.freeze([
+    "18aebaef5ea9bf6af220dc9beef80a5cfb37282c6a53047783b4cc96d8daa4e3",
   ]),
   "scripts/lisa-hooks/block-no-verify.sh": Object.freeze([
     "031ef7a53fc49cb18665105b834b7b50ad6a43317e0821949809e877e0562ce4",
