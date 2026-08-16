@@ -368,18 +368,27 @@ world, and the registry's `mayRewrite` flag covers that hazard only at
 working-tree scope.
 
 **This is not the conformance policing rejected above, and the difference is
-the failure mode.** That section reasoned about a *dishonest* adapter and
-concluded correctly that `off` is cheaper than deceit, so nobody rational
-fakes one. The reset case fails differently: the adapter is written in good
-faith and its guard is simply in the wrong place. The instance that prompted
-this — `assertAllowedResetUrl`, re-checked before every fetch — is careful
-engineering that happens to live **client-side**, where the caller can edit it.
-Nobody was faking anything, so a mechanism that only deters deceit catches
-nothing here.
+the risk class and the subject — not anyone's intent.**
 
-It is also a different risk class. A load-capacity adapter that overstates
-itself yields a weaker signal. A reset guard that can be stepped around can be
-pointed at production.
+A load-capacity adapter that overstates itself yields a weaker signal. A reset
+guard that can be stepped around can be pointed at production. That alone is
+why the two are not comparable.
+
+The cleaner distinction is **what is being asked to prove itself.** "No
+conformance policing" forbids making an *adapter* demonstrate that it detects
+what it claims — a competence claim about the adapter, and the section is right
+that `off` is cheaper than faking one. `environment:reset:verify` asks the
+**deployed system** to demonstrate that it *refuses*. That is a safety property
+of the environment, in the same category as "production must reject a
+test-auth bypass", which nobody would call policing.
+
+Deliberately *not* argued on intent. An earlier draft of this section
+distinguished the cases by saying the reset adapter is written in good faith
+and merely misplaced — true of the instance that prompted it
+(`assertAllowedResetUrl`, re-checked before every fetch, living client-side
+where the caller can edit it), but unfalsifiable as a rule and certain to be
+re-litigated by whoever reads it next. The subject axis holds without anyone
+having to agree about motives.
 
 **What is verified is unbypassability, not location.** "One guard location,
 inside the lambda" is the means; the property is that the guard cannot be
