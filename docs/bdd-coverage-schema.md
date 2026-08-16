@@ -6,7 +6,15 @@ a project owes; this document says what the shipped implementation emits, how it
 versions, and how a repo adopts it without creating a required check that passes by
 finding nothing.
 
-Shipped artifacts (copy-overwrite, so `lisa apply` replaces local edits):
+Shipped artifacts (`copy-overwrite`). None of these carries a `lisa-` path
+segment, so they are in the "everything else" population: a **non-interactive**
+apply — the postinstall one a version bump runs — leaves a local edit in place
+and reports the file as `Out of date`. It does not replace it. Only an
+interactive `lisa apply .` you say yes to, or `--refresh-templates`, takes
+Lisa's copy over yours.
+
+That makes a local fix here worse than losable — it is *keepable*. It survives,
+stops receiving upstream fixes, and nothing fails. Fix these upstream:
 
 | Path | Role |
 |---|---|

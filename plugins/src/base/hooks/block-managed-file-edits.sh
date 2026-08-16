@@ -11,20 +11,29 @@
 # would stop agents editing files they are supposed to own, which is worse than
 # the problem being solved.
 #
-# WITHIN copy-overwrite there are two populations with OPPOSITE consequences,
-# and an earlier version of this guard described only one of them:
+# The name `copy-overwrite` is misleading, and two successive versions of this
+# guard got the consequence wrong by trusting it. MEASURED, by mutating four
+# files in a scratch project and running a real `lisa apply` against them:
 #
-#   hash-tracked guards (the `.mjs` scripts, listed in the Lisa-owned ledger)
-#     — an edit classifies as `host-modified` and `lisa apply` PRESERVES it.
-#       The file silently forks and stops receiving upstream fixes while looking
-#       current. Nothing is deleted; that is what makes it hard to notice.
-#   everything else (`.json` configs and friends)
-#     — replaced wholesale on the next apply, which runs on every install.
-#       The edit vanishes.
+#   scripts/lisa-gates.mjs   (ledger-tracked)  → SURVIVED
+#   .lintstagedrc.json       (untracked, JSON) → SURVIVED
+#   .prettierignore          (untracked, text) → SURVIVED
+#   .yamllint                (untracked, text) → SURVIVED
 #
-# The refusal branches on ledger membership so it states the consequence that
-# actually applies, rather than describing both and leaving the reader to work
-# out which they are in.
+#   Summary line: `Overwritten: 0 files` / `Out of date: 3 files (managed
+#   templates changed; NOT updated)`.
+#
+# copy-overwrite overwrites an UNMODIFIED copy — it refreshes. It does not
+# overwrite a host-edited one, in any population tested. So the harm is the same
+# for both, and it is not deletion:
+#
+#   THE FILE SILENTLY FORKS. It keeps looking current while every upstream fix
+#   stops reaching it. Nothing is lost, which is exactly what makes it invisible.
+#
+# Ledger membership changes the MESSAGE apply prints, not the outcome — tracked
+# files get a provenance verdict naming the fork and offering
+# `lisa-guard-capabilities:`; untracked ones get a bare "Out of date" warning.
+# The refusal branches on that so the reader sees the words apply will use.
 #
 # Measured, not hypothetical. Nothing enforced this, so downstream copies were
 # edited and then silently diverged: `classify-maestro-failures.mjs` reached
@@ -174,12 +183,12 @@ managed_source() {
 
 # Whether a destination is a ledger-tracked Lisa-owned guard.
 #
-# The two populations behind this guard have OPPOSITE consequences, so the
-# refusal has to know which one it is looking at rather than describing both and
-# leaving the reader to guess. A guard in the content-hash ledger classifies as
-# `host-modified` once edited and `lisa apply` PRESERVES it; anything else is
-# replaced wholesale. Both are bad, for different reasons, and the right next
-# step differs too.
+# Both populations are PRESERVED once edited (measured — see the header). What
+# membership changes is what apply prints and what the escape hatch is: a tracked
+# guard gets a provenance verdict and can declare `lisa-guard-capabilities:`,
+# while an untracked template gets a bare "Out of date" line and `.lisaignore`.
+# The refusal quotes the words the reader will actually see, so it has to know
+# which side it is on.
 ledger_tracked() {
   local rel="$1"
   local ledger="$package_root/dist/core/lisa-owned-hash-ledger.js"
@@ -193,15 +202,21 @@ refuse() {
   local rel="$3"
   local consequence
   if ledger_tracked "$rel"; then
-    consequence="This is a Lisa-owned guard, tracked by content hash. \`lisa apply\`
-will PRESERVE your edit rather than overwrite it — and that is the trap. The
-file silently forks: it keeps looking current while every upstream fix stops
-reaching it. One repository in this fleet is carrying 243 lines of divergence
-nobody knew about, in a guard that had quietly stopped receiving fixes."
+    consequence="\`lisa apply\` will KEEP your edit — this is a Lisa-owned guard,
+and apply says so: \"its contents match no Lisa release, so Lisa cannot tell
+whether it is out of date or deliberately stronger. Kept yours.\"
+
+That is the trap. Nothing is deleted; the file silently FORKS. It keeps looking
+current while every upstream fix stops reaching it. One repository in this fleet
+carries 243 lines of divergence nobody knew about, in a guard that had quietly
+stopped receiving fixes."
   else
-    consequence="This template is not hash-tracked, so \`lisa apply\` REPLACES it
-wholesale — and apply runs on every \`bun install\`. Your edit survives until the
-next install and then vanishes, with nothing reporting that it had."
+    consequence="\`lisa apply\` will KEEP your edit and report the file as
+\"Out of date, not updated\" on every run from now on.
+
+That is the trap. Nothing is deleted; the file silently FORKS, stops receiving
+upstream changes, and adds a permanent warning line that the next person learns
+to scroll past."
   fi
   cat >&2 <<EOF
 BLOCKED: refusing to write \`$target\`.
@@ -228,20 +243,21 @@ WHERE IT GOES INSTEAD — take the first one that fits:
    shipped file.
 
 4. This project has deliberately FORKED this file and means to keep its own
-   version. What to do depends on which population it is, and \`.lisaignore\` is
-   the WRONG answer for a hash-tracked guard:
+   version. Apply already preserves the edit either way, so what is left to
+   choose is whether the fork stays VISIBLE. Keeping it visible is the point:
 
-   - **A Lisa-owned guard (hash-tracked).** Do NOT add it to \`.lisaignore\`. The
-     ledger already preserves your version, so ignoring it buys nothing — and it
-     silences the standoff \`lisa doctor\` reports on every run, replacing a true
-     warning with the line "Enforcement guards match the installed Lisa
+   - **A Lisa-owned guard (hash-tracked).** Do NOT add it to \`.lisaignore\`.
+     Apply preserves your version regardless, so ignoring it buys nothing — and
+     it silences the standoff \`lisa doctor\` reports on every run, replacing a
+     true warning with the line "Enforcement guards match the installed Lisa
      version", which is then false. A visible, resolvable fork becomes a silent
-     permanent one. Keep the warning and resolve the fork: upstream what is
-     general, or accept the standoff knowingly. To make this one edit, use the
-     override below.
-   - **Any other template.** \`.lisaignore\` is the right answer. Nothing else
-     preserves it, and the entry declares the divergence where the next person
-     can see it.
+     permanent one. Instead declare what your version defends with a
+     \`lisa-guard-capabilities:\` line; apply then classifies it \`host-ahead\`
+     and says so by name, rather than reporting that it cannot tell.
+   - **Any other template.** \`.lisaignore\` records the divergence where the
+     next person can see it and stops the recurring "Out of date" line. It does
+     not preserve the file — apply already does — so use it to DECLARE a fork
+     you have decided on, never to quiet one you have not.
 
 5. You believe this file should not be Lisa-managed at all. That is a real
    argument and it belongs upstream, not in a local edit that will be erased.
