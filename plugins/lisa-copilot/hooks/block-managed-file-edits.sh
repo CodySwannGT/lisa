@@ -109,43 +109,61 @@ lisaignored() {
   local rel="$1"
   local list="$project_root/.lisaignore"
   [ -f "$list" ] || return 1
+  # Gitignore precedence: patterns are read in order and the LAST one to select
+  # the path decides, so `!x` re-includes something an earlier line ignored.
+  # This mirrors `matchesAnyPattern` in `src/utils/ignore-patterns.ts`; the two
+  # must agree, or an agent gets blocked on a file apply considers the
+  # project's, or waved through on one it does not.
+  #
+  # `ignored` carries shell truth: 0 = ignored, 1 = not.
+  local ignored=1
   local pattern
   while IFS= read -r pattern || [ -n "$pattern" ]; do
     pattern="${pattern#"${pattern%%[![:space:]]*}"}"
     pattern="${pattern%"${pattern##*[![:space:]]}"}"
     [ -n "$pattern" ] || continue
     case "$pattern" in \#*) continue ;; esac
-    # A leading `!` is not gitignore negation here. The real matcher passes
-    # patterns to minimatch, which negates by default, and it combines them with
-    # `.some()` — so a single `!scripts/a.mjs` line reports EVERY OTHER PATH as
-    # ignored. Measured:
-    #
-    #   patterns=["!scripts/a.mjs"]  path=scripts/a.mjs -> ignored=false
-    #   patterns=["!scripts/a.mjs"]  path=scripts/b.mjs -> ignored=TRUE
-    #
-    # Reproducing that faithfully would mean disabling this guard on a typo.
-    # Reproducing the intuitive gitignore reading would mean blocking files the
-    # matcher considers ignored. Both are wrong, so the file is treated as
-    # claimed and the write is allowed — the same direction this function errs
-    # everywhere else. Filed upstream; when the matcher stops negating, delete
-    # this branch rather than teaching it a second wrong answer.
-    case "$pattern" in !*) return 0 ;; esac
+    local negated=1
+    case "$pattern" in
+      # A bare `!` selects nothing rather than everything.
+      !) continue ;;
+      !*)
+        negated=0
+        pattern="${pattern#!}"
+        ;;
+      # `\!x` is a literal leading `!`, not a negation.
+      \\!*) pattern="${pattern#\\}" ;;
+    esac
+    local selected=1
     case "$pattern" in
       */)
-        case "$rel" in "${pattern%/}"/* | "${pattern%/}") return 0 ;; esac
+        case "$rel" in "${pattern%/}"/* | "${pattern%/}") selected=0 ;; esac
         ;;
     esac
-    # shellcheck disable=SC2254 -- the pattern is a glob on purpose.
-    case "$rel" in $pattern) return 0 ;; esac
-    case "$pattern" in
-      */*) ;;
-      *)
-        # shellcheck disable=SC2254 -- ditto, matched against the basename.
-        case "${rel##*/}" in $pattern) return 0 ;; esac
-        ;;
-    esac
+    if [ "$selected" -ne 0 ]; then
+      # shellcheck disable=SC2254 -- the pattern is a glob on purpose.
+      case "$rel" in $pattern) selected=0 ;; esac
+    fi
+    if [ "$selected" -ne 0 ]; then
+      case "$pattern" in
+        */*) ;;
+        *)
+          # shellcheck disable=SC2254 -- ditto, matched against the basename.
+          case "${rel##*/}" in $pattern) selected=0 ;; esac
+          ;;
+      esac
+    fi
+    [ "$selected" -eq 0 ] || continue
+    # A positive match ignores the path; a negated one un-ignores it. Both
+    # OVERWRITE any earlier verdict rather than short-circuiting — that is what
+    # makes the last matching pattern win.
+    if [ "$negated" -eq 0 ]; then
+      ignored=1
+    else
+      ignored=0
+    fi
   done <"$list"
-  return 1
+  return "$ignored"
 }
 
 # A candidate rewritten relative to the project, so an absolute target from a
