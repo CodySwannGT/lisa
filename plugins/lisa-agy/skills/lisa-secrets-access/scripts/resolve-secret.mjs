@@ -27,7 +27,8 @@
  * @module resolve-secret
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import { parseEnv } from "./envfile.mjs";
 import { validateNote } from "./note-format.mjs";
@@ -252,7 +253,29 @@ function main() {
   );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Whether this module is the one node was asked to run.
+ *
+ * Both sides are realpath'd: a raw URL comparison answers "no" through a
+ * symlinked checkout, a git worktree, or a /tmp path on macOS, so the module
+ * loads, runs nothing and exits 0 — a silent no-op that reads as success.
+ *
+ * A local copy rather than an import: plugin payload scripts ship standalone,
+ * with no `lib/` sibling to import from once installed.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   try {
     main();
   } catch (err) {

@@ -50,6 +50,7 @@ import {
   filterScriptsForAgent,
 } from "./lib/per-agent-hook-filter.mjs";
 import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -366,7 +367,7 @@ export function generateCursorVariant(srcDir, outDir, version) {
 }
 
 // CLI entrypoint.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (invokedAsScript(import.meta.url)) {
   const [srcDir, outDir, version] = process.argv.slice(2);
   if (!srcDir || !outDir || !version) {
     console.error(
