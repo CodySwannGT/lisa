@@ -19,6 +19,7 @@ import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { checkRepositoryReadiness } from "./doctor-readiness.js";
+import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { STARTERS } from "./starters.js";
@@ -343,6 +344,7 @@ export async function runDoctor(
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),
+    await checkReusableWorkflowRefs(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the
