@@ -58,9 +58,9 @@ Use plain `gh` + `git` so Claude and Codex execute identically.
 
 ## 0. Take the babysitter lease
 
-This skill is the branch's owner while it runs. Declare that ownership so the
-CI auto-fix workflow (`reusable-claude-ci-auto-fix.yml`) stands down instead of
-pushing competing fixes to the same branch (the single-writer rule):
+This skill is the branch's owner while it runs. Declare that ownership so any CI
+repair automation stands down instead of pushing competing fixes to the same
+branch (the single-writer rule):
 
 ```bash
 gh label create "lisa:babysitter-on-duty" \

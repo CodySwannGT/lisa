@@ -2,14 +2,14 @@
 /**
  * Deterministic detector for stale reusable-workflow inputs (issue #1423).
  *
- * Context: a caller workflow (e.g. a consumer repo's `.github/workflows/claude.yml`)
+ * Context: a caller workflow (e.g. a consumer repo's `.github/workflows/example-agent.yml`)
  * invokes one of Lisa's reusable workflows via `uses: <owner>/<repo>/.github/workflows/
  * reusable-*.yml@<ref>` and passes a `with:` block. GitHub hard-fails the run at
  * startup if that `with:` block names an input the reusable workflow's
  * `workflow_call.inputs` no longer declares (e.g. an early-generation caller still
- * passing `package_manager`, which `reusable-claude.yml` never declared). Because
- * `claude.yml` is a create-only file Lisa never overwrites, an affected repo can
- * never self-heal — the drift has to be found and reported (or migrated) instead.
+ * passing `package_manager`, which `reusable-example.yml` never declared). Because
+ * create-only workflow callers are never overwritten, an affected repo cannot
+ * self-heal — the drift has to be found and reported (or migrated) instead.
  *
  * This script scans every workflow file directly under a project's
  * `.github/workflows/` for such callers, resolves each referenced reusable
@@ -17,8 +17,8 @@
  * `.github/workflows/`, the source of truth for the current contract), and reports
  * any caller `with:` key absent from the declared set as `stale`.
  *
- * It is intentionally NOT a general YAML parser — like `migrate-deploy-order.sh`,
- * it does targeted, indentation-aware line scanning of the two shapes it cares
+ * It is intentionally NOT a general YAML parser. It does targeted,
+ * indentation-aware line scanning of the two shapes it cares
  * about (`uses:` + sibling `with:`, and `workflow_call: inputs:`). That is
  * sufficient for Lisa-authored workflow files, which have a stable, predictable
  * structure, and keeps the detector dependency-free (Node built-ins only, no
@@ -91,7 +91,7 @@ function isDirectory(target) {
  * @param {string} contractsRoot - directory holding the current reusable
  *   workflow files (basename-addressed).
  * @param {string} reusableFile - basename of the referenced reusable
- *   workflow file (e.g. `reusable-claude.yml`).
+ *   workflow file (e.g. `reusable-example.yml`).
  * @returns {string[] | null} declared inputs, or `null` if the contract file
  *   isn't present under `contractsRoot` (unresolvable, not necessarily stale).
  */

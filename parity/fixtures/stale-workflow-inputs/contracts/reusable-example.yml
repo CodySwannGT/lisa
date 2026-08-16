@@ -1,7 +1,7 @@
-# Fixture copy of the current .github/workflows/reusable-claude.yml contract
+# Fixture copy of the current .github/workflows/reusable-example.yml contract
 # (trimmed to the `workflow_call.inputs` shape the detector cares about).
 # It deliberately does NOT declare `package_manager` — that's the bug in #1423.
-name: Claude Code (Reusable)
+name: Example Agent (Reusable)
 
 on:
   workflow_call:
@@ -36,11 +36,11 @@ on:
         type: string
         default: ''
     secrets:
-      CLAUDE_CODE_OAUTH_TOKEN:
+      EXAMPLE_AGENT_TOKEN:
         required: false
 
 jobs:
-  claude:
+  agent:
     runs-on: ubuntu-latest
     steps:
       - run: echo "fixture stub — not a real job"

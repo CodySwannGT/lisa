@@ -31,9 +31,9 @@ import {
 } from "../../../scripts/detect-stale-workflow-inputs.mjs";
 import {
   ABSENT_PROJECT,
-  CLAUDE_CI_AUTO_FIX_YML,
-  CLAUDE_UNKNOWN_YML,
-  CLAUDE_YML,
+  EXAMPLE_AUTO_FIX_YML,
+  EXAMPLE_UNKNOWN_YML,
+  EXAMPLE_AGENT_YML,
   CONTRACTS_FLAG,
   CONTRACTS_ROOT,
   findResult,
@@ -42,7 +42,7 @@ import {
   PROJECT_MIXED,
   PROJECT_NO_CALLER,
   PROJECT_VINTAGE,
-  REUSABLE_CLAUDE_YML,
+  REUSABLE_EXAMPLE_AGENT_YML,
   runDetector,
 } from "./detect-stale-workflow-inputs-helpers";
 
@@ -63,8 +63,8 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       stale: 1,
       unknownContract: 0,
     });
-    const result = findResult(report, CLAUDE_YML);
-    expect(result?.reusableFile).toBe(REUSABLE_CLAUDE_YML);
+    const result = findResult(report, EXAMPLE_AGENT_YML);
+    expect(result?.reusableFile).toBe(REUSABLE_EXAMPLE_AGENT_YML);
     expect(result?.staleInputs).toEqual(["package_manager"]);
     expect(result?.status).toBe("stale");
   });
@@ -85,7 +85,7 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       stale: 0,
       unknownContract: 0,
     });
-    const result = findResult(report, CLAUDE_YML);
+    const result = findResult(report, EXAMPLE_AGENT_YML);
     expect(result?.staleInputs).toEqual([]);
     expect(result?.status).toBe("ok");
   });
@@ -106,9 +106,9 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       stale: 1,
       unknownContract: 1,
     });
-    expect(findResult(report, CLAUDE_CI_AUTO_FIX_YML)?.status).toBe("stale");
-    expect(findResult(report, CLAUDE_YML)?.status).toBe("ok");
-    expect(findResult(report, CLAUDE_UNKNOWN_YML)?.status).toBe(
+    expect(findResult(report, EXAMPLE_AUTO_FIX_YML)?.status).toBe("stale");
+    expect(findResult(report, EXAMPLE_AGENT_YML)?.status).toBe("ok");
+    expect(findResult(report, EXAMPLE_UNKNOWN_YML)?.status).toBe(
       "unknown-contract"
     );
   });
@@ -167,10 +167,10 @@ describe("parseReusableReference", () => {
   it("parses an owner/repo reusable-workflow uses value", () => {
     expect(
       parseReusableReference(
-        "CodySwannGT/lisa/.github/workflows/reusable-claude.yml@main"
+        "CodySwannGT/lisa/.github/workflows/reusable-example.yml@main"
       )
     ).toEqual({
-      file: REUSABLE_CLAUDE_YML,
+      file: REUSABLE_EXAMPLE_AGENT_YML,
       owner: "CodySwannGT",
       repo: "lisa",
       ref: "main",
@@ -186,8 +186,8 @@ describe("extractCallerJobs", () => {
   it("extracts the with: keys of a reusable-workflow job", () => {
     const content = [
       "jobs:",
-      "  claude:",
-      "    uses: CodySwannGT/lisa/.github/workflows/reusable-claude.yml@main",
+      "  agent:",
+      "    uses: CodySwannGT/lisa/.github/workflows/reusable-example.yml@main",
       "    with:",
       "      event_name: x",
       "      package_manager: bun",
@@ -198,7 +198,7 @@ describe("extractCallerJobs", () => {
       {
         owner: "CodySwannGT",
         repo: "lisa",
-        reusableFile: REUSABLE_CLAUDE_YML,
+        reusableFile: REUSABLE_EXAMPLE_AGENT_YML,
         ref: "main",
         withKeys: ["event_name", "package_manager"],
       },
@@ -208,8 +208,8 @@ describe("extractCallerJobs", () => {
   it("returns an empty withKeys array when there is no with: block", () => {
     const content = [
       "jobs:",
-      "  claude:",
-      "    uses: CodySwannGT/lisa/.github/workflows/reusable-claude.yml@main",
+      "  agent:",
+      "    uses: CodySwannGT/lisa/.github/workflows/reusable-example.yml@main",
       "    secrets: inherit",
       "",
     ].join("\n");
@@ -217,7 +217,7 @@ describe("extractCallerJobs", () => {
       {
         owner: "CodySwannGT",
         repo: "lisa",
-        reusableFile: REUSABLE_CLAUDE_YML,
+        reusableFile: REUSABLE_EXAMPLE_AGENT_YML,
         ref: "main",
         withKeys: [],
       },

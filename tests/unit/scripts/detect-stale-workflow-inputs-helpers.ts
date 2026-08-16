@@ -31,11 +31,10 @@ export const CONTRACTS_FLAG = "--contracts-root";
 
 // Literals repeated ≥3 times at assertion sites — hoisted to satisfy
 // sonarjs/no-duplicate-string while keeping the expected values explicit.
-export const CLAUDE_YML = ".github/workflows/claude.yml";
-export const CLAUDE_CI_AUTO_FIX_YML =
-  ".github/workflows/claude-ci-auto-fix.yml";
-export const CLAUDE_UNKNOWN_YML = ".github/workflows/claude-unknown.yml";
-export const REUSABLE_CLAUDE_YML = "reusable-claude.yml";
+export const EXAMPLE_AGENT_YML = ".github/workflows/example-agent.yml";
+export const EXAMPLE_AUTO_FIX_YML = ".github/workflows/example-auto-fix.yml";
+export const EXAMPLE_UNKNOWN_YML = ".github/workflows/example-unknown.yml";
+export const REUSABLE_EXAMPLE_AGENT_YML = "reusable-example.yml";
 
 /** One classified row of the drift report (matches the script's shape). */
 export interface StaleInputResult {

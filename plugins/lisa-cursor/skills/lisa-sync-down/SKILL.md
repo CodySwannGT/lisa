@@ -1,6 +1,6 @@
 ---
 name: lisa-sync-down
-description: This skill should be used to run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g. hotfixes) from a higher environment to every lower one. Given a source environment name or branch (e.g. `production`), it derives the source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches` (the same chain the `claude-sync-down-branches.yml` GitHub Action uses on PR merge), then for each downward hop creates a sync branch, merges, resolves conflicts, opens or updates a PR, and enables auto-merge. Runnable by a developer locally or by GitHub Actions.
+description: This skill should be used to run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g. hotfixes) from a higher environment to every lower one. Given a source environment name or branch (e.g. `production`), it derives the source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches`, then for each downward hop creates a sync branch, merges, resolves conflicts, opens or updates a PR, and enables auto-merge. Runnable by a developer locally or by CI.
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"]
 ---
 
@@ -8,9 +8,7 @@ allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"]
 
 Back-sync a source environment branch DOWN the deploy chain, one hop at a time,
 all the way to the lowest environment. This is the on-demand, manual-or-CI
-counterpart to the `claude-sync-down-branches.yml` GitHub Action, which runs the
-same logic automatically when a PR is merged. Both derive their chain from the
-same config, so a manual run and an automatic run behave identically.
+entrypoint for applying the config-derived sync chain.
 
 Argument (`$ARGUMENTS`): the **source** to start syncing from. Accepts:
 
@@ -156,16 +154,11 @@ needs human conflict resolution.
 ## Invocation
 
 - **Developer:** `/lisa:sync-down production` (or a branch: `/lisa:sync-down main`).
-- **GitHub Actions:** the PR-merge path is already covered by
-  `claude-sync-down-branches.yml`. For an on-demand CI run, invoke this skill from a
-  `workflow_dispatch` job via `anthropics/claude-code-action` with the prompt
-  `/lisa:sync-down <env>` and `CLAUDE_CODE_OAUTH_TOKEN` — the same identity the
-  Action uses so the resulting PRs trigger downstream CI.
+- **CI:** invoke this skill from the runtime-native automation surface with
+  `/lisa:sync-down <env>` when an automatic sync is required.
 
-## Relationship to the GitHub Action
+## Contract
 
-This skill and `reusable-claude-sync-down-branches.yml` are deliberately
-equivalent: same config-derived chain, same merge/conflict strategy, same
-deterministic sync-branch naming, same auto-merge behavior. The Action is the
-automatic (PR-merged) trigger; this skill is the manual/dispatch trigger. Keep
-their chain-derivation and conflict-resolution rules in sync when either changes.
+This skill is the source of truth for back-sync behavior: config-derived chain,
+merge/conflict strategy, deterministic sync-branch naming, and auto-merge
+behavior all live here.

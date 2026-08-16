@@ -33,7 +33,20 @@
     ".github/workflows/reusable-claude-nightly-code-complexity.yml",
     ".github/workflows/reusable-claude-nightly-test-coverage.yml",
     ".github/workflows/reusable-claude-nightly-test-improvement.yml",
-    ".github/workflows/load-test.yml"
+    ".github/workflows/load-test.yml",
+    ".github/workflows/claude-ci-auto-fix.yml",
+    ".github/workflows/claude-code-review-response.yml",
+    ".github/workflows/claude-deploy-auto-fix.yml",
+    ".github/workflows/claude-nightly-code-complexity.yml",
+    ".github/workflows/claude-nightly-test-coverage.yml",
+    ".github/workflows/claude-nightly-test-improvement.yml",
+    ".github/workflows/claude-sync-down-branches.yml",
+    ".github/workflows/claude.yml",
+    ".github/workflows/reusable-claude-sync-down-branches.yml",
+    ".github/workflows/reusable-claude-nightly-code-complexity-rails.yml",
+    ".github/workflows/reusable-claude-nightly-jira-triage.yml",
+    ".github/workflows/reusable-claude-nightly-test-coverage-rails.yml",
+    ".github/workflows/reusable-claude-nightly-test-improvement-rails.yml"
   ],
   "keep": []
 }
