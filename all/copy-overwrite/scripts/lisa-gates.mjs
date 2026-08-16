@@ -983,9 +983,19 @@ export function auditConfigKeys(config) {
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment to resolve.
  * @param {string} [options.runner] Task-runner prefix.
+ * @param {boolean} [options.includeOff] Also report gates declared `off`, as
+ *   entries with `level: "off"` and no task. Default false, because every
+ *   consumer that RUNS these entries must not see a gate the project turned
+ *   off. Callers that need to tell "declared off" from "never declared" — the
+ *   CI façade does — pass true and branch on the level themselves.
  * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
-export function resolveMoment({ gates, moment, runner = "npm run" }) {
+export function resolveMoment({
+  gates,
+  moment,
+  runner = "npm run",
+  includeOff = false,
+}) {
   // A moment is looked up as a KEY on each gate, so one Lisa does not know
   // matches nothing and yields `[]` — indistinguishable from a real moment at
   // which this project declares no gates. Every consumer reads that as "run
@@ -1011,7 +1021,32 @@ export function resolveMoment({ gates, moment, runner = "npm run" }) {
     const raw = gate?.[moment];
     if (raw === undefined) continue;
     const entry = typeof raw === "string" ? { level: raw } : raw;
-    if (!entry?.level || entry.level === "off") continue;
+    if (!entry?.level) continue;
+    if (entry.level === "off") {
+      // A gate declared `off` and a gate never mentioned are DIFFERENT claims,
+      // and collapsing them is what let a declaration govern nothing: the CI
+      // façade read both as `configured=false` and ran its built-in fallback,
+      // so `off` could not turn a job off. Measured downstream — two
+      // zero-suite repositories declared `test-node-suites` off, validated
+      // clean locally, and still went red on a job that never consults the
+      // declaration. Reported only on request, because every consumer that
+      // RUNS these entries must keep seeing an off gate as absent.
+      if (includeOff) {
+        resolved.push({
+          id,
+          level: "off",
+          mode: "off",
+          awaits: null,
+          task: null,
+          command: null,
+          label: REGISTRY[id]?.label ?? id,
+          work: null,
+          evidence: null,
+          mayRewrite: false,
+        });
+      }
+      continue;
+    }
 
     const definition = REGISTRY[id];
     const task = entry.run ?? gate.run ?? definition?.task ?? null;
@@ -1207,7 +1242,12 @@ function main() {
     const moment = flag("moment");
     if (!moment)
       throw new Error("usage: lisa-gates.mjs list --moment=<moment>");
-    const resolved = resolveMoment({ gates, moment, runner });
+    const resolved = resolveMoment({
+      gates,
+      moment,
+      runner,
+      includeOff: rest.includes("--include-off"),
+    });
     if (rest.includes("--json")) {
       console.log(JSON.stringify(resolved, null, 2));
       return;

@@ -490,9 +490,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -509,7 +510,7 @@ jobs:
         # silently substitute. A project that declared its own `code-style`
         # task has said what proves the property, so demanding oxlint of it
         # would be this workflow overriding the project's own answer.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: |
           if [ ! -x "node_modules/.bin/oxlint" ]; then
             echo "::error::oxlint is required but not installed at node_modules/.bin/oxlint. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '${{ inputs.package_manager }} install'."
@@ -535,7 +536,7 @@ jobs:
         # "oxlint && eslint . --quiet" by Lisa governance, so this single
         # step runs both linters in sequence. Per-project script semantics
         # (e.g. Lisa itself uses --disable-nested-config) are preserved.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: ${{ inputs.package_manager }} run lint
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -589,9 +590,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -615,7 +617,7 @@ jobs:
 
       - name: 🐢 Run slow lint rules
         # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: ${{ inputs.package_manager }} run lint:slow
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -669,9 +671,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -695,7 +698,7 @@ jobs:
 
       - name: 🔍 Run type check
         # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: ${{ inputs.package_manager }} run typecheck
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -1121,9 +1124,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -1251,7 +1255,7 @@ jobs:
 
       - name: 🧪 Run unit tests with coverage
         # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'true'
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm run test:cov
@@ -1265,7 +1269,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip unit tests (no test:unit script)
-        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured != 'true'
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         run: echo "Skipping unit tests - test:unit script not found in package.json"
 
   test_mutation:
@@ -1400,9 +1404,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -1426,7 +1431,7 @@ jobs:
 
       - name: 🧪 Run integration tests
         # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'true'
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm run test:integration
@@ -1440,7 +1445,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip integration tests (no test:integration script)
-        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured != 'true'
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         run: echo "Skipping integration tests - test:integration script not found in package.json"
 
   test_e2e:
@@ -2010,9 +2015,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -2036,7 +2042,7 @@ jobs:
 
       - name: 📐 Check formatting
         # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: ${{ inputs.package_manager }} run format:check
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -2090,9 +2096,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -2167,7 +2174,7 @@ jobs:
 
       - name: 🏗️ Build project
         # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured != 'true' }}
+        if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured == 'false' }}
         run: ${{ inputs.package_manager }} run build
         env:
           NODE_OPTIONS: --max-old-space-size=6144
@@ -2651,9 +2658,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -2692,7 +2700,7 @@ jobs:
         # The script is loud about collecting zero: `node --test` exits 0 on a
         # glob that matches nothing, so a project with genuinely no `.mjs`
         # suites passes — but says so in the transcript rather than silently.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: |
           if [ -f scripts/lisa-test-node.mjs ]; then
             node scripts/lisa-test-node.mjs
@@ -2757,9 +2765,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -2793,7 +2802,7 @@ jobs:
         # branch above, where a missing `environment-reset:verify` script fails the job —
         # measured, not assumed: a required gate whose npm script is absent
         # exits 1.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: |
           echo "No environment-reset gate declared in .lisa.config.json, so no environment reset guard was verified."
           echo "Declare gates.environment-reset once this project has a environment-reset:verify adapter. A level of \"off\" counts as a decision; silence does not."
@@ -2847,9 +2856,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -2883,7 +2893,7 @@ jobs:
         # branch above, where a missing `environment-reseed:verify` script fails the job —
         # measured, not assumed: a required gate whose npm script is absent
         # exits 1.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: |
           echo "No environment-reseed gate declared in .lisa.config.json, so no environment reseed guard was verified."
           echo "Declare gates.environment-reseed once this project has a environment-reseed:verify adapter. A level of \"off\" counts as a decision; silence does not."
@@ -2937,9 +2947,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -2965,7 +2976,7 @@ jobs:
         # The script was renamed knip -> knip:check (expo-doctor flags scripts
         # that shadow node_modules/.bin entries); fall back to the legacy name
         # for projects that haven't re-applied Lisa yet.
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: |
           if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
             ${{ inputs.package_manager }} run knip:check
@@ -3028,9 +3039,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
           if (!task) return process.stdout.write("configured=false\n");
           const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
@@ -3053,7 +3065,7 @@ jobs:
 
       - name: 🔍 Check for sgconfig.yml
         id: check_config
-        if: steps.gate.outputs.configured != 'true'
+        if: steps.gate.outputs.configured == 'false'
         run: |
           if [ -f "sgconfig.yml" ]; then
             echo "has_config=true" >> $GITHUB_OUTPUT
@@ -3141,7 +3153,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ AST Grep Skipped (no config)
-        if: steps.gate.outputs.configured != 'true' && steps.check_config.outputs.has_config != 'true'
+        if: steps.gate.outputs.configured == 'false' && steps.check_config.outputs.has_config != 'true'
         run: |
           echo "::warning::ast-grep scan skipped - no sgconfig.yml found"
           echo "To enable ast-grep scanning, add sgconfig.yml to your project root"
