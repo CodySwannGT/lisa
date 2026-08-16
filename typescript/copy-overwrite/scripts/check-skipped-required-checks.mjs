@@ -189,7 +189,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -1241,9 +1241,20 @@ function main(argv) {
   const report = `${lines.join("\n")}\n`;
   process.stdout.write(report);
   if (process.env.GITHUB_STEP_SUMMARY) {
-    import("node:fs").then(({ appendFileSync }) => {
+    // Synchronous, and failure-tolerant, because this is reporting rather than
+    // verdict. The dynamic import returned a promise `main` did not await, so an
+    // unwritable path, a removed directory or a full disk produced an unhandled
+    // rejection — which Node exits non-zero on. A clean run then reported a CI
+    // failure while the printed report said the guard passed, inverting the exit
+    // code this file works hard to make meaningful. Losing a summary line is the
+    // acceptable failure here; losing the verdict is not.
+    try {
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
-    });
+    } catch (error) {
+      console.error(
+        `[skipped-required-checks] step summary not written: ${error.message}`
+      );
+    }
   }
   // Refusal is a failure, not a pass: an explicit run must never be mistaken
   // for a clean bill of health. `warn` — which only Lisa's untranscribed seeds
