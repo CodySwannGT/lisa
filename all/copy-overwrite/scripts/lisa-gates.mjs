@@ -239,6 +239,44 @@ export const REGISTRY = Object.freeze({
     moments: [...PR_ONWARD, "continuous"],
     work: "flows run",
   },
+  // ---------------------------------------------------------------------
+  // Environment facade. Lisa defines and enforces the interface; each project
+  // supplies what happens behind it. Lisa ships NO implementation, so a
+  // project declaring one of these without an adapter gets a red gate rather
+  // than a silent pass — measured: a required gate whose npm script is absent
+  // exits 1.
+  //
+  // THE TASK IS THE VERIFY, NOT THE RESET, and that is a safety property
+  // rather than a naming preference. `environment:reset` is a PRECONDITION a
+  // workflow calls before a suite; if it were the gate's task, declaring the
+  // gate `required` at pull-request would converge a shared environment on
+  // every pull request. That hazard is not hypothetical — tunnlai/frontend
+  // already runs an unconditional reset job that is destructive to shared dev
+  // data on every invocation.
+  //
+  // `environment:reset:verify` is safe to run anywhere precisely because it
+  // exercises only the REFUSAL path: it calls the reset entry point directly,
+  // outside the project's own client, against a target the guard must reject,
+  // and fails if the call succeeds. That distinguishes a server-side guard
+  // from a client-side one by behaviour alone, without Lisa knowing anything
+  // about the implementation — which is what the facade requires. A guard the
+  // caller can edit is not one guard location.
+  "environment-reset": {
+    label: "♻️ Environment Reset Guard",
+    summary:
+      "The environment reset exists, and its guard cannot be bypassed by calling it directly.",
+    task: "environment:reset:verify",
+    moments: [...PR_ONWARD, "continuous"],
+    work: "refusals proved",
+  },
+  "environment-reseed": {
+    label: "🌱 Environment Reseed Guard",
+    summary:
+      "The environment reseed exists, and its guard cannot be bypassed by calling it directly.",
+    task: "environment:reseed:verify",
+    moments: [...PR_ONWARD, "continuous"],
+    work: "refusals proved",
+  },
   "generative-testing": {
     label: "🎲 Generative Testing",
     summary:
@@ -945,9 +983,19 @@ export function auditConfigKeys(config) {
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment to resolve.
  * @param {string} [options.runner] Task-runner prefix.
+ * @param {boolean} [options.includeOff] Also report gates declared `off`, as
+ *   entries with `level: "off"` and no task. Default false, because every
+ *   consumer that RUNS these entries must not see a gate the project turned
+ *   off. Callers that need to tell "declared off" from "never declared" — the
+ *   CI façade does — pass true and branch on the level themselves.
  * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
-export function resolveMoment({ gates, moment, runner = "npm run" }) {
+export function resolveMoment({
+  gates,
+  moment,
+  runner = "npm run",
+  includeOff = false,
+}) {
   // A moment is looked up as a KEY on each gate, so one Lisa does not know
   // matches nothing and yields `[]` — indistinguishable from a real moment at
   // which this project declares no gates. Every consumer reads that as "run
@@ -973,7 +1021,32 @@ export function resolveMoment({ gates, moment, runner = "npm run" }) {
     const raw = gate?.[moment];
     if (raw === undefined) continue;
     const entry = typeof raw === "string" ? { level: raw } : raw;
-    if (!entry?.level || entry.level === "off") continue;
+    if (!entry?.level) continue;
+    if (entry.level === "off") {
+      // A gate declared `off` and a gate never mentioned are DIFFERENT claims,
+      // and collapsing them is what let a declaration govern nothing: the CI
+      // façade read both as `configured=false` and ran its built-in fallback,
+      // so `off` could not turn a job off. Measured downstream — two
+      // zero-suite repositories declared `test-node-suites` off, validated
+      // clean locally, and still went red on a job that never consults the
+      // declaration. Reported only on request, because every consumer that
+      // RUNS these entries must keep seeing an off gate as absent.
+      if (includeOff) {
+        resolved.push({
+          id,
+          level: "off",
+          mode: "off",
+          awaits: null,
+          task: null,
+          command: null,
+          label: REGISTRY[id]?.label ?? id,
+          work: null,
+          evidence: null,
+          mayRewrite: false,
+        });
+      }
+      continue;
+    }
 
     const definition = REGISTRY[id];
     const task = entry.run ?? gate.run ?? definition?.task ?? null;
@@ -1169,7 +1242,12 @@ function main() {
     const moment = flag("moment");
     if (!moment)
       throw new Error("usage: lisa-gates.mjs list --moment=<moment>");
-    const resolved = resolveMoment({ gates, moment, runner });
+    const resolved = resolveMoment({
+      gates,
+      moment,
+      runner,
+      includeOff: rest.includes("--include-off"),
+    });
     if (rest.includes("--json")) {
       console.log(JSON.stringify(resolved, null, 2));
       return;

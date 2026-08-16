@@ -10,7 +10,7 @@ Tracking issue: CodySwannGT/lisa#2579.
 
 Every decision below is downstream of one failure mode: **a check reporting
 satisfied without having proved anything.** It has appeared in this repository in
-at least eight distinct forms, each found only after it had already let something
+at least nine distinct forms, each found only after it had already let something
 through:
 
 | form | evidence |
@@ -22,6 +22,7 @@ through:
 | declared-but-uncallable | `secrets.require` was documented as a startup assertion whose only caller was a bash line inside a SKILL.md |
 | enforced-off-the-path | 23 of 37 `.test.mjs` suites downstream were wired only into `.husky/pre-push.local` (measured); a pre-push hook cannot run where no local push happens — auto-merge, a merge performed in the UI, a change committed CI-side — so a pass/fail guard would have called them protected. The count is measured; the non-firing is inferred from how git hooks work, not observed. (`[skip ci]` is the converse and does NOT belong here: the hook fires, CI does not — a gap in the other direction) |
 | verified-then-invalidated | gates ran alphabetically, so `artifact-freshness` proved the evidence manifest current and `code-style` then reformatted the sources it hashes — a PASSED verdict about a tree that was not the tree committed (#2590) |
+| declared-but-ungoverning | `off` did not turn a job off. `resolveMoment` dropped an `off` gate, so the CI façade wrote `configured=false` — the same value it writes for a gate never mentioned — and the fallback fired on `!= 'true'`, which both states satisfy. Lisa's built-in tooling therefore ran regardless of the declaration. Harmless where the fallback reproduces what the project already did; not harmless for `test-node-suites`, whose fallback FAILS on zero collected, so two zero-suite repositories declared it `off`, validated clean locally, and still went red — one on a deploy. A declaration that governs nothing is worse than none, because it reads as a decision that was taken (fixed: three states, `true` / `false` / `off`) |
 | selected-nothing | a moment is read as a KEY on each gate, so an unrecognised one matched nothing and resolved to `[]`, which every consumer read as "this project declares no gates here". Measured before the fix: `lisa-gates.mjs list --moment=continous:dev` printed `[]` and exited 0, and `lisa-run-gates.mjs --moment=continous:dev` printed `✅ 0 proved, 0 failed ... of 0 gate(s) declared` and exited 0 — the line the husky hooks read as "every required gate was proved". One typo deselected the entire registry and reported success. Unreachable from outside while every call site passed the literal `pull-request`; adding the `moment` input to `quality.yml` is what would have made it caller-reachable, so `resolveMoment` now refuses a moment that cannot exist. `[]` remains a truthful answer for a real moment at which nothing is declared — the guard distinguishes the two, which is the whole point |
 
 The rule that falls out, and the one to apply when a new case is ambiguous:
@@ -342,6 +343,73 @@ in practice, having been caused by the rendering.
 Probes survive as a *development aid* inside the adapter-generating skill —
 "point it at something returning 500s and check it notices" — which is guidance
 toward an implementation, not a gate over one.
+
+## The environment facade, and why it verifies when nothing else does
+
+`environment-reset` and `environment-reseed` are the first gates where Lisa
+ships **no implementation at all**. Lisa names the interface —
+`environment:reset`, `environment:reseed` — and every project supplies what
+happens behind it and whether it is required, optional, or off. Nothing else in
+the registry works this way, so two consequences are worth stating.
+
+**The gate's task is the VERIFY, not the reset.** A gate whose task were
+`environment:reset` would converge a shared environment on every pull request
+that declared it required. That is not hypothetical: a repository in this
+portfolio already runs an unconditional reset job, destructive to shared dev
+data, on every invocation including `workflow_dispatch`. So the reset itself is
+a **precondition** a workflow calls before a suite, outside gate ordering
+entirely, and the gate runs `environment:reset:verify`.
+
+Ordering is why it cannot be otherwise even in principle. Gates sort
+alphabetically, and `e2e-browser` and `e2e-native` both sort *before*
+`environment-reset` — so a reset-as-gate would run after the suites it exists
+to precede. A reset is not a verdict about the world; it is a change to the
+world, and the registry's `mayRewrite` flag covers that hazard only at
+working-tree scope.
+
+**This is not the conformance policing rejected above, and the difference is
+the risk class and the subject — not anyone's intent.**
+
+A load-capacity adapter that overstates itself yields a weaker signal. A reset
+guard that can be stepped around can be pointed at production. That alone is
+why the two are not comparable.
+
+The cleaner distinction is **what is being asked to prove itself.** "No
+conformance policing" forbids making an *adapter* demonstrate that it detects
+what it claims — a competence claim about the adapter, and the section is right
+that `off` is cheaper than faking one. `environment:reset:verify` asks the
+**deployed system** to demonstrate that it *refuses*. That is a safety property
+of the environment, in the same category as "production must reject a
+test-auth bypass", which nobody would call policing.
+
+Deliberately *not* argued on intent. An earlier draft of this section
+distinguished the cases by saying the reset adapter is written in good faith
+and merely misplaced — true of the instance that prompted it
+(`assertAllowedResetUrl`, re-checked before every fetch, living client-side
+where the caller can edit it), but unfalsifiable as a rule and certain to be
+re-litigated by whoever reads it next. The subject axis holds without anyone
+having to agree about motives.
+
+**What is verified is unbypassability, not location.** "One guard location,
+inside the lambda" is the means; the property is that the guard cannot be
+stepped around. Lisa cannot inspect where a guard lives without knowing the
+implementation, which the facade forbids — but it can require a behaviour:
+
+> Call the reset entry point **directly, outside the project's own client**,
+> against a target the guard must reject. Require a refusal.
+
+A server-side guard refuses. A client-side guard is not on that path, so the
+call succeeds and the gate goes red. That distinguishes the two architectures
+by behaviour alone, needs no knowledge of the implementation, and turns an
+architectural assertion into something that can actually fail. It is also safe
+to run anywhere, because it exercises only the refusal path and converges
+nothing.
+
+`work` is `"refusals proved"` rather than a count of entities touched: a reset
+that converged nothing may be perfectly correct, so **these gates must not
+inherit the fail-on-zero rule** that `test-node-suites` carries. Zero suites
+collected proves nothing; zero entities converged can mean the environment was
+already clean.
 
 ## Continuous gates gate a state, not a change
 
