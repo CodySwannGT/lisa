@@ -80,6 +80,30 @@ beforeEach(() => {
   mkdirSync(shipped, { recursive: true });
   writeFileSync(path.join(shipped, "classify-maestro-failures.mjs"), "x");
   writeFileSync(path.join(shipped, "render.mjs"), "y");
+  // Only the first is hash-tracked, which is what the refusal branches on.
+  const ledgerDir = path.join(
+    project,
+    "node_modules/@codyswann/lisa/dist/core"
+  );
+  mkdirSync(ledgerDir, { recursive: true });
+  writeFileSync(
+    path.join(ledgerDir, "lisa-owned-hash-ledger.js"),
+    `const L={"scripts/classify-maestro-failures.mjs":true};\n`
+  );
+  mkdirSync(
+    path.join(
+      project,
+      "node_modules/@codyswann/lisa/typescript/copy-overwrite"
+    ),
+    { recursive: true }
+  );
+  writeFileSync(
+    path.join(
+      project,
+      "node_modules/@codyswann/lisa/typescript/copy-overwrite/.lintstagedrc.json"
+    ),
+    "{}"
+  );
   mkdirSync(
     path.join(project, "node_modules/@codyswann/lisa/typescript/create-only"),
     {
@@ -148,6 +172,50 @@ describe(".lisaignore declares project ownership", () => {
     // name this path must not read as blanket ownership.
     ignoreFile(body);
     expect(runGuard(MANAGED)).toBe(2);
+  });
+});
+
+describe("the refusal states the consequence that actually applies", () => {
+  /**
+   * Capture the refusal text for a target.
+   * @param filePath - Target the tool would write
+   * @returns stderr from the guard
+   */
+  function refusalFor(filePath: string): string {
+    try {
+      execFileSync(BASH, [GUARD], {
+        input: JSON.stringify({
+          tool_name: "Write",
+          tool_input: { file_path: filePath },
+        }),
+        env: { ...process.env, CLAUDE_PROJECT_DIR: project },
+        stdio: "pipe",
+      });
+      return "";
+    } catch (error) {
+      return String((error as { stderr?: Buffer }).stderr ?? "");
+    }
+  }
+
+  it("tells a hash-tracked guard its edit is PRESERVED and forks silently", () => {
+    // The correction: apply does not delete these. It keeps them, which is why
+    // a fork goes unnoticed. Saying "your edit vanishes" here was simply false.
+    const text = refusalFor(MANAGED);
+    expect(text).toContain("PRESERVE your edit");
+    expect(text).not.toContain("REPLACES it");
+  });
+
+  it("tells an untracked template its edit is REPLACED wholesale", () => {
+    const text = refusalFor(".lintstagedrc.json");
+    expect(text).toContain("REPLACES it");
+    expect(text).not.toContain("PRESERVE your edit");
+  });
+
+  it("steers a hash-tracked fork AWAY from .lisaignore", () => {
+    // Ignoring a tracked guard buys nothing (the ledger already preserves it)
+    // and silences the standoff doctor reports — replacing a true warning with
+    // a false statement of conformance.
+    expect(refusalFor(MANAGED)).toContain("Do NOT add it to");
   });
 });
 
