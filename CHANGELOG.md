@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.22.0](https://github.com/CodySwannGT/lisa/compare/v3.21.0...v3.22.0) (2026-08-16)
+
+
+### Features
+
+* **e2e:** refuse an EAS profile that cannot produce a testable app ([42f45bf](https://github.com/CodySwannGT/lisa/commit/42f45bf5b88bf5405ce614edee7762b34f2d9073)), closes [CodySwannGT/lisa#2609](https://github.com/CodySwannGT/lisa/issues/2609) [CodySwannGT/lisa#2609](https://github.com/CodySwannGT/lisa/issues/2609) [CodySwannGT/lisa#2609](https://github.com/CodySwannGT/lisa/issues/2609)
+
+
+### Bug Fixes
+
+* **e2e:** pass the EAS profile by env, and realpath the script guard ([7b6e536](https://github.com/CodySwannGT/lisa/commit/7b6e536b128522c295aaf4404bf4ff4bb5b7b951)), closes [CodySwannGT/lisa#2609](https://github.com/CodySwannGT/lisa/issues/2609) [CodySwannGT/lisa#2609](https://github.com/CodySwannGT/lisa/issues/2609)
+
 ## [3.21.0](https://github.com/CodySwannGT/lisa/compare/v3.20.0...v3.21.0) (2026-08-16)
 
 
