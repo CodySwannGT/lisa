@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
     "all/create-only/.lisaignore":
-      "3c9827e7e98daa46510b5357cd6dd9406da1821e64cc46d2eea9f311cd6d06b9",
+      "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
       "bb0e67a52ea5badd0f291961c3a9fb25559f1f35e3042642d389a49eb47f7e31",
     "all/create-only/specs/.keep":

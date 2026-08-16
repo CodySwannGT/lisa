@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
@@ -230,5 +231,35 @@ describe("ignore-patterns", () => {
 
       expect(shouldIgnore("tsconfig.json")).toBe(false);
     });
+  });
+});
+
+// The shipped starter template is where a project learns this syntax. It
+// advertised "gitignore-style" and listed the forms while omitting `!`, so a
+// reader who knew gitignore would reasonably write a negation line — and before
+// the fix above, that one line reported the whole project as ignored. A fleet
+// sweep found 0 negation lines across 6 repositories, so nobody had taken the
+// invitation yet; this keeps the documented syntax and the implemented syntax
+// from drifting apart again.
+describe("the shipped .lisaignore template", () => {
+  const template = readFileSync(
+    path.join(process.cwd(), "all", "create-only", ".lisaignore"),
+    "utf8"
+  );
+
+  it("documents negation and the last-match-wins rule", () => {
+    expect(template).toContain("Negation:");
+    expect(template).toContain("LAST one to match");
+  });
+
+  it("says what ignoring costs, not just what it does", () => {
+    // Ignoring is the one action here that permanently opts a file out of
+    // upstream fixes. A template that lists it as a bare syntax form invites
+    // someone to reach for it to quiet a warning.
+    expect(template).toContain("stops receiving upstream fixes");
+  });
+
+  it("steers a Lisa-owned guard to lisa-guard-capabilities instead", () => {
+    expect(template).toContain("lisa-guard-capabilities");
   });
 });
