@@ -1,0 +1,111 @@
+{
+  "cli": {
+    "version": ">= 7.2.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "base": {
+      "node": "22.21.1",
+      "resourceClass": "large",
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096",
+        "PUPPETEER_SKIP_DOWNLOAD": "true"
+      }
+    },
+    "dev-base": {
+      "extends": "base",
+      "channel": "dev",
+      "env": {
+        "STAGE": "dev",
+        "EXPO_PUBLIC_ENV": "dev"
+      }
+    },
+    "dev": {
+      "extends": "dev-base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "dev"
+    },
+    "dev-simulator": {
+      "extends": "dev-base",
+      "developmentClient": true,
+      "ios": {
+        "simulator": true
+      }
+    },
+    "dev-preview": {
+      "extends": "dev-base",
+      "developmentClient": false,
+      "distribution": "internal"
+    },
+    "dev-e2e": {
+      "extends": "dev-base",
+      "developmentClient": false,
+      "distribution": "internal",
+      "channel": "e2e",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_E2E_BUILD": "true"
+      }
+    },
+    "staging": {
+      "extends": "base",
+      "channel": "staging",
+      "env": {
+        "STAGE": "staging",
+        "EXPO_PUBLIC_ENV": "staging"
+      }
+    },
+    "production-preview": {
+      "extends": "base",
+      "channel": "production",
+      "developmentClient": false,
+      "distribution": "internal",
+      "env": {
+        "STAGE": "production",
+        "EXPO_PUBLIC_ENV": "production"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "channel": "production",
+      "env": {
+        "STAGE": "production",
+        "EXPO_PUBLIC_ENV": "production"
+      }
+    }
+  },
+  "submit": {
+    "base": {
+      "android": {},
+      "ios": {}
+    },
+    "dev": {
+      "extends": "base",
+      "ios": {},
+      "android": {
+        "track": "internal"
+      }
+    },
+    "staging": {
+      "extends": "base",
+      "ios": {},
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "ios": {},
+      "android": {
+        "track": "production"
+      }
+    }
+  }
+}
