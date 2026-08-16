@@ -197,6 +197,16 @@ closed by the next run's dedupe or the human), not mutual exclusion; manual
 runs should first confirm the cron is not due or running. Tear-down removes
 it with the rest of the `lisa-auto-<project>-*` set.
 
+**Optional automation — the health cron.** When `health.schedule` in
+`.lisa.config.json` is `daily` or `weekly` (default **off**, which registers
+nothing), additionally create `lisa-auto-<project>-health-drift` running
+`/lisa:health-drift-cron` at that cadence. It runs Lisa Health headless and,
+for each check that has drifted, files exactly one ticket through
+`lisa-tracker-write`. A project in band files nothing. Register at most ONE per
+project: the per-check marker dedupe converges under a single scheduled runner,
+and two concurrent runs can both observe an empty open-ticket set and both
+file. Tear-down removes it with the rest of the `lisa-auto-<project>-*` set.
+
 **Exploratory PRD pressure gate.** `auto-start-prds=true` means "create PRDs in the ready PRD
 lifecycle when the PRD queue has capacity," not "always create a new ready PRD." The
 `exploratory-prds` automation uses the same PRD source queue and pressure roles reported by

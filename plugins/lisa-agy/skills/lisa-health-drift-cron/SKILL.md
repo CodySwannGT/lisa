@@ -1,0 +1,68 @@
+---
+name: lisa-health-drift-cron
+description: "Scheduled health consumer. Runs Lisa Health headless, and for each check that has drifted files exactly one tracker ticket through lisa-tracker-write, deduped by a per-check marker across OPEN tickets only. Files nothing for a project in band. Use for the lisa-auto-<project>-health-drift automation registered when health.schedule is set."
+allowed-tools: ["Skill", "Bash", "Read"]
+---
+
+# Lisa Health Drift Cron: $ARGUMENTS
+
+Consumer #3 of the health layer: the cron. A health check you have to remember to run is a health check that goes stale, so this one runs on a schedule and turns drift into **tracked work** rather than silent decay.
+
+It **files**. It never closes, edits, or repairs. Disposal belongs to humans and the Implement factory.
+
+## Why idempotency is the whole job
+
+A nightly cron that refiles the same drift every night is worse than no cron at all, because it teaches everyone to ignore the tickets it files. Every rule below exists to make *"the same drift"* a decidable question, and the decision is not made in this prose — it is made by `planDriftTickets` in `src/health/drift-tickets.ts`, which is unit-tested against each of these cases.
+
+**Do not reimplement the dedupe here.** Call the planner and act on its answer. A second implementation in prose is a second implementation to drift.
+
+## Phase 1 — Run the health check headless
+
+```bash
+lisa health --json
+```
+
+Persisted to `.lisa/health/latest.json` by the CLI, as `/lisa:health` does. Do not reconstruct, merge, or summarize findings; the result is the input to Phase 2 verbatim.
+
+If the run itself fails, that is a **recovery-required** outcome. Report it and stop. Do not file a drift ticket about a health check that did not complete — a run that could not measure has not found drift, and saying otherwise is the same defect the health layer exists to catch.
+
+## Phase 2 — Read the OPEN tickets only
+
+Fetch the tracker's **open** items carrying the drift marker prefix `lisa-health-drift`.
+
+**Open only, and this is load-bearing.** A closed ticket must not suppress live drift: if it did, closing a ticket without fixing anything would make that drift invisible forever, which is exactly the silent decay this consumer exists to prevent. Suppression should be a configured declaration visible in a diff — turn the check off in config — not a side effect of somebody tidying a backlog.
+
+The planner enforces this by construction: it accepts an `openTickets` list and has no notion of a closed one. Passing closed tickets defeats the design, and the parameter is named to say so.
+
+## Phase 3 — Plan
+
+Feed the findings and the open tickets to `planDriftTickets`. It returns:
+
+- `file` — one entry per drifting check with no open ticket, carrying `title`, `body`, and `marker`
+- `alreadyTracked` — drift that an open ticket already covers, with the ticket id
+
+Every drifting finding lands in exactly one of the two, so a run reporting "nothing to do" is asserting it looked at all of them.
+
+Dedupe is per **check**, not per drift set. Fingerprinting the whole finding set would mean one added finding produces a fresh ticket while the old one still stands, so a slowly-degrading project accumulates near-duplicates — the same "worse than no cron" outcome by another route.
+
+## Phase 4 — File
+
+For each entry in `file`, invoke **`/lisa-tracker-write`** with its title and body. **Never call a vendor writer (`lisa-github-write-issue` / `lisa-jira-write-ticket` / `lisa-linear-write-issue`) directly** — routing through the shim is what makes the tracker switchable per project.
+
+The body already contains the marker. Do not strip it, and do not add a second one: the next run finds the ticket by that exact string.
+
+## Run outcome
+
+Per the automation runbook contract, end with exactly one outcome and a one-line operator-readable summary:
+
+- **no-change** — the project is in band, or every drifting check is already tracked. Say which: `no-change — in band, nothing filed.` versus `no-change — 2 drifting checks, both already tracked (#41, #42).`
+- **change-proved** — tickets were filed. `change-proved — filed 1 drift ticket: coverage-floor (#57).`
+- **recovery-required** — the health run failed, or a write failed. Name what a human must do.
+
+The distinction between the two `no-change` shapes matters. "Nothing filed" and "nothing wrong" are different facts, and collapsing them hides a project whose drift is real and simply already on somebody's list.
+
+## Registration
+
+Registered as `lisa-auto-<project>-health-drift` when `health.schedule` is set to `daily` or `weekly` in `.lisa.config.json`. `off` (the default) registers nothing. Register at most **one** per project: the marker dedupe converges under a single scheduled runner, and two concurrent runs can both observe an empty open-ticket set and both file.
+
+Torn down with the rest of the `lisa-auto-<project>-*` set.
