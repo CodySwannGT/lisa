@@ -22,7 +22,7 @@ Invoke **`/lisa-health`** and use the JSON it emits. Do not call the CLI directl
 
 Routing through the skill also means the bounded harness-review step and its cleanup stay in one place rather than being re-described here and drifting.
 
-Do not reconstruct, merge, or summarize findings; the result is the input to Phase 2 verbatim.
+Do not reconstruct, merge, or summarize findings; the result is passed to Phase 3 verbatim.
 
 If the run itself fails, that is a **recovery-required** outcome. Report it and stop. Do not file a drift ticket about a health check that did not complete — a run that could not measure has not found drift, and saying otherwise is the same defect the health layer exists to catch.
 
@@ -41,7 +41,7 @@ Feed the findings and the open tickets to `planDriftTickets`. It returns:
 - `file` — one entry per drifting check with no open ticket, carrying `title`, `body`, and `marker`
 - `alreadyTracked` — drift that an open ticket already covers, with the ticket id
 
-Every drifting finding lands in exactly one of the two, so a run reporting "nothing to do" is asserting it looked at all of them.
+Every unique drifting check lands in exactly one of the two after duplicate findings for the same check are collapsed, so a run reporting "nothing to do" is asserting it looked at all of them.
 
 Dedupe is per **check**, not per drift set. Fingerprinting the whole finding set would mean one added finding produces a fresh ticket while the old one still stands, so a slowly-degrading project accumulates near-duplicates — the same "worse than no cron" outcome by another route.
 

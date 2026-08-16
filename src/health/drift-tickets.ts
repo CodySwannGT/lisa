@@ -115,9 +115,10 @@ function bodyFor(finding: HealthFinding): string {
 /**
  * Decide what to file for the drift a run found.
  *
- * Total and pure: every drifting finding lands in exactly one of `file` or
- * `alreadyTracked`, so a caller reporting "nothing to do" is asserting it
- * looked at all of them rather than that its filter happened to be empty.
+ * Total and pure: every unique drifting check lands in exactly one of `file` or
+ * `alreadyTracked` after duplicate findings for that check collapse, so a caller
+ * reporting "nothing to do" is asserting it looked at all checks rather than
+ * that its filter happened to be empty.
  * @param input - Findings from the run and the tracker's OPEN tickets
  * @returns Tickets to file, and drift already covered
  */
