@@ -104,6 +104,7 @@ const tracked = execFileSync("git", ["ls-files", "-z"], {
 const explicitlyIncluded = ["scripts/generate-upstream-evidence-manifest.mjs"];
 const publicSurfaceMembers = [...new Set([...tracked, ...explicitlyIncluded])]
   .filter(file => file !== "src/core/upstream-evidence-manifest.ts")
+  .filter(file => existsSync(path.join(repoRoot, file)))
   .filter(file => {
     const segments = file.split("/");
     const basename = segments.at(-1) ?? "";

@@ -170,146 +170,6 @@ release.yml call).
 
 Web performance budget validation using Google Lighthouse.
 
-### Claude Code (`claude.yml`)
-
-**Triggers**: Comments/reviews mentioning `@claude`
-
-AI-powered code assistance that can:
-- Review code changes
-- Suggest improvements
-- Run tests and builds
-- Answer questions about the codebase
-- Edit files and create commits (write permissions enabled)
-
-### Claude CI Auto-Fix (`claude-ci-auto-fix.yml`)
-
-**Triggers**: CI Quality Checks workflow failure (non-environment branches)
-
-Automatically fixes CI failures by having Claude analyze error logs and push fixes. Replaces the previous `create-issue-on-failure` workflow.
-
-- Fetches failed job names and error logs from the CI run
-- Runs Claude with full context to diagnose and fix the root cause
-- Commits and pushes the fix to the failing branch
-- Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops)
-
-### Claude Code Review Response (`claude-code-review-response.yml`)
-
-**Triggers**: CodeRabbit review submitted on a PR
-
-**Opt-in**: Set repository variable `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` to `true`
-
-Automatically triages CodeRabbit review comments and either fixes valid findings or replies to dismiss invalid ones.
-
-- Triggers when CodeRabbit submits a review (not per inline comment — once per review summary)
-- Skips PRs authored by `coderabbitai[bot]` or `dependabot[bot]` to prevent bot-to-bot loops (PRs authored by `claude[bot]` or other bots are allowed)
-- For each review comment, Claude determines if the finding is valid or a misunderstanding
-- Valid findings: fixes the code and commits with conventional messages
-- Invalid findings: replies to the comment explaining why the suggestion does not apply
-- Pushes fixes directly to the existing PR branch (no new PR created)
-
-### Claude Nightly Test Improvement (`claude-nightly-test-improvement.yml`)
-
-**Triggers**: Cron at 3 AM UTC weekdays, manual dispatch
-
-**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
-
-Analyzes tests and creates a PR with improvements. Supports two modes:
-
-- **Nightly mode** (default for cron and manual dispatch): Scopes analysis to files changed in the last 24 hours on the default branch. Maps changed source files to their corresponding test files and improves only those tests. Skips the run entirely if no source files changed in the last 24 hours.
-- **General mode** (manual dispatch only): Full repository analysis. Scans all test files for weak, brittle, or poorly-written tests and improves 3-5 files with the most impactful changes.
-
-Both modes look for: missing edge cases, weak assertions, missing error path coverage, and implementation-coupled tests. Verifies all tests pass before creating a PR. Prevents duplicate PRs (skips if one is already open).
-
-To trigger general mode manually: **Actions** > **Claude Nightly Test Improvement** > **Run workflow** > set **Analysis mode** to `general`.
-
-### Claude Nightly Test Coverage (`claude-nightly-test-coverage.yml`)
-
-**Triggers**: Cron at 4 AM UTC weekdays, manual dispatch
-
-**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
-
-Incrementally increases test coverage thresholds toward a 90% target:
-
-1. Reads `jest.thresholds.json` to get current coverage thresholds
-2. For each metric (`statements`, `branches`, `functions`, `lines`) below 90%, proposes a 5% increase (capped at 90%)
-3. Writes new tests to meet the proposed thresholds
-4. Updates `jest.thresholds.json` with the new values
-5. Verifies the updated thresholds pass with `bun run test:cov`
-6. Creates a PR summarizing which metrics were bumped (e.g., "branches 65% -> 70%, functions 60% -> 65%")
-
-Skips the run if all metrics are already at or above 90%. Prevents duplicate PRs (skips if one is already open).
-
-`jest.thresholds.json` format:
-```json
-{
-  "global": {
-    "statements": 75,
-    "branches": 65,
-    "functions": 60,
-    "lines": 75
-  }
-}
-```
-
-### Claude Nightly Code Complexity (`claude-nightly-code-complexity.yml`)
-
-**Triggers**: Cron at 5 AM UTC weekdays, manual dispatch
-
-**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
-
-Incrementally lowers ESLint code complexity thresholds toward target minimums:
-
-1. Reads `eslint.thresholds.json` to get current complexity thresholds
-2. For `cognitiveComplexity` above 15, proposes a decrease of 2 (floored at 15)
-3. For `maxLinesPerFunction` above 30, proposes a decrease of 5 (floored at 30)
-4. Refactors functions to meet the stricter thresholds
-5. Updates `eslint.thresholds.json` with the new values
-6. Verifies lint and tests pass
-7. Creates a PR summarizing which metrics were reduced
-
-Does not modify the `maxLines` threshold. Skips if all metrics are at/below targets. Prevents duplicate PRs.
-
-### Claude Nightly Jira Triage (`claude-nightly-jira-triage.yml`)
-
-**Triggers**: Cron every 2 hours (all days), manual dispatch
-
-**Auto-enables**: When Claude and Jira credentials are configured (`CLAUDE_CODE_OAUTH_TOKEN`, `JIRA_API_TOKEN` secrets and `JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_PROJECT_KEY` repository variables). No feature flag needed.
-
-Automatically triages untriaged Jira tickets by examining them and posting actionable comments. Supports multi-repo setups where multiple repositories share a single Jira project:
-
-1. Fetches untriaged tickets via JQL using repo-scoped labels (`claude-triaged-<repo-name>`, e.g., `claude-triaged-frontend-v2`). Each repo filters by its own label so every repo triages independently
-2. **Relevance Gating**: Searches the local codebase for code related to the ticket. If no relevant code is found, adds the repo-scoped label and skips -- no noise posted to the ticket
-3. **Cross-repo Awareness**: Reads existing comments on the ticket before posting. If another repo already posted triage findings, only adds supplementary findings from this repo's perspective. All comments are prefixed with the repo name (e.g., `*[frontend-v2] Ambiguity detected*`)
-4. **Ambiguity Detection**: Flags vague language, untestable criteria, undefined terms, and missing scope. Posts a comment per ambiguity with a suggested clarifying question
-5. **Edge Case Analysis**: Searches the codebase for related files, checks git history, and identifies boundary conditions, error handling gaps, and integration risks. Posts a consolidated comment referencing only files in this repo
-6. **Verification Methodology**: For each acceptance criterion, specifies a concrete verification method scoped to what this repo can test (e.g., frontend suggests Playwright tests, backend suggests API curl commands). Posts a structured table comment
-7. Labels the ticket with the repo-scoped label (`claude-triaged-<repo-name>`) so it is not reprocessed by this repo
-
-**Manual dispatch inputs**:
-- `ticket_key`: Triage a specific ticket by key (e.g., `PROJ-123`)
-- `ticket_count`: Number of tickets to process in batch mode (default: 5)
-
-This workflow is read-only — it does not modify code or create PRs. It only reads the codebase and posts Jira comments.
-
-**How to activate**:
-
-1. Add the secrets in **Settings** > **Secrets and variables** > **Actions** > **Secrets**:
-
-   | Secret | Description | How to get |
-   |--------|-------------|------------|
-   | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for Claude Code | See `CLAUDE_CODE_OAUTH_TOKEN` in the Core Secrets section below |
-   | `JIRA_API_TOKEN` | API token from Atlassian | [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) |
-
-2. Add repository variables in **Settings** > **Secrets and variables** > **Actions** > **Variables**:
-
-   | Variable | Description | Example |
-   |----------|-------------|---------|
-   | `JIRA_BASE_URL` | Jira instance base URL | `https://company.atlassian.net` |
-   | `JIRA_USER_EMAIL` | Email associated with the API token | `user@company.com` |
-   | `JIRA_PROJECT_KEY` | Jira project key for ticket queries | `PROJ` |
-
-3. The workflow auto-enables once all three variables and both secrets are set. No feature flag needed.
-
 ### Auto-update PR Branches (`auto-update-pr-branches.yml`)
 
 **Triggers**: Push to `main`, `staging`, or `dev`
@@ -649,12 +509,6 @@ with:
 │   ├── release.yml                         # Reusable release workflow
 │   ├── lighthouse.yml                      # Web performance
 │   ├── load-test.yml                       # k6 load testing
-│   ├── claude.yml                              # AI assistance
-│   ├── claude-ci-auto-fix.yml                  # Auto-fix CI failures
-│   ├── claude-code-review-response.yml         # Respond to CodeRabbit reviews
-│   ├── claude-nightly-test-improvement.yml     # Nightly test quality
-│   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
-│   ├── claude-nightly-code-complexity.yml      # Nightly code complexity
 │   ├── auto-update-pr-branches.yml            # Auto-update PRs from base
 │   └── .env.example                            # Secrets template
 ├── k6/
@@ -678,9 +532,6 @@ Check `EXPO_TOKEN` is valid and has necessary permissions.
 
 ### Deployment fails on protected branches
 Add `DEPLOY_KEY` (SSH deploy key) for pushing version bumps.
-
-### Claude doesn't respond
-Ensure `CLAUDE_CODE_OAUTH_TOKEN` is set and the comment includes `@claude`.
 
 ## Related Documentation
 
