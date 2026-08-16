@@ -839,7 +839,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "c7dea3e5ad59da3b00993318c2f7f7351693d00207a2fbafb5f00f60fb47bf69",
+      "dc956b970c7453bbb4f71860b7bfb427f1b4b4d069598fe09f8dc6dd9bd39d60",
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/credential-substrate-precedence.md":
@@ -1007,9 +1007,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "9d06590e6b99cce33e5fb10bd5b9e7515318133e3635368ef47162abc123bdfa",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "3202e5ce094c499c401a0fe554ea02fb75f08ae9d0d7f3fca30b1df338b3fc40",
+      "38e0979476908ba18bf853d79a20d016365192286b696e67d1252f54ae791dfe",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "3919c6161900916090ee315df322938efc5b53bdfabf78efe8683432cf8ae488",
+      "987d33c7dafd43d0c45107ea2fbf51958676365af53f86b89c8b90682cf0f204",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1343,7 +1343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
       "50e79afcfabf16d36273325aabb58571c9a0e1cafe7a2865e2da10c6d46571eb",
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
-      "c32e6a4e3115ca32b7d335e90d0a73b243c6c631a2d192568423be0cb5944e84",
+      "d81ab8de394d515f33232fff4f16dd3d1027f7436652a6895600bbdf18ad140c",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
       "eb78838e1f121a7a619a841333b1adfce124dad8881853d14107512ead09d30f",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
@@ -2058,16 +2058,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
       "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
-    "rails/create-only/.github/workflows/claude-code-review-response.yml":
-      "def0d5fdbb3415f1531dcadfca9c357c637cf090d3a86017ae45cf94dba50087",
-    "rails/create-only/.github/workflows/claude-nightly-code-complexity.yml":
-      "1dd8e4a790321d2de9aceb0d612bfa074ec4bddc604dac8d4146845cbf4526a1",
-    "rails/create-only/.github/workflows/claude-nightly-test-coverage.yml":
-      "e136b4a96932a38d6ae6ff170b0caebef8277a33d49741162f554dd3457d524f",
-    "rails/create-only/.github/workflows/claude-nightly-test-improvement.yml":
-      "7af881e5e79336d7cf3424c1031c0e3629de1ef8fdf9967f91b274975f5bd57e",
-    "rails/create-only/.github/workflows/claude-sync-down-branches.yml":
-      "e63fa223b7f324c340635940c841d4872531d025129cbbddc1b7e55a89745c5e",
     "rails/create-only/.github/workflows/deploy.yml":
       "0c00b70e3ff0213f4ce80ce80123e7edeb6e0896aaa13e806d14693f6fcf6320",
     "rails/create-only/.mise.toml":
@@ -2099,7 +2089,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/spec/spec_helper.rb":
       "56ca48d2519ece7a856fe7941ea8acf2d9f1d53aee03321f230300907dc20712",
     "rails/deletions.json":
-      "eeadf9a2b1677913199a235091a8d6190477f3e2a5fd598d62cf658cb59a8099",
+      "04306ae2e949d715b7bb1e84145d6662395e4266a339590c30a0c2b0a037c0fb",
     "rails/github-rulesets/quality-checks.json":
       "0ec1c366589edbaa6b8f45f940cef3ada5ed7b1a956d98d3fa6034b0f78fbc7c",
     "rails/merge/.claude/settings.json":
@@ -2346,22 +2336,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4a379369c1dedd1751a24508cb1146e39beca6b92f4d31e0d32cb2e03eafe67e",
     "typescript/create-only/.github/workflows/ci.yml":
       "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
-    "typescript/create-only/.github/workflows/claude-ci-auto-fix.yml":
-      "17e99a1b0b5afefa0f374c5ffd614bf35ee0f6dd68f21b1c97446a03d9cddd04",
-    "typescript/create-only/.github/workflows/claude-code-review-response.yml":
-      "55853fbc3a072edec4bc3699cd45287b801e5299fbf33780a6f1ae8072a204ee",
-    "typescript/create-only/.github/workflows/claude-deploy-auto-fix.yml":
-      "5d1a569cbb13abf39f8303a7102ad78850d487a9c6be53026df47119714f4332",
-    "typescript/create-only/.github/workflows/claude-nightly-code-complexity.yml":
-      "813d409a4f431d46edf5a2937012dae83a65f5c0bb6c5008de3dec53aa674fdf",
-    "typescript/create-only/.github/workflows/claude-nightly-test-coverage.yml":
-      "82fb935e0793f92727aac40f056e52c9996788d6329a2bbcc41837a72be28619",
-    "typescript/create-only/.github/workflows/claude-nightly-test-improvement.yml":
-      "4ea64d78865e00dc575cfc62fc30ff53ca9e6c0b3fc32f45927781a0968d2095",
-    "typescript/create-only/.github/workflows/claude-sync-down-branches.yml":
-      "e63fa223b7f324c340635940c841d4872531d025129cbbddc1b7e55a89745c5e",
-    "typescript/create-only/.github/workflows/claude.yml":
-      "9db35bb1b803679284708a18e2eb5a9c8a33b55f93629c3ed2ab11217d76caed",
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
       "c1a828f42c8ea6c3108f82b081d8a0999ae2c8ac9b556e7ebb2053b353838ce0",
     "typescript/create-only/.gitleaksignore":
@@ -2387,7 +2361,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/deletions.json":
-      "fe5f44b7a02148eacc429782e948b1c4aee302d1d56524cc16adec5489bbc308",
+      "897d0b445457f0caca3fcbe601a4df9e263a207bd369fb4795bcfff33fd7a03e",
     "typescript/github-rulesets/quality-checks.json":
       "cb544af6fb2e3c97b4eb59cca00a30e3dcb566b000d0496c01261f958b3c8295",
     "typescript/merge/.claude/settings.json":
@@ -2488,14 +2462,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/auto-update-pr-branches.yml": true,
     ".github/workflows/build.yml": true,
     ".github/workflows/ci.yml": true,
-    ".github/workflows/claude-ci-auto-fix.yml": true,
-    ".github/workflows/claude-code-review-response.yml": true,
-    ".github/workflows/claude-deploy-auto-fix.yml": true,
-    ".github/workflows/claude-nightly-code-complexity.yml": true,
-    ".github/workflows/claude-nightly-jira-triage.yml": true,
-    ".github/workflows/claude-nightly-test-coverage.yml": true,
-    ".github/workflows/claude-nightly-test-improvement.yml": true,
-    ".github/workflows/claude.yml": true,
     ".github/workflows/create-github-issue-on-failure.yml": true,
     ".github/workflows/create-issue-on-failure.yml": true,
     ".github/workflows/create-jira-issue-on-failure.yml": true,
@@ -2517,18 +2483,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/release.yml": true,
     ".github/workflows/reusable-auto-update-pr-branches-dispatch.yml": true,
     ".github/workflows/reusable-auto-update-pr-branches.yml": true,
-    ".github/workflows/reusable-claude-ci-auto-fix.yml": true,
-    ".github/workflows/reusable-claude-code-review-response.yml": true,
-    ".github/workflows/reusable-claude-deploy-auto-fix.yml": true,
-    ".github/workflows/reusable-claude-nightly-code-complexity-rails.yml": true,
-    ".github/workflows/reusable-claude-nightly-code-complexity.yml": true,
-    ".github/workflows/reusable-claude-nightly-jira-triage.yml": true,
-    ".github/workflows/reusable-claude-nightly-test-coverage-rails.yml": true,
-    ".github/workflows/reusable-claude-nightly-test-coverage.yml": true,
-    ".github/workflows/reusable-claude-nightly-test-improvement-rails.yml": true,
-    ".github/workflows/reusable-claude-nightly-test-improvement.yml": true,
-    ".github/workflows/reusable-claude-sync-down-branches.yml": true,
-    ".github/workflows/reusable-claude.yml": true,
     ".github/workflows/security-floors.yml": true,
     ".github/workflows/zap-baseline-expo.yml": true,
     ".github/workflows/zap-baseline-nestjs.yml": true,
@@ -8154,11 +8108,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": true,
     "rails/copy-overwrite/sgconfig.yml": true,
     "rails/create-only/.github/workflows/ci.yml": true,
-    "rails/create-only/.github/workflows/claude-code-review-response.yml": true,
-    "rails/create-only/.github/workflows/claude-nightly-code-complexity.yml": true,
-    "rails/create-only/.github/workflows/claude-nightly-test-coverage.yml": true,
-    "rails/create-only/.github/workflows/claude-nightly-test-improvement.yml": true,
-    "rails/create-only/.github/workflows/claude-sync-down-branches.yml": true,
     "rails/create-only/.github/workflows/deploy.yml": true,
     "rails/create-only/.mise.toml": true,
     "rails/create-only/.mutant.yml": true,
@@ -8679,7 +8628,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/verification-gate-harness.ts": true,
     "tests/helpers/workflow-job-graph.ts": true,
     "tests/helpers/workflow-test-utils.ts": true,
-    "tests/integration/autofix-ownership-guards.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
@@ -8875,7 +8823,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
-    "tests/unit/config/sync-down-single-env.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,
@@ -9479,14 +9426,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml": true,
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml": true,
     "typescript/create-only/.github/workflows/ci.yml": true,
-    "typescript/create-only/.github/workflows/claude-ci-auto-fix.yml": true,
-    "typescript/create-only/.github/workflows/claude-code-review-response.yml": true,
-    "typescript/create-only/.github/workflows/claude-deploy-auto-fix.yml": true,
-    "typescript/create-only/.github/workflows/claude-nightly-code-complexity.yml": true,
-    "typescript/create-only/.github/workflows/claude-nightly-test-coverage.yml": true,
-    "typescript/create-only/.github/workflows/claude-nightly-test-improvement.yml": true,
-    "typescript/create-only/.github/workflows/claude-sync-down-branches.yml": true,
-    "typescript/create-only/.github/workflows/claude.yml": true,
     "typescript/create-only/.github/workflows/required-checks-drift.yml": true,
     "typescript/create-only/.gitleaksignore": true,
     "typescript/create-only/audit.ignore.local.json": true,

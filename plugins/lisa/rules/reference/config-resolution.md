@@ -611,7 +611,7 @@ cannot: the relative rank of environments. `deploy.branches` is an unordered map
 so without `deploy.order` the rank of a custom env name (`preprod`, `qa`, …) is
 unknowable.
 
-The back-sync GitHub Action (`reusable-claude-sync-down-branches.yml`) consumes
+The back-sync flow (`/lisa:sync-down`; the GitHub Action was removed) consumes
 `deploy.order` to derive its source → target chain. It walks the order from the
 **highest** environment **down**, mapping each env's branch to the next-lower
 env's branch:

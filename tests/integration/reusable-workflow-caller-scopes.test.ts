@@ -119,82 +119,6 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
     "id-token": "write",
     "pull-requests": "write",
   },
-  "reusable-claude-ci-auto-fix.yml": {
-    actions: "read",
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-code-review-response.yml": {
-    actions: "write",
-    checks: "write",
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-deploy-auto-fix.yml": {
-    actions: "read",
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-nightly-code-complexity-rails.yml": {
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-nightly-code-complexity.yml": {
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-nightly-jira-triage.yml": {
-    contents: "read",
-    "id-token": "write",
-  },
-  "reusable-claude-nightly-test-coverage-rails.yml": {
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-nightly-test-coverage.yml": {
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-nightly-test-improvement-rails.yml": {
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-nightly-test-improvement.yml": {
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude-sync-down-branches.yml": {
-    actions: "read",
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
-  "reusable-claude.yml": {
-    actions: "read",
-    contents: "write",
-    "id-token": "write",
-    issues: "write",
-    "pull-requests": "write",
-  },
   "zap-baseline-expo.yml": {},
   "zap-baseline-nestjs.yml": {},
 };
@@ -208,7 +132,13 @@ describe("reusable workflows never gain a declared permission scope", () => {
     // would make them all pass by comparing nothing to nothing. A green run
     // that measured zero workflows is the failure mode this suite exists to
     // prevent, so the floor is asserted before anything is derived.
-    expect(Object.keys(live).length).toBeGreaterThanOrEqual(30);
+    //
+    // Lowered from 30 to 20 when the twelve Claude-specific reusables were
+    // removed. That is a real population change, not a weakened guard: the
+    // floor tracks the actual count so it keeps the same distance from zero.
+    // It may only move again the same way — because workflows genuinely went
+    // away — never to make a failing discovery pass.
+    expect(Object.keys(live).length).toBeGreaterThanOrEqual(20);
   });
 
   it("declares exactly the scopes in the frozen baseline", () => {

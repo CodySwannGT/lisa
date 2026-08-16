@@ -1,6 +1,6 @@
 ---
 name: lisa-sync-down
-description: This skill should be used to run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g. hotfixes) from a higher environment to every lower one. Given a source environment name or branch (e.g. `production`), it derives the source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches` (the same chain the `claude-sync-down-branches.yml` GitHub Action uses on PR merge), then for each downward hop creates a sync branch, merges, resolves conflicts, opens or updates a PR, and enables auto-merge. Runnable by a developer locally or by GitHub Actions.
+description: This skill should be used to run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g. hotfixes) from a higher environment to every lower one. Given a source environment name or branch (e.g. `production`), it derives the source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches` (derived from the same config the removed back-sync GitHub Action used), then for each downward hop creates a sync branch, merges, resolves conflicts, opens or updates a PR, and enables auto-merge. Runnable by a developer locally or by GitHub Actions.
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"]
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"]
 
 Back-sync a source environment branch DOWN the deploy chain, one hop at a time,
 all the way to the lowest environment. This is the on-demand, manual-or-CI
-counterpart to the `claude-sync-down-branches.yml` GitHub Action, which runs the
+successor to the `claude-sync-down-branches.yml` GitHub Action, which has been removed. That Action ran the
 same logic automatically when a PR is merged. Both derive their chain from the
 same config, so a manual run and an automatic run behave identically.
 
@@ -164,8 +164,15 @@ needs human conflict resolution.
 
 ## Relationship to the GitHub Action
 
-This skill and `reusable-claude-sync-down-branches.yml` are deliberately
-equivalent: same config-derived chain, same merge/conflict strategy, same
-deterministic sync-branch naming, same auto-merge behavior. The Action is the
-automatic (PR-merged) trigger; this skill is the manual/dispatch trigger. Keep
-their chain-derivation and conflict-resolution rules in sync when either changes.
+There is no longer a GitHub Action counterpart. `reusable-claude-sync-down-branches.yml`
+and its `claude-sync-down-branches.yml` caller were removed: they ran Claude
+specifically, with no equivalent for any other supported agent, and Routines and
+Automations now provide a vendor-neutral substrate for the same work.
+
+**This skill is therefore the only back-sync implementation**, and the rules it
+states — config-derived chain, merge and conflict strategy, deterministic
+sync-branch naming, auto-merge behaviour — are no longer a copy to be kept in
+step with anything. They are the definition.
+
+The automatic PR-merged trigger the Action provided has not yet been rebuilt.
+Until it is, back-sync runs on demand through this skill.
