@@ -28,6 +28,12 @@ let target: string;
 /** The reusable used for ordinary (non merge-gate) cases. */
 const QUALITY = "quality.yml";
 
+/** Merge-gate reusable checked with immutable refs. */
+const NIGHTLY_E2E_HEALTH = "nightly-e2e-health.yml";
+
+/** Merge-gate reusable checked with immutable refs. */
+const NIGHTLY_E2E_REPORT = "nightly-e2e-report.yml";
+
 /**
  * Write a workflow file into the fixture project.
  * @param name - File name under .github/workflows
@@ -84,18 +90,20 @@ describe("the pin that actually shipped", () => {
     // nightly-e2e-health produces a REQUIRED merge-gate context, and the thing
     // deciding whether code may merge must not change between two runs of the
     // same pull request. `@main` is the defect there, not the pin.
+    await workflow(NIGHTLY_E2E_HEALTH, caller(NIGHTLY_E2E_HEALTH, "v2.345.1"));
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
+  });
+
+  it("accepts a full commit SHA for a merge-gate caller", async () => {
     await workflow(
-      "nightly-e2e-health.yml",
-      caller("nightly-e2e-health.yml", "v2.345.1")
+      NIGHTLY_E2E_HEALTH,
+      caller(NIGHTLY_E2E_HEALTH, "a".repeat(40))
     );
     expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
   });
 
   it("FAILS a merge-gate caller that tracks @main", async () => {
-    await workflow(
-      "nightly-e2e-report.yml",
-      caller("nightly-e2e-report.yml", "main")
-    );
+    await workflow(NIGHTLY_E2E_REPORT, caller(NIGHTLY_E2E_REPORT, "main"));
     const result = await checkReusableWorkflowRefs(target);
     expect(result.status).toBe("fail");
     expect(result.detail).toMatch(/merge-gate/i);
@@ -143,6 +151,14 @@ describe("what it deliberately leaves alone", () => {
     await workflow(
       "ci.yml",
       "jobs:\n  a:\n    uses: ./.github/workflows/x.yml\n"
+    );
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
+  });
+
+  it("ignores Lisa workflow references in YAML comments", async () => {
+    await workflow(
+      "ci.yml",
+      "jobs:\n  quality:\n    # uses: CodySwannGT/lisa/.github/workflows/quality.yml@v1.2.3\n    uses: CodySwannGT/lisa/.github/workflows/quality.yml@main\n"
     );
     expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
   });

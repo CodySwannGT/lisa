@@ -63,9 +63,9 @@ const MERGE_GATE_REUSABLES = new Set([
 /** A ref that cannot move under a running pull request. */
 const IMMUTABLE_REF = /^(v\d+\.\d+\.\d+|[0-9a-f]{40})$/;
 
-/** Job-level `uses:` pointing at a Lisa reusable workflow, capturing the ref. */
+/** Job-level `uses:` mapping pointing at a Lisa reusable workflow, capturing the ref. */
 const LISA_REUSABLE_USES =
-  /uses:\s*["']?CodySwannGT\/lisa\/\.github\/workflows\/([A-Za-z0-9._-]+\.ya?ml)@([^\s"']+)/g;
+  /^[ \t]*uses:\s*["']?CodySwannGT\/lisa\/\.github\/workflows\/([A-Za-z0-9._-]+\.ya?ml)@([^\s"']+)/gm;
 
 /** One caller pointing at the wrong kind of ref for its role. */
 export interface RefFinding {
