@@ -182,7 +182,7 @@ describe("planDriftTickets", () => {
     expect(other.file.map(ticket => ticket.check)).toEqual([CHECK_A]);
   });
 
-  it("accounts for every drifting finding exactly once", () => {
+  it("accounts for every unique drifting check exactly once", () => {
     // Totality: a caller reporting "nothing to do" must be asserting it looked
     // at all of them, not that its filter happened to come out empty.
     const findings = [
