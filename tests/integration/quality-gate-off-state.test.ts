@@ -23,6 +23,7 @@ import { describe, expect, it } from "vitest";
 import { resolveMoment } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   CONVERTED,
+  DECLARED_OFF,
   NOT_CONFIGURED,
   resolveStep,
   stepNamed,
@@ -110,6 +111,12 @@ describe("an off gate reaches neither branch", () => {
       for (const condition of conditions) {
         expect(condition).not.toContain("configured != 'true'");
         expect(condition).not.toContain("configured != 'false'");
+        // The negative forms above are not enough on their own: a condition
+        // written `configured == 'false' || configured == 'off'` satisfies
+        // them and still runs work for a gate the project disabled. Nothing
+        // may execute BECAUSE the gate is off.
+        expect(condition).not.toContain(DECLARED_OFF);
+        expect(condition).not.toContain("configured == 'off'");
       }
     }
   );
