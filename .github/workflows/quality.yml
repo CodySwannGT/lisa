@@ -2799,13 +2799,13 @@ jobs:
         # declared this gate has no required context emitted for it by
         # `contextsFor`, so nothing is claiming the property and nothing is
         # being reported as proved. A project that HAS declared it takes the
-        # branch above, where a missing `environment-reset:verify` script fails the job —
+        # branch above, where a missing `environment:reset:verify` script fails the job —
         # measured, not assumed: a required gate whose npm script is absent
         # exits 1.
         if: steps.gate.outputs.configured == 'false'
         run: |
           echo "No environment-reset gate declared in .lisa.config.json, so no environment reset guard was verified."
-          echo "Declare gates.environment-reset once this project has a environment-reset:verify adapter. A level of \"off\" counts as a decision; silence does not."
+          echo "Declare gates.environment-reset once this project has an environment:reset:verify adapter. A level of \"off\" counts as a decision; silence does not."
         working-directory: ${{ inputs.working_directory || '.' }}
 
   environment_reseed:
@@ -2890,13 +2890,13 @@ jobs:
         # declared this gate has no required context emitted for it by
         # `contextsFor`, so nothing is claiming the property and nothing is
         # being reported as proved. A project that HAS declared it takes the
-        # branch above, where a missing `environment-reseed:verify` script fails the job —
+        # branch above, where a missing `environment:reseed:verify` script fails the job —
         # measured, not assumed: a required gate whose npm script is absent
         # exits 1.
         if: steps.gate.outputs.configured == 'false'
         run: |
           echo "No environment-reseed gate declared in .lisa.config.json, so no environment reseed guard was verified."
-          echo "Declare gates.environment-reseed once this project has a environment-reseed:verify adapter. A level of \"off\" counts as a decision; silence does not."
+          echo "Declare gates.environment-reseed once this project has an environment:reseed:verify adapter. A level of \"off\" counts as a decision; silence does not."
         working-directory: ${{ inputs.working_directory || '.' }}
 
   dead_code:
