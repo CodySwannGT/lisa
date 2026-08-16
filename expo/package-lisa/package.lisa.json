@@ -51,15 +51,16 @@
       "eas:publish:staging": "eas update --channel staging --environment preview --non-interactive",
       "eas:publish:production": "eas update --channel production --environment production --non-interactive",
       "security:zap": "bash scripts/zap-baseline.sh",
-      "test": "NODE_ENV=test jest --passWithNoTests",
-      "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-      "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+      "test": "NODE_ENV=test jest",
+      "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:cov": "NODE_ENV=test jest --coverage",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "NODE_ENV=test jest --watch",
       "lint": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
-      "start:atlas": "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start"
+      "start:atlas": "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start",
+      "test:node": "node scripts/lisa-test-node.mjs"
     },
     "dependencies": {
       "@apollo/client": "^3.10.8",

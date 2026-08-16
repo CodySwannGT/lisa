@@ -41,12 +41,13 @@
       "security:zap": "bash scripts/zap-baseline.sh",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration": "vitest run '.integration.' --passWithNoTests",
+      "test:integration": "vitest run '.integration.'",
       "test:cov": "vitest run --coverage",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "vitest",
       "lint": "oxlint && eslint . --quiet",
-      "lint:fix": "oxlint --fix && eslint . --fix"
+      "lint:fix": "oxlint --fix && eslint . --fix",
+      "test:node": "node scripts/lisa-test-node.mjs"
     },
     "dependencies": {
       "@apollo/server": "^5.4.0",
