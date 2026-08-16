@@ -87,10 +87,29 @@ describe("quality.yml gate façade", () => {
     );
 
     it.each(CONVERTED)(
-      "$job falls back when scripts/lisa-gates.mjs is absent entirely",
+      "$job falls back only when NO resolver exists anywhere",
       ({ job }) => {
-        expect(resolveStep(job)?.run).toContain(
-          'if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi'
+        // It previously gave up the moment the COPIED resolver was missing,
+        // which made every declaration unreadable for a project carrying only
+        // the installed package — the direction the copies are being retired
+        // in. So `off` stopped working precisely where it will soon be the
+        // only shape.
+        const body = resolveStep(job)?.run ?? "";
+        expect(body).toContain(
+          "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs"
+        );
+        expect(body).toContain(
+          'if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi'
+        );
+      }
+    );
+
+    it.each(CONVERTED)(
+      "$job prefers the installed package over a copy in the project",
+      ({ job }) => {
+        const body = resolveStep(job)?.run ?? "";
+        expect(body.indexOf("node_modules/@codyswann/lisa")).toBeLessThan(
+          body.indexOf('"scripts/lisa-gates.mjs"')
         );
       }
     );

@@ -489,8 +489,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -589,8 +593,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -670,8 +678,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -1123,8 +1135,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -1403,8 +1419,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -2014,8 +2034,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -2095,8 +2119,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -2657,8 +2685,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -2764,8 +2796,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -2855,8 +2891,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -2946,8 +2986,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
@@ -3038,8 +3082,12 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
