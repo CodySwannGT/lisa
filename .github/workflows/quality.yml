@@ -82,7 +82,7 @@ on:
         # do what you asked. `scripts/check-skipped-required-checks.mjs` reports
         # exactly this as `whitespace_in_skip_token`, and the
         # `🔒 Skipped Required Checks` job below runs it on every pull request.
-        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,test_node_suites,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -2490,6 +2490,103 @@ jobs:
             exit 0
           fi
           node scripts/lisa-work-item.mjs validate-pr
+
+  test_node_suites:
+    permissions:
+      contents: read
+    name: 🧪 Run .mjs Suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test_node_suites,') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the mjs-suites gate
+        id: gate
+        env:
+          GATE_ID: test-node-suites
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Run the mjs-suites gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split, as on every other façade job.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Run .mjs suites (lisa-test-node)
+        # DELIBERATE DIVERGENCE from the façade's fallback contract, which
+        # elsewhere reproduces "today's behavior" byte for byte for an
+        # unmigrated project.
+        #
+        # For this gate today's behavior is NOTHING — that is the defect. Lisa
+        # ships nine `.mjs` guards to every project and four more to expo
+        # consumers, and every test config Lisa ships collects only `.ts`/`.tsx`,
+        # so a consumer who writes a test beside one of those guards gets a
+        # suite that never runs and a green build saying so. Measured downstream:
+        # 37 such suites, 13 enforced by nothing, 229 stranded test cases.
+        #
+        # Preserving "nothing" would make the fix opt-in, which is the half
+        # measure this exists to avoid. So the fallback RUNS the shipped script.
+        # `test:node` is force-installed by the package templates, so it is
+        # present in any project that has applied Lisa.
+        #
+        # The script is loud about collecting zero: `node --test` exits 0 on a
+        # glob that matches nothing, so a project with genuinely no `.mjs`
+        # suites passes — but says so in the transcript rather than silently.
+        if: steps.gate.outputs.configured != 'true'
+        run: |
+          if [ -f scripts/lisa-test-node.mjs ]; then
+            node scripts/lisa-test-node.mjs
+          else
+            echo "::warning::scripts/lisa-test-node.mjs is absent — re-apply Lisa to install it. No .mjs suites were run."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   dead_code:
     permissions:

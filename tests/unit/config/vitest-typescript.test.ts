@@ -38,10 +38,18 @@ describe("vitest.typescript", () => {
       expect(config.test?.testTimeout).toBe(10000);
     });
 
-    it("passes with no tests so source-less repos do not fail the gate", () => {
+    it("does NOT pass with no tests — an empty collection must be red", () => {
+      // Inverted deliberately. This flag turned "collected nothing" into a
+      // green run, which is how seven shipped configs could restrict collection
+      // to .ts/.tsx while .mjs suites went unrun and unnoticed: the narrow
+      // include produced empty collections and this made that comfortable.
+      //
+      // A project that genuinely has no tests for a gate now declares that gate
+      // `off` in .lisa.config.json — which is visible in a diff and drops the
+      // required context, instead of vacuously satisfying it.
       const config = getTypescriptVitestConfig();
 
-      expect(config.test?.passWithNoTests).toBe(true);
+      expect(config.test?.passWithNoTests).toBeUndefined();
     });
 
     it("uses v8 coverage provider", () => {

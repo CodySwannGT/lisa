@@ -14,7 +14,8 @@
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "sg:test": "ast-grep test",
-      "prepare": "husky install || true"
+      "prepare": "husky install || true",
+      "test:node": "node scripts/lisa-test-node.mjs"
     },
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",
