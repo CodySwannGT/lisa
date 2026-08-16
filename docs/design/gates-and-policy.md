@@ -10,7 +10,7 @@ Tracking issue: CodySwannGT/lisa#2579.
 
 Every decision below is downstream of one failure mode: **a check reporting
 satisfied without having proved anything.** It has appeared in this repository in
-at least six distinct forms, each found only after it had already let something
+at least seven distinct forms, each found only after it had already let something
 through:
 
 | form | evidence |
@@ -18,8 +18,9 @@ through:
 | required-and-skipped | GitHub counts a SKIPPED required check as SATISFIED, so a job named in `skip_jobs` reports green having run zero steps |
 | required-and-hollow | a required `CodeRabbit` context posted `success` with description `Review rate limited`, having reviewed nothing, on two security-relevant PRs that merged (#2497) |
 | advisory-and-confusable | a not-required `🧪 Run Tests` beside the required `🧪 Run Unit Tests` merged red on two PRs (#2485) |
-| passing-with-no-work | `passWithNoTests: true` ships in five stack configs, so a unit-test gate can report green having run zero tests |
+| passing-with-no-work | `passWithNoTests: true` shipped in five stack configs AND as six `--passWithNoTests` CLI arguments in four package templates, which overrode the configs — so a unit-test gate reported green having run zero tests (removed from both channels, #2603) |
 | declared-but-uncallable | `secrets.require` was documented as a startup assertion whose only caller was a bash line inside a SKILL.md |
+| enforced-off-the-path | 23 of 37 `.test.mjs` suites downstream were wired only into `.husky/pre-push.local` (measured); a pre-push hook cannot run where no local push happens — auto-merge, a merge performed in the UI, a change committed CI-side — so a pass/fail guard would have called them protected. The count is measured; the non-firing is inferred from how git hooks work, not observed. (`[skip ci]` is the converse and does NOT belong here: the hook fires, CI does not — a gap in the other direction) |
 | verified-then-invalidated | gates ran alphabetically, so `artifact-freshness` proved the evidence manifest current and `code-style` then reformatted the sources it hashes — a PASSED verdict about a tree that was not the tree committed (#2590) |
 
 The rule that falls out, and the one to apply when a new case is ambiguous:
@@ -244,6 +245,33 @@ That rule earned itself before shipping: three contexts currently required on
 `main` — Security Scan, Work-Item Traceability, Plugin artifacts match source —
 produce no derived context, so a ruleset regenerated from config alone would
 have dropped them.
+
+## A template change lands on a schedule nobody chose
+
+Consumer `package.json` scripts are Lisa-managed through the `package-lisa`
+merge, and `bun install` runs `lisa apply` in the consumer repos. So a template
+edit does not reach a project when someone decides to take it — it reaches them
+at **the next arbitrary developer's or agent's install**, mid-session, to
+somebody who never read the pull request.
+
+That is fine when the change is additive. It is not fine when the change removes
+a tolerance, which is exactly the shape of "no backward compatibility" work:
+deleting `--passWithNoTests` from four package templates changes what a green
+build means, for four repositories, at an unpredictable moment.
+
+**So verify the blast radius is empty BEFORE merging, not after.** For #2603 that
+meant enumerating every consumer's integration-test collection and confirming
+none was empty — four repositories, measured, before the flag was removed. Had
+one been empty, the correct response was to stage its declaration first and
+merge second, not to merge and let it be discovered at install time.
+
+The residual risk is honest and worth naming: a consumer that appears *later*
+with an empty collection meets the change at install time with no warning. A
+measured-empty blast radius is a statement about the consumers that exist today,
+not a property of the change.
+
+Credit for the principle to the session that measured it rather than to this
+document.
 
 ## The interface is the evidence shape
 

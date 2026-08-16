@@ -19,7 +19,8 @@
       "stop": "harperdb stop",
       "status": "harperdb status",
       "reset": "harperdb stop || true; [ -n \"$HOME\" ] && rm -rf \"$HOME/.harperdb\" && bun run bootstrap && bun run seed && bun run verify",
-      "prepare": "husky install || true"
+      "prepare": "husky install || true",
+      "test:node": "node scripts/lisa-test-node.mjs"
     },
     "dependencies": {
       "harperdb": "^4.7.29"
