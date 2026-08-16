@@ -20,7 +20,13 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  realpathSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -495,7 +501,29 @@ async function main() {
   console.log(`recorded in ${LEDGER}; not polling — this process is done.`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Whether this module is the one node was asked to run.
+ *
+ * Both sides are realpath'd: a raw URL comparison answers "no" through a
+ * symlinked checkout, a git worktree, or a /tmp path on macOS, so the module
+ * loads, runs nothing and exits 0 — a silent no-op that reads as success.
+ *
+ * A local copy rather than an import: plugin payload scripts ship standalone,
+ * with no `lib/` sibling to import from once installed.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsScript(import.meta.url)) {
   // Awaited rather than called bare: one dispatch path is async, so a synchronous
   // try/catch would let a rejection escape as an unhandled rejection and exit 0 —
   // reporting dispatched work that was never accepted.
