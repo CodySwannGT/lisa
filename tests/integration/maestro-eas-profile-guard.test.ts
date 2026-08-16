@@ -65,8 +65,15 @@ describe("the guard resolves from the package, not a copied file", () => {
     expect(pkg).toBeLessThan(local === -1 ? Infinity : local);
   });
 
-  it("passes the caller's profile rather than assuming a name", () => {
-    expect(body).toContain("inputs.eas_profile");
+  it("passes the caller's profile through env, never into the script text", () => {
+    // A caller supplies this value, so `${{ }}` inside the run body would make
+    // it workflow SOURCE rather than an argument — shell metacharacters in a
+    // profile name would execute. Same reason the resolved gate command
+    // travels by env in quality.yml.
+    const step = steps[indexOf(GUARD)];
+    expect(step?.env?.EAS_PROFILE).toBe("${{ inputs.eas_profile }}");
+    expect(body).toContain('--profile="$EAS_PROFILE"');
+    expect(body).not.toContain("${{ inputs.eas_profile }}");
   });
 
   it("does not fail a project whose Lisa predates the guard", () => {

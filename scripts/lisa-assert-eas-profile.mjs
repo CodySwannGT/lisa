@@ -34,6 +34,8 @@
 
 import { existsSync, readFileSync } from "node:fs";
 
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
 /** Channel values that mean "no dedicated channel was chosen". */
 const DEFAULT_CHANNELS = new Set(["default"]);
 
@@ -200,6 +202,9 @@ export function main(argv) {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Realpath both sides rather than comparing URL strings: agents in this repo
+// run from git worktrees and /tmp on macOS, both symlinked, where a raw
+// comparison silently answers "no" and the CLI body never runs.
+if (invokedAsScript(import.meta.url)) {
   process.exit(main(process.argv.slice(2)));
 }

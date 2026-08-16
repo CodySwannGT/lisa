@@ -2187,7 +2187,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-assert-eas-profile.mjs":
-      "427592ff10bf90eb22599d5b55aa24529961f4fd619defbc380b868583de71b8",
+      "0e4143ed0569b7d5361d8d0f1b6ca0268d6189804dca11cf970121712d7b9577",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":

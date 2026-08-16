@@ -559,6 +559,12 @@ jobs:
         # silently stop receiving fixes. Absent (a project on an older Lisa),
         # the check is skipped rather than failing the build over its own
         # rollout.
+        env:
+          # Through `env:`, never interpolated into the run body. A caller
+          # supplies this, and `${{ }}` inside the script would make that value
+          # workflow SOURCE rather than an argument — the same reason the
+          # resolved gate command travels this way in quality.yml.
+          EAS_PROFILE: ${{ inputs.eas_profile }}
         run: |
           set -euo pipefail
           GUARD="node_modules/@codyswann/lisa/scripts/lisa-assert-eas-profile.mjs"
@@ -569,7 +575,7 @@ jobs:
             echo "::warning title=EAS profile unchecked::No lisa-assert-eas-profile.mjs found, so the build profile was not checked. Update @codyswann/lisa to get it."
             exit 0
           fi
-          node "$GUARD" --profile="${{ inputs.eas_profile }}"
+          node "$GUARD" --profile="$EAS_PROFILE"
 
       - name: 🔧 Setup EAS
         uses: expo/expo-github-action@v8
