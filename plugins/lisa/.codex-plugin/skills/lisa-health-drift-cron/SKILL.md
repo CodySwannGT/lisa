@@ -18,11 +18,11 @@ A nightly cron that refiles the same drift every night is worse than no cron at 
 
 ## Phase 1 — Run the health check headless
 
-```bash
-lisa health --json
-```
+Invoke **`/lisa-health`** and use the JSON it emits. Do not call the CLI directly and do not invent flags for it: `lisa health` takes `[path]`, `--prepare-agentic`, and `--agentic-evaluation`, and nothing else. There is no `--json` — the persisted result IS the command's stdout, and an unknown option makes commander exit non-zero, so a guessed flag turns the first phase of a scheduled run into a failure nobody is watching.
 
-Persisted to `.lisa/health/latest.json` by the CLI, as `/lisa:health` does. Do not reconstruct, merge, or summarize findings; the result is the input to Phase 2 verbatim.
+Routing through the skill also means the bounded harness-review step and its cleanup stay in one place rather than being re-described here and drifting.
+
+Do not reconstruct, merge, or summarize findings; the result is the input to Phase 2 verbatim.
 
 If the run itself fails, that is a **recovery-required** outcome. Report it and stop. Do not file a drift ticket about a health check that did not complete — a run that could not measure has not found drift, and saying otherwise is the same defect the health layer exists to catch.
 

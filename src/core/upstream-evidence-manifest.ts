@@ -1053,7 +1053,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "262f8a1bcfad4c5dd4456cfaaf1b71abf9697a0da588966e58ff491acd3c17e8",
     "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md":
-      "adbfa470e2c7d80b4dfd131761e21512c36b7f739e60c2e7682b90d358410190",
+      "2c0976dbf1e245654320259e56012f3357242ff67612a193fedb7bf94bb02737",
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
