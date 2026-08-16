@@ -20,7 +20,7 @@ through:
 | advisory-and-confusable | a not-required `🧪 Run Tests` beside the required `🧪 Run Unit Tests` merged red on two PRs (#2485) |
 | passing-with-no-work | `passWithNoTests: true` shipped in five stack configs AND as six `--passWithNoTests` CLI arguments in four package templates, which overrode the configs — so a unit-test gate reported green having run zero tests (removed from both channels, #2603) |
 | declared-but-uncallable | `secrets.require` was documented as a startup assertion whose only caller was a bash line inside a SKILL.md |
-| enforced-off-the-path | 23 of 37 `.test.mjs` suites downstream were wired only into `.husky/pre-push.local` (measured); a pre-push hook cannot run on the merge path — auto-merge, a UI merge, a CI-side change, a `[skip ci]` commit — so a pass/fail guard would have called them protected. The count is measured; the non-firing is inferred from how git hooks work, not observed |
+| enforced-off-the-path | 23 of 37 `.test.mjs` suites downstream were wired only into `.husky/pre-push.local` (measured); a pre-push hook cannot run where no local push happens — auto-merge, a merge performed in the UI, a change committed CI-side — so a pass/fail guard would have called them protected. The count is measured; the non-firing is inferred from how git hooks work, not observed. (`[skip ci]` is the converse and does NOT belong here: the hook fires, CI does not — a gap in the other direction) |
 | verified-then-invalidated | gates ran alphabetically, so `artifact-freshness` proved the evidence manifest current and `code-style` then reformatted the sources it hashes — a PASSED verdict about a tree that was not the tree committed (#2590) |
 
 The rule that falls out, and the one to apply when a new case is ambiguous:
