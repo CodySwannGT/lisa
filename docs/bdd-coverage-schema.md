@@ -6,7 +6,19 @@ a project owes; this document says what the shipped implementation emits, how it
 versions, and how a repo adopts it without creating a required check that passes by
 finding nothing.
 
-Shipped artifacts (copy-overwrite, so `lisa apply` replaces local edits):
+Shipped artifacts (`copy-overwrite`). All of these live under `scripts/`, and
+`isLisaOwnedTemplate` treats **the whole `scripts/` tree** as Lisa-owned — not
+just paths carrying a `lisa-` segment. So they are refreshed unprompted on
+apply, which is how a released fix to the gate reaches an installed project.
+
+An UNTOUCHED copy is refreshed. A copy you have edited is not: it classifies
+`host-modified`, and apply keeps yours, saying so — *"its contents match no Lisa
+release, so Lisa cannot tell whether it is out of date or deliberately stronger.
+Kept yours."* Measured, not inferred. Interactive `lisa apply .` answered yes,
+or `--refresh-templates`, still takes Lisa's copy over yours.
+
+That makes a local fix here worse than losable — it is *keepable*. It survives,
+stops receiving upstream fixes, and nothing fails. Fix these upstream:
 
 | Path | Role |
 |---|---|

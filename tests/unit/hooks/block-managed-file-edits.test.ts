@@ -210,18 +210,29 @@ describe("the refusal states the consequence that actually applies", () => {
     }
   }
 
-  it("tells a hash-tracked guard its edit is PRESERVED and forks silently", () => {
-    // The correction: apply does not delete these. It keeps them, which is why
-    // a fork goes unnoticed. Saying "your edit vanishes" here was simply false.
-    const text = refusalFor(MANAGED);
-    expect(text).toContain("PRESERVE your edit");
-    expect(text).not.toContain("REPLACES it");
-  });
+  // Measured by mutating four copy-overwrite files in a scratch project and
+  // running a real `lisa apply`: ALL FOUR survived, across ledger-tracked .mjs,
+  // untracked JSON, and untracked plain text. Summary: `Overwritten: 0 files`.
+  // copy-overwrite refreshes an unmodified copy; it does not replace an edited
+  // one. Two earlier versions of this guard claimed otherwise, so these tests
+  // pin the measured outcome — no refusal may tell a reader their edit is lost.
+  const LOSS_CLAIMS = ["REPLACES it", "vanishes", "replaced wholesale"];
 
-  it("tells an untracked template its edit is REPLACED wholesale", () => {
-    const text = refusalFor(".lintstagedrc.json");
-    expect(text).toContain("REPLACES it");
-    expect(text).not.toContain("PRESERVE your edit");
+  it.each([MANAGED, ".lintstagedrc.json"])(
+    "never tells %s that its edit will be lost",
+    target => {
+      const text = refusalFor(target);
+      for (const claim of LOSS_CLAIMS) expect(text).not.toContain(claim);
+      expect(text).toContain("KEEP your edit");
+      expect(text).toContain("FORKS");
+    }
+  );
+
+  it("quotes the provenance verdict a hash-tracked guard actually gets", () => {
+    // The distinction that survives is the MESSAGE, not the outcome: tracked
+    // files get a verdict naming the fork, untracked ones a bare warning.
+    expect(refusalFor(MANAGED)).toContain("Kept yours");
+    expect(refusalFor(".lintstagedrc.json")).toContain("Out of date");
   });
 
   it("steers a hash-tracked fork AWAY from .lisaignore", () => {

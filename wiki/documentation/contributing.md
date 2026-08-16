@@ -63,7 +63,7 @@ lisa/
 ├── tests/                  # Test suite
 │   └── lisa.bats          # Bats tests for lisa.sh
 ├── all/                    # Configs for all projects
-│   ├── copy-overwrite/    # Files that replace existing
+│   ├── copy-overwrite/    # Lisa may replace; a default apply spares host edits
 │   ├── copy-contents/     # Files that append content
 │   ├── create-only/       # Files created only if missing
 │   └── merge/             # JSON files to deep merge

@@ -540,12 +540,25 @@ Each project type directory contains these subdirectories:
 The `copy-overwrite` trees hold two populations, and an apply that cannot prompt
 (the postinstall one a version bump runs) treats them differently:
 
-- **Lisa-owned artifacts** — anything with a `lisa-` path segment, such as
-  `scripts/lisa-hooks/*` and `scripts/lisa-enforcement-fallback.sh`. Their
+- **Lisa-owned artifacts** — per `isLisaOwnedTemplate`, **the entire `scripts/`
+  tree** plus anything carrying a `lisa-` path segment anywhere else. The
+  `lisa-` prefix is the more visible half of that rule and the easier one to
+  mistake for the whole of it: `scripts/bdd/render.mjs` has no `lisa-` segment
+  and is still Lisa-owned. Their
   content *is* the enforcement, and Lisa's own hooks invoke them by exact path,
   so they are refreshed on every apply, backed up first. This is how a released
   fix to a guard reaches an already-installed project; before it existed, such
   fixes silently never shipped.
+
+  "Refreshed on every apply" means *when Lisa can prove the host copy is not
+  ahead* — `mayRefreshLisaOwned` refreshes an untouched copy or one matching an
+  older release, and holds back the two preserved verdicts. A copy edited into
+  something matching no release classifies `host-modified` and is **kept**, with
+  apply saying so: *"Lisa cannot tell whether it is out of date or deliberately
+  stronger. Kept yours."* One that declares extra coverage via a
+  `lisa-guard-capabilities:` line classifies `host-ahead` and is likewise kept.
+  So a local edit is never destroyed here either — it forks, and `lisa doctor`
+  reports the standoff until someone resolves it.
 - **Everything else** — `tsconfig.json`, `knip.json`, `eslint.config.ts` and
   friends, which projects legitimately customize. A non-interactive apply leaves
   those alone and reports them as `Out of date`. Take them with an interactive
@@ -862,7 +875,7 @@ Each project type directory can contain:
 
 | Subdirectory | Behavior |
 |-------------|----------|
-| `copy-overwrite/` | Files overwritten on every Lisa run |
+| `copy-overwrite/` | Lisa may replace the file — but never a host-edited one on a non-interactive apply ([who owns one](#who-owns-a-copy-overwrite-file)) |
 | `create-only/` | Files created only if absent |
 | `copy-contents/` | File contents merged |
 | `package-lisa/` | `package.lisa.json` for package.json governance |
