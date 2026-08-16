@@ -109,6 +109,21 @@ lisaignored() {
     pattern="${pattern%"${pattern##*[![:space:]]}"}"
     [ -n "$pattern" ] || continue
     case "$pattern" in \#*) continue ;; esac
+    # A leading `!` is not gitignore negation here. The real matcher passes
+    # patterns to minimatch, which negates by default, and it combines them with
+    # `.some()` — so a single `!scripts/a.mjs` line reports EVERY OTHER PATH as
+    # ignored. Measured:
+    #
+    #   patterns=["!scripts/a.mjs"]  path=scripts/a.mjs -> ignored=false
+    #   patterns=["!scripts/a.mjs"]  path=scripts/b.mjs -> ignored=TRUE
+    #
+    # Reproducing that faithfully would mean disabling this guard on a typo.
+    # Reproducing the intuitive gitignore reading would mean blocking files the
+    # matcher considers ignored. Both are wrong, so the file is treated as
+    # claimed and the write is allowed — the same direction this function errs
+    # everywhere else. Filed upstream; when the matcher stops negating, delete
+    # this branch rather than teaching it a second wrong answer.
+    case "$pattern" in !*) return 0 ;; esac
     case "$pattern" in
       */)
         case "$rel" in "${pattern%/}"/* | "${pattern%/}") return 0 ;; esac
