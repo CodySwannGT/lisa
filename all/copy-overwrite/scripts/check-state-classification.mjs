@@ -560,6 +560,37 @@ export function run(options = {}) {
     };
   }
 
+  // Parsed is not the same as shaped. `readJsonFile` proves only that the bytes
+  // were JSON, and `compareInventory` reads `inventory.entities` — so `null`
+  // throws a TypeError on property access and the CLI dies with a stack trace
+  // instead of emitting an `invalid` envelope, while an array or a string
+  // silently yields zero entities and every declared entity reads as
+  // unconfirmed. A wrong-shaped inventory must be reported as invalid, not
+  // mistaken for an empty one.
+  const inventoryValue = inventoryRead.value;
+  if (
+    inventoryValue === null ||
+    typeof inventoryValue !== "object" ||
+    Array.isArray(inventoryValue) ||
+    !Array.isArray(inventoryValue.entities)
+  ) {
+    return {
+      findings: [
+        {
+          code: "invalid-inventory",
+          subject: path.relative(root, inventoryPath),
+          message:
+            "parsed as JSON but is not an inventory: expected an object with an `entities` array. Regenerate it with the project's `state:inventory` adapter.",
+          severity: "error",
+        },
+      ],
+      envelope: envelopeFor("invalid", {
+        contractVersion: contract.contractVersion,
+        reason: `runtime inventory at ${path.relative(root, inventoryPath)} parsed but has the wrong shape — an inventory that cannot be read is not an empty inventory.`,
+      }),
+    };
+  }
+
   const verdict = compareInventory({
     contract,
     inventory: inventoryRead.value,

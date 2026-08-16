@@ -63,6 +63,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
 /** Enforcement levels a moment may carry. */
 export const LEVELS = ["required", "optional", "off"];
 
@@ -1307,7 +1309,14 @@ function main() {
   );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Realpath both sides rather than comparing URL strings. A raw comparison
+// answers "no" through a symlinked checkout, a git worktree, or a /tmp path on
+// macOS — all three of which this fleet runs in — so the module would load, run
+// nothing, and exit 0. For THIS file that is the worst possible silence: the
+// quality workflow pipes its output into a resolver that reads empty input as
+// `[]`, reports `configured=false` for every job, and runs the fallback. The
+// whole gate registry would be bypassed with nothing reporting it.
+if (invokedAsScript(import.meta.url)) {
   try {
     main();
   } catch (err) {
