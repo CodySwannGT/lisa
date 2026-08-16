@@ -284,6 +284,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "9dd145c0f9dac6ed252b13d32e130dbab964da6cd357981b58541780ecb2f981",
   ]),
   "scripts/lisa-test-node.mjs": Object.freeze([
+    "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "c2b0f436107de5de0f616090012b48752bbbb47dd0add20098662faac0f5f677",
   ]),
   "scripts/lisa-work-item.mjs": Object.freeze([
