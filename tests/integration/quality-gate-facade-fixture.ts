@@ -60,7 +60,7 @@ export const NOT_CONFIGURED = "steps.gate.outputs.configured == 'false'";
 export const DECLARED_OFF = "steps.gate.outputs.configured == 'off'";
 
 /**
- * The twelve jobs converted to the gate façade.
+ * The thirteen jobs converted to the gate façade.
  *
  * Kept exhaustive by `quality-gate-moment-input.test.ts`, which fails if the
  * workflow contains a resolve step this list omits. `test_node_suites` shipped
@@ -163,6 +163,17 @@ export const CONVERTED: ConvertedJob[] = [
     fallbackSteps: ["🌱 No environment reseed adapter declared"],
   },
   {
+    job: "npm_security_scan",
+    jobName: "🔒 Security Scan",
+    gate: "dependency-vulnerability",
+    gateStep: "🔒 Run the dependency-vulnerability gate",
+    // Both fallback steps, not just the audit itself: the exclusion loader is
+    // npm/yarn/bun `audit` specifics (GHSA and CVE id files), and a project
+    // that declared its own task may use a scanner with no notion of them.
+    // Leaving it running would compute exclusions nothing consumes.
+    fallbackSteps: ["📋 Load audit exclusions", "🔒 Run security audit"],
+  },
+  {
     job: "dead_code",
     jobName: "🗑️ Dead Code Detection",
     gate: "dead-code",
@@ -188,7 +199,7 @@ export const CONVERTED: ConvertedJob[] = [
  * Steps that carried `continue-on-error` BEFORE this conversion.
  *
  * A failing job that reports green is the exact defect the façade exists to
- * prevent, so the set is pinned rather than checked only on the twelve jobs:
+ * prevent, so the set is pinned rather than checked only on the thirteen jobs:
  * growing it anywhere in this workflow has to fail here.
  */
 export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
