@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.26.1](https://github.com/CodySwannGT/lisa/compare/v3.26.0...v3.26.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **hooks:** the managed-file guard must honour .lisaignore ([d5984f7](https://github.com/CodySwannGT/lisa/commit/d5984f7ec26e2eacf2be5fb1b6f60b0c97625854)), closes [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624) [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624) [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624)
+* **hooks:** the managed-file guard was wrong about what apply does ([d00c3f7](https://github.com/CodySwannGT/lisa/commit/d00c3f70abb0d8cf3be05796269766a9ffff8a8d)), closes [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624) [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624) [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624)
+* **hooks:** treat a `!` .lisaignore pattern as a claim, not a match ([5ea1d5c](https://github.com/CodySwannGT/lisa/commit/5ea1d5c37899600035f364088433f5744b254827)), closes [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624) [CodySwannGT/lisa#2624](https://github.com/CodySwannGT/lisa/issues/2624)
+
 ## [3.26.0](https://github.com/CodySwannGT/lisa/compare/v3.24.0...v3.26.0) (2026-08-16)
 
 
