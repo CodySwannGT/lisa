@@ -78,8 +78,7 @@ interface Block {
  *
  * Line scanning rather than a YAML round-trip: these files are human-maintained
  * and full of explanatory comments that parse-and-reserialize would delete.
- * Mirrors the technique in scripts/migrate-deploy-order.sh and
- * scripts/detect-stale-workflow-inputs.mjs.
+ * Mirrors the technique in scripts/detect-stale-workflow-inputs.mjs.
  * @param lines - The workflow file split into lines
  * @returns Start (inclusive) and end (exclusive) line indices, or null
  */

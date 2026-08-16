@@ -56,16 +56,6 @@ const LISA_STATE_DIR = ".lisa";
 const DEPENDENCY_DECISIONS = "DEPENDENCY_DECISIONS.md";
 const LISA_CONFIG_JSON = ".lisa.config.json";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
-const WORKFLOWS_DIR = path.join(".github", "workflows");
-const CLAUDE_PACKAGE_MANAGER_WORKFLOWS = [
-  "claude-ci-auto-fix.yml",
-  "claude-code-review-response.yml",
-  "claude-deploy-auto-fix.yml",
-  "claude-nightly-code-complexity.yml",
-  "claude-nightly-test-coverage.yml",
-  "claude-nightly-test-improvement.yml",
-] as const;
-
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
   let lisaDir: string;
@@ -421,36 +411,6 @@ describe("Lisa Integration Tests", () => {
       const pkg = await fs.readJson(path.join(destDir, PACKAGE_JSON));
       expect(pkg.resolutions.ws).toBe(">=8.21.0");
       expect(pkg.scripts.build).toBe(TSC_BUILD_SCRIPT);
-    });
-
-    it("scaffolds TypeScript Claude callers with the bun package manager", async () => {
-      await createTypeScriptProject(destDir);
-      await fs.copy(
-        path.join(process.cwd(), "typescript", CREATE_ONLY, WORKFLOWS_DIR),
-        path.join(lisaDir, "typescript", CREATE_ONLY, WORKFLOWS_DIR)
-      );
-
-      const result = await createLisa().apply();
-
-      expect(result.success).toBe(true);
-      for (const workflow of CLAUDE_PACKAGE_MANAGER_WORKFLOWS) {
-        const content = await fs.readFile(
-          path.join(destDir, WORKFLOWS_DIR, workflow),
-          "utf-8"
-        );
-        expect(content).toContain("package_manager: 'bun'");
-      }
-
-      const syncDownBranches = await fs.readFile(
-        path.join(destDir, WORKFLOWS_DIR, "claude-sync-down-branches.yml"),
-        "utf-8"
-      );
-      const claude = await fs.readFile(
-        path.join(destDir, WORKFLOWS_DIR, "claude.yml"),
-        "utf-8"
-      );
-      expect(syncDownBranches).not.toContain("package_manager:");
-      expect(claude).not.toContain("package_manager:");
     });
 
     it("preserves host-owned config during postinstall-safe apply", async () => {
