@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.23.0](https://github.com/CodySwannGT/lisa/compare/v3.22.0...v3.23.0) (2026-08-16)
+
+
+### Features
+
+* **gates:** environment facade — reset and reseed, no implementation ([6a74057](https://github.com/CodySwannGT/lisa/commit/6a7405789031f3425673259383688f0065ad45ec)), closes [#2606](https://github.com/CodySwannGT/lisa/issues/2606) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611)
+
+
+### Bug Fixes
+
+* **gates:** make `off` actually turn a job off ([f7fcfcd](https://github.com/CodySwannGT/lisa/commit/f7fcfcd038ac17e450a772ba13c84aa0e4e6c3ca)), closes [#2604](https://github.com/CodySwannGT/lisa/issues/2604) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611)
+* **gates:** resolve the registry from the package before giving up ([df91795](https://github.com/CodySwannGT/lisa/commit/df91795a18207ccfdf1a30f8a07e0ad0c797632b)), closes [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611)
+* **gates:** the facade guidance named a task no gate runs ([4f1c39b](https://github.com/CodySwannGT/lisa/commit/4f1c39b8cebaf7fde26cf55ce7a8b2231522419b)), closes [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611)
+
+
+### Documentation
+
+* **gates:** argue the facade exemption on subject, not intent ([53b2e04](https://github.com/CodySwannGT/lisa/commit/53b2e040d258929208c23dc5956e80700fc0ebc6)), closes [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611) [CodySwannGT/lisa#2611](https://github.com/CodySwannGT/lisa/issues/2611)
+
 ## [3.22.0](https://github.com/CodySwannGT/lisa/compare/v3.21.0...v3.22.0) (2026-08-16)
 
 
