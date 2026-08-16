@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.20.0](https://github.com/CodySwannGT/lisa/compare/v3.19.1...v3.20.0) (2026-08-16)
+
+
+### Features
+
+* **gates:** resolve quality gates at a caller-chosen moment ([162763f](https://github.com/CodySwannGT/lisa/commit/162763f081ee89e740efad154b5053629cf43292)), closes [#2604](https://github.com/CodySwannGT/lisa/issues/2604) [CodySwannGT/lisa#2605](https://github.com/CodySwannGT/lisa/issues/2605) [CodySwannGT/lisa#2605](https://github.com/CodySwannGT/lisa/issues/2605) [CodySwannGT/lisa#2605](https://github.com/CodySwannGT/lisa/issues/2605)
+
 ### [3.19.1](https://github.com/CodySwannGT/lisa/compare/v3.19.0...v3.19.1) (2026-08-16)
 
 
