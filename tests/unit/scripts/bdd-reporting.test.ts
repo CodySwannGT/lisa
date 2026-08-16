@@ -200,40 +200,79 @@ describe("honest reporting", () => {
   });
 });
 
+/**
+ * Build a contract of `count` fully-mapped scenarios and run the gate over it.
+ * @param count - How many scenarios to declare.
+ * @returns The gate result and how long the gate itself took, in ms.
+ */
+function timeGateAtScale(count: number): {
+  run: ReturnType<typeof runGate>;
+  elapsed: number;
+} {
+  const scenarios = Array.from({ length: count }, (_, index) => ({
+    id: `BDD-BULK-${String(index + 1).padStart(4, "0")}`,
+    tags: [WEB, RATIFIED],
+  }));
+  const files: Record<string, string> = {};
+  const mappings = scenarios.map((spec, index) => {
+    files[`e2e/bulk-${index}.spec.ts`] =
+      `test("proves ${spec.id}", () => {});\n`;
+    return {
+      scenario: spec.id,
+      runner: PLAYWRIGHT,
+      platforms: [WEB],
+      file: `e2e/bulk-${index}.spec.ts`,
+      evidence: `proves ${spec.id}`,
+      level: "behavioral",
+    };
+  });
+  const root = makeProject({
+    map: { ...HEALTHY_MAP, coverageFloor: { [WEB]: 100 }, mappings },
+    features: { "bulk.feature": featureSource("Bulk", scenarios) },
+    files,
+  });
+  // Committed, so the base-revision checks are IN the measurement: the
+  // non-regression comparisons are set operations over the same obligations
+  // and must not be where the quadratic term hides.
+  const base = commitAll(root);
+  const started = Date.now();
+  const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+  return { run, elapsed: Date.now() - started };
+}
+
 describe("scale", () => {
-  it("handles a very large contract without quadratic blowup", () => {
+  // WHAT IS DELIBERATELY NOT ASSERTED HERE, AND WHY — read before adding a
+  // timing bound back.
+  //
+  // This test carried `expect(Date.now() - started).toBeLessThan(30_000)`,
+  // described as proving "no quadratic blowup". It proved no such thing, and
+  // it failed in CI for the only reason it ever could: a loaded scheduler.
+  //
+  // Measured rather than argued. The gate costs ~260ms at n=2000 and ~123ms at
+  // n=500, so the 30s bound sat about a hundred times above the work — it
+  // could only fire when the machine stalled, which is precisely what
+  // happened. Replacing it with a machine-independent RATIO (n=500 against
+  // n=2000, best-of-three) looked better and was still hollow. Injecting a
+  // real O(n²) pass over the scenarios array moved the ratio from
+  //
+  //     2.13  ->  2.33
+  //
+  // because at n=2000 the quadratic term is roughly 30ms against a ~260ms
+  // baseline that is dominated by reading one file per scenario. No threshold
+  // separates those, and no timing instrument can at this fixture size: the
+  // input would have to grow until n² dominates file I/O, which costs far more
+  // to build than the regression costs to catch.
+  //
+  // So the complexity claim is dropped rather than dressed up. A guard that
+  // cannot fail is the defect this repository catalogues, and keeping a
+  // flaky one that also cannot fail is the worst of both. The `timeout`
+  // below remains the honest backstop: it catches a blowup severe enough to
+  // matter, and claims nothing finer.
+  it("handles a very large contract", () => {
     const count = 2000;
-    const scenarios = Array.from({ length: count }, (_, index) => ({
-      id: `BDD-BULK-${String(index + 1).padStart(4, "0")}`,
-      tags: [WEB, RATIFIED],
-    }));
-    const files: Record<string, string> = {};
-    const mappings = scenarios.map((spec, index) => {
-      files[`e2e/bulk-${index}.spec.ts`] =
-        `test("proves ${spec.id}", () => {});\n`;
-      return {
-        scenario: spec.id,
-        runner: PLAYWRIGHT,
-        platforms: [WEB],
-        file: `e2e/bulk-${index}.spec.ts`,
-        evidence: `proves ${spec.id}`,
-        level: "behavioral",
-      };
-    });
-    const root = makeProject({
-      map: { ...HEALTHY_MAP, coverageFloor: { [WEB]: 100 }, mappings },
-      features: { "bulk.feature": featureSource("Bulk", scenarios) },
-      files,
-    });
-    // Committed, so the base-revision checks are IN the measurement: the
-    // non-regression comparisons are set operations over the same 2000
-    // obligations and must not be where the quadratic term hides.
-    const base = commitAll(root);
-    const started = Date.now();
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const { run } = timeGateAtScale(count);
     expect(run.status).toBe(0);
     expect(run.envelope.summary.scenariosDeclared).toBe(count);
     expect(run.envelope.summary.traceabilityCovered).toBe(count);
-    expect(Date.now() - started).toBeLessThan(30_000);
   }, 60_000);
 });
