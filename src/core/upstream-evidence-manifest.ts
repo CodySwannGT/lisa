@@ -2259,15 +2259,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "85336c4d2c5bf5e16dd1b12b8c80668363d64b22e3c2e123955cf00e357fc22d",
+      "7c925044ba7c38e6ffc9f981f743f7d7a8ba7b2b587fc71b23f1b08c115556e6",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
-      "c29bb23a8466dd7f1e04ecbd2df5faaa5eb286f261cff948b9451430c0ca716b",
+      "f1313c83014912df8e769d452a61378eff6bc60a75d3c421974dcd100699b2a5",
     "typescript/copy-contents/.husky/pre-push":
-      "13da67af0060558dd0a81320efe2719ff23ca3e8488000479e063f5ae9025f2c",
+      "9aedd73755e035dd18d49f24effa9bc709df707c8c275692887bf0bee3e78e96",
     "typescript/copy-contents/.husky/prepare-commit-msg":
-      "58671fb61f6fcc1fc384a2d7295f16949faa58150a8213e0a39d3c70fad728b5",
+      "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "8dbddc0297ca574d150b3e669550320bd2df6e592c083317626f53a91f36d349",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
@@ -8970,6 +8970,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
+    "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
