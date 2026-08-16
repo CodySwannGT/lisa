@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.21.0](https://github.com/CodySwannGT/lisa/compare/v3.20.0...v3.21.0) (2026-08-16)
+
+
+### Features
+
+* **gates:** run the gate-config validator in CI ([b93b602](https://github.com/CodySwannGT/lisa/commit/b93b602e7d43855ba4492c81ac6ca1041388d5ab)), closes [CodySwannGT/lisa#2607](https://github.com/CodySwannGT/lisa/issues/2607) [CodySwannGT/lisa#2607](https://github.com/CodySwannGT/lisa/issues/2607) [CodySwannGT/lisa#2607](https://github.com/CodySwannGT/lisa/issues/2607)
+
 ## [3.20.0](https://github.com/CodySwannGT/lisa/compare/v3.19.1...v3.20.0) (2026-08-16)
 
 
