@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.23.2](https://github.com/CodySwannGT/lisa/compare/v3.23.1...v3.23.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* **ci:** remove claude-specific actions ([88fa97e](https://github.com/CodySwannGT/lisa/commit/88fa97e5d6c7ea873d51ba0f70088d22048c962f)), closes [CodySwannGT/lisa#2615](https://github.com/CodySwannGT/lisa/issues/2615)
+
 ### [3.23.1](https://github.com/CodySwannGT/lisa/compare/v3.23.0...v3.23.1) (2026-08-16)
 
 
