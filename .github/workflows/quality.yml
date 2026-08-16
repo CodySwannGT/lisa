@@ -54,6 +54,28 @@ on:
         required: false
         default: 'npm'
         type: string
+      moment:
+        # Which set of gates applies. Every job below resolves its gate from
+        # `.lisa.config.json` AT THIS MOMENT, so one input decides whether this
+        # run enforces the pull-request set or a scheduled one.
+        #
+        # This exists to retire `skip_jobs` inversion. A nightly caller that
+        # wants only the E2E gates currently has no way to say so, and instead
+        # names the two dozen jobs it does NOT want — a list that silently goes
+        # stale every time a job is added, and which turns required contexts
+        # into vacuous greens (see `skip_jobs` below). Declaring the gate at
+        # `continuous:<environment>` instead says the same thing positively,
+        # from the same declaration that drives the required-context list.
+        #
+        # An unknown moment is REFUSED by scripts/lisa-gates.mjs rather than
+        # resolving to nothing: a moment is looked up as a key on each gate, so
+        # a typo would otherwise match nothing, report `configured=false` for
+        # every job, and run each fallback while claiming the registry declared
+        # nothing here.
+        description: 'Which gate set applies: a fixed moment (pull-request, push, commit) or a family with an environment (continuous:dev, pre-deploy:production). Defaults to pull-request; an unrecognised value fails the run.'
+        required: false
+        default: 'pull-request'
+        type: string
       skip_jobs:
         # ⚠️ PREFER `gates` IN .lisa.config.json. `skip_jobs` is retained
         # because repositories pass it today, but it is unsafe by
@@ -464,10 +486,11 @@ jobs:
         env:
           GATE_ID: code-style
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -562,10 +585,11 @@ jobs:
         env:
           GATE_ID: code-style-slow
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -641,10 +665,11 @@ jobs:
         env:
           GATE_ID: type-correctness
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -1092,10 +1117,11 @@ jobs:
         env:
           GATE_ID: test-correctness
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -1370,10 +1396,11 @@ jobs:
         env:
           GATE_ID: test-integration
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -1979,10 +2006,11 @@ jobs:
         env:
           GATE_ID: format-conformance
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -2058,10 +2086,11 @@ jobs:
         env:
           GATE_ID: build-integrity
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -2535,10 +2564,11 @@ jobs:
         env:
           GATE_ID: test-node-suites
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -2632,10 +2662,11 @@ jobs:
         env:
           GATE_ID: dead-code
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
@@ -2722,10 +2753,11 @@ jobs:
         env:
           GATE_ID: structural-rules
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/lisa-gates.mjs ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node scripts/lisa-gates.mjs list --moment=pull-request --json | node -e '
+          node scripts/lisa-gates.mjs list --moment="$GATE_MOMENT" --json | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";

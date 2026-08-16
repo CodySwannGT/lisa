@@ -948,6 +948,26 @@ export function auditConfigKeys(config) {
  * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
 export function resolveMoment({ gates, moment, runner = "npm run" }) {
+  // A moment is looked up as a KEY on each gate, so one Lisa does not know
+  // matches nothing and yields `[]` — indistinguishable from a real moment at
+  // which this project declares no gates. Every consumer reads that as "run
+  // the unguarded fallback": the quality workflow reports `configured=false`
+  // for every job, and lisa-run-gates prints a green "0 of 0 gate(s)". A typo
+  // would therefore disable the whole registry while reporting success, which
+  // is the defect this subsystem exists to stop. `[]` stays a truthful answer
+  // for a real moment; it is refused only for one that cannot exist.
+  if (!isMoment(moment)) {
+    const near = nearest(moment, [...MOMENTS, ...MOMENT_FAMILIES]);
+    throw new Error(
+      `"${moment}" is not a moment Lisa knows` +
+        (near ? `. Did you mean "${near}"?` : ".") +
+        ` Known moments: ${MOMENTS.join(", ")}` +
+        `; or a family with an environment: ${MOMENT_FAMILIES.map(
+          family => `${family}:<environment>`
+        ).join(", ")}.`
+    );
+  }
+
   const resolved = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {
     const raw = gate?.[moment];
@@ -1155,10 +1175,18 @@ function main() {
       return;
     }
     for (const gate of resolved) {
+      // "Lisa runs this internally" and "nothing will run this" printed
+      // identically until this was split: an unresolvable gate has a null
+      // command, and so does an intercepted one, so a typo'd gate id rendered
+      // as `(intercepted by Lisa)` — a line that reads like success to the
+      // person running `list` to check their config. Interception is a
+      // property of the gate id, so ask the mode, not the command.
       const how =
         gate.mode === "await"
           ? `await ${gate.awaits}`
-          : (gate.command ?? "(intercepted by Lisa)");
+          : gate.mode === "intercept"
+            ? "(intercepted by Lisa)"
+            : (gate.command ?? "(NO PROVER — nothing runs this gate)");
       console.log(`${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}`);
     }
     return;
