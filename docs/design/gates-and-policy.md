@@ -10,7 +10,7 @@ Tracking issue: CodySwannGT/lisa#2579.
 
 Every decision below is downstream of one failure mode: **a check reporting
 satisfied without having proved anything.** It has appeared in this repository in
-at least six distinct forms, each found only after it had already let something
+at least seven distinct forms, each found only after it had already let something
 through:
 
 | form | evidence |
@@ -18,8 +18,9 @@ through:
 | required-and-skipped | GitHub counts a SKIPPED required check as SATISFIED, so a job named in `skip_jobs` reports green having run zero steps |
 | required-and-hollow | a required `CodeRabbit` context posted `success` with description `Review rate limited`, having reviewed nothing, on two security-relevant PRs that merged (#2497) |
 | advisory-and-confusable | a not-required `🧪 Run Tests` beside the required `🧪 Run Unit Tests` merged red on two PRs (#2485) |
-| passing-with-no-work | `passWithNoTests: true` ships in five stack configs, so a unit-test gate can report green having run zero tests |
+| passing-with-no-work | `passWithNoTests: true` shipped in five stack configs AND as six `--passWithNoTests` CLI arguments in four package templates, which overrode the configs — so a unit-test gate reported green having run zero tests (removed from both channels, #2603) |
 | declared-but-uncallable | `secrets.require` was documented as a startup assertion whose only caller was a bash line inside a SKILL.md |
+| enforced-off-the-path | a `.test.mjs` suite wired only into `.husky/pre-push.local` is real and does bite, but a pre-push hook never fires for auto-merge, a UI merge, a CI-side change, or a `[skip ci]` commit — measured downstream at 23 of 37 suites, which a pass/fail guard would have called protected |
 | verified-then-invalidated | gates ran alphabetically, so `artifact-freshness` proved the evidence manifest current and `code-style` then reformatted the sources it hashes — a PASSED verdict about a tree that was not the tree committed (#2590) |
 
 The rule that falls out, and the one to apply when a new case is ambiguous:

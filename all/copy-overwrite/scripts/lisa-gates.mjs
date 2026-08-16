@@ -42,9 +42,16 @@
  * "Review rate limited", having reviewed nothing, on two security-relevant pull
  * requests that then merged. That is the `await` form, caught by description.
  *
- * `passWithNoTests: true` ships in five stack configs, so a unit-test gate can
- * report green having run zero tests. That is the `run` form, caught by a work
- * count. No description is involved and no vendor is at fault.
+ * `passWithNoTests: true` USED TO ship in five stack configs, so a unit-test
+ * gate could report green having run zero tests. That is the `run` form, caught
+ * by a work count. No description is involved and no vendor is at fault.
+ *
+ * That flag is gone as of #2603 — from the configs AND from the six
+ * `--passWithNoTests` CLI arguments in four package templates, which overrode
+ * the configs and were the channel most consumers actually ran. The example is
+ * kept in the past tense rather than deleted: it is the clearest instance of
+ * the `run` form anyone has produced, and a reader needs to know what shape to
+ * look for, not merely that one instance was fixed.
  *
  * The response is configurable, with one exception. You may configure whether
  * to stop; you may not configure it into having been proved. A hollow result is
@@ -189,6 +196,13 @@ export const REGISTRY = Object.freeze({
     task: "test:unit",
     moments: PUSH_ONWARD,
     work: "tests run",
+  },
+  "test-node-suites": {
+    label: "🧪 Run .mjs Suites",
+    summary: "The `*.test.mjs` suites pass.",
+    task: "test:node",
+    moments: PUSH_ONWARD,
+    work: "suites collected",
   },
   "test-integration": {
     label: "🧪 Run Integration Tests",
