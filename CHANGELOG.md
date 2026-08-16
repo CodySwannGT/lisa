@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.24.0](https://github.com/CodySwannGT/lisa/compare/v3.23.2...v3.24.0) (2026-08-16)
+
+
+### Features
+
+* **hooks:** refuse agent writes to copy-overwrite templates ([57b1ac6](https://github.com/CodySwannGT/lisa/commit/57b1ac6c9599e7f31a7a98491a417d242d38060f)), closes [CodySwannGT/lisa#2620](https://github.com/CodySwannGT/lisa/issues/2620) [CodySwannGT/lisa#2620](https://github.com/CodySwannGT/lisa/issues/2620) [CodySwannGT/lisa#2620](https://github.com/CodySwannGT/lisa/issues/2620)
+
 ### [3.23.2](https://github.com/CodySwannGT/lisa/compare/v3.23.1...v3.23.2) (2026-08-16)
 
 
