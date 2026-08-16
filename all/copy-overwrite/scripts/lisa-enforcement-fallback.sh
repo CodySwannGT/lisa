@@ -70,7 +70,8 @@ repo_root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
 # `plugins/` directory to fall back on.
 status=0
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
-  block-instruction-file-edits block-direct-issue-create; do
+  block-instruction-file-edits block-direct-issue-create \
+  block-managed-file-edits; do
   script=""
   for candidate in \
     "$repo_root/scripts/lisa-hooks/$guard.sh" \
