@@ -548,6 +548,29 @@ jobs:
             bun install --frozen-lockfile
           fi
 
+      - name: 🧭 Check the build profile can produce a testable app
+        # Runs BEFORE the EAS setup and the build, because both mistakes it
+        # catches are free to detect now and cost a full native build to
+        # discover later — and when they surface later they surface as flows
+        # failing on unfamiliar screens, which reads as a product bug.
+        #
+        # Resolved from the installed package rather than a copy in the
+        # project: the same file would otherwise be edited once downstream and
+        # silently stop receiving fixes. Absent (a project on an older Lisa),
+        # the check is skipped rather than failing the build over its own
+        # rollout.
+        run: |
+          set -euo pipefail
+          GUARD="node_modules/@codyswann/lisa/scripts/lisa-assert-eas-profile.mjs"
+          if [ ! -f "$GUARD" ]; then
+            GUARD="scripts/lisa-assert-eas-profile.mjs"
+          fi
+          if [ ! -f "$GUARD" ]; then
+            echo "::warning title=EAS profile unchecked::No lisa-assert-eas-profile.mjs found, so the build profile was not checked. Update @codyswann/lisa to get it."
+            exit 0
+          fi
+          node "$GUARD" --profile="${{ inputs.eas_profile }}"
+
       - name: 🔧 Setup EAS
         uses: expo/expo-github-action@v8
         with:

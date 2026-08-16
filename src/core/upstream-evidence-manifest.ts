@@ -242,6 +242,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":
       "23ac9bab7fe84cfa542785156425e020af9baabdbeb1a53293ae7e2395e4dd92",
+    "expo/create-only/eas.json":
+      "3d710e6c1ac1d40e60aab765c8766f276a5ee1012057b0eda405eac54d301321",
     "expo/create-only/jest.config.local.ts":
       "0647741c9df4cecc1b7c285e28bfbec217994f0b7984eecf81ca47095e936754",
     "expo/create-only/jest.config.react-native-mock.js":
@@ -2184,6 +2186,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
+    "scripts/lisa-assert-eas-profile.mjs":
+      "427592ff10bf90eb22599d5b55aa24529961f4fd619defbc380b868583de71b8",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
@@ -2733,6 +2737,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/bdd/coverage-map.json": true,
     "expo/create-only/bdd/features/.keep": true,
     "expo/create-only/e2e.thresholds.json": true,
+    "expo/create-only/eas.json": true,
     "expo/create-only/jest.config.local.ts": true,
     "expo/create-only/jest.config.react-native-mock.js": true,
     "expo/create-only/jest.setup.local.ts": true,
@@ -8214,6 +8219,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
+    "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-github-environments.sh": true,
@@ -8681,6 +8687,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
+    "tests/integration/maestro-eas-profile-guard.test.ts": true,
     "tests/integration/maestro-leg-order-wait.test.ts": true,
     "tests/integration/maestro-leg-order.test.ts": true,
     "tests/integration/maestro-native-concurrency.test.ts": true,
@@ -9056,6 +9063,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
+    "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,
