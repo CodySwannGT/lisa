@@ -48,7 +48,12 @@ export const CONFIGURED = "steps.gate.outputs.configured == 'true'";
 export const NOT_CONFIGURED = "steps.gate.outputs.configured != 'true'";
 
 /**
- * The nine jobs converted to the gate façade.
+ * The ten jobs converted to the gate façade.
+ *
+ * Kept exhaustive by `quality-gate-moment-input.test.ts`, which fails if the
+ * workflow contains a resolve step this list omits. `test_node_suites` shipped
+ * uncovered for exactly that reason: it was added with an identical resolve
+ * block, and nothing here noticed.
  *
  * `jobName` is a LITERAL, not a lookup. A job name is a branch-protection
  * context matched by exact string in a GitHub ruleset, and a wrong one has
@@ -117,6 +122,18 @@ export const CONVERTED: ConvertedJob[] = [
     ],
   },
   {
+    job: "test_node_suites",
+    jobName: "🧪 Run .mjs Suites",
+    gate: "test-node-suites",
+    gateStep: "🧪 Run the mjs-suites gate",
+    // This job's FALLBACK deliberately diverges from the others: elsewhere the
+    // fallback reproduces what the project did before the façade, and here
+    // that was nothing at all, so preserving it would have made the fix
+    // opt-in. The divergence is in what the fallback DOES; its structure is
+    // the same, which is why it belongs under the same drift assertions.
+    fallbackSteps: ["🧪 Run .mjs suites (lisa-test-node)"],
+  },
+  {
     job: "dead_code",
     jobName: "🗑️ Dead Code Detection",
     gate: "dead-code",
@@ -142,7 +159,7 @@ export const CONVERTED: ConvertedJob[] = [
  * Steps that carried `continue-on-error` BEFORE this conversion.
  *
  * A failing job that reports green is the exact defect the façade exists to
- * prevent, so the set is pinned rather than checked only on the nine jobs:
+ * prevent, so the set is pinned rather than checked only on the ten jobs:
  * growing it anywhere in this workflow has to fail here.
  */
 export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
