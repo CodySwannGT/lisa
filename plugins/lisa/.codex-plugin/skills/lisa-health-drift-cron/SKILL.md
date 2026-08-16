@@ -43,6 +43,8 @@ Feed the findings and the open tickets to `planDriftTickets`. It returns:
 
 Every unique drifting check lands in exactly one of the two after duplicate findings for the same check are collapsed, so a run reporting "nothing to do" is asserting it looked at all of them.
 
+The collapse is not tidiness. The marker cannot tell two findings for one check apart, so filing both would self-duplicate on the very FIRST run — before any second run exists to blame. `file.length + alreadyTracked.length` therefore counts distinct drifting checks, which is fewer than the drifting findings whenever a run reports one check twice.
+
 Dedupe is per **check**, not per drift set. Fingerprinting the whole finding set would mean one added finding produces a fresh ticket while the old one still stands, so a slowly-degrading project accumulates near-duplicates — the same "worse than no cron" outcome by another route.
 
 ## Phase 4 — File
