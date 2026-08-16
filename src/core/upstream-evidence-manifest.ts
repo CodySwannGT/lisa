@@ -15,7 +15,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
+      "aafd027c4b6092da15d0389f9e8dcedbd9105e9083057e2da39f78fd5f72e0df",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
@@ -24,6 +24,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
+    "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
+      "18aebaef5ea9bf6af220dc9beef80a5cfb37282c6a53047783b4cc96d8daa4e3",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "83a8b8108654086afb6a6f23a8f09f9f041eb2cd4094c5531fa7ab1f75e873dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -676,6 +678,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
+    "plugins/src/base/hooks/block-managed-file-edits.sh":
+      "abdbcd889925879aa43fe0420971cf1a79a7b9a534c06e681fe3f0fbb5475894",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "81c51041f8cb47bf79692c485c4f42ac7ed0a5a830821dc514cb468bc7a06b83",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -2095,7 +2099,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "a2d935155a71e61c927c4a83e4a4151248fc13961214d7a57f5021e7bc3a8779",
+      "00a3207bb5a485bfee80fb71be6e9577979fd156b15a85517e88a2f9261bc9f4",
     "scripts/check-conflict-markers.mjs":
       "78c286ed6d7cce3a030fd7561fbe6285e2051d34540640f016b86ef89e3fb08b",
     "scripts/check-derived-artifacts.mjs":
@@ -2181,7 +2185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
-      "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
+      "e241a2c7c6aaeb17241adfc9ca4e4f900259e90dae7444fc01992936ea8bcfb4",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2515,6 +2519,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
@@ -3701,6 +3706,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/wiki/install.md": true,
     "plugins/lisa-copilot/hooks/block-direct-issue-create.sh": true,
     "plugins/lisa-copilot/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa-copilot/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa-copilot/hooks/block-no-verify.sh": true,
     "plugins/lisa-copilot/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-copilot/hooks/cleanup-stale-worktrees.sh": true,
@@ -4157,6 +4163,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/wiki/install.md": true,
     "plugins/lisa-cursor/hooks/block-direct-issue-create.sh": true,
     "plugins/lisa-cursor/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa-cursor/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa-cursor/hooks/block-no-verify.sh": true,
     "plugins/lisa-cursor/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-cursor/hooks/cleanup-stale-worktrees.sh": true,
@@ -6706,6 +6713,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/block-direct-issue-create.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa/hooks/block-no-verify.sh": true,
     "plugins/lisa/hooks/block-shell-json-parsing.agy.sh": true,
@@ -7345,6 +7353,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/block-direct-issue-create.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.sh": true,
+    "plugins/src/base/hooks/block-managed-file-edits.sh": true,
     "plugins/src/base/hooks/block-no-verify.agy.sh": true,
     "plugins/src/base/hooks/block-no-verify.sh": true,
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh": true,
@@ -8913,6 +8922,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
+    "tests/unit/hooks/hook-scripts-parse.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
