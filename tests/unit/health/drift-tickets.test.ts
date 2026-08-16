@@ -197,3 +197,26 @@ describe("planDriftTickets", () => {
     expect(plan.file.length + plan.alreadyTracked.length).toBe(2);
   });
 });
+
+describe("convergence under a concurrent run", () => {
+  it("stops growing once a duplicate exists", () => {
+    // Two overlapping runs can both observe an empty open-ticket set and both
+    // file — a single registration does not make that impossible, only rare.
+    // What matters is that the NEXT run does not compound it: with two open
+    // tickets carrying the same marker, nothing further is filed.
+    //
+    // This is convergence, not mutual exclusion, and the distinction is stated
+    // rather than papered over: the transient duplicate persists until a human
+    // closes one. It is the same stance the learnings-audit gardener takes for
+    // the same reason.
+    const plan = planDriftTickets({
+      findings: [finding(CHECK_A, "fail")],
+      openTickets: [tracking("41", CHECK_A), tracking("42", CHECK_A)],
+    });
+    expect(plan.file).toEqual([]);
+    // Attributed to one of them rather than erroring: which duplicate gets the
+    // credit does not matter, and refusing to answer would turn a cosmetic
+    // duplicate into a failed run.
+    expect(plan.alreadyTracked).toEqual([{ check: CHECK_A, ticketId: "41" }]);
+  });
+});

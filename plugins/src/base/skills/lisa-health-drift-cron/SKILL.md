@@ -63,6 +63,16 @@ The distinction between the two `no-change` shapes matters. "Nothing filed" and 
 
 ## Registration
 
-Registered as `lisa-auto-<project>-health-drift` when `health.schedule` is set to `daily` or `weekly` in `.lisa.config.json`. `off` (the default) registers nothing. Register at most **one** per project: the marker dedupe converges under a single scheduled runner, and two concurrent runs can both observe an empty open-ticket set and both file.
+Registered as `lisa-auto-<project>-health-drift` when `health.schedule` is set to `daily` or `weekly` in `.lisa.config.json`. `off` (the default) registers nothing. Torn down with the rest of the `lisa-auto-<project>-*` set.
 
-Torn down with the rest of the `lisa-auto-<project>-*` set.
+Register at most **one** per project.
+
+### What the dedupe does and does not guarantee
+
+It guarantees **convergence, not mutual exclusion**, and the difference is worth stating plainly rather than leaving to be discovered.
+
+Two runs that overlap — a manual invocation alongside the scheduled one, or a run still going when the next fires — can both read an empty open-ticket set and both file for the same check. A single registration makes that rare; it does not make it impossible, and no amount of care in this document would.
+
+What the design does guarantee is that it stops there. The next run sees both open tickets carrying the marker, matches, and files nothing further, so duplicates do not compound. The transient duplicate persists until a human closes one, and closing it is safe: if the drift is still live, the remaining ticket still tracks it.
+
+This is the same stance `lisa-learnings-audit` takes for the same reason, and the same advice applies — **a manual run should first confirm the cron is not due or running.** A project-scoped lease would buy true exclusion at the cost of a lock to acquire, hold, and expire correctly on a path that only runs daily; the failure it prevents is cosmetic and self-limiting, and the failure a stuck lease causes is a health check that silently stops running.
