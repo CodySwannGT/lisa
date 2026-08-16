@@ -164,17 +164,39 @@ describe(".lisaignore declares project ownership", () => {
     expect(runGuard(MANAGED)).toBe(0);
   });
 
-  it("allows when any pattern uses a leading !, matching the real matcher", () => {
-    // Not gitignore negation. The real matcher hands patterns to minimatch,
-    // which negates by default and combines them with `.some()`, so one `!x`
-    // line reports every OTHER path as ignored. Measured upstream:
-    //   patterns=["!scripts/a.mjs"] path=scripts/b.mjs -> ignored=true
-    // Reproducing that exactly would disable the guard on a typo; reproducing
-    // the intuitive reading would block files the matcher treats as ignored.
-    // Both are wrong, so it allows — the direction this function errs
-    // everywhere else.
-    ignoreFile("!scripts/something-else.mjs\n");
-    expect(runGuard(MANAGED)).toBe(0);
+  // `!` is now real gitignore negation on both sides. It previously was not:
+  // the TS matcher handed patterns to minimatch, which negates by default and
+  // combined them with `.some()`, so one `!x` line reported every OTHER path as
+  // ignored — including `tsconfig.json`. An ignored path is not an apply
+  // candidate, so a single stray line switched Lisa off for the whole project.
+  // This guard punted on it deliberately and allowed the write. Both sides now
+  // implement last-match-wins, and these pin them to the same answers.
+  describe("negation, in parity with matchesAnyPattern", () => {
+    it("re-includes a path an earlier pattern ignored, so the guard refuses", () => {
+      ignoreFile(`scripts/\n!${MANAGED}\n`);
+      expect(runGuard(MANAGED)).toBe(2);
+    });
+
+    it("keeps the earlier ignore for paths the negation does not name", () => {
+      ignoreFile("scripts/\n!scripts/something-else.mjs\n");
+      expect(runGuard(MANAGED)).toBe(0);
+    });
+
+    it("does not let a lone negation claim the whole project", () => {
+      // The severe case. Before the fix this allowed every write.
+      ignoreFile("!scripts/something-else.mjs\n");
+      expect(runGuard(MANAGED)).toBe(2);
+    });
+
+    it("applies last-match-wins rather than first-match-wins", () => {
+      ignoreFile(`scripts/\n!${MANAGED}\n${MANAGED}\n`);
+      expect(runGuard(MANAGED)).toBe(0);
+    });
+
+    it("keeps a bare ! inert instead of matching everything", () => {
+      ignoreFile("!\n");
+      expect(runGuard(MANAGED)).toBe(2);
+    });
   });
 
   it.each([
