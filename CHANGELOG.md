@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.19.1](https://github.com/CodySwannGT/lisa/compare/v3.19.0...v3.19.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **test:** fail empty .mjs suite collection ([5c33e23](https://github.com/CodySwannGT/lisa/commit/5c33e235fc65ac12225da94119f83cf29ee51768)), closes [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603)
+* **test:** run the .mjs suites Lisa ships nothing to collect ([5724471](https://github.com/CodySwannGT/lisa/commit/5724471ebd71f0bd407381f53923583b38a9ae8b)), closes [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603)
+
+
+### Documentation
+
+* **gates:** a CI-skip commit is the converse case, not an instance ([94712d3](https://github.com/CodySwannGT/lisa/commit/94712d3af3c061168060e55aaca7f179d4475b72)), closes [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603)
+* **gates:** a template change lands on a schedule nobody chose ([7ecb25a](https://github.com/CodySwannGT/lisa/commit/7ecb25a10d8315dcb5a3a2086651ea766674432e)), closes [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603)
+* **gates:** separate what was measured from what was inferred ([655cdd9](https://github.com/CodySwannGT/lisa/commit/655cdd9e455b7a22a61ef01fb184935c9514000a)), closes [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603) [CodySwannGT/lisa#2603](https://github.com/CodySwannGT/lisa/issues/2603)
+
 ## [3.19.0](https://github.com/CodySwannGT/lisa/compare/v3.18.2...v3.19.0) (2026-08-16)
 
 
