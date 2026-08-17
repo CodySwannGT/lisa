@@ -88,8 +88,15 @@ export function githubFailure(result, ref) {
   // system could not fork (EAGAIN). Singling out ENOENT made a timed-out `gh`
   // a non-degradable TrackingError, i.e. "this work item is invalid" because
   // the network was slow.
+  // An upstream outage is UNREACHABLE, not a verdict. Adding the outage branch
+  // to `githubFailureReason` fixed the sentence a reader sees and left this
+  // classification wrong: a 503 still produced a TrackingError, which means
+  // "this work item is invalid" — the same false verdict, one layer down. The
+  // message and the error class have to agree, or the honest wording just makes
+  // a wrong classification more convincing.
   const unreachable =
-    result.error !== undefined || /cannot authenticate/.test(reason);
+    result.error !== undefined ||
+    /cannot authenticate|GitHub API is unavailable/.test(reason);
   return unreachable
     ? new TrackerUnreachableError(reason)
     : new TrackingError(reason);
