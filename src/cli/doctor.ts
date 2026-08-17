@@ -22,6 +22,7 @@ import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
+import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
 import { STARTERS } from "./starters.js";
 import { runUpdateCheck } from "./update-check.js";
 
@@ -365,6 +366,11 @@ export async function runDoctor(
     // load, so an operator debugging a red suite needs the count in front of
     // them (CodySwannGT/lisa#2490).
     await checkWorktreeHygiene(resolvedTarget),
+    // Immediately after the count check, and deliberately separate from it.
+    // Hygiene answers "how many checkouts is every crawler walking past"; this
+    // answers "which of them hold work that exists nowhere else". Retiring a
+    // worktree on the first answer without the second is how work is lost.
+    await checkWorktreeWorkAtRisk(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),
     checkWiki(resolvedTarget),
     ...(options.readiness === true
