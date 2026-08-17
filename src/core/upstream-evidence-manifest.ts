@@ -2267,7 +2267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.github/dependabot.yml":
       "73330408894b35567b068dd12dcb2edd0b01235fd63547938c62ca0dbc0485e2",
     "typescript/copy-overwrite/.lintstagedrc.json":
-      "5a2f5f9ad454e7b9e1e065cb3b1768f6a9897e453b0afee508b98c96bfa67138",
+      "60bf2d5e86bf9d72f04b8b14368591f104674ff80046fe8bd82e4174ca1523fd",
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
@@ -8842,6 +8842,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
+    "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
