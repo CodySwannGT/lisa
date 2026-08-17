@@ -1964,6 +1964,7 @@ export class Lisa {
           `Would copy: ${result.relativePath}`,
           `Copied: ${result.relativePath}`
         );
+        this.logNote(result);
         break;
       case "created":
         this.logMessage(
@@ -2004,7 +2005,20 @@ export class Lisa {
           `Would merge: ${result.relativePath}`,
           `Merged: ${result.relativePath}`
         );
+        if (result.note !== undefined) {
+          this.logNote(result);
+        }
         break;
+    }
+  }
+
+  /**
+   * Log an optional operation note.
+   * @param result Operation result that may carry an operator-readable note
+   */
+  private logNote(result: FileOperationResult): void {
+    if (result.note !== undefined) {
+      this.deps.logger.info(result.note);
     }
   }
 
