@@ -265,7 +265,21 @@ describe("quality.yml gate façade", () => {
   describe("skip_jobs is documented as the unsafe route", () => {
     it("still accepts skip_jobs, because installed repositories pass it today", () => {
       expect(source).toContain("      skip_jobs:");
+      // Every job that was skip_jobs-gated BEFORE the façade must still be, so
+      // converting a job never silently removes a caller's existing escape.
+      //
+      // This is deliberately not "every façade job is skip_jobs-gated".
+      // `verification_coverage` never was — it gates on `verify_enforced` and
+      // the event being a pull_request — and adding skip_jobs to it in order
+      // to satisfy a uniform assertion would GROW the surface this workstream
+      // exists to retire. The invariant is "no escape was taken away", not
+      // "every job has one".
+      const notSkipGated = new Set(["verification_coverage"]);
       for (const { job } of CONVERTED) {
+        if (notSkipGated.has(job)) {
+          expect(workflow.jobs[job].if ?? "").not.toContain("inputs.skip_jobs");
+          continue;
+        }
         expect(workflow.jobs[job].if ?? "").toContain("inputs.skip_jobs");
       }
     });
