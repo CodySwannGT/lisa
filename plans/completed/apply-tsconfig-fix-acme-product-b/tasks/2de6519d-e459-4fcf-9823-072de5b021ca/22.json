@@ -1,0 +1,13 @@
+{
+  "id": "22",
+  "subject": "Run Lisa against acme-product-b",
+  "description": "Run bun run dev ~/workspace/acmeorgb/acme-product-b from Lisa repo",
+  "activeForm": "Running Lisa against acme-product-b",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

@@ -51,7 +51,7 @@ Print instructions for the user:
 
 The user picks a stable identifier for this workspace. Two options:
 
-- **Workspace name** (human-readable, e.g., `Gemini Sports`). Easy to recognize, can be ambiguous if a workspace is renamed in Notion. Recommended.
+- **Workspace name** (human-readable, e.g., `AcmeOrgB`). Easy to recognize, can be ambiguous if a workspace is renamed in Notion. Recommended.
 - **Workspace UUID** (returned by Notion's API). Stable but opaque.
 
 Default to the workspace name. After the user stores the token (Step 4), Step 5's `/users/me` call surfaces the actual `bot.workspace_name`; if it differs from what the user typed (capitalization, trailing whitespace), prompt to confirm.

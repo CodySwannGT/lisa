@@ -42,7 +42,7 @@ const BUNDLE = {
   externalId: "ext-1",
   profiles: {
     [DEV]: {
-      roleArn: "arn:aws:iam::905179307867:role/RemoteAgent",
+      roleArn: "arn:aws:iam::123456789012:role/RemoteAgent",
       region: "us-east-1",
     },
   },

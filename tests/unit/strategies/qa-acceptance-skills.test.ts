@@ -45,7 +45,7 @@ const FORBIDDEN_SPECIFICS = [
   "backend-v2",
   "frontend-v2",
   "infrastructure-v2",
-  "ask-gemini",
+  "acme-product-b",
   "Claude Tag",
   "Slack",
 ] as const;
