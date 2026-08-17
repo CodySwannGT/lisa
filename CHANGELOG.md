@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.31.2](https://github.com/CodySwannGT/lisa/compare/v3.31.1...v3.31.2) (2026-08-17)
+
+
+### Bug Fixes
+
+* **doctor:** stop certifying a serialize opt-in nothing can make work ([d6b3f4e](https://github.com/CodySwannGT/lisa/commit/d6b3f4e4d4fd874df4022d54a91a4e0828319986)), closes [CodySwannGT/lisa#2661](https://github.com/CodySwannGT/lisa/issues/2661) [CodySwannGT/lisa#2661](https://github.com/CodySwannGT/lisa/issues/2661)
+
 ### [3.31.1](https://github.com/CodySwannGT/lisa/compare/v3.31.0...v3.31.1) (2026-08-17)
 
 
