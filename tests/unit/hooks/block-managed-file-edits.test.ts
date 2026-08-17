@@ -16,7 +16,13 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -284,3 +290,53 @@ describe("the refusal explains the fork route", () => {
     expect(stderr).toContain("LISA_ALLOW_MANAGED_FILE_WRITE");
   });
 });
+
+/**
+ * `lisa apply` GENERATES some paths rather than copying them, and the two fail
+ * in opposite directions. A guard that gives one answer is wrong for half the
+ * files it covers:
+ *
+ *   copy-overwrite, host-edited -> PRESERVED. Silently forks, keeps looking
+ *                                  current, stops receiving upstream fixes.
+ *   generated                   -> REBUILT. The edit works locally, CI agrees
+ *                                  because CI regenerates too, and the next
+ *                                  install reverts it with nothing reporting it.
+ *
+ * Reported by a consumer session that correctly declined to patch
+ * `.lisa/lisa-oxlint/base.json` locally BECAUSE it is generated — they reached
+ * the right answer without a guard telling them. The next agent may not.
+ * CodySwannGT/lisa#2632.
+ */
+describe("generated paths get the opposite consequence", () => {
+  it("names the generated set from the installed package, not from a copy here", () => {
+    // The prefixes live in dist/migrations/generated-paths.js, which the
+    // vendoring migration also imports. A list restated inside the hook would
+    // be a second place to update that nobody updates — the same defect this
+    // file documents for copy-overwrite, one step along.
+    expect(hookText()).toContain("dist/migrations/generated-paths.js");
+    expect(hookText()).not.toContain('".lisa/lisa-oxlint"');
+  });
+
+  it("tells a generated file its edit is REGENERATED away", () => {
+    expect(hookText()).toContain("REGENERATES this file");
+  });
+
+  it("keeps the two consequences distinct in the refusal text", () => {
+    // If these ever collapse into one message, the guard has started lying to
+    // one of its two populations.
+    const text = hookText();
+    expect(text).toContain("REGENERATES this file");
+    expect(text).toContain("KEEP your edit");
+  });
+});
+
+/**
+ * Read the shipped hook source once for the assertions above.
+ * @returns The hook's text.
+ */
+function hookText(): string {
+  return readFileSync(
+    path.join(process.cwd(), "plugins/lisa/hooks/block-managed-file-edits.sh"),
+    "utf8"
+  );
+}
