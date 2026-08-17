@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.26.4](https://github.com/CodySwannGT/lisa/compare/v3.26.3...v3.26.4) (2026-08-17)
+
+
+### Bug Fixes
+
+* **ignore:** `!` in .lisaignore un-ignored the whole project ([2e18c73](https://github.com/CodySwannGT/lisa/commit/2e18c73658fed814dad26a95b78731091f705f32)), closes [CodySwannGT/lisa#2628](https://github.com/CodySwannGT/lisa/issues/2628) [CodySwannGT/lisa#2628](https://github.com/CodySwannGT/lisa/issues/2628)
+
+
+### Documentation
+
+* **ignore:** the starter template invited the bug it did not document ([d530fc8](https://github.com/CodySwannGT/lisa/commit/d530fc89beb1fe55b11dd1c9cc47450192164db1)), closes [CodySwannGT/lisa#2628](https://github.com/CodySwannGT/lisa/issues/2628) [CodySwannGT/lisa#2628](https://github.com/CodySwannGT/lisa/issues/2628)
+
 ### [3.26.3](https://github.com/CodySwannGT/lisa/compare/v3.26.2...v3.26.3) (2026-08-17)
 
 
