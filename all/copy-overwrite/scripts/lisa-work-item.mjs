@@ -132,6 +132,27 @@ export function githubFailureReason(result, ref, noun) {
       `\n${stderr.trim().slice(0, 300)}`
     );
   }
+  // A transient upstream failure is NOT a verdict about the work item, and
+  // reporting it as one is worse than reporting nothing. Measured 2026-08-17:
+  // GitHub returned `HTTP 503: No server is currently available` during an
+  // outage, this function fell through to the sentence below, and a push was
+  // blocked with "issue #2651 does not exist" about an issue created minutes
+  // earlier. The author's next move is to go looking for a deleted ticket.
+  //
+  // 5xx, rate limiting, and network failures all mean UNASSESSED. The two
+  // branches above already model that distinction; this is the third case they
+  // were missing.
+  if (
+    /HTTP 5\d\d|rate limit|timed out|timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|service unavailable|try again/i.test(
+      stderr
+    )
+  ) {
+    return (
+      `the GitHub API is unavailable, so ${noun} ${ref} could not be ` +
+      `checked.\nThis is an upstream outage, not a problem with the work item. ` +
+      `Retry when it clears.\n${stderr.trim().slice(0, 300)}`
+    );
+  }
   return `${noun} ${ref} does not exist or is inaccessible`;
 }
 
