@@ -306,6 +306,44 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies.oxlint).toBe("^0.1.0");
     });
 
+    it("keeps forced direct deps that back literal override normalization under skip-git-check", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          overrides: { prettier: "3.8.3" },
+          scripts: { test: "lisa test" },
+          devDependencies: { prettier: "3.8.3", oxlint: "^1.0.0" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        scripts: { test: "host test" },
+        devDependencies: { prettier: "^3.3.3", oxlint: "^0.1.0" },
+      });
+
+      const result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      expect(result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      expect(content.overrides.prettier).toBe("$prettier");
+      expect(content.devDependencies.prettier).toBe("3.8.3");
+      expect(content.devDependencies.oxlint).toBe("^0.1.0");
+      expect(content.scripts.test).toBe("host test");
+    });
+
     // Regression: force.resolutions/force.overrides are a security FLOOR, not an
     // assignment. Writing them as a plain overwrite walked hosts BACKWARDS into
     // the vulnerable range they had already escaped — a project pinned at
@@ -602,9 +640,9 @@ describe("PackageLisaStrategy", () => {
   // devDependency is the canonical trigger. Lisa's apply must normalize these to
   // the npm-valid "$name" form so the manifest self-heals on the next apply.
   describe("EOVERRIDE self-referencing override normalization", () => {
-    it("rewrites a literal override to $name when the package is a direct dep", async () => {
+    it("rewrites a literal override to $name when the direct dep preserves the constraint", async () => {
       await createPackageLisaTemplate("typescript", {
-        force: { devDependencies: { prettier: "^3.3.3" } },
+        force: { devDependencies: { prettier: "3.8.3" } },
       });
 
       const sourcePath = path.join(
@@ -619,11 +657,11 @@ describe("PackageLisaStrategy", () => {
       // EOVERRIDE-invalid state a security fix left behind).
       await fs.writeJson(destPath, {
         name: "ts-host",
-        devDependencies: { prettier: "^3.3.3", typescript: "^5.0.0" },
+        devDependencies: { prettier: "3.8.3", typescript: "^5.0.0" },
         overrides: { prettier: "3.8.3", axios: ">=1.15.2" },
       });
 
-      const _result = await strategy.apply(
+      const result = await strategy.apply(
         sourcePath,
         destPath,
         "package.json",
@@ -634,9 +672,12 @@ describe("PackageLisaStrategy", () => {
       // The colliding override is normalized to the self-reference...
       expect(content.overrides.prettier).toBe("$prettier");
       // ...the backing direct dep is preserved so the $ref resolves...
-      expect(content.devDependencies.prettier).toBe("^3.3.3");
+      expect(content.devDependencies.prettier).toBe("3.8.3");
       // ...and a transitive-only override (not a direct dep) is left literal.
       expect(content.overrides.axios).toBe(">=1.15.2");
+      expect(result.note).toContain(
+        'Normalized overrides.prettier: replaced literal "3.8.3" with "$prettier" resolving to direct dependency range "3.8.3".'
+      );
     });
 
     it("normalizes a colliding resolutions entry as well", async () => {
@@ -652,7 +693,7 @@ describe("PackageLisaStrategy", () => {
       await createTypeScriptProject(projectDir);
       await fs.writeJson(destPath, {
         name: "ts-host",
-        dependencies: { lodash: "^4.17.21" },
+        dependencies: { lodash: "4.17.21" },
         resolutions: { lodash: "4.17.21" },
       });
 
@@ -665,6 +706,30 @@ describe("PackageLisaStrategy", () => {
 
       const content = await fs.readJson(destPath);
       expect(content.resolutions.lodash).toBe("$lodash");
+    });
+
+    it("refuses to rewrite when $name would widen an exact override", async () => {
+      await createPackageLisaTemplate("typescript", {});
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "ts-host",
+        dependencies: { tailwindcss: "^3.4.7" },
+        overrides: { tailwindcss: "3.4.19" },
+      });
+
+      await expect(
+        strategy.apply(sourcePath, destPath, "package.json", createContext())
+      ).rejects.toThrow(
+        'overrides.tailwindcss would widen if rewritten to "$tailwindcss"'
+      );
     });
 
     it("leaves an existing $name reference and non-direct overrides untouched", async () => {
