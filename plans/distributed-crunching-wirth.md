@@ -41,7 +41,7 @@ Pattern: same as existing `jira/create.md` -- frontmatter with `allowed-tools: [
 - Fix the bug
 - Verify fix using project's verification method
 - Upload evidence to JIRA
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-fix/SKILL.md` (remove hardcoded `SE-3726` URL and `localhost:8081`)
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-fix/SKILL.md` (remove hardcoded `SE-3726` URL and `localhost:8081`)
 
 **`jira-implement/SKILL.md`** (new) -- Genericized from frontend-v2:
 - Read JIRA ticket via Atlassian MCP or CLI
@@ -50,7 +50,7 @@ Pattern: same as existing `jira/create.md` -- frontmatter with `allowed-tools: [
 - Make a plan to fulfill requirements
 - If UI work: use browser tools to understand current state, create verification task
 - If API/backend work: use curl or test commands to understand current behavior, create verification task
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-implement/SKILL.md` (generalize "frontend issue" to handle all change types)
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-implement/SKILL.md` (generalize "frontend issue" to handle all change types)
 
 **`jira-journey/SKILL.md`** (new base) -- Generic description only (no scripts):
 - Parse the Validation Journey from the JIRA ticket
@@ -71,10 +71,10 @@ Pattern: same as existing `jira/create.md` -- frontmatter with `allowed-tools: [
 **`jira-evidence/SKILL.md`** (new) -- Universal evidence posting:
 - Run `post-evidence.sh` from scripts directory
 - Handles both image evidence (screenshots) and text evidence (command output)
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-evidence/SKILL.md` (generalize screenshot-specific language)
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-evidence/SKILL.md` (generalize screenshot-specific language)
 
 **`jira-evidence/scripts/post-evidence.sh`** (new) -- Updated from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-evidence/scripts/post-evidence.sh`
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-evidence/scripts/post-evidence.sh`
 - Change: Make screenshot upload optional (don't `exit 1` if no `.png` files found)
 - Change: Also glob for `[0-9][0-9]-*.txt` and `[0-9][0-9]-*.json` evidence files
 - Change: Upload non-image evidence files to GitHub release too (for linking)
@@ -84,34 +84,34 @@ Pattern: same as existing `jira/create.md` -- frontmatter with `allowed-tools: [
 ### 3. Expo-Specific Skills (`expo/copy-overwrite/.claude/skills/`)
 
 **`jira-create/SKILL.md`** (override) -- Direct copy from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-create/SKILL.md`
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-create/SKILL.md`
 - Adds "Validation Journey (Frontend Tickets)" section with when-to-include, how-to-write, guidelines
 - Change: Remove hardcoded `SE` project default, use "from jira-cli config"
 
 **`jira-verify/SKILL.md`** (override) -- Direct copy from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-verify/SKILL.md`
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-verify/SKILL.md`
 - Adds 3rd check for Validation Journey using `parse-plan.py`
 - Change: Update script path from `parse-journey.py` to `parse-plan.py`
 
 **`jira-journey/SKILL.md`** (override) -- Adapted from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-journey/SKILL.md`
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-journey/SKILL.md`
 - Playwright-based execution: parse journey → satisfy prerequisites → execute at each viewport → capture screenshots → generate templates → post evidence
 - Change: Update script references from `parse-journey.py` to `parse-plan.py`
 
 **`jira-journey/scripts/parse-plan.py`** (new) -- Renamed from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-journey/scripts/parse-journey.py`
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-journey/scripts/parse-journey.py`
 - Change: Rename file from `parse-journey.py` to `parse-plan.py`
 - Change: Support both `[SCREENSHOT: name]` and `[EVIDENCE: name]` markers (regex: `\[(SCREENSHOT|EVIDENCE):\s*([^\]]+)\]`)
 - Same filename in both Expo and TypeScript so Expo cleanly overwrites TypeScript during deployment
 
 **`jira-journey/scripts/generate-templates.py`** (new) -- Adapted from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-journey/scripts/generate-templates.py`
-- Change: Replace hardcoded `geminisportsai.atlassian.net` ticket URL with dynamic lookup from `~/.config/.jira/.config.yml`
-- Change: Replace hardcoded `geminisportsai/frontend-v2` fallback with empty string that fails loudly
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-journey/scripts/generate-templates.py`
+- Change: Replace hardcoded `acmeorgb.atlassian.net` ticket URL with dynamic lookup from `~/.config/.jira/.config.yml`
+- Change: Replace hardcoded `acmeorgb/frontend-v2` fallback with empty string that fails loudly
 - Same filename in both stacks for clean override
 
 **`jira-add-journey/SKILL.md`** (override) -- Adapted from frontend-v2:
-- Source: `/Users/cody/workspace/geminisportsai/frontend-v2/.claude/skills/jira-add-journey/SKILL.md`
+- Source: `/Users/cody/workspace/acmeorgb/frontend-v2/.claude/skills/jira-add-journey/SKILL.md`
 - Expo-specific: generates visual journey with `[SCREENSHOT: name]` markers, viewports table, visual assertions
 - Change: Update script reference from `parse-journey.py` to `parse-plan.py`
 

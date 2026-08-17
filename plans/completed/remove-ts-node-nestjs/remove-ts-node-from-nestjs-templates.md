@@ -15,7 +15,7 @@ This was previously fixed for CDK projects (`plans/completed/remove-ts-node-use-
 ## Branches & PRs
 
 - **Lisa**: `fix/tsconfig-local-override` branch, PR #148 to `main` — https://github.com/CodySwannGT/lisa/pull/148
-- **Backend-v2**: `fix/remove-ts-node-use-tsx` branch, PR #425 to `dev` — https://github.com/geminisportsai/backend-v2/pull/425
+- **Backend-v2**: `fix/remove-ts-node-use-tsx` branch, PR #425 to `dev` — https://github.com/acmeorgb/backend-v2/pull/425
 
 ## Changes
 
@@ -133,13 +133,13 @@ Create these tasks with TaskCreate:
 **Skills to Invoke:** `/coding-philosophy`
 
 **Files to modify:**
-- `/Users/cody/workspace/geminisportsai/backend-v2/package.json`
-- `/Users/cody/workspace/geminisportsai/backend-v2/nodemon.json`
-- `/Users/cody/workspace/geminisportsai/backend-v2/nodemon-debug.json`
+- `/Users/cody/workspace/acmeorgb/backend-v2/package.json`
+- `/Users/cody/workspace/acmeorgb/backend-v2/nodemon.json`
+- `/Users/cody/workspace/acmeorgb/backend-v2/nodemon-debug.json`
 
-**Verification:** `grep -c 'ts-node' /Users/cody/workspace/geminisportsai/backend-v2/package.json /Users/cody/workspace/geminisportsai/backend-v2/nodemon.json /Users/cody/workspace/geminisportsai/backend-v2/nodemon-debug.json` → `0` for all files
+**Verification:** `grep -c 'ts-node' /Users/cody/workspace/acmeorgb/backend-v2/package.json /Users/cody/workspace/acmeorgb/backend-v2/nodemon.json /Users/cody/workspace/acmeorgb/backend-v2/nodemon-debug.json` → `0` for all files
 
-**Metadata:** `{ "plan": "replicated-jumping-ladybug", "type": "bug", "skills": ["/coding-philosophy"], "verification": { "type": "manual-check", "command": "grep -c 'ts-node' /Users/cody/workspace/geminisportsai/backend-v2/package.json /Users/cody/workspace/geminisportsai/backend-v2/nodemon.json /Users/cody/workspace/geminisportsai/backend-v2/nodemon-debug.json", "expected": "0 for all files" } }`
+**Metadata:** `{ "plan": "replicated-jumping-ladybug", "type": "bug", "skills": ["/coding-philosophy"], "verification": { "type": "manual-check", "command": "grep -c 'ts-node' /Users/cody/workspace/acmeorgb/backend-v2/package.json /Users/cody/workspace/acmeorgb/backend-v2/nodemon.json /Users/cody/workspace/acmeorgb/backend-v2/nodemon-debug.json", "expected": "0 for all files" } }`
 
 ---
 
@@ -167,9 +167,9 @@ Create these tasks with TaskCreate:
 
 **Description:** Run `bun run typecheck && bun run lint` in backend-v2 to verify no regressions. Cannot run full tests without database, but typecheck and lint confirm script changes are syntactically valid.
 
-**Verification:** `cd /Users/cody/workspace/geminisportsai/backend-v2 && bun run typecheck && bun run lint` → all pass
+**Verification:** `cd /Users/cody/workspace/acmeorgb/backend-v2 && bun run typecheck && bun run lint` → all pass
 
-**Metadata:** `{ "plan": "replicated-jumping-ladybug", "type": "task", "skills": ["/coding-philosophy"], "verification": { "type": "manual-check", "command": "cd /Users/cody/workspace/geminisportsai/backend-v2 && bun run typecheck && bun run lint", "expected": "All pass" } }`
+**Metadata:** `{ "plan": "replicated-jumping-ladybug", "type": "task", "skills": ["/coding-philosophy"], "verification": { "type": "manual-check", "command": "cd /Users/cody/workspace/acmeorgb/backend-v2 && bun run typecheck && bun run lint", "expected": "All pass" } }`
 
 ---
 

@@ -199,21 +199,21 @@ cd /Users/cody/workspace/thumbwar/frontend && bun run test
 
 Expected: 18 suites, 232 tests passing.
 
-### Task 11: Apply Lisa to propswap/frontend and migrate project-specific mocks
+### Task 11: Apply Lisa to acmeorga/frontend and migrate project-specific mocks
 
-Run `bun run dev /Users/cody/workspace/propswap/frontend` to apply updated templates.
+Run `bun run dev /Users/cody/workspace/acmeorga/frontend` to apply updated templates.
 
-Same migration pattern as ThumbWar: propswap has `jest.setup.js` (old) + `jest.setup.ts` (Lisa create-only) + `jest.setup.pre.js`. Move project-specific mocks from `jest.setup.js`/`jest.setup.ts` into `jest.setup.local.ts`, move project-specific pre-setup from `jest.setup.pre.js` into `jest.setup.pre.local.js`, remove `setupFiles`/`setupFilesAfterEnv` from `jest.config.local.ts`, delete old `jest.setup.js`.
+Same migration pattern as ThumbWar: acmeorga has `jest.setup.js` (old) + `jest.setup.ts` (Lisa create-only) + `jest.setup.pre.js`. Move project-specific mocks from `jest.setup.js`/`jest.setup.ts` into `jest.setup.local.ts`, move project-specific pre-setup from `jest.setup.pre.js` into `jest.setup.pre.local.js`, remove `setupFiles`/`setupFilesAfterEnv` from `jest.config.local.ts`, delete old `jest.setup.js`.
 
-### Task 12: Verify propswap/frontend tests pass
+### Task 12: Verify acmeorga/frontend tests pass
 
 ```bash
-cd /Users/cody/workspace/propswap/frontend && bun run test
+cd /Users/cody/workspace/acmeorga/frontend && bun run test
 ```
 
 ### Task 13: Apply Lisa to frontend-v2 and migrate
 
-Run `bun run dev /Users/cody/workspace/geminisportsai/frontend-v2` and migrate similarly. Verify tests pass.
+Run `bun run dev /Users/cody/workspace/acmeorgb/frontend-v2` and migrate similarly. Verify tests pass.
 
 ### Task 14: Run Lisa's own tests
 
@@ -282,11 +282,11 @@ bun run test
 # ThumbWar tests after migration
 cd /Users/cody/workspace/thumbwar/frontend && bun run test
 
-# propswap/frontend tests after migration
-cd /Users/cody/workspace/propswap/frontend && bun run test
+# acmeorga/frontend tests after migration
+cd /Users/cody/workspace/acmeorga/frontend && bun run test
 
 # frontend-v2 tests after migration
-cd /Users/cody/workspace/geminisportsai/frontend-v2 && bun run test
+cd /Users/cody/workspace/acmeorgb/frontend-v2 && bun run test
 
 # Linting
 bun run lint && bun run typecheck

@@ -79,10 +79,10 @@
 # sign-in screen. The failure is indistinguishable from a product defect by
 # inspection, and it moves between flows from night to night.
 #
-# Measured, not theorized. On geminisportsai/frontend-v2 the Maestro suite on
+# Measured, not theorized. On acmeorgb/frontend-v2 the Maestro suite on
 # `dev` was 1 success in 6 runs; run 31757559016 failed 2 of 38 Android flows on
 # `id: ^(?:SIGNIN.INPUT_PHONE|TAB_BAR.S…` while the iOS leg passed — a sign-in
-# screen where a tab bar was expected. On TunnlAI/frontend, flow failure rate
+# screen where a tab bar was expected. On AcmeOrgD/frontend, flow failure rate
 # was 33% while the legs overlapped and 16% after one leg finished, across two
 # runs.
 #
@@ -1106,7 +1106,7 @@ jobs:
 
       - name: 🔎 Report toolchain versions
         # To the JOB LOG and the step summary, never only to the debug
-        # artifact. TunnlAI could not test "did Maestro 2.8.0 regress iOS
+        # artifact. AcmeOrgD could not test "did Maestro 2.8.0 regress iOS
         # driver startup?" against its own history precisely because the
         # version existed nowhere but inside artifacts that had aged out.
         # A version you cannot read after the fact is a version you cannot
@@ -1313,7 +1313,7 @@ jobs:
         # Flipping the combined upload to `error` would have been a placebo for
         # the bug this step exists to catch: `error` fires only when NOTHING in
         # the path matched, and in the failure that motivated this
-        # (TunnlAI/frontend run 31584986248) `maestro-debug/` existed and only
+        # (AcmeOrgD/frontend run 31584986248) `maestro-debug/` existed and only
         # the report was missing — so the combined upload would still have gone
         # quietly green. A report-only path is what makes an absent report an
         # error instead of a 5 KB artifact nobody opens.
@@ -1608,7 +1608,7 @@ jobs:
           # An EXPLICIT, caller-overridable budget for the XCUITest driver's
           # port bind. Leaving this unset does not mean "no opinion" — it means
           # the CLI's built-in 120 s applies by accident, and when it expired on
-          # TunnlAI/frontend run 31584986248 the job discarded all 83 planned
+          # AcmeOrgD/frontend run 31584986248 the job discarded all 83 planned
           # flows without a single one starting. 240 s is chosen to be
           # unambiguously more than "the default was not enough" while still
           # being a small fraction of the suite ceiling, so a genuinely wedged

@@ -66,7 +66,7 @@ describe("serialize-legs callee grant tracks the shipped workflow", () => {
   });
 
   it("refuses to certify a fully configured caller while the callee cannot receive the scope", async () => {
-    // The defect this replaces. TunnlAI/frontend declares every caller-side
+    // The defect this replaces. AcmeOrgD/frontend declares every caller-side
     // part — serialize on, token forwarded, `actions: read` at BOTH job and
     // workflow level — and the check reported `ok`. That same configuration
     // was measured at HTTP 403 with the two legs starting two seconds apart.

@@ -235,7 +235,7 @@ describe("maestro-native-e2e zero-flow contract", () => {
       // Report-only path. Pointing `if-no-files-found: error` at the COMBINED
       // report+debug path would be a placebo: `error` fires only when nothing
       // in the path matched, and the failure this guards against
-      // (TunnlAI/frontend run 31584986248) had a populated `maestro-debug/`
+      // (AcmeOrgD/frontend run 31584986248) had a populated `maestro-debug/`
       // and only the report missing.
       expect(reportUpload?.with?.path).toBe(`maestro-${platform}-report.xml`);
       expect(reportUpload?.with?.["if-no-files-found"]).toBe("error");

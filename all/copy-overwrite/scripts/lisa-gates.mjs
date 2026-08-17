@@ -252,7 +252,7 @@ export const REGISTRY = Object.freeze({
   // rather than a naming preference. `environment:reset` is a PRECONDITION a
   // workflow calls before a suite; if it were the gate's task, declaring the
   // gate `required` at pull-request would converge a shared environment on
-  // every pull request. That hazard is not hypothetical — tunnlai/frontend
+  // every pull request. That hazard is not hypothetical — acmeorgd/frontend
   // already runs an unconditional reset job that is destructive to shared dev
   // data on every invocation.
   //

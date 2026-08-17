@@ -11,7 +11,7 @@ import {
  * Paths that must NEVER be excluded as worktrees.
  *
  * These are the over-match direction of the anchoring invariant, and they are
- * not hypothetical. Downstream in `propswap/frontend` an unanchored `/\.claude/`
+ * not hypothetical. Downstream in `acmeorga/frontend` an unanchored `/\.claude/`
  * in Metro's blockList matched every file in the project. Two of these entries
  * are real files in this repo whose own names contain the words a sloppy
  * pattern would key on.

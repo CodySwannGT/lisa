@@ -357,7 +357,7 @@ export const HEALTHY_MAP: Record<string, unknown> = {
   trackers: {
     keys: ["TUN"],
     github: {
-      org: "TunnlAI",
+      org: "AcmeOrgD",
       defaultRepo: "frontend",
       repos: ["frontend", "wiki"],
     },

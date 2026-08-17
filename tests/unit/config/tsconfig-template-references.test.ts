@@ -78,7 +78,7 @@ describe("stack tsconfig templates extend resolvable references", () => {
     // ROOT-layout path aliases (`@/*` -> `./*`, `@/graphql/*` -> `./generated/*`)
     // and unconditionally overwrite them on every `lisa` run. That clobbered
     // every src/-layout project (`@/*` -> `./src/*`), breaking ~1928 imports in
-    // geminisportsai/frontend-v2. The fix removes layout-specific `paths` from
+    // acmeorgb/frontend-v2. The fix removes layout-specific `paths` from
     // the overwritten file and delegates them to `./tsconfig.local.json`, which
     // is create-only (project-owned) and therefore survives updates — so a
     // src/-layout project keeps its `./src/*` mappings.

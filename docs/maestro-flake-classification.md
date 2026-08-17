@@ -21,7 +21,7 @@ product. When the preamble fails, the flow reds **having tested nothing** — an
 an assertion naming a preamble gate rather than the feature, so a reader scoring the run by
 flow name counts it as a product regression.
 
-Upstream (TunnlAI/frontend), proof runs 6 and 7 each lost four flows that way. Run 6's
+Upstream (AcmeOrgD/frontend), proof runs 6 and 7 each lost four flows that way. Run 6's
 Android arm was written up as a possible product regression, and every one of those flows
 came back green in run 7 with **no code addressing them**. A campaign that scores itself on
 per-run deltas cannot do that honestly while a handful of flows per run red on a shared

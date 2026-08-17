@@ -41,11 +41,11 @@ describe("resolveEmitTarget", () => {
     // `await` is load-bearing: an unawaited `.resolves` is a floating promise
     // and the assertion cannot fail the test.
     await expect(
-      resolveEmitTarget(["--emit=claude-web", "--tenant=tunnl"], {}, nowhere)
+      resolveEmitTarget(["--emit=claude-web", "--tenant=acmeorgd"], {}, nowhere)
     ).resolves.toMatchObject({
-      tenant: "tunnl",
+      tenant: "acmeorgd",
       provider: "bitwarden",
-      bootstrapKey: "BWS_ACCESS_TOKEN_tunnl",
+      bootstrapKey: "BWS_ACCESS_TOKEN_acmeorgd",
     });
   });
 
@@ -117,7 +117,7 @@ describe("resolveEmitTarget", () => {
     );
 
     await expect(
-      resolveEmitTarget(["--tenant=tunnl"], {}, nowhere)
+      resolveEmitTarget(["--tenant=acmeorgd"], {}, nowhere)
     ).resolves.toMatchObject({ bootstrapKey: "CUSTOM_NAME" });
   });
 });
@@ -141,10 +141,10 @@ describe("the emitted guidance", () => {
   }
 
   it("fills both placeholders in when the tenant is known", async () => {
-    const out = await emit("tunnl", "bitwarden");
+    const out = await emit("acmeorgd", "bitwarden");
 
-    expect(out).toContain("export LISA_TENANT=tunnl");
-    expect(out).toContain("export BWS_ACCESS_TOKEN_tunnl=");
+    expect(out).toContain("export LISA_TENANT=acmeorgd");
+    expect(out).toContain("export BWS_ACCESS_TOKEN_acmeorgd=");
     expect(out).not.toContain("<your namespace>");
   });
 

@@ -45,7 +45,7 @@ afterEach(() => {
 
 describe("bootstrap defaults", () => {
   it('consults the keychain, which `["env"]` alone never did', () => {
-    config({ provider: "bitwarden", namespace: "tunnl" });
+    config({ provider: "bitwarden", namespace: "acmeorgd" });
 
     expect(readConfig(project, {}).bootstrap.sources).toEqual([
       "env",
@@ -57,16 +57,16 @@ describe("bootstrap defaults", () => {
     // A runner injects the bootstrap into the environment. Consulting a
     // developer's keychain ahead of that would bind a job to whoever's machine
     // happened to have one.
-    config({ provider: "bitwarden", namespace: "tunnl" });
+    config({ provider: "bitwarden", namespace: "acmeorgd" });
 
     expect(readConfig(project, {}).bootstrap.sources[0]).toBe("env");
   });
 
   it("derives the key from the provider and namespace", () => {
-    config({ provider: "bitwarden", namespace: "tunnl" });
+    config({ provider: "bitwarden", namespace: "acmeorgd" });
 
     expect(readConfig(project, {}).bootstrap.key).toBe(
-      "BWS_ACCESS_TOKEN_tunnl"
+      "BWS_ACCESS_TOKEN_acmeorgd"
     );
   });
 
@@ -89,7 +89,7 @@ describe("bootstrap defaults", () => {
     // point sessions at a variable nobody set.
     config({
       provider: "bitwarden",
-      namespace: "tunnl",
+      namespace: "acmeorgd",
       bootstrap: { sources: ["env"], key: "CUSTOM_NAME" },
     });
 
@@ -102,7 +102,7 @@ describe("bootstrap defaults", () => {
   it("fills only the half a project left out", () => {
     config({
       provider: "bitwarden",
-      namespace: "tunnl",
+      namespace: "acmeorgd",
       bootstrap: { key: "CUSTOM_NAME" },
     });
 

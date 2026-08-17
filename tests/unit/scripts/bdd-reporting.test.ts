@@ -184,7 +184,7 @@ describe("honest reporting", () => {
         keys: ["TUN"],
         keyUrlTemplate: "https://linear.app/t/issue/{id}",
         github: {
-          org: "TunnlAI",
+          org: "AcmeOrgD",
           defaultRepo: "frontend",
           repos: ["frontend"],
         },

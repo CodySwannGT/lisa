@@ -27,5 +27,5 @@ Enumeration of every agent type exposed by the Agent tool, one line each:
 - EXCLUDE - coderabbit:code-reviewer - CodeRabbit reviews arrive on the PR via CI; a local duplicate adds noise.
 - EXCLUDE - code-simplifier:code-simplifier - Guard hook favors explicit, auditable checks; simplification pass risks weakening security semantics.
 - EXCLUDE - claude / claude-code-guide / statusline-setup - Catch-all or tooling-help agents irrelevant to this fix.
-- EXCLUDE - casey / chief / felix / lex / mark / parker / sally - tunnl-backend business-domain agents; wrong repo and domain.
+- EXCLUDE - casey / chief / felix / lex / mark / parker / sally - acmeorgd-backend business-domain agents; wrong repo and domain.
 - EXCLUDE - Plan - Implementation plan is already determined by the ticket + root-cause pointer.

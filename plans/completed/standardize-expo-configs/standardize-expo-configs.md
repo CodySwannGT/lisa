@@ -5,9 +5,9 @@
 
 ## Context
 
-Three Expo projects (propswap, geminisportsai, thumbwar) share the same Lisa-managed base files but have divergent project-specific configs. Investigation revealed:
+Three Expo projects (acmeorga, acmeorgb, thumbwar) share the same Lisa-managed base files but have divergent project-specific configs. Investigation revealed:
 
-1. **propswap's `tsconfig.expo.json`** predates the current Lisa template — uses explicit per-directory path aliases instead of catch-all `@/*`, missing `noEmit`/`allowImportingTsExtensions`, has unnecessary `useUnknownInCatchVariables: false`
+1. **acmeorga's `tsconfig.expo.json`** predates the current Lisa template — uses explicit per-directory path aliases instead of catch-all `@/*`, missing `noEmit`/`allowImportingTsExtensions`, has unnecessary `useUnknownInCatchVariables: false`
 2. **Lisa expo templates are missing** a create-only `jest.config.local.ts` and `babel.config.js`, causing each project to independently create these files with inconsistent patterns
 
 ## Changes
@@ -62,15 +62,15 @@ Content: Minimal shared mocks (PlatformConstants, AppState, Appearance, DeviceIn
 
 ### 6. Update `expo/copy-overwrite/tsconfig.json` to include `nativewind-env.d.ts`
 
-The Lisa template's `tsconfig.json` doesn't include `nativewind-env.d.ts` in its `include` array, but geminisportsai and thumbwar both added it manually. Since all expo projects use NativeWind, add it to the template.
+The Lisa template's `tsconfig.json` doesn't include `nativewind-env.d.ts` in its `include` array, but acmeorgb and thumbwar both added it manually. Since all expo projects use NativeWind, add it to the template.
 
 **File**: `expo/copy-overwrite/tsconfig.json`
 
 Change `include` from `["**/*.ts", "**/*.tsx"]` to `["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"]`.
 
-### 7. Standardize propswap configs (separate branch in propswap repo)
+### 7. Standardize acmeorga configs (separate branch in acmeorga repo)
 
-These changes happen in `/Users/cody/workspace/propswap/frontend`, on a new branch off propswap's main. After Lisa template changes are committed, run `lisa:update` in propswap to pull the new template, then:
+These changes happen in `/Users/cody/workspace/acmeorga/frontend`, on a new branch off acmeorga's main. After Lisa template changes are committed, run `lisa:update` in acmeorga to pull the new template, then:
 
 a. **`tsconfig.expo.json` gets replaced by Lisa** — The `lisa:update` command will overwrite it with the standard template (copy-overwrite). The catch-all `@/*` path works (verified: all imports follow the pattern). Remove `useUnknownInCatchVariables: false` (not needed — no untyped catch blocks exist).
 
@@ -81,9 +81,9 @@ b. **Simplify `jest.config.local.ts`** — Remove duplicated config already in `
 
 c. **Simplify `babel.config.js`** — Remove `module-resolver` plugin (unnecessary with catch-all `@/*` in tsconfig + jest `moduleNameMapper`). Keep `babel-preset-expo` with nativewind.
 
-d. **Run propswap tests** to verify nothing breaks: `bun run test` and `bun run typecheck`
+d. **Run acmeorga tests** to verify nothing breaks: `bun run test` and `bun run typecheck`
 
-e. **Create PR in propswap repo** targeting propswap's main branch
+e. **Create PR in acmeorga repo** targeting acmeorga's main branch
 
 ## Files Modified
 
@@ -98,7 +98,7 @@ e. **Create PR in propswap repo** targeting propswap's main branch
 | `expo/create-only/jest.config.react-native-mock.js` | Create | create-only template |
 | `expo/copy-overwrite/tsconfig.json` | Edit | add nativewind-env.d.ts |
 
-### Propswap repo (`/Users/cody/workspace/propswap/frontend`, new branch + PR)
+### AcmeOrgA repo (`<workspace>/acmeorga/frontend`, new branch + PR)
 
 | File | Action | Details |
 |------|--------|---------|
@@ -120,21 +120,21 @@ Create these tasks with `TaskCreate`. Subagents should handle tasks 1-5 in paral
 
 1. **Create `expo/create-only/jest.config.local.ts`** — Expo-specific Jest local config template with setupFiles, moduleNameMapper, and coveragePathIgnorePatterns examples. Model after `typescript/create-only/jest.config.local.ts`. Use `/jsdoc-best-practices`.
 2. **Create `expo/create-only/babel.config.js`** — Babel config template with babel-preset-expo and nativewind presets. Use `/jsdoc-best-practices`.
-3. **Create `expo/create-only/jest.setup.pre.js`** — Pre-setup template with React Native globals, TurboModule proxy, structuredClone polyfill. Use the shared pattern from geminisportsai (`/Users/cody/workspace/geminisportsai/frontend-v2/jest.setup.pre.js`) as the source since it's identical across projects. Use `/jsdoc-best-practices`.
-4. **Create `expo/create-only/jest.setup.ts`** — Post-env setup template with RTLRN cleanup, expo-router mock, firebase mock. Use geminisportsai's as source. Remove project-specific env mock (replace with placeholder comment). Use `/jsdoc-best-practices`.
-5. **Create `expo/create-only/jest.config.react-native-mock.js`** — Baseline React Native TurboModule mocks (PlatformConstants, AppState, Appearance, DeviceInfo). Use propswap's minimal version as source. Use `/jsdoc-best-practices`.
+3. **Create `expo/create-only/jest.setup.pre.js`** — Pre-setup template with React Native globals, TurboModule proxy, structuredClone polyfill. Use the shared pattern from acmeorgb (`/Users/cody/workspace/acmeorgb/frontend-v2/jest.setup.pre.js`) as the source since it's identical across projects. Use `/jsdoc-best-practices`.
+4. **Create `expo/create-only/jest.setup.ts`** — Post-env setup template with RTLRN cleanup, expo-router mock, firebase mock. Use acmeorgb's as source. Remove project-specific env mock (replace with placeholder comment). Use `/jsdoc-best-practices`.
+5. **Create `expo/create-only/jest.config.react-native-mock.js`** — Baseline React Native TurboModule mocks (PlatformConstants, AppState, Appearance, DeviceInfo). Use acmeorga's minimal version as source. Use `/jsdoc-best-practices`.
 6. **Update `expo/copy-overwrite/tsconfig.json`** — Add `nativewind-env.d.ts` to include array
 7. **Add/update tests** — Verify new template files pass Lisa's lint and typecheck. Run `bun run test`, `bun run lint`, `bun run typecheck` in Lisa repo.
 8. **Update documentation** — Ensure all new files have proper JSDoc preambles (should be done as part of tasks 1-5 via `/jsdoc-best-practices`). No markdown doc changes needed.
 9. **Commit and push Lisa changes to PR #137** — Use `/git:commit` for atomic commits, then `/git:submit-pr` to push
 
-### Propswap repo tasks (after Lisa tasks complete)
+### AcmeOrgA repo tasks (after Lisa tasks complete)
 
-10. **Run local Lisa on propswap** — From the Lisa repo: `bun run dev /Users/cody/workspace/propswap/frontend -y`. This uses the local (unpublished) Lisa to apply the updated templates, replacing `tsconfig.expo.json` with the standard template.
-11. **Simplify propswap `jest.config.local.ts`** — Remove duplicated haste/resolver/transform/preset override. Keep setupFiles, moduleNameMapper, transformIgnorePatterns, testPathIgnorePatterns, coveragePathIgnorePatterns, collectCoverageFrom.
-12. **Simplify propswap `babel.config.js`** — Remove `module-resolver` plugin and its aliases. Keep babel-preset-expo with nativewind.
-13. **Verify propswap** — Run `bun run test`, `bun run typecheck`, `bun run lint` in propswap to confirm nothing breaks.
-14. **Commit and create propswap PR** — New branch in propswap repo, PR targeting propswap's main. Use `/git:commit-and-submit-pr`.
+10. **Run local Lisa on acmeorga** — From the Lisa repo: `bun run dev /Users/cody/workspace/acmeorga/frontend -y`. This uses the local (unpublished) Lisa to apply the updated templates, replacing `tsconfig.expo.json` with the standard template.
+11. **Simplify acmeorga `jest.config.local.ts`** — Remove duplicated haste/resolver/transform/preset override. Keep setupFiles, moduleNameMapper, transformIgnorePatterns, testPathIgnorePatterns, coveragePathIgnorePatterns, collectCoverageFrom.
+12. **Simplify acmeorga `babel.config.js`** — Remove `module-resolver` plugin and its aliases. Keep babel-preset-expo with nativewind.
+13. **Verify acmeorga** — Run `bun run test`, `bun run typecheck`, `bun run lint` in acmeorga to confirm nothing breaks.
+14. **Commit and create acmeorga PR** — New branch in acmeorga repo, PR targeting acmeorga's main. Use `/git:commit-and-submit-pr`.
 
 ### Cleanup
 
@@ -156,10 +156,10 @@ bun run test
 bun run lint
 ```
 
-### Propswap repo
+### AcmeOrgA repo
 
 ```bash
-# In /Users/cody/workspace/propswap/frontend
+# In /Users/cody/workspace/acmeorga/frontend
 bun run typecheck
 bun run test
 bun run lint

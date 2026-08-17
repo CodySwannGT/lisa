@@ -118,7 +118,7 @@ assertions.
 2. Implement the function and its role, with the absence assertion from (1).
 3. Scaffold state contracts in the backends, starting with `forbidden` on
    ledgers and payments. No backend in the fleet has one today — verified absent
-   in `propswap/backend`, `geminisportsai/backend-v2`, `tunnlai/tunnl-backend`.
+   in `acmeorga/backend`, `acmeorgb/backend-v2`, `acmeorgd/acmeorgd-backend`.
 
 ## 5. Status of the original ticket's gap list
 

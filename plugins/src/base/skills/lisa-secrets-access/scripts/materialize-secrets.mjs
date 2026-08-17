@@ -248,8 +248,8 @@ export function installAwsProfiles(bundle, options = {}) {
   // Refuse to write a profile name the operator already uses outside our block.
   //
   // AWS does not error on a duplicate `[profile x]` — it resolves one and
-  // ignores the other. So writing `tunnl-dev` next to an operator's existing SSO
-  // `tunnl-dev` would silently run some calls as the wrong identity, which is
+  // ignores the other. So writing `acmeorgd-dev` next to an operator's existing SSO
+  // `acmeorgd-dev` would silently run some calls as the wrong identity, which is
   // worse than either winning outright. Merging protects their sections from
   // being deleted; this protects them from being shadowed.
   //

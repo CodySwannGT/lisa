@@ -32,7 +32,7 @@ const NAME = "LINEAR_API_KEY";
 const VALUE = "placeholder-value-for-tests";
 
 /** A destination organization, and a destination repository within it. */
-const ORG = "TunnlAI";
+const ORG = "AcmeOrgD";
 const REPO = `${ORG}/wiki`;
 
 /** The flag that widens or narrows an organization secret's reach. */
@@ -51,10 +51,10 @@ describe("parsing the destination", () => {
   });
 
   it.each([
-    ["a URL", "https://github.com/TunnlAI"],
-    ["a three-segment path", "TunnlAI/wiki/main"],
+    ["a URL", "https://github.com/AcmeOrgD"],
+    ["a three-segment path", "AcmeOrgD/wiki/main"],
     ["a traversal", "../../etc"],
-    ["a query string", "TunnlAI?per_page=1"],
+    ["a query string", "AcmeOrgD?per_page=1"],
     ["empty", ""],
     ["whitespace", "   "],
     ["undefined", undefined],
@@ -116,7 +116,7 @@ describe("secrets.propagating", () => {
     // parse should fail at doctor time rather than at push time.
     const problems = validateSecrets({
       provider: "env",
-      propagating: [{ name: NAME, targets: ["https://github.com/TunnlAI"] }],
+      propagating: [{ name: NAME, targets: ["https://github.com/AcmeOrgD"] }],
     });
     expect(problems[0]).toMatch(/neither an organization/i);
   });

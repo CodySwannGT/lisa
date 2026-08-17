@@ -2,7 +2,7 @@
  * The unattended apply must not silently downgrade a guard.
  *
  * This is the path that actually caused the incident: `bun install` in
- * `propswapllc/frontend` ran a non-interactive apply, which regenerated
+ * `acmeorga/frontend` ran a non-interactive apply, which regenerated
  * `scripts/lisa-hooks/block-no-verify.sh` from the installed package and reverted
  * hardening the project had added itself. Nobody was prompted, nothing failed,
  * and the only reason it was noticed is that the repo's own tests went red.

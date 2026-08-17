@@ -425,7 +425,7 @@ describe("quality.yml reusable workflow", () => {
     // Regression guard for CodySwannGT/lisa#2418.
     //
     // `hashFiles('**/src/**')` is unanchored, so it also matches
-    // `node_modules/**/src/**`. On PropSwapLLC/frontend that walked 116,353
+    // `node_modules/**/src/**`. On AcmeOrgA/frontend that walked 116,353
     // paths and hashed 26,955 node_modules files, blowing past the runner's
     // 120-second hashFiles ceiling and failing the job in the cache's POST
     // step — after every test had already passed. A green Playwright nightly
@@ -746,7 +746,7 @@ describe("quality.yml reusable workflow", () => {
       // here therefore capped work_item_traceability at contents+metadata no
       // matter what the caller granted.
       //
-      // Measured 2026-08-14: PropSwapLLC/backend and geminisportsai/backend-v2
+      // Measured 2026-08-14: AcmeOrgA/backend and acmeorgb/backend-v2
       // both granted contents/issues/pull-requests read on the calling job and
       // both received `Contents: read, Metadata: read`. The gate reported
       // "could verify NOTHING" and named the caller — which was already correct.

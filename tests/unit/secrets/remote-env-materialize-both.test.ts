@@ -12,7 +12,7 @@
  *
  * `/home/user` is not a project root, so no settings load, no hook registers,
  * and nothing materializes at all. Confirmed in a real Claude Code web session:
- * `~/.config/tunnl/` absent and `CLAUDE_PROJECT_DIR` unset, while running the
+ * `~/.config/acmeorgd/` absent and `CLAUDE_PROJECT_DIR` unset, while running the
  * same hook by hand wrote 12 secrets and exited 0.
  * @module tests/unit/secrets/remote-env-materialize-both
  */
