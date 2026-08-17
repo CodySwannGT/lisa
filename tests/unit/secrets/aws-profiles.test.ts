@@ -23,19 +23,19 @@ import {
 /** The four environments, shaped as the real bundle stores them. */
 const PROFILES = {
   "agent-dev": {
-    roleArn: "arn:aws:iam::905179307867:role/RemoteAgent",
+    roleArn: "arn:aws:iam::123456789012:role/RemoteAgent",
     region: "us-east-1",
   },
   "agent-staging": {
-    roleArn: "arn:aws:iam::362324310783:role/RemoteAgent",
+    roleArn: "arn:aws:iam::345678901234:role/RemoteAgent",
     region: "us-east-1",
   },
   "agent-production": {
-    roleArn: "arn:aws:iam::002889194405:role/RemoteAgent",
+    roleArn: "arn:aws:iam::210987654321:role/RemoteAgent",
     region: "us-east-1",
   },
   "agent-shared": {
-    roleArn: "arn:aws:iam::777997078669:role/RemoteAgent",
+    roleArn: "arn:aws:iam::456789012345:role/RemoteAgent",
     region: "us-east-1",
   },
 };
@@ -92,7 +92,7 @@ describe("renderAwsProfiles", () => {
     ]);
     expect(rendered?.config).toContain("[profile agent-dev]");
     expect(rendered?.config).toContain(
-      "role_arn = arn:aws:iam::905179307867:role/RemoteAgent"
+      "role_arn = arn:aws:iam::123456789012:role/RemoteAgent"
     );
     expect(rendered?.config).toContain(`source_profile = ${SOURCE_PROFILE}`);
   });
