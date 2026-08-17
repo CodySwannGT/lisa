@@ -25,6 +25,7 @@ import { readProjectFile } from "../../../src/health/read-only-fs.js";
 import {
   compareRulesets,
   expectedRulesets,
+  rulesetFinding,
   type HealthRuleset,
 } from "../../../src/health/ruleset-inspection.js";
 import {
@@ -482,6 +483,128 @@ describe("deterministic health governance regressions", () => {
     expect(unrelated?.rules?.[0]?.parameters?.required_status_checks).toEqual([
       { context: "CI", integration_id: 15_368 },
     ]);
+  });
+
+  it("names unenforced required checks and tolerates host-added checks", async () => {
+    const expected: HealthRuleset = {
+      name: "quality checks",
+      target: "branch",
+      enforcement: "active",
+      conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
+      rules: [
+        {
+          type: "required_status_checks",
+          parameters: {
+            required_status_checks: [
+              {
+                context: "🔍 Quality Checks / 🧹 Lint",
+                integration_id: 15_368,
+              },
+              {
+                context: "🔍 Quality Checks / 🔗 Work-Item Traceability",
+                integration_id: 15_368,
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const actualWithHostAddition: HealthRuleset = {
+      ...expected,
+      rules: [
+        {
+          type: "required_status_checks",
+          parameters: {
+            required_status_checks: [
+              {
+                context: "🔍 Quality Checks / 🧹 Lint",
+                integration_id: 15_368,
+              },
+              {
+                context: "🧭 E2E Route Coverage",
+                integration_id: 15_368,
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(compareRulesets([expected], [actualWithHostAddition])).toEqual({
+      missing: [],
+      drifted: ["quality checks"],
+    });
+
+    const lisaRoot = await temporaryRoot("lisa-health-ruleset-names-source-");
+    const projectRoot = await temporaryRoot("lisa-health-ruleset-names-host-");
+    await write(
+      lisaRoot,
+      "typescript/github-rulesets/quality-checks.json",
+      `${JSON.stringify(expected)}\n`
+    );
+    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
+
+    const finding = await rulesetFinding(
+      lisaRoot,
+      projectRoot,
+      ["typescript"],
+      { github: { org: "acme", repo: "app" } },
+      async () => [actualWithHostAddition],
+      1_000,
+      new AbortController().signal
+    );
+    expect(finding.status).toBe("fail");
+    expect(finding.reason).toContain("quality checks drifted");
+    expect(finding.reason).toContain("runs without blocking");
+    expect(finding.reason).toContain(
+      "🔍 Quality Checks / 🔗 Work-Item Traceability"
+    );
+    expect(finding.reason).not.toContain("🧭 E2E Route Coverage");
+  });
+
+  it("reports missing rulesets with their unenforced required checks", async () => {
+    const lisaRoot = await temporaryRoot("lisa-health-ruleset-missing-source-");
+    const projectRoot = await temporaryRoot(
+      "lisa-health-ruleset-missing-host-"
+    );
+    await write(
+      lisaRoot,
+      "expo/github-rulesets/nightly-e2e-health.json",
+      `${JSON.stringify({
+        name: "nightly e2e health",
+        target: "branch",
+        enforcement: "active",
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: [
+                {
+                  context: "🌙 Nightly E2E Health / 🌙 Gate",
+                  integration_id: 15_368,
+                },
+              ],
+            },
+          },
+        ],
+      })}\n`
+    );
+    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
+
+    const finding = await rulesetFinding(
+      lisaRoot,
+      projectRoot,
+      ["expo"],
+      { github: { org: "acme", repo: "app" } },
+      async () => [],
+      1_000,
+      new AbortController().signal
+    );
+
+    expect(finding.status).toBe("fail");
+    expect(finding.reason).toContain("nightly e2e health missing");
+    expect(finding.reason).toContain("🌙 Nightly E2E Health / 🌙 Gate");
+    expect(finding.reason).toContain("runs without blocking");
   });
 });
 /* eslint-enable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- restore repository test defaults */
