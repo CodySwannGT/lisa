@@ -5,7 +5,7 @@
 The Jest→Vitest infrastructure migration (Phases 0-7) is complete for Lisa, TypeScript, and NestJS stacks. 10 of 13 downstream PRs are merged. Three remaining gaps:
 
 1. **CDK/infrastructure projects** — were initially excluded but should migrate to Vitest (CDK tests use Template assertions, not jest.fn/mock, so migration is clean)
-2. **ask-gemini** — merged with Jest preserved, needs test file transformation (48 files, 5 with `jest.isolateModules`)
+2. **acme-product-b** — merged with Jest preserved, needs test file transformation (48 files, 5 with `jest.isolateModules`)
 3. **NestJS backends** (acmeorga/backend, acmeorgb/backend-v2, thumbwar/backend) — PRs open with vitest config but test files still use Jest APIs via compat shim
 
 **Goal:** After this work, only Expo projects should have Jest. All TypeScript, NestJS, CDK, and npm-package projects use Vitest.
@@ -79,7 +79,7 @@ Transform test files in downstream projects from Jest APIs to Vitest APIs.
 
 ### B1. Mechanical transformations (all projects)
 
-Applied to: ask-gemini, acmeorga/backend, acmeorgb/backend-v2, thumbwar/backend
+Applied to: acme-product-b, acmeorga/backend, acmeorgb/backend-v2, thumbwar/backend
 
 For every `.test.ts` and `.spec.ts` file:
 - `jest.fn()` → `vi.fn()`
@@ -97,7 +97,7 @@ For every `.test.ts` and `.spec.ts` file:
 - Remove `import { ... } from "@jest/globals"` lines
 - Add `import { vi } from "vitest"` where `vi.*` is used (globals:true handles describe/it/expect)
 
-### B2. Complex patterns (ask-gemini specific)
+### B2. Complex patterns (acme-product-b specific)
 
 5 files with `jest.isolateModules`:
 ```typescript
@@ -123,7 +123,7 @@ const actual = await vi.importActual("module");
 ### B3. Setup files
 
 For each NestJS project: port `jest.setup.js` → `vitest.setup.ts` with proper `vi.mock()` calls.
-For ask-gemini: create `vitest.setup.ts` with AWS SDK mocks from jest.setup.js.
+For acme-product-b: create `vitest.setup.ts` with AWS SDK mocks from jest.setup.js.
 
 ### B4. Remove compat shims
 
@@ -153,7 +153,7 @@ CDK tests don't use jest.fn(), so no codemod needed — just config swap.
 
 ### TypeScript + NestJS projects (Part B codemod)
 
-- acmeorgb/ask-gemini → dev (update existing merged code, new PR)
+- acmeorgb/acme-product-b → dev (update existing merged code, new PR)
 - acmeorga/backend → staging (update existing open PR #571)
 - acmeorgb/backend-v2 → dev (update existing open PR #612)
 - thumbwar/backend → main (update existing open PR #113)

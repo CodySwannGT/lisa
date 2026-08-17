@@ -55,7 +55,7 @@ const CLASHING = {
   accessKeyId: "AKIAEXAMPLE",
   secretAccessKey: "s3cret",
   profiles: {
-    "acmeorgd-dev": { roleArn: "arn:aws:iam::905179307867:role/RemoteAgent" },
+    "acmeorgd-dev": { roleArn: "arn:aws:iam::123456789012:role/RemoteAgent" },
   },
 };
 
@@ -65,7 +65,7 @@ const SUFFIXED = {
   secretAccessKey: "s3cret",
   profiles: {
     [STATIC_NAME]: {
-      roleArn: "arn:aws:iam::905179307867:role/RemoteAgent",
+      roleArn: "arn:aws:iam::123456789012:role/RemoteAgent",
     },
   },
 };

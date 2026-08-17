@@ -1,7 +1,7 @@
 {
   "id": "24",
   "subject": "Verify typecheck passes",
-  "description": "Run bun run typecheck in ask-gemini to verify",
+  "description": "Run bun run typecheck in acme-product-b to verify",
   "activeForm": "Verifying typecheck",
   "status": "completed",
   "blocks": [],
