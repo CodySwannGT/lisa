@@ -182,7 +182,7 @@ describe("nightly e2e reporting — rows 27-31", () => {
   });
 
   it("row 30: a PARTIAL run neither closes the issue nor files an all-clear", () => {
-    // The live case, and propswap's trap in their words: "one spec reporting
+    // The live case, and acmeorga's trap in their words: "one spec reporting
     // success would close the tracking issue while the failures that opened it
     // went unrun — the suite declaring itself green on evidence it never
     // gathered." Row 26 already refuses to call that run a pass; the reporter

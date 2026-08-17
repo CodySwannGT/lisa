@@ -9,7 +9,7 @@ its own work to a remote surface without the operator's laptop being the executi
 A credentials manager is the **preferred and best-supported** path. It is never required.
 
 The design is promoted from a working implementation proven in production on 2026-08-01:
-`gunnertech/frontend#165` (repository-owned Codex Cloud Bitwarden bootstrap) plus the end-to-end
+`acmeorgc/frontend#165` (repository-owned Codex Cloud Bitwarden bootstrap) plus the end-to-end
 publisher run that carried a real post from dispatch through merge and deployment. Every rule
 below that carries a "proven" note came out of a real failure in that stack, not from theory.
 
@@ -485,6 +485,6 @@ one was answered by live dispatch, the other deliberately descoped.
 
 | Session | Date | Phases | Notes |
 |---------|------|--------|-------|
-| 1 | 2026-08-01 | Research | Audited the proven gunnertech implementation (frontend PRs #119–#169, wiki PRs #250–#253) and Lisa's existing `lisa-secrets-access` (PR #2127); confirmed `codex cloud exec` is fire-and-forget (3–4s) and has no `--model` flag; plan created |
+| 1 | 2026-08-01 | Research | Audited the proven acmeorgc implementation (frontend PRs #119–#169, wiki PRs #250–#253) and Lisa's existing `lisa-secrets-access` (PR #2127); confirmed `codex cloud exec` is fire-and-forget (3–4s) and has no `--model` flag; plan created |
 | 3 | 2026-08-01 | Verify | Live-dispatched three read-only probes to a real Codex Cloud environment (`files=0` on all three, nothing touched). Settled unknown 3: `-c model=` does not govern the Cloud task's model. Also proved the shipped `lisa-remote-dispatch` end to end against that environment — precondition check, real CLI invocation, task-ID capture from live output, durable ledger write, exit without polling |
 | 2 | 2026-08-01 | A, A.6, B, C, D, E | Implemented all parts. Verified unknown 1 (no Codex provisioning API). Part A: surfaces/ladder/materialization + rotation with write-scope preflight and provider-held advisory lease. Part B: `lisa-setup-remote-env` with `require`/`install` manifest. Part C: `lisa-remote-dispatch` + `executionEnv` on `lisa-implement`. Part D: `scheduler: "github-actions"` workflow generator + stopped-clock detection. Part E: routed `lisa-atlassian-access` and `lisa-notion-access` through the chokepoint, added `doctor-secrets` and `validate-config`. 123 new tests; full suite green at 477 files / 8185 tests. Two unknowns deferred (concurrency cap, `-c model=` propagation) — both tuning questions, neither blocking |

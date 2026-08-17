@@ -2,7 +2,7 @@
  * Doctor check: has `lisa apply` ever actually succeeded here, and did it
  * succeed on the Lisa version this project now has installed?
  *
- * This is the arm that would have caught geminisportsai/frontend-v2
+ * This is the arm that would have caught acmeorgb/frontend-v2
  * (CodySwannGT/lisa#2467). That repo's `lisa apply` had been failing outright
  * for months — an incompatible js-yaml pin killed the CLI before it could print
  * anything — while the postinstall bootstrap discarded the error. Nothing

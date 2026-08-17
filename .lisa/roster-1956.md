@@ -19,6 +19,6 @@ EXCLUDE - lisa:pr-mining-specialist / lisa:tracker-mining-specialist / lisa:lear
 EXCLUDE - lisa:github-agent / jira-agent / linear-agent / all *-intake - lifecycle wrappers and queue scanners; this session orchestrates.
 EXCLUDE - lisa:skill-evaluator - reached via learner.
 EXCLUDE - code-simplifier / coderabbit:code-reviewer / claude-code-guide / Plan / claude / statusline-setup - as in roster-1960 (PR-side review covers CodeRabbit; no API questions; lead owns planning).
-EXCLUDE - chief/casey/felix/lex/mark/parker/sally - tunnl business-domain agents, irrelevant.
+EXCLUDE - chief/casey/felix/lex/mark/parker/sally - acmeorgd business-domain agents, irrelevant.
 
 All spawns model=opus.

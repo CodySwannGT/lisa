@@ -3,7 +3,7 @@
  *
  * The grammar is one portfolio-wide shape with a per-repo vocabulary, so the
  * cases that matter are: both schemes parse, `@gh-wiki-124` resolves the way
- * gunnertech's existing reference already writes it, and nothing else in the
+ * acmeorgc's existing reference already writes it, and nothing else in the
  * tag namespace is ever mistaken for a ticket.
  */
 import * as path from "node:path";
@@ -78,7 +78,7 @@ describe("tracker-tag grammar", () => {
     const trackers = {
       keyUrlTemplate: "https://linear.app/t/issue/{id}",
       github: {
-        org: "TunnlAI",
+        org: "AcmeOrgD",
         defaultRepo: "frontend",
         repos: ["frontend", "wiki"],
       },
@@ -88,9 +88,9 @@ describe("tracker-tag grammar", () => {
     );
     expect(
       trackerUrl(parseTrackerTag("gh-wiki-124") as Reference, trackers)
-    ).toBe("https://github.com/TunnlAI/wiki/issues/124");
+    ).toBe("https://github.com/AcmeOrgD/wiki/issues/124");
     expect(trackerUrl(parseTrackerTag("gh-9") as Reference, trackers)).toBe(
-      "https://github.com/TunnlAI/frontend/issues/9"
+      "https://github.com/AcmeOrgD/frontend/issues/9"
     );
     expect(trackerUrl(parseTrackerTag("TUN-1") as Reference, {})).toBeNull();
   });

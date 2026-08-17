@@ -63,7 +63,7 @@ describe("the key, which becomes a path segment", () => {
   });
 
   it("accepts the shape a variable name actually has", () => {
-    expect(() => bootstrapFile("BWS_ACCESS_TOKEN_tunnl", env)).not.toThrow();
+    expect(() => bootstrapFile("BWS_ACCESS_TOKEN_acmeorgd", env)).not.toThrow();
   });
 
   it("refuses it on the keychain path too, which builds no path", () => {

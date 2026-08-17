@@ -9,7 +9,7 @@
  * window — which un-arms the three suites that were working — or burning an
  * audited bypass. Neither is a proportionate answer to adding a suite.
  *
- * Rows 32-35 close that without resurrecting propswap's forever-bootstrap: the
+ * Rows 32-35 close that without resurrecting acmeorga's forever-bootstrap: the
  * grace is anchored on a `first_seen` timestamp that may not be in the future,
  * it is bounded by the SAME `bootstrap_max_days` ceiling as the global window,
  * and a window beyond that ceiling FAILS as misconfiguration rather than being

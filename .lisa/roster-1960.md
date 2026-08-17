@@ -37,7 +37,7 @@ EXCLUDE - code-simplifier:code-simplifier - shell hook diff is small; quality-sp
 EXCLUDE - coderabbit:code-reviewer - CodeRabbit reviews land on the PR itself; duplicate here.
 EXCLUDE - claude-code-guide - no Claude Code / API usage questions in scope.
 EXCLUDE - Plan - lead session owns implement-flow planning; architecture-specialist covers design.
-EXCLUDE - chief - tunnl-backend business-domain agent, irrelevant to lisa internals.
+EXCLUDE - chief - acmeorgd-backend business-domain agent, irrelevant to lisa internals.
 EXCLUDE - casey - business-domain agent, irrelevant.
 EXCLUDE - felix - business-domain agent, irrelevant.
 EXCLUDE - lex - business-domain agent, irrelevant.

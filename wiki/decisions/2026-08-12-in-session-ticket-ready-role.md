@@ -28,7 +28,7 @@ documents normalizing omitted → true). The `lisa-tracker-write` shim does not
 normalize; it is dispatch-only. So the same call produces different lifecycle
 outcomes depending on a project's tracker.
 
-**3. The Linear ready lane was corrupted upstream — since fixed.** tunnlai `a8899a17`
+**3. The Linear ready lane was corrupted upstream — since fixed.** acmeorgd `a8899a17`
 found Lisa's Linear adapter mapping `workflow.ready` to `Todo` — which is where Linear
 puts a brand-new issue. The ready lane therefore stopped meaning "a human explicitly
 flipped this to build-ready" and started meaning "nobody has touched this": 20 issues
@@ -114,7 +114,7 @@ the form the bug can still take in the field.
 
 ### 6. Two claim-time guards are adopted from the fleet
 
-Both come from geminisportsai's hand-rolled `sprint-loop` and address real observed
+Both come from acmeorgb's hand-rolled `sprint-loop` and address real observed
 failures:
 
 - **Already-implemented check.** A Ready ticket may already be implemented, because

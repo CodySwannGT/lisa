@@ -30,7 +30,9 @@ import {
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs";
 
 /** The suffixed agent profile name, which cannot clash with SSO. */
-const STATIC_NAME = "tunnl-dev-static";
+/** The profile every collision case is keyed on. */
+const PROFILE = "acmeorgd-dev";
+const STATIC_NAME = `${PROFILE}-static`;
 
 /** Scratch homes to remove. */
 const homes: string[] = [];
@@ -40,11 +42,11 @@ const CONFIG = ".aws/config";
 
 /** An operator's own SSO profile, using a name the bundle also declares. */
 const THEIRS = [
-  "[sso-session tunnl]",
+  "[sso-session acmeorgd]",
   "sso_start_url = https://example.awsapps.com/start",
   "",
-  "[profile tunnl-dev]",
-  "sso_session = tunnl",
+  "[profile acmeorgd-dev]",
+  "sso_session = acmeorgd",
   "",
 ].join("\n");
 
@@ -53,7 +55,7 @@ const CLASHING = {
   accessKeyId: "AKIAEXAMPLE",
   secretAccessKey: "s3cret",
   profiles: {
-    "tunnl-dev": { roleArn: "arn:aws:iam::905179307867:role/RemoteAgent" },
+    "acmeorgd-dev": { roleArn: "arn:aws:iam::905179307867:role/RemoteAgent" },
   },
 };
 
@@ -90,8 +92,8 @@ describe("collidingProfiles", () => {
   it("reports a name defined outside the managed block", () => {
     const home = homeWithTheirs();
 
-    expect(collidingProfiles(path.join(home, ".aws"), ["tunnl-dev"])).toEqual([
-      "tunnl-dev",
+    expect(collidingProfiles(path.join(home, ".aws"), [PROFILE])).toEqual([
+      PROFILE,
     ]);
   });
 
@@ -118,9 +120,7 @@ describe("collidingProfiles", () => {
     const home = mkdtempSync(path.join(tmpdir(), "lisa-collide-"));
     homes.push(home);
 
-    expect(collidingProfiles(path.join(home, ".aws"), ["tunnl-dev"])).toEqual(
-      []
-    );
+    expect(collidingProfiles(path.join(home, ".aws"), [PROFILE])).toEqual([]);
   });
 });
 
@@ -129,7 +129,7 @@ describe("installAwsProfiles refuses a colliding write", () => {
     const home = homeWithTheirs();
 
     expect(() => installAwsProfiles(CLASHING, { home })).toThrow(
-      /already defines "tunnl-dev"/
+      new RegExp(`already defines "${PROFILE}"`)
     );
   });
 
@@ -147,11 +147,11 @@ describe("installAwsProfiles refuses a colliding write", () => {
     const home = homeWithTheirs();
 
     expect(installAwsProfiles(SUFFIXED, { home })).toEqual([
-      "tunnl-dev-static",
+      "acmeorgd-dev-static",
     ]);
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
-    expect(config).toContain("[profile tunnl-dev]");
-    expect(config).toContain("[profile tunnl-dev-static]");
+    expect(config).toContain("[profile acmeorgd-dev]");
+    expect(config).toContain("[profile acmeorgd-dev-static]");
   });
 });

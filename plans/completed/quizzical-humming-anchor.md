@@ -1,8 +1,8 @@
-# Fix Expo Jest Template — Upstream PropSwap Fixes
+# Fix Expo Jest Template — Upstream AcmeOrgA Fixes
 
 ## Problem
 
-After running `lisa` on `propswap/frontend`, two issues required manual fixes:
+After running `lisa` on `acmeorga/frontend`, two issues required manual fixes:
 
 1. **jest-expo preset + jsdom incompatibility**: The `jest-expo` preset's `setupFiles` include `react-native/jest/setup.js`, which redefines `window` via `Object.defineProperties`. But jsdom defines `window` as non-configurable, causing `"Cannot redefine property: window"` in every test suite. ([expo/expo#40184](https://github.com/expo/expo/issues/40184))
 

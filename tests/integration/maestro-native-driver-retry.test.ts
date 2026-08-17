@@ -11,7 +11,7 @@
  * proves the guard is load-bearing rather than decorative.
  *
  * Sibling of maestro-native-zero-flow.test.ts; both exist because
- * TunnlAI/frontend run 31584986248 lost all 83 iOS flows to a driver that
+ * AcmeOrgD/frontend run 31584986248 lost all 83 iOS flows to a driver that
  * never bound its port and reported it as an ordinary red.
  */
 import * as fs from "fs-extra";

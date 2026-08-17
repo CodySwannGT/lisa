@@ -60,7 +60,7 @@ Default to the workspace name. After the user stores the token (Step 4), Step 5'
 WORKSPACE=$(jq -r '.notion.workspaceId // empty' .lisa.config.json 2>/dev/null)
 if [ -z "$WORKSPACE" ]; then
   # Prompt the user — accept any non-empty string. They pick the slug; we just store it.
-  read -p "Workspace identifier (any stable slug, e.g. 'gemini-sports'): " WORKSPACE
+  read -p "Workspace identifier (any stable slug, e.g. 'acme-org-b'): " WORKSPACE
 fi
 ```
 

@@ -74,4 +74,4 @@ if changed:
 
 1. Run `bun run test` in Lisa repo — ensure existing tests pass
 2. Create a temp project with a settings.json containing both stale and legitimate hooks, run the postinstall script, verify only stale entries are removed
-3. Integration: run `bun update @codyswann/lisa` in propswap/frontend and confirm no hook errors
+3. Integration: run `bun update @codyswann/lisa` in acmeorga/frontend and confirm no hook errors

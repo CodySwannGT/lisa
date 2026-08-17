@@ -1,7 +1,7 @@
 {
   "id": "11",
   "subject": "Apply Lisa to frontend-v2 and migrate",
-  "description": "Run bun run dev on frontend-v2, migrate project-specific mocks to local files.\n\n**Verification:** `cd /Users/cody/workspace/geminisportsai/frontend-v2 && bun run test`",
+  "description": "Run bun run dev on frontend-v2, migrate project-specific mocks to local files.\n\n**Verification:** `cd /Users/cody/workspace/acmeorgb/frontend-v2 && bun run test`",
   "activeForm": "Migrating frontend-v2 jest setup",
   "status": "completed",
   "blocks": [],
@@ -11,7 +11,7 @@
     "type": "task",
     "verification": {
       "type": "test",
-      "command": "cd /Users/cody/workspace/geminisportsai/frontend-v2 && bun run test",
+      "command": "cd /Users/cody/workspace/acmeorgb/frontend-v2 && bun run test",
       "expected": "all tests passing"
     }
   }

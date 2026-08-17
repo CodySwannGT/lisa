@@ -244,7 +244,7 @@ describe("block-no-verify.sh", () => {
     // GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config
     // exactly as `-c core.hooksPath=...` does, disabling every hook, while
     // matching none of the `-c` / `--config-env=` token shapes. Upstream Lisa
-    // missed it until a downstream fork (propswapllc/frontend 797aa423) caught
+    // missed it until a downstream fork (acmeorga/frontend 797aa423) caught
     // it — this suite is what stops the weaker guard coming back.
     it("blocks the canonical GIT_CONFIG_COUNT/KEY/VALUE triple", () => {
       const { status, stderr } = runHook(

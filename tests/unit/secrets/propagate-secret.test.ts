@@ -32,7 +32,7 @@ const VALUE = "placeholder-value-for-tests";
 
 /** The credential every case here stands in for, and where it is bound for. */
 const NAME = "LINEAR_API_KEY";
-const ORG = "TunnlAI";
+const ORG = "AcmeOrgD";
 
 /**
  * One page of the shape `GET /orgs/{org}/actions/secrets` actually returns.
@@ -152,7 +152,7 @@ describe("declared, never inferred", () => {
   it("allows a bare declared name to any target", () => {
     const cfg = { propagating: [NAME] };
     expect(() => assertPropagating(NAME, ORG, cfg)).not.toThrow();
-    expect(() => assertPropagating(NAME, "PropSwapLLC/api", cfg)).not.toThrow();
+    expect(() => assertPropagating(NAME, "AcmeOrgA/api", cfg)).not.toThrow();
   });
 
   it("refuses a target the declaration did not pin", () => {
@@ -197,12 +197,12 @@ describe("the value never becomes an argument", () => {
 
   it("builds a repo write with no visibility flag", () => {
     // Repository secrets have no visibility axis; sending one is an API error.
-    expect(pushArgs(parseTarget("TunnlAI/wiki"), NAME)).toEqual([
+    expect(pushArgs(parseTarget("AcmeOrgD/wiki"), NAME)).toEqual([
       "secret",
       "set",
       NAME,
       "--repo",
-      "TunnlAI/wiki",
+      "AcmeOrgD/wiki",
     ]);
   });
 

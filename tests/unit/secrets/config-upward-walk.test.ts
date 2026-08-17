@@ -48,7 +48,7 @@ const makeRepo = (withConfig: boolean): string => {
         tracker: "linear",
         secrets: {
           provider: DECLARED,
-          namespace: "tunnl",
+          namespace: "acmeorgd",
           require: ["LINEAR_API_KEY"],
         },
       })
@@ -140,9 +140,9 @@ describe("locating .lisa.config.json from a nested working directory", () => {
     // A Claude Tag channel session has no checkout and still needs
     // credentials, so a missing config must resolve rather than throw.
     const resolved = readConfig(path.join(os.tmpdir(), "lisa-no-such-dir"), {
-      LISA_TENANT: "tunnl",
+      LISA_TENANT: "acmeorgd",
     });
-    expect(resolved.namespace).toBe("tunnl");
+    expect(resolved.namespace).toBe("acmeorgd");
     expect(resolved.configPath).toBeNull();
   });
 });

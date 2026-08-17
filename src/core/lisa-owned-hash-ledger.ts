@@ -100,6 +100,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d7134b5f05ec93ce15d8d195f47bb79b346a5e9beec49dce3fd55b8a8e80e8e8",
   ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
+    "191608d272178a8fd3126d5b3e4923fadb50e01b699d0376625248d541b14f50",
     "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     "3810fdea24d361f20895113f32d241f54d7194f4f3e3daba4dad01a941bbb230",
     "38900cd4c9bb33ff26ff10e82cb928cb4b0a7fa10bc614c9c30d4860d2c0d017",
@@ -117,6 +118,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "444210c8fbfca1d3e6ae0e180fe95752e10152610ad349ffea377136f4ae8cf7",
     "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
+    "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "86de31fbda9dd26a938bf30846c5fc70744cf199df7d475a35f3f25dbc0f7c2f",
     "86e9df17ea11fe0cd11d54f7fd60f016338e7fe28cdd4b07fab3b0b064b64ffb",
     "8eaac3ea96d92b55c418877c1fe338a7c0b3a8f48ef3593258f54a633f761c85",
@@ -148,6 +150,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fb306a2793489219483fabc4f084fba5fa2db73269b683ea8661cf490c7866ea",
   ]),
   "scripts/classify-maestro-failures.mjs": Object.freeze([
+    "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
     "7c550e8af431293b6b8d7ca2cfd777a07ec798fd3880275d8c12f7423d4d168b",
     "aadb773bfb994e754cfdf576f59d4bfe020184b21953908d40049ddfe3a93fc1",
     "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
@@ -186,11 +189,13 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-floor-collisions.mjs": Object.freeze([
     "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "3c7a0234b4f5609fce49e44711d2ec86af8cf7fb82b0831e4450e3347ecefe45",
+    "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
     "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
   ]),
   "scripts/lisa-gates.mjs": Object.freeze([
     "13ac69bf2bbae76bc702506bcef5c8fb2b26befaf1358627f4726c1a8ac5905a",
     "186efce62ea9b94db91226587cd5e1d41ecf2cf9d63e2ba56a012dd5a41f362b",
+    "1ac3180f7a8f777f6be0d90043d4396ec96589168b43fc7128eeec750aa9aef9",
     "2afa67f8f8b762bc462246d3d0839f34e3ee84ed4daad8d6e187ae21026040bc",
     "444ed4b879ef7af5dc409ae48743ad06354e47b727ddb5be0877cab52ddd0b64",
     "4907989922ad86f5c162413e1b4c8560b6e7bb9417ab4d109f8dbfc676d4921e",
@@ -333,6 +338,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fe064a2bd11200ed256fb36e203978f858fccbcaf40708496c066383345900ef",
   ]),
   "scripts/nightly-e2e-suites.schema.json": Object.freeze([
+    "9fbef6f8740714f521d8b997308d96492e9158b1221d654333316f2cf7b48445",
     "a6041930ca4536f3a76e4f54976ff846ab575f5f07a2356722eedcb06795e684",
     "ea9b2b4ab1d2a39d7b4eb8c841ccae576836678ca42bb40161d6af383e3e378c",
   ]),

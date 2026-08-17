@@ -1,4 +1,4 @@
-# Apply Lisa to thumbwar/frontend and geminisportsai/frontend-v2
+# Apply Lisa to thumbwar/frontend and acmeorgb/frontend-v2
 
 ## Overview
 
@@ -15,10 +15,10 @@ Both projects are on Lisa v1.12.1 (current Lisa is v1.15.0+ with the jest setupF
 - Multi-project config (eslint-plugin tests in node env + expo tests) will be lost - need to handle eslint plugin testing in `jest.config.local.ts`
 - 98% coverage threshold - need to preserve in `jest.thresholds.json`
 
-### geminisportsai/frontend-v2
+### acmeorgb/frontend-v2
 - **On `dev` branch** - must create a feature branch first
 - Has `jest.config.ts` that will be overwritten by Lisa template
-- `jest.setup.pre.js` is comprehensive (defines `__DEV__`, bridge mocks, turbo module proxy, etc.) - similar to propswap
+- `jest.setup.pre.js` is comprehensive (defines `__DEV__`, bridge mocks, turbo module proxy, etc.) - similar to acmeorga
 - Custom `testMatch`, `moduleNameMapper`, `transformIgnorePatterns` need to go into `jest.config.local.ts`
 - 70% coverage threshold (matches Lisa default)
 
@@ -26,13 +26,13 @@ Both projects are on Lisa v1.12.1 (current Lisa is v1.15.0+ with the jest setupF
 
 ### Task 1: Create feature branches (parallel)
 - `cd ~/workspace/thumbwar/frontend && git checkout -b chore/update-lisa`
-- `cd ~/workspace/geminisportsai/frontend-v2 && git checkout -b chore/update-lisa`
+- `cd ~/workspace/acmeorgb/frontend-v2 && git checkout -b chore/update-lisa`
 
 ### Task 2: Run Lisa on both (sequential, from lisa dir)
 ```bash
 cd ~/workspace/lisa
 bun run dev ~/workspace/thumbwar/frontend -y
-bun run dev ~/workspace/geminisportsai/frontend-v2 -y
+bun run dev ~/workspace/acmeorgb/frontend-v2 -y
 ```
 
 ### Task 3: Fix thumbwar/frontend post-Lisa
@@ -50,7 +50,7 @@ bun run dev ~/workspace/geminisportsai/frontend-v2 -y
 5. **Run `bun run test:cov`** to verify tests pass
 6. **Run `bun run lint`**, **`bun run typecheck`**, **`bun run knip`** to check for other issues
 
-### Task 4: Fix geminisportsai/frontend-v2 post-Lisa
+### Task 4: Fix acmeorgb/frontend-v2 post-Lisa
 1. **Create/update jest.config.local.ts** with:
    - `setupFiles: ["<rootDir>/jest.setup.pre.js"]`
    - `setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"]`
@@ -77,7 +77,7 @@ bun run dev ~/workspace/geminisportsai/frontend-v2 -y
 | `jest.config.local.ts` | thumbwar | Create with project-specific config |
 | `jest.setup.pre.js` | thumbwar | Update to add __DEV__ and RN globals |
 | `jest.thresholds.json` | thumbwar | Update to 98% thresholds |
-| `jest.config.local.ts` | geminisportsai | Create with project-specific config |
+| `jest.config.local.ts` | acmeorgb | Create with project-specific config |
 | Various Lisa-managed files | both | Auto-applied by Lisa |
 
 ## Skills to Use
@@ -95,8 +95,8 @@ bun run lint
 bun run typecheck
 bun run knip
 
-# geminisportsai - verify all quality gates pass
-cd ~/workspace/geminisportsai/frontend-v2
+# acmeorgb - verify all quality gates pass
+cd ~/workspace/acmeorgb/frontend-v2
 bun run test:cov
 bun run test:integration
 bun run lint

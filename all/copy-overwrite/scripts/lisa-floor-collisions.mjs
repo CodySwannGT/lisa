@@ -14,7 +14,7 @@
  * That is fine when the two agree. It is a silent security regression when the
  * dependency line is lower, which is the normal case: an override exists
  * *because* the direct range was too permissive. Observed in
- * gunnertech/frontend on bun 1.3.11, from a clean tree:
+ * acmeorgc/frontend on bun 1.3.11, from a clean tree:
  *
  *   "postcss": ">=8.5.18"  ->  "$postcss"   with devDependencies ^8.5.0
  *   "prettier": "3.8.3"    ->  "$prettier"  with devDependencies ^3.3.3

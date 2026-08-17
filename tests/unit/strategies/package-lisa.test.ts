@@ -630,7 +630,7 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
-  // Regression (tunnlai frontend, fleet-wide): npm rejects a manifest with
+  // Regression (acmeorgd frontend, fleet-wide): npm rejects a manifest with
   // EOVERRIDE when an overrides/resolutions key that is ALSO a direct dependency
   // carries a literal version instead of the "$name" self-reference. npm runs
   // that validation before anything else, so the broken manifest breaks every
@@ -1601,7 +1601,7 @@ describe("PackageLisaStrategy", () => {
     // jest-expo, the react-native-* runtime libs, @sentry/react-native, etc.)
     // in `force`. Because force REPLACES project values, updating Lisa on an
     // Expo SDK 54 app force-bundled a full SDK 54->56 + RN 0.81->0.85 major
-    // upgrade (blocked propswap/frontend, thumbwar/frontend, expostarter).
+    // upgrade (blocked acmeorga/frontend, thumbwar/frontend, expostarter).
     // The fix moves the SDK-version-coupled packages to `defaults` (project
     // value wins; Lisa is only a fallback for fresh projects), while pure
     // tooling stays in `force`. These tests load the REAL template
@@ -1784,7 +1784,7 @@ describe("PackageLisaStrategy", () => {
       //   - @sentry/react-native ~7.x (Sentry v8 SDK): the 3.x line imports and
       //     calls `Sentry.configureScope`, which Sentry v8 REMOVED — so 3.3.0
       //     throws `(0, t.configureScope) is not a function` on EVERY GraphQL
-      //     request at runtime (broke geminisportsai/frontend-v2 in dev and the
+      //     request at runtime (broke acmeorgb/frontend-v2 in dev and the
       //     prod path of expostarter/thumbwar where the Sentry DSN is set).
       // 4.4.0 (Apollo v3 peer + Sentry v8 API) is the only compatible version,
       // so it is pinned exactly — a range re-opens one failure mode or the other.
@@ -1796,13 +1796,13 @@ describe("PackageLisaStrategy", () => {
       // nativewind 4; v5 → tailwind ^4.2 + nativewind 5 per
       // https://gluestack.io/ui/docs/guides/more/upgrade-to-v5), and the fleet
       // runs both generations. A forced pin silently downgraded a tailwind-4
-      // project (TunnlAI/frontend) on every apply and broke its frozen
+      // project (AcmeOrgD/frontend) on every apply and broke its frozen
       // lockfile in CI.
       expect(template.force.dependencies["tailwindcss"]).toBeUndefined();
       expect(template.defaults.dependencies["tailwindcss"]).toBeDefined();
       // @graphql-codegen/* must stay in defaults, NEVER force: the fleet is
       // split across codegen generations (backend-v2 on cli 6/typescript 4,
-      // tunnl/gunnertech/nestjsstarter on cli 7/typescript 6), and a forced
+      // acmeorgd/acmeorgc/nestjsstarter on cli 7/typescript 6), and a forced
       // pin downgrades whichever side the template doesn't match. Frontends
       // can drift the same way, so the expo template gets the same treatment
       // as the nestjs one.
@@ -1937,8 +1937,8 @@ describe("PackageLisaStrategy", () => {
   describe("NestJS real template: split-major pins stay in defaults", () => {
     // Regression: class-validator and the @graphql-codegen/* toolchain used
     // to sit in `force`, but the fleet is legitimately split across their
-    // majors (geminisportsai/backend-v2 on codegen cli 6/typescript 4 +
-    // class-validator 0.14; tunnl-backend, gunnertech/backend and
+    // majors (acmeorgb/backend-v2 on codegen cli 6/typescript 4 +
+    // class-validator 0.14; acmeorgd-backend, acmeorgc/backend and
     // nestjsstarter on codegen cli 7/typescript 6 + class-validator 0.15).
     // Because force REPLACES project values, whichever side the template
     // didn't match got a silent major downgrade/upgrade on every apply, plus

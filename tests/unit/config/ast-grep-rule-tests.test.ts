@@ -142,7 +142,7 @@ function runRuleTests(configPath: string): {
  * `lisa apply`: ast-grep config and rule tests present, `sg:test` absent from
  * package.json, and `@ast-grep/cli` installed as a dependency.
  *
- * This is the shape that broke the fleet — `geminisportsai/backend-v2` had
+ * This is the shape that broke the fleet — `acmeorgb/backend-v2` had
  * exactly this — so it is the shape the CI step has to survive.
  * @returns Absolute path to the scratch project root
  */
