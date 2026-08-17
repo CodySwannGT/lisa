@@ -1,10 +1,9 @@
 {
-  "*.{js,mjs,ts,tsx}": [
+  "*.{js,mjs,ts,tsx,jsx}": [
     "oxlint --fix --no-error-on-unmatched-pattern",
     "eslint --quiet --cache --fix --no-error-on-unmatched-pattern --no-warn-ignored",
-    "ast-grep scan"
-  ],
-  "*.{json,mjs,js,ts,jsx,tsx,html,md,mdx,css,scss,yaml,yml,graphql}": [
+    "ast-grep scan",
     "prettier --write"
-  ]
+  ],
+  "*.{json,html,md,mdx,css,scss,yaml,yml,graphql}": ["prettier --write"]
 }
