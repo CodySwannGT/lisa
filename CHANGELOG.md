@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.30.0](https://github.com/CodySwannGT/lisa/compare/v3.29.3...v3.30.0) (2026-08-17)
+
+
+### Features
+
+* **guard:** tell a GENERATED file the opposite consequence ([478da4b](https://github.com/CodySwannGT/lisa/commit/478da4b30995be694206a08dde81aaacd348f243)), closes [#2639](https://github.com/CodySwannGT/lisa/issues/2639) [CodySwannGT/lisa#2632](https://github.com/CodySwannGT/lisa/issues/2632) [CodySwannGT/lisa#2632](https://github.com/CodySwannGT/lisa/issues/2632)
+
 ### [3.29.3](https://github.com/CodySwannGT/lisa/compare/v3.29.2...v3.29.3) (2026-08-17)
 
 
