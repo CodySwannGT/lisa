@@ -189,11 +189,26 @@ export function report(result, cfg) {
   } else {
     lines.push(
       `Secrets preflight FAILED on surface "${cfg.surface}".`,
-      `These credentials are required and resolve nowhere — not in the`,
-      `environment, not materialized, not in the "${cfg.provider}" grant.`,
+      `These credentials are required and were not found in the surfaces`,
+      `consulted — the environment, the materialized file, and the`,
+      `"${cfg.provider}" grant.`,
       `Extend the grant in the vault (or correct the routing that requires`,
       `them), then start a new session:`
     );
+    // A defaulted provider is the one case where the list above is not the
+    // whole story: no config was found, so the vault a project actually
+    // declares was never contacted. Saying "resolve nowhere" there sends the
+    // reader to grant a credential that was never absent.
+    if (!cfg.configPath) {
+      lines.push(
+        ``,
+        `NOTE: no .lisa.config.json was found at or above the working`,
+        `directory, so provider "${cfg.provider}" is a DEFAULT, not this`,
+        `project's setting. If this project uses a vault, the credential may`,
+        `resolve fine — start the session from the repository root, or check`,
+        `the config is present, before treating this as missing.`
+      );
+    }
   }
   lines.push(``);
   for (const { name, reasons } of result.missing) {
