@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.32.0](https://github.com/CodySwannGT/lisa/compare/v3.31.4...v3.32.0) (2026-08-17)
+
+
+### Features
+
+* **privacy:** enforce the no-downstream-names rule for every agent ([2d8385d](https://github.com/CodySwannGT/lisa/commit/2d8385d530586f13e9c5df4db44a1bcc6ff5a55d)), closes [CodySwannGT/lisa#2669](https://github.com/CodySwannGT/lisa/issues/2669) [CodySwannGT/lisa#2669](https://github.com/CodySwannGT/lisa/issues/2669)
+
 ### [3.31.4](https://github.com/CodySwannGT/lisa/compare/v3.31.3...v3.31.4) (2026-08-17)
 
 ### [3.31.3](https://github.com/CodySwannGT/lisa/compare/v3.31.2...v3.31.3) (2026-08-17)
