@@ -2193,7 +2193,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
     "scripts/lisa-github-rulesets.sh":
-      "8af5d059d29d5ad3723ef1d2d00e73cc873a6a04bd81b0ac92fbd15f272a211b",
+      "3e496f8d2d294d68c9f4d156684943dd2c7e35f2aaccf476ea4c7309c3a57b77",
     "scripts/lisa-remote-env/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
