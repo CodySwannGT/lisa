@@ -2,7 +2,7 @@
 
 ## Summary
 
-Move `include`/`exclude` from `tsconfig.json` into `tsconfig.{stack}.json` (both copy-overwrite) so that `tsconfig.local.json` (create-only, last in extends array) can override them. Defaults stay in managed files targeting `src/**/*`, but projects like ask-gemini can override with their own paths via the local config.
+Move `include`/`exclude` from `tsconfig.json` into `tsconfig.{stack}.json` (both copy-overwrite) so that `tsconfig.local.json` (create-only, last in extends array) can override them. Defaults stay in managed files targeting `src/**/*`, but projects like acme-product-b can override with their own paths via the local config.
 
 ## Problem
 
