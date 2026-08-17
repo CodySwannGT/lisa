@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.28.2](https://github.com/CodySwannGT/lisa/compare/v3.28.1...v3.28.2) (2026-08-17)
+
+
+### Bug Fixes
+
+* reject bare gate family moment keys ([d2c51a4](https://github.com/CodySwannGT/lisa/commit/d2c51a466dec5a83a049bcb858542993b871d5ca)), closes [CodySwannGT/lisa#2644](https://github.com/CodySwannGT/lisa/issues/2644)
+* reject malformed family gate moments ([a6e3e9e](https://github.com/CodySwannGT/lisa/commit/a6e3e9ee4982cae24c40484b7d1126f8b3b0687f)), closes [CodySwannGT/lisa#2644](https://github.com/CodySwannGT/lisa/issues/2644)
+
 ### [3.28.1](https://github.com/CodySwannGT/lisa/compare/v3.28.0...v3.28.1) (2026-08-17)
 
 
