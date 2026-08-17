@@ -701,6 +701,48 @@ export function validateGates(gates) {
 }
 
 /**
+ * Fail fast when a consumer tries to use an invalid gates block.
+ *
+ * A resolver that only looks at `gate[moment]` can make a typo'd config key look
+ * like a truthful absence at that moment. Validation is therefore part of
+ * resolution, not just the standalone `validate` command.
+ * @param {object} gates The gates block.
+ */
+function assertValidMomentKeys(gates) {
+  const problems = validateGateMomentKeys(gates);
+  if (!problems.length) return;
+  throw new Error(
+    `Invalid gates configuration:\n${problems
+      .map(problem => `  ${problem}`)
+      .join("\n")}`
+  );
+}
+
+/**
+ * Validate only gate keys that masquerade as moments.
+ *
+ * This narrower guard preserves `list`'s ability to explain a custom gate with
+ * no prover, while still refusing a moment typo before it silently resolves to
+ * "nothing configured".
+ * @param {object} gates The gates block.
+ * @returns {string[]} Moment-key problems.
+ */
+function validateGateMomentKeys(gates) {
+  const problems = [];
+  for (const [id, gate] of Object.entries(gates ?? {})) {
+    if (!gate || typeof gate !== "object" || Array.isArray(gate)) continue;
+    for (const key of Object.keys(gate)) {
+      if (isMoment(key) || GATE_FIELDS.has(key)) continue;
+      problems.push(
+        `gates."${id}"."${key}" ${unknownMomentMessage(key)} ` +
+          `Nothing runs at it, so whatever it was meant to enable is off.`
+      );
+    }
+  }
+  return problems;
+}
+
+/**
  * Validate one gate entry.
  * @param {string} id Gate id.
  * @param {object} gate The entry.
@@ -749,11 +791,9 @@ function validateGate(id, gate) {
     // nothing at all. Same shape as a misspelled gate id, one level down.
     if (!isMoment(moment)) {
       if (!GATE_FIELDS.has(moment)) {
-        const near = nearest(moment, [...MOMENTS, ...MOMENT_FAMILIES]);
         problems.push(
-          `gates."${id}"."${moment}" is not a moment Lisa knows` +
-            (near ? `. Did you mean "${near}"?` : "") +
-            ` Nothing runs at it, so whatever it was meant to enable is off.`
+          `gates."${id}"."${moment}" ${unknownMomentMessage(moment)} ` +
+            `Nothing runs at it, so whatever it was meant to enable is off.`
         );
       }
       continue;
@@ -1007,16 +1047,11 @@ export function resolveMoment({
   // is the defect this subsystem exists to stop. `[]` stays a truthful answer
   // for a real moment; it is refused only for one that cannot exist.
   if (!isMoment(moment)) {
-    const near = nearest(moment, [...MOMENTS, ...MOMENT_FAMILIES]);
     throw new Error(
-      `"${moment}" is not a moment Lisa knows` +
-        (near ? `. Did you mean "${near}"?` : ".") +
-        ` Known moments: ${MOMENTS.join(", ")}` +
-        `; or a family with an environment: ${MOMENT_FAMILIES.map(
-          family => `${family}:<environment>`
-        ).join(", ")}.`
+      `"${moment}" ${unknownMomentMessage(moment)} ` + knownMomentsMessage()
     );
   }
+  assertValidMomentKeys(gates);
 
   const resolved = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {
@@ -1164,6 +1199,34 @@ export function contextsFor(gates, options = {}) {
     contexts.push(`${workflowName} / ${label}`);
   }
   return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Format the common unknown-moment suffix.
+ * @param {string} moment The rejected moment.
+ * @returns {string} Human-facing explanation.
+ */
+function unknownMomentMessage(moment) {
+  const near = nearest(moment, [...MOMENTS, ...MOMENT_FAMILIES]);
+  const suggestion =
+    near && near !== moment ? `. Did you mean "${near}"?` : ".";
+  const family = MOMENT_FAMILIES.includes(moment)
+    ? ` Use "${moment}:<environment>" for that family.`
+    : "";
+  return `is not a moment Lisa knows${suggestion}${family}`;
+}
+
+/**
+ * Format the legal moment inventory once for every caller.
+ * @returns {string} Human-facing legal moment list.
+ */
+function knownMomentsMessage() {
+  return (
+    `Known moments: ${MOMENTS.join(", ")}` +
+    `; or a family with an environment: ${MOMENT_FAMILIES.map(
+      family => `${family}:<environment>`
+    ).join(", ")}.`
+  );
 }
 
 /**
