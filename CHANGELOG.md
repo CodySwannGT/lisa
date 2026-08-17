@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.28.0](https://github.com/CodySwannGT/lisa/compare/v3.27.0...v3.28.0) (2026-08-17)
+
+
+### Features
+
+* **doctor:** report Lisa artifact copy provenance ([9d1b9ee](https://github.com/CodySwannGT/lisa/commit/9d1b9eedc8ad4a0cb157427b4205543971247cea)), closes [CodySwannGT/lisa#2639](https://github.com/CodySwannGT/lisa/issues/2639)
+
+
+### Bug Fixes
+
+* **doctor:** preserve ignored artifact provenance ([aebbb0e](https://github.com/CodySwannGT/lisa/commit/aebbb0e0441aa318f9624c44d91cc2a941bb5f51)), closes [CodySwannGT/lisa#2639](https://github.com/CodySwannGT/lisa/issues/2639)
+
 ## [3.27.0](https://github.com/CodySwannGT/lisa/compare/v3.26.5...v3.27.0) (2026-08-17)
 
 
