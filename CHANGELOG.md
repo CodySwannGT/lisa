@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.29.3](https://github.com/CodySwannGT/lisa/compare/v3.29.2...v3.29.3) (2026-08-17)
+
+
+### Bug Fixes
+
+* **doctor:** report an incomplete serialize_platform_legs opt-in ([82141a4](https://github.com/CodySwannGT/lisa/commit/82141a4e6cac65f6dd5d931f9349507b67a2fe8f)), closes [#2651](https://github.com/CodySwannGT/lisa/issues/2651) [CodySwannGT/lisa#2651](https://github.com/CodySwannGT/lisa/issues/2651) [CodySwannGT/lisa#2651](https://github.com/CodySwannGT/lisa/issues/2651)
+* **security:** force deepmerge-ts past GHSA-ggr8-5vv4-36mx ([980b4b7](https://github.com/CodySwannGT/lisa/commit/980b4b7a08f7edac8c7dd463c4e113ae1783b652)), closes [CodySwannGT/lisa#2651](https://github.com/CodySwannGT/lisa/issues/2651) [CodySwannGT/lisa#2651](https://github.com/CodySwannGT/lisa/issues/2651)
+* **work-item:** classify an outage as unreachable, not as a verdict ([956cb56](https://github.com/CodySwannGT/lisa/commit/956cb5650834ba03e576495462bd83ccce1639b5)), closes [CodySwannGT/lisa#2651](https://github.com/CodySwannGT/lisa/issues/2651) [CodySwannGT/lisa#2651](https://github.com/CodySwannGT/lisa/issues/2651)
+
 ### [3.29.2](https://github.com/CodySwannGT/lisa/compare/v3.29.1...v3.29.2) (2026-08-17)
 
 
