@@ -16,6 +16,7 @@
  * @module cli/doctor-lisa-owned-artifacts
  */
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as fse from "fs-extra";
@@ -54,6 +55,26 @@ interface ArtifactCheck {
 
 /** One shipped Lisa-owned artifact and the destination it installs to. */
 type ShippedArtifact = readonly [destination: string, source: string];
+
+/** A resolved Lisa-owned artifact copy. */
+interface ResolvedArtifactCopy {
+  readonly location: string;
+  readonly version: string;
+  readonly governs: boolean;
+}
+
+/** Provenance for an artifact that is reachable from more than one place. */
+interface MultiCopyArtifact {
+  readonly destination: string;
+  readonly copies: readonly ResolvedArtifactCopy[];
+  readonly disagrees: boolean;
+}
+
+/** Per-destination assessment before it is folded into one doctor line. */
+interface ArtifactAssessment {
+  readonly finding?: readonly [string, Finding];
+  readonly multiCopy?: MultiCopyArtifact;
+}
 
 /**
  * Resolve the installed Lisa package root, mirroring how apply resolves it.
@@ -135,6 +156,59 @@ async function matchesAnyShipped(
 }
 
 /**
+ * Short content identity for a resolved artifact copy.
+ * @param bytes - File contents
+ * @returns Human-sized content version
+ */
+function artifactVersion(bytes: Buffer): string {
+  return `sha256:${createHash("sha256").update(bytes).digest("hex").slice(0, 12)}`;
+}
+
+/**
+ * Report all resolvable copies for one installed Lisa-owned artifact.
+ *
+ * The project copy is listed as governing first because Lisa's documented hook
+ * and script invocations run the installed project path. Package templates are
+ * still listed because they are also reachable and are the source apply uses.
+ * @param targetPath - Project path being inspected
+ * @param lisaRoot - Installed Lisa package root
+ * @param destination - Project-relative artifact destination
+ * @param installed - Bytes currently installed in the project
+ * @param sources - Absolute paths of shipped package variants
+ * @returns Multi-copy provenance, or undefined for a single-copy artifact
+ */
+async function describeResolvableCopies(
+  targetPath: string,
+  lisaRoot: string,
+  destination: string,
+  installed: Buffer,
+  sources: readonly string[]
+): Promise<MultiCopyArtifact | undefined> {
+  if (sources.length === 0) return undefined;
+  const shipped = await Promise.all(
+    sources.map(async source => [source, await readFile(source)] as const)
+  );
+  const copies: ResolvedArtifactCopy[] = [
+    {
+      location: `project:${destination}`,
+      version: artifactVersion(installed),
+      governs: true,
+    },
+    ...shipped.map(([source, bytes]) => ({
+      location: `package:${path.relative(lisaRoot, source).split(path.sep).join("/")}`,
+      version: artifactVersion(bytes),
+      governs: false,
+    })),
+  ];
+  const versions = new Set(copies.map(copy => copy.version));
+  return {
+    destination,
+    copies,
+    disagrees: versions.size > 1,
+  };
+}
+
+/**
  * Whether the installed file is a trampoline that re-exports the shipped
  * template instead of copying it.
  *
@@ -206,36 +280,58 @@ export async function checkLisaOwnedArtifacts(
   // swap a guard for a thin re-export and have doctor call it current.
   const selfHost = await isLisaSourceRepo(targetPath);
 
-  const results = await Promise.all(
-    [...shipped].map(async ([destination, sources]) => {
-      // Ignored is UNASSESSED, not clean. Reported as such below, because a
-      // `.lisaignore` entry on a Lisa-owned guard suppresses the divergence
-      // warning while changing nothing about the divergence — and the ok line
-      // then states conformance that was never established.
-      if (matchesAnyPattern(destination, ignorePatterns))
-        return [destination, "ignored"] as const;
-      const installedPath = path.join(targetPath, destination);
-      const installed = await readFile(installedPath).catch(() => undefined);
-      if (installed === undefined) return undefined;
-      if (await matchesAnyShipped(installed, sources)) return undefined;
-      if (
-        selfHost &&
-        reExportsShippedTemplate(installed, installedPath, sources)
-      )
-        return undefined;
-      const outdated = await isProvablyStale(
-        installed,
-        destination,
-        sources,
-        ledger
-      );
-      return [destination, outdated ? "stale" : "modified"] as const;
-    })
+  const results: readonly (ArtifactAssessment | undefined)[] =
+    await Promise.all(
+      [...shipped].map(async ([destination, sources]) => {
+        // Ignored is UNASSESSED, not clean. Reported as such below, because a
+        // `.lisaignore` entry on a Lisa-owned guard suppresses the divergence
+        // warning while changing nothing about the divergence — and the ok line
+        // then states conformance that was never established.
+        if (matchesAnyPattern(destination, ignorePatterns))
+          return {
+            finding: [destination, "ignored"] as const,
+          } satisfies ArtifactAssessment;
+        const installedPath = path.join(targetPath, destination);
+        const installed = await readFile(installedPath).catch(() => undefined);
+        if (installed === undefined) return undefined;
+        const multiCopy = await describeResolvableCopies(
+          targetPath,
+          lisaRoot,
+          destination,
+          installed,
+          sources
+        );
+        if (await matchesAnyShipped(installed, sources))
+          return multiCopy === undefined
+            ? undefined
+            : ({ multiCopy } satisfies ArtifactAssessment);
+        if (
+          selfHost &&
+          reExportsShippedTemplate(installed, installedPath, sources)
+        )
+          return undefined;
+        const outdated = await isProvablyStale(
+          installed,
+          destination,
+          sources,
+          ledger
+        );
+        const finding = [destination, outdated ? "stale" : "modified"] as const;
+        return multiCopy === undefined
+          ? ({ finding } satisfies ArtifactAssessment)
+          : ({ finding, multiCopy } satisfies ArtifactAssessment);
+      })
+    );
+  const assessments = results.filter(
+    (item): item is ArtifactAssessment => item !== undefined
   );
   return summarise(
-    results.filter(
-      (item): item is readonly [string, Finding] => item !== undefined
-    )
+    assessments
+      .map(item => item.finding)
+      .filter((item): item is readonly [string, Finding] => item !== undefined),
+    assessments
+      .map(item => item.multiCopy)
+      .filter((item): item is MultiCopyArtifact => item !== undefined)
   );
 }
 
@@ -245,10 +341,12 @@ type Finding = "stale" | "modified" | "ignored";
 /**
  * Turn the per-artifact findings into one doctor line.
  * @param findings - Destination paths paired with what was found
+ * @param multiCopies - Provenance for artifacts reachable from multiple paths
  * @returns Doctor check result
  */
 function summarise(
-  findings: readonly (readonly [string, Finding])[]
+  findings: readonly (readonly [string, Finding])[],
+  multiCopies: readonly MultiCopyArtifact[]
 ): ArtifactCheck {
   const pick = (wanted: Finding): string[] =>
     findings
@@ -259,7 +357,9 @@ function summarise(
   const stale = pick("stale");
   const modified = pick("modified");
   const ignored = pick("ignored");
-  if (stale.length === 0 && modified.length === 0) {
+  const copyDisagreements = multiCopies.filter(copy => copy.disagrees);
+  const copyReports = renderCopyReports(multiCopies);
+  if (hasNoWarnings(stale, modified, copyDisagreements)) {
     // Named rather than folded into the pass. A guard excluded by
     // `.lisaignore` was never compared, so claiming it matches asserts
     // something no comparison established — and the file it most often hides
@@ -267,10 +367,7 @@ function summarise(
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail:
-        ignored.length > 0
-          ? `Enforcement guards match the installed Lisa version; ${ignored.length} not assessed (.lisaignore): ${ignored.join(", ")}`
-          : "Enforcement guards match the installed Lisa version",
+      detail: renderOkDetail(ignored, copyReports),
     };
   }
 
@@ -281,8 +378,74 @@ function summarise(
     modified.length > 0
       ? `Lisa-owned guards edited in this project, so apply will keep yours rather than overwrite them: ${modified.join(", ")}`
       : "",
+    copyDisagreements.length > 0
+      ? `Resolvable Lisa-owned artifact copies disagree: ${renderCopyReports(copyDisagreements, false)}`
+      : "",
   ].filter(part => part.length > 0);
   return { name: CHECK_NAME, status: "warn", detail: parts.join(". ") };
+}
+
+/**
+ * Whether the accumulated artifact state is warning-free.
+ * @param stale - Outdated artifacts
+ * @param modified - Host-modified artifacts
+ * @param copyDisagreements - Multi-copy artifacts with differing content
+ * @returns True when the doctor line can remain OK
+ */
+function hasNoWarnings(
+  stale: readonly string[],
+  modified: readonly string[],
+  copyDisagreements: readonly MultiCopyArtifact[]
+): boolean {
+  return (
+    stale.length === 0 &&
+    modified.length === 0 &&
+    copyDisagreements.length === 0
+  );
+}
+
+/**
+ * Render the OK detail while preserving the ignored-is-unassessed wording.
+ * @param ignored - Paths skipped by .lisaignore
+ * @param copyReports - Rendered multi-copy provenance
+ * @returns Doctor detail text
+ */
+function renderOkDetail(
+  ignored: readonly string[],
+  copyReports: string
+): string {
+  const suffix = copyReports.length > 0 ? `; ${copyReports}` : "";
+  if (ignored.length > 0) {
+    return `Enforcement guards match the installed Lisa version; ${ignored.length} not assessed (.lisaignore): ${ignored.join(", ")}${suffix}`;
+  }
+  return `Enforcement guards match the installed Lisa version${suffix}`;
+}
+
+/**
+ * Render copy provenance in one operator-readable fragment.
+ * @param multiCopies - Multi-copy artifact reports
+ * @param includeHeading - Include the generic provenance heading
+ * @returns Detail text for multi-copy provenance
+ */
+function renderCopyReports(
+  multiCopies: readonly MultiCopyArtifact[],
+  includeHeading = true
+): string {
+  if (multiCopies.length === 0) return "";
+  const reports = multiCopies
+    .map(
+      artifact =>
+        `${artifact.destination} governed by ${artifact.copies.find(copy => copy.governs)?.location ?? "unknown"} first (${artifact.copies
+          .map(
+            copy =>
+              `${copy.location}@${copy.version}${copy.governs ? " governs" : ""}`
+          )
+          .join(", ")})`
+    )
+    .join("; ");
+  return includeHeading
+    ? `Resolvable Lisa-owned artifact copies: ${reports}`
+    : reports;
 }
 
 /**

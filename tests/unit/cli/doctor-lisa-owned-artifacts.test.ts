@@ -17,8 +17,10 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 const HOST_CONFIG = "tsconfig.json";
+const GENERATED_ARTIFACT = "scripts/lisa-new-artifact.mjs";
 const SHIPPED_GUARD = "#!/usr/bin/env bash\n# closed\n";
 const OLD_GUARD = "#!/usr/bin/env bash\n# fails open\n";
+const SHIPPED_GENERATED = "export const governed = true;\n";
 const ENTRYPOINT = "scripts/lisa-work-item.mjs";
 const LISA_PACKAGE = '{"name":"@codyswann/lisa"}';
 const HOST_PACKAGE = '{"name":"some-host-app"}';
@@ -149,6 +151,13 @@ describe("checkLisaOwnedArtifacts", () => {
     const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
 
     expect(check.status).toBe(OK);
+    expect(check.detail).toContain("Resolvable Lisa-owned artifact copies");
+    expect(check.detail).toContain(`project:${GUARD}@sha256:`);
+    expect(check.detail).toContain(
+      `package:all/copy-overwrite/${GUARD}@sha256:`
+    );
+    expect(check.detail).toContain(`project:${GUARD}@sha256:`);
+    expect(check.detail).toContain("governs");
   });
 
   it("passes when the project never installed the guard", async () => {
@@ -156,6 +165,46 @@ describe("checkLisaOwnedArtifacts", () => {
     const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
 
     expect(check.status).toBe(OK);
+    expect(check.detail).not.toContain("Resolvable Lisa-owned artifact copies");
+  });
+
+  it("warns when resolvable Lisa-owned artifact copies disagree", async () => {
+    await fs.outputFile(path.join(projectDir, GUARD), OLD_GUARD);
+
+    const check = await checkLisaOwnedArtifacts(
+      projectDir,
+      lisaRoot,
+      shippedLedger()
+    );
+
+    expect(check.status).toBe(WARN);
+    expect(check.detail).toContain(
+      "Resolvable Lisa-owned artifact copies disagree"
+    );
+    expect(check.detail).toContain(`project:${GUARD}@sha256:`);
+    expect(check.detail).toContain(
+      `package:all/copy-overwrite/${GUARD}@sha256:`
+    );
+    expect(check.detail).toContain("governed by project:");
+  });
+
+  it("discovers newly shipped Lisa-owned artifacts from copy-overwrite sources", async () => {
+    await fs.outputFile(
+      path.join(lisaRoot, "typescript", "copy-overwrite", GENERATED_ARTIFACT),
+      SHIPPED_GENERATED
+    );
+    await fs.outputFile(
+      path.join(projectDir, GENERATED_ARTIFACT),
+      SHIPPED_GENERATED
+    );
+
+    const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
+
+    expect(check.status).toBe(OK);
+    expect(check.detail).toContain(GENERATED_ARTIFACT);
+    expect(check.detail).toContain(
+      `package:typescript/copy-overwrite/${GENERATED_ARTIFACT}@sha256:`
+    );
   });
 
   it("ignores drift in host-owned managed config", async () => {
