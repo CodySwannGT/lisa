@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "4fe7003d048086a366b9bea1711275c2186e095f4bf976279d1ff825fd4eca1d",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "014510942610f36b17f006dee4b96c7737abad3e3acc4f5b416ab6d52403c793",
+      "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -673,7 +673,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "3cc426b5aba514ccb2b6f64a6ac175f305ff158e3dae178ad9127d9c7ca04ca0",
+      "79bf93f611cfd8ece69df50dcefed97743e3bae4bd9448e00ee0fd603ca83123",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":

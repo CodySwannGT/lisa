@@ -221,9 +221,29 @@ describe("shell operators inside quoted arguments", () => {
         'gh issue create --title "Trim config; org preference belongs elsewhere" ' +
           '--body-file /tmp/b.md --label "type:Task" --label "status:ready"'
       ),
-      projectWithTracker()
+      { cwd: projectWithTracker() }
     );
     expect(status).toBe(EXIT_ALLOWED);
+  });
+
+  it("refuses a glued operator quoted harmlessly earlier in the same command", () => {
+    // The exemption must be answered PER OCCURRENCE, not per token VALUE.
+    // Matching the token's whole text against the whole command meant one
+    // harmless quoted `"true&&gh"` — inside a properly declared title — marked
+    // the later, real `true&&gh` as quoted data. It was then never exploded,
+    // its basename was not `gh`, and the undeclared creation behind it was
+    // invisible. Measured: this command exited ALLOWED before the fix.
+    //
+    // The exemption added to stop a false refusal had become the way through.
+    const { status } = runHook(
+      bash(
+        'gh issue create --title "true&&gh" --body-file /tmp/b.md ' +
+          '--label "type:Task" --label "status:ready" ; ' +
+          "true&&gh issue create --title undeclared --body-file /tmp/b.md"
+      ),
+      { cwd: projectWithTracker() }
+    );
+    expect(status).toBe(EXIT_BLOCKED);
   });
 
   it("still refuses that same title when the role is absent", () => {
@@ -233,7 +253,7 @@ describe("shell operators inside quoted arguments", () => {
         'gh issue create --title "Trim config; org preference" ' +
           '--body-file /tmp/b.md --label "type:Task"'
       ),
-      projectWithTracker()
+      { cwd: projectWithTracker() }
     );
     expect(status).toBe(EXIT_BLOCKED);
   });
@@ -242,7 +262,7 @@ describe("shell operators inside quoted arguments", () => {
     // Unquoted `true&&gh` is the case explode_operators exists for.
     const { status } = runHook(
       bash('true&&gh issue create --title "x" --label "type:Task"'),
-      projectWithTracker()
+      { cwd: projectWithTracker() }
     );
     expect(status).toBe(EXIT_BLOCKED);
   });
@@ -250,7 +270,7 @@ describe("shell operators inside quoted arguments", () => {
   it("still refuses an undeclared create after a real separator", () => {
     const { status } = runHook(
       bash('echo hi ; gh issue create --title "x" --label "type:Task"'),
-      projectWithTracker()
+      { cwd: projectWithTracker() }
     );
     expect(status).toBe(EXIT_BLOCKED);
   });
@@ -263,7 +283,7 @@ describe("shell operators inside quoted arguments", () => {
       bash(
         'gh api graphql -f query=mutation{issueCreate(input:{title:\\"x\\"})}'
       ),
-      projectWithTracker()
+      { cwd: projectWithTracker() }
     );
     expect(status).toBe(EXIT_BLOCKED);
   });
