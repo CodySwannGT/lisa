@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "d89d1d6c365dac268cada974179c4152833fd6894287856a9e95adc03fabeff8",
+      "8cd8d102d4b3276f92bb4706274d280c302269fb2f564ca93b1d79cb3ff26841",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2599,6 +2599,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "commitlint.config.cjs": true,
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
+    "docs/design/environment-facade-contract.md": true,
     "docs/design/gates-and-policy.md": true,
     "docs/design/reset-production-absence.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
@@ -8253,6 +8254,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-readiness-workspaces.ts": true,
     "src/cli/doctor-readiness.ts": true,
     "src/cli/doctor-reusable-workflow-refs.ts": true,
+    "src/cli/doctor-serialize-legs-contract.ts": true,
     "src/cli/doctor-sonar.ts": true,
     "src/cli/doctor-worker-epoch.ts": true,
     "src/cli/doctor-worker-journey.ts": true,
@@ -8724,6 +8726,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness-workflows.test.ts": true,
     "tests/unit/cli/doctor-readiness.test.ts": true,
     "tests/unit/cli/doctor-reusable-workflow-refs.test.ts": true,
+    "tests/unit/cli/doctor-serialize-legs-contract.test.ts": true,
     "tests/unit/cli/doctor-sonar.test.ts": true,
     "tests/unit/cli/doctor-worker-epoch.test.ts": true,
     "tests/unit/cli/doctor-worker-journey.test.ts": true,
