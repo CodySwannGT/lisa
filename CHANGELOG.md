@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.26.3](https://github.com/CodySwannGT/lisa/compare/v3.26.2...v3.26.3) (2026-08-17)
+
+
+### Bug Fixes
+
+* **hooks:** copy-overwrite preserves host edits, it does not replace them ([6877e57](https://github.com/CodySwannGT/lisa/commit/6877e573697dae8e08588807f0c7a91c7705da20)), closes [CodySwannGT/lisa#2629](https://github.com/CodySwannGT/lisa/issues/2629) [CodySwannGT/lisa#2629](https://github.com/CodySwannGT/lisa/issues/2629)
+
+
+### Documentation
+
+* **ownership:** the whole scripts/ tree is Lisa-owned, not just `lisa-` names ([60fad0e](https://github.com/CodySwannGT/lisa/commit/60fad0e51128e477ed38a7690b80e7722deb06c6)), closes [CodySwannGT/lisa#2629](https://github.com/CodySwannGT/lisa/issues/2629) [CodySwannGT/lisa#2629](https://github.com/CodySwannGT/lisa/issues/2629)
+
 ### [3.26.2](https://github.com/CodySwannGT/lisa/compare/v3.26.1...v3.26.2) (2026-08-16)
 
 
