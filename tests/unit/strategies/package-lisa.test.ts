@@ -306,6 +306,44 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies.oxlint).toBe("^0.1.0");
     });
 
+    it("keeps forced direct deps that back literal override normalization under skip-git-check", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          overrides: { prettier: "3.8.3" },
+          scripts: { test: "lisa test" },
+          devDependencies: { prettier: "3.8.3", oxlint: "^1.0.0" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        scripts: { test: "host test" },
+        devDependencies: { prettier: "^3.3.3", oxlint: "^0.1.0" },
+      });
+
+      const result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      expect(result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      expect(content.overrides.prettier).toBe("$prettier");
+      expect(content.devDependencies.prettier).toBe("3.8.3");
+      expect(content.devDependencies.oxlint).toBe("^0.1.0");
+      expect(content.scripts.test).toBe("host test");
+    });
+
     // Regression: force.resolutions/force.overrides are a security FLOOR, not an
     // assignment. Writing them as a plain overwrite walked hosts BACKWARDS into
     // the vulnerable range they had already escaped — a project pinned at
