@@ -1263,7 +1263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
-      "f6c6f87bb309d755fb715abcf5f7f1802d3ed7375a0d052118c547c3c46d5e37",
+      "98a0a541041d543fe91e6260da4a25e383123a0eb40bad32a4d59551b7da8db8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
@@ -1277,7 +1277,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs":
       "fa1bdeda4e38bbd149f993ab0288f11b7ba6f2a3b9bf91a5918de7356e21f786",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "945957bbb54d184a07703cf727844f0838810d33dd385b068934b571252934e6",
+      "1c2ef17fe647c86bfe0540f07bd1d9ca66980e18516fddc874723f69b9df27ce",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
       "563ab35320a0ba58269ac3dd81155ffe3a299f6835210073e6fc9012ab436f41",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
@@ -9110,6 +9110,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/bootstrap-defaults.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/bootstrap-store.test.ts": true,
+    "tests/unit/secrets/config-upward-walk.test.ts": true,
     "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
