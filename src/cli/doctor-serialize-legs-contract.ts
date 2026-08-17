@@ -9,6 +9,35 @@ import type { DoctorCheck } from "./doctor.js";
 
 const CHECK_NAME = "Maestro leg serialization wired?";
 
+/**
+ * Whether the REUSABLE workflow's own `permissions:` block grants `actions`.
+ *
+ * This is the part no caller can supply. A called workflow's `permissions:`
+ * block is a ceiling that zeroes everything unlisted, so a caller's grant is
+ * discarded at the reusable-workflow boundary no matter where it is placed.
+ * While this is false, `serialize_platform_legs` cannot order anything in ANY
+ * repository, and reporting a fully configured caller as `ok` would certify a
+ * configuration measured to fail.
+ *
+ * Measured 2026-08-17 against a caller granting `actions: read` at BOTH job and
+ * workflow level: the job's own token grant showed `Contents: read` and
+ * `Metadata: read` with no Actions scope, the jobs API answered 403, and the
+ * two platform legs started two seconds apart.
+ *
+ * A constant rather than a read of the workflow file, because consumers
+ * reference the reusable workflow at `@main` and do not have a copy of it to
+ * read. `serialize-legs-callee-grant.test.ts` pins this to the actual
+ * `permissions:` block in `.github/workflows/maestro-native-e2e.yml`, so it
+ * cannot drift from what Lisa ships — flipping it and forgetting the workflow,
+ * or the reverse, fails that test.
+ *
+ * Residual limit worth naming: a consumer's `lisa doctor` comes from its
+ * installed package while the workflow it runs comes from `@main`, so a stale
+ * install can disagree with what actually runs. That is a property of `@main`
+ * refs, not of this check.
+ */
+export const CALLEE_GRANTS_ACTIONS_READ = false;
+
 /** Which of the three required parts a caller declares. */
 export interface SerializeContract {
   /** `serialize_platform_legs: true` in the `with:` block. */
@@ -108,6 +137,22 @@ export async function checkSerializeLegsContract(
 
   const missing = missingParts(contract);
   if (missing.length === 0) {
+    if (!CALLEE_GRANTS_ACTIONS_READ) {
+      return {
+        name: CHECK_NAME,
+        status: "warn",
+        detail:
+          "serialize_platform_legs is enabled and this repository's side is " +
+          "complete, but the ordering CANNOT work in this version of Lisa and " +
+          "nothing here will change that. The reusable workflow's own " +
+          "`permissions:` block omits `actions`, and a called workflow's " +
+          "permissions are a ceiling that zeroes everything unlisted — so the " +
+          "grant is discarded at the boundary wherever it is declared. The " +
+          "jobs API answers 403, the ordering job logs a warning, concludes " +
+          "`success`, and both legs start together. Nothing to fix here; " +
+          "tracked upstream on CodySwannGT/lisa#2662",
+      };
+    }
     return {
       name: CHECK_NAME,
       status: "ok",
@@ -129,7 +174,10 @@ export async function checkSerializeLegsContract(
       "the suite behaves exactly as it did before the opt-in while reporting " +
       "green. `actions: read` must sit on the CALLING workflow's own " +
       "`permissions:`, not on the job: a called workflow requesting a scope " +
-      "its caller never held is a startup_failure for the entire run",
+      "its caller never held is a startup_failure for the entire run. " +
+      "Completing these parts is necessary but NOT sufficient today — see " +
+      "CodySwannGT/lisa#2662, which tracks the reusable workflow's own " +
+      "permissions ceiling discarding the grant",
   };
 }
 
