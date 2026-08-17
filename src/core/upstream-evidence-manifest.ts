@@ -2383,6 +2383,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
 /** Exact paths tracked by the public Lisa repository at generation time. */
 export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
   Object.freeze({
+    ".agents/rules/never-name-downstream-projects.md": true,
     ".agents/skills/claude-code-action/SKILL.md": true,
     ".agents/skills/claude-code-action/references/inputs.md": true,
     ".agents/skills/harness-parity-council/SKILL.md": true,
@@ -8377,6 +8378,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/apply-receipt.ts": true,
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
+    "src/core/downstream-references.ts": true,
     "src/core/git-service.ts": true,
     "src/core/guard-capabilities.ts": true,
     "src/core/host-rules-pointer.ts": true,
@@ -8893,6 +8895,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
+    "tests/unit/core/no-downstream-project-names.test.ts": true,
     "tests/unit/core/plugin-sync-marker.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
