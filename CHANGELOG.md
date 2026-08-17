@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.29.0](https://github.com/CodySwannGT/lisa/compare/v3.28.2...v3.29.0) (2026-08-17)
+
+
+### Features
+
+* **doctor:** report worktrees holding work that exists nowhere else ([fc18068](https://github.com/CodySwannGT/lisa/commit/fc180687d38e54d64b1b5a8b6147e5fbbc0cbc02)), closes [CodySwannGT/lisa#2646](https://github.com/CodySwannGT/lisa/issues/2646) [CodySwannGT/lisa#2646](https://github.com/CodySwannGT/lisa/issues/2646)
+
+
+### Bug Fixes
+
+* **doctor:** bound worktree risk inspection ([c2c9b17](https://github.com/CodySwannGT/lisa/commit/c2c9b17d4de706e694915bcdf39f836ab5348823)), closes [CodySwannGT/lisa#2646](https://github.com/CodySwannGT/lisa/issues/2646)
+
 ### [3.28.2](https://github.com/CodySwannGT/lisa/compare/v3.28.1...v3.28.2) (2026-08-17)
 
 
