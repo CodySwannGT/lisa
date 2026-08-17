@@ -427,6 +427,54 @@ add_config_required_checks() {
       end'
 }
 
+preserve_live_required_checks() {
+  local repo="$1"
+  local existing_id="$2"
+  local json="$3"
+  local ruleset_name="$4"
+
+  if [[ -z "$existing_id" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  local live
+  if ! live=$(gh api -X GET "repos/$repo/rulesets/$existing_id" 2>/dev/null); then
+    log_warning "Could not read existing ruleset '$ruleset_name' details — refusing to silently replace required checks" >&2
+    return 1
+  fi
+
+  echo "$json" | jq --argjson live "$live" '
+    def required_checks:
+      (.rules // [])
+      | map(select(.type == "required_status_checks"))
+      | .[0].parameters.required_status_checks // [];
+
+    ($live | required_checks) as $live_checks
+    | if ($live_checks | length) == 0 then .
+      elif ((.rules // []) | map(select(.type == "required_status_checks")) | length) > 0 then
+        .rules |= map(
+          if .type == "required_status_checks" then
+            .parameters.required_status_checks |= (
+              . as $expected
+              | . + ($live_checks | map(
+                  select(.context as $c | ($expected | map(.context) | index($c)) | not)
+                ))
+            )
+          else . end
+        )
+      else
+        .rules = ((.rules // []) + [{
+          type: "required_status_checks",
+          parameters: {
+            strict_required_status_checks_policy: false,
+            do_not_enforce_on_create: true,
+            required_status_checks: $live_checks
+          }
+        }])
+      end'
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
@@ -453,6 +501,9 @@ apply_ruleset() {
 
   local existing_id
   existing_id=$(find_ruleset_by_name "$existing_rulesets" "$ruleset_name")
+  if [[ -n "$existing_id" ]]; then
+    clean_template=$(preserve_live_required_checks "$repo" "$existing_id" "$clean_template" "$ruleset_name")
+  fi
 
   if [[ "$DRY_RUN" == "true" ]]; then
     if [[ -n "$existing_id" ]]; then

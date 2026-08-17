@@ -59,6 +59,12 @@ export interface RulesetDrift {
   readonly drifted: readonly string[];
 }
 
+/** Required-check drift grouped by the ruleset that should enforce it. */
+interface NamedRulesetContextDrift {
+  readonly ruleset: string;
+  readonly contexts: readonly string[];
+}
+
 /**
  * Run one fixed-argv bounded gh JSON read.
  * @param argv
@@ -451,6 +457,114 @@ function withoutGithubDefaults(value: unknown): unknown {
 }
 
 /**
+ * Extract required status checks by context from a material ruleset.
+ * @param rules
+ */
+function requiredStatusChecksByContext(
+  rules: unknown
+): ReadonlyMap<string, unknown> {
+  if (!Array.isArray(rules)) return new Map();
+  const entries = rules.flatMap(rule => {
+    if (
+      rule === null ||
+      typeof rule !== "object" ||
+      Reflect.get(rule, "type") !== "required_status_checks"
+    ) {
+      return [];
+    }
+    const parameters = Reflect.get(rule, "parameters");
+    if (parameters === null || typeof parameters !== "object") return [];
+    const checks = Reflect.get(parameters, "required_status_checks");
+    if (!Array.isArray(checks)) return [];
+    return checks.flatMap(check => {
+      if (check === null || typeof check !== "object") return [];
+      const context = Reflect.get(check, "context");
+      return typeof context === "string" ? [[context, check] as const] : [];
+    });
+  });
+  return new Map(entries);
+}
+
+/**
+ * Project actual rules onto expected required-check contexts.
+ *
+ * Host-added required contexts are enforcement, not drift. Comparing the whole
+ * live list would make doctor pressure operators to remove checks Lisa cannot
+ * preserve safely.
+ * @param actualRules
+ * @param expectedRules
+ */
+function comparableActualRules(
+  actualRules: unknown,
+  expectedRules: unknown
+): unknown {
+  const expectedContexts = new Set(
+    requiredStatusChecksByContext(expectedRules).keys()
+  );
+  if (!Array.isArray(actualRules) || expectedContexts.size === 0) {
+    return actualRules;
+  }
+  return actualRules.map(rule => {
+    if (
+      rule === null ||
+      typeof rule !== "object" ||
+      Reflect.get(rule, "type") !== "required_status_checks"
+    ) {
+      return rule;
+    }
+    const parameters = Reflect.get(rule, "parameters");
+    if (parameters === null || typeof parameters !== "object") return rule;
+    const checks = Reflect.get(parameters, "required_status_checks");
+    if (!Array.isArray(checks)) return rule;
+    return {
+      ...rule,
+      parameters: {
+        ...parameters,
+        required_status_checks: checks.filter(check => {
+          if (check === null || typeof check !== "object") return true;
+          const context = Reflect.get(check, "context");
+          return typeof context !== "string" || expectedContexts.has(context);
+        }),
+      },
+    };
+  });
+}
+
+/**
+ * List Lisa-required checks absent from a live ruleset.
+ * @param expected
+ * @param actual
+ */
+function missingRequiredContexts(
+  expected: HealthRuleset,
+  actual: HealthRuleset | undefined
+): readonly string[] {
+  const actualContexts = requiredStatusChecksByContext(actual?.rules);
+  return sortedCopy(
+    [...requiredStatusChecksByContext(expected.rules).keys()].filter(
+      context => !actualContexts.has(context)
+    ),
+    (left, right) => left.localeCompare(right)
+  );
+}
+
+/**
+ * Name missing required-check enforcement by ruleset.
+ * @param expected
+ * @param actual
+ */
+function requiredContextDrift(
+  expected: readonly HealthRuleset[],
+  actual: readonly HealthRuleset[]
+): readonly NamedRulesetContextDrift[] {
+  const observed = new Map(actual.map(item => [item.name, item]));
+  return expected.flatMap(item => {
+    const contexts = missingRequiredContexts(item, observed.get(item.name));
+    return contexts.length === 0 ? [] : [{ ruleset: item.name, contexts }];
+  });
+}
+
+/**
  * Compare expected and observed material ruleset documents.
  * @param expected
  * @param actual
@@ -479,7 +593,7 @@ export function compareRulesets(
         target: present.target,
         enforcement: present.enforcement,
         conditions: present.conditions,
-        rules: present.rules,
+        rules: comparableActualRules(present.rules, item.rules),
       })
     );
     if (JSON.stringify(expectedMaterial) !== JSON.stringify(actualMaterial)) {
@@ -558,9 +672,23 @@ export async function rulesetFinding(
   }
   const expected = await expectedRulesets(lisaRoot, projectRoot, types, config);
   const drift = compareRulesets(expected, actual);
+  const contextDrift = requiredContextDrift(expected, actual);
+  const missingContextsByRuleset = new Map(
+    contextDrift.map(item => [item.ruleset, item.contexts])
+  );
   const names = [
-    ...drift.missing.map(name => `${name} missing`),
-    ...drift.drifted.map(name => `${name} drifted`),
+    ...drift.missing.map(name => {
+      const contexts = missingContextsByRuleset.get(name) ?? [];
+      return contexts.length === 0
+        ? `${name} missing`
+        : `${name} missing; runs without blocking: ${contexts.join(", ")}`;
+    }),
+    ...drift.drifted.map(name => {
+      const contexts = missingContextsByRuleset.get(name) ?? [];
+      return contexts.length === 0
+        ? `${name} drifted`
+        : `${name} drifted; runs without blocking: ${contexts.join(", ")}`;
+    }),
   ];
   return names.length === 0
     ? deterministicFinding(

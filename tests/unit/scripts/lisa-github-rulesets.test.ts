@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string, max-lines -- shell mock fixtures intentionally repeat gh argv fragments */
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   copyFileSync,
@@ -161,6 +162,58 @@ function createCapturingGhBin(captureDir: string): string {
       'if [[ "$1" == "api" && "$2" == "-X" ]]; then',
       '  input="${!#}"',
       `  cp "$input" "${captureDir}/$(date +%s%N).json"`,
+      '  echo "{}"',
+      "  exit 0",
+      "fi",
+      'echo "unexpected gh invocation: $*" >&2',
+      "exit 1",
+      "",
+    ].join("\n"),
+    { mode: 0o755 }
+  );
+  return binDir;
+}
+
+/**
+ * Creates a mock gh for an update path with one live ruleset detail.
+ *
+ * @param captureDir Directory the mock writes the update payload into.
+ * @param liveRuleset Existing detailed ruleset payload returned by GitHub.
+ * @returns Temporary bin directory containing the mock gh executable.
+ */
+function createUpdatingGhBin(
+  captureDir: string,
+  liveRuleset: RulesetPayload
+): string {
+  const binDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-update-"));
+  const ghPath = path.join(binDir, "gh");
+  writeFileSync(
+    ghPath,
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      'if [[ "$1 $2" == "auth status" ]]; then',
+      "  exit 0",
+      "fi",
+      'if [[ "$1 $2" == "repo view" ]]; then',
+      `  echo "${REPO_NAME}"`,
+      "  exit 0",
+      "fi",
+      `if [[ "$1" == "api" && "$2" == "repos/${REPO_NAME}/rulesets" ]]; then`,
+      '  echo "[{\\"id\\":7,\\"name\\":\\"base\\"}]"',
+      "  exit 0",
+      "fi",
+      `if [[ "$1 $2 $3" == "api -X GET" && "$4" == "repos/${REPO_NAME}/rulesets/7" ]]; then`,
+      `  cat <<'JSON'\n${JSON.stringify(liveRuleset)}\nJSON`,
+      "  exit 0",
+      "fi",
+      `if [[ "$1 $2 $3" == "api -X PUT" && "$4" == "repos/${REPO_NAME}/rulesets/7" ]]; then`,
+      '  input="${!#}"',
+      `  cp "$input" "${captureDir}/updated.json"`,
+      '  echo "{}"',
+      "  exit 0",
+      "fi",
+      'if [[ "$1 $2 $3" == "api -X POST" ]]; then',
       '  echo "{}"',
       "  exit 0",
       "fi",
@@ -339,5 +392,73 @@ describe("lisa-github-rulesets.sh", () => {
         expect(contextsOf(payload)).toEqual([]);
       }
     });
+
+    it("preserves live-only required checks when updating a ruleset", () => {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(
+        path.join(tmpdir(), "lisa-gh-update-payloads-")
+      );
+      const lisaInstall = createLisaInstall();
+      const shippedContext = "🔗 Work-Item Traceability";
+      const hostContext = "🧭 E2E Route Coverage";
+      const ghBin = createUpdatingGhBin(captureDir, {
+        name: "base",
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: [
+                { context: hostContext, integration_id: 15_368 },
+              ],
+            },
+          },
+        ],
+      });
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(
+          lisaInstall.root,
+          "typescript",
+          "github-rulesets",
+          "base.json"
+        ),
+        JSON.stringify({
+          name: "base",
+          enforcement: ACTIVE_ENFORCEMENT,
+          rules: [
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [
+                  { context: shippedContext, integration_id: 15_368 },
+                ],
+              },
+            },
+          ],
+        })
+      );
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--yes", projectDir],
+          ghBin
+        );
+        expect(result.status).toBe(0);
+        const updated = JSON.parse(
+          readFileSync(path.join(captureDir, "updated.json"), "utf8")
+        ) as RulesetPayload;
+        expect(contextsOf(updated)).toEqual([shippedContext, hostContext]);
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    });
   });
 });
+/* eslint-enable sonarjs/no-duplicate-string, max-lines -- restore repository defaults */
