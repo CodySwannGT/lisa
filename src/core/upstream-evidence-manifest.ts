@@ -1313,7 +1313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
       "6f3713451139d9d4fd8eed8f11f49e472667394c4f9a7cae63897b7702115687",
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
-      "233b4a31594f75c2d99e119f9ae9e9dcd966602787df4eb77dadd6b1cd629df0",
+      "92bd16d530e2d25a294ce1cbe86c5a02931d23fb4709283044651a1dbff27127",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
@@ -2864,14 +2864,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plans/completed/ai-coding-harness-paper/tasks/6.json": true,
     "plans/completed/ai-coding-harness-paper/tasks/7.json": true,
     "plans/completed/ai-coding-harness-paper/tasks/8.json": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/apply-tsconfig-fix-ask-gemini.md": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/.highwatermark": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/.lock": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/22.json": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/23.json": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/24.json": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/25.json": true,
-    "plans/completed/apply-tsconfig-fix-ask-gemini/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/26.json": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/apply-tsconfig-fix-acme-product-b.md": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/.highwatermark": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/.lock": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/22.json": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/23.json": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/24.json": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/25.json": true,
+    "plans/completed/apply-tsconfig-fix-acme-product-b/tasks/2de6519d-e459-4fcf-9823-072de5b021ca/26.json": true,
     "plans/completed/binary-riding-parasol.md": true,
     "plans/completed/calm-squishing-toucan/fix-plan-skill-e2e-bugs.md": true,
     "plans/completed/claude-driven-readme/claude-driven-readme.md": true,

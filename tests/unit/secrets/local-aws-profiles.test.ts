@@ -47,7 +47,7 @@ const THEIRS = [
   "",
   "[profile acmeorgd-dev]",
   "sso_session = acmeorgd",
-  "sso_account_id = 905179307867",
+  "sso_account_id = 123456789012",
   "",
 ].join("\n");
 
@@ -58,11 +58,11 @@ const BUNDLE = {
   externalId: "ext-1",
   profiles: {
     "agent-dev": {
-      roleArn: "arn:aws:iam::905179307867:role/RemoteAgent",
+      roleArn: "arn:aws:iam::123456789012:role/RemoteAgent",
       region: "us-east-1",
     },
     "agent-production": {
-      roleArn: "arn:aws:iam::002889194405:role/RemoteAgent",
+      roleArn: "arn:aws:iam::210987654321:role/RemoteAgent",
     },
   },
 };
@@ -99,7 +99,7 @@ describe("agent profiles alongside a developer's SSO config", () => {
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     expect(config).toContain(SSO_SECTION);
     expect(config).toContain("[profile acmeorgd-dev]");
-    expect(config).toContain("sso_account_id = 905179307867");
+    expect(config).toContain("sso_account_id = 123456789012");
     expect(config).toContain("[profile agent-dev]");
   });
 
