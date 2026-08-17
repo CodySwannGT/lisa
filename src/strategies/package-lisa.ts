@@ -20,6 +20,20 @@ import type {
   ResolvedPackageLisaTemplate,
 } from "./package-lisa-types.js";
 
+/** Planned package.json content plus messages the operator should see. */
+interface PackageJsonPlan {
+  readonly packageJson: Record<string, unknown>;
+  readonly notes: readonly string[];
+}
+
+/** One override/resolution entry that will be rewritten to a `$name` reference. */
+interface OverrideRewrite {
+  readonly section: "overrides" | "resolutions";
+  readonly name: string;
+  readonly literalRange: string;
+  readonly directRange: string;
+}
+
 /**
  * @file package-lisa.ts
  * @description Package.lisa.json strategy for governance-driven package.json management
@@ -79,11 +93,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
       securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
         ? this.restrictToSecurityPins(merged)
         : merged;
-    const result = normalizeSelfReferencingOverrides(
-      this.applyTemplate(projectJson, effective)
+    const result = planSelfReferencingOverrideNormalization(
+      this.applyTemplate(projectJson, effective),
+      this.PACKAGE_JSON
     );
-    assertNoDanglingDollarRefs(result, this.PACKAGE_JSON);
-    return result;
+    assertNoDanglingDollarRefs(result.packageJson, this.PACKAGE_JSON);
+    return result.packageJson;
   }
 
   /**
@@ -133,7 +148,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
     try {
       // Load templates and apply to package.json
-      const merged = await this.mergePackageJson(
+      const plan = await this.mergePackageJson(
         actualDestPath,
         context,
         securityPinsOnly
@@ -142,17 +157,19 @@ export class PackageLisaStrategy implements ICopyStrategy {
       if (!destExists) {
         return this.createDestination(
           actualDestPath,
-          merged,
+          plan.packageJson,
           actualRelativePath,
-          context
+          context,
+          plan.notes
         );
       }
 
       return this.updateDestination(
         actualDestPath,
-        merged,
+        plan.packageJson,
         actualRelativePath,
-        context
+        context,
+        plan.notes
       );
     } catch (error) {
       if (error instanceof JsonMergeError) {
@@ -171,6 +188,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param merged - Merged package.json object
    * @param relativePath - Relative path for recording
    * @param context - Strategy context with config and callbacks
+   * @param notes - Operator-visible notes explaining non-obvious rewrites
    * @returns Result with action "copied"
    * @private
    */
@@ -178,13 +196,19 @@ export class PackageLisaStrategy implements ICopyStrategy {
     destPath: string,
     merged: Record<string, unknown>,
     relativePath: string,
-    context: StrategyContext
+    context: StrategyContext,
+    notes: readonly string[] = []
   ): Promise<FileOperationResult> {
     if (!context.config.dryRun) {
       await ensureParentDir(destPath);
       await writeJson(destPath, merged);
     }
-    return { relativePath, strategy: this.name, action: "copied" };
+    const result: FileOperationResult = {
+      relativePath,
+      strategy: this.name,
+      action: "copied",
+    };
+    return notes.length > 0 ? { ...result, note: notes.join("; ") } : result;
   }
 
   /**
@@ -193,6 +217,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param merged - Merged package.json object
    * @param relativePath - Relative path for recording
    * @param context - Strategy context with config and callbacks
+   * @param notes - Operator-visible notes explaining non-obvious rewrites
    * @returns Result with action "merged" or "skipped"
    * @private
    */
@@ -200,7 +225,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     destPath: string,
     merged: Record<string, unknown>,
     relativePath: string,
-    context: StrategyContext
+    context: StrategyContext,
+    notes: readonly string[] = []
   ): Promise<FileOperationResult> {
     const originalJson = await readJson<Record<string, unknown>>(destPath);
 
@@ -217,7 +243,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
       await writeJson(destPath, merged);
     }
 
-    return { relativePath, strategy: this.name, action: "merged" };
+    const result: FileOperationResult = {
+      relativePath,
+      strategy: this.name,
+      action: "merged",
+    };
+    return notes.length > 0 ? { ...result, note: notes.join("; ") } : result;
   }
 
   /**
@@ -226,14 +257,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param context - Strategy context with Lisa config
    * @param securityPinsOnly - When true (skip-git-check on an existing package.json),
    *   apply only force.resolutions/force.overrides and preserve all other host config
-   * @returns Merged package.json object
+   * @returns Planned package.json object plus operator-visible notes
    * @private
    */
   private async mergePackageJson(
     packageJsonPath: string,
     context: StrategyContext,
     securityPinsOnly = false
-  ): Promise<Record<string, unknown>> {
+  ): Promise<PackageJsonPlan> {
     // Try to read existing package.json, or start with empty object
     const projectJson =
       (await readJsonOrNull<Record<string, unknown>>(packageJsonPath)) || {};
@@ -245,12 +276,17 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // Get detected project types by analyzing the project structure
     const detectedTypes = await this.detectProjectTypes(projectDir);
 
-    return this.planPackageJson(
-      projectJson,
-      detectedTypes,
-      lisaDir,
-      securityPinsOnly
+    const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
+    const effective =
+      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
+        ? this.restrictToSecurityPins(merged)
+        : merged;
+    const plan = planSelfReferencingOverrideNormalization(
+      this.applyTemplate(projectJson, effective),
+      this.PACKAGE_JSON
     );
+    assertNoDanglingDollarRefs(plan.packageJson, this.PACKAGE_JSON);
+    return plan;
   }
 
   /**
@@ -861,22 +897,24 @@ function rangeFloor(range: string): string | null {
  * left untouched. Overrides for packages that are NOT direct dependencies are
  * also left as literals — those are legitimate transitive pins.
  * @param pkg - Merged package.json about to be persisted
- * @returns A package.json with self-referencing overrides normalized (a shallow
- *   copy is returned only when a rewrite was needed; otherwise the input)
+ * @param fileName - Basename used in error messages
+ * @throws JsonMergeError when a rewrite would make the effective override wider
+ *   than the literal constraint it replaced.
+ * @returns Planned package.json plus operator-visible notes.
  */
-function normalizeSelfReferencingOverrides(
-  pkg: Record<string, unknown>
-): Record<string, unknown> {
+function planSelfReferencingOverrideNormalization(
+  pkg: Record<string, unknown>,
+  fileName: string
+): PackageJsonPlan {
   const directDeps = collectDirectDependencyNames(pkg);
   if (directDeps.size === 0) {
-    return pkg;
+    return { packageJson: pkg, notes: [] };
   }
-  const needsRewrite = (name: string, value: unknown): boolean =>
-    directDeps.has(name) &&
-    typeof value === "string" &&
-    value.length > 0 &&
-    !value.startsWith("$");
-  const rewrites = OVERRIDE_SECTIONS.reduce<Record<string, unknown>>(
+  const directRanges = collectDirectDependencyRanges(pkg);
+  const rewritePlan = OVERRIDE_SECTIONS.reduce<{
+    readonly sections: Record<string, unknown>;
+    readonly rewrites: readonly OverrideRewrite[];
+  }>(
     (acc, section) => {
       const entries = pkg[section];
       if (
@@ -887,19 +925,119 @@ function normalizeSelfReferencingOverrides(
         return acc;
       }
       const pairs = Object.entries(entries);
-      if (!pairs.some(([name, value]) => needsRewrite(name, value))) {
+      const sectionRewrites = pairs.flatMap(([name, value]) => {
+        if (!needsSelfReferenceRewrite(directDeps, name, value)) {
+          return [];
+        }
+        const directRange = directRanges.get(name);
+        if (directRange === undefined) {
+          return [];
+        }
+        const literalRange = value as string;
+        assertSelfReferenceRewriteDoesNotWiden(
+          fileName,
+          section,
+          name,
+          literalRange,
+          directRange
+        );
+        return [{ section, name, literalRange, directRange }];
+      });
+      if (sectionRewrites.length === 0) {
         return acc;
       }
       const normalized = Object.fromEntries(
         pairs.map(([name, value]) =>
-          needsRewrite(name, value) ? [name, `$${name}`] : [name, value]
+          sectionRewrites.some(rewrite => rewrite.name === name)
+            ? [name, `$${name}`]
+            : [name, value]
         )
       );
-      return { ...acc, [section]: normalized };
+      return {
+        sections: { ...acc.sections, [section]: normalized },
+        rewrites: [...acc.rewrites, ...sectionRewrites],
+      };
     },
-    {}
+    { sections: {}, rewrites: [] }
   );
-  return Object.keys(rewrites).length > 0 ? { ...pkg, ...rewrites } : pkg;
+  const packageJson =
+    Object.keys(rewritePlan.sections).length > 0
+      ? { ...pkg, ...rewritePlan.sections }
+      : pkg;
+  return {
+    packageJson,
+    notes: rewritePlan.rewrites.map(formatSelfReferenceRewriteNote),
+  };
+}
+
+/**
+ * Decide whether an override/resolution entry needs npm `$name` normalization.
+ * @param directDeps - Direct dependency names in the merged package
+ * @param name - Override/resolution key
+ * @param value - Override/resolution value
+ * @returns True when the entry is a literal direct-dependency collision
+ */
+function needsSelfReferenceRewrite(
+  directDeps: ReadonlySet<string>,
+  name: string,
+  value: unknown
+): boolean {
+  return (
+    directDeps.has(name) &&
+    typeof value === "string" &&
+    value.length > 0 &&
+    !value.startsWith("$")
+  );
+}
+
+/**
+ * Refuse a `$name` rewrite unless the direct dependency range is no wider.
+ * @param fileName - Basename used in error messages
+ * @param section - Override section carrying the entry
+ * @param name - Package name being rewritten
+ * @param literalRange - Literal override/resolution range to replace
+ * @param directRange - Direct dependency range `$name` would resolve to
+ * @throws JsonMergeError when the rewrite is unprovable or widening
+ */
+function assertSelfReferenceRewriteDoesNotWiden(
+  fileName: string,
+  section: OverrideRewrite["section"],
+  name: string,
+  literalRange: string,
+  directRange: string
+): void {
+  if (!semver.validRange(literalRange) || !semver.validRange(directRange)) {
+    throw new JsonMergeError(
+      fileName,
+      `${section}.${name} cannot be rewritten to "$${name}" because Lisa ` +
+        `cannot prove the direct dependency range ${JSON.stringify(directRange)} ` +
+        `is no wider than the literal override ${JSON.stringify(literalRange)}.`
+    );
+  }
+  if (!semver.subset(directRange, literalRange)) {
+    throw new JsonMergeError(
+      fileName,
+      `${section}.${name} would widen if rewritten to "$${name}": the literal ` +
+        `override ${JSON.stringify(literalRange)} would resolve to direct ` +
+        `dependency range ${JSON.stringify(directRange)}. Pin the direct ` +
+        `dependency to ${JSON.stringify(literalRange)} or choose a direct range ` +
+        `that is no wider than the override.`
+    );
+  }
+}
+
+/**
+ * Format the operator-visible explanation for a safe `$name` rewrite.
+ * @param rewrite - Rewrite metadata
+ * @returns Human-readable note for apply output
+ */
+function formatSelfReferenceRewriteNote(rewrite: OverrideRewrite): string {
+  return (
+    `Normalized ${rewrite.section}.${rewrite.name}: replaced literal ` +
+    `${JSON.stringify(rewrite.literalRange)} with "$${rewrite.name}" ` +
+    `resolving to direct dependency range ` +
+    `${JSON.stringify(rewrite.directRange)}.`
+  );
 }
 
 /**
@@ -958,6 +1096,23 @@ function collectDirectDependencyNames(
   return new Set(
     DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
       Object.keys(asRecord(pkg[section]))
+    )
+  );
+}
+
+/**
+ * Collect direct dependency ranges by package name.
+ * @param pkg - Merged package.json object
+ * @returns Package name to string range map
+ */
+function collectDirectDependencyRanges(
+  pkg: Record<string, unknown>
+): ReadonlyMap<string, string> {
+  return new Map(
+    DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
+      Object.entries(asRecord(pkg[section])).flatMap(([name, value]) =>
+        typeof value === "string" ? [[name, value] as const] : []
+      )
     )
   );
 }
