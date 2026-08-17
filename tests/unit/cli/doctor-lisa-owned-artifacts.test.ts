@@ -17,8 +17,13 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 const HOST_CONFIG = "tsconfig.json";
+const GENERATED_ARTIFACT = "scripts/lisa-new-artifact.mjs";
 const SHIPPED_GUARD = "#!/usr/bin/env bash\n# closed\n";
 const OLD_GUARD = "#!/usr/bin/env bash\n# fails open\n";
+const SHIPPED_GENERATED = "export const governed = true;\n";
+const SHIPPED_GUARD_VERSION = "sha256:1f8d79a5e303";
+const OLD_GUARD_VERSION = "sha256:5708bbd8b37f";
+const SHIPPED_GENERATED_VERSION = "sha256:c534dbb9ff9e";
 const ENTRYPOINT = "scripts/lisa-work-item.mjs";
 const LISA_PACKAGE = '{"name":"@codyswann/lisa"}';
 const HOST_PACKAGE = '{"name":"some-host-app"}';
@@ -149,6 +154,14 @@ describe("checkLisaOwnedArtifacts", () => {
     const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
 
     expect(check.status).toBe(OK);
+    expect(check.detail).toContain("Resolvable Lisa-owned artifact copies");
+    expect(check.detail).toContain(`governed by project:${GUARD} first`);
+    expect(check.detail).toContain(
+      `project:${GUARD}@${SHIPPED_GUARD_VERSION} governs`
+    );
+    expect(check.detail).toContain(
+      `package:all/copy-overwrite/${GUARD}@${SHIPPED_GUARD_VERSION}`
+    );
   });
 
   it("passes when the project never installed the guard", async () => {
@@ -156,6 +169,51 @@ describe("checkLisaOwnedArtifacts", () => {
     const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
 
     expect(check.status).toBe(OK);
+    expect(check.detail).not.toContain("Resolvable Lisa-owned artifact copies");
+  });
+
+  it("warns when resolvable Lisa-owned artifact copies disagree", async () => {
+    await fs.outputFile(path.join(projectDir, GUARD), OLD_GUARD);
+
+    const check = await checkLisaOwnedArtifacts(
+      projectDir,
+      lisaRoot,
+      shippedLedger()
+    );
+
+    expect(check.status).toBe(WARN);
+    expect(check.detail).toContain(
+      "Resolvable Lisa-owned artifact copies disagree"
+    );
+    expect(check.detail).toContain(`governed by project:${GUARD} first`);
+    expect(check.detail).toContain(
+      `project:${GUARD}@${OLD_GUARD_VERSION} governs`
+    );
+    expect(check.detail).toContain(
+      `package:all/copy-overwrite/${GUARD}@${SHIPPED_GUARD_VERSION}`
+    );
+  });
+
+  it("discovers newly shipped Lisa-owned artifacts from copy-overwrite sources", async () => {
+    await fs.outputFile(
+      path.join(lisaRoot, "typescript", "copy-overwrite", GENERATED_ARTIFACT),
+      SHIPPED_GENERATED
+    );
+    await fs.outputFile(
+      path.join(projectDir, GENERATED_ARTIFACT),
+      SHIPPED_GENERATED
+    );
+
+    const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
+
+    expect(check.status).toBe(OK);
+    expect(check.detail).toContain(GENERATED_ARTIFACT);
+    expect(check.detail).toContain(
+      `project:${GENERATED_ARTIFACT}@${SHIPPED_GENERATED_VERSION} governs`
+    );
+    expect(check.detail).toContain(
+      `package:typescript/copy-overwrite/${GENERATED_ARTIFACT}@${SHIPPED_GENERATED_VERSION}`
+    );
   });
 
   it("ignores drift in host-owned managed config", async () => {
@@ -169,8 +227,10 @@ describe("checkLisaOwnedArtifacts", () => {
     expect(check.status).toBe(OK);
   });
 
-  it("respects .lisaignore", async () => {
-    // A project that deliberately holds its own copy said so already.
+  it("keeps .lisaignore unassessed while still reporting copy disagreement", async () => {
+    // A project that deliberately holds its own copy said so already, but the
+    // operator still needs to know there are multiple resolvable copies and
+    // which one the documented invocation path reaches.
     await fs.outputFile(path.join(projectDir, GUARD), OLD_GUARD);
     await fs.outputFile(
       path.join(projectDir, ".lisaignore"),
@@ -179,7 +239,14 @@ describe("checkLisaOwnedArtifacts", () => {
 
     const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
 
-    expect(check.status).toBe(OK);
+    expect(check.status).toBe(WARN);
+    expect(check.detail).toContain("not assessed (.lisaignore)");
+    expect(check.detail).toContain(
+      "Resolvable Lisa-owned artifact copies disagree"
+    );
+    expect(check.detail).toContain(
+      `project:${GUARD}@${OLD_GUARD_VERSION} governs`
+    );
   });
 
   describe("when the project is Lisa's own repository", () => {
