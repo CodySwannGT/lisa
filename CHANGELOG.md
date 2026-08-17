@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.31.1](https://github.com/CodySwannGT/lisa/compare/v3.31.0...v3.31.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **secrets:** resolve the project config from outside cwd ([cfc6179](https://github.com/CodySwannGT/lisa/commit/cfc6179ef9f0f89551223dcc74e9a8a519d8e5f2)), closes [CodySwannGT/lisa#2659](https://github.com/CodySwannGT/lisa/issues/2659) [CodySwannGT/lisa#2659](https://github.com/CodySwannGT/lisa/issues/2659)
+
 ## [3.31.0](https://github.com/CodySwannGT/lisa/compare/v3.30.1...v3.31.0) (2026-08-17)
 
 
