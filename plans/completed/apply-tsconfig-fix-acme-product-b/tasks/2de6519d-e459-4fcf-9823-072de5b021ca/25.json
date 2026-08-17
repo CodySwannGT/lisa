@@ -1,7 +1,7 @@
 {
   "id": "25",
   "subject": "Commit and push to PR #29",
-  "description": "Commit changes and push to existing ask-gemini PR",
+  "description": "Commit changes and push to existing acme-product-b PR",
   "activeForm": "Committing and pushing",
   "status": "completed",
   "blocks": [],

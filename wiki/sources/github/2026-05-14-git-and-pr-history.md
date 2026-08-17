@@ -1165,7 +1165,7 @@
 | 62c6091892863d75c6bc743250e033324be45b50 | 2026-02-04T03:41:20Z | github-actions[bot] |  | chore(release): 1.21.0 [skip ci] |
 | 43020ee9990ffa2970f8be1ae60b8f63a1d068af | 2026-02-03T22:39:51-05:00 | Cody Swann | tag: vv1.21.0 | Merge pull request #146 from CodySwannGT/fix/tsconfig-local-override |
 | ee5a689708d7c507179469f5d70e078679b42b46 | 2026-02-03T22:25:13-05:00 | Cody Swann |  | feat: add /lisa:integration-test slash command |
-| 2297b9841b3fdfdf7e254baa8fb8caf7ffb2da48 | 2026-02-03T22:17:01-05:00 | Cody Swann |  | chore: archive apply-tsconfig-fix-ask-gemini plan |
+| 2297b9841b3fdfdf7e254baa8fb8caf7ffb2da48 | 2026-02-03T22:17:01-05:00 | Cody Swann |  | chore: archive apply-tsconfig-fix-acme-product-b plan |
 | 9742916408c6764307cb55602603e32da0592a6a | 2026-02-03T22:05:53-05:00 | Cody Swann |  | chore: archive tsconfig-local-override plan |
 | 126bd0e83b8a6e5f39661c918895c42746bf26a1 | 2026-02-03T21:50:53-05:00 | Cody Swann |  | fix: move include/exclude from tsconfig.json to stack-specific configs |
 | f3528b4020f8454c146525ddd8c8e8b8ccf424c4 | 2026-02-04T02:20:37Z | github-actions[bot] |  | chore(release): 1.20.1 [skip ci] |

@@ -126,7 +126,7 @@ describe("apply freshness doctor check", () => {
   it("reports work postinstall-safe mode skipped even when the version is current", async () => {
     // The second silent-staleness class: a package install can never run the
     // agent emits, so `.codex/config.toml` stays unreconciled on the newest
-    // Lisa and nothing said so (ask-gemini#734, same shape as #2436).
+    // Lisa and nothing said so (acme-product-b#734, same shape as #2436).
     await writeHostManifest();
     await writeReceipt(getPackageVersion(), POSTINSTALL_SAFE);
 
