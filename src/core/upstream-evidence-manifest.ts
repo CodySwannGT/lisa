@@ -21,11 +21,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "4fe7003d048086a366b9bea1711275c2186e095f4bf976279d1ff825fd4eca1d",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
+      "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",
+      "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "83a8b8108654086afb6a6f23a8f09f9f041eb2cd4094c5531fa7ab1f75e873dc",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -673,13 +673,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
+      "79bf93f611cfd8ece69df50dcefed97743e3bae4bd9448e00ee0fd603ca83123",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "5b11b2a9e31f4fe1b5ed62340024269722c42eebe22987e4dce327a519506832",
+      "9f9de9d76c6f5f5a204b68688567329f5efb71844d7f9ecfa7677c750c41f1d0",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "81c51041f8cb47bf79692c485c4f42ac7ed0a5a830821dc514cb468bc7a06b83",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -8467,6 +8467,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-tsconfig-local-files-fallback.ts": true,
     "src/migrations/ensure-tsconfig-local-includes.ts": true,
     "src/migrations/ensure-wiki-source-declared.ts": true,
+    "src/migrations/generated-paths.ts": true,
     "src/migrations/index.ts": true,
     "src/migrations/migration.interface.ts": true,
     "src/migrations/reconcile-claude-stack-plugins.ts": true,
