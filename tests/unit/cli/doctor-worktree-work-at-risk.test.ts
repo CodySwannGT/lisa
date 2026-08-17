@@ -275,7 +275,7 @@ describe("checkWorktreeWorkAtRisk", () => {
         ["/repo", ["rev-parse", "--abbrev-ref", "HEAD"], { stdout: "main\n" }],
         [
           "/repo",
-          ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+          ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
           { stdout: "0\n" },
         ],
         [
@@ -291,7 +291,7 @@ describe("checkWorktreeWorkAtRisk", () => {
         ],
         [
           "/w/clean",
-          ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+          ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
           { stdout: "0\n" },
         ],
         [
@@ -323,7 +323,7 @@ describe("checkWorktreeWorkAtRisk", () => {
         ["/repo", ["rev-parse", "--abbrev-ref", "HEAD"], { stdout: "main\n" }],
         [
           "/repo",
-          ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+          ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
           { stdout: "0\n" },
         ],
         [
@@ -349,7 +349,7 @@ describe("checkWorktreeWorkAtRisk", () => {
         ],
         [
           "/w/risk",
-          ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+          ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
           { stdout: "0\n" },
         ],
         [
@@ -384,7 +384,7 @@ describe("checkWorktreeWorkAtRisk", () => {
         ],
         [
           "/w/detached",
-          ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+          ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
           { stdout: "1\n" },
         ],
       ])
@@ -426,7 +426,7 @@ describe("checkWorktreeWorkAtRisk", () => {
           ] as const,
           [
             path,
-            ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+            ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
             { stdout: "0\n" },
           ] as const,
           [
