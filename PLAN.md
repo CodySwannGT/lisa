@@ -177,9 +177,9 @@ Annotated example (wrapper-mode, multi-connector):
 ```jsonc
 {
   "schemaVersion": "1.0.0",
-  "org": "Gemini Sports",
-  "displayName": "Gemini Sports LLM Wiki",
-  "purpose": "The durable brain + documentation home for Gemini Sports' platform and product knowledge.",  // asked by /setup; rendered into contract + start-here; feeds /onboard-me
+  "org": "AcmeOrgB",
+  "displayName": "AcmeOrgB LLM Wiki",
+  "purpose": "The durable brain + documentation home for AcmeOrgB' platform and product knowledge.",  // asked by /setup; rendered into contract + start-here; feeds /onboard-me
   "mode": "wrapper",                       // embedded | wrapper | standalone | subdir
   "wikiRoot": "wiki",
   "frontmatter": true,                      // forced on new/touched pages; legacy tolerated
@@ -206,7 +206,7 @@ Annotated example (wrapper-mode, multi-connector):
                     "tenantGuard": { "site": "https://acmeorgbanalytics.atlassian.net",
                                      "cloudId": "b1040f2e-..." }, "projects": ["SE","GD","DST"] },
     "notion":     { "enabled": true, "sideEffects": "read-only-ingest",
-                    "tenantGuard": { "teamspace": "Gemini Sports Analytics",
+                    "tenantGuard": { "teamspace": "AcmeOrgB Analytics",
                                      "teamspaceId": "2ccd92fe-..." } },
     "slack":      { "enabled": true, "sideEffects": "external-write" },  // OAuth/browser/token file
     "confluence": { "enabled": false, "sideEffects": "read-only-ingest" }
