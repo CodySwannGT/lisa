@@ -26,7 +26,7 @@ const ORPHANED_ROLLUP_TOKEN =
  */
 function makeEntry(overrides: Partial<LisaUsageEntry> = {}): LisaUsageEntry {
   return {
-    artifactRef: "linear:tunnlai/TUN-430",
+    artifactRef: "linear:acmeorgd/TUN-430",
     cachedInputTokens: null,
     cost: null,
     currency: null,

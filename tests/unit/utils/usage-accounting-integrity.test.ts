@@ -19,7 +19,7 @@ const ROLLUP_TOKEN = `<!-- lisa:usage-rollup direct_entry_ids=${ENTRY_ID} child_
  */
 function makeEntry(overrides: Partial<LisaUsageEntry> = {}): LisaUsageEntry {
   return {
-    artifactRef: "linear:tunnlai/TUN-430",
+    artifactRef: "linear:acmeorgd/TUN-430",
     cachedInputTokens: null,
     cost: null,
     currency: null,

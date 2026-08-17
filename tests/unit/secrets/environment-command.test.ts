@@ -57,9 +57,9 @@ function deps(over: Record<string, unknown> = {}): {
 
 /** A resolved identity, as the resolver returns it. */
 const IDENTITY = {
-  tenant: "tunnl",
+  tenant: "acmeorgd",
   provider: "bitwarden",
-  bootstrapKey: "BWS_ACCESS_TOKEN_tunnl",
+  bootstrapKey: "BWS_ACCESS_TOKEN_acmeorgd",
 };
 
 describe("assertTarget", () => {
@@ -105,7 +105,7 @@ describe("configureLocal", () => {
     await configureLocal(IDENTITY, d);
 
     expect(stored).toEqual([
-      { key: "BWS_ACCESS_TOKEN_tunnl", value: "typed-value" },
+      { key: "BWS_ACCESS_TOKEN_acmeorgd", value: "typed-value" },
     ]);
     expect(materializedFor).toHaveLength(1);
   });

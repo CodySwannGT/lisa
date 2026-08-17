@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Claim-Time Guards
 
-Two guards that run when build-intake claims a ready item. Both come from geminisportsai's hand-rolled `sprint-loop` and both address failures actually observed there — an item built twice because it had already shipped, and a loop burning cycles re-attempting an item that was never going to succeed.
+Two guards that run when build-intake claims a ready item. Both come from acmeorgb's hand-rolled `sprint-loop` and both address failures actually observed there — an item built twice because it had already shipped, and a loop burning cycles re-attempting an item that was never going to succeed.
 
 It is a **single vendor-neutral contract** consumed by all three build-intake skills (`lisa-github-build-intake`, `lisa-jira-build-intake`, `lisa-linear-build-intake`). Each arm cites this slug in its claim step rather than growing its own copy, exactly as the arms cite `leaf-only-lifecycle`, `repo-scope-split`, `rejection-detection`, and `claim-archaeology`. One slug is what keeps a guard that fires on GitHub from being absent on Linear.
 

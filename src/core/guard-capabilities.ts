@@ -16,8 +16,8 @@
  *
  * Deliberately a *set*, not a version number. A monotonic `lisa-guard-version: N`
  * is easier to compare but lies the moment two hosts harden different vectors
- * independently — which is exactly what happened: `propswapllc/frontend` closed
- * the `GIT_CONFIG_KEY_<n>` bypass while `tunnl-infrastructure` closed a different
+ * independently — which is exactly what happened: `acmeorga/frontend` closed
+ * the `GIT_CONFIG_KEY_<n>` bypass while `acmeorgd-infrastructure` closed a different
  * one. Both would have bumped to the same number and one would have silently
  * won. Two sets stay two sets, and set difference names precisely what each copy
  * has that the other does not.

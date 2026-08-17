@@ -57,7 +57,7 @@ Discovery only works if "what does this run" can be answered from shell text wit
 
 **`$( )` restarts the quoting context.** In `"$(printf '%s' "$JSON" | node -e '…')"`, quotes inside the substitution pair among themselves. A flat scanner falls out of phase on the first one and starts reporting the payload's own string literals.
 
-Against Lisa and the three TunnlAI repositories, what survives is `gitleaks`, `jq`, `gtimeout` and `eas` — every one a real, undeclared invocation, with no false positives.
+Against Lisa and the three AcmeOrgD repositories, what survives is `gitleaks`, `jq`, `gtimeout` and `eas` — every one a real, undeclared invocation, with no false positives.
 
 ## What it will not do
 

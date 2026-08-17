@@ -7,7 +7,7 @@
  * registers when the session opens in the parent directory) but introduced a
  * worse failure. `setup.sh` ends in `exec node <this script>`, so a non-zero
  * exit fails the vendor's setup step and Claude Code never starts — observed
- * live on TunnlAI/frontend, where the configured bootstrap variable is visible
+ * live on AcmeOrgD/frontend, where the configured bootstrap variable is visible
  * to the session but not to the earlier setup phase.
  *
  * The distinction under test is "will anything try again", not "is this a

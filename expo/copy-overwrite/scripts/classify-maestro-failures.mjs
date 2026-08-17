@@ -29,7 +29,7 @@
  * about the product. When the preamble fails, the flow reds having tested
  * nothing — and it reds on an assertion naming a preamble gate, not the
  * feature, so a reader scoring the run by flow name counts it as a product
- * regression. Upstreamed from TunnlAI/frontend, where proof runs 6
+ * regression. Upstreamed from AcmeOrgD/frontend, where proof runs 6
  * (31424664541) and 7 (31446155638) lost four flows each that way; run 6's
  * Android arm was written up as a possible product regression and every one of
  * those flows came back green in run 7 with no code addressing them.

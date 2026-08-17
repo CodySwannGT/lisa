@@ -27,7 +27,7 @@ describe("stack tsconfig.json copy-overwrite shadowing", () => {
   // copy-overwrite tsconfig.json. Expo didn't — the typescript parent's
   // template ran unopposed and stamped `extends .../typescript` over expo
   // projects on every apply/postinstall, dropping jsx and failing typecheck
-  // (hit TunnlAI/frontend and expostarter).
+  // (hit AcmeOrgD/frontend and expostarter).
   it.each(CHILD_STACKS)(
     "%s ships a copy-overwrite tsconfig extending its own base",
     stack => {

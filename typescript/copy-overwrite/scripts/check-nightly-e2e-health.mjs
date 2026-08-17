@@ -73,8 +73,8 @@
  * because it is the right vocabulary. What is NOT kept is gemini's
  * `unknown`-passes-with-a-warning: that is a fail-open path, and here `unknown`
  * fails once bootstrap closes. The bypass model and the context-pinning
- * discipline come from tunnl (TUN-525 / TUN-402). The job-name filter comes from
- * propswap's `nightly-e2e-lib.sh`, whose unbounded bootstrap is what §4 of the
+ * discipline come from acmeorgd (TUN-525 / TUN-402). The job-name filter comes from
+ * acmeorga's `nightly-e2e-lib.sh`, whose unbounded bootstrap is what §4 of the
  * contract time-boxes.
  *
  * @module scripts/check-nightly-e2e-health
@@ -549,7 +549,7 @@ export function validateSuites(raw) {
         days > BOOTSTRAP_ABSOLUTE_MAX_DAYS
       ) {
         throw new GateConfigError(
-          `${where}: \`grace_days\` must be a number in (0, ${BOOTSTRAP_ABSOLUTE_MAX_DAYS}]. A grace that outlives the bootstrap ceiling IS propswap's forever-bootstrap, whatever it is called — rejected rather than clamped, so widening it is a reviewable act.`
+          `${where}: \`grace_days\` must be a number in (0, ${BOOTSTRAP_ABSOLUTE_MAX_DAYS}]. A grace that outlives the bootstrap ceiling IS acmeorga's forever-bootstrap, whatever it is called — rejected rather than clamped, so widening it is a reviewable act.`
         );
       }
     }
@@ -695,7 +695,7 @@ export function assessSuite(suite, observation, context) {
     // `platform: android` leaves the iOS job skipped while the run still
     // concludes `success`. Read as a run conclusion alone, that filtered
     // dispatch cleared a required merge gate for an arm that never executed —
-    // propswap's trap, a suite declaring itself green on evidence it never
+    // acmeorga's trap, a suite declaring itself green on evidence it never
     // gathered. The same shape reaches the CRON path: with
     // `require_prerequisites: false` and no EXPO_TOKEN, every job skips and the
     // run is still `success`.
@@ -829,7 +829,7 @@ export function resolveBootstrap(until, maxDays, now) {
   const days = (parsed - now.getTime()) / 86_400_000;
   if (days > maxDays) {
     throw new GateConfigError(
-      `\`bootstrap_until\` (${until}) is ${Math.ceil(days)} days out, beyond \`bootstrap_max_days\` (${maxDays}). A bootstrap window that can be extended by editing one string is propswap's forever-bootstrap: a suite that never runs passes forever. Raise the cap deliberately, in the same review, or bring the date in.`
+      `\`bootstrap_until\` (${until}) is ${Math.ceil(days)} days out, beyond \`bootstrap_max_days\` (${maxDays}). A bootstrap window that can be extended by editing one string is acmeorga's forever-bootstrap: a suite that never runs passes forever. Raise the cap deliberately, in the same review, or bring the date in.`
     );
   }
   return Object.freeze({
@@ -849,7 +849,7 @@ export function resolveBootstrap(until, maxDays, now) {
  * audited bypass. Neither is proportionate to the routine act of adding a
  * suite, and both teach people that the gate is something to get around.
  *
- * What keeps this from becoming propswap's forever-bootstrap is the ANCHOR.
+ * What keeps this from becoming acmeorga's forever-bootstrap is the ANCHOR.
  * The window is not a date somebody picks; it is `first_seen + grace_days`,
  * and `first_seen` MAY NOT BE IN THE FUTURE. A future anchor would make this a
  * hand-typed expiry under another name, extendable by one string edit forever —
@@ -1279,7 +1279,7 @@ export function formatReport(verdict, context) {
  * implied. The reporter asks it separately and on purpose: closing a tracking
  * issue is a stronger claim than letting a pull request through — it announces
  * that a suite is healthy — and it is the one action that must never fire on a
- * run that skipped part of itself. propswap's trap, in their words: *one spec
+ * run that skipped part of itself. acmeorga's trap, in their words: *one spec
  * reporting success would close the tracking issue while the failures that
  * opened it went unrun.* Asking the question here means a future loosening of
  * row 26 cannot silently re-open that hole.

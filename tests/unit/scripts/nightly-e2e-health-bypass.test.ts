@@ -76,7 +76,7 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
 
     it("row 24: a window beyond the cap is INVALID CONFIG and fails — never clamped", () => {
       // Clamping would let the window be extended forever by editing one
-      // string. That is propswap's forever-bootstrap: a suite that never runs
+      // string. That is acmeorga's forever-bootstrap: a suite that never runs
       // passes indefinitely.
       expect(() =>
         mod.resolveBootstrap("2027-01-01T00:00:00Z", 30, NOW)

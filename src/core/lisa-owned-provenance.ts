@@ -7,7 +7,7 @@
  * possibilities and not the dangerous one. When the host copy is ahead —
  * a guard hardened downstream before upstream caught up — the same comparison
  * produces the same answer, and the overwrite silently deletes a security
- * control. `propswapllc/frontend` closed the `GIT_CONFIG_KEY_<n>` hooks-path
+ * control. `acmeorga/frontend` closed the `GIT_CONFIG_KEY_<n>` hooks-path
  * bypass before Lisa did; a `bun install` regenerated the file and reverted the
  * hardening with no warning and no failure. Their own tests caught it. Nothing
  * in Lisa would have.
@@ -23,7 +23,7 @@
  * call that stale.
  *
  * Hashes are the primary signal rather than capability markers because markers
- * only protect a host that *declared*. propswap did not declare; they edited the
+ * only protect a host that *declared*. acmeorga did not declare; they edited the
  * guard. A marker-only design would still have clobbered the very incident that
  * motivated this. The ledger protects undeclared hardening, retroactively, with
  * no host-side action required.
@@ -44,7 +44,7 @@
  * A host hardening a Lisa guard edits a *copy of Lisa's file*, so it keeps
  * Lisa's marker line. Its declared set therefore equals Lisa's while its bytes
  * carry undeclared changes — and the shortcut overwrote them without ever
- * consulting the ledger. That is precisely the propswap case, silently reverted
+ * consulting the ledger. That is precisely the acmeorga case, silently reverted
  * again by the mechanism meant to prevent it.
  *
  * So capabilities may only ever justify *keeping* the host's copy. Declaring

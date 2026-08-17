@@ -19,7 +19,7 @@
  * 3. **`lisa-exploratory-qa` is the *named* human-gate exception**, not drift —
  *    exploratory findings are candidate defects whose product significance a
  *    human should judge, so its `ready=false` is an explicit marker.
- * 4. **Two claim-time guards** adopted from geminisportsai's hand-rolled
+ * 4. **Two claim-time guards** adopted from acmeorgb's hand-rolled
  *    sprint-loop: an already-implemented ready item switches to
  *    verify-and-close instead of being built twice, and two failed attempts on
  *    the same item move it to blocked instead of burning cycles.

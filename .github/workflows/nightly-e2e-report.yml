@@ -28,7 +28,7 @@
 # merge gate uses, asked again here rather than re-derived. A run that skipped an
 # arm (a platform-filtered dispatch, an absent prerequisite) neither closes an
 # issue nor files a false all-clear; the issue simply stays as it was. That is
-# propswap's trap closed: *one spec reporting success would close the tracking
+# acmeorga's trap closed: *one spec reporting success would close the tracking
 # issue while the failures that opened it went unrun.*
 #
 # ## Concurrency lives HERE, not in the caller

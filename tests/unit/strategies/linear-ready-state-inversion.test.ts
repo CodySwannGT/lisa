@@ -5,7 +5,7 @@
  * default created state is where every brand-new Issue lands, so pointing
  * `ready` at it inverts the gate: the claimable lane stops meaning "a human
  * flipped this to build-ready" and starts meaning "nobody has touched this",
- * and build-intake dispatches work nobody approved. Observed on tunnlai — 20
+ * and build-intake dispatches work nobody approved. Observed on acmeorgd — 20
  * Issues in the lane, 12 of them never marked ready, including decision tickets
  * shaped like leaves that the leaf-only gate could not catch.
  *

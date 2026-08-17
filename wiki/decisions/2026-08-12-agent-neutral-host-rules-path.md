@@ -20,17 +20,17 @@ A 2026-08-12 audit of the downstream fleet showed what that produces. Fourteen
 canonical repos carry `.claude/rules/`, with three mutually incompatible conventions
 for the same filename:
 
-- tunnlai/frontend: 838 lines, roughly half of it ESLint rules restated as prose
+- acmeorgd/frontend: 838 lines, roughly half of it ESLint rules restated as prose
   (~32 machine-checkable, ~22 wiki-shaped, ~8 genuinely eager).
-- tunnlai/tunnl-backend: 48 lines of provenance-tagged hard-won traps — the opposite
+- acmeorgd/acmeorgd-backend: 48 lines of provenance-tagged hard-won traps — the opposite
   genre, and the higher-value one.
-- tunnlai/tunnl-infrastructure, propswap/infrastructure, and others: the empty
-  template. tunnlai's infra traps were written into `AGENTS.md` and then deleted
+- acmeorgd/acmeorgd-infrastructure, acmeorga/infrastructure, and others: the empty
+  template. acmeorgd's infra traps were written into `AGENTS.md` and then deleted
   wholesale (`4058e71`) with no gate noticing the knowledge loss.
 
 Nothing enforces a shape, nothing promotes a prose rule to a lint rule, nothing
 demotes a codebase fact to the wiki. Two files in the fleet are not rules at all but
-Lisa bug reports (geminisportsai infra `945b39c`, `b9b2ef3`).
+Lisa bug reports (acmeorgb infra `945b39c`, `b9b2ef3`).
 
 ## Decision
 
