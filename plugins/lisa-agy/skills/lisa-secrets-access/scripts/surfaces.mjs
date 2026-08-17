@@ -15,7 +15,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { bootstrapKeyFor } from "./providers.mjs";
 import { routingFloor } from "./routing-floor.mjs";
@@ -183,16 +183,92 @@ export function materializedPaths(namespace, env = process.env) {
 }
 
 /**
+ * Directories the harness claims are this session's project, best first.
+ *
+ * `CLAUDE_PROJECT_DIR` is set by Claude Code for hook commands, and Lisa's own
+ * hooks already invoke scripts through it. `LISA_PROJECT_DIR` lets a harness
+ * without that convention — or an operator debugging one — say the same thing.
+ *
+ * Blank values are dropped rather than resolved, because an unset variable
+ * expands to the empty string in a shell and `resolve("")` is the current
+ * directory, which would silently re-check a path already searched.
+ *
+ * @param {Record<string, string | undefined>} env - Environment to read.
+ * @returns {string[]} Candidate project roots, deduplicated, best first.
+ */
+function projectAnchors(env) {
+  const raw = [env.LISA_PROJECT_DIR, env.CLAUDE_PROJECT_DIR];
+  return [...new Set(raw.map(value => (value ?? "").trim()).filter(Boolean))];
+}
+
+/**
+ * Find the nearest `.lisa.config.json` at or above `cwd`.
+ *
+ * Looking only in `cwd` made every session started anywhere but the repo root
+ * — a worktree subdirectory, a package folder, a parent wrapper directory —
+ * fall through to the environment defaults and resolve `provider: "env"`. The
+ * preflight then checked the environment, the materialized file, and the "env"
+ * grant, found nothing, and reported the credential as resolving NOWHERE,
+ * having never contacted the configured vault at all.
+ *
+ * That is a false negative wearing a definite answer's clothes, and the
+ * message it produces tells the reader to route the work to blocked. An
+ * obedient agent therefore abandons work over credentials it could have
+ * resolved, and nothing downstream ever re-derives that judgement.
+ *
+ * The walk stops at a repository boundary when it finds one, so a config
+ * belonging to an unrelated parent project is never adopted. If no boundary is
+ * found it stops at the filesystem root, which is what makes the bare-checkout
+ * and wrapper-directory layouts work.
+ *
+ * @param {string} cwd - Directory to start from.
+ * @returns {string | null} Absolute path to the config, or `null` if none.
+ */
+function locateConfig(cwd) {
+  let dir = resolve(cwd);
+  for (;;) {
+    const candidate = join(dir, ".lisa.config.json");
+    if (existsSync(candidate)) return candidate;
+    // Checked AFTER the config, so a repo root carrying one still matches.
+    // Checked as a path rather than a directory because a worktree's `.git` is
+    // a file, and treating that as "not a boundary" would walk out of the
+    // worktree into whatever encloses it.
+    if (existsSync(join(dir, ".git"))) return null;
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+/**
  * Read the `secrets` block from `.lisa.config.json`.
  *
  * A project with no block is a supported state, not an error: the `env`
  * provider means the environment *is* the provider. A credentials manager is
  * the preferred path, never a required one.
  * @param {string} [cwd] Directory to look in.
- * @returns {{provider: string, bootstrap: {sources: string[], key: string|null}, require: string[]|null, requiredFloor: readonly string[], rotating: string[], namespace: string, narrow: object, surface: string, routing: {tracker?: string, source?: string}, capabilities: object}} Resolved configuration with defaults applied.
+ * @returns {{provider: string, bootstrap: {sources: string[], key: string|null}, require: string[]|null, requiredFloor: readonly string[], rotating: string[], namespace: string, narrow: object, surface: string, routing: {tracker?: string, source?: string}, capabilities: object, configPath: string|null}} Resolved configuration with defaults applied. `configPath` is the file the values came from, or `null` when none was found and the defaults apply.
  */
 export function readConfig(cwd = process.cwd(), env = process.env) {
-  const path = join(cwd, ".lisa.config.json");
+  // Walk from `cwd` first, then from whatever the harness says the project is.
+  //
+  // A walk from `cwd` alone does not close this. The SessionStart hook that
+  // runs the preflight never changes directory, so its cwd is wherever the
+  // harness happened to spawn it — `$HOME`, a plugin cache — and a walk from
+  // there terminates without finding anything, exactly as a walk from `cwd`
+  // inside the project succeeds. Measured on a session whose credential
+  // resolved fine from its own worktree while the preflight called it
+  // unreachable: every directory from that worktree upward carried a config,
+  // so the hook cannot have been running anywhere in that tree.
+  //
+  // cwd wins when it finds something, because an explicit working directory is
+  // intent and the project variable is only ever a hint about the session.
+  const path =
+    locateConfig(cwd) ??
+    projectAnchors(env)
+      .map(anchor => locateConfig(anchor))
+      .find(found => found !== null) ??
+    null;
   // No repository is a real, supported state — not just a missing file.
   //
   // A Claude Tag channel session runs as the organization with no user account,
@@ -203,7 +279,13 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   // The only values a config would supply here are the namespace and provider,
   // so they can come from the environment instead. Everything else keeps its
   // default, and an environment that sets neither still gets the old behaviour.
-  if (!existsSync(path)) return withSurface(fromEnvironment(env));
+  //
+  // It stays supported, but it no longer stays SILENT: `configPath: null` lets
+  // a caller say "no config found, assuming provider=env" instead of printing
+  // a defaulted provider that is indistinguishable from a declared one.
+  if (!path) {
+    return withSurface({ ...fromEnvironment(env), configPath: null });
+  }
   let root;
   try {
     root = JSON.parse(readFileSync(path, "utf8"));
@@ -216,7 +298,7 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   // `secrets` would be a second copy free to disagree with the one every other
   // skill dispatches on.
   const routing = { tracker: root.tracker, source: root.source };
-  if (!cfg) return withSurface({ ...DEFAULTS, routing });
+  if (!cfg) return withSurface({ ...DEFAULTS, routing, configPath: path });
   const provider = cfg.provider ?? DEFAULTS.provider;
   const namespace = assertNamespace(cfg.namespace ?? DEFAULTS.namespace);
   return withSurface({
@@ -229,6 +311,7 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
     narrow: { ...DEFAULTS.narrow, ...(cfg.narrow ?? {}) },
     surface: cfg.surface ?? null,
     routing,
+    configPath: path,
   });
 }
 
