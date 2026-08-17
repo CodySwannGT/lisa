@@ -66,6 +66,26 @@ describe("resolveMoment rejects a moment Lisa does not know", () => {
     );
   });
 
+  it("does not suggest the same bare family it rejected", () => {
+    expect(() => resolveMoment({ gates, moment: "continuous" })).toThrow(
+      /Use "continuous:<environment>"/
+    );
+    expect(() => resolveMoment({ gates, moment: "continuous" })).not.toThrow(
+      /Did you mean "continuous"/
+    );
+  });
+
+  it("rejects a config key keyed by a bare family moment", () => {
+    expect(() =>
+      resolveMoment({
+        gates: {
+          "e2e-browser": { task: "test:e2e", continuous: "required" },
+        },
+        moment: "continuous:dev",
+      })
+    ).toThrow(/gates\."e2e-browser"\."continuous"/);
+  });
+
   it.each([
     ["a fixed moment", "pull-request"],
     ["a fixed moment with no gates declared at it", "session-start"],
@@ -103,6 +123,30 @@ describe("the shipped CLIs refuse an unknown moment", () => {
   it("lisa-gates.mjs list still succeeds for a real moment", () => {
     const result = run(GATES, ["list", "--moment=pull-request", "--json"]);
     expect(result.status).toBe(0);
+  });
+
+  it("lisa-gates.mjs list refuses a config key keyed by a bare family", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "lisa-gates-"));
+    writeFileSync(
+      path.join(dir, ".lisa.config.json"),
+      JSON.stringify({
+        gates: {
+          "e2e-browser": { task: "test:e2e", continuous: "required" },
+        },
+      }),
+      "utf8"
+    );
+    const result = spawnSync(
+      process.execPath,
+      [GATES, "list", "--moment=continuous:dev", "--json", "--include-off"],
+      { cwd: dir, encoding: "utf8" }
+    );
+    rmSync(dir, { recursive: true, force: true });
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain("[]");
+    expect(`${result.stderr}`).toContain(
+      'Use "continuous:<environment>" for that family'
+    );
   });
 });
 
