@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.27.0](https://github.com/CodySwannGT/lisa/compare/v3.26.5...v3.27.0) (2026-08-17)
+
+
+### Features
+
+* **gates:** put test_mutation and verification_coverage behind the facade ([d40aec5](https://github.com/CodySwannGT/lisa/commit/d40aec5cfd85e9b5451505c48e43aea8154eb21e)), closes [CodySwannGT/lisa#2636](https://github.com/CodySwannGT/lisa/issues/2636) [CodySwannGT/lisa#2636](https://github.com/CodySwannGT/lisa/issues/2636)
+
 ### [3.26.5](https://github.com/CodySwannGT/lisa/compare/v3.26.4...v3.26.5) (2026-08-17)
 
 ### [3.26.4](https://github.com/CodySwannGT/lisa/compare/v3.26.3...v3.26.4) (2026-08-17)
