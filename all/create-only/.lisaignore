@@ -5,3 +5,18 @@
 #   - Exact file names: eslint.config.mjs
 #   - Directory patterns: .claude/hooks/
 #   - Glob patterns: *.example.json, **/*.custom.ts
+#   - Negation: !scripts/keep.mjs re-includes a path an earlier line ignored.
+#     Patterns are read in order and the LAST one to match a path wins.
+#
+# What ignoring actually does: `lisa apply` skips the path entirely and reports
+# `Kept (.lisaignore)`. The file becomes yours outright — which also means it
+# stops receiving upstream fixes, permanently and silently. That is the point
+# when you mean it, and a trap when you do not.
+#
+# So ignore a file to DECLARE a fork you have decided on, never to quiet a
+# warning you have not read. In particular, do not ignore a Lisa-owned guard
+# (anything under scripts/, or any path with a `lisa-` segment) to silence
+# `lisa doctor` — apply already preserves your edits to those, so ignoring buys
+# nothing and replaces a true warning with the false line "Enforcement guards
+# match the installed Lisa version". Declare what your version defends with a
+# `lisa-guard-capabilities:` line instead.
