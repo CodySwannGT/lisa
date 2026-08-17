@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.28.1](https://github.com/CodySwannGT/lisa/compare/v3.28.0...v3.28.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* keep literal override backing pins ([8a2ce40](https://github.com/CodySwannGT/lisa/commit/8a2ce40b0040498999a8311be5fbff24b9749de9)), closes [CodySwannGT/lisa#2642](https://github.com/CodySwannGT/lisa/issues/2642) [CodySwannGT/lisa#2642](https://github.com/CodySwannGT/lisa/issues/2642)
+* report and guard self-reference override rewrites ([9169134](https://github.com/CodySwannGT/lisa/commit/91691346641273753203ebffba3c5e1886292f7e)), closes [CodySwannGT/lisa#2642](https://github.com/CodySwannGT/lisa/issues/2642)
+* report and guard self-reference override rewrites ([f117844](https://github.com/CodySwannGT/lisa/commit/f1178449d24ffaaaa620c69b9bdd39a35affd829)), closes [CodySwannGT/lisa#2642](https://github.com/CodySwannGT/lisa/issues/2642) [CodySwannGT/lisa#2642](https://github.com/CodySwannGT/lisa/issues/2642)
+
 ## [3.28.0](https://github.com/CodySwannGT/lisa/compare/v3.27.0...v3.28.0) (2026-08-17)
 
 
