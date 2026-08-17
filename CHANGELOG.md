@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.31.0](https://github.com/CodySwannGT/lisa/compare/v3.30.1...v3.31.0) (2026-08-17)
+
+
+### Features
+
+* **automations:** detect a cycle that recorded nothing ([88de630](https://github.com/CodySwannGT/lisa/commit/88de63040e815b0e70e0e42f7ac2e03e80246721)), closes [CodySwannGT/lisa#2638](https://github.com/CodySwannGT/lisa/issues/2638) [CodySwannGT/lisa#2638](https://github.com/CodySwannGT/lisa/issues/2638)
+
 ### [3.30.1](https://github.com/CodySwannGT/lisa/compare/v3.30.0...v3.30.1) (2026-08-17)
 
 
