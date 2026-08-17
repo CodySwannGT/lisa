@@ -210,6 +210,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fbd68cf571985d7cfccf0f280cfe8112955849126e44d27d55ad619f9abb79ef",
   ]),
   "scripts/lisa-hooks/block-direct-issue-create.sh": Object.freeze([
+    "014510942610f36b17f006dee4b96c7737abad3e3acc4f5b416ab6d52403c793",
     "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
     "60a4f94ec671b2372f7492680ab327d97aff686588ce85791f54e0fbd098b0ca",
     "73e94b73830d8961026947d99bf4ac5f959b5bca025203b913d8a6363cbe2b9f",

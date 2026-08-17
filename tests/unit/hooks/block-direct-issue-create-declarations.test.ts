@@ -201,3 +201,70 @@ describe("block-direct-issue-create.sh declarations", () => {
     });
   });
 });
+
+/**
+ * A semicolon inside a quoted `--title` split the command into segments, so the
+ * `--label status:ready` landed in a different segment from the create. The
+ * guard then refused a correctly-formed filing while telling the author to add
+ * the label they had already added — CodySwannGT/lisa#2634, found when it
+ * blocked a real filing.
+ *
+ * The exemption is quoting, not the semicolon: a quoted token is data, an
+ * unquoted one may be `true&&gh` hiding a command. These pin both directions,
+ * because widening the exemption would reopen every operator bypass the guard
+ * exists to close.
+ */
+describe("shell operators inside quoted arguments", () => {
+  it("allows a declared create whose title contains a semicolon", () => {
+    const { status } = runHook(
+      bash(
+        'gh issue create --title "Trim config; org preference belongs elsewhere" ' +
+          '--body-file /tmp/b.md --label "type:Task" --label "status:ready"'
+      ),
+      projectWithTracker()
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+  });
+
+  it("still refuses that same title when the role is absent", () => {
+    // The quoting exemption must not become a declaration.
+    const { status } = runHook(
+      bash(
+        'gh issue create --title "Trim config; org preference" ' +
+          '--body-file /tmp/b.md --label "type:Task"'
+      ),
+      projectWithTracker()
+    );
+    expect(status).toBe(EXIT_BLOCKED);
+  });
+
+  it("still refuses a create hidden behind a GLUED operator", () => {
+    // Unquoted `true&&gh` is the case explode_operators exists for.
+    const { status } = runHook(
+      bash('true&&gh issue create --title "x" --label "type:Task"'),
+      projectWithTracker()
+    );
+    expect(status).toBe(EXIT_BLOCKED);
+  });
+
+  it("still refuses an undeclared create after a real separator", () => {
+    const { status } = runHook(
+      bash('echo hi ; gh issue create --title "x" --label "type:Task"'),
+      projectWithTracker()
+    );
+    expect(status).toBe(EXIT_BLOCKED);
+  });
+
+  it("still refuses a GraphQL issueCreate payload", () => {
+    // `shlex(punctuation_chars=True)` would have shattered this payload into
+    // fragments and silently un-refused it — measured, and the reason the fix
+    // is a quoting exemption rather than a different tokeniser.
+    const { status } = runHook(
+      bash(
+        'gh api graphql -f query=mutation{issueCreate(input:{title:\\"x\\"})}'
+      ),
+      projectWithTracker()
+    );
+    expect(status).toBe(EXIT_BLOCKED);
+  });
+});
