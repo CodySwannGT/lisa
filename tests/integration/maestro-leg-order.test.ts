@@ -7,9 +7,9 @@
  * `needs` and no edge between them, so they always ran at once. When both legs
  * sign in as the same test persona they invalidate each other's session and the
  * loser asserts on an authenticated screen and finds the sign-in screen —
- * measured at 1 success in 6 runs on geminisportsai/frontend-v2, and at 33%
+ * measured at 1 success in 6 runs on acmeorgb/frontend-v2, and at 33%
  * flow failure while the legs overlap vs 16% after one finishes on
- * TunnlAI/frontend.
+ * AcmeOrgD/frontend.
  *
  * `needs` cannot hold an expression, so there is no way to write "depend on
  * `ios` only when an input is set". The ordering is therefore split: this file

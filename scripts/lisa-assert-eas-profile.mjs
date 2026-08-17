@@ -21,7 +21,7 @@
  * ## Why this does not use `JSON.parse`, and does not read one profile
  *
  * `eas.json` is not required to be strict JSON — trailing commas are common
- * and EAS accepts them. A real consumer file (`geminisportsai/frontend-v2`)
+ * and EAS accepts them. A real consumer file (`acmeorgb/frontend-v2`)
  * has one on line 16, so a strict parse would crash this guard on the very
  * repository the standard was extracted from.
  *

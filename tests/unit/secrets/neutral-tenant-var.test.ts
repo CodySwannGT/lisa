@@ -23,7 +23,7 @@ import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access
 const NO_REPO = "/nonexistent-for-this-test";
 
 /** The tenant used throughout. */
-const TENANT = "tunnl";
+const TENANT = "acmeorgd";
 
 describe("tenant resolution from the environment", () => {
   it("accepts the neutral LISA_TENANT", () => {

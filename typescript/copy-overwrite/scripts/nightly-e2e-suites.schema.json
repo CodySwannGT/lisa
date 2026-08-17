@@ -51,7 +51,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 30,
-          "description": "How many days after `first_seen` this suite's grace window lasts. Default 14. Requires `first_seen` — a grace length with no anchor forgives nothing and reads as though it forgives everything. Bounded by the same ceiling as the bootstrap window (`bootstrap_max_days`, hard ceiling 30): per-suite grace spends from the same forgiveness budget, and a grace that could outlive that ceiling is propswap's forever-bootstrap wearing a per-suite hat."
+          "description": "How many days after `first_seen` this suite's grace window lasts. Default 14. Requires `first_seen` — a grace length with no anchor forgives nothing and reads as though it forgives everything. Bounded by the same ceiling as the bootstrap window (`bootstrap_max_days`, hard ceiling 30): per-suite grace spends from the same forgiveness budget, and a grace that could outlive that ceiling is acmeorga's forever-bootstrap wearing a per-suite hat."
         }
       }
     },

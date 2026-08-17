@@ -6,7 +6,7 @@
  * check-skipped-required-checks — refuse a required status check that satisfies
  * without proving anything.
  *
- * Shipped by Lisa (copy-overwrite). Generalized from tunnl's TUN-402 guard: the
+ * Shipped by Lisa (copy-overwrite). Generalized from acmeorgd's TUN-402 guard: the
  * logic is Lisa's and gets updated fleet-wide, the two REVIEWED SNAPSHOTS it
  * rests on are per-repo and live in `.github/required-checks.json` (create-only,
  * yours to edit).
@@ -88,7 +88,7 @@
  * nobody ever ran.
  *
  * This is measured, not theoretical, in at least two repositories in this
- * portfolio — tunnl (`🔍 Quality Checks / 🧪 Run E2E Tests`, TUN-402) and gemini
+ * portfolio — acmeorgd (`🔍 Quality Checks / 🧪 Run E2E Tests`, TUN-402) and gemini
  * (ruleset 14297996 requiring `🔍 Quality Checks / 🎭 Playwright E2E Tests`,
  * which `ci.yml` skipped unconditionally, so the ruleset enforced nothing).
  *
@@ -108,7 +108,7 @@
  * That mutual policing has one blind spot, and `--remote` exists for it: two
  * snapshots in one repo can only catch each other drifting from the CODE.
  * Neither can see the ruleset itself change in the admin console — which is
- * exactly how tunnl's list silently went from ten contexts to eleven, with every
+ * exactly how acmeorgd's list silently went from ten contexts to eleven, with every
  * test still green, because the "independent" transcription was made from the
  * same reading at the same moment.
  *
@@ -1032,7 +1032,7 @@ export function fetchLiveRequiredContexts(ruleset) {
  * Diffs the committed snapshot against the live ruleset, in BOTH directions.
  *
  * Both directions matter. A context added in the admin console makes the
- * snapshot UNDER-detect (tunnl's ten-to-eleven drift, unnoticed for a day with
+ * snapshot UNDER-detect (acmeorgd's ten-to-eleven drift, unnoticed for a day with
  * every test green). A context removed there makes it OVER-detect, and the
  * obvious fix for a false alarm is to weaken the guard.
  *

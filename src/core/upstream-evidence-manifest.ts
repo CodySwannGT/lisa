@@ -17,9 +17,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "aafd027c4b6092da15d0389f9e8dcedbd9105e9083057e2da39f78fd5f72e0df",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
+      "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "4fe7003d048086a366b9bea1711275c2186e095f4bf976279d1ff825fd4eca1d",
+      "1ac3180f7a8f777f6be0d90043d4396ec96589168b43fc7128eeec750aa9aef9",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -111,7 +111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/package-lisa/package.lisa.json":
       "36d3cc0e6c1cf5496f82e37b452ba3fa07b3d43427e0d48f574cc53e5d2dabf5",
     "eslint-plugin-code-organization/README.md":
-      "7943820d0b301041f764d4b33adc3c8afbd5bf08f800989390233e78962a51de",
+      "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
       "27e8e2cdf9bae3c35c22f17407570a163cfe52bd848ec40f7f2f1068e97c10c9",
     "eslint-plugin-code-organization/index.js":
@@ -209,7 +209,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "b284a59b3ce5dfa8fa4e6b9c5789c6c9c08120eaf957a91453fc659322feab28",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
-      "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
+      "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -839,7 +839,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
       "49a3bbf4e8a9a8ca9e13eeafa672517d077060cfeb5d9710881ec9f5c3f3ec75",
     "plugins/src/base/rules/reference/claim-time-guards.md":
-      "11573274387d31fb2c6fa4d07a2b5b81998c52881d70136cdf724e52d841090e",
+      "50abda40a427d14560b401d32ff6b28e458298649e1ba48330105945b4128ed7",
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
@@ -1007,7 +1007,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
-      "4ef9b5004e13beb46cac5ae994c24d91c3715363771e3d89c32b0610408fc887",
+      "6ea2b1404d5c27f8a5bec8c90ad35ed0124789b70c091869455f538a2a9debbe",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs":
       "e28bd61fdde4a336b56ae3395423026943a5816015719d31d04f0d5a0ab50eec",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
@@ -1015,7 +1015,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "f015bd91a615fa22b8e9f2bcb89a8bbce4a3f7d4fd977bfe94970e8d21d640d8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "bbf4f08502f0f860a18e1a374998ed276931708c7c092f078837c98f7e25ac9a",
+      "62e257c8f332d54ba5f92f6cfa4d05c9684f554a1aba8424254ddfd6d4a4361d",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1247,7 +1247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "32790da3a954eb16fbd47114f6b239d7eec7b16d1490de2d0dd461234d974c11",
+      "88af095e50430168cf039d303a698a065b0d779eab982f85c656006fc22e0c45",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
@@ -1259,7 +1259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "ebfd1bad8cd6ff85b746c2d69393997e7a6793b4cb2b9695efb2033bd3420ae6",
+      "e10ef902fe0dd1fc19a8949f7f1b75cbf2ee8ab2e5a07923214e5ff72ccfda2e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
@@ -1313,7 +1313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
       "6f3713451139d9d4fd8eed8f11f49e472667394c4f9a7cae63897b7702115687",
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
-      "a00121623871aa7578281779214d2a8ed871c7dfba19937f80374e76d6aa2b7f",
+      "233b4a31594f75c2d99e119f9ae9e9dcd966602787df4eb77dadd6b1cd629df0",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
@@ -2183,7 +2183,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-assert-eas-profile.mjs":
-      "0e4143ed0569b7d5361d8d0f1b6ca0268d6189804dca11cf970121712d7b9577",
+      "55ecce59ea74c06c2f6cfde254ab9e9b8a5eb3c7d944e9770fe067335720c82c",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
@@ -2307,9 +2307,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "5f47f02563671a25ad14dc69210f1f52e9141e0e53a27bafce52d41899aa9d21",
+      "191608d272178a8fd3126d5b3e4923fadb50e01b699d0376625248d541b14f50",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "444210c8fbfca1d3e6ae0e180fe95752e10152610ad349ffea377136f4ae8cf7",
+      "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "6bcf8b88b1d5ade1aa7c7902ba12af1df7b0b13d4e69c49a24f76a92474c93ec",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2319,7 +2319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
-      "a6041930ca4536f3a76e4f54976ff846ab575f5f07a2356722eedcb06795e684",
+      "9fbef6f8740714f521d8b997308d96492e9158b1221d654333316f2cf7b48445",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":

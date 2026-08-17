@@ -10,7 +10,7 @@
 
 ### Goal
 Replace the five separately-maintained LLM Wiki implementations
-(`lisa`, `geminisportsai`, `gunnertech`, `propswap`, `publishing`) with **one
+(`lisa`, `acmeorgb`, `acmeorgc`, `acmeorga`, `publishing`) with **one
 distributable implementation** packaged as **both a Claude Code plugin and a Codex
 plugin**, shipped through the existing **Lisa** plugin pipeline. It must be:
 
@@ -60,8 +60,8 @@ Matrix** in §14. The essential shared invariants:
 
 Four of the five (all but publishing) also keep a `wiki/schema/llm-wiki-contract.md`, a
 `start-here.md`, JSON `wiki/state/` cursors, and a commit→PR→auto-merge step per ingestion.
-Runtime packaging differs: lisa, geminisportsai, and propswap ship both `.claude/skills` and
-`.agents/skills` trees; gunnertech is `.agents`-only; publishing is `.claude`-only.
+Runtime packaging differs: lisa, acmeorgb, and acmeorga ship both `.claude/skills` and
+`.agents/skills` trees; acmeorgc is `.agents`-only; publishing is `.claude`-only.
 
 ---
 
@@ -115,7 +115,7 @@ plugins/src/wiki/
     lisa-wiki-connector-jira/
     lisa-wiki-connector-confluence/
     lisa-wiki-connector-notion/
-    lisa-wiki-connector-slack/        # centralized (byte-identical script today in gemini+propswap)
+    lisa-wiki-connector-slack/        # centralized (byte-identical script today in gemini+acmeorga)
     lisa-wiki-connector-web/          # URL/WebFetch
     lisa-wiki-connector-docs/         # PDF/DOCX → markdown
   commands/                         # Claude-only thin facades → canonical bare verbs (top-level files)
@@ -203,7 +203,7 @@ Annotated example (wrapper-mode, multi-connector):
     "memory":     { "enabled": true, "sideEffects": "read-only-ingest" },        // project-scoped memory ONLY; never global/unrelated (§7/§9)
     "roles":      { "enabled": true, "sideEffects": "read-only-ingest" },        // universal; ingests the wiki's own staff roster
     "jira":       { "enabled": true, "sideEffects": "read-only-ingest",
-                    "tenantGuard": { "site": "https://geminisportsanalytics.atlassian.net",
+                    "tenantGuard": { "site": "https://acmeorgbanalytics.atlassian.net",
                                      "cloudId": "b1040f2e-..." }, "projects": ["SE","GD","DST"] },
     "notion":     { "enabled": true, "sideEffects": "read-only-ingest",
                     "tenantGuard": { "teamspace": "Gemini Sports Analytics",
@@ -225,7 +225,7 @@ Annotated example (wrapper-mode, multi-connector):
     { "id":"sally", "role":"Sales",   "expertise":"pipeline, prospects, CRM",
       "owns": { "categories":["sales"], "connectors":["lacrm"], "skills":["lisa-wiki-local-prospect-research"] } }
   ],
-  "contaminationTerms": ["Propswap","Workhelix","Goldfish"]
+  "contaminationTerms": ["AcmeOrgA","AcmeOrgE","AcmeOrgF"]
 }
 ```
 Three JSON Schemas ship in the plugin and are referenced by validators:
@@ -274,7 +274,7 @@ digital-staff model in §10; each `staff/<role>.md` page is generated alongside 
 **Tiers**
 - **Core** (shipped, supported): `git`, `memory`, `roles`, `jira`, `confluence`, `notion`,
   `slack`, `web`, `docs`. Slack is centralized immediately — `slack_oauth_user.py` and
-  `ingest_slack_channel.py` are **byte-identical (SHA-256) between geminisportsai and propswap
+  `ingest_slack_channel.py` are **byte-identical (SHA-256) between acmeorgb and acmeorga
   today**; only per-tenant app manifests differ.
 - **Universal sources** (every project, regardless of config): `git` (self **and** other registered
   projects' commit + PR history), `memory` (the agent's **project-scoped** memory only), and `roles`
@@ -329,10 +329,10 @@ linter, *not* an executable SDK):
 - **Source retention** (`sourceRetention`): `raw-ok` | `sanitized-note-only` | `metadata-only` |
   `external-pointer-only`. Gunner avoids raw sensitive artifacts; publishing keeps excerpts/atoms;
   project/company wikis keep sanitized notes. Connectors must honor the project's retention level.
-- **Tenant guards**: per-connector, not just global terms. e.g. propswap restricts Atlassian to
-  `propswap.atlassian.net` and forbids ingesting `propswap/`; gemini guards Atlassian + Notion
+- **Tenant guards**: per-connector, not just global terms. e.g. acmeorga restricts Atlassian to
+  `acmeorga.atlassian.net` and forbids ingesting `acmeorga/`; gemini guards Atlassian + Notion
   tenants. `contaminationTerms` is an additional global scan, not a substitute.
-- **PR / auto-merge**: per-project policy, not a universal default. Lisa/Gemini/Propswap/Gunner
+- **PR / auto-merge**: per-project policy, not a universal default. Lisa/AcmeOrgB/AcmeOrgA/AcmeOrgC
   opt in; publishing opts out. Sensitive and `external-write` runs never auto-merge.
 
 ---
@@ -491,7 +491,7 @@ Ships through Lisa's existing pipeline; this is concrete implementation work, no
 
 ## 14. Compatibility matrix
 
-| Dimension | lisa | geminisportsai | gunnertech | propswap | publishing |
+| Dimension | lisa | acmeorgb | acmeorgc | acmeorga | publishing |
 |---|---|---|---|---|---|
 | Mode | embedded | wrapper | standalone (nested `wiki/wiki/`) | wrapper | subdir |
 | Source layout | by-system | by-system | by-system | by-system | **by-category** |
@@ -549,7 +549,7 @@ absorption** (old docs are ingested before removal, references rewritten determi
 **README** (the old README is ingested before any `stub`/`rich` rewrite).
 
 **Sequencing.**
-- **v1 live migration:** `lisa`, `geminisportsai`, `propswap`, `gunnertech` (shared by-system +
+- **v1 live migration:** `lisa`, `acmeorgb`, `acmeorga`, `acmeorgc` (shared by-system +
   state + PR model).
 - **v1 publishing compatibility gate (required before v1 is "done"):** read-only inventory +
   **fixture tests** derived from publishing's current shapes (by-category sources, `claims/`,
@@ -561,11 +561,11 @@ absorption** (old docs are ingested before removal, references rewritten determi
 - `lisa` — `mode: embedded`; keep self-ingesting the monorepo; add frontmatter on touch; convert
   bullet index/log to canonical on touch. **`readme.mode: rich`** (public npm package — README is its
   shopfront; deep content moves to `wiki/documentation/`, README links to it + onboarding line).
-- `geminisportsai` — closest to target; reconcile `.agents`-only `ingest-confluence` asymmetry;
+- `acmeorgb` — closest to target; reconcile `.agents`-only `ingest-confluence` asymmetry;
   Slack → core. **`readme.mode: stub`** ok (private wrapper).
-- `propswap` — like gemini minus Notion; Slack → core; preserve the `propswap/` ignore guard.
+- `acmeorga` — like gemini minus Notion; Slack → core; preserve the `acmeorga/` ignore guard.
   **`readme.mode: stub`** ok (private).
-- `gunnertech` — `mode: standalone`; preserve nested `wiki/wiki/`; LACRM/QuickBooks → contrib;
+- `acmeorgc` — `mode: standalone`; preserve nested `wiki/wiki/`; LACRM/QuickBooks → contrib;
   prospect-research → `/add-ingest` front-door (`external-write`, no auto-merge); preserve
   `sensitivity`; populate `config.staff[]` from the existing `people/` agent pages and regenerate
   the role subagents (Lex/Felix/Sally/…) on both runtimes (running them stays out of scope).
@@ -637,7 +637,7 @@ allow only documented legacy warnings. Build checks (G) are Lisa/release-only �
 
 **F. Mode-specific** (deterministic)
 - embedded (lisa): self-ingest target is the host repo at HEAD; tooling/public docs required by packaging stay in place; README `rich`/`preserve` honored.
-- wrapper (gemini/propswap): child-project docs ingested only, never moved; no child-repo files staged; source notes cite child repo/commit.
+- wrapper (gemini/acmeorga): child-project docs ingested only, never moved; no child-repo files staged; source notes cite child repo/commit.
 - standalone/subdir (gunner/publishing): `wikiRoot`/nested paths resolve; no accidental `wiki/wiki` double-normalization unless configured.
 - no-PR mode (publishing): doctor does not require PR creation; backfill/fingerprint state still validates.
 
@@ -706,10 +706,10 @@ allow only documented legacy warnings. Build checks (G) are Lisa/release-only �
 **v1 is done when:**
 - One built plugin produces working `.claude-plugin` **and** `.codex-plugin` artifacts via the
   Lisa pipeline; `check:plugins` passes; no artifact is hand-edited.
-- `lisa`, `geminisportsai`, `propswap`, `gunnertech` each run setup/ingest/query/lint from the
+- `lisa`, `acmeorgb`, `acmeorga`, `acmeorgc` each run setup/ingest/query/lint from the
   plugin with **zero project-local wiki *machinery*** (only `wiki/` content, `lisa-wiki.config.json`,
   rendered snapshot, pointers, project-owned MCP/secrets, and any registered overlays).
-- Slack is a single centralized connector used by gemini + propswap.
+- Slack is a single centralized connector used by gemini + acmeorga.
 - Deterministic validators pass in hard-fail mode on all four; the touched-file/state-order
   guarantees are enforced (not just documented); no secrets/OAuth artifacts are committed.
 - The publishing compatibility gate (read-only inventory + fixtures) passes, proving the v1 schema

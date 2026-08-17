@@ -5,7 +5,7 @@
  * SATISFIED.** A job named in `skip_jobs` still reports a green checkmark
  * against its required context having run zero steps, so the merge gate can
  * never be red and therefore can never block anything — a repository that looks
- * fully gated while shipping past a check nobody ran. Measured in tunnl
+ * fully gated while shipping past a check nobody ran. Measured in acmeorgd
  * (TUN-402) and in gemini, where a ruleset required
  * `🔍 Quality Checks / 🎭 Playwright E2E Tests` while `ci.yml` skipped it
  * unconditionally.

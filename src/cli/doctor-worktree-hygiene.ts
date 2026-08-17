@@ -35,7 +35,7 @@ interface RootInspection {
  * failures in CodySwannGT/lisa#2490: they are never garbage-collected, each one
  * is a full checkout, and the resulting tree is what every crawler in the repo
  * has to walk past. The same cause is documented downstream three separate ways
- * in `propswap/frontend` (watchman crawl cost, jest's find-crawler overflowing
+ * in `acmeorga/frontend` (watchman crawl cost, jest's find-crawler overflowing
  * V8's max string length, an unanchored Metro blockList pattern) — all of which
  * only appeared once enough worktrees had piled up.
  *

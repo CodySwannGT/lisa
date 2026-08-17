@@ -5,7 +5,7 @@
  * `migrations/ensure-lisa-postinstall`), and the detached reconciliation
  * trampoline runs with `stdio: "ignore"` because it outlives the terminal that
  * started it. Both are correct, and both mean a failed apply can leave no trace
- * anyone will ever read. geminisportsai/frontend-v2 went months that way
+ * anyone will ever read. acmeorgb/frontend-v2 went months that way
  * (CodySwannGT/lisa#2467).
  *
  * So success — not failure — is what gets recorded. A receipt is written only

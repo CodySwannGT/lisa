@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.31.3](https://github.com/CodySwannGT/lisa/compare/v3.31.2...v3.31.3) (2026-08-17)
+
 ### [3.31.2](https://github.com/CodySwannGT/lisa/compare/v3.31.1...v3.31.2) (2026-08-17)
 
 
@@ -311,7 +313,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* **destructive-guard:** match capability names per segment, not whole ([713d689](https://github.com/CodySwannGT/lisa/commit/713d6891615691446776c3058e83abdf5928fbb9)), closes [TunnlAI/frontend#536](https://github.com/TunnlAI/frontend/issues/536) [CodySwannGT/lisa#2584](https://github.com/CodySwannGT/lisa/issues/2584) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
+* **destructive-guard:** match capability names per segment, not whole ([713d689](https://github.com/CodySwannGT/lisa/commit/713d6891615691446776c3058e83abdf5928fbb9)), closes [AcmeOrgD/frontend#536](https://github.com/AcmeOrgD/frontend/issues/536) [CodySwannGT/lisa#2584](https://github.com/CodySwannGT/lisa/issues/2584) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
 * **hooks:** read the commit message with printf, not echo ([ed172e2](https://github.com/CodySwannGT/lisa/commit/ed172e2d3e455fd63372c3a519dcf8b593e71c2d)), closes [CodySwannGT/lisa#2143](https://github.com/CodySwannGT/lisa/issues/2143) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
 * **ratchet:** realpath both sides of the entry guard ([99b68c5](https://github.com/CodySwannGT/lisa/commit/99b68c56e7444c36a2f7091d16cf3c4bdf9450a0)), closes [#2531](https://github.com/CodySwannGT/lisa/issues/2531) [#2581](https://github.com/CodySwannGT/lisa/issues/2581) [CodySwannGT/lisa#2582](https://github.com/CodySwannGT/lisa/issues/2582) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
 * **work-item:** compare pull-request backlinks exactly, not by substring ([16a120d](https://github.com/CodySwannGT/lisa/commit/16a120dc944ec43f1f7360f5fc0ad59a5cde884a)), closes [#123](https://github.com/CodySwannGT/lisa/issues/123) [#12](https://github.com/CodySwannGT/lisa/issues/12) [CodySwannGT/lisa#2586](https://github.com/CodySwannGT/lisa/issues/2586) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594) [CodySwannGT/lisa#2594](https://github.com/CodySwannGT/lisa/issues/2594)
@@ -388,7 +390,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* **ci:** move the permissions floor onto jobs so traceability can inherit ([f5ce729](https://github.com/CodySwannGT/lisa/commit/f5ce7294b5b36dc83f187c60d949eadfd305c2bf)), closes [PropSwapLLC/backend#976](https://github.com/PropSwapLLC/backend/issues/976) [geminisportsai/backend-v2#2999](https://github.com/geminisportsai/backend-v2/issues/2999) [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [#1769](https://github.com/CodySwannGT/lisa/issues/1769) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [CodySwannGT/lisa#2571](https://github.com/CodySwannGT/lisa/issues/2571)
+* **ci:** move the permissions floor onto jobs so traceability can inherit ([f5ce729](https://github.com/CodySwannGT/lisa/commit/f5ce7294b5b36dc83f187c60d949eadfd305c2bf)), closes [AcmeOrgA/backend#976](https://github.com/AcmeOrgA/backend/issues/976) [acmeorgb/backend-v2#2999](https://github.com/acmeorgb/backend-v2/issues/2999) [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [#1769](https://github.com/CodySwannGT/lisa/issues/1769) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [CodySwannGT/lisa#2571](https://github.com/CodySwannGT/lisa/issues/2571)
 
 ### [3.14.6](https://github.com/CodySwannGT/lisa/compare/v3.14.5...v3.14.6) (2026-08-14)
 
@@ -513,7 +515,7 @@ All notable changes to this project will be documented in this file. See [standa
 ### Bug Fixes
 
 * **ci:** invoke ast-grep directly so the rule-test step is self-sufficient ([896155f](https://github.com/CodySwannGT/lisa/commit/896155fedf4d88df3170cc8bf2b9f5ca11ccca97)), closes [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [#2533](https://github.com/CodySwannGT/lisa/issues/2533) [#2530](https://github.com/CodySwannGT/lisa/issues/2530) [CodySwannGT/lisa#2530](https://github.com/CodySwannGT/lisa/issues/2530)
-* **ratchet:** let a promotion carry an exemption its upstream already approved ([d5bc18d](https://github.com/CodySwannGT/lisa/commit/d5bc18d57142d010184b31fcd2fe24491a1696db)), closes [TunnlAI/frontend#527](https://github.com/TunnlAI/frontend/issues/527) [CodySwannGT/lisa#2531](https://github.com/CodySwannGT/lisa/issues/2531)
+* **ratchet:** let a promotion carry an exemption its upstream already approved ([d5bc18d](https://github.com/CodySwannGT/lisa/commit/d5bc18d57142d010184b31fcd2fe24491a1696db)), closes [AcmeOrgD/frontend#527](https://github.com/AcmeOrgD/frontend/issues/527) [CodySwannGT/lisa#2531](https://github.com/CodySwannGT/lisa/issues/2531)
 
 ### [3.11.5](https://github.com/CodySwannGT/lisa/compare/v3.11.4...v3.11.5) (2026-08-14)
 
@@ -521,7 +523,7 @@ All notable changes to this project will be documented in this file. See [standa
 ### Bug Fixes
 
 * **ci:** invoke ast-grep directly so the rule-test step is self-sufficient ([896155f](https://github.com/CodySwannGT/lisa/commit/896155fedf4d88df3170cc8bf2b9f5ca11ccca97)), closes [#2525](https://github.com/CodySwannGT/lisa/issues/2525) [#2533](https://github.com/CodySwannGT/lisa/issues/2533) [#2530](https://github.com/CodySwannGT/lisa/issues/2530) [CodySwannGT/lisa#2530](https://github.com/CodySwannGT/lisa/issues/2530)
-* **ratchet:** let a promotion carry an exemption its upstream already approved ([d5bc18d](https://github.com/CodySwannGT/lisa/commit/d5bc18d57142d010184b31fcd2fe24491a1696db)), closes [TunnlAI/frontend#527](https://github.com/TunnlAI/frontend/issues/527) [CodySwannGT/lisa#2531](https://github.com/CodySwannGT/lisa/issues/2531)
+* **ratchet:** let a promotion carry an exemption its upstream already approved ([d5bc18d](https://github.com/CodySwannGT/lisa/commit/d5bc18d57142d010184b31fcd2fe24491a1696db)), closes [AcmeOrgD/frontend#527](https://github.com/AcmeOrgD/frontend/issues/527) [CodySwannGT/lisa#2531](https://github.com/CodySwannGT/lisa/issues/2531)
 
 ### [3.11.4](https://github.com/CodySwannGT/lisa/compare/v3.11.3...v3.11.4) (2026-08-13)
 
@@ -714,7 +716,7 @@ All notable changes to this project will be documented in this file. See [standa
 * **ci:** run the skipped-required-check guard, and report a spaced skip_jobs token ([123336a](https://github.com/CodySwannGT/lisa/commit/123336a26011b7efc32f006a62998a3f9088be3f)), closes [CodySwannGT/lisa#2426](https://github.com/CodySwannGT/lisa/issues/2426)
 * **migrations:** read and write through node:fs/promises, not the fs-extra namespace ([3533889](https://github.com/CodySwannGT/lisa/commit/3533889cfb86825c53b61f2f1fb674b122aedef9)), closes [#2471](https://github.com/CodySwannGT/lisa/issues/2471) [#2472](https://github.com/CodySwannGT/lisa/issues/2472) [#2473](https://github.com/CodySwannGT/lisa/issues/2473) [CodySwannGT/lisa#2482](https://github.com/CodySwannGT/lisa/issues/2482)
 * **oxlint:** resolve extended config without node_modules so worktrees can commit ([e445dbe](https://github.com/CodySwannGT/lisa/commit/e445dbe516408b4d0ee40a20f9453858914c3184)), closes [CodySwannGT/lisa#2465](https://github.com/CodySwannGT/lisa/issues/2465)
-* **postinstall:** surface failed applies instead of discarding them ([d1c66de](https://github.com/CodySwannGT/lisa/commit/d1c66de5d2565a49aca085b740f015c6bff439cc)), closes [geminisportsai/ask-gemini#734](https://github.com/geminisportsai/ask-gemini/issues/734) [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [CodySwannGT/lisa#2467](https://github.com/CodySwannGT/lisa/issues/2467)
+* **postinstall:** surface failed applies instead of discarding them ([d1c66de](https://github.com/CodySwannGT/lisa/commit/d1c66de5d2565a49aca085b740f015c6bff439cc)), closes [acmeorgb/ask-gemini#734](https://github.com/acmeorgb/ask-gemini/issues/734) [#2436](https://github.com/CodySwannGT/lisa/issues/2436) [CodySwannGT/lisa#2467](https://github.com/CodySwannGT/lisa/issues/2467)
 
 ### [3.4.1](https://github.com/CodySwannGT/lisa/compare/v3.4.0...v3.4.1) (2026-08-13)
 
@@ -871,7 +873,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **bdd:** close six ways the coverage gate could report what it had not proven ([b71e494](https://github.com/CodySwannGT/lisa/commit/b71e4944424f78daa98928c81be38f821bafec73)), closes [gunnertech/frontend#388](https://github.com/gunnertech/frontend/issues/388) [#2412](https://github.com/CodySwannGT/lisa/issues/2412) [CodySwannGT/lisa#2421](https://github.com/CodySwannGT/lisa/issues/2421)
+* **bdd:** close six ways the coverage gate could report what it had not proven ([b71e494](https://github.com/CodySwannGT/lisa/commit/b71e4944424f78daa98928c81be38f821bafec73)), closes [acmeorgc/frontend#388](https://github.com/acmeorgc/frontend/issues/388) [#2412](https://github.com/CodySwannGT/lisa/issues/2412) [CodySwannGT/lisa#2421](https://github.com/CodySwannGT/lisa/issues/2421)
 
 ## [2.349.0](https://github.com/CodySwannGT/lisa/compare/v2.348.0...v2.349.0) (2026-08-12)
 
@@ -995,7 +997,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **hooks:** reject a threshold whose bound direction was flipped ([924cd27](https://github.com/CodySwannGT/lisa/commit/924cd272b61d87936517db00b87f500f83b4092a)), closes [geminisportsai/infrastructure-v2#351](https://github.com/geminisportsai/infrastructure-v2/issues/351) [#2391](https://github.com/CodySwannGT/lisa/issues/2391) [CodySwannGT/lisa#2389](https://github.com/CodySwannGT/lisa/issues/2389)
+* **hooks:** reject a threshold whose bound direction was flipped ([924cd27](https://github.com/CodySwannGT/lisa/commit/924cd272b61d87936517db00b87f500f83b4092a)), closes [acmeorgb/infrastructure-v2#351](https://github.com/acmeorgb/infrastructure-v2/issues/351) [#2391](https://github.com/CodySwannGT/lisa/issues/2391) [CodySwannGT/lisa#2389](https://github.com/CodySwannGT/lisa/issues/2389)
 
 ### [2.342.6](https://github.com/CodySwannGT/lisa/compare/v2.342.5...v2.342.6) (2026-08-09)
 
@@ -1076,7 +1078,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **hooks:** close four fail-opens in the Bash enforcement guards ([bf3b16a](https://github.com/CodySwannGT/lisa/commit/bf3b16af79b8de0878b75ee97535707a1f16fba9)), closes [PropSwapLLC/wiki#39](https://github.com/PropSwapLLC/wiki/issues/39) [PropSwapLLC/backend#940](https://github.com/PropSwapLLC/backend/issues/940) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
+* **hooks:** close four fail-opens in the Bash enforcement guards ([bf3b16a](https://github.com/CodySwannGT/lisa/commit/bf3b16af79b8de0878b75ee97535707a1f16fba9)), closes [AcmeOrgA/wiki#39](https://github.com/AcmeOrgA/wiki/issues/39) [AcmeOrgA/backend#940](https://github.com/AcmeOrgA/backend/issues/940) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
 * **hooks:** close two residual bypasses found in review round 2 ([dbc441e](https://github.com/CodySwannGT/lisa/commit/dbc441e5289b19d944c0e2106f4888a1a88175ab)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
 * **hooks:** harden the exemption and hooksPath checks from review ([bb6d6d4](https://github.com/CodySwannGT/lisa/commit/bb6d6d4a1e9dc7adf50249b0507500f3e14c7560)), closes [#2371](https://github.com/CodySwannGT/lisa/issues/2371) [CodySwannGT/lisa#2371](https://github.com/CodySwannGT/lisa/issues/2371)
 
@@ -1835,7 +1837,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 * **automations:** add an unattended clock that survives a closed laptop ([8ee0800](https://github.com/CodySwannGT/lisa/commit/8ee080094aad4bd6718958a378553ac9a615104b)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
 * **dispatch:** route work to a remote surface with executionEnv ([bffd58b](https://github.com/CodySwannGT/lisa/commit/bffd58b33a1e72c8fe34649368e887dd8c1136e4)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
 * **remote-env:** provision remote environments from a repo-owned manifest ([74b961c](https://github.com/CodySwannGT/lisa/commit/74b961cddd03eae417eb87b5da8eb59cd3791fab)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
-* **secrets:** model the surface axis and materialize where a lane must ([c8fe493](https://github.com/CodySwannGT/lisa/commit/c8fe493e9f6d47eafe2ecd7b9363a4ed0708b3f2)), closes [gunnertech/frontend#165](https://github.com/gunnertech/frontend/issues/165) [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
+* **secrets:** model the surface axis and materialize where a lane must ([c8fe493](https://github.com/CodySwannGT/lisa/commit/c8fe493e9f6d47eafe2ecd7b9363a4ed0708b3f2)), closes [acmeorgc/frontend#165](https://github.com/acmeorgc/frontend/issues/165) [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
 * **secrets:** route the callers, and check the config that reaches them ([08df8e2](https://github.com/CodySwannGT/lisa/commit/08df8e285abee5e361406d09389a896439437750)), closes [CodySwannGT/lisa#2150](https://github.com/CodySwannGT/lisa/issues/2150)
 
 
@@ -3997,7 +3999,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ### Bug Fixes
 
 * **ci:** skip back-sync on single-environment repos even with a hardcoded chain ([8db6223](https://github.com/CodySwannGT/lisa/commit/8db6223a980d59303c1f40d3234bfc5d23e1da06))
-* **eslint:** annotate config default exports and merge optional local ignores ([f464ed6](https://github.com/CodySwannGT/lisa/commit/f464ed6765ce38d1cda9f385c024669c35b7e135)), closes [gunnertech/wiki#206](https://github.com/gunnertech/wiki/issues/206)
+* **eslint:** annotate config default exports and merge optional local ignores ([f464ed6](https://github.com/CodySwannGT/lisa/commit/f464ed6765ce38d1cda9f385c024669c35b7e135)), closes [acmeorgc/wiki#206](https://github.com/acmeorgc/wiki/issues/206)
 * **expo:** ship brownfield-safe e2e thresholds and a stable route sort ([1582257](https://github.com/CodySwannGT/lisa/commit/15822577607c54bb21da522591c48c077cbe4fd9))
 * **gitignore:** make tasks/tasks.json re-include effective and ignore .build-boot ([1289a6d](https://github.com/CodySwannGT/lisa/commit/1289a6dd9723aeded239fc161e38fa77407551f7))
 * **husky:** use a portable mktemp template in the gitleaks pre-commit hook ([225fd34](https://github.com/CodySwannGT/lisa/commit/225fd34a62e6edd8db7ae5e3056c16dc2de0d925))
@@ -4075,7 +4077,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ### Bug Fixes
 
 * **ci:** cover missing secrets block in migration; assert full diagnostic phrase ([45df1db](https://github.com/CodySwannGT/lisa/commit/45df1db359f89acb81ff7e25e2087b331b342768))
-* **ci:** least-privilege secrets mapping for auto-fix callers ([ea589fd](https://github.com/CodySwannGT/lisa/commit/ea589fd6afbf3d1e937d830f66f6dca9ad49f0c3)), closes [PropSwapLLC/backend#900](https://github.com/PropSwapLLC/backend/issues/900)
+* **ci:** least-privilege secrets mapping for auto-fix callers ([ea589fd](https://github.com/CodySwannGT/lisa/commit/ea589fd6afbf3d1e937d830f66f6dca9ad49f0c3)), closes [AcmeOrgA/backend#900](https://github.com/AcmeOrgA/backend/issues/900)
 
 ## [2.217.0](https://github.com/CodySwannGT/lisa/compare/v2.216.0...v2.217.0) (2026-07-16)
 
@@ -4324,7 +4326,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **workflows:** skip Claude automation jobs cleanly when CLAUDE_CODE_OAUTH_TOKEN is absent ([7e43483](https://github.com/CodySwannGT/lisa/commit/7e43483b481c0891b750aae3dd29cb656cd9a176)), closes [TunnlAI/frontend#13-16](https://github.com/TunnlAI/frontend/issues/13-16) [#21](https://github.com/CodySwannGT/lisa/issues/21) [#1601](https://github.com/CodySwannGT/lisa/issues/1601)
+* **workflows:** skip Claude automation jobs cleanly when CLAUDE_CODE_OAUTH_TOKEN is absent ([7e43483](https://github.com/CodySwannGT/lisa/commit/7e43483b481c0891b750aae3dd29cb656cd9a176)), closes [AcmeOrgD/frontend#13-16](https://github.com/AcmeOrgD/frontend/issues/13-16) [#21](https://github.com/CodySwannGT/lisa/issues/21) [#1601](https://github.com/CodySwannGT/lisa/issues/1601)
 
 ### [2.204.2](https://github.com/CodySwannGT/lisa/compare/v2.204.1...v2.204.2) (2026-07-13)
 
@@ -4483,7 +4485,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **expo:** add force_build dispatch input to recover skipped EAS builds ([7c9e4f9](https://github.com/CodySwannGT/lisa/commit/7c9e4f94d3c47bde933106a3d872cc5e13735fa8)), closes [PropSwapLLC/frontend#822](https://github.com/PropSwapLLC/frontend/issues/822)
+* **expo:** add force_build dispatch input to recover skipped EAS builds ([7c9e4f9](https://github.com/CodySwannGT/lisa/commit/7c9e4f94d3c47bde933106a3d872cc5e13735fa8)), closes [AcmeOrgA/frontend#822](https://github.com/AcmeOrgA/frontend/issues/822)
 
 ### [2.195.7](https://github.com/CodySwannGT/lisa/compare/v2.195.6...v2.195.7) (2026-07-10)
 
@@ -4527,7 +4529,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ### Bug Fixes
 
 * **expo:** tsconfig.json becomes host-owned (create-only) with expo's stable include ([c7261a2](https://github.com/CodySwannGT/lisa/commit/c7261a29eca3b16d74e8c791860948f67c18099f))
-* **typescript:** tolerate fully-ignored staged files in lint-staged ([fb80327](https://github.com/CodySwannGT/lisa/commit/fb80327f63d5908592531e84ad947c5902844ead)), closes [gunnertech/tunnl-frontend#20](https://github.com/gunnertech/tunnl-frontend/issues/20)
+* **typescript:** tolerate fully-ignored staged files in lint-staged ([fb80327](https://github.com/CodySwannGT/lisa/commit/fb80327f63d5908592531e84ad947c5902844ead)), closes [acmeorgc/acmeorgd-frontend#20](https://github.com/acmeorgc/acmeorgd-frontend/issues/20)
 
 ### [2.195.1](https://github.com/CodySwannGT/lisa/compare/v2.195.0...v2.195.1) (2026-07-08)
 
@@ -4554,7 +4556,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **ci:** scope node_modules cache by patch-package state and recognize bun.lock ([14ea30e](https://github.com/CodySwannGT/lisa/commit/14ea30e4f683d4c397d86c702c9b8405012c8ef6)), closes [gunnertech/tunnl-frontend#3](https://github.com/gunnertech/tunnl-frontend/issues/3)
+* **ci:** scope node_modules cache by patch-package state and recognize bun.lock ([14ea30e](https://github.com/CodySwannGT/lisa/commit/14ea30e4f683d4c397d86c702c9b8405012c8ef6)), closes [acmeorgc/acmeorgd-frontend#3](https://github.com/acmeorgc/acmeorgd-frontend/issues/3)
 
 ### [2.194.1](https://github.com/CodySwannGT/lisa/compare/v2.194.0...v2.194.1) (2026-07-07)
 
@@ -5642,7 +5644,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **expo:** add shell-quote to knip ignoreDependencies template ([43acf3a](https://github.com/CodySwannGT/lisa/commit/43acf3a70e395154c11b6154bb3738dc22ded0cb)), closes [geminisportsai/frontend-v2#5256](https://github.com/geminisportsai/frontend-v2/issues/5256)
+* **expo:** add shell-quote to knip ignoreDependencies template ([43acf3a](https://github.com/CodySwannGT/lisa/commit/43acf3a70e395154c11b6154bb3738dc22ded0cb)), closes [acmeorgb/frontend-v2#5256](https://github.com/acmeorgb/frontend-v2/issues/5256)
 
 ### [2.163.6](https://github.com/CodySwannGT/lisa/compare/vv2.163.5...v2.163.6) (2026-06-12)
 
@@ -6528,7 +6530,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Bug Fixes
 
-* **build-intake,repair-intake:** gate env transition on PR merge + auto-rebase stranded PRs ([be3a108](https://github.com/CodySwannGT/lisa/commit/be3a108b19d9c8fe8ecd6df0be062e3e12003b3e)), closes [PropSwapLLC/frontend#701](https://github.com/PropSwapLLC/frontend/issues/701)
+* **build-intake,repair-intake:** gate env transition on PR merge + auto-rebase stranded PRs ([be3a108](https://github.com/CodySwannGT/lisa/commit/be3a108b19d9c8fe8ecd6df0be062e3e12003b3e)), closes [AcmeOrgA/frontend#701](https://github.com/AcmeOrgA/frontend/issues/701)
 
 ### [2.129.6](https://github.com/CodySwannGT/lisa/compare/vv2.129.5...v2.129.6) (2026-05-31)
 
@@ -8501,7 +8503,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Features
 
-* **husky:** add .husky/pre-push.local extension slot ([#412](https://github.com/CodySwannGT/lisa/issues/412)) ([110fffb](https://github.com/CodySwannGT/lisa/commit/110fffbeb4929054e5451eb17ca52a4fea05f7b4)), closes [PropSwapLLC/frontend#583](https://github.com/PropSwapLLC/frontend/issues/583) [#1061](https://github.com/CodySwannGT/lisa/issues/1061) [#1157](https://github.com/CodySwannGT/lisa/issues/1157)
+* **husky:** add .husky/pre-push.local extension slot ([#412](https://github.com/CodySwannGT/lisa/issues/412)) ([110fffb](https://github.com/CodySwannGT/lisa/commit/110fffbeb4929054e5451eb17ca52a4fea05f7b4)), closes [AcmeOrgA/frontend#583](https://github.com/AcmeOrgA/frontend/issues/583) [#1061](https://github.com/CodySwannGT/lisa/issues/1061) [#1157](https://github.com/CodySwannGT/lisa/issues/1157)
 
 ## [1.92.0](https://github.com/CodySwannGT/lisa/compare/vv1.91.1...v1.92.0) (2026-04-21)
 

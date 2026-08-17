@@ -4,7 +4,7 @@
 
 After the jest/typescript config consolidation (PR #135), Lisa copies `jest.base.ts`, `jest.typescript.ts`, and `jest.cdk.ts` to target projects. These files use ES module syntax (`import`/`export`).
 
-Two issues arise in target projects (observed in `propswap/infrastructure`):
+Two issues arise in target projects (observed in `acmeorga/infrastructure`):
 
 1. **ESLint error**: `jest.typescript.ts` (and `jest.base.ts`, `jest.cdk.ts`) are not included in `tsconfig.eslint.json`'s `include` array. The `*.config.ts` glob matches `jest.config.ts` but NOT `jest.base.ts` or `jest.typescript.ts`.
 2. **Node warning**: `MODULE_TYPELESS_PACKAGE_JSON` - `jest.base.ts` uses ES module syntax but `package.json` lacks `"type": "module"`. This is cosmetic (tests still pass) and project-specific (CDK projects may not safely add `"type": "module"`).
@@ -40,7 +40,7 @@ This is a separate, project-specific issue. The CDK `package.lisa.json` does not
 3. Add `"jest.*.ts"` to root `tsconfig.eslint.json` include array
 4. Run `bun run lint` to verify Lisa itself passes
 5. Run `bun run test` to verify tests pass
-6. Re-run Lisa on `propswap/infrastructure` and verify `bun run lint` passes there
+6. Re-run Lisa on `acmeorga/infrastructure` and verify `bun run lint` passes there
 7. Commit changes using `git:commit` skill
 
 ## Verification
@@ -51,7 +51,7 @@ bun run lint
 bun run test
 
 # In target project after re-running lisa
-cd ~/workspace/propswap/infrastructure
+cd ~/workspace/acmeorga/infrastructure
 bun run lint
 bun run test:unit
 ```

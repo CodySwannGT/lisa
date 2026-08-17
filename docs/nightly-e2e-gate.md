@@ -171,7 +171,7 @@ dispatch picker (`all` | `android` | `ios`). Dispatching it with
 `platform: android` makes the reusable suite's preflight emit `run_ios=false`,
 which skips the `🍎 Maestro iOS` job — and the run still concludes `success`.
 Read through `{"mode":"run"}`, that one dispatch cleared a **required merge
-gate** for the platform it deliberately did not test. It is propswap's trap
+gate** for the platform it deliberately did not test. It is acmeorga's trap
 verbatim (`91874b83`): *the suite declaring itself green on evidence it never
 gathered.*
 
@@ -286,7 +286,7 @@ is how a gate stops gating without anyone noticing.
 
 A gate that blocks a repository the day it is installed teaches everyone to
 bypass it. So the gate ships with a bootstrap window during which *missing or
-unreadable* evidence is reported but does not block. propswap's equivalent has
+unreadable* evidence is reported but does not block. acmeorga's equivalent has
 no expiry at all, which means a suite that never runs passes forever — the
 window here is mandatory and bounded.
 
@@ -653,11 +653,11 @@ repo last applied. Both are per-repo adoption events.
 
 | Was | Where | Now |
 |---|---|---|
-| Node script, one repo | tunnl `scripts/check-nightly-e2e-health.mjs` | the shipped guard (its bypass model and context-pinning test are the ancestors of §5/§6) |
-| Bash + `gh` + `jq` library | propswap `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4, and the per-suite half of it §4.1 |
+| Node script, one repo | acmeorgd `scripts/check-nightly-e2e-health.mjs` | the shipped guard (its bypass model and context-pinning test are the ancestors of §5/§6) |
+| Bash + `gh` + `jq` library | acmeorga `.github/scripts/nightly-e2e-lib.sh` | the shipped guard; its job-name filter becomes `match.mode: "job"`; its unbounded bootstrap becomes §4, and the per-suite half of it §4.1 |
 | Second Node script, `unknown`-passes | gemini `scripts/check-nightly-e2e.mjs` | the shipped guard; `DECISIVE_CONCLUSIONS` kept, the fail-open path closed (§2.2) |
 | A ruleset requiring a PR-skipped context | Lisa `expo/github-rulesets/playwright.json` | **deleted**, replaced by `expo/github-rulesets/nightly-e2e-health.json` |
-| One tracking issue per suite, auto-closed on green | propswap's nightly reporter | §10, with closing gated on row 26 completeness |
+| One tracking issue per suite, auto-closed on green | acmeorga's nightly reporter | §10, with closing gated on row 26 completeness |
 
 ### 9.1 Deleting the `playwright` ruleset is a two-step
 
@@ -738,7 +738,7 @@ cleaned up by the green night rather than left open forever.
 
 Closing an issue is a stronger claim than letting a pull request through. It
 announces that a suite is **healthy**, and it is the action that must never fire
-on a run that did not gather the evidence. This is propswap's trap in their
+on a run that did not gather the evidence. This is acmeorga's trap in their
 words: *one spec reporting success would close the tracking issue while the
 failures that opened it went unrun — the suite declaring itself green on evidence
 it never gathered.*
