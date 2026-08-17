@@ -1313,7 +1313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
       "6f3713451139d9d4fd8eed8f11f49e472667394c4f9a7cae63897b7702115687",
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
-      "233b4a31594f75c2d99e119f9ae9e9dcd966602787df4eb77dadd6b1cd629df0",
+      "92bd16d530e2d25a294ce1cbe86c5a02931d23fb4709283044651a1dbff27127",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
