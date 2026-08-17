@@ -673,7 +673,9 @@ export function readGates(cwd = process.cwd()) {
  */
 export function isMoment(moment) {
   if (MOMENTS.includes(moment)) return true;
-  const [family, environment] = moment.split(":");
+  const parts = moment.split(":");
+  if (parts.length !== 2) return false;
+  const [family, environment] = parts;
   return MOMENT_FAMILIES.includes(family) && Boolean(environment);
 }
 
@@ -1210,8 +1212,17 @@ function unknownMomentMessage(moment) {
   const near = nearest(moment, [...MOMENTS, ...MOMENT_FAMILIES]);
   const suggestion =
     near && near !== moment ? `. Did you mean "${near}"?` : ".";
-  const family = MOMENT_FAMILIES.includes(moment)
-    ? ` Use "${moment}:<environment>" for that family.`
+  const [familyPrefix] = moment.split(":");
+  let familyName = "";
+  if (MOMENT_FAMILIES.includes(familyPrefix)) {
+    familyName = familyPrefix;
+  } else if (MOMENT_FAMILIES.includes(moment)) {
+    familyName = moment;
+  } else if (MOMENT_FAMILIES.includes(near)) {
+    familyName = near;
+  }
+  const family = familyName
+    ? ` Use "${familyName}:<environment>" for that family.`
     : "";
   return `is not a moment Lisa knows${suggestion}${family}`;
 }
