@@ -295,16 +295,15 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * and remove. Used during skip-git-check (postinstall) applies so dependency
    * pins still apply without clobbering host config.
    *
-   * The retained overrides/resolutions may contain `$name` self-references,
-   * which npm resolves against a direct dependency of that name. If the project
-   * lacks that direct dep, `npm ci` fails in CI with a dangling $ref. So we also
-   * pull the referenced package's forced pin from force.dependencies /
-   * force.devDependencies into the restricted set, materializing the backing
-   * direct dependency alongside the override. Force devDeps that back no $ref
-   * are still dropped, preserving the host's own dev-dep versions.
+   * The retained overrides/resolutions may contain `$name` self-references or
+   * literal pins that normalize to `$name` later. Both resolve against a direct
+   * dependency of that name. If the restricted template drops the backing direct
+   * dep, postinstall can validate against the host's wider range and fail the
+   * normalization guard. So we also pull the package's forced pin from
+   * force.dependencies / force.devDependencies into the restricted set.
    * @param template - Fully merged template from the type hierarchy
    * @returns Template carrying force.resolutions/force.overrides plus the direct
-   *   dependencies that back any `$name` reference within them
+   *   dependencies that back any direct-dependency override within them
    * @private
    */
   private restrictToSecurityPins(
@@ -322,11 +321,11 @@ export class PackageLisaStrategy implements ICopyStrategy {
   }
 
   /**
-   * For every `$name` reference in the restricted overrides/resolutions, copy
-   * the forced pin for `name` from the full template's force.dependencies /
-   * force.devDependencies into the restricted force section so the backing
-   * direct dependency is materialized. A devDependencies pin wins over a
-   * dependencies pin when both exist.
+   * For every direct-dependency override in the restricted overrides/resolutions,
+   * copy the forced pin for `name` from the full template's force.dependencies /
+   * force.devDependencies into the restricted force section so the backing direct
+   * dependency is materialized. A devDependencies pin wins over dependencies when
+   * both exist.
    * @param template - Fully merged template (source of the forced dep pins)
    * @param force - Restricted force section being assembled (mutated in place)
    * @private
@@ -335,32 +334,40 @@ export class PackageLisaStrategy implements ICopyStrategy {
     template: ResolvedPackageLisaTemplate,
     force: Record<string, unknown>
   ): void {
-    const referenced = collectDollarReferences([
-      force.resolutions,
-      force.overrides,
+    const referenced = new Set([
+      ...collectDollarReferences([force.resolutions, force.overrides]),
+      ...collectLiteralOverrideNames([force.resolutions, force.overrides]),
     ]);
     if (referenced.size === 0) {
       return;
     }
     const forceDeps = asRecord(template.force.dependencies);
     const forceDevDeps = asRecord(template.force.devDependencies);
+    const backed = Array.from(referenced).filter(
+      name => forceDevDeps[name] !== undefined || forceDeps[name] !== undefined
+    );
+    if (backed.length === 0) {
+      return;
+    }
     const deps: Record<string, unknown> = {};
     const devDeps: Record<string, unknown> = {};
-    for (const name of referenced) {
+    for (const name of backed) {
       if (forceDevDeps[name] !== undefined) {
         devDeps[name] = forceDevDeps[name];
-      } else if (forceDeps[name] !== undefined) {
+      } else {
         deps[name] = forceDeps[name];
       }
     }
     if (Object.keys(devDeps).length > 0) {
-      force.devDependencies = devDeps;
+      force.devDependencies = {
+        ...asRecord(force.devDependencies),
+        ...devDeps,
+      };
     }
     if (Object.keys(deps).length > 0) {
-      force.dependencies = deps;
+      force.dependencies = { ...asRecord(force.dependencies), ...deps };
     }
   }
-
   /**
    * Detect which project types apply to this project
    * (TypeScript, Expo, NestJS, CDK, Harper/Fabric, npm-package)
@@ -1082,6 +1089,26 @@ function collectRefsFromValue(value: unknown): readonly string[] {
  */
 function collectDollarReferences(sections: readonly unknown[]): Set<string> {
   return new Set(sections.flatMap(collectRefsFromValue));
+}
+
+/**
+ * Collect top-level literal override keys that may later normalize to `$name`.
+ * @param sections - Override/resolution sections to inspect
+ * @returns Set of package names with non-empty literal string entries
+ */
+function collectLiteralOverrideNames(
+  sections: readonly unknown[]
+): Set<string> {
+  return new Set(
+    sections.flatMap(section => {
+      const entries = asRecord(section);
+      return Object.entries(entries).flatMap(([name, value]) =>
+        typeof value === "string" && value.length > 0 && !value.startsWith("$")
+          ? [name]
+          : []
+      );
+    })
+  );
 }
 
 /**
