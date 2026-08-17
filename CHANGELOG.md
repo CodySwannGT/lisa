@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.29.2](https://github.com/CodySwannGT/lisa/compare/v3.29.1...v3.29.2) (2026-08-17)
+
+
+### Bug Fixes
+
+* preserve host ruleset checks ([1c5f751](https://github.com/CodySwannGT/lisa/commit/1c5f75188692713ac68322717c8e61308cf7b069)), closes [CodySwannGT/lisa#2641](https://github.com/CodySwannGT/lisa/issues/2641) [CodySwannGT/lisa#2641](https://github.com/CodySwannGT/lisa/issues/2641)
+
 ### [3.29.1](https://github.com/CodySwannGT/lisa/compare/v3.29.0...v3.29.1) (2026-08-17)
 
 
