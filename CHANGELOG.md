@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.29.1](https://github.com/CodySwannGT/lisa/compare/v3.29.0...v3.29.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **lintstaged:** stop oxlint and prettier racing over the same files ([10d8b83](https://github.com/CodySwannGT/lisa/commit/10d8b83c56ef163671249e661ba136b71734d2d0)), closes [#2639](https://github.com/CodySwannGT/lisa/issues/2639) [#2647](https://github.com/CodySwannGT/lisa/issues/2647) [CodySwannGT/lisa#2648](https://github.com/CodySwannGT/lisa/issues/2648) [CodySwannGT/lisa#2648](https://github.com/CodySwannGT/lisa/issues/2648)
+
 ## [3.29.0](https://github.com/CodySwannGT/lisa/compare/v3.28.2...v3.29.0) (2026-08-17)
 
 
