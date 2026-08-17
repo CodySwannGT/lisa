@@ -25,9 +25,11 @@ import {
   renderAutomationGroups,
 } from "./automation-status-expected-fleet.mjs";
 import {
+  RUNBOOK_NOT_SCAFFOLDED_LINE,
   resolveAutomationRunDisplay,
   resolveRecoveryEscalation,
 } from "./automation-status-run-history.mjs";
+import { resolveUnrecordedRunFinding } from "./automation-status-unrecorded-runs.mjs";
 
 const CODEx_RUNTIME_LABEL = "Codex automations";
 const RUN_TIMESTAMP_PATTERN = /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/;
@@ -664,7 +666,7 @@ function createObservedStatusItem(input) {
   const comparison = input.comparison;
   const observed = comparison.observedAutomation;
   const runDisplay = input.runDisplay;
-  const runSignal = classifyAutomationRunSignal({
+  const primaryRunSignal = classifyAutomationRunSignal({
     expected,
     observedAutomation: observed,
     now: input.now,
@@ -673,6 +675,27 @@ function createObservedStatusItem(input) {
   // FAILING even when the scheduler entry looks fine — the fleet-health signal
   // the raw backing store cannot see. It wins over the scheduler run-signal.
   const escalation = resolveRecoveryEscalation(runDisplay);
+
+  // A run the scheduler saw but the ledger did not. Ranked below
+  // `primaryRunSignal` on purpose: a suspended entry or a broken cwd EXPLAINS
+  // the missing rows, so reporting the silence over the cause would bury it.
+  const unrecorded = resolveUnrecordedRunFinding({
+    schedulerLastRunAt: observed?.lastRunAt,
+    ledgerLastRecordAt: runDisplay?.lastOutcome?.ts ?? null,
+    hasRunbook: runDisplay
+      ? runDisplay.runbook !== RUNBOOK_NOT_SCAFFOLDED_LINE
+      : undefined,
+    cadenceMs: observed
+      ? resolveObservedCadenceMs({ observed, expected })
+      : null,
+  });
+  const runSignal =
+    primaryRunSignal ??
+    (unrecorded && {
+      status: /** @type {const} */ ("DRIFTED"),
+      summary: unrecorded.summary,
+      remediation: unrecorded.remediation,
+    });
 
   const observedDetails = [comparison.observed];
   if (observed?.status) {
@@ -685,6 +708,9 @@ function createObservedStatusItem(input) {
     observedDetails.push(`Last run: ${observed.lastRunAt}`);
   } else if (observed) {
     observedDetails.push("Last run metadata unavailable.");
+  }
+  if (runDisplay?.lastOutcome?.ts) {
+    observedDetails.push(`Newest run record: ${runDisplay.lastOutcome.ts}`);
   }
   if (observed?.lastRunSummary) {
     observedDetails.push(`Latest summary: ${observed.lastRunSummary}`);
@@ -729,6 +755,29 @@ function composeAutomationSummary(input) {
   return `${input.runSignal.summary}; ${comparisonSummary}`;
 }
 
+/**
+ * Milliseconds between scheduled runs, preferring what the scheduler actually
+ * reports over what the fleet expects.
+ *
+ * The observed RRULE wins because an automation re-cadenced in Codex is still
+ * a correctly running automation; measuring it against the expected cadence
+ * would manufacture findings out of an intentional change.
+ *
+ * @param {{
+ *   readonly observed: { readonly observedRRule?: string | null }
+ *   readonly expected: { readonly expectedCadence?: string }
+ * }} input - Observed automation entry and its expected-fleet counterpart.
+ * @returns {number | null} Interval in milliseconds, or `null` when neither
+ *   side expresses a parseable cadence.
+ */
+function resolveObservedCadenceMs(input) {
+  return (
+    rruleToIntervalMs(input.observed.observedRRule) ??
+    cadenceLabelToIntervalMs(input.expected.expectedCadence) ??
+    null
+  );
+}
+
 function classifyAutomationRunSignal(input) {
   const observed = input.observedAutomation;
   if (!observed) {
@@ -765,9 +814,10 @@ function classifyAutomationRunSignal(input) {
     return null;
   }
 
-  const cadenceMs =
-    rruleToIntervalMs(observed.observedRRule) ??
-    cadenceLabelToIntervalMs(input.expected.expectedCadence);
+  const cadenceMs = resolveObservedCadenceMs({
+    observed,
+    expected: input.expected,
+  });
   if (!cadenceMs) {
     return null;
   }

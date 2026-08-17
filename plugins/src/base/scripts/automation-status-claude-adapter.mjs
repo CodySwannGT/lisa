@@ -16,9 +16,11 @@ import {
   renderAutomationGroups,
 } from "./automation-status-expected-fleet.mjs";
 import {
+  RUNBOOK_NOT_SCAFFOLDED_LINE,
   resolveAutomationRunDisplay,
   resolveRecoveryEscalation,
 } from "./automation-status-run-history.mjs";
+import { resolveUnrecordedRunFinding } from "./automation-status-unrecorded-runs.mjs";
 
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
 const CLAUDE_ACTIVE_STATUSES = new Set([
@@ -241,7 +243,7 @@ function createObservedStatusItem(input) {
   const comparison = input.comparison;
   const observed = comparison.observedAutomation;
   const runDisplay = input.runDisplay;
-  const runSignal = classifyAutomationRunSignal({
+  const primaryRunSignal = classifyAutomationRunSignal({
     expected,
     observedAutomation: observed,
     now: input.now,
@@ -250,6 +252,27 @@ function createObservedStatusItem(input) {
   // FAILING even when the /schedule entry looks fine — the fleet-health signal
   // the scheduler surface cannot see. It wins over the scheduler run-signal.
   const escalation = resolveRecoveryEscalation(runDisplay);
+
+  // A run the scheduler saw but the ledger did not. Ranked below `runSignal`
+  // on purpose: a disabled or failing scheduler entry EXPLAINS the missing
+  // rows, so reporting the silence over the cause would bury the cause.
+  const unrecorded = resolveUnrecordedRunFinding({
+    schedulerLastRunAt: observed?.lastRunAt,
+    ledgerLastRecordAt: runDisplay?.lastOutcome?.ts ?? null,
+    hasRunbook: runDisplay
+      ? runDisplay.runbook !== RUNBOOK_NOT_SCAFFOLDED_LINE
+      : undefined,
+    cadenceMs: observed
+      ? resolveObservedCadenceMs({ observed, expected })
+      : null,
+  });
+  const runSignal =
+    primaryRunSignal ??
+    (unrecorded && {
+      status: /** @type {const} */ ("DRIFTED"),
+      summary: unrecorded.summary,
+      remediation: unrecorded.remediation,
+    });
 
   const observedDetails = [comparison.observed];
   if (observed?.status) {
@@ -261,6 +284,9 @@ function createObservedStatusItem(input) {
     observedDetails.push(
       "Last-run metadata unavailable from Claude /schedule."
     );
+  }
+  if (runDisplay?.lastOutcome?.ts) {
+    observedDetails.push(`Newest run record: ${runDisplay.lastOutcome.ts}`);
   }
   if (observed?.lastRunSummary) {
     observedDetails.push(`Latest summary: ${observed.lastRunSummary}`);
@@ -337,11 +363,10 @@ function classifyAutomationRunSignal(input) {
     return null;
   }
 
-  const cadenceMs =
-    rruleToIntervalMs(observed.observedRRule) ??
-    cadenceLabelToIntervalMs(
-      observed.observedCadence ?? input.expected.expectedCadence
-    );
+  const cadenceMs = resolveObservedCadenceMs({
+    observed,
+    expected: input.expected,
+  });
   if (!cadenceMs) {
     return null;
   }
@@ -362,6 +387,31 @@ function classifyAutomationRunSignal(input) {
   }
 
   return null;
+}
+
+/**
+ * Milliseconds between scheduled runs, preferring what the scheduler actually
+ * reports over what the fleet expects.
+ *
+ * The observed RRULE wins because a loop re-cadenced on the scheduler is still
+ * a correctly running loop; measuring it against the expected cadence would
+ * manufacture findings out of an intentional change.
+ *
+ * @param {{
+ *   readonly observed: ObservedClaudeAutomation
+ *   readonly expected: { readonly expectedCadence?: string }
+ * }} input - Observed scheduler entry and its expected-fleet counterpart.
+ * @returns {number | null} Interval in milliseconds, or `null` when neither
+ *   side expresses a parseable cadence.
+ */
+function resolveObservedCadenceMs(input) {
+  return (
+    rruleToIntervalMs(input.observed.observedRRule) ??
+    cadenceLabelToIntervalMs(
+      input.observed.observedCadence ?? input.expected.expectedCadence
+    ) ??
+    null
+  );
 }
 
 function coerceClaudeScheduleEntries(scheduleListing) {
