@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.30.1](https://github.com/CodySwannGT/lisa/compare/v3.30.0...v3.30.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **guard:** stop splitting quoted arguments on shell operators ([98b86d8](https://github.com/CodySwannGT/lisa/commit/98b86d8aeae153915596aa826fc8793b4f2f54df)), closes [CodySwannGT/lisa#2634](https://github.com/CodySwannGT/lisa/issues/2634) [CodySwannGT/lisa#2634](https://github.com/CodySwannGT/lisa/issues/2634)
+* **hooks:** answer the quote exemption per occurrence, not per value ([1965f0f](https://github.com/CodySwannGT/lisa/commit/1965f0f219e065724d72cd58b5ca9139903a9bb9)), closes [CodySwannGT/lisa#2634](https://github.com/CodySwannGT/lisa/issues/2634) [CodySwannGT/lisa#2634](https://github.com/CodySwannGT/lisa/issues/2634)
+* **hooks:** carry the quote-mask fix into the copied hook ([ea1d75f](https://github.com/CodySwannGT/lisa/commit/ea1d75f0ef36c7cef5924b310cc151fae98e4f23)), closes [CodySwannGT/lisa#2634](https://github.com/CodySwannGT/lisa/issues/2634) [CodySwannGT/lisa#2634](https://github.com/CodySwannGT/lisa/issues/2634)
+
 ## [3.30.0](https://github.com/CodySwannGT/lisa/compare/v3.29.3...v3.30.0) (2026-08-17)
 
 
