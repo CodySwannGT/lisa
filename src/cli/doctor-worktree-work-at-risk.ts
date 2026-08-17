@@ -7,8 +7,25 @@ import { promisify } from "node:util";
 import type { DoctorCheck } from "./doctor.js";
 
 const CHECK_NAME = "Worktree work at risk?";
+const GIT_TIMEOUT_MS = 10_000;
+const GIT_MAX_BUFFER_BYTES = 1024 * 1024;
+const WORKTREE_INSPECTION_BATCH_SIZE = 8;
 
 const run = promisify(execFile);
+
+/**
+ * Run one bounded git command for the doctor check.
+ * @param args - Git arguments
+ * @param cwd - Directory to run git in
+ * @returns Child process stdout and stderr
+ */
+function runGit(args: readonly string[], cwd: string) {
+  return run("git", [...args], {
+    cwd,
+    maxBuffer: GIT_MAX_BUFFER_BYTES,
+    timeout: GIT_TIMEOUT_MS,
+  });
+}
 
 /** What one worktree holds that exists nowhere else. */
 export interface WorktreeExposure {
@@ -147,9 +164,7 @@ export async function checkWorktreeWorkAtRisk(
     };
   }
 
-  const gathered = await Promise.all(
-    worktrees.map(worktree => gatherExposure(worktree))
-  );
+  const gathered = await gatherExposuresInBatches(worktrees);
   const unsorted = gathered
     .flatMap(exposure => (exposure === undefined ? [] : [exposure]))
     .filter(holdsWorkAtRisk);
@@ -184,6 +199,29 @@ export async function checkWorktreeWorkAtRisk(
 }
 
 /**
+ * Gather worktree exposures without spawning git for every worktree at once.
+ * @param worktrees - Worktree paths to inspect
+ * @param start - Batch start index
+ * @returns Gathered exposures in original worktree order
+ */
+async function gatherExposuresInBatches(
+  worktrees: readonly string[],
+  start = 0
+): Promise<readonly (WorktreeExposure | undefined)[]> {
+  if (start >= worktrees.length) {
+    return [];
+  }
+  const batch = worktrees.slice(start, start + WORKTREE_INSPECTION_BATCH_SIZE);
+  return [
+    ...(await Promise.all(batch.map(worktree => gatherExposure(worktree)))),
+    ...(await gatherExposuresInBatches(
+      worktrees,
+      start + WORKTREE_INSPECTION_BATCH_SIZE
+    )),
+  ];
+}
+
+/**
  * List every worktree path registered for a checkout.
  * @param targetPath - Project path to inspect
  * @returns Absolute worktree paths
@@ -191,9 +229,10 @@ export async function checkWorktreeWorkAtRisk(
 async function listWorktreePaths(
   targetPath: string
 ): Promise<readonly string[]> {
-  const { stdout } = await run("git", ["worktree", "list", "--porcelain"], {
-    cwd: targetPath,
-  });
+  const { stdout } = await runGit(
+    ["worktree", "list", "--porcelain"],
+    targetPath
+  );
   return stdout
     .split("\n")
     .filter(line => line.startsWith("worktree "))
@@ -215,8 +254,8 @@ async function gatherExposure(
 ): Promise<WorktreeExposure | undefined> {
   try {
     const [status, branch] = await Promise.all([
-      run("git", ["status", "--porcelain"], { cwd: worktree }),
-      run("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: worktree }),
+      runGit(["status", "--porcelain"], worktree),
+      runGit(["rev-parse", "--abbrev-ref", "HEAD"], worktree),
     ]);
     const head = branch.stdout.trim();
     const detached = head === "HEAD";
@@ -263,24 +302,20 @@ async function countUnpushed(
   worktree: string,
   detached: boolean
 ): Promise<{ readonly unpushedCommits: number; readonly noUpstream: boolean }> {
-  if (detached) {
-    return { unpushedCommits: 0, noUpstream: false };
-  }
   try {
-    const { stdout } = await run(
-      "git",
+    const { stdout } = await runGit(
       ["rev-list", "--count", "HEAD", "--not", "--remotes"],
-      { cwd: worktree }
+      worktree
     );
-    const upstream = await run("git", ["rev-parse", "--abbrev-ref", "@{u}"], {
-      cwd: worktree,
-    }).then(
-      () => true,
-      () => false
-    );
+    const upstream = detached
+      ? false
+      : await runGit(["rev-parse", "--abbrev-ref", "@{u}"], worktree).then(
+          () => true,
+          () => false
+        );
     return {
       unpushedCommits: Number.parseInt(stdout.trim(), 10) || 0,
-      noUpstream: !upstream,
+      noUpstream: detached ? false : !upstream,
     };
   } catch {
     return { unpushedCommits: 0, noUpstream: false };
