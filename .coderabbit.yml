@@ -1,13 +1,34 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# This file is an OVERLAY on the organisation's web configuration, not a
+# replacement for it — that is what `inheritance: true` means. So it should
+# carry only what is a fact about THIS repository. Anything that would be
+# identical in every repo is an org-level preference and belongs in the web
+# console, where it also applies to repos that never take a Lisa release.
+#
+# Removed on 2026-08-16 and moved to org web settings — all of it inert if the
+# console never re-creates it, which is why only this class was moved:
+#
+#   - the `tools:` block: fifteen linters disabled for PHP, Go, Swift, Kotlin,
+#     C++ and other languages Lisa does not ship. Losing it means CodeRabbit
+#     runs a Go linter over a repo with no Go in it, which finds nothing.
+#   - review cosmetics: `poem`, `sequence_diagrams`, `in_progress_fortune`,
+#     `collapse_walkthrough`, `estimate_code_review_effort`. Losing any of them
+#     makes a review wordier, nothing more.
+#
+# DELIBERATELY NOT MOVED, though they could live at org level: the settings
+# below that GATE a merge. `pre_merge_checks` at `mode: error` fails a pull
+# request outright, and `request_changes_workflow` is what lets CodeRabbit post
+# a blocking CHANGES_REQUESTED. Moving those is only safe once the web console
+# demonstrably carries them; move them first and the failure is silent — merges
+# start passing a gate nobody notices has stopped running. That is the exact
+# shape of defect this repository keeps finding, so the enforcement half stays
+# here until someone can point at the console entry that replaces it.
 early_access: true
 inheritance: true
 reviews:
+  # Enforcement, not preference. See the header before moving these.
   request_changes_workflow: true
-  collapse_walkthrough: false
-  sequence_diagrams: false
-  estimate_code_review_effort: false
-  in_progress_fortune: false
-  poem: false
   auto_review:
     drafts: true
   pre_merge_checks:
@@ -17,39 +38,9 @@ reviews:
       mode: error
     description:
       mode: error
-  tools:
-    markdownlint:
-      enabled: false
-    swiftlint:
-      enabled: false
-    phpstan:
-      enabled: false
-    phpmd:
-      enabled: false
-    phpcs:
-      enabled: false
-    golangci-lint:
-      enabled: false
-    detekt:
-      enabled: false
-    fortitudeLint:
-      enabled: false
-    buf:
-      enabled: false
-    regal:
-      enabled: false
-    pmd:
-      enabled: false
-    clang:
-      enabled: false
-    cppcheck:
-      enabled: false
-    circleci:
-      enabled: false
-    checkmake:
-      enabled: false
 knowledge_base:
   code_guidelines:
+    # Repo-specific path: Lisa's agent-facing guidance lives under .claude/.
     filePatterns:
       - '**/.claude/**/*'
 issue_enrichment:
@@ -75,6 +66,9 @@ issue_enrichment:
     # `human-needed` is deliberately absent too. Whether a human must rule on
     # something is a human's call, and Lisa applies it itself through the
     # `[lisa-human-gate]` marker at filing time.
+    #
+    # This block is the reason the file still exists. It is an allowlist over
+    # THIS repository's label taxonomy, so it cannot move to org settings.
     labeling_instructions:
       - label: 'type:Bug'
         instructions: 'Apply when the issue reports incorrect behaviour in shipped code.'
