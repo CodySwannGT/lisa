@@ -2,7 +2,7 @@
 
 ## Context
 
-When `tsconfig.json` extends `@codyswann/lisa/tsconfig/expo` from `node_modules`, TypeScript resolves `baseUrl: "./"` and `paths` relative to the config file's location (inside `node_modules/@codyswann/lisa/tsconfig/`), not the project root. This breaks all `@/*` path aliases, causing 219+ TypeScript errors in propswap/frontend (PR #455) and requiring manual overrides in `tsconfig.local.json`.
+When `tsconfig.json` extends `@codyswann/lisa/tsconfig/expo` from `node_modules`, TypeScript resolves `baseUrl: "./"` and `paths` relative to the config file's location (inside `node_modules/@codyswann/lisa/tsconfig/`), not the project root. This breaks all `@/*` path aliases, causing 219+ TypeScript errors in acmeorga/frontend (PR #455) and requiring manual overrides in `tsconfig.local.json`.
 
 This affects **all** Expo and NestJS projects. The fix should be in Lisa templates, not local overrides.
 

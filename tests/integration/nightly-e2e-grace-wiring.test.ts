@@ -47,7 +47,7 @@ describe("per-suite grace — doc, guard, schema and caller agree", () => {
   it("the doc states the rules that bound the window", () => {
     // The rule that must survive every future edit: the grace is ANCHORED and
     // BOUNDED. A per-suite window that could sit in the future, or outlive
-    // `bootstrap_max_days`, is propswap's forever-bootstrap with extra steps —
+    // `bootstrap_max_days`, is acmeorga's forever-bootstrap with extra steps —
     // the exact thing §4 deletes.
     expect(doc).toContain("Per-suite first-seen grace");
     expect(doc).toContain("`first_seen` may not be in the future");

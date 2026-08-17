@@ -27,5 +27,5 @@ Enumeration of every agent type exposed by the Agent tool:
 - EXCLUDE - coderabbit:code-reviewer - CodeRabbit reviews arrive on the PR via CI.
 - EXCLUDE - code-simplifier:code-simplifier - Concurrency-critical code; simplification risks weakening ordering guarantees.
 - EXCLUDE - claude / claude-code-guide / statusline-setup - Catch-all or tooling-help agents, irrelevant.
-- EXCLUDE - casey / chief / felix / lex / mark / parker / sally - tunnl-backend business-domain agents; wrong repo.
+- EXCLUDE - casey / chief / felix / lex / mark / parker / sally - acmeorgd-backend business-domain agents; wrong repo.
 - EXCLUDE - Plan - Approach follows from the research map; no separate planning agent needed.

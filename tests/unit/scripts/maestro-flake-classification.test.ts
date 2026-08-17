@@ -2,7 +2,7 @@
  * Tests for the Maestro flake classifier — the diagnostic that tells a preamble
  * loss apart from a product regression before anybody attributes a red run.
  *
- * Upstreamed from TunnlAI/frontend `scripts/classify-maestro-failures.mjs`,
+ * Upstreamed from AcmeOrgD/frontend `scripts/classify-maestro-failures.mjs`,
  * which was paid for by two proof runs that each lost four flows to sign-in:
  * run 6's Android arm was written up as a possible product regression and came
  * back all green in run 7 with no code change.

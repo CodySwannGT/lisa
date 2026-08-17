@@ -3,7 +3,7 @@
  *
  * The shipped postinstall bootstrap redirected the apply's stderr to
  * `/dev/null` and then `|| true`d the exit code, so a completely failed apply
- * was byte-for-byte indistinguishable from a successful one. geminisportsai
+ * was byte-for-byte indistinguishable from a successful one. acmeorgb
  * ran that way for months and received no template updates.
  *
  * These tests execute the real composed script under `sh` — the same way a

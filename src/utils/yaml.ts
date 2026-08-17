@@ -10,7 +10,7 @@
  * instantiated — before any Lisa code runs — so the whole CLI is dead,
  * including `lisa doctor`. Lisa declares js-yaml `^4.3.1` for itself, but a
  * host project's `overrides`/`resolutions` collapse Lisa's nested copy onto
- * whatever the host pinned, which is exactly how geminisportsai/frontend-v2
+ * whatever the host pinned, which is exactly how acmeorgb/frontend-v2
  * ended up running Lisa against js-yaml 5 (CodySwannGT/lisa#2467).
  *
  * A namespace import links against any module shape, so the incompatibility

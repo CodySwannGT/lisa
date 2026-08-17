@@ -9,8 +9,8 @@
  *
  * That is harmless where the fallback reproduces what the project already did,
  * and it is not harmless for `test-node-suites`, whose fallback FAILS on zero
- * collected. Measured downstream: `PropSwapLLC/frontend` and
- * `geminisportsai/backend-v2` both declared it `off`, both validated clean
+ * collected. Measured downstream: `AcmeOrgA/frontend` and
+ * `acmeorgb/backend-v2` both declared it `off`, both validated clean
  * locally, and both went red — one of them on a deploy.
  *
  * A declaration that governs nothing is worse than no declaration, because it

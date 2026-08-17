@@ -35,7 +35,7 @@ import { installAwsProfiles } from "../../../plugins/src/base/skills/lisa-secret
 const homes: string[] = [];
 
 /** The developer's SSO session block, which must survive untouched. */
-const SSO_SECTION = "[sso-session tunnl]";
+const SSO_SECTION = "[sso-session acmeorgd]";
 
 /** Where the merged config lands, relative to home. */
 const CONFIG = ".aws/config";
@@ -45,8 +45,8 @@ const THEIRS = [
   SSO_SECTION,
   "sso_start_url = https://example.awsapps.com/start",
   "",
-  "[profile tunnl-dev]",
-  "sso_session = tunnl",
+  "[profile acmeorgd-dev]",
+  "sso_session = acmeorgd",
   "sso_account_id = 905179307867",
   "",
 ].join("\n");
@@ -98,7 +98,7 @@ describe("agent profiles alongside a developer's SSO config", () => {
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     expect(config).toContain(SSO_SECTION);
-    expect(config).toContain("[profile tunnl-dev]");
+    expect(config).toContain("[profile acmeorgd-dev]");
     expect(config).toContain("sso_account_id = 905179307867");
     expect(config).toContain("[profile agent-dev]");
   });

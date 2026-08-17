@@ -442,8 +442,8 @@ local so a repo can name its own trackers.
 "trackers": {
   "required": false,
   "keys": ["TUN"],
-  "keyUrlTemplate": "https://linear.app/tunnl/issue/{id}",
-  "github": { "org": "TunnlAI", "defaultRepo": "frontend", "repos": ["frontend", "wiki"] }
+  "keyUrlTemplate": "https://linear.app/acmeorgd/issue/{id}",
+  "github": { "org": "AcmeOrgD", "defaultRepo": "frontend", "repos": ["frontend", "wiki"] }
 }
 ```
 

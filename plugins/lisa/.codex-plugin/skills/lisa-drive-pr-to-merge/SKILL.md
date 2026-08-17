@@ -162,7 +162,7 @@ ends in between — turns exhausted, job timeout, or you concluding the work whi
 checks are still pending — the latch stays off and nothing restores it. The PR is
 left WORSE OFF THAN IF THIS SKILL HAD NEVER RUN: it has lost the mechanism that
 merges it while no agent is watching, and the run reports success. Measured on
-`gunnertech/frontend#282`, the latch went off 14s before the fix commit and the
+`acmeorgc/frontend#282`, the latch went off 14s before the fix commit and the
 PR sat 26 minutes after going green, against ~3 minutes for PRs this skill never
 touched.
 
@@ -364,7 +364,7 @@ Ancestry proves your code is *in* the merged branch; it does **not** prove
 anything deployed. GitHub can **suppress the `on: push` event for a merge commit
 created by auto-merge or a bot token** (`GITHUB_TOKEN`), so the deploy workflow
 fires **zero** runs — no run, not even a `startup_failure` — while the ancestry
-check above stays green. Incident of record: TunnlAI/frontend **TUN-186** (PR #67)
+check above stays green. Incident of record: AcmeOrgD/frontend **TUN-186** (PR #67)
 merged to `dev` via auto-merge; the merge commit `1b3f836` produced **no**
 `deploy.yml` run, and only the next human push `d1fe18c` (which carries `1b3f836`
 as an ancestor) actually shipped it. **Never report shipped on ancestry alone.**
@@ -423,7 +423,7 @@ of section 2 are diagnose-only).
 
 Linear's GitHub integration completes a linked Issue on merge to **any** branch
 — branch-name linkage alone triggers it, even when the PR body carries only the
-non-closing `Linear: <ID>` reference form (incident of record: TunnlAI backend
+non-closing `Linear: <ID>` reference form (incident of record: AcmeOrgD backend
 PR #207 merged to `dev`; TUN-256 auto-completed and had to be manually
 reverted). Run this step **as soon as the PR reports `MERGED`**, before the
 deploy-run verification above can terminate the flow — a `blocked:deploy`

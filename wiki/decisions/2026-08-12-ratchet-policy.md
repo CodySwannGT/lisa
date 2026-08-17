@@ -41,13 +41,13 @@ of being blocked until fully remediated.
 The 2026-08-12 fleet audit supplied evidence on both sides.
 
 **Against generic creep.** The creeping ratchets generate real churn with little
-signal: propswap moved `maxLinesPerFunction` from 700 to 672 across **14 separate
+signal: acmeorga moved `maxLinesPerFunction` from 700 to 672 across **14 separate
 PRs**, including a duplicate-work collision where two PRs both did "686 to 684";
-tunnlai has 128 commits touching budgets/ratchets in a breach → raise-to-unblock →
-ratify-with-measurement → correct-the-stale-note cycle; geminisportsai has ~12
+acmeorgd has 128 commits touching budgets/ratchets in a breach → raise-to-unblock →
+ratify-with-measurement → correct-the-stale-note cycle; acmeorgb has ~12
 commits that only move a debt counter, one re-baseline committed twice.
 
-**For deterministic replacement.** propswap `44891559` already executed the note's
+**For deterministic replacement.** acmeorga `44891559` already executed the note's
 philosophy unprompted: it retired a locally-built ratchet and generated seal-ledger
 and re-homed the invariants into a local ESLint plugin plus an ast-grep rule, leaving
 hand-maintained allowlists that "may shrink to zero." That is the pattern working in
@@ -77,7 +77,7 @@ Concretely:
    entry merged → mechanism changed. Never the reverse. The threshold-ratchet checker
    is a Chesterton's fence guarding against agents granting themselves exceptions in
    the same change that weakens a gate; it is not to be relaxed casually.
-4. **Prefer promotion over accumulation.** The propswap precedent is the preferred
+4. **Prefer promotion over accumulation.** The acmeorga precedent is the preferred
    end-state: an invariant expressed as a lint or ast-grep rule with a shrink-to-zero
    allowlist beats a number that a PR nudges every week.
 5. **Brownfield migration is part of the decision, not a follow-up.** For every family
@@ -100,7 +100,7 @@ Making property tests or mutation runs mandatory on every ticket would be a new
 requirement with a real time cost and no evidence of a gap it closes. Revisit only if
 verify outcomes show one.
 
-One related practice **is** adopted, from tunnlai's backend rules, because it is cheap
+One related practice **is** adopted, from acmeorgd's backend rules, because it is cheap
 and catches a real failure mode: **a guard must be mutation-proven** — introduce the
 exact regression the guard exists to prevent, verify exactly one test fails, revert.
 It was born from a guard that pinned one field and let the regression through with all
@@ -115,7 +115,7 @@ not as a gate.
   the replacement requirement, not by deletion.
 - **Keep everything, treat the note as host-project policy only.** Rejected: the fleet
   churn evidence is strong enough that generic creep should not be Lisa's default
-  posture. Doing nothing upstream leaves every project re-deriving propswap's fix.
+  posture. Doing nothing upstream leaves every project re-deriving acmeorga's fix.
 - **Freeze each floor at its current value.** Rejected as a general answer: for BDD it
   permits later loss of accepted coverage, and a fixed 100% floor instead requires full
   behavior backfill before the first frontend change. Neither is acceptable as a blanket

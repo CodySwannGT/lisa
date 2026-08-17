@@ -3,7 +3,7 @@
  *
  * The check exists because `bun install` rewrites an override that names a
  * direct dependency into `$name`, silently replacing the override's floor with
- * the dependency line's. Observed in gunnertech/frontend on bun 1.3.11:
+ * the dependency line's. Observed in acmeorgc/frontend on bun 1.3.11:
  * `"postcss": ">=8.5.18"` became `"$postcss"` against `devDependencies ^8.5.0`,
  * putting postcss back inside the range GHSA patches at 8.5.18.
  *
