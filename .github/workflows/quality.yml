@@ -758,7 +758,91 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
+      # PRECONDITION FIRST, and it is a file read rather than an install.
+      #
+      # This job has never installed dependencies — it runs plain `node` against
+      # a shipped script. Resolving a gate needs the Lisa package, so a naive
+      # façade would add an unconditional install to a job that had none, on
+      # every pull request in the fleet. Reading `.lisa.config.json` for a
+      # `gates` block costs nothing and answers the only question that matters:
+      # a project that declares no gates can never resolve one, so it goes
+      # straight to the fallback and this job stays exactly as cheap as before.
+      - name: 🔎 Check whether this project declares any gates
+        id: gates_declared
+        run: |
+          set -euo pipefail
+          if [ -f ".lisa.config.json" ] && node -e 'const c = require("./.lisa.config.json"); process.exit(c.gates && Object.keys(c.gates).length ? 0 : 1)' 2>/dev/null; then
+            echo "declared=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "declared=false" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🍞 Setup Bun
+        if: steps.gates_declared.outputs.declared == 'true' && inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        if: steps.gates_declared.outputs.declared == 'true'
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the coverage-adequacy gate
+        id: gate
+        if: steps.gates_declared.outputs.declared == 'true'
+        env:
+          GATE_ID: coverage-adequacy
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ✅ Run the coverage-adequacy gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          VERIFY_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          VERIFY_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VERIFY_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: ✅ Require a verification (e2e) spec delta on feat/fix
+        # FALLBACK — unchanged behavior for a project with no `gates` block, and
+        # for one whose block does not name this gate.
+        if: steps.gates_declared.outputs.declared == 'false' || steps.gate.outputs.configured == 'false'
         run: node scripts/check-verification-coverage.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
         env:
@@ -1338,8 +1422,62 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # Deliberately AFTER the existing `check_script` precondition, which is a
+      # grep of package.json and costs nothing. A project with no
+      # `test:mutation` script never installs and never resolves a gate, so the
+      # façade adds no runner time to the repos that do not use this. The one
+      # case that pays is a project that ships the script AND declares the gate
+      # `off` — it installs, then skips. That is a small, bounded waste and the
+      # alternative (resolving before installing) cannot work: the resolver
+      # lives inside the package the install provides.
+      - name: 🎛️ Resolve the test-meaningfulness gate
+        id: gate
         if: steps.check_script.outputs.exists == 'true'
+        env:
+          GATE_ID: test-meaningfulness
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧬 Run the test-meaningfulness gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          # Diff against the PR base branch (falls back to 'main' outside PRs).
+          MUTATION_SINCE: ${{ github.base_ref || 'main' }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        # FALLBACK — unchanged behavior for a project with no `gates` block, and
+        # for one whose block does not name this gate.
+        if: steps.gate.outputs.configured == 'false'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm run test:mutation

@@ -193,6 +193,25 @@ export const CONVERTED: ConvertedJob[] = [
       "⏭️ AST Grep Skipped (no config)",
     ],
   },
+  {
+    job: "test_mutation",
+    jobName: "🧬 Mutation Testing Gate",
+    gate: "test-meaningfulness",
+    gateStep: "🧬 Run the test-meaningfulness gate",
+    // The ⏭️ notice hangs off `check_script`, not off the gate, so it stays on
+    // the no-script path rather than the no-gate one. A project that ships the
+    // script and declares no gate still runs the fallback.
+    fallbackSteps: [
+      "🧬 Run mutation-testing gate (diff-only, self-skips when disabled)",
+    ],
+  },
+  {
+    job: "verification_coverage",
+    jobName: "✅ Verification Coverage",
+    gate: "coverage-adequacy",
+    gateStep: "✅ Run the coverage-adequacy gate",
+    fallbackSteps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
+  },
 ];
 
 /**
