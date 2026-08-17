@@ -227,14 +227,14 @@ describe("automation-status expected fleet (#799)", () => {
         source: "notion",
         jira: { project: "SE" },
         notion: { prdDatabaseId: "db-123" },
-        github: { org: "GeminiSportsAI", repo: "frontend-v2" },
+        github: { org: "AcmeOrgB", repo: "frontend-v2" },
       },
     });
 
     expect(fleet.expected).toContainEqual(
       expect.objectContaining({
         id: INTAKE_REPAIR_ID,
-        automationId: "lisa-auto-geminisportsai-frontend-v2-intake-repair",
+        automationId: "lisa-auto-acmeorgb-frontend-v2-intake-repair",
         expectedCommand: "/lisa:repair-intake SE intake_mode=build",
       })
     );

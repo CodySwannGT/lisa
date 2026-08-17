@@ -133,7 +133,7 @@ function hasNodePostinstallType(
  * Any TypeScript/Node project (expo, nestjs, cdk, npm-package, plain typescript) with a
  * custom postinstall (`patch-package && ...`) that never invokes Lisa will not apply
  * template updates automatically on `bun install` / `npm install`. Evidence: frontend-v2
- * (expo) and propswap/frontend (typescript-only) both needed this chained invocation.
+ * (expo) and acmeorga/frontend (typescript-only) both needed this chained invocation.
  * This migration prepends the standard Lisa invocation so template updates apply
  * automatically on install. Rails-only projects are skipped (no Node postinstall).
  */

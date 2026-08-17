@@ -239,7 +239,7 @@ An org secret defaults to `--visibility private`. `all` reaches public repositor
 ```json
 "propagating": [
   "LINEAR_API_KEY",
-  { "name": "NPM_TOKEN", "targets": ["TunnlAI", "TunnlAI/wiki"] }
+  { "name": "NPM_TOKEN", "targets": ["AcmeOrgD", "AcmeOrgD/wiki"] }
 ]
 ```
 

@@ -45,7 +45,7 @@ const E2E = {
 
 describe("parseEasJson accepts what EAS accepts", () => {
   it("reads a file with a trailing comma, which JSON.parse rejects", () => {
-    // Not hypothetical: geminisportsai/frontend-v2's eas.json has one on line
+    // Not hypothetical: acmeorgb/frontend-v2's eas.json has one on line
     // 16, so a strict parse would crash this guard on the very repository the
     // standard was extracted from.
     const text = '{"build":{"base":{"channel":"e2e",}}}';

@@ -1,6 +1,6 @@
 # eslint-plugin-code-organization
 
-ESLint plugin to enforce code organization standards for the PropSwap frontend application.
+ESLint plugin to enforce code organization standards for the AcmeOrgA frontend application.
 
 ## Rules
 

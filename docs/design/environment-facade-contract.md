@@ -12,13 +12,13 @@ than a rename, which is the cheapest moment to get it right.
 ## The measured starting point
 
 ```
-tunnl fe        e2e:reset, e2e:reset:dry-run, e2e:reset:test,
+acmeorgd fe        e2e:reset, e2e:reset:dry-run, e2e:reset:test,
                 e2e:seed:teardown, e2e:seed:test
 gemini fe-v2    e2e:cleanup, e2e:guard:test
 gemini be-v2    db:connect:{dev,staging,production}, db:psql:*, db:psql:secret:*
-propswap fe     none
-gunnertech fe   none
-gunnertech be   none
+acmeorga fe     none
+acmeorgc fe   none
+acmeorgc be   none
 ```
 
 `db:*` was explicitly superseded and is still in use. Two frontends have no
@@ -83,7 +83,7 @@ unrecognised moment after a typo (`continous:dev`) silently resolved to an empty
 gate set and reported "0 proved, 0 failed of 0 gate(s) declared" with exit 0.
 The same failure is available here and the same answer applies.
 
-**An allowlist, not a pattern — measured, not hypothetical.** `PropSwapLLC/frontend`
+**An allowlist, not a pattern — measured, not hypothetical.** `AcmeOrgA/frontend`
 deploys production under **both** `production` and `prod`. Any guard keyed on one
 of those names silently misses the other, which is a live bypass rather than a
 typo waiting to happen. A validated set of accepted values is the only form that
@@ -112,7 +112,7 @@ by calling the underlying script directly.
 ## 4. Conformance is `:verify`, and it must prove a refusal
 
 `:verify` is the ratified suffix — it is what the gate registry already invokes.
-Not `:test` (tunnl) and not `:guard:test` (gemini).
+Not `:test` (acmeorgd) and not `:guard:test` (gemini).
 
 A conforming `environment:reset:verify` MUST:
 
@@ -130,7 +130,7 @@ A conforming `environment:reset:verify` MUST:
    2026-08-17's filings: a check reporting satisfied without having proved
    anything.
 
-`--dry-run` is optional and unreserved. tunnl's `e2e:reset:dry-run` is a useful
+`--dry-run` is optional and unreserved. acmeorgd's `e2e:reset:dry-run` is a useful
 local affordance; Lisa neither requires nor forbids it.
 
 ## 5. What this does not define

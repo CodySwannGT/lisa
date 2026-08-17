@@ -10,7 +10,7 @@
  * preflight emit `run_ios=false`, the iOS job is SKIPPED, and the run still
  * concludes `success`. Read through `{"mode":"run"}`, that one dispatch cleared
  * a required merge gate for the platform it deliberately did not test —
- * propswap's trap (91874b83), a suite declaring itself green on evidence it
+ * acmeorga's trap (91874b83), a suite declaring itself green on evidence it
  * never gathered.
  *
  * The discriminator these cases pin is **"was this run PARTIAL?"**, never "was

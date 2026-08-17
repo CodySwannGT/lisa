@@ -1,7 +1,7 @@
 /**
  * Regression tests for CodySwannGT/lisa#2467.
  *
- * geminisportsai/frontend-v2 received no template updates for months because
+ * acmeorgb/frontend-v2 received no template updates for months because
  * every `lisa apply` crashed and the postinstall bootstrap threw the error
  * away. Nothing in the toolchain could say so. These tests pin the check that
  * can: a repo whose apply receipt is missing or older than the installed Lisa

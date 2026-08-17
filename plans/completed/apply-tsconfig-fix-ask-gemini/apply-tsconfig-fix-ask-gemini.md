@@ -10,7 +10,7 @@ The ask-gemini project has no `src/` directory — its source code lives in `lam
 
 ## Solution
 
-1. Run `bun run dev ~/workspace/geminisportsai/ask-gemini` from Lisa to apply updated templates
+1. Run `bun run dev ~/workspace/acmeorgb/ask-gemini` from Lisa to apply updated templates
 2. Update `tsconfig.local.json` in ask-gemini to add `include`/`exclude` with the project's actual paths
 3. Commit and push to the existing PR
 
@@ -20,7 +20,7 @@ The ask-gemini project has no `src/` directory — its source code lives in `lam
 
 ## PR
 
-Existing PR: https://github.com/geminisportsai/ask-gemini/pull/29
+Existing PR: https://github.com/acmeorgb/ask-gemini/pull/29
 
 ## Changes
 
@@ -28,14 +28,14 @@ Existing PR: https://github.com/geminisportsai/ask-gemini/pull/29
 
 From `/Users/cody/workspace/lisa`, run:
 ```bash
-bun run dev ~/workspace/geminisportsai/ask-gemini
+bun run dev ~/workspace/acmeorgb/ask-gemini
 ```
 
 This will apply the updated templates where `tsconfig.json` no longer has `include`/`exclude` and `tsconfig.typescript.json` has the defaults.
 
 ### 2. Update `tsconfig.local.json`
 
-Add `include`/`exclude` to the existing `tsconfig.local.json` at `/Users/cody/workspace/geminisportsai/ask-gemini/tsconfig.local.json`:
+Add `include`/`exclude` to the existing `tsconfig.local.json` at `/Users/cody/workspace/acmeorgb/ask-gemini/tsconfig.local.json`:
 
 ```json
 {
@@ -53,10 +53,10 @@ Commit the updated Lisa-managed files and the tsconfig.local.json override to th
 
 ## Key files
 
-- `/Users/cody/workspace/geminisportsai/ask-gemini/tsconfig.json` — managed by Lisa, will lose `include`/`exclude`
-- `/Users/cody/workspace/geminisportsai/ask-gemini/tsconfig.typescript.json` — managed by Lisa, will gain default `include`/`exclude`
-- `/Users/cody/workspace/geminisportsai/ask-gemini/tsconfig.eslint.json` — managed by Lisa, will use broad `**/*.ts`
-- `/Users/cody/workspace/geminisportsai/ask-gemini/tsconfig.local.json` — create-only, needs `include`/`exclude` added
+- `/Users/cody/workspace/acmeorgb/ask-gemini/tsconfig.json` — managed by Lisa, will lose `include`/`exclude`
+- `/Users/cody/workspace/acmeorgb/ask-gemini/tsconfig.typescript.json` — managed by Lisa, will gain default `include`/`exclude`
+- `/Users/cody/workspace/acmeorgb/ask-gemini/tsconfig.eslint.json` — managed by Lisa, will use broad `**/*.ts`
+- `/Users/cody/workspace/acmeorgb/ask-gemini/tsconfig.local.json` — create-only, needs `include`/`exclude` added
 
 ## Skills
 
@@ -65,7 +65,7 @@ Commit the updated Lisa-managed files and the tsconfig.local.json override to th
 ## Verification
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/ask-gemini
+cd /Users/cody/workspace/acmeorgb/ask-gemini
 
 # tsconfig.json should NOT have include/exclude
 jq 'has("include")' tsconfig.json  # false
@@ -87,7 +87,7 @@ bun run typecheck
 
 Create tasks with TaskCreate:
 
-1. Run Lisa against ask-gemini (`bun run dev ~/workspace/geminisportsai/ask-gemini`)
+1. Run Lisa against ask-gemini (`bun run dev ~/workspace/acmeorgb/ask-gemini`)
 2. Update `tsconfig.local.json` with project-specific `include`/`exclude`
 3. Verify typecheck passes
 4. Commit and push to existing PR #29

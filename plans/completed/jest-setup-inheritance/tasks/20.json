@@ -10,7 +10,7 @@
     "plan": "jest-setup-inheritance",
     "type": "task",
     "learnings": [
-      "All verification passed: Lisa (15 suites/218 tests), ThumbWar (18/232), propswap (178/2212), frontend-v2 (275/5653)"
+      "All verification passed: Lisa (15 suites/218 tests), ThumbWar (18/232), acmeorga (178/2212), frontend-v2 (275/5653)"
     ]
   }
 }

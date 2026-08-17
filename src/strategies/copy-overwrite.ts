@@ -109,7 +109,7 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
    *
    * That refresh is unconditional only where Lisa can prove the installed copy
    * is behind. "Differs from mine" is not that proof — it is equally consistent
-   * with the host being *ahead*, which is how `propswapllc/frontend` had a guard
+   * with the host being *ahead*, which is how `acmeorga/frontend` had a guard
    * they had hardened themselves silently replaced by a weaker upstream one. So
    * a Lisa-owned artifact is now classified before it is replaced, and anything
    * short of proof that it is stale leaves the host's copy alone with an
