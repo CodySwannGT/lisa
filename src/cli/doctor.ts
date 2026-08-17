@@ -21,6 +21,7 @@ import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
+import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
 import { STARTERS } from "./starters.js";
@@ -365,6 +366,9 @@ export async function runDoctor(
     // worktrees are what make unrelated unit suites time out under ambient
     // load, so an operator debugging a red suite needs the count in front of
     // them (CodySwannGT/lisa#2490).
+    // Static answer to a runtime failure that is deliberately silent: an
+    // incomplete serialize opt-in warns at 2am on a green job and nowhere else.
+    await checkSerializeLegsContract(resolvedTarget),
     await checkWorktreeHygiene(resolvedTarget),
     // Immediately after the count check, and deliberately separate from it.
     // Hygiene answers "how many checkouts is every crawler walking past"; this
