@@ -294,6 +294,15 @@ async function gatherExposure(
  * against every remote ref, because a branch can be pushed and then have its
  * upstream cleared. Falling back to "everything since the merge-base with the
  * default branch" would overstate the exposure and train readers to ignore it.
+ *
+ * `--no-merges` for the same reason, and it is not cosmetic. A merge commit that
+ * pulls upstream into a branch carries no authored work — losing it costs a
+ * one-command replay — so counting it inflates every merged-up branch. The
+ * degenerate case is the one that matters: a branch whose ONLY local commit is
+ * a merge of the default branch holds nothing, and without this flag it reports
+ * work at risk and gets a warning it does not deserve. Caught by a peer who
+ * measured the same worktree with `git cherry` and got 2 against this check's 3;
+ * the difference was exactly one merge commit.
  * @param worktree - Absolute worktree path
  * @param detached - Whether HEAD is detached
  * @returns Unpushed commit count and whether an upstream exists
@@ -304,7 +313,7 @@ async function countUnpushed(
 ): Promise<{ readonly unpushedCommits: number; readonly noUpstream: boolean }> {
   try {
     const { stdout } = await runGit(
-      ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+      ["rev-list", "--count", "--no-merges", "HEAD", "--not", "--remotes"],
       worktree
     );
     const upstream = detached
