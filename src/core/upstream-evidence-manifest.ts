@@ -931,9 +931,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-run-record.mjs":
       "77ea269502b97300c400916ee851dc85082a9237ce3d4468688455084d96413a",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
-      "b1054acf4a5cbbe5354bd62a22b96533bcbc69b6cb9245976ceb8af638a04494",
+      "1f77b28fd59986ac3f76a55296b70d8c45385bbdb759e97691e49db121725ee2",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
-      "ba1d8891f3369865d307e00699d5817172f64947d5b0c4e569e2f8e5bb46a9f5",
+      "640b0b4d140f8e6f7e8789eb86376e71454da07ba134a01e0b71fa4be10ff424",
     "plugins/src/base/scripts/automation-status-contract-drift.mjs":
       "5f3f327fddedd6870017a86f2702d9cbb17352384fb225ab353eed54241182ef",
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs":
@@ -942,6 +942,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "520f77645c5b7cab3f69848fb5cf19e8b1d802cd1f8ce6a35aa36a0bf6a0d146",
     "plugins/src/base/scripts/automation-status-run-history.mjs":
       "a07f0d1af412f0d2747a9cbe82fa0edbeb8cc8dd4bdf4c51526e779090f08208",
+    "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs":
+      "e6063e072b9cf0928bf94df034937326444d542143f5d7264a9c2c7180c035ae",
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "08b17213a484e4c873283e2af674df579593c7ff20c95a06d71ae88c0b83f937",
     "plugins/src/base/scripts/design-source-gate.mjs":
@@ -3359,6 +3361,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/automation-status-expected-fleet.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-report.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-run-history.mjs": true,
+    "plugins/lisa-agy/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-agy/scripts/cross-pollinate.mjs": true,
     "plugins/lisa-agy/scripts/design-source-gate.mjs": true,
     "plugins/lisa-agy/scripts/doctor-report.mjs": true,
@@ -3831,6 +3834,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/automation-status-expected-fleet.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-report.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-run-history.mjs": true,
+    "plugins/lisa-copilot/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-copilot/scripts/cross-pollinate.mjs": true,
     "plugins/lisa-copilot/scripts/design-source-gate.mjs": true,
     "plugins/lisa-copilot/scripts/doctor-report.mjs": true,
@@ -4289,6 +4293,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/automation-status-expected-fleet.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-report.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-run-history.mjs": true,
+    "plugins/lisa-cursor/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-cursor/scripts/cross-pollinate.mjs": true,
     "plugins/lisa-cursor/scripts/design-source-gate.mjs": true,
     "plugins/lisa-cursor/scripts/doctor-report.mjs": true,
@@ -6846,6 +6851,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/automation-status-expected-fleet.mjs": true,
     "plugins/lisa/scripts/automation-status-report.mjs": true,
     "plugins/lisa/scripts/automation-status-run-history.mjs": true,
+    "plugins/lisa/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa/scripts/cross-pollinate.mjs": true,
     "plugins/lisa/scripts/design-source-gate.mjs": true,
     "plugins/lisa/scripts/doctor-report.mjs": true,
@@ -7486,6 +7492,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs": true,
     "plugins/src/base/scripts/automation-status-report.mjs": true,
     "plugins/src/base/scripts/automation-status-run-history.mjs": true,
+    "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/src/base/scripts/cross-pollinate.mjs": true,
     "plugins/src/base/scripts/design-source-gate.mjs": true,
     "plugins/src/base/scripts/doctor-report.mjs": true,
@@ -9183,6 +9190,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automation-status-report-rendering.test.ts": true,
     "tests/unit/strategies/automation-status-run-history.test.ts": true,
     "tests/unit/strategies/automation-status-scaffold.test.ts": true,
+    "tests/unit/strategies/automation-status-unrecorded-runs.test.ts": true,
     "tests/unit/strategies/automations-retirement.test.ts": true,
     "tests/unit/strategies/automations-skills.test.ts": true,
     "tests/unit/strategies/bce-parity-and-consumption.test.ts": true,
