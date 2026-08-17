@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
 import { readJsonOrNull } from "../utils/json-utils.js";
+import { GENERATED_PATH_PREFIXES } from "./generated-paths.js";
 import type {
   Migration,
   MigrationContext,
@@ -18,7 +19,9 @@ const OXLINTRC = ".oxlintrc.json";
  * without asking. Hosts never hand-edit these — they layer their own rules in
  * `.oxlintrc.json`, which stays host-owned.
  */
-const VENDOR_DIR = ".lisa/lisa-oxlint";
+// Single source of truth, shared with the managed-file hook so a guard and a
+// migration can never disagree about what apply regenerates.
+const VENDOR_DIR = GENERATED_PATH_PREFIXES[0] as string;
 
 /** `extends` prefix that points at a vendored config. */
 const VENDOR_PREFIX = `./${VENDOR_DIR}/`;
