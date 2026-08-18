@@ -158,51 +158,71 @@ module.exports = {
     // Check for required files in the directory (only once per directory)
     // We'll do this check only for the first file we encounter
     const cache = new Map();
-    const checkRequiredFiles = () => {
-      try {
-        const files = cache.has(dirPath)
-          ? cache.get(dirPath)
-          : (() => {
-              const dirFiles = fs.readdirSync(dirPath);
-              cache.set(dirPath, dirFiles);
-              return dirFiles;
-            })();
-        const hasContainer = files.some(
-          f =>
-            f === `${componentName}Container.tsx` ||
-            f === `${componentName}Container.jsx`
-        );
-        const hasView = files.some(
-          f =>
-            f === `${componentName}View.tsx` || f === `${componentName}View.jsx`
-        );
-        const hasIndex = files.some(
-          f => f === "index.ts" || f === "index.tsx" || f === "index.jsx"
-        );
 
-        if (!hasContainer) {
-          context.report({
-            node: context.getSourceCode().ast,
-            messageId: "missingContainer",
-            data: { componentName },
-          });
-        }
-        if (!hasView) {
-          context.report({
-            node: context.getSourceCode().ast,
-            messageId: "missingView",
-            data: { componentName },
-          });
-        }
-        if (!hasIndex) {
-          context.report({
-            node: context.getSourceCode().ast,
-            messageId: "missingIndex",
-            data: { componentName },
-          });
-        }
-      } catch (_err) {
-        // Directory might not exist or be accessible
+    /**
+     * List the component directory, or return null when there is no directory
+     * to list.
+     *
+     * The previous form wrapped this read AND every `context.report` call below
+     * in one bare `catch (_err) {}`. That swallowed three different things
+     * behind one comment: a missing directory (expected), an unreadable one
+     * (EACCES/EMFILE — the check could not run), and any error thrown by the
+     * reporting calls themselves (the rule is broken). Only the first is
+     * "nothing to check"; the other two made a rule that could not run
+     * indistinguishable from a rule that found nothing wrong.
+     * @returns {string[]|null} Directory entries, or null when absent
+     */
+    const readComponentDir = () => {
+      if (cache.has(dirPath)) return cache.get(dirPath);
+      try {
+        const dirFiles = fs.readdirSync(dirPath);
+        cache.set(dirPath, dirFiles);
+        return dirFiles;
+      } catch (error) {
+        // A path that is not a directory is the one genuinely uninteresting
+        // case: there is nothing to check. Anything else means the check did
+        // not run, and must not be reported as a clean result.
+        if (error.code === "ENOENT" || error.code === "ENOTDIR") return null;
+        throw error;
+      }
+    };
+
+    const checkRequiredFiles = () => {
+      const files = readComponentDir();
+      if (files === null) return;
+      const hasContainer = files.some(
+        f =>
+          f === `${componentName}Container.tsx` ||
+          f === `${componentName}Container.jsx`
+      );
+      const hasView = files.some(
+        f =>
+          f === `${componentName}View.tsx` || f === `${componentName}View.jsx`
+      );
+      const hasIndex = files.some(
+        f => f === "index.ts" || f === "index.tsx" || f === "index.jsx"
+      );
+
+      if (!hasContainer) {
+        context.report({
+          node: context.getSourceCode().ast,
+          messageId: "missingContainer",
+          data: { componentName },
+        });
+      }
+      if (!hasView) {
+        context.report({
+          node: context.getSourceCode().ast,
+          messageId: "missingView",
+          data: { componentName },
+        });
+      }
+      if (!hasIndex) {
+        context.report({
+          node: context.getSourceCode().ast,
+          messageId: "missingIndex",
+          data: { componentName },
+        });
       }
     };
 
