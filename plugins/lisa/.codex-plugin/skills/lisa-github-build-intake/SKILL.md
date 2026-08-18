@@ -110,7 +110,7 @@ The only legitimate reasons to stop early:
 
 - Missing repo or required configuration. Surface the missing value and exit.
 - Label namespace not adopted (no issue carries any of `$READY` / `$CLAIMED` / `$DONE`). Surface a label-convention error and exit (this is setup, not a normal idle cycle — see "Adoption" at the bottom).
-- Empty ready set. Exit cleanly with `"No GitHub issues labeled $READY in <org>/<repo>. Nothing to do."`
+- Empty pre-work set. Exit cleanly on the denominator-stated summary from `summarizeDryLane` — which names every lane swept, its count, and the open total. A bare "nothing to do" is not an acceptable exit: it is indistinguishable from a wrong denominator (#2657).
 
 ## Lifecycle assumed
 
@@ -166,7 +166,57 @@ gh label list --repo <org>/<repo> --json name \
       '[.[] | .name | select(. == $r or . == $c or (. as $n | $d | index($n)))] | length'
 ```
 
-If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue matching the resolved assignee filter (or any open issue when the filter is empty) → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
+If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit.
+
+#### 2a. Sweep every pre-work lane, and state the denominator
+
+GitHub Issues has no state-type field, so labels are the only lane available here — a constraint of
+GitHub's data model, not a preference (see "Why labels" above). That makes the omission risk
+*higher*, not lower: there is no `type` to fall back on, so the pre-work set must be derived from
+**configured roles**, never from a hardcoded roster of label names. The pre-work lanes are:
+
+- the configured `$READY` label — the human-flipped lane, worked first;
+- the configured `$BLOCKED` label (`github.labels.build.blocked`) — items that were *never started*,
+  each carrying a written blocker that nothing re-read until Phase 2.5;
+- open issues carrying **no** build role label — which this scanner must see anyway in order to
+  determine and stamp their repo.
+
+Count each lane and the repo's **total open** count (`gh issue list --state open --limit 1000 --json
+number | jq length`), then build the denominator with the shared helper — GitHub callers pass the
+lane type explicitly, since there is none to read:
+
+```text
+buildIntakeDenominator({ lanes: [{name: "$READY", type: "unstarted", count: <n>},
+                                 {name: "$BLOCKED", type: "unstarted", count: <n>},
+                                 {name: "(no role label)", type: "backlog", count: <n>},
+                                 {name: "$CLAIMED", type: "started", count: <n>}, …],
+                         totalOpen: <open issue count> })
+summarizeDryLane(denominator, { queue: "<org>/<repo>" })
+```
+
+Every candidate outside `$READY` must clear Phase 2.5 before it is treated as a candidate at all. If
+nothing survives, exit on the denominator-stated summary from `summarizeDryLane` — never a bare
+"nothing to do". The run recorder rejects a dry build-intake run that does not name what it swept
+(see `automation-runbook-contract`).
+
+#### 2a.1 Re-probe the blockers instead of inheriting them
+
+A blocker is a **claim with a timestamp, not a fact** — it goes stale the moment its condition comes
+true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
+
+1. **Human gate first, and it is absolute.** An issue carrying the configured human-needed label
+   (`github.labels.build.human_needed`, default `human-needed`) or a `[lisa-human-gate]` marker in
+   its body is **never** auto-selected, whatever any probe says.
+2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
+   version on trunk, a published package, a CI run history, an advisory's patched status — rot
+   fastest and are cheapest to check. A human decision is not machine-testable; leave it.
+3. **Classify with `classifyPreWorkCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`. A
+   discharge with no recorded evidence is not a discharge, and neither is a candidate nothing
+   probed this cycle — the helper refuses both.
+4. **Record the result on the issue either way** via `formatReprobeNote(...)` as a comment, so the
+   next cycle reads the answer rather than re-deriving it. Keep it idempotent.
+5. **On `selectable: true`**, relabel `$BLOCKED → $READY` with the discharging evidence in the same
+   comment, and treat it as an ordinary candidate. On anything else, leave it where it is.
 
 #### 2b. Lifecycle-label trust resolution (bot-authored labels are not signals)
 
@@ -251,7 +301,7 @@ GitHub Issues live in one repo by definition, so the scanned repo's issues are u
    - **Container visibility is allowed.** A multi-repo Epic / Story / Spike may legitimately carry multiple `repo:<name>` labels for operator visibility. Do not split or claim it here; leave the repo markers intact and fall through to the leaf-only gate, which repairs the stale build-ready label instead of dispatching the container.
    - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
    - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
-4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready issues for repo <current>. Nothing to do."`.
+4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the candidate set is exhausted — exit cleanly on the denominator-stated summary, naming the current repo alongside the swept lanes.
 
 #### 3a. Leaf-only claim gate (repair containers)
 
