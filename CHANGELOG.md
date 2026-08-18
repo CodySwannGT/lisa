@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.7](https://github.com/CodySwannGT/lisa/compare/v3.33.6...v3.33.7) (2026-08-18)
+
+
+### Bug Fixes
+
+* **work-item:** make the ticket-side backlink an executable step ([fca373f](https://github.com/CodySwannGT/lisa/commit/fca373f79c56a7600b2674a4331a02464eeb3e2b)), closes [CodySwannGT/lisa#2687](https://github.com/CodySwannGT/lisa/issues/2687) [CodySwannGT/lisa#2687](https://github.com/CodySwannGT/lisa/issues/2687)
+
 ### [3.33.6](https://github.com/CodySwannGT/lisa/compare/v3.33.5...v3.33.6) (2026-08-18)
 
 
