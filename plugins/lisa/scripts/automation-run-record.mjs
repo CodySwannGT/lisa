@@ -11,6 +11,8 @@ import path from "node:path";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { assertDenominatorReported } from "./intake-prework-denominator.mjs";
+
 export const AUTOMATION_RUN_OUTCOMES = [
   "nothing-needed",
   "candidate-proposed",
@@ -59,6 +61,15 @@ export const DEFAULT_AUTOMATION_RUN_HISTORY_MAX_ENTRIES = 50;
  * @returns {Promise<{ readonly path: string, readonly record: AutomationRunRecord, readonly records: readonly AutomationRunRecord[], readonly appended: boolean, readonly skippedCorruptLines: number, readonly maxEntries: number }>}
  */
 export async function recordAutomationRun(input) {
+  // Write path only. Stored rows are re-validated on read through
+  // `validateStoredRecord`, and a history written before this contract existed
+  // must stay readable — so the denominator gate lives here, where a NEW row is
+  // minted, and never on the read path.
+  assertDenominatorReported({
+    loopId: input.loopId,
+    outcome: input.outcome,
+    denominator: input.extras?.denominator,
+  });
   const projectRoot = path.resolve(input.projectRoot ?? process.cwd());
   const maxEntries =
     input.maxEntries ??
@@ -380,14 +391,19 @@ async function writeJsonlAtomically(filePath, lines) {
 const CLI_USAGE = `Usage: node automation-run-record.mjs \\
   --loop-id <slug> --outcome <${AUTOMATION_RUN_OUTCOMES.join("|")}> \\
   --summary "<operator-readable one-liner>" --runbook <path> \\
-  [--ref <url>]... [--run-id <id>] [--project-root <dir>]`;
+  [--ref <url>]... [--run-id <id>] [--project-root <dir>] \\
+  [--denominator '<json from buildIntakeDenominator()>']
+
+--denominator is REQUIRED for a "nothing-needed" run on a build-intake loop: a
+dry lane that does not say which lanes it looked in cannot be checked.`;
 
 /**
  * Translate a repeatable-flag argv into a {@link RecordAutomationRunInput}.
  *
  * Every flag takes a following value; `--ref` may repeat and accumulates into
- * `refs`. Unknown flags and value-less flags throw so a typo never silently
- * records the wrong thing.
+ * `refs`, and `--denominator` carries the swept-lane JSON into `extras`.
+ * Unknown flags and value-less flags throw so a typo never silently records the
+ * wrong thing.
  *
  * @param {readonly string[]} argv
  * @returns {RecordAutomationRunInput}
@@ -397,6 +413,8 @@ function parseAutomationRunRecordArgv(argv) {
   const single = {};
   /** @type {string[]} */
   const refs = [];
+  /** @type {Record<string, unknown>} */
+  const extras = {};
   const flags = {
     "--loop-id": "loopId",
     "--outcome": "outcome",
@@ -426,6 +444,10 @@ function parseAutomationRunRecordArgv(argv) {
       refs.push(takeValue());
       continue;
     }
+    if (flag === "--denominator") {
+      extras.denominator = parseDenominatorFlag(takeValue());
+      continue;
+    }
     const key = flags[flag];
     if (!key) {
       throw new Error(`Unknown flag "${flag}".`);
@@ -433,7 +455,21 @@ function parseAutomationRunRecordArgv(argv) {
     single[key] = takeValue();
   }
 
-  return { ...single, refs };
+  return { ...single, refs, extras };
+}
+
+/**
+ * @param {string} value
+ * @returns {unknown}
+ */
+function parseDenominatorFlag(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new Error(
+      "--denominator must be JSON produced by buildIntakeDenominator()."
+    );
+  }
 }
 
 /**
