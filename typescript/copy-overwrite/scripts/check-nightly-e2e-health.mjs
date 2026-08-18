@@ -426,7 +426,9 @@ function validateMatch(match, where) {
     try {
       // No `g` flag, ever: a sticky lastIndex makes repeated .test() calls
       // return alternating answers, which reads as an intermittent gate.
-      void new RegExp(pattern);
+      // Compiling IS the assertion — an invalid pattern throws right here — so
+      // the result is deliberately unused.
+      const _compiled = new RegExp(pattern);
     } catch (error) {
       throw new GateConfigError(
         `${where}: \`match.pattern\` does not compile: ${error instanceof Error ? error.message : String(error)}`
@@ -1550,6 +1552,9 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/** GitHub's remaining-quota response header, read from three call sites. */
+const RATELIMIT_REMAINING_HEADER = "x-ratelimit-remaining";
+
 /**
  * How long to wait before retrying a throttled response, bounded.
  *
@@ -1563,7 +1568,7 @@ export function retryDelayMs(response, attempt, maxSeconds) {
   if (Number.isFinite(retryAfter) && retryAfter > 0) {
     return Math.min(retryAfter, maxSeconds) * 1000;
   }
-  const remaining = response.headers?.get?.("x-ratelimit-remaining");
+  const remaining = response.headers?.get?.(RATELIMIT_REMAINING_HEADER);
   const reset = Number(response.headers?.get?.("x-ratelimit-reset"));
   if (remaining === "0" && Number.isFinite(reset)) {
     const seconds = Math.max(0, reset - Math.floor(Date.now() / 1000));
@@ -1613,7 +1618,7 @@ export async function apiGet(api, path, wait = sleep) {
     // 401/403 without rate-limit headers is an auth problem: retrying cannot
     // fix a token that is not allowed to read run history, so fail immediately
     // with a message that names the fix.
-    const remaining = response.headers?.get?.("x-ratelimit-remaining");
+    const remaining = response.headers?.get?.(RATELIMIT_REMAINING_HEADER);
     const throttled =
       response.status === 429 || (response.status === 403 && remaining === "0");
     if ((response.status === 401 || response.status === 403) && !throttled) {
@@ -1782,7 +1787,7 @@ export async function apiWrite(api, method, path, payload, wait = sleep) {
       continue;
     }
     if (response.ok) return await response.json();
-    const remaining = response.headers?.get?.("x-ratelimit-remaining");
+    const remaining = response.headers?.get?.(RATELIMIT_REMAINING_HEADER);
     const throttled =
       response.status === 429 || (response.status === 403 && remaining === "0");
     if ((response.status === 401 || response.status === 403) && !throttled) {

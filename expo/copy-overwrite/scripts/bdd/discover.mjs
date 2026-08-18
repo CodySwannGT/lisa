@@ -69,6 +69,12 @@ export function isUnderPrefix(relative, prefix) {
  */
 const defect = (code, message, subject) => ({ code, message, subject });
 
+/** Defect / evidence code, named once. */
+const CALL_TITLE = "call-title";
+
+/** Defect / evidence code, named once. */
+const EXCLUSION_STALE = "exclusion-stale";
+
 /**
  * The evidence grammars a project may choose from, as SOURCE CONSTANTS.
  *
@@ -78,7 +84,7 @@ const defect = (code, message, subject) => ({ code, message, subject });
  * (`test("...")`, `it.skip('...')`); `line-field` reads a leading document
  * field (`name: ...`), which is how flow-style runners title a file.
  */
-export const EVIDENCE_KINDS = Object.freeze(["call-title", "line-field"]);
+export const EVIDENCE_KINDS = Object.freeze([CALL_TITLE, "line-field"]);
 
 /** A JavaScript identifier, the only shape a declared function name may take. */
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -176,7 +182,7 @@ function evidenceProblems(evidence) {
       `evidence.kind ${JSON.stringify(evidence.kind)} is not one of ${EVIDENCE_KINDS.join(", ")}`,
     ];
   }
-  if (evidence.kind === "call-title") {
+  if (evidence.kind === CALL_TITLE) {
     return isListOf(
       evidence.functions,
       entry => typeof entry === "string" && IDENTIFIER.test(entry)
@@ -316,7 +322,7 @@ function discoverRunner({ root, runner, config, contract }) {
  * @returns {{evidence: string|null, dynamic: boolean}[]} Discovered entries.
  */
 function extract(source, evidence) {
-  return evidence.kind === "call-title"
+  return evidence.kind === CALL_TITLE
     ? callTitles(source, evidence.functions)
     : lineField(source, evidence.field);
 }
@@ -485,7 +491,7 @@ function exclusionStale({ root, exclusion, discovery, at, subject }) {
   if (!resolved.path) {
     return [
       defect(
-        "exclusion-stale",
+        EXCLUSION_STALE,
         `${at}: ${exclusion.file} — ${resolved.error}; retire the exclusion or restore the file`,
         subject
       ),
@@ -494,7 +500,7 @@ function exclusionStale({ root, exclusion, discovery, at, subject }) {
   if (!discovery.roots.some(entry => isUnderPrefix(exclusion.file, entry))) {
     return [
       defect(
-        "exclusion-stale",
+        EXCLUSION_STALE,
         `${at}: ${exclusion.file} is covered by no configured discovery root (${discovery.roots.map(entry => entry || ".").join(", ") || "none declared"}), so the exclusion suppresses nothing`,
         subject
       ),
@@ -504,7 +510,7 @@ function exclusionStale({ root, exclusion, discovery, at, subject }) {
     ? []
     : [
         defect(
-          "exclusion-stale",
+          EXCLUSION_STALE,
           `${at}: no discovered test in ${exclusion.file} matches ${JSON.stringify(exclusion.evidence)}`,
           subject
         ),

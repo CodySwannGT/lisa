@@ -7,7 +7,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "8104ccd32d7e6137cae706511c5037d11d6b6045b8e2a9bb7b3a48a81c053cfa",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
-      "96599f9cf25d7d96afc82a92c477ca851e3fa1f918a06a5b81a29dd1b0039f38",
+      "301fe3270dc41bf9e984413a1f2967d64d8e008c8cdcf291a23ebf0fd7c69f4e",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "1ac3180f7a8f777f6be0d90043d4396ec96589168b43fc7128eeec750aa9aef9",
+      "49f37c7e896df0c43c07827b02bbecc570cccf3c27b2f7741ed53dc139a7824c",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "d078570b2a7964eb481cd05e118e2a6559968020392c6e570d90cec8f20c5487",
+      "0978ac24f28bf9f11230781d271997384009b1528ed61de523333e52a5a4cf57",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -183,13 +183,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "b19d0c177d8d0460779e07043c92d37555e7721224b6b2134ac2f6d10ab44b33",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "97473cebb89562115320cb9154fb834e671deafea74ea52d34e0bc1511db3ee6",
+      "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
+      "46623802056b8d66e7d07515bb3e990f448d7c5c1b40971a730bdeb0f63ba760",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "2e5aade29ad47b4924d446e168631f4296d5e4f92b2daedbc2b6d9e9bf241eaf",
+      "5c4040c3ceeba6c23b46f7b1251a08f1900c6fe9614c651eaaa306f1d92cc2e7",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "2b44e2baffd2bde541c95ed267f4a6962b421e3e7d2723d5f4660f8829c19645",
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
@@ -203,11 +203,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
       "82e89c8af789705cb992768510d1c23f84471bbca3028b3a07b577f10cfb26bf",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
-      "4b62574a0d59476f050c704888e114ce7baae6c996bb3a2b043c168f74823490",
+      "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "19cbbd7d368a99457212f2e1f9b37e6352cab6d459eb7dd11adb154f0c627c84",
+      "ec556af49f46b02441e59da66b828fb3f2a0f03b6ef16130e43e6d31d119bf5d",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "d45b4545e4608f34d8cc95d03ff6fe174c54836f22679c9804cc83e89812a938",
+      "43558ba985967a3710e75361845afa987e84b17dbc264bb3ff68d8bfdf463318",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -2103,7 +2103,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/build-plugins.sh":
       "00a3207bb5a485bfee80fb71be6e9577979fd156b15a85517e88a2f9261bc9f4",
     "scripts/check-conflict-markers.mjs":
-      "78c286ed6d7cce3a030fd7561fbe6285e2051d34540640f016b86ef89e3fb08b",
+      "3a2ab8dde9deab3e8ee750d5678b6653751abad2eb8f961500585ba38f502047",
     "scripts/check-derived-artifacts.mjs":
       "1a35cc935515d29f0223a87d56dbfd5537aba19162d9d20e70fce8255688b76f",
     "scripts/check-duplicate-versions.mjs":
@@ -2113,7 +2113,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
-      "f644f0feb246f36a79efaa6b820409605c637813e158aea425982b863bb6ed7c",
+      "3f1e8915dc9a467f16ca74cc016d6cd0216c6c790573f44886b41afbb829a269",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
@@ -2137,25 +2137,25 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-opencode-plugin-templates.mjs":
       "bef79103c293b73d7c37e8a8c9fa1b4f1f2e53367898a6326b12f8a0ba8ddc43",
     "scripts/detect-stale-workflow-inputs.mjs":
-      "2f398b3179724dea0d3b777ca459912aea3fc53349d4bee476d598eb3b3676c1",
+      "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
     "scripts/fix-namespace-test-assertions.mjs":
-      "bfed6f27753660b38457c3f0a032a6c866691666d2d5d61fc10c3fb2f4f4f412",
+      "b083f7de09c10402d92730320d1ffb958d6fa17d058aad5230350986a1a61adf",
     "scripts/fix-test-assertions-pass2.mjs":
       "baca043a291120ff52ce61c06397206dc21ca3bef9c23a5975b9c1f896d963c7",
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "55328577509da3bb47c5a775ecbac6063a94b4ba52adf71d3de9322600a336c3",
+      "a952d25eeb83aa21d71ea7e46c7ba06c8c1ecd0fcf25a734900728191ce52105",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "1d1a362afb8dba408741a3eed9fe583296f6bcb048608979f73f359cd609c03d",
+      "96df6b67d4dad87a2277b90463ed15cef96bf20e641f31a35ff346522b0dc383",
     "scripts/generate-copilot-plugin-artifacts.mjs":
-      "2e5ce9a9f7390149bd3c24374960a51bda35afd1332cd2ad82a34bc0d50b8f50",
+      "7af923118c49101e6ba46da73a8eee8aee9b797e074618aa5345913e638d7cdb",
     "scripts/generate-cursor-plugin-artifacts.mjs":
-      "19cadeae80428a932d9f7a6d36eba4f14e95761ede26ab773ca26bfbeaa9252e",
+      "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "4e7a6dd9325fff77faec49c1dcbf8a8cfeb987052eeed89885deb4f7b0a107bc",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "e1f0485918ab8a2206e8200f297acb495400f321bed5d31d3f60f8da11d8fdc6",
+      "005ff3ef61e63aab9ed466a3e545df5e8f46e369fdcff94b6e7723161148bc82",
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
@@ -2183,7 +2183,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-assert-eas-profile.mjs":
-      "55ecce59ea74c06c2f6cfde254ab9e9b8a5eb3c7d944e9770fe067335720c82c",
+      "ad528461325b785cffd8b587dda6dd72052d1fea2f76256f6d8de1a8bd1ba03f",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
@@ -2207,9 +2207,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "3f8dea8027087b83d0f985dc070a529b5e62755643d946684d780b86c498a411",
     "scripts/plugin-parity-drift.mjs":
-      "d3aa919d721a5ab6f475133a49fd5b7ca86b6ae1dfd5b6443039ce04eb3d6f77",
+      "d53dc9b1f60bbfe0de64ade5f205d4222cf7959f40073cd8e8928c36339994e8",
     "scripts/plugin-routing-validate.mjs":
-      "e4278b4fb12d33c2043dc9d987d8995dbff6efb23151f57a2b7423ae3c777bcc",
+      "72c7dbaa23fbe30795da396f728585412db8adc543769c8a80eb3d790c678b0f",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/remote-agent-aws-setup.sh":
@@ -2219,17 +2219,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/update-node-version.ts":
-      "a286750ac2006dd84209bb713e85f994d8d15d9bb596ec3e287a187672e5072d",
+      "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":
-      "3c064ad162fa633efcaa91327746157bc046cabd1c030b8bfa17227fed077200",
+      "0681576a7fdaf571ed9ee870f6475b4bf921ebb9a3b1eb8f1bc9db9551683c3b",
     "scripts/verify-health-consumer-built.mjs":
-      "8b65689a1fa38d9fc2e73b52433408ce19648b8504f80a174b7b7ac97ec42bae",
+      "f6cc2a931bd6812fd82a2b518ea1fba074633cc100710409c945190dc1092333",
     "scripts/verify-health-contract-built.mjs":
       "5ebfec9b8a0e3004a5af65d2f2515526f7ff5817e61ae30042fb8be40d8f8d17",
     "scripts/verify-health-deterministic-built.mjs":
-      "1e5c5cfc56ca5177691da2f9c73e4151de7b232b603824f5041f0d5d690113fa",
+      "0141da2227297d613c5e695abcb4d94d410409980b52d16104787a998035ad21",
     "scripts/verify-learner-frontmatter-built.mjs":
       "182e5e99f52257d3079ee1bc42b45c3dcca8b93a968205ddb3f3af26f2558b47",
     "tsconfig/base.json":
@@ -2301,13 +2301,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.config.ts":
       "1a2f6eb5dd19a7dfc445c61bac8bd08a5f8908f023655c920aff08b633b30fb6",
     "typescript/copy-overwrite/eslint.ignore.config.json":
-      "04dcd754829cf93bf0ba0d76e4031d28cb7149afa658575d02bb13bf73f7880e",
+      "ca6a5cc3de7e5505fc824d3d367ae0ef30d0e8d9636e59619af14f6162462b2c",
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "191608d272178a8fd3126d5b3e4923fadb50e01b699d0376625248d541b14f50",
+      "6936f204ffa2506ea9ae5a06fc93a31a55523e312c6e7321a9f13fc45a825427",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -2317,7 +2317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
+      "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "9fbef6f8740714f521d8b997308d96492e9158b1221d654333316f2cf7b48445",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -8831,6 +8831,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
+    "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,

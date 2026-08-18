@@ -152,7 +152,13 @@ export function cacheMaxVersion(cacheRoot, name, marketplace) {
   if (versions.length === 0) {
     return null;
   }
-  return versions.reduce((acc, v) => (compareSemver(v, acc) > 0 ? v : acc));
+  // `versions` is non-empty (guarded above), so seeding with the first element
+  // is exactly what the no-seed form did — and it cannot throw if that guard is
+  // ever moved.
+  return versions.reduce(
+    (acc, v) => (compareSemver(v, acc) > 0 ? v : acc),
+    versions[0]
+  );
 }
 
 /**
@@ -553,7 +559,7 @@ function humanReport(report) {
  */
 function emitReport(out, report, json) {
   out.write(
-    (json ? JSON.stringify(report, null, 2) : humanReport(report)) + "\n"
+    `${json ? JSON.stringify(report, null, 2) : humanReport(report)}\n`
   );
 }
 

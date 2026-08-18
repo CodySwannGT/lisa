@@ -65,4 +65,15 @@ export default [
       ],
     },
   },
+  {
+    // The block above is global, and a project-local config is spread AFTER the
+    // Lisa factory — so it silently re-enabled a rule the shipped scripts
+    // profile turns off for `scripts/**`. Re-apply the shipped decision here.
+    // A maintenance script is one linear procedure; declaration-order rules are
+    // tuned for composed application modules.
+    files: ["scripts/**", "**/scripts/**"],
+    rules: {
+      "code-organization/enforce-statement-order": "off",
+    },
+  },
 ];

@@ -231,9 +231,7 @@ function humanTable(report) {
  * @returns {void}
  */
 function emitReport(out, report, json) {
-  out.write(
-    (json ? JSON.stringify(report, null, 2) : humanTable(report)) + "\n"
-  );
+  out.write(`${json ? JSON.stringify(report, null, 2) : humanTable(report)}\n`);
 }
 
 /**

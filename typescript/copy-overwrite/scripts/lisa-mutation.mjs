@@ -120,9 +120,7 @@ try {
 
 if (changed.length === 0) {
   console.log(
-    "⚪ Mutation gate: no changed source files vs " +
-      since +
-      ". Nothing to mutate."
+    `⚪ Mutation gate: no changed source files vs ${since}. Nothing to mutate.`
   );
   process.exit(0);
 }
