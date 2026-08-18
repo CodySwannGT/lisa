@@ -26,6 +26,14 @@ const RELEASE_SUBJECT =
 const ZERO_OID = /^0+$/;
 const MARKER = "[lisa-pr-link]";
 /**
+ * The command that establishes the ticket-side backlink.
+ *
+ * Named in every refusal that the backlink is missing. A validator that
+ * reports "no verified backlink" without the remedy sends the reader looking
+ * for a producer that, until this command existed, was prose in a SKILL.md.
+ */
+const BACKLINK_COMMAND = "node scripts/lisa-work-item.mjs backlink";
+/**
  * The prefix only — an anchored, fixed-length literal with no quantifier, so
  * it cannot backtrack. The ReDoS was never here; it was in the `\s*(.+?)\s*$`
  * tail, which is now string work.
@@ -1217,6 +1225,247 @@ export function textContainsBacklink(value, prUrl) {
   return false;
 }
 
+/**
+ * The managed backlink comment's body.
+ *
+ * One line, and the whole body — so establishing the backlink is a whole-body
+ * replace rather than an append, which is what makes a rerun converge instead
+ * of accumulating. Nothing else is carried here on purpose: the milestone and
+ * the merge SHA belong to the vendor sync skills' progress notes, and putting
+ * them in this body would make every rerun a content change.
+ * @param {string} prUrl Pull request URL.
+ * @returns {string} The comment body.
+ */
+function backlinkBody(prUrl) {
+  return `${MARKER} ${prUrl}`;
+}
+
+/**
+ * Whether a comment payload is Lisa's managed backlink comment.
+ *
+ * Shape-agnostic deliberately: GitHub and Linear return a plain string body,
+ * Jira returns an Atlassian Document Format tree. Serialising covers all three
+ * without a per-provider walker, and the marker is distinctive enough that a
+ * false positive would have to be a comment quoting it verbatim — which is
+ * still Lisa's comment to reuse rather than a second one to add.
+ * @param {unknown} body Comment body in whatever shape the provider returned.
+ * @returns {boolean} True when this is the managed comment.
+ */
+function carriesMarker(body) {
+  return JSON.stringify(body ?? "").includes(MARKER);
+}
+
+/**
+ * Establish the backlink on a GitHub issue.
+ * @param {string} ref Canonical `owner/repo#number` reference.
+ * @param {string} prUrl Pull request URL.
+ * @returns {string} What changed: created, updated, or unchanged.
+ */
+function githubBacklink(ref, prUrl) {
+  const [repository, number] = ref.split("#");
+  const listing = run(
+    "gh",
+    [
+      "api",
+      "--paginate",
+      `repos/${repository}/issues/${number}/comments?per_page=100`,
+    ],
+    { allowFailure: true }
+  );
+  if (listing.status !== 0) throw githubFailure(listing, ref);
+  const comments = safeJson(listing.stdout, `GitHub comments on ${ref}`);
+  const managed = (Array.isArray(comments) ? comments : []).find(comment =>
+    carriesMarker(comment?.body)
+  );
+  const body = backlinkBody(prUrl);
+  if (managed && managed.body === body) return "unchanged";
+  const [method, endpoint] = managed
+    ? ["PATCH", `repos/${repository}/issues/comments/${managed.id}`]
+    : ["POST", `repos/${repository}/issues/${number}/comments`];
+  run("gh", ["api", "--method", method, endpoint, "--field", `body=${body}`], {
+    error: `could not write the backlink comment on ${ref}`,
+  });
+  return managed ? "updated" : "created";
+}
+
+/**
+ * Send one Linear GraphQL document, refusing on either failure surface.
+ *
+ * GraphQL answers an invalid mutation with HTTP 200 and an `errors` array, so
+ * a status-only check reports success for a comment that was never written.
+ * @param {string} token Linear API key.
+ * @param {string} query The document.
+ * @param {object} variables Its variables.
+ * @param {string} context What the call was for, for the message.
+ * @returns {object} The `data` payload.
+ */
+function linearGraphql(token, query, variables, context) {
+  const result = secureCurl(
+    ["https://api.linear.app/graphql"],
+    [
+      ["request", "POST"],
+      ["header", "Content-Type: application/json"],
+      ["header", `Authorization: ${token}`],
+      ["data-binary", JSON.stringify({ query, variables })],
+    ],
+    { allowFailure: true }
+  );
+  if (result.status !== 0) throw new TrackingError(`${context} failed`);
+  const response = safeJson(result.stdout, context);
+  if (Array.isArray(response.errors) && response.errors.length > 0)
+    throw new TrackingError(
+      `${context} failed: ${response.errors[0]?.message}`
+    );
+  return response.data ?? {};
+}
+
+/**
+ * Establish the backlink on a Linear issue.
+ * @param {string} ref Canonical `KEY-123` identifier.
+ * @param {string} prUrl Pull request URL.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} What changed: created, updated, or unchanged.
+ */
+function linearBacklink(ref, prUrl, contract) {
+  const token = readLinearKey(contract.workspace);
+  if (!token)
+    throw new TrackingError(
+      "writing a Linear backlink requires LINEAR_API_KEY or a lisa-linear keychain entry"
+    );
+  const issue = linearGraphql(
+    token,
+    "query($id:String!){issue(id:$id){id comments{nodes{id body}}}}",
+    { id: ref },
+    `Linear issue ${ref} lookup`
+  ).issue;
+  if (!issue?.id)
+    throw new TrackingError(
+      `Linear issue ${ref} does not exist or is inaccessible`
+    );
+  const managed = (issue.comments?.nodes ?? []).find(comment =>
+    carriesMarker(comment?.body)
+  );
+  const body = backlinkBody(prUrl);
+  if (managed && managed.body === body) return "unchanged";
+  if (managed) {
+    linearGraphql(
+      token,
+      "mutation($id:String!,$body:String!){commentUpdate(id:$id,input:{body:$body}){success}}",
+      { body, id: managed.id },
+      `Linear backlink update on ${ref}`
+    );
+    return "updated";
+  }
+  linearGraphql(
+    token,
+    "mutation($id:String!,$body:String!){commentCreate(input:{issueId:$id,body:$body}){success}}",
+    { body, id: issue.id },
+    `Linear backlink comment on ${ref}`
+  );
+  return "created";
+}
+
+/**
+ * The managed comment as an Atlassian Document Format tree.
+ *
+ * A single text node, so the marker and the URL land in one string — which is
+ * what `textContainsBacklink` walks the tree looking for. Splitting them across
+ * nodes would write a comment the reader accepts visually and the check
+ * rejects.
+ * @param {string} prUrl Pull request URL.
+ * @returns {object} The ADF document.
+ */
+function jiraCommentDocument(prUrl) {
+  return {
+    content: [
+      {
+        content: [{ text: backlinkBody(prUrl), type: "text" }],
+        type: "paragraph",
+      },
+    ],
+    type: "doc",
+    version: 1,
+  };
+}
+
+/**
+ * Establish the backlink on a Jira ticket.
+ *
+ * Requires API credentials rather than falling back to `acli`: the read path
+ * may degrade to whatever can answer, but a write that silently does not
+ * happen is exactly the failure this command exists to remove.
+ * @param {string} ref Canonical `KEY-123` reference.
+ * @param {string} prUrl Pull request URL.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} What changed: created, updated, or unchanged.
+ */
+function jiraBacklink(ref, prUrl, contract) {
+  const credentials = jiraCredentials(contract);
+  if (!credentials)
+    throw new TrackingError(
+      "writing a Jira backlink requires ATLASSIAN_API_TOKEN/JIRA_API_TOKEN with JIRA_LOGIN and atlassian.cloudId/site"
+    );
+  const issueUrl = `${credentials.baseUrl}/rest/api/3/issue/${encodeURIComponent(ref)}/comment`;
+  const auth = [
+    ["user", `${credentials.login}:${credentials.token}`],
+    ["header", "Accept: application/json"],
+  ];
+  const listing = secureCurl([`${issueUrl}?maxResults=100`], auth, {
+    allowFailure: true,
+  });
+  if (listing.status !== 0)
+    throw new TrackingError(`Jira ticket ${ref} comments are inaccessible`);
+  const existing = safeJson(listing.stdout, `Jira comments on ${ref}`);
+  const managed = (existing.comments ?? []).find(comment =>
+    carriesMarker(comment?.body)
+  );
+  const document = jiraCommentDocument(prUrl);
+  const payload = JSON.stringify({ body: document });
+  if (managed && JSON.stringify(managed.body) === JSON.stringify(document))
+    return "unchanged";
+  secureCurl(
+    [managed ? `${issueUrl}/${encodeURIComponent(managed.id)}` : issueUrl],
+    [
+      ...auth,
+      ["request", managed ? "PUT" : "POST"],
+      ["header", "Content-Type: application/json"],
+      ["data-binary", payload],
+    ],
+    { error: `could not write the backlink comment on ${ref}` }
+  );
+  return managed ? "updated" : "created";
+}
+
+/**
+ * Establish the ticket-side backlink, whatever the tracker.
+ *
+ * This is the producer for the comment `assertBacklink` consumes, and it lives
+ * in this file for that reason: the requirement was documented in a SKILL.md
+ * and enforced here, so nothing executable ever wrote it and a required check
+ * failed on a step no command performed.
+ *
+ * Every provider `assertBacklink` reads is written here. A provider that is
+ * not refuses loudly rather than returning quietly, because a silent no-op
+ * here reproduces the original defect one layer down: the command reports
+ * success and the check still fails.
+ * @param {string} ref Canonical work-item reference.
+ * @param {string} prUrl Pull request URL.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} What changed: created, updated, or unchanged.
+ */
+function postBacklink(ref, prUrl, contract) {
+  if (contract.provider === "github") return githubBacklink(ref, prUrl);
+  if (contract.provider === "linear")
+    return linearBacklink(ref, prUrl, contract);
+  if (contract.provider === "jira") return jiraBacklink(ref, prUrl, contract);
+  throw new TrackingError(
+    `no backlink writer for tracker '${contract.provider}'; ` +
+      `github, jira and linear are supported.\nThe Work-Item Traceability check ` +
+      `reads a managed ${MARKER} comment for this provider, so it cannot pass ` +
+      `until a writer exists here — add one rather than posting by hand.`
+  );
+}
+
 function assertBacklink(
   ref,
   prUrl,
@@ -1502,7 +1751,12 @@ function backlinkAdvice(ref, prUrl, contract) {
     contract.provider === "linear"
       ? `The tracker builds that link from the BRANCH NAME, so a branch carrying no ticket id can never acquire one: no edit to this pull request, its body, or its commits will do it. Fixing it that way needs a NEW branch named for ${ref} and a new pull request from it. `
       : "";
-  return `${branchDerived}The one remedy that needs no new branch is a comment on ${ref} containing: ${MARKER} ${prUrl}`;
+  return (
+    `${branchDerived}The one remedy that needs no new branch is the managed comment ` +
+    `\`${MARKER} ${prUrl}\` on ${ref}. Do not post it by hand — run:\n\n` +
+    `    ${BACKLINK_COMMAND} --ref ${ref} --pr-url ${prUrl}\n\n` +
+    `which creates that comment or updates the existing one, so running it twice is safe`
+  );
 }
 
 /**
@@ -1618,6 +1872,33 @@ function bind(args) {
   validateLive(ref, contract);
   const file = writeState(ref, contract.provider);
   console.log(`work-item bound: ${ref} (${file})`);
+}
+
+/**
+ * Establish the ticket-side backlink for one work item and pull request.
+ *
+ * Idempotent by construction — the writer updates the managed comment it finds
+ * rather than adding a second — so this is safe to run on every push, and safe
+ * to rerun after a failure without inspecting what the last run managed to do.
+ * @param {string[]} args CLI arguments.
+ */
+function backlink(args) {
+  const contract = trackerContract();
+  const supplied = option(args, "--ref", "LISA_WORK_ITEM_REF");
+  const bound = readState(true)?.ref;
+  if (!supplied && !bound) {
+    throw new TrackingError(
+      `${BACKLINK_COMMAND} requires --ref <work-item>, or a worktree binding from \`lisa-work-item.mjs link\``
+    );
+  }
+  const ref = canonicalizeRef(supplied ?? bound, contract);
+  const prUrl =
+    option(args, "--pr-url", "LISA_PR_URL") ??
+    option(args, "--url", "LISA_PR_URL");
+  if (!prUrl)
+    throw new TrackingError(`${BACKLINK_COMMAND} requires --pr-url <url>`);
+  const outcome = postBacklink(ref, prUrl, contract);
+  console.log(`work-item backlink ${outcome} on ${ref}: ${MARKER} ${prUrl}`);
 }
 
 function prepareCommitMessage(args) {
@@ -1755,12 +2036,13 @@ function main() {
     rmSync(statePath(), { force: true });
     return console.log("work-item binding cleared");
   }
+  if (command === "backlink") return backlink(args);
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|backlink|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
