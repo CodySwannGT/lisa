@@ -22,6 +22,7 @@ import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
+import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
 import { STARTERS } from "./starters.js";
@@ -342,6 +343,12 @@ export async function runDoctor(
     await checkApplyFreshness(resolvedTarget),
     checkYamlRuntime(),
     await checkProjectConfig(resolvedTarget),
+    // Immediately after the config check, because it repairs the same file and
+    // an operator reading the output wants both config findings together. It
+    // is mutating: an undeclared gate is ADDED rather than merely reported,
+    // since an undeclared gate means the job never runs and there is no signal
+    // to notice (CodySwannGT/lisa#2677).
+    await checkTraceabilityGate(resolvedTarget),
     await checkKaneProvider(resolvedTarget, deps),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
