@@ -8,7 +8,73 @@ if ! command -v node >/dev/null 2>&1; then
   echo "❌ Push blocked: Node.js is required to validate tracker work items."
   exit 1
 fi
-node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+# ---------------------------------------------------------------------------
+# Work-item traceability, at the push moment.
+#
+# This call used to be unconditional, and it was the last check in either hook
+# that ran outside the gate facade: `gates.traceability` could say `off` and it
+# still ran, could say `required` and nothing changed. That is the defect #2680
+# measured in CI, one moment earlier. The declaration decides now, and this is
+# the FALLBACK:
+#
+#   declared at push, at any level  -> the registry owns the property. The gate
+#                                      runner below runs what the project
+#                                      declared, and this step stands down.
+#   not declared, or the registry
+#   cannot be read at all           -> this runs, exactly as it always has. A
+#                                      project that has declared nothing loses
+#                                      no protection whatsoever.
+#
+# `off` needs no third branch, for the same reason it needed none in CI: an off
+# declaration is still a declaration, the runner records it as covered, and the
+# built-in step stands down having correctly done nothing. What is refused is
+# the shape where this step runs and its exit code is discarded — a check that
+# reports green having proved nothing is the defect the facade exists to remove.
+#
+# WHY THE DECISION IS RESOLVED HERE rather than read from the coverage file the
+# other built-in steps consult. This step must run BEFORE the GIT_* set is
+# unset below, and before anything else reads the hook's stdin, because Git
+# feeds the refs being pushed in on stdin and that is what the validator parses.
+# No coverage file exists this early, so the declaration is resolved directly.
+# That makes deferring only half a decision; the other half is further down,
+# where this runs after all if the registry never actually proved it.
+# ---------------------------------------------------------------------------
+GATE_REGISTRY=""
+for LISA_GATE_REGISTRY_CANDIDATE in \
+  "scripts/lisa-gates.mjs" \
+  "all/copy-overwrite/scripts/lisa-gates.mjs"
+do
+  if [ -f "$LISA_GATE_REGISTRY_CANDIDATE" ]; then
+    GATE_REGISTRY="$LISA_GATE_REGISTRY_CANDIDATE"
+    break
+  fi
+done
+unset LISA_GATE_REGISTRY_CANDIDATE
+
+# Nothing here discards stderr. A resolver that failed and a project that
+# declared nothing produce the same empty answer, and both send this hook to the
+# built-in step — which is the safe direction — but only one of them is a
+# problem somebody needs to see.
+TRACEABILITY_DECLARED=""
+if [ -n "$GATE_REGISTRY" ]; then
+  TRACEABILITY_DECLARED=$(node "$GATE_REGISTRY" list --moment=push --json --include-off | node -e '
+let raw = "";
+process.stdin.on("data", chunk => { raw += chunk }).on("end", () => {
+  try {
+    const declared = JSON.parse(raw || "[]").some(gate => gate.id === "traceability");
+    process.stdout.write(declared ? "declared" : "");
+  } catch (error) {
+    process.stderr.write(`\u26a0\ufe0f  Could not read the gate registry: ${error.message}\n`);
+  }
+});
+')
+fi
+
+if [ "$TRACEABILITY_DECLARED" = "declared" ]; then
+  echo "ℹ️  gates.traceability is declared at push; the gate registry decides what runs."
+else
+  node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+fi
 
 # Git supplies repository-local GIT_* variables to hooks. Keep them for push
 # validation above, then remove exactly Git's documented local set so nested
@@ -110,6 +176,26 @@ lisa_gate_covers() {
 
 # BEGIN: built-in checks — the pre-registry path, kept step for step so a
 # project without a `gates` block behaves exactly as it did before.
+
+# Work-item traceability, when the registry took the property and then proved
+# nothing with it — no runner on disk, a runner that could not run, a coverage
+# file that could not be written. Each of those means nothing was proved, and a
+# declared gate must never be a quieter way of turning a check off than
+# declaring it `off`.
+#
+# A late run is not identical to the early one: the repository-local GIT_*
+# variables are gone by here, and a declared gate that read stdin has already
+# consumed the pushed refs. `validate-push` survives both — with empty stdin it
+# falls back to `git rev-list HEAD --not --remotes=<remote>` — which is what
+# makes a degraded run worth having, and why the early position stays the
+# normal one.
+if lisa_gate_covers traceability; then
+  echo "ℹ️  Covered by the traceability gate; the built-in work-item validation stands down."
+elif [ "$TRACEABILITY_DECLARED" = "declared" ]; then
+  echo "⚠️  gates.traceability is declared at push, but the gate registry proved nothing here."
+  echo "   Running the built-in work-item validation so the property is not lost."
+  node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+fi
 
 # Run the whole-project type check once before code leaves the machine. It is
 # intentionally not a pre-commit gate because TypeScript cannot check only the

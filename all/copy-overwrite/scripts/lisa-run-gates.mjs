@@ -96,6 +96,12 @@ export const BUILTIN_FLOOR = Object.freeze({
     "dependency-vulnerability",
     "test-correctness",
     "test-integration",
+    // The pre-push hook has validated work items on every push since before
+    // this registry existed, and it attempts that step unconditionally — it
+    // resolves a path for the validator and runs it, rather than testing
+    // whether one is wired. That is what puts it on the unconditional list
+    // rather than in `CONDITIONAL_FLOOR`.
+    "traceability",
     "type-correctness",
   ]),
 });
