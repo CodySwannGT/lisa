@@ -306,6 +306,15 @@ to make that a blocking question
 
 A silent green there would be the same reading error one layer up.
 
+**A suite that publishes no counts at all keeps that notice permanently, and
+that is correct rather than a nag to suppress.** A Playwright suite cannot
+satisfy `min_flows` — nothing in it writes a `flowcount` marker — so the gate
+genuinely cannot tell whether it ran two specs or two hundred. The line says so
+and stops short of prescribing an action that suite cannot take. Closing that
+properly means teaching the browser suite to publish its own executed-spec count
+under the same convention, which is a separate change; until then the honest
+report is that the question is open.
+
 All three rows resolve to `unknown`, never `fail` — a narrowed run is *absence of
 evidence* about the flows it skipped, not evidence that they are broken. They
 therefore sit on the same side of the line as the skipped-job half of row 26, so

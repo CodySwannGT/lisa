@@ -1395,7 +1395,7 @@ export function formatFinding(finding) {
     // precise reading error this gate was measured making: a filtered run and a
     // full one rendered the same, so the history read as "green recently".
     const unverified = finding.scopeUnverified
-      ? " — ⚠️ scope unverified: this run published no executed-flow count, so how much of the suite ran is unknown. Declare `min_flows` for this suite to make that a blocking question"
+      ? " — ⚠️ scope unverified: this run published no executed-flow count, so how much of the suite ran is unknown. If this suite publishes `maestro-<platform>-flowcount-<N>`, declare `min_flows` to make that a blocking question; if it does not (a browser suite, say), this line is the honest limit of what the gate can see"
       : "";
     return `${marker} ${finding.label} — green${when}${link}${unverified}`;
   }
