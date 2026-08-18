@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.1](https://github.com/CodySwannGT/lisa/compare/v3.33.0...v3.33.1) (2026-08-18)
+
+
+### Documentation
+
+* **mutation-testing:** scope the mutant annotation to mutation runs ([a9b4461](https://github.com/CodySwannGT/lisa/commit/a9b4461a0266851d404aad371621cb27c52cf487)), closes [#2671](https://github.com/CodySwannGT/lisa/issues/2671) [CodySwannGT/lisa#2675](https://github.com/CodySwannGT/lisa/issues/2675) [CodySwannGT/lisa#2675](https://github.com/CodySwannGT/lisa/issues/2675)
+
 ## [3.33.0](https://github.com/CodySwannGT/lisa/compare/v3.32.1...v3.33.0) (2026-08-18)
 
 
