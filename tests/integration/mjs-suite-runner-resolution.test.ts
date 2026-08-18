@@ -13,8 +13,8 @@
  * repository before the fix: `scripts/lisa-test-node.mjs` absent, context
  * `🔍 Quality Checks / 🧪 Run .mjs Suites` = success, zero suites collected.
  *
- * The assertions that carry weight are the three at the bottom, which execute
- * the step's own shell body under `sh` rather than reading it. A string match
+ * The assertions that carry weight are the ones at the bottom, which execute
+ * the step's own shell body under bash rather than reading it. A string match
  * on `exit 1` proves the characters are present; only running the body proves
  * the status reaches the runner.
  * @module tests/integration/mjs-suite-runner-resolution
@@ -45,8 +45,18 @@ const REPO_COPY = "scripts/lisa-test-node.mjs";
 const body =
   (workflow.jobs[JOB].steps ?? []).find(step => step.name === STEP)?.run ?? "";
 
-/** The shell the runner is executed under, by absolute path. */
-const SHELL = "/bin/sh";
+/**
+ * The shell the step body is executed under, by absolute path.
+ *
+ * `bash`, not `sh`, because that is what GitHub Actions runs a `run:` block
+ * under. The distinction is load-bearing rather than cosmetic: `set -o
+ * pipefail` is a bash builtin that dash rejects outright, and `/bin/sh` is
+ * dash on the Ubuntu runners while on macOS it is bash in POSIX mode, which
+ * accepts it. Running this under `/bin/sh` therefore passed on a developer
+ * laptop and failed in CI with `Illegal option -o pipefail` — a test asserting
+ * the behaviour of a shell the workflow never uses.
+ */
+const SHELL = "/bin/bash";
 
 /** The step body's filename inside a throwaway project. */
 const SCRIPT = "step.sh";
@@ -119,6 +129,20 @@ describe("the fallback resolves the runner the way the gate resolver does", () =
   it("does not discard the runner's stderr", () => {
     expect(body).not.toContain("2>/dev/null");
     expect(body).toContain("set -euo pipefail");
+  });
+
+  it("declares no shell, so it runs under the Actions default of bash", () => {
+    // This is what licenses running the body under bash below, rather than
+    // assuming it. `set -o pipefail` above is a bash builtin that dash
+    // rejects; if someone pins `shell: sh` here, the step breaks in CI and
+    // this assertion is what says so.
+    const step = (workflow.jobs[JOB].steps ?? []).find(
+      entry => entry.name === STEP
+    );
+
+    expect(
+      (step as Record<string, unknown> | undefined)?.shell
+    ).toBeUndefined();
   });
 });
 
