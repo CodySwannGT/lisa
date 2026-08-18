@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.32.1](https://github.com/CodySwannGT/lisa/compare/v3.32.0...v3.32.1) (2026-08-18)
+
+
+### Documentation
+
+* **environment:** a non-zero exit is not a refusal ([054a28c](https://github.com/CodySwannGT/lisa/commit/054a28c11034c5008d092635b50b0a7e929b3534)), closes [CodySwannGT/lisa#2664](https://github.com/CodySwannGT/lisa/issues/2664) [CodySwannGT/lisa#2664](https://github.com/CodySwannGT/lisa/issues/2664)
+* **environment:** rule the two verbs independently optional ([bd7c574](https://github.com/CodySwannGT/lisa/commit/bd7c57416d6e022f691961a204018c238c448521)), closes [CodySwannGT/lisa#2664](https://github.com/CodySwannGT/lisa/issues/2664) [CodySwannGT/lisa#2664](https://github.com/CodySwannGT/lisa/issues/2664)
+
 ## [3.32.0](https://github.com/CodySwannGT/lisa/compare/v3.31.4...v3.32.0) (2026-08-17)
 
 
