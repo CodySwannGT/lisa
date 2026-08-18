@@ -216,6 +216,27 @@ export const CONVERTED: ConvertedJob[] = [
     fallbackSteps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
   },
   {
+    job: "playwright_e2e_aggregate",
+    jobName: "🎭 Playwright E2E Tests",
+    gate: "e2e-browser",
+    gateStep: "🎭 Run the e2e-browser gate",
+    // The whole built-in Playwright path, not one command: Lisa's shipped
+    // implementation of this gate is a sharded matrix PLUS this merge, and the
+    // verdict step that stops the merge from reporting green over failing
+    // shards. All three belong to the fallback, because a project that named
+    // its own task has said what proves the property and blobs it never wrote
+    // cannot judge it. The `(no config)` notice is here for the same reason it
+    // is on `sg_scan`: on the configured path an absent config is a hard
+    // error, not a notice.
+    fallbackSteps: [
+      "📥 Download all shard blob reports",
+      "🎭 Merge blob reports into HTML",
+      "📤 Upload merged Playwright report",
+      "🎭 Playwright aggregator skipped (no config)",
+      "🚨 Fail if any Playwright shard failed",
+    ],
+  },
+  {
     job: "work_item_traceability",
     jobName: "🔗 Work-Item Traceability",
     gate: "traceability",
