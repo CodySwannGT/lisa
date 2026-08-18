@@ -417,6 +417,14 @@ export const getScriptsFilesOverride = (): Linter.Config => ({
     "sonarjs/no-os-command-from-path": "off",
     "sonarjs/os-command": "off",
     "sonarjs/file-permissions": "off",
+    // Promoted from `warn`, deliberately, against the direction of everything
+    // else in this block. A swallowed exception is the failure this whole
+    // change exists to end: an error that went somewhere and said nothing, so a
+    // broken command reads as a measured zero and a crash passes for a clean
+    // result. At `warn` it is invisible under `eslint --quiet` — the same
+    // disappearing act one layer up. Measured cost in the shipped and local
+    // script trees at the time of promotion: zero occurrences.
+    "sonarjs/no-ignored-exceptions": "error",
     // ReDoS hotspot. These regexes run over files already inside the checkout,
     // supplied by the same person running the script.
     "sonarjs/slow-regex": "off",
