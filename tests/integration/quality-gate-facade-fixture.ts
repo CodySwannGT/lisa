@@ -147,7 +147,10 @@ export const CONVERTED: ConvertedJob[] = [
     // run through the standalone `lighthouse.yml` they wire by hand. Keeping
     // them different is what lets that workflow be deleted without a
     // same-day `package.json` edit in every consumer.
-    fallbackSteps: ["⚡ Run the performance budget (lighthouse:check)"],
+    fallbackSteps: [
+      "⚡ Run the performance budget (lighthouse:check)",
+      "⏭️ Skip the performance budget (no export:web script)",
+    ],
   },
   {
     job: "test_node_suites",
