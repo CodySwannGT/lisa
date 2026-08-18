@@ -47,6 +47,10 @@ const FLOW_FILE_PATTERN = /\.(?:yaml|yml)$/;
 // `e2e-route: /path` inside any comment declares a route as covered even when
 // the spec reaches it by tapping/navigating rather than by URL or deep link.
 const ROUTE_ANNOTATION_PATTERN = /e2e-route:\s*(\/[^\s'"`,)]*)/g;
+// `e2e-route-exempt: /path` is the counterpart to `e2e-route:` — it declares a
+// route deliberately uncovered, removing it from the denominator rather than
+// leaving a team to reach for a mechanism this gate cannot see.
+const EXEMPT_ANNOTATION_PATTERN = /e2e-route-exempt:\s*(\/[^\s'"`,)]*)/g;
 const GOTO_PATTERN = /\.goto\(\s*(["'`])([^"'`]+)\1/g;
 const OPEN_LINK_PATTERN = /openLink:\s*["']?([^\s"']+)/g;
 
@@ -219,6 +223,190 @@ export function mergeThresholds(defaults, overrides) {
 }
 
 /**
+ * Route exemptions a project has deliberately declared.
+ *
+ * The script could already ADD a coverage claim (`e2e-route:`) but had no way
+ * to remove one. A team exempting a route therefore reached for a mechanism the
+ * gate cannot see — `testIgnore`, a disabled project, a Maestro tag — and the
+ * number silently overstated. Detecting those mechanisms is only half a fix: if
+ * there is no supported way to say "this route is deliberately uncovered", the
+ * workaround stays the only option.
+ *
+ * Exemptions leave the denominator, and are always PRINTED. A silent exemption
+ * would be the same defect wearing a sanctioned label.
+ * @param {object} input - Exemption input
+ * @param {string[]} input.routes - Enumerated app routes
+ * @param {string[]} [input.declared] - Routes exempted in e2e.thresholds.json
+ * @param {string[]} [input.annotated] - Routes exempted by `e2e-route-exempt:`
+ * @returns {{kept: string[], exempt: string[], unknown: string[]}} Partition
+ */
+export function applyExemptions({ routes, declared, annotated }) {
+  const asked = [...new Set([...(declared ?? []), ...(annotated ?? [])])];
+  const exempt = asked.filter(route => routes.includes(route));
+  // An exemption naming a route that does not exist is stale — a renamed or
+  // deleted screen whose waiver outlived it. Reported, never silently dropped,
+  // because a stale exemption is how a real gap gets permanently excused.
+  const unknown = asked.filter(route => !routes.includes(route));
+  return {
+    kept: routes.filter(route => !exempt.includes(route)),
+    exempt,
+    unknown,
+  };
+}
+
+/**
+ * Routes exempted by an `e2e-route-exempt: /path` comment in a spec or flow.
+ *
+ * The comment form exists so an exemption lives next to the thing that would
+ * otherwise cover the route, where a reviewer of that file sees it. The
+ * thresholds-file form exists for a route no file mentions at all. Both are
+ * read; neither is silent.
+ * @param {string} root - Project root
+ * @returns {string[]} Exempted routes
+ */
+export function collectExemptAnnotations(root) {
+  const scan = (directories, filePattern) =>
+    directories.flatMap(directory => {
+      const absolute = path.join(root, directory);
+      return listFiles(absolute)
+        .filter(file => filePattern.test(file))
+        .flatMap(file => [
+          ...fs
+            .readFileSync(path.join(absolute, file), "utf8")
+            .matchAll(EXEMPT_ANNOTATION_PATTERN),
+        ])
+        .map(match => match[1]);
+    });
+  return [
+    ...scan(["e2e", "tests/e2e"], SPEC_FILE_PATTERN),
+    ...scan([".maestro"], FLOW_FILE_PATTERN),
+  ];
+}
+
+/**
+ * Glob-ish patterns Playwright is configured to ignore.
+ *
+ * Read textually rather than by importing the config: it is TypeScript, may
+ * import project code, and executing it to compute a coverage number would be a
+ * far larger blast radius than reading it. A pattern this misses costs a false
+ * INCLUSION — the old behaviour — so the failure mode of imprecision here is
+ * the status quo rather than a new one.
+ * @param {string} root - Project root
+ * @returns {string[]} Ignore patterns, empty when no config is found
+ */
+export function readPlaywrightIgnores(root) {
+  const config = [
+    "playwright.config.ts",
+    "playwright.config.js",
+    "playwright.config.mjs",
+  ]
+    .map(name => path.join(root, name))
+    .find(candidate => fs.existsSync(candidate));
+  if (!config) {
+    return [];
+  }
+  const source = fs.readFileSync(config, "utf8");
+  const block = source.match(
+    /testIgnore\s*:\s*(\[[^\]]*\]|["'`][^"'`]*["'`])/u
+  );
+  if (!block) {
+    return [];
+  }
+  return [...block[1].matchAll(/["'`]([^"'`]+)["'`]/gu)].map(match => match[1]);
+}
+
+/**
+ * Whether a spec path is excluded by one of Playwright's ignore patterns.
+ * @param {string} relativePath - Spec path relative to its scan directory
+ * @param {string[]} patterns - Ignore patterns
+ * @returns {boolean} True when the spec will not run
+ */
+export function isIgnoredSpec(relativePath, patterns) {
+  return patterns.some(pattern => globToRegExp(pattern).test(relativePath));
+}
+
+/**
+ * Translate one glob to an anchored expression.
+ *
+ * `**` spans directories, `*` does not, and `**\/` must also match nothing at
+ * all — `**\/x.spec.ts` names a file at the scan root as well as a nested one.
+ * Requiring the slash silently un-ignored every top-level spec, which is the
+ * bug this whole function exists to close, so it is the case the tests pin.
+ * @param {string} pattern - A glob from Playwright's testIgnore
+ * @returns {RegExp} Anchored matcher
+ */
+function globToRegExp(pattern) {
+  const DOUBLE_SLASH = "\u0000";
+  const DOUBLE = "\u0001";
+  const SINGLE = "\u0002";
+  const marked = pattern
+    .replaceAll("**/", DOUBLE_SLASH)
+    .replaceAll("**", DOUBLE)
+    .replaceAll("*", SINGLE);
+  const escaped = marked.replace(/[.+^${}()|[\]\\?]/gu, "\\$&");
+  const expression = escaped
+    .replaceAll(DOUBLE_SLASH, "(?:.*/)?")
+    .replaceAll(DOUBLE, ".*")
+    .replaceAll(SINGLE, "[^/]*");
+  return new RegExp(`(^|/)${expression}$`, "u");
+}
+
+/**
+ * Whether a Maestro flow carries a tag the running suite excludes.
+ *
+ * The exclusion is supplied by the caller (`MAESTRO_EXCLUDE_TAGS`) because the
+ * suite decides it at invocation time — the flow file cannot know, and neither
+ * can this script by reading the repository.
+ * @param {string} source - Flow file contents
+ * @param {string[]} excluded - Tags the suite excludes
+ * @returns {boolean} True when the flow will not run
+ */
+export function isExcludedFlow(source, excluded) {
+  if (excluded.length === 0) {
+    return false;
+  }
+  return flowTags(source).some(tag => excluded.includes(tag));
+}
+
+/**
+ * The tags a Maestro flow declares, and nothing else.
+ *
+ * Read line-wise because YAML block structure is indentation, and the previous
+ * regex form could not express "until this block ends": it allowed zero
+ * indentation before `-`, so it ran past the `---` document separator and
+ * lifted `openLink` and `tapOn` out of the flow's COMMANDS. A false tag causes
+ * a false EXCLUSION, dropping a flow that really runs — the opposite error from
+ * the one this gate exists to fix, and just as wrong.
+ * @param {string} source - Flow file contents
+ * @returns {string[]} Declared tags
+ */
+function flowTags(source) {
+  const lines = source.split("\n");
+  const start = lines.findIndex(line => /^tags:/u.test(line));
+  if (start === -1) {
+    return [];
+  }
+  const inline = lines[start].match(/^tags:\s*\[([^\]]*)\]/u);
+  if (inline) {
+    return inline[1]
+      .split(",")
+      .map(tag => tag.trim().replace(/^["']|["']$/gu, ""))
+      .filter(Boolean);
+  }
+  const tags = [];
+  for (const line of lines.slice(start + 1)) {
+    // The block ends at the document separator, at a non-indented line, or at
+    // anything that is not a list item. Each of those is what the regex missed.
+    const item = line.match(/^\s+-\s*(.+?)\s*$/u);
+    if (!item || line.startsWith("---")) {
+      break;
+    }
+    tags.push(item[1].replace(/^["']|["']$/gu, ""));
+  }
+  return tags;
+}
+
+/**
  * Pure decision: does each runner's route coverage meet its threshold?
  * @param {object} input - Evaluation input
  * @param {string[]} input.routes - Enumerated app routes
@@ -304,15 +492,32 @@ function listFiles(directory) {
  * @param {(source: string) => string[]} input.extract - Path extractor
  * @returns {string[]} Every visited path found
  */
-function collectVisitedPaths({ root, directories, filePattern, extract }) {
-  return directories.flatMap(directory => {
+function collectVisitedPaths({
+  root,
+  directories,
+  filePattern,
+  extract,
+  skip,
+}) {
+  const read = [];
+  const skipped = [];
+  const visited = directories.flatMap(directory => {
     const absolute = path.join(root, directory);
     return listFiles(absolute)
       .filter(file => filePattern.test(file))
-      .flatMap(file =>
-        extract(fs.readFileSync(path.join(absolute, file), "utf8"))
-      );
+      .flatMap(file => {
+        const source = fs.readFileSync(path.join(absolute, file), "utf8");
+        // A file that will not run contributes no coverage, however many
+        // routes it mentions. Presence on disk was the whole bug.
+        if (skip?.({ file, source })) {
+          skipped.push(`${directory}/${file}`);
+          return [];
+        }
+        read.push(`${directory}/${file}`);
+        return extract(source);
+      });
   });
+  return { visited, read, skipped };
 }
 
 /**
@@ -330,9 +535,16 @@ function main() {
     );
     return;
   }
-  const routes = enumerateRoutes(listFiles(appDir));
-  if (routes.length === 0) {
-    console.log("[e2e-coverage] OK: no navigable routes — nothing to gate.");
+  const allRoutes = enumerateRoutes(listFiles(appDir));
+  if (allRoutes.length === 0) {
+    // An app directory that enumerates ZERO navigable routes is a discovery
+    // bug, not an empty app — a renamed tree or a changed file pattern. The
+    // old behaviour reported "nothing to gate" and exited 0, so the gate
+    // passed loudest exactly when it had measured nothing.
+    console.error(
+      `[e2e-coverage] FAIL: found an app directory (${path.relative(root, appDir) || "."}) but enumerated no navigable routes. That is a discovery failure, not an empty app — check the route file patterns before trusting any coverage number.`
+    );
+    process.exit(1);
     return;
   }
 
@@ -347,20 +559,74 @@ function main() {
   }
   const thresholds = mergeThresholds(defaultThresholds, overrides);
 
+  const ignores = readPlaywrightIgnores(root);
+  const excludedTags = (process.env.MAESTRO_EXCLUDE_TAGS ?? "")
+    .split(",")
+    .map(tag => tag.trim())
+    .filter(Boolean);
+
+  const playwright = collectVisitedPaths({
+    root,
+    directories: ["e2e", "tests/e2e"],
+    filePattern: SPEC_FILE_PATTERN,
+    extract: extractPlaywrightPaths,
+    skip: ({ file }) => isIgnoredSpec(file, ignores),
+  });
+  const maestro = collectVisitedPaths({
+    root,
+    directories: [".maestro"],
+    filePattern: FLOW_FILE_PATTERN,
+    extract: extractMaestroPaths,
+    skip: ({ source }) => isExcludedFlow(source, excludedTags),
+  });
+
+  const {
+    kept: routes,
+    exempt,
+    unknown,
+  } = applyExemptions({
+    routes: allRoutes,
+    declared: overrides?.exempt,
+    annotated: collectExemptAnnotations(root),
+  });
+
+  for (const [runner, collected] of [
+    ["playwright", playwright],
+    ["maestro", maestro],
+  ]) {
+    if (collected.skipped.length > 0) {
+      console.log(
+        `[e2e-coverage] ${runner}: ${collected.skipped.length} file(s) excluded from the run and NOT counted as coverage:\n` +
+          collected.skipped.map(file => `  - ${file}`).join("\n")
+      );
+    }
+  }
+  if (exempt.length > 0) {
+    console.log(
+      `[e2e-coverage] ${exempt.length} route(s) deliberately exempt (removed from the denominator):\n` +
+        exempt.map(route => `  - ${route}`).join("\n")
+    );
+  }
+  if (unknown.length > 0) {
+    console.error(
+      `[e2e-coverage] FAIL: ${unknown.length} exemption(s) name a route that does not exist. A waiver that outlived its screen permanently excuses whatever replaces it:\n` +
+        unknown.map(route => `  - ${route}`).join("\n")
+    );
+    process.exit(1);
+    return;
+  }
+  if (routes.length === 0) {
+    console.error(
+      "[e2e-coverage] FAIL: every route is exempt, so this gate measures nothing. Remove exemptions or disable the gate explicitly with a threshold of 0."
+    );
+    process.exit(1);
+    return;
+  }
+
   const result = evaluateE2eCoverage({
     routes,
-    playwrightVisited: collectVisitedPaths({
-      root,
-      directories: ["e2e", "tests/e2e"],
-      filePattern: SPEC_FILE_PATTERN,
-      extract: extractPlaywrightPaths,
-    }),
-    maestroVisited: collectVisitedPaths({
-      root,
-      directories: [".maestro"],
-      filePattern: FLOW_FILE_PATTERN,
-      extract: extractMaestroPaths,
-    }),
+    playwrightVisited: playwright.visited,
+    maestroVisited: maestro.visited,
     thresholds,
   });
 
