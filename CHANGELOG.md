@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.2](https://github.com/CodySwannGT/lisa/compare/v3.33.1...v3.33.2) (2026-08-18)
+
+
+### Bug Fixes
+
+* **e2e-coverage:** count what runs, not what exists on disk ([79300bd](https://github.com/CodySwannGT/lisa/commit/79300bd023d332e9af3bc9a289e070833dac4d45)), closes [CodySwannGT/lisa#2673](https://github.com/CodySwannGT/lisa/issues/2673) [CodySwannGT/lisa#2673](https://github.com/CodySwannGT/lisa/issues/2673)
+* **e2e-coverage:** parse a flow's tags block, not its commands ([d4de277](https://github.com/CodySwannGT/lisa/commit/d4de277ee866dfd22244d073935665ef2fd9367a)), closes [CodySwannGT/lisa#2673](https://github.com/CodySwannGT/lisa/issues/2673) [CodySwannGT/lisa#2673](https://github.com/CodySwannGT/lisa/issues/2673)
+
 ### [3.33.1](https://github.com/CodySwannGT/lisa/compare/v3.33.0...v3.33.1) (2026-08-18)
 
 
