@@ -2317,7 +2317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "5e357b8f39c89add679af33ced0a55127084e5b126c5ddd86794a4e9532ca5e8",
+      "a244b7fcf6e1b61dda7d90e6f95db9b7459b0676c494a9b4ca5367fd0fc83400",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
