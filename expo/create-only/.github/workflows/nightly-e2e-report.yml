@@ -31,6 +31,21 @@ name: 🌙 Nightly E2E Report
 #      the runs they produced; running it first reports on yesterday's.
 #   3. Leave the `nightly-e2e` label alone once issues exist under it — the label
 #      is how this job finds the issue it already owns.
+#   4. If you renamed either half of the gate's job name, set `gate_context` to
+#      match — see below.
+#
+# ## What the issue says about blocking merges is MEASURED (§10.7)
+#
+# The reporter reads `dev`'s branch rules at generation time and renders one of
+# `required` / `not_required` / `unknown` into the issue title, body and close
+# comment. It does NOT assume. That is a fix, not a feature: this reporter used
+# to state that pull requests were blocked in every issue it filed, and in
+# TunnlAI/frontend that was false — zero required contexts on `dev` matched the
+# gate, and people were burning audited bypass labels to clear a gate that was
+# not gating.
+#
+# If your issues say `not blocking merges` and you expected otherwise, the gate
+# is not wired into your ruleset. That is the ruleset to fix, not this file.
 #
 # ## Concurrency
 #
@@ -63,7 +78,32 @@ jobs:
     uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@v3.35.0
     with:
       branch: dev
+      # The status-check context the GATE publishes, used to MEASURE whether it
+      # is actually required on `branch`. This default is the composite GitHub
+      # builds from `nightly-e2e-health.yml`'s job name plus the reusable's job
+      # name (`🌙 Nightly E2E Health` / `🌙 Gate`), byte for byte, emoji
+      # included. Change it only if you renamed either half — and if you did,
+      # your ruleset needs the same edit or the gate is already disarmed (§5).
+      gate_context: '🌙 Nightly E2E Health / 🌙 Gate'
+      # Quoted in the issue's waiver instructions, and only when the gate is
+      # actually required. KEEP IT IDENTICAL to nightly-e2e-health.yml's
+      # `bypass_label`, or the issue will tell people to apply a label the gate
+      # does not read.
+      bypass_label: nightly-e2e-bypass
+      # Pin the tracking issue while its suite is red; unpin it on green.
+      # OFF by default — GitHub allows only three pinned issues per repository,
+      # so spending one is a choice. Past the limit the pin is a warning and the
+      # issue is still filed correctly; a full pin board never fails this job.
+      pin_issues: false
       # KEEP THIS IDENTICAL to the `suites` value in nightly-e2e-health.yml.
+      #
+      # `"gated": false` on a suite makes its issue say "this suite does not
+      # gate merges" instead of claiming to block. Use it for a suite you track
+      # but do not enforce — an ungated suite that claimed to block merges is
+      # crying wolf, and a reader who catches one gate lying stops believing the
+      # ones telling the truth. It can only make the claim WEAKER: `true` never
+      # manufactures a blocking claim on a branch where the gate is not
+      # required.
       suites: |
         [
           {

@@ -67,7 +67,13 @@ describe("per-suite grace — doc, guard, schema and caller agree", () => {
     // never for an unchanged observation. That distinction is the whole
     // argument for the minor, so it has to be findable rather than inferred.
     expect(doc).toContain("shipped as `1.2.0` → `1.3.0`, a minor");
-    expect(read(GUARD_REL)).toContain('NIGHTLY_E2E_CONTRACT_VERSION = "1.3.0"');
+    // The doc's claim about what grace shipped under is historical and stays
+    // true. The GUARD's current version is not: pinning it here made this test
+    // fail on every later minor, for a reason unrelated to grace. What it can
+    // still assert is that the guard never left major 1.
+    expect(read(GUARD_REL)).toMatch(
+      /NIGHTLY_E2E_CONTRACT_VERSION = "1\.\d+\.\d+"/
+    );
     // The workflow still asserts MAJOR 1: a major bump would red-wall every
     // adopter pinned to an older tag for a change that cannot fail open.
     expect(read(REUSABLE_REL)).toContain("default: 1");
