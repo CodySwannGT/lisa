@@ -596,21 +596,24 @@ function main() {
   ]) {
     if (collected.skipped.length > 0) {
       console.log(
-        `[e2e-coverage] ${runner}: ${collected.skipped.length} file(s) excluded from the run and NOT counted as coverage:\n` +
-          collected.skipped.map(file => `  - ${file}`).join("\n")
+        `[e2e-coverage] ${runner}: ${collected.skipped.length} file(s) excluded from the run and NOT counted as coverage:\n${collected.skipped
+          .map(file => `  - ${file}`)
+          .join("\n")}`
       );
     }
   }
   if (exempt.length > 0) {
     console.log(
-      `[e2e-coverage] ${exempt.length} route(s) deliberately exempt (removed from the denominator):\n` +
-        exempt.map(route => `  - ${route}`).join("\n")
+      `[e2e-coverage] ${exempt.length} route(s) deliberately exempt (removed from the denominator):\n${exempt
+        .map(route => `  - ${route}`)
+        .join("\n")}`
     );
   }
   if (unknown.length > 0) {
     console.error(
-      `[e2e-coverage] FAIL: ${unknown.length} exemption(s) name a route that does not exist. A waiver that outlived its screen permanently excuses whatever replaces it:\n` +
-        unknown.map(route => `  - ${route}`).join("\n")
+      `[e2e-coverage] FAIL: ${unknown.length} exemption(s) name a route that does not exist. A waiver that outlived its screen permanently excuses whatever replaces it:\n${unknown
+        .map(route => `  - ${route}`)
+        .join("\n")}`
     );
     process.exit(1);
     return;
@@ -641,8 +644,9 @@ function main() {
     } else {
       console.error(`[e2e-coverage] ${runner}: FAIL — ${summary}`);
       console.error(
-        `[e2e-coverage] ${runner}: screens with no e2e test yet:\n` +
-          verdict.missing.map(route => `  - ${route}`).join("\n")
+        `[e2e-coverage] ${runner}: screens with no e2e test yet:\n${verdict.missing
+          .map(route => `  - ${route}`)
+          .join("\n")}`
       );
     }
   }

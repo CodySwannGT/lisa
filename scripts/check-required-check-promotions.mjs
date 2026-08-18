@@ -140,6 +140,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const HEADROOM_EVIDENCE_MISSING = "headroom-evidence-missing";
+
 /** Integration id GitHub Actions reports status checks under. */
 export const ACTIONS_INTEGRATION_ID = 15_368;
 
@@ -343,7 +347,7 @@ function budgetProblems(budget) {
   if (typeof subject !== "string" || typeof measuredOn !== "string") {
     return [
       {
-        rule: "headroom-evidence-missing",
+        rule: HEADROOM_EVIDENCE_MISSING,
         detail:
           "every headroom.budgets[] entry needs a subject and a measured_on_subject",
       },
@@ -391,7 +395,7 @@ function provenanceProblems(observedOn) {
   }
   return [
     {
-      rule: "headroom-evidence-missing",
+      rule: HEADROOM_EVIDENCE_MISSING,
       detail:
         'headroom.observed_on must be "pass": the run that produced observed_worst_ms must have COMPLETED within its budget, because a duration reported alongside a timeout measures contention, not cost',
     },
@@ -414,7 +418,7 @@ function ratioProblems(budgetMs, observedMs) {
   ) {
     return [
       {
-        rule: "headroom-evidence-missing",
+        rule: HEADROOM_EVIDENCE_MISSING,
         detail:
           "headroom needs a positive budget_ms and a positive observed_worst_ms",
       },
@@ -481,7 +485,7 @@ export function headroomProblems(headroom) {
   for (const [field, detail] of prose) {
     const value = headroom[field];
     if (typeof value !== "string" || value.trim() === "") {
-      problems.push({ rule: "headroom-evidence-missing", detail });
+      problems.push({ rule: HEADROOM_EVIDENCE_MISSING, detail });
     }
   }
   if (problems.length > 0) return problems;

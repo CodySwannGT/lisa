@@ -113,9 +113,25 @@ const PERSISTENCE_SIGNALS = Object.freeze([
   { kind: "schema-definition", pattern: /(^|\/)db\/schema\.[cm]?[jt]s$/iu },
 ]);
 
+// The `CREATE TABLE` grammar, one clause per name. Written as fragments rather
+// than one literal because the literal was unreadable — the alternations are
+// SQL's, and loosening any of them into a wildcard would make the subtraction
+// detector match statements that are not entity declarations.
+/** `CREATE [UNLOGGED|TEMPORARY|TEMP|GLOBAL|LOCAL] ...` modifier run. */
+const CREATE_MODIFIERS =
+  "(?:unlogged\\s+|temporary\\s+|temp\\s+|global\\s+|local\\s+)*";
+/** The object kinds that declare durable state. */
+const CREATE_OBJECT_KIND = "(?:materialized\\s+view|table|view)";
+/** Optional `IF NOT EXISTS` guard. */
+const OPTIONAL_IF_NOT_EXISTS = "(?:if\\s+not\\s+exists\\s+)?";
+/** A possibly schema-qualified, possibly quoted identifier. */
+const ENTITY_NAME = '([\\w."`[\\]]+)';
+
 /** `CREATE TABLE`-shaped declarations the subtraction detector recognizes. */
-const CREATE_ENTITY_PATTERN =
-  /create\s+(?:unlogged\s+|temporary\s+|temp\s+|global\s+|local\s+)*(?:materialized\s+view|table|view)\s+(?:if\s+not\s+exists\s+)?([\w."`[\]]+)/giu;
+const CREATE_ENTITY_PATTERN = new RegExp(
+  `create\\s+${CREATE_MODIFIERS}${CREATE_OBJECT_KIND}\\s+${OPTIONAL_IF_NOT_EXISTS}${ENTITY_NAME}`,
+  "giu"
+);
 
 /**
  * Read a JSON file, returning a discriminated result rather than throwing.
@@ -277,11 +293,9 @@ export function compareInventory({
 }) {
   const findings = [];
   const entities = contract.entities ?? [];
-  const byBareName = new Map();
   const classified = new Map();
   for (const entity of entities) {
     classified.set(entity.id, entity);
-    byBareName.set(bareName(entity.id), entity);
   }
   const waived = new Map(
     (contract.waivers ?? []).map(waiver => [waiver.id, waiver])

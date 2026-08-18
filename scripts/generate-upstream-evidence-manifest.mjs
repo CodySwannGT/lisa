@@ -123,7 +123,7 @@ const existingOutput = existsSync(outputPath)
   : "";
 const existingPublicCommits = [
   ...existingOutput.matchAll(
-    /^\s+(?:"([0-9][a-f0-9]{39})"|([a-f][a-f0-9]{39})):\s+true,$/gmu
+    /^\s+(?:"(\d[a-f0-9]{39})"|([a-f][a-f0-9]{39})):\s+true,$/gmu
   ),
 ]
   .map(match => match[1] ?? match[2] ?? "")
