@@ -140,7 +140,6 @@ export const CUSTOM_PREFIX = "x-";
 const COMMIT_ONWARD = [COMMIT, PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const PUSH_ONWARD = [PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const PR_ONWARD = [PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
-const PR_ONLY = [PULL_REQUEST];
 const DEPLOY_ONLY = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
 const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
 
@@ -158,6 +157,14 @@ const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
  *
  * `work` names what a nonzero count proves, for gates that can otherwise
  * succeed having done nothing.
+ *
+ * `task` is the default prover, and `taskAt` overrides it for one moment
+ * family. Most gates need only `task`: `typecheck` is `typecheck` wherever it
+ * runs. A gate needs `taskAt` when the same property is proved by a different
+ * command at a different moment — the shape the design doc already calls
+ * normal for a project's own `run` declarations, here as a shipped default so
+ * that declaring the gate at that moment cannot silently resolve to a prover
+ * that cannot run there.
  */
 export const REGISTRY = Object.freeze({
   "code-style": {
@@ -376,7 +383,20 @@ export const REGISTRY = Object.freeze({
     label: "🔗 Work-Item Traceability",
     summary: "Every change is bound to a live tracker item.",
     task: "check:work-item",
-    moments: PR_ONLY,
+    // The property is one property; the prover is not one prover. At
+    // pull-request there is a pull request to read — a body, a backlink, a
+    // number — and `validate-pr` reads it. At push there is often no pull
+    // request at all, and the check that exists there reads the commits being
+    // pushed off stdin, which `validate-pr` cannot do and refuses to fake.
+    // Handing `check:work-item` to the push moment would run the pull-request
+    // prover with no pull request and fail every first push of a branch.
+    taskAt: { [PUSH]: "check:work-item:push" },
+    // Push, because the pre-push hook has validated work items on every push
+    // since long before this registry existed. It was declared PR-only, so the
+    // hook could not resolve it and hardcoded the call instead: the last gate
+    // in either hook that ran outside the façade, unconditional and immune to
+    // its own declaration, exactly as the CI job was until #2680.
+    moments: [PUSH, PULL_REQUEST],
   },
   "commit-conformance": {
     label: "📝 Commit Message",
@@ -1089,7 +1109,19 @@ export function resolveMoment({
     }
 
     const definition = REGISTRY[id];
-    const task = entry.run ?? gate.run ?? definition?.task ?? null;
+    // Four sources, narrowest first. `taskAt` is a registry DEFAULT that varies
+    // by moment, and it sits below both project declarations for the same
+    // reason `task` does: a project that names its own prover has said what
+    // proves the property here, and Lisa does not know better. It sits above
+    // `task` because a gate whose default prover differs by moment has no
+    // single default — see `traceability`, where the pull-request prover reads
+    // a pull request that does not exist yet at push.
+    const task =
+      entry.run ??
+      gate.run ??
+      definition?.taskAt?.[momentFamily(moment)] ??
+      definition?.task ??
+      null;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
 
     resolved.push({
