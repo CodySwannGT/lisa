@@ -192,6 +192,21 @@ export interface GateModule extends ReportingModule {
   resolveSettings(env: Record<string, string | undefined>): unknown;
   readonly TRACKING_ISSUE_LABEL: string;
   readonly INCOMPLETE_EVIDENCE_REASON: string;
+  readonly FILTERED_RUN_REASON: string;
+  readonly FLOW_SHORTFALL_REASON: string;
+  readonly SCOPE_UNREADABLE_REASON: string;
+  readonly ZERO_FLOWS_REASON: string;
+  readSuiteScope(artifacts: readonly { name?: string }[] | null): SuiteScope;
+  assessSuiteScope(
+    suite: Record<string, unknown>,
+    scope: SuiteScope
+  ): { reason: string; detail: string } | null;
+  fetchRunArtifacts(
+    api: Record<string, unknown>,
+    runId: number,
+    wait?: () => Promise<void>
+  ): Promise<readonly { name?: string }[] | null>;
+  formatFinding(finding: Finding): string;
   suiteMarker(label: string): string;
   isCompleteEvidence(finding: { readonly reason: string }): boolean;
   planIssueActions(
@@ -244,6 +259,7 @@ export const REASON = Object.freeze({
   filteredRun: "filtered_run",
   flowShortfall: "flow_shortfall",
   scopeUnreadable: "scope_unreadable",
+  zeroFlows: "zero_flows",
 });
 
 /**

@@ -150,18 +150,4 @@ export interface ReportingModule {
       gateContext?: string;
     }
   ): string;
-  readonly FILTERED_RUN_REASON: string;
-  readonly FLOW_SHORTFALL_REASON: string;
-  readonly SCOPE_UNREADABLE_REASON: string;
-  readSuiteScope(artifacts: readonly { name?: string }[] | null): SuiteScope;
-  assessSuiteScope(
-    suite: Record<string, unknown>,
-    scope: SuiteScope
-  ): { reason: string; detail: string } | null;
-  fetchRunArtifacts(
-    api: Record<string, unknown>,
-    runId: number,
-    wait?: () => Promise<void>
-  ): Promise<readonly { name?: string }[] | null>;
-  formatFinding(finding: Finding): string;
 }

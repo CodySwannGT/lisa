@@ -124,6 +124,7 @@ are not, which is why the blocking rows are not contiguous.
 | 36 | The run concluded `success` and every job behind it did too, but the run **recorded itself as tag-filtered** (`maestro-<platform>-scope-filtered`) on any platform | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 37 | The suite declares `min_flows` and the run's executed-flow count (`maestro-<platform>-flowcount-<N>`, summed across platforms) is **below** it | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 38 | The suite declares `min_flows` and the count **cannot be read**: the artifacts list 404s, the page walk truncates, or no `flowcount` marker was published | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 39 | Any arm published `maestro-<platform>-flowcount-0` — it executed ZERO flows. **No `min_flows` required** | non-blocking | **fail** | `bootstrap` / **`fail`** |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -234,7 +235,7 @@ harness itself — a `maestro-native-e2e.yml` whose preflight skipped everything
 because `EXPO_TOKEN` is missing tested nothing, and `bootstrap_until` (§4), not
 a pass, is how a repo gets breathing room while wiring that up.
 
-### 2.5 Rows 36–38 — a run that tested a SLICE is not a green suite
+### 2.5 Rows 36–39 — a run that tested a SLICE is not a green suite
 
 Row 26 asks whether every **job** ran. It cannot see inside a job, so it cannot
 see the other way a green run proves nothing: **a job that ran, passed, and
@@ -290,12 +291,35 @@ did that night run?".
 | 36 | A run that recorded ITSELF as filtered on any platform | **`unknown`** — unconditional, no declaration needed |
 | 37 | Suite declares `min_flows` and the run executed fewer | **`unknown`** |
 | 38 | Suite declares `min_flows` and the count cannot be read at all — unreadable list, truncated page walk, or no marker published | **`unknown`** |
+| 39 | Any arm executed **zero** flows | **`unknown`** — unconditional, no declaration needed |
 
 Row 38 is the one that stops this fix reproducing the defect it fixes. **An
 unreadable count is exactly what a narrowed run looks like from here**, so "we
 could not check" must never render as "it is fine".
 
-Rows 37 and 38 require a declared `min_flows`; row 36 does not. That asymmetry is
+**Row 39 needs no declaration either, and the reason it is separate from row 37
+matters.** "Fewer than the suite declares" is a threshold judgement and needs a
+denominator. **"Tested nothing" is not a judgement at all.** Any floor a repo
+could sensibly declare is ≥ 1, so rejecting zero cannot contradict a
+declaration — and requiring one before disbelieving a zero-flow green would be
+asking permission to notice that nothing ran.
+
+Row 39 is **per-arm, never on the total.** A night that ran 40 Android flows and
+0 iOS ones sums to 40 and clears any sane floor, while having proved nothing
+whatsoever about iOS. Summing first lets a healthy arm launder a dead one, which
+is the same arithmetic mistake as reading a suite's green off whichever platform
+happened to work.
+
+This row exists because a consumer hit it and built its own fix. AcmeOrgB/frontend
+carries `scripts/check-nightly-e2e-flow-coverage.mjs` — 368 lines, the same
+artifact-name mechanism as rows 36-38, arrived at independently — which blocks on
+`arms.some(arm => arm.executed === 0)` **with no configuration at all.** Until
+row 39 existed, adopting this reusable and retiring that fork would have silently
+dropped zero-flow protection from every suite that had not declared `min_flows`.
+That is convergence onto something that was not yet a superset, and it is the
+specific failure mode fork-retirement work has to avoid.
+
+Rows 37 and 38 require a declared `min_flows`; rows 36 and 39 do not. That asymmetry is
 deliberate and it is where the honest limit sits. **A floor cannot be inferred.**
 This gate reads suites it did not write, including non-maestro ones that publish
 no counts at all, and a guessed denominator would either forgive everything or

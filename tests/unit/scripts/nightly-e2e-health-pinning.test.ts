@@ -198,8 +198,12 @@ describe("nightly e2e reporting — §10.8, pinning", () => {
     it("never throws — an HTTP failure, a network error and a missing node id all warn", async () => {
       (globalThis as { fetch: unknown }).fetch = async (): Promise<unknown> =>
         fakeResponse(500, {}, {});
+      // The warning TEXT is asserted, not merely `ok: false`. A pin that fails
+      // silently is indistinguishable from one that succeeded once the result
+      // is folded into a report, so "it failed" is only half the property —
+      // the other half is that it says why.
       await expect(mod.setIssuePin(PIN_API, NODE, true)).resolves.toMatchObject(
-        { ok: false }
+        { ok: false, warning: "pinIssue returned HTTP 500" }
       );
       (globalThis as { fetch: unknown }).fetch = async (): Promise<unknown> => {
         throw new Error("ECONNRESET");
@@ -269,12 +273,18 @@ describe("nightly e2e reporting — §10.8, pinning", () => {
         context(true)
       );
       const order: string[] = [];
+      const graphql: string[] = [];
       (globalThis as { fetch: unknown }).fetch = async (
         url: string,
         init?: { body?: string }
       ): Promise<unknown> => {
         if (String(url).endsWith("/graphql")) {
-          order.push("unpin");
+          // Record the MUTATION, not merely that GraphQL was called. Labelling
+          // every GraphQL request "unpin" would let a close path that sent
+          // `pinIssue` pass this test — pinning an issue at the moment it is
+          // closed, which is the precise failure the ordering exists to stop.
+          graphql.push(String(init?.body));
+          order.push("graphql");
           return fakeResponse(200, {}, { data: {} });
         }
         order.push(
@@ -283,7 +293,14 @@ describe("nightly e2e reporting — §10.8, pinning", () => {
         return fakeResponse(200, {}, { number: 41 });
       };
       await mod.applyIssuePlan(PIN_API, plan, noWait);
-      expect(order.indexOf("unpin")).toBeLessThan(order.indexOf("close"));
+      expect(graphql).toHaveLength(1);
+      expect(graphql[0]).toContain("{ unpinIssue(input: {issueId: $id})");
+      // Anchored on the opening brace, because `unpinIssue(` CONTAINS
+      // `pinIssue(` — the same substring trap `contextMatchesGate` refuses, and
+      // an unanchored negative here would be vacuously true forever.
+      expect(graphql[0]).not.toContain("{ pinIssue(");
+      expect(JSON.parse(graphql[0] ?? "{}").variables.id).toBe(NODE);
+      expect(order.indexOf("graphql")).toBeLessThan(order.indexOf("close"));
     });
   });
 });
