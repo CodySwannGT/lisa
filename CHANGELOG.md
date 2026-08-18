@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.8](https://github.com/CodySwannGT/lisa/compare/v3.33.7...v3.33.8) (2026-08-18)
+
+
+### Bug Fixes
+
+* **hooks:** let the declaration govern the pre-push work-item check ([c751468](https://github.com/CodySwannGT/lisa/commit/c7514689848bf59bfc1ec3f072c3fec667dd5a9e)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [#2683](https://github.com/CodySwannGT/lisa/issues/2683) [#2683](https://github.com/CodySwannGT/lisa/issues/2683) [CodySwannGT/lisa#2688](https://github.com/CodySwannGT/lisa/issues/2688) [CodySwannGT/lisa#2688](https://github.com/CodySwannGT/lisa/issues/2688)
+* **lint:** fail on a swallowed exception in shipped scripts ([1153a3a](https://github.com/CodySwannGT/lisa/commit/1153a3aa31768ad51ed831e10fd02f082c7c9636)), closes [CodySwannGT/lisa#2658](https://github.com/CodySwannGT/lisa/issues/2658) [CodySwannGT/lisa#2658](https://github.com/CodySwannGT/lisa/issues/2658)
+
 ### [3.33.7](https://github.com/CodySwannGT/lisa/compare/v3.33.6...v3.33.7) (2026-08-18)
 
 
