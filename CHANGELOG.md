@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.38.3](https://github.com/CodySwannGT/lisa/compare/v3.38.2...v3.38.3) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** reject a zero-flow run without requiring min_flows (row 39) ([f4b66e3](https://github.com/CodySwannGT/lisa/commit/f4b66e399a878178f659c6fce30617ed7a345e06)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
 ### [3.38.2](https://github.com/CodySwannGT/lisa/compare/v3.38.1...v3.38.2) (2026-08-18)
 
 
