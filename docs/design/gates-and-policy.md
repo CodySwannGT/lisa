@@ -229,6 +229,22 @@ skipped-but-required hole is unrepresentable rather than merely discouraged.
 `optional` must never be `continue-on-error: true` — that makes a failing job
 report green, which is the defect itself in a new costume.
 
+**A level only means this once the job resolves it.** The table describes what a
+declaration *is*; a CI job delivers it only if it reads the declaration. The
+`🔗 Work-Item Traceability` job did not: its condition keyed on the `skip_jobs`
+workflow input alone, so `gates.traceability` governed the local runner and
+governed nothing in CI — `off` still reddened every pull request and `required`
+changed nothing, because the job already ran (#2680). It now resolves the gate
+through the same façade as every other job in `quality.yml`.
+
+**What an undeclared gate does, everywhere in that workflow:** the resolution
+reports `configured=false` and the job runs Lisa's built-in tooling, byte for
+byte as it did before the façade existed. `configured=false` covers all of: no
+resolver present, no `gates` block, the gate not declared at the moment being
+resolved, and the gate declared `await`-proved rather than run. A gate declared
+`off` is a *different* answer (`configured=off`) and reaches neither branch, so
+the job runs no gate work and reports green having correctly done nothing.
+
 ## Renames, and why they are dangerous
 
 Job names are branch-protection contexts matched by exact string. A renamed job
@@ -243,10 +259,11 @@ Reconciliation may **add** a missing context under `repair`. Removing an EXTRA
 one requires explicit `--prune`, because an extra required context may be an
 external app Lisa does not manage, and removing it silently strips protection.
 
-That rule earned itself before shipping: three contexts currently required on
-`main` — Security Scan, Work-Item Traceability, Plugin artifacts match source —
-produce no derived context, so a ruleset regenerated from config alone would
-have dropped them.
+That rule earned itself before shipping: three contexts required on `main` —
+Security Scan, Work-Item Traceability, Plugin artifacts match source — produced
+no derived context, so a ruleset regenerated from config alone would have
+dropped them. Work-Item Traceability has since been declared and now derives;
+the other two still do not, and the rule stands for them.
 
 ## A template change lands on a schedule nobody chose
 
@@ -505,3 +522,19 @@ guess.
   `required` without naming a context that does not exist.
 - `plugins-sync`'s "generated plugin tree matches source" has no registry gate;
   adjacent to `artifact-freshness`, different artifact.
+- **Lisa's own `gates` block does not reach Lisa's own CI.** The façade resolves
+  through `node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs`
+  or a copied `scripts/lisa-gates.mjs`. This repository has neither — it
+  devDepends on a `^2.x` range that predates the script, and it carries no copy
+  of its own copy-overwrite output — so `RESOLVER` is empty and every façade
+  job writes `configured=false` and runs its fallback. Measured 2026-08-18 on a
+  pull-request run: `🧹 Lint` and `🔗 Work-Item Traceability` both took the
+  fallback branch while `.lisa.config.json` declared both `required`. The
+  fallbacks are the same tooling, so nothing is unenforced — but every level
+  Lisa declares for itself is currently inert, which is the #2680 shape one
+  layer up. Distinct from #2680, whose fix this is not.
+- `quality-rails.yml` carries the same `work_item_traceability` job and **no
+  gate façade at all** — no `moment` input, no `package_manager` input, and so
+  no resolve block. `gates.traceability` is therefore still inert for a Rails
+  consumer, exactly as #2680 describes. Converting that workflow means bringing
+  the façade to it, not bolting a second on/off mechanism onto one job.

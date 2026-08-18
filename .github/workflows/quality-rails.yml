@@ -178,6 +178,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: ${{ github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') }}
+    # KNOWN GAP (#2680): this condition keys on `skip_jobs` and on nothing
+    # else, so `gates.traceability` in .lisa.config.json does NOT govern this
+    # job. Declaring it `off` still reddens the pull request; declaring it
+    # `required` changes nothing, because the job already ran. The quality.yml
+    # counterpart resolves the gate through the shared façade; this workflow
+    # carries no façade at all — it has neither the `moment` nor the
+    # `package_manager` input the byte-identical resolve block reads, so
+    # closing the gap here means bringing the whole façade to this workflow,
+    # not bolting a second on/off mechanism onto one job. `skip_jobs` remains
+    # the only control for a Rails consumer until then.
+    #
     # DELIBERATELY no `permissions:` block — see the quality.yml counterpart.
     # Requesting a scope the caller never held is a startup_failure for the
     # ENTIRE run, and these workflows are consumed @main by repos whose ci.yml
