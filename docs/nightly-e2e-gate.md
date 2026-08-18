@@ -632,6 +632,22 @@ repo last applied. Both are per-repo adoption events.
     adopter pinned to an older tag** (the workflow asserts the guard's major)
     for a change that cannot fail open, which trades a real outage for a
     theoretical one.
+  - **§10.7 (live requiredness, `gated`, pinning, bypass guidance) shipped as
+    `1.3.0` → `1.4.0`, a minor**, under the "adding a surface that gates
+    nothing" clause above. Every one of those four changes lands on the
+    REPORTING half: they alter what a tracking issue *says*, never what the gate
+    *decides*. `assessSuite`, `decide` and every row of §2 are untouched, and
+    the gate holds no `issues:` scope so it cannot reach any of this code.
+    The skew directions: a new guard under an old reporting caller measures
+    requiredness anyway (the input has a default) and simply never pins; an old
+    guard under a new caller ignores three environment variables it does not
+    read and files the issue it always filed. Neither pair can produce a
+    different merge verdict, which is what the major rule protects.
+    - One nuance worth stating, because it looks like a behaviour change: the
+      `gated` suite-table key means an old guard reading a *new* table rejects
+      it as an unknown key (row 20) — loudly, naming the config, and only for a
+      table an operator edited. That is the same fail-closed skew `first_seen`
+      shipped under a minor with.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
@@ -819,3 +835,101 @@ clean place to attach:
   suite is ever classified `flaky` rather than `fail`, it becomes one more row in
   this table — which is the point of stating the table as *finding → action*
   rather than burying the mapping in code.
+
+
+### 10.7 The blocking claim is MEASURED, and has three states
+
+Until this shipped, every issue the reporter filed said, unconditionally:
+
+> Pull requests into `dev` are blocked until this suite is green again.
+
+That was a hardcoded assertion about somebody else's branch ruleset, and it was
+**measurably false**. `GET /repos/TunnlAI/frontend/rules/branches/dev` returns
+twelve required contexts and not one of them matches this gate. The suite
+blocked nothing — while people applied audited `nightly-e2e-bypass` labels to
+clear a gate that was not gating, spending the audit trail the label exists to
+create on a merge that was never held.
+
+An issue that misstates its own consequences is worse than one that says
+nothing, because it gets acted on. So the claim is now read from
+`GET /repos/{owner}/{repo}/rules/branches/{branch}` at generation time and
+rendered into the **title, the body, and the close comment**, in one of three
+states:
+
+| State | When | What the issue says |
+|---|---|---|
+| `required` | a required context in effect on the branch matches the gate | "Pull requests into `<branch>` are blocked" — plus the full audited-bypass recipe |
+| `not_required` | the rules were read, and none of them is this gate | "This suite does **not** gate merges" — and that the bypass label *would waive nothing* |
+| `unknown` | the rules could not be read | **neither claim.** It says so, says why, and hedges the bypass recipe |
+
+`unknown` is a first-class state, not a tidy-up. This file's whole doctrine is
+that "we could not check" must never render as an answer — and here it could
+render as an answer in *either* direction. A false `not_required` tells someone
+to ignore a gate that is holding every pull request they have open; a false
+`required` sends them to burn a waiver they do not need.
+
+Two consequences of that follow, and both are asserted:
+
+- **A `404` is `unknown`, never `not_required`.** `apiGet` maps 404 to `null`,
+  and this endpoint 404s for a repository or branch the token cannot see. A
+  branch that genuinely has no rules answers `200 []`, which *is*
+  `not_required`. Collapsing the two would print "nothing is blocking you"
+  because we were not allowed to look.
+- **The measurement can never fail the report.** `fetchRequiredness` catches
+  everything and answers `unknown`. §10.4 says an outage in the notification
+  channel must not become an outage anywhere else; a reporter that aborted on an
+  unreadable ruleset would stop filing the issues that tell people the suite is
+  down, trading a missing sentence for a missing alarm.
+
+**Which context counts as this gate** is `gate_context`, defaulting to
+`🌙 Nightly E2E Health / 🌙 Gate` — the composite GitHub builds from Lisa's
+caller template (§5). A context that is the configured one plus or minus a
+` / `-separated job suffix also counts, because a repo still running a local
+single-job reimplementation publishes the bare `🌙 Nightly E2E Health` and that
+is the same gate. Nothing looser: a substring test would match
+`🌙 Nightly E2E Health (advisory)`.
+
+#### The per-suite `gated` flag
+
+Requiredness is a property of the **branch** — one context guards every suite in
+the table. `gated: false` is a property of **one suite**: it is tracked, and
+deliberately not enforced. Its issue then says "this suite does not gate merges"
+rather than claiming to block, because *an ungated suite that claimed to block
+merges would be crying wolf* — and a reader who catches one gate lying stops
+believing the ones that are telling the truth.
+
+The two compose in one direction only. `gated: false` can silence a blocking
+claim; `gated: true` can never manufacture one. On a branch where no required
+context matches the gate, every suite renders `not_required` whatever its table
+says. That is the same asymmetry §6.2 applies to the bypass pattern — an
+override narrows, it never loosens — and here it is what stops the people who
+own a suite from asserting a merge consequence that only the people who own the
+branch can impose.
+
+### 10.8 Pinning is opt-in, and a full pin board is not an error
+
+A tracking issue only works if somebody sees it, and an issue list is not
+somewhere people look unprompted. `pin_issues` pins each issue while its suite
+is red and **unpins it on green**.
+
+Off by default, because pinning writes to a repository-wide surface with three
+slots that this workflow does not otherwise touch — an adopter should choose to
+spend one. Opt-in is enforced at the wire, not merely in the plan: with pinning
+off, no GraphQL request is issued at all.
+
+Unpinning is the half that is easy to skip and expensive to omit. A pin that
+survives the recovery is how a pin board stops meaning anything; after two of
+those nobody reads the pinned issues either, and the capability has made things
+worse than not having it.
+
+**Past GitHub's three-pin limit the pin is a warning, never a failure.** A
+fourth red suite in a repo with three pins is an ordinary Tuesday, and it says
+nothing about whether the tracking issue was written correctly. Reddening the
+report job for it would teach operators to ignore the report job — trading a
+decoration for the alarm. `ok` answers "was the tracking issue written"; the pin
+rides beside it in `warnings`.
+
+One protocol trap is pinned by a test because it is a vacuous green in the
+smallest possible surface: **a GraphQL error arrives as HTTP 200 with an
+`errors` array**, not as a failing status. Checking `response.ok` alone reads
+the pin limit as a success and reports a pin that never happened.

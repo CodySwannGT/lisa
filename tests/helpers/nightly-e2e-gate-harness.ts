@@ -14,6 +14,26 @@
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import type {
+  IssuePlanEntry,
+  IssueResult,
+  Requiredness,
+} from "./nightly-e2e-reporting-harness";
+
+export {
+  GATE_CONTEXT,
+  ISSUE_ACTION,
+  ISSUE_REASON,
+  REQUIRED_STATE,
+  requiredChecksRule,
+} from "./nightly-e2e-reporting-harness";
+export type {
+  IssuePlanEntry,
+  IssueResult,
+  Requiredness,
+  TrackedIssue,
+} from "./nightly-e2e-reporting-harness";
+
 /** Repository root, from this file's location. */
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
@@ -65,6 +85,8 @@ export interface Finding {
   readonly url: string | null;
   /** Present only for a suite that declared `first_seen`. */
   readonly grace?: SuiteGrace;
+  /** Present only for a suite that declared `"gated": false` (§10.7). */
+  readonly gated?: boolean;
 }
 
 /** The bypass decision. */
@@ -155,6 +177,32 @@ export interface GateModule {
   resolveSettings(env: Record<string, string | undefined>): unknown;
   readonly TRACKING_ISSUE_LABEL: string;
   readonly INCOMPLETE_EVIDENCE_REASON: string;
+  readonly REQUIREDNESS: Readonly<Record<string, string>>;
+  readonly DEFAULT_GATE_CONTEXT: string;
+  contextMatchesGate(context: string, gateContext: string): boolean;
+  suiteRequiredness(
+    finding: { readonly gated?: boolean },
+    requiredness: Requiredness | null | undefined
+  ): { state: string; detail: string | null; source: string };
+  fetchRequiredness(
+    api: Record<string, unknown>,
+    branch: string,
+    gateContext: string,
+    wait?: () => Promise<void>
+  ): Promise<Requiredness>;
+  setIssuePin(
+    api: Record<string, unknown>,
+    nodeId: string,
+    pinned: boolean
+  ): Promise<{ ok: boolean; warning: string | null }>;
+  formatIssueReport(
+    results: readonly IssueResult[],
+    context: {
+      branch: string;
+      requiredness?: Requiredness;
+      gateContext?: string;
+    }
+  ): string;
   suiteMarker(label: string): string;
   isCompleteEvidence(finding: { readonly reason: string }): boolean;
   planIssueActions(
@@ -227,52 +275,6 @@ export const STATE = Object.freeze({
   fail: "fail",
   unknown: "unknown",
 });
-
-/** Tracking-issue actions (§10 of the contract). */
-export const ISSUE_ACTION = Object.freeze({
-  create: "create",
-  refresh: "refresh",
-  close: "close",
-  none: "none",
-});
-
-/** Why the reporter chose an action, as a stable token per §10 row. */
-export const ISSUE_REASON = Object.freeze({
-  redFiled: "red_filed",
-  redRefreshed: "red_refreshed",
-  greenComplete: "green_complete",
-  greenUntracked: "green_untracked",
-  evidenceIncomplete: "evidence_incomplete",
-  evidenceMissing: "evidence_missing",
-});
-
-/** One suite's reporting plan. */
-export interface IssuePlanEntry {
-  readonly label: string;
-  readonly action: string;
-  readonly reason: string;
-  readonly state: string;
-  readonly issues: readonly number[];
-  readonly title: string | null;
-  readonly body: string | null;
-  readonly comment: string | null;
-}
-
-/** An open issue as the reporter reads it. */
-export interface TrackedIssue {
-  readonly number: number;
-  readonly body?: string | null;
-  readonly pull_request?: Record<string, unknown>;
-}
-
-/** The outcome of one planned action. */
-export interface IssueResult {
-  readonly label: string;
-  readonly action: string;
-  readonly ok: boolean;
-  readonly issues: readonly number[];
-  readonly error: string | null;
-}
 
 /**
  * Loads the guard.

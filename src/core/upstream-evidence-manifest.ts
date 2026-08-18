@@ -233,7 +233,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "89d9096af748fe608e669ea1e5bd71ac2520bcaceb88d36d55da2763eec20e55",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "34dcd26108b814d00fbe61af8f954bf79590df0610657d01bff79adde5276330",
+      "a3eeeeeab2956e59ae1fd143b30bedcb0bb7180bc9e6a87aab3c8c1467bbc2ec",
     "expo/create-only/.maestro/flake-classification.json":
       "b1259c17a875dcdc0fa2398bb280f084e898f46fefaf51e35c3c5aadcbef5a5d",
     "expo/create-only/.zap/baseline.conf":
@@ -2315,7 +2315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "6936f204ffa2506ea9ae5a06fc93a31a55523e312c6e7321a9f13fc45a825427",
+      "9e6f8b161863ff7f47211ad8ae5cdd0a72f593022129651f987d4ca50bb773eb",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -2327,7 +2327,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
-      "9fbef6f8740714f521d8b997308d96492e9158b1221d654333316f2cf7b48445",
+      "d57fdce3529712362d38f0ea569244d2eea3d2667e8689d55f762f672527e989",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -8662,6 +8662,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/nightly-e2e-gate-harness.ts": true,
+    "tests/helpers/nightly-e2e-reporting-harness.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
@@ -9106,6 +9107,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-grace.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-issues.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-pinning.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-requiredness.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,

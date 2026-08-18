@@ -284,8 +284,17 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // behaves identically and both skew directions still fail closed. A major
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
-      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[0]).toBe("1");
-      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toBe("1.3.0");
+      //
+      // Asserted as MAJOR 1 and MINOR ≥ 3 rather than as the literal `1.3.0`
+      // this feature happened to ship at. The property being defended is "these
+      // rows are inside major 1, and were not rolled back" — an exact pin also
+      // encodes *which contract versions existed the day this test was
+      // written*, so the next fail-closed-safe minor (§10.7's requiredness
+      // measurement was `1.4.0`) fails it for a reason that has nothing to do
+      // with grace.
+      const [major, minor] = mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".");
+      expect(major).toBe("1");
+      expect(Number(minor)).toBeGreaterThanOrEqual(3);
     });
   });
 

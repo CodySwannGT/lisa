@@ -309,12 +309,17 @@ describe("nightly e2e reporting — rows 27-31", () => {
       CONTEXT
     );
     const attempted: string[] = [];
+    // Keyed on the SUITE MARKER rather than on the bare word "first". The
+    // marker is the suite's identity (§10.1) and appears in exactly one
+    // suite's body; a loose substring is prose-sensitive, and matched the
+    // wrong request the moment the body gained a sentence containing the word.
+    const firstMarker = mod.suiteMarker("first");
     (globalThis as { fetch: unknown }).fetch = async (
       url: string,
       init?: { method?: string; body?: string }
     ): Promise<unknown> => {
       attempted.push(String(init?.method));
-      return String(init?.body).includes("first")
+      return String(init?.body).includes(firstMarker)
         ? fakeResponse(500, {}, {})
         : fakeResponse(201, {}, { number: 7 });
     };
