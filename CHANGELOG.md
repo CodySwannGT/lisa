@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.34.0](https://github.com/CodySwannGT/lisa/compare/v3.33.8...v3.34.0) (2026-08-18)
+
+
+### Features
+
+* **doctor:** declare the traceability gate where no project has ([2a06c8a](https://github.com/CodySwannGT/lisa/commit/2a06c8a8ff8100cd4b4d24768701b17d34d08957)), closes [CodySwannGT/lisa#2677](https://github.com/CodySwannGT/lisa/issues/2677) [CodySwannGT/lisa#2677](https://github.com/CodySwannGT/lisa/issues/2677)
+
+
+### Bug Fixes
+
+* **automations:** stop an append rewriting rows it did not author ([6553d7d](https://github.com/CodySwannGT/lisa/commit/6553d7d85cbfff7c67c6d9ed89bc92c76af64bc2)), closes [CodySwannGT/lisa#2682](https://github.com/CodySwannGT/lisa/issues/2682)
+* **doctor:** report the layer doctor cannot see, and drop a premise that expired ([9c9ace1](https://github.com/CodySwannGT/lisa/commit/9c9ace132c6e598601c16fac78ddfd2a287504c0)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [CodySwannGT/lisa#2677](https://github.com/CodySwannGT/lisa/issues/2677)
+* **gates:** declare the .mjs gate off, and stop that off from rotting ([839a785](https://github.com/CodySwannGT/lisa/commit/839a7854e1a0c7e61dcbf8a73bd5d18925a187ca)), closes [CodySwannGT/lisa#2695](https://github.com/CodySwannGT/lisa/issues/2695)
+* **gates:** let this repository resolve the gates it declares ([c0f843a](https://github.com/CodySwannGT/lisa/commit/c0f843a359b86eb5e9ad963f337f42f1409ff09c)), closes [CodySwannGT/lisa#2695](https://github.com/CodySwannGT/lisa/issues/2695)
+* **hooks:** prove lint-staged's tools can start before handing it the work ([8f41550](https://github.com/CodySwannGT/lisa/commit/8f41550e50df30f4714c0a08fc1bcf819b4c17e9)), closes [CodySwannGT/lisa#2678](https://github.com/CodySwannGT/lisa/issues/2678) [CodySwannGT/lisa#2678](https://github.com/CodySwannGT/lisa/issues/2678)
+* **intake:** sweep pre-work lanes by type, and state the denominator ([6afbec9](https://github.com/CodySwannGT/lisa/commit/6afbec93abcc34d090d1d0f9daf52412c8b071e9)), closes [CodySwannGT/lisa#2657](https://github.com/CodySwannGT/lisa/issues/2657)
+* **test:** fail the .mjs gate with no runner, collect the plugin suites ([2eec70f](https://github.com/CodySwannGT/lisa/commit/2eec70feb6add0b25796eab68c45c2c4eb381e41)), closes [#2689](https://github.com/CodySwannGT/lisa/issues/2689) [CodySwannGT/lisa#2692](https://github.com/CodySwannGT/lisa/issues/2692) [CodySwannGT/lisa#2692](https://github.com/CodySwannGT/lisa/issues/2692)
+* **test:** run the mjs step body under bash, as GitHub Actions does ([46ff850](https://github.com/CodySwannGT/lisa/commit/46ff850cbd62f78b0c98e2ff7c2df08b301ba272)), closes [CodySwannGT/lisa#2692](https://github.com/CodySwannGT/lisa/issues/2692) [CodySwannGT/lisa#2692](https://github.com/CodySwannGT/lisa/issues/2692)
+
 ### [3.33.8](https://github.com/CodySwannGT/lisa/compare/v3.33.7...v3.33.8) (2026-08-18)
 
 
