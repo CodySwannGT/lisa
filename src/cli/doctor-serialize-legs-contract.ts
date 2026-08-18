@@ -17,7 +17,9 @@ const CHECK_NAME = "Maestro leg serialization wired?";
  * discarded at the reusable-workflow boundary no matter where it is placed.
  * While this is false, `serialize_platform_legs` cannot order anything in ANY
  * repository, and reporting a fully configured caller as `ok` would certify a
- * configuration measured to fail.
+ * configuration measured to fail. It is now TRUE: the reusable workflow
+ * declares `actions: read` for itself, so a fully configured caller can
+ * genuinely order its legs and `ok` is an honest verdict again.
  *
  * Measured 2026-08-17 against a caller granting `actions: read` at BOTH job and
  * workflow level: the job's own token grant showed `Contents: read` and
@@ -36,7 +38,7 @@ const CHECK_NAME = "Maestro leg serialization wired?";
  * install can disagree with what actually runs. That is a property of `@main`
  * refs, not of this check.
  */
-export const CALLEE_GRANTS_ACTIONS_READ = false;
+export const CALLEE_GRANTS_ACTIONS_READ = true;
 
 /** Which of the three required parts a caller declares. */
 export interface SerializeContract {
@@ -175,9 +177,10 @@ export async function checkSerializeLegsContract(
       "green. `actions: read` must sit on the CALLING workflow's own " +
       "`permissions:`, not on the job: a called workflow requesting a scope " +
       "its caller never held is a startup_failure for the entire run. " +
-      "Completing these parts is necessary but NOT sufficient today — see " +
-      "CodySwannGT/lisa#2662, which tracks the reusable workflow's own " +
-      "permissions ceiling discarding the grant",
+      "The reusable workflow now declares `actions: read` for itself " +
+      "(CodySwannGT/lisa#2662), so completing these parts is what makes " +
+      "ordering work — and a caller that has NOT granted the scope gets a " +
+      "startup_failure for its whole run, opted in or not",
   };
 }
 
