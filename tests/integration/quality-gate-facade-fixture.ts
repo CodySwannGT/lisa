@@ -60,7 +60,10 @@ export const NOT_CONFIGURED = "steps.gate.outputs.configured == 'false'";
 export const DECLARED_OFF = "steps.gate.outputs.configured == 'off'";
 
 /**
- * The thirteen jobs converted to the gate façade.
+ * Every job converted to the gate façade.
+ *
+ * Deliberately not counted in prose: the count has been wrong twice already
+ * ("thirteen" survived two additions). The list is the count.
  *
  * Kept exhaustive by `quality-gate-moment-input.test.ts`, which fails if the
  * workflow contains a resolve step this list omits. `test_node_suites` shipped
@@ -212,13 +215,26 @@ export const CONVERTED: ConvertedJob[] = [
     gateStep: "✅ Run the coverage-adequacy gate",
     fallbackSteps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
   },
+  {
+    job: "work_item_traceability",
+    jobName: "🔗 Work-Item Traceability",
+    gate: "traceability",
+    gateStep: "🔗 Run the traceability gate",
+    // Only the validator itself. `🔗 Resolve the branch-authored commit range`
+    // is deliberately NOT here: it computes the event-derived base SHA that
+    // BOTH paths are handed, so gating it on the fallback would leave a
+    // project's own task without the range `validate-pr` refuses to run
+    // without. It proves nothing and can fail nothing, which is what keeps an
+    // `off` declaration a no-op job rather than a skipped one.
+    fallbackSteps: ["🔗 Validate Work-Item traceability"],
+  },
 ];
 
 /**
  * Steps that carried `continue-on-error` BEFORE this conversion.
  *
  * A failing job that reports green is the exact defect the façade exists to
- * prevent, so the set is pinned rather than checked only on the thirteen jobs:
+ * prevent, so the set is pinned rather than checked only on the converted jobs:
  * growing it anywhere in this workflow has to fail here.
  */
 export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
