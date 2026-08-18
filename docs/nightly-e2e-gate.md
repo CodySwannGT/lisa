@@ -304,15 +304,27 @@ of asserting *this suite publishes counts* — and from that moment an unreadabl
 count blocks.
 
 A suite with no `min_flows` still gets row 36, and its green line **says out loud
-which question went unasked**:
+which question went unasked** — quoting the count when the run published one:
 
 ```
-✅ Maestro E2E — green (…) — ⚠️ scope unverified: this run published no executed-flow
-count, so how much of the suite ran is unknown. Declare `min_flows` for this suite
-to make that a blocking question
+✅ Maestro E2E — green (…) — ⚠️ scope unverified: this run executed 8 flow(s), and no
+`min_flows` is declared for this suite, so the gate cannot tell whether that is the
+whole suite or a slice of it. Compare it against a known-full night and declare
+`min_flows` to make this a blocking question
 ```
 
 A silent green there would be the same reading error one layer up.
+
+**The notice fires on "the run never asserted it was unfiltered", not on "no
+count was published"** — and that distinction was found by running the guard
+against AcmeOrgB's real run rather than by reading the code. That run publishes
+`flowcount-4` on both arms, so a count-based condition read it as *verified* and
+printed a clean green. Its 8-of-~160 flows are the precise false green rows 36-38
+exist to catch, and the gate would have said nothing about it. **Knowing the
+number is not the same as being able to judge it.** Only a declared `min_flows`
+or the run's own `scope-full` marker settles the question; a count with neither
+is evidence the gate is holding but cannot interpret, so it prints the number and
+says so.
 
 **A suite that publishes no counts at all keeps that notice permanently, and
 that is correct rather than a nag to suppress.** A Playwright suite cannot
