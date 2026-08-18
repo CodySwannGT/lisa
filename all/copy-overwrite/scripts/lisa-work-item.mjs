@@ -572,25 +572,73 @@ function writeState(ref, provider = trackerContract().provider, options = {}) {
   return file;
 }
 
-function parseTrailers(message) {
-  const parsed = git(["interpret-trailers", "--parse"], { input: message });
-  return parsed
-    .split("\n")
-    .filter(Boolean)
+/**
+ * Every `Work-Item:` value in a message, wherever in the message it sits.
+ *
+ * Deliberately NOT `git interpret-trailers --parse`, which reads only the
+ * FINAL paragraph block. Under that rule a trailer stopped counting the moment
+ * anything landed after it — a blank line before the `Co-Authored-By:`
+ * attribution block, a bot appending release notes below it — and the gate
+ * then reported `found 0` about a message that plainly contained one (#2672).
+ *
+ * The two failure modes point opposite ways, which is what made it expensive
+ * to read: a duplicate reports `found 2`, and a present-but-early trailer
+ * reports `found 0`, sending every reader hunting for a line that is right
+ * there. It could also go red with no human action at all, because something
+ * appended below the trailer is enough.
+ *
+ * Position carries no information here. Neither a commit message assembled by
+ * an agent nor a pull-request body edited by bots after review has a
+ * meaningful "last block", so the whole text is read.
+ *
+ * Comment lines and a verbose commit's diff are not a hazard: the prefix is
+ * anchored at column zero, so `# Work-Item: …` never matches, and every
+ * unified-diff line carries a space, `+` or `-` in that column.
+ * @param {string} message Commit message or pull-request body.
+ * @returns {string[]} Every Work-Item value found, in order of appearance.
+ */
+function workItemLines(message) {
+  return String(message ?? "")
+    .split(/\r?\n/)
     .flatMap(line => {
       const value = workItemLineValue(line);
       return value === null ? [] : [value];
     });
 }
 
+/**
+ * The one work item a COMMIT message names.
+ *
+ * Repeats of the SAME item pass, and they have to: Lisa's own
+ * prepare-commit-msg hook appends `Work-Item:` to the final trailer block, so
+ * a message that already carries the trailer above its attribution block comes
+ * back out of that hook carrying two identical lines. Rejecting that would
+ * reject the layout Lisa itself writes. Two DIFFERENT items is the real
+ * ambiguity, and it still fails — naming both, so the author can see which.
+ *
+ * A pull-request body keeps the stricter one-line rule (see prWorkItem):
+ * nothing appends a trailer there on Lisa's behalf, so a second line in a body
+ * is a person having written two.
+ * @param {string} message Commit message.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} The canonical work-item reference.
+ */
 function exactWorkItem(message, contract = trackerContract()) {
-  const refs = parseTrailers(message);
-  if (refs.length !== 1) {
+  const values = workItemLines(message);
+  if (values.length === 0) {
     throw new TrackingError(
-      `Expected exactly one Work-Item trailer; found ${refs.length}`
+      "No Work-Item trailer anywhere in the commit message"
     );
   }
-  return canonicalizeRef(refs[0], contract);
+  const refs = [
+    ...new Set(values.map(value => canonicalizeRef(value, contract))),
+  ];
+  if (refs.length > 1) {
+    throw new TrackingError(
+      `Commit message names ${refs.length} different work items (${refs.join(", ")}); it must name exactly one`
+    );
+  }
+  return refs[0];
 }
 
 function messageSubject(message) {
@@ -1369,13 +1417,20 @@ function parsePushLines(input, remote) {
   return commits;
 }
 
+/**
+ * The one work item a pull-request BODY names.
+ *
+ * A body has no trailer convention — it is prose, edited by people and by bots
+ * after the fact — so the line is found wherever it sits. Two lines still fail:
+ * unlike a commit message, nothing appends a `Work-Item:` line to a body on
+ * Lisa's behalf, so a second one is a person having written two, and which of
+ * them the change is for is genuinely unknown.
+ * @param {string} body Pull-request body.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} The canonical work-item reference.
+ */
 function prWorkItem(body, contract) {
-  const matches = String(body ?? "")
-    .split(/\r?\n/)
-    .flatMap(line => {
-      const value = workItemLineValue(line);
-      return value === null ? [] : [value];
-    });
+  const matches = workItemLines(body);
   if (matches.length !== 1)
     throw new TrackingError(
       `Pull request must contain exactly one Work-Item line; found ${matches.length}`
@@ -1383,23 +1438,137 @@ function prWorkItem(body, contract) {
   return canonicalizeRef(matches[0], contract);
 }
 
-function validatePrData(result, prUrl, prBody) {
-  if (result.relevant === 0) {
-    if (result.releaseExempt > 0 && result.mergeExempt === 0) return;
-    throw new TrackingError(
-      "Pull request has no non-merge commit linked to a work item"
-    );
+/**
+ * A requirement no edit to this pull request can satisfy. Reported FIRST, and
+ * said plainly, because the alternative is what #2681 measured: three
+ * successful fixes spent on a pull request that then turned out to need
+ * recreating anyway.
+ */
+const OUTSIDE_THIS_PR = "[not fixable by editing this pull request]";
+/** A requirement an amend or a body edit clears. */
+const IN_THIS_PR = "[fixable by editing this pull request]";
+/** Worst first. The whole point of the ordering. */
+const SCOPE_ORDER = [OUTSIDE_THIS_PR, IN_THIS_PR];
+
+/**
+ * Validate the commits, keeping a refusal rather than aborting the run.
+ *
+ * The pull-request gate checks four separate things and used to stop at the
+ * first unmet one, so each CI cycle revealed exactly one requirement. It knew
+ * the rest at the same moment; it was simply not saying.
+ * @param {string[]} commits Commits in the pull request range.
+ * @returns {{result?: object, error?: Error}} Outcome, never a throw.
+ */
+function commitOutcome(commits) {
+  try {
+    return { result: validateCommits(commits) };
+  } catch (error) {
+    if (!(error instanceof TrackingError)) throw error;
+    return { error };
   }
-  if (!result.ref)
-    throw new TrackingError(
-      "Pull request commits are not linked to a work item"
+}
+
+/**
+ * Run one check, recording its refusal as a finding instead of throwing.
+ * @param {object[]} findings Accumulator.
+ * @param {string} scope Whether an edit to this pull request can fix it.
+ * @param {Function} check The check to run.
+ * @returns {unknown} The check's value, or undefined when it refused.
+ */
+function collect(findings, scope, check) {
+  try {
+    return check();
+  } catch (error) {
+    if (!(error instanceof TrackingError)) throw error;
+    findings.push({ message: error.message, scope });
+    return undefined;
+  }
+}
+
+/**
+ * What to do about a missing tracker backlink, in an operator's terms.
+ *
+ * Linear derives its native backlink from the BRANCH NAME, so a branch with no
+ * ticket id in it can never acquire one — that requirement is unreachable from
+ * inside the pull request and the message has to say so, rather than leaving a
+ * reader to try edits that cannot work.
+ * @param {string} ref Canonical work-item reference.
+ * @param {string} prUrl Pull request URL.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} Remediation sentence.
+ */
+function backlinkAdvice(ref, prUrl, contract) {
+  const branchDerived =
+    contract.provider === "linear"
+      ? `The tracker builds that link from the BRANCH NAME, so a branch carrying no ticket id can never acquire one: no edit to this pull request, its body, or its commits will do it. Fixing it that way needs a NEW branch named for ${ref} and a new pull request from it. `
+      : "";
+  return `${branchDerived}The one remedy that needs no new branch is a comment on ${ref} containing: ${MARKER} ${prUrl}`;
+}
+
+/**
+ * One refusal naming every unmet requirement, unrecoverable ones first.
+ * @param {object[]} findings Unmet requirements.
+ * @returns {string} The report.
+ */
+function requirementReport(findings) {
+  const ordered = SCOPE_ORDER.flatMap(scope =>
+    findings.filter(finding => finding.scope === scope)
+  );
+  const head =
+    ordered.length === 1
+      ? "1 work-item traceability requirement is unmet:"
+      : `${ordered.length} work-item traceability requirements are unmet. Every one of them is listed here, hardest first, so a single pass can clear them:`;
+  const body = ordered
+    .map(
+      (finding, index) => `${index + 1}. ${finding.scope} ${finding.message}`
+    )
+    .join("\n\n");
+  return `${head}\n\n${body}`;
+}
+
+/**
+ * Check every pull-request requirement and report all of the unmet ones.
+ * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
+ * @param {string} prUrl Pull request URL.
+ * @param {string} prBody Pull request body.
+ */
+function validatePrData(outcome, prUrl, prBody) {
+  const result = outcome.result;
+  if (result?.relevant === 0 && result.releaseExempt > 0 && !result.mergeExempt)
+    return;
+  const contract = result?.contract ?? trackerContract();
+  const findings = [];
+  if (outcome.error)
+    findings.push({ message: outcome.error.message, scope: IN_THIS_PR });
+  else if (result.relevant === 0)
+    findings.push({
+      message: "Pull request has no non-merge commit linked to a work item",
+      scope: IN_THIS_PR,
+    });
+  else if (!result.ref)
+    findings.push({
+      message: "Pull request commits are not linked to a work item",
+      scope: IN_THIS_PR,
+    });
+  const commitRef = result?.ref;
+  const bodyRef = collect(findings, IN_THIS_PR, () =>
+    prWorkItem(prBody, contract)
+  );
+  if (commitRef && bodyRef && bodyRef !== commitRef)
+    findings.push({
+      message: `Pull request Work-Item ${bodyRef} does not match commit Work-Item ${commitRef}`,
+      scope: IN_THIS_PR,
+    });
+  const ref = commitRef ?? bodyRef;
+  if (ref) {
+    const before = findings.length;
+    collect(findings, OUTSIDE_THIS_PR, () =>
+      assertBacklink(ref, prUrl, contract, commitRef ? result.issue : undefined)
     );
-  const bodyRef = prWorkItem(prBody, result.contract);
-  if (bodyRef !== result.ref)
-    throw new TrackingError(
-      `Pull request Work-Item ${bodyRef} does not match commit Work-Item ${result.ref}`
-    );
-  assertBacklink(result.ref, prUrl, result.contract, result.issue);
+    if (findings.length > before)
+      findings[before].message += `. ${backlinkAdvice(ref, prUrl, contract)}`;
+  }
+  if (findings.length > 0) throw new TrackingError(requirementReport(findings));
 }
 
 function currentRepository() {
@@ -1491,17 +1660,20 @@ function validateCommit(args) {
 function validatePush(args) {
   const remote = args[0] || "origin";
   const input = readFileSync(0, "utf8");
-  const result = validateCommits(parsePushLines(input, remote));
+  const outcome = commitOutcome(parsePushLines(input, remote));
   const pr = currentPullRequest();
   if (!pr) {
+    // No pull request means no body and no backlink to check, so there is
+    // nothing to report alongside a commit refusal — raise it as it stands.
+    if (outcome.error) throw outcome.error;
     console.log(
-      `WORK_ITEM_TRACKING_OK ${result.relevant} commit(s); no pull request exists yet, CI will verify PR linkage`
+      `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s); no pull request exists yet, CI will verify PR linkage`
     );
     return;
   }
-  validatePrData(result, pr.url, pr.body);
+  validatePrData(outcome, pr.url, pr.body);
   console.log(
-    `WORK_ITEM_TRACKING_OK ${result.relevant} commit(s), PR body, and tracker backlink`
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), PR body, and tracker backlink`
   );
 }
 
@@ -1513,7 +1685,7 @@ function validatePr(args) {
   const commits = git(["rev-list", `${base}..${head}`])
     .split("\n")
     .filter(Boolean);
-  const result = validateCommits(commits);
+  const outcome = commitOutcome(commits);
   const bodyFile = option(args, "--body-file", "LISA_PR_BODY_FILE");
   const prNumber = option(args, "--pr-number", "LISA_PR_NUMBER");
   const suppliedUrl =
@@ -1532,9 +1704,9 @@ function validatePr(args) {
       "validate-pr requires --pr-number, or --pr-url/--url with --body-file, and an accessible GitHub PR"
     );
   }
-  validatePrData(result, pr.url, pr.body);
+  validatePrData(outcome, pr.url, pr.body);
   console.log(
-    `WORK_ITEM_TRACKING_OK ${result.relevant} commit(s), PR body, and tracker backlink`
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), PR body, and tracker backlink`
   );
 }
 
