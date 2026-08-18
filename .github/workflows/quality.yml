@@ -2980,15 +2980,39 @@ jobs:
         # present in any project that has applied Lisa.
         #
         # The script is loud about collecting zero: `node --test` exits 0 on a
-        # glob that matches nothing, so a project with genuinely no `.mjs`
-        # suites passes — but says so in the transcript rather than silently.
+        # glob that matches nothing, so the script counts the collection itself
+        # and returns non-zero when it is empty. A project with genuinely no
+        # `.mjs` suites declares the gate `off`, where the decision is visible.
+        #
+        # An ABSENT runner is a THIRD state, and it is the one that bit. It is
+        # not an empty collection — it is a gate that cannot run at all. This
+        # branch used to print a `::warning::` and fall off the end of the
+        # script, so it exited 0: the one job whose entire purpose is to stop a
+        # suite from passing without running reported success having run
+        # nothing, on every project that had not re-applied Lisa. Measured on
+        # this repository, whose own `scripts/lisa-test-node.mjs` does not
+        # exist: `🧪 Run .mjs Suites` = success, zero suites collected.
         if: steps.gate.outputs.configured == 'false'
         run: |
-          if [ -f scripts/lisa-test-node.mjs ]; then
-            node scripts/lisa-test-node.mjs
-          else
-            echo "::warning::scripts/lisa-test-node.mjs is absent — re-apply Lisa to install it. No .mjs suites were run."
+          set -euo pipefail
+          # Same resolution order as the gate resolver above, for the same
+          # reason: the packaged copy is one versioned file, while the copied
+          # one is a per-repo fork that silently stops receiving fixes. A
+          # project that installed the package but has not run `lisa apply`
+          # has a working runner and used to be told it had none.
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-test-node.mjs" \
+            "scripts/lisa-test-node.mjs"; do
+            if [ -f "$candidate" ]; then RUNNER="$candidate"; break; fi
+          done
+
+          if [ -z "${RUNNER:-}" ]; then
+            echo "::error title=.mjs suite runner missing::No lisa-test-node.mjs was found at node_modules/@codyswann/lisa/all/copy-overwrite/scripts/ or at scripts/, so NO .mjs suites ran and this job cannot report success. Fix it one of two ways, both of which leave a visible record. Run \`lisa apply\` to install the runner. Or, if this project genuinely has no *.test.mjs suites, declare the test-node-suites gate off in the gates block of .lisa.config.json — level off drops the required context instead of satisfying it vacuously."
+            exit 1
           fi
+
+          echo "Running .mjs suites via $RUNNER"
+          node "$RUNNER"
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # Environment facade. The TASK IS THE VERIFY, NOT THE RESET: a gate whose
