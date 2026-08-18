@@ -242,12 +242,20 @@ tested a hand-picked handful of flows.**
 
 Measured 2026-08-18, and this is the defect that produced these rows:
 
-- **AcmeOrgB/frontend.** The only `success` in recent maestro history ran **4 of
-  ~80 flows** under `ios_include_tags: smoke`. Every *unfiltered* run in the same
-  window failed. Because a filtered dispatch reports `success` under the
-  identical workflow name, `gh run list` renders it indistinguishably from a full
-  green — a reader (and this gate) concludes the suite "has been green recently"
-  when it never has.
+- **AcmeOrgB/frontend — the case row 26 cannot see.** The only `success` in
+  recent maestro history published `maestro-android-flowcount-4` and
+  `maestro-ios-flowcount-4`. Unfiltered runs of the same suite in the same window
+  published `flowcount-81`/`flowcount-80` and `flowcount-83`/`flowcount-82`, and
+  the repository carries 109 flow files. So that green ran **8 flows out of
+  ~160 flow-executions**, about **5%** of the suite.
+
+  Every job in it concluded `success` — nothing was skipped, nothing failed under
+  `continue-on-error`. **Row 26 has nothing to catch.** It is a structurally
+  complete run that tested a twentieth of the app, and because a filtered dispatch
+  reports `success` under the identical workflow name, `gh run list` renders it
+  indistinguishably from a full green. This is the case that makes row 37 load-
+  bearing rather than belt-and-braces: the executed-flow count is the *only*
+  signal that distinguishes it.
 - **AcmeOrgD/frontend.** Its nightly gate is a **required context**, and it was
   satisfied by run `32120016803`: iOS green, Android skipped, and the run's own
   published artifact name reading `maestro-ios-flowcount-7`. **Seven flows
@@ -325,8 +333,17 @@ is what lets a repo arm these rows without wedging itself.
 
 1. Re-pin the caller to a Lisa tag at or after this change, so
    `maestro-native-e2e.yml` publishes the scope marker.
-2. Count the suite's flows and declare `min_flows` on the suite entry, a little
-   under the true count so ordinary churn does not redden the gate.
+2. Read the real number off a recent FULL night's
+   `maestro-<platform>-flowcount-<N>` artifact names — every completed run
+   carries them, and they survive the retention window — then declare `min_flows`
+   a little under the sum so ordinary churn does not redden the gate. For a suite
+   whose full nights read `flowcount-81` and `flowcount-80`, `min_flows: 150` is
+   about right; it clears a normal night by 11 and rejects the 8-flow run above
+   by a factor of eighteen.
+
+   Do **not** derive it from the flow-file count. 109 files produced ~160
+   flow-executions across two platforms, and the ratio is not something to
+   predict — read what the suite actually publishes.
 3. Expect the first armed night to be **red** where a filtered run was previously
    passing. That red is the correct reading of evidence that was always there.
 
