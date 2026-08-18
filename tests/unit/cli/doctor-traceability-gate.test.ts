@@ -121,6 +121,32 @@ describe("traceability gate declaration", () => {
     expect(result.detail).toContain("off");
   });
 
+  // AC4. An offline check cannot see branch protection, so a bare "ok" on the
+  // declared branch would read as "traceability is enforced" when the required
+  // context may be absent and every failure merges anyway. Both branches must
+  // carry the layer-2 caveat; before this was added, the declared branch said
+  // only "left as the project set it" and these two assertions failed.
+  it("names the unobservable second layer even when the gate is declared", async () => {
+    const root = project({
+      gates: { [GATE_ID]: { "pull-request": "required" } },
+    });
+    const result = await checkTraceabilityGate(root);
+
+    expect(result.status).toBe("ok");
+    expect(result.detail).toContain("lisa health");
+    expect(result.detail).toContain("scripts/lisa-github-rulesets.sh");
+  });
+
+  it("does not claim an undeclared gate stopped the job from running", async () => {
+    const root = project({});
+    const result = await checkTraceabilityGate(root);
+
+    // #2680 made the job run regardless of the gate; the cost of leaving it
+    // undeclared is that the red does not block, not that nothing ran.
+    expect(result.detail).not.toContain("never ran");
+    expect(result.detail).toContain("merged anyway");
+  });
+
   it("is silent on a directory that is not a Lisa project", async () => {
     const result = await checkTraceabilityGate(project(null));
     expect(result.status).toBe("ok");

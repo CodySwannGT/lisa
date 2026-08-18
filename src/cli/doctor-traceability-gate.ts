@@ -5,8 +5,20 @@
  * `pull-request`, the TypeScript ruleset template names the context as
  * required, and the promotion ledger grandfathers it. Lisa's own repository
  * enforces it. Measured 2026-08-18, **no consumer did**: `traceability` was
- * absent from all five projects' `.lisa.config.json`, so the job never ran at
- * all — not a red-but-non-blocking signal an operator might notice, no signal.
+ * absent from all five projects' `.lisa.config.json`.
+ *
+ * WHAT AN UNDECLARED GATE COSTS, RESTATED AFTER #2680. An earlier draft of this
+ * check said an undeclared gate meant "the job never ran at all". That was true
+ * when the job's `if:` keyed on `skip_jobs` and ignored the config. Since #2680
+ * it is false: the job runs on every pull request, and with the gate undeclared
+ * (`configured=false`) the built-in validation step still runs and still reds.
+ *
+ * The real cost is narrower and easier to miss. `contextsFor` filters on
+ * `gate.level === "required"`, so an undeclared gate emits no required status
+ * context — the job reds and **merges anyway**. Declaring it is what converts an
+ * ignorable red into a blocking one. Do not restore the stronger claim without
+ * re-measuring: it was wrong once already, and a repair that overstates what it
+ * fixes is the same defect class as a check that reports work it never did.
  *
  * Two independent layers decide whether a missing trailer blocks, and
  * conflating them is why this went unseen:
@@ -26,6 +38,24 @@ import * as path from "node:path";
 import type { DoctorCheck } from "./doctor.js";
 
 const CHECK_NAME = "Work-Item Traceability declared?";
+
+/**
+ * What this check can and cannot see about layer 2.
+ *
+ * `lisa doctor` runs offline, so it never observes live branch protection. A
+ * declared gate therefore proves the job will FAIL, never that the failure will
+ * BLOCK — `contextsFor` only emits the context, and the ruleset has to require
+ * it. Saying nothing here would let a green doctor read as "traceability is
+ * enforced" when the context may not be required at all, which is the exact
+ * conflation #2677 was filed about. So both branches say it, and both name
+ * where layer 2 IS observed rather than leaving the reader to find it.
+ */
+const LAYER_TWO_NOTE =
+  `Whether a failure BLOCKS a merge is a separate layer that \`lisa doctor\` ` +
+  `cannot see: it runs offline and never reads live branch protection. Check ` +
+  `it with \`lisa health\` (the \`github.rulesets\` finding names any context ` +
+  `that "runs without blocking"), and apply the ruleset with ` +
+  `scripts/lisa-github-rulesets.sh if the context is missing.`;
 
 /** The gate id as the registry declares it. */
 export const GATE_ID = "traceability";
@@ -137,7 +167,7 @@ export async function checkTraceabilityGate(
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail: `gates.${GATE_ID} is declared — left as the project set it`,
+      detail: `gates.${GATE_ID} is declared — left as the project set it. ${LAYER_TWO_NOTE}`,
     };
   }
 
@@ -154,13 +184,10 @@ export async function checkTraceabilityGate(
     name: CHECK_NAME,
     status: "warn",
     detail:
-      `gates.${GATE_ID} was undeclared, so the job never ran and a missing ` +
-      `Work-Item trailer could not be caught. ADDED as ` +
-      `{"${GATE_MOMENT}": "${GATE_LEVEL}"} — commit it. Note this makes the ` +
-      `job run and fail; whether a failure BLOCKS a merge is a separate ` +
-      `layer, and if "🔍 Quality Checks / 🔗 Work-Item Traceability" is not a ` +
-      `required status context on the default branch, apply the ruleset with ` +
-      `scripts/lisa-github-rulesets.sh. Declare it as "off" instead if this ` +
-      `project is deliberately opting out — that decision is preserved.`,
+      `gates.${GATE_ID} was undeclared, so a missing Work-Item trailer reddened ` +
+      `the check and merged anyway — an undeclared gate emits no required ` +
+      `status context. ADDED as {"${GATE_MOMENT}": "${GATE_LEVEL}"} — commit ` +
+      `it. Declare it as "off" instead if this project is deliberately opting ` +
+      `out; that decision is preserved. ${LAYER_TWO_NOTE}`,
   };
 }
