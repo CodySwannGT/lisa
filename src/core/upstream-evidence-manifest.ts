@@ -231,9 +231,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "9852ce44177be171aca0c0f66136c88ae654409d7bcfc8bad989eedc18980780",
+      "89d9096af748fe608e669ea1e5bd71ac2520bcaceb88d36d55da2763eec20e55",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "5fccbcbb3f121eb80b165e6403ef131d4ed71da9b9f58386fa0db66daf4026f9",
+      "34dcd26108b814d00fbe61af8f954bf79590df0610657d01bff79adde5276330",
     "expo/create-only/.maestro/flake-classification.json":
       "b1259c17a875dcdc0fa2398bb280f084e898f46fefaf51e35c3c5aadcbef5a5d",
     "expo/create-only/.zap/baseline.conf":
@@ -2126,6 +2126,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "0060a0f65885b54fc93bd3885ca249cbb1ac822c52813817aae640bc1303827b",
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
+    "scripts/check-template-workflow-refs.mjs":
+      "659f2f11f20ea8414d1732b90f388c937a9b628f8689f02a7fbaa93666e6bd2f",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
@@ -8171,6 +8173,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-rules-pairing.sh": true,
     "scripts/check-security-floors.mjs": true,
     "scripts/check-state-classification.mjs": true,
+    "scripts/check-template-workflow-refs.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
     "scripts/cleanup-amplify-branches.sh": true,
@@ -9050,6 +9053,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
+    "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,

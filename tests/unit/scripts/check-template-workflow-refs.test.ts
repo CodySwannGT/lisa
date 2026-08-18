@@ -1,0 +1,245 @@
+/**
+ * Unit tests for scripts/check-template-workflow-refs.mjs (issue #2702).
+ *
+ * The headline case: `expo/create-only/.github/workflows/nightly-e2e-report.yml`
+ * shipped pinned at `@v2.345.1`, a Lisa version that predates the reusable it
+ * calls. A consumer receiving it gets a workflow that cannot LOAD — GitHub runs
+ * zero jobs and reports a workflow file issue — so there is no test output and
+ * nothing reads as red. It never succeeded once in three scheduled runs across
+ * two repos, and stayed byte-identical to the broken template in both, because
+ * a workflow that never runs gives nobody a reason to edit it.
+ *
+ * The two exit-2 cases carry as much weight as the exit-1 case. A gate that
+ * scans nothing, or that cannot resolve the ref it was asked about, must say so
+ * rather than report a clean run — reproducing the very defect it exists to
+ * catch would be the worst possible outcome for this file.
+ *
+ * Per the Test Isolation house rule, expected values are HARDCODED.
+ *
+ * @module tests/unit/scripts/check-template-workflow-refs
+ */
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import process from "node:process";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  classifyRef,
+  findWorkflowRefs,
+} from "../../../scripts/check-template-workflow-refs.mjs";
+import { cleanGitEnv } from "../../helpers/test-utils";
+
+const SCRIPT = path.resolve("scripts/check-template-workflow-refs.mjs");
+const GIT = "/usr/bin/git";
+const ADD_ALL = ["add", "-A"] as const;
+
+/** A template path the gate recognises: `<lane>/<mode>/.github/workflows/…`. */
+const TEMPLATE = "expo/create-only/.github/workflows/nightly-e2e-report.yml";
+
+/** The reusable the template above calls, as it lives in this repository. */
+const REUSABLE = ".github/workflows/nightly-e2e-report.yml";
+
+/** Stand-in body for the reusable, so its presence at a ref is what varies. */
+const REUSABLE_BODY = "name: reusable\n";
+
+/**
+ * A caller template referencing the reusable at `ref`.
+ *
+ * @param ref - the git ref to pin in the `uses:` line.
+ * @returns The template's YAML text.
+ */
+function callerTemplate(ref: string): string {
+  return [
+    "name: 🌙 Nightly E2E Report",
+    "on:",
+    "  workflow_dispatch:",
+    "jobs:",
+    "  report:",
+    `    uses: CodySwannGT/lisa/${REUSABLE}@${ref}`,
+    "",
+  ].join("\n");
+}
+
+const roots: string[] = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+/**
+ * Create a temporary git repository with `files` written and committed.
+ *
+ * @param files - relative path to file contents.
+ * @returns The absolute repository root.
+ */
+function tempRepo(files: Readonly<Record<string, string>>): string {
+  const root = mkdtempSync(path.join(tmpdir(), "lisa-2702-"));
+  const env = cleanGitEnv(process.env);
+  const entries = Object.entries(files);
+  const git = (...args: readonly string[]): void => {
+    execFileSync(GIT, [...args], { cwd: root, env, stdio: "ignore" });
+  };
+  roots.push(root);
+  for (const [relative, content] of entries) {
+    const target = path.join(root, relative);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, content, "utf8");
+  }
+  git("init", "-q");
+  git("config", "user.email", "test@example.com");
+  git("config", "user.name", "Test");
+  if (entries.length > 0) {
+    git(...ADD_ALL);
+    git("commit", "-q", "-m", "seed");
+  }
+  return root;
+}
+
+/**
+ * Run the CLI and capture its exit code plus combined output.
+ *
+ * @param args - CLI arguments after the script path.
+ * @returns The exit code, stdout, and stderr text.
+ */
+function run(args: readonly string[]): {
+  code: number;
+  stdout: string;
+  stderr: string;
+} {
+  try {
+    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+      encoding: "utf8",
+    });
+    return { code: 0, stderr: "", stdout };
+  } catch (error) {
+    const e = error as { status?: number; stdout?: string; stderr?: string };
+    return {
+      code: typeof e.status === "number" ? e.status : -1,
+      stderr: e.stderr ?? "",
+      stdout: e.stdout ?? "",
+    };
+  }
+}
+
+describe("findWorkflowRefs", () => {
+  it("extracts the target and ref with a 1-based line number", () => {
+    const refs = findWorkflowRefs(callerTemplate("v2.345.1"));
+    expect(refs).toEqual([{ line: 6, ref: "v2.345.1", target: REUSABLE }]);
+  });
+
+  it("ignores uses: lines that point at other repositories", () => {
+    // Both negative cases stay inside orgs Lisa is allowed to name: a third
+    // party (actions/) and this org's OTHER repositories. The gate verifies
+    // paths in THIS repository, so a same-org different-repo reference is out
+    // of scope in exactly the way a third-party one is.
+    const yaml = [
+      "jobs:",
+      "  build:",
+      "    steps:",
+      "      - uses: actions/checkout@v4",
+      "      - uses: CodySwannGT/not-lisa/.github/workflows/x.yml@main",
+    ].join("\n");
+    expect(findWorkflowRefs(yaml)).toEqual([]);
+  });
+
+  it("finds every reference when one template calls several reusables", () => {
+    const yaml = [
+      "    uses: CodySwannGT/lisa/.github/workflows/a.yml@main",
+      "    uses: CodySwannGT/lisa/.github/workflows/b.yml@v3.1.0",
+    ].join("\n");
+    expect(findWorkflowRefs(yaml)).toEqual([
+      { line: 1, ref: "main", target: ".github/workflows/a.yml" },
+      { line: 2, ref: "v3.1.0", target: ".github/workflows/b.yml" },
+    ]);
+  });
+});
+
+describe("classifyRef", () => {
+  it("resolves @main against the working tree, needing no history", () => {
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: callerTemplate("main"),
+    });
+    expect(classifyRef(root, { ref: "main", target: REUSABLE })).toBe("ok");
+  });
+
+  it("reports missing when @main names a file that is not there", () => {
+    const root = tempRepo({ [TEMPLATE]: callerTemplate("main") });
+    expect(classifyRef(root, { ref: "main", target: REUSABLE })).toBe(
+      "missing"
+    );
+  });
+
+  it("reports unverifiable — never ok — for a ref absent from the clone", () => {
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: callerTemplate("v99.99.99"),
+    });
+    expect(classifyRef(root, { ref: "v99.99.99", target: REUSABLE })).toBe(
+      "unverifiable"
+    );
+  });
+});
+
+describe("check-template-workflow-refs CLI", () => {
+  it("exits 0 when every reference resolves", () => {
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: callerTemplate("main"),
+    });
+    const result = run(["--root", root]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("all resolve");
+  });
+
+  it("exits 1 on the #2702 defect: a pin predating the reusable", () => {
+    // The tag exists, and the reusable does not exist at it — the exact shape
+    // that ships a workflow which cannot load.
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: callerTemplate("v0.1.0"),
+    });
+    const env = cleanGitEnv(process.env);
+    // Tag a commit that predates the reusable, so the ref resolves but the
+    // path does not exist in its tree.
+    execFileSync(GIT, ["rm", "-q", "--cached", REUSABLE], { cwd: root, env });
+    execFileSync(GIT, ["commit", "-q", "-m", "before the reusable existed"], {
+      cwd: root,
+      env,
+    });
+    execFileSync(GIT, ["tag", "v0.1.0"], { cwd: root, env });
+    execFileSync(GIT, [...ADD_ALL], { cwd: root, env });
+    execFileSync(GIT, ["commit", "-q", "-m", "restore"], { cwd: root, env });
+
+    const result = run(["--root", root]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("does not exist at that ref");
+  });
+
+  it("exits 2 rather than 0 when it discovers no templates at all", () => {
+    // The absent-case rule. A scan that examined nothing is a broken
+    // invocation, not conformance.
+    const root = tempRepo({ "readme.md": "nothing to see\n" });
+    const result = run(["--root", root]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("no caller templates found");
+  });
+
+  it("exits 2 rather than 0 when a pinned ref cannot be resolved", () => {
+    // A gate that cannot look must not claim it saw.
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: callerTemplate("v99.99.99"),
+    });
+    const result = run(["--root", root]);
+    expect(result.code).toBe(2);
+    expect(result.stdout).toContain("cannot verify");
+  });
+
+  it("exits 2 on an unknown flag", () => {
+    expect(run(["--nope"]).code).toBe(2);
+  });
+});
