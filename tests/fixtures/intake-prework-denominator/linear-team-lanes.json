@@ -1,0 +1,15 @@
+{
+  "note": "Workflow states and open-issue counts for one team, recorded 2026-08-17. Reproduces the reported shape: a `Blocked` lane typed `unstarted` sorting after `Ready`.",
+  "totalOpen": 343,
+  "preFixSweptLaneNames": ["Backlog", "Todo", "Ready"],
+  "lanes": [
+    { "name": "Backlog", "type": "backlog", "position": 0, "count": 20 },
+    { "name": "Todo", "type": "unstarted", "position": 1, "count": 17 },
+    { "name": "Ready", "type": "unstarted", "position": 439.06, "count": 2 },
+    { "name": "Blocked", "type": "unstarted", "position": 877.13, "count": 61 },
+    { "name": "In Progress", "type": "started", "position": 2, "count": 21 },
+    { "name": "On Dev", "type": "started", "position": 3, "count": 221 },
+    { "name": "Done", "type": "completed", "position": 4, "count": 0 },
+    { "name": "Canceled", "type": "canceled", "position": 5, "count": 0 }
+  ]
+}

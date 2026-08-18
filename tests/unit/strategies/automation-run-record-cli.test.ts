@@ -35,6 +35,17 @@ const F_OUTCOME = "--outcome";
 const F_SUMMARY = "--summary";
 const F_RUNBOOK = "--runbook";
 const F_RUN_ID = "--run-id";
+const F_DENOMINATOR = "--denominator";
+const DENOMINATOR = JSON.stringify({
+  swept: [
+    { name: "Todo", type: "unstarted", count: 0 },
+    { name: "Ready", type: "unstarted", count: 0 },
+  ],
+  omitted: [],
+  sweptCount: 0,
+  totalOpen: 0,
+  unsweptCount: 0,
+});
 
 let root: string;
 
@@ -76,6 +87,8 @@ describe("automation run record CLI (#1798)", () => {
       RUNBOOK,
       "--ref",
       "https://github.com/CodySwannGT/lisa/issues/1798",
+      F_DENOMINATOR,
+      DENOMINATOR,
       F_RUN_ID,
       "cli-run-1",
     ]);
@@ -153,6 +166,68 @@ describe("automation run record CLI (#1798)", () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("--bogus");
+  });
+
+  it("refuses a dry build-intake run that states no denominator (#2657)", () => {
+    const result = runCli([
+      F_LOOP,
+      LOOP,
+      F_OUTCOME,
+      NOTHING_NEEDED,
+      F_SUMMARY,
+      NOTHING_SUMMARY,
+      F_RUNBOOK,
+      RUNBOOK,
+      F_RUN_ID,
+      "cli-no-denominator-1",
+    ]);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("must state the lanes it swept");
+    expect(existsSync(path.join(root, RECORDS))).toBe(false);
+  });
+
+  it("keeps the swept lanes on the recorded row (#2657)", () => {
+    const result = runCli([
+      F_LOOP,
+      LOOP,
+      F_OUTCOME,
+      NOTHING_NEEDED,
+      F_SUMMARY,
+      NOTHING_SUMMARY,
+      F_RUNBOOK,
+      RUNBOOK,
+      F_DENOMINATOR,
+      DENOMINATOR,
+      F_RUN_ID,
+      "cli-denominator-1",
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(readLines(RECORDS)[0])).toMatchObject({
+      denominator: { sweptCount: 0, totalOpen: 0 },
+    });
+  });
+
+  it("rejects a --denominator that is not JSON (#2657)", () => {
+    const result = runCli([
+      F_LOOP,
+      LOOP,
+      F_OUTCOME,
+      NOTHING_NEEDED,
+      F_SUMMARY,
+      NOTHING_SUMMARY,
+      F_RUNBOOK,
+      RUNBOOK,
+      F_DENOMINATOR,
+      "Backlog(20)+Todo(17)",
+      F_RUN_ID,
+      "cli-bad-denominator-1",
+    ]);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("must be JSON");
+    expect(existsSync(path.join(root, RECORDS))).toBe(false);
   });
 
   it("suppresses a duplicate re-append for the same run_id", () => {
