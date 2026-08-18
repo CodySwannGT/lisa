@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.4](https://github.com/CodySwannGT/lisa/compare/v3.33.3...v3.33.4) (2026-08-18)
+
+
+### Bug Fixes
+
+* **work-item:** find the trailer wherever it is, and report every unmet requirement ([c77ca7f](https://github.com/CodySwannGT/lisa/commit/c77ca7f4caa212b8af1bace75fed880596d8aa3e)), closes [CodySwannGT/lisa#2672](https://github.com/CodySwannGT/lisa/issues/2672) [CodySwannGT/lisa#2672](https://github.com/CodySwannGT/lisa/issues/2672)
+
+
+### Documentation
+
+* **gates:** the install does not make a declaration readable ([5b392a7](https://github.com/CodySwannGT/lisa/commit/5b392a7cc2256d175afcb77f8dbcc29c5d6a850a)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [CodySwannGT/lisa#2680](https://github.com/CodySwannGT/lisa/issues/2680) [CodySwannGT/lisa#2680](https://github.com/CodySwannGT/lisa/issues/2680)
+
 ### [3.33.3](https://github.com/CodySwannGT/lisa/compare/v3.33.2...v3.33.3) (2026-08-18)
 
 
