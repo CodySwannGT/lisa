@@ -137,6 +137,19 @@ export const CONVERTED: ConvertedJob[] = [
     ],
   },
   {
+    job: "performance_budget",
+    jobName: "⚡ Performance Budget",
+    gate: "performance-budget",
+    gateStep: "⚡ Run the performance-budget gate",
+    // The fallback runs `lighthouse:check` while the gate's declared task is
+    // `perf:check`. That is not drift: the registry names the CONCERN, as it
+    // does everywhere else, and the fallback reproduces what consumers already
+    // run through the standalone `lighthouse.yml` they wire by hand. Keeping
+    // them different is what lets that workflow be deleted without a
+    // same-day `package.json` edit in every consumer.
+    fallbackSteps: ["⚡ Run the performance budget (lighthouse:check)"],
+  },
+  {
     job: "test_node_suites",
     jobName: "🧪 Run .mjs Suites",
     gate: "test-node-suites",
