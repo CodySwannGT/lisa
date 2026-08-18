@@ -3165,12 +3165,32 @@ jobs:
           ' >> "$GITHUB_OUTPUT"
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Not every project has a web bundle. Lisa's own repository does not, and
+      # the first run of this job proved the cost of assuming otherwise:
+      # `error: Script not found "export:web"`, exit 1 — a gate failing because
+      # the thing it measures does not exist here. Every other façade job in
+      # this workflow checks for its script first; this one now does too.
+      - name: 🔎 Does this project build a web bundle?
+        id: check_script
+        run: |
+          set -euo pipefail
+          if [ ! -f package.json ]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node -e '
+            const scripts = require("./package.json").scripts || {};
+            const has = Boolean(scripts["export:web"]);
+            require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, `exists=${has}\n`);
+          '
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # The build is needed by BOTH arms — the declared task and the fallback
       # both measure a built bundle — so it sits outside the branch rather than
       # being duplicated into each. Skipped when the gate is `off`, because a
       # declined gate should cost nothing.
       - name: 🏗️ Build the web bundle
-        if: steps.gate.outputs.configured != 'off'
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'off'
         run: ${{ inputs.package_manager }} run export:web
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -3201,9 +3221,17 @@ jobs:
         # and a project that has not yet added a `perf:check` script keeps
         # working on the script it already has. No consumer needs a same-day
         # `package.json` alias for this to land.
-        if: steps.gate.outputs.configured == 'false'
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: ${{ inputs.package_manager }} run lighthouse:check
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ Skip the performance budget (no export:web script)
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        run: |
+          echo "No \`export:web\` script, so this project builds no web bundle" \
+            "and there is nothing to measure a performance budget against." \
+            "Skipping — declare the performance-budget gate \`off\` to make" \
+            "that a decision rather than an inference."
 
       - name: 📤 Upload performance reports
         if: always() && steps.gate.outputs.configured != 'off'
