@@ -5,9 +5,9 @@ it, and what Lisa promises not to care about.
 
 This is defined **before** any repo implements it, per the owner's sequencing
 ruling — correct over fast. Six repos were measured on 2026-08-17 and **none**
-implements this facade; four use one of three ad-hoc vocabularies and two have
-none at all. So this is a green-field definition for half the portfolio rather
-than a rename, which is the cheapest moment to get it right.
+implements this facade; three use one of three ad-hoc vocabularies and three
+have none at all. So this is a green-field definition for half the portfolio
+rather than a rename, which is the cheapest moment to get it right.
 
 ## The measured starting point
 
@@ -21,8 +21,8 @@ repo E (fe)     none
 repo F (be)     none
 ```
 
-`db:*` was explicitly superseded and is still in use. Two frontends have no
-reset vocabulary at all.
+`db:*` was explicitly superseded and is still in use. Two frontends and one
+backend have no reset vocabulary at all.
 
 ## 1. The verb set is `reset` and `reseed`. Nothing else.
 
@@ -88,9 +88,20 @@ name for it.
 
 A gate invokes the verb from outside the test runner, so an operation that only
 exists as a step inside a test run — a Playwright setup project, a fixture hook
-— is **not** a declared verb no matter how correct its behaviour. That is an
-implementation gap rather than a wiring gap, and a project in that position
-declares nothing for the verb and gets `off` rather than a failing gate.
+— is **not** a declared verb no matter how correct its behaviour.
+
+**Not declaring and declaring-but-unreachable are different states, and only
+the first is `off`:**
+
+| the project | the gate |
+|---|---|
+| declares nothing for the verb | `off` — it opted out, which is allowed |
+| **configures the gate** but the command is missing or reachable only inside a test runner | **FAILS** |
+
+The distinction is the whole point. A project that opted out has made a
+decision; a project that configured a gate pointing at nothing has an
+implementation gap, and resolving that to `off` would let it claim a boundary it
+does not have — the exact disclosure failure §Adoption exists to prevent.
 
 ## 2. The environment is an ARGUMENT, never a name suffix
 
@@ -169,6 +180,23 @@ A conforming `environment:reset:verify` MUST:
    must FAIL, not pass vacuously. This is the defect class that produced most of
    2026-08-17's filings: a check reporting satisfied without having proved
    anything.
+5. **Prove the refusal came from the GUARD.** A non-zero exit is not a refusal.
+   A crash and a refusal are both non-zero, so a verify that asserts only the
+   exit status passes a facade that never reached its guard at all. Measured on
+   repo 1: a rename left the entry point calling a function that no longer
+   existed, the facade died on a `ReferenceError`, and the verify **passed** —
+   in the file whose entire purpose is refusing to certify a broken facade.
+
+   The refusal must therefore carry the guard's own vocabulary — a stable
+   machine-readable reason such as `environment_target_forbidden` or
+   `environment_env_required` — so it demonstrably originated in the guard
+   rather than from the process falling over on the way to it. Assert the
+   reason, not the status.
+6. **Prove each verb's own postcondition, not just its refusal.** Obligations 1
+   to 5 all describe behaviour when the guard says no. A verify that stops there
+   proves nothing about what the verb does when it says yes, which is how two
+   verbs with opposite postconditions can be satisfied by one implementation —
+   see §5.
 
 `--dry-run` is optional and unreserved. Repo A's `e2e:reset:dry-run` is a useful
 local affordance; Lisa neither requires nor forbids it.
@@ -177,8 +205,18 @@ local affordance; Lisa neither requires nor forbids it.
 
 - **Fixture content.** What `reseed` seeds is the project's business.
 - **Where the state lives.** Database, object store, or a mock server.
-- **Whether reset and reseed are one command.** They may share an implementation
-  as long as both names exist and both verifies pass.
+- **Whether reset and reseed are one command.** They may share an
+  implementation, but **only if each verify proves its own postcondition** —
+  `reset` reaching a known-empty state and `reseed` reaching the fixture state
+  (§4 obligation 6).
+
+  Sharing on the strength of "both names exist and both verifies pass" is
+  withdrawn. While §4 proved only refusal behaviour, a single
+  fixture-converging operation satisfied both verifies without ever emptying
+  anything — which is precisely the collapse §1 rejects, reachable through the
+  back door. A project whose one engine converges to fixture declares `reseed`
+  and leaves `reset` undeclared; it does not declare both and point them at the
+  same command.
 
 ## Adoption
 
