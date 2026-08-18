@@ -2,20 +2,38 @@
 #
 # ## What this gate DOES, stated so nobody has to infer it
 #
-# It QUERIES GITHUB ACTIONS RUN HISTORY. It runs no e2e itself, it dispatches
-# nothing, and it reads no artifacts. For each suite in the `suites` table it
-# reads the newest completed run on the required branch (across `schedule` and
-# `workflow_dispatch`) and turns that already-produced verdict into a required
-# status check that costs seconds on every pull request.
+# It QUERIES GITHUB ACTIONS RUN HISTORY. It runs no e2e itself and it dispatches
+# nothing. For each suite in the `suites` table it reads the newest completed run
+# on the required branch (across `schedule` and `workflow_dispatch`) and turns
+# that already-produced verdict into a required status check that costs seconds
+# on every pull request.
 #
 # It CANNOT "call" the workflows named in the table. A reusable workflow's
 # `uses:` must be a static literal, so no reusable workflow can dynamically
 # invoke a list of workflow filenames supplied at runtime. Any design that reads
 # "the gate runs the suites in the table" is impossible on this platform.
 #
-# Artifacts are excluded on purpose: Actions artifacts are zip archives (Node
-# ships no zip reader) and they expire, which would turn "the evidence aged out"
-# into an unreadable verdict — the exact fail-open shape this gate refuses.
+# It reads artifact NAMES and never artifact CONTENT. That line is where the
+# whole design sits. Downloading an artifact is excluded on purpose — Actions
+# artifacts are zip archives (Node ships no zip reader) and the bytes expire,
+# which would turn "the evidence aged out" into an unreadable verdict, the exact
+# fail-open shape this gate refuses. The NAME has neither problem: it comes back
+# in the artifacts LIST, one cheap call with no download, and it outlives the
+# bytes. `maestro-native-e2e.yml` publishes `maestro-<platform>-flowcount-<N>`
+# and `maestro-<platform>-scope-<full|filtered>` precisely so that "how much of
+# the suite actually ran?" is answerable from that list (§2, rows 36-38).
+#
+# ## A run that tested a SLICE is not a green suite
+#
+# The run conclusion answers "did it pass?" and says nothing about "how much of
+# it ran?". Measured 2026-08-18: AcmeOrgB/frontend's only recent `success` ran 4
+# of ~80 flows under `ios_include_tags: smoke`, and AcmeOrgD/frontend's REQUIRED
+# gate was satisfied by a run whose own published count read
+# `maestro-ios-flowcount-7`. Rows 36-38 close that. A run recorded as filtered is
+# rejected outright; a suite that declares `min_flows` additionally rejects a run
+# whose executed-flow count falls short of it OR cannot be read at all. The
+# unreadable case is a BLOCK, not a shrug — an unreadable count is exactly what a
+# narrowed run looks like from here.
 #
 # ## Prefer a declared job name over a regex
 #
@@ -33,7 +51,7 @@
 # stale run, a wrong-branch run, a renamed job, and an unreadable API ALL block.
 # `cancelled` blocks because otherwise cancelling a run would be a one-click way
 # to clear a merge gate. There is no configuration that renders "we could not
-# check" as "it is fine". The full truth table — 35 rows, each proven by a named
+# check" as "it is fine". The full truth table — 38 rows, each proven by a named
 # test — is `docs/nightly-e2e-gate.md` §2.
 #
 # The only forgiving state is a TIME-BOXED window, and there are two sources for
@@ -105,7 +123,12 @@ on:
           typo'd keys are all rejected rather than silently mis-gating. Each
           entry is
           {label, workflow, match:{mode:"run"|"job"|"job_pattern", name?, pattern?},
-          freshness_hours?, required_sha?, first_seen?, grace_days?}.
+          freshness_hours?, required_sha?, first_seen?, grace_days?, min_flows?}.
+          `min_flows` is the executed-flow floor (§2, rows 37-38): the number of
+          flows a run must have EXECUTED before its green counts, read from the
+          `maestro-<platform>-flowcount-<N>` artifact name the suite publishes.
+          Declaring it is what makes the check fail closed — from then on a run
+          that publishes no readable count BLOCKS instead of passing unchecked.
           `first_seen` is the per-suite grace anchor (§4.1): set it when you add
           a suite to an already-armed repo so that suite's MISSING evidence
           reports without blocking for `grace_days` (default 14) while every

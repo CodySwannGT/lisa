@@ -216,7 +216,13 @@ describe("the reusable workflow's contract", () => {
     const raw = read(REUSABLE_REL);
     expect(raw).toContain("QUERIES GITHUB ACTIONS RUN HISTORY");
     expect(raw).toContain("`uses:` must be a static literal");
-    expect(raw).toContain("reads no artifacts");
+    // Since rows 36-38 the gate reads artifact NAMES — never artifact CONTENT.
+    // That distinction is asserted rather than the old blanket "reads no
+    // artifacts", because it is the whole reason the flow-count backstop is
+    // affordable on the pull-request path: the names come back in the list, one
+    // call, no download, no zip reader, and they outlive the bytes.
+    expect(raw).toContain("reads artifact NAMES and never artifact CONTENT");
+    expect(raw).not.toMatch(/download(ing)? an artifact is (not )?permitted/i);
   });
 });
 
