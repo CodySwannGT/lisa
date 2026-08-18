@@ -126,7 +126,7 @@ matches the mode this cycle ran in: **`intake-prd`** (PRD-side dispatch) or **`i
 
 | This cycle's exit path | Run outcome |
 |---|---|
-| Empty `Ready` set — the idle case (step 3), nothing to claim | `nothing-needed` |
+| Empty pre-work set — the idle case (step 3), nothing to claim. **Must state its denominator** (see below) | `nothing-needed` |
 | A PRD routed to `Blocked` (clarifying questions) or `Ticketed`; a build ticket claimed and dispatched | `candidate-proposed` |
 | A build cycle that shipped and verified (merged PR + evidence), or a shipped PRD moved to `verified` | `change-proved` |
 | A protected deployment (or other autonomy boundary the lifecycle hits) waiting on a human approval | `approval-requested` |
@@ -149,6 +149,22 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
   --loop-id intake-tickets --outcome candidate-proposed \
   --summary "Routed PRD #1810 to Blocked with clarifying questions; the run succeeded." \
   --runbook .lisa/automations/intake-tickets.runbook.md [--ref <item-url>]...
+```
+
+**A dry build lane must say what it looked in.** A `nothing-needed` run on `intake-tickets`
+additionally passes `--denominator` — the JSON from `buildIntakeDenominator()` in
+`scripts/intake-prework-denominator.mjs` — and the recorder **refuses the row without it**. This is
+not decoration: 31 consecutive cycles reported a dry lane against a queue holding 61 unswept
+pre-work rows, and every one of those records was honest. A missing row is noisy on inspection; a
+wrong denominator is silent forever and looks exactly like a healthy dry queue. Stating the swept
+set is what turns the silent wrong answer into an inspectable one (#2657).
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+  --loop-id intake-tickets --outcome nothing-needed \
+  --summary "Nothing ready to build on team ENG. Looked in every lane holding work that has not started — Backlog (20), Todo (17), Ready (2), Blocked (61) — 100 items checked out of 343 still open." \
+  --denominator "$DENOMINATOR_JSON" \
+  --runbook .lisa/automations/intake-tickets.runbook.md
 ```
 
 If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy

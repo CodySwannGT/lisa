@@ -48,6 +48,8 @@ Exactly one per run:
 Health and operator action are **orthogonal** — a healthy run can still need an answer:
 
 - `nothing-needed` — the loop ran and found nothing to act on. **Healthy.** Operator action: none.
+  A queue scanner's `nothing-needed` summary must name the lanes it swept and the total open — a dry
+  queue and a wrong denominator are otherwise indistinguishable. See the reference body.
 - `candidate-proposed` — the loop proposed work (ticket, PRD, recommendation). **Healthy.** Operator
   action: review the proposed item and flip it ready when you want it built.
 - `change-proved` — the loop made a change and proved it with evidence. **Healthy.** Operator
