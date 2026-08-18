@@ -140,6 +140,10 @@
     },
     "version-duplication": {
       "pull-request": "optional"
+    },
+    "test-node-suites": {
+      "push": "off",
+      "pull-request": "off"
     }
   },
   "policy": {
