@@ -77,8 +77,21 @@ export const defaultIgnores = [
   "webpack.*.js",
   "*.d.ts",
   "esbuild.plugins.js",
-  "projects/**/scripts/**",
-  "scripts/**",
+  // `scripts/**` and `projects/**/scripts/**` used to sit here. They were
+  // removed because Lisa INSTALLS its own `.mjs` guard scripts into exactly
+  // that tree, so the ignore hid the files Lisa itself authored: a shipped
+  // script resolved to no rules at all, and `eslint` reported success on it
+  // for its entire life while an external scanner found CRITICAL issues in it.
+  // A file nobody lints is indistinguishable from a clean file.
+  //
+  // Do NOT "fix" this by re-adding `scripts/**` with a negated
+  // `!scripts/**/*.mjs` alongside it. Measured: ESLint cannot unignore a file
+  // inside an ignored DIRECTORY, so the negation rescues only top-level
+  // `scripts/*.mjs` and silently leaves nested ones (e.g.
+  // `scripts/lib/*.mjs`, which Lisa ships) uncovered — partial coverage that
+  // reads as complete. Rules that genuinely do not apply to standalone CLI
+  // scripts are relaxed by `getScriptsFilesOverride()` instead, which is
+  // visible in `eslint --print-config` output rather than invisible.
   "lib/**/*.js",
   "cdk.out/**",
   "wiki/**",
@@ -337,6 +350,76 @@ export const getJsFilesOverride = () => ({
     "sonarjs/cognitive-complexity": "off",
     "@typescript-eslint/no-require-imports": "off", // CommonJS files
     "max-lines-per-function": "off",
+  },
+});
+
+/**
+ * Glob patterns covering the repository-maintenance script tree that Lisa
+ * installs into every consumer (`scripts/`), plus nested `scripts/` trees such
+ * as `projects/<name>/scripts/`. Exported so the coverage test can assert the
+ * shipped `.mjs` paths land inside the same set the override targets.
+ */
+export const scriptsFilePatterns = ["scripts/**", "**/scripts/**"];
+
+/**
+ * Every `jsdoc/*` rule the plugin defines, mapped to "off". Built from the
+ * plugin's own rule registry so the scripts profile cannot drift as the plugin
+ * gains rules.
+ */
+const jsdocRulesOff: Record<string, "off"> = Object.fromEntries(
+  Object.keys(
+    (jsdoc as unknown as { rules?: Record<string, unknown> }).rules ?? {}
+  ).map(name => [`jsdoc/${name}`, "off" as const])
+);
+
+/**
+ * Standalone-script override — the rule profile for the `scripts/` tree.
+ *
+ * These files are repository-maintenance CLIs invoked by a developer or a CI
+ * runner, not application source and not published library API. They were
+ * previously excluded from linting entirely; that is the defect this override
+ * exists to make survivable. Every rule turned off here is turned off because
+ * it encodes an assumption about application code that a CLI script does not
+ * meet — correctness and bug-finding rules (including the SonarJS rules an
+ * external scanner also runs, e.g. `sonarjs/no-alphabetical-sort`) stay ON,
+ * because those are precisely what the exclusion was hiding.
+ * @returns {object} ESLint flat config object for standalone scripts
+ */
+export const getScriptsFilesOverride = (): Linter.Config => ({
+  files: scriptsFilePatterns,
+  rules: {
+    // The whole JSDoc regime exists for the published library surface. A script
+    // has no consumers to document for; its interface is its `--help` text.
+    // Derived from the plugin's own rule list rather than enumerated, so a
+    // future jsdoc rule cannot re-open this by being added upstream — and every
+    // resulting `jsdoc/*: off` is still visible in `eslint --print-config`.
+    ...jsdocRulesOff,
+    // The functional-purity profile targets application state. Scripts are
+    // sequential I/O: read argv, walk the tree, write a report, set an exit code.
+    "functional/no-let": "off",
+    "functional/immutable-data": "off",
+    "functional/no-classes": "off",
+    // The `no-restricted-syntax` ban on `process.env` redirects app code to a
+    // config service. A standalone script has no such service — argv and the
+    // environment ARE its configuration.
+    "no-restricted-syntax": "off",
+    // Declaration-order and size limits are tuned for composed application
+    // modules; a script is one linear procedure by design.
+    "code-organization/enforce-statement-order": "off",
+    "max-lines": "off",
+    "max-lines-per-function": "off",
+    "sonarjs/cognitive-complexity": "off",
+    // SonarJS security HOTSPOTS (not bugs) whose threat model is a server
+    // process handling untrusted input. A maintenance script inherits the PATH
+    // of the shell that invoked it — pinning absolute paths to `git`/`npm`
+    // would break across macOS, Linux, and CI images — and it sets the exec bit
+    // on files it generates on purpose.
+    "sonarjs/no-os-command-from-path": "off",
+    "sonarjs/os-command": "off",
+    "sonarjs/file-permissions": "off",
+    // ReDoS hotspot. These regexes run over files already inside the checkout,
+    // supplied by the same person running the script.
+    "sonarjs/slow-regex": "off",
   },
 });
 

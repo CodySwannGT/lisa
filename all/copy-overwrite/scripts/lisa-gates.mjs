@@ -71,17 +71,24 @@ export const LEVELS = ["required", "optional", "off"];
 /** What to do when a gate reports success without evidence of work. */
 export const HOLLOW_RESPONSES = ["report", "wait", "block"];
 
+// Moment names, named once. They appear in a dozen moment lists below; a
+// literal repeated that many times is one typo away from a gate that silently
+// never runs, and there is no test that can tell "gate not configured for this
+// moment" from "moment misspelled".
+const SESSION_START = "session-start";
+const PRE_TOOL = "pre-tool";
+const COMMIT = "commit";
+const PUSH = "push";
+const PULL_REQUEST = "pull-request";
+const PRE_DEPLOY = "pre-deploy";
+const POST_DEPLOY = "post-deploy";
+const CONTINUOUS = "continuous";
+
 /** Fixed moments. Two more families take an environment suffix. */
-export const MOMENTS = [
-  "session-start",
-  "pre-tool",
-  "commit",
-  "push",
-  "pull-request",
-];
+export const MOMENTS = [SESSION_START, PRE_TOOL, COMMIT, PUSH, PULL_REQUEST];
 
 /** Moment families that take an `:<environment>` suffix. */
-export const MOMENT_FAMILIES = ["pre-deploy", "post-deploy", "continuous"];
+export const MOMENT_FAMILIES = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
 
 /**
  * Moments that gate a *state* rather than a change.
@@ -99,7 +106,7 @@ export const MOMENT_FAMILIES = ["pre-deploy", "post-deploy", "continuous"];
  * new cases against a stable one. It applies equally to a CVE published today,
  * which makes yesterday's dependency scan wrong with no change at all.
  */
-export const STATE_FAMILIES = ["continuous"];
+export const STATE_FAMILIES = [CONTINUOUS];
 
 /** Keys on a gate entry that are settings rather than moments. */
 export const GATE_FIELDS = new Set(["run", "needs", "task"]);
@@ -130,19 +137,12 @@ export const GATE_FIELDS = new Set(["run", "needs", "task"]);
 /** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
 
-const COMMIT_ONWARD = [
-  "commit",
-  "push",
-  "pull-request",
-  "pre-deploy",
-  "post-deploy",
-];
-const PUSH_ONWARD = ["push", "pull-request", "pre-deploy", "post-deploy"];
-const PR_ONWARD = ["pull-request", "pre-deploy", "post-deploy"];
-const PR_ONLY = ["pull-request"];
-const DEPLOY_ONLY = ["pre-deploy", "post-deploy", "continuous"];
-const CONTINUOUS_ONLY = ["continuous"];
-const SESSION_ONWARD = ["session-start", ...COMMIT_ONWARD];
+const COMMIT_ONWARD = [COMMIT, PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
+const PUSH_ONWARD = [PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
+const PR_ONWARD = [PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
+const PR_ONLY = [PULL_REQUEST];
+const DEPLOY_ONLY = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
+const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
 
 /**
  * Lisa's canonical gates.
@@ -231,14 +231,14 @@ export const REGISTRY = Object.freeze({
     label: "🎭 Playwright E2E Tests",
     summary: "Browser journeys pass end to end.",
     task: "test:e2e",
-    moments: [...PR_ONWARD, "continuous"],
+    moments: [...PR_ONWARD, CONTINUOUS],
     work: "specs run",
   },
   "e2e-native": {
     label: "📱 Maestro Native E2E",
     summary: "Native device journeys pass end to end.",
     task: "test:e2e:native",
-    moments: [...PR_ONWARD, "continuous"],
+    moments: [...PR_ONWARD, CONTINUOUS],
     work: "flows run",
   },
   // ---------------------------------------------------------------------
@@ -268,7 +268,7 @@ export const REGISTRY = Object.freeze({
     summary:
       "The environment reset exists, and its guard cannot be bypassed by calling it directly.",
     task: "environment:reset:verify",
-    moments: [...PR_ONWARD, "continuous"],
+    moments: [...PR_ONWARD, CONTINUOUS],
     work: "refusals proved",
   },
   "environment-reseed": {
@@ -276,7 +276,7 @@ export const REGISTRY = Object.freeze({
     summary:
       "The environment reseed exists, and its guard cannot be bypassed by calling it directly.",
     task: "environment:reseed:verify",
-    moments: [...PR_ONWARD, "continuous"],
+    moments: [...PR_ONWARD, CONTINUOUS],
     work: "refusals proved",
   },
   "generative-testing": {
@@ -288,7 +288,7 @@ export const REGISTRY = Object.freeze({
     // re-running one suite against every change explores far less of the input
     // space than generating new cases against a stable one." A property suite
     // pinned to the per-change gate re-walks the same ground forever.
-    moments: [...PR_ONWARD, "continuous"],
+    moments: [...PR_ONWARD, CONTINUOUS],
     work: "cases generated",
   },
   "structural-rules": {
@@ -322,14 +322,14 @@ export const REGISTRY = Object.freeze({
     task: "security:audit",
     // Continuous matters most here: a CVE published today makes yesterday's
     // green wrong with no change to trigger a re-scan.
-    moments: [...PUSH_ONWARD, "continuous"],
+    moments: [...PUSH_ONWARD, CONTINUOUS],
     work: "manifests scanned",
   },
   "static-security": {
     label: "🔍 Static Security Analysis",
     summary: "Static analysis finds no security defect.",
     task: "security:sast",
-    moments: [...PR_ONWARD, "continuous"],
+    moments: [...PR_ONWARD, CONTINUOUS],
     work: "files analysed",
   },
   "runtime-web-vulnerability": {
@@ -349,7 +349,7 @@ export const REGISTRY = Object.freeze({
     label: "👁️ Code Review",
     summary: "The change was reviewed by something that read it.",
     task: "review:local",
-    moments: ["push", "pull-request"],
+    moments: [PUSH, PULL_REQUEST],
   },
   "performance-budget": {
     label: "⚡ Performance Budget",
@@ -768,9 +768,9 @@ function validateGate(id, gate) {
       ...Object.keys(INTERCEPTORS),
     ]);
     return [
-      `gates."${id}" is not a gate Lisa knows` +
-        (near ? `. Did you mean "${near}"?` : "") +
-        ` Prefix a gate of your own with "${CUSTOM_PREFIX}" — Lisa will run ` +
+      `gates."${id}" is not a gate Lisa knows${
+        near ? `. Did you mean "${near}"?` : ""
+      } Prefix a gate of your own with "${CUSTOM_PREFIX}" — Lisa will run ` +
         `it without pretending to understand it.`,
     ];
   }
@@ -834,7 +834,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   if (entry.await) {
-    if (["commit", "push", "session-start", "pre-tool"].includes(moment)) {
+    if ([COMMIT, PUSH, SESSION_START, PRE_TOOL].includes(moment)) {
       problems.push(
         `gates."${id}"."${moment}" awaits "${entry.await}", but there is no ` +
           `pull request yet for a signal to post against. An awaited check ` +
@@ -953,8 +953,9 @@ export function validatePolicy(policy) {
     if (!Object.hasOwn(POLICY_SCHEMA, section)) {
       const near = nearest(section, Object.keys(POLICY_SCHEMA));
       problems.push(
-        `policy."${section}" is not a policy section Lisa knows` +
-          (near ? `. Did you mean "${near}"?` : "")
+        `policy."${section}" is not a policy section Lisa knows${
+          near ? `. Did you mean "${near}"?` : ""
+        }`
       );
       continue;
     }
@@ -967,8 +968,9 @@ export function validatePolicy(policy) {
       if (!expected) {
         const near = nearest(field, Object.keys(POLICY_SCHEMA[section]));
         problems.push(
-          `policy.${section}."${field}" is not a setting Lisa manages` +
-            (near ? `. Did you mean "${near}"?` : "")
+          `policy.${section}."${field}" is not a setting Lisa manages${
+            near ? `. Did you mean "${near}"?` : ""
+          }`
         );
         continue;
       }
@@ -1012,10 +1014,9 @@ export function auditConfigKeys(config) {
     findings.push({
       key,
       level: "warn",
-      message:
-        `${key} is not a key Lisa reads` +
-        (near ? `. Did you mean "${near}"?` : "") +
-        ` Nothing consumes it, so whatever it was meant to configure is unset.`,
+      message: `${key} is not a key Lisa reads${
+        near ? `. Did you mean "${near}"?` : ""
+      } Nothing consumes it, so whatever it was meant to configure is unset.`,
     });
   }
   return findings;
@@ -1050,7 +1051,7 @@ export function resolveMoment({
   // for a real moment; it is refused only for one that cannot exist.
   if (!isMoment(moment)) {
     throw new Error(
-      `"${moment}" ${unknownMomentMessage(moment)} ` + knownMomentsMessage()
+      `"${moment}" ${unknownMomentMessage(moment)} ${knownMomentsMessage()}`
     );
   }
   assertValidMomentKeys(gates);
@@ -1184,7 +1185,7 @@ export function needsAt({ gates, moment }) {
  */
 export function contextsFor(gates, options = {}) {
   const {
-    moment = "pull-request",
+    moment = PULL_REQUEST,
     workflowName = "🔍 Quality Checks",
     previousLabels = [],
   } = options;
@@ -1347,7 +1348,7 @@ function main() {
   }
 
   if (command === "needs") {
-    const moment = flag("moment") ?? "session-start";
+    const moment = flag("moment") ?? SESSION_START;
     console.log(JSON.stringify(needsAt({ gates, moment }), null, 2));
     return;
   }
@@ -1360,7 +1361,7 @@ function main() {
     console.log(
       JSON.stringify(
         contextsFor(gates, {
-          moment: flag("moment") ?? "pull-request",
+          moment: flag("moment") ?? PULL_REQUEST,
           workflowName: flag("workflow") ?? "🔍 Quality Checks",
           previousLabels,
         }),

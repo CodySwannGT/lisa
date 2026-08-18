@@ -23,6 +23,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { waivedKeys } from "./bdd/baseline.mjs";
 import { byCodeUnit, declaredPlatforms, trackerUrl } from "./bdd/contract.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
 import { indexResults } from "./bdd/report.mjs";

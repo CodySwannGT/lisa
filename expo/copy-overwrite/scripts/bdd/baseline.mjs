@@ -38,6 +38,9 @@ import { parseFeatureSource, scenarioIdsIn } from "./parse.mjs";
 
 const defect = (code, message) => ({ code, message });
 
+/** Defect / evidence code, named once. */
+const SCENARIO_DELETED = "scenario-deleted";
+
 /** The maintainer-applied PR label that authorizes giving coverage back. */
 export const BASELINE_LABEL = "bdd-floor-baseline";
 
@@ -247,10 +250,14 @@ export function obligationKeys(scenarios, contract) {
 
 /**
  * Every `SCENARIO:platform` a waiver removes from the denominator.
+ *
+ * Exported because `bdd-matrix.mjs` calls it too. It was calling it WITHOUT an
+ * import — a live ReferenceError on every matrix render, invisible because this
+ * whole tree sat outside the ESLint config until #2658 put it back in.
  * @param {object|null} contract - A coverage map.
  * @returns {Set<string>} Waived keys.
  */
-function waivedKeys(contract) {
+export function waivedKeys(contract) {
   return new Set(
     (contract?.platformWaivers ?? []).flatMap(waiver =>
       (waiver.platforms ?? []).map(platform => `${waiver.scenario}:${platform}`)
@@ -420,19 +427,19 @@ function deletionDefects(id, record, labels) {
   if (!record) {
     return [
       defect(
-        "scenario-deleted",
+        SCENARIO_DELETED,
         `${id} was deleted from the contract. Retiring a behavior is @superseded, not deletion — deleting it shrinks the denominator instead of the gap. A genuine removal needs a retirements record and the "${BASELINE_LABEL}" label.`
       ),
     ];
   }
   const missing = RETIREMENT_FIELDS.filter(field => !record[field]);
   const defects = missing.map(field =>
-    defect("scenario-deleted", `${id}: retirements record has no ${field}`)
+    defect(SCENARIO_DELETED, `${id}: retirements record has no ${field}`)
   );
   if (!labels.includes(BASELINE_LABEL)) {
     defects.push(
       defect(
-        "scenario-deleted",
+        SCENARIO_DELETED,
         `${id}: a retirement needs the maintainer-applied "${BASELINE_LABEL}" label`
       )
     );

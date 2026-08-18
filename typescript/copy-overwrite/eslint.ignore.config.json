@@ -72,8 +72,6 @@
     "*.d.ts",
     "esbuild.plugins.js",
 
-    "projects/**/scripts/**",
-    "scripts/**",
 
     "lib/**/*.js",
     "src/lib/**/*.js",
