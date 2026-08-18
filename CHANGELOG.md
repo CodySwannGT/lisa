@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.35.1](https://github.com/CodySwannGT/lisa/compare/v3.35.0...v3.35.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** repin two expo templates off a ref that predates the reusable ([7cc7d52](https://github.com/CodySwannGT/lisa/commit/7cc7d52234f33f660a566359ed8b1b9e1df840ed)), closes [#2700](https://github.com/CodySwannGT/lisa/issues/2700) [CodySwannGT/lisa#2702](https://github.com/CodySwannGT/lisa/issues/2702)
+
 ## [3.35.0](https://github.com/CodySwannGT/lisa/compare/v3.34.0...v3.35.0) (2026-08-18)
 
 
