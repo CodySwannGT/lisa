@@ -109,6 +109,32 @@ const installBin = (dir: string, name: string, contents: string): void => {
 };
 
 /**
+ * Bytes that no kernel will exec and no shell will interpret.
+ *
+ * The obvious ENOEXEC fixture — a shebang-less text file with the exec bit —
+ * is NOT portable, and the difference is invisible on a developer machine.
+ * macOS refuses it with ENOEXEC; **Linux falls back to /bin/sh and runs it
+ * successfully**, so on CI the preflight found nothing wrong and the two tests
+ * pinning this behaviour failed there while passing locally.
+ *
+ * An ELF header with a corrupt class byte cannot be executed on either
+ * platform, and the leading NUL stops any shell from treating it as a script,
+ * so the spawn fails with ENOEXEC everywhere.
+ * @param name - Bin name to install
+ * @param dir - Fixture project root
+ */
+const installUnspawnableBin = (dir: string, name: string): void => {
+  const target = path.join(dir, "node_modules", ".bin", name);
+  // \x7fELF then a class byte of 0 — a valid magic number with an invalid
+  // class, which the loader rejects rather than mapping.
+  writeFileSync(
+    target,
+    Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x00, 0x00, 0x00, 0x00])
+  );
+  chmodSync(target, 0o755);
+};
+
+/**
  * Every pre-commit hook in the repository that hands work to lint-staged.
  * @returns Repo-relative paths.
  */
@@ -146,11 +172,7 @@ describe("lint-staged preflight — behaviour", () => {
     // the executable bit set is exactly what a package leaves behind when its
     // real binary is materialized by a postinstall script that never ran.
     const dir = fixture('{ "*.ts": ["lisa-fixture-shim scan"] }');
-    installBin(
-      dir,
-      "lisa-fixture-shim",
-      "this shim was never replaced\nexit 1\n"
-    );
+    installUnspawnableBin(dir, "lisa-fixture-shim");
 
     const { code, output } = await runPreflight(dir, CONFIG_ARGS);
 
@@ -196,8 +218,8 @@ describe("lint-staged preflight — behaviour", () => {
     const dir = fixture(
       '{ "*.ts": ["lisa-fixture-shim-a", "lisa-fixture-shim-b"] }'
     );
-    installBin(dir, "lisa-fixture-shim-a", "never replaced\n");
-    installBin(dir, "lisa-fixture-shim-b", "never replaced\n");
+    installUnspawnableBin(dir, "lisa-fixture-shim-a");
+    installUnspawnableBin(dir, "lisa-fixture-shim-b");
 
     const { code, output } = await runPreflight(dir, CONFIG_ARGS);
 
