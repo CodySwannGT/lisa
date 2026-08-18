@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.38.0](https://github.com/CodySwannGT/lisa/compare/v3.37.0...v3.38.0) (2026-08-18)
+
+
+### Features
+
+* **gates:** make the e2e-browser gate govern the Playwright suite ([9d88d77](https://github.com/CodySwannGT/lisa/commit/9d88d77b7d5010f991e0a97623e09c76fc90a5ef)), closes [CodySwannGT/lisa#2706](https://github.com/CodySwannGT/lisa/issues/2706)
+
+
+### Bug Fixes
+
+* **ci:** a published flow count is not a verified scope ([447084f](https://github.com/CodySwannGT/lisa/commit/447084fe3e2c9b839bc32e9577f5f8fe294c2d3a)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
 ## [3.37.0](https://github.com/CodySwannGT/lisa/compare/v3.35.1...v3.37.0) (2026-08-18)
 
 
