@@ -522,6 +522,17 @@ guess.
   `required` without naming a context that does not exist.
 - `plugins-sync`'s "generated plugin tree matches source" has no registry gate;
   adjacent to `artifact-freshness`, different artifact.
+- **Lisa's own `gates` block does not reach Lisa's own CI.** The façade resolves
+  through `node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs`
+  or a copied `scripts/lisa-gates.mjs`. This repository has neither — it
+  devDepends on a `^2.x` range that predates the script, and it carries no copy
+  of its own copy-overwrite output — so `RESOLVER` is empty and every façade
+  job writes `configured=false` and runs its fallback. Measured 2026-08-18 on a
+  pull-request run: `🧹 Lint` and `🔗 Work-Item Traceability` both took the
+  fallback branch while `.lisa.config.json` declared both `required`. The
+  fallbacks are the same tooling, so nothing is unenforced — but every level
+  Lisa declares for itself is currently inert, which is the #2680 shape one
+  layer up. Distinct from #2680, whose fix this is not.
 - `quality-rails.yml` carries the same `work_item_traceability` job and **no
   gate façade at all** — no `moment` input, no `package_manager` input, and so
   no resolve block. `gates.traceability` is therefore still inert for a Rails
