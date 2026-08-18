@@ -62,6 +62,35 @@ describe("a file that will not run is not coverage", () => {
     expect(isExcludedFlow(TAGGED_FLOW, [])).toBe(false);
   });
 
+  it("does not read a flow's COMMANDS as tags", () => {
+    // The regex form allowed zero indentation before `-`, so the tags block ran
+    // past the `---` separator and lifted `openLink`, `tapOn` and even `only`
+    // (a fragment of the argument `android-only`) out of the command list.
+    //
+    // Direction matters: a false tag is a false EXCLUSION, which drops a flow
+    // that really runs and fails the gate for coverage the project has. That is
+    // the opposite error from the one this change fixes, and just as wrong.
+    const flow = [
+      "appId: x",
+      "tags:",
+      "  - blocked",
+      "---",
+      "- openLink: myapp:///x",
+      "- tapOn: android-only",
+      "",
+    ].join("\n");
+    expect(isExcludedFlow(flow, ["blocked"])).toBe(true);
+    expect(isExcludedFlow(flow, ["openLink"])).toBe(false);
+    expect(isExcludedFlow(flow, ["tapOn"])).toBe(false);
+    expect(isExcludedFlow(flow, ["only"])).toBe(false);
+  });
+
+  it("reads the inline tags: [a, b] form", () => {
+    const flow = "appId: x\ntags: [blocked, slow]\n---\n- openLink: a\n";
+    expect(isExcludedFlow(flow, ["slow"])).toBe(true);
+    expect(isExcludedFlow(flow, ["other"])).toBe(false);
+  });
+
   it("does not exclude an untagged flow", () => {
     expect(isExcludedFlow("appId: x\n---\n- openLink: a", ["blocked"])).toBe(
       false
