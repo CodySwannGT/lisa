@@ -17,11 +17,11 @@ maestro-e2e.yml               Y       Y        Y          Y
 nightly-e2e-health.yml        Y       Y        Y          Y
 --- everything below diverges ---
 playwright-e2e.yml            -       Y        -          -
-maestro-native-e2e.yml        -       -        -          Y   (never ran)
+maestro-native-e2e.yml        -       -        -          Y   (reusable, HAS a caller)
 nightly-e2e-gate.yml          Y       -        -          -   (local fork)
 nightly-e2e-report.yml        Y       -        Y          -
 nightly-e2e-tracker.yml       Y       -        -          -   (skipped)
-nightly-e2e-tracking-issue    -       Y        Y          -   (propswap never ran)
+nightly-e2e-tracking-issue    -       Y        Y          -   (reusable, HAS a caller)
 nightly-e2e-bypass-reaper     Y       Y        Y          -
 parity-{gate,nightly,determ}  Y       -        -          -
 e2e-mock-shapes.yml           Y       -        -          -
@@ -125,8 +125,13 @@ Two columns carry rules, not description:
 **`lane`.** Stated per file because it decides whether the row is enforced or aspirational (§4a). Every row above currently ships `create-only`, which is why none of them converge; the migration to `copy-overwrite` is the work, and until it happens this table describes an intent rather than a guarantee.
 
 The caller is named for the **suite** (`maestro-e2e`), never for the reusable
-workflow it calls (`maestro-native-e2e`). A repo carrying both names carries a
-duplicate.
+workflow it calls (`maestro-native-e2e`).
+
+**A repo carrying both names is normal, not a duplicate.** A vendored reusable
+plus its caller is the correct two-file shape, and both tunnl and gunnertech use
+it. An earlier draft called that a duplicate and put one of the files on a
+delete list; it was wrong (§4). The duplicate this rule forbids is two *callers*
+for one suite, which is a different thing entirely.
 
 **Forbidden:** two callers for one suite; two jobs reporting the same **check
 name** across different workflows.
@@ -238,15 +243,40 @@ Grammar: a comment line matching `^#\s*nightly-offset:\s*\S.*$` immediately
 preceding the `cron:` entry. Conformance parses it (§7) — a cron with no
 preceding `nightly-offset:` line fails, and so does one whose reason is empty.
 
-## 4. Two files are deleted; one is a FORK to retire carefully
+## 4. NOTHING here is deleted — the original delete list was wrong in every row
 
-| file | evidence | disposition |
-| --- | --- | --- |
-| `gunnertech/maestro-native-e2e.yml` | `workflow_call`, **never ran**, duplicate of that repo's own `maestro-e2e.yml` | delete |
-| `propswap/nightly-e2e-tracking-issue.yml` | `workflow_call`, **never ran** — reusable with no caller | delete |
-| `tunnl/nightly-e2e-gate.yml` | a hand-written **fork of the gate**, declaring `name: 🌙 Nightly E2E Health` — the same check name as that repo's Lisa caller | retire only after moving its tracker integration |
+An earlier draft named three files for deletion on the evidence
+"`workflow_call`, never ran". **All three are live.** Measured 2026-08-18:
 
-**The third is not a dead file and must not be deleted outright.** Measured:
+| file | what it actually is |
+| --- | --- |
+| `gunnertech/maestro-native-e2e.yml` | a healthy reusable — `uses: ./.github/workflows/maestro-native-e2e.yml` at `maestro-e2e.yml:119`; caller run `32119957573` **succeeded**, 7 jobs, including `📱 Maestro Native E2E / …` |
+| `propswap/nightly-e2e-tracking-issue.yml` | a healthy reusable — `uses:` at `maestro-e2e.yml:132`; caller run `32120016803` **succeeded** with `📌 Nightly E2E Tracking Issue` |
+| `tunnl/nightly-e2e-gate.yml` | a real fork, but it drives the tracker (§6) — retire only after moving that |
+
+### The measurement was structurally invalid, and this is the rule that replaces it
+
+**A `workflow_call` reusable never has its own run entries.** Invoked via
+`uses: ./.github/workflows/x.yml`, its jobs execute inside the **caller's** run.
+So "zero runs ever" is the *expected, healthy* state for a reusable that has a
+caller — it is not evidence of dormancy, it is evidence of nothing at all.
+
+Two files were condemned on that signal and a third on a duplicate `name:`
+(§1, also refuted). **Never infer a workflow is dead from its own run history.**
+The check is:
+
+1. an actual `uses: ./.github/workflows/<file>` line somewhere in the repo, and
+2. a caller run whose job list contains the reusable's jobs.
+
+Grepping the basename is not sufficient — it matches comments and docs, which is
+exactly how two of these were mis-scored.
+
+The genuine orphans this test does find in the portfolio are
+`tunnl/lighthouse.yml` and `gunnertech/lighthouse.yml`: `on: workflow_call` only,
+no `push`/`schedule`/`dispatch`, and **no `uses:` anywhere**. Byte-identical,
+2653 B each. Unreachable by construction.
+
+**On tunnl's fork specifically.** Measured:
 `nightly-e2e-health.yml` is a thin caller of
 `CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v3.27.0`, while
 `nightly-e2e-gate.yml` is a local reimplementation with its own guard assertions
