@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.3](https://github.com/CodySwannGT/lisa/compare/v3.33.2...v3.33.3) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** make the traceability job honor its gate level ([c980305](https://github.com/CodySwannGT/lisa/commit/c980305c435962279ca6af07af3283c119cf6501)), closes [CodySwannGT/lisa#2680](https://github.com/CodySwannGT/lisa/issues/2680) [CodySwannGT/lisa#2680](https://github.com/CodySwannGT/lisa/issues/2680)
+
 ### [3.33.2](https://github.com/CodySwannGT/lisa/compare/v3.33.1...v3.33.2) (2026-08-18)
 
 
