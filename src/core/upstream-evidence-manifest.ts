@@ -2315,7 +2315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "6936f204ffa2506ea9ae5a06fc93a31a55523e312c6e7321a9f13fc45a825427",
+      "af81a23bd135657aef8f640edca91a30a305735d35812b31b5f3b92b0712c51d",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -2327,7 +2327,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
-      "9fbef6f8740714f521d8b997308d96492e9158b1221d654333316f2cf7b48445",
+      "646315728d875eb9c477120d0f3fa98bff8032b3d4375fd02637a73f3d6db6c1",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -9106,6 +9106,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-grace.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-issues.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-scope.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,

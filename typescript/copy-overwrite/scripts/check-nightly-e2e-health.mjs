@@ -89,7 +89,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.3.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.4.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -139,6 +139,65 @@ export const SUITE_STATES = Object.freeze({
  * evidence the suite never gathered.
  */
 export const INCOMPLETE_EVIDENCE_REASON = "incomplete_run";
+
+// ---------------------------------------------------------------------------
+// SUITE SCOPE — "did this run test the WHOLE suite?" (rows 36-38)
+// ---------------------------------------------------------------------------
+//
+// Row 26 asks whether every JOB ran. It cannot see inside a job, so it cannot
+// see the other way a green run proves nothing: a job that ran, passed, and
+// tested a hand-picked slice.
+//
+// Measured 2026-08-18. AcmeOrgB/frontend's only recent `success` ran 4 of ~80
+// flows under `ios_include_tags: smoke`. AcmeOrgD/frontend's REQUIRED merge gate
+// was, at the time of writing, satisfied by run 32120016803: `maestro-ios-report`
+// green, Android skipped, and the run's own published count reading
+// `maestro-ios-flowcount-7`. Seven flows cleared a merge gate for a suite of
+// eighty. `gh run list` renders that identically to a full green, which is how a
+// reader — and this gate — concludes a suite "has been green recently" when it
+// never has.
+//
+// TWO independent signals, and BOTH are required rather than either:
+//
+//  1. SCOPE (the run's own recorded inputs). `maestro-native-e2e.yml` publishes
+//     `maestro-<platform>-scope-full` or `maestro-<platform>-scope-filtered`
+//     from the tag inputs it was actually given. This is the definitive signal
+//     — it reads the filter itself rather than its consequences — but it only
+//     exists on runs from a Lisa version that publishes it, so it is ABSENT on
+//     every historical run and on any suite that is not maestro.
+//  2. COUNT (executed flows). `maestro-<platform>-flowcount-<N>` has shipped for
+//     longer and is the backstop: it catches a run narrowed by any mechanism at
+//     all — a tag filter, a `flows_dir` override, a hand-edited flow list — and
+//     it catches the runs signal 1 cannot see.
+//
+// Both travel as ARTIFACT NAMES, read from the artifacts LIST. That is one
+// cheap API call with no download and no zip reader, and — the property that
+// makes it usable at all — an artifact's NAME outlives its bytes, so an expired
+// artifact still answers "how many flows did that night run?". The header of
+// `nightly-e2e-health.yml` says this gate reads no artifacts; that meant no
+// artifact CONTENT, and it now says so explicitly.
+
+/** A run positively recorded as narrowed. Absence of evidence, not failure. */
+export const FILTERED_RUN_REASON = "filtered_run";
+
+/** A run that executed fewer flows than the suite declared it must. */
+export const FLOW_SHORTFALL_REASON = "flow_shortfall";
+
+/** `min_flows` was declared and the run published nothing to check it against. */
+export const SCOPE_UNREADABLE_REASON = "scope_unreadable";
+
+/**
+ * `maestro-<platform>-flowcount-<N>`, as published by `maestro-native-e2e.yml`.
+ *
+ * Anchored at both ends for the reason `job_pattern` is: unanchored, this is a
+ * substring test, and `maestro-ios-flowcount-7-retry` would be read as 7.
+ */
+export const FLOW_COUNT_ARTIFACT_PATTERN =
+  /^maestro-(?<platform>[a-z0-9]+)-flowcount-(?<count>\d+)$/;
+
+/** `maestro-<platform>-scope-<full|filtered>`, same publisher, same anchoring. */
+export const SCOPE_ARTIFACT_PATTERN =
+  /^maestro-(?<platform>[a-z0-9]+)-scope-(?<scope>full|filtered)$/;
 
 /** The label that identifies a tracking issue this reporter owns. */
 export const TRACKING_ISSUE_LABEL = "nightly-e2e";
@@ -355,6 +414,7 @@ const SUITE_KEYS = Object.freeze(
     "required_sha",
     "first_seen",
     "grace_days",
+    "min_flows",
   ])
 );
 
@@ -555,6 +615,18 @@ export function validateSuites(raw) {
         );
       }
     }
+    // Row 37 — the executed-flow floor. A floor of 0 or a fractional one is
+    // rejected rather than coerced: `min_flows: 0` reads as "a floor is
+    // declared" and enforces nothing, which is the shape of every control that
+    // reports success because it did nothing.
+    if (entry.min_flows !== undefined) {
+      const floor = entry.min_flows;
+      if (!Number.isInteger(floor) || floor < 1) {
+        throw new GateConfigError(
+          `${where}: \`min_flows\` must be an integer >= 1 — the number of flows this suite must execute before its green counts as evidence. \`0\` would declare a floor and enforce nothing. Read from the \`maestro-<platform>-flowcount-<N>\` artifact the suite publishes; once declared, a run that publishes no count BLOCKS rather than passing unchecked.`
+        );
+      }
+    }
     if (entry.required_sha !== undefined) {
       if (
         typeof entry.required_sha !== "string" ||
@@ -602,6 +674,122 @@ export function stateForConclusion(conclusion) {
 }
 
 /**
+ * Reads the scope markers a run published, from its artifact NAMES.
+ *
+ * Pure, so the parsing is provable without a network. `readable: false` is the
+ * "we could not ask" case and is deliberately distinct from an empty reading —
+ * a run that published no markers and a run whose artifact list would not load
+ * are different facts, and only one of them is the suite's fault.
+ *
+ * @param {ReadonlyArray<{name?: string}>|null} artifacts - The artifacts list, or null when unreadable
+ * @returns {{readable: boolean, filtered: ReadonlyArray<string>, counts: Readonly<Record<string, number>>, totalFlows: number|null}} What the run recorded about its own scope
+ */
+export function readSuiteScope(artifacts) {
+  if (!Array.isArray(artifacts)) {
+    return Object.freeze({
+      readable: false,
+      filtered: Object.freeze([]),
+      counts: Object.freeze({}),
+      totalFlows: null,
+    });
+  }
+  const filtered = [];
+  const counts = {};
+  for (const artifact of artifacts) {
+    const name = typeof artifact?.name === "string" ? artifact.name : "";
+    const scope = SCOPE_ARTIFACT_PATTERN.exec(name);
+    if (scope && scope.groups.scope === "filtered") {
+      filtered.push(scope.groups.platform);
+      continue;
+    }
+    const count = FLOW_COUNT_ARTIFACT_PATTERN.exec(name);
+    if (count) {
+      // MAX, never sum, when one platform somehow publishes twice: a re-uploaded
+      // count is the same arm counted again, and summing it would inflate the
+      // suite past its own floor. Taking the larger of two readings of one arm
+      // is the reading that cannot invent flows.
+      const value = Number(count.groups.count);
+      const platform = count.groups.platform;
+      counts[platform] = Math.max(counts[platform] ?? 0, value);
+    }
+  }
+  const platforms = Object.keys(counts);
+  return Object.freeze({
+    readable: true,
+    filtered: Object.freeze(filtered.sort()),
+    counts: Object.freeze({ ...counts }),
+    // `null`, not 0, when nothing was published. Zero is a READING — the arm ran
+    // and tested nothing — and rendering "no evidence" as that reading is the
+    // exact substitution this whole section exists to refuse.
+    totalFlows:
+      platforms.length === 0
+        ? null
+        : platforms.reduce((sum, platform) => sum + counts[platform], 0),
+  });
+}
+
+/**
+ * Row 36-38 — was this run NARROWED?
+ *
+ * Returns `null` when the run is not disqualified, or the reason token that
+ * disqualifies it. Every return here resolves to state `unknown`, never `fail`:
+ * a narrowed run is ABSENCE of evidence about the flows it skipped, not evidence
+ * that they are broken. That places it on the same side of the line as the
+ * skipped-job half of row 26, which means bootstrap and per-suite grace forgive
+ * it on the same terms — deliberate, so ARMING this row cannot wedge a repo that
+ * is still standing its suites up.
+ *
+ * The asymmetry between the two signals is the whole design:
+ *
+ *  - A POSITIVELY OBSERVED filter (row 36) disqualifies unconditionally. No
+ *    declaration is needed to disbelieve a run that reported its own narrowing.
+ *  - A SHORTFALL against `min_flows` (row 37) and an UNREADABLE scope (row 38)
+ *    require the suite to have declared `min_flows`. A floor cannot be inferred:
+ *    this gate reads suites it did not write, including non-maestro ones that
+ *    publish no counts at all, and a guessed denominator would either forgive
+ *    everything or block every consumer on the day it shipped.
+ *
+ * That last point is where fail-closed actually lives. Declaring `min_flows` is
+ * the act of saying "this suite publishes counts"; from that moment an
+ * unreadable count is a BLOCK (row 38), never a shrug. Without the declaration
+ * the gate cannot tell, and it says so on the report line rather than passing
+ * silently — see `scopeUnverified` on the finding.
+ *
+ * @param {object} suite - A validated suite entry
+ * @param {{readable: boolean, filtered: ReadonlyArray<string>, totalFlows: number|null}} scope - Output of `readSuiteScope`
+ * @returns {{reason: string, detail: string}|null} The disqualification, or null
+ */
+export function assessSuiteScope(suite, scope) {
+  if (scope.filtered.length > 0) {
+    return {
+      reason: FILTERED_RUN_REASON,
+      detail: `the run recorded itself as tag-filtered on ${scope.filtered.map(platform => `\`${platform}\``).join(", ")}`,
+    };
+  }
+  const floor = suite.min_flows;
+  if (floor === undefined) return null;
+  if (!scope.readable) {
+    return {
+      reason: SCOPE_UNREADABLE_REASON,
+      detail: `\`min_flows\` is ${floor} but this run's artifact list could not be read, so the executed-flow count is unknown`,
+    };
+  }
+  if (scope.totalFlows === null) {
+    return {
+      reason: SCOPE_UNREADABLE_REASON,
+      detail: `\`min_flows\` is ${floor} but this run published no \`maestro-<platform>-flowcount-<N>\` marker, so how much of the suite ran is unknown`,
+    };
+  }
+  if (scope.totalFlows < floor) {
+    return {
+      reason: FLOW_SHORTFALL_REASON,
+      detail: `this run executed ${scope.totalFlows} flow(s) against a declared floor of ${floor}`,
+    };
+  }
+  return null;
+}
+
+/**
  * Assesses one suite from what was observed for it.
  *
  * `reason` is a stable machine token (the truth-table row), so the tests can
@@ -616,6 +804,50 @@ export function stateForConclusion(conclusion) {
 export function assessSuite(suite, observation, context) {
   const base = { label: suite.label, workflow: suite.workflow };
   const blank = { conclusion: null, url: null, createdAt: null, event: null };
+  // An observation with no `scope` at all is the same fact as an artifacts list
+  // that would not load — "nobody asked" and "the answer did not come back" are
+  // both absence of a reading — so it goes through the same constructor rather
+  // than a hand-rolled stub. A stub missing a field would throw here and take
+  // the whole gate red for a reason having nothing to do with any suite.
+  const scope = observation.scope ?? readSuiteScope(null);
+
+  /**
+   * The ONE place a green may be returned, so row 36-38 cannot be bypassed by
+   * a future third pass path.
+   *
+   * `scopeUnverified` rides on the PASSING finding rather than being swallowed:
+   * a suite that declared no floor and published no counts really did pass every
+   * check this gate can run, and the honest report of that is a green line that
+   * says out loud which question went unasked. A silent green here would be the
+   * same defect one layer up.
+   *
+   * @param {object} seen - The run fields already resolved for this finding
+   * @param {string} reason - The truth-table reason token for the green
+   * @returns {object} The finding
+   */
+  const green = (seen, reason) => {
+    const disqualifier = assessSuiteScope(suite, scope);
+    if (disqualifier) {
+      return {
+        ...base,
+        ...seen,
+        state: SUITE_STATES.unknown,
+        reason: disqualifier.reason,
+        scopeDetail: disqualifier.detail,
+      };
+    }
+    return {
+      ...base,
+      ...seen,
+      state: SUITE_STATES.pass,
+      reason,
+      // Only ever true when no floor was declared — with one declared, the same
+      // condition returns a disqualifier above instead.
+      scopeUnverified:
+        suite.min_flows === undefined &&
+        (!scope.readable || scope.totalFlows === null),
+    };
+  };
 
   // Row 11 — the workflow file the table names no longer exists. That is not
   // missing evidence, it is a broken gate: someone renamed or deleted the suite
@@ -732,12 +964,7 @@ export function assessSuite(suite, observation, context) {
       };
     }
 
-    return {
-      ...base,
-      ...seen,
-      state: SUITE_STATES.pass,
-      reason: "run_conclusion",
-    };
+    return green(seen, "run_conclusion");
   }
 
   const matches =
@@ -774,13 +1001,7 @@ export function assessSuite(suite, observation, context) {
   // message points at the thing that failed rather than at the run's summary.
   const offender = matches.find(job => job.conclusion !== GREEN_CONCLUSION);
   if (!offender) {
-    return {
-      ...base,
-      ...seen,
-      conclusion: GREEN_CONCLUSION,
-      state: SUITE_STATES.pass,
-      reason: "job_conclusion",
-    };
+    return green({ ...seen, conclusion: GREEN_CONCLUSION }, "job_conclusion");
   }
   const state = stateForConclusion(offender.conclusion);
   return {
@@ -1145,6 +1366,12 @@ const REASON_TEXT = Object.freeze({
     "the job pattern matched zero jobs in the newest run. Zero matches is the signature of a renamed job.",
   [INCOMPLETE_EVIDENCE_REASON]:
     "the run reported `success`, but it did not run everything: at least one job was skipped, failed under `continue-on-error`, or could not be read. A run that skipped part of itself did not gather the evidence its green claims — a suite re-run for one platform only is not a verdict about the other one. Re-run the suite WITHOUT narrowing it.",
+  [FILTERED_RUN_REASON]:
+    'the run reported `success`, but it recorded itself as TAG-FILTERED — it ran a hand-picked slice of the suite, not the suite. A slice that passes says nothing about the flows it never started, so this is no result rather than a green. Re-run the suite with every tag / platform / shard picker left on its "all" default.',
+  [FLOW_SHORTFALL_REASON]:
+    "the run reported `success`, but it executed FEWER FLOWS than this suite declares it must (`min_flows`). A narrowed run reaching green is how a four-flow dispatch clears a merge gate for an eighty-flow suite. Re-run the whole suite, or lower `min_flows` deliberately if the suite really did shrink.",
+  [SCOPE_UNREADABLE_REASON]:
+    'this suite declares `min_flows`, so its runs must publish an executed-flow count — and this one\'s could not be read. That is NOT a pass: an unreadable count is exactly what a narrowed run looks like from here, and rendering "we could not check" as "it is fine" is the defect this row exists to close. Check the suite still publishes `maestro-<platform>-flowcount-<N>` and that the caller grants `actions: read`.',
   run_conclusion: "",
   job_conclusion: "",
 });
@@ -1163,8 +1390,19 @@ export function formatFinding(finding) {
   const link = finding.url ? `: ${finding.url}` : "";
   const detail = REASON_TEXT[finding.reason] || "";
   if (finding.state === "pass") {
-    return `${marker} ${finding.label} — green${when}${link}`;
+    // A green whose SCOPE went unchecked says so on its own line. The
+    // alternative — printing it identically to a fully verified green — is the
+    // precise reading error this gate was measured making: a filtered run and a
+    // full one rendered the same, so the history read as "green recently".
+    const unverified = finding.scopeUnverified
+      ? " — ⚠️ scope unverified: this run published no executed-flow count, so how much of the suite ran is unknown. Declare `min_flows` for this suite to make that a blocking question"
+      : "";
+    return `${marker} ${finding.label} — green${when}${link}${unverified}`;
   }
+  // The measured numbers ride on the line, not just in the prose: "executed 7
+  // flow(s) against a declared floor of 60" is actionable where "the run was
+  // narrowed" sends the reader back to the run page to find out how much.
+  const scopeDetail = finding.scopeDetail ? ` (${finding.scopeDetail})` : "";
   const verdictWord =
     finding.state === "bootstrap"
       ? "not yet blocking"
@@ -1177,7 +1415,7 @@ export function formatFinding(finding) {
     finding.state === "bootstrap" && finding.grace?.active
       ? ` — new suite (first seen ${finding.grace.firstSeen}); its grace expires ${finding.grace.until} (in ${finding.grace.expiresInDays} day(s)), after which this line blocks`
       : "";
-  return `${marker} ${finding.label} — ${verdictWord}${conclusion}${when} — ${detail}${link}${grace}`;
+  return `${marker} ${finding.label} — ${verdictWord}${conclusion}${when} — ${detail}${scopeDetail}${link}${grace}`;
 }
 
 /**
@@ -1290,7 +1528,23 @@ export function formatReport(verdict, context) {
  * @returns {boolean} True when the run was complete
  */
 export function isCompleteEvidence(finding) {
-  return finding.reason !== INCOMPLETE_EVIDENCE_REASON;
+  // Rows 36-38 join row 26 here for the reason the doc comment gives: with the
+  // gate as written none of them can produce a `pass`, so asking again looks
+  // redundant — and that is exactly why it is asked. The reporter's close action
+  // must not depend on the gate staying strict.
+  //
+  // `scopeUnverified` is deliberately NOT here. It is true of every suite that
+  // has not adopted `min_flows` yet, which is all of them on the day this ships;
+  // refusing to close on it would make the tracking issues immortal across four
+  // repositories to express a doubt the gate itself does not act on. The two
+  // halves tighten together instead: declare `min_flows` and an unreadable count
+  // becomes `scope_unreadable`, which IS in this list.
+  return (
+    finding.reason !== INCOMPLETE_EVIDENCE_REASON &&
+    finding.reason !== FILTERED_RUN_REASON &&
+    finding.reason !== FLOW_SHORTFALL_REASON &&
+    finding.reason !== SCOPE_UNREADABLE_REASON
+  );
 }
 
 /**
@@ -1698,6 +1952,42 @@ export async function fetchAllJobs(api, runId, wait) {
 }
 
 /**
+ * The artifact NAMES a run published, paginated to exhaustion.
+ *
+ * Names only — nothing here downloads an artifact, and the gate still has no zip
+ * reader. The names carry the scope markers (rows 36-38) and, unlike the bytes,
+ * they survive the retention window, so a three-month-old run can still answer
+ * "how many flows did you run?".
+ *
+ * Returns `null` on 404 and on a truncated read, which is the "we could not ask"
+ * signal `assessSuiteScope` turns into a BLOCK for any suite that declared a
+ * floor. A partial page walk is deliberately reported as unreadable rather than
+ * as what was read: a flow-count marker sitting on the page this walk never
+ * reached is indistinguishable from one that was never published, and the second
+ * of those readings is the one that passes.
+ *
+ * @param {object} api - API coordinates
+ * @param {number|string} runId - The run
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<ReadonlyArray<object>|null>} All artifacts, or null when unreadable
+ */
+export async function fetchRunArtifacts(api, runId, wait) {
+  const artifacts = [];
+  for (let page = 1; page <= api.maxPages; page += 1) {
+    const result = await apiGet(
+      api,
+      `/repos/${api.repo}/actions/runs/${runId}/artifacts?per_page=100&page=${page}`,
+      wait
+    );
+    if (result === null) return null;
+    const batch = result.body.artifacts ?? [];
+    artifacts.push(...batch);
+    if (batch.length < 100) return Object.freeze(artifacts);
+  }
+  return null;
+}
+
+/**
  * Observes every suite.
  *
  * @param {object} api - API coordinates
@@ -1737,10 +2027,19 @@ export async function observe(api, suites, branch, wait) {
       if (!run) {
         return { workflowMissing: false, run, jobs: [] };
       }
+      // Artifacts are read for every suite, not only the ones declaring
+      // `min_flows`: a run that recorded ITSELF as filtered disqualifies with no
+      // declaration at all (row 36), and a gate that only looked when asked to
+      // would miss exactly the repos that have not adopted the field yet.
+      const [jobs, artifacts] = await Promise.all([
+        fetchAllJobs(api, run.id, wait),
+        fetchRunArtifacts(api, run.id, wait),
+      ]);
       return {
         workflowMissing: false,
         run,
-        jobs: await fetchAllJobs(api, run.id, wait),
+        jobs,
+        scope: readSuiteScope(artifacts),
       };
     })
   );
