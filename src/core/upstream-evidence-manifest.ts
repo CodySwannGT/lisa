@@ -207,7 +207,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
       "19cbbd7d368a99457212f2e1f9b37e6352cab6d459eb7dd11adb154f0c627c84",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "b284a59b3ce5dfa8fa4e6b9c5789c6c9c08120eaf957a91453fc659322feab28",
+      "f87c1ba298a66833712f57a6550f78f02927d5b9796fe0ac02dcf4bbd24c4e0c",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -9033,6 +9033,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
+    "tests/unit/scripts/e2e-coverage-run-awareness.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
     "tests/unit/scripts/floor-collisions.test.ts": true,
     "tests/unit/scripts/generate-agy-plugin-artifacts.test.ts": true,
