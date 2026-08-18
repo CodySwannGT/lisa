@@ -409,6 +409,50 @@ describe("PackageLisaStrategy", () => {
       }
     });
 
+    // Regression: a security floor that turns out to be harmful cannot be
+    // corrected by lowering it — `preserveHigherHostPins` keeps whichever side
+    // is higher, so the host's copy of the bad pin wins and the fix never
+    // lands. Retiring the key through `remove` is the path that reaches an
+    // already-written host, which is why `brace-expansion` left the templates
+    // that way rather than by being re-pinned.
+    it("deletes a retired override key from a host that already carries it", async () => {
+      await createPackageLisaTemplate("typescript", {
+        remove: {
+          resolutions: ["brace-expansion"],
+          overrides: ["brace-expansion"],
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        // What a previous `lisa apply` wrote here.
+        resolutions: { "brace-expansion": ">=5.0.9", tar: ">=7.5.21" },
+        overrides: { "brace-expansion": ">=5.0.9", tar: ">=7.5.21" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      const content = await fs.readJson(destPath);
+      for (const section of ["resolutions", "overrides"] as const) {
+        expect(content[section]["brace-expansion"]).toBeUndefined();
+        // Neighbouring pins in the same section are untouched.
+        expect(content[section].tar).toBe(">=7.5.21");
+      }
+    });
+
     // An unparseable range (a git URL, an npm alias) cannot be compared, so the
     // template value stands — the guard may only ever RAISE a pin, never block a
     // force-bump it failed to reason about. Uses a package that is NOT a direct

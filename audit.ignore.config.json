@@ -149,21 +149,6 @@
       "reason": "DoS via large commented TOML documents — Lisa reads repo-owned TOML config/template files, not untrusted user TOML"
     },
     {
-      "id": "GHSA-jxxr-4gwj-5jf2",
-      "package": "brace-expansion",
-      "reason": "Large numeric range DoS — transitive through minimatch for repo/dev-tool glob patterns, no untrusted pattern input"
-    },
-    {
-      "id": "GHSA-f886-m6hf-6m8v",
-      "package": "brace-expansion",
-      "reason": "Zero-step sequence DoS — transitive through minimatch for repo/dev-tool glob patterns, no untrusted pattern input"
-    },
-    {
-      "id": "GHSA-mh99-v99m-4gvg",
-      "package": "brace-expansion",
-      "reason": "Unbounded expansion DoS — Lisa pins its own minimatch consumer to v10, but older transitive dev tools may still carry minimatch v3 and cannot safely accept a blanket brace-expansion 5.x override"
-    },
-    {
       "id": "GHSA-qx2v-qp2m-jg93",
       "package": "postcss",
       "reason": "CSS stringify XSS for unescaped style-closing text — dev tooling only via vite/tailwind lint dependencies, no browser-served untrusted CSS stringify path"
