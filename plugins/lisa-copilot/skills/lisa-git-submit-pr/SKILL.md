@@ -66,10 +66,17 @@ When updating an existing PR, preserve any existing linkage line unless the new 
 After creating or updating the PR, always make the reverse link durable on the source work item when `work_item_ref` is available:
 
 1. Resolve the live PR URL with `gh pr view <pr-number> --json url --jq .url`.
-2. Invoke `lisa-tracker-sync` with the original work item ref, milestone `pr-ready`, `pr_url=<url>`, and `tracker_provider=<provider>` when known.
-3. The vendor sync skill must prefer the provider's native development-link primitive where one is available and verifiable.
-4. If native linkage is unavailable, unconfigured, or cannot be verified, the vendor sync skill must create or update a single managed `[lisa-pr-link]` comment on the work item containing the PR URL. The fallback comment is not optional; it is the ticket-side half of the two-way link.
-5. When the PR later merges, invoke `lisa-tracker-sync` again with milestone `pr-merged`, the same `pr_url`, and the merge SHA when available, so the managed backlink reflects the final state.
+2. Run the backlink command. It is the executable form of this requirement — it writes the managed `[lisa-pr-link]` comment on the work item, or updates the one already there, for every tracker Lisa supports:
+
+   ```bash
+   node scripts/lisa-work-item.mjs backlink --ref <work_item_ref> --pr-url <url>
+   ```
+
+   It is idempotent, so run it on every push rather than deciding whether it is needed. It refuses loudly for a tracker it cannot write, and never silently no-ops. Do not hand-post the comment, and do not describe the posting procedure anywhere: the same file that writes it is the file that checks it, which is what keeps producer and consumer from drifting.
+3. Invoke `lisa-tracker-sync` with the original work item ref, milestone `pr-ready`, `pr_url=<url>`, and `tracker_provider=<provider>` when known. That is the progress-note and status side; it is not what satisfies the traceability check.
+4. When the PR later merges, invoke `lisa-tracker-sync` again with milestone `pr-merged`, the same `pr_url`, and the merge SHA when available.
+
+**Why step 2 exists — do not "simplify" it away as redundant with the `Refs` line.** Under the non-closing rule above, GitHub never creates a native development link at all: that surface *is* the closing-reference mechanism, so no non-closing form can populate it. A PR carrying a perfectly correct `Refs` line still fails the required Work-Item Traceability check without the comment. The managed comment is the ticket-side half of the link, not a fallback for when native linkage happens to be absent.
 
 Do not report PR submission as fully synced while the PR body references the ticket but the ticket has neither a verified native PR link nor the managed backlink comment.
 
