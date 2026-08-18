@@ -52,8 +52,13 @@ When `$ARGUMENTS` includes `pr_url=<url>` with milestone `pr-ready` or `pr-merge
 
 1. Prefer the provider's native development-link primitive when Lisa can write and verify it for that provider.
 2. Verify the native link using the provider read surface when available.
-3. If the native link is unavailable, unconfigured, cross-system, or cannot be verified, create or update one managed backlink comment on the work item containing the PR URL and current milestone.
-4. Keep the comment idempotent by using a stable marker such as `[lisa-pr-link]`; reruns update or skip the existing managed comment rather than appending duplicates.
+3. Whether or not the native link exists or cannot be verified, establish the managed backlink comment with the one command that owns it:
+
+   ```bash
+   node scripts/lisa-work-item.mjs backlink --ref <work-item> --pr-url <url>
+   ```
+
+4. That command is idempotent by construction — it updates the existing `[lisa-pr-link]` comment rather than appending duplicates — and it refuses loudly for a tracker it cannot write. Do not restate its procedure in a vendor skill; the file that writes the comment is the file that checks it, and that is what stops the two from drifting.
 
 This is the reverse half of `lisa-git-submit-pr`'s PR body linkage. A PR that mentions a ticket is not considered fully synced until the ticket also has either a verified native PR link or the managed fallback comment.
 

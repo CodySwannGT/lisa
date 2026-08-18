@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -22,6 +23,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 
 const SCRIPT = path.resolve("scripts/lisa-work-item.mjs");
@@ -1735,5 +1737,239 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     expect(result.stderr).toContain("BRANCH NAME");
     expect(result.stderr).toContain("NEW branch named for LIN-12");
     expect(result.stderr).toContain(`[lisa-pr-link] ${PR_URL}`);
+  });
+});
+
+/**
+ * The backlink WRITER — the producer half of the traceability gate.
+ *
+ * `assertBacklink` reads a managed `[lisa-pr-link]` comment, and until this
+ * command existed nothing executable wrote one: every producer was prose in a
+ * SKILL.md an agent might or might not follow. The fake tracker here is
+ * STATEFUL on purpose — idempotency is a claim about what two runs leave
+ * behind, and a stateless stub can only show that the second run did not
+ * crash.
+ */
+describe("backlink command", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+  const OTHER_PR_URL = "https://github.com/acme/code/pull/8";
+
+  /**
+   * Replace the fixture's `gh` with one that keeps a real comment store.
+   * @param fixture - The disposable fixture.
+   * @returns Path to the JSON file holding the issue's comments.
+   */
+  function statefulGh(fixture: Fixture): string {
+    const store = path.join(fixture.root, "comments.json");
+    const file = path.join(fixture.bin, "gh");
+    writeFileSync(
+      file,
+      `#!${process.execPath}
+const { existsSync, readFileSync, writeFileSync } = require("node:fs");
+const store = ${JSON.stringify(store)};
+const args = process.argv.slice(2);
+if (args[0] !== "api") { console.error("unexpected gh: " + args.join(" ")); process.exit(70); }
+const comments = existsSync(store) ? JSON.parse(readFileSync(store, "utf8")) : [];
+const at = name => (args.indexOf(name) < 0 ? undefined : args[args.indexOf(name) + 1]);
+const method = at("--method") || "GET";
+const endpoint = args.find(a => a.startsWith("repos/")) || "";
+const field = at("--field") || "";
+const body = field.startsWith("body=") ? field.slice(5) : "";
+if (method === "GET") { process.stdout.write(JSON.stringify(comments)); process.exit(0); }
+if (method === "POST") comments.push({ id: comments.length + 1, body });
+else if (method === "PATCH") {
+  const id = Number(endpoint.split("/").pop());
+  const found = comments.find(c => c.id === id);
+  if (!found) { console.error("no such comment " + id); process.exit(1); }
+  found.body = body;
+} else { console.error("unexpected method " + method); process.exit(70); }
+writeFileSync(store, JSON.stringify(comments));
+process.stdout.write(JSON.stringify({ id: 1 }));
+`
+    );
+    chmodSync(file, 0o755);
+    return store;
+  }
+
+  /** The comments the fake tracker is currently holding. */
+  function stored(store: string): { body: string; id: number }[] {
+    return existsSync(store)
+      ? (JSON.parse(readFileSync(store, "utf8")) as {
+          body: string;
+          id: number;
+        }[])
+      : [];
+  }
+
+  it("creates the managed comment on an issue that has none", () => {
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("created");
+    expect(stored(store)).toEqual([
+      { body: `[lisa-pr-link] ${PR_URL}`, id: 1 },
+    ]);
+  });
+
+  it("leaves exactly one comment when run twice for the same pull request", () => {
+    // Idempotency, proven rather than assumed: the assertion is on what the
+    // tracker HOLDS after two runs, not on the second run's exit status.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    const args = ["backlink", "--ref", "acme/widgets#42", "--pr-url", PR_URL];
+
+    expect(command(fixture, args).status).toBe(0);
+    const second = command(fixture, args);
+
+    expect(second.status).toBe(0);
+    expect(stored(store)).toHaveLength(1);
+    expect(second.stdout).toContain("unchanged");
+  });
+
+  it("updates the one managed comment instead of posting a second", () => {
+    // The other rerun shape: same issue, different pull request. An append
+    // would leave two comments, and the second would link a PR this branch is
+    // no longer about.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+
+    expect(
+      command(fixture, [
+        "backlink",
+        "--ref",
+        "acme/widgets#42",
+        "--pr-url",
+        PR_URL,
+      ]).status
+    ).toBe(0);
+    const update = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      OTHER_PR_URL,
+    ]);
+
+    expect(update.status).toBe(0);
+    expect(update.stdout).toContain("updated");
+    expect(stored(store)).toEqual([
+      { body: `[lisa-pr-link] ${OTHER_PR_URL}`, id: 1 },
+    ]);
+  });
+
+  it("writes the comment the traceability check reads", () => {
+    // Producer and consumer asserted against each other in one test, because
+    // the defect being fixed is precisely that nobody had checked they agree.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(textContainsBacklink(stored(store), PR_URL)).toBe(true);
+  });
+
+  it("falls back to the worktree binding when no --ref is given", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const store = statefulGh(fixture);
+
+    const result = command(fixture, ["backlink", "--pr-url", PR_URL]);
+
+    expect(result.status).toBe(0);
+    expect(stored(store)).toHaveLength(1);
+  });
+
+  it("refuses without a pull request URL rather than doing nothing", () => {
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+
+    const result = command(fixture, ["backlink", "--ref", "acme/widgets#42"]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("requires --pr-url");
+    expect(stored(store)).toEqual([]);
+  });
+
+  it("names itself in the refusal when the backlink is missing", () => {
+    // The highest-value half: a check that says "no verified backlink" without
+    // naming the remedy is what turned this into a multi-cycle rediscovery.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = prRange(fixture, base, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no verified backlink");
+    expect(result.stderr).toContain(
+      `node scripts/lisa-work-item.mjs backlink --ref acme/widgets#42 --pr-url ${PR_URL}`
+    );
+  });
+});
+
+/**
+ * The writer's refusals.
+ *
+ * A backlink command that cannot write must SAY so. Reporting success while
+ * writing nothing reproduces the original defect one layer down: the operator
+ * believes the ticket is linked, and the required check still fails.
+ */
+describe("backlink command refusals", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+
+  it("refuses a Linear backlink with no API key rather than reporting success", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+
+    const result = command(
+      fixture,
+      ["backlink", "--ref", "LIN-12", "--pr-url", PR_URL],
+      { env: { LINEAR_API_KEY: "" } }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("writing a Linear backlink requires");
+  });
+
+  it("refuses a Jira backlink with no credentials rather than degrading to acli", () => {
+    // The READ path may degrade to whatever can answer. A WRITE may not: a
+    // comment that silently does not get posted is the failure this command
+    // exists to remove.
+    const fixture = createFixture({
+      tracker: "jira",
+      repo: "widgets",
+      jira: { project: "LAS" },
+      atlassian: { site: "acme.atlassian.net" },
+    });
+
+    const result = command(
+      fixture,
+      ["backlink", "--ref", "LAS-12", "--pr-url", PR_URL],
+      { env: { ATLASSIAN_API_TOKEN: "", JIRA_API_TOKEN: "", JIRA_LOGIN: "" } }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("writing a Jira backlink requires");
   });
 });
