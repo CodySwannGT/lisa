@@ -689,15 +689,21 @@ export function readSuiteScope(artifacts) {
     return Object.freeze({
       readable: false,
       filtered: Object.freeze([]),
+      full: Object.freeze([]),
       counts: Object.freeze({}),
       totalFlows: null,
     });
   }
   const filtered = [];
+  const full = [];
   const counts = {};
   for (const artifact of artifacts) {
     const name = typeof artifact?.name === "string" ? artifact.name : "";
     const scope = SCOPE_ARTIFACT_PATTERN.exec(name);
+    if (scope && scope.groups.scope === "full") {
+      full.push(scope.groups.platform);
+      continue;
+    }
     if (scope && scope.groups.scope === "filtered") {
       filtered.push(scope.groups.platform);
       continue;
@@ -717,6 +723,10 @@ export function readSuiteScope(artifacts) {
   return Object.freeze({
     readable: true,
     filtered: Object.freeze(filtered.sort()),
+    // Tracked as well as `filtered`, because "the run asserted it was UNFILTERED"
+    // and "the run said nothing" are different facts and only one of them is
+    // grounds to stop asking. Every pre-adoption run is the second.
+    full: Object.freeze(full.sort()),
     counts: Object.freeze({ ...counts }),
     // `null`, not 0, when nothing was published. Zero is a READING — the arm ran
     // and tested nothing — and rendering "no evidence" as that reading is the
@@ -843,9 +853,21 @@ export function assessSuite(suite, observation, context) {
       reason,
       // Only ever true when no floor was declared — with one declared, the same
       // condition returns a disqualifier above instead.
+      //
+      // The condition is "no floor AND the run never asserted it was unfiltered",
+      // NOT "no floor AND no count was published". Running this against the real
+      // AcmeOrgB run 32023540492 is what corrected it: that run publishes
+      // `flowcount-4` on both arms, so a count-based condition read it as
+      // verified and printed a clean green — the exact 5%-of-the-suite false
+      // green this file exists to catch, silently. Knowing the number is not the
+      // same as being able to judge it; only a declared floor or the run's own
+      // `scope-full` marker settles the question.
       scopeUnverified:
-        suite.min_flows === undefined &&
-        (!scope.readable || scope.totalFlows === null),
+        suite.min_flows === undefined && (scope.full?.length ?? 0) === 0,
+      // Carried so the notice can quote what WAS measured. "this run executed 8
+      // flow(s)" is a number a reader can act on; "how much ran is unknown" when
+      // the count was sitting right there is the gate withholding its evidence.
+      observedFlows: scope.totalFlows,
     };
   };
 
@@ -1395,7 +1417,9 @@ export function formatFinding(finding) {
     // precise reading error this gate was measured making: a filtered run and a
     // full one rendered the same, so the history read as "green recently".
     const unverified = finding.scopeUnverified
-      ? " — ⚠️ scope unverified: this run published no executed-flow count, so how much of the suite ran is unknown. If this suite publishes `maestro-<platform>-flowcount-<N>`, declare `min_flows` to make that a blocking question; if it does not (a browser suite, say), this line is the honest limit of what the gate can see"
+      ? typeof finding.observedFlows === "number"
+        ? ` — ⚠️ scope unverified: this run executed ${finding.observedFlows} flow(s), and no \`min_flows\` is declared for this suite, so the gate cannot tell whether that is the whole suite or a slice of it. Compare it against a known-full night and declare \`min_flows\` to make this a blocking question`
+        : " — ⚠️ scope unverified: this run published no executed-flow count, so how much of the suite ran is unknown. If this suite publishes `maestro-<platform>-flowcount-<N>`, declare `min_flows` to make that a blocking question; if it does not (a browser suite, say), this line is the honest limit of what the gate can see"
       : "";
     return `${marker} ${finding.label} — green${when}${link}${unverified}`;
   }

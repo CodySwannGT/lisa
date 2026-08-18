@@ -69,12 +69,15 @@ export interface Finding {
   readonly scopeDetail?: string;
   /** Rows 36-38: a green whose scope this gate could not check. */
   readonly scopeUnverified?: boolean;
+  /** Rows 36-38: the executed-flow count read, when one was published. */
+  readonly observedFlows?: number | null;
 }
 
 /** What a run recorded about its own scope, from its artifact names. */
 export interface SuiteScope {
   readonly readable: boolean;
   readonly filtered: readonly string[];
+  readonly full: readonly string[];
   readonly counts: Readonly<Record<string, number>>;
   readonly totalFlows: number | null;
 }
@@ -234,25 +237,6 @@ export const REASON = Object.freeze({
   flowShortfall: "flow_shortfall",
   scopeUnreadable: "scope_unreadable",
 });
-
-/**
- * The artifact names a FULL two-platform maestro night publishes.
- *
- * Shaped from a real run: AcmeOrgD/frontend 32120016803 published
- * `maestro-ios-results`, `maestro-ios-flowcount-7`, `maestro-ios-report` and
- * `app-ios`. The noise entries are kept because the parser has to ignore them —
- * a fixture containing only the markers would prove nothing about a list that
- * mostly is not markers.
- */
-export const FULL_SCOPE_ARTIFACTS: readonly { name: string }[] = Object.freeze([
-  { name: "app-ios" },
-  { name: "maestro-ios-report" },
-  { name: "maestro-ios-results" },
-  { name: "maestro-ios-flowcount-42" },
-  { name: "maestro-ios-scope-full" },
-  { name: "maestro-android-flowcount-38" },
-  { name: "maestro-android-scope-full" },
-]);
 
 /**
  * A job every `mode: "run"` fixture carries unless it is testing completeness.
