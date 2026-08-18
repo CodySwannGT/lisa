@@ -19,7 +19,8 @@
  * @module tests/unit/config/mjs-gate-off-stays-honest
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -108,5 +109,91 @@ describe("test-node-suites off stays honest", () => {
     // job runs, finds no runner, and refuses to pass. Pinning presence means a
     // stray edit that drops the key gets caught here rather than in CI.
     expect(declaredLevel()).toBeDefined();
+  });
+});
+
+describe("this repository can resolve its own gate declarations", () => {
+  /**
+   * The candidate list READ OUT OF quality.yml, never a copy of it.
+   *
+   * A hardcoded duplicate would keep passing after someone shortened the real
+   * list — the test would be agreeing with itself about a workflow it no
+   * longer describes. Parsing the workflow means removing a path there fails
+   * here.
+   */
+  const RESOLVER_CANDIDATES: readonly string[] = (() => {
+    const workflow = readFileSync(
+      path.join(REPO_ROOT, ".github/workflows/quality.yml"),
+      "utf-8"
+    );
+    const line = workflow
+      .split("\n")
+      .find(
+        candidate =>
+          candidate.includes("for candidate in") &&
+          candidate.includes("lisa-gates.mjs")
+      );
+    if (line === undefined) {
+      throw new Error(
+        "No gate-resolver candidate loop found in quality.yml — the facades " +
+          "were restructured and this guard no longer describes them."
+      );
+    }
+    return [...line.matchAll(/"([^"]*lisa-gates\.mjs)"/g)].map(
+      match => match[1] as string
+    );
+  })();
+
+  it("finds a gate resolver on at least one candidate path", () => {
+    // Why this exists: for a long time NEITHER of the first two resolved here.
+    // `node_modules/@codyswann/lisa` is this repository's own devDependency,
+    // pinned `^2.328.0` while latest is 3.x — a caret cannot cross the major,
+    // so it installs a version predating lisa-gates.mjs. And Lisa's copy lives
+    // under all/copy-overwrite/, not scripts/. With no resolver the facades
+    // emit `configured=false` and fall through to built-in behaviour, so EVERY
+    // gate this repository declared was inert while reading as configured.
+    const found = RESOLVER_CANDIDATES.filter(candidate =>
+      existsSync(path.join(REPO_ROOT, candidate))
+    );
+
+    expect(
+      found,
+      `No gate resolver is reachable from any path quality.yml searches:\n` +
+        `${RESOLVER_CANDIDATES.map(c => `  ${c}`).join("\n")}\n` +
+        `Every gates block in .lisa.config.json is therefore INERT here — the ` +
+        `facades resolve configured=false and run built-in behaviour, ` +
+        `including for gates declared "off".`
+    ).not.toEqual([]);
+  });
+
+  it("honours an off declaration through the shipped resolver", () => {
+    // The end-to-end check: not "the file exists" but "declaring off actually
+    // reads back as off". A resolver that is present but cannot parse this
+    // repository's config would still leave the gate inert.
+    const resolver = RESOLVER_CANDIDATES.map(c => path.join(REPO_ROOT, c)).find(
+      candidate => existsSync(candidate)
+    );
+    expect(resolver, "no resolver to exercise").toBeDefined();
+
+    const raw = execFileSync(
+      process.execPath,
+      [
+        resolver as string,
+        "list",
+        "--moment=pull-request",
+        "--json",
+        "--include-off",
+      ],
+      { cwd: REPO_ROOT, encoding: "utf-8" }
+    );
+    const gates = JSON.parse(raw) as readonly { id: string; level: string }[];
+    const gate = gates.find(entry => entry.id === GATE_ID);
+
+    expect(
+      gate?.level,
+      `${GATE_ID} is declared "off" in .lisa.config.json but the resolver ` +
+        `reports ${JSON.stringify(gate?.level)}. The declaration is not ` +
+        `reaching the facades, so the job will run built-in behaviour anyway.`
+    ).toBe("off");
   });
 });
