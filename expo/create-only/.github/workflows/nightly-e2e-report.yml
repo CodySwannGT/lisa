@@ -60,7 +60,7 @@ jobs:
     # PIN AN IMMUTABLE REF, for the same reason the gate caller does: the two
     # halves must speak the same contract major, and `@main` can change between
     # a report and the gate reading the same night.
-    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@v2.345.1
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@v3.35.0
     with:
       branch: dev
       # KEEP THIS IDENTICAL to the `suites` value in nightly-e2e-health.yml.
