@@ -109,31 +109,41 @@ const installBin = (dir: string, name: string, contents: string): void => {
 };
 
 /**
- * Bytes that no kernel will exec and no shell will interpret.
+ * Whether an ENOEXEC spawn failure is even reachable on this platform.
  *
- * The obvious ENOEXEC fixture — a shebang-less text file with the exec bit —
- * is NOT portable, and the difference is invisible on a developer machine.
- * macOS refuses it with ENOEXEC; **Linux falls back to /bin/sh and runs it
- * successfully**, so on CI the preflight found nothing wrong and the two tests
- * pinning this behaviour failed there while passing locally.
+ * It is not universal, and assuming it was cost two CI-red cycles. POSIX says
+ * `execvp` retries with `/bin/sh` when `execve` returns ENOEXEC, and glibc
+ * implements exactly that — so on Linux a present-but-unrunnable file SPAWNS
+ * (the shell takes it, then exits 126 or 127) and no `error` event ever
+ * arrives. macOS does not take that path, so ENOEXEC surfaces.
  *
- * An ELF header with a corrupt class byte cannot be executed on either
- * platform, and the leading NUL stops any shell from treating it as a script,
- * so the spawn fails with ENOEXEC everywhere.
- * @param name - Bin name to install
+ * Measured, after a first fixture and a "portable" ELF replacement both failed
+ * the same way on Ubuntu: `expected +0 to be 1`, because the probe found
+ * nothing wrong. The file's CONTENT is irrelevant on Linux; the fallback is
+ * unconditional.
+ *
+ * Consequence worth stating plainly: the fail-open this guard exists for is
+ * **platform-specific**. It is still worth guarding, because pre-commit hooks
+ * run on developer machines, but the ENOEXEC assertion cannot be made on CI.
+ */
+const ENOEXEC_IS_REACHABLE = process.platform !== "linux";
+
+/**
+ * Installs a tool that cannot be spawned on ANY platform.
+ *
+ * Present, but without the executable bit: `execvp` fails with EACCES, and the
+ * `/bin/sh` retry applies only to ENOEXEC — so this raises an `error` event
+ * everywhere, which is the signal the probe watches for. This is what keeps
+ * the guard's core behaviour pinned on CI rather than only on a developer's
+ * machine.
  * @param dir - Fixture project root
+ * @param name - Bin name to install
  */
 const installUnspawnableBin = (dir: string, name: string): void => {
   const target = path.join(dir, "node_modules", ".bin", name);
-  // \x7fELF then a class byte of 0 — a valid magic number with an invalid
-  // class, which the loader rejects rather than mapping.
-  writeFileSync(
-    target,
-    Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x00, 0x00, 0x00, 0x00])
-  );
-  chmodSync(target, 0o755);
+  writeFileSync(target, "#!/bin/sh\nexit 0\n");
+  chmodSync(target, 0o644);
 };
-
 /**
  * Every pre-commit hook in the repository that hands work to lint-staged.
  * @returns Repo-relative paths.
@@ -167,19 +177,40 @@ const preCommitHooksRunningLintStaged = (): string[] => {
 };
 
 describe("lint-staged preflight — behaviour", () => {
-  it("BLOCKS a tool that is present and executable but cannot be spawned (ENOEXEC)", async () => {
-    // The case lint-staged itself lets through. A shebang-less text file with
-    // the executable bit set is exactly what a package leaves behind when its
-    // real binary is materialized by a postinstall script that never ran.
+  it("BLOCKS a tool that is present but cannot be spawned", async () => {
+    // Runs on every platform. The errno is deliberately NOT asserted: which
+    // one a broken tool produces is platform-dependent, and pinning the errno
+    // is what made this suite pass on macOS and fail on CI twice.
     const dir = fixture('{ "*.ts": ["lisa-fixture-shim scan"] }');
     installUnspawnableBin(dir, "lisa-fixture-shim");
 
     const { code, output } = await runPreflight(dir, CONFIG_ARGS);
 
     expect(code).toBe(1);
-    expect(output).toContain("ENOEXEC");
     expect(output).toContain("lisa-fixture-shim");
   });
+
+  it.runIf(ENOEXEC_IS_REACHABLE)(
+    "BLOCKS a tool that is executable but not runnable (ENOEXEC)",
+    async () => {
+      // The specific fail-open lint-staged has: it prints `spawn ENOEXEC` and
+      // returns 0. A shebang-less text file with the exec bit is what a package
+      // leaves behind when a postinstall that should have materialized the real
+      // binary never ran.
+      //
+      // Skipped on Linux because the condition cannot be CONSTRUCTED there, not
+      // because it is inconvenient — execvp's /bin/sh fallback means such a file
+      // spawns successfully. A skip whose reason is "this platform cannot
+      // exhibit the defect" is honest; one that hides a red is not.
+      const dir = fixture('{ "*.ts": ["lisa-fixture-enoexec scan"] }');
+      installBin(dir, "lisa-fixture-enoexec", "never replaced\n");
+
+      const { code, output } = await runPreflight(dir, CONFIG_ARGS);
+
+      expect(code).toBe(1);
+      expect(output).toContain("ENOEXEC");
+    }
+  );
 
   it("BLOCKS a tool that is absent entirely (ENOENT)", async () => {
     const dir = fixture('{ "*.ts": ["lisa-fixture-absent --check"] }');
