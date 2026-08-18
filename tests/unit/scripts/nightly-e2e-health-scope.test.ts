@@ -36,7 +36,6 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   BRANCH,
-  FULL_SCOPE_ARTIFACTS,
   type Finding,
   type GateModule,
   GREEN_JOB,
@@ -50,6 +49,28 @@ import {
   noWait,
   runWith,
 } from "../../helpers/nightly-e2e-gate-harness";
+
+/** The iOS arm asserting it ran the WHOLE suite — the recorded-inputs signal. */
+const IOS_SCOPE_FULL = Object.freeze({ name: "maestro-ios-scope-full" });
+
+/**
+ * The artifact names a FULL two-platform maestro night publishes.
+ *
+ * Shaped from a real run: AcmeOrgD/frontend 32120016803 published
+ * `maestro-ios-results`, `maestro-ios-flowcount-7`, `maestro-ios-report` and
+ * `app-ios`. The noise entries are kept because the parser has to ignore them —
+ * a fixture containing only the markers would prove nothing about a list that
+ * mostly is not markers.
+ */
+const FULL_SCOPE_ARTIFACTS: readonly { name: string }[] = Object.freeze([
+  { name: "app-ios" },
+  { name: "maestro-ios-report" },
+  { name: "maestro-ios-results" },
+  { name: "maestro-ios-flowcount-42" },
+  IOS_SCOPE_FULL,
+  { name: "maestro-android-flowcount-38" },
+  { name: "maestro-android-scope-full" },
+]);
 
 /** A bootstrap window that is closed, so a row's own verdict is visible. */
 const NO_BOOTSTRAP = Object.freeze({
@@ -71,10 +92,16 @@ const REPORT_ARTIFACT = Object.freeze({ name: "maestro-ios-report" });
  */
 const SEVEN_FLOWS = Object.freeze({ name: "maestro-ios-flowcount-7" });
 
+/** The iOS arm of a four-flow night, as the count reaches the gate. */
+const IOS_FOUR_FLOWS = Object.freeze({ name: "maestro-ios-flowcount-4" });
+
+/** The notice a green carries when the gate could not judge its scope. */
+const UNVERIFIED_NOTICE = "scope unverified";
+
 /** What the iOS arm of a `ios_include_tags: smoke` night publishes. */
 const FILTERED_ARTIFACTS: readonly { name: string }[] = Object.freeze([
   REPORT_ARTIFACT,
-  { name: "maestro-ios-flowcount-4" },
+  IOS_FOUR_FLOWS,
   { name: "maestro-ios-scope-filtered" },
 ]);
 
@@ -153,7 +180,7 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
         { name: "maestro-android-scope-full" },
         { name: "maestro-android-flowcount-38" },
         { name: "maestro-ios-scope-filtered" },
-        { name: "maestro-ios-flowcount-4" },
+        IOS_FOUR_FLOWS,
       ]);
       expect(finding.state).toBe(STATE.unknown);
       expect(finding.reason).toBe(REASON.filteredRun);
@@ -248,10 +275,7 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
       // artifact list carries `scope-full` — the run sincerely believes it was
       // unfiltered, and is still short.
       const finding = assess(
-        [
-          { name: "maestro-ios-scope-full" },
-          { name: "maestro-ios-flowcount-9" },
-        ],
+        [IOS_SCOPE_FULL, { name: "maestro-ios-flowcount-9" }],
         { min_flows: 60 }
       );
       expect(finding.state).toBe(STATE.unknown);
@@ -337,7 +361,40 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
       const finding = assess(null);
       expect(finding.state).toBe(STATE.pass);
       expect(finding.scopeUnverified).toBe(true);
-      expect(mod.formatFinding(finding)).toContain("scope unverified");
+      expect(mod.formatFinding(finding)).toContain(UNVERIFIED_NOTICE);
+    });
+
+    it("BITE: a run that published COUNTS but no floor is still flagged, WITH the number", () => {
+      // Found by running the guard against the real AcmeOrgB run 32023540492,
+      // not by reading the code. That run publishes `flowcount-4` on both arms,
+      // so the first version of this flag — "no floor AND no count" — read it as
+      // verified and printed a clean green. Its 8-of-~160 flows were the exact
+      // false green this file exists to catch, and the gate said nothing.
+      //
+      // Knowing the number is not the same as being able to judge it. The
+      // condition is "no floor AND the run never asserted it was unfiltered".
+      const finding = assess([
+        { name: "maestro-android-flowcount-4" },
+        IOS_FOUR_FLOWS,
+      ]);
+      expect(finding.state).toBe(STATE.pass);
+      expect(finding.scopeUnverified).toBe(true);
+      expect(finding.observedFlows).toBe(8);
+      // The measured number reaches the reader. Withholding a count the gate
+      // already has, behind "how much ran is unknown", is the gate sitting on
+      // its own evidence.
+      expect(mod.formatFinding(finding)).toContain("executed 8 flow(s)");
+    });
+
+    it("CONTROL: a `scope-full` assertion DOES settle it, even with no floor", () => {
+      // The bound on the row above. Without this, the flag fires on every green
+      // forever and becomes a notice nobody reads. A run carrying `scope-full`
+      // has positively recorded that it was handed no filter — that is the
+      // recorded-inputs signal answering, not silence.
+      const finding = assess([IOS_SCOPE_FULL, IOS_FOUR_FLOWS]);
+      expect(finding.state).toBe(STATE.pass);
+      expect(finding.scopeUnverified).toBe(false);
+      expect(mod.formatFinding(finding)).not.toContain(UNVERIFIED_NOTICE);
     });
 
     it("CONTROL: a fully verified green is NOT flagged unverified", () => {
@@ -346,7 +403,7 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
       // this notice on the one line that has nothing to answer for.
       const finding = assess(FULL_SCOPE_ARTIFACTS, { min_flows: 60 });
       expect(finding.scopeUnverified).toBe(false);
-      expect(mod.formatFinding(finding)).not.toContain("scope unverified");
+      expect(mod.formatFinding(finding)).not.toContain(UNVERIFIED_NOTICE);
     });
   });
 
