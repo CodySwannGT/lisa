@@ -285,11 +285,19 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
       expect(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[0]).toBe("1");
-      // 1.4.0 adds `min_flows` (rows 36-38). Same §8 reasoning: an untouched
-      // table gains one new BLOCKING row (36 — a run that recorded itself as
-      // filtered) and no new passing one, so the skew is strictly toward
-      // fail-closed and a major bump would red-wall every adopter for it.
-      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toBe("1.4.0");
+      // 1.4.x adds `min_flows` and rows 36-39. Same §8 reasoning: an untouched
+      // table gains new BLOCKING rows and no new passing one, so the skew is
+      // strictly toward fail-closed and a major bump would red-wall every
+      // adopter for it.
+      //
+      // Pinned to the MINOR, not the patch. This assertion is about the §8
+      // version CALL for per-suite grace, and that argument does not change when
+      // a later patch tightens a row — pinning the full string made every such
+      // patch look like a grace regression and sent the author here to edit a
+      // test that was not measuring their change. Two agents hit that in one
+      // evening. The major is asserted separately above, which is the half the
+      // reusable actually enforces.
+      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toMatch(/^1\.4\.\d+$/);
     });
   });
 

@@ -89,7 +89,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.4.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.4.1";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -185,6 +185,27 @@ export const FLOW_SHORTFALL_REASON = "flow_shortfall";
 
 /** `min_flows` was declared and the run published nothing to check it against. */
 export const SCOPE_UNREADABLE_REASON = "scope_unreadable";
+
+/**
+ * An arm that ran and executed ZERO flows. Row 39 — unconditional.
+ *
+ * Split from `flow_shortfall` because it needs no `min_flows` and therefore no
+ * denominator: "fewer than the suite declares" is a threshold judgement and
+ * requires one, but "tested nothing" is not a judgement at all. Any floor a
+ * repo could sensibly declare is >= 1, so rejecting zero cannot contradict a
+ * declaration, and requiring one before disbelieving a zero-flow green would be
+ * asking permission to notice that nothing ran.
+ *
+ * This row exists because AcmeOrgB/frontend hit it (TUN-572) and wrote a
+ * 368-line local guard, `scripts/check-nightly-e2e-flow-coverage.mjs`, to catch
+ * it — the same mechanism as rows 36-38, reached independently. That guard
+ * blocks on `arms.some(arm => arm.executed === 0)` with NO configuration. Until
+ * this row existed, adopting the reusable and retiring that fork would have
+ * silently DROPPED zero-flow protection for any suite that had not declared
+ * `min_flows` — the precise "convergence before the reusable is a superset"
+ * hazard the fork-retirement work exists to avoid.
+ */
+export const ZERO_FLOWS_REASON = "zero_flows";
 
 /**
  * `maestro-<platform>-flowcount-<N>`, as published by `maestro-native-e2e.yml`.
@@ -776,6 +797,22 @@ export function assessSuiteScope(suite, scope) {
       detail: `the run recorded itself as tag-filtered on ${scope.filtered.map(platform => `\`${platform}\``).join(", ")}`,
     };
   }
+  // Row 39 — ZERO, before the declaration gate. Deliberately PER-ARM rather
+  // than on the total: a night that ran 40 Android flows and 0 iOS ones sums to
+  // 40 and is still a run that proved nothing whatsoever about iOS. Summing
+  // first would let a healthy arm launder a dead one, which is the same
+  // arithmetic mistake as reading a suite's green off the platform that
+  // happened to work.
+  const dead = Object.keys(scope.counts)
+    .filter(platform => scope.counts[platform] === 0)
+    .sort();
+  if (dead.length > 0) {
+    return {
+      reason: ZERO_FLOWS_REASON,
+      detail: `${dead.map(platform => `\`${platform}\``).join(", ")} executed ZERO flows — that arm reached no assertion at all`,
+    };
+  }
+
   const floor = suite.min_flows;
   if (floor === undefined) return null;
   if (!scope.readable) {
@@ -1390,6 +1427,8 @@ const REASON_TEXT = Object.freeze({
     "the run reported `success`, but it did not run everything: at least one job was skipped, failed under `continue-on-error`, or could not be read. A run that skipped part of itself did not gather the evidence its green claims — a suite re-run for one platform only is not a verdict about the other one. Re-run the suite WITHOUT narrowing it.",
   [FILTERED_RUN_REASON]:
     'the run reported `success`, but it recorded itself as TAG-FILTERED — it ran a hand-picked slice of the suite, not the suite. A slice that passes says nothing about the flows it never started, so this is no result rather than a green. Re-run the suite with every tag / platform / shard picker left on its "all" default.',
+  [ZERO_FLOWS_REASON]:
+    "the run reported `success`, but an arm of it executed ZERO flows — it TESTED NOTHING. No flow reached its first assertion, so this run proved nothing about the app on that platform, whatever the run's conclusion says. This is not an ordinary flow failure and it needs no `min_flows` to be disbelieved. Open that arm's `maestro-<platform>-results` artifact for why the runner never started a flow.",
   [FLOW_SHORTFALL_REASON]:
     "the run reported `success`, but it executed FEWER FLOWS than this suite declares it must (`min_flows`). A narrowed run reaching green is how a four-flow dispatch clears a merge gate for an eighty-flow suite. Re-run the whole suite, or lower `min_flows` deliberately if the suite really did shrink.",
   [SCOPE_UNREADABLE_REASON]:
@@ -1567,7 +1606,8 @@ export function isCompleteEvidence(finding) {
     finding.reason !== INCOMPLETE_EVIDENCE_REASON &&
     finding.reason !== FILTERED_RUN_REASON &&
     finding.reason !== FLOW_SHORTFALL_REASON &&
-    finding.reason !== SCOPE_UNREADABLE_REASON
+    finding.reason !== SCOPE_UNREADABLE_REASON &&
+    finding.reason !== ZERO_FLOWS_REASON
   );
 }
 

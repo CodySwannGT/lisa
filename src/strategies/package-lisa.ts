@@ -97,7 +97,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       this.applyTemplate(projectJson, effective),
       this.PACKAGE_JSON
     );
-    assertNoDanglingDollarRefs(result.packageJson, this.PACKAGE_JSON);
+    assertManifestIsInstallable(result.packageJson, this.PACKAGE_JSON);
     return result.packageJson;
   }
 
@@ -285,7 +285,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       this.applyTemplate(projectJson, effective),
       this.PACKAGE_JSON
     );
-    assertNoDanglingDollarRefs(plan.packageJson, this.PACKAGE_JSON);
+    assertManifestIsInstallable(plan.packageJson, this.PACKAGE_JSON);
     return plan;
   }
 
@@ -1191,5 +1191,76 @@ function assertNoDanglingDollarRefs(
       `dependencies/devDependencies. Add a force.devDependencies entry for ` +
       `${isPlural ? "each" : "it"} in package.lisa.json, or drop the reference.`
   );
+}
+
+/**
+ * Fail the apply when a dependency section carries an unsubstituted `$name`
+ * placeholder instead of a version range.
+ * @remarks
+ * `$name` is real npm syntax, but only as an `overrides`/`resolutions` value,
+ * where it means "resolve to the version of the direct dependency `name`".
+ * A dependency section is not one of those places: npm reads the value as a
+ * literal dist-tag and refuses the whole manifest before doing any work —
+ * `EINVALIDTAGNAME: Invalid tag name "$tar" of package "tar@$tar"`. Every
+ * `npm`/`npx` in the project directory fails from then on, including the
+ * plugin MCP servers Lisa spawns via `npx`.
+ *
+ * So a `$name` here is never a self-reference npm will resolve; it is a
+ * placeholder something failed to substitute. Throwing at apply time keeps the
+ * failure attached to the thing that caused it, instead of leaving an
+ * uninstallable manifest for whoever runs the next install to discover.
+ *
+ * This also catches the reference-to-a-reference case the dangling-$ref guard
+ * cannot: that check is presence-only, so `dependencies.tar = "$tar"` reads as
+ * a valid backing dependency for `overrides.tar = "$tar"` even though npm can
+ * resolve neither. Only dependency sections are inspected — `scripts` values
+ * like `$npm_execpath` are shell variables and are left alone.
+ * @param pkg - Merged package.json about to be written
+ * @param fileName - Basename used in the error message
+ * @throws JsonMergeError when any dependency section value is a `$name` token
+ */
+function assertNoUnsubstitutedDollarTokens(
+  pkg: Record<string, unknown>,
+  fileName: string
+): void {
+  const offenders = DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
+    Object.entries(asRecord(pkg[section])).flatMap(([name, value]) =>
+      typeof value === "string" && value.startsWith("$")
+        ? [`${section}.${name} = ${JSON.stringify(value)}`]
+        : []
+    )
+  );
+  if (offenders.length === 0) {
+    return;
+  }
+  const isPlural = offenders.length > 1;
+  throw new JsonMergeError(
+    fileName,
+    `Unsubstituted placeholder${isPlural ? "s" : ""} in dependency ` +
+      `${isPlural ? "sections" : "section"}: ${offenders.join(", ")}. ` +
+      `A "$name" value is only valid inside overrides/resolutions, where npm ` +
+      `resolves it to the version of the direct dependency "name". In ` +
+      `dependencies/devDependencies/optionalDependencies/peerDependencies npm ` +
+      `reads it as a literal version tag and rejects the whole manifest with ` +
+      `EINVALIDTAGNAME, so every npm and npx command in the project fails. ` +
+      `Replace ${isPlural ? "each placeholder" : "the placeholder"} with a real ` +
+      `version range.`
+  );
+}
+
+/**
+ * Refuse to persist a package.json npm could not install. Single choke point:
+ * every path that writes a manifest runs this, so a new writer cannot pick up
+ * one half of the validation and miss the other.
+ * @param pkg - Merged package.json about to be written
+ * @param fileName - Basename used in error messages
+ * @throws JsonMergeError when the manifest carries an unresolvable `$name`
+ */
+function assertManifestIsInstallable(
+  pkg: Record<string, unknown>,
+  fileName: string
+): void {
+  assertNoUnsubstitutedDollarTokens(pkg, fileName);
+  assertNoDanglingDollarRefs(pkg, fileName);
 }
 /* eslint-enable max-lines -- Re-enable after comprehensive package merge strategy */

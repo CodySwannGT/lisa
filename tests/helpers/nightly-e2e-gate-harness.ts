@@ -173,6 +173,7 @@ export interface GateModule {
   readonly FILTERED_RUN_REASON: string;
   readonly FLOW_SHORTFALL_REASON: string;
   readonly SCOPE_UNREADABLE_REASON: string;
+  readonly ZERO_FLOWS_REASON: string;
   readSuiteScope(artifacts: readonly { name?: string }[] | null): SuiteScope;
   assessSuiteScope(
     suite: Record<string, unknown>,
@@ -236,6 +237,7 @@ export const REASON = Object.freeze({
   filteredRun: "filtered_run",
   flowShortfall: "flow_shortfall",
   scopeUnreadable: "scope_unreadable",
+  zeroFlows: "zero_flows",
 });
 
 /**
