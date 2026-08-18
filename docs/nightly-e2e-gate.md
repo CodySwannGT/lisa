@@ -121,6 +121,9 @@ are not, which is why the blocking rows are not contiguous.
 | 33 | A suite inside its grace window with **evidence of failure** (rows 2–5, 11, 14, and the failed-job half of 26) | fail | fail | **`fail`** |
 | 34 | A suite whose grace window has **lapsed** (`first_seen + grace_days` is in the past) | as if no grace were declared | as if no grace were declared | the row's own verdict — a lapsed anchor is **inert**, never an error |
 | 35 | `first_seen` unparseable, `first_seen` **in the future**, `grace_days` outside `(0, 30]`, `grace_days` without `first_seen`, or `first_seen + grace_days` running beyond `bootstrap_max_days` from the run date | **fail** | **fail** | **`fail`** (invalid configuration) |
+| 36 | The run concluded `success` and every job behind it did too, but the run **recorded itself as tag-filtered** (`maestro-<platform>-scope-filtered`) on any platform | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 37 | The suite declares `min_flows` and the run's executed-flow count (`maestro-<platform>-flowcount-<N>`, summed across platforms) is **below** it | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 38 | The suite declares `min_flows` and the count **cannot be read**: the artifacts list 404s, the page walk truncates, or no `flowcount` marker was published | non-blocking | **fail** | `bootstrap` / **`fail`** |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -188,11 +191,13 @@ Two independent reasons, and both are load-bearing:
    *fixing* rather than by waiting for tomorrow's cron. A rule of the form
    "dispatch runs do not count" would delete the only non-bypass escape and turn
    every red nightly into a day-long merge freeze.
-2. **The filter is unreadable anyway.** The Actions runs API returns no `inputs`
-   field on a workflow run — the object carries `event`, `display_title`,
-   `actor`, `triggering_actor` and so on, and nothing about what the dispatcher
-   typed. Recovering the inputs would mean parsing run *logs*, which are
-   artifacts by another name and are refused for the reasons in §1.
+2. **The filter is unreadable from the API.** The Actions runs API returns no
+   `inputs` field on a workflow run — the object carries `event`,
+   `display_title`, `actor`, `triggering_actor` and so on, and nothing about what
+   the dispatcher typed. (Re-verified 2026-08-18 against AcmeOrgD/frontend run
+   `32120016803`.) Recovering the inputs by parsing run *logs* is refused for the
+   reasons in §1. What the run **can** do is write its own scope down where the
+   list API will report it, and since §2.5 it does.
 
 Completeness is readable, and it is the property that actually matters: the
 gate asks the jobs list whether every job behind a `success` run also succeeded.
@@ -228,6 +233,119 @@ The one skip that is *supposed* to redden a run-scoped suite is the dormant
 harness itself — a `maestro-native-e2e.yml` whose preflight skipped everything
 because `EXPO_TOKEN` is missing tested nothing, and `bootstrap_until` (§4), not
 a pass, is how a repo gets breathing room while wiring that up.
+
+### 2.5 Rows 36–38 — a run that tested a SLICE is not a green suite
+
+Row 26 asks whether every **job** ran. It cannot see inside a job, so it cannot
+see the other way a green run proves nothing: **a job that ran, passed, and
+tested a hand-picked handful of flows.**
+
+Measured 2026-08-18, and this is the defect that produced these rows:
+
+- **AcmeOrgB/frontend — the case row 26 cannot see.** The only `success` in
+  recent maestro history published `maestro-android-flowcount-4` and
+  `maestro-ios-flowcount-4`. Unfiltered runs of the same suite in the same window
+  published `flowcount-81`/`flowcount-80` and `flowcount-83`/`flowcount-82`, and
+  the repository carries 109 flow files. So that green ran **8 flows out of
+  ~160 flow-executions**, about **5%** of the suite.
+
+  Every job in it concluded `success` — nothing was skipped, nothing failed under
+  `continue-on-error`. **Row 26 has nothing to catch.** It is a structurally
+  complete run that tested a twentieth of the app, and because a filtered dispatch
+  reports `success` under the identical workflow name, `gh run list` renders it
+  indistinguishably from a full green. This is the case that makes row 37 load-
+  bearing rather than belt-and-braces: the executed-flow count is the *only*
+  signal that distinguishes it.
+- **AcmeOrgD/frontend.** Its nightly gate is a **required context**, and it was
+  satisfied by run `32120016803`: iOS green, Android skipped, and the run's own
+  published artifact name reading `maestro-ios-flowcount-7`. **Seven flows
+  cleared a merge gate for a suite of eighty.**
+
+#### Two signals, and both are required
+
+| # | Signal | Where it comes from | What only it can catch |
+|---|---|---|---|
+| 36 | **Scope** — the run's own recorded inputs | `maestro-<platform>-scope-<full\|filtered>` | a filter that narrowed the suite *before* any flow ran, including one that leaves a plausible-looking count |
+| 37 | **Count** — flows actually executed | `maestro-<platform>-flowcount-<N>` | a run narrowed by any *other* mechanism, and every run predating the scope marker |
+
+Neither alone is enough. The scope marker reads the filter itself and is the
+definitive signal, but it is **absent on every historical run** and on any suite
+that is not maestro. The count has shipped for longer and catches narrowing by a
+`flows_dir` override or a hand-edited flow list, which no input records — but it
+needs a denominator to compare against.
+
+#### Both travel as artifact NAMES
+
+The gate reads artifact **names** and never artifact **content**, and that line
+is the whole design. Downloading is still refused for §1's reasons — zip
+archives, no Node zip reader, bytes that expire. A name has neither problem: it
+comes back in the artifacts LIST in one cheap call with no download, and **the
+name outlives the bytes**, so an expired artifact still answers "how many flows
+did that night run?".
+
+#### Where fail-closed actually lives
+
+| # | Observation | Verdict |
+|---|---|---|
+| 36 | A run that recorded ITSELF as filtered on any platform | **`unknown`** — unconditional, no declaration needed |
+| 37 | Suite declares `min_flows` and the run executed fewer | **`unknown`** |
+| 38 | Suite declares `min_flows` and the count cannot be read at all — unreadable list, truncated page walk, or no marker published | **`unknown`** |
+
+Row 38 is the one that stops this fix reproducing the defect it fixes. **An
+unreadable count is exactly what a narrowed run looks like from here**, so "we
+could not check" must never render as "it is fine".
+
+Rows 37 and 38 require a declared `min_flows`; row 36 does not. That asymmetry is
+deliberate and it is where the honest limit sits. **A floor cannot be inferred.**
+This gate reads suites it did not write, including non-maestro ones that publish
+no counts at all, and a guessed denominator would either forgive everything or
+red-wall every consumer on the day it shipped. Declaring `min_flows` is the act
+of asserting *this suite publishes counts* — and from that moment an unreadable
+count blocks.
+
+A suite with no `min_flows` still gets row 36, and its green line **says out loud
+which question went unasked**:
+
+```
+✅ Maestro E2E — green (…) — ⚠️ scope unverified: this run published no executed-flow
+count, so how much of the suite ran is unknown. Declare `min_flows` for this suite
+to make that a blocking question
+```
+
+A silent green there would be the same reading error one layer up.
+
+**A suite that publishes no counts at all keeps that notice permanently, and
+that is correct rather than a nag to suppress.** A Playwright suite cannot
+satisfy `min_flows` — nothing in it writes a `flowcount` marker — so the gate
+genuinely cannot tell whether it ran two specs or two hundred. The line says so
+and stops short of prescribing an action that suite cannot take. Closing that
+properly means teaching the browser suite to publish its own executed-spec count
+under the same convention, which is a separate change; until then the honest
+report is that the question is open.
+
+All three rows resolve to `unknown`, never `fail` — a narrowed run is *absence of
+evidence* about the flows it skipped, not evidence that they are broken. They
+therefore sit on the same side of the line as the skipped-job half of row 26, so
+bootstrap (§4) and per-suite grace (§4.1) forgive them on identical terms. That
+is what lets a repo arm these rows without wedging itself.
+
+#### Adopting it
+
+1. Re-pin the caller to a Lisa tag at or after this change, so
+   `maestro-native-e2e.yml` publishes the scope marker.
+2. Read the real number off a recent FULL night's
+   `maestro-<platform>-flowcount-<N>` artifact names — every completed run
+   carries them, and they survive the retention window — then declare `min_flows`
+   a little under the sum so ordinary churn does not redden the gate. For a suite
+   whose full nights read `flowcount-81` and `flowcount-80`, `min_flows: 150` is
+   about right; it clears a normal night by 11 and rejects the 8-flow run above
+   by a factor of eighteen.
+
+   Do **not** derive it from the flow-file count. 109 files produced ~160
+   flow-executions across two platforms, and the ratio is not something to
+   predict — read what the suite actually publishes.
+3. Expect the first armed night to be **red** where a filtered run was previously
+   passing. That red is the correct reading of evidence that was always there.
 
 ## 3. The `suites` input — structured JSON, schema-validated
 
