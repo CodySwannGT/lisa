@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.38.4](https://github.com/CodySwannGT/lisa/compare/v3.38.3...v3.38.4) (2026-08-18)
+
+
+### Bug Fixes
+
+* **package-lisa:** fail the apply on an unsubstituted $name placeholder ([353588b](https://github.com/CodySwannGT/lisa/commit/353588b12150c82f61379e6754756333b9065890)), closes [CodySwannGT/lisa#2711](https://github.com/CodySwannGT/lisa/issues/2711)
+
 ### [3.38.3](https://github.com/CodySwannGT/lisa/compare/v3.38.2...v3.38.3) (2026-08-18)
 
 
