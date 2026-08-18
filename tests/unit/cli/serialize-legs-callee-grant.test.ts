@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 import {
   CALLEE_GRANTS_ACTIONS_READ,
   checkSerializeLegsContract,
+  readContract,
 } from "../../../src/cli/doctor-serialize-legs-contract.js";
 
 const WORKFLOW = path.join(
@@ -60,20 +61,31 @@ const workflowGrantsActions = (): boolean => {
   return false;
 };
 
+/** The workflow-level grant a conforming caller declares. */
+const GRANT = ["permissions:", "  contents: read", "  actions: read"] as const;
+
+/** Header shared by the caller fixtures below. */
+const HEADER = ["name: Nightly", ...GRANT, "jobs:"] as const;
+
+/** The line that makes a job the one calling Lisa's reusable workflow. */
+const CALLS_LISA =
+  "    uses: CodySwannGT/lisa/.github/workflows/maestro-native-e2e.yml@main";
+
+/** The two parts a caller must declare on that same job. */
+const OPTS_IN = ["    with:", "      serialize_platform_legs: true"] as const;
+const FORWARDS = [
+  "    secrets:",
+  "      LEG_ORDER_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+] as const;
+
 describe("serialize-legs callee grant tracks the shipped workflow", () => {
   it("matches the reusable workflow's own permissions block", () => {
     expect(CALLEE_GRANTS_ACTIONS_READ).toBe(workflowGrantsActions());
   });
 
-  it("refuses to certify a fully configured caller while the callee cannot receive the scope", async () => {
-    // The defect this replaces. AcmeOrgD/frontend declares every caller-side
-    // part — serialize on, token forwarded, `actions: read` at BOTH job and
-    // workflow level — and the check reported `ok`. That same configuration
-    // was measured at HTTP 403 with the two legs starting two seconds apart.
-    //
-    // A check that passes on a broken configuration is worse than no check: it
-    // converts "unverified" into "verified", and it is consulted instead of
-    // the runtime evidence.
+  it("certifies a fully configured caller now that the callee declares the scope", async () => {
+    // A caller declaring every part: serialize on, token forwarded, and
+    // `actions: read` at both job and workflow level.
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-legs-"));
     try {
       fs.mkdirSync(path.join(root, ".github", "workflows"), {
@@ -83,9 +95,7 @@ describe("serialize-legs callee grant tracks the shipped workflow", () => {
         path.join(root, ".github", "workflows", "maestro-e2e.yml"),
         [
           "name: Nightly",
-          "permissions:",
-          "  contents: read",
-          "  actions: read",
+          ...GRANT,
           "jobs:",
           "  native:",
           "    permissions:",
@@ -101,14 +111,60 @@ describe("serialize-legs callee grant tracks the shipped workflow", () => {
       );
 
       const result = await checkSerializeLegsContract(root);
-      expect(CALLEE_GRANTS_ACTIONS_READ).toBe(false);
-      expect(result.status).toBe("warn");
-      expect(result.detail).toContain("CANNOT work");
-      // It must not send the operator to fix their own config: theirs is done.
-      expect(result.detail).toContain("Nothing to fix here");
+      // Before #2662 this same configuration was measured at HTTP 403 with the
+      // legs starting two seconds apart, and the check reported `ok` anyway.
+      // It now reports `ok` because the verdict is finally true, not because
+      // the check stopped looking.
+      expect(CALLEE_GRANTS_ACTIONS_READ).toBe(true);
+      expect(result.status).toBe("ok");
+      expect(result.detail).not.toContain("CANNOT work");
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  it("does not accept the parts spread across different jobs", () => {
+    // Whole-file matching reported `ok` here: `serialize_platform_legs` in one
+    // job, `LEG_ORDER_TOKEN` in another, and neither in the job that actually
+    // calls the reusable workflow. The real call then omits the token and
+    // releases Android regardless — the check saying yes without binding its
+    // evidence together.
+    const split = readContract(
+      [
+        ...HEADER,
+        "  unrelated:",
+        "    uses: ./.github/workflows/other.yml",
+        ...OPTS_IN,
+        ...FORWARDS,
+        "  native:",
+        CALLS_LISA,
+        "",
+      ].join("\n")
+    );
+    expect(split.optedIn).toBe(false);
+    expect(split.forwardsToken).toBe(false);
+  });
+
+  it("reads the parts from the job that calls the reusable workflow", () => {
+    const bound = readContract(
+      [...HEADER, "  native:", CALLS_LISA, ...OPTS_IN, ...FORWARDS, ""].join(
+        "\n"
+      )
+    );
+    expect(bound.optedIn).toBe(true);
+    expect(bound.forwardsToken).toBe(true);
+    expect(bound.grantsActionsRead).toBe(true);
+  });
+
+  it("still answers on a workflow whose YAML will not parse", () => {
+    // The fallback is deliberate: a caller with a syntax error elsewhere still
+    // deserves this check, and refusing to answer would read as "nothing
+    // declared" — silence standing in for a finding.
+    const broken = readContract(
+      "jobs: [unclosed\nserialize_platform_legs: true\nLEG_ORDER_TOKEN: x\n"
+    );
+    expect(broken.optedIn).toBe(true);
+    expect(broken.forwardsToken).toBe(true);
   });
 
   it("does not read a job-level grant as the workflow's own", () => {
