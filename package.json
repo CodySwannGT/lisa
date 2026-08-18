@@ -42,6 +42,7 @@
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
+    "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
     "check:required-check-promotions": "node scripts/check-required-check-promotions.mjs",
     "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
