@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.33.6](https://github.com/CodySwannGT/lisa/compare/v3.33.5...v3.33.6) (2026-08-18)
+
+
+### Bug Fixes
+
+* **lint:** lint the .mjs files Lisa ships instead of ignoring them ([29cc713](https://github.com/CodySwannGT/lisa/commit/29cc7139d6657f106e0a5ed0f9c55561a45c2010)), closes [CodySwannGT/lisa#2658](https://github.com/CodySwannGT/lisa/issues/2658) [CodySwannGT/lisa#2658](https://github.com/CodySwannGT/lisa/issues/2658) [CodySwannGT/lisa#2658](https://github.com/CodySwannGT/lisa/issues/2658)
+
 ### [3.33.5](https://github.com/CodySwannGT/lisa/compare/v3.33.4...v3.33.5) (2026-08-18)
 
 
