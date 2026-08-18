@@ -99,7 +99,7 @@ The only legitimate reasons to stop early:
 
 - Missing team key or required configuration. Surface and exit.
 - Workflow states not yet adopted (the `ready` state does not exist on the team). Surface and exit with an Adoption hint pointing at `/lisa:setup:linear`.
-- Empty ready set. Exit cleanly with `"No Linear Issues in state $READY. Nothing to do."`
+- Empty pre-work set. Exit cleanly on the denominator-stated summary from `summarizeDryLane` — which names every lane swept, its count, and the open total. A bare "nothing to do" is not an acceptable exit: it is indistinguishable from a wrong denominator (#2657).
 
 ## Lifecycle assumed
 
@@ -112,7 +112,7 @@ ready → claimed → review → done(env-keyed) (downstream)
 
 (Defaults: `Ready` / `In Progress` / `In Review` / `On Dev`/`On Stg`/`Done`.)
 
-This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches the terminal production `done`, `$REVIEW` (owned by the lifecycle / `lisa-linear-evidence`), or `$BLOCKED` (owned by the pre-flight gate).
+This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches the terminal production `done` or `$REVIEW` (owned by the lifecycle / `lisa-linear-evidence`). It never *sets* `$BLOCKED` either — that stays owned by the pre-flight gate — but Phase 2.5 does move an Issue **out** of a pre-work blocked lane back to `$READY` when it re-probes the Issue's own stated discharge condition and finds it no longer holds, recording the discharging evidence on the Issue.
 
 **Pre-flight check**: at start of each cycle, confirm `$READY`, `$CLAIMED`, and the relevant `$DONE` variants exist on the team via `lisa-linear-access operation: list-workflow-states`. If `$READY` is missing, stop and report adoption needed. **Unlike labels, a missing state cannot be created on demand here** — a workflow state is team configuration with a `type` and a board position, and guessing either would put an Issue somewhere a human did not sanction. Any missing state is a setup defect: report it, name the role and the expected state, and point at `/lisa:setup:linear`.
 
@@ -125,15 +125,56 @@ This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $D
    - Literal `linear` → fall back to `linear.teamKey` from config.
 2. Resolve team ID via `lisa-linear-access operation: list-teams({query: <teamKey>})`.
 
-### Phase 2 — Find ready Issues
+### Phase 2 — Sweep every pre-work lane by state TYPE
 
-Query: `lisa-linear-access operation: list-issues({team: <teamId>, state: "$READY"})`.
+**Sweep by `type`, never by a roster of state names.** Linear state types are `backlog | unstarted | started | completed | canceled`, and there is no `blocked` type — a team that wants a `Blocked` lane models it as **`unstarted`**, i.e. work that was *never started*. Selecting candidates from a hardcoded `Backlog / Todo / Ready` name list therefore omits an entire pre-work lane and reports an empty queue over a full one. Measured on one team: the name sweep saw **39 of 343 open rows**; the type sweep sees **100**, and the 61-row difference produced 31 consecutive false "dry lane" cycles (#2657).
 
-Capture each Issue's: identifier, title, type label, priority, assignee, project, state, labels, description summary.
+1. List the team's workflow states via `lisa-linear-access operation: list-workflow-states`.
+2. Keep every state whose `type` is `backlog` or `unstarted` — that is the pre-work set. `$READY` is one member of it, not the whole of it.
+3. Query each pre-work state: `lisa-linear-access operation: list-issues({team: <teamId>, state: "<state>"})`, paging to `hasNextPage=false`. Linear's GraphQL complexity ceiling silently truncates at `first: 250`, so a single unpaged call is not a count.
+4. Also read the **total open** count for the team (every state whose `type` is not `completed` / `canceled`). This number is what makes an omitted lane arithmetically visible.
+
+Capture each Issue's: identifier, title, type label, priority, assignee, project, state (with its `type`), labels, description summary.
+
+Build the denominator with the shared helper, which owns the type vocabulary so no two scanners can disagree about what counts as pre-work:
+
+```bash
+node -e '
+import("'"${CLAUDE_PLUGIN_ROOT:-plugins/src/base}"'/scripts/intake-prework-denominator.mjs").then(m => {
+  const d = m.buildIntakeDenominator({ lanes: JSON.parse(process.argv[1]), totalOpen: Number(process.argv[2]) });
+  console.log(JSON.stringify(d));
+  console.log(m.summarizeDryLane(d, { queue: process.argv[3] }));
+});' "$LANES_JSON" "$TOTAL_OPEN" "team $TEAM_KEY"
+```
+
+`$LANES_JSON` is `[{"name":"<state>","type":"<state.type>","position":<state.position>,"count":<open rows>}, …]` for **every** state on the team, pre-work and not — the helper does the selecting.
+
+**Candidate order.** Work `$READY` first (it is the human-flipped signal), then the remaining pre-work lanes oldest-first. Every candidate outside `$READY` must clear Phase 2.5 before it is treated as a candidate at all.
 
 > **No query-time repo pre-filter here (by design).** Unlike `lisa-jira-build-intake`, which narrows its JQL with `AND (labels = "repo:<current>" OR labels IS EMPTY)` (the query-time arm of `repo-scope-split`), the Linear `list_issues` label filter is an AND-of-labels and cannot express "current-repo **or** unlabeled" in one query. Adding `repo:<current>` to this query would strand unlabeled Issues the determine + stamp path must see. So the Linear scanner keeps this query broad and relies on the per-candidate 3a.0 gate below for repo scoping. (The `state` filter above is orthogonal to that — it narrows the lifecycle lane, not the repo, and is a single-valued equality so it has none of the AND-of-labels problem.)
 
-If empty, report `"No Linear Issues in state $READY. Nothing to do."` and exit. Common idle case.
+If every pre-work lane is empty, or nothing survives Phase 2.5, exit on the **denominator-stated** summary from `summarizeDryLane` — never a bare "nothing to do". See "Run outcome" below; the run recorder rejects a dry build-intake run that does not name what it swept.
+
+### Phase 2.5 — Re-probe the blockers instead of inheriting them
+
+A blocker is a **claim with a timestamp, not a fact**. It is written once and goes stale the moment its condition comes true — a dependency lands on trunk, an advisory gets patched, a package publishes. Nothing re-read one before this phase, so a discharged blocker held its Issue out of the queue indefinitely. Measured: one Issue's stated condition went true ~15 hours before anything noticed.
+
+For each pre-work candidate that is **not** in `$READY`:
+
+1. **Human gate first, and it is absolute.** An Issue carrying the configured human-needed label (`linear.labels.build.human_needed`, default `human-needed`) or a `[lisa-human-gate]` marker in its description is **never** auto-selected, whatever any probe says. Skip it and move on.
+2. **Extract the stated discharge condition** from the description or the most recent blocking comment — the sentence naming what has to become true.
+3. **Probe it.** Machine-testable conditions are the ones that rot fastest and are cheapest to check: a version on trunk (`git show origin/<trunk>:<manifest>`), a published package, a run history (`gh run list`), an advisory's patched status. A condition that is a human decision is not machine-testable — leave it and move on.
+4. **Classify with the shared helper** so the ordering and the evidence requirement cannot drift per vendor:
+
+```text
+classifyPreWorkCandidate({ laneType, labels, body, humanNeededLabel, statedBlocker, probe })
+  → { selectable, reason, humanGated, evidence }
+```
+
+   A discharge with **no recorded evidence is not a discharge** — the helper refuses it. So is a candidate nothing probed this cycle.
+
+5. **Record the result on the Issue either way**, via `lisa-linear-access operation: save-comment` using `formatReprobeNote(...)`, so the next cycle reads the answer rather than re-deriving it. Keep it idempotent — skip the post when an identical note already exists.
+6. **On `selectable: true`**, move the Issue to `$READY` (recording the discharging evidence in the same comment) and treat it as an ordinary candidate from Phase 3 onward. On anything else, leave the Issue exactly where it is.
 
 ### Phase 3 — Process the first eligible ready Issue
 
@@ -148,7 +189,7 @@ A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructu
    - **Unlabeled** → determine the target repo(s) from the Issue + code surfaces, then **stamp** `repo:<name>` via `lisa-linear-access operation: save-issue` (resolve/create the label via `list_issue_labels`/`create_issue_label`) so later cycles filter cheaply; re-apply with the now-known repo.
    - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
    - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
-4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready Issues for repo <current>. Nothing to do."`.
+4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the candidate set is exhausted — exit cleanly on the denominator-stated summary, naming the current repo alongside the swept lanes.
 
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 
