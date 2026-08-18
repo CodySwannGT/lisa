@@ -11,14 +11,14 @@ them. Read the next section before trusting this one.
 
 ## The measured starting point — presence only
 
-```
+```text
                             tunnl   gemini  propswap  gunnertech
 maestro-e2e.yml               Y       Y        Y          Y
 nightly-e2e-health.yml        Y       Y        Y          Y
 --- everything below diverges ---
 playwright-e2e.yml            -       Y        -          -
 maestro-native-e2e.yml        -       -        -          Y   (never ran)
-nightly-e2e-gate.yml          Y       -        -          -   (duplicate name)
+nightly-e2e-gate.yml          Y       -        -          -   (local fork)
 nightly-e2e-report.yml        Y       -        Y          -
 nightly-e2e-tracker.yml       Y       -        -          -   (skipped)
 nightly-e2e-tracking-issue    -       Y        Y          -   (propswap never ran)
@@ -56,7 +56,7 @@ day that repo first applied, and every subsequent Lisa improvement reaches nobod
 
 Measured 2026-08-18 — each repo's copy vs Lisa's current template:
 
-```
+```text
                               tunnl        gemini       propswap     gunnertech
 ci.yml                      +81/-35      +98/-40      +138/-37     +82/-36
 deploy.yml                  +126/-41     +27/-63      +2/-3        +34/-64
@@ -77,7 +77,7 @@ arrive clean and rot from the moment they land.
 A caller's real job is to `uses:` a versioned reusable, and that layer *can*
 converge because it resolves at run time. It doesn't:
 
-```
+```text
 tunnl       maestro-e2e  -> maestro-native-e2e @main     health -> @v3.27.0
                                                           report -> @v2.345.1
 gemini      maestro-e2e  -> maestro-native-e2e @main     health -> @v3.14.8
@@ -91,8 +91,8 @@ gunnertech  maestro-e2e  -> FULLY LOCAL                  health -> FULLY LOCAL
 they are local reimplementations, which is the same defect as tunnl's
 `nightly-e2e-gate.yml` fork (§4), just spread across three repos.
 `gunnertech/frontend` is not a Lisa e2e consumer in any sense. The callers that
-*do* delegate span **four different refs**, including `@v2.345.1` — a major
-series behind everything else in the portfolio.
+*do* delegate span **four different refs**, including `@v2.345.1` — where the
+reusable does not exist at all, so that call can never load (Lisa #2702).
 
 ### What this means for the fix
 
@@ -121,9 +121,26 @@ The caller is named for the **suite** (`maestro-e2e`), never for the reusable
 workflow it calls (`maestro-native-e2e`). A repo carrying both names carries a
 duplicate.
 
-**Forbidden:** two callers for one suite; two workflow files declaring the same
-`name:` (that is how a required context gets satisfied by the wrong workflow —
-measured in one repo today).
+**Forbidden:** two callers for one suite; two jobs reporting the same **check
+name** across different workflows.
+
+The rule is about the reported check identity, not the workflow-level `name:`.
+Branch protection keys on the check name a job reports, and a reusable call
+reports it as `<workflow name> / <reusable job name>`. So a workflow-level
+collision is neither necessary nor sufficient for a real one.
+
+Measured on a live PR rather than assumed — tunnl's two files share a workflow
+`name:` and report **distinct** checks:
+
+```text
+🌙 Nightly E2E Health            <- the hand-written fork (§4)
+🌙 Nightly E2E Health / 🌙 Gate  <- the Lisa caller
+```
+
+They are separately addressable, so neither can satisfy the other's requirement.
+An earlier draft of this document claimed the opposite. The reason to retire the
+fork is **duplicated implementation**, not context ambiguity — a weaker argument
+than the one first written, and the correct one.
 
 ## 2. Playwright gets its own workflow, and both e2e gates are DECLARED
 
@@ -152,6 +169,23 @@ So a conforming repo declares what it has:
 ```
 
 and exposes the matching `test:e2e` / `test:e2e:native` scripts.
+
+**When a suite is absent, OMIT its gate — do not declare it `off`, and do not
+point it at a no-op script.** A repo with no `.maestro/flows` declares no
+`e2e-native`, and conformance checks that the declared set equals the present
+set, in both directions:
+
+| suite present | gate declared | verdict |
+| --- | --- | --- |
+| yes | yes | conforms |
+| no | no | conforms |
+| yes | no | **fails** — a suite nobody gates |
+| no | yes | **fails** — a gate with nothing to run |
+
+Both failing rows matter, and the last one is why `off` and no-op scripts are
+forbidden rather than merely discouraged: each produces a green check that ran
+nothing, which is indistinguishable on the PR page from a green check that ran
+the suite and passed. Omission is auditable; a satisfied-but-empty gate is not.
 
 **PREREQUISITE, not optional.** A declared gate is resolved by
 `lisa-gates.mjs`, which ships from Lisa **3.17.0**. A repo pinned below that
@@ -192,9 +226,11 @@ default.
 that also drives the `nightly-e2e-tracker` integration. Deleting it would remove
 a mechanism people demonstrably use (§6).
 
-Two files declaring one check name is still the dangerous part: a required
-context can be satisfied by whichever ran, and nothing on the PR page
-distinguishes them. Retire the fork — but move what only it does first.
+The shared workflow `name:` turns out **not** to be dangerous: measured on a
+live PR, the two report distinct check names and cannot satisfy each other (§1).
+So the case for retiring the fork rests on duplicated implementation alone —
+two gates to keep correct, one of which no longer receives Lisa's fixes. Retire
+it, but move what only it does first.
 
 **And tunnl is not alone.** The same defect — a local reimplementation where a
 `uses:` should be — appears in `propswap/nightly-e2e-health.yml` and in *both*
@@ -223,7 +259,7 @@ applied since. No amount of consumer discipline changes that.
 
 Owner ruling: none of these get standardized, and none get upstreamed.
 
-```
+```text
 tunnl      parity-gate.yml  parity-nightly.yml  parity-determinism.yml
            e2e-mock-shapes.yml
 propswap   nightly-mutating-e2e.yml  e2e-account-sweeper.yml
@@ -239,7 +275,7 @@ I hypothesised this job was dead because two of three workflow implementations
 never execute. **That was wrong, and the workflow-level view is what made it
 look wrong.** Measured across all four repos:
 
-```
+```text
 TunnlAI/frontend      3 issues   #462 CLOSED (9 comments), #545 CLOSED, #604 OPEN
 PropSwapLLC/frontend  7 issues   #906 CLOSED (8), #917 OPEN (5), #918/#954 CLOSED
 geminisportsai/fe-v2  4 issues   #6587 CLOSED (6), #6531 CLOSED (5), #6514 CLOSED (5), #6621 OPEN
@@ -255,7 +291,7 @@ engagement, not noise.
 **And the implementation is in a different place in every repo**, which is why a
 workflow-name sweep mis-read it:
 
-```
+```text
 tunnl       .github/workflows/nightly-e2e-gate.yml  +  nightly-e2e-tracker.yml
 gemini      scripts/report-nightly-e2e.mjs          (no workflow carries it)
 propswap    neither — yet has 7 issues
