@@ -171,7 +171,15 @@ describe("maestro-native-e2e reusable workflow", () => {
     const easStep = (build.steps ?? []).find(step =>
       step.run?.includes("eas build")
     );
-    expect(easStep?.run).toContain("--profile ${{ inputs.eas_profile }}");
+    // The profile still reaches `eas build`, but through `env:` rather than a
+    // `${{ }}` expansion in the script body. An expansion is substituted into
+    // the script TEXT before bash parses it, which makes a caller-supplied
+    // profile workflow SOURCE rather than an argument — the same rule the
+    // profile guard and the flows-dir handling in this file already follow.
+    expect(easStep?.env?.EAS_PROFILE).toBe("${{ inputs.eas_profile }}");
+    expect(easStep?.env?.EAS_PLATFORM).toBe("${{ matrix.platform }}");
+    expect(easStep?.run).toContain('--profile "$profile"');
+    expect(easStep?.run).not.toContain("${{ inputs.eas_profile }}");
     expect(easStep?.run).toContain("--non-interactive");
     // The iOS simulator artifact is a tarball, not an .ipa.
     expect(easStep?.run).toContain("app-ios.tar.gz");
