@@ -2,7 +2,7 @@
 /**
  * Fix test assertions and a few skill references after lisa-* skill / lisa: command namespace migration.
  */
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 

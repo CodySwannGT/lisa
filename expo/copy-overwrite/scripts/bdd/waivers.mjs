@@ -24,6 +24,9 @@ const REQUIRED_FIELDS = [
   "expiresAt",
 ];
 
+/** Defect / evidence code, named once. */
+const WAIVER_METADATA = "waiver-metadata";
+
 /** ISO calendar date, the only accepted date shape. */
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -48,7 +51,7 @@ export function validateWaivers({ scenarios, contract, today }) {
     ? []
     : [
         defect(
-          "waiver-metadata",
+          WAIVER_METADATA,
           `the evaluation date ${JSON.stringify(today ?? null)} is not an ISO date (YYYY-MM-DD), so no waiver expiry could be evaluated. Set BDD_TODAY to a calendar date or leave it unset.`
         ),
       ];
@@ -118,13 +121,13 @@ function blockingError(waiver, scenario, at) {
  */
 function metadataDefects(waiver, at, today) {
   const defects = REQUIRED_FIELDS.filter(field => !waiver[field]).map(field =>
-    defect("waiver-metadata", `${at}: has no ${field}`)
+    defect(WAIVER_METADATA, `${at}: has no ${field}`)
   );
   for (const field of ["recordedAt", "expiresAt"]) {
     if (waiver[field] && !ISO_DATE.test(waiver[field])) {
       defects.push(
         defect(
-          "waiver-metadata",
+          WAIVER_METADATA,
           `${at}: ${field} must be an ISO date (YYYY-MM-DD)`
         )
       );
@@ -136,7 +139,7 @@ function metadataDefects(waiver, at, today) {
   ) {
     defects.push(
       defect(
-        "waiver-metadata",
+        WAIVER_METADATA,
         `${at}: ticket ${waiver.ticket} is not a valid tracker reference`
       )
     );

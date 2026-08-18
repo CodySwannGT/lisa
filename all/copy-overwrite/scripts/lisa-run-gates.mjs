@@ -305,8 +305,9 @@ function summarise(result) {
     `(optional), ${result.skipped.length} not provable here`;
   lines.push(
     `${failedOptional.length ? "⚠️ " : "✅"} ${result.moment}: ${counts}, ` +
-      `of ${result.total} gate(s) declared.` +
-      (failedOptional.length ? " See the optional failure(s) above." : "")
+      `of ${result.total} gate(s) declared.${
+        failedOptional.length ? " See the optional failure(s) above." : ""
+      }`
   );
   return lines;
 }

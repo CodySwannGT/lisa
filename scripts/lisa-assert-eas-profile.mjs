@@ -88,9 +88,9 @@ export function resolveProfile(profiles, name) {
     if (!profile) {
       const known = Object.keys(profiles ?? {});
       throw new Error(
-        `eas.json has no build profile called "${current}"` +
-          (current === name ? "" : ` (reached by extending from "${name}")`) +
-          `. It defines: ${known.length ? known.join(", ") : "none"}.`
+        `eas.json has no build profile called "${current}"${
+          current === name ? "" : ` (reached by extending from "${name}")`
+        }. It defines: ${known.length ? known.join(", ") : "none"}.`
       );
     }
     seen.add(current);

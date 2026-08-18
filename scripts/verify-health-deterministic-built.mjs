@@ -18,6 +18,14 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const PACKAGE_JSON = "package.json";
+const LISA_CONFIG_JSON = ".lisa.config.json";
+const HARPER_APP = "harper-app";
+const TEMPLATES_MANAGED = "templates.managed";
+const PRETTIERIGNORE = ".prettierignore";
+
 let assertions = 0;
 const check = (condition, message) => {
   assertions += 1;
@@ -149,7 +157,7 @@ try {
   await mkdir(isolatedBin, { recursive: true });
   await symlink(gitExecutable, path.join(isolatedBin, "git"));
   await writeFile(
-    path.join(project, "package.json"),
+    path.join(project, PACKAGE_JSON),
     `${JSON.stringify(
       {
         name: "deterministic-health-fixture",
@@ -161,7 +169,7 @@ try {
     )}\n`
   );
   await writeFile(
-    path.join(project, ".lisa.config.json"),
+    path.join(project, LISA_CONFIG_JSON),
     `${JSON.stringify(
       {
         tracker: "github",
@@ -172,13 +180,13 @@ try {
       2
     )}\n`
   );
-  await mkdir(path.join(project, "harper-app"), { recursive: true });
+  await mkdir(path.join(project, HARPER_APP), { recursive: true });
   await writeFile(
-    path.join(project, "harper-app", "config.yaml"),
+    path.join(project, HARPER_APP, "config.yaml"),
     "graphqlSchema: ./schema.graphql\njsResource: true\nstatic: ./web\n"
   );
   await writeFile(
-    path.join(project, "harper-app", "schema.graphql"),
+    path.join(project, HARPER_APP, "schema.graphql"),
     "type Query { health: Boolean! }\n"
   );
   git("init", "--initial-branch=main");
@@ -220,7 +228,7 @@ try {
     }
   );
   const version = JSON.parse(
-    await readFile(path.join(root, "package.json"), "utf8")
+    await readFile(path.join(root, PACKAGE_JSON), "utf8")
   ).version;
   await writeFile(
     path.join(project, ".claude", ".lisa-plugins-synced"),
@@ -256,13 +264,12 @@ try {
   equal(clean.summary.counts.fail, 0, "clean fixture has zero failures");
   equal(clean.summary.verdict, "in band", "clean fixture is in band");
   equal(
-    clean.findings.find(finding => finding.check === "templates.managed")
-      .status,
+    clean.findings.find(finding => finding.check === TEMPLATES_MANAGED).status,
     "pass",
     "the real TypeScript plus Harper child template stack composes cleanly"
   );
   check(
-    (await readFile(path.join(project, ".prettierignore"), "utf8")).includes(
+    (await readFile(path.join(project, PRETTIERIGNORE), "utf8")).includes(
       "AI GUARDRAILS HARPER-FABRIC"
     ),
     "the real child copy-contents block survives its parent overwrite"
@@ -298,14 +305,14 @@ try {
   );
   await writeFile(callerPath, callerOriginal);
 
-  const prettierPath = path.join(project, ".prettierignore");
+  const prettierPath = path.join(project, PRETTIERIGNORE);
   const prettierOriginal = await readFile(prettierPath);
   await writeFile(path.join(project, ".lisaignore"), ".prettierignore\n");
   await writeFile(prettierPath, "project-owned while ignored\n");
   const ignoredTemplate = await assertPureCollection(health, options);
   equal(
     ignoredTemplate.findings.find(
-      finding => finding.check === "templates.managed"
+      finding => finding.check === TEMPLATES_MANAGED
     ).status,
     "pass",
     "ignored templates are outside Lisa ownership"
@@ -337,9 +344,8 @@ try {
   await writeFile(learningsPath, customLearnings);
   const learningsOwned = await assertPureCollection(health, options);
   equal(
-    learningsOwned.findings.find(
-      finding => finding.check === "templates.managed"
-    ).status,
+    learningsOwned.findings.find(finding => finding.check === TEMPLATES_MANAGED)
+      .status,
     "pass",
     "project learnings remain host-owned after their initial seed"
   );
@@ -396,8 +402,7 @@ try {
   );
   const drift = await assertPureCollection(health, options);
   const managedDrift = drift.findings.filter(
-    finding =>
-      finding.check === "templates.managed" && finding.status === "fail"
+    finding => finding.check === TEMPLATES_MANAGED && finding.status === "fail"
   );
   equal(
     managedDrift.length,
@@ -422,7 +427,7 @@ try {
   console.log("[EVIDENCE: clean-project-in-band]");
   console.log("[EVIDENCE: managed-file-restoration-in-band]");
 
-  const configPath = path.join(project, ".lisa.config.json");
+  const configPath = path.join(project, LISA_CONFIG_JSON);
   const config = JSON.parse(await readFile(configPath, "utf8"));
   delete config.github.repo;
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
@@ -458,10 +463,10 @@ try {
     const unsafeProject = path.join(workspace, "unsafe-host");
     await mkdir(unsafeProject, { recursive: true });
     await writeFile(
-      path.join(unsafeProject, ".lisa.config.json"),
+      path.join(unsafeProject, LISA_CONFIG_JSON),
       '{"tracker":"github","harness":"codex"}\n'
     );
-    execFileSync("mkfifo", [path.join(unsafeProject, "package.json")]);
+    execFileSync("mkfifo", [path.join(unsafeProject, PACKAGE_JSON)]);
     const unsafeStarted = Date.now();
     const unsafe = await health.runDeterministicHealth(unsafeProject, {
       lisaRoot: root,

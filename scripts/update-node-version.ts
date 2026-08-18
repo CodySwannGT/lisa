@@ -18,6 +18,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const VERSION_REPLACEMENT = "$1{{version}}$2";
+
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "..");
 
 /**
@@ -34,12 +38,12 @@ const WORKFLOW_PATTERNS: readonly ReplacementPattern[] = [
   // node_version: '22.21.1' (workflow input defaults)
   {
     pattern: /(node_version:\s*['"])[\d.]+(['"])/g,
-    replacement: "$1{{version}}$2",
+    replacement: VERSION_REPLACEMENT,
   },
   // node-version: '22.21.1' (actions/setup-node)
   {
     pattern: /(node-version:\s*['"])[\d.]+(['"])/g,
-    replacement: "$1{{version}}$2",
+    replacement: VERSION_REPLACEMENT,
   },
   // node-version: '22.x' (major version pattern)
   {
@@ -50,7 +54,7 @@ const WORKFLOW_PATTERNS: readonly ReplacementPattern[] = [
 
 const PACKAGE_JSON_PATTERN: ReplacementPattern = {
   pattern: /("node":\s*["'])[\d.]+(["'])/g,
-  replacement: "$1{{version}}$2",
+  replacement: VERSION_REPLACEMENT,
 };
 
 /**

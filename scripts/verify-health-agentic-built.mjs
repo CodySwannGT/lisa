@@ -17,6 +17,14 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const TEMPLATES_MANAGED = "templates.managed";
+const AGENTIC_CI_SKIP_LINT = "agentic.ci.skip.lint";
+const ESLINT_CONFIG_TS = "eslint.config.ts";
+const AGENTIC_INTENTIONAL_DRIFT = "agentic.intentional-drift";
+const HARPER_APP = "harper-app";
+
 let assertions = 0;
 const check = (condition, message) => {
   assertions += 1;
@@ -241,8 +249,7 @@ function artifactEvaluator(request, signal) {
   const mutationDisabled =
     request.config.quality.mutation.gate.enabled === false;
   const managedDrift = request.deterministicFindings.find(
-    finding =>
-      finding.check === "templates.managed" && finding.status === "fail"
+    finding => finding.check === TEMPLATES_MANAGED && finding.status === "fail"
   );
 
   if (mutationDisabled) {
@@ -268,19 +275,19 @@ function artifactEvaluator(request, signal) {
       !/\b(?:reason|justification)\b/iu.test(workflow.content)
     ) {
       judgments.push({
-        check: "agentic.ci.skip.lint",
+        check: AGENTIC_CI_SKIP_LINT,
         reason: `${workflow.path} skips lint without a recorded justification.`,
       });
     }
   }
   if (
-    managedDrift?.reason.includes("eslint.config.ts") === true &&
+    managedDrift?.reason.includes(ESLINT_CONFIG_TS) === true &&
     /\b(?:reason|justification)\b/iu.test(override?.content ?? "") &&
     managedArtifact?.content.includes("no-explicit-any") === true &&
     /["']off["']/u.test(managedArtifact.content)
   ) {
     judgments.push({
-      check: "agentic.intentional-drift",
+      check: AGENTIC_INTENTIONAL_DRIFT,
       reason:
         "The bounded managed ESLint drift disables no-explicit-any despite the recorded temporary justification.",
     });
@@ -316,13 +323,13 @@ try {
       2
     )}\n`
   );
-  await mkdir(path.join(project, "harper-app"), { recursive: true });
+  await mkdir(path.join(project, HARPER_APP), { recursive: true });
   await writeFile(
-    path.join(project, "harper-app", "config.yaml"),
+    path.join(project, HARPER_APP, "config.yaml"),
     "graphqlSchema: ./schema.graphql\njsResource: true\nstatic: ./web\n"
   );
   await writeFile(
-    path.join(project, "harper-app", "schema.graphql"),
+    path.join(project, HARPER_APP, "schema.graphql"),
     "type Query { health: Boolean! }\n"
   );
   git("init", "--initial-branch=main");
@@ -525,7 +532,7 @@ try {
   check(
     unreasonedSkip.findings.some(
       finding =>
-        finding.check === "agentic.ci.skip.lint" &&
+        finding.check === AGENTIC_CI_SKIP_LINT &&
         finding.reason.includes("ci.yml")
     ),
     "unreasoned skipped job produces a named warning"
@@ -545,22 +552,22 @@ try {
   );
   check(
     !reasonedSkip.findings.some(
-      finding => finding.check === "agentic.ci.skip.lint"
+      finding => finding.check === AGENTIC_CI_SKIP_LINT
     ),
     "recorded skip justification clears the job warning"
   );
   printStateDump("skipped-job-reason-clears", {
     undocumented: unreasonedSkip.findings
-      .filter(finding => finding.check === "agentic.ci.skip.lint")
+      .filter(finding => finding.check === AGENTIC_CI_SKIP_LINT)
       .map(findingState),
     documented: reasonedSkip.findings
-      .filter(finding => finding.check === "agentic.ci.skip.lint")
+      .filter(finding => finding.check === AGENTIC_CI_SKIP_LINT)
       .map(findingState),
   });
   console.log("[EVIDENCE: state-dump: skipped-job-reason-clears]");
   await writeFile(ciPath, ciOriginal);
 
-  const managedEslintPath = path.join(project, "eslint.config.ts");
+  const managedEslintPath = path.join(project, ESLINT_CONFIG_TS);
   const managedEslintOriginal = await readFile(managedEslintPath);
   const managedJustification =
     '// justification: temporary vendor migration\nexport default [{ rules: { "@typescript-eslint/no-explicit-any": "off" } }];\n';
@@ -599,7 +606,7 @@ try {
   );
   equal(
     observedManagedArtifacts.map(artifact => artifact?.path),
-    ["eslint.config.ts", "eslint.config.ts"],
+    [ESLINT_CONFIG_TS, ESLINT_CONFIG_TS],
     "both drift judgments inspect the bounded managed ESLint artifact"
   );
   equal(
@@ -613,18 +620,18 @@ try {
   check(
     benignDrift.findings.some(
       finding =>
-        finding.check === "templates.managed" && finding.status === "fail"
+        finding.check === TEMPLATES_MANAGED && finding.status === "fail"
     ),
     "benign agentic judgment cannot erase deterministic managed drift"
   );
   check(
     !benignDrift.findings.some(
-      finding => finding.check === "agentic.intentional-drift"
+      finding => finding.check === AGENTIC_INTENTIONAL_DRIFT
     ),
     "benign managed content produces no drift judgment"
   );
   const suspiciousDriftWarning = suspiciousDrift.findings.find(
-    finding => finding.check === "agentic.intentional-drift"
+    finding => finding.check === AGENTIC_INTENTIONAL_DRIFT
   );
   equal(
     suspiciousDriftWarning?.status,
@@ -643,7 +650,7 @@ try {
         .update(benignManagedContent)
         .digest("hex"),
       warnings: benignDrift.findings
-        .filter(finding => finding.check === "agentic.intentional-drift")
+        .filter(finding => finding.check === AGENTIC_INTENTIONAL_DRIFT)
         .map(findingState),
     },
     suspicious: {
@@ -651,7 +658,7 @@ try {
         .update(suspiciousManagedContent)
         .digest("hex"),
       warnings: suspiciousDrift.findings
-        .filter(finding => finding.check === "agentic.intentional-drift")
+        .filter(finding => finding.check === AGENTIC_INTENTIONAL_DRIFT)
         .map(findingState),
     },
   });
@@ -678,7 +685,7 @@ try {
       name: "malformed",
       evaluator: async () => ({
         status: "completed",
-        judgments: [{ check: "templates.managed", reason: "collision" }],
+        judgments: [{ check: TEMPLATES_MANAGED, reason: "collision" }],
       }),
       timeoutMs: 1_000,
     },
