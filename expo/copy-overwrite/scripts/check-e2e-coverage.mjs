@@ -365,14 +365,45 @@ export function isExcludedFlow(source, excluded) {
   if (excluded.length === 0) {
     return false;
   }
-  const block = source.match(/^tags:\s*(?:\n(?:\s*-\s*.+\n?)+|\[[^\]]*\])/mu);
-  if (!block) {
-    return false;
+  return flowTags(source).some(tag => excluded.includes(tag));
+}
+
+/**
+ * The tags a Maestro flow declares, and nothing else.
+ *
+ * Read line-wise because YAML block structure is indentation, and the previous
+ * regex form could not express "until this block ends": it allowed zero
+ * indentation before `-`, so it ran past the `---` document separator and
+ * lifted `openLink` and `tapOn` out of the flow's COMMANDS. A false tag causes
+ * a false EXCLUSION, dropping a flow that really runs — the opposite error from
+ * the one this gate exists to fix, and just as wrong.
+ * @param {string} source - Flow file contents
+ * @returns {string[]} Declared tags
+ */
+function flowTags(source) {
+  const lines = source.split("\n");
+  const start = lines.findIndex(line => /^tags:/u.test(line));
+  if (start === -1) {
+    return [];
   }
-  const tags = [...block[0].matchAll(/[-[,]\s*["']?([\w.-]+)/gu)].map(
-    m => m[1]
-  );
-  return tags.some(tag => excluded.includes(tag));
+  const inline = lines[start].match(/^tags:\s*\[([^\]]*)\]/u);
+  if (inline) {
+    return inline[1]
+      .split(",")
+      .map(tag => tag.trim().replace(/^["']|["']$/gu, ""))
+      .filter(Boolean);
+  }
+  const tags = [];
+  for (const line of lines.slice(start + 1)) {
+    // The block ends at the document separator, at a non-indented line, or at
+    // anything that is not a list item. Each of those is what the regex missed.
+    const item = line.match(/^\s+-\s*(.+?)\s*$/u);
+    if (!item || line.startsWith("---")) {
+      break;
+    }
+    tags.push(item[1].replace(/^["']|["']$/gu, ""));
+  }
+  return tags;
 }
 
 /**
