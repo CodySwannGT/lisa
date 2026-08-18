@@ -135,7 +135,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-component-structure/package.json":
       "99d0173760de800fd83d4f781f0a7817d148a714b8d34aaff7b3c636490adcdd",
     "eslint-plugin-component-structure/rules/enforce-component-structure.js":
-      "0b6ee7b019428ca7454a895df4841d07cc405bf14a0e91000ab6f2b0dfed53df",
+      "0f2c8118534c5602fda6d8637c3a6e3c2f33cd2a753e84b9d4ac92300997df81",
     "eslint-plugin-component-structure/rules/no-return-in-view.js":
       "1d2b3dd8ea31f9a7e93ce567d330567c1dccfcb0e5307f35eee669103eaad514",
     "eslint-plugin-component-structure/rules/require-memo-in-view.js":
