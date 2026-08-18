@@ -90,6 +90,18 @@ const PACKAGE_ROOT = path.resolve(
 const MAP_REL = "bdd/coverage-map.json";
 const defect = (code, message) => ({ code, message });
 
+/** Defect / mode code, named once. */
+const NOT_ADOPTED = "not-adopted";
+
+/** Defect / mode code, named once. */
+const BOOTSTRAP_METADATA = "bootstrap-metadata";
+
+/** Defect / mode code, named once. */
+const EXECUTION_RESULTS = "execution-results";
+
+/** Defect / mode code, named once. */
+const EMPTY_CONTRACT = "empty-contract";
+
 /**
  * Resolve the adoption state from the environment.
  * @param {Record<string, string|undefined>} env - Process environment.
@@ -97,10 +109,10 @@ const defect = (code, message) => ({ code, message });
  */
 export function resolveMode(env) {
   const raw = (env.BDD_MODE ?? "").trim();
-  if (raw === "") return { mode: "not-adopted", error: null };
+  if (raw === "") return { mode: NOT_ADOPTED, error: null };
   if (!ADOPTION_STATES.includes(raw)) {
     return {
-      mode: "not-adopted",
+      mode: NOT_ADOPTED,
       error: `BDD_MODE="${raw}" is not one of ${ADOPTION_STATES.join(", ")}`,
     };
   }
@@ -188,7 +200,7 @@ function bootstrapDefects(adoption, today) {
     // would make the time-box unreachable and bootstrap permanent.
     defects.push(
       defect(
-        "bootstrap-metadata",
+        BOOTSTRAP_METADATA,
         `the evaluation date ${JSON.stringify(today ?? null)} is not an ISO date (YYYY-MM-DD), so the bootstrap expiry could not be evaluated`
       )
     );
@@ -196,7 +208,7 @@ function bootstrapDefects(adoption, today) {
   if (!adoption.owner) {
     defects.push(
       defect(
-        "bootstrap-metadata",
+        BOOTSTRAP_METADATA,
         "bootstrap requires adoption.owner (a named person, not a team)"
       )
     );
@@ -204,14 +216,14 @@ function bootstrapDefects(adoption, today) {
   if (!adoption.expiresAt) {
     defects.push(
       defect(
-        "bootstrap-metadata",
+        BOOTSTRAP_METADATA,
         "bootstrap requires adoption.expiresAt (an ISO date); a bootstrap with no time-box never ends"
       )
     );
   } else if (!ISO_DATE.test(adoption.expiresAt)) {
     defects.push(
       defect(
-        "bootstrap-metadata",
+        BOOTSTRAP_METADATA,
         "adoption.expiresAt must be an ISO date (YYYY-MM-DD)"
       )
     );
@@ -239,7 +251,7 @@ export function loadExecutionResults(root, files) {
     const resolved = path.resolve(root, file);
     if (!fs.existsSync(resolved)) {
       defects.push(
-        defect("execution-results", `execution results not found: ${file}`)
+        defect(EXECUTION_RESULTS, `execution results not found: ${file}`)
       );
       continue;
     }
@@ -248,17 +260,14 @@ export function loadExecutionResults(root, files) {
       for (const run of Array.isArray(parsed) ? parsed : [parsed]) {
         if (!run.runner) {
           defects.push(
-            defect(
-              "execution-results",
-              `${file}: each run must name its runner`
-            )
+            defect(EXECUTION_RESULTS, `${file}: each run must name its runner`)
           );
           continue;
         }
         runs.push(run);
       }
     } catch (error) {
-      defects.push(defect("execution-results", `${file}: ${error.message}`));
+      defects.push(defect(EXECUTION_RESULTS, `${file}: ${error.message}`));
     }
   }
   return { runs, defects };
@@ -372,7 +381,7 @@ function enforcedDefects({ contract, scenarios, report, discovery }) {
   if (scenarios.length === 0) {
     defects.push(
       defect(
-        "empty-contract",
+        EMPTY_CONTRACT,
         "enforced mode: bdd/features declares zero scenarios"
       )
     );
@@ -380,7 +389,7 @@ function enforcedDefects({ contract, scenarios, report, discovery }) {
   if ((contract.mappings ?? []).length === 0) {
     defects.push(
       defect(
-        "empty-contract",
+        EMPTY_CONTRACT,
         "enforced mode: bdd/coverage-map.json declares zero test mappings"
       )
     );
@@ -388,7 +397,7 @@ function enforcedDefects({ contract, scenarios, report, discovery }) {
   if (Object.keys(contract.runnerPlatforms ?? {}).length === 0) {
     defects.push(
       defect(
-        "empty-contract",
+        EMPTY_CONTRACT,
         "enforced mode: bdd/coverage-map.json declares no runnerPlatforms"
       )
     );
@@ -494,7 +503,7 @@ export function run(root, options) {
  */
 function configFatals(loaded, mode) {
   if (loaded.error) return defect("config-malformed", loaded.error);
-  if (loaded.present || mode === "not-adopted") return null;
+  if (loaded.present || mode === NOT_ADOPTED) return null;
   return defect(
     "config-absent",
     `${mode} mode requires ${MAP_REL}, which does not exist. In ${mode} mode absence is a failure, never a skip.`
@@ -562,7 +571,7 @@ function result({ mode, defects, report, contract }) {
 function statusFor({ mode, defects, fatal, report }) {
   if (defects.some(item => INVALID_CODES.includes(item.code))) return "invalid";
   if (fatal) return "failed";
-  if (mode === "not-adopted" && !report) return "not-adopted";
+  if (mode === NOT_ADOPTED && !report) return NOT_ADOPTED;
   return "completed";
 }
 

@@ -247,7 +247,7 @@ export function generateCopilotVariant(srcDir, outDir, version) {
     }
   }
 
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   // 4. Filter the hooks/ directory.
   const hooksDir = path.join(outDir, "hooks");
