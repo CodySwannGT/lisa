@@ -111,11 +111,18 @@ contact with reality:
 
 ## 1. Filenames are fixed, and name the SUITE
 
-| file | calls | required when |
-| --- | --- | --- |
-| `.github/workflows/maestro-e2e.yml` | `…/maestro-native-e2e.yml@main` | `.maestro/flows` exists |
-| `.github/workflows/playwright-e2e.yml` | Lisa's Playwright surface | Playwright specs exist |
-| `.github/workflows/nightly-e2e-health.yml` | `…/nightly-e2e-health.yml@main` | always |
+| file | calls | ref | lane | required when |
+| --- | --- | --- | --- | --- |
+| `.github/workflows/maestro-e2e.yml` | `…/maestro-native-e2e.yml` | `@main` | `create-only` → **must become `copy-overwrite`** | `.maestro/flows` exists |
+| `.github/workflows/playwright-e2e.yml` | Lisa's Playwright surface | `@main` | not yet shipped | Playwright specs exist |
+| `.github/workflows/nightly-e2e-health.yml` | `…/nightly-e2e-health.yml` | **immutable tag** | `create-only` → **must become `copy-overwrite`** | always |
+| `.github/workflows/nightly-e2e-report.yml` | `…/nightly-e2e-report.yml` | **immutable tag** | `create-only` → **must become `copy-overwrite`** | always |
+
+Two columns carry rules, not description:
+
+**`ref`.** A workflow that *gates a merge* pins an **immutable tag or SHA**, never `@main` — what decides whether code may merge must not change under you between two runs of the same pull request. That covers `nightly-e2e-health` and `nightly-e2e-report`. A suite workflow that only *runs* may track `@main`. Lisa's own integration suites enforce this, and the pin must name a ref where the reusable actually exists — see #2702, where two templates shipped pinned to a version predating the file they call and therefore could never load.
+
+**`lane`.** Stated per file because it decides whether the row is enforced or aspirational (§4a). Every row above currently ships `create-only`, which is why none of them converge; the migration to `copy-overwrite` is the work, and until it happens this table describes an intent rather than a guarantee.
 
 The caller is named for the **suite** (`maestro-e2e`), never for the reusable
 workflow it calls (`maestro-native-e2e`). A repo carrying both names carries a
@@ -205,11 +212,31 @@ on:
     inputs: { platform: { type: choice, options: [all, android, ios] } }
 ```
 
-e2e suites are nightly + dispatch; they do not gate PRs directly. The **nightly
-health gate** is what gates PRs, reading last night's result. Crons are offset
-per repo so suites sharing a backend do not collide, and the offset states its
-reason inline — a bare cron cannot be distinguished from an unconsidered
-default.
+**Permitted triggers, exhaustively.** A suite workflow declares `schedule` and
+`workflow_dispatch`, and nothing else. It does **not** declare `pull_request`,
+`push`, or `workflow_run`. A caller carrying any other trigger is non-conforming.
+
+**What `PR_ONWARD` means for an e2e gate — it does not run the suite.** The
+`e2e-browser` / `e2e-native` gates at `PR_ONWARD` (§2) **read last night's
+recorded result**; they never execute flows on the pull request. Running a full
+native suite per PR is the thing this shape exists to avoid. So the gate is fast
+and its verdict is about the *nightly*, which is why §2's freshness and
+completeness rules carry the weight — a stale or narrowed nightly is the only
+way this gate can lie.
+
+**Cron offsets carry a machine-parseable reason.** Suites sharing a backend must
+not collide, and a bare cron cannot be distinguished from an unconsidered
+default. The reason sits on the line above the cron in exactly this form:
+
+```text
+# nightly-offset: <reason>   e.g.
+# nightly-offset: +90m after propswap; shared staging backend, avoids fixture collision
+- cron: "30 4 * * *"
+```
+
+Grammar: a comment line matching `^#\s*nightly-offset:\s*\S.*$` immediately
+preceding the `cron:` entry. Conformance parses it (§7) — a cron with no
+preceding `nightly-offset:` line fails, and so does one whose reason is empty.
 
 ## 4. Two files are deleted; one is a FORK to retire carefully
 
@@ -266,8 +293,21 @@ propswap   nightly-mutating-e2e.yml  e2e-account-sweeper.yml
            e2e-inbox-access-check.yml
 ```
 
-They carry an inline comment naming why they are project-specific. An undeclared
-extra is drift; a declared one is a decision.
+They carry a machine-parseable declaration on the line after `name:`, in exactly
+this form:
+
+```text
+# e2e-local: <reason>   e.g.
+# e2e-local: propswap-only; sweeps abandoned e2e accounts against the shared GIDX sandbox
+```
+
+Grammar: `^#\s*e2e-local:\s*\S.*$`. Conformance (§7) requires it on every
+workflow whose filename is not in §1's table, and fails on an empty reason.
+
+**An undeclared extra is drift; a declared one is a decision** — and the marker
+is what makes that distinction checkable rather than a matter of opinion. It
+also gives the next person reading an unfamiliar workflow the one thing they
+actually need: why it is here and not in Lisa.
 
 ## 6. The tracking issue EARNS its place — measured, and it belongs in Lisa
 
@@ -308,9 +348,19 @@ is the last step, not the first.
 
 ## 7. Conformance is checkable, or this is decoration
 
-Machine-checkable from the repo tree alone: filenames present, each caller's
-`uses:` target, the trigger block, declared gates versus suites actually
-present, and whether every extra carries a declaration comment.
+Machine-checkable from the repo tree alone:
+
+| check | rule |
+| --- | --- |
+| filenames | present per §1, one caller per suite |
+| `uses:` target | matches §1, and the reusable **exists at the named ref** |
+| ref shape | merge-gating callers pin an immutable tag/SHA, never `@main` |
+| delivery lane | every §1 file's lane is declared and matches what Lisa ships |
+| trigger block | `schedule` + `workflow_dispatch` only; no other trigger |
+| cron reason | `^#\s*nightly-offset:\s*\S.*$` immediately precedes each `cron:` |
+| declared gates | the declared set **equals** the set of suites present, both directions (§2) |
+| local extras | every non-§1 workflow carries `^#\s*e2e-local:\s*\S.*$` |
+| check identity | no two jobs across workflows report the same check name (§1) |
 
 The check **fails on an unreadable repo** rather than skipping it, and **fails
 on an empty workflows directory** — zero files found is a discovery failure, not
