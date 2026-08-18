@@ -929,7 +929,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
-      "7ec6370d15aa4db9fb866cfc83621a7bc58c83f4c24fc15eeddd2bda91f66bc0",
+      "f03c05aaa75432d1c87b241762fc1cf1d31a33b7c076d5fab67113d19081b162",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
       "1f77b28fd59986ac3f76a55296b70d8c45385bbdb759e97691e49db121725ee2",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
@@ -9201,6 +9201,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/atlassian-access-changelog.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
+    "tests/unit/strategies/automation-run-record-preservation.test.ts": true,
     "tests/unit/strategies/automation-run-record.test.ts": true,
     "tests/unit/strategies/automation-runbook-contract-rule.test.ts": true,
     "tests/unit/strategies/automation-status-claude-adapter.test.ts": true,
