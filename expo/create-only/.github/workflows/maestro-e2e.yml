@@ -137,6 +137,33 @@ jobs:
       # concurrency is free coverage in that case. The cost when on is the suite
       # taking iOS PLUS Android instead of the slower of the two.
       # serialize_platform_legs: true
+      #
+      # Uncomment when EAS build quota — not build freshness — is what limits
+      # this suite. On Expo's Free plan the monthly iOS quota is what stops the
+      # nightly running at all, and a rebuild of native inputs that did not
+      # change buys nothing. `eas fingerprint:generate` hashes those inputs; a
+      # match means the finished binary IS the app this commit would build, so
+      # it is downloaded instead of rebuilt. A miss falls back to the latest
+      # finished build for the profile, and only then does a fresh build start.
+      # Leave it off if your e2e profile embeds the JS bundle: JS-only changes
+      # do not move the fingerprint, so reuse would test stale JS.
+      # reuse_build_by_fingerprint: true
+      #
+      # Uncomment to have a failed build say WHY when Expo refuses it for
+      # quota. Without this the run reds with a generic build error and the
+      # cause is only in the raw log. The cost is that the build's stderr is
+      # buffered and replayed at the end rather than streaming live.
+      # diagnose_eas_quota_exhaustion: true
+      #
+      # Uncomment once every flow declares `appId: ${MAESTRO_APP_ID}` and any
+      # runFlow-included SUBFLOWS live OUTSIDE .maestro/flows. The app id
+      # arrives as `-e MAESTRO_APP_ID=…`, so a flow naming a different variable
+      # (or none) launches an EMPTY app id — which Maestro reports as a launch
+      # failure naming no cause, after you have already paid for an EAS build
+      # and an emulator boot. This turns that into a grep in preflight.
+      # `maestro test` recurses, so anything under the flows directory is a
+      # flow and is expected to declare an appId.
+      # lint_flow_app_id: true
     secrets:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       MAESTRO_SECRET_ENV: ${{ secrets.MAESTRO_SECRET_ENV }}
