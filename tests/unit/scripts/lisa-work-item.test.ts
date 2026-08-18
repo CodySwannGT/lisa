@@ -546,9 +546,15 @@ describe("work-item binding and commit messages", () => {
     expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
     const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
 
+    // The duplicate case names two DIFFERENT items, which is the ambiguity
+    // this has always been about. Two IDENTICAL lines used to fail too, and
+    // now pass on purpose: Lisa's own prepare-commit-msg hook appends
+    // `Work-Item:` to the final trailer block, so a message already carrying
+    // the trailer above its attribution block comes back out of that hook with
+    // exactly this shape. See the #2672 describe below.
     for (const message of [
       "fix: missing trailer\n",
-      "fix: duplicate\n\nWork-Item: acme/widgets#42\nWork-Item: acme/widgets#42\n",
+      "fix: two items\n\nWork-Item: acme/widgets#42\nWork-Item: acme/widgets#43\n",
       "fix: wrong repo\n\nWork-Item: acme/elsewhere#42\n",
     ]) {
       writeFileSync(messageFile, message);
@@ -1531,5 +1537,203 @@ describe("server-side backstop (#1978): merge-synced pull requests still pass", 
     });
     expect(validated.status).toBe(1);
     expect(validated.stderr).toContain("acme/widgets#99 is closed");
+  });
+});
+
+/**
+ * #2672 (a trailer that is present parses as zero) and #2681 (four
+ * requirements revealed one CI cycle at a time, the unrecoverable one last).
+ *
+ * Both live in this validator and both are about what the gate SAYS versus
+ * what it knows: the first counted trailers by position in a text whose
+ * position is meaningless and edited by bots, the second knew every unmet
+ * requirement at check time and released them one CI cycle apiece.
+ */
+describe("trailer position and whole-run reporting (#2672, #2681)", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+  const ATTRIBUTION =
+    "\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n";
+  const BACKLINKED_ISSUE = JSON.stringify({
+    number: 42,
+    state: "OPEN",
+    labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+    comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
+    closedByPullRequestsReferences: [],
+  });
+
+  it("accepts a commit trailer sitting above the attribution block", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    // `git interpret-trailers --parse` reads only the FINAL block, so this
+    // exact layout — the one Lisa's own commit convention asks for — parsed as
+    // zero trailers and the gate reported `found 0` about a message plainly
+    // carrying one.
+    writeFileSync(
+      messageFile,
+      `fix: a change\n\nWork-Item: acme/widgets#42${ATTRIBUTION}`
+    );
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("accepts the identical second trailer Lisa's own hook appends", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(
+      messageFile,
+      "fix: a change\n\nWork-Item: acme/widgets#42\nWork-Item: acme/widgets#42\n"
+    );
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("rejects a commit naming two different items in two different blocks", () => {
+    const fixture = createFixture();
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    // The fail-OPEN half of reading only the last block: #43 above the
+    // attribution block was invisible, so this commit passed while claiming
+    // two different work items and being checked against only one.
+    writeFileSync(
+      messageFile,
+      `fix: a change\n\nWork-Item: acme/widgets#43${ATTRIBUTION}Work-Item: acme/widgets#42\n`
+    );
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("2 different work items");
+    expect(result.stderr).toContain("acme/widgets#43");
+    expect(result.stderr).toContain("acme/widgets#42");
+  });
+
+  it("accepts a body trailer above an appended release-notes block", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    writeFileSync(
+      bodyFile,
+      "Some description.\n\nWork-Item: acme/widgets#42\n\n" +
+        "<!-- This is an auto-generated comment: release notes by coderabbit.ai -->\n" +
+        "## Summary by CodeRabbit\n\n- Bug Fixes: things\n\n" +
+        "<!-- end of auto-generated comment: release notes by coderabbit.ai -->\n"
+    );
+
+    const result = command(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        bodyFile,
+        "--pr-url",
+        PR_URL,
+      ],
+      { env: { FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE } }
+    );
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("still rejects a body carrying two Work-Item lines", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    // Nothing appends a Work-Item line to a BODY on Lisa's behalf, so a second
+    // one is a person having written two — the opposite of the commit rule,
+    // and deliberately so.
+    writeFileSync(
+      bodyFile,
+      "Work-Item: acme/widgets#42\n\nmore\n\nWork-Item: acme/widgets#42\n"
+    );
+
+    const result = command(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        bodyFile,
+        "--pr-url",
+        PR_URL,
+      ],
+      { env: { FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE } }
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "Pull request must contain exactly one Work-Item line; found 2"
+    );
+  });
+
+  it("reports the commit trailer and the tracker backlink in one run", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(fixture, "feat: untracked change");
+
+    // Two unmet requirements at once: no commit trailer, and an issue with no
+    // backlink. The old gate stopped at the first and revealed the second a
+    // full CI cycle later.
+    const result = prRange(fixture, base, head);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "2 work-item traceability requirements are unmet"
+    );
+    expect(result.stderr).toContain("no verified backlink");
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the commit message"
+    );
+    // Unrecoverable first: the backlink cannot be fixed by editing this PR.
+    expect(result.stderr.indexOf("no verified backlink")).toBeLessThan(
+      result.stderr.indexOf("No Work-Item trailer anywhere")
+    );
+  });
+
+  it("says a branch-derived backlink needs a new branch, not an edit", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "widgets",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["bind", "LIN-12"]).status).toBe(0);
+    const head = commit(fixture, "feat: tracked change\n\nWork-Item: LIN-12");
+
+    const result = prRange(fixture, base, head, {
+      FAKE_GH_PR_JSON: JSON.stringify({
+        url: PR_URL,
+        body: "Work-Item: LIN-12",
+        state: "OPEN",
+      }),
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no verified backlink");
+    expect(result.stderr).toContain(
+      "[not fixable by editing this pull request]"
+    );
+    expect(result.stderr).toContain("BRANCH NAME");
+    expect(result.stderr).toContain("NEW branch named for LIN-12");
+    expect(result.stderr).toContain(`[lisa-pr-link] ${PR_URL}`);
   });
 });
