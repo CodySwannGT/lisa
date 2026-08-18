@@ -10,7 +10,21 @@ import * as path from "node:path";
 
 const config: ViteUserConfig = {
   test: {
-    include: ["tests/**/*.test.ts"],
+    // The second pattern is not decoration. The ESLint plugin workspaces ship
+    // their suites as CommonJS `.js` beside the rules they test, and the
+    // fleet's include is `.ts` only — so five files, 1306 lines and 78 tests,
+    // were never collected and nothing said so. `vitest run
+    // eslint-plugin-component-structure/__tests__/plugin-index.test.js`
+    // answered "No test files found"; all 78 pass the moment they are asked.
+    //
+    // Scoped to Lisa's create-only local config deliberately. Broadening the
+    // shipped `.ts`-only include would start collecting `.js` in every
+    // downstream project at once, which is a fleet decision with its own
+    // evidence, not a side effect of this repo fixing its own dark suites.
+    // `tests/unit/config/workspace-suite-collection.test.ts` is what keeps
+    // this honest: it walks the workspaces independently of these patterns and
+    // fails on any suite they miss — and on finding none at all.
+    include: ["tests/**/*.test.ts", "eslint-plugin-*/__tests__/**/*.test.js"],
     // Lisa's own suite (~11.5k tests) is unlike a downstream project's: a large
     // sub-population spawns real subprocesses (git, bash, npm pack, tsc, oxlint)
     // or performs fsync-paired filesystem work in temp repositories. Against the
