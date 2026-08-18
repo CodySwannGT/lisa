@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.35.0](https://github.com/CodySwannGT/lisa/compare/v3.34.0...v3.35.0) (2026-08-18)
+
+
+### Features
+
+* **doctor:** declare the traceability gate where no project has ([2a06c8a](https://github.com/CodySwannGT/lisa/commit/2a06c8a8ff8100cd4b4d24768701b17d34d08957)), closes [CodySwannGT/lisa#2677](https://github.com/CodySwannGT/lisa/issues/2677) [CodySwannGT/lisa#2677](https://github.com/CodySwannGT/lisa/issues/2677)
+
+
+### Bug Fixes
+
+* **doctor:** report the layer doctor cannot see, and drop a premise that expired ([9c9ace1](https://github.com/CodySwannGT/lisa/commit/9c9ace132c6e598601c16fac78ddfd2a287504c0)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [CodySwannGT/lisa#2677](https://github.com/CodySwannGT/lisa/issues/2677)
+* **hooks:** prove lint-staged's tools can start before handing it the work ([8f41550](https://github.com/CodySwannGT/lisa/commit/8f41550e50df30f4714c0a08fc1bcf819b4c17e9)), closes [CodySwannGT/lisa#2678](https://github.com/CodySwannGT/lisa/issues/2678) [CodySwannGT/lisa#2678](https://github.com/CodySwannGT/lisa/issues/2678)
+
 ## [3.34.0](https://github.com/CodySwannGT/lisa/compare/v3.33.8...v3.34.0) (2026-08-18)
 
 
