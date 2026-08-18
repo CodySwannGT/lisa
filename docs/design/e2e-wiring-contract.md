@@ -114,19 +114,42 @@ per repo so suites sharing a backend do not collide, and the offset states its
 reason inline — a bare cron cannot be distinguished from an unconsidered
 default.
 
-## 4. Three files are DELETED, not harmonised
+## 4. Two files are deleted; one is a FORK to retire carefully
 
-Owner ruling: these are dead, and a dead file does not get a standard name.
+| file | evidence | disposition |
+| --- | --- | --- |
+| `gunnertech/maestro-native-e2e.yml` | `workflow_call`, **never ran**, duplicate of that repo's own `maestro-e2e.yml` | delete |
+| `propswap/nightly-e2e-tracking-issue.yml` | `workflow_call`, **never ran** — reusable with no caller | delete |
+| `tunnl/nightly-e2e-gate.yml` | a hand-written **fork of the gate**, declaring `name: 🌙 Nightly E2E Health` — the same check name as that repo's Lisa caller | retire only after moving its tracker integration |
 
-| file | evidence |
-| --- | --- |
-| `gunnertech/maestro-native-e2e.yml` | `workflow_call`, **never ran**, duplicate of that repo's own `maestro-e2e.yml` |
-| `propswap/nightly-e2e-tracking-issue.yml` | `workflow_call`, **never ran** — a reusable workflow with no caller |
-| `tunnl/nightly-e2e-gate.yml` | declares `name: 🌙 Nightly E2E Health` — **the same check name as that repo's `nightly-e2e-health.yml`** |
+**The third is not a dead file and must not be deleted outright.** Measured:
+`nightly-e2e-health.yml` is a thin caller of
+`CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v3.27.0`, while
+`nightly-e2e-gate.yml` is a local reimplementation with its own guard assertions
+that also drives the `nightly-e2e-tracker` integration. Deleting it would remove
+a mechanism people demonstrably use (§6).
 
-The last is the dangerous one. Two files producing one check name means a
-required context can be satisfied by whichever ran, and nothing on the PR page
-distinguishes them.
+Two files declaring one check name is still the dangerous part: a required
+context can be satisfied by whichever ran, and nothing on the PR page
+distinguishes them. Retire the fork — but move what only it does first.
+
+## 4a. Delivery mode decides whether this contract can be enforced
+
+The deeper mechanism, and the reason convergence has never happened by itself:
+
+| lane | behaviour | consequence |
+| --- | --- | --- |
+| `copy-overwrite` | rewritten into the project on every `lisa apply` | **converges** — drift is corrected automatically |
+| `create-only` | delivered once at scaffold time, never refreshed | **cannot converge** — whatever a repo received on its scaffold day is frozen there forever |
+
+`nightly-e2e-report.yml` ships from `expo/create-only/`. So the two repos that
+have it did not *choose* it and the two without did not *decline* it — they
+were scaffolded on different days. No amount of consumer discipline fixes that.
+
+**Every file this contract names must state its lane.** A rule delivered
+`create-only` is aspiration; the same rule delivered `copy-overwrite` is
+enforced. Moving the e2e callers into `expo/copy-overwrite/` is the structural
+fix that makes the rest of this document real.
 
 ## 5. Project-specific extras STAY project-specific
 
@@ -142,20 +165,42 @@ propswap   nightly-mutating-e2e.yml  e2e-account-sweeper.yml
 They carry an inline comment naming why they are project-specific. An undeclared
 extra is drift; a declared one is a decision.
 
-## 6. OPEN — not yet ruled
+## 6. The tracking issue EARNS its place — measured, and it belongs in Lisa
 
-- **`nightly-e2e-report.yml`** — tunnl and propswap have it, gemini and
-  gunnertech do not. Lisa ships a reusable version. Whether the two adopters
-  chose it or inherited it, and whether anything reads its output, is being
-  measured.
-- **`nightly-e2e-tracker` / `-tracking-issue`** — same job, three hand-written
-  implementations, none calling Lisa, two names. tunnl's is `skipped`,
-  propswap's has **never run**, gemini's runs and fails. The question is not
-  which name wins but whether the function earns its place; if it does, it
-  belongs in Lisa as a reusable rather than three local copies.
+I hypothesised this job was dead because two of three workflow implementations
+never execute. **That was wrong, and the workflow-level view is what made it
+look wrong.** Measured across all four repos:
 
-Neither is standardized until measured. A harmonised name for a job that has
-never done anything is worse than no entry at all.
+```
+TunnlAI/frontend      3 issues   #462 CLOSED (9 comments), #545 CLOSED, #604 OPEN
+PropSwapLLC/frontend  7 issues   #906 CLOSED (8), #917 OPEN (5), #918/#954 CLOSED
+geminisportsai/fe-v2  4 issues   #6587 CLOSED (6), #6531 CLOSED (5), #6514 CLOSED (5), #6621 OPEN
+gunnertech/frontend   1 issue    #385 CLOSED
+```
+
+Authored by `app/github-actions`, marked `<!-- nightly-e2e-tracker -->`, and
+they **auto-close on green** — gunnertech#385's closing comment: *"Both nightly
+e2e suites are green as of 2026-08-14… Closing."* One issue per suite, opens on
+red, accumulates human comments, closes itself. Five-to-nine-comment threads are
+engagement, not noise.
+
+**And the implementation is in a different place in every repo**, which is why a
+workflow-name sweep mis-read it:
+
+```
+tunnl       .github/workflows/nightly-e2e-gate.yml  +  nightly-e2e-tracker.yml
+gemini      scripts/report-nightly-e2e.mjs          (no workflow carries it)
+propswap    neither — yet has 7 issues
+gunnertech  neither — yet has 1 issue
+```
+
+Two repos file tracking issues with **no local implementation at all**, so part
+of this already comes from Lisa. That settles the design question: the function
+is wanted, it works, and it belongs in Lisa as one reusable rather than as four
+divergent local answers plus two invisible ones.
+
+**Do not standardize the NAME before consolidating the implementation.** Naming
+is the last step, not the first.
 
 ## 7. Conformance is checkable, or this is decoration
 
