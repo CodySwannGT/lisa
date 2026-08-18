@@ -72,8 +72,13 @@ Call `lisa-linear-access operation: save-comment({issueId: <id>, body: <comment>
 When `$ARGUMENTS` includes `pr_url=<url>` for `pr-ready` or `pr-merged`, ensure the Linear Issue has a durable ticket -> PR link:
 
 1. Prefer Linear's native GitHub attachment / pull request link when the integration has attached the PR through the branch name, PR title, or PR body issue identifier. Verify by re-reading the Issue and its attachments / relations where the Linear access layer exposes them.
-2. If native linkage is unavailable, unconfigured, cross-system, or cannot be verified, create or update a single managed Linear comment containing the PR URL. The comment must start with `[lisa-pr-link]` and include the milestone (`pr-ready` or `pr-merged`) and merge SHA when available.
-3. Keep the fallback idempotent: read existing comments where the access layer exposes them, find the `[lisa-pr-link]` comment for the same PR URL, and update/skip it instead of appending duplicates. If comment update is unavailable, skip when an identical managed comment already exists and otherwise add exactly one replacement comment with the stable marker.
+2. Establish the managed backlink comment by running the command that owns it — never by hand, and never by describing the procedure here:
+
+   ```bash
+   node scripts/lisa-work-item.mjs backlink --ref <work-item> --pr-url <url>
+   ```
+
+   It creates the `[lisa-pr-link]` comment or updates the one already present, instead of appending duplicates, so it is safe to run on every milestone. This is **unconditional** — run it whether or not native linkage exists or cannot be verified, because the required Work-Item Traceability check reads this comment and nothing else guarantees one. The comment carries the marker and the PR URL only; the milestone (`pr-ready` / `pr-merged`) and merge SHA belong in the milestone progress note, so that a rerun at a new milestone still converges on one backlink comment.
 
 The PR branch/title/body identifier is the PR -> Linear side. This phase is the required Linear -> PR side.
 

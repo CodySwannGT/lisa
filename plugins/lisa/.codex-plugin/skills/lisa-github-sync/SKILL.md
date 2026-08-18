@@ -57,8 +57,13 @@ Optional arguments include `pr_url=<url>` for the live pull request and `merge_s
 When `$ARGUMENTS` includes `pr_url=<url>` for `PR ready` or `PR merged`, ensure the GitHub Issue has a durable ticket -> PR link:
 
 1. Make sure the PR body contains `Refs #<n>` (or the fully qualified cross-repo form) — never a closing keyword, per the GitHub rule in `lisa-git-submit-pr`. Read the issue side with `gh api graphql` against `issue.timelineItems`, or `gh issue view <number> --json closedByPullRequestsReferences`. **Not** `gh issue view --json timelineItems`: `timelineItems` is not a supported field for that command, so the check silently returns nothing useful rather than failing loudly.
-2. Post or update a single managed issue comment starting with `[lisa-pr-link]`. Include the PR URL, milestone (`pr-ready` or `pr-merged`), and merge SHA when available. This is **unconditional**, not contingent on step 1 failing: under the non-closing rule GitHub never creates a native development link (that surface is the closing-reference mechanism), so this comment is the only ticket-side backlink there will be.
-3. Keep the fallback idempotent: search existing comments for `[lisa-pr-link]` and the PR URL; update/replace that managed comment where the provider allows updates, otherwise skip when the current body already matches. Do not append duplicate backlink comments on reruns.
+2. Establish the managed backlink comment by running the command that owns it — never by hand, and never by describing the procedure here:
+
+   ```bash
+   node scripts/lisa-work-item.mjs backlink --ref <work-item> --pr-url <url>
+   ```
+
+   It creates the `[lisa-pr-link]` comment or updates the one already present, instead of appending duplicates, so it is safe to run on every milestone. This is **unconditional**, not contingent on step 1 failing: under the non-closing rule GitHub never creates a native development link (that surface is the closing-reference mechanism), so this comment is the only ticket-side backlink there will be — run it whether or not native linkage exists or cannot be verified, because the required Work-Item Traceability check reads this comment and nothing else guarantees one. The comment carries the marker and the PR URL only; the milestone (`pr-ready` / `pr-merged`) and merge SHA belong in the milestone progress note, so that a rerun at a new milestone still converges on one backlink comment.
 
 Native GitHub linkage cannot be verified under the non-closing rule because it is never created in the first place, so the managed comment is not a contingency here — it is the mechanism. The issue must show the PR from at least one ticket-side surface, and this is the only one available.
 
