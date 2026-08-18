@@ -125,6 +125,25 @@ recovery-required   Lost access to the tracker; filed #1812 with the one decisio
 policy-obsolete     No work has reached this queue in 30 days; proposed teardown in #1813.
 ```
 
+### `nothing-needed` states its denominator
+
+A queue-scanning loop that reports nothing is only as trustworthy as the set it looked at, and a
+summary of the form "scanned N items" hides the one thing worth checking: **which lanes N came
+from.** So a `nothing-needed` summary from a queue scanner names the lanes it swept, the count in
+each, and the total open — `Looked in every lane holding work that has not started — Backlog (20),
+Todo (17), Ready (2), Blocked (61) — 100 items checked out of 343 still open.`
+
+This is a measured requirement, not a style preference. One build lane reported 31 consecutive dry
+cycles over a queue holding 61 unswept rows, at least one of them buildable for ~15 hours. Every
+one of the 31 records was honest and every conclusion was false, because the scanner never said
+what its denominator was. **A missing run record is noisy on inspection; a wrong denominator is
+silent forever and looks exactly like a healthy dry queue.** Stating the swept set is what makes
+the second failure mode visible at all.
+
+The build-intake loop enforces this rather than requesting it: `automation-run-record.mjs` refuses
+a `nothing-needed` row for `intake-tickets` unless the call carries a `--denominator` built by
+`scripts/intake-prework-denominator.mjs`.
+
 **No silent exit.** Every run posts its outcome and its one-line summary before stopping —
 including the trivial early terminations (empty queue, nothing eligible, already-claimed) — so
 there is no silent exit for an operator to misread as health. A run that ends without a
