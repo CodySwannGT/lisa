@@ -85,7 +85,7 @@ The only legitimate reasons to stop early:
 
 - Missing project key / JQL or required configuration. Surface the missing value and exit.
 - Workflow misconfigured (pre-flight check finds `$CLAIMED` or `$DONE` not reachable, or `$READY` status absent). Surface and exit.
-- Empty ready set. Exit cleanly with `"No tickets with Status=$READY. Nothing to do."`
+- Empty pre-work set. Exit cleanly on the denominator-stated summary from `summarizeDryLane` — which names every lane swept, its count, and the open total. A bare "nothing to do" is not an acceptable exit: it is indistinguishable from a wrong denominator (#2657).
 
 ## Lifecycle assumed
 
@@ -130,11 +130,59 @@ JQL="${BASE_JQL} ORDER BY priority DESC, created ASC"
 
 4. Confirm the configured Atlassian site by invoking `lisa-atlassian-access` `operation: list-sites` (it enforces connection match against `.lisa.config.json`).
 
-### Phase 2 — Find ready tickets
+### Phase 2 — Sweep every pre-work status by CATEGORY
 
-Invoke `lisa-atlassian-access` `operation: search-issues jql: "<JQL>"`. Capture each ticket's: key, summary, issue type, priority, assignee, parent (epic), labels, components.
+**Sweep by `statusCategory`, never by a roster of status names.** JIRA groups statuses into three
+categories — `To Do` (`new`), `In Progress` (`indeterminate`), `Done` (`done`) — and a `Blocked`
+status is not a fourth category: a project that wants one models it under **`To Do`**, i.e. work
+that was never started. Keying the candidate set on status *names* therefore omits every pre-work
+lane a project invented, and the scanner reports an empty queue over a full one. The same defect on
+the Linear side produced 31 consecutive false "dry lane" cycles (#2657).
 
-If empty, report `"No tickets with Status=$READY. Nothing to do."` and exit. This is the common idle case.
+1. Run the ready query first: `lisa-atlassian-access` `operation: search-issues jql: "<JQL>"`. This
+   is the human-flipped lane and it is worked first.
+2. Then sweep the rest of pre-work with the same base JQL, swapping the status clause for
+   `statusCategory = "To Do"`, and read the **total open** count (`statusCategory != Done`). The
+   open total is what makes an omitted lane arithmetically visible.
+3. Page to exhaustion — a single unpaged `search-issues` call is not a count.
+
+Capture each ticket's: key, summary, issue type, priority, assignee, parent (epic), status (with
+its category), labels, components.
+
+Build the denominator with the shared helper, which owns the pre-work vocabulary so no two
+scanners can disagree about what counts:
+
+```text
+buildIntakeDenominator({ lanes: [{name: "<status>", type: "<statusCategory>", count: <rows>}, …],
+                         totalOpen: <statusCategory != Done count> })
+summarizeDryLane(denominator, { queue: "<project key>" })
+```
+
+The helper accepts JIRA's category vocabulary directly (`new` / `To Do` normalize to pre-work).
+
+**Every candidate outside `$READY` must clear Phase 2.5 before it is treated as a candidate at
+all.** If nothing survives, exit on the denominator-stated summary from `summarizeDryLane` — never a
+bare "nothing to do". The run recorder rejects a dry build-intake run that does not name what it
+swept (see `automation-runbook-contract`).
+
+### Phase 2.5 — Re-probe the blockers instead of inheriting them
+
+A blocker is a **claim with a timestamp, not a fact** — it goes stale the moment its condition comes
+true, and nothing re-read one before this phase. For each pre-work candidate outside `$READY`:
+
+1. **Human gate first, and it is absolute.** A ticket carrying the configured human-needed label
+   (`jira.labels.human_needed`, default `Human Needed`) or a `[lisa-human-gate]` marker in its
+   description is **never** auto-selected, whatever any probe says.
+2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
+   version on trunk, a published package, a CI run history, an advisory's patched status — rot
+   fastest and are cheapest to check. A human decision is not machine-testable; leave it.
+3. **Classify with `classifyPreWorkCandidate(...)`** from
+   `scripts/intake-blocker-reprobe.mjs`. A discharge with no recorded evidence is not a discharge,
+   and neither is a candidate nothing probed this cycle — the helper refuses both.
+4. **Record the result on the ticket either way** via `formatReprobeNote(...)` as a comment, so the
+   next cycle reads the answer rather than re-deriving it. Keep it idempotent.
+5. **On `selectable: true`**, transition the ticket to `$READY` with the discharging evidence in the
+   same comment, and treat it as an ordinary candidate. On anything else, leave it where it is.
 
 ### Phase 3 — Process the first eligible ready ticket
 
@@ -149,7 +197,7 @@ A JIRA project can oversee multiple repos (`frontend` / `backend` / `infrastruct
    - **Unlabeled** → determine the target repo(s) from the ticket (description, AC, technical approach) confirmed against the code surfaces, then **stamp** `repo:<name>` via `lisa-atlassian-access` `operation: write-ticket` (add the label / set the component) so later cycles filter cheaply; re-apply with the now-known repo.
    - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure to break it into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
    - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
-4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready tickets for repo <current>. Nothing to do."`.
+4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the candidate set is exhausted — exit cleanly on the denominator-stated summary, naming the current repo alongside the swept lanes.
 
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 

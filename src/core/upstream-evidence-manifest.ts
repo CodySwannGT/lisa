@@ -731,7 +731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/track-plan-sessions.sh":
       "8bc47dcad3aed628df0c9efbe7b6f3df87635b94b0c54c71e0bd52eceace563a",
     "plugins/src/base/rules/eager/automation-runbook-contract.md":
-      "3d082e2f9a980ccf1dd6b51cc7251dfb171a53f8dcc36c11b4d9fd1f3d89dec7",
+      "0442c478cac32b2522534309bda96a30e1cd268b9041d2b6a7a63d08a5c49920",
     "plugins/src/base/rules/eager/base-rules.md":
       "d3a4bd518acf2c6f4e866042542f9155fdbf5b2fdad5747e1afd097bdef15351",
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md":
@@ -831,7 +831,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/work-item-definition-of-ready.md":
       "4285953f749aabee90dd44d7bff7e28a50e0a8c910917a96ebf81abfa425d836",
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
-      "2074badf010c15dce80ce17be0d0c714baf700d09e87ca1f9d4628108e6f231c",
+      "427be7bddf9a581dbb1c1fdbe07c02d4a1ff4ec96f4d91f409651b6ac4ff8a45",
     "plugins/src/base/rules/reference/base-rules.md":
       "487ea1764c4b636ca4a33b78a90e925f028bb9a54182c0795cd1bbdc437a262d",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
@@ -931,7 +931,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
-      "77ea269502b97300c400916ee851dc85082a9237ce3d4468688455084d96413a",
+      "7ec6370d15aa4db9fb866cfc83621a7bc58c83f4c24fc15eeddd2bda91f66bc0",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
       "1f77b28fd59986ac3f76a55296b70d8c45385bbdb759e97691e49db121725ee2",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
@@ -954,6 +954,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
+    "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
+      "135a9b5a0894f70562b54d2071caff1e679c0fe542a606caca39e9e6a5b65f24",
+    "plugins/src/base/scripts/intake-prework-denominator.mjs":
+      "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
@@ -1037,7 +1041,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "6b3bbe8ff85c7cb20412dcfcab3d7506a3efc67907cb749622c329fb4130baf4",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "ad703d7e7a9f13de6e708fc31fa321b329295b0cc8b31de8804c2fdc3b2fa7fa",
+      "f956b8ba5148a76a157f8c6089f1d94de5eeea699c9a37570b71b80ad9ec6015",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1085,13 +1089,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-intake-explain/SKILL.md":
       "353ffde220de23a06cd88fea0fffc8ff690fc6bcf553f99988a8367138404eba",
     "plugins/src/base/skills/lisa-intake/SKILL.md":
-      "5ca35517fec4483c000466a4a2e7487b0f75ccec17053ad0b06ec4848027d1a1",
+      "ad78305053ac69451e35ba3011895fe0220d5aa7306e38260a45b23a9683140f",
     "plugins/src/base/skills/lisa-jam-access/SKILL.md":
       "eb7255578a3ada2278a0437c4300fed3f28b9b1a4ef2fd4ceed63f3d9ab81ed3",
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "92bc77aac50426b37f954ed24d95bd600ae1a429c2fecd6bbd4317053136bb03",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "6a31ad5193281b0b7ac6ba8d774fc5e1e357f320d44f151f8e715f1dee4c2f64",
+      "dafbb30c38b0da961a38064fecbdb0f3eeb26886369c4040ed9c42570ab2272d",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1129,7 +1133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "0996feb0f8f0df41372a35682ef39f1b6c8e213402a39bc8dca864d9ee0724f6",
+      "06cae5e0675bb03fe45c5efdaf3c79168c932cdae757c40446c54f8aa451a644",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "d3fee9a0435e93402be53769313f971c77b847521826fbaee0d19a0bdbc34b93",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1369,7 +1373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
-      "df50fb88f29eadc66c250e1d7f841472df43ba865930fbbc0bea36bba3380ec3",
+      "db392f3342cac926bbf65025427dac303c937fe3d6f59bb3feb50c8e0f75fa3b",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
       "481922dba26c4e62ae36193a2e1565860aecf7e344bf5c37b3a0759f42676846",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
@@ -3370,6 +3374,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/design-source-gate.mjs": true,
     "plugins/lisa-agy/scripts/doctor-report.mjs": true,
     "plugins/lisa-agy/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa-agy/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/lisa-agy/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa-agy/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-agy/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-agy/scripts/project-ideation-idempotency-harness.mjs": true,
@@ -3843,6 +3849,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/design-source-gate.mjs": true,
     "plugins/lisa-copilot/scripts/doctor-report.mjs": true,
     "plugins/lisa-copilot/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa-copilot/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/lisa-copilot/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa-copilot/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-copilot/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-copilot/scripts/project-ideation-idempotency-harness.mjs": true,
@@ -4302,6 +4310,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/design-source-gate.mjs": true,
     "plugins/lisa-cursor/scripts/doctor-report.mjs": true,
     "plugins/lisa-cursor/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa-cursor/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/lisa-cursor/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa-cursor/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-cursor/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-cursor/scripts/project-ideation-idempotency-harness.mjs": true,
@@ -6860,6 +6870,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/design-source-gate.mjs": true,
     "plugins/lisa/scripts/doctor-report.mjs": true,
     "plugins/lisa/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/lisa/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/lisa/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa/scripts/project-ideation-idempotency-harness.mjs": true,
@@ -7501,6 +7513,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/design-source-gate.mjs": true,
     "plugins/src/base/scripts/doctor-report.mjs": true,
     "plugins/src/base/scripts/install-remote-agent-aws.mjs": true,
+    "plugins/src/base/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/src/base/scripts/intake-prework-denominator.mjs": true,
     "plugins/src/base/scripts/lifecycle-label-trust.mjs": true,
     "plugins/src/base/scripts/plugin-sync-explain.mjs": true,
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs": true,
@@ -8605,6 +8619,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/harness-parity-council/probe-auth-missing.json": true,
     "tests/fixtures/harness-parity-council/probe-command-missing.json": true,
     "tests/fixtures/harness-parity-council/probe-success.json": true,
+    "tests/fixtures/intake-prework-denominator/linear-team-lanes.json": true,
     "tests/fixtures/queue-status-build-readers/github-umbrella.json": true,
     "tests/fixtures/queue-status-build-readers/github.json": true,
     "tests/fixtures/queue-status-build-readers/jira.json": true,
@@ -9290,6 +9305,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/intake-explain-published-docs.test.ts": true,
     "tests/unit/strategies/intake-explain-scaffold.test.ts": true,
     "tests/unit/strategies/intake-explain-smoke-fixtures.test.ts": true,
+    "tests/unit/strategies/intake-prework-denominator.test.ts": true,
     "tests/unit/strategies/jira-description-adf.test.ts": true,
     "tests/unit/strategies/jira-evidence-config-bound-status.test.ts": true,
     "tests/unit/strategies/ladder-router-contract.test.ts": true,
