@@ -348,6 +348,17 @@ describe("the scripts profile relaxes documentation, not correctness", () => {
     expect(isOff((await scriptsRules())[ruleId])).toBe(false);
   });
 
+  it("raises sonarjs/no-ignored-exceptions to error for shipped scripts", async () => {
+    // The one rule this profile makes STRICTER than the application default,
+    // which carries it at `warn`. A swallowed exception is an error that went
+    // somewhere and said nothing — a broken command reading as a measured zero.
+    // `bun run lint` is `eslint . --quiet`, which hides warnings, so `warn`
+    // here would be the same disappearing act the rule is meant to catch.
+    const severity = (await scriptsRules())["sonarjs/no-ignored-exceptions"];
+
+    expect(Array.isArray(severity) ? severity[0] : severity).toBe(2);
+  });
+
   it("relaxes the JSDoc regime and functional purity for shipped scripts", async () => {
     // Scripts are CLIs, not published API. This is the deliberate half of the
     // profile — asserted so the two halves cannot be confused for each other.

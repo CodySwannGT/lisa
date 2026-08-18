@@ -45,6 +45,7 @@
     "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
     "check:required-check-promotions": "node scripts/check-required-check-promotions.mjs",
     "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
+    "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push",
     "check:thresholds": "node plugins/src/base/hooks/threshold-ratchet.mjs --base HEAD^",
     "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
     "verify:health-deterministic": "bun run build:dist && node scripts/verify-health-deterministic-built.mjs",
@@ -131,7 +132,7 @@
     "ws": ">=8.21.0"
   },
   "name": "@codyswann/lisa",
-  "version": "3.33.6",
+  "version": "3.33.8",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

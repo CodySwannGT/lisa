@@ -120,6 +120,7 @@
       "pull-request": "optional"
     },
     "traceability": {
+      "push": "required",
       "pull-request": "required"
     },
     "threshold-monotonicity": {
