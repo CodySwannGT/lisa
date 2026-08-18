@@ -65,15 +65,9 @@ describe("serialize-legs callee grant tracks the shipped workflow", () => {
     expect(CALLEE_GRANTS_ACTIONS_READ).toBe(workflowGrantsActions());
   });
 
-  it("refuses to certify a fully configured caller while the callee cannot receive the scope", async () => {
-    // The defect this replaces. AcmeOrgD/frontend declares every caller-side
-    // part — serialize on, token forwarded, `actions: read` at BOTH job and
-    // workflow level — and the check reported `ok`. That same configuration
-    // was measured at HTTP 403 with the two legs starting two seconds apart.
-    //
-    // A check that passes on a broken configuration is worse than no check: it
-    // converts "unverified" into "verified", and it is consulted instead of
-    // the runtime evidence.
+  it("certifies a fully configured caller now that the callee declares the scope", async () => {
+    // A caller declaring every part: serialize on, token forwarded, and
+    // `actions: read` at both job and workflow level.
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-legs-"));
     try {
       fs.mkdirSync(path.join(root, ".github", "workflows"), {
@@ -101,11 +95,13 @@ describe("serialize-legs callee grant tracks the shipped workflow", () => {
       );
 
       const result = await checkSerializeLegsContract(root);
-      expect(CALLEE_GRANTS_ACTIONS_READ).toBe(false);
-      expect(result.status).toBe("warn");
-      expect(result.detail).toContain("CANNOT work");
-      // It must not send the operator to fix their own config: theirs is done.
-      expect(result.detail).toContain("Nothing to fix here");
+      // Before #2662 this same configuration was measured at HTTP 403 with the
+      // legs starting two seconds apart, and the check reported `ok` anyway.
+      // It now reports `ok` because the verdict is finally true, not because
+      // the check stopped looking.
+      expect(CALLEE_GRANTS_ACTIONS_READ).toBe(true);
+      expect(result.status).toBe("ok");
+      expect(result.detail).not.toContain("CANNOT work");
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

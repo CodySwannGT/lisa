@@ -432,8 +432,32 @@ on:
           Android leg start — it never fails the run over it.
         required: false
 
+# `actions: read` is what makes `serialize_platform_legs` capable of ordering
+# anything at all. A called workflow's `permissions:` block is a CEILING that
+# zeroes everything unlisted, so a caller granting the scope had it discarded at
+# this boundary wherever it was declared — which is why the ordering job read
+# the jobs API, got HTTP 403, and released the Android leg on every run in every
+# repository since the feature shipped. `LEG_ORDER_TOKEN` was designed to route
+# around #2046 by forwarding a secret rather than declaring a scope; that route
+# does not exist while this block omits `actions`.
+#
+# Declared explicitly rather than by OMITTING the block, which was measured as
+# the other way to make it work: a callee with no `permissions:` inherits the
+# caller's grant, but a consumer whose repo default is `write` then hands this
+# workflow nineteen write scopes including `contents`, `packages` and
+# `securityEvents` — on a workflow that runs Maestro flows and third-party
+# actions, with nothing in the diff to say so. Naming the two keeps the ceiling
+# a ceiling.
+#
+# The cost of declaring it: a caller that has NOT granted `actions: read` now
+# gets a `startup_failure` for its entire run, decided before any `if:` is
+# evaluated, whether or not it opted into serialization. Every `@main` caller in
+# the portfolio was confirmed to grant it before this landed — there is no
+# version to pin away from, so the check had to be exhaustive rather than
+# hopeful.
 permissions:
   contents: read
+  actions: read
 
 # Cross-run serialization is opt-in via the `concurrency_group` input, and the
 # default is deadlock-safe by construction: an unset input yields a group unique

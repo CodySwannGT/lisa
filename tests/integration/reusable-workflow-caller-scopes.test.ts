@@ -89,7 +89,13 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   // `contents: read` only. The leg-ordering job reads the jobs API through the
   // forwarded LEG_ORDER_TOKEN secret precisely so this line does not have to
   // gain `actions: read` — see #2566.
-  "maestro-native-e2e.yml": { contents: "read" },
+  // Gained `actions: read` deliberately, under rule 3 of this file's header:
+  // the caller migration shipped FIRST and was confirmed on every consumer's
+  // default branch before this line changed. The job that needs it polls this
+  // run's own job list to order the platform legs; forwarding a token instead
+  // (rule 1, the default answer) was implemented as LEG_ORDER_TOKEN and
+  // MEASURED to fail with HTTP 403, so rule 1 is exhausted rather than untried.
+  "maestro-native-e2e.yml": { contents: "read", actions: "read" },
   "nightly-e2e-health.yml": {
     actions: "read",
     contents: "read",
@@ -149,15 +155,23 @@ describe("reusable workflows never gain a declared permission scope", () => {
     // exactly like a clean fleet. This reproduces #2566 exactly: a JOB-level
     // `actions: read` under a workflow-level `contents: read`, which a check
     // reading only the workflow-level block would have waved through.
+    // The scope is deliberately NOT `actions: read` any more — that is now in
+    // the baseline, so reusing it would compare a value to itself and the
+    // control would pass while proving nothing. `packages: write` stands in for
+    // "the next scope somebody adds".
     const regressed = declaredScopes({
-      permissions: { contents: "read" },
-      jobs: { leg_order: { permissions: { actions: "read" } } },
+      permissions: { contents: "read", actions: "read" },
+      jobs: { leg_order: { permissions: { packages: "write" } } },
     });
-    expect(regressed).toEqual({ contents: "read", actions: "read" });
+    expect(regressed).toEqual({
+      contents: "read",
+      actions: "read",
+      packages: "write",
+    });
     expect(regressed).not.toEqual(BASELINE["maestro-native-e2e.yml"]);
     expect(
       missingScopes(BASELINE["maestro-native-e2e.yml"], regressed)
-    ).toEqual(["actions:read"]);
+    ).toEqual(["packages:write"]);
   });
 
   it("counts a raised level as a gain, not only a brand-new scope", () => {
