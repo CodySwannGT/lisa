@@ -5,9 +5,11 @@ the same claim in every repo, and so a person moving between repos finds the
 same file doing the same job under the same name.
 
 Defined **after** measuring, not before: four repos were read on 2026-08-18 and
-no two wire e2e the same way. Only two files exist in all four.
+no two wire e2e the same way. Only two files exist in all four — and **a shared
+filename is not a shared file.** Both of those two differ in every repo that has
+them. Read the next section before trusting this one.
 
-## The measured starting point
+## The measured starting point — presence only
 
 ```
                             tunnl   gemini  propswap  gunnertech
@@ -28,23 +30,84 @@ e2e-account-sweeper.yml       -       -        Y          -
 e2e-inbox-access-check.yml    -       -        Y          -
 ```
 
-## Why it drifted — and why blaming the consumers is wrong
+## Why it drifted — measured at both layers, and neither converges
 
-Lisa ships the reusable workflows but **not the callers**:
+The table above is a **presence** census, and presence is the layer that works.
+Content is the layer that doesn't, and a filename census cannot see it.
+
+### Layer 1 — the caller workflow (`create-only`, and it forks permanently)
+
+Lisa *does* ship expo callers. All six live in `expo/create-only/.github/workflows/`
+and `expo/copy-overwrite/` holds **zero** workflow files. Read the strategy
+rather than assuming what "create-only" means (`src/strategies/create-only.ts`):
+
+```ts
+// Create-only strategy: Create file if not exists, never update
+//  - Create if not exists
+//  - Skip silently if exists (whether identical or different)
+await this.copyFileExclusive(sourcePath, destPath, constants.COPYFILE_EXCL);
+```
+
+So it creates whenever the file is **absent — on every apply, not just at
+scaffold**, which is why presence spreads. And once present it is skipped
+forever, *identical or not*, which is why content forks the moment it lands and
+never comes back. Every consumer's copy is frozen at whatever Lisa shipped the
+day that repo first applied, and every subsequent Lisa improvement reaches nobody.
+
+Measured 2026-08-18 — each repo's copy vs Lisa's current template:
 
 ```
-REUSABLE, called via uses:   maestro-native-e2e.yml   nightly-e2e-health.yml
-                             nightly-e2e-report.yml   quality.yml
-COPY-OVERWRITE scripts       check-nightly-e2e-health.mjs  check-e2e-coverage.mjs
-                             classify-maestro-failures.mjs
-                             nightly-e2e-suites.schema.json
-CALLER workflows for expo    NONE
+                              tunnl        gemini       propswap     gunnertech
+ci.yml                      +81/-35      +98/-40      +138/-37     +82/-36
+deploy.yml                  +126/-41     +27/-63      +2/-3        +34/-64
+maestro-e2e.yml             +201/-118    +160/-113    +109/-116    +105/-113
+nightly-e2e-health.yml      +1/-1        +137/-112    +126/-147    +238/-149
+nightly-e2e-bypass-reaper   +50/-13      IDENTICAL    +0/-3        absent
+nightly-e2e-report.yml      IDENTICAL    absent       IDENTICAL    absent
 ```
 
-`harper-fabric` and `phaser` each receive a `ci.yml` through copy-overwrite;
-`expo` receives none. Every expo consumer hand-authors its caller, four
-hand-authored files drifted into four shapes, and nothing could detect it
-because no declared shape existed. **This contract is that declaration.**
+**23 of 24 repo×file pairs are diverged or absent; 3 are identical.** The two
+files that exist in all four repos are also the two nobody can update. And the
+one file that is byte-identical wherever it exists — `nightly-e2e-report.yml` —
+is the **newest**, added 2026-08-12. That is the mechanism proving itself: files
+arrive clean and rot from the moment they land.
+
+### Layer 2 — the reusable (`uses:`), which should converge and also doesn't
+
+A caller's real job is to `uses:` a versioned reusable, and that layer *can*
+converge because it resolves at run time. It doesn't:
+
+```
+tunnl       maestro-e2e  -> maestro-native-e2e @main     health -> @v3.27.0
+                                                          report -> @v2.345.1
+gemini      maestro-e2e  -> maestro-native-e2e @main     health -> @v3.14.8
+                            playwright-e2e -> quality @main
+propswap    maestro-e2e  -> maestro-native-e2e @main     health -> FULLY LOCAL
+                                                          report -> @v2.345.1
+gunnertech  maestro-e2e  -> FULLY LOCAL                  health -> FULLY LOCAL
+```
+
+**Four of the eight health/maestro callers invoke no Lisa reusable at all** —
+they are local reimplementations, which is the same defect as tunnl's
+`nightly-e2e-gate.yml` fork (§4), just spread across three repos.
+`gunnertech/frontend` is not a Lisa e2e consumer in any sense. The callers that
+*do* delegate span **four different refs**, including `@v2.345.1` — a major
+series behind everything else in the portfolio.
+
+### What this means for the fix
+
+**Do not simply flip these files to `copy-overwrite`.** They carry real local
+content — tunnl's `maestro-e2e.yml` is 11,111 B against Lisa's 7,662 B — and
+overwriting would destroy work in all four repos. The order that survives
+contact with reality:
+
+1. **Make every caller actually call a reusable.** The four local
+   reimplementations are the real divergence; the caller's line count is a
+   symptom.
+2. **Put the logic in the reusable and pin one ref.** That layer converges by
+   construction; the caller should be thin enough that freezing it is harmless.
+3. **Only then move the thin caller to `copy-overwrite`.** Local extras move out
+   to a separately-named workflow first (§5), never into the shared file.
 
 ## 1. Filenames are fixed, and name the SUITE
 
@@ -133,23 +196,28 @@ Two files declaring one check name is still the dangerous part: a required
 context can be satisfied by whichever ran, and nothing on the PR page
 distinguishes them. Retire the fork — but move what only it does first.
 
-## 4a. Delivery mode decides whether this contract can be enforced
+**And tunnl is not alone.** The same defect — a local reimplementation where a
+`uses:` should be — appears in `propswap/nightly-e2e-health.yml` and in *both*
+of gunnertech's e2e workflows. Four forks across three repos, of which tunnl's
+is merely the one visible from a filename census because it also collides on
+`name:`. Retiring the fork is a portfolio-wide item, not a tunnl cleanup.
 
-The deeper mechanism, and the reason convergence has never happened by itself:
+## 4a. Every file this contract names states its delivery lane
 
-| lane | behaviour | consequence |
+| lane | behaviour | converges? |
 | --- | --- | --- |
-| `copy-overwrite` | rewritten into the project on every `lisa apply` | **converges** — drift is corrected automatically |
-| `create-only` | delivered once at scaffold time, never refreshed | **cannot converge** — whatever a repo received on its scaffold day is frozen there forever |
+| `copy-overwrite` | rewritten on every `lisa apply` | **yes** — drift is corrected automatically |
+| `create-only` | created when absent on any apply; skipped forever once present, identical or not | **presence only** — content forks on landing and never returns |
+| `uses:` reusable | resolved at run time from the ref the caller names | **yes, if the caller delegates and the ref is shared** |
 
-`nightly-e2e-report.yml` ships from `expo/create-only/`. So the two repos that
-have it did not *choose* it and the two without did not *decline* it — they
-were scaffolded on different days. No amount of consumer discipline fixes that.
+A file's lane is not a packaging detail — it decides whether a rule in this
+document is enforced or merely aspirational. An entry with no stated lane is
+incomplete.
 
-**Every file this contract names must state its lane.** A rule delivered
-`create-only` is aspiration; the same rule delivered `copy-overwrite` is
-enforced. Moving the e2e callers into `expo/copy-overwrite/` is the structural
-fix that makes the rest of this document real.
+The distribution of `nightly-e2e-report.yml` is the worked example: the two
+repos that have it did not *choose* it and the two without did not *decline* it.
+It was added on 2026-08-12, and presence tracks nothing but whether a repo has
+applied since. No amount of consumer discipline changes that.
 
 ## 5. Project-specific extras STAY project-specific
 
