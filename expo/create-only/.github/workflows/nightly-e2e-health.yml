@@ -152,6 +152,33 @@ jobs:
       #     "match": { "mode": "run" },
       #     "first_seen": "2026-08-10T00:00:00Z"
       #   }
+      #
+      # DECLARE `min_flows` ONCE YOUR SUITE IS REAL (rows 36-38). A run's
+      # conclusion answers "did it pass?" and says nothing about "how much of it
+      # ran?". A tag-filtered run of four flows reports `success` under the
+      # identical workflow name and is indistinguishable from a full green in
+      # `gh run list` — that is not hypothetical, it is what #2704 measured
+      # clearing a REQUIRED merge gate in two repositories.
+      #
+      #   {
+      #     "label": "Maestro native e2e",
+      #     "workflow": "maestro-e2e.yml",
+      #     "match": { "mode": "run" },
+      #     "min_flows": 60
+      #   }
+      #
+      # It is deliberately NOT set below. This template ships to a repo with no
+      # suite yet, and a floor guessed on its behalf would red-wall the first
+      # adopter — the same mistake as a default `workflow` that does not exist.
+      # Read the real number off a full night's `maestro-<platform>-flowcount-<N>`
+      # artifact, sum the platforms, and set it a little under that so ordinary
+      # churn does not redden the gate.
+      #
+      # Until you do, the gate still rejects a run that recorded ITSELF as
+      # tag-filtered (row 36), and every green line says so:
+      # `⚠️ scope unverified: this run published no executed-flow count`.
+      # Declaring `min_flows` is what turns that notice into a blocking question
+      # — and from then on an UNREADABLE count blocks too, which is the point.
       suites: |
         [
           {
