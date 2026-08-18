@@ -227,11 +227,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "27f5037db910501f8d76f828f91a605e3c4d321d1df362d317c440ab7abc9f14",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "cb7ae17a845f4a0cab21b8eb87291f2746610880c6a611731520ee1b925ecf85",
+      "cd587cd38ca985b621d572e96f05425bcb9ca8dcef9af5b338349cfa1e6cfd39",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "89d9096af748fe608e669ea1e5bd71ac2520bcaceb88d36d55da2763eec20e55",
+      "e703c02a5d4359674dd8bbc98f1699585dec61024eb176ef11a314590c2a4fca",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "a3eeeeeab2956e59ae1fd143b30bedcb0bb7180bc9e6a87aab3c8c1467bbc2ec",
     "expo/create-only/.maestro/flake-classification.json":
@@ -2315,7 +2315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "9e6f8b161863ff7f47211ad8ae5cdd0a72f593022129651f987d4ca50bb773eb",
+      "8b01530e8eda16d93a4e13e47e17b20b22355507cf72cf9af4a7e49fe33efb8e",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -2327,7 +2327,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
-      "d57fdce3529712362d38f0ea569244d2eea3d2667e8689d55f762f672527e989",
+      "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -8679,8 +8679,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/gate-config-validity-job.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
+    "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
+    "tests/integration/maestro-checkout-credentials.test.ts": true,
     "tests/integration/maestro-eas-profile-guard.test.ts": true,
+    "tests/integration/maestro-eas-quota-diagnosis.test.ts": true,
+    "tests/integration/maestro-flow-app-id-lint.test.ts": true,
     "tests/integration/maestro-leg-order-wait.test.ts": true,
     "tests/integration/maestro-leg-order.test.ts": true,
     "tests/integration/maestro-native-concurrency.test.ts": true,
@@ -8710,6 +8714,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-tamper.test.ts": true,
     "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
+    "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
@@ -9109,6 +9114,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-pinning.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-requiredness.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-scope.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,

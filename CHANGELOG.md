@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.37.0](https://github.com/CodySwannGT/lisa/compare/v3.35.1...v3.37.0) (2026-08-18)
+
+
+### Features
+
+* **ci:** give the Maestro reusable the four capabilities consumers forked for ([f374bfb](https://github.com/CodySwannGT/lisa/commit/f374bfbe7d1afaa1e019f3b02b2e746be0a20738)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
+
+### Bug Fixes
+
+* **ci:** a tag-filtered run must not satisfy the nightly e2e gate ([c46b1b5](https://github.com/CodySwannGT/lisa/commit/c46b1b5ca28dfea26a73ab039c8a6c87e3bb281c)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+* **ci:** do not tell a browser suite to declare a floor it cannot satisfy ([9035fae](https://github.com/CodySwannGT/lisa/commit/9035fae2aa751735e2d5f1b9e0b1d8d641ff4175)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
+
+### Documentation
+
+* **ci:** make `min_flows` discoverable in the caller template ([6eade43](https://github.com/CodySwannGT/lisa/commit/6eade433dd377d89d7f827e4bcc5e7d85b29c15f)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+* **ci:** record the case row 26 provably cannot catch ([40ca97b](https://github.com/CodySwannGT/lisa/commit/40ca97ba1b41e23b236888ed559910d593b39c79)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
+## [3.36.0](https://github.com/CodySwannGT/lisa/compare/v3.35.1...v3.36.0) (2026-08-18)
+
+
+### Features
+
+* **ci:** give the Maestro reusable the four capabilities consumers forked for ([f374bfb](https://github.com/CodySwannGT/lisa/commit/f374bfbe7d1afaa1e019f3b02b2e746be0a20738)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
+
+### Bug Fixes
+
+* **ci:** a tag-filtered run must not satisfy the nightly e2e gate ([c46b1b5](https://github.com/CodySwannGT/lisa/commit/c46b1b5ca28dfea26a73ab039c8a6c87e3bb281c)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+* **ci:** do not tell a browser suite to declare a floor it cannot satisfy ([9035fae](https://github.com/CodySwannGT/lisa/commit/9035fae2aa751735e2d5f1b9e0b1d8d641ff4175)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
+
+### Documentation
+
+* **ci:** make `min_flows` discoverable in the caller template ([6eade43](https://github.com/CodySwannGT/lisa/commit/6eade433dd377d89d7f827e4bcc5e7d85b29c15f)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+* **ci:** record the case row 26 provably cannot catch ([40ca97b](https://github.com/CodySwannGT/lisa/commit/40ca97ba1b41e23b236888ed559910d593b39c79)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
 ### [3.35.1](https://github.com/CodySwannGT/lisa/compare/v3.35.0...v3.35.1) (2026-08-18)
 
 

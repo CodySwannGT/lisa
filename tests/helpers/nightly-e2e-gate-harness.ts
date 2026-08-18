@@ -17,7 +17,7 @@ import { pathToFileURL } from "node:url";
 import type {
   IssuePlanEntry,
   IssueResult,
-  Requiredness,
+  ReportingModule,
 } from "./nightly-e2e-reporting-harness";
 
 export {
@@ -87,6 +87,18 @@ export interface Finding {
   readonly grace?: SuiteGrace;
   /** Present only for a suite that declared `"gated": false` (§10.7). */
   readonly gated?: boolean;
+  /** Rows 36-38: the measured numbers behind a scope disqualification. */
+  readonly scopeDetail?: string;
+  /** Rows 36-38: a green whose scope this gate could not check. */
+  readonly scopeUnverified?: boolean;
+}
+
+/** What a run recorded about its own scope, from its artifact names. */
+export interface SuiteScope {
+  readonly readable: boolean;
+  readonly filtered: readonly string[];
+  readonly counts: Readonly<Record<string, number>>;
+  readonly totalFlows: number | null;
 }
 
 /** The bypass decision. */
@@ -110,7 +122,7 @@ export interface Verdict {
 }
 
 /** What the guard exports, as these suites consume it. */
-export interface GateModule {
+export interface GateModule extends ReportingModule {
   readonly DECISIVE_CONCLUSIONS: ReadonlySet<string>;
   readonly BYPASS_ABSOLUTE_MAX_HOURS: number;
   readonly REQUIRED_BYPASS_REASON_PATTERN: string;
@@ -177,32 +189,6 @@ export interface GateModule {
   resolveSettings(env: Record<string, string | undefined>): unknown;
   readonly TRACKING_ISSUE_LABEL: string;
   readonly INCOMPLETE_EVIDENCE_REASON: string;
-  readonly REQUIREDNESS: Readonly<Record<string, string>>;
-  readonly DEFAULT_GATE_CONTEXT: string;
-  contextMatchesGate(context: string, gateContext: string): boolean;
-  suiteRequiredness(
-    finding: { readonly gated?: boolean },
-    requiredness: Requiredness | null | undefined
-  ): { state: string; detail: string | null; source: string };
-  fetchRequiredness(
-    api: Record<string, unknown>,
-    branch: string,
-    gateContext: string,
-    wait?: () => Promise<void>
-  ): Promise<Requiredness>;
-  setIssuePin(
-    api: Record<string, unknown>,
-    nodeId: string,
-    pinned: boolean
-  ): Promise<{ ok: boolean; warning: string | null }>;
-  formatIssueReport(
-    results: readonly IssueResult[],
-    context: {
-      branch: string;
-      requiredness?: Requiredness;
-      gateContext?: string;
-    }
-  ): string;
   suiteMarker(label: string): string;
   isCompleteEvidence(finding: { readonly reason: string }): boolean;
   planIssueActions(
@@ -252,7 +238,29 @@ export const REASON = Object.freeze({
   noRun: "no_run",
   staleRun: "stale_run",
   incompleteRun: "incomplete_run",
+  filteredRun: "filtered_run",
+  flowShortfall: "flow_shortfall",
+  scopeUnreadable: "scope_unreadable",
 });
+
+/**
+ * The artifact names a FULL two-platform maestro night publishes.
+ *
+ * Shaped from a real run: AcmeOrgD/frontend 32120016803 published
+ * `maestro-ios-results`, `maestro-ios-flowcount-7`, `maestro-ios-report` and
+ * `app-ios`. The noise entries are kept because the parser has to ignore them —
+ * a fixture containing only the markers would prove nothing about a list that
+ * mostly is not markers.
+ */
+export const FULL_SCOPE_ARTIFACTS: readonly { name: string }[] = Object.freeze([
+  { name: "app-ios" },
+  { name: "maestro-ios-report" },
+  { name: "maestro-ios-results" },
+  { name: "maestro-ios-flowcount-42" },
+  { name: "maestro-ios-scope-full" },
+  { name: "maestro-android-flowcount-38" },
+  { name: "maestro-android-scope-full" },
+]);
 
 /**
  * A job every `mode: "run"` fixture carries unless it is testing completeness.

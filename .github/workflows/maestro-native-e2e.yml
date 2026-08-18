@@ -226,6 +226,42 @@ on:
         required: false
         default: 'dev-e2e'
         type: string
+      reuse_build_by_fingerprint:
+        description: >-
+          Reuse a finished EAS build whose fingerprint matches this commit
+          instead of starting a new cloud build. `eas fingerprint:generate`
+          hashes the native inputs (native dependencies, app config, plugin
+          set); a hit means an existing binary is byte-for-byte the app this
+          commit would produce, so building it again buys nothing. On a
+          fingerprint miss the workflow falls back to the latest FINISHED build
+          for this profile and platform, and only starts a fresh build when
+          both miss. Default false = always build, prior behavior preserved.
+          Turn it on when EAS build quota is the binding constraint rather than
+          build freshness: on Expo's Free plan the quota is what stops the
+          suite from running at all, which is why every consumer that hit it
+          forked this workflow. The cost of turning it on is that a suite can
+          run against a binary built from an EARLIER commit whose native inputs
+          hashed the same — which is exactly what the fingerprint asserts, but
+          it is an assertion about NATIVE inputs only. JS-only changes do not
+          move the fingerprint, so a project whose e2e profile embeds the JS
+          bundle should leave this off or it will test stale JS.
+        required: false
+        default: false
+        type: boolean
+      diagnose_eas_quota_exhaustion:
+        description: >-
+          When a fresh EAS build fails, scan its stderr for Expo's Free-plan
+          exhaustion message and re-emit it as a `::error::` naming the remedy.
+          Without this the failure reads as a generic build error and the
+          operator has to open the raw log to learn that nothing is wrong with
+          the code. Default false = prior behavior preserved, because turning
+          it on buffers the build's stderr to a file instead of streaming it
+          live to the job log — worth knowing on a `--wait` build that runs for
+          the better part of an hour. The buffered stderr is replayed in full
+          before the step exits, so nothing is lost, only delayed.
+        required: false
+        default: false
+        type: boolean
       flows_dir:
         description: 'Maestro flows directory'
         required: false
@@ -340,6 +376,25 @@ on:
           deleted flows directory or an expired EXPO_TOKEN looks exactly like a
           passing suite. Adopters have been hand-rolling preflight jobs to get
           this behaviour; set it true instead.
+        required: false
+        default: false
+        type: boolean
+      lint_flow_app_id:
+        description: >-
+          Fail preflight when a Maestro flow would launch an EMPTY app id. The
+          app id reaches flows as `-e MAESTRO_APP_ID=…`, so a flow that writes
+          `appId: ${APP_ID}` — or omits `appId:` entirely — interpolates to
+          nothing and Maestro reports a launch failure that names no cause. It
+          reads as a broken app; it is a one-line config error. Two checks run:
+          no file under the flows directory's Maestro root may reference
+          `${APP_ID}`, and every flow file under the flows directory must
+          declare `appId: ${MAESTRO_APP_ID}`. Default false = prior behavior
+          preserved, because the second check is only correct for a project
+          whose subflows live OUTSIDE the flows directory: `maestro test <dir>`
+          recurses, so a `runFlow`-included subflow sitting inside it is a flow
+          file that legitimately declares no appId and would fail this lint.
+          Move those beside the flows directory rather than inside it, then
+          turn this on.
         required: false
         default: false
         type: boolean
@@ -536,6 +591,55 @@ jobs:
             echo "run_ios=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: 🏷️ Lint per-flow appId
+        # Cheap here, expensive later. An empty interpolated appId does not
+        # announce itself: Maestro reports a launch failure with no cause, the
+        # whole suite reds on its first assertion, and the shape is
+        # indistinguishable by inspection from the app failing to start. That
+        # costs an EAS build and an emulator boot to discover. This costs a
+        # grep, before either.
+        #
+        # Runs only when the prerequisites held — a skipped suite has nothing
+        # to lint, and failing here would convert warn-and-skip into a red for
+        # every unwired adopter, which is `require_prerequisites`' job and not
+        # this one's.
+        if: ${{ inputs.lint_flow_app_id && steps.check.outputs.should_run == 'true' }}
+        env:
+          FLOWS_DIR: ${{ inputs.flows_dir }}
+        run: |
+          set -euo pipefail
+          # The `${APP_ID}` scan deliberately covers the Maestro ROOT, not just
+          # the flows directory. The drift this catches is a shared subflow
+          # naming the wrong variable while every flow beside it names the
+          # right one — and a shared subflow lives outside the flows directory
+          # by convention, so scanning only the flows directory would miss the
+          # exact file that breaks the suite.
+          APP_ID_SCAN_DIR="$(dirname "$FLOWS_DIR")"
+          if [[ "$APP_ID_SCAN_DIR" == "." || -z "$APP_ID_SCAN_DIR" ]]; then
+            APP_ID_SCAN_DIR="$FLOWS_DIR"
+          fi
+
+          # `--include` on BOTH scans, not just the second: an unfiltered
+          # recursive grep also reads whatever screenshots and .ans dumps a
+          # previous debug run left under the Maestro root, and grep reports
+          # ZERO matches in a file it decides is binary — so an unfiltered
+          # scan can pass by refusing to read the file that breaks the suite.
+          bad=$(grep -rlE --include='*.yaml' --include='*.yml' '^[[:space:]]*appId:[[:space:]]*\$\{APP_ID\}' "$APP_ID_SCAN_DIR" || true)
+          if [[ -n "$bad" ]]; then
+            echo "::error title=Maestro flow uses the wrong app id variable::These files declare 'appId: \${APP_ID}', but this workflow forwards the app id as MAESTRO_APP_ID. \${APP_ID} interpolates to EMPTY and Maestro fails to launch with no cause named. Rename the variable to MAESTRO_APP_ID."
+            echo "$bad" >&2
+            exit 1
+          fi
+
+          missing=$(grep -rLE --include='*.yaml' --include='*.yml' '^[[:space:]]*appId:[[:space:]]*\$\{MAESTRO_APP_ID\}' "$FLOWS_DIR" || true)
+          if [[ -n "$missing" ]]; then
+            echo "::error title=Maestro flow declares no appId::These flow files do not declare 'appId: \${MAESTRO_APP_ID}'. A flow with no appId launches nothing and reports a failure that names no cause. If a listed file is a runFlow-included SUBFLOW rather than a flow, move it outside '$FLOWS_DIR' — maestro test recurses, so anything under that directory is executed as a flow."
+            echo "$missing" >&2
+            exit 1
+          fi
+
+          echo "✅ every flow under '$FLOWS_DIR' declares appId: \${MAESTRO_APP_ID}"
+
   build:
     name: 🏗️ EAS Build (${{ matrix.platform }})
     needs: preflight
@@ -549,6 +653,16 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          # No step in this job uses the git token: the work here is an EAS
+          # build / a Maestro run / a caller-supplied setup command, none of
+          # which push. Left at the default, the checkout writes an
+          # unscoped credential into .git/config where every subsequent
+          # step — including third-party actions and the caller's own
+          # command — can read it and push as the workflow. A job that
+          # genuinely needs the token should say so HERE rather than
+          # inherit it silently.
+          persist-credentials: false
 
       - name: 🥟 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -615,20 +729,179 @@ jobs:
         # the Android build dies with MISSING_GOOGLE_SERVICES_JSON. The
         # committed .easignore is authoritative and is what the release
         # pipeline uses.
+        #
+        # Every caller-supplied value arrives through `env:`, never through a
+        # `${{ }}` expansion inside the script body. An expansion is
+        # substituted into the script TEXT before bash parses it, which makes a
+        # caller's `eas_profile` workflow SOURCE rather than an argument — the
+        # same rule the profile guard above and the flows-dir handling below
+        # already follow.
+        env:
+          EAS_PLATFORM: ${{ matrix.platform }}
+          EAS_PROFILE: ${{ inputs.eas_profile }}
+          REUSE_BY_FINGERPRINT: ${{ inputs.reuse_build_by_fingerprint }}
+          DIAGNOSE_QUOTA: ${{ inputs.diagnose_eas_quota_exhaustion }}
         run: |
-          eas build \
-            --platform ${{ matrix.platform }} \
-            --profile ${{ inputs.eas_profile }} \
-            --non-interactive \
-            --wait \
-            --json > build.json
+          set -euo pipefail
+          platform="$EAS_PLATFORM"
+          profile="$EAS_PROFILE"
+
+          # `eas build:download` hands back either a file or an already
+          # extracted .app directory, and the two arms downstream expect one
+          # shape each: an .apk for Android, a tarball for iOS.
+          stage_artifact() {
+            src="$1"
+            if [[ "$platform" == "android" ]]; then
+              cp "$src" app-android.apk
+              return
+            fi
+            if [[ -d "$src" ]]; then
+              tar -czf app-ios.tar.gz -C "$(dirname "$src")" "$(basename "$src")"
+            else
+              cp "$src" app-ios.tar.gz
+            fi
+          }
+
+          stage_download_json() {
+            src="$(jq -r '.path // empty' download.json 2>/dev/null || true)"
+            if [[ -n "$src" && -e "$src" ]]; then
+              stage_artifact "$src"
+              return 0
+            fi
+            return 1
+          }
+
+          reused=0
+
+          if [[ "$REUSE_BY_FINGERPRINT" == "true" ]]; then
+            # NO step of the reuse path may fail this job. Every branch below
+            # falls through to the fresh build, which is what this workflow did
+            # before the input existed — so a broken EAS CLI, a fingerprint the
+            # account cannot compute, or a download that 404s degrades to
+            # today's behavior instead of deleting the suite from the night.
+            set +e
+            fp_json="$(eas fingerprint:generate \
+              --platform "$platform" \
+              --build-profile "$profile" \
+              --json \
+              --non-interactive 2>fingerprint.err)"
+            fp_status=$?
+            set -e
+            fingerprint="$(jq -r '.hash // .fingerprintHash // empty' <<<"${fp_json:-}" 2>/dev/null || true)"
+
+            if [[ "$fp_status" -eq 0 && -n "$fingerprint" ]]; then
+              echo "Fingerprint for $platform/$profile: $fingerprint"
+              set +e
+              eas build:download \
+                --fingerprint "$fingerprint" \
+                --platform "$platform" \
+                --non-interactive \
+                --json > download.json 2>download.err
+              dl_status=$?
+              set -e
+              if [[ "$dl_status" -eq 0 ]] && stage_download_json; then
+                reused=1
+                echo "Reusing the finished EAS build matching this fingerprint; no new cloud build started."
+              else
+                echo "No reusable EAS artifact for fingerprint $fingerprint."
+                cat download.err >&2 || true
+              fi
+            else
+              echo "::warning title=EAS fingerprint unavailable::Could not compute a fingerprint for $platform/$profile, so build reuse was skipped and a fresh build will be started."
+              cat fingerprint.err >&2 || true
+            fi
+
+            # Fallback, and a WEAKER guarantee than the fingerprint — this is
+            # simply the newest finished binary for the profile, which may have
+            # been built from different native inputs. It is the arm that keeps
+            # a quota-bound project running at all, so it is deliberately kept,
+            # but a project that needs the binary to match the commit should
+            # read the reuse line in the job log rather than assume.
+            if [[ "$reused" -eq 0 ]]; then
+              echo "Looking up the latest finished $profile $platform EAS build."
+              set +e
+              if [[ "$platform" == "ios" ]]; then
+                # `--simulator` matters: a finished iOS build for this profile
+                # can be a device archive, which no simulator can install.
+                eas build:list \
+                  --platform ios \
+                  --build-profile "$profile" \
+                  --status finished \
+                  --simulator \
+                  --limit 1 \
+                  --json \
+                  --non-interactive > list.json 2>list.err
+              else
+                eas build:list \
+                  --platform android \
+                  --build-profile "$profile" \
+                  --status finished \
+                  --limit 1 \
+                  --json \
+                  --non-interactive > list.json 2>list.err
+              fi
+              list_status=$?
+              set -e
+              build_id="$(jq -r '.[0].id // empty' list.json 2>/dev/null || true)"
+              if [[ "$list_status" -eq 0 && -n "$build_id" ]]; then
+                set +e
+                eas build:download \
+                  --build-id "$build_id" \
+                  --non-interactive \
+                  --json > download.json 2>download.err
+                dl_status=$?
+                set -e
+                if [[ "$dl_status" -eq 0 ]] && stage_download_json; then
+                  reused=1
+                  echo "Reusing finished EAS $profile build $build_id after a fingerprint miss."
+                else
+                  cat download.err >&2 || true
+                fi
+              else
+                cat list.err >&2 || true
+              fi
+            fi
+          fi
+
+          if [[ "$reused" -eq 1 ]]; then
+            exit 0
+          fi
+
+          if [[ "$DIAGNOSE_QUOTA" == "true" ]]; then
+            set +e
+            eas build \
+              --platform "$platform" \
+              --profile "$profile" \
+              --non-interactive \
+              --wait \
+              --json > build.json 2>build.err
+            build_status=$?
+            set -e
+            # Replayed in full, always — the diagnosis is an ADDITION to the
+            # operator's evidence, never a filter on it.
+            cat build.err >&2 || true
+            if [[ "$build_status" -ne 0 ]]; then
+              if grep -q "used its iOS builds from the Free plan" build.err; then
+                echo "::error title=EAS build quota exhausted::Expo refused a new iOS cloud build because this account has used its Free-plan iOS builds for the month. Nothing is wrong with the code under test. Remedies, in order: set reuse_build_by_fingerprint: true so a matching finished build is reused instead of rebuilt; upgrade the Expo plan; or wait for the monthly quota reset and re-dispatch."
+              fi
+              exit "$build_status"
+            fi
+          else
+            eas build \
+              --platform "$platform" \
+              --profile "$profile" \
+              --non-interactive \
+              --wait \
+              --json > build.json
+          fi
+
           BUILD_URL=$(jq -r '.[0].artifacts.buildUrl' build.json)
           if [[ -z "$BUILD_URL" || "$BUILD_URL" == "null" ]]; then
             echo "::error::EAS build produced no artifact URL"
             jq '.' build.json
             exit 1
           fi
-          if [[ "${{ matrix.platform }}" == "android" ]]; then
+          if [[ "$platform" == "android" ]]; then
             curl -fsSL "$BUILD_URL" -o app-android.apk
           else
             # iOS simulator builds ship as a tarball containing the .app bundle
@@ -698,6 +971,9 @@ jobs:
       - name: 📥 Checkout repository
         if: ${{ inputs.pre_suite_command != '' }}
         uses: actions/checkout@v6
+        with:
+          # Nothing downstream needs the git token — see the build job.
+          persist-credentials: false
 
       - name: 🥟 Setup Bun
         if: ${{ inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies && inputs.package_manager == 'bun' }}
@@ -1093,6 +1369,9 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          # Nothing downstream needs the git token — see the build job.
+          persist-credentials: false
 
       - name: 📥 Download app artifact
         uses: actions/download-artifact@v4
@@ -1372,6 +1651,51 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: 🔎 Record the suite scope
+        # The COUNT above answers "how much ran?". This answers "how much was it
+        # ASKED to run?", and the two are not the same question. A count can be
+        # low because the suite shrank; a scope of `filtered` is the run saying
+        # it was handed a slice on purpose.
+        #
+        # Why it has to be recorded at all: the Actions REST API exposes NO
+        # `inputs` field on a workflow run. Verified 2026-08-18 against
+        # AcmeOrgD/frontend run 32120016803 — the run object carries
+        # `display_title`, `event`, `head_branch` and no trace of what it was
+        # dispatched with. A downstream gate therefore cannot read the filter; it
+        # can only read what the run chose to write down. This is that.
+        #
+        # NOT gated on `steps.flows`: the scope is known from the inputs before a
+        # single flow starts, and a run that dies mid-suite is exactly when a
+        # reader most needs to know whether it was narrowed.
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          INCLUDE_TAGS: ${{ inputs.android_include_tags }}
+          EXCLUDE_TAGS: ${{ inputs.android_exclude_tags }}
+        run: |
+          {
+            echo "platform=android"
+            echo "include_tags=$INCLUDE_TAGS"
+            echo "exclude_tags=$EXCLUDE_TAGS"
+          } > maestro-android-scope.txt
+          cat maestro-android-scope.txt
+
+      - name: 📤 Publish suite scope
+        # Same trick as the flow count and for the same two reasons: the answer
+        # is the artifact NAME, so a gate reads it from the artifacts list with
+        # one call and no download, and the name outlives the retention window.
+        #
+        # `flows_dir` is deliberately NOT part of this: it names where the suite
+        # LIVES, not a slice of it, and a repo that keeps its flows somewhere
+        # other than the default is not running a narrowed suite.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-scope-${{ (inputs.android_include_tags != '' || inputs.android_exclude_tags != '') && 'filtered' || 'full' }}
+          path: maestro-android-scope.txt
+          if-no-files-found: error
+          retention-days: 30
+
       - name: 🚨 Assert flows executed
         # The loud half. Without this a suite that ran zero flows and a suite
         # that ran every flow with twenty failures both exit 1 and are
@@ -1476,6 +1800,9 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
+        with:
+          # Nothing downstream needs the git token — see the build job.
+          persist-credentials: false
 
       - name: 📥 Download app artifact
         uses: actions/download-artifact@v4
@@ -1753,6 +2080,31 @@ jobs:
         with:
           name: maestro-ios-flowcount-${{ steps.flows.outputs.executed }}
           path: maestro-ios-flowcount.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 🔎 Record the suite scope
+        # See the android copy for why a run has to write its own inputs down.
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          INCLUDE_TAGS: ${{ inputs.ios_include_tags }}
+          EXCLUDE_TAGS: ${{ inputs.ios_exclude_tags }}
+        run: |
+          {
+            echo "platform=ios"
+            echo "include_tags=$INCLUDE_TAGS"
+            echo "exclude_tags=$EXCLUDE_TAGS"
+          } > maestro-ios-scope.txt
+          cat maestro-ios-scope.txt
+
+      - name: 📤 Publish suite scope
+        # The scope is the artifact NAME — see the android copy.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-scope-${{ (inputs.ios_include_tags != '' || inputs.ios_exclude_tags != '') && 'filtered' || 'full' }}
+          path: maestro-ios-scope.txt
           if-no-files-found: error
           retention-days: 30
 
