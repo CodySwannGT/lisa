@@ -1372,6 +1372,51 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: 🔎 Record the suite scope
+        # The COUNT above answers "how much ran?". This answers "how much was it
+        # ASKED to run?", and the two are not the same question. A count can be
+        # low because the suite shrank; a scope of `filtered` is the run saying
+        # it was handed a slice on purpose.
+        #
+        # Why it has to be recorded at all: the Actions REST API exposes NO
+        # `inputs` field on a workflow run. Verified 2026-08-18 against
+        # AcmeOrgD/frontend run 32120016803 — the run object carries
+        # `display_title`, `event`, `head_branch` and no trace of what it was
+        # dispatched with. A downstream gate therefore cannot read the filter; it
+        # can only read what the run chose to write down. This is that.
+        #
+        # NOT gated on `steps.flows`: the scope is known from the inputs before a
+        # single flow starts, and a run that dies mid-suite is exactly when a
+        # reader most needs to know whether it was narrowed.
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          INCLUDE_TAGS: ${{ inputs.android_include_tags }}
+          EXCLUDE_TAGS: ${{ inputs.android_exclude_tags }}
+        run: |
+          {
+            echo "platform=android"
+            echo "include_tags=$INCLUDE_TAGS"
+            echo "exclude_tags=$EXCLUDE_TAGS"
+          } > maestro-android-scope.txt
+          cat maestro-android-scope.txt
+
+      - name: 📤 Publish suite scope
+        # Same trick as the flow count and for the same two reasons: the answer
+        # is the artifact NAME, so a gate reads it from the artifacts list with
+        # one call and no download, and the name outlives the retention window.
+        #
+        # `flows_dir` is deliberately NOT part of this: it names where the suite
+        # LIVES, not a slice of it, and a repo that keeps its flows somewhere
+        # other than the default is not running a narrowed suite.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-scope-${{ (inputs.android_include_tags != '' || inputs.android_exclude_tags != '') && 'filtered' || 'full' }}
+          path: maestro-android-scope.txt
+          if-no-files-found: error
+          retention-days: 30
+
       - name: 🚨 Assert flows executed
         # The loud half. Without this a suite that ran zero flows and a suite
         # that ran every flow with twenty failures both exit 1 and are
@@ -1753,6 +1798,31 @@ jobs:
         with:
           name: maestro-ios-flowcount-${{ steps.flows.outputs.executed }}
           path: maestro-ios-flowcount.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 🔎 Record the suite scope
+        # See the android copy for why a run has to write its own inputs down.
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          INCLUDE_TAGS: ${{ inputs.ios_include_tags }}
+          EXCLUDE_TAGS: ${{ inputs.ios_exclude_tags }}
+        run: |
+          {
+            echo "platform=ios"
+            echo "include_tags=$INCLUDE_TAGS"
+            echo "exclude_tags=$EXCLUDE_TAGS"
+          } > maestro-ios-scope.txt
+          cat maestro-ios-scope.txt
+
+      - name: 📤 Publish suite scope
+        # The scope is the artifact NAME — see the android copy.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-scope-${{ (inputs.ios_include_tags != '' || inputs.ios_exclude_tags != '') && 'filtered' || 'full' }}
+          path: maestro-ios-scope.txt
           if-no-files-found: error
           retention-days: 30
 

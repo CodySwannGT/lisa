@@ -285,7 +285,11 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
       expect(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[0]).toBe("1");
-      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toBe("1.3.0");
+      // 1.4.0 adds `min_flows` (rows 36-38). Same §8 reasoning: an untouched
+      // table gains one new BLOCKING row (36 — a run that recorded itself as
+      // filtered) and no new passing one, so the skew is strictly toward
+      // fail-closed and a major bump would red-wall every adopter for it.
+      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toBe("1.4.0");
     });
   });
 
