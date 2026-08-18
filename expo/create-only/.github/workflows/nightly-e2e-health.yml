@@ -96,7 +96,7 @@ jobs:
     # thing that decides whether code may merge must not change under you
     # between two runs of the same PR. Better still, pin the tag's commit SHA
     # and keep the tag in a trailing comment.
-    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v2.345.1
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v3.35.0
     with:
       branch: dev
       # Structured JSON, schema-validated before any API call. Duplicated
