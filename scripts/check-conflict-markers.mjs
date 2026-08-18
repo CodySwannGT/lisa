@@ -299,7 +299,7 @@ export function main(argv, io = {}) {
     scanned: files.length,
   });
   out.write(
-    (opts.json ? JSON.stringify(report, null, 2) : humanReport(report)) + "\n"
+    `${opts.json ? JSON.stringify(report, null, 2) : humanReport(report)}\n`
   );
   return results.length === 0 ? 0 : 1;
 }

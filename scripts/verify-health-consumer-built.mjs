@@ -14,6 +14,10 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const LATEST_JSON = "latest.json";
+
 let assertions = 0;
 const check = (condition, message) => {
   assertions += 1;
@@ -64,7 +68,7 @@ function runCli(project, argv, input) {
 
 /** Return whether the canonical result exists without throwing on absence. */
 async function resultExists(project) {
-  return lstat(path.join(project, ".lisa", "health", "latest.json"))
+  return lstat(path.join(project, ".lisa", "health", LATEST_JSON))
     .then(() => true)
     .catch(() => false);
 }
@@ -91,14 +95,14 @@ async function prepare(project) {
 
 /** Validate one final CLI result against its exact persisted representation. */
 async function validateFinal(project, stdout, expectedMode) {
-  const resultPath = path.join(project, ".lisa", "health", "latest.json");
+  const resultPath = path.join(project, ".lisa", "health", LATEST_JSON);
   const persisted = await readFile(resultPath, "utf8");
   equal(stdout, persisted, `${expectedMode} stdout equals persisted bytes`);
   const result = JSON.parse(stdout);
   equal(result.mode, expectedMode, `final result is ${expectedMode}`);
   equal(
     (await readdir(path.dirname(resultPath))).sort(),
-    ["latest.json"],
+    [LATEST_JSON],
     "one final result remains with no temporary or lock artifact"
   );
   return result;

@@ -18,6 +18,7 @@ import type { Linter } from "eslint";
 import {
   defaultIgnores,
   defaultThresholds,
+  getScriptsFilesOverride,
   getTypescriptConfig,
 } from "./typescript.js";
 
@@ -272,5 +273,11 @@ export function getPhaserConfig({
   return [
     ...getTypescriptConfig({ tsconfigRootDir, ignorePatterns, thresholds }),
     ...PHASER_OVERRIDES,
+
+    // Re-applied AFTER the stack overrides. The TypeScript factory already ends
+    // with this block, but everything spread after it wins — so a stack that
+    // appends its own rules would silently take the shipped `scripts/` tree back
+    // out of the profile it was placed in.
+    getScriptsFilesOverride(),
   ];
 }

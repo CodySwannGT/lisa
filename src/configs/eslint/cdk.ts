@@ -22,6 +22,7 @@ import {
   getBaseConfigs,
   getBaseLanguageOptions,
   getJsFilesOverride,
+  getScriptsFilesOverride,
   getSharedFilesOverride,
   getSharedRules,
   getTestFilesOverride,
@@ -165,6 +166,11 @@ export function getCdkConfig({
         "sonarjs/cognitive-complexity": ["error", 15],
       },
     },
+
+    // Standalone maintenance scripts — MUST stay last so it wins over the
+    // application-oriented overrides above. These files used to be ignored
+    // outright; they are linted now, under a profile that suits a CLI.
+    getScriptsFilesOverride(),
   ] as unknown as import("eslint").Linter.Config[];
 }
 /* eslint-enable max-lines-per-function -- config file requires many lines */

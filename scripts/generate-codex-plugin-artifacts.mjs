@@ -38,6 +38,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const CODEX_PLUGIN_DIR = ".codex-plugin";
+const HOOKS_MANIFEST = "hooks.json";
+
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
@@ -469,7 +474,7 @@ function writeSkillAgentsInRoot(skillsDir) {
 function codexSkillRoots(pluginDir) {
   return [
     path.join(pluginDir, "skills"),
-    path.join(pluginDir, ".codex-plugin", "skills"),
+    path.join(pluginDir, CODEX_PLUGIN_DIR, "skills"),
   ].filter(skillRoot => fs.existsSync(skillRoot));
 }
 
@@ -482,7 +487,7 @@ function codexSkillRoots(pluginDir) {
  * @returns {readonly string[]} Generated skill names.
  */
 export function emitCommandSkills(pluginDir) {
-  const generatedRoot = path.join(pluginDir, ".codex-plugin", "skills");
+  const generatedRoot = path.join(pluginDir, CODEX_PLUGIN_DIR, "skills");
   const commandsRoot = path.join(pluginDir, "commands");
   if (!fs.existsSync(commandsRoot)) {
     return [];
@@ -536,7 +541,7 @@ export function emitCommandSkills(pluginDir) {
  */
 export function emitCodexSkillVariants(pluginDir) {
   const authoredRoot = path.join(pluginDir, "skills");
-  const codexRoot = path.join(pluginDir, ".codex-plugin", "skills");
+  const codexRoot = path.join(pluginDir, CODEX_PLUGIN_DIR, "skills");
   fs.rmSync(codexRoot, { force: true, recursive: true });
   if (!fs.existsSync(authoredRoot)) return [];
 
@@ -799,14 +804,14 @@ function main() {
  * @param {object} claudeManifest Parsed contents of .claude-plugin/plugin.json.
  */
 export function emitCodexHooks(pluginDir, claudeManifest) {
-  const codexPluginDir = path.join(pluginDir, ".codex-plugin");
-  const hooksJsonPath = path.join(codexPluginDir, "hooks.json");
+  const codexPluginDir = path.join(pluginDir, CODEX_PLUGIN_DIR);
+  const hooksJsonPath = path.join(codexPluginDir, HOOKS_MANIFEST);
   // Purge the older layouts so a rebuilt plugin never ships a stale/duplicate
   // file:
   //   - <plugin-root>/hooks/hooks.json     (2.121–2.124; broke Claude startup)
   //   - <plugin-root>/.codex-plugin/hooks/ (pre-2.121 copied-scripts dir)
   // The shared .sh scripts at <plugin-root>/hooks/ are left untouched.
-  fs.rmSync(path.join(pluginDir, "hooks", "hooks.json"), { force: true });
+  fs.rmSync(path.join(pluginDir, "hooks", HOOKS_MANIFEST), { force: true });
   fs.rmSync(path.join(codexPluginDir, "hooks"), {
     force: true,
     recursive: true,
@@ -861,7 +866,7 @@ function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
     },
   };
 
-  const manifestDir = path.join(pluginDir, ".codex-plugin");
+  const manifestDir = path.join(pluginDir, CODEX_PLUGIN_DIR);
   fs.mkdirSync(manifestDir, { recursive: true });
   fs.writeFileSync(
     path.join(manifestDir, "plugin.json"),
@@ -871,7 +876,7 @@ function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
 
 export function componentPointers(pluginDir) {
   return {
-    ...(fs.existsSync(path.join(pluginDir, ".codex-plugin", "skills"))
+    ...(fs.existsSync(path.join(pluginDir, CODEX_PLUGIN_DIR, "skills"))
       ? { skills: "./.codex-plugin/skills/" }
       : fs.existsSync(path.join(pluginDir, "skills"))
         ? { skills: "./skills/" }
@@ -879,7 +884,7 @@ export function componentPointers(pluginDir) {
     ...(fs.existsSync(path.join(pluginDir, ".mcp.json"))
       ? { mcpServers: "./.mcp.json" }
       : {}),
-    ...(fs.existsSync(path.join(pluginDir, ".codex-plugin", "hooks.json"))
+    ...(fs.existsSync(path.join(pluginDir, CODEX_PLUGIN_DIR, HOOKS_MANIFEST))
       ? { hooks: "./.codex-plugin/hooks.json" }
       : {}),
   };

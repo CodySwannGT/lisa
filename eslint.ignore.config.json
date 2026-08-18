@@ -70,8 +70,6 @@
     "*.d.ts",
     "esbuild.plugins.js",
 
-    "projects/**/scripts/**",
-    "scripts/**",
 
     "lib/**/*.js",
     "cdk.out/**",

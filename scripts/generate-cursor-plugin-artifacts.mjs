@@ -336,7 +336,7 @@ export function generateCursorVariant(srcDir, outDir, version) {
   manifest.version = version;
   const cursorHooks = buildCursorHooksJson(manifest.hooks ?? {});
   delete manifest.hooks;
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   // 2a. Emit hooks/hooks.json in Cursor's native shape when any hooks survive.
   if (cursorHooks) {
@@ -344,7 +344,7 @@ export function generateCursorVariant(srcDir, outDir, version) {
     fs.mkdirSync(cursorHooksDir, { recursive: true });
     fs.writeFileSync(
       path.join(cursorHooksDir, "hooks.json"),
-      JSON.stringify(cursorHooks, null, 2) + "\n"
+      `${JSON.stringify(cursorHooks, null, 2)}\n`
     );
   }
 

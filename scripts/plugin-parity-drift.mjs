@@ -44,17 +44,31 @@ import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const NOT_INSTALLED = "not-installed";
+
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
 );
 
 /**
- * Semver 2.0.0 grammar. Build metadata (`+...`) is accepted but ignored in
- * comparison; prerelease (`-...`) is accepted and sorts below its release.
+ * Semver 2.0.0 grammar, one clause per name. Build metadata (`+...`) is
+ * accepted but ignored in comparison; prerelease (`-...`) is accepted and sorts
+ * below its release.
+ *
+ * Assembled from fragments rather than written as one literal because the
+ * literal was unreadable — this is the semver.org grammar verbatim, and the
+ * composed `.source` is byte-identical to the literal it replaced.
  */
-const SEMVER_RE =
-  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const SEMVER_NUMERIC = "0|[1-9]\\d*";
+const SEMVER_PRERELEASE_ID = `(?:${SEMVER_NUMERIC}|\\d*[A-Za-z-][0-9A-Za-z-]*)`;
+const SEMVER_PRERELEASE = `(?:-(${SEMVER_PRERELEASE_ID}(?:\\.${SEMVER_PRERELEASE_ID})*))?`;
+const SEMVER_BUILD = "(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?";
+const SEMVER_RE = new RegExp(
+  `^(${SEMVER_NUMERIC})\\.(${SEMVER_NUMERIC})\\.(${SEMVER_NUMERIC})${SEMVER_PRERELEASE}${SEMVER_BUILD}$`
+);
 
 /** A plugin name / marketplace token: `1*(ALPHA / DIGIT / "-" / "_")`. */
 const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
@@ -283,11 +297,11 @@ export function resolveCurrentVersion(cacheRoot, name, marketplace) {
   // enforces this, but resolveCurrentVersion is a public export that no longer
   // co-locates with its validating caller.
   if (!TOKEN_RE.test(name) || !TOKEN_RE.test(marketplace)) {
-    return { status: "not-installed", version: null };
+    return { status: NOT_INSTALLED, version: null };
   }
   const dir = path.join(cacheRoot, marketplace, name);
   if (!isDirectory(dir)) {
-    return { status: "not-installed", version: null };
+    return { status: NOT_INSTALLED, version: null };
   }
   const versions = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -308,8 +322,12 @@ export function resolveCurrentVersion(cacheRoot, name, marketplace) {
   if (versions.length === 0) {
     return { status: "unresolved", version: null };
   }
-  const max = versions.reduce((acc, v) =>
-    compareSemver(v, acc) > 0 ? v : acc
+  // `versions` is non-empty (guarded above), so seeding with the first element
+  // is exactly what the no-seed form did — and it cannot throw if that guard is
+  // ever moved.
+  const max = versions.reduce(
+    (acc, v) => (compareSemver(v, acc) > 0 ? v : acc),
+    versions[0]
   );
   return { status: "ok", version: max };
 }
@@ -323,8 +341,8 @@ export function resolveCurrentVersion(cacheRoot, name, marketplace) {
  * @returns {"ok" | "stale" | "ahead" | "not-installed" | "unresolved"} the status.
  */
 export function classify(pinnedVersion, cur) {
-  if (cur.status === "not-installed") {
-    return "not-installed";
+  if (cur.status === NOT_INSTALLED) {
+    return NOT_INSTALLED;
   }
   // Defense-in-depth: any non-`ok` resolver state, or an `ok` state without a
   // string version, is treated as `unresolved` so compareSemver is never called
@@ -550,9 +568,7 @@ function collectSyncedSkills(roots) {
  * @returns {void}
  */
 function emitReport(out, report, json) {
-  out.write(
-    (json ? JSON.stringify(report, null, 2) : humanTable(report)) + "\n"
-  );
+  out.write(`${json ? JSON.stringify(report, null, 2) : humanTable(report)}\n`);
 }
 
 /**

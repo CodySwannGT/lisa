@@ -44,6 +44,11 @@ import { fileURLToPath } from "node:url";
 import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
+// Literals named once — each was repeated enough times that a typo in one
+// copy would diverge silently.
+const CLAUDE_PLUGIN_DIR = ".claude-plugin";
+const PLUGIN_MANIFEST = "plugin.json";
+
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
@@ -115,7 +120,7 @@ function copyDir(src, dst, keep = () => true) {
  * @param {string} version Version string for the manifest.
  */
 export function generateAgyVariant(srcDir, outDir, version) {
-  const claudeManifest = path.join(srcDir, ".claude-plugin", "plugin.json");
+  const claudeManifest = path.join(srcDir, CLAUDE_PLUGIN_DIR, PLUGIN_MANIFEST);
   if (!fs.existsSync(claudeManifest)) return;
 
   const policy = readPolicy();
@@ -148,8 +153,8 @@ export function generateAgyVariant(srcDir, outDir, version) {
     }
     // Skip the .claude-plugin manifest — we'll write a bare plugin.json instead.
     if (
-      relPath === path.join(".claude-plugin", "plugin.json") ||
-      relPath === ".claude-plugin"
+      relPath === path.join(CLAUDE_PLUGIN_DIR, PLUGIN_MANIFEST) ||
+      relPath === CLAUDE_PLUGIN_DIR
     ) {
       return false;
     }
@@ -181,11 +186,11 @@ export function generateAgyVariant(srcDir, outDir, version) {
   delete manifest.hooks;
   delete manifest.mcpServers;
 
-  const bareManifestPath = path.join(outDir, "plugin.json");
-  fs.writeFileSync(bareManifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  const bareManifestPath = path.join(outDir, PLUGIN_MANIFEST);
+  fs.writeFileSync(bareManifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   // 3. Ensure no .claude-plugin/ directory survives.
-  const ghostDir = path.join(outDir, ".claude-plugin");
+  const ghostDir = path.join(outDir, CLAUDE_PLUGIN_DIR);
   if (fs.existsSync(ghostDir)) {
     fs.rmSync(ghostDir, { recursive: true, force: true });
   }
@@ -328,7 +333,7 @@ function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
   );
   fs.writeFileSync(
     path.join(outDir, "hooks.json"),
-    JSON.stringify(hooksConfig, null, 2) + "\n"
+    `${JSON.stringify(hooksConfig, null, 2)}\n`
   );
 
   // Copy the agy-protocol scripts into the variant's hooks/ subdir.
