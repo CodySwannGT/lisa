@@ -1,0 +1,151 @@
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+
+name: 🎭 Playwright Web E2E
+
+# Standalone Playwright suite — the web counterpart to maestro-e2e.yml.
+#
+# WHY THIS EXISTS. Playwright used to ride inside ci.yml as the
+# `playwright_e2e` job of Lisa's reusable quality.yml. That coupled the
+# heaviest and flakiest suite in the project to the lint/typecheck/unit gate:
+# one workflow, one concurrency group, one cadence, and a red Playwright shard
+# blocking a pull request that only changed a type. Splitting it out gives it
+# its own cadence, its own concurrency, one target environment, and a
+# dedicated red/green signal a nightly gate can read.
+#
+# ── BEFORE THIS FILE DOES ANYTHING, DECLARE THE GATE ───────────────────────
+#
+# This workflow resolves the `e2e-browser` gate at the `continuous:development`
+# moment. Until `.lisa.config.json` declares it, quality.yml runs its BUILT-IN
+# Playwright path here (sharded `npx playwright test`), which is a reasonable
+# default but is not a decision anybody recorded. To make it one:
+#
+#   {
+#     "gates": {
+#       "runner": "bun run",
+#       "e2e-browser": { "continuous:development": "required" }
+#     }
+#   }
+#
+# `runner` is optional and defaults to `<package_manager> run`. The gate's task
+# is `test:e2e`, so the project needs that script in package.json — Lisa
+# resolves the PROPERTY ("browser journeys pass end to end"), never the tool.
+#
+# TWO THINGS THAT ARE NOT INTERCHANGEABLE:
+#
+#   * OMITTING the declaration and declaring it `off` are different. `off` is a
+#     recorded decision and drops the required context. Omitting it leaves
+#     Lisa's built-in path running. Neither is "no gate".
+#   * DECLARING IT WITH NO SUITE is refused, not greened. quality.yml fails the
+#     job when `e2e-browser` resolves and there is no playwright.config.ts,
+#     because a browser gate over an absent suite reports green having run
+#     nothing and is indistinguishable on the pull-request page from one that
+#     ran. If this project has no Playwright specs, DELETE THIS FILE rather
+#     than declaring the gate against it.
+#
+# ── SHARDING ───────────────────────────────────────────────────────────────
+#
+# `playwright_shards` splits Lisa's BUILT-IN invocation across N runners. It
+# does not apply once `e2e-browser` resolves to a task: Lisa cannot append
+# `--shard` to a command whose shape it does not know, and the `--` passthrough
+# differs between npm, yarn and bun. A declared gate runs on one runner. Shard
+# inside the project's own `test:e2e` script if the suite needs it.
+
+on:
+  schedule:
+    # Nightly against the default branch. Offset from the Maestro nightly
+    # (maestro-e2e.yml, 09:00 UTC) so two heavy suites do not start together.
+    # The stagger is a COURTESY, not the mechanism — a run first waits for a
+    # hosted runner, and that wait has been measured in hours, far past any
+    # offset. `concurrency_group` below is what actually keeps them apart.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+# Deliberately no `pull_request` trigger. This suite is too slow to gate a
+# pull request, and adding one here would also collide with ci.yml: two
+# workflows must not report the same check name, and the identity is the
+# JOB name, not the workflow's. A reusable call reports as
+# `<caller job name> / <callee job name>`, so the job below reports as
+# `🎭 Playwright Web E2E / 🎭 Playwright E2E Tests`. Keep ci.yml's
+# `skip_jobs` naming `playwright_e2e` so this workflow is the only place the
+# suite runs.
+
+permissions:
+  contents: read
+
+# Keyed on the ENVIRONMENT, not the ref. Every run of this workflow hits the
+# same backend no matter which branch dispatched it, so `${{ github.ref }}`
+# would hand two branches two different groups over one database and one set of
+# shared test users, and they would not exclude each other.
+#
+# CAVEAT — a displaced run reads as a flaky scheduler. GitHub keeps only ONE
+# pending run per concurrency group: queue a third while one runs and one is
+# pending and the PENDING one is cancelled rather than queued behind it. Not a
+# safety problem (a dropped run tests nothing and stomps nothing), but a run
+# that disappears without a red is worth recognising rather than re-diagnosing.
+concurrency:
+  group: playwright-e2e-development
+  # Queue, never cancel. A suite that drives shared test accounts and mutates
+  # their server-side state leaves that state wrong when killed mid-run, and
+  # poisons the next run rather than just losing this one.
+  cancel-in-progress: false
+
+jobs:
+  playwright:
+    name: 🎭 Playwright Web E2E
+    uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
+    with:
+      node_version: '22.21.1'
+      package_manager: 'bun'
+      # The moment this workflow's cadence corresponds to. It is what makes
+      # the `.lisa.config.json` declaration above readable from here — a gate
+      # declared at `pull-request` is invisible at this moment, and vice
+      # versa, so a nightly suite and a per-change suite cannot be turned on
+      # by the same line of config by accident.
+      moment: 'continuous:development'
+      # Everything except `playwright_e2e`.
+      #
+      # THIS INVERSION IS A KNOWN-BAD SHAPE, carried because it is currently
+      # the only one that works. quality.yml gates most jobs on `skip_jobs`
+      # rather than on the moment, so a single-suite caller has to name the
+      # two dozen jobs it does NOT want. It is exact-token matched against
+      # `,{0},` — comma-delimited with NO SPACES, so `lint, lint_slow`
+      # silently skips nothing beyond `lint`.
+      #
+      # IT GOES STALE SILENTLY, and that is the cost. A job added to
+      # quality.yml is absent from this list and therefore RUNS here, on a
+      # nightly whose whole point is that it runs one suite. Measured while
+      # writing this file: the hand-maintained list in the first project to
+      # adopt this shape was already missing five keys that exist today
+      # (`bdd_coverage`, `state_classification`, `environment_reset`,
+      # `environment_reseed`, `skipped_required_checks`). Re-derive it from
+      # quality.yml when adding a suite, do not extend it from memory.
+      skip_jobs: 'bdd_coverage,build,dead_code,e2e_coverage,environment_reseed,environment_reset,floor_collisions,format,learnings_budget,license_compliance,lint,lint_slow,maestro_e2e,npm_security_scan,secret_scanning,sg_scan,skipped_required_checks,snyk,sonarcloud,state_classification,test:e2e,test:integration,test:mutation,test:unit,test_node_suites,threshold_ratchet,typecheck,work_item_traceability,zap_baseline'
+      # Cross-run mutex on whatever this suite shares with the OTHER suites
+      # that touch the same backend. Deliberately DISTINCT from this
+      # workflow's own top-level `concurrency` group above — a shared group
+      # between a parent run and the child run it is waiting on deadlocks.
+      # Join maestro-e2e.yml to the same group if the two suites share test
+      # accounts or fixtures.
+      concurrency_group: 'e2e-shared-development'
+      # Applies only while `e2e-browser` is undeclared — see the SHARDING note
+      # at the top of this file.
+      playwright_shards: 2
+      # Leave false unless the cache key has been checked against this
+      # project's layout. Lisa's key is a fingerprint of build inputs, and a
+      # key that misses the project's source directories freezes: `expo export`
+      # then serves stale transforms and every source change silently tests old
+      # code. A green suite over the previous commit is the worst failure this
+      # workflow has.
+      cache_build: false
+      # Runs before the web export, in the job that runs the suite. Bake the
+      # target environment in here — the export reads EXPO_PUBLIC_* from
+      # .env.local at BUILD time, so anything set after it is invisible to the
+      # running app.
+      #
+      # Use `printf '\n%s\n'` rather than `echo >>`: the committed .env.<mode>
+      # files do not end in a trailing newline, so a bare append concatenates
+      # onto the last variable's value — corrupting it AND silently dropping
+      # the line being added.
+      playwright_setup_command: |
+        cp .env.development .env.local

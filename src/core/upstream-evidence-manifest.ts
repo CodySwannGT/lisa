@@ -234,6 +234,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e703c02a5d4359674dd8bbc98f1699585dec61024eb176ef11a314590c2a4fca",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "34dcd26108b814d00fbe61af8f954bf79590df0610657d01bff79adde5276330",
+    "expo/create-only/.github/workflows/playwright-e2e.yml":
+      "e188bba1a9a17c0324868d7fd58b483283210421218d3c5354715f94d4990e57",
     "expo/create-only/.maestro/flake-classification.json":
       "b1259c17a875dcdc0fa2398bb280f084e898f46fefaf51e35c3c5aadcbef5a5d",
     "expo/create-only/.zap/baseline.conf":
@@ -2701,6 +2703,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml": true,
     "expo/create-only/.github/workflows/nightly-e2e-health.yml": true,
     "expo/create-only/.github/workflows/nightly-e2e-report.yml": true,
+    "expo/create-only/.github/workflows/playwright-e2e.yml": true,
     "expo/create-only/.maestro/flake-classification.json": true,
     "expo/create-only/.zap/baseline.conf": true,
     "expo/create-only/babel.config.js": true,
@@ -8699,6 +8702,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
+    "tests/integration/playwright-caller-template.test.ts": true,
+    "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
