@@ -64,6 +64,24 @@ jobs:
       # on every pull request.
       - name: Check for leftover merge-conflict markers
         run: bun run check:conflict-markers
+      # #2702 shipped two expo templates pinned at @v2.345.1, a Lisa version
+      # that predates the reusable they call. A consumer receiving one gets a
+      # workflow that cannot LOAD: GitHub runs zero jobs, so there is no test
+      # output and nothing reads as red. One of them never succeeded once in
+      # three scheduled runs across two repos and stayed byte-identical to the
+      # broken template, because a workflow that never runs gives nobody a
+      # reason to touch it. Deliberately NOT in the shared gate registry: this
+      # repo is the only one that carries caller templates, and the gate's
+      # refusal to pass an empty scan would fail every consumer's commit.
+      - name: Check caller-template workflow refs resolve
+        # The templates pin immutable tags (Appendix A5), so this gate needs the
+        # tag objects locally to verify them. It refuses to pass a reference it
+        # could not resolve, so a missing tag fails the job loudly instead of
+        # reporting a clean scan — which is the whole point of the gate and not
+        # something to paper over with `|| true`.
+        run: |
+          git fetch --tags --quiet --no-recurse-submodules
+          bun run check:template-workflow-refs
       - name: Check plugin artifacts are in sync with plugins/src
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
