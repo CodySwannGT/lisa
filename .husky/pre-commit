@@ -44,6 +44,70 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# lint-staged preflight.
+#
+# lint-staged reports exit 0 when a task's executable cannot be SPAWNED.
+# Measured on lint-staged 16.4.0 and 17.3.0: a file that is present and
+# `chmod +x` but is not a runnable executable prints "[FAILED] spawn ENOEXEC"
+# and the run still exits 0. An absent executable (ENOENT) and an ordinary
+# non-zero exit both fail closed — only the spawn error does not.
+#
+# That state is not exotic. A tool whose real binary is materialized during
+# `postinstall` leaves a shebang-less placeholder behind on any install that
+# skips scripts, and lint-staged spawns without a shell, so the kernel refuses
+# the file before the placeholder's own `exit 1` can run. The staged-file scan
+# then runs, reports nothing, blocks nothing, and the commit proceeds.
+#
+# No exit-code check can catch this — not the one below, not any other. A
+# process reporting 0 for work it did not do defeats every test of its status.
+# So the tools are proved runnable BEFORE any of them is handed the work, by
+# something that spawns them itself and reports what it spawned.
+#
+# OUTSIDE the gate-registry handover, deliberately. lint-staged runs at this
+# moment by BOTH routes: the built-in step further down, and a `code-style`
+# gate whose declared command is the project's lint-staged script. A preflight
+# placed inside the built-in branch would stand down for exactly the projects
+# whose registry then runs lint-staged anyway. The tools are the same either
+# way, so the proof belongs before both.
+#
+# Skipped only when the project has no lint-staged config, in which case no
+# route runs lint-staged and there is nothing to prove. A preflight that cannot
+# RUN is not a skip and not a pass — it blocks.
+# ---------------------------------------------------------------------------
+if [ -f ".lintstagedrc.json" ]; then
+  LINT_STAGED_PREFLIGHT="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs"
+  if [ ! -f "$LINT_STAGED_PREFLIGHT" ]; then
+    LINT_STAGED_PREFLIGHT="scripts/lisa-lint-staged-preflight.mjs"
+  fi
+  if [ ! -f "$LINT_STAGED_PREFLIGHT" ]; then
+    LINT_STAGED_PREFLIGHT="all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs"
+  fi
+  if command -v node >/dev/null 2>&1; then
+    LINT_STAGED_PREFLIGHT_RUNTIME="node"
+  elif command -v bun >/dev/null 2>&1; then
+    LINT_STAGED_PREFLIGHT_RUNTIME="bun"
+  else
+    LINT_STAGED_PREFLIGHT_RUNTIME=""
+  fi
+  if [ ! -f "$LINT_STAGED_PREFLIGHT" ] || [ -z "$LINT_STAGED_PREFLIGHT_RUNTIME" ]; then
+    echo ""
+    echo "❌ Commit blocked: the lint-staged preflight could not run."
+    echo "   Expected $LINT_STAGED_PREFLIGHT, and node or bun on PATH."
+    echo "   Without it a tool that is installed but not executable makes"
+    echo "   lint-staged exit 0 having scanned nothing, so skipping the"
+    echo "   preflight cannot be treated as a pass."
+    echo "   Reinstall dependencies, then re-run \`lisa apply\`."
+    echo ""
+    exit 1
+  fi
+  "$LINT_STAGED_PREFLIGHT_RUNTIME" "$LINT_STAGED_PREFLIGHT" --config .lintstagedrc.json
+  LINT_STAGED_PREFLIGHT_STATUS=$?
+  if [ $LINT_STAGED_PREFLIGHT_STATUS -ne 0 ]; then
+    exit $LINT_STAGED_PREFLIGHT_STATUS
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Gate-driven checks.
 #
 # A gate is a PROPERTY the project must hold; `.lisa.config.json` names the task
