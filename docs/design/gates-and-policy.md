@@ -237,6 +237,38 @@ governed nothing in CI — `off` still reddened every pull request and `required
 changed nothing, because the job already ran (#2680). It now resolves the gate
 through the same façade as every other job in `quality.yml`.
 
+The same key had the same defect one moment earlier. `.husky/pre-push` ran
+`lisa-work-item.mjs validate-push` on its eleventh line, unconditionally, while
+every other check in that file resolved through
+`lisa-run-gates.mjs --moment=push` — the last gate in either hook still
+bypassing the façade. The declaration could not reach it, because the gate was
+registered `pull-request` only. `traceability` is now legal at `push` as well,
+and the hook resolves it: declared at push, at any level, the registry owns the
+property; declared at some other moment, unreadable, or not declared at all, the
+built-in validator runs exactly as it always has.
+
+**The push prover is a different command from the pull-request prover**, and the
+registry says so rather than leaving each project to discover it.
+`check:work-item` is `validate-pr`, which needs a pull request to read; at push
+there usually is none yet, and the check that exists there parses the refs Git
+feeds the hook on stdin. So the registry entry carries
+`taskAt: { push: "check:work-item:push" }` alongside its default `task`.
+`taskAt` is consulted below a project's own `run` declaration and above `task`:
+a gate whose default prover differs by moment has no single default, and
+resolving the wrong one would fail every first push of a branch while looking
+like a traceability failure.
+
+**Why the hook decides twice.** The push-moment declaration is resolved at the
+top of the hook, directly, rather than from the `--coverage` file every other
+built-in step reads — the validator has to run before the repository-local
+`GIT_*` set is unset and before anything else consumes the hook's stdin, and no
+coverage file exists that early. That makes deferring only half a decision, so
+the second half sits in the built-in block: if the gate was declared and the
+coverage file does not name it — no runner on disk, a runner that could not run,
+a coverage file that could not be written — the built-in validator runs after
+all. Otherwise `required` would be a quieter way of switching the check off than
+`off` is.
+
 **What an undeclared gate does, everywhere in that workflow:** the resolution
 reports `configured=false` and the job runs Lisa's built-in tooling, byte for
 byte as it did before the façade existed. `configured=false` covers all of: no
@@ -533,6 +565,11 @@ guess.
   fallbacks are the same tooling, so nothing is unenforced — but every level
   Lisa declares for itself is currently inert, which is the #2680 shape one
   layer up. Distinct from #2680, whose fix this is not.
+- `rails/copy-overwrite/lefthook.yml` runs `lisa-work-item.mjs validate-push`
+  and has no gate runner anywhere in it, so `gates.traceability` is inert at
+  push for a Rails consumer — the lefthook counterpart of the
+  `quality-rails.yml` gap below, and closing it means bringing the runner to
+  that hook rather than bolting a second switch onto one command.
 - `quality-rails.yml` carries the same `work_item_traceability` job and **no
   gate façade at all** — no `moment` input, no `package_manager` input, and so
   no resolve block. `gates.traceability` is therefore still inert for a Rails
