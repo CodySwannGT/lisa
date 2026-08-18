@@ -2665,13 +2665,19 @@ jobs:
       - name: 📦 Install dependencies
         # Lisa's BUILT-IN validator needs no dependencies — it is plain node,
         # which is why this job never installed before. The install is here for
-        # the other two paths. A project that names its own traceability task
-        # runs that task's own tooling, and the RESOLVER itself ships inside
-        # node_modules for a repository that carries no copied
-        # scripts/lisa-gates.mjs (Lisa's own is exactly that shape), so a
-        # declaration would be unreadable without it and `off` would silently
-        # keep failing. Every other façade job installs first for the same
-        # reason.
+        # the OTHER path: a project that names its own traceability task runs
+        # that task's own tooling, and `<runner> <task>` cannot execute a script
+        # whose dependencies are absent. Every other façade job installs first,
+        # and this one now matches them.
+        #
+        # It does NOT make an otherwise-unreadable declaration readable. The
+        # resolver comes from the installed package OR the project's copied
+        # scripts/lisa-gates.mjs, and installing only affects the first —
+        # measured on this workflow's first run of this job (2026-08-18):
+        # neither path exists in Lisa's own repository, so this job and the
+        # fifteen older façade jobs alike resolved `configured=false` and ran
+        # their fallbacks. That is a SEPARATE defect from #2680, recorded in
+        # docs/design/gates-and-policy.md; do not read this install as its fix.
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm ci
