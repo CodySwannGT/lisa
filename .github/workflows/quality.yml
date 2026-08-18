@@ -458,19 +458,20 @@ jobs:
       # from the required-context list, which is derived from the same
       # declaration by `contextsFor`, so the two can never disagree.
       #
-      # WHY THE RESOLVE STEP IS REPEATED IN NINE JOBS. GitHub Actions has no
-      # YAML anchors and no step-level reuse without a separate composite
-      # action, so the only single-copy option is a resolver JOB whose outputs
-      # the nine read through `needs:` — and that is refused, because a
-      # `needs:` parent that fails or is cancelled leaves its dependents
-      # SKIPPED, and a skipped required check counts as SATISFIED. Nine
-      # independent resolutions is what keeps each context unable to be
-      # satisfied by something other than its own gate. The repeated text is
-      # therefore an INVOCATION, not a reimplementation: the resolver is
-      # scripts/lisa-gates.mjs and the only thing that differs between copies
-      # is GATE_ID. tests/integration/quality-gate-facade.test.ts asserts all
-      # nine blocks are byte-identical once GATE_ID is normalised, so they
-      # cannot drift apart the way two hand-maintained copies would.
+      # WHY THE RESOLVE STEP IS REPEATED IN EVERY GATED JOB. GitHub Actions
+      # has no YAML anchors and no step-level reuse without a separate
+      # composite action, so the only single-copy option is a resolver JOB
+      # whose outputs the gated jobs read through `needs:` — and that is
+      # refused, because a `needs:` parent that fails or is cancelled leaves
+      # its dependents SKIPPED, and a skipped required check counts as
+      # SATISFIED. One independent resolution per job is what keeps each
+      # context unable to be satisfied by something other than its own gate.
+      # The repeated text is therefore an INVOCATION, not a reimplementation:
+      # the resolver is scripts/lisa-gates.mjs and the only thing that differs
+      # between copies is GATE_ID.
+      # tests/integration/quality-gate-facade.test.ts asserts every block is
+      # byte-identical once GATE_ID is normalised, so they cannot drift apart
+      # the way two hand-maintained copies would.
       #
       # Two properties of the resolve step below are load-bearing:
       #   * Nothing discards stderr, and `pipefail` is on. A malformed
@@ -2655,6 +2656,81 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        # Lisa's BUILT-IN validator needs no dependencies — it is plain node,
+        # which is why this job never installed before. The install is here for
+        # the other two paths. A project that names its own traceability task
+        # runs that task's own tooling, and the RESOLVER itself ships inside
+        # node_modules for a repository that carries no copied
+        # scripts/lisa-gates.mjs (Lisa's own is exactly that shape), so a
+        # declaration would be unreadable without it and `off` would silently
+        # keep failing. Every other façade job installs first for the same
+        # reason.
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # WHY THIS JOB WAS CONVERTED (#2680). Its `if:` keyed on `skip_jobs` and
+      # nothing else, so `gates.traceability` governed the LOCAL runner
+      # (lisa-run-gates, `moments: PR_ONLY`) and governed nothing here.
+      # Declaring the gate `off` still produced a red check; declaring it
+      # `required` changed nothing, because the job already ran on every pull
+      # request. One key meant two different things on two surfaces, and
+      # nothing anywhere said so — a declaration that reads as a decision taken
+      # and governs nothing.
+      #
+      # The JOB'S OWN condition is deliberately left keyed on `skip_jobs`.
+      # A required status context that runs zero steps reports SATISFIED on
+      # GitHub, so `off` has to empty the job rather than skip it; dropping the
+      # context is `contextsFor`'s job, from the same declaration.
+      #
+      # `optional` needs no branch here, and that is the whole point of the
+      # level: it resolves exactly like `required` and the job still fails on a
+      # missing trailer, but `contextsFor` emits a required context only for
+      # `required`, so the red check blocks nothing. Making the step swallow
+      # its own exit code instead would be a continue-on-error green, which is
+      # the defect this façade exists to prevent.
+      - name: 🎛️ Resolve the traceability gate
+        id: gate
+        env:
+          GATE_ID: traceability
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔗 Resolve the branch-authored commit range
         id: range
         env:
@@ -2682,7 +2758,37 @@ jobs:
           echo "base=$base" >> "$GITHUB_OUTPUT"
           echo "Validating ${base}..${PR_HEAD_SHA}"
 
+      - name: 🔗 Run the traceability gate
+        # The project named its own prover. It gets the same event-derived
+        # inputs the built-in gets — a traceability check of any shape needs
+        # the commit range, the PR number and a token — but none of the
+        # readiness plumbing below, which is specific to Lisa's validator.
+        # It stays fail-CLOSED regardless: `validate-pr` refuses a PR it
+        # cannot read rather than reporting a success it did not earn, and a
+        # declared task that is absent exits non-zero.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          GH_TOKEN: ${{ github.token }}
+          LISA_PR_BASE_SHA: ${{ steps.range.outputs.base }}
+          LISA_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LISA_PR_NUMBER: ${{ github.event.pull_request.number }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        # Deliberate word split, as on every other façade job.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔗 Validate Work-Item traceability
+        # FALLBACK. Runs when nothing resolves — no resolver, no `gates` block,
+        # the gate not declared at this moment, or declared `await`-proved. It
+        # is byte-for-byte what this job did before #2680, so an unmigrated
+        # project is unchanged. `== 'false'` and not `!= 'true'`, because
+        # `off` satisfies the negative form and would keep running the very
+        # tooling the declaration turned off.
+        if: steps.gate.outputs.configured == 'false'
         # Env-var form (equivalent to --base/--head/--pr-number) keeps event
         # payload values out of the shell command entirely.
         env:
