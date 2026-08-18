@@ -227,7 +227,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "27f5037db910501f8d76f828f91a605e3c4d321d1df362d317c440ab7abc9f14",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "cb7ae17a845f4a0cab21b8eb87291f2746610880c6a611731520ee1b925ecf85",
+      "cd587cd38ca985b621d572e96f05425bcb9ca8dcef9af5b338349cfa1e6cfd39",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
@@ -8678,8 +8678,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/gate-config-validity-job.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
+    "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
+    "tests/integration/maestro-checkout-credentials.test.ts": true,
     "tests/integration/maestro-eas-profile-guard.test.ts": true,
+    "tests/integration/maestro-eas-quota-diagnosis.test.ts": true,
+    "tests/integration/maestro-flow-app-id-lint.test.ts": true,
     "tests/integration/maestro-leg-order-wait.test.ts": true,
     "tests/integration/maestro-leg-order.test.ts": true,
     "tests/integration/maestro-native-concurrency.test.ts": true,
@@ -8709,6 +8713,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-tamper.test.ts": true,
     "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
+    "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
