@@ -284,20 +284,21 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // behaves identically and both skew directions still fail closed. A major
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
+      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[0]).toBe("1");
+      // Asserted as MAJOR 1 and MINOR >= 3, not as whatever literal the guard
+      // currently carries. The property defended here is "per-suite grace is
+      // inside major 1 and was not rolled back" — and section 8's rule is about
+      // the MAJOR, which is the half the reusable actually enforces.
       //
-      // Asserted as MAJOR 1 and MINOR >= 3 rather than as whatever literal the
-      // guard currently carries. The property being defended is "these rows are
-      // inside major 1, and were not rolled back". An exact pin ALSO encodes
-      // which contract versions existed the day the test was written, so every
-      // later fail-closed-safe minor fails it for a reason with nothing to do
-      // with grace — 1.4.0 (`min_flows`, rows 36-38) and 1.5.0 (the reporter's
-      // measured blocking claim, section 10.7) each did exactly that.
-      //
-      // The section 8 rule is about the MAJOR, and the major is what the
-      // workflow asserts, so that is what this pins.
-      const [major, minor] = mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".");
-      expect(major).toBe("1");
-      expect(Number(minor)).toBeGreaterThanOrEqual(3);
+      // A literal pin also encodes which contract versions existed the day the
+      // test was written, so every later fail-closed-safe bump fails it for a
+      // reason with nothing to do with grace, and sends that author here to edit
+      // a test that was not measuring their change. That has now happened three
+      // times: 1.4.0 (`min_flows`, rows 36-38), 1.4.1 (row 39), and 1.5.0 (the
+      // reporter's measured blocking claim, section 10.7). Pinning the minor
+      // instead of the patch only postponed it by one bump.
+      const minor = Number(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[1]);
+      expect(minor).toBeGreaterThanOrEqual(3);
     });
   });
 

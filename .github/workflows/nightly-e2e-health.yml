@@ -21,7 +21,7 @@
 # in the artifacts LIST, one cheap call with no download, and it outlives the
 # bytes. `maestro-native-e2e.yml` publishes `maestro-<platform>-flowcount-<N>`
 # and `maestro-<platform>-scope-<full|filtered>` precisely so that "how much of
-# the suite actually ran?" is answerable from that list (§2, rows 36-38).
+# the suite actually ran?" is answerable from that list (§2, rows 36-39).
 #
 # ## A run that tested a SLICE is not a green suite
 #
@@ -51,7 +51,7 @@
 # stale run, a wrong-branch run, a renamed job, and an unreadable API ALL block.
 # `cancelled` blocks because otherwise cancelling a run would be a one-click way
 # to clear a merge gate. There is no configuration that renders "we could not
-# check" as "it is fine". The full truth table — 38 rows, each proven by a named
+# check" as "it is fine". The full truth table — 39 rows, each proven by a named
 # test — is `docs/nightly-e2e-gate.md` §2.
 #
 # The only forgiving state is a TIME-BOXED window, and there are two sources for

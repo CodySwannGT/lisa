@@ -208,6 +208,25 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
       expect(measured.state).toBe(REQUIRED_STATE.notRequired);
     });
 
+    it("BITE: `unknown` when the body is not a list of rules", async () => {
+      // The third `unknown` branch. A shape this endpoint should never return
+      // must not read as "no rules" — and must not throw either: without the
+      // `Array.isArray` guard the body flows straight into `.filter`/`.flatMap`
+      // and takes down the reporter, which is §10.4's forbidden outcome
+      // (a notification channel becoming an outage).
+      (globalThis as { fetch: unknown }).fetch = async (): Promise<unknown> =>
+        fakeResponse(200, {}, { message: "not a list" });
+      const measured = await mod.fetchRequiredness(
+        TEST_API,
+        BRANCH,
+        GATE_CONTEXT,
+        noWait
+      );
+      expect(measured.state).toBe(REQUIRED_STATE.unknown);
+      expect(measured.state).not.toBe(REQUIRED_STATE.notRequired);
+      expect(measured.detail).toContain("not a list of rules");
+    });
+
     // ---- BITE CONTROL: the unknown state ----------------------------------
 
     it("BITE: `unknown` when the API stays unreadable — never a claim either way", async () => {
