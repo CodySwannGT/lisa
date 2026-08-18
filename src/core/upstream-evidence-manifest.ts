@@ -8856,6 +8856,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/jest-base.test.ts": true,
     "tests/unit/config/jest-expo.test.ts": true,
     "tests/unit/config/js-yaml-security-floor.test.ts": true,
+    "tests/unit/config/mjs-gate-off-stays-honest.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
     "tests/unit/config/oxlint-typescript.test.ts": true,
