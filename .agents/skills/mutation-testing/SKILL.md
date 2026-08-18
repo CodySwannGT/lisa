@@ -213,6 +213,20 @@ For each validated test:
    ```
 2. Commit the test improvement to the experimental branch
 
+**This annotation belongs to tests hardened during a mutation run, and to no
+others.** "Validated test" means a test validated against a mutant *this run*
+generated and assigned an id to. It is not a general requirement on new or
+changed tests.
+
+The annotation's only function is to point at the mutant it killed. A test
+written from a code review, a bug report, or ordinary TDD has no mutant to
+reference, and inventing one — `M001` for a run that never happened, a risk
+factor nobody assessed — is worse than omitting the comment: a later reader
+reasonably concludes the file carries mutation coverage it does not have.
+
+If such a test needs a note about why its assertion is strong, write that in
+plain language. Do not borrow this format, because the format is a citation.
+
 ## Step 5: Cleanup and Report
 
 ### 5a. Revert All Mutants
