@@ -166,11 +166,26 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
       expect(declaring).toEqual([]);
     });
 
-    it("keeps the workflow-level grant at contents: read", () => {
-      // The negative control for the assertion above. Moving the escalation up
-      // to the workflow level would satisfy a per-job check while causing the
+    it("keeps the workflow-level grant to exactly contents+actions read", () => {
+      // The negative control for the assertion above: a scope added at the
+      // workflow level would satisfy a per-job check while causing the
       // identical startup_failure, so the ceiling is pinned too.
-      expect(raw.permissions).toEqual({ contents: "read" });
+      //
+      // `actions: read` is now part of that ceiling, and it is the ONE scope
+      // this workflow may hold beyond contents. It reads this run's own job
+      // list, which is what lets `serialize_platform_legs` order the legs at
+      // all; without it the poll answered HTTP 403 on every run in every
+      // repository since the feature shipped. It was added only after all four
+      // consumers were confirmed to grant it on their default branches —
+      // see the header of reusable-workflow-caller-scopes.test.ts for why that
+      // order is not optional.
+      //
+      // Pinned as equality so the next scope still has to come through that
+      // same door.
+      expect(raw.permissions).toEqual({
+        contents: "read",
+        actions: "read",
+      });
     });
   });
 

@@ -17,7 +17,9 @@ const CHECK_NAME = "Maestro leg serialization wired?";
  * discarded at the reusable-workflow boundary no matter where it is placed.
  * While this is false, `serialize_platform_legs` cannot order anything in ANY
  * repository, and reporting a fully configured caller as `ok` would certify a
- * configuration measured to fail.
+ * configuration measured to fail. It is now TRUE: the reusable workflow
+ * declares `actions: read` for itself, so a fully configured caller can
+ * genuinely order its legs and `ok` is an honest verdict again.
  *
  * Measured 2026-08-17 against a caller granting `actions: read` at BOTH job and
  * workflow level: the job's own token grant showed `Contents: read` and
@@ -36,7 +38,7 @@ const CHECK_NAME = "Maestro leg serialization wired?";
  * install can disagree with what actually runs. That is a property of `@main`
  * refs, not of this check.
  */
-export const CALLEE_GRANTS_ACTIONS_READ = false;
+export const CALLEE_GRANTS_ACTIONS_READ = true;
 
 /** Which of the three required parts a caller declares. */
 export interface SerializeContract {
@@ -175,10 +177,18 @@ export async function checkSerializeLegsContract(
       "green. `actions: read` must sit on the CALLING workflow's own " +
       "`permissions:`, not on the job: a called workflow requesting a scope " +
       "its caller never held is a startup_failure for the entire run. " +
-      "Completing these parts is necessary but NOT sufficient today — see " +
-      "CodySwannGT/lisa#2662, which tracks the reusable workflow's own " +
-      "permissions ceiling discarding the grant",
+      "The reusable workflow now declares `actions: read` for itself " +
+      "(CodySwannGT/lisa#2662), so completing these parts is what makes " +
+      "ordering work — and a caller that has NOT granted the scope gets a " +
+      "startup_failure for its whole run, opted in or not",
   };
+}
+
+/** The slice of a calling job this check reads. */
+interface CallingJob {
+  readonly uses?: string;
+  readonly with?: Record<string, unknown>;
+  readonly secrets?: Record<string, unknown>;
 }
 
 /**
@@ -197,15 +207,61 @@ export function readContract(source: string): SerializeContract {
     .split("\n")
     .filter(line => !line.trim().startsWith("#"))
     .join("\n");
+  const call = callingJob(source);
   return {
-    optedIn: /serialize_platform_legs:\s*true/u.test(uncommented),
-    forwardsToken: /LEG_ORDER_TOKEN:/u.test(uncommented),
+    // Read from the CALLING JOB when the file parses, because the three parts
+    // only mean anything together. Whole-file matching reported `ok` for a
+    // workflow with `serialize_platform_legs` in one job and `LEG_ORDER_TOKEN`
+    // in another — the actual call then omits the token and releases Android
+    // regardless, which is the check saying yes without binding its evidence.
+    optedIn: call
+      ? call.with?.serialize_platform_legs === true
+      : /serialize_platform_legs:\s*true/u.test(uncommented),
+    forwardsToken: call
+      ? Object.hasOwn(call.secrets ?? {}, "LEG_ORDER_TOKEN")
+      : /LEG_ORDER_TOKEN:/u.test(uncommented),
     grantsActionsRead: hasWorkflowActionsRead(source, uncommented),
   };
 }
 
 /**
+ * The job that calls Lisa's reusable Maestro workflow, when the file parses.
+ *
+ * `null` when the YAML will not parse or no job calls it — the caller then
+ * falls back to whole-file matching, which is weaker but still answers on a
+ * workflow this cannot read. A file with a syntax error elsewhere still
+ * deserves the check.
+ * @param source - Raw workflow YAML.
+ * @returns The calling job, or `null`.
+ */
+function callingJob(source: string): CallingJob | null {
+  try {
+    const doc = loadYaml(source) as {
+      readonly jobs?: Record<string, CallingJob>;
+    } | null;
+    const jobs = Object.values(doc?.jobs ?? {});
+    return (
+      jobs.find(job =>
+        typeof job?.uses === "string"
+          ? job.uses.includes("maestro-native-e2e.yml")
+          : false
+      ) ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Whether `actions: read` sits on the WORKFLOW's own permissions, not a job's.
+ *
+ * A job-level grant on the calling job is deliberately NOT accepted here, and
+ * the reason is a measurement: on 2026-08-17 a caller declaring `actions: read`
+ * at job level produced HTTP 403 from the jobs API, the ordering job released
+ * Android anyway, and both platform legs started within the same second. The
+ * top-level block is what reached the token. Counting a job-level grant would
+ * make this check pass for the exact configuration that was measured to fail —
+ * which is the defect this file was rewritten to stop doing.
  *
  * Placement is the whole point, and a text match cannot tell the two apart. The
  * measured failure on 2026-08-17 was `actions: read` declared at JOB level: the
