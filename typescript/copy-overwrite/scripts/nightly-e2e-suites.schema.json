@@ -37,6 +37,11 @@
           "maximum": 720,
           "description": "Override the workflow-level freshness window for this suite. A run older than this is treated as no run at all (missing evidence), which fails once the bootstrap window has closed."
         },
+        "min_flows": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The number of flows a run must have EXECUTED before its green counts as evidence for this suite (truth-table rows 37-38). Read from the `maestro-<platform>-flowcount-<N>` artifact `maestro-native-e2e.yml` publishes, summed across platforms; the count travels as the artifact NAME, so the gate reads it from the artifacts list without downloading anything and it stays readable after the artifact expires. Declaring this field is the act of asserting that this suite publishes counts, and it is what makes the check FAIL CLOSED: from then on a run that publishes no readable count BLOCKS (`scope_unreadable`) instead of passing unchecked. Without it the gate can still reject a run that recorded ITSELF as tag-filtered (row 36), but it cannot detect a run narrowed by any other means, and it says so on the suite's report line rather than passing silently. `0` is rejected rather than coerced — a floor that enforces nothing reads as a floor."
+        },
         "required_sha": {
           "type": "string",
           "pattern": "^[0-9a-f]{40}$",

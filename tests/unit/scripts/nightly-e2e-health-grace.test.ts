@@ -285,13 +285,16 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
       //
-      // Asserted as MAJOR 1 and MINOR ≥ 3 rather than as the literal `1.3.0`
-      // this feature happened to ship at. The property being defended is "these
-      // rows are inside major 1, and were not rolled back" — an exact pin also
-      // encodes *which contract versions existed the day this test was
-      // written*, so the next fail-closed-safe minor (§10.7's requiredness
-      // measurement was `1.4.0`) fails it for a reason that has nothing to do
-      // with grace.
+      // Asserted as MAJOR 1 and MINOR >= 3 rather than as whatever literal the
+      // guard currently carries. The property being defended is "these rows are
+      // inside major 1, and were not rolled back". An exact pin ALSO encodes
+      // which contract versions existed the day the test was written, so every
+      // later fail-closed-safe minor fails it for a reason with nothing to do
+      // with grace — 1.4.0 (`min_flows`, rows 36-38) and 1.5.0 (the reporter's
+      // measured blocking claim, section 10.7) each did exactly that.
+      //
+      // The section 8 rule is about the MAJOR, and the major is what the
+      // workflow asserts, so that is what this pins.
       const [major, minor] = mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".");
       expect(major).toBe("1");
       expect(Number(minor)).toBeGreaterThanOrEqual(3);

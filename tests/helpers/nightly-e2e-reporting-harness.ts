@@ -116,3 +116,52 @@ export function requiredChecksRule(contexts: readonly string[]): unknown {
     },
   };
 }
+
+/**
+ * The guard exports the two REPORTING suites consume.
+ *
+ * Split from `GateModule` (which extends it) so the shared harness stays inside
+ * the repo's per-file line ceiling as both halves of the gate keep growing.
+ */
+export interface ReportingModule {
+  readonly REQUIREDNESS: Readonly<Record<string, string>>;
+  readonly DEFAULT_GATE_CONTEXT: string;
+  contextMatchesGate(context: string, gateContext: string): boolean;
+  suiteRequiredness(
+    finding: { readonly gated?: boolean },
+    requiredness: Requiredness | null | undefined
+  ): { state: string; detail: string | null; source: string };
+  fetchRequiredness(
+    api: Record<string, unknown>,
+    branch: string,
+    gateContext: string,
+    wait?: () => Promise<void>
+  ): Promise<Requiredness>;
+  setIssuePin(
+    api: Record<string, unknown>,
+    nodeId: string,
+    pinned: boolean
+  ): Promise<{ ok: boolean; warning: string | null }>;
+  formatIssueReport(
+    results: readonly IssueResult[],
+    context: {
+      branch: string;
+      requiredness?: Requiredness;
+      gateContext?: string;
+    }
+  ): string;
+  readonly FILTERED_RUN_REASON: string;
+  readonly FLOW_SHORTFALL_REASON: string;
+  readonly SCOPE_UNREADABLE_REASON: string;
+  readSuiteScope(artifacts: readonly { name?: string }[] | null): SuiteScope;
+  assessSuiteScope(
+    suite: Record<string, unknown>,
+    scope: SuiteScope
+  ): { reason: string; detail: string } | null;
+  fetchRunArtifacts(
+    api: Record<string, unknown>,
+    runId: number,
+    wait?: () => Promise<void>
+  ): Promise<readonly { name?: string }[] | null>;
+  formatFinding(finding: Finding): string;
+}

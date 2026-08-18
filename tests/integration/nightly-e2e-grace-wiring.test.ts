@@ -67,10 +67,11 @@ describe("per-suite grace — doc, guard, schema and caller agree", () => {
     // never for an unchanged observation. That distinction is the whole
     // argument for the minor, so it has to be findable rather than inferred.
     expect(doc).toContain("shipped as `1.2.0` → `1.3.0`, a minor");
-    // The doc's claim about what grace shipped under is historical and stays
-    // true. The GUARD's current version is not: pinning it here made this test
-    // fail on every later minor, for a reason unrelated to grace. What it can
-    // still assert is that the guard never left major 1.
+    // The guard has moved on to 1.4.0 (rows 36-38). This suite owns the 1.3.0
+    // ARGUMENT, which lives in the doc and does not change; pinning the guard's
+    // current literal here would make every later minor look like a per-suite
+    // grace regression. What must still hold is that the version is a 1.x —
+    // §8's rule is about the MAJOR, and that is what the workflow asserts.
     expect(read(GUARD_REL)).toMatch(
       /NIGHTLY_E2E_CONTRACT_VERSION = "1\.\d+\.\d+"/
     );
