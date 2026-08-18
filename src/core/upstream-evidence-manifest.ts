@@ -2613,6 +2613,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "commitlint.config.cjs": true,
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
+    "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
     "docs/design/gates-and-policy.md": true,
     "docs/design/reset-production-absence.md": true,
