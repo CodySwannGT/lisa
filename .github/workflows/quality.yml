@@ -1866,8 +1866,64 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # ─── e2e-browser gate: which job runs the suite ──────────────────────
+      # The `e2e-browser` gate is resolved in TWO places, and this is the
+      # subordinate one. The canonical façade block — `id: gate`, covered by
+      # the byte-identical drift assertions in
+      # tests/integration/quality-gate-facade.test.ts — lives on
+      # `playwright_e2e_aggregate`, because that is the job whose `name:` is
+      # the branch-protection context `🎭 Playwright E2E Tests` and the façade
+      # contract requires the gated job to be the one that RUNS the task.
+      # This job cannot be that job: it is a matrix, and a matrix rewrites its
+      # own context name with a `(<shard>)` suffix.
+      #
+      # So the two paths split by job rather than by step:
+      #
+      #   gate NOT declared  → this sharded matrix runs Lisa's built-in
+      #                        `npx playwright test --shard=…`, uploads blobs,
+      #                        and the aggregate merges them. Byte-for-byte
+      #                        what every installed caller does today.
+      #   gate declared run  → this matrix does nothing, and the aggregate
+      #                        runs the project's own task on ONE runner.
+      #                        Sharding becomes the project's business, inside
+      #                        its own task; Lisa cannot split a command it
+      #                        does not know the shape of.
+      #   gate declared off  → neither runs, and `contextsFor` drops the
+      #                        required context from the same declaration, so
+      #                        the two can never disagree.
+      #
+      # `id` is deliberately NOT `gate`: that id is what the drift assertions
+      # enumerate, and they refuse a matrix job. The BODY is identical to the
+      # canonical block modulo the id, which
+      # tests/integration/quality-gate-e2e-browser.test.ts asserts as text.
+      - name: 🎛️ Resolve the e2e-browser gate
+        id: e2e_gate
+        env:
+          GATE_ID: e2e-browser
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔧 Playwright setup
-        if: steps.check_playwright.outputs.has_config == 'true' && inputs.playwright_setup_command != ''
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false' && inputs.playwright_setup_command != ''
         run: ${{ inputs.playwright_setup_command }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -1945,7 +2001,7 @@ jobs:
       #   - .expo/            Expo CLI metadata and bundler cache
       #   - node_modules/.cache  Metro/Babel bundler caches
       - name: 💾 Restore Expo build cache
-        if: steps.check_playwright.outputs.has_config == 'true' && steps.check_expo.outputs.is_expo == 'true' && inputs.cache_build == true
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false' && steps.check_expo.outputs.is_expo == 'true' && inputs.cache_build == true
         id: expo_cache
         uses: actions/cache@v5
         with:
@@ -1958,17 +2014,17 @@ jobs:
             ${{ runner.os }}-expo-build-
 
       - name: 🌐 Build web export
-        if: steps.check_playwright.outputs.has_config == 'true' && steps.check_expo.outputs.is_expo == 'true' && (inputs.cache_build != true || steps.expo_cache.outputs.cache-hit != 'true')
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false' && steps.check_expo.outputs.is_expo == 'true' && (inputs.cache_build != true || steps.expo_cache.outputs.cache-hit != 'true')
         run: npx expo export --platform web
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Expo build cache hit — skipping expo export
-        if: steps.check_playwright.outputs.has_config == 'true' && steps.check_expo.outputs.is_expo == 'true' && inputs.cache_build == true && steps.expo_cache.outputs.cache-hit == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false' && steps.check_expo.outputs.is_expo == 'true' && inputs.cache_build == true && steps.expo_cache.outputs.cache-hit == 'true'
         run: echo "::notice::Expo build cache hit — skipped \`npx expo export --platform web\`"
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🎭 Install Playwright browsers
-        if: steps.check_playwright.outputs.has_config == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false'
         run: npx playwright install --with-deps
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -1991,7 +2047,7 @@ jobs:
       # displacing the blob artifact the aggregator needs, so the next timeout
       # is self-diagnosing.
       - name: 🎭 Run Playwright tests
-        if: steps.check_playwright.outputs.has_config == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false'
         run: npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }} --reporter=blob,line
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -1999,7 +2055,7 @@ jobs:
       # runs and merges these into a single HTML report, so consumers keep
       # the same downstream artifact name — `playwright-report-<run-id>`.
       - name: 📤 Upload Playwright blob
-        if: steps.check_playwright.outputs.has_config == 'true' && always()
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.e2e_gate.outputs.configured == 'false' && always()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}
@@ -2007,10 +2063,19 @@ jobs:
           retention-days: 14
 
       - name: 🎭 Playwright Tests Skipped (no config)
-        if: steps.check_playwright.outputs.has_config != 'true'
+        if: steps.check_playwright.outputs.has_config != 'true' && steps.e2e_gate.outputs.configured == 'false'
         run: |
           echo "::warning::Playwright E2E tests skipped - no playwright.config.ts or playwright.config.js found"
           echo "To enable Playwright testing, add a Playwright configuration file to your project"
+
+      # Says out loud that this matrix deliberately did nothing, so a shard
+      # that ran no tests is never mistaken for one that ran and passed. The
+      # WORK is not lost — it moved to `playwright_e2e_aggregate`, which is
+      # the job whose conclusion the required context reads.
+      - name: ⏭️ Shard idle — the e2e-browser gate owns this suite
+        if: steps.e2e_gate.outputs.configured != 'false'
+        run: |
+          echo "::notice::gates.e2e-browser is declared (${{ steps.e2e_gate.outputs.configured }}); the sharded matrix is idle and 🎭 Playwright E2E Tests owns the run."
 
   # Aggregator: downloads every shard's blob report, merges into a single
   # HTML report, and uploads it as `playwright-report-<run-id>`.
@@ -2021,13 +2086,25 @@ jobs:
   # is `<caller>/🎭 Playwright E2E Tests` (unsuffixed) and satisfies the
   # ruleset regardless of shard count. Runs always so the unsuffixed check
   # is emitted even when `playwright_shards = 1`.
+  #
+  # It is ALSO the `e2e-browser` gate façade job, and for the same reason: the
+  # façade contract requires the job that runs the project's declared task to
+  # be the job whose `name:` is the branch-protection context, and to carry no
+  # matrix (a matrix rewrites its own context name). See the split documented
+  # on `playwright_e2e`'s resolve step. On the fallback path this job merges
+  # shard blobs exactly as it does today; on the configured path the shards are
+  # idle and this job builds and runs the suite itself.
   playwright_e2e_aggregate:
     permissions:
       contents: read
     name: 🎭 Playwright E2E Tests
     needs: playwright_e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Was 10, which was sized for "download blobs and merge them". On the
+    # configured path this job runs the whole suite, so it needs the same
+    # headroom the shard job has. The fallback path still finishes in minutes;
+    # a timeout is a ceiling, not a reservation.
+    timeout-minutes: 60
     if: ${{ always() && !contains(format(',{0},', inputs.skip_jobs), ',playwright_e2e,') }}
     steps:
       - name: 📥 Checkout repository
@@ -2072,8 +2149,126 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # WHAT `configured=false` PRESERVES HERE. Lisa's built-in Playwright path
+      # is not one command, it is a sharded matrix plus this merge, and the
+      # fallback keeps every step of it untouched. That is why the steps below
+      # carry `configured == 'false'` rather than being deleted: a caller that
+      # has never heard of the `gates` block runs exactly what it ran before.
+      #
+      # WHAT `configured=true` BUYS. The project names its own task and this
+      # job runs it, on one runner, with the same web export and browsers the
+      # shard job would have built. Sharding is not carried across, and that is
+      # a real trade rather than an oversight — Lisa cannot append `--shard` to
+      # a command whose shape it does not know, and appending it through
+      # `<runner> run <task> -- …` differs between npm, yarn and bun. A project
+      # that needs shards either shards inside its own task or leaves the gate
+      # undeclared and keeps `playwright_shards`.
+      #
+      # WHAT `off` MEANS. Nothing runs, on either job, and `contextsFor` drops
+      # `🎭 Playwright E2E Tests` from the derived required-context list off the
+      # same declaration. The job still EXISTS and still reports — an `off`
+      # declaration must empty a job, never skip it, because a skipped required
+      # status check reports SATISFIED on GitHub.
+      - name: 🎛️ Resolve the e2e-browser gate
+        id: gate
+        env:
+          GATE_ID: e2e-browser
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const runner = (require("./.lisa.config.json").gates || {}).runner || process.env.FALLBACK_RUNNER;
+          const plain = value => /^[A-Za-z0-9:._@\/= -]+$/.test(value);
+          if (!plain(task) || !plain(runner)) { console.error(`::error::gates.${id} resolves to "${runner} ${task}", which is not a plain command.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # ─── configured path: build what the suite needs, then run the task ──
+      # Deliberately a REPEAT of the shard job's preparation rather than a
+      # `needs:` on it. A `needs:` parent that fails leaves its dependents
+      # SKIPPED, and a skipped required check counts as satisfied — the same
+      # reason the resolve block is repeated per job instead of being hoisted.
+      - name: 🔧 Playwright setup
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'true' && inputs.playwright_setup_command != ''
+        run: ${{ inputs.playwright_setup_command }}
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Detect Expo project
+        id: check_expo
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'true'
+        run: |
+          if [ -f "app.json" ] || [ -f "app.config.js" ] || [ -f "app.config.ts" ] \
+            || { [ -f "package.json" ] && grep -q '"expo"[[:space:]]*:' package.json; }; then
+            echo "is_expo=true" >> $GITHUB_OUTPUT
+            echo "✅ Expo project detected — will run \`expo export\`"
+          else
+            echo "is_expo=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Non-Expo project — skipping \`expo export\` (Playwright webServer self-builds)"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # No cache branch on this path, unlike the shard job. The cache key there
+      # is a fingerprint of build inputs, and a stale key silently serves an
+      # old export — measured downstream, and the reason acmeorgb/frontend-v2
+      # pins `cache_build: false`. A gate the project just opted into should
+      # not inherit that hazard on day one.
+      - name: 🌐 Build web export
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'true' && steps.check_expo.outputs.is_expo == 'true'
+        run: npx expo export --platform web
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🎭 Install Playwright browsers
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'true'
+        run: npx playwright install --with-deps
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # A declared gate whose suite is ABSENT must be loud. The registry's
+      # `work` field for e2e-browser is "specs run", and a Playwright task with
+      # no config exits 0 having run nothing — a green check indistinguishable
+      # on the pull-request page from one that ran the suite. Omitting the
+      # declaration is the auditable way to have no browser gate; declaring it
+      # against nothing is not.
+      - name: 🚨 e2e-browser is declared but there is no Playwright config
+        if: steps.check_playwright.outputs.has_config != 'true' && steps.gate.outputs.configured == 'true'
+        run: |
+          echo "::error::gates.e2e-browser is declared, but this project has no playwright.config.ts or playwright.config.js. A browser gate with no suite reports green having run nothing. Remove the declaration or add the suite."
+          exit 1
+
+      - name: 🎭 Run the e2e-browser gate
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split, as on every other façade job.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📤 Upload Playwright report
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'true' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: ${{ inputs.working_directory || '.' }}/playwright-report
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: 📥 Download all shard blob reports
-        if: steps.check_playwright.outputs.has_config == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'false'
         uses: actions/download-artifact@v8
         with:
           path: ${{ inputs.working_directory || '.' }}/all-blob-reports
@@ -2081,7 +2276,7 @@ jobs:
           merge-multiple: true
 
       - name: 🎭 Merge blob reports into HTML
-        if: steps.check_playwright.outputs.has_config == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'false'
         run: npx playwright merge-reports --reporter=html ./all-blob-reports
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -2089,7 +2284,7 @@ jobs:
       # consumers (GitHub Actions artifact downloads, Playwright report
       # viewers) don't need to change when a repo opts into sharding.
       - name: 📤 Upload merged Playwright report
-        if: steps.check_playwright.outputs.has_config == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'false'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ github.run_id }}
@@ -2097,7 +2292,7 @@ jobs:
           retention-days: 14
 
       - name: 🎭 Playwright aggregator skipped (no config)
-        if: steps.check_playwright.outputs.has_config != 'true'
+        if: steps.check_playwright.outputs.has_config != 'true' && steps.gate.outputs.configured == 'false'
         run: |
           echo "::notice::Playwright aggregator skipped — no playwright.config.ts or playwright.config.js found"
 
@@ -2121,10 +2316,20 @@ jobs:
       # Guard on has_config: when there is no Playwright config, no shard tests
       # ran, so an abandoned/cancelled shard job is not a test failure signal.
       - name: 🚨 Fail if any Playwright shard failed
-        if: ${{ always() && steps.check_playwright.outputs.has_config == 'true' && needs.playwright_e2e.result != 'success' && needs.playwright_e2e.result != 'skipped' }}
+        if: ${{ always() && steps.check_playwright.outputs.has_config == 'true' && steps.gate.outputs.configured == 'false' && needs.playwright_e2e.result != 'success' && needs.playwright_e2e.result != 'skipped' }}
         run: |
           echo "::error::Playwright shard matrix result is '${{ needs.playwright_e2e.result }}' — at least one shard did not pass"
           exit 1
+
+      # An `off` declaration empties this job — every step above is conditioned
+      # away. Say so, so that a green check whose log is blank is legible as a
+      # decision rather than as a run that produced no output. It proves
+      # nothing and can fail nothing, which is what an `off` gate is; the
+      # required context is dropped by `contextsFor` from the same declaration.
+      - name: ⏭️ e2e-browser declared off
+        if: steps.gate.outputs.configured == 'off'
+        run: |
+          echo "::notice::gates.e2e-browser is declared off — no browser suite ran, and this context is not a required check."
 
   format:
     permissions:
