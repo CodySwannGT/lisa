@@ -35,6 +35,10 @@ export const DEFAULT_AUTOMATION_RUN_HISTORY_MAX_ENTRIES = 50;
  *   readonly run_id: string
  * }} AutomationRunRecord
  *
+ * `refs` above is the AUTHORED contract. A row already on disk whose `refs` is
+ * some other shape is round-tripped as stored rather than coerced — see
+ * {@link preserveStoredRefs}.
+ *
  * @typedef {{
  *   readonly projectRoot?: string
  *   readonly loopId: string
@@ -85,14 +89,26 @@ export async function recordAutomationRun(input) {
     };
   }
 
-  const nextRecords = [...readResult.records, record].slice(-maxEntries);
+  // Prior rows are carried across as the RAW LINES they were read as, never
+  // re-serialised from the parsed form. Re-serialising is what let an append
+  // rewrite rows it did not author: a stored `refs` shape the writer did not
+  // recognise came back as `[]`, and a row that failed validation came back as
+  // nothing at all (#2682, #2578). Only the row being appended is serialised
+  // here, so an append can no longer be a fleet-wide migration nobody ran.
+  const nextEntries = [
+    ...readResult.entries,
+    { line: JSON.stringify(record), record },
+  ].slice(-maxEntries);
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeJsonlAtomically(filePath, nextRecords);
+  await writeJsonlAtomically(
+    filePath,
+    nextEntries.map(entry => entry.line)
+  );
 
   return {
     path: filePath,
     record,
-    records: nextRecords,
+    records: nextEntries.flatMap(entry => (entry.record ? [entry.record] : [])),
     appended: true,
     skippedCorruptLines: readResult.skippedCorruptLines,
     maxEntries,
@@ -137,8 +153,12 @@ export function automationRunRecordPath(projectRoot, loopId) {
 }
 
 /**
+ * Read a ledger, keeping every non-blank line verbatim alongside its parsed
+ * form. `records` is the validated view for consumers; `entries` is what the
+ * append path rewrites, so a row this module cannot parse or validate survives
+ * instead of being deleted by the next unrelated append (#2578).
  * @param {string} filePath
- * @returns {Promise<{ readonly records: readonly AutomationRunRecord[], readonly skippedCorruptLines: number }>}
+ * @returns {Promise<{ readonly records: readonly AutomationRunRecord[], readonly entries: readonly { readonly line: string, readonly record?: AutomationRunRecord }[], readonly skippedCorruptLines: number }>}
  */
 export async function readAutomationRunRecords(filePath) {
   let content = "";
@@ -146,12 +166,13 @@ export async function readAutomationRunRecords(filePath) {
     content = await readFile(filePath, "utf8");
   } catch (error) {
     if (error?.code === "ENOENT") {
-      return { records: [], skippedCorruptLines: 0 };
+      return { records: [], entries: [], skippedCorruptLines: 0 };
     }
     throw error;
   }
 
-  const records = [];
+  /** @type {{ readonly line: string, readonly record?: AutomationRunRecord }[]} */
+  const entries = [];
   let skippedCorruptLines = 0;
   for (const line of content.split(/\n/)) {
     if (!line.trim()) {
@@ -159,13 +180,21 @@ export async function readAutomationRunRecords(filePath) {
     }
     try {
       const parsed = JSON.parse(line);
-      records.push(validateStoredRecord(parsed));
+      entries.push({ line, record: validateStoredRecord(parsed) });
     } catch {
+      // Kept, not dropped. The caller rewrites the file from `entries`, so a
+      // row omitted here would be DELETED from disk by the next unrelated
+      // append (#2578). It stays exactly as read; only `records` excludes it.
+      entries.push({ line });
       skippedCorruptLines += 1;
     }
   }
 
-  return { records, skippedCorruptLines };
+  return {
+    records: entries.flatMap(entry => (entry.record ? [entry.record] : [])),
+    entries,
+    skippedCorruptLines,
+  };
 }
 
 /**
@@ -173,12 +202,58 @@ export async function readAutomationRunRecords(filePath) {
  * @returns {AutomationRunRecord}
  */
 function buildAutomationRunRecord(input) {
+  return assembleAutomationRunRecord(input, normalizeAuthoredRefs(input.refs));
+}
+
+/**
+ * `refs` as an author supplied it.
+ *
+ * A shape this module cannot store as written is REJECTED, not quietly
+ * emptied. Coercing to `[]` is how a caller could record a run whose evidence
+ * links were dropped while the write still reported success (#2682).
+ *
+ * @param {unknown} refs
+ * @returns {readonly string[]}
+ */
+function normalizeAuthoredRefs(refs) {
+  if (refs === undefined || refs === null) {
+    return [];
+  }
+  if (!Array.isArray(refs)) {
+    throw new Error(
+      `Automation run refs must be an array of strings; received ${typeof refs}.`
+    );
+  }
+  return refs.map(ref => String(ref));
+}
+
+/**
+ * `refs` as it was stored, round-tripped rather than coerced.
+ *
+ * A stored shape this module does not recognise — the object form
+ * `{tickets, prs, commits}` observed in the field — is returned unchanged.
+ * Coercing it to `[]` here destroyed the evidence links on every prior row at
+ * the next append: silently, retroactively, and irreversibly (#2682).
+ *
+ * @param {unknown} refs
+ * @returns {unknown}
+ */
+function preserveStoredRefs(refs) {
+  if (refs === undefined || refs === null) {
+    return [];
+  }
+  return Array.isArray(refs) ? refs.map(ref => String(ref)) : refs;
+}
+
+/**
+ * @param {RecordAutomationRunInput} input
+ * @param {unknown} refs - Already-resolved `refs` for this record.
+ * @returns {AutomationRunRecord}
+ */
+function assembleAutomationRunRecord(input, refs) {
   const loopId = normalizeLoopId(input.loopId);
   const summary = String(input.summary ?? "").trim();
   const runbook = String(input.runbook ?? "").trim();
-  const refs = Array.isArray(input.refs)
-    ? input.refs.map(ref => String(ref))
-    : [];
   const ts =
     input.ts instanceof Date
       ? input.ts.toISOString()
@@ -251,21 +326,23 @@ function validateStoredRecord(value) {
   if (!value || typeof value !== "object") {
     throw new Error("Automation run record must be an object.");
   }
-  return buildAutomationRunRecord({
-    ts: String(value.ts ?? ""),
-    loopId: String(value.loop_id ?? ""),
-    outcome: String(value.outcome ?? ""),
-    summary: String(value.summary ?? ""),
-    runbook: String(value.runbook ?? ""),
-    refs: Array.isArray(value.refs) ? value.refs.map(ref => String(ref)) : [],
-    runId: String(value.run_id ?? ""),
-    // Carry every unrecognised key forward. Without this, re-validating a
-    // stored record on read silently strips it, and the next append writes the
-    // stripped history back over the file (#2524).
-    extras: Object.fromEntries(
-      Object.entries(value).filter(([key]) => !KNOWN_RECORD_KEYS.has(key))
-    ),
-  });
+  return assembleAutomationRunRecord(
+    {
+      ts: String(value.ts ?? ""),
+      loopId: String(value.loop_id ?? ""),
+      outcome: String(value.outcome ?? ""),
+      summary: String(value.summary ?? ""),
+      runbook: String(value.runbook ?? ""),
+      runId: String(value.run_id ?? ""),
+      // Carry every unrecognised key forward. Without this, re-validating a
+      // stored record on read silently strips it, and the next append writes
+      // the stripped history back over the file (#2524).
+      extras: Object.fromEntries(
+        Object.entries(value).filter(([key]) => !KNOWN_RECORD_KEYS.has(key))
+      ),
+    },
+    preserveStoredRefs(value.refs)
+  );
 }
 
 /**
@@ -302,10 +379,10 @@ async function readJsonIfPresent(filePath) {
 
 /**
  * @param {string} filePath
- * @param {readonly AutomationRunRecord[]} records
+ * @param {readonly string[]} lines - Serialised rows, written verbatim.
  */
-async function writeJsonlAtomically(filePath, records) {
-  const content = `${records.map(record => JSON.stringify(record)).join("\n")}\n`;
+async function writeJsonlAtomically(filePath, lines) {
+  const content = `${lines.join("\n")}\n`;
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(tempPath, content, "utf8");
   await rename(tempPath, filePath);
