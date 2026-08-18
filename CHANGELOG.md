@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.38.4](https://github.com/CodySwannGT/lisa/compare/v3.38.3...v3.38.4) (2026-08-18)
+
+
+### Bug Fixes
+
+* **package-lisa:** fail the apply on an unsubstituted $name placeholder ([353588b](https://github.com/CodySwannGT/lisa/commit/353588b12150c82f61379e6754756333b9065890)), closes [CodySwannGT/lisa#2711](https://github.com/CodySwannGT/lisa/issues/2711)
+
+### [3.38.3](https://github.com/CodySwannGT/lisa/compare/v3.38.2...v3.38.3) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** reject a zero-flow run without requiring min_flows (row 39) ([f4b66e3](https://github.com/CodySwannGT/lisa/commit/f4b66e399a878178f659c6fce30617ed7a345e06)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
+### [3.38.2](https://github.com/CodySwannGT/lisa/compare/v3.38.1...v3.38.2) (2026-08-18)
+
+
+### Documentation
+
+* **design:** address the two review findings I had missed, and record the fork gaps ([bbae7ce](https://github.com/CodySwannGT/lisa/commit/bbae7cec93edccf5886722221366f46fb9d2f189)), closes [#2704](https://github.com/CodySwannGT/lisa/issues/2704) [CodySwannGT/lisa#2700](https://github.com/CodySwannGT/lisa/issues/2700)
+* **design:** correct the duplicate-check-name claim, which measurement refutes ([1edd1cc](https://github.com/CodySwannGT/lisa/commit/1edd1cc1bf39f6f0f9431733511097efe5514f89)), closes [CodySwannGT/lisa#2700](https://github.com/CodySwannGT/lisa/issues/2700)
+* **design:** correct the e2e contract's delete list and answer both open questions ([7a40fa7](https://github.com/CodySwannGT/lisa/commit/7a40fa70554b2891a9a9047d54ea9b0637bce1d3)), closes [gunnertech#385](https://github.com/CodySwannGT/gunnertech/issues/385) [CodySwannGT/lisa#2700](https://github.com/CodySwannGT/lisa/issues/2700)
+* **design:** declare the e2e wiring contract ([0ac5bee](https://github.com/CodySwannGT/lisa/commit/0ac5bee3d30740ad84dabf5e5d1abad4b3b492f2)), closes [CodySwannGT/lisa#2700](https://github.com/CodySwannGT/lisa/issues/2700)
+* **design:** measure content drift, not just filenames — neither layer converges ([1f0b6ae](https://github.com/CodySwannGT/lisa/commit/1f0b6ae38582056f63b23cea8c91552aeb0aa25a)), closes [CodySwannGT/lisa#2700](https://github.com/CodySwannGT/lisa/issues/2700)
+* **design:** retract the delete list — all three entries are live ([ea6169f](https://github.com/CodySwannGT/lisa/commit/ea6169f87e09539571ed3ca018102ea2c5b301a8)), closes [CodySwannGT/lisa#2700](https://github.com/CodySwannGT/lisa/issues/2700)
+
 ### [3.38.1](https://github.com/CodySwannGT/lisa/compare/v3.38.0...v3.38.1) (2026-08-18)
 
 

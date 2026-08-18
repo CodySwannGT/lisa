@@ -30,7 +30,7 @@
  * Sibling of `nightly-e2e-health.test.ts` (rows 1-16), `…-api.test.ts` (17-20),
  * `…-bypass.test.ts` (21-25), `…-completeness.test.ts` (26) and
  * `…-grace.test.ts` (32-35). Specification: `docs/nightly-e2e-gate.md` §2
- * rows 36-38 and §2.5.
+ * rows 36-39 and §2.5.
  */
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -94,6 +94,9 @@ const SEVEN_FLOWS = Object.freeze({ name: "maestro-ios-flowcount-7" });
 
 /** The iOS arm of a four-flow night, as the count reaches the gate. */
 const IOS_FOUR_FLOWS = Object.freeze({ name: "maestro-ios-flowcount-4" });
+
+/** An iOS arm that ran and reached no assertion at all — row 39's subject. */
+const IOS_ZERO_FLOWS = Object.freeze({ name: "maestro-ios-flowcount-0" });
 
 /** The notice a green carries when the gate could not judge its scope. */
 const UNVERIFIED_NOTICE = "scope unverified";
@@ -407,6 +410,74 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
     });
   });
 
+  describe("row 39 — ZERO flows, with no declaration required", () => {
+    it("BITE: an arm that executed zero flows blocks with NO `min_flows`", () => {
+      // The row that makes the reusable a genuine SUPERSET of AcmeOrgB's local
+      // `check-nightly-e2e-flow-coverage.mjs`, which blocks on
+      // `arms.some(arm => arm.executed === 0)` with no configuration at all
+      // (their TUN-572). Before this row, adopting the reusable and retiring
+      // that fork would have silently dropped zero-flow protection from every
+      // suite that had not declared `min_flows` — convergence before the
+      // reusable was a superset, which is the exact hazard fork-retirement is
+      // supposed to avoid.
+      const finding = assess([IOS_ZERO_FLOWS]);
+      expect(finding.state).toBe(STATE.unknown);
+      expect(finding.reason).toBe(REASON.zeroFlows);
+    });
+
+    it("BITE: and it BLOCKS", () => {
+      const verdict = mod.decide([assess([IOS_ZERO_FLOWS])], {
+        bootstrap: NO_BOOTSTRAP,
+      });
+      expect(verdict.blocked).toBe(true);
+    });
+
+    it("BITE: it is PER-ARM — a live arm cannot launder a dead one", () => {
+      // 40 + 0 sums to 40, which clears any sane floor. Summing first would let
+      // Android's health stand in for iOS having reached no assertion at all —
+      // the same arithmetic mistake as reading a suite's green off whichever
+      // platform happened to work.
+      const finding = assess([
+        { name: "maestro-android-flowcount-40" },
+        IOS_ZERO_FLOWS,
+      ]);
+      expect(finding.state).toBe(STATE.unknown);
+      expect(finding.reason).toBe(REASON.zeroFlows);
+      expect(finding.scopeDetail).toContain("ios");
+      expect(finding.scopeDetail).not.toContain("android");
+    });
+
+    it("BITE: zero beats a declared floor rather than deferring to it", () => {
+      // Ordering check. `min_flows: 150` would also reject this run, but as
+      // `flow_shortfall` — "fewer than declared" — which reads as a suite that
+      // shrank. Zero is a different fact and gets its own reason so the operator
+      // is sent to the runner logs rather than to the suites table.
+      const finding = assess([IOS_ZERO_FLOWS], {
+        min_flows: 150,
+      });
+      expect(finding.reason).toBe(REASON.zeroFlows);
+    });
+
+    it("CONTROL: one executed flow is NOT zero", () => {
+      // The boundary, pinned. Row 39 is about "tested nothing", not "tested
+      // little" — a run of one flow is row 37's business and only when a floor
+      // is declared. A `<= 0` or truthiness slip here would silently swallow
+      // row 37's job.
+      const finding = assess([{ name: "maestro-ios-flowcount-1" }]);
+      expect(finding.state).toBe(STATE.pass);
+    });
+
+    it("CONTROL: NO count published is not zero either", () => {
+      // The distinction the local guard also draws: its `arms.length === 0` is
+      // "unavailable", not "zero-coverage". An absent marker means the gate
+      // could not ask; inventing a zero from it would block every non-maestro
+      // suite in the table on day one.
+      const finding = assess([REPORT_ARTIFACT]);
+      expect(finding.state).toBe(STATE.pass);
+      expect(finding.reason).not.toBe(REASON.zeroFlows);
+    });
+  });
+
   describe("the reporter must not close a tracking issue on a slice", () => {
     it("BITE: none of rows 36-38 count as complete evidence", () => {
       // §10 row 30. Closing a tracking issue is a stronger claim than letting a
@@ -416,6 +487,7 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
         REASON.filteredRun,
         REASON.flowShortfall,
         REASON.scopeUnreadable,
+        REASON.zeroFlows,
       ]) {
         expect(mod.isCompleteEvidence({ reason })).toBe(false);
       }
