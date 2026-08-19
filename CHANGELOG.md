@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.6](https://github.com/CodySwannGT/lisa/compare/v3.45.5...v3.45.6) (2026-08-19)
+
+
+### Bug Fixes
+
+* **work-item:** refuse a worktree binding that belongs to another branch ([b4e2630](https://github.com/CodySwannGT/lisa/commit/b4e2630370bcb6a15d450fb91c76443bd60d6a4e)), closes [CodySwannGT/lisa#2755](https://github.com/CodySwannGT/lisa/issues/2755)
+
 ### [3.45.5](https://github.com/CodySwannGT/lisa/compare/v3.45.4...v3.45.5) (2026-08-19)
 
 
