@@ -27,6 +27,22 @@ import { byCodeUnit } from "./contract.mjs";
 import { listFiles, posix, resolveInsideRepo } from "./parse.mjs";
 
 /**
+ * A path without its trailing slashes.
+ *
+ * An index scan rather than `.replace(/\/+$/, "")`. A quantified class pinned
+ * to `$` is re-attempted from every position before it can fail, which is
+ * super-linear in the path's length — S5852. Walking back from the end is one
+ * pass and cannot backtrack.
+ * @param {string} value - A repo-relative path or prefix.
+ * @returns {string} The same path with every trailing `/` removed.
+ */
+const withoutTrailingSlashes = value => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+};
+
+/**
  * Normalize a repo-relative path or path prefix to one comparable spelling.
  *
  * `./e2e/`, `e2e`, and `e2e/` all name the same directory, and the repo root
@@ -36,10 +52,10 @@ import { listFiles, posix, resolveInsideRepo } from "./parse.mjs";
  * @returns {string} Its canonical form; the empty string means the repo root.
  */
 const canonicalPath = value =>
-  posix(String(value))
-    .replace(/^\.\/+/, "")
-    .replace(/\/+$/, "")
-    .replace(/^\.$/, "");
+  withoutTrailingSlashes(posix(String(value)).replace(/^\.\/+/, "")).replace(
+    /^\.$/,
+    ""
+  );
 
 /**
  * Whether a repo-relative path lies at or under a path prefix, SEGMENT-WISE.

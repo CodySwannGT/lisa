@@ -163,7 +163,13 @@ export function parseFeatureSource(source, file, platforms) {
       pending.push(...tagsOf(trimmed));
       continue;
     }
-    const featureMatch = /^Feature:\s*(.+)$/.exec(trimmed);
+    // `(\S.*)` and not `(.+)`, here and on the Scenario line below. `\s*(.+)`
+    // lets both halves claim the same run of spaces, so the engine has a
+    // choice at every one of them and the match is super-linear in the line's
+    // length — S5852, on feature files. `\S` makes the halves disjoint. The
+    // subject is already trimmed and the capture is trimmed again, so no line
+    // that used to match stops matching.
+    const featureMatch = /^Feature:\s*(\S.*)$/.exec(trimmed);
     if (featureMatch) {
       feature = featureMatch[1].trim();
       // Gherkin inherits Feature-level tags down to every scenario in the
@@ -189,7 +195,7 @@ export function parseFeatureSource(source, file, platforms) {
       current = null;
       continue;
     }
-    const scenarioMatch = /^Scenario(?: Outline| Template)?:\s*(.+)$/.exec(
+    const scenarioMatch = /^Scenario(?: Outline| Template)?:\s*(\S.*)$/.exec(
       trimmed
     );
     if (scenarioMatch) {
