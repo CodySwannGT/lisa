@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.40.5](https://github.com/CodySwannGT/lisa/compare/v3.40.4...v3.40.5) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** fail closed when the floor-collision script is absent ([8b42869](https://github.com/CodySwannGT/lisa/commit/8b428692006de5ae263057a6af7785f044fd5209)), closes [CodySwannGT/lisa#2731](https://github.com/CodySwannGT/lisa/issues/2731)
+* **ci:** resolve the floor-collision gate from the template Lisa ships ([87ca3f1](https://github.com/CodySwannGT/lisa/commit/87ca3f118de508a921e503190577c6f3ee3565ae)), closes [CodySwannGT/lisa#2731](https://github.com/CodySwannGT/lisa/issues/2731)
+* **doctor:** report universal Lisa-owned artifacts that were never installed ([575caf0](https://github.com/CodySwannGT/lisa/commit/575caf0369278a956f70b4e01dfac97370f5f1a8)), closes [#2731](https://github.com/CodySwannGT/lisa/issues/2731) [CodySwannGT/lisa#2737](https://github.com/CodySwannGT/lisa/issues/2737)
+
+
+### Documentation
+
+* **e2e-contract:** align the §4a lane table with the stale-file rule ([d00c4a6](https://github.com/CodySwannGT/lisa/commit/d00c4a61c4c62e3744eb57e4c58a7d2e6c744015)), closes [#2728](https://github.com/CodySwannGT/lisa/issues/2728) [CodySwannGT/lisa#2727](https://github.com/CodySwannGT/lisa/issues/2727)
+* **e2e-contract:** the lane change alone converges nobody ([84a8401](https://github.com/CodySwannGT/lisa/commit/84a8401fee6d5405795ca39abb78a5c872825e5c)), closes [CodySwannGT/lisa#2727](https://github.com/CodySwannGT/lisa/issues/2727)
+
 ### [3.40.4](https://github.com/CodySwannGT/lisa/compare/v3.40.3...v3.40.4) (2026-08-19)
 
 
