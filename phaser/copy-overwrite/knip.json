@@ -10,7 +10,7 @@
     "public/assets/**"
   ],
   "ignoreDependencies": ["@types/node", "@vitest/coverage-v8", "phaser"],
-  "ignoreBinaries": ["audit", "knip", "playwright", "tsx", "vite"],
+  "ignoreBinaries": ["audit", "knip", "playwright", "printf", "tsx", "vite"],
   "rules": {
     "devDependencies": "off"
   }
