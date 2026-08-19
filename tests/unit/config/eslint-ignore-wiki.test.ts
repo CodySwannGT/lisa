@@ -113,12 +113,7 @@ describe("managed eslint config wrappers", () => {
     "cdk/copy-overwrite/eslint.slow.config.ts",
   ] as const;
 
-  it.each(
-    CONFIGS.filter(([relPath]) => relPath !== EXPO_CONFIG).map(c => [
-      c[0],
-      c[1],
-    ])
-  )(
+  it.each(CONFIGS.map(c => [c[0], c[1]]))(
     "%s annotates the default export with ReturnType<typeof %s> and never imports Linter",
     (relPath, factory) => {
       const src = readText(relPath);
@@ -160,11 +155,18 @@ describe("managed eslint config wrappers", () => {
   it("trusts Expo host config only at the localConfig spread boundary", () => {
     const src = readText(EXPO_CONFIG);
 
-    expect(src).not.toMatch(
-      /const\s+config\s*:\s*ReturnType<typeof\s+getExpoConfig>\s*=\s*\[/
-    );
+    // The requirement (#1707) is that the host's project-owned config is not
+    // force-conformed to the managed factory's return type by being spread RAW
+    // into an annotated array literal. The assertion used to be written as
+    // "no annotated array literal at all", which pushed the template into
+    // `config.push(...)` — a mutation the `functional/immutable-data` rule
+    // shipped in this very profile rejects, so Lisa's own file failed Lisa's
+    // own ruleset on every fresh Expo project (#2804). Asserting at the spread
+    // boundary satisfies the original requirement without mutation.
     expect(src).toContain(
       "...(localConfig as unknown as ReturnType<typeof getExpoConfig>)"
     );
+    expect(src).not.toMatch(/\.\.\.localConfig\s*[,\]]/);
+    expect(src).not.toContain("config.push(");
   });
 });

@@ -81,6 +81,7 @@
     "husky",
     "knip",
     "prettier",
+    "printf",
     "sentry-cli",
     "sls",
     "tsc",
