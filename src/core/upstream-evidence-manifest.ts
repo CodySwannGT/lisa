@@ -19,9 +19,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "8870dba7b299ddb528e01fee32ec01cd8994a72118708ea8d3255be3daedfa72",
+      "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "522c9d6724361140ca36fe967378fdfc944da9aa612aad5310237b95f4ca66be",
+      "c5643655f16b3229646b59cf2ac74edc631959825231a8cf69575cc8268ce0c2",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "8c3effe804dfbea75011271f9d96eeb125fcbb97dc6397cc2c2dffd935f3aef0",
+      "ad41c9097e9688f1ad48fe2cb27197d642124c52511267d43f1257539d8bb082",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -197,13 +197,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "5c4040c3ceeba6c23b46f7b1251a08f1900c6fe9614c651eaaa306f1d92cc2e7",
+      "6b3be9e8fb22fa054300edd99383c1a4573466a0bd9342b7d5e0c88dba5ab4b5",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "2b44e2baffd2bde541c95ed267f4a6962b421e3e7d2723d5f4660f8829c19645",
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
-      "82f5881f9b1c743f572297e42cdf9acc6102d28cea909a9b6454042b091f8e44",
+      "eafddef7d95b88652ef46fe87f9b62176a1ca08913e13e47c5eca8cd979f29e2",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
-      "f59d95770b72847e21c9581962059cc68260ac5a0086013c753c9f27c90e02c2",
+      "46584d61812fb6684cc7a5fe4a2331d8fc486c0ed44f228b5049e2b1e6034fb8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
       "bf64e239b4218bcb83f89e2b9ce1975b5b681450c3828ec0ade620de01a387b4",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
@@ -215,9 +215,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
       "ec556af49f46b02441e59da66b828fb3f2a0f03b6ef16130e43e6d31d119bf5d",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "b3c89213aab541483cf50c9c7ccbd4dd931fb5ef4d079e970ea82520f22bd01c",
+      "35f39f64b3d4f58d1da91b16337312a8b25354059e02017a7df2d793efb2f0d3",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
-      "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
+      "da1bca64624498b0c2254336eff5ddd31e1a0cbe59bff67c238c1cfbd4537c76",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -2335,9 +2335,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "1e5d6787f99af1190b465903956a90270320eeca022c3a3ab6716e1a8b3ec57f",
+      "3966250ce628357aa94cbb6c53084be8d822e921052ac507f1dd265dedb67026",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
+      "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "6bcf8b88b1d5ade1aa7c7902ba12af1df7b0b13d4e69c49a24f76a92474c93ec",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -8945,6 +8945,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
     "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
+    "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,

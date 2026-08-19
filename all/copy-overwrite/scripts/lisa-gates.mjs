@@ -650,7 +650,7 @@ export function gateForSkipJob(token) {
  * @param {string} [moment] The moment the caller passes to `quality.yml`.
  * @returns {{token: string, status: string, moment: string, jobs: string[], gates: string[], gate: string|null, ungated: string[], declaration: string|null}} The migration for that token.
  */
-export function skipJobMigration(token, moment = "pull-request") {
+export function skipJobMigration(token, moment = PULL_REQUEST) {
   const resolved = gateForSkipJob(token);
   if (resolved.gate === null) {
     return { ...resolved, moment, declaration: null };
@@ -1638,7 +1638,7 @@ function main() {
     const requested = (flag("tokens") ?? "")
       .split(",")
       .filter(entry => entry !== "");
-    const moment = flag("moment") ?? "pull-request";
+    const moment = flag("moment") ?? PULL_REQUEST;
     const resolved = (
       requested.length ? requested : Object.keys(SKIP_JOB_TOKENS)
     ).map(token => skipJobMigration(token, moment));

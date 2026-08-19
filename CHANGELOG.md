@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.10](https://github.com/CodySwannGT/lisa/compare/v3.45.9...v3.45.10) (2026-08-19)
+
+
+### Bug Fixes
+
+* **lint:** make the scripts Lisa ships pass the ruleset Lisa ships ([fc570ba](https://github.com/CodySwannGT/lisa/commit/fc570ba321b96122b34d9caede2400c0c7edd56f)), closes [CodySwannGT/lisa#2797](https://github.com/CodySwannGT/lisa/issues/2797) [CodySwannGT/lisa#2797](https://github.com/CodySwannGT/lisa/issues/2797)
+
 ### [3.45.9](https://github.com/CodySwannGT/lisa/compare/v3.45.8...v3.45.9) (2026-08-19)
 
 

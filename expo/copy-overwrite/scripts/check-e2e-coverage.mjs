@@ -397,11 +397,17 @@ function flowTags(source) {
   for (const line of lines.slice(start + 1)) {
     // The block ends at the document separator, at a non-indented line, or at
     // anything that is not a list item. Each of those is what the regex missed.
-    const item = line.match(/^\s+-\s*(.+?)\s*$/u);
+    // The whitespace either side of the item is trimmed in JS rather than by
+    // `\s*(.+?)\s*$`. There, three quantifiers compete for the same spaces, so
+    // the engine has a choice to make at each one and the match is
+    // super-linear in the line's length — S5852, on a workflow file. `(.+)`
+    // holds the same "at least one character after the dash" condition the
+    // lazy form did, so no line changes its verdict.
+    const item = line.match(/^\s+-(.+)$/u);
     if (!item || line.startsWith("---")) {
       break;
     }
-    tags.push(item[1].replace(/^["']|["']$/gu, ""));
+    tags.push(item[1].trim().replace(/^["']|["']$/gu, ""));
   }
   return tags;
 }
