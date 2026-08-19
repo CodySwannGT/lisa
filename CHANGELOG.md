@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.41.1](https://github.com/CodySwannGT/lisa/compare/v3.41.0...v3.41.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **apply:** never merge a host's dependency floor downwards ([d64087a](https://github.com/CodySwannGT/lisa/commit/d64087a28003a6cb89fe632121b812b106272f55)), closes [CodySwannGT/lisa#2726](https://github.com/CodySwannGT/lisa/issues/2726)
+* **apply:** refuse to delete a workflow the consumer still calls ([e7e5a51](https://github.com/CodySwannGT/lisa/commit/e7e5a51210bf00389538843e8af6cc4aba3d273d)), closes [CodySwannGT/lisa#2730](https://github.com/CodySwannGT/lisa/issues/2730)
+
 ## [3.41.0](https://github.com/CodySwannGT/lisa/compare/v3.40.5...v3.41.0) (2026-08-19)
 
 
