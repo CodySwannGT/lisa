@@ -274,7 +274,15 @@ describe("quality.yml gate façade", () => {
       // to satisfy a uniform assertion would GROW the surface this workstream
       // exists to retire. The invariant is "no escape was taken away", not
       // "every job has one".
-      const notSkipGated = new Set(["verification_coverage"]);
+      // `performance_budget` joins for the same reason and not by exception:
+      // it is a NEW job, so no caller ever had a skip_jobs escape for it to
+      // lose. Giving it one to satisfy a uniform assertion is exactly the
+      // growth this invariant forbids. It is declined by declaring the gate
+      // `off`, which empties the job rather than skipping it.
+      const notSkipGated = new Set([
+        "verification_coverage",
+        "performance_budget",
+      ]);
       for (const { job } of CONVERTED) {
         if (notSkipGated.has(job)) {
           expect(workflow.jobs[job].if ?? "").not.toContain("inputs.skip_jobs");

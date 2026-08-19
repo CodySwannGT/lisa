@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "305da36e781086e7d0a6d58e9cdd26f1033a19787b35f1a60e37aab344b82f48",
+      "1a456052254f7c7c8b7c0509fb1e3d8c572891056bc0ef4dd4fbde29b0a54011",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8884,6 +8884,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
     "tests/unit/config/oxlint-typescript.test.ts": true,
     "tests/unit/config/oxlint-worktree-safe-extends.test.ts": true,
+    "tests/unit/config/performance-budget-gate.test.ts": true,
     "tests/unit/config/phaser-template.test.ts": true,
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,

@@ -362,7 +362,17 @@ export const REGISTRY = Object.freeze({
     label: "⚡ Performance Budget",
     summary: "Pages stay inside their performance budget.",
     task: "perf:check",
-    moments: DEPLOY_ONLY,
+    // Widened from DEPLOY_ONLY. The measurement was already running in CI on
+    // every consumer — through a standalone `lighthouse.yml`, outside the
+    // registry, with no level and therefore no way to declare it `off`. A
+    // check a project cannot decline is not a gate, it is a fixture.
+    //
+    // `push` is included so a project CAN run it pre-push, not because it
+    // should by default: the suite builds a web bundle and drives a browser,
+    // which is minutes, and paying that on every push is a poor trade. Ship it
+    // declared `off` at push and `optional` at pull-request — present, visible,
+    // declinable, and blocking nothing until a project decides otherwise.
+    moments: [...PUSH_ONWARD, CONTINUOUS],
     work: "pages measured",
   },
   "load-capacity": {
