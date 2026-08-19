@@ -2112,6 +2112,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "00a3207bb5a485bfee80fb71be6e9577979fd156b15a85517e88a2f9261bc9f4",
     "scripts/check-conflict-markers.mjs":
       "3a2ab8dde9deab3e8ee750d5678b6653751abad2eb8f961500585ba38f502047",
+    "scripts/check-delivery-deletion-conflicts.mjs":
+      "e7fe0064ad82a4dba17436657630a46891568a3d18930eb172fe9ee3f54196aa",
     "scripts/check-derived-artifacts.mjs":
       "1a35cc935515d29f0223a87d56dbfd5537aba19162d9d20e70fce8255688b76f",
     "scripts/check-duplicate-versions.mjs":
@@ -8168,6 +8170,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scratchpad/decision-points.sh": true,
     "scripts/build-plugins.sh": true,
     "scripts/check-conflict-markers.mjs": true,
+    "scripts/check-delivery-deletion-conflicts.mjs": true,
     "scripts/check-derived-artifacts.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
@@ -9059,6 +9062,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd/support.ts": true,
     "tests/unit/scripts/build-cursor-hooks-json.test.ts": true,
     "tests/unit/scripts/check-conflict-markers.test.ts": true,
+    "tests/unit/scripts/check-delivery-deletion-conflicts.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions-helpers.ts": true,
     "tests/unit/scripts/check-duplicate-versions.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
