@@ -279,6 +279,61 @@ function policyObligationErrors(entity) {
 }
 
 /**
+ * A short, non-quoting description of a rejected inventory entry.
+ *
+ * The VALUE is deliberately never echoed. An inventory is machine-generated
+ * from a running system, and an entry that failed validation is exactly the one
+ * whose contents nobody has vouched for.
+ * @param {unknown} entry - The rejected entry
+ * @returns {string} What it was, in one phrase
+ */
+function describeEntry(entry) {
+  if (entry === null) return "null";
+  if (Array.isArray(entry)) return "an array";
+  if (typeof entry !== "object") return `a ${typeof entry}`;
+  if (!("id" in entry)) return "an object with no `id`";
+  if (typeof entry.id !== "string")
+    return `an object whose \`id\` is ${entry.id === null ? "null" : `a ${typeof entry.id}`}`;
+  return "an object whose `id` is empty";
+}
+
+/**
+ * Why a parsed inventory document cannot be read, or null when it can.
+ *
+ * Checks the ENTRIES, not just the container. `Array.isArray(entities)` is
+ * satisfied by `[null]`, and `compareInventory` then reads `item.id` and throws
+ * a TypeError before any envelope is emitted — the CLI dying with a stack trace
+ * is the same failure the container check was written to prevent, reached one
+ * level deeper. An entry with no usable `id` is no better: it becomes a finding
+ * with no subject, and the envelope builder rejects its own output. Every one
+ * of those must arrive as an `invalid-inventory` finding instead.
+ * @param {unknown} value - The parsed inventory document
+ * @returns {string|null} An operator-readable reason, or null when well-shaped
+ */
+export function inventoryShapeError(value) {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    !Array.isArray(value.entities)
+  ) {
+    return "parsed as JSON but is not an inventory: expected an object with an `entities` array. Regenerate it with the project's `state:inventory` adapter.";
+  }
+  const index = value.entities.findIndex(
+    entry =>
+      entry === null ||
+      typeof entry !== "object" ||
+      Array.isArray(entry) ||
+      typeof entry.id !== "string" ||
+      entry.id.trim() === ""
+  );
+  if (index === -1) return null;
+  // The index is named because an inventory is machine-generated and long —
+  // "one entry is malformed" is not something an operator can act on.
+  return `parsed as JSON but entities[${index}] is not an entity: expected an object with a non-empty string \`id\`, got ${describeEntry(value.entities[index])}. Regenerate it with the project's \`state:inventory\` adapter.`;
+}
+
+/**
  * Compare an inventory against a contract and produce findings.
  * @param {object} args - Comparison inputs
  * @param {object} args.contract - Parsed, schema-valid state contract
@@ -580,21 +635,18 @@ export function run(options = {}) {
   // instead of emitting an `invalid` envelope, while an array or a string
   // silently yields zero entities and every declared entity reads as
   // unconfirmed. A wrong-shaped inventory must be reported as invalid, not
-  // mistaken for an empty one.
+  // mistaken for an empty one. `inventoryShapeError` checks the ENTRIES too,
+  // because the container check alone accepted `[null]` and left the TypeError
+  // exactly where this comment says it must not be.
   const inventoryValue = inventoryRead.value;
-  if (
-    inventoryValue === null ||
-    typeof inventoryValue !== "object" ||
-    Array.isArray(inventoryValue) ||
-    !Array.isArray(inventoryValue.entities)
-  ) {
+  const shapeError = inventoryShapeError(inventoryValue);
+  if (shapeError !== null) {
     return {
       findings: [
         {
           code: "invalid-inventory",
           subject: path.relative(root, inventoryPath),
-          message:
-            "parsed as JSON but is not an inventory: expected an object with an `entities` array. Regenerate it with the project's `state:inventory` adapter.",
+          message: shapeError,
           severity: "error",
         },
       ],
