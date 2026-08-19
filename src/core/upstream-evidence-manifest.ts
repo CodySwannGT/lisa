@@ -767,7 +767,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/design-source-of-truth.md":
       "d85886aa5832f7952bc0768871a335f33a4899ce598bb1a114feb5f300cbc7f2",
     "plugins/src/base/rules/eager/design-value-binding.md":
-      "efd57c4cc9d11fc39414f7c60bccc9cd50bdf95a684de5edbb12cf02c9346c47",
+      "906dbea93d2e5b9f88ce338d00f6fc1ee69a75dd489173c58fcc9f4b6547ad08",
     "plugins/src/base/rules/eager/do-it-now.md":
       "de0c1565fa7b8a99a7f5d15af1118c3e5eb942a0d893bbb672533149fb82688e",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
@@ -869,7 +869,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
     "plugins/src/base/rules/reference/design-value-binding.md":
-      "27dea4763acb5f156192d4524ce0cf1bad0ff40ec3d69f908d0bf6487e1f7cfe",
+      "2df41a214d1ab224a61b08c638d17a584e6b1a670bcf1db47b00a76a9f64a921",
     "plugins/src/base/rules/reference/do-it-now.md":
       "46fdcc335e115d0f387af398789f443ef8dd3ab17de5f7d95120c31f913a8fce",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
@@ -958,8 +958,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e6063e072b9cf0928bf94df034937326444d542143f5d7264a9c2c7180c035ae",
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "08b17213a484e4c873283e2af674df579593c7ff20c95a06d71ae88c0b83f937",
+    "plugins/src/base/scripts/design-bindings-probe.mjs":
+      "2b913b86e2e36c987756b1b2654f51c8931252433d024dd588f0a1013b0db55c",
     "plugins/src/base/scripts/design-source-gate.mjs":
       "5eadc5184a8c22d1d35c8be1bf4589aeedff0d1aa578563e4d33cdb193dbc5af",
+    "plugins/src/base/scripts/design-variable-ids.mjs":
+      "0fb40c52d9297a1682f875d5c4213ecbfa772e213160b34aafa5c10d5b58125a",
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
@@ -3388,7 +3392,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-agy/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa-agy/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa-agy/scripts/design-source-gate.mjs": true,
+    "plugins/lisa-agy/scripts/design-variable-ids.mjs": true,
     "plugins/lisa-agy/scripts/doctor-report.mjs": true,
     "plugins/lisa-agy/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-agy/scripts/intake-blocker-reprobe.mjs": true,
@@ -3865,7 +3871,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-copilot/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa-copilot/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa-copilot/scripts/design-source-gate.mjs": true,
+    "plugins/lisa-copilot/scripts/design-variable-ids.mjs": true,
     "plugins/lisa-copilot/scripts/doctor-report.mjs": true,
     "plugins/lisa-copilot/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-copilot/scripts/intake-blocker-reprobe.mjs": true,
@@ -4328,7 +4336,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-cursor/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa-cursor/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa-cursor/scripts/design-source-gate.mjs": true,
+    "plugins/lisa-cursor/scripts/design-variable-ids.mjs": true,
     "plugins/lisa-cursor/scripts/doctor-report.mjs": true,
     "plugins/lisa-cursor/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-cursor/scripts/intake-blocker-reprobe.mjs": true,
@@ -6890,7 +6900,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa/scripts/design-source-gate.mjs": true,
+    "plugins/lisa/scripts/design-variable-ids.mjs": true,
     "plugins/lisa/scripts/doctor-report.mjs": true,
     "plugins/lisa/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa/scripts/intake-blocker-reprobe.mjs": true,
@@ -7535,7 +7547,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/automation-status-run-history.mjs": true,
     "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/src/base/scripts/cross-pollinate.mjs": true,
+    "plugins/src/base/scripts/design-bindings-probe.mjs": true,
     "plugins/src/base/scripts/design-source-gate.mjs": true,
+    "plugins/src/base/scripts/design-variable-ids.mjs": true,
     "plugins/src/base/scripts/doctor-report.mjs": true,
     "plugins/src/base/scripts/install-remote-agent-aws.mjs": true,
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs": true,
@@ -9326,11 +9340,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/dependency-ownership-parity.test.ts": true,
     "tests/unit/strategies/dependency-trust-classes-rule-pair.test.ts": true,
     "tests/unit/strategies/derived-branch-plan-contract.test.ts": true,
+    "tests/unit/strategies/design-bindings-probe.test.ts": true,
+    "tests/unit/strategies/design-bindings-verdict.test.ts": true,
     "tests/unit/strategies/design-source-gate-fixtures.ts": true,
     "tests/unit/strategies/design-source-gate-verdict.test.ts": true,
     "tests/unit/strategies/design-source-gate.test.ts": true,
     "tests/unit/strategies/design-source-of-truth-rule.test.ts": true,
     "tests/unit/strategies/design-value-binding-rule.test.ts": true,
+    "tests/unit/strategies/design-variable-ids.test.ts": true,
     "tests/unit/strategies/distributed-content-round2-contract.test.ts": true,
     "tests/unit/strategies/doctor-automation-readiness.test.ts": true,
     "tests/unit/strategies/doctor-config-readiness.test.ts": true,
