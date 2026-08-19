@@ -8741,6 +8741,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
+    "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
