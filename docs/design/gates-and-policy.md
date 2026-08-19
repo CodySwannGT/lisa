@@ -247,6 +247,40 @@ and the hook resolves it: declared at push, at any level, the registry owns the
 property; declared at some other moment, unreadable, or not declared at all, the
 built-in validator runs exactly as it always has.
 
+**What the traceability gate asks for is a second, independent declaration.**
+The gate LEVEL says whether a failing check blocks a merge; `workItem.verify`
+says what the check proves. Two levels exist:
+
+| level | what it proves | needs a tracker credential |
+| --- | --- | --- |
+| `trailer` (default) | a `Work-Item:` reference exists, is well formed, names the configured repository or project, matches this worktree's binding, and is the same reference on the commits and the pull-request body | no — no tracker call is made at all |
+| `full` | all of the above, plus: the tracker item carries a `repo:` label naming this repository, sits in a claimed lifecycle state, and carries a verified backlink to this pull request | yes, including WRITE access to post the backlink |
+
+`full` was the only contract on offer until #2721, which made a project
+unwilling to put a tracker API key in CI unable to satisfy the gate in any
+form. That conflated two separable things: proving a change names its work item,
+which needs nothing, and proving the tracker agrees, which needs an integration.
+The traceability requirement is the first one.
+
+The level is DECLARED, never inferred from whichever credentials happen to be
+present. Inference would make the gate's strength a property of the environment
+— delete a secret and the check quietly asks for less, with the decision
+recorded nowhere. `node scripts/lisa-work-item.mjs verify-level` prints what
+actually resolved, and CI reads it from there rather than re-deriving the
+precedence rules in shell.
+
+A declared `full` whose credential did not arrive degrades to `trailer` with a
+loud warning, and keeps failing on a missing reference. It used to `exit 0`: a
+required check reporting success having verified nothing at all, an entirely
+absent trailer included.
+
+**One parser reads the commit message and the pull-request body.** A
+`Work-Item:` line counts wherever it sits, and repeating the SAME reference is
+fine; naming two DIFFERENT ones fails, naming both. Position carries no
+information in a text that agents assemble and bots edit after review, and the
+two texts had opposite duplication rules until #2721 — the same two lines passed
+in a commit and failed in a body, with neither answer explaining the other.
+
 **The push prover is a different command from the pull-request prover**, and the
 registry says so rather than leaving each project to discover it.
 `check:work-item` is `validate-pr`, which needs a pull request to read; at push
