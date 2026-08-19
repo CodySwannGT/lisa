@@ -82,6 +82,7 @@ import {
   assertSafeLearningParents,
   resolveSafeLearningTarget,
 } from "./learnings-file-safety.js";
+import { findLocalWorkflowReferences } from "./workflow-reference-guard.js";
 import type { IGitService } from "./git-service.js";
 import {
   readProjectConfig,
@@ -594,6 +595,18 @@ export class Lisa {
     }
 
     if (!(await fse.pathExists(targetPath))) {
+      return;
+    }
+
+    const referencing = await findLocalWorkflowReferences(
+      this.config.destDir,
+      relativePath
+    );
+    if (referencing.length > 0) {
+      logger.warn(
+        `Kept (still called locally by ${referencing.join(", ")}): ${relativePath}`
+      );
+      this.counters.skipped++;
       return;
     }
 
