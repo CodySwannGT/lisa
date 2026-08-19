@@ -18,7 +18,6 @@
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import * as fse from "fs-extra";
 
 import { PROJECT_TYPE_ORDER } from "../core/config.js";
 import {
@@ -26,9 +25,7 @@ import {
   mayRefreshLisaOwned,
 } from "../core/lisa-owned-provenance.js";
 import type { HashLedger } from "../core/lisa-owned-provenance.js";
-import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
 import { isLisaSourceRepo } from "../core/self-apply.js";
-import { listFilesRecursive } from "../utils/file-operations.js";
 import {
   matchesAnyPattern,
   parseIgnorePatterns,
@@ -37,9 +34,13 @@ import {
   describeResolvableCopies,
   type MultiCopyArtifact,
 } from "./doctor-lisa-owned-artifact-copies.js";
+import {
+  shippedByStack,
+  UNIVERSAL_STACK,
+  universalDestinations,
+} from "./doctor-lisa-owned-universal.js";
 
 const CHECK_NAME = "Lisa enforcement artifacts current?";
-const COPY_OVERWRITE = "copy-overwrite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
@@ -56,9 +57,6 @@ interface ArtifactCheck {
   detail: string;
 }
 
-/** One shipped Lisa-owned artifact and the destination it installs to. */
-type ShippedArtifact = readonly [destination: string, source: string];
-
 /** Per-destination assessment before it is folded into one doctor line. */
 interface ArtifactAssessment {
   readonly finding?: readonly [string, Finding];
@@ -71,29 +69,6 @@ interface ArtifactAssessment {
  */
 function defaultLisaRoot(): string {
   return path.resolve(__dirname, "..", "..");
-}
-
-/**
- * List the Lisa-owned artifacts one stack's copy-overwrite tree ships.
- * @param lisaRoot - Installed Lisa package root
- * @param type - Stack directory name
- * @returns Destination/source pairs shipped by that stack
- */
-async function shippedByStack(
-  lisaRoot: string,
-  type: string
-): Promise<readonly ShippedArtifact[]> {
-  const directory = path.join(lisaRoot, type, COPY_OVERWRITE);
-  if (!(await fse.pathExists(directory))) return [];
-  return (await listFilesRecursive(directory))
-    .map(
-      source =>
-        [
-          path.relative(directory, source).split(path.sep).join("/"),
-          source,
-        ] as const
-    )
-    .filter(([destination]) => isLisaOwnedTemplate(destination));
 }
 
 /**
@@ -110,7 +85,7 @@ async function shippedArtifacts(
 ): Promise<ReadonlyMap<string, readonly string[]>> {
   const shipped = (
     await Promise.all(
-      ["all", ...PROJECT_TYPE_ORDER].map(async type =>
+      [UNIVERSAL_STACK, ...PROJECT_TYPE_ORDER].map(async type =>
         shippedByStack(lisaRoot, type)
       )
     )
@@ -184,8 +159,10 @@ function reExportsShippedTemplate(
  * nobody can account for is worth a line either way, and staying silent about a
  * downstream edit would let a project quietly swap a guard for a stub.
  *
- * Only artifacts the project already has are considered: a missing one means
- * the stack does not apply here, not that something drifted.
+ * A third finding covers absence, but only for the universal tree. A missing
+ * stack-specific artifact means that stack does not apply here, which is not
+ * drift. A missing universal one means apply has not run, and the CI gate that
+ * calls it is not running at all.
  * @param targetPath - Project path to inspect
  * @param lisaRoot - Installed Lisa package root (injected by tests)
  * @param ledger - Known-good hashes, defaulting to Lisa's shipping history
@@ -197,6 +174,7 @@ export async function checkLisaOwnedArtifacts(
   ledger?: HashLedger
 ): Promise<ArtifactCheck> {
   const shipped = await shippedArtifacts(lisaRoot);
+  const universal = await universalDestinations(lisaRoot);
   if (shipped.size === 0) {
     return {
       name: CHECK_NAME,
@@ -226,6 +204,7 @@ export async function checkLisaOwnedArtifacts(
           sources,
           ignorePatterns,
           selfHost,
+          universal.has(destination),
           ledger
         )
       )
@@ -251,8 +230,9 @@ export async function checkLisaOwnedArtifacts(
  * @param sources - Absolute shipped package variants
  * @param ignorePatterns - Parsed .lisaignore patterns
  * @param selfHost - Whether the target is Lisa's own source repository
+ * @param universal - Whether every project receives this destination
  * @param ledger - Known-good hashes, defaulting to Lisa's shipping history
- * @returns Per-artifact assessment, or undefined when no installed copy exists
+ * @returns Per-artifact assessment, or undefined when nothing is reportable
  */
 async function assessArtifact(
   targetPath: string,
@@ -261,17 +241,14 @@ async function assessArtifact(
   sources: readonly string[],
   ignorePatterns: readonly string[],
   selfHost: boolean,
+  universal: boolean,
   ledger?: HashLedger
 ): Promise<ArtifactAssessment | undefined> {
   const installedPath = path.join(targetPath, destination);
   const installed = await readFile(installedPath).catch(() => undefined);
   const ignored = matchesAnyPattern(destination, ignorePatterns);
   if (installed === undefined) {
-    return ignored
-      ? ({
-          finding: [destination, "ignored"] as const,
-        } satisfies ArtifactAssessment)
-      : undefined;
+    return assessAbsent(destination, ignored, universal, selfHost);
   }
   const multiCopy = await describeResolvableCopies(
     lisaRoot,
@@ -299,6 +276,41 @@ async function assessArtifact(
 }
 
 /**
+ * Assess a Lisa-owned artifact the project does not have.
+ *
+ * An absent stack-specific artifact means that stack does not apply here, which
+ * is not drift — that exemption is why absence used to report nothing at all.
+ * It over-reached: a universal artifact has no stack it does not apply to, so
+ * its absence means apply never ran and the CI gate that calls it is not
+ * running. Measured on `scripts/lisa-floor-collisions.mjs` (#2731), whose job
+ * exited 0 on the missing script — green, having examined nothing, with doctor
+ * silent too. Fixing only the job turns a silent pass into a red nobody has
+ * been told how to clear.
+ *
+ * Never for Lisa's own repository: it is the source of these artifacts, not a
+ * consumer, and installs only the few it runs on itself, so "apply never ran"
+ * is a category error there.
+ * @param destination - Project-relative artifact destination
+ * @param ignored - Whether .lisaignore names this destination
+ * @param universal - Whether every project receives this destination
+ * @param selfHost - Whether the target is Lisa's own source repository
+ * @returns Per-artifact assessment, or undefined when absence proves nothing
+ */
+function assessAbsent(
+  destination: string,
+  ignored: boolean,
+  universal: boolean,
+  selfHost: boolean
+): ArtifactAssessment | undefined {
+  if (ignored) {
+    return { finding: [destination, "ignored"] as const };
+  }
+  return universal && !selfHost
+    ? { finding: [destination, "missing"] as const }
+    : undefined;
+}
+
+/**
  * Attach optional multi-copy provenance without materialising undefined fields.
  * @param finding - Artifact finding tuple
  * @param multiCopy - Optional multi-copy provenance
@@ -312,7 +324,7 @@ function withMultiCopy(
 }
 
 /** Which finding an artifact produced. */
-type Finding = "stale" | "modified" | "ignored";
+type Finding = "stale" | "modified" | "ignored" | "missing";
 
 /**
  * Turn the per-artifact findings into one doctor line.
@@ -333,11 +345,13 @@ function summarise(
   const stale = pick("stale");
   const modified = pick("modified");
   const ignored = pick("ignored");
+  const missing = pick("missing");
   const copyDisagreements = multiCopies.filter(copy => copy.disagrees);
   const copyReports = renderCopyReports(multiCopies);
   const warningFree =
     stale.length === 0 &&
     modified.length === 0 &&
+    missing.length === 0 &&
     copyDisagreements.length === 0;
   if (warningFree) {
     // Named rather than folded into the pass. A guard excluded by
@@ -354,6 +368,9 @@ function summarise(
   const parts = [
     ignored.length > 0
       ? `${ignored.length} not assessed (.lisaignore): ${ignored.join(", ")}`
+      : "",
+    missing.length > 0
+      ? `Lisa-owned guards every project receives are not installed, so the CI gates that call them run against nothing (run \`npx lisa apply .\` to install them): ${missing.join(", ")}`
       : "",
     stale.length > 0
       ? `Outdated Lisa-owned guards (run \`npx lisa apply .\` to refresh): ${stale.join(", ")}`
