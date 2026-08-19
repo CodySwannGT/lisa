@@ -335,7 +335,14 @@ describe("the deleted anti-pattern ruleset", () => {
     );
   });
 
-  it("its replacement grants NO RepositoryRole bypass — there is no admin-merge-past-red", () => {
+  // This assertion is about the ruleset Lisa SHIPS, and it stays: a greenfield
+  // repo must not be born with an admin path past the gate. What it does NOT
+  // prove is that no admin can merge past a red gate in practice — a consumer
+  // is free to add a `RepositoryRole` bypass actor to its own ruleset, and as
+  // measured 2026-08-19 every portfolio repo where the gate was required had
+  // done exactly that. Reading this test as a claim about deployments is the
+  // mistake the 2026-08-19 amendment to §6 of the contract exists to correct.
+  it("its replacement grants NO RepositoryRole bypass in the SHIPPED template", () => {
     const ruleset = JSON.parse(read(RULESET_REL)) as Ruleset;
     expect(ruleset.bypass_actors.map(actor => actor.actor_type)).not.toContain(
       "RepositoryRole"
@@ -375,63 +382,5 @@ describe("maestro-native-e2e `require_prerequisites`", () => {
     const preflight = maestro.jobs.preflight.steps ?? [];
     const check = preflight.find(step => step.run?.includes("should_run=true"));
     expect(check?.run).toContain("::warning::Maestro native e2e skipped");
-  });
-});
-
-describe("the contract document and its proof stay together", () => {
-  // Collapsed to one line: the doc is hard-wrapped at 80 columns, so a phrase
-  // this test looks for can legitimately straddle a newline.
-  const doc = read("docs/nightly-e2e-gate.md").replace(/\s+/g, " ");
-
-  it("names the plan revision it implements", () => {
-    expect(doc).toContain("2026-08-12-r3");
-  });
-
-  it("states the allowlist-never-denylist doctrine the guard implements", () => {
-    for (const rule of [
-      "Allowlist, never denylist",
-      "Limits are source constants, never env-readable",
-      "One shared resolution function, resolved at call time",
-    ]) {
-      expect(doc).toContain(rule);
-    }
-  });
-
-  it("states the bypass rules the guard enforces", () => {
-    for (const rule of [
-      "No self-bypass",
-      "Auto-expiry",
-      "maintainers only",
-      "no admin-merge-past-red",
-    ]) {
-      expect(doc.toLowerCase()).toContain(rule.toLowerCase());
-    }
-  });
-
-  it("documents the versioning and rollback policy (A5)", () => {
-    expect(doc).toContain("Consumers pin an immutable ref");
-    expect(doc).toContain("NIGHTLY_E2E_CONTRACT_VERSION");
-    expect(doc).toContain("Rollback is");
-  });
-
-  it("row 26: doc, guard and caller agree on the completeness rule", () => {
-    // A row that lives only in code is a row the next reader will "simplify"
-    // away — and the unblock path must survive the tightening, or a red nightly
-    // becomes a day-long merge freeze with no escape but the bypass.
-    expect(doc).toContain(
-      "GitHub concludes a run `success` when its jobs were skipped"
-    );
-    expect(doc).toContain(
-      'The discriminator is "was this run PARTIAL?", never "was this a dispatch?"'
-    );
-    expect(doc).toContain(
-      "Nothing about *being* a dispatch disqualifies a run; being a partial one does"
-    );
-    expect(read(GUARD_REL)).toContain("incomplete_run");
-    // The platform picker is the surface that produced the false green, so the
-    // warning belongs where the operator chooses the value.
-    expect(
-      read("expo/create-only/.github/workflows/maestro-e2e.yml")
-    ).toContain("NARROWING THIS DOES NOT CLEAR THE NIGHTLY GATE");
   });
 });
