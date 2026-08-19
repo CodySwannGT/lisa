@@ -161,21 +161,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-phaser/rules/require-shutdown-cleanup.js":
       "c66c17734394608ef642885bb8f153a8873cc696edb1f28ed69bfe49ac9de627",
     "eslint-plugin-ui-standards/README.md":
-      "fad46b0307dcc2cd02a7ce8849f3d22207731c3570d36dd9496d0f4c2777f448",
+      "80b14c118ce58a6f9e4c5d321c0b3c6a0b4cf366d607cb4a0616cda80d084900",
     "eslint-plugin-ui-standards/index.js":
-      "b4f1634aa5e23c1f70798d82c1416b6bfd4e1614f981115dcece0a6f7d8b616e",
+      "55babe6b52206473841097256ba5c6d1bf80f7c99e39f6132c778774835f4ecb",
     "eslint-plugin-ui-standards/package.json":
       "cfc50e091432a9499ddcba7d19ee7869c005d3f4b7ec9ca128f4209581219663",
     "eslint-plugin-ui-standards/rules/no-classname-outside-ui.js":
       "4fd16f5e99bb624bfe1a245fed218a7a82b50cd06f5790b6393a36d039932f16",
     "eslint-plugin-ui-standards/rules/no-direct-rn-imports.js":
       "e25d0c26e865ea72c4914a7c3f10ff92bd084efd04f8665c896b1d9eed923299",
+    "eslint-plugin-ui-standards/rules/no-unbound-design-value.js":
+      "838d6a46741d5c47398383a2b0366a62d3b408ffb126b695c110d77041c0e43b",
     "expo/copy-overwrite/.easignore.extra":
       "1d30dac09405c41e23f6212553abacea478d7759b69c18edac0c0053f00e0d37",
     "expo/copy-overwrite/eslint.config.ts":
       "889ff793099bb65f969c2ccdf1690c8748f20e489999c1a80ae160dfb19f0531",
     "expo/copy-overwrite/eslint.expo.ts":
-      "9386672ae12703ef7f9066f7f478c95d902cc5bbd37dfd57ea507d80a05726d6",
+      "9909cdb039dbf4ea4f2b9724b7b0fce65465aac278dc762309c4637af5b8dd7b",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -546,6 +548,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b254a4264b25c6436a39035e72c5d53bdc219a6d612be5ee44d054d5f0bac205",
     "plugins/src/base/commands/debrief/apply.md":
       "2c31e0eb000c742be4dd8d5ee0ee64b1f0736389bcaa4202fc05c6b31602aab8",
+    "plugins/src/base/commands/design/intake.md":
+      "02e3589bdc71028e96cc849e40e56aeb76c22867ed51e843d08e95a01bea1c4e",
     "plugins/src/base/commands/detect-tooling.md":
       "3e0b2b71b3049b76743822558ecf69102289bdb4578f7c42036c80df88afeb2b",
     "plugins/src/base/commands/doctor.md":
@@ -764,6 +768,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2e4d5a142d7a33da3d01a6a8b3c79cf8b89769b9039c8672f1a14badba30d172",
     "plugins/src/base/rules/eager/design-source-of-truth.md":
       "d85886aa5832f7952bc0768871a335f33a4899ce598bb1a114feb5f300cbc7f2",
+    "plugins/src/base/rules/eager/design-value-binding.md":
+      "906dbea93d2e5b9f88ce338d00f6fc1ee69a75dd489173c58fcc9f4b6547ad08",
     "plugins/src/base/rules/eager/do-it-now.md":
       "de0c1565fa7b8a99a7f5d15af1118c3e5eb942a0d893bbb672533149fb82688e",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
@@ -864,6 +870,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "728ef5366d8d2645cce47e4544a7c175d7a7ba8bd6f7768ddb21e4415d53f4ad",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
+    "plugins/src/base/rules/reference/design-value-binding.md":
+      "2df41a214d1ab224a61b08c638d17a584e6b1a670bcf1db47b00a76a9f64a921",
     "plugins/src/base/rules/reference/do-it-now.md":
       "46fdcc335e115d0f387af398789f443ef8dd3ab17de5f7d95120c31f913a8fce",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
@@ -952,8 +960,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e6063e072b9cf0928bf94df034937326444d542143f5d7264a9c2c7180c035ae",
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "08b17213a484e4c873283e2af674df579593c7ff20c95a06d71ae88c0b83f937",
+    "plugins/src/base/scripts/design-bindings-probe.mjs":
+      "2b913b86e2e36c987756b1b2654f51c8931252433d024dd588f0a1013b0db55c",
+    "plugins/src/base/scripts/design-intake-gate.mjs":
+      "40120d9b465a54f6a68e0dc8c522953775762621fed19119d58905dcdf0f59c6",
     "plugins/src/base/scripts/design-source-gate.mjs":
       "5eadc5184a8c22d1d35c8be1bf4589aeedff0d1aa578563e4d33cdb193dbc5af",
+    "plugins/src/base/scripts/design-variable-ids.mjs":
+      "0fb40c52d9297a1682f875d5c4213ecbfa772e213160b34aafa5c10d5b58125a",
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
@@ -1016,6 +1030,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "6a0981107f907d3362ab0001f46412b76a70ec5ecc37ea1cd1def6ce4a38c9ee",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
+    "plugins/src/base/skills/lisa-design-intake/SKILL.md":
+      "7dcc917be8d382f86247cb8a0169a1f59575a059855f3a75d2a0231e1999c4e4",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
       "6ea2b1404d5c27f8a5bec8c90ad35ed0124789b70c091869455f538a2a9debbe",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs":
@@ -1077,7 +1093,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "a50f6c92eed59262036c908453a70e3587b79da95264fb99343897e3d75b9167",
+      "a4b41a767e354c69a694dbad42d24062278aea43d096d098f83e8d9ec04ca5c6",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1235,7 +1251,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-qa-queue/SKILL.md":
       "1d5f009f60004bf75b5d79bca370096ce40e1d41d585dc8afd4389f21bba84ae",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
-      "520437da40257686203468f39b61fbecb2f5c534faaaa488734e828f74c04825",
+      "774c290f702842f8f751dcdf0e28e74b54e8efa299194c4a29475355da8c22e2",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
       "87c6d34d0511d4afd812d1af3fee80fa3b7aa47db8449760b12f2699fedc1d78",
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
@@ -1251,7 +1267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
       "42134253cca50e384f36eaa085c0a1e6b8772e9f3e912a8d1231f1cd69199858",
     "plugins/src/base/skills/lisa-review-local/SKILL.md":
-      "348c4cae5a189e9afa9950899a5bd88674db8265d63a99b5b7a1b616e970e885",
+      "74112f88c721825464d962b05111dafe84173fb370d9522d5e155acc46cc55e9",
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "56a5549a1430ea791e5edb71144c0741f09970933fe3f7b54a76e3218b9b9042",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
@@ -1365,7 +1381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
-      "8684a31f1982ec3bcf9803ef028bf2aa7a24cefd324ca40b2ac09d07287ecacd",
+      "e0b0cd7a90abf73b30e752ea81209085ff5a74ffd9231b626bed95522220c45a",
     "plugins/src/base/skills/lisa-tear-down-automations/SKILL.md":
       "3f8215b691ce60a6efd63547b99b4d87760fe99d285f6fe153aaadd451e83731",
     "plugins/src/base/skills/lisa-test-strategy/SKILL.md":
@@ -2657,6 +2673,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "eslint-plugin-ui-standards/package.json": true,
     "eslint-plugin-ui-standards/rules/no-classname-outside-ui.js": true,
     "eslint-plugin-ui-standards/rules/no-direct-rn-imports.js": true,
+    "eslint-plugin-ui-standards/rules/no-unbound-design-value.js": true,
     "eslint.config.local.ts": true,
     "eslint.config.ts": true,
     "eslint.ignore.config.json": true,
@@ -3295,6 +3312,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/cross-pollinate.md": true,
     "plugins/lisa-agy/commands/lisa/debrief.md": true,
     "plugins/lisa-agy/commands/lisa/debrief/apply.md": true,
+    "plugins/lisa-agy/commands/lisa/design/intake.md": true,
     "plugins/lisa-agy/commands/lisa/detect-tooling.md": true,
     "plugins/lisa-agy/commands/lisa/doctor.md": true,
     "plugins/lisa-agy/commands/lisa/exploratory-qa.md": true,
@@ -3381,7 +3399,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-agy/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa-agy/scripts/design-bindings-probe.mjs": true,
+    "plugins/lisa-agy/scripts/design-intake-gate.mjs": true,
     "plugins/lisa-agy/scripts/design-source-gate.mjs": true,
+    "plugins/lisa-agy/scripts/design-variable-ids.mjs": true,
     "plugins/lisa-agy/scripts/doctor-report.mjs": true,
     "plugins/lisa-agy/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-agy/scripts/intake-blocker-reprobe.mjs": true,
@@ -3413,6 +3434,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-design-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa-agy/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
@@ -3663,6 +3685,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/cross-pollinate.md": true,
     "plugins/lisa-copilot/commands/lisa/debrief.md": true,
     "plugins/lisa-copilot/commands/lisa/debrief/apply.md": true,
+    "plugins/lisa-copilot/commands/lisa/design/intake.md": true,
     "plugins/lisa-copilot/commands/lisa/detect-tooling.md": true,
     "plugins/lisa-copilot/commands/lisa/doctor.md": true,
     "plugins/lisa-copilot/commands/lisa/exploratory-qa.md": true,
@@ -3762,6 +3785,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/eager/derived-branch-plan.md": true,
     "plugins/lisa-copilot/rules/eager/design-source-of-truth.md": true,
+    "plugins/lisa-copilot/rules/eager/design-value-binding.md": true,
     "plugins/lisa-copilot/rules/eager/do-it-now.md": true,
     "plugins/lisa-copilot/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/eager/empirical-inquiry.md": true,
@@ -3812,6 +3836,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/reference/derived-branch-plan.md": true,
     "plugins/lisa-copilot/rules/reference/design-source-of-truth.md": true,
+    "plugins/lisa-copilot/rules/reference/design-value-binding.md": true,
     "plugins/lisa-copilot/rules/reference/do-it-now.md": true,
     "plugins/lisa-copilot/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/reference/empirical-inquiry.md": true,
@@ -3856,7 +3881,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-copilot/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa-copilot/scripts/design-bindings-probe.mjs": true,
+    "plugins/lisa-copilot/scripts/design-intake-gate.mjs": true,
     "plugins/lisa-copilot/scripts/design-source-gate.mjs": true,
+    "plugins/lisa-copilot/scripts/design-variable-ids.mjs": true,
     "plugins/lisa-copilot/scripts/doctor-report.mjs": true,
     "plugins/lisa-copilot/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-copilot/scripts/intake-blocker-reprobe.mjs": true,
@@ -3888,6 +3916,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-design-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa-copilot/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
@@ -4123,6 +4152,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/cross-pollinate.md": true,
     "plugins/lisa-cursor/commands/lisa/debrief.md": true,
     "plugins/lisa-cursor/commands/lisa/debrief/apply.md": true,
+    "plugins/lisa-cursor/commands/lisa/design/intake.md": true,
     "plugins/lisa-cursor/commands/lisa/detect-tooling.md": true,
     "plugins/lisa-cursor/commands/lisa/doctor.md": true,
     "plugins/lisa-cursor/commands/lisa/exploratory-qa.md": true,
@@ -4238,6 +4268,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/derived-branch-plan.mdc": true,
     "plugins/lisa-cursor/rules/design-source-of-truth-reference.mdc": true,
     "plugins/lisa-cursor/rules/design-source-of-truth.mdc": true,
+    "plugins/lisa-cursor/rules/design-value-binding-reference.mdc": true,
+    "plugins/lisa-cursor/rules/design-value-binding.mdc": true,
     "plugins/lisa-cursor/rules/do-it-now-reference.mdc": true,
     "plugins/lisa-cursor/rules/do-it-now.mdc": true,
     "plugins/lisa-cursor/rules/documentation-source-paths-reference.mdc": true,
@@ -4317,7 +4349,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa-cursor/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa-cursor/scripts/design-bindings-probe.mjs": true,
+    "plugins/lisa-cursor/scripts/design-intake-gate.mjs": true,
     "plugins/lisa-cursor/scripts/design-source-gate.mjs": true,
+    "plugins/lisa-cursor/scripts/design-variable-ids.mjs": true,
     "plugins/lisa-cursor/scripts/doctor-report.mjs": true,
     "plugins/lisa-cursor/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-cursor/scripts/intake-blocker-reprobe.mjs": true,
@@ -4349,6 +4384,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-debrief/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-design-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/lisa-cursor/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
@@ -6284,6 +6320,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-debrief/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-design-intake/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-design-intake/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-detect-tooling/scripts/commands.mjs": true,
@@ -6674,6 +6712,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/cross-pollinate.md": true,
     "plugins/lisa/commands/debrief.md": true,
     "plugins/lisa/commands/debrief/apply.md": true,
+    "plugins/lisa/commands/design/intake.md": true,
     "plugins/lisa/commands/detect-tooling.md": true,
     "plugins/lisa/commands/doctor.md": true,
     "plugins/lisa/commands/exploratory-qa.md": true,
@@ -6783,6 +6822,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa/rules/eager/derived-branch-plan.md": true,
     "plugins/lisa/rules/eager/design-source-of-truth.md": true,
+    "plugins/lisa/rules/eager/design-value-binding.md": true,
     "plugins/lisa/rules/eager/do-it-now.md": true,
     "plugins/lisa/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa/rules/eager/empirical-inquiry.md": true,
@@ -6833,6 +6873,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa/rules/reference/derived-branch-plan.md": true,
     "plugins/lisa/rules/reference/design-source-of-truth.md": true,
+    "plugins/lisa/rules/reference/design-value-binding.md": true,
     "plugins/lisa/rules/reference/do-it-now.md": true,
     "plugins/lisa/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa/rules/reference/empirical-inquiry.md": true,
@@ -6877,7 +6918,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/lisa/scripts/cross-pollinate.mjs": true,
+    "plugins/lisa/scripts/design-bindings-probe.mjs": true,
+    "plugins/lisa/scripts/design-intake-gate.mjs": true,
     "plugins/lisa/scripts/design-source-gate.mjs": true,
+    "plugins/lisa/scripts/design-variable-ids.mjs": true,
     "plugins/lisa/scripts/doctor-report.mjs": true,
     "plugins/lisa/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa/scripts/intake-blocker-reprobe.mjs": true,
@@ -6927,6 +6971,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-debrief/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-delivery-effectiveness/SKILL.md": true,
     "plugins/lisa/skills/lisa-delivery-effectiveness/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-design-intake/SKILL.md": true,
+    "plugins/lisa/skills/lisa-design-intake/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/lisa/skills/lisa-detect-tooling/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-detect-tooling/scripts/commands.mjs": true,
@@ -7317,6 +7363,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/cross-pollinate.md": true,
     "plugins/src/base/commands/debrief.md": true,
     "plugins/src/base/commands/debrief/apply.md": true,
+    "plugins/src/base/commands/design/intake.md": true,
     "plugins/src/base/commands/detect-tooling.md": true,
     "plugins/src/base/commands/doctor.md": true,
     "plugins/src/base/commands/exploratory-qa.md": true,
@@ -7426,6 +7473,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/dependency-trust-classes.md": true,
     "plugins/src/base/rules/eager/derived-branch-plan.md": true,
     "plugins/src/base/rules/eager/design-source-of-truth.md": true,
+    "plugins/src/base/rules/eager/design-value-binding.md": true,
     "plugins/src/base/rules/eager/do-it-now.md": true,
     "plugins/src/base/rules/eager/documentation-source-paths.md": true,
     "plugins/src/base/rules/eager/empirical-inquiry.md": true,
@@ -7476,6 +7524,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/dependency-trust-classes.md": true,
     "plugins/src/base/rules/reference/derived-branch-plan.md": true,
     "plugins/src/base/rules/reference/design-source-of-truth.md": true,
+    "plugins/src/base/rules/reference/design-value-binding.md": true,
     "plugins/src/base/rules/reference/do-it-now.md": true,
     "plugins/src/base/rules/reference/documentation-source-paths.md": true,
     "plugins/src/base/rules/reference/empirical-inquiry.md": true,
@@ -7520,7 +7569,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/automation-status-run-history.mjs": true,
     "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs": true,
     "plugins/src/base/scripts/cross-pollinate.mjs": true,
+    "plugins/src/base/scripts/design-bindings-probe.mjs": true,
+    "plugins/src/base/scripts/design-intake-gate.mjs": true,
     "plugins/src/base/scripts/design-source-gate.mjs": true,
+    "plugins/src/base/scripts/design-variable-ids.mjs": true,
     "plugins/src/base/scripts/doctor-report.mjs": true,
     "plugins/src/base/scripts/install-remote-agent-aws.mjs": true,
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs": true,
@@ -7552,6 +7604,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md": true,
     "plugins/src/base/skills/lisa-debrief/SKILL.md": true,
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md": true,
+    "plugins/src/base/skills/lisa-design-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md": true,
     "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs": true,
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs": true,
@@ -8892,6 +8945,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
+    "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
@@ -9312,10 +9366,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/dependency-ownership-parity.test.ts": true,
     "tests/unit/strategies/dependency-trust-classes-rule-pair.test.ts": true,
     "tests/unit/strategies/derived-branch-plan-contract.test.ts": true,
+    "tests/unit/strategies/design-bindings-probe.test.ts": true,
+    "tests/unit/strategies/design-bindings-verdict.test.ts": true,
+    "tests/unit/strategies/design-intake-gate.test.ts": true,
+    "tests/unit/strategies/design-intake-skill.test.ts": true,
     "tests/unit/strategies/design-source-gate-fixtures.ts": true,
     "tests/unit/strategies/design-source-gate-verdict.test.ts": true,
     "tests/unit/strategies/design-source-gate.test.ts": true,
     "tests/unit/strategies/design-source-of-truth-rule.test.ts": true,
+    "tests/unit/strategies/design-value-binding-rule.test.ts": true,
+    "tests/unit/strategies/design-variable-ids.test.ts": true,
     "tests/unit/strategies/distributed-content-round2-contract.test.ts": true,
     "tests/unit/strategies/doctor-automation-readiness.test.ts": true,
     "tests/unit/strategies/doctor-config-readiness.test.ts": true,

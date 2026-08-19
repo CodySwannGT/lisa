@@ -41,6 +41,15 @@ asks whether the source is declared. If the gate script is not present (the
 project predates the plugin version that ships it), say so explicitly in the
 review — a silent skip is not one of the exits.
 
+**Design-value binding (`design-value-binding` rule).** A separate, orthogonal
+question about the same surfaces: not *is the source declared* but *are the
+values bound*. In an axis the project publishes design variables for, a literal
+is a **blocking** finding — it is a copied number that will drift when the
+system moves. In an axis with no variable collection, the identical literal is
+correct and must not be flagged; measuring is the legitimate source there, and
+the derived values belong on the work item. Aesthetic disagreement is never a
+finding under this rule. Cite the rule; do not restate its conditions here.
+
 To do this, follow these steps precisely:
 
 1. Use a Haiku agent to check the current git state:
