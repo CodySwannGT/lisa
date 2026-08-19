@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  collectFloors,
   lowestPermitted,
   resolveSelfReference,
   withinRange,
@@ -145,5 +146,48 @@ describe("resolveSelfReference", () => {
       },
     };
     expect(resolveSelfReference(manifest, "vite")).toBe("^8.0.16");
+  });
+});
+
+describe("collectFloors", () => {
+  // Runs against this repository, because the property under test is coverage
+  // and a fixture cannot have that property. The glob reached seven of eight
+  // manifests — one level deep, missing the governance ROOT — so nine floors
+  // were audited by nothing and reported clean.
+  it("reads the governance root manifest", () => {
+    const { scanned } = collectFloors();
+
+    expect(scanned).toContain("package.lisa.json");
+  });
+
+  it("reads every per-stack manifest too", () => {
+    const { scanned } = collectFloors();
+
+    expect(
+      scanned.filter(file => file.endsWith("/package-lisa/package.lisa.json"))
+        .length
+    ).toBeGreaterThan(1);
+  });
+
+  it("leaves no tracked manifest unscanned", () => {
+    // The anti-narrowing floor. Comparing what the patterns reached against
+    // what git tracks is what stops the glob quietly losing a level again —
+    // the count of scanned manifests is the assertion, not a hardcoded number
+    // that goes stale the first time a stack is added.
+    const { unscanned } = collectFloors();
+
+    expect(unscanned, "git could not be consulted").not.toBeNull();
+    expect(unscanned).toEqual([]);
+  });
+
+  it("collects a floor that only the root manifest declares", () => {
+    // nanoid sits in the root manifest and nowhere else, so before the fix it
+    // was one of the nine nobody looked at.
+    const { found } = collectFloors();
+
+    expect(found.has("nanoid")).toBe(true);
+    expect(
+      found.get("nanoid").some(site => site.file === "package.lisa.json")
+    ).toBe(true);
   });
 });
