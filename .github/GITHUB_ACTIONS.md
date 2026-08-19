@@ -511,12 +511,11 @@ with:
 │   ├── load-test.yml                       # k6 load testing
 │   ├── auto-update-pr-branches.yml            # Auto-update PRs from base
 │   └── .env.example                            # Secrets template
-├── k6/
-│   ├── scripts/                            # Test scripts
-│   ├── scenarios/                          # Test configurations
-│   ├── thresholds/                         # Performance thresholds
-│   └── README.md                           # K6 documentation
-└── dependabot.yml                          # Dependency updates
+└── k6/
+    ├── scripts/                            # Test scripts
+    ├── scenarios/                          # Test configurations
+    ├── thresholds/                         # Performance thresholds
+    └── README.md                           # K6 documentation
 ```
 
 ## Troubleshooting
