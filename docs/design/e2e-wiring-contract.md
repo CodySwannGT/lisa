@@ -12,7 +12,7 @@ them. Read the next section before trusting this one.
 ## The measured starting point — presence only
 
 ```text
-                            tunnl   gemini  propswap  gunnertech
+                           repo A  repo B   repo C     repo D
 maestro-e2e.yml               Y       Y        Y          Y
 nightly-e2e-health.yml        Y       Y        Y          Y
 --- everything below diverges ---
@@ -57,7 +57,7 @@ day that repo first applied, and every subsequent Lisa improvement reaches nobod
 Measured 2026-08-18 — each repo's copy vs Lisa's current template:
 
 ```text
-                              tunnl        gemini       propswap     gunnertech
+                             repo A       repo B        repo C      repo D
 ci.yml                      +81/-35      +98/-40      +138/-37     +82/-36
 deploy.yml                  +126/-41     +27/-63      +2/-3        +34/-64
 maestro-e2e.yml             +201/-118    +160/-113    +109/-116    +105/-113
@@ -78,26 +78,26 @@ A caller's real job is to `uses:` a versioned reusable, and that layer *can*
 converge because it resolves at run time. It doesn't:
 
 ```text
-tunnl       maestro-e2e  -> maestro-native-e2e @main     health -> @v3.27.0
+repo A      maestro-e2e  -> maestro-native-e2e @main     health -> @v3.27.0
                                                           report -> @v2.345.1
-gemini      maestro-e2e  -> maestro-native-e2e @main     health -> @v3.14.8
+repo B      maestro-e2e  -> maestro-native-e2e @main     health -> @v3.14.8
                             playwright-e2e -> quality @main
-propswap    maestro-e2e  -> maestro-native-e2e @main     health -> FULLY LOCAL
+repo C      maestro-e2e  -> maestro-native-e2e @main     health -> FULLY LOCAL
                                                           report -> @v2.345.1
-gunnertech  maestro-e2e  -> FULLY LOCAL                  health -> FULLY LOCAL
+repo D      maestro-e2e  -> FULLY LOCAL                  health -> FULLY LOCAL
 ```
 
 **Four of the eight health/maestro callers invoke no Lisa reusable at all** —
-they are local reimplementations, which is the same defect as tunnl's
-`nightly-e2e-gate.yml` fork (§4), just spread across three repos.
-`gunnertech/frontend` is not a Lisa e2e consumer in any sense. The callers that
+they are local reimplementations, which is the same defect as repo A's
+`nightly-e2e-gate.yml` fork (§4), just spread across three repos. Repo D's
+frontend is not a Lisa e2e consumer in any sense. The callers that
 *do* delegate span **four different refs**, including `@v2.345.1` — where the
 reusable does not exist at all, so that call can never load (Lisa #2702).
 
 ### What this means for the fix
 
 **Do not simply flip these files to `copy-overwrite`.** They carry real local
-content — tunnl's `maestro-e2e.yml` is 11,111 B against Lisa's 7,662 B — and
+content — repo A's `maestro-e2e.yml` is 11,111 B against Lisa's 7,662 B — and
 overwriting would destroy work in all four repos. The order that survives
 contact with reality:
 
@@ -147,7 +147,7 @@ The caller is named for the **suite** (`maestro-e2e`), never for the reusable
 workflow it calls (`maestro-native-e2e`).
 
 **A repo carrying both names is normal, not a duplicate.** A vendored reusable
-plus its caller is the correct two-file shape, and both tunnl and gunnertech use
+plus its caller is the correct two-file shape, and both repo A and repo D use
 it. An earlier draft called that a duplicate and put one of the files on a
 delete list; it was wrong (§4). The duplicate this rule forbids is two *callers*
 for one suite, which is a different thing entirely.
@@ -160,7 +160,7 @@ Branch protection keys on the check name a job reports, and a reusable call
 reports it as `<workflow name> / <reusable job name>`. So a workflow-level
 collision is neither necessary nor sufficient for a real one.
 
-Measured on a live PR rather than assumed — tunnl's two files share a workflow
+Measured on a live PR rather than assumed — repo A's two files share a workflow
 `name:` and report **distinct** checks:
 
 ```text
@@ -175,7 +175,7 @@ than the one first written, and the correct one.
 
 ## 2. Playwright gets its own workflow, and both e2e gates are DECLARED
 
-Owner ruling: gemini's shape — Playwright in its own `playwright-e2e.yml` — is
+Owner ruling: repo B's shape — Playwright in its own `playwright-e2e.yml` — is
 the standard, and it must be configurable through `.lisa.config.json` exactly as
 the other test surfaces are.
 
@@ -221,8 +221,8 @@ the suite and passed. Omission is auditable; a satisfied-but-empty gate is not.
 **PREREQUISITE, not optional.** A declared gate is resolved by
 `lisa-gates.mjs`, which ships from Lisa **3.17.0**. A repo pinned below that
 declares a gate no resolver can find, and the gate passes having verified
-nothing. Measured pins on 2026-08-18: tunnl `3.27.0` ok, propswap `^3.23.0` ok,
-**gemini `3.14.8` and gunnertech `3.14.8` cannot resolve**. Declaring an e2e
+nothing. Measured pins on 2026-08-18: repo A `3.27.0` ok, repo C `^3.23.0` ok,
+**repo B `3.14.8` and repo D `3.14.8` cannot resolve**. Declaring an e2e
 gate in those two before their pin moves produces a green check that means
 nothing — the exact defect this contract exists to prevent, delivered by the
 fix for it. **Move the pin first.**
@@ -254,7 +254,7 @@ default. The reason sits on the line above the cron in exactly this form:
 
 ```text
 # nightly-offset: <reason>   e.g.
-# nightly-offset: +90m after propswap; shared staging backend, avoids fixture collision
+# nightly-offset: +90m after repo C; shared staging backend, avoids fixture collision
 - cron: "30 4 * * *"
 ```
 
@@ -269,9 +269,9 @@ An earlier draft named three files for deletion on the evidence
 
 | file | what it actually is |
 | --- | --- |
-| `gunnertech/maestro-native-e2e.yml` | a healthy reusable — `uses: ./.github/workflows/maestro-native-e2e.yml` at `maestro-e2e.yml:119`; caller run `32119957573` **succeeded**, 7 jobs, including `📱 Maestro Native E2E / …` |
-| `propswap/nightly-e2e-tracking-issue.yml` | a healthy reusable — `uses:` at `maestro-e2e.yml:132`; caller run `32120016803` **succeeded** with `📌 Nightly E2E Tracking Issue` |
-| `tunnl/nightly-e2e-gate.yml` | a real fork, but it drives the tracker (§6) — retire only after moving that |
+| repo D's `maestro-native-e2e.yml` | a healthy reusable — `uses: ./.github/workflows/maestro-native-e2e.yml` at `maestro-e2e.yml:119`; caller run `32119957573` **succeeded**, 7 jobs, including `📱 Maestro Native E2E / …` |
+| repo C's `nightly-e2e-tracking-issue.yml` | a healthy reusable — `uses:` at `maestro-e2e.yml:132`; caller run `32120016803` **succeeded** with `📌 Nightly E2E Tracking Issue` |
+| repo A's `nightly-e2e-gate.yml` | a real fork, but it drives the tracker (§6) — retire only after moving that |
 
 ### The measurement was structurally invalid, and this is the rule that replaces it
 
@@ -290,12 +290,12 @@ The check is:
 Grepping the basename is not sufficient — it matches comments and docs, which is
 exactly how two of these were mis-scored.
 
-The genuine orphans this test does find in the portfolio are
-`tunnl/lighthouse.yml` and `gunnertech/lighthouse.yml`: `on: workflow_call` only,
+The genuine orphans this test does find in the portfolio are repo A's and
+repo D's `lighthouse.yml`: `on: workflow_call` only,
 no `push`/`schedule`/`dispatch`, and **no `uses:` anywhere**. Byte-identical,
 2653 B each. Unreachable by construction.
 
-**On tunnl's fork specifically.** Measured:
+**On repo A's fork specifically.** Measured:
 `nightly-e2e-health.yml` is a thin caller of
 `CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v3.27.0`, while
 `nightly-e2e-gate.yml` is a local reimplementation with its own guard assertions
@@ -308,11 +308,11 @@ So the case for retiring the fork rests on duplicated implementation alone —
 two gates to keep correct, one of which no longer receives Lisa's fixes. Retire
 it, but move what only it does first.
 
-**And tunnl is not alone.** The same defect — a local reimplementation where a
-`uses:` should be — appears in `propswap/nightly-e2e-health.yml` and in *both*
-of gunnertech's e2e workflows. Four forks across three repos, of which tunnl's
+**And repo A is not alone.** The same defect — a local reimplementation where a
+`uses:` should be — appears in repo C's `nightly-e2e-health.yml` and in *both*
+of repo D's e2e workflows. Four forks across three repos, of which repo A's
 is merely the one visible from a filename census because it also collides on
-`name:`. Retiring the fork is a portfolio-wide item, not a tunnl cleanup.
+`name:`. Retiring the fork is a portfolio-wide item, not a repo A cleanup.
 
 ## 4a. Every file this contract names states its delivery lane
 
@@ -336,9 +336,9 @@ applied since. No amount of consumer discipline changes that.
 Owner ruling: none of these get standardized, and none get upstreamed.
 
 ```text
-tunnl      parity-gate.yml  parity-nightly.yml  parity-determinism.yml
+repo A     parity-gate.yml  parity-nightly.yml  parity-determinism.yml
            e2e-mock-shapes.yml
-propswap   nightly-mutating-e2e.yml  e2e-account-sweeper.yml
+repo C     nightly-mutating-e2e.yml  e2e-account-sweeper.yml
            e2e-inbox-access-check.yml
 ```
 
@@ -347,7 +347,7 @@ this form:
 
 ```text
 # e2e-local: <reason>   e.g.
-# e2e-local: propswap-only; sweeps abandoned e2e accounts against the shared GIDX sandbox
+# e2e-local: this-repo-only; sweeps abandoned e2e accounts against a shared vendor sandbox
 ```
 
 Grammar: `^#\s*e2e-local:\s*\S.*$`. Conformance (§7) requires it on every
@@ -365,14 +365,14 @@ never execute. **That was wrong, and the workflow-level view is what made it
 look wrong.** Measured across all four repos:
 
 ```text
-TunnlAI/frontend      3 issues   #462 CLOSED (9 comments), #545 CLOSED, #604 OPEN
-PropSwapLLC/frontend  7 issues   #906 CLOSED (8), #917 OPEN (5), #918/#954 CLOSED
-geminisportsai/fe-v2  4 issues   #6587 CLOSED (6), #6531 CLOSED (5), #6514 CLOSED (5), #6621 OPEN
-gunnertech/frontend   1 issue    #385 CLOSED
+repo A frontend       3 issues   #462 CLOSED (9 comments), #545 CLOSED, #604 OPEN
+repo B frontend       4 issues   #6587 CLOSED (6), #6531 CLOSED (5), #6514 CLOSED (5), #6621 OPEN
+repo C frontend       7 issues   #906 CLOSED (8), #917 OPEN (5), #918/#954 CLOSED
+repo D frontend       1 issue    #385 CLOSED
 ```
 
 Authored by `app/github-actions`, marked `<!-- nightly-e2e-tracker -->`, and
-they **auto-close on green** — gunnertech#385's closing comment: *"Both nightly
+they **auto-close on green** — repo D's #385 closing comment: *"Both nightly
 e2e suites are green as of 2026-08-14… Closing."* One issue per suite, opens on
 red, accumulates human comments, closes itself. Five-to-nine-comment threads are
 engagement, not noise.
@@ -381,10 +381,10 @@ engagement, not noise.
 workflow-name sweep mis-read it:
 
 ```text
-tunnl       .github/workflows/nightly-e2e-gate.yml  +  nightly-e2e-tracker.yml
-gemini      scripts/report-nightly-e2e.mjs          (no workflow carries it)
-propswap    neither — yet has 7 issues
-gunnertech  neither — yet has 1 issue
+repo A      .github/workflows/nightly-e2e-gate.yml  +  nightly-e2e-tracker.yml
+repo B      scripts/report-nightly-e2e.mjs          (no workflow carries it)
+repo C      neither — yet has 7 issues
+repo D      neither — yet has 1 issue
 ```
 
 Two repos file tracking issues with **no local implementation at all**, so part

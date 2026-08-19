@@ -237,7 +237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "bdade3ffa508c43e2c04c8942a68b74225907a8aad830e7bffb87fe8354e0ed9",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "a3eeeeeab2956e59ae1fd143b30bedcb0bb7180bc9e6a87aab3c8c1467bbc2ec",
+      "a116c83f8fc62d2f394566f08d42026b817fe70e2207e6578da79dbca224b62a",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
       "1f09f6266052dea4bdbd630276ac5e8f6fb4efca44500d62a26a28face316284",
     "expo/create-only/.maestro/flake-classification.json":
@@ -2319,7 +2319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "5d6a5977b15a4996585715c4e5ca6d4ada450f0f0d3e439a19bab3fa89353000",
+      "1e5d6787f99af1190b465903956a90270320eeca022c3a3ab6716e1a8b3ec57f",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
