@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.43.0](https://github.com/CodySwannGT/lisa/compare/v3.42.0...v3.43.0) (2026-08-19)
+
+
+### Features
+
+* **work-item:** complete a work item at merge, with resolved roles and evidence ([6ffd471](https://github.com/CodySwannGT/lisa/commit/6ffd471a4f6f9944516a3550f7defb6ce59b5e2e)), closes [CodySwannGT/lisa#2741](https://github.com/CodySwannGT/lisa/issues/2741)
+
 ## [3.42.0](https://github.com/CodySwannGT/lisa/compare/v3.41.1...v3.42.0) (2026-08-19)
 
 
