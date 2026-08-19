@@ -2145,7 +2145,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
-      "0060a0f65885b54fc93bd3885ca249cbb1ac822c52813817aae640bc1303827b",
+      "ab265847a4c7766ded0c45b693f352ff1a82ee1797f50beda872a55b9a384966",
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
@@ -8787,6 +8787,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
+    "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/standards-proof-fixture.ts": true,
     "tests/integration/standards-proof-rails.test.ts": true,
     "tests/integration/standards-proof-tamper.test.ts": true,
