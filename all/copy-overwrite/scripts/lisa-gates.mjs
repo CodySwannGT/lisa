@@ -482,6 +482,11 @@ export const QUALITY_JOB_GATES = Object.freeze({
   test_unit: "test-correctness",
   test_mutation: "test-meaningfulness",
   test_integration: "test-integration",
+  // Declared in `playwright-e2e.yml` rather than `quality.yml` since the
+  // browser suite became a workflow of its own. The job kept its id, its
+  // context name and its façade, so the pairing is unchanged and stays here:
+  // the question this table answers is "which gate governs this job", and the
+  // answer does not depend on which file the job is written in.
   playwright_e2e_aggregate: "e2e-browser",
   format: "format-conformance",
   build: "build-integrity",
@@ -522,15 +527,19 @@ export const SKIP_JOB_TOKENS = Object.freeze({
   "test:integration": Object.freeze(["test_integration"]),
   "test:e2e": Object.freeze(["test_e2e"]),
   maestro_e2e: Object.freeze(["maestro_e2e"]),
-  // Three jobs, one token, and only the last of them has a façade. Reporting
-  // this as a clean swap would be the most expensive wrong answer in the table:
-  // the shards keep running, so an operator who deleted the token would see the
-  // work continue and conclude the declaration had not taken effect.
-  playwright_e2e: Object.freeze([
-    "playwright_e2e_setup",
-    "playwright_e2e",
-    "playwright_e2e_aggregate",
-  ]),
+  // Empty because the three jobs it named are no longer in `quality.yml` — the
+  // browser suite is `playwright-e2e.yml` now, which takes no `skip_jobs` at
+  // all. Passing this token to `quality.yml` therefore suppresses nothing, and
+  // the input's own description still advertises it, so it is `github_issue`'s
+  // case exactly: advertised, honoured nowhere, and better said out loud than
+  // left for an operator to infer from a check that never changed.
+  //
+  // Deliberately not `["playwright_e2e_aggregate"]` on the grounds that the
+  // aggregator still exists somewhere. A `skip_jobs` token is an instruction
+  // to ONE workflow, and naming a job that workflow does not have would report
+  // a suppression that cannot happen. The suite is now selected by which
+  // workflow a caller calls, and governed inside it by the `e2e-browser` gate.
+  playwright_e2e: Object.freeze([]),
   format: Object.freeze(["format"]),
   build: Object.freeze(["build"]),
   skipped_required_checks: Object.freeze(["skipped_required_checks"]),
