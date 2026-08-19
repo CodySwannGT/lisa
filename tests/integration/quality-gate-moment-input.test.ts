@@ -12,13 +12,16 @@
  * @module tests/integration/quality-gate-moment-input
  */
 
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   CONVERTED,
+  WORKFLOW_FILES,
   resolveStep,
-  source,
+  sourceOf,
   workflow,
+  workflowIn,
 } from "./quality-gate-facade-fixture.js";
 
 /** The input a caller sets to choose which gates apply. */
@@ -44,39 +47,61 @@ describe("quality.yml exposes the moment as an input", () => {
   });
 });
 
+describe("every workflow carrying a resolve block declares the input it reads", () => {
+  it.each(WORKFLOW_FILES)("%s declares a moment input", file => {
+    // `GATE_MOMENT: ${{ inputs.moment }}` against an undeclared input is not
+    // an error on GitHub — it is the empty string, and the resolver then reads
+    // the config at no moment at all and finds no gate. Every declaration in
+    // the project would silently stop applying, with every job still green.
+    const declared = workflowIn(file).on?.workflow_call?.inputs;
+    expect(declared?.[MOMENT_INPUT]).toBeDefined();
+    expect(declared?.[MOMENT_INPUT]?.type).toBe("string");
+  });
+});
+
 describe("every façade job resolves at the caller's moment", () => {
-  it.each(CONVERTED)("$job passes the moment through env", ({ job }) => {
-    expect(resolveStep(job)?.env?.[MOMENT_ENV]).toBe("${{ inputs.moment }}");
+  it.each(CONVERTED)("$job passes the moment through env", ({ job, file }) => {
+    expect(resolveStep(job, file)?.env?.[MOMENT_ENV]).toBe(
+      "${{ inputs.moment }}"
+    );
   });
 
   it.each(CONVERTED)(
     "$job reads the moment as a shell variable, never interpolated into the command",
-    ({ job }) => {
+    ({ job, file }) => {
       // `.lisa.config.json` values are already kept out of the YAML for this
       // reason; a caller-supplied input is the same class of value. Written as
       // `${{ inputs.moment }}` inside the run body it would BE workflow source.
-      const body = resolveStep(job)?.run ?? "";
+      const body = resolveStep(job, file)?.run ?? "";
       expect(body).toContain(`--moment="$${MOMENT_ENV}"`);
       expect(body).not.toContain("${{ inputs.moment }}");
     }
   );
 
-  it.each(CONVERTED)("$job hardcodes no moment", ({ job }) => {
-    expect(resolveStep(job)?.run ?? "").not.toContain("--moment=pull-request");
+  it.each(CONVERTED)("$job hardcodes no moment", ({ job, file }) => {
+    expect(resolveStep(job, file)?.run ?? "").not.toContain(
+      "--moment=pull-request"
+    );
   });
 
-  it("leaves no hardcoded moment anywhere in the workflow", () => {
-    // Counted across the file rather than per job: a resolve block added later
-    // and missed by CONVERTED would otherwise reintroduce the hardcoding
-    // without failing anything.
-    expect(source).not.toContain("--moment=pull-request");
+  it.each(WORKFLOW_FILES)("leaves no hardcoded moment anywhere in %s", file => {
+    // Counted across the file rather than per job: a resolve block added
+    // later and missed by CONVERTED would otherwise reintroduce the
+    // hardcoding without failing anything. Both files carry resolve blocks
+    // now, and the one that moved defaults to a DIFFERENT moment, which is
+    // exactly the case a hardcoded `pull-request` would silently defeat.
+    expect(sourceOf(file)).not.toContain("--moment=pull-request");
   });
 
-  it("covers every resolve block in the workflow, not just the listed ones", () => {
+  it("covers every resolve block in either workflow, not just the listed ones", () => {
     const byName = (left: string, right: string) => left.localeCompare(right);
-    const withGateStep = Object.keys(workflow.jobs)
-      .filter(job => resolveStep(job) !== undefined)
-      .toSorted(byName);
-    expect(withGateStep).toEqual(CONVERTED.map(c => c.job).toSorted(byName));
+    const withGateStep = WORKFLOW_FILES.flatMap(file =>
+      Object.keys(workflowIn(file).jobs)
+        .filter(job => resolveStep(job, file) !== undefined)
+        .map(job => `${path.basename(file)}:${job}`)
+    ).toSorted(byName);
+    expect(withGateStep).toEqual(
+      CONVERTED.map(c => `${path.basename(c.file)}:${c.job}`).toSorted(byName)
+    );
   });
 });

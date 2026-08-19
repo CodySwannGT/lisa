@@ -3,14 +3,35 @@ import {
   CONVERTED,
   NOT_CONFIGURED,
   PREEXISTING_CONTINUE_ON_ERROR,
+  QUALITY_YML,
+  WORKFLOW_FILES,
+  jobIn,
   loadRegistry,
   resolveStep,
   source,
   stepNamed,
   stepsIn,
-  workflow,
+  workflowIn,
 } from "./quality-gate-facade-fixture.js";
 import type { GateDefinition } from "./quality-gate-facade-fixture.js";
+
+/**
+ * Everything in one workflow that carries `continue-on-error`.
+ *
+ * Jobs report by id and steps by name, which is what makes the pinned list
+ * readable as "the SonarCloud scan, and nothing else".
+ * @param file One of `WORKFLOW_FILES`.
+ * @returns Job ids and step names, in file order.
+ */
+const continueOnErrorCarriers = (file: string): string[] =>
+  Object.entries(workflowIn(file).jobs).flatMap(([job, definition]) => [
+    ...((definition as Record<string, unknown>)["continue-on-error"]
+      ? [job]
+      : []),
+    ...(definition.steps ?? [])
+      .filter(step => (step as Record<string, unknown>)["continue-on-error"])
+      .map(step => step.name ?? job),
+  ]);
 
 let registry: Record<string, GateDefinition>;
 
@@ -22,8 +43,8 @@ describe("quality.yml gate façade", () => {
   describe("job names are unchanged", () => {
     it.each(CONVERTED)(
       "$job still declares the exact context name $jobName",
-      ({ job, jobName }) => {
-        expect((workflow.jobs[job] as { name?: string })?.name).toBe(jobName);
+      ({ job, jobName, file }) => {
+        expect((jobIn(job, file) as { name?: string }).name).toBe(jobName);
       }
     );
 
@@ -36,16 +57,16 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job is not a matrix, which would rewrite its context name",
-      ({ job }) => {
+      ({ job, file }) => {
         expect(
-          (workflow.jobs[job] as { strategy?: unknown }).strategy
+          (jobIn(job, file) as { strategy?: unknown }).strategy
         ).toBeUndefined();
       }
     );
 
     it("leaves every converted job id in place", () => {
-      for (const { job } of CONVERTED) {
-        expect(Object.keys(workflow.jobs)).toContain(job);
+      for (const { job, file } of CONVERTED) {
+        expect(Object.keys(workflowIn(file).jobs)).toContain(job);
       }
     });
   });
@@ -53,8 +74,8 @@ describe("quality.yml gate façade", () => {
   describe("each converted job resolves its gate from config", () => {
     it.each(CONVERTED)(
       "$job resolves $gate through the shipped registry script",
-      ({ job, gate }) => {
-        const resolve = resolveStep(job);
+      ({ job, gate, file }) => {
+        const resolve = resolveStep(job, file);
         expect(resolve).toBeDefined();
         expect(resolve?.env?.GATE_ID).toBe(gate);
         expect(resolve?.run).toContain("scripts/lisa-gates.mjs");
@@ -66,8 +87,8 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job runs the project's task when $gate is configured",
-      ({ job, gateStep }) => {
-        const step = stepNamed(job, gateStep);
+      ({ job, gateStep, file }) => {
+        const step = stepNamed(job, gateStep, file);
         expect(step).toBeDefined();
         expect(step?.if).toContain(CONFIGURED);
       }
@@ -75,8 +96,8 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job passes the resolved command through env, never interpolated into the shell",
-      ({ job, gateStep }) => {
-        const step = stepNamed(job, gateStep);
+      ({ job, gateStep, file }) => {
+        const step = stepNamed(job, gateStep, file);
         expect(step?.env?.GATE_RUNNER).toBe("${{ steps.gate.outputs.runner }}");
         expect(step?.env?.GATE_TASK).toBe("${{ steps.gate.outputs.task }}");
         // The whole body, not a substring: the resolved command must never be
@@ -88,13 +109,13 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job falls back only when NO resolver exists anywhere",
-      ({ job }) => {
+      ({ job, file }) => {
         // It previously gave up the moment the COPIED resolver was missing,
         // which made every declaration unreadable for a project carrying only
         // the installed package — the direction the copies are being retired
         // in. So `off` stopped working precisely where it will soon be the
         // only shape.
-        const body = resolveStep(job)?.run ?? "";
+        const body = resolveStep(job, file)?.run ?? "";
         expect(body).toContain(
           "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs"
         );
@@ -106,8 +127,8 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job prefers the installed package over a copy in the project",
-      ({ job }) => {
-        const body = resolveStep(job)?.run ?? "";
+      ({ job, file }) => {
+        const body = resolveStep(job, file)?.run ?? "";
         expect(body.indexOf("node_modules/@codyswann/lisa")).toBeLessThan(
           body.indexOf('"scripts/lisa-gates.mjs"')
         );
@@ -116,8 +137,8 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job refuses a $gate task or runner that is not a plain word",
-      ({ job }) => {
-        const resolve = resolveStep(job);
+      ({ job, file }) => {
+        const resolve = resolveStep(job, file);
         expect(resolve?.run).toContain("const plain = value =>");
         expect(resolve?.run).toContain("is not a plain command");
       }
@@ -129,8 +150,8 @@ describe("quality.yml gate façade", () => {
       // skipped required check counts as satisfied. Copies that cannot be
       // deduplicated must instead be prevented from drifting, so this compares
       // them as text with the gate id normalised away.
-      const normalised = CONVERTED.map(({ job, gate }) =>
-        (resolveStep(job)?.run ?? "").split(gate).join("<GATE>")
+      const normalised = CONVERTED.map(({ job, gate, file }) =>
+        (resolveStep(job, file)?.run ?? "").split(gate).join("<GATE>")
       );
       const [first, ...rest] = normalised;
       expect(first).not.toBe("");
@@ -140,8 +161,8 @@ describe("quality.yml gate façade", () => {
     });
 
     it("differs between resolve blocks only in the GATE_ID env value", () => {
-      const shapes = CONVERTED.map(({ job }) => {
-        const { GATE_ID: _ignored, ...others } = (resolveStep(job)?.env ??
+      const shapes = CONVERTED.map(({ job, file }) => {
+        const { GATE_ID: _ignored, ...others } = (resolveStep(job, file)?.env ??
           {}) as Record<string, unknown>;
         return JSON.stringify(others);
       });
@@ -150,12 +171,12 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job never swallows a resolution failure into a silent fallback",
-      ({ job }) => {
+      ({ job, file }) => {
         // A discarded stderr turns "the config is malformed" into "no gate is
         // configured", which reads as a measured zero and falls back to
         // tooling the project may have deliberately replaced.
-        expect(resolveStep(job)?.run).not.toContain("2>/dev/null");
-        expect(resolveStep(job)?.run).toContain("set -euo pipefail");
+        expect(resolveStep(job, file)?.run).not.toContain("2>/dev/null");
+        expect(resolveStep(job, file)?.run).toContain("set -euo pipefail");
       }
     );
   });
@@ -163,13 +184,14 @@ describe("quality.yml gate façade", () => {
   describe("the fallback path survives for every converted job", () => {
     it.each(CONVERTED)(
       "$job keeps its hardcoded invocation, gated on no $gate being configured",
-      ({ job, fallbackSteps }) => {
+      ({ job, fallbackSteps, file }) => {
         // Named rather than counted: a failure has to say WHICH fallback step
         // went missing, and `expect(actual, message)` is a vitest-only
         // two-argument form that @types/jest — which is installed here —
         // rejects, so the diagnostic goes in the assertion instead.
         const survivors = fallbackSteps.filter(
-          name => stepNamed(job, name)?.if?.includes(NOT_CONFIGURED) === true
+          name =>
+            stepNamed(job, name, file)?.if?.includes(NOT_CONFIGURED) === true
         );
         expect(survivors).toEqual([...fallbackSteps]);
       }
@@ -177,8 +199,8 @@ describe("quality.yml gate façade", () => {
 
     it.each(CONVERTED)(
       "$job falls back to the caller's package manager when no runner is declared",
-      ({ job }) => {
-        const resolve = resolveStep(job);
+      ({ job, file }) => {
+        const resolve = resolveStep(job, file);
         expect(resolve?.env?.FALLBACK_RUNNER).toBe(
           "${{ inputs.package_manager }} run"
         );
@@ -224,40 +246,35 @@ describe("quality.yml gate façade", () => {
   });
 
   describe("nothing was made to report green while failing", () => {
-    it.each(CONVERTED)("$job carries no continue-on-error", ({ job }) => {
+    it.each(CONVERTED)("$job carries no continue-on-error", ({ job, file }) => {
       expect(
-        (workflow.jobs[job] as Record<string, unknown>)["continue-on-error"]
+        (jobIn(job, file) as Record<string, unknown>)["continue-on-error"]
       ).toBeUndefined();
-      for (const step of stepsIn(job)) {
+      for (const step of stepsIn(job, file)) {
         expect(
           (step as Record<string, unknown>)["continue-on-error"]
         ).toBeUndefined();
       }
     });
 
-    it("adds no continue-on-error anywhere in the workflow", () => {
-      const found: string[] = [];
-      for (const [job, definition] of Object.entries(workflow.jobs)) {
-        if ((definition as Record<string, unknown>)["continue-on-error"]) {
-          found.push(job);
-        }
-        for (const step of definition.steps ?? []) {
-          if ((step as Record<string, unknown>)["continue-on-error"]) {
-            found.push(step.name ?? job);
-          }
-        }
-      }
-      expect(found).toEqual(PREEXISTING_CONTINUE_ON_ERROR);
+    it("adds no continue-on-error anywhere in either workflow", () => {
+      // Both files, not just `quality.yml`. The set is pinned rather than
+      // checked per converted job precisely so that it catches growth in jobs
+      // this fixture does not list — and the sharded matrix that implements
+      // the browser fallback is now such a job, in the other file.
+      expect(WORKFLOW_FILES.flatMap(continueOnErrorCarriers)).toEqual(
+        PREEXISTING_CONTINUE_ON_ERROR
+      );
     });
 
     it.each(CONVERTED)(
       "$job's own condition stays independent of the gates block",
-      ({ job }) => {
+      ({ job, file }) => {
         // A required context that runs zero steps reports SATISFIED on GitHub.
         // The façade may change what a job RUNS; it may never change whether
         // the job runs, because that is the skip_jobs defect.
-        expect(workflow.jobs[job].if ?? "").not.toContain("lisa.config");
-        expect(workflow.jobs[job].if ?? "").not.toContain("gates");
+        expect(jobIn(job, file).if ?? "").not.toContain("lisa.config");
+        expect(jobIn(job, file).if ?? "").not.toContain("gates");
       }
     );
   });
@@ -283,12 +300,25 @@ describe("quality.yml gate façade", () => {
         "verification_coverage",
         "performance_budget",
       ]);
-      for (const { job } of CONVERTED) {
-        if (notSkipGated.has(job)) {
-          expect(workflow.jobs[job].if ?? "").not.toContain("inputs.skip_jobs");
+      for (const { job, file } of CONVERTED) {
+        if (file !== QUALITY_YML) {
+          // A job that left `quality.yml` did not lose an escape a caller of
+          // `quality.yml` still has — the job is not there to skip. Its new
+          // workflow declares no `skip_jobs` at all, which is the point of it:
+          // a single-suite caller selects the suite by calling the workflow
+          // rather than by naming the two dozen jobs it does not want. Proved
+          // here rather than assumed, so this branch cannot become a silent
+          // pass for a job that moved and kept a stale gate.
+          expect(
+            Object.keys(workflowIn(file).on?.workflow_call?.inputs ?? {})
+          ).not.toContain("skip_jobs");
           continue;
         }
-        expect(workflow.jobs[job].if ?? "").toContain("inputs.skip_jobs");
+        if (notSkipGated.has(job)) {
+          expect(jobIn(job, file).if ?? "").not.toContain("inputs.skip_jobs");
+          continue;
+        }
+        expect(jobIn(job, file).if ?? "").toContain("inputs.skip_jobs");
       }
     });
 

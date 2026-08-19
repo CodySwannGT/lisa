@@ -24,7 +24,13 @@ import {
   QUALITY_JOB_GATES,
   SKIP_JOB_TOKENS,
 } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
-import { workflow, source } from "./quality-gate-facade-fixture.js";
+import {
+  QUALITY_YML,
+  WORKFLOW_FILES,
+  source,
+  workflow,
+  workflowIn,
+} from "./quality-gate-facade-fixture.js";
 
 /**
  * Every skip token a job's `if:` condition honours.
@@ -49,33 +55,53 @@ function tokensIn(condition: string | undefined): string[] {
 
 /**
  * The gate a job resolves through its façade, or null when it has none.
- * @param job - Job id in `quality.yml`
+ * @param job - Job id
+ * @param file - The workflow declaring it
  * @returns The `GATE_ID` its resolve step declares, or null
  */
-const gateOf = (job: string): string | null => {
-  const resolve = (workflow.jobs[job]?.steps ?? []).find(
+const gateOf = (job: string, file: string): string | null => {
+  const resolve = (workflowIn(file).jobs[job]?.steps ?? []).find(
     step => step.id === "gate"
   );
   const id = resolve?.env?.["GATE_ID"];
   return typeof id === "string" ? id : null;
 };
 
-/** Every job in the workflow that resolves a gate, and the gate it resolves. */
+/**
+ * Every job that resolves a gate, and the gate it resolves.
+ *
+ * Derived across every reusable workflow Lisa ships, not just `quality.yml`.
+ * The browser suite moved to a workflow of its own and its façade moved with
+ * it; the migration question the table answers — "which gate governs this
+ * job" — did not change address, so deriving from one file would delete a
+ * true answer on the grounds that the job is no longer next door.
+ */
 const derivedJobGates: Record<string, string> = Object.fromEntries(
-  Object.keys(workflow.jobs).flatMap(job => {
-    const gate = gateOf(job);
-    return gate === null ? [] : [[job, gate] as const];
-  })
+  WORKFLOW_FILES.flatMap(file =>
+    Object.keys(workflowIn(file).jobs).flatMap(job => {
+      const gate = gateOf(job, file);
+      return gate === null ? [] : [[job, gate] as const];
+    })
+  )
 );
 
-/** Every token the workflow honours, and the jobs it suppresses, in file order. */
+/**
+ * Every token honoured anywhere, and the jobs it suppresses, in file order.
+ *
+ * Swept across every workflow rather than `quality.yml` alone, so that a token
+ * honoured somewhere else counts as honoured. It is `skip_jobs` that is
+ * confined to `quality.yml`, and that is a fact to derive rather than assume —
+ * see the assertion below that says so out loud.
+ */
 const derivedTokenJobs: Record<string, string[]> = (() => {
   const table: Record<string, string[]> = {};
-  for (const [job, definition] of Object.entries(workflow.jobs)) {
-    for (const token of tokensIn(definition.if)) {
-      const jobs = table[token] ?? [];
-      jobs.push(job);
-      table[token] = jobs;
+  for (const file of WORKFLOW_FILES) {
+    for (const [job, definition] of Object.entries(workflowIn(file).jobs)) {
+      for (const token of tokensIn(definition.if)) {
+        const jobs = table[token] ?? [];
+        jobs.push(job);
+        table[token] = jobs;
+      }
     }
   }
   return table;
@@ -97,6 +123,21 @@ function documentedTokens(): string[] {
 }
 
 describe("the shipped skip_jobs mapping matches quality.yml", () => {
+  it("declares skip_jobs in exactly one workflow", () => {
+    // The token sweep above is only meaningful if it is looking everywhere a
+    // token could be honoured. This names the shape it found: one workflow
+    // takes the input, and the workflow the browser suite moved to
+    // deliberately does not — a single-suite caller selects the suite by
+    // calling the workflow rather than by naming what it does not want.
+    const declaring = WORKFLOW_FILES.filter(file =>
+      Object.hasOwn(
+        workflowIn(file).on?.workflow_call?.inputs ?? {},
+        "skip_jobs"
+      )
+    );
+    expect(declaring).toEqual([QUALITY_YML]);
+  });
+
   it("covers every job that resolves a gate", () => {
     expect(QUALITY_JOB_GATES).toEqual(derivedJobGates);
   });
