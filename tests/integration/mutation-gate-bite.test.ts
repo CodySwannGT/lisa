@@ -60,13 +60,22 @@ interface Run {
 
 /**
  * Run the real mutation gate over {@link GUARD} with a chosen set of suites.
+ *
+ * The config is the COMMITTED `stryker.conf.json` with four keys overridden —
+ * never a fresh object listing the same settings again. A second copy of the
+ * runner's configuration is a second thing to keep in step, and the failure mode
+ * is precise: this test would keep passing against settings the real gate no
+ * longer uses. It happened once already, on `ignorePatterns`.
  * @param suites - Repo-relative suite paths the run is allowed to use
  * @param tempDirName - Sandbox directory. Nested under `.stryker-tmp/`, which
- *   Stryker always ignores, so one run’s sandbox can never be copied into the
- *   next one’s.
+ *   Stryker always ignores, so one run's sandbox can never be copied into the
+ *   next one's.
  * @returns The exit status and combined output
  */
 const runGate = (suites: readonly string[], tempDirName: string): Run => {
+  const committed = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "stryker.conf.json"), "utf8")
+  ) as Record<string, unknown>;
   const confPath = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-bite-")),
     "stryker.conf.json"
@@ -74,13 +83,9 @@ const runGate = (suites: readonly string[], tempDirName: string): Run => {
   fs.writeFileSync(
     confPath,
     JSON.stringify({
-      testRunner: "vitest",
-      vitest: { configFile: "vitest.config.mutation.ts" },
+      ...committed,
       reporters: ["clear-text"],
       clearTextReporter: { maxTestsToLog: 0, logTests: false, maxSurvived: 0 },
-      coverageAnalysis: "perTest",
-      ignoreStatic: true,
-      timeoutMS: 60_000,
       tempDirName,
       mutate: [GUARD],
       thresholds: { high: 100, low: 0, break: BREAK },
