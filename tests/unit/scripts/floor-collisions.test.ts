@@ -162,13 +162,64 @@ describe("collisions", () => {
     ).toEqual(["overrides", "resolutions"]);
   });
 
-  it("ignores specs with no comparable version on either side", () => {
+  it("ignores a dependency spec that versions a DIFFERENT package", () => {
+    // `workspace:` and `npm:` aliases both point the name somewhere else, so
+    // the number attached to them cannot be compared against a floor recorded
+    // for this name. Skipping is the only honest answer.
     expect(
       collisions({
         devDependencies: { a: "workspace:*" },
         overrides: { a: ">=1.0.0" },
       })
     ).toEqual([]);
+    expect(
+      collisions({
+        devDependencies: { a: "npm:other-pkg@^1.2.3" },
+        overrides: { a: ">=1.0.0" },
+      })
+    ).toEqual([]);
+  });
+
+  it("flags a dependency range that permits EVERYTHING", () => {
+    // The false negative that runs the wrong way round: the looser the
+    // dependency line, the quieter the check got. `*` permits every version
+    // ever published, so collapsing the override onto it removes the floor
+    // outright — the strongest possible instance of what this file exists to
+    // catch, and the one it reported as clean.
+    const found = collisions({
+      devDependencies: { postcss: "*" },
+      overrides: { postcss: ">=8.5.18" },
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({
+      name: "postcss",
+      override: ">=8.5.18",
+      dependency: "*",
+    });
+  });
+
+  it("flags a major-only dependency range against a patch-level floor", () => {
+    // `^8` permits 8.0.0, which is inside the range the override was raised to
+    // escape. A range is not comparable only when it carries all three
+    // components; one that carries fewer permits MORE, never less.
+    const found = collisions({
+      devDependencies: { postcss: "^8" },
+      overrides: { postcss: ">=8.5.18" },
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ name: "postcss", dependency: "^8" });
+  });
+
+  it("flags a dist-tag dependency, which pins nothing at all", () => {
+    // `latest` resolves to whatever the registry serves, including a version
+    // below the floor. Treating "no number to read" as "nothing to check" is
+    // what made this quiet.
+    expect(
+      collisions({
+        dependencies: { lodash: "latest" },
+        overrides: { lodash: ">=4.17.21" },
+      })
+    ).toHaveLength(1);
   });
 
   it("is clean on a manifest with no overrides at all", () => {
