@@ -622,7 +622,7 @@ export function validateSuites(raw) {
     labels.add(entry.label);
 
     const match = validateMatch(entry.match, where);
-    const identity = `${entry.workflow} ${match.mode} ${match.name ?? match.pattern ?? ""}`;
+    const identity = `${entry.workflow}\u0000${match.mode}\u0000${match.name ?? match.pattern ?? ""}`;
     if (identities.has(identity)) {
       throw new GateConfigError(
         `${where}: duplicate workflow+match (${entry.workflow}, ${match.mode}). The same suite declared twice is a copy-paste error, and the duplicate can mask a typo in the one you meant.`
