@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.3](https://github.com/CodySwannGT/lisa/compare/v3.45.1...v3.45.3) (2026-08-19)
+
+
+### Bug Fixes
+
+* **bootstrap:** resolve minimatch lazily via CJS so a CVE pin cannot brick the CLI ([6133828](https://github.com/CodySwannGT/lisa/commit/6133828c5c26c45bb44eaa8027792e64c0f4d11e)), closes [CodySwannGT/lisa#2759](https://github.com/CodySwannGT/lisa/issues/2759)
+
+
+### Code Refactoring
+
+* **quality:** drop the Playwright jobs now every consumer has migrated ([90d778f](https://github.com/CodySwannGT/lisa/commit/90d778fc4ae8528d7eacf93748a6a9d33aecd318)), closes [CodySwannGT/lisa#2761](https://github.com/CodySwannGT/lisa/issues/2761)
+
 ### [3.45.2](https://github.com/CodySwannGT/lisa/compare/v3.45.1...v3.45.2) (2026-08-19)
 
 
