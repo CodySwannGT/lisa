@@ -93,8 +93,13 @@ export class PackageLisaStrategy implements ICopyStrategy {
       securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
         ? this.restrictToSecurityPins(merged)
         : merged;
+    const forced = this.applyTemplate(
+      projectJson,
+      effective,
+      this.PACKAGE_JSON
+    );
     const result = planSelfReferencingOverrideNormalization(
-      this.applyTemplate(projectJson, effective),
+      forced.packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(result.packageJson, this.PACKAGE_JSON);
@@ -235,7 +240,17 @@ export class PackageLisaStrategy implements ICopyStrategy {
     const normalizedMerged = JSON.stringify(merged, null, 2);
 
     if (normalizedDest === normalizedMerged) {
-      return { relativePath, strategy: this.name, action: "skipped" };
+      // No write, but the notes still have to reach the operator: "Lisa kept
+      // your pin and did not lower it" is the case where nothing changes, and
+      // it is exactly the case worth saying out loud.
+      const skipped: FileOperationResult = {
+        relativePath,
+        strategy: this.name,
+        action: "skipped",
+      };
+      return notes.length > 0
+        ? { ...skipped, note: notes.join("; ") }
+        : skipped;
     }
 
     if (!context.config.dryRun) {
@@ -281,12 +296,17 @@ export class PackageLisaStrategy implements ICopyStrategy {
       securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
         ? this.restrictToSecurityPins(merged)
         : merged;
+    const forced = this.applyTemplate(
+      projectJson,
+      effective,
+      this.PACKAGE_JSON
+    );
     const plan = planSelfReferencingOverrideNormalization(
-      this.applyTemplate(projectJson, effective),
+      forced.packageJson,
       this.PACKAGE_JSON
     );
     assertManifestIsInstallable(plan.packageJson, this.PACKAGE_JSON);
-    return plan;
+    return { ...plan, notes: [...forced.notes, ...plan.notes] };
   }
 
   /**
@@ -680,31 +700,37 @@ export class PackageLisaStrategy implements ICopyStrategy {
    *    earlier phase cannot reintroduce a removed key)
    * @param projectJson - Current project's package.json
    * @param template - Merged package.lisa.json template
-   * @returns Modified package.json
+   * @param fileName - Basename used in error messages
+   * @returns Modified package.json plus operator-visible notes
    * @private
    */
   private applyTemplate(
     projectJson: Record<string, unknown>,
-    template: ResolvedPackageLisaTemplate
-  ): Record<string, unknown> {
+    template: ResolvedPackageLisaTemplate,
+    fileName: string
+  ): PackageJsonPlan {
     // Phase 1: Apply force (Lisa's values completely replace project's), then
     // restore any dependency pin the host had raised ABOVE Lisa's floor.
     const afterForce = preserveHigherHostPins(
       projectJson,
-      deepMerge(projectJson, template.force as Record<string, unknown>)
+      deepMerge(projectJson, template.force as Record<string, unknown>),
+      fileName
     );
 
     // Phase 2: Apply defaults (project's values preserved, Lisa provides fallback)
     const afterDefaults = deepMerge(
       template.defaults as Record<string, unknown>,
-      afterForce
+      afterForce.packageJson
     );
 
     // Phase 3: Apply merge (concatenate and deduplicate arrays)
     const afterMerge = this.applyMergeSections(afterDefaults, template.merge);
 
     // Phase 4: Apply remove (delete retired keys from their sections)
-    return this.applyRemoveSections(afterMerge, template.remove);
+    return {
+      packageJson: this.applyRemoveSections(afterMerge, template.remove),
+      notes: afterForce.notes,
+    };
   }
 
   /**
@@ -823,66 +849,204 @@ const DIRECT_DEPENDENCY_SECTIONS = [
 const OVERRIDE_SECTIONS = ["overrides", "resolutions"] as const;
 
 /**
- * Restore host `overrides`/`resolutions` pins that sit ABOVE Lisa's template.
+ * Every section whose forced values are a version FLOOR rather than an
+ * assignment, and which therefore may never be merged downwards.
  * @remarks
- * `force.overrides` / `force.resolutions` exist to push a project PAST a
- * transitive CVE, so they are a security FLOOR — not an assignment. Phase 1
- * applies them with `deepMerge`, where Lisa's value wins unconditionally, and
- * that is only correct while the template is the higher of the two. The moment
- * a host raises a pin beyond the template (or the template simply lags a fresh
- * advisory), the same "security write" silently walks the host BACKWARDS into
- * the vulnerable range it had already escaped.
- *
- * This is not hypothetical: a host pinned at `tar >=7.5.21` was reverted to
- * `>=7.5.11` on every `bun install` by a template carrying the older value, and
- * upgrading Lisa did not fix it — the shipped template was still `>=7.5.19`,
- * below the host. A floor can only be right by coincidence when it is written
- * as an overwrite.
- *
- * Comparison is on the minimum version each range admits (`>=7.5.21` → 7.5.21,
- * `^6.27.0` → 6.27.0), which is exactly the quantity a CVE floor cares about. A
- * value that cannot be parsed — npm's `"$name"` self-references, git URLs, `*`
- * — is left as Phase 1 produced it, so this can only ever RAISE a pin.
- * @param projectJson - The host package.json as it was before Phase 1.
- * @param afterForce - The result of Phase 1's force merge.
- * @returns `afterForce`, with host-side higher pins restored.
+ * `overrides`/`resolutions` alone was the original list, and it left the hole
+ * this exists to close: `overrides.tar` is `"$tar"`, npm's self-reference, so
+ * its effective floor IS `dependencies.tar`. Guarding only the override
+ * sections preserved a `$tar` that had quietly come to mean something weaker —
+ * the protection intact and hollow at the same time, with a test asserting the
+ * override survived passing either way.
  */
-function preserveHigherHostPins(
-  projectJson: Record<string, unknown>,
-  afterForce: Record<string, unknown>
-): Record<string, unknown> {
-  return OVERRIDE_SECTIONS.reduce<Record<string, unknown>>((acc, section) => {
-    const forcedSection = asRecord(acc[section]);
-    const restored = Object.entries(asRecord(projectJson[section])).reduce<
-      Record<string, unknown>
-    >(
-      (pins, [name, hostValue]) =>
-        hostPinIsHigher(hostValue, forcedSection[name])
-          ? { ...pins, [name]: hostValue }
-          : pins,
-      forcedSection
-    );
+const FLOOR_SECTIONS = [
+  ...DIRECT_DEPENDENCY_SECTIONS,
+  ...OVERRIDE_SECTIONS,
+] as const;
 
-    return restored === forcedSection ? acc : { ...acc, [section]: restored };
-  }, afterForce);
+/** What Phase 1's value and the host's value mean for one dependency. */
+type PinVerdict = "template" | "host" | "incomparable";
+
+/** A host pin kept over Lisa's, with both ranges for the operator note. */
+interface PreservedPin {
+  readonly section: string;
+  readonly name: string;
+  readonly hostRange: string;
+  readonly forcedRange: string;
 }
 
 /**
- * Decide whether the host's pin admits a strictly higher minimum than Lisa's.
+ * Restore host dependency pins that sit ABOVE Lisa's template.
+ * @remarks
+ * Every `force` pin exists to push a project PAST a CVE, so it is a security
+ * FLOOR — not an assignment. Phase 1 applies it with `deepMerge`, where Lisa's
+ * value wins unconditionally, and that is only correct while the template is the
+ * higher of the two. The moment a host raises a pin beyond the template (or the
+ * template simply lags a fresh advisory), the same "security write" silently
+ * walks the host BACKWARDS into the vulnerable range it had already escaped.
+ *
+ * This is not hypothetical: a caller repo in the portfolio pinned at
+ * `dependencies.tar >=7.5.21` was reverted to `>=7.5.19` on every `bun install`,
+ * readmitting the two releases GHSA-r292-9mhp-454m covers. A floor can only be
+ * right by coincidence when it is written as an overwrite.
+ *
+ * The decision is deliberately narrow, because Lisa must be able to PROVE the
+ * host is ahead — the same standard `preserveIfHostAhead` holds the file lane
+ * to, applied to the strictly easier case where a semver range makes "ahead"
+ * decidable rather than merely suspected:
+ *
+ * - Host floor not above Lisa's: Lisa is raising, which is the whole point of
+ *   the mechanism. Phase 1 stands.
+ * - Host floor above Lisa's AND the host range is a subset of Lisa's: the host
+ *   admits only versions Lisa allows, so it is provably the stricter of the
+ *   two. Keep the host.
+ * - Host floor above Lisa's and neither range contains the other: both sides
+ *   carry a constraint the other drops. Lisa cannot decide it, so it REFUSES
+ *   and names both rather than picking one — silently picking one is how a
+ *   lowered floor shipped in the first place.
+ *
+ * A value that cannot be parsed — npm's `"$name"` self-references, git URLs,
+ * `workspace:*` — is left as Phase 1 produced it, so this can only ever RAISE
+ * a pin or stop.
+ * @param projectJson - The host package.json as it was before Phase 1.
+ * @param afterForce - The result of Phase 1's force merge.
+ * @param fileName - Basename used in error messages.
+ * @throws JsonMergeError when a host pin is higher but the two ranges are
+ *   incomparable.
+ * @returns `afterForce` with host-side higher pins restored, plus notes.
+ */
+function preserveHigherHostPins(
+  projectJson: Record<string, unknown>,
+  afterForce: Record<string, unknown>,
+  fileName: string
+): PackageJsonPlan {
+  return FLOOR_SECTIONS.reduce<PackageJsonPlan>(
+    (plan, section) => {
+      const forcedSection = asRecord(plan.packageJson[section]);
+      const preserved = collectPreservedPins(
+        section,
+        asRecord(projectJson[section]),
+        forcedSection,
+        fileName
+      );
+      if (preserved.length === 0) {
+        return plan;
+      }
+      return {
+        packageJson: {
+          ...plan.packageJson,
+          [section]: {
+            ...forcedSection,
+            ...Object.fromEntries(
+              preserved.map(pin => [pin.name, pin.hostRange])
+            ),
+          },
+        },
+        notes: [...plan.notes, ...preserved.map(formatPreservedPinNote)],
+      };
+    },
+    { packageJson: afterForce, notes: [] }
+  );
+}
+
+/**
+ * Find every host pin in one section that must survive Phase 1's force merge.
+ * @param section - Section name, used in notes and error messages
+ * @param hostSection - The host's entries for this section, pre-merge
+ * @param forcedSection - The entries Phase 1 produced for this section
+ * @param fileName - Basename used in error messages
+ * @throws JsonMergeError on the first incomparable pin
+ * @returns Pins whose host value must be restored
+ */
+function collectPreservedPins(
+  section: string,
+  hostSection: Record<string, unknown>,
+  forcedSection: Record<string, unknown>,
+  fileName: string
+): readonly PreservedPin[] {
+  return Object.entries(hostSection).flatMap(([name, hostValue]) => {
+    const forcedValue = forcedSection[name];
+    const verdict = classifyHostPin(hostValue, forcedValue);
+    if (verdict === "template") {
+      return [];
+    }
+    const pin: PreservedPin = {
+      section,
+      name,
+      hostRange: hostValue as string,
+      forcedRange: forcedValue as string,
+    };
+    if (verdict === "incomparable") {
+      throw new JsonMergeError(fileName, formatIncomparablePinMessage(pin));
+    }
+    return [pin];
+  });
+}
+
+/**
+ * Decide what to do with one dependency where host and template disagree.
  * @param hostValue - The host's range for this dependency.
  * @param forcedValue - The range Phase 1 wrote for the same dependency.
- * @returns True only when both parse and the host's floor is strictly higher.
+ * @returns Which side wins, or `incomparable` when neither can be proven ahead.
  */
-function hostPinIsHigher(hostValue: unknown, forcedValue: unknown): boolean {
+function classifyHostPin(hostValue: unknown, forcedValue: unknown): PinVerdict {
   if (typeof hostValue !== "string" || typeof forcedValue !== "string") {
-    return false;
+    return "template";
   }
   const hostFloor = rangeFloor(hostValue);
   const forcedFloor = rangeFloor(forcedValue);
+  if (
+    hostFloor === null ||
+    forcedFloor === null ||
+    !semver.gt(hostFloor, forcedFloor)
+  ) {
+    return "template";
+  }
+  return rangeContains(forcedValue, hostValue) ? "host" : "incomparable";
+}
+
+/**
+ * Decide whether every version one range admits is admitted by another.
+ * @param outer - The wider candidate range.
+ * @param inner - The narrower candidate range.
+ * @returns True when `inner` admits nothing `outer` forbids.
+ */
+function rangeContains(outer: string, inner: string): boolean {
+  try {
+    return semver.subset(inner, outer);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Format the operator-visible explanation for a preserved host pin.
+ * @param pin - The pin that was kept, with both ranges
+ * @returns Human-readable note for apply output
+ */
+function formatPreservedPinNote(pin: PreservedPin): string {
   return (
-    hostFloor !== null &&
-    forcedFloor !== null &&
-    semver.gt(hostFloor, forcedFloor)
+    `Kept host ${pin.section}.${pin.name} ${JSON.stringify(pin.hostRange)}: ` +
+    `it admits only versions Lisa's ${JSON.stringify(pin.forcedRange)} allows ` +
+    `and starts higher, so applying the template would lower the host's floor.`
+  );
+}
+
+/**
+ * Format the refusal for a host pin Lisa cannot prove itself ahead of.
+ * @param pin - The pin that could not be decided, with both ranges
+ * @returns Human-readable error message naming both ranges
+ */
+function formatIncomparablePinMessage(pin: PreservedPin): string {
+  return (
+    `${pin.section}.${pin.name} cannot be merged: the host range ` +
+    `${JSON.stringify(pin.hostRange)} starts above Lisa's ` +
+    `${JSON.stringify(pin.forcedRange)}, but neither range contains the other, ` +
+    `so each admits versions the other forbids and Lisa cannot prove which is ` +
+    `correct. Overwriting the host here is how a hardened floor gets silently ` +
+    `lowered, so this apply stops instead. Reconcile the two by hand: pick one ` +
+    `range in the host package.json that satisfies both constraints, or raise ` +
+    `Lisa's template pin to cover the host's.`
   );
 }
 
