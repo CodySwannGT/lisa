@@ -87,9 +87,19 @@ concurrency:
 jobs:
   # This job's `name:` is HALF of the required status-check context; the other
   # half is the reusable's job name (`🌙 Gate`). GitHub composes them as
-  # `🌙 Nightly E2E Health / 🌙 Gate`. Renaming either half silently stops the
-  # gate reporting, which DEADLOCKS every PR into the protected branch until
-  # someone edits the ruleset. Pin both strings in a test.
+  # `🌙 Nightly E2E Health / 🌙 Gate`. Pin both strings in a test.
+  #
+  # Renaming either half fails two different ways, and which one you get depends
+  # on whether a ruleset actually requires that context — which this file cannot
+  # see. If it IS required, the context is never reported and every PR into the
+  # protected branch DEADLOCKS until someone edits the ruleset. If it is NOT,
+  # the gate silently stops reporting and nothing blocks at all, leaving the
+  # branch ungated while this file still reads as though it were gated.
+  #
+  # Do not assume the first. Measured on a consumer 2026-08-19: zero of its 20
+  # required contexts matched /nightly/i while its workflows described the gate
+  # as blocking. Verify with `gh api repos/<owner>/<repo>/rulesets` before
+  # describing this context as required anywhere.
   health:
     name: 🌙 Nightly E2E Health
     # PIN AN IMMUTABLE REF. `@main` is not a supported pin for a merge gate: the
