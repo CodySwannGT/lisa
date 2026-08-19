@@ -152,6 +152,15 @@ case "\${1:-} \${2:-}" in
     printf '%s\\n' "$FAKE_GH_PR_JSON"
     ;;
   "repo view") printf '%s\\n' '{"nameWithOwner":"acme/code"}' ;;
+  # The two REST calls \`backlink\` makes. Without them the command exits
+  # nonzero through the catch-all below, which is invisible to any assertion
+  # that does not check the status — see the positive-control test.
+  "api --paginate")
+    printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}"
+    ;;
+  "api --method")
+    printf '%s\\n' '{"id":1}'
+    ;;
   *) echo "unexpected gh invocation: $*" >&2; exit 70 ;;
 esac`
   );
@@ -2277,5 +2286,97 @@ describe("credential-free traceability (#2721)", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("workItem.verify");
     expect(result.stderr).toContain("strict");
+  });
+});
+
+/**
+ * A worktree binding from another branch must never be trusted.
+ *
+ * `readState` answers "what is written in the binding file", which is not the
+ * same question as "what is this branch working on". A binding survives a
+ * branch switch, so a command that reads it without validating acts on a work
+ * item that has nothing to do with the change in hand.
+ *
+ * `assertStateMatches` has always validated. `backlink` and `complete` did not,
+ * and the consequences differ in kind:
+ *
+ *   backlink  writes the managed comment to the WRONG ticket
+ *   complete  applies the terminal role and CLOSES the wrong ticket
+ *
+ * Neither is self-correcting, and afterwards the closure is indistinguishable
+ * from a real one. Reported by an agent reviewing the vendored copy.
+ *
+ * The assertions check BOTH that the command refuses and that the tracker was
+ * never contacted — a refusal that happens after the write is not a refusal.
+ */
+describe("commands refuse a binding that belongs to another branch", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+
+  /**
+   * Bind a work item on one branch, then switch to another.
+   * @returns The fixture and the path its fake `gh` logs invocations to.
+   */
+  function boundThenSwitched(): { fixture: Fixture; log: string } {
+    const fixture = createFixture();
+    git(fixture.root, ["checkout", "-b", "binding/bound-here"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    git(
+      fixture.root,
+      ["checkout", "-b", "binding/somewhere-else"],
+      fixture.env
+    );
+    return { fixture, log: path.join(fixture.root, "gh-calls.log") };
+  }
+
+  it("backlink refuses, and contacts nothing", () => {
+    const { fixture, log } = boundThenSwitched();
+
+    const result = command(fixture, ["backlink", "--pr-url", PR_URL], {
+      env: { FAKE_GH_LOG: log },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "belongs to branch 'binding/bound-here', not 'binding/somewhere-else'"
+    );
+    expect(existsSync(log)).toBe(false);
+  });
+
+  it("complete refuses, and contacts nothing", () => {
+    // The worse of the two: this one would have closed the wrong ticket.
+    const { fixture, log } = boundThenSwitched();
+
+    const result = command(fixture, ["complete"], {
+      env: { FAKE_GH_LOG: log },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "belongs to branch 'binding/bound-here', not 'binding/somewhere-else'"
+    );
+    expect(existsSync(log)).toBe(false);
+  });
+
+  it("an explicit --ref needs no binding and is unaffected", () => {
+    // The positive control, and it is what stops the fix from being "refuse
+    // everything". A caller naming the work item explicitly has no dependency
+    // on the binding at all, so validating one it never consulted would break
+    // every scripted invocation.
+    const { fixture, log } = boundThenSwitched();
+
+    const result = command(
+      fixture,
+      ["backlink", "--ref", "acme/widgets#42", "--pr-url", PR_URL],
+      { env: { FAKE_GH_LOG: log } }
+    );
+
+    // status 0, not merely "no branch error". Reported by review: without this
+    // the fake `gh` rejected both REST calls `backlink` makes, the command
+    // exited 1, and every assertion here still passed — the control proved the
+    // command REACHED the tracker, not that it SUCCEEDED. A positive control
+    // that passes for the wrong reason is the defect it exists to catch.
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain("belongs to branch");
+    expect(existsSync(log)).toBe(true);
   });
 });
