@@ -113,6 +113,10 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
     contents: "read",
     issues: "write",
   },
+  // Also a NEW workflow rather than a widened one — see the note on
+  // environment-prepare.yml. The Playwright jobs it carries declared exactly
+  // this inside quality.yml, so no consumer's grant changes by moving them.
+  "playwright-e2e.yml": { contents: "read" },
   "publish-to-npm.yml": { contents: "read", "id-token": "write" },
   "quality-rails.yml": {
     checks: "write",
