@@ -109,6 +109,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f87c1ba298a66833712f57a6550f78f02927d5b9796fe0ac02dcf4bbd24c4e0c",
   ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
+    "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",
     "191608d272178a8fd3126d5b3e4923fadb50e01b699d0376625248d541b14f50",
     "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     "278679aba0d7ca08ce3429015076cd0f227d8b4dfe75875b2fce1cfd4133af0d",
@@ -134,6 +135,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "effd213d5a8b6b5e424262ef8ff45f5927295926692bf2ceafd89084445845fe",
     "f0bf5102f8eb188bc4ff62f81849a96181aa5c397cae865ef7f1c00b7c1c9fc2",
     "f25be9368af95dba5a5ce9891e582d5c1fc04ffca9f31cbbd28bc061154e7605",
+    "f2cdb9d8a682ca0083ce71ccae267a9622f6b9935baf34091752c6ec25590e6e",
   ]),
   "scripts/check-skipped-required-checks.mjs": Object.freeze([
     "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
