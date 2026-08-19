@@ -43,6 +43,7 @@
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
+    "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
     "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
     "check:required-check-promotions": "node scripts/check-required-check-promotions.mjs",
     "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
@@ -133,7 +134,7 @@
     "ws": ">=8.21.0"
   },
   "name": "@codyswann/lisa",
-  "version": "3.38.3",
+  "version": "3.38.4",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
