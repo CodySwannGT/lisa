@@ -83,6 +83,41 @@ on:
         required: false
         default: 'nightly-e2e'
         type: string
+      gate_context:
+        description: >-
+          The status-check context the GATE publishes, used to measure whether
+          it is actually a required check on `branch`. GitHub composes a
+          reusable workflow's check as `<caller job name> / <called job name>`,
+          and the default is what Lisa's shipped `nightly-e2e-health.yml`
+          template produces. Change it only if you renamed either half, or if
+          you are still running a local reimplementation that publishes a
+          different string. A context that is the configured one plus (or minus)
+          a ` / `-separated job suffix also counts as this gate.
+        required: false
+        default: '🌙 Nightly E2E Health / 🌙 Gate'
+        type: string
+      bypass_label:
+        description: >-
+          The audited-bypass label, quoted in the issue body's waiver
+          instructions. KEEP IT IDENTICAL to the gate caller's `bypass_label`,
+          or the issue will tell people to apply a label the gate does not read.
+          Only ever rendered when the gate is actually required — a waiver
+          recipe printed for a check nothing depends on is how an audited
+          escape hatch gets spent on a merge that was never blocked.
+        required: false
+        default: 'nightly-e2e-bypass'
+        type: string
+      pin_issues:
+        description: >-
+          OPT-IN. Pin each tracking issue while its suite is red and unpin it on
+          green. Off by default because pinning writes to a repository-wide
+          surface with only THREE slots that this workflow does not otherwise
+          touch — an adopter should choose to spend one. Past the limit the pin
+          is reported as a warning and the tracking issue is still filed and
+          refreshed correctly; a full pin board never fails this job.
+        required: false
+        default: false
+        type: boolean
       guard_script:
         description: >-
           Path to the Lisa-shipped guard inside the CALLER repository. Ships via
@@ -184,6 +219,9 @@ jobs:
           NIGHTLY_BRANCH: ${{ inputs.branch }}
           NIGHTLY_FRESHNESS_HOURS: ${{ inputs.freshness_hours }}
           NIGHTLY_ISSUE_LABEL: ${{ inputs.issue_label }}
+          NIGHTLY_GATE_CONTEXT: ${{ inputs.gate_context }}
+          NIGHTLY_BYPASS_LABEL: ${{ inputs.bypass_label }}
+          NIGHTLY_PIN_ISSUES: ${{ inputs.pin_issues }}
           NIGHTLY_API_MAX_ATTEMPTS: ${{ inputs.api_max_attempts }}
           NIGHTLY_API_MAX_PAGES: ${{ inputs.api_max_pages }}
           NIGHTLY_API_RETRY_MAX_SECONDS: ${{ inputs.api_retry_max_seconds }}
