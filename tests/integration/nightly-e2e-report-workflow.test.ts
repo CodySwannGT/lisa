@@ -35,6 +35,9 @@ const GUARD_REL =
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
 const DOC_REL = "docs/nightly-e2e-gate.md";
 
+/** The flag that is the ONLY entry point to any write in the guard. */
+const REPORT_FLAG = "--report-issues";
+
 /** A concurrency block, on a workflow or on a job. */
 interface Concurrency {
   readonly group?: string;
@@ -128,8 +131,8 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
   });
 
   it("the reporter invokes the guard's reporting flag, and the gate does not", () => {
-    expect(read(REPORT_REUSABLE_REL)).toContain("--report-issues");
-    expect(read(GATE_REUSABLE_REL)).not.toContain("--report-issues");
+    expect(read(REPORT_REUSABLE_REL)).toContain(REPORT_FLAG);
+    expect(read(GATE_REUSABLE_REL)).not.toContain(REPORT_FLAG);
   });
 
   it("the reporter runs on a SCHEDULE, not on pull requests", () => {
@@ -239,5 +242,126 @@ describe("the contract document and the reporting code stay together", () => {
     // Scope discipline in writing: the next unit should find its attachment
     // point rather than re-litigating this design.
     expect(doc).toContain("Seams left open on purpose");
+  });
+});
+
+describe("the blocking claim is wired end to end (§10.7)", () => {
+  const reusable = workflow(REPORT_REUSABLE_REL);
+  const doc = read(DOC_REL);
+  const guard = read(GUARD_REL);
+
+  /**
+   * The reusable's `workflow_call` inputs.
+   *
+   * @returns The declared inputs
+   */
+  function inputs(): Record<string, { default?: unknown; type?: string }> {
+    const on = triggers(reusable) as {
+      workflow_call?: { inputs?: Record<string, never> };
+    };
+    return (on.workflow_call?.inputs ?? {}) as Record<
+      string,
+      { default?: unknown; type?: string }
+    >;
+  }
+
+  it("the three new inputs exist, and the two optional ones default to today's behaviour", () => {
+    const declared = inputs();
+    // Pinning is a NEW capability, so it defaults off — an adopter who does
+    // nothing gets byte-identical behaviour.
+    expect(declared.pin_issues?.default).toBe(false);
+    expect(declared.pin_issues?.type).toBe("boolean");
+    // These two carry the values Lisa's own templates already use, so an
+    // adopter who does nothing gets the correct measurement rather than an
+    // opt-in they will never find.
+    expect(declared.gate_context?.default).toBe(
+      "🌙 Nightly E2E Health / 🌙 Gate"
+    );
+    expect(declared.bypass_label?.default).toBe("nightly-e2e-bypass");
+  });
+
+  it("no existing input was renamed or retyped — consumers pin these", () => {
+    // §8: inputs are never repurposed. Three consumers call this workflow by
+    // name, and a renamed input is a startup failure on their next nightly.
+    const declared = inputs();
+    for (const name of [
+      "suites",
+      "branch",
+      "freshness_hours",
+      "issue_label",
+      "guard_script",
+      "expected_contract_major",
+      "node_version",
+      "api_max_attempts",
+      "api_max_pages",
+      "api_retry_max_seconds",
+      "timeout_minutes",
+    ]) {
+      expect(declared[name]).toBeDefined();
+    }
+    expect(declared.issue_label?.default).toBe("nightly-e2e");
+    expect(declared.expected_contract_major?.default).toBe(1);
+  });
+
+  it("every new input reaches the guard as an environment variable", () => {
+    // An input the workflow accepts and never passes on is a knob wired to
+    // nothing — the caller believes it configured something and did not.
+    const step = reusable.jobs.report?.steps?.find(one =>
+      one.run?.includes(REPORT_FLAG)
+    );
+    expect(step).toBeDefined();
+    const env = (step as unknown as { env: Record<string, string> }).env;
+    expect(env.NIGHTLY_GATE_CONTEXT).toContain("inputs.gate_context");
+    expect(env.NIGHTLY_BYPASS_LABEL).toContain("inputs.bypass_label");
+    expect(env.NIGHTLY_PIN_ISSUES).toContain("inputs.pin_issues");
+    // And the guard reads exactly those names.
+    for (const name of [
+      "NIGHTLY_GATE_CONTEXT",
+      "NIGHTLY_BYPASS_LABEL",
+      "NIGHTLY_PIN_ISSUES",
+    ]) {
+      expect(guard).toContain(`env.${name}`);
+    }
+  });
+
+  it("the reporter still asks for no scope beyond `issues: write`", () => {
+    // The measurement is a read of the branch RULES, which the reporter already
+    // has metadata access for. If it had needed a new scope, the honest answer
+    // would have been to render `unknown` rather than to widen the ceiling on
+    // the half that writes.
+    expect(reusable.permissions).toEqual({
+      contents: "read",
+      actions: "read",
+      issues: "write",
+    });
+  });
+
+  it("the doc states all three states and the 404 rule", () => {
+    expect(doc).toContain("The blocking claim is MEASURED");
+    for (const state of ["`required`", "`not_required`", "`unknown`"]) {
+      expect(doc).toContain(state);
+    }
+    expect(doc).toContain("A `404` is `unknown`, never `not_required`");
+    expect(doc).toContain("Pinning is opt-in");
+  });
+
+  it("the doc records the measured falsehood this replaced", () => {
+    // The reason has to travel with the change. Without it, the next person to
+    // read a `not_required` issue concludes the reporter is broken and
+    // hardcodes the sentence back.
+    expect(doc).toContain("measurably false");
+    expect(doc).toContain("TunnlAI/frontend");
+  });
+
+  it("the guard reads the EFFECTIVE rules endpoint, never one ruleset by id", () => {
+    expect(guard).toContain("/rules/branches/");
+    expect(guard).toContain("required_status_checks");
+  });
+
+  it("the caller template documents the measurement rather than hiding it", () => {
+    const caller = read(REPORT_CALLER_REL);
+    expect(caller).toContain("gate_context");
+    expect(caller).toContain("pin_issues: false");
+    expect(caller).toContain('"gated": false');
   });
 });

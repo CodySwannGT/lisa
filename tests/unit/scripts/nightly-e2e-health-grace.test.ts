@@ -285,19 +285,20 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // bump would red-wall every adopter pinned to an older tag for a change
       // that cannot fail open.
       expect(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[0]).toBe("1");
-      // 1.4.x adds `min_flows` and rows 36-39. Same §8 reasoning: an untouched
-      // table gains new BLOCKING rows and no new passing one, so the skew is
-      // strictly toward fail-closed and a major bump would red-wall every
-      // adopter for it.
+      // Asserted as MAJOR 1 and MINOR >= 3, not as whatever literal the guard
+      // currently carries. The property defended here is "per-suite grace is
+      // inside major 1 and was not rolled back" — and section 8's rule is about
+      // the MAJOR, which is the half the reusable actually enforces.
       //
-      // Pinned to the MINOR, not the patch. This assertion is about the §8
-      // version CALL for per-suite grace, and that argument does not change when
-      // a later patch tightens a row — pinning the full string made every such
-      // patch look like a grace regression and sent the author here to edit a
-      // test that was not measuring their change. Two agents hit that in one
-      // evening. The major is asserted separately above, which is the half the
-      // reusable actually enforces.
-      expect(mod.NIGHTLY_E2E_CONTRACT_VERSION).toMatch(/^1\.4\.\d+$/);
+      // A literal pin also encodes which contract versions existed the day the
+      // test was written, so every later fail-closed-safe bump fails it for a
+      // reason with nothing to do with grace, and sends that author here to edit
+      // a test that was not measuring their change. That has now happened three
+      // times: 1.4.0 (`min_flows`, rows 36-38), 1.4.1 (row 39), and 1.5.0 (the
+      // reporter's measured blocking claim, section 10.7). Pinning the minor
+      // instead of the patch only postponed it by one bump.
+      const minor = Number(mod.NIGHTLY_E2E_CONTRACT_VERSION.split(".")[1]);
+      expect(minor).toBeGreaterThanOrEqual(3);
     });
   });
 
