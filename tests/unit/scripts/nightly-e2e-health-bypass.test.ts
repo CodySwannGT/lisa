@@ -8,13 +8,19 @@
  *
  * Two rulings are enforced here because they are the ones a well-meaning
  * refactor erodes first: **bootstrap forgives absence of evidence, never
- * evidence of failure**, and **the PR author may not bypass their own PR**.
+ * evidence of failure**, and — since the 2026-08-19 amendment — **the bypass is
+ * self-service, so the `Nightly-E2E-Bypass:` trailer is the only thing between
+ * a bare label and a waiver**.
  */
+import fs from "node:fs";
+import path from "node:path";
+
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   BRANCH,
   type BypassDecision,
+  GUARD_REL,
   type GateModule,
   GREEN_FINDING,
   MISSING_FINDING,
@@ -22,6 +28,9 @@ import {
   RED_FINDING,
   loadGateModule,
 } from "../../helpers/nightly-e2e-gate-harness";
+
+/** Absolute path of the guard, for the source-level deletion assertion. */
+const GUARD_PATH = path.resolve(__dirname, "..", "..", "..", GUARD_REL);
 
 /** A bootstrap window still open at `NOW`. */
 const WINDOW_OPEN = "2026-08-20T00:00:00Z";
@@ -158,10 +167,10 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       const decision = bypassWith({
         prNumber: 123,
         label: LABEL,
-        labelEvent: { actor: "author", createdAt: APPLIED_AT },
+        actorPermission: "write",
       });
       expect(decision.valid).toBe(false);
-      expect(decision.reason).toBe("self_bypass");
+      expect(decision.reason).toBe("actor_not_maintainer");
       expect(decision.label).toBe(LABEL);
       expect(decision.prNumber).toBe(123);
     });
@@ -184,14 +193,45 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       expect(report).toContain("maintainer");
     });
 
-    it("row 22: the PR AUTHOR may not bypass their own PR", () => {
-      // A bypass one person can both request and grant is not a control. The
-      // comparison is case-insensitive because GitHub logins are.
+    // Owner ruling 2026-08-19: the second-party requirement is REMOVED. It used
+    // to reject `self_bypass` whenever the labelling actor matched the PR
+    // author, which — across one portfolio repo — rejected 92 of 93 attempts,
+    // because on a small team (and on any repo where an agent opens the PR) the
+    // author and the only available labeller are the same party. The merges
+    // happened regardless, via an admin bypass that records nothing. See §6.
+    it("row 21: the PR AUTHOR may waive their OWN PR — the bypass is self-service", () => {
       const decision = bypassWith({
-        labelEvent: { actor: "Author", createdAt: APPLIED_AT },
+        labelEvent: { actor: "author", createdAt: APPLIED_AT },
       });
-      expect(decision.valid).toBe(false);
-      expect(decision.reason).toBe("self_bypass");
+      expect(decision.valid).toBe(true);
+      expect(decision.reason).toBe("valid");
+      // The applier is still RECORDED. Self-service removed the second party,
+      // not the audit trail.
+      expect(decision.actor).toBe("author");
+      expect(decision.prAuthor).toBe("author");
+      expect(decision.ticket).toBe("SE-6899");
+      expect(decision.expiresAt).toBe("2026-08-13T09:00:00.000Z");
+    });
+
+    it("row 21: a self-applied waiver still produces the `bypassed` verdict", () => {
+      const verdict = mod.decide([RED_FINDING], {
+        bootstrap: armed,
+        bypass: bypassWith({
+          labelEvent: { actor: "author", createdAt: APPLIED_AT },
+        }),
+      });
+      expect(verdict.verdict).toBe("bypassed");
+      expect(verdict.blocked).toBe(false);
+      expect(
+        mod.formatReport(verdict, { branch: BRANCH, bypassLabel: LABEL })
+      ).toContain("Gate bypassed — audited");
+    });
+
+    it("`self_bypass` is gone entirely, not merely unreachable", () => {
+      // A condition that can never fire is indistinguishable from one nobody
+      // has noticed is broken, so the branch was deleted rather than disabled.
+      const source = fs.readFileSync(GUARD_PATH, "utf8");
+      expect(source).not.toContain('reject("self_bypass")');
     });
 
     it("row 22: a non-maintainer may not bypass", () => {
@@ -203,10 +243,37 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       expect(bypassWith({ actorPermission: "admin" }).valid).toBe(true);
     });
 
-    it("row 22: a bypass with no reason/ticket line is rejected", () => {
-      expect(bypassWith({ prBody: "just let me merge" }).reason).toBe(
-        "no_reason_or_ticket"
-      );
+    // With the author check gone, this trailer is the ONLY thing between a bare
+    // label and a waiver. It carries weight it did not carry before, so every
+    // malformed shape is pinned rather than just the empty one.
+    it("row 22: a MALFORMED bypass trailer is rejected — the last line of defence", () => {
+      for (const prBody of [
+        "just let me merge",
+        // Label with no trailer at all.
+        "",
+        // Ticket but no reason.
+        "Nightly-E2E-Bypass: SE-6899",
+        "Nightly-E2E-Bypass: SE-6899   ",
+        // Reason but no ticket.
+        "Nightly-E2E-Bypass: harness outage",
+        // Lowercase / malformed ticket key.
+        "Nightly-E2E-Bypass: se-6899 harness outage",
+        "Nightly-E2E-Bypass: 6899 harness outage",
+        // Trailer name misspelled.
+        "Nightly-E2E-Waiver: SE-6899 harness outage",
+      ]) {
+        const decision = bypassWith({ prBody });
+        expect(decision.valid).toBe(false);
+        expect(decision.reason).toBe("no_reason_or_ticket");
+      }
+    });
+
+    it("row 21: a `#NNN` issue reference is a valid ticket, with a reason", () => {
+      const decision = bypassWith({
+        prBody: "Nightly-E2E-Bypass: #123 harness outage\n",
+      });
+      expect(decision.valid).toBe(true);
+      expect(decision.ticket).toBe("#123");
     });
 
     it("row 22: a bypass past `bypass_max_hours` is EXPIRED", () => {
@@ -283,9 +350,7 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
     it("row 22: an INVALID bypass leaves the gate RED and says which rule failed", () => {
       const verdict = mod.decide([RED_FINDING], {
         bootstrap: armed,
-        bypass: bypassWith({
-          labelEvent: { actor: "author", createdAt: APPLIED_AT },
-        }),
+        bypass: bypassWith({ prBody: "just let me merge" }),
       });
       expect(verdict.blocked).toBe(true);
 
@@ -294,7 +359,9 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
         bypassLabel: LABEL,
       });
       expect(report).toContain("REJECTED");
-      expect(report).toContain("applied by the PR's own author");
+      expect(report).toContain(
+        "carries no `Nightly-E2E-Bypass: <TICKET> <reason>` line"
+      );
     });
 
     it("a stale label on a green PR waived nothing and says nothing", () => {
@@ -306,14 +373,35 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       expect(verdict.bypass).toBeNull();
     });
 
-    it("the report tells a blocked author there is no admin-merge-past-red", () => {
+    it("the report tells a blocked author to prefer the audited bypass, and why", () => {
       const verdict = mod.decide([RED_FINDING], { bootstrap: armed });
       const report = mod.formatReport(verdict, {
         branch: BRANCH,
         bypassLabel: LABEL,
       });
-      expect(report).toContain("There is no admin-merge-past-red");
-      expect(report).toContain("a maintainer (not you)");
+      expect(report).toContain("waive the gate yourself");
+      expect(report).toContain("You may apply it to your own PR");
+      // The reason to prefer it is the audit record, not exclusivity.
+      expect(report).toContain(
+        "the only way past this gate that records who waived it"
+      );
+    });
+
+    // Regression guard for the 2026-08-19 amendment to the bypass contract.
+    // The report used to assert "There is no admin-merge-past-red", which was
+    // true of the ruleset Lisa ships and false of every deployment measured —
+    // all of which had added a `RepositoryRole` bypass actor. A gate cannot
+    // know its consumer's ruleset, so it must not make the claim at all.
+    it("the report never claims an admin merge is impossible", () => {
+      const verdict = mod.decide([RED_FINDING], { bootstrap: armed });
+      const report = mod.formatReport(verdict, {
+        branch: BRANCH,
+        bypassLabel: LABEL,
+      });
+      expect(report).not.toContain("no admin-merge-past-red");
+      expect(report).not.toContain("only sanctioned path");
+      // It points the reader at the one place that CAN answer instead.
+      expect(report).toContain("bypass actors");
     });
   });
 

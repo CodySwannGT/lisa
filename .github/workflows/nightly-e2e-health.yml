@@ -65,16 +65,35 @@
 # fails; per-suite grace is checked against the SAME ceiling, so it cannot
 # become a second, looser bootstrap.
 #
-# ## The bypass is the ONLY path past a red gate
+# ## The bypass is the PREFERRED path past a red gate
 #
-# Maintainers only; the PR author may not bypass their own PR; a
-# `Nightly-E2E-Bypass: <TICKET> <reason>` line in the PR body is required; the
-# waiver auto-expires (`bypass_max_hours`, hard ceiling 72). A valid bypass
+# Maintainers only (`admin` or `maintain`); a `Nightly-E2E-Bypass: <TICKET>
+# <reason>` line in the PR body is required; the waiver auto-expires
+# (`bypass_max_hours`, hard ceiling 72). It is SELF-SERVICE — the PR's own
+# author may apply the label and have it honoured (owner ruling 2026-08-19; see
+# §6 for the measurement that removed the second-party requirement). A valid bypass
 # returns the distinct verdict `bypassed` — a successful check carrying an
-# immutable audit record. There is NO admin-merge-past-red. See §6 of the doc,
-# including why the label is removed on MERGE (a separate reaper workflow) and
-# not on use: removing it during evaluation fires `unlabeled`, re-runs the gate,
-# and re-blocks the PR the bypass was meant to unblock.
+# immutable audit record. That record is the whole reason to prefer this route:
+# it is the only way past a red gate that names who waived what, under which
+# ticket, and when the waiver expires.
+#
+# Whether an ADMIN MERGE is ALSO possible is a property of the consuming
+# repository's ruleset, not of this workflow, and this workflow cannot tell you.
+# The ruleset Lisa ships (`expo/github-rulesets/nightly-e2e-health.json`) grants
+# no `RepositoryRole` bypass actor, so a deployment that matches the template
+# has no admin path past this gate. Deployments drift, and the drift is not
+# hypothetical: measured 2026-08-19, every portfolio repo where this gate was
+# required had added `RepositoryRole` admin with `bypass_mode: always`, which
+# makes an unaudited admin merge available on all of them. Read your own
+# ruleset's `bypass_actors` before believing either answer — trusting the
+# template or this comment over the live ruleset is the exact mistake that made
+# the previous wording ("there is NO admin-merge-past-red") false in practice
+# while remaining true of the file it described.
+#
+# See §6 of the doc, including why the label is removed on MERGE (a separate
+# reaper workflow) and not on use: removing it during evaluation fires
+# `unlabeled`, re-runs the gate, and re-blocks the PR the bypass was meant to
+# unblock.
 #
 # ## Security limits are SOURCE CONSTANTS (portfolio doctrine, WS-0a)
 #

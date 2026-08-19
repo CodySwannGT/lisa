@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
+      "8870dba7b299ddb528e01fee32ec01cd8994a72118708ea8d3255be3daedfa72",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "522c9d6724361140ca36fe967378fdfc944da9aa612aad5310237b95f4ca66be",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -2319,7 +2319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",
+      "5d6a5977b15a4996585715c4e5ca6d4ada450f0f0d3e439a19bab3fa89353000",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -8715,6 +8715,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-pre-suite-exports.test.ts": true,
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
+    "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
@@ -8741,6 +8742,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
+    "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,

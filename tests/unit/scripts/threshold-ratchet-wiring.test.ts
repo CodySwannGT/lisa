@@ -107,13 +107,39 @@ describe("threshold-ratchet wiring", () => {
   });
 
   it("wires the CI gate into both reusable quality workflows", () => {
+    // PRESENCE ONLY. This case asserted `${ENTRY_TEMPLATE_NAME} --base` and
+    // passed throughout the period the gate never ran: the invocation was
+    // there, behind an `exit 0` that fired whenever the script was missing,
+    // which in this repository is always. A workflow that MENTIONS a command
+    // is not a workflow that reaches it, and no string match can tell the two
+    // apart. Behaviour is proved by executing the step, in
+    // tests/integration/threshold-ratchet-gate-fail-closed.test.ts.
     for (const workflow of [
       ".github/workflows/quality.yml",
       ".github/workflows/quality-rails.yml",
     ]) {
       const text = read(workflow);
       expect(text, workflow).toContain("threshold_ratchet:");
-      expect(text, workflow).toContain(`${ENTRY_TEMPLATE_NAME} --base`);
+      expect(text, workflow).toContain(ENTRY_TEMPLATE_NAME);
+      expect(text, workflow).toContain('--base "origin/$BASE_REF"');
+    }
+  });
+
+  it("never lets a missing ratchet script pass as a skip", () => {
+    // The regression this pins is a one-word edit away: turning the `exit 1`
+    // back into `exit 0` restores a permanently green gate that compares
+    // nothing. Asserting the absence of the old message is cheap and catches
+    // a literal revert; the exit code itself is asserted by execution in the
+    // integration counterpart.
+    for (const workflow of [
+      ".github/workflows/quality.yml",
+      ".github/workflows/quality-rails.yml",
+    ]) {
+      const text = read(workflow);
+      expect(text, workflow).not.toContain(
+        "project not yet on the ratchet template; skipping"
+      );
+      expect(text, workflow).toContain("Threshold ratchet gate missing");
     }
   });
 

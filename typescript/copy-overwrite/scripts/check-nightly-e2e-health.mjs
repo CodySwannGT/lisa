@@ -1243,7 +1243,7 @@ export function resolveSuiteGrace(suite, maxDays, now) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Bypass — maintainers only, no self-bypass, reason required, auto-expiring
+// 4. Bypass — maintainers only, reason required, auto-expiring, self-service
 // ---------------------------------------------------------------------------
 
 /**
@@ -1251,8 +1251,21 @@ export function resolveSuiteGrace(suite, maxDays, now) {
  * the caller gathered.
  *
  * Every rejection carries a stable `reason` token so the audit says WHICH
- * condition failed. A bypass one person can both request and grant is not a
- * control, which is why `self_bypass` exists as its own rejection.
+ * condition failed.
+ *
+ * The bypass is deliberately SELF-SERVICE: the PR's own author may apply the
+ * label and have it honoured. It did not start that way — a `self_bypass`
+ * rejection used to require a second person — and the measurement that removed
+ * it is worth keeping next to the code. Across one portfolio repository, 93
+ * pull requests carried the label and exactly ONE waiver was ever honoured,
+ * because on a small team (and on any repo where an agent opens the PR) the
+ * author and the only available labeller are the same party. A control that
+ * fires on 1% of attempts is not protecting anything; it is routing the other
+ * 99% onto the unaudited admin merge, which records nothing at all. The value
+ * of this mechanism is the AUDIT RECORD, not the second pair of eyes, so every
+ * arm that produces the record is kept and only the second-party requirement
+ * is gone. `prAuthor` is therefore still carried onto the audit — recorded,
+ * never used to reject. (Owner ruling, 2026-08-19.)
  *
  * `extraReasonPattern` is an ADDITIONAL requirement, never a replacement for
  * `REQUIRED_BYPASS_REASON_PATTERN`. An override that could replace the built-in
@@ -1307,10 +1320,6 @@ export function evaluateBypass(request) {
       detail: actorPermission ?? "unknown",
     });
   }
-  if (prAuthor && labelEvent.actor.toLowerCase() === prAuthor.toLowerCase()) {
-    return reject("self_bypass");
-  }
-
   const cappedHours = Math.min(maxHours, BYPASS_ABSOLUTE_MAX_HOURS);
   const appliedMs = Date.parse(labelEvent.createdAt);
   if (Number.isNaN(appliedMs)) return reject("no_attributable_actor");
@@ -1368,8 +1377,6 @@ const BYPASS_REJECTIONS = Object.freeze({
     "nobody can be shown to have applied it (the PR timeline was unreadable — this is normal on a fork PR). An unattributable bypass is not an audited bypass.",
   actor_not_maintainer:
     "the person who applied it does not have `admin` or `maintain` on this repository. Bypasses are maintainers only.",
-  self_bypass:
-    "it was applied by the PR's own author. A bypass one person can both request and grant is not a control.",
   bypass_expired:
     "it was applied longer ago than `bypass_max_hours` allows. Bypasses auto-expire so a label nobody removes cannot become a permanent hole.",
   no_reason_or_ticket:
@@ -1595,7 +1602,7 @@ export function formatReport(verdict, context) {
       `  2. Re-run the suite from the Actions tab against \`${context.branch}\`, running the WHOLE suite. A \`workflow_dispatch\` run counts exactly like a scheduled one, so a green dispatch clears this gate immediately — no waiting for tomorrow. What does not count is a NARROWED re-run: leave any platform / tag / shard picker on its "all" default, because a run that skipped an arm says nothing about that arm.`,
       "  3. Re-run this check on your PR.",
       "",
-      `If the failure is in the harness rather than the app — or this IS the PR that fixes the red nightly — a maintainer (not you) can apply the \`${context.bypassLabel}\` label after you add a \`Nightly-E2E-Bypass: <TICKET> <reason>\` line to the PR body. There is no admin-merge-past-red: the audited bypass is the only sanctioned path.`
+      `If the failure is in the harness rather than the app — or this IS the PR that fixes the red nightly — waive the gate yourself: add a \`Nightly-E2E-Bypass: <TICKET> <reason>\` line to the PR body, then apply the \`${context.bypassLabel}\` label. You may apply it to your own PR; anyone with \`admin\` or \`maintain\` here can. The waiver auto-expires a bounded number of hours after the label goes on (\`bypass_max_hours\`, 24 by default, hard-capped at 72), so it cannot become a permanent hole. Prefer this route: it is the only way past this gate that records who waived it, under which ticket, and when the waiver expires. An admin merge may also be available — that is a property of this repository's own ruleset rather than of this gate, so read its bypass actors rather than assuming either way — but it leaves no such record.`
     );
   } else {
     lines.push(

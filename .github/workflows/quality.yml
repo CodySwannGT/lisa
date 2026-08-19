@@ -2225,9 +2225,21 @@ jobs:
             echo "Not a pull request — nothing to ratchet against."
             exit 0
           fi
-          if [ ! -f scripts/check-threshold-ratchet.mjs ]; then
-            echo "scripts/check-threshold-ratchet.mjs not present — project not yet on the ratchet template; skipping."
-            exit 0
+          script=scripts/check-threshold-ratchet.mjs
+          upstream=typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs
+          # Lisa's own repository ships this script as a template and does not
+          # keep a second copy under scripts/ — only 2 of the 11 copy-overwrite
+          # scripts are mirrored there, and a mirror is a surface that drifts
+          # out of band from the thing it mirrors. So the upstream path is a
+          # legitimate second place to find the SAME file, not a bypass: when
+          # neither exists the job still fails below.
+          if [ ! -f "$script" ] && [ -f "$upstream" ]; then
+            echo "Using the in-repo template at $upstream; no installed copy under scripts/."
+            script="$upstream"
+          fi
+          if [ ! -f "$script" ]; then
+            echo "::error title=Threshold ratchet gate missing::scripts/check-threshold-ratchet.mjs does not exist, so no quality threshold was compared. The gate's absence is a FAILURE, never a skip — a check that passes because it found nothing is worse than no check, and the PostToolUse hook fails open on the stated grounds that this layer guarantees the gate. Run 'lisa apply' to install the Lisa-managed script, or add 'threshold_ratchet' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+            exit 1
           fi
           if ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             echo "Base ref origin/$BASE_REF is not available in this checkout — cannot evaluate the ratchet."
@@ -2239,10 +2251,9 @@ jobs:
           # not, and an unresolvable head must leave the gate strict, never
           # relax it. Omitting the flag is the pre-#2531 behavior exactly.
           if git rev-parse --verify "origin/$HEAD_REF" >/dev/null 2>&1; then
-            node scripts/check-threshold-ratchet.mjs \
-              --base "origin/$BASE_REF" --head "origin/$HEAD_REF"
+            node "$script" --base "origin/$BASE_REF" --head "origin/$HEAD_REF"
           else
-            node scripts/check-threshold-ratchet.mjs --base "origin/$BASE_REF"
+            node "$script" --base "origin/$BASE_REF"
           fi
 
   # ---------------------------------------------------------------------------
