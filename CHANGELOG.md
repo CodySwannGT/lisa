@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.46.2](https://github.com/CodySwannGT/lisa/compare/v3.46.1...v3.46.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** write the suite-identity separator as an escape, not a raw NUL ([49df396](https://github.com/CodySwannGT/lisa/commit/49df39656cee148ee0ac3739e5d14112ecbf4cbe)), closes [CodySwannGT/lisa#2796](https://github.com/CodySwannGT/lisa/issues/2796)
+* **expo:** stop the shipped eslint config failing the shipped ruleset ([7a4885c](https://github.com/CodySwannGT/lisa/commit/7a4885c400bfeed25822ef249383c7baa0c0652e)), closes [#1707](https://github.com/CodySwannGT/lisa/issues/1707) [#1707](https://github.com/CodySwannGT/lisa/issues/1707) [CodySwannGT/lisa#2804](https://github.com/CodySwannGT/lisa/issues/2804)
+* **knip:** teach the shipped gate that printf is a shell builtin ([0854c6f](https://github.com/CodySwannGT/lisa/commit/0854c6fabcad8a98ae1676a717ac1e4ddbbfbdc9)), closes [#2143](https://github.com/CodySwannGT/lisa/issues/2143) [CodySwannGT/lisa#2804](https://github.com/CodySwannGT/lisa/issues/2804)
+
 ### [3.46.1](https://github.com/CodySwannGT/lisa/compare/v3.46.0...v3.46.1) (2026-08-19)
 
 
