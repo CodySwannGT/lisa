@@ -9,6 +9,8 @@
   "ignoreStatic": true,
   "timeoutMS": 60000,
   "tempDirName": ".stryker-tmp",
+  "_ignorePatternsComment": "Stryker does NOT read .gitignore; without these it copies dist/ and coverage/ into every sandbox. That is not merely slow — the integration suite rebuilds dist/ while this runs, so the sandbox scan lists .d.ts files that are gone by the time it reads them and the whole gate dies on ENOENT. Nothing in the run needs either: the package self-resolves through the symlinked node_modules to the real checkout.",
+  "ignorePatterns": ["dist", "coverage"],
   "mutate": [
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs",
