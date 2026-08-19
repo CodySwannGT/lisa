@@ -39,8 +39,8 @@ name: 🌙 Nightly E2E Report
 # The reporter reads `dev`'s branch rules at generation time and renders one of
 # `required` / `not_required` / `unknown` into the issue title, body and close
 # comment. It does NOT assume. That is a fix, not a feature: this reporter used
-# to state that pull requests were blocked in every issue it filed, and in
-# TunnlAI/frontend that was false — zero required contexts on `dev` matched the
+# to state that pull requests were blocked in every issue it filed, and in one
+# measured adopter that was false — zero required contexts on `dev` matched the
 # gate, and people were burning audited bypass labels to clear a gate that was
 # not gating.
 #
