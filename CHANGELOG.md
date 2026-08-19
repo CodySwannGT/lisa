@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.10](https://github.com/CodySwannGT/lisa/compare/v3.45.9...v3.45.10) (2026-08-19)
+
+
+### Bug Fixes
+
+* **lint:** make the scripts Lisa ships pass the ruleset Lisa ships ([fc570ba](https://github.com/CodySwannGT/lisa/commit/fc570ba321b96122b34d9caede2400c0c7edd56f)), closes [CodySwannGT/lisa#2797](https://github.com/CodySwannGT/lisa/issues/2797) [CodySwannGT/lisa#2797](https://github.com/CodySwannGT/lisa/issues/2797)
+
+### [3.45.9](https://github.com/CodySwannGT/lisa/compare/v3.45.8...v3.45.9) (2026-08-19)
+
+
+### Bug Fixes
+
+* **lint:** stop emitting code Lisa's own pre-commit fixer rewrites ([772e8c5](https://github.com/CodySwannGT/lisa/commit/772e8c5d00d9b5fe3bf43b135541f26211df0678)), closes [CodySwannGT/lisa#2788](https://github.com/CodySwannGT/lisa/issues/2788)
+
+### [3.45.8](https://github.com/CodySwannGT/lisa/compare/v3.45.7...v3.45.8) (2026-08-19)
+
+
+### Documentation
+
+* **refs:** scrub host identities from nightly-e2e comments and docs ([b14818d](https://github.com/CodySwannGT/lisa/commit/b14818dd1894058dff0c4edced40a70314b12cf3)), closes [CodySwannGT/lisa#2782](https://github.com/CodySwannGT/lisa/issues/2782)
+
 ### [3.45.7](https://github.com/CodySwannGT/lisa/compare/v3.45.6...v3.45.7) (2026-08-19)
 
 

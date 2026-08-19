@@ -6,8 +6,8 @@
  *   > Pull requests into `dev` are blocked until this suite is green again.
  *
  * That was a hardcoded assertion about somebody else's branch ruleset, and it
- * was measurably FALSE. `GET /repos/TunnlAI/frontend/rules/branches/dev`
- * returns twelve required contexts and not one of them matches this gate — the
+ * was measurably FALSE. On one adopter, `GET /repos/{o}/{r}/rules/branches/dev`
+ * returned twelve required contexts and not one of them matched this gate — the
  * suite blocked nothing, while people applied audited `nightly-e2e-bypass`
  * labels to clear a gate that was not gating. An issue that misstates its own
  * consequences is worse than one that says nothing, because it gets acted on.
@@ -175,7 +175,7 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
     });
 
     it("`not_required` when the branch has rules but none is this gate", async () => {
-      // This is TunnlAI/frontend's `dev`, measured 2026-08-18: twelve required
+      // This is an adopter frontend's `dev`, measured 2026-08-18: twelve required
       // contexts, none of them the nightly gate. The branch IS protected — so
       // "there are rules" must not be mistaken for "this gate is one of them".
       (globalThis as { fetch: unknown }).fetch = async (): Promise<unknown> =>
@@ -304,11 +304,11 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
 
   describe("which context counts as this gate", () => {
     it("matches the composite the reusable publishes, and the bare caller half", () => {
-      // Both strings were measured live on 2026-08-18: gemini's `dev` requires
-      // the composite (it calls Lisa's reusable), propswap's `dev` requires the
-      // bare name (its local fork is a single job). Both ARE the gate, and
-      // string equality alone would report propswap's genuinely-blocked branch
-      // as `not_required` — a false all-clear.
+      // Both strings were measured live on 2026-08-18 across two adopters:
+      // repo A's `dev` requires the composite (it calls Lisa's reusable), repo
+      // B's `dev` requires the bare name (its local fork is a single job). Both
+      // ARE the gate, and string equality alone would report repo B's
+      // genuinely-blocked branch as `not_required` — a false all-clear.
       expect(mod.contextMatchesGate(GATE_CONTEXT, GATE_CONTEXT)).toBe(true);
       expect(
         mod.contextMatchesGate("🌙 Nightly E2E Health", GATE_CONTEXT)
@@ -440,7 +440,7 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
     });
 
     it("BITE: `not_required` tells the reader the bypass label would waive NOTHING", () => {
-      // The measured harm this replaces: bypass labels applied in TunnlAI's
+      // The measured harm this replaces: bypass labels applied in an adopter
       // frontend to clear a gate that was not gating. A waiver recipe printed
       // unconditionally is what taught people to do that.
       const entry = planOne(finding(), REQUIRED_STATE.notRequired);
@@ -565,7 +565,7 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
     });
 
     it("BITE: an ungated suite does NOT say merges are blocked", () => {
-      // propswap's requirement, in their words: "an ungated suite that claimed
+      // An adopter's requirement, in their words: "an ungated suite that claimed
       // to block merges would be crying wolf." Note the branch measurement here
       // is `required` — the suite-level opt-out has to win over it, or the flag
       // does nothing on precisely the repos that have a gate at all.

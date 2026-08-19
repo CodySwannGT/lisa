@@ -119,7 +119,7 @@ function runStep(step: WorkflowStep, workdir: string): RunOutcome {
       encoding: "utf-8",
       env: {
         ...process.env,
-        ...(step.env ?? {}),
+        ...step.env,
         GITHUB_STEP_SUMMARY: summaryFile,
       },
     });
