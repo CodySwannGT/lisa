@@ -426,6 +426,7 @@ The verdict ladder is:
 node scripts/lisa-gates.mjs validate                    # shape + unknown gate ids
 node scripts/lisa-gates.mjs list --moment=pull-request
 node scripts/lisa-gates.mjs contexts                    # branch-protection contexts
+node scripts/lisa-gates.mjs skip-jobs                   # what replaces each skip_jobs token
 ```
 
 A gate is a **property** — *credential leakage* — not a tool. `gitleaks` is one way to prove
@@ -436,6 +437,25 @@ runner, so swapping the tool changes one line of project config and nothing in L
 would otherwise read as an enabled guarantee and run nothing at all — the same silent-hole shape
 as a skipped required check. Gates a project invents carry an `x-` prefix, which Lisa runs without
 pretending to understand.
+
+`skip-jobs` answers the migration off the `skip_jobs` workflow input. Eleven of the token → gate
+pairs cannot be recovered by transforming the name — `lint` is `code-style`, `sg_scan` is
+`structural-rules`, `work_item_traceability` is `traceability` — and being wrong does not break a
+build: it declares the WRONG gate `off`, so a check silently stops running while the configuration
+reads deliberate. Pass `--moment=` to match the moment the caller passes to `quality.yml`, because a
+gate's legal moments are a closed set and a declaration outside it is refused by `validate` — after
+the token has already been deleted.
+
+Four of its six answers are refusals, and they are the point. `unmappable` means the job was never
+converted to a gate façade, so keep the token. `partial` means one job behind the token has a gate
+and the others do not, so the declaration alone would leave work running. `inert` means no job
+honours that token at all. `unknown` means nothing matches it — usually a space after a comma, which
+GitHub matches against nothing, so that job has been RUNNING all along. None of them produce a gate
+id, because a confident wrong answer here is worse than no answer.
+
+`lisa doctor` reports the same thing per caller workflow and does NOT edit the workflow. `lisa apply`
+runs on postinstall, and an automated rewrite of a caller that gets it wrong is silent; an agent
+performing the edit can read the surrounding code and confirm afterwards that the same checks ran.
 
 `contexts` is the value that replaces a hand-transcribed branch-protection list. It is scoped to
 one environment: a gate required before a production deploy is **not** thereby a merge blocker on a

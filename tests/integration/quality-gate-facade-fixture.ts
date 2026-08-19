@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { QUALITY_JOB_GATES } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
 import type {
   ParsedWorkflow,
@@ -41,6 +42,15 @@ export interface ConvertedJob {
   fallbackSteps: string[];
 }
 
+/** A converted job before its gate is attached from the shipped registry. */
+type ConvertedJobSource = Omit<ConvertedJob, "gate">;
+
+/** The shipped job → gate table, as this file consumes it. */
+const SHIPPED_JOB_GATES = QUALITY_JOB_GATES as Record<
+  string,
+  string | undefined
+>;
+
 /** The condition selecting the project's own task. */
 export const CONFIGURED = "steps.gate.outputs.configured == 'true'";
 
@@ -76,12 +86,17 @@ export const DECLARED_OFF = "steps.gate.outputs.configured == 'off'";
  * rename rather than follow it. The names are then cross-checked against
  * `REGISTRY[gate].label` — the same source `contextsFor` derives the required
  * contexts from — so the workflow and the registry cannot drift apart.
+ *
+ * `gate` is the opposite: NOT a literal here, looked up from
+ * `QUALITY_JOB_GATES` in the shipped registry by `CONVERTED` below. A job name
+ * has to fail on a rename because a ruleset matches it by string; a gate id has
+ * to be shared, because a consumer migrating off `skip_jobs` needs the same
+ * pairing and cannot read this file.
  */
-export const CONVERTED: ConvertedJob[] = [
+const CONVERTED_JOBS: ConvertedJobSource[] = [
   {
     job: "lint",
     jobName: "🧹 Lint",
-    gate: "code-style",
     gateStep: "🧹 Run the code-style gate",
     fallbackSteps: [
       "🦀 Verify oxlint is installed",
@@ -91,35 +106,30 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "lint_slow",
     jobName: "🐢 Slow Lint Rules",
-    gate: "code-style-slow",
     gateStep: "🐢 Run the code-style-slow gate",
     fallbackSteps: ["🐢 Run slow lint rules"],
   },
   {
     job: "typecheck",
     jobName: "🔍 Type Check",
-    gate: "type-correctness",
     gateStep: "🔍 Run the type-correctness gate",
     fallbackSteps: ["🔍 Run type check"],
   },
   {
     job: "build",
     jobName: "🏗️ Build",
-    gate: "build-integrity",
     gateStep: "🏗️ Run the build-integrity gate",
     fallbackSteps: ["🏗️ Build project"],
   },
   {
     job: "format",
     jobName: "📐 Check Formatting",
-    gate: "format-conformance",
     gateStep: "📐 Run the format-conformance gate",
     fallbackSteps: ["📐 Check formatting"],
   },
   {
     job: "test_unit",
     jobName: "🧪 Run Unit Tests",
-    gate: "test-correctness",
     gateStep: "🧪 Run the test-correctness gate",
     fallbackSteps: [
       "🧪 Run unit tests with coverage",
@@ -129,7 +139,6 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "test_integration",
     jobName: "🧪 Run Integration Tests",
-    gate: "test-integration",
     gateStep: "🧪 Run the test-integration gate",
     fallbackSteps: [
       "🧪 Run integration tests",
@@ -139,7 +148,6 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "performance_budget",
     jobName: "⚡ Performance Budget",
-    gate: "performance-budget",
     gateStep: "⚡ Run the performance-budget gate",
     // The fallback runs `lighthouse:check` while the gate's declared task is
     // `perf:check`. That is not drift: the registry names the CONCERN, as it
@@ -155,7 +163,6 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "test_node_suites",
     jobName: "🧪 Run .mjs Suites",
-    gate: "test-node-suites",
     gateStep: "🧪 Run the mjs-suites gate",
     // This job's FALLBACK deliberately diverges from the others: elsewhere the
     // fallback reproduces what the project did before the façade, and here
@@ -167,7 +174,6 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "environment_reset",
     jobName: "♻️ Environment Reset Guard",
-    gate: "environment-reset",
     gateStep: "♻️ Run the environment-reset gate",
     // Lisa ships no implementation behind the environment facade, so this
     // fallback announces the absence rather than substituting for it. The
@@ -177,14 +183,12 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "environment_reseed",
     jobName: "🌱 Environment Reseed Guard",
-    gate: "environment-reseed",
     gateStep: "🌱 Run the environment-reseed gate",
     fallbackSteps: ["🌱 No environment reseed adapter declared"],
   },
   {
     job: "npm_security_scan",
     jobName: "🔒 Security Scan",
-    gate: "dependency-vulnerability",
     gateStep: "🔒 Run the dependency-vulnerability gate",
     // Both fallback steps, not just the audit itself: the exclusion loader is
     // npm/yarn/bun `audit` specifics (GHSA and CVE id files), and a project
@@ -195,14 +199,12 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "dead_code",
     jobName: "🗑️ Dead Code Detection",
-    gate: "dead-code",
     gateStep: "🗑️ Run the dead-code gate",
     fallbackSteps: ["🗑️ Run dead code detection (knip)"],
   },
   {
     job: "sg_scan",
     jobName: "🔎 AST Grep Scan",
-    gate: "structural-rules",
     gateStep: "🔎 Run the structural-rules gate",
     // The whole ast-grep pipeline hangs off `check_config`, so gating that one
     // discovery step on the fallback path takes the scan, the rule tests and
@@ -215,7 +217,6 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "test_mutation",
     jobName: "🧬 Mutation Testing Gate",
-    gate: "test-meaningfulness",
     gateStep: "🧬 Run the test-meaningfulness gate",
     // The ⏭️ notice hangs off `check_script`, not off the gate, so it stays on
     // the no-script path rather than the no-gate one. A project that ships the
@@ -227,14 +228,12 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "verification_coverage",
     jobName: "✅ Verification Coverage",
-    gate: "coverage-adequacy",
     gateStep: "✅ Run the coverage-adequacy gate",
     fallbackSteps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
   },
   {
     job: "playwright_e2e_aggregate",
     jobName: "🎭 Playwright E2E Tests",
-    gate: "e2e-browser",
     gateStep: "🎭 Run the e2e-browser gate",
     // The whole built-in Playwright path, not one command: Lisa's shipped
     // implementation of this gate is a sharded matrix PLUS this merge, and the
@@ -255,7 +254,6 @@ export const CONVERTED: ConvertedJob[] = [
   {
     job: "work_item_traceability",
     jobName: "🔗 Work-Item Traceability",
-    gate: "traceability",
     gateStep: "🔗 Run the traceability gate",
     // Only the validator itself. `🔗 Resolve the branch-authored commit range`
     // is deliberately NOT here: it computes the event-derived base SHA that
@@ -266,6 +264,33 @@ export const CONVERTED: ConvertedJob[] = [
     fallbackSteps: ["🔗 Validate Work-Item traceability"],
   },
 ];
+
+/**
+ * The converted jobs, each with the gate the SHIPPED registry says it resolves.
+ *
+ * The pairing used to be written out here as literals, and here was the only
+ * place it existed. That made this file the authority on a question consumers
+ * have to answer — "which gate replaces `skip_jobs: sg_scan`" — while being a
+ * test fixture nothing installs. It now lives in `lisa-gates.mjs` and this
+ * reads it, so there is one copy rather than two that can disagree.
+ *
+ * A job absent from the shipped table throws rather than yielding `undefined`.
+ * An undefined gate would flow into `GATE_ID` assertions as a mismatch against
+ * a step whose id it could not name, and the resulting failure would describe
+ * the workflow rather than the missing table entry.
+ */
+export const CONVERTED: ConvertedJob[] = CONVERTED_JOBS.map(entry => {
+  const gate = SHIPPED_JOB_GATES[entry.job];
+  if (gate === undefined) {
+    throw new Error(
+      `${entry.job} is not in QUALITY_JOB_GATES in all/copy-overwrite/scripts/lisa-gates.mjs. ` +
+        "Add it there — that table is what `lisa doctor` and agents in consumer " +
+        "checkouts read, and a job missing from it has no migration path off " +
+        "`skip_jobs`."
+    );
+  }
+  return { ...entry, gate };
+});
 
 /**
  * Steps that carried `continue-on-error` BEFORE this conversion.
