@@ -138,9 +138,19 @@ describe("quality.yml gate façade", () => {
     it.each(CONVERTED)(
       "$job refuses a $gate task or runner that is not a plain word",
       ({ job, file }) => {
+        // Presence only. What these validators actually REJECT is proven by
+        // executing the block against fixture configs in
+        // quality-gate-runner-validation.test.ts — a text assertion alone
+        // passed for the whole period `gates.runner: ":"` silenced every gate.
         const resolve = resolveStep(job, file);
-        expect(resolve?.run).toContain("const plain = value =>");
-        expect(resolve?.run).toContain("is not a plain command");
+        expect(resolve?.run).toContain("const plain = (value, pattern) =>");
+        expect(resolve?.run).toContain("is not a plain word");
+        // The type check must PRECEDE the pattern, because `test` coerces.
+        expect(resolve?.run).toContain('typeof value === "string" &&');
+        // Two classes, not one: a task may carry a colon, a runner may not.
+        expect(resolve?.run).toContain("/^[A-Za-z0-9:._@\\/= -]+$/");
+        expect(resolve?.run).toContain("/^[A-Za-z0-9._@\\/= -]+$/");
+        expect(resolve?.run).toContain("is not a task runner");
       }
     );
 
