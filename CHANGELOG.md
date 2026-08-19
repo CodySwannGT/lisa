@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.9](https://github.com/CodySwannGT/lisa/compare/v3.45.8...v3.45.9) (2026-08-19)
+
+
+### Bug Fixes
+
+* **lint:** stop emitting code Lisa's own pre-commit fixer rewrites ([772e8c5](https://github.com/CodySwannGT/lisa/commit/772e8c5d00d9b5fe3bf43b135541f26211df0678)), closes [CodySwannGT/lisa#2788](https://github.com/CodySwannGT/lisa/issues/2788)
+
 ### [3.45.8](https://github.com/CodySwannGT/lisa/compare/v3.45.7...v3.45.8) (2026-08-19)
 
 
