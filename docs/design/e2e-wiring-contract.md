@@ -124,6 +124,25 @@ Two columns carry rules, not description:
 
 **`lane`.** Stated per file because it decides whether the row is enforced or aspirational (§4a). Every row above currently ships `create-only`, which is why none of them converge; the migration to `copy-overwrite` is the work, and until it happens this table describes an intent rather than a guarantee.
 
+**The lane change alone converges nobody, and this table originally implied otherwise.** `copy-overwrite` governs files that are *absent or pristine*. A host copy that already differs is left alone, so every repo that has the file keeps its fork — the lane change lands, `lisa apply` reports success, and the convergence count is zero. Two gates in `CopyOverwriteStrategy.applyNonInteractive` produce that:
+
+```ts
+const lisaOwned = isLisaOwnedTemplate(relativePath);
+if (!lisaOwned && !mayRefreshTemplate(relativePath, config.refreshTemplates)) {
+  return { relativePath, strategy: this.name, action: "stale" };
+}
+```
+
+`isLisaOwnedTemplate` (`src/core/lisa-owned-templates.ts`) is true only under `scripts/` or for a path segment starting `lisa-`; **nothing under `.github/workflows/` qualifies**. And `mayRefreshTemplate` (`src/core/config.ts`) returns `false` when `refreshTemplates` is undefined — which is the normal case, because **a version bump, the way the fleet takes an upgrade, passes no flags**. Even a Lisa-owned path is not unconditional: `preserveIfHostAhead` consults the hash ledger and preserves unless it can *prove* the copy is behind, since "differs from mine" is equally consistent with the host being ahead.
+
+Every copy in scope is already forked — see the §2 diff line (`+1/-1`, `+137/-112`, `+126/-147`, `+238/-149`); `nightly-e2e-health.yml` differs in **all four** repos, two of them local reimplementations with no `uses:` at all. So the lane change is **necessary but not sufficient**, and converging an already-forked copy needs an explicit per-repo action:
+
+- delete the file so the create path recreates it — but only at or above the **v3.26.0** pin floor, or `lisa apply` recreates what you deleted;
+- pass `--refresh-templates <path>` on a deliberate, operator-run apply; or
+- accept the fork and record it in `.lisaignore` so it stops reading as drift.
+
+Sequence that against §3 before acting: swapping a repo's local implementation for the reusable **renames the reported check** (`<workflow name> / <reusable job name>`), which deadlocks any branch whose ruleset still requires the old context.
+
 The caller is named for the **suite** (`maestro-e2e`), never for the reusable
 workflow it calls (`maestro-native-e2e`).
 
@@ -299,7 +318,7 @@ is merely the one visible from a filename census because it also collides on
 
 | lane | behaviour | converges? |
 | --- | --- | --- |
-| `copy-overwrite` | rewritten on every `lisa apply` | **yes** — drift is corrected automatically |
+| `copy-overwrite` | rewritten on every `lisa apply` **only while the host copy is absent or pristine**; a host-edited copy resolves `stale` and is left alone unless the path is Lisa-owned (`scripts/`, `lisa-*`) or `--refresh-templates` names it | **absent/pristine only** — an existing fork is preserved, not corrected (§1) |
 | `create-only` | created when absent on any apply; skipped forever once present, identical or not | **presence only** — content forks on landing and never returns |
 | `uses:` reusable | resolved at run time from the ref the caller names | **yes, if the caller delegates and the ref is shared** |
 
