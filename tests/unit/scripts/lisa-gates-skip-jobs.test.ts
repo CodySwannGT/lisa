@@ -118,15 +118,34 @@ describe("skip_jobs → gate mapping", () => {
     });
   });
 
-  describe("a partially converted token reports what still runs", () => {
-    it("names the ungated jobs playwright_e2e would leave running", () => {
+  describe("a token spanning more than one job reports what still runs", () => {
+    it("reports playwright_e2e as inert now that its jobs left quality.yml", () => {
+      // This was the table's one `partial` case: the token named three jobs,
+      // only the aggregator had a façade, and reporting a clean swap would
+      // have left an operator watching the shards keep running. All three jobs
+      // then moved to `playwright-e2e.yml`, which takes no `skip_jobs` — so
+      // the token now suppresses nothing in the workflow it is passed to, and
+      // `inert` is the whole truth about it rather than half of one.
       const resolved = gateForSkipJob("playwright_e2e");
-      expect(resolved.status).toBe("partial");
-      expect(resolved.gate).toBe("e2e-browser");
-      expect(resolved.ungated).toEqual([
-        "playwright_e2e_setup",
-        "playwright_e2e",
-      ]);
+      expect(resolved.status).toBe("inert");
+      expect(resolved.jobs).toEqual([]);
+      expect(resolved.gate).toBeNull();
+      expect(resolved.ungated).toEqual([]);
+    });
+
+    it("has no multi-job token left for `partial` to describe", () => {
+      // `partial` is what stops a many-job token being reported as a clean
+      // swap, and nothing in the shipped table can reach it today. Asserted
+      // rather than left implicit: the case above used to be the only witness,
+      // so without this the verdict would quietly become untested, and the
+      // next token that names two jobs would be the one to find out.
+      const multiJob = Object.entries(SKIP_JOB_TOKENS).filter(
+        ([, jobs]) => jobs.length > 1
+      );
+      expect(multiJob).toEqual([]);
+      expect(
+        Object.keys(SKIP_JOB_TOKENS).map(token => gateForSkipJob(token).status)
+      ).not.toContain("partial");
     });
   });
 

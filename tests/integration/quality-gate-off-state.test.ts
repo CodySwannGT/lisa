@@ -66,21 +66,24 @@ describe("the resolver distinguishes declared-off from never-declared", () => {
 });
 
 describe("every façade job asks for the off state and acts on it", () => {
-  it.each(CONVERTED)("$job requests gates declared off", ({ job }) => {
-    expect(resolveStep(job)?.run).toContain("--include-off");
-  });
-
-  it.each(CONVERTED)("$job emits a third state for an off gate", ({ job }) => {
-    expect(resolveStep(job)?.run).toContain("configured=off");
+  it.each(CONVERTED)("$job requests gates declared off", ({ job, file }) => {
+    expect(resolveStep(job, file)?.run).toContain("--include-off");
   });
 
   it.each(CONVERTED)(
+    "$job emits a third state for an off gate",
+    ({ job, file }) => {
+      expect(resolveStep(job, file)?.run).toContain("configured=off");
+    }
+  );
+
+  it.each(CONVERTED)(
     "$job's fallback fires only on false, never on off",
-    ({ job, fallbackSteps }) => {
+    ({ job, fallbackSteps, file }) => {
       // `!= 'true'` is the bug: `off` satisfies it, so the built-in tooling ran
       // against a declaration that said not to.
       for (const name of fallbackSteps) {
-        const condition = stepNamed(job, name)?.if ?? "";
+        const condition = stepNamed(job, name, file)?.if ?? "";
         expect(condition).toContain(NOT_CONFIGURED);
         expect(condition).not.toContain("configured != 'true'");
       }
@@ -89,8 +92,8 @@ describe("every façade job asks for the off state and acts on it", () => {
 
   it.each(CONVERTED)(
     "$job runs the project's task only when configured true",
-    ({ job, gateStep }) => {
-      expect(stepNamed(job, gateStep)?.if).toContain(
+    ({ job, gateStep, file }) => {
+      expect(stepNamed(job, gateStep, file)?.if).toContain(
         "steps.gate.outputs.configured == 'true'"
       );
     }
@@ -100,13 +103,13 @@ describe("every façade job asks for the off state and acts on it", () => {
 describe("an off gate reaches neither branch", () => {
   it.each(CONVERTED)(
     "$job has no step that would run when configured is off",
-    ({ job, gateStep, fallbackSteps }) => {
+    ({ job, gateStep, fallbackSteps, file }) => {
       // The property in one assertion: with configured=off, the gate step's
       // condition is false and every fallback condition is false, so the job
       // runs no gate work at all and reports green having correctly done
       // nothing — which is what the project asked for.
       const conditions = [gateStep, ...fallbackSteps].map(
-        name => stepNamed(job, name)?.if ?? ""
+        name => stepNamed(job, name, file)?.if ?? ""
       );
       for (const condition of conditions) {
         expect(condition).not.toContain("configured != 'true'");

@@ -124,14 +124,21 @@ describe("doctor skip_jobs migration", () => {
   });
 
   describe("an unmappable token is named, never guessed", () => {
-    it("reports playwright_e2e as partial and names what keeps running", async () => {
+    it("reports playwright_e2e as suppressing nothing, now that its jobs left quality.yml", async () => {
+      // Was `partial`: the token named three jobs, only the aggregator had a
+      // façade, and reporting a clean swap would have left an operator
+      // watching the shards keep running. All three then moved to
+      // `playwright-e2e.yml`, which takes no `skip_jobs` — so passing the
+      // token to `quality.yml` suppresses nothing at all, and the caller under
+      // test here is a `quality.yml` caller.
       await writeCaller(caller("playwright_e2e"));
       const [found] = await skipJobCallers(project);
-      expect(found?.tokens[0]?.status).toBe("partial");
-      expect(found?.tokens[0]?.ungated).toEqual([
-        "playwright_e2e_setup",
-        "playwright_e2e",
-      ]);
+      expect(found?.tokens[0]?.status).toBe("inert");
+      expect(found?.tokens[0]?.gate).toBeNull();
+      expect(found?.tokens[0]?.declaration).toBeNull();
+      expect(found?.tokens[0]?.ungated).toEqual([]);
+      const check = await checkSkipJobsMigration(project);
+      expect(check.detail).toContain("it suppresses nothing");
     });
 
     it("reports zap_baseline as having no gate and emits no declaration", async () => {
