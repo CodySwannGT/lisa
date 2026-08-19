@@ -80,7 +80,12 @@ function branchLowerBound(branch) {
  * An alias spec (`npm:other-pkg@^1.2.3`) versions a different package
  * entirely; its number cannot be compared against a floor for this name, so it
  * returns null rather than a misleading answer. A spec carrying no version —
- * `*`, `workspace:*`, `latest` — has no floor either.
+ * `*`, `latest`, `^8` — has no floor either.
+ *
+ * `null` therefore means only "no floor was read here", and callers must not
+ * read it as "nothing to check". Those are opposite answers: a range with no
+ * floor permits EVERYTHING, which is the weakest state a dependency line can
+ * be in. {@link isIncomparable} is what separates the two.
  * @param {string} spec A version range.
  * @returns {number[]|null} [major, minor, patch], or null when there is none.
  */
@@ -95,6 +100,44 @@ export function lowestPermitted(spec) {
   return bounds.reduce((lowest, bound) =>
     compare(bound, lowest) < 0 ? bound : lowest
   );
+}
+
+/**
+ * The floor of a range that declares none: zero, i.e. it permits everything.
+ *
+ * Not a sentinel for "unknown". A range with no lower bound is fully known —
+ * it is the weakest one expressible — and comparing it as zero is what makes
+ * it lose against any override that carries a floor.
+ */
+const NO_FLOOR = Object.freeze([0, 0, 0]);
+
+/**
+ * Protocols that point a dependency name at something other than a registry
+ * version of that same package.
+ *
+ * `npm:` and the shorthand `org/repo` form alias a different package; `file:`,
+ * `link:`, `portal:` and `workspace:` resolve to a checkout on disk; git and
+ * http specs fetch a tree. None of them carries a registry range this check
+ * can weigh against a floor, and none is rewritten to `$name` in the way the
+ * check exists to catch.
+ */
+const INCOMPARABLE_PROTOCOL =
+  /^\s*(?:npm|workspace|file|link|portal|github|gitlab|bitbucket|https?|git|git\+[a-z]+):/iu;
+
+/**
+ * Whether a dependency spec versions something this check cannot weigh.
+ *
+ * Separating this from "carries no version number" is the whole point. Both
+ * used to arrive as `null` from {@link lowestPermitted} and both were skipped,
+ * so `"*"` — the weakest range there is — read exactly like an alias to another
+ * package and reported clean. An alias genuinely cannot be compared; `"*"`
+ * compares perfectly well and loses.
+ * @param {string} spec A dependency range.
+ * @returns {boolean} True when no comparison is meaningful.
+ */
+export function isIncomparable(spec) {
+  const raw = typeof spec === "string" ? spec : "";
+  return INCOMPARABLE_PROTOCOL.test(raw) || raw.includes("/");
 }
 
 /**
@@ -161,8 +204,12 @@ export function collisions(manifest) {
       if (!dependency) continue;
 
       const floor = lowestPermitted(spec);
-      const target = lowestPermitted(dependency.spec);
-      if (!floor || !target) continue;
+      // An override with no floor of its own has nothing to lose to a collapse.
+      if (!floor) continue;
+      // A dependency line that names another package cannot be weighed. One
+      // that merely omits a version number CAN be, and permits everything.
+      if (isIncomparable(dependency.spec)) continue;
+      const target = lowestPermitted(dependency.spec) ?? NO_FLOOR;
       if (compare(target, floor) >= 0) continue;
 
       found.push({
