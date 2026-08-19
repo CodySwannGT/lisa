@@ -111,7 +111,7 @@ are not, which is why the blocking rows are not contiguous.
 | 19 | API returns 401/403 for auth (token cannot read run history) | **fail** | **fail** | **`fail`** |
 | 20 | `suites` input is absent, empty, malformed JSON, or fails schema validation | **fail** | **fail** | **`fail`** |
 | 21 | A red or unknown verdict on a PR carrying a **valid** audited bypass | — | — | **`bypassed`** (success, audited) |
-| 22 | A red or unknown verdict on a PR carrying an **invalid** bypass (self-bypass, non-maintainer, no reason/ticket, expired) | — | — | **`fail`**, with the rejection reason in the audit |
+| 22 | A red or unknown verdict on a PR carrying an **invalid** bypass (non-maintainer, unattributable, no reason/ticket, expired) | — | — | **`fail`**, with the rejection reason in the audit |
 | 23 | Bootstrap window declared but already expired, and evidence still missing | — | — | **`fail`** |
 | 24 | Bootstrap window declared beyond `bootstrap_max_days` from the workflow run date | **fail** | **fail** | **`fail`** (invalid configuration) |
 | 25 | Bootstrap window active and evidence missing | non-blocking | — | **`bootstrap`**, summary states the UTC expiry timestamp |
@@ -546,14 +546,85 @@ looking fully armed. It is the defect that made gemini's `playwright` ruleset
 decorative, and it is why `expo/github-rulesets/playwright.json` is deleted by
 this change rather than fixed.
 
-## 6. The bypass contract (Appendix A4 — owner ruling, ratified 2026-08-12)
+## 6. The bypass contract (Appendix A4 — owner ruling, ratified 2026-08-12; amended 2026-08-19)
 
 A gate that reads *last night's* verdict cannot be cleared by the PR that fixes
 last night's failure — the nightly stays red until the fix merges and runs.
 Deadlock by construction. The escape hatch is a **single audited bypass label**,
-and it is the *only* sanctioned path past a red gate: there is **no
-admin-merge-past-red**. An unaudited admin merge and an audited bypass differ
-precisely in whether anyone can find out afterwards.
+and it is the **preferred** path past a red gate. An unaudited admin merge and
+an audited bypass differ precisely in whether anyone can find out afterwards,
+which is the entire argument for reaching for the label first: the bypass is the
+only route past this gate that records *who* waived *what*, under which ticket,
+and when the waiver expires.
+
+**Whether an admin merge is also possible is a property of the consuming
+repository's ruleset, not of this contract — and neither this document nor the
+gate can tell you.** Check `bypass_actors` on the ruleset that requires the gate
+context, via `GET /repos/{owner}/{repo}/rules/branches/{branch}` for the
+*effective* rules and then the ruleset itself. A `RepositoryRole` actor with
+`bypass_mode: always` means admins can merge past a red gate on that deployment;
+its absence means they cannot.
+
+> **Amendment — 2026-08-19.** As ratified on 2026-08-12 this section read: *"it
+> is the only sanctioned path past a red gate: there is no
+> admin-merge-past-red."* That claim was true of the ruleset Lisa **ships**
+> (`expo/github-rulesets/nightly-e2e-health.json` grants only a `DeployKey`
+> bypass actor, and `tests/integration/nightly-e2e-health-workflow.test.ts`
+> still holds it to that) and false of every deployment measured. On 2026-08-19
+> all three portfolio repositories where this gate was required carried an
+> added `RepositoryRole` bypass actor with
+> `bypass_mode: always`, so an unaudited admin merge was available on every one
+> of them — and was in use, including on at least one pull request the gate
+> never reported a verdict for at all.
+>
+> The owner ruling is amended to **docs-follow-reality**: the bypass is
+> preferred rather than exclusive, and readers are told to check their own
+> ruleset rather than to trust the template or this prose. The shipped template
+> is deliberately **not** changed to grant admins — baking one deployment's
+> choice into every new repository would make the drift the default. The
+> divergence is documented instead.
+>
+> The trap is worth naming, because it produced this amendment: a ruleset
+> *definition* in version control is not the *effective* state of the branch it
+> claims to protect. Any assertion about what can merge must be made against the
+> live API, never against the checked-in JSON.
+
+The bypass is **self-service**: the PR's own author may apply the label and have
+it honoured. That is deliberate. Requiring a second person to press the button
+is friction, and friction on the audited path does not stop the merge — it
+diverts it to the unaudited one, which records nothing at all. The control this
+contract is actually buying is the **record**, not the second pair of eyes, so
+every arm that produces the record is kept and the second-party requirement is
+not.
+
+> **Amendment — 2026-08-19 (self-bypass).** As ratified on 2026-08-12 this
+> contract required that *"the labelling actor is **not** the PR author — no
+> self-bypass. A bypass one person can both request and grant is not a
+> control."* That requirement is **removed**. A correctly-formed label now
+> waives the gate regardless of who applied it.
+>
+> The measurement: across one portfolio repository, **93 pull requests carried
+> the bypass label and exactly one waiver was ever honoured.** Every other
+> attempt was rejected `self_bypass`, because on a small team — and on any
+> repository where an agent opens the pull request — the author and the only
+> available labeller are the same party. Meanwhile every one of those repos
+> granted admins `bypass_mode: always`, so the merges happened anyway, through
+> the path with no ticket, no reason, and no expiry.
+>
+> A control that fires on 1% of attempts is not protecting anything; it is
+> routing the other 99% somewhere worse. **This genuinely loosens the gate, and
+> the owner made the trade with those numbers in hand.** What is explicitly
+> retained, because it is what the mechanism is for: the
+> `Nightly-E2E-Bypass: <TICKET> <reason>` trailer, the recorded identity of
+> whoever applied the label, the 24-hour expiry, the reaper that strips a used
+> label on close, and the `::notice::` that makes a waiver visible in the log.
+> With the author check gone, the **trailer is now the only thing standing
+> between a bare label and a waiver**, so its rejection path is load-bearing in
+> a way it was not before and is tested as such.
+>
+> The rejection branch was deleted rather than made unreachable. A condition
+> that can never fire is indistinguishable from one nobody has noticed is
+> broken.
 
 A bypass is valid only when **all** of the following hold. Any failure is row 22
 — the check goes **red**, and the audit says which condition failed.
@@ -562,7 +633,6 @@ A bypass is valid only when **all** of the following hold. Any failure is row 22
 |---|---|
 | The PR carries the label named by `bypass_label` (default `nightly-e2e-bypass`). | The trigger. |
 | The **actor who applied the label** has repository permission `admin` or `maintain`. | "Maintainers only." Read from `GET /repos/{repo}/collaborators/{login}/permission`; the labelling actor is read from the newest matching `labeled` event on the PR timeline. |
-| The labelling actor is **not** the PR author. | **No self-bypass.** A bypass one person can both request and grant is not a control. |
 | The PR body contains a line matching the built-in `^Nightly-E2E-Bypass:\s*(?<ticket>[A-Z][A-Z0-9]+-\d+|#\d+)\s+(?<reason>\S.*)$`, **and** the optional `bypass_reason_pattern` if one is configured. | A reason **and** a tracker reference, in the artefact reviewers already read. The built-in rule always applies; a configured pattern is an AND, never a replacement (§6.2). |
 | The label was applied no more than `bypass_max_hours` ago (default `24`, **source-constant** ceiling `72`). | **Auto-expiry.** A label nobody removes must not be a permanent hole. Past the window the bypass simply stops working. |
 
