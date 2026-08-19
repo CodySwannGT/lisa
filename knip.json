@@ -50,6 +50,7 @@
     "oxlint",
     "playwright",
     "prettier",
+    "printf",
     "serve",
     "standard-version",
     "tsc",

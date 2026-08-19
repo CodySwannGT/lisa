@@ -49,20 +49,25 @@ const localIgnores: string[] = existsSync(
 
 // Type only the managed factory result, then trust project-owned additions at
 // their spread boundary. The double assertion is intentional: one custom-plugin
-// entry can be structurally different enough for a direct cast to raise TS2352.
-// Annotating an assembled array force-conforms the host's local config. Do not
+// entry can be structurally different enough for a direct cast to raise TS2352,
+// and annotating an array that spreads `localConfig` RAW force-conforms the
+// host's local config to the managed factory's return type. Asserting at the
+// spread itself keeps the host's config out of that annotation while the array
+// stays a literal — assembling it by pushing instead would mutate it, which the
+// `functional/immutable-data` rule shipped in this very profile rejects. Do not
 // import `Linter` from "eslint" directly either; that trips knip's
 // unlisted-dependency check.
-const config: ReturnType<typeof getExpoConfig> = getExpoConfig({
-  tsconfigRootDir: __dirname,
-  ignorePatterns: [
-    ...(ignoreConfig.ignores || defaultIgnores),
-    ...localIgnores,
-  ],
-  thresholds: { ...defaultThresholds, ...thresholdsConfig },
-  sourceRoot,
-});
-
-config.push(...(localConfig as unknown as ReturnType<typeof getExpoConfig>));
+const config: ReturnType<typeof getExpoConfig> = [
+  ...getExpoConfig({
+    tsconfigRootDir: __dirname,
+    ignorePatterns: [
+      ...(ignoreConfig.ignores || defaultIgnores),
+      ...localIgnores,
+    ],
+    thresholds: { ...defaultThresholds, ...thresholdsConfig },
+    sourceRoot,
+  }),
+  ...(localConfig as unknown as ReturnType<typeof getExpoConfig>),
+];
 
 export default config;
