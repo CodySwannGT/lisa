@@ -25,6 +25,11 @@ name: 🔒 Security Floors
 on:
   pull_request:
     paths:
+      # The governance ROOT manifest, listed separately: the per-stack glob is
+      # one level deep and never matched it, so editing the file whose
+      # force/defaults/merge sections govern every other manifest did not even
+      # start this job.
+      - 'package.lisa.json'
       - '*/package-lisa/package.lisa.json'
       - 'scripts/check-security-floors.mjs'
       - '.github/workflows/security-floors.yml'
@@ -56,5 +61,17 @@ jobs:
           # says so rather than calling them clean, and --strict fails on an
           # inconclusive run for exactly that reason.
           GITHUB_TOKEN: ${{ github.token }}
+        # `pipefail`, or the step's exit status is `tee`'s and `tee` always
+        # succeeds. GitHub's default shell for `run:` is `bash -e {0}` — `-e`
+        # but NO pipefail — so every failure `--strict` exists to raise was
+        # discarded here: a floor below a live advisory, an inconclusive or
+        # rate-limited run, and an unresolved `$name`. Measured:
+        #
+        #   bash -e             -c 'node -e "process.exit(1)" | tee /dev/null' -> 0
+        #   bash -e -o pipefail -c 'node -e "process.exit(1)" | tee /dev/null' -> 1
+        #
+        # An omission rather than a policy: sibling steps in this repository
+        # already set it before piping to `tee`.
         run: |
+          set -euo pipefail
           node scripts/check-security-floors.mjs --strict | tee -a "$GITHUB_STEP_SUMMARY"

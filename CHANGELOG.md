@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.46.0](https://github.com/CodySwannGT/lisa/compare/v3.45.10...v3.46.0) (2026-08-19)
+
+
+### Features
+
+* **design:** add the design-intake gate, skill, and command ([781ffd2](https://github.com/CodySwannGT/lisa/commit/781ffd21252a363ff0fb06bcaae0d32c13ab90c9)), closes [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799) [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799)
+* **design:** flag unbound values in axes that publish design variables ([5fd9d89](https://github.com/CodySwannGT/lisa/commit/5fd9d89b732be5648989f0a44d0546a5c199bccb)), closes [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799) [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799)
+* **design:** resolve the binding regime headlessly, from a committed id map ([8246457](https://github.com/CodySwannGT/lisa/commit/8246457ea3c7ac6ccc44ede60045a5d8ad0d36ea)), closes [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799) [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799)
+* **rules:** add the design-value-binding contract ([ebb196e](https://github.com/CodySwannGT/lisa/commit/ebb196edc82da1377bd8c8e875487237305fac02)), closes [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799) [CodySwannGT/lisa#2799](https://github.com/CodySwannGT/lisa/issues/2799)
+
 ### [3.45.10](https://github.com/CodySwannGT/lisa/compare/v3.45.9...v3.45.10) (2026-08-19)
 
 
