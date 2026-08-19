@@ -1,0 +1,4 @@
+display_name: "Design Intake"
+short_description: "Design-handoff gate for a work item with a UI surface"
+default_prompt:
+  - "Use $lisa-design-intake: Design-handoff gate for a work item with a UI surface."
