@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.8](https://github.com/CodySwannGT/lisa/compare/v3.45.7...v3.45.8) (2026-08-19)
+
+
+### Documentation
+
+* **refs:** scrub host identities from nightly-e2e comments and docs ([b14818d](https://github.com/CodySwannGT/lisa/commit/b14818dd1894058dff0c4edced40a70314b12cf3)), closes [CodySwannGT/lisa#2782](https://github.com/CodySwannGT/lisa/issues/2782)
+
 ### [3.45.7](https://github.com/CodySwannGT/lisa/compare/v3.45.6...v3.45.7) (2026-08-19)
 
 
