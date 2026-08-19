@@ -290,10 +290,19 @@ export class PackageLisaStrategy implements ICopyStrategy {
   }
 
   /**
-   * Reduce a resolved template to only the security-critical force sections
-   * (`resolutions` and `overrides`), dropping force.scripts, defaults, merge,
-   * and remove. Used during skip-git-check (postinstall) applies so dependency
-   * pins still apply without clobbering host config.
+   * Reduce a resolved template to only the security-critical sections —
+   * `force.resolutions` and `force.overrides`, plus the retirements aimed at
+   * those same two sections — dropping force.scripts, defaults, merge, and
+   * every other retirement. Used during skip-git-check (postinstall) applies so
+   * dependency pins still apply without clobbering host config.
+   *
+   * Retiring an override is as security-critical as writing one, so it travels
+   * with them. Dropping it left a pin that turns out to be harmful with no way
+   * to reach a host through postinstall: the template stops forcing the key,
+   * but the copy already written into the host's package.json stays. That is
+   * how `brace-expansion >=5.0.9` would have survived its own removal.
+   * Retirements aimed at other sections stay behind, because deleting host
+   * scripts or dependencies is exactly the config clobbering this path avoids.
    *
    * The retained overrides/resolutions may contain `$name` self-references or
    * literal pins that normalize to `$name` later. Both resolve against a direct
@@ -302,8 +311,9 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * normalization guard. So we also pull the package's forced pin from
    * force.dependencies / force.devDependencies into the restricted set.
    * @param template - Fully merged template from the type hierarchy
-   * @returns Template carrying force.resolutions/force.overrides plus the direct
-   *   dependencies that back any direct-dependency override within them
+   * @returns Template carrying force.resolutions/force.overrides, the direct
+   *   dependencies that back any direct-dependency override within them, and
+   *   the retirements aimed at those same two sections
    * @private
    */
   private restrictToSecurityPins(
@@ -317,7 +327,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
       force.overrides = template.force.overrides;
     }
     this.includeBackingDirectDeps(template, force);
-    return { force, defaults: {}, merge: {}, remove: {} };
+    const remove = Object.fromEntries(
+      OVERRIDE_SECTIONS.filter(
+        section => template.remove[section] !== undefined
+      ).map(section => [section, template.remove[section] as string[]])
+    );
+    return { force, defaults: {}, merge: {}, remove };
   }
 
   /**
