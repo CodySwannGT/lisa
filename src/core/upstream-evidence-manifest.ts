@@ -161,21 +161,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-phaser/rules/require-shutdown-cleanup.js":
       "c66c17734394608ef642885bb8f153a8873cc696edb1f28ed69bfe49ac9de627",
     "eslint-plugin-ui-standards/README.md":
-      "fad46b0307dcc2cd02a7ce8849f3d22207731c3570d36dd9496d0f4c2777f448",
+      "80b14c118ce58a6f9e4c5d321c0b3c6a0b4cf366d607cb4a0616cda80d084900",
     "eslint-plugin-ui-standards/index.js":
-      "b4f1634aa5e23c1f70798d82c1416b6bfd4e1614f981115dcece0a6f7d8b616e",
+      "55babe6b52206473841097256ba5c6d1bf80f7c99e39f6132c778774835f4ecb",
     "eslint-plugin-ui-standards/package.json":
       "cfc50e091432a9499ddcba7d19ee7869c005d3f4b7ec9ca128f4209581219663",
     "eslint-plugin-ui-standards/rules/no-classname-outside-ui.js":
       "4fd16f5e99bb624bfe1a245fed218a7a82b50cd06f5790b6393a36d039932f16",
     "eslint-plugin-ui-standards/rules/no-direct-rn-imports.js":
       "e25d0c26e865ea72c4914a7c3f10ff92bd084efd04f8665c896b1d9eed923299",
+    "eslint-plugin-ui-standards/rules/no-unbound-design-value.js":
+      "838d6a46741d5c47398383a2b0366a62d3b408ffb126b695c110d77041c0e43b",
     "expo/copy-overwrite/.easignore.extra":
       "1d30dac09405c41e23f6212553abacea478d7759b69c18edac0c0053f00e0d37",
     "expo/copy-overwrite/eslint.config.ts":
       "889ff793099bb65f969c2ccdf1690c8748f20e489999c1a80ae160dfb19f0531",
     "expo/copy-overwrite/eslint.expo.ts":
-      "9386672ae12703ef7f9066f7f478c95d902cc5bbd37dfd57ea507d80a05726d6",
+      "9909cdb039dbf4ea4f2b9724b7b0fce65465aac278dc762309c4637af5b8dd7b",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -2657,6 +2659,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "eslint-plugin-ui-standards/package.json": true,
     "eslint-plugin-ui-standards/rules/no-classname-outside-ui.js": true,
     "eslint-plugin-ui-standards/rules/no-direct-rn-imports.js": true,
+    "eslint-plugin-ui-standards/rules/no-unbound-design-value.js": true,
     "eslint.config.local.ts": true,
     "eslint.config.ts": true,
     "eslint.ignore.config.json": true,
@@ -8891,6 +8894,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
+    "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
