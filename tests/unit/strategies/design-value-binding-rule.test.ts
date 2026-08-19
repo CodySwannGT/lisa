@@ -63,6 +63,21 @@ const NON_BLOCK_ENTRIES = [
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
 
+/**
+ * The body of one `##` section, so a redaction assertion can be scoped to the
+ * prose carrying the motivating example rather than to the whole document.
+ * @param body - Full document text.
+ * @param heading - The exact `## …` heading line.
+ * @returns Text between that heading and the next `##` heading.
+ */
+const section = (body: string, heading: string): string => {
+  const start = body.indexOf(heading);
+  if (start === -1) return "";
+  const rest = body.slice(start + heading.length);
+  const end = rest.indexOf("\n## ");
+  return end === -1 ? rest : rest.slice(0, end);
+};
+
 describe("design-value-binding rule contract", () => {
   describe.each(ROOTS)("%s", root => {
     const eager = read(root, "rules/eager/design-value-binding.md");
@@ -226,6 +241,68 @@ describe("design-value-binding rule contract", () => {
         "otherwise I'd be copying a number that changes without warning"
       );
       expect(reference).toMatch(/no engineering vocabulary/iu);
+    });
+
+    describe("motivating example", () => {
+      const rationale = section(
+        eager,
+        "## Why this is a block and not a warning — the measured case"
+      );
+
+      it("carries the observed failure rather than an abstract argument", () => {
+        expect(rationale).toMatch(
+          /A block downgraded to a warning, by the agent enforcing it, inside the document enforcing it/u
+        );
+        expect(rationale).toContain(
+          "snap unbound dimensions via the snap tables (ties round down) and flag the rest"
+        );
+      });
+
+      it("keeps the coverage figures, which are the argument", () => {
+        for (const figure of [
+          "96-100%",
+          "82-97%",
+          "88-93%",
+          "1-4%",
+          "0-2%",
+          "0-3%",
+        ]) {
+          expect(rationale).toContain(figure);
+        }
+        expect(rationale).toMatch(
+          /Five of the eleven items blocked back to design; six proceeded/u
+        );
+        expect(rationale).toMatch(/\*\*zero variable references\*\*/u);
+        expect(rationale).toMatch(/every style value was invented/u);
+      });
+
+      it("answers the delivery pressure that produced the softening", () => {
+        expect(rationale).toMatch(
+          /domain types, adapters, CRUD, formatters — was completed and preserved/u
+        );
+        expect(rationale).toMatch(
+          /Blocking cost far less than it appeared it would/u
+        );
+      });
+
+      it("carries the rationale line the executable rung rests on", () => {
+        expect(rationale).toMatch(
+          /A gate that depends on an agent choosing to honour it under delivery pressure is not a gate/u
+        );
+      });
+
+      it("attributes the failure to no project, tracker item, or individual", () => {
+        expect(rationale).not.toMatch(/\b[A-Z][A-Z0-9]{1,9}-\d{1,6}\b/u);
+        expect(rationale).not.toMatch(/#\d/u);
+        expect(rationale).not.toMatch(/https?:\/\//u);
+      });
+    });
+
+    it("calls the frame-vs-subtree distinction decision-changing on both sides", () => {
+      expect(eager).toMatch(/decision-changing, not a refinement/u);
+      for (const body of [eager, reference]) {
+        expect(body).toMatch(/5 of 11 real work/u);
+      }
     });
 
     it("names no person anywhere — the escalation target is a config key", () => {
