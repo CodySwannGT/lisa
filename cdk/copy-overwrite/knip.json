@@ -53,6 +53,7 @@
     "husky",
     "knip",
     "prettier",
+    "printf",
     "tsc",
     "vitest"
   ],
