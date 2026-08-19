@@ -246,6 +246,25 @@ function curlConfigValue(value) {
     .replace(/\n/g, "\\n")}"`;
 }
 
+/**
+ * `Accept` header value for the REST endpoints this file reads. Named because
+ * the string is the wire contract, not decoration: a tracker that receives a
+ * different `Accept` answers with a different shape, and every parser below
+ * assumes JSON.
+ */
+const ACCEPT_JSON = "Accept: application/json";
+
+/** `Content-Type` header value for the request bodies this file sends. */
+const CONTENT_TYPE_JSON = "Content-Type: application/json";
+
+/**
+ * The curl config key that carries a request body verbatim.
+ *
+ * `data-binary` rather than `data`: `data` strips newlines, which silently
+ * corrupts a GraphQL document or a markdown comment body.
+ */
+const DATA_BINARY = "data-binary";
+
 function secureCurl(args, entries, options = {}) {
   const input = `${entries
     .map(([name, value]) => `${name} = ${curlConfigValue(value)}`)
@@ -1026,7 +1045,7 @@ function jiraIssue(ref, contract) {
       [url],
       [
         ["user", `${credentials.login}:${credentials.token}`],
-        ["header", "Accept: application/json"],
+        ["header", ACCEPT_JSON],
       ],
       { allowFailure: true }
     );
@@ -1166,9 +1185,9 @@ function linearIssue(ref, contract) {
     ["https://api.linear.app/graphql"],
     [
       ["request", "POST"],
-      ["header", "Content-Type: application/json"],
+      ["header", CONTENT_TYPE_JSON],
       ["header", `Authorization: ${token}`],
-      ["data-binary", payload],
+      [DATA_BINARY, payload],
     ],
     { allowFailure: true }
   );
@@ -1263,7 +1282,8 @@ function validateLive(ref, contract = trackerContract()) {
 }
 
 /**
- * Punctuation that can hug a URL in prose or markdown, stripped before compare.
+ * Opening punctuation that can hug a URL in prose or markdown, stripped before
+ * compare.
  *
  * A URL is recognised as a whitespace-delimited token, so anything a writer
  * wraps around it — `<url>`, a trailing full stop, a closing bracket — would
@@ -1271,7 +1291,29 @@ function validateLive(ref, contract = trackerContract()) {
  * valid. Being too strict here fails closed and merely annoys; being too loose
  * is the defect below.
  */
-const URL_EDGES = /^[<([]+|[>)\].,;:]+$/g;
+const URL_OPENERS = new Set(["<", "(", "["]);
+
+/** The closing counterparts, plus the sentence punctuation prose leaves behind. */
+const URL_CLOSERS = new Set([">", ")", "]", ".", ",", ";", ":"]);
+
+/**
+ * One token with those edges removed.
+ *
+ * Two index scans rather than `/^[<([]+|[>)\].,;:]+$/`. A quantified class
+ * pinned to `$` has to be re-attempted from every position in the token before
+ * it can fail, which is super-linear in the token's length — S5852, and this
+ * runs over comment bodies written by anyone who can comment on the pull
+ * request. Walking the ends is one pass from each side and cannot backtrack.
+ * @param {string} token One whitespace-delimited token.
+ * @returns {string} The token without its leading and trailing punctuation.
+ */
+function trimUrlEdges(token) {
+  let start = 0;
+  let end = token.length;
+  while (start < end && URL_OPENERS.has(token[start])) start += 1;
+  while (end > start && URL_CLOSERS.has(token[end - 1])) end -= 1;
+  return token.slice(start, end);
+}
 
 /**
  * The URLs a comment offers as backlinks, as discrete tokens.
@@ -1279,7 +1321,7 @@ const URL_EDGES = /^[<([]+|[>)\].,;:]+$/g;
  * @returns {string[]} Whitespace-delimited tokens, trimmed of edge punctuation.
  */
 function backlinkTokens(text) {
-  return text.split(/\s+/).map(token => token.replace(URL_EDGES, ""));
+  return text.split(/\s+/).map(trimUrlEdges);
 }
 
 /**
@@ -1390,9 +1432,9 @@ function linearGraphql(token, query, variables, context) {
     ["https://api.linear.app/graphql"],
     [
       ["request", "POST"],
-      ["header", "Content-Type: application/json"],
+      ["header", CONTENT_TYPE_JSON],
       ["header", `Authorization: ${token}`],
-      ["data-binary", JSON.stringify({ query, variables })],
+      [DATA_BINARY, JSON.stringify({ query, variables })],
     ],
     { allowFailure: true }
   );
@@ -1494,7 +1536,7 @@ function jiraBacklink(ref, prUrl, contract) {
   const issueUrl = `${credentials.baseUrl}/rest/api/3/issue/${encodeURIComponent(ref)}/comment`;
   const auth = [
     ["user", `${credentials.login}:${credentials.token}`],
-    ["header", "Accept: application/json"],
+    ["header", ACCEPT_JSON],
   ];
   const listing = secureCurl([`${issueUrl}?maxResults=100`], auth, {
     allowFailure: true,
@@ -1514,8 +1556,8 @@ function jiraBacklink(ref, prUrl, contract) {
     [
       ...auth,
       ["request", managed ? "PUT" : "POST"],
-      ["header", "Content-Type: application/json"],
-      ["data-binary", payload],
+      ["header", CONTENT_TYPE_JSON],
+      [DATA_BINARY, payload],
     ],
     { error: `could not write the backlink comment on ${ref}` }
   );
@@ -1608,7 +1650,7 @@ function assertBacklink(
       [url],
       [
         ["user", `${credentials.login}:${credentials.token}`],
-        ["header", "Accept: application/json"],
+        ["header", ACCEPT_JSON],
       ],
       { allowFailure: true }
     );

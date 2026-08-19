@@ -220,8 +220,17 @@ export const SNAPSHOT_MAX_AGE_DAYS = 90;
  * `[ \t]` rather than `\s`: this matches one already-split LINE, so `\s`'s
  * newline class buys nothing and three adjacent `\s*` runs give a backtracking
  * engine work to do for no gain.
+ *
+ * The capture is `(?:\S.*)?` rather than `.*` for the same reason, one step
+ * further. `[ \t]*(.*)` lets both halves claim the same run of spaces, so the
+ * engine has a choice to make at every one of them and the match is
+ * super-linear in the line's length — S5852, on lines that arrive from a
+ * workflow file. Requiring the capture to OPEN on a non-space makes the two
+ * halves disjoint, so there is nothing to choose and nothing to give back. An
+ * all-whitespace tail still captures the empty string, exactly as before,
+ * because `[ \t]*` has already eaten it.
  */
-const SKIP_JOBS_LINE = /^[ \t]*skip_jobs[ \t]*:[ \t]*(.*)$/;
+const SKIP_JOBS_LINE = /^[ \t]*skip_jobs[ \t]*:[ \t]*((?:\S.*)?)$/;
 
 /** Matches the tail permitted after a quoted scalar's closing quote. */
 const TRAILING_COMMENT_ONLY = /^\s*(?:#.*)?$/;
