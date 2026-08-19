@@ -216,6 +216,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
     "c765c7a44ea81d54c7820f2068c8811fb73ca3e5f063cb55a8c30391d1326323",
     "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
+    "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
   ]),
   "scripts/lisa-floor-collisions.mjs": Object.freeze([
     "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
