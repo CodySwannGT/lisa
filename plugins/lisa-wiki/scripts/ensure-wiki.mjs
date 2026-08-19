@@ -94,10 +94,10 @@ const committed =
   readJsonSafe(path.join(projectDir, ".lisa.config.json")) ?? {};
 const local =
   readJsonSafe(path.join(projectDir, ".lisa.config.local.json")) ?? {};
-const wikiCfg = { ...(committed.wiki ?? {}), ...(local.wiki ?? {}) };
+const wikiCfg = { ...committed.wiki, ...local.wiki };
 const source = {
-  ...(committed.wiki?.source ?? {}),
-  ...(local.wiki?.source ?? {}),
+  ...committed.wiki?.source,
+  ...local.wiki?.source,
 };
 const ttlSeconds = Number(
   ttlOverride ?? wikiCfg.ttlSeconds ?? DEFAULT_TTL_SECONDS

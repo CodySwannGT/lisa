@@ -37,7 +37,7 @@ function deps(over: Record<string, unknown> = {}): {
       prompt: {
         canPrompt: () => true,
         promptSecret: () => "typed-value",
-        ...((over.prompt as object) ?? {}),
+        ...(over.prompt as object),
       },
       store: {
         hasBootstrap: () => false,
@@ -45,7 +45,7 @@ function deps(over: Record<string, unknown> = {}): {
           stored.push({ key, value });
           return { kind: "keychain", where: "keychain" };
         },
-        ...((over.store as object) ?? {}),
+        ...(over.store as object),
       },
       materialize: () => {
         materializedFor.push(true);

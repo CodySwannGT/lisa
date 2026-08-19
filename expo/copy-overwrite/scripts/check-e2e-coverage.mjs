@@ -382,7 +382,7 @@ export function isExcludedFlow(source, excluded) {
  */
 function flowTags(source) {
   const lines = source.split("\n");
-  const start = lines.findIndex(line => /^tags:/u.test(line));
+  const start = lines.findIndex(line => line.startsWith("tags:"));
   if (start === -1) {
     return [];
   }

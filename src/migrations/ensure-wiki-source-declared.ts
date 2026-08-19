@@ -88,8 +88,8 @@ export class EnsureWikiSourceDeclaredMigration implements Migration {
     }
     const { configPath, config, wikiRoot } = state;
     const merged = {
-      ...(config ?? {}),
-      wiki: { ...(config?.wiki ?? {}), source: { path: wikiRoot } },
+      ...config,
+      wiki: { ...config?.wiki, source: { path: wikiRoot } },
     };
 
     const message = `Declared wiki.source.path="${wikiRoot}" in ${LISA_CONFIG}`;

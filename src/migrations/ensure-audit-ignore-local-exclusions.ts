@@ -280,7 +280,7 @@ export class EnsureAuditIgnoreLocalExclusionsMigration implements Migration {
     }
 
     const merged: AuditIgnoreLike = {
-      ...(local ?? {}),
+      ...local,
       exclusions: [...retained, ...additions],
     };
 

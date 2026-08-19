@@ -181,7 +181,7 @@ export function parseFeatureSource(source, file, platforms) {
       backgroundSteps = [];
       continue;
     }
-    if (/^Background:/.test(trimmed)) {
+    if (trimmed.startsWith("Background:")) {
       // Background is per-Feature, so it replaces any previous one rather than
       // accumulating, and its steps are collected instead of a scenario's.
       backgroundSteps = [];
