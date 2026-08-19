@@ -290,8 +290,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
       "d091c40fd0ea3068491f1be0d6510090ae872ca95d0d058ef4595d6492d13897",
-    "harper-fabric/copy-overwrite/.github/dependabot.yml":
-      "9ec1e10d139783c129f00fe4a22a74a91e65f5252a3c71b4bf5548d3fcf0d110",
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml":
       "1fef0b72f890869e656dbe3b9463c83725ea8ca8e24e50b58d93c68502603fd0",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-early-return-in-search-loop.yml":
@@ -2281,9 +2279,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "8dbddc0297ca574d150b3e669550320bd2df6e592c083317626f53a91f36d349",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "c6ea804e74b62ee11ec881909fb0d6fe7088e44e9af3d832fad91a7aa5df0d8b",
-    "typescript/copy-overwrite/.github/dependabot.yml":
-      "73330408894b35567b068dd12dcb2edd0b01235fd63547938c62ca0dbc0485e2",
+      "e968bd4474853f7ff2d03aa5c80a7dc5a6aa2b02eb84b2d1b97da88949d64106",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "60bf2d5e86bf9d72f04b8b14368591f104674ff80046fe8bd82e4174ca1523fd",
     "typescript/copy-overwrite/.nvmrc":
@@ -2476,7 +2472,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".gitattributes": true,
     ".gitguardian.yaml": true,
     ".github/GITHUB_ACTIONS.md": true,
-    ".github/dependabot.yml": true,
     ".github/pull_request_template.md": true,
     ".github/required-check-promotions.json": true,
     ".github/workflows/auto-update-pr-branches-dispatch.yml": true,
@@ -2740,7 +2735,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/package-lisa/package.lisa.json": true,
     "harper-fabric/copy-contents/.prettierignore": true,
     "harper-fabric/copy-contents/gitignore": true,
-    "harper-fabric/copy-overwrite/.github/dependabot.yml": true,
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml": true,
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-early-return-in-search-loop.yml": true,
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-empty-conditions-with-sort.yml": true,
@@ -8890,6 +8884,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/ast-grep-template.test.ts": true,
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
+    "tests/unit/config/dependabot-not-distributed.test.ts": true,
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
@@ -9509,7 +9504,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-contents/.husky/prepare-commit-msg": true,
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh": true,
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md": true,
-    "typescript/copy-overwrite/.github/dependabot.yml": true,
     "typescript/copy-overwrite/.lintstagedrc.json": true,
     "typescript/copy-overwrite/.nvmrc": true,
     "typescript/copy-overwrite/.prettierignore": true,
