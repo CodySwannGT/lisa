@@ -97,6 +97,19 @@ on:
 permissions:
   contents: read
 
+# Keyed on the ENVIRONMENT, because that is what is being mutated. Two runs
+# preparing the same environment at once would have one reset landing while the
+# other reseeds, leaving a state neither asked for. Not keyed on the ref: every
+# run hits the same backend regardless of which branch dispatched it, so a
+# ref-keyed group would hand two branches two groups over one database and they
+# would not exclude each other.
+#
+# Queue, never cancel. Killing a reset mid-run leaves the environment in exactly
+# the half-converged state this workflow exists to prevent.
+concurrency:
+  group: lisa-environment-prepare-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   prepare:
     name: 🧼 Prepare ${{ inputs.environment }}
@@ -130,7 +143,11 @@ jobs:
         if: ${{ inputs.package_manager == 'bun' }}
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Pinned, not `latest`. This job runs a DESTRUCTIVE verb, and a
+          # toolchain that can change without a commit is a change nobody
+          # reviewed on the one path where that matters most. Matches the pin
+          # every other job in this repository's workflows already uses.
+          bun-version: '1.3.8'
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6

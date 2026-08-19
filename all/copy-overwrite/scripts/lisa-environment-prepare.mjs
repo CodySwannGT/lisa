@@ -76,6 +76,8 @@ export const FACADE_VERBS = Object.freeze(["reset", "reseed"]);
  */
 export const PREPARE_REASONS = Object.freeze([
   "environment_env_required",
+  "environment_name_malformed",
+  "environment_runner_malformed",
   "environment_target_forbidden",
   "environment_verb_unknown",
   "environment_verb_missing",
@@ -92,38 +94,69 @@ function taskFor(verb) {
 }
 
 /**
- * The command line for a verb.
+ * A usable environment name.
+ *
+ * An allowlist of shapes, not a denylist of dangerous characters, and that is
+ * the whole point — a denylist is a list of the attacks someone thought of.
+ * This admits `dev`, `staging`, `us-prod-1`, `preview_2`; it admits nothing
+ * carrying a space, a quote, a semicolon, a backtick, or `$(`.
+ *
+ * Without it, `classifyEnvironment` is not sufficient protection even though it
+ * is the right classifier: it splits on non-alphanumerics and inspects the
+ * SEGMENTS, so `dev; rm -rf /` yields `dev`, `rm`, `rf` — none of which look
+ * like production — and the value passes the refusal. Measured before this
+ * existed, `--env='dev; touch /tmp/x'` produced the command
+ * `bun run environment:reset -- --env=dev; touch /tmp/x`. The injected half
+ * could name production, so the omission defeated the production guard using
+ * the very input that guard exists to check.
+ */
+const ENVIRONMENT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
+
+/**
+ * A usable task-runner prefix.
+ *
+ * Same reasoning, applied to the other value that reaches the child process.
+ * It comes from `.lisa.config.json`, which is a less likely attacker channel
+ * than a workflow input — but "less likely" is not a property worth relying on
+ * when the check costs one regular expression. Mirrors the plain-command
+ * validation `quality.yml` already applies to a resolved gate command.
+ */
+const RUNNER_PREFIX = /^[A-Za-z0-9][A-Za-z0-9 ._@:/-]*$/u;
+
+/**
+ * The argument vector for a verb.
+ *
+ * A vector rather than a command line, and executed WITHOUT a shell, so no
+ * amount of punctuation in any element can become syntax. The name validation
+ * above already makes that unreachable; this makes it impossible rather than
+ * merely blocked, which is the correct arrangement for the destructive path.
  *
  * The bare `--` is load-bearing and not stylistic. Measured on 2026-08-19:
  * `npm run <task> --env=dev` reaches the script with NO arguments at all,
  * while `bun run <task> --env=dev` forwards it — so the form without `--` is
  * correct on one runner and silently argument-less on the other. Both runners
  * forward correctly with `--`, so that is the only portable form.
- *
- * An argument-less verb is not a quiet success either: the facade contract §2
- * requires the implementation to refuse a missing `--env`. The failure would
- * therefore be loud rather than dangerous. It would also be baffling, which is
- * reason enough to get the form right here.
  * @param {string} runner Task-runner prefix, e.g. `bun run`.
  * @param {string} verb One of {@link FACADE_VERBS}.
  * @param {string} env The target environment name.
- * @returns {string} The full command line.
+ * @returns {string[]} The argument vector, executable without a shell.
  */
-function commandFor(runner, verb, env) {
-  return `${runner} ${taskFor(verb)} -- --env=${env}`;
+function argvFor(runner, verb, env) {
+  return [...runner.trim().split(/\s+/u), taskFor(verb), "--", `--env=${env}`];
 }
 
 /**
- * The default executor: run in a shell, inheriting stdio.
+ * The default executor: run the vector directly, inheriting stdio.
  *
- * stdio is inherited so a failing reset's own output reaches the operator
- * unaltered — a summary reprinted by this module would be strictly less useful
- * than what the project's own tooling already said.
- * @param {string} command The command line to run.
+ * No `shell: true`. stdio is inherited so a failing reset's own output reaches
+ * the operator unaltered — a summary reprinted by this module would be strictly
+ * less useful than what the project's own tooling already said.
+ * @param {string[]} argv The argument vector.
  * @returns {number|null} Exit code, or null when the child was killed.
  */
-function spawnExec(command) {
-  const child = spawnSync(command, { shell: true, stdio: "inherit" });
+function spawnExec(argv) {
+  const [file, ...args] = argv;
+  const child = spawnSync(file, args, { stdio: "inherit" });
   if (child.error) return null;
   return child.status;
 }
@@ -157,6 +190,28 @@ export function prepareEnvironment({
       reason: "environment_env_required",
       message:
         "--env is required and has no default. A default that is safe in one repo is the production default in another, so there is no value to fall back to.",
+      ran: [],
+    };
+  }
+
+  // Shape BEFORE meaning. A name that cannot be a name is refused as
+  // malformed rather than classified, because classification of a malformed
+  // value is where the injection lived: the classifier reads alphanumeric
+  // segments and is blind to the punctuation between them.
+  if (!ENVIRONMENT_NAME.test(target)) {
+    return {
+      ok: false,
+      reason: "environment_name_malformed",
+      message: `"${target}" is not a usable environment name. Names must start with a letter or digit and contain only letters, digits, dot, underscore and hyphen. Anything else is refused before it is classified, because a value carrying shell punctuation can look non-production segment by segment while naming production in the part that gets executed.`,
+      ran: [],
+    };
+  }
+
+  if (!RUNNER_PREFIX.test(runner)) {
+    return {
+      ok: false,
+      reason: "environment_runner_malformed",
+      message: `the configured task runner "${runner}" is not a plain command. Set gates.runner in .lisa.config.json to something like "bun run".`,
       ran: [],
     };
   }
@@ -197,9 +252,9 @@ export function prepareEnvironment({
 
   const ran = [];
   for (const verb of ordered) {
-    const command = commandFor(runner, verb, target);
-    ran.push(command);
-    const status = exec(command);
+    const argv = argvFor(runner, verb, target);
+    ran.push(argv.join(" "));
+    const status = exec(argv);
     // A null status is spawnSync's report of a child killed by a signal. Any
     // reading other than "failed" lets an OOM-killed reset clear the suite.
     if (status !== 0) {
@@ -267,9 +322,13 @@ export function runCli(argv = process.argv.slice(2), cwd = process.cwd()) {
   try {
     runner = readGates(cwd).runner;
   } catch {
-    // A config this module cannot read is not a reason to guess a runner and
-    // press on; but it is also not this module's error to report. The default
-    // matches the gate runner's own fallback so the two never disagree.
+    // An unreadable config falls back to the same default the gate runner
+    // uses, so the two never disagree about how to invoke a task. The comment
+    // that stood here claimed this was "not a reason to guess a runner and
+    // press on", which is the opposite of what the code does — it does press
+    // on, deliberately. Pressing on is safe because the fallback is a plain
+    // `npm run`: a project whose scripts are not reachable that way fails at
+    // the verb, with its own error, rather than here with a guess about why.
   }
 
   const result = prepareEnvironment({

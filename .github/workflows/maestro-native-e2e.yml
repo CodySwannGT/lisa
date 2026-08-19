@@ -1490,7 +1490,11 @@ jobs:
         if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' && inputs.package_manager == 'bun' }}
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Pinned, not `latest`. This job runs a DESTRUCTIVE verb, and a
+          # toolchain that can change without a commit is a change nobody
+          # reviewed on the one path where that matters most. Matches the pin
+          # every other job in this repository's workflows already uses.
+          bun-version: '1.3.8'
 
       - name: 🔧 Setup Node.js
         if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' }}

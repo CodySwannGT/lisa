@@ -74,10 +74,15 @@ function runResolution(present: boolean): () => void {
     mkdirSync(path.join(dir, "scripts"), { recursive: true });
     writeFileSync(path.join(dir, "scripts", SCRIPT_NAME), "// stand-in\n");
   }
-  const script = String(step?.run ?? "")
-    .split("\n")
-    .filter(line => !line.trim().startsWith(INVOKE_PREFIX))
-    .join("\n");
+  const lines = String(step?.run ?? "").split("\n");
+  const kept = lines.filter(line => !line.trim().startsWith(INVOKE_PREFIX));
+  // The strip must actually strip. A renamed or reshaped invocation line would
+  // otherwise leave this test running the REAL verb invocation in a sandbox,
+  // which would either fail for the wrong reason or, worse, succeed.
+  if (kept.length === lines.length) {
+    throw new Error("the verb invocation line was not found to strip");
+  }
+  const script = kept.join("\n");
   writeFileSync(path.join(dir, "resolve.sh"), script);
 
   return () => {
