@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.38.5](https://github.com/CodySwannGT/lisa/compare/v3.38.4...v3.38.5) (2026-08-19)
+
+
+### Bug Fixes
+
+* **apply:** fail authoring when a path is both delivered and deleted ([3e12587](https://github.com/CodySwannGT/lisa/commit/3e12587d0bd3e323c316c0a8a0bf7147cee17f0e)), closes [CodySwannGT/lisa#2714](https://github.com/CodySwannGT/lisa/issues/2714)
+
 ### [3.38.4](https://github.com/CodySwannGT/lisa/compare/v3.38.3...v3.38.4) (2026-08-18)
 
 
