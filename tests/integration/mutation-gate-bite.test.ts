@@ -110,6 +110,13 @@ const runGate = (suites: readonly string[], tempDirName: string): Run => {
       status: failure.status ?? 1,
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
     };
+  } finally {
+    // Stryker leaves its sandbox behind, and the sandbox is a full second copy
+    // of the tree. Leaving one costs the next `lint:slow` 1191 parse errors,
+    // every one of them a real file reported at a path outside every tsconfig
+    // project. The ignore lists cover it too; this keeps the tree clean whether
+    // or not a consumer has them.
+    fs.rmSync(path.join(ROOT, tempDirName), { recursive: true, force: true });
   }
 };
 

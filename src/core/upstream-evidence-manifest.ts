@@ -2301,7 +2301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "ad396cd6e71ab6500f955442c7d4b172e55af46c378ffdc1e7f5e9c58dbb6a40",
+      "cbb2b76ffd7f6e1d63030e4c9d2ea2a9925954dbd402e6914c0a4e190722a779",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2329,7 +2329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.config.ts":
       "1a2f6eb5dd19a7dfc445c61bac8bd08a5f8908f023655c920aff08b633b30fb6",
     "typescript/copy-overwrite/eslint.ignore.config.json":
-      "ca6a5cc3de7e5505fc824d3d367ae0ef30d0e8d9636e59619af14f6162462b2c",
+      "b9a6c5cdd82cd76fe1c6f409b1e7630bfb42f037728c4ff7354906ed960a03c6",
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":

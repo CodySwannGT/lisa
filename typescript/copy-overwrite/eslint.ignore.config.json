@@ -37,6 +37,8 @@
     ".claude-active-plan/**",
     "coverage/**",
     "**/coverage/**",
+    ".stryker-tmp/**",
+    "**/.stryker-tmp/**",
     "**/*spec.ts",
     "resolver-test.setup.ts",
     "**/*.factory.ts",
