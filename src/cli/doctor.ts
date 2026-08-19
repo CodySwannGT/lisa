@@ -22,6 +22,7 @@ import { checkRepositoryReadiness } from "./doctor-readiness.js";
 import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
+import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
@@ -354,6 +355,12 @@ export async function runDoctor(
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),
     await checkReusableWorkflowRefs(resolvedTarget),
+    // Immediately after the ref check, because both read the same caller
+    // workflows and an operator editing one wants both findings together. This
+    // one only REPORTS: `lisa apply` runs on postinstall, and a repair that
+    // edits a caller workflow there and gets it wrong is silent
+    // (CodySwannGT/lisa#2719).
+    await checkSkipJobsMigration(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the
