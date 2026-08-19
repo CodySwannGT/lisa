@@ -4,7 +4,8 @@
  * OpenCode runs a plugin's factory function once when it loads the plugin at
  * session start, which is the natural home for Lisa's Codex SessionStart hooks:
  *   - install-pkgs.sh   → install dependencies when node_modules is missing
- *   - setup-jira-cli.sh → write jira-cli config from environment variables
+ *   - setup-jira-cli.sh → write jira-cli config from environment variables, only
+ *     when the project's configured tracker is jira
  *
  * Both are fully fail-open (wrapped in try/catch) so a package-manager or
  * filesystem hiccup never bricks OpenCode startup, mirroring the Codex scripts.
@@ -61,6 +62,10 @@ export const LisaSessionBootstrap = async ({
   }
 
   // setup-jira-cli: write jira-cli config from environment variables and non-secret Lisa config.
+  // Gated on `tracker: "jira"` — a project on Linear or GitHub Issues has no use
+  // for a jira-cli config, and writing one made a false implicit claim about the
+  // project's tracker. Fails closed: an absent tracker writes nothing, because
+  // Lisa treats a missing `tracker` as unconfigured, not as a jira default.
   try {
     const readLisaConfig = (path: string[]) => {
       for (const file of [".lisa.config.local.json", ".lisa.config.json"]) {
@@ -82,6 +87,7 @@ export const LisaSessionBootstrap = async ({
       }
       return undefined;
     };
+    if (readLisaConfig(["tracker"]) !== "jira") return {};
     const atlassianSite = readLisaConfig(["atlassian", "site"]);
     const server =
       process.env.JIRA_SERVER ??
