@@ -1,38 +1,77 @@
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import * as path from "node:path";
-// minimatch v9+ exposes the matcher as a named ESM export. Keep the legacy
-// default fallback so Lisa still runs in projects whose package manager hoists
-// an older CJS minimatch for another tool.
-import * as minimatchModule from "minimatch";
 import { pathExists } from "./file-operations.js";
 
-/**
- * Resolve the minimatch predicate across v9+ named exports and legacy CJS
- * default exports. Throws if neither is available so callers see a clear error
- * instead of "undefined is not a function" at match time.
- */
-const minimatchFn: (
+/** The matcher signature Lisa uses. */
+type MinimatchFn = (
   p: string,
   pattern: string,
   options?: { readonly dot?: boolean }
-) => boolean = (() => {
-  const mod = minimatchModule as unknown as {
+) => boolean;
+
+const requireFromHere = createRequire(import.meta.url);
+
+/**
+ * Resolve the minimatch predicate, via CJS, on first use.
+ *
+ * Three deliberate choices, each fixing something the previous shape got wrong.
+ *
+ * **CJS, not ESM.** `minimatch@10`'s ESM entry opens with
+ * `import { expand } from 'brace-expansion'`, which throws at MODULE LOAD in any
+ * project whose tree resolves `brace-expansion` to the 2.x line — a very common
+ * CVE remediation (`">=2.1.4 <3"`), since 2.x is CJS and exports no named
+ * `expand`. Its CJS entry has no such problem. Measured on a real consumer:
+ * `import('minimatch')` threw while `require('minimatch')` returned a working
+ * function, same package, same version, same tree.
+ *
+ * **Lazily, not at module load.** The previous version resolved this eagerly
+ * behind a static `import`, and that is what made the failure fatal: Lisa's own
+ * CLI could not boot, so `lisa apply` could not run — and `lisa apply` is what
+ * writes the `brace-expansion` override that fixes the tree. The remedy shipped
+ * inside the thing that could not start. Resolving on first use breaks that
+ * deadlock: the CLI boots, `doctor` reports, and apply repairs the override.
+ *
+ * **The old compatibility shim was unreachable.** Its comment said it existed
+ * so "Lisa still runs in projects whose package manager hoists an older CJS
+ * minimatch" — but a static ESM import fails before any fallback can be
+ * consulted. A guard that cannot fire is not a guard.
+ * @returns The matcher.
+ */
+const loadMinimatch = (): MinimatchFn => {
+  const mod = requireFromHere("minimatch") as {
     readonly default?: unknown;
     readonly minimatch?: unknown;
   };
   const candidate =
-    typeof mod.default === "function" ? mod.default : mod.minimatch;
+    typeof mod.minimatch === "function"
+      ? mod.minimatch
+      : typeof mod.default === "function"
+        ? mod.default
+        : mod;
   if (typeof candidate !== "function") {
     throw new TypeError(
-      "minimatch module did not expose a callable export; expected v9+ named export or legacy default"
+      "minimatch did not expose a callable export; expected a named `minimatch`, a default, or a callable module"
     );
   }
-  return candidate as (
-    p: string,
-    pattern: string,
-    options?: { readonly dot?: boolean }
-  ) => boolean;
-})();
+  return candidate as MinimatchFn;
+};
+
+/**
+ * The matcher, resolved on each call.
+ *
+ * No memoisation, and that is not an oversight. Node's `require` cache already
+ * makes every call after the first a map lookup, so a hand-rolled cache would
+ * duplicate the module system's own work — and every shape it could take here
+ * (a reassignable binding, a mutated holder) is forbidden by this codebase's
+ * immutability rules for reasons that are worth more than the nanoseconds.
+ * @param p Path to test.
+ * @param pattern Glob pattern.
+ * @param options Match options.
+ * @returns Whether the path matches.
+ */
+const minimatchFn: MinimatchFn = (p, pattern, options) =>
+  loadMinimatch()(p, pattern, options);
 
 /**
  * Name of the ignore file that projects can use to skip Lisa files
