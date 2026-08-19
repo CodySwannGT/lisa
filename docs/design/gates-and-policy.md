@@ -276,7 +276,7 @@ absent trailer included.
 
 **One parser reads the commit message and the pull-request body.** A
 `Work-Item:` line counts wherever it sits, and repeating the SAME reference is
-fine; naming two DIFFERENT ones fails, naming both. Position carries no
+fine; naming two DIFFERENT ones FAILS, and the refusal names both. Position carries no
 information in a text that agents assemble and bots edit after review, and the
 two texts had opposite duplication rules until #2721 — the same two lines passed
 in a commit and failed in a body, with neither answer explaining the other.
