@@ -19,7 +19,12 @@ const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
 const LISA_BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 node";
 const EXPO_PACKAGE_TEMPLATE = "expo/package-lisa/package.lisa.json";
 const TYPESCRIPT_PACKAGE_TEMPLATE = "typescript/package-lisa/package.lisa.json";
-const UNDICI_V6_RANGE = "^6.27.0";
+// The major is what this file guards — v7 dropped the `File` export the tree
+// depends on. The patch floor belongs to the advisory-floor ratchet in
+// tests/unit/config/security-pin-floors.test.ts, which raised it from 6.27.0
+// after GHSA-8xcm-r25x-g524, GHSA-m8rv-5g2x-5cg5, and GHSA-v3r7-h72x-cjcm all
+// landed their patch in 6.28.0 — `^6.27.0` still admitted 6.27.x.
+const UNDICI_V6_RANGE = "^6.28.0";
 
 /**
  * Minimal shape of a package.lisa.json for the assertions below.
