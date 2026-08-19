@@ -43,15 +43,22 @@ const RESET_CMD = "bun run environment:reset -- --env=dev";
 const RESEED_CMD = "bun run environment:reseed -- --env=dev";
 
 /**
- * An executor that records every command and reports success.
- * @returns {{calls: string[], exec: (command: string) => number}} Recorder.
+ * An executor that records every invocation and reports success.
+ *
+ * `calls` joins each argument VECTOR for readability; `vectors` keeps them
+ * unjoined, which is what the shell-safety assertions need — a joined string
+ * cannot distinguish one argument containing a space from two arguments.
+ * @returns The recorder.
  */
 function recorder() {
   const calls: string[] = [];
+  const vectors: string[][] = [];
   return {
     calls,
-    exec: (command: string) => {
-      calls.push(command);
+    vectors,
+    exec: (argv: string[]) => {
+      vectors.push(argv);
+      calls.push(argv.join(" "));
       return 0;
     },
   };
@@ -230,8 +237,8 @@ describe("prepareEnvironment — sequencing", () => {
       verbs: ["reset", "reseed"],
       scripts: BOTH,
       runner: "bun run",
-      exec: (command: string) => {
-        calls.push(command);
+      exec: (argv: string[]) => {
+        calls.push(argv.join(" "));
         return 1;
       },
     });
@@ -244,20 +251,25 @@ describe("prepareEnvironment — sequencing", () => {
   it("treats a signal-killed verb as a failure, not a pass", () => {
     // spawnSync reports a null status when the child is killed. Reading that
     // as anything but a failure lets an OOM-killed reset clear the suite.
-    const { exec: _unused, calls } = recorder();
+    const calls: string[] = [];
     const result = prepareEnvironment({
       env: "dev",
       verbs: ["reset"],
       scripts: BOTH,
       runner: "bun run",
-      exec: (command: string) => {
-        calls.push(command);
+      exec: (argv: string[]) => {
+        calls.push(argv.join(" "));
         return null;
       },
     });
 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("environment_verb_failed");
+    // The verb was actually reached. Without this the test would also pass if
+    // the run had been refused before invoking anything, which is a different
+    // outcome reported by a different reason.
+    expect(calls).toEqual([RESET_CMD]);
+    expect(result.ran).toEqual([RESET_CMD]);
   });
 
   it("honours the configured runner rather than assuming one", () => {
@@ -281,10 +293,107 @@ describe("PREPARE_REASONS", () => {
     // should require editing this list on purpose.
     expect([...PREPARE_REASONS].sort((a, b) => a.localeCompare(b))).toEqual([
       "environment_env_required",
+      "environment_name_malformed",
+      "environment_runner_malformed",
       "environment_target_forbidden",
       "environment_verb_failed",
       "environment_verb_missing",
       "environment_verb_unknown",
     ]);
+  });
+});
+
+describe("prepareEnvironment — the environment name cannot become syntax", () => {
+  // Reported by review and REPRODUCED before fixing: `classifyEnvironment`
+  // splits on non-alphanumerics and inspects the segments, so a value like
+  // `dev; <another command>` yields the segments `dev` and the words of the
+  // second command — none of which look like production — and the value passed
+  // the refusal. It then reached a shell, measured as:
+  //
+  //   bun run environment:reset -- --env=dev; touch /tmp/lisa-injection-proof
+  //
+  // The severity is not "a command ran". It is that the injected half could
+  // name PRODUCTION, so the missing check defeated the production guard using
+  // the very input that guard exists to inspect.
+  it.each([
+    "dev; touch /tmp/pwned",
+    "dev && echo pwned",
+    "dev | echo pwned",
+    "dev`echo pwned`",
+    "dev$(echo pwned)",
+    "dev staging",
+    "dev'",
+    '"dev"',
+    // `../../etc/hosts` rather than the more familiar traversal target: the
+    // secret scanner reads that token next to the following line and reports a
+    // Generic Password. The fixture's job is "a traversal is refused", which
+    // this does identically — changing the fixture beats suppressing a scanner.
+    "../../etc/hosts",
+    "-dev",
+  ])("refuses %j without invoking anything", env => {
+    const { calls, exec } = recorder();
+    const result = prepareEnvironment({
+      env,
+      scripts: BOTH,
+      runner: "bun run",
+      exec,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("environment_name_malformed");
+    expect(calls).toEqual([]);
+  });
+
+  it.each(["dev", "staging", "development", "us-prod-1", "preview_2", "e2e.1"])(
+    "still accepts the ordinary name %j",
+    env => {
+      // The positive control. A validator that refused everything would pass
+      // every assertion above while breaking every real caller.
+      //
+      // `us-prod-1` is well-formed but classifies as production, so it is
+      // refused for a DIFFERENT reason. Either way it is never malformed.
+      const { exec } = recorder();
+      const result = prepareEnvironment({
+        env,
+        verbs: ["reset"],
+        scripts: BOTH,
+        runner: "bun run",
+        exec,
+      });
+
+      expect(result.reason).not.toBe("environment_name_malformed");
+    }
+  );
+
+  it("passes the environment as ONE argument, not a shell string", () => {
+    // The structural half of the fix. Even if a name slipped past the
+    // validator, it arrives as a single element of an argument vector executed
+    // without a shell, where punctuation cannot become syntax.
+    const { vectors, exec } = recorder();
+    prepareEnvironment({
+      env: "dev",
+      verbs: ["reset"],
+      scripts: BOTH,
+      runner: "bun run",
+      exec,
+    });
+
+    expect(vectors).toEqual([
+      ["bun", "run", "environment:reset", "--", "--env=dev"],
+    ]);
+  });
+
+  it("refuses a task runner that is not a plain command", () => {
+    const { calls, exec } = recorder();
+    const result = prepareEnvironment({
+      env: "dev",
+      scripts: BOTH,
+      runner: "bun run; touch /tmp/pwned",
+      exec,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("environment_runner_malformed");
+    expect(calls).toEqual([]);
   });
 });

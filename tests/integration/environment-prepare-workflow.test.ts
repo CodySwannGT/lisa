@@ -87,10 +87,15 @@ function runResolution(present: boolean): { status: number; output: string } {
   const prepareStep = steps().find(step =>
     step.name.includes("Prepare the environment")
   );
-  const script = String(prepareStep?.run ?? "")
-    .split("\n")
-    .filter(line => !line.trim().startsWith('node "$PREPARE"'))
-    .join("\n");
+  const lines = String(prepareStep?.run ?? "").split("\n");
+  const kept = lines.filter(line => !line.trim().startsWith('node "$PREPARE"'));
+  // The strip must actually strip. A renamed or reshaped invocation line would
+  // otherwise leave this test running the REAL verb invocation in a sandbox,
+  // which would either fail for the wrong reason or, worse, succeed.
+  if (kept.length === lines.length) {
+    throw new Error("the verb invocation line was not found to strip");
+  }
+  const script = kept.join("\n");
   writeFileSync(path.join(dir, "resolve.sh"), script);
 
   try {
