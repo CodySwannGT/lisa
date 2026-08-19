@@ -35,12 +35,14 @@ const GATE_SCRIPT_BASENAME = "lisa-floor-collisions.mjs";
 /** The script the gate runs, at the path the gate looks for it. */
 const GATE_SCRIPT_RELATIVE = path.join("scripts", GATE_SCRIPT_BASENAME);
 
+/** Directory Lisa ships the script from, relative to a repo root. */
+const UPSTREAM_SCRIPT_DIR = path.join("all", "copy-overwrite", "scripts");
+
 /** Where Lisa ships that script from. */
 const GATE_SCRIPT_SOURCE = path.join(
   REPO_ROOT,
-  "all",
-  "copy-overwrite",
-  GATE_SCRIPT_RELATIVE
+  UPSTREAM_SCRIPT_DIR,
+  GATE_SCRIPT_BASENAME
 );
 
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
@@ -106,10 +108,11 @@ describe("🧱 Security Floor Collisions gate", () => {
     };
   }
 
-  it("fails when the Lisa-managed script is absent", () => {
+  it("fails when the script is absent from BOTH resolution paths", () => {
     // No scripts/ directory at all — a project that has never run `lisa apply`,
     // or one whose copy was deleted. Reporting green here is a metal detector
-    // reading all-clear while unplugged.
+    // reading all-clear while unplugged. The upstream template path is absent
+    // too, which is every consumer repo: only Lisa itself ships all/.
     const { status, output } = runGate();
 
     expect(status).not.toBe(0);
@@ -140,5 +143,52 @@ describe("🧱 Security Floor Collisions gate", () => {
     expect(output).toContain("No override can be collapsed");
     // `tee -a "$GITHUB_STEP_SUMMARY"` must still reach the job summary.
     expect(await fs.readFile(summary, "utf8")).toContain("Floor collisions");
+  });
+
+  it("falls back to the in-repo template when no copy is installed", async () => {
+    // Lisa's own repository is this case: it SHIPS the script from
+    // all/copy-overwrite/ and deliberately keeps no second copy under
+    // scripts/ (only 2 of its 11 copy-overwrite scripts are mirrored there).
+    // Without this the fail-closed flip would redden Lisa's own CI forever,
+    // and the obvious way to quiet that — adding a mirrored copy — is the
+    // drift surface the repo already declined to create.
+    await fs.ensureDir(path.join(workdir, UPSTREAM_SCRIPT_DIR));
+    await fs.copy(
+      GATE_SCRIPT_SOURCE,
+      path.join(workdir, UPSTREAM_SCRIPT_DIR, GATE_SCRIPT_BASENAME)
+    );
+    expect(await fs.pathExists(path.join(workdir, GATE_SCRIPT_RELATIVE))).toBe(
+      false
+    );
+
+    const { status, output } = runGate();
+
+    expect(status).toBe(0);
+    expect(output).toContain("No override can be collapsed");
+    // The fallback announces itself; a silent substitution would be the same
+    // unreadable state the ::notice:: created.
+    expect(output).toContain(UPSTREAM_SCRIPT_DIR);
+  });
+
+  it("reports a real collision through the fallback path too", async () => {
+    // The fallback must run the check, not merely resolve a file. A manifest
+    // whose override collapses into a weaker direct range has to come back
+    // non-zero from either resolution path.
+    await fs.ensureDir(path.join(workdir, UPSTREAM_SCRIPT_DIR));
+    await fs.copy(
+      GATE_SCRIPT_SOURCE,
+      path.join(workdir, UPSTREAM_SCRIPT_DIR, GATE_SCRIPT_BASENAME)
+    );
+    await fs.writeJson(path.join(workdir, "package.json"), {
+      name: "fixture",
+      version: "1.0.0",
+      dependencies: { postcss: "^8.5.0" },
+      overrides: { postcss: ">=8.5.18" },
+    });
+
+    const { status, output } = runGate();
+
+    expect(status).not.toBe(0);
+    expect(output).toContain("postcss");
   });
 });

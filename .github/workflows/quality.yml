@@ -3954,6 +3954,17 @@ jobs:
         run: |
           set -o pipefail
           script=scripts/lisa-floor-collisions.mjs
+          upstream=all/copy-overwrite/scripts/lisa-floor-collisions.mjs
+          # Lisa's own repository ships this script as a template and does not
+          # keep a second copy of it under scripts/ — only 2 of the 11
+          # copy-overwrite scripts are mirrored there, and a mirror is a
+          # surface that drifts out of band from the thing it mirrors. So the
+          # upstream path is a legitimate second place to find the SAME file,
+          # not a bypass: when neither exists the job still fails below.
+          if [ ! -f "$script" ] && [ -f "$upstream" ]; then
+            echo "Using the in-repo template at $upstream; no installed copy under scripts/."
+            script="$upstream"
+          fi
           if [ ! -f "$script" ]; then
             echo "::error title=Floor-collision gate missing::$script does not exist, so no security floor was examined. The gate's absence is a FAILURE, never a skip — a security check that passes because it found nothing is worse than no check. Run 'lisa apply' to install the Lisa-managed script, or add 'floor_collisions' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
             exit 1
