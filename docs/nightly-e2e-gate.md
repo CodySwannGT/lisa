@@ -1048,6 +1048,19 @@ single-job reimplementation publishes the bare `🌙 Nightly E2E Health` and tha
 is the same gate. Nothing looser: a substring test would match
 `🌙 Nightly E2E Health (advisory)`.
 
+**This is a knowing divergence from both prior implementations.** TunnlAI's
+`describe-nightly-e2e-requiredness.mjs` and geminisportsai's
+`report-nightly-e2e.mjs` each compare the full context string exactly
+(`contexts.includes(context)`), and each documents that choice against the
+looser alternative of searching for `"nightly"`. They are right that a substring
+search is wrong; the family here is not one. It was widened for a measured case
+neither of them has: on 2026-08-18 `PropSwapLLC/frontend`'s `dev` required the
+bare `🌙 Nightly E2E Health`, their fork's single-job name. Under exact matching
+against the default `gate_context`, Lisa's reporter would have told that
+repository it was `not_required` — a false all-clear on a branch that genuinely
+blocks every merge, which is the same defect this section exists to delete,
+pointed the other way.
+
 #### The per-suite `gated` flag
 
 Requiredness is a property of the **branch** — one context guards every suite in
@@ -1056,6 +1069,21 @@ deliberately not enforced. Its issue then says "this suite does not gate merges"
 rather than claiming to block, because *an ungated suite that claimed to block
 merges would be crying wolf* — and a reader who catches one gate lying stops
 believing the ones that are telling the truth.
+
+**`gated: false` relaxes no evidence standard (owner ruling).** Every exclusion
+in `isCompleteEvidence` — `incomplete_run`, `filtered_run`, `flow_shortfall`,
+`scope_unreadable`, `zero_flows` — applies in full to an ungated suite. Evidence
+quality and blocking authority are orthogonal: `gated: false` changes what the
+issue *says* about merges, and nothing about what counts as *knowing* the
+suite's state.
+
+This is stated rather than left implied because the natural reading is the
+wrong one. "Not a gate" sounds like lower stakes, so relaxing the bar there
+looks harmless. It is backwards: a gating suite that closes on evidence it never
+gathered is caught the next morning, when a pull request sails through on a
+green nobody earned — whereas **an ungated suite's wrong verdict is the one
+nobody is watching**, with no merge queue downstream to trip over it. A false
+all-clear there can stand indefinitely.
 
 The two compose in one direction only. `gated: false` can silence a blocking
 claim; `gated: true` can never manufacture one. On a branch where no required

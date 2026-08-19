@@ -514,6 +514,49 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
       expect(entry.body).not.toContain(BLOCKED_CLAIM);
     });
 
+    it("BITE: `gated: false` relaxes NO evidence standard — all five reasons still refuse to close", () => {
+      // Owner ruling (§10.7). Evidence quality and blocking authority are
+      // orthogonal: `gated: false` changes what the issue SAYS about merges and
+      // nothing about what counts as knowing the suite's state.
+      //
+      // This is the case that would rot silently. A gating suite that closes on
+      // evidence it never gathered gets caught the next morning, when a pull
+      // request sails through on a green nobody earned. An ungated suite has no
+      // merge queue downstream to trip over it, so a false all-clear there can
+      // stand indefinitely — which makes relaxing the bar here strictly worse
+      // than relaxing it on a gate, the opposite of what "not a gate" suggests.
+      const openIssue = [
+        {
+          number: 41,
+          body: String(planOne(finding(), REQUIRED_STATE.required).body),
+        },
+      ];
+      for (const reason of [
+        "incomplete_run",
+        "filtered_run",
+        "flow_shortfall",
+        "scope_unreadable",
+        "zero_flows",
+      ]) {
+        // A `pass` state carrying an incomplete-evidence reason is precisely the
+        // shape that must NOT close: the run says success, the evidence does not
+        // support it.
+        const entry = planOne(
+          finding({
+            state: STATE.pass,
+            conclusion: "success",
+            reason,
+            gated: false,
+          } as Partial<Finding>),
+          REQUIRED_STATE.notRequired,
+          openIssue
+        );
+        expect(entry.action).not.toBe("close");
+        expect(entry.action).toBe("none");
+        expect(entry.reason).toBe("evidence_incomplete");
+      }
+    });
+
     it("`gated: false` does not silence the issue — it is still filed and refreshed", () => {
       // Ungated is not untracked. The suite still gets its state mirror; only
       // the merge-consequence sentence changes.
