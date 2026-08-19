@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.7](https://github.com/CodySwannGT/lisa/compare/v3.45.6...v3.45.7) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** the threshold ratchet's absence is a FAILURE, never a skip ([05dfce3](https://github.com/CodySwannGT/lisa/commit/05dfce375fca562b4cc95cfa5a7d98c275e88fb0)), closes [CodySwannGT/lisa#2777](https://github.com/CodySwannGT/lisa/issues/2777)
+* **migrations:** retrofit the seeded Playwright caller in existing projects ([c01f6d7](https://github.com/CodySwannGT/lisa/commit/c01f6d7e6e8654f2fe015a440c87fbd92522e5e6)), closes [#2739](https://github.com/CodySwannGT/lisa/issues/2739) [CodySwannGT/lisa#2776](https://github.com/CodySwannGT/lisa/issues/2776)
+* **nightly-e2e:** deny an admin merge it cannot see, demand a second party nobody has ([d4576d1](https://github.com/CodySwannGT/lisa/commit/d4576d14c74b410d6464cd53333649cb0c9af307)), closes [CodySwannGT/lisa#2771](https://github.com/CodySwannGT/lisa/issues/2771)
+* **security:** a range with no floor permits everything, not nothing ([36f57e8](https://github.com/CodySwannGT/lisa/commit/36f57e87ff2146ac189299ec89ebc5244ef6b371)), closes [CodySwannGT/lisa#2774](https://github.com/CodySwannGT/lisa/issues/2774)
+* **templates:** stop distributing .github/dependabot.yml ([b3d1ce0](https://github.com/CodySwannGT/lisa/commit/b3d1ce06756e2d79a3f52363a8630fa3035e6f1d)), closes [CodySwannGT/lisa#2775](https://github.com/CodySwannGT/lisa/issues/2775)
+
 ### [3.45.6](https://github.com/CodySwannGT/lisa/compare/v3.45.5...v3.45.6) (2026-08-19)
 
 
