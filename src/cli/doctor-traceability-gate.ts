@@ -97,7 +97,7 @@ export function withTraceabilityGate<T extends GateConfig>(config: T): T {
   return {
     ...config,
     gates: {
-      ...(config.gates ?? {}),
+      ...config.gates,
       [GATE_ID]: { [GATE_MOMENT]: GATE_LEVEL },
     },
   };

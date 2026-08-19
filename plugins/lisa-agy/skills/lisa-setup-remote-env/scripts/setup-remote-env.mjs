@@ -91,7 +91,7 @@ export function readRemoteEnvConfig(cwd = process.cwd()) {
   const cfg = JSON.parse(readFileSync(path, "utf8")).remoteEnv;
   if (!cfg) return defaults;
   return {
-    tools: { require: [], install: [], ...(cfg.tools ?? {}) },
+    tools: { require: [], install: [], ...cfg.tools },
     hook: cfg.hook ?? null,
     surfaces: cfg.surfaces ?? {},
   };
@@ -879,7 +879,7 @@ export function pinEnvironment(environmentId, cwd = process.cwd()) {
     : {};
   const merged = {
     ...existing,
-    remote: { ...(existing.remote ?? {}), defaultEnvironmentId: environmentId },
+    remote: { ...existing.remote, defaultEnvironmentId: environmentId },
   };
   writeFileSync(path, `${JSON.stringify(merged, null, 2)}\n`);
   return path;

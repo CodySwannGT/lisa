@@ -85,8 +85,8 @@ export const REQUIRED_STATE = Object.freeze({
 /**
  * The status-check context Lisa's own caller template publishes.
  *
- * Measured from a live ruleset rather than copied from the template:
- * geminisportsai/frontend-v2's `dev` requires exactly this string.
+ * Measured from a live ruleset rather than copied from the template: a
+ * portfolio frontend's `dev` requires exactly this string.
  */
 export const GATE_CONTEXT = "\u{1F319} Nightly E2E Health / \u{1F319} Gate";
 
