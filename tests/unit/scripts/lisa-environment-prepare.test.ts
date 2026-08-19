@@ -396,4 +396,48 @@ describe("prepareEnvironment — the environment name cannot become syntax", () 
     expect(result.reason).toBe("environment_runner_malformed");
     expect(calls).toEqual([]);
   });
+
+  it("BITE: refuses a runner that is not a string at all", () => {
+    // `RegExp.prototype.test` coerces its argument, so `RUNNER_PREFIX.test(true)`
+    // tests the STRING `"true"` and passes — the validation reads as a type
+    // check and is not one. `runner` arrives from `readGates(cwd).runner`, which
+    // destructures `.lisa.config.json` with a string default and hands back
+    // whatever the file contained, so a non-string is reachable rather than
+    // theoretical. The refusal that should have happened here instead became a
+    // TypeError in `argvFor` — `runner.trim is not a function` — one line after
+    // the guard that exists to stop exactly that value.
+    for (const runner of [true, 42, null, ["bun", "run"], { cmd: "bun run" }]) {
+      const { calls, exec } = recorder();
+      const result = prepareEnvironment({
+        env: "dev",
+        scripts: BOTH,
+        runner: runner as unknown as string,
+        exec,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.reason).toBe("environment_runner_malformed");
+      expect(calls).toEqual([]);
+    }
+  });
+
+  it("BITE: refuses an environment name that is not a string at all", () => {
+    // The sibling check, for the same coercion. `env` is normalized to a string
+    // before it is matched, so the hole never opened here — this pins that the
+    // normalization stays, and that a non-string still lands on the argument
+    // reason rather than being coerced into a name.
+    for (const env of [true, 42, ["dev"], { name: "dev" }]) {
+      const { calls, exec } = recorder();
+      const result = prepareEnvironment({
+        env: env as unknown as string,
+        scripts: BOTH,
+        runner: "bun run",
+        exec,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.reason).toBe("environment_env_required");
+      expect(calls).toEqual([]);
+    }
+  });
 });

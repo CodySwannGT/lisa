@@ -2342,6 +2342,19 @@ export async function fetchAllJobs(api, runId, wait) {
 export async function fetchRequiredness(api, branch, gateContext, wait) {
   const unknown = detail =>
     Object.freeze({ state: REQUIREDNESS.unknown, detail, contexts: [] });
+  // No context, no measurement. `resolveSettings` can no longer produce an
+  // empty one, but this is the place where an empty one does its damage, and a
+  // guard belongs where the harm lands as well as where it originates: matching
+  // every required check against `""` yields zero matches, which is
+  // indistinguishable from a branch that genuinely does not require this gate.
+  // It is not a throw — §10.4 forbids the reporter becoming an outage — and it
+  // is not `not_required`, because "nobody told me which check to look for" is
+  // the third state this function already has.
+  if (typeof gateContext !== "string" || gateContext.trim().length === 0) {
+    return unknown(
+      "no gate context was configured, so there is nothing to match required checks against — an unmatched empty context is not evidence that this gate is unrequired"
+    );
+  }
   let result;
   try {
     result = await apiGet(
@@ -2931,7 +2944,18 @@ export function resolveSettings(env) {
     // configured into silence by omitting a variable is the shape this file
     // refuses, but the REPORTER's equivalent risk is the opposite one: a
     // missing decoration must not stop the notification going out.
-    gateContext: (env.NIGHTLY_GATE_CONTEXT || DEFAULT_GATE_CONTEXT).trim(),
+    // TRIMMED BEFORE THE FALLBACK, never after. `(env.X || DEFAULT).trim()`
+    // read `NIGHTLY_GATE_CONTEXT="   "` as a configured value — whitespace is
+    // truthy — so the fallback never fired and the context resolved to `""`.
+    // An empty context matches no required check (`contextMatchesGate` can
+    // satisfy neither half of its ` / ` test against it), so `fetchRequiredness`
+    // answered `not_required` for a branch the gate really does guard, and the
+    // run still exited successfully: a gate switching itself off and printing
+    // green. Unset and whitespace-only come from the same place — an unfilled
+    // workflow input — and now resolve the same way, which is what `branch` and
+    // `suites` above already do.
+    gateContext:
+      (env.NIGHTLY_GATE_CONTEXT ?? "").trim() || DEFAULT_GATE_CONTEXT,
     // Opt-in. Pinning writes to a repository-wide, three-slot surface that
     // nothing else in this file touches, so it stays off until a caller asks.
     pinIssues: /^(1|true|yes)$/i.test(String(env.NIGHTLY_PIN_ISSUES ?? "")),
