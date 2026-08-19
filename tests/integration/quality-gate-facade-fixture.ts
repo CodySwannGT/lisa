@@ -5,18 +5,37 @@ import { QUALITY_JOB_GATES } from "../../all/copy-overwrite/scripts/lisa-gates.m
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
 import type {
   ParsedWorkflow,
+  WorkflowJob,
   WorkflowStep,
 } from "../helpers/workflow-test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
-/** The reusable quality workflow under test. */
+/** The reusable quality workflow most façade jobs live in. */
 export const QUALITY_YML = path.join(
   REPO_ROOT,
   ".github",
   "workflows",
   "quality.yml"
+);
+
+/**
+ * The reusable workflow the browser suite moved to.
+ *
+ * The three Playwright jobs left `quality.yml` for a workflow of their own, so
+ * that a single-suite caller stops selecting them by naming the two dozen jobs
+ * it does NOT want. Their address changed; the façade contract did not, which
+ * is why `playwright_e2e_aggregate` stays in this fixture rather than being
+ * dropped from it. The byte-identical-resolve-block assertions below are now
+ * the only thing holding the copy in the OTHER file to the sixteen in this
+ * one, and a move is exactly when two copies start to drift.
+ */
+export const PLAYWRIGHT_YML = path.join(
+  REPO_ROOT,
+  ".github",
+  "workflows",
+  "playwright-e2e.yml"
 );
 
 /** The shipped gate registry the workflow resolves through. */
@@ -40,10 +59,27 @@ export interface ConvertedJob {
   gate: string;
   gateStep: string;
   fallbackSteps: string[];
+  /**
+   * The workflow file that declares the job.
+   *
+   * Carried per entry rather than assumed, because the façade contract is no
+   * longer confined to one file and an assumption would resolve a moved job
+   * against the workflow it left — where every lookup returns `undefined` and
+   * an assertion about `undefined` is not an assertion.
+   */
+  file: string;
 }
 
-/** A converted job before its gate is attached from the shipped registry. */
-type ConvertedJobSource = Omit<ConvertedJob, "gate">;
+/**
+ * A converted job before its gate is attached from the shipped registry.
+ *
+ * `file` is optional here and only here: sixteen of the seventeen jobs live in
+ * `quality.yml`, so spelling it out on each of them would bury the one that
+ * does not.
+ */
+type ConvertedJobSource = Omit<ConvertedJob, "gate" | "file"> & {
+  file?: string;
+};
 
 /** The shipped job → gate table, as this file consumes it. */
 const SHIPPED_JOB_GATES = QUALITY_JOB_GATES as Record<
@@ -234,6 +270,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   {
     job: "playwright_e2e_aggregate",
     jobName: "🎭 Playwright E2E Tests",
+    file: PLAYWRIGHT_YML,
     gateStep: "🎭 Run the e2e-browser gate",
     // The whole built-in Playwright path, not one command: Lisa's shipped
     // implementation of this gate is a sharded matrix PLUS this merge, and the
@@ -289,7 +326,7 @@ export const CONVERTED: ConvertedJob[] = CONVERTED_JOBS.map(entry => {
         "`skip_jobs`."
     );
   }
-  return { ...entry, gate };
+  return { ...entry, gate, file: entry.file ?? QUALITY_YML };
 });
 
 /**
@@ -301,11 +338,79 @@ export const CONVERTED: ConvertedJob[] = CONVERTED_JOBS.map(entry => {
  */
 export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
 
-/** The parsed workflow. */
-export const workflow: ParsedWorkflow = loadWorkflow(QUALITY_YML);
+/** Every workflow this fixture knows how to parse, in declaration order. */
+export const WORKFLOW_FILES: readonly string[] = [QUALITY_YML, PLAYWRIGHT_YML];
 
-/** The workflow as text, for assertions about comments. */
-export const source: string = fs.readFileSync(QUALITY_YML, "utf8");
+/** Parsed once each, because every accessor below reads them per assertion. */
+const PARSED = new Map<string, ParsedWorkflow>(
+  WORKFLOW_FILES.map(file => [file, loadWorkflow(file)])
+);
+
+/** Read once each, for the assertions that search a whole file as text. */
+const SOURCES = new Map<string, string>(
+  WORKFLOW_FILES.map(file => [file, fs.readFileSync(file, "utf8")])
+);
+
+/**
+ * One parsed workflow.
+ * @param file Absolute path, one of `WORKFLOW_FILES`.
+ * @returns The parsed workflow.
+ */
+export function workflowIn(file: string): ParsedWorkflow {
+  const parsed = PARSED.get(file);
+  if (parsed === undefined) {
+    throw new Error(
+      `${file} is not a workflow this fixture parses. Add it to WORKFLOW_FILES.`
+    );
+  }
+  return parsed;
+}
+
+/**
+ * One workflow as text, for assertions about comments and documentation.
+ * @param file Absolute path, one of `WORKFLOW_FILES`.
+ * @returns The file's contents.
+ */
+export function sourceOf(file: string): string {
+  const text = SOURCES.get(file);
+  if (text === undefined) {
+    throw new Error(
+      `${file} is not a workflow this fixture parses. Add it to WORKFLOW_FILES.`
+    );
+  }
+  return text;
+}
+
+/** The parsed quality workflow. */
+export const workflow: ParsedWorkflow = workflowIn(QUALITY_YML);
+
+/** The quality workflow as text, for assertions about comments. */
+export const source: string = sourceOf(QUALITY_YML);
+
+/**
+ * One job of one workflow.
+ *
+ * THROWS on an absent job rather than returning undefined. Every accessor
+ * below funnels through this one, so a job that moved to another file — or was
+ * renamed, or deleted — fails here by name instead of letting `?.` turn each
+ * assertion about it into an assertion about nothing. A required status check
+ * that runs zero steps reports SATISFIED on GitHub; a test that inspects zero
+ * steps reports PASSED, and the two failures rhyme.
+ * @param job Job id.
+ * @param file The workflow declaring it; defaults to `quality.yml`.
+ * @returns The job definition.
+ */
+export function jobIn(job: string, file: string = QUALITY_YML): WorkflowJob {
+  const definition = workflowIn(file).jobs[job];
+  if (definition === undefined) {
+    throw new Error(
+      `${job} is not declared in ${path.basename(file)}. It was either renamed, ` +
+        "deleted, or moved to another workflow — say which file it lives in " +
+        "rather than asserting against a job that is not there."
+    );
+  }
+  return definition;
+}
 
 /**
  * The gate registry, imported from the shipped `.mjs` at call time.
@@ -321,26 +426,36 @@ export async function loadRegistry(): Promise<Record<string, GateDefinition>> {
 /**
  * The steps of one job.
  * @param job Job id.
+ * @param file The workflow declaring it; defaults to `quality.yml`.
  * @returns Its steps.
  */
-export const stepsIn = (job: string): WorkflowStep[] =>
-  workflow.jobs[job]?.steps ?? [];
+export const stepsIn = (
+  job: string,
+  file: string = QUALITY_YML
+): WorkflowStep[] => jobIn(job, file).steps ?? [];
 
 /**
  * One named step of one job.
  * @param job Job id.
  * @param name Exact step name.
+ * @param file The workflow declaring the job; defaults to `quality.yml`.
  * @returns The step, or undefined.
  */
 export const stepNamed = (
   job: string,
-  name: string
-): WorkflowStep | undefined => stepsIn(job).find(step => step.name === name);
+  name: string,
+  file: string = QUALITY_YML
+): WorkflowStep | undefined =>
+  stepsIn(job, file).find(step => step.name === name);
 
 /**
  * The gate-resolution step of one job.
  * @param job Job id.
+ * @param file The workflow declaring the job; defaults to `quality.yml`.
  * @returns The step, or undefined.
  */
-export const resolveStep = (job: string): WorkflowStep | undefined =>
-  stepsIn(job).find(step => step.id === "gate");
+export const resolveStep = (
+  job: string,
+  file: string = QUALITY_YML
+): WorkflowStep | undefined =>
+  stepsIn(job, file).find(step => step.id === "gate");
