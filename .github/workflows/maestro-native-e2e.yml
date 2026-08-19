@@ -338,6 +338,58 @@ on:
         required: false
         default: 20
         type: number
+      prepare_environment:
+        description: >-
+          Environment name to prepare before the suite, forwarded to Lisa's
+          `environment:*` facade as `--env=<name>`. Empty (the default) means
+          this workflow prepares nothing and behaves exactly as before.
+
+          Setting it runs `environment:reset` then `environment:reseed` through
+          `lisa-environment-prepare.mjs` in the pre-suite job, BEFORE either
+          platform leg. Reset-before rather than cleanup-after: cleanup does not
+          run when a runner dies, is cancelled, or is evicted, so the next run
+          would start against whatever the last failure left behind.
+
+          A verb named in `prepare_verbs` that the project does not declare
+          FAILS the run. That is the point — a suite against an environment
+          nobody prepared reports green while proving nothing.
+        required: false
+        default: ''
+        type: string
+      prepare_verbs:
+        description: >-
+          Comma-separated facade verbs the suite REQUIRES, in any order; they
+          always run reset before reseed. The facade's two verbs are
+          independently optional, so a suite built on shared persona accounts —
+          one that converges them and has no "empty" operation at all —
+          correctly asks for `reseed` alone. Ignored when prepare_environment
+          is empty.
+        required: false
+        default: reset,reseed
+        type: string
+      prepare_between_legs:
+        description: >-
+          Prepare the environment a SECOND time after the iOS leg and before the
+          Android leg. Defaults true because it is the correct default whenever
+          the two legs share one environment: the first preparation is hours old
+          by the time the second leg starts, and "clean up when you are done"
+          cannot give leg two a clean start.
+
+          Only ever acts when the legs are actually serialized and both are in
+          the run — resetting between legs that run CONCURRENTLY would wipe the
+          environment underneath a running suite. Ignored when
+          prepare_environment is empty.
+        required: false
+        default: true
+        type: boolean
+      prepare_timeout_minutes:
+        description: >-
+          Ceiling for the between-legs preparation job. Tight on purpose: it
+          gates the Android leg, so a wedged reset should surface as a fast,
+          named failure rather than spending the suite's budget first.
+        required: false
+        default: 20
+        type: number
       setup_command:
         description: >-
           Shell command run in EACH test job before maestro test (e.g. read a
@@ -959,40 +1011,47 @@ jobs:
       # output is the only channel that reaches the platform legs.
       maestro_env: ${{ steps.capture.outputs.maestro_env }}
     steps:
-      - name: 🈳 No pre-suite command configured
+      - name: 🈳 Nothing to establish before the suites
         # The visible half of the always-run decision above: a reader opening a
         # green job with every step skipped should not have to work out whether
         # something silently failed to fire.
-        if: ${{ inputs.pre_suite_command == '' }}
+        if: ${{ inputs.pre_suite_command == '' && inputs.prepare_environment == '' }}
         run: |
           echo "No pre_suite_command was supplied; nothing to establish before the suites."
           echo "See this workflow's header for which work belongs in this seam."
 
       - name: 📥 Checkout repository
-        if: ${{ inputs.pre_suite_command != '' }}
+        if: ${{ inputs.pre_suite_command != '' || inputs.prepare_environment != '' }}
         uses: actions/checkout@v6
         with:
           # Nothing downstream needs the git token — see the build job.
           persist-credentials: false
 
       - name: 🥟 Setup Bun
-        if: ${{ inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies && inputs.package_manager == 'bun' }}
+        if: ${{ ((inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies) || inputs.prepare_environment != '') && inputs.package_manager == 'bun' }}
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: 🔧 Setup Node.js
-        if: ${{ inputs.pre_suite_command != '' }}
+        if: ${{ inputs.pre_suite_command != '' || inputs.prepare_environment != '' }}
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
       - name: 📦 Install dependencies
-        # Opt-in: the platform legs install nothing, so the default keeps this
-        # job's toolchain identical to theirs. A command that needs
-        # node_modules asks for it rather than every adopter paying an install.
-        if: ${{ inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies }}
+        # Opt-in for `pre_suite_command`: the platform legs install nothing, so
+        # the default keeps this job's toolchain identical to theirs. A command
+        # that needs node_modules asks for it rather than every adopter paying
+        # an install.
+        #
+        # NOT opt-in for `prepare_environment`, which implies the install. A
+        # reset goes through the project's own tooling and database client far
+        # more often than not, and one that needed node_modules and did not get
+        # them fails in a way that reads as a broken reset rather than a missing
+        # install.
+        if: ${{ (inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies) || inputs.prepare_environment != '' }}
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
@@ -1005,6 +1064,37 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: 🧼 Prepare the environment
+        # Runs BEFORE pre_suite_command, deliberately. Preparation returns the
+        # environment to a known state; a project's own command then layers
+        # whatever else this suite needs on top. The other order would discard
+        # the command's work.
+        #
+        # A failure here fails this job, and the platform legs refuse to start
+        # unless this job's result is on their allowlist — so an environment
+        # that could not be prepared stops the suite instead of colouring it.
+        if: ${{ inputs.prepare_environment != '' }}
+        env:
+          TARGET: ${{ inputs.prepare_environment }}
+          VERBS: ${{ inputs.prepare_verbs }}
+        run: |
+          set -eu
+          PREPARE=""
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-environment-prepare.mjs" \
+            "scripts/lisa-environment-prepare.mjs" \
+            "all/copy-overwrite/scripts/lisa-environment-prepare.mjs"; do
+            if [ -f "$candidate" ]; then PREPARE="$candidate"; break; fi
+          done
+          # Unresolvable is a FAILURE, never a skip. The caller asked for a
+          # prepared environment; reporting success without having prepared one
+          # is indistinguishable from a healthy run.
+          if [ -z "$PREPARE" ]; then
+            echo "::error title=Preparation script missing::lisa-environment-prepare.mjs was not found. Install or update @codyswann/lisa, or clear prepare_environment."
+            exit 1
+          fi
+          node "$PREPARE" --env="${TARGET}" --verbs="${VERBS}"
 
       - name: 🧩 Apply maestro env
         # Same env the platform legs give `setup_command`, so a command can be
@@ -1332,6 +1422,119 @@ jobs:
             echo "iOS leg complete; the Android leg is released."
           fi
 
+  inter_leg_prepare:
+    name: 🧼 Prepare between legs
+    # Its own job rather than extra steps on `leg_order`, and that is a
+    # correctness requirement rather than tidiness. `android` deliberately runs
+    # when `leg_order` FAILS, so that a broken serializer degrades to concurrent
+    # legs instead of dropping the Android suite entirely. A reset placed in
+    # that job would inherit the same fail-OPEN treatment, and a reset that
+    # failed would be waved through exactly like an ordering hiccup — the one
+    # outcome this whole subsystem exists to prevent.
+    #
+    # Sitting here instead, it is result-gated by `android` on the same
+    # allowlist `pre_suite` uses: established state is a precondition for
+    # testing, and mere ordering is not.
+    needs: [preflight, build, leg_order]
+    # Always runs in a wired run; the WORK is gated per-step. A job that skips
+    # itself whenever an input is unset concludes `skipped`, which the nightly
+    # health gate's completeness rule reads as `incomplete_run` — turning every
+    # green nightly into a blocked one for every adopter not using this seam,
+    # which is all of them on the day this lands.
+    if: ${{ !cancelled() && needs.preflight.outputs.should_run == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.prepare_timeout_minutes }}
+    steps:
+      - name: 🈳 No between-legs preparation for this run
+        if: ${{ !(inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true') }}
+        env:
+          TARGET: ${{ inputs.prepare_environment }}
+          BETWEEN: ${{ inputs.prepare_between_legs }}
+          SERIALIZE: ${{ inputs.serialize_platform_legs }}
+          RUN_IOS: ${{ needs.preflight.outputs.run_ios }}
+          RUN_ANDROID: ${{ needs.preflight.outputs.run_android }}
+        run: |
+          if [[ -z "$TARGET" ]]; then
+            echo "prepare_environment is unset — this workflow prepares nothing."
+          elif [[ "$BETWEEN" != "true" ]]; then
+            echo "prepare_between_legs is off — the environment is prepared once, before both legs."
+          elif [[ "$SERIALIZE" != "true" ]]; then
+            echo "serialize_platform_legs is off, so the legs run CONCURRENTLY."
+            echo "Preparing between them would wipe the environment underneath a running suite."
+          else
+            echo "Only one platform leg is in this run (ios=$RUN_IOS android=$RUN_ANDROID) — there is no 'between'."
+          fi
+
+      - name: 🛑 Refuse to prepare while the leg order is unknown
+        # `leg_order` is what proves the iOS leg has FINISHED. If it did not
+        # succeed — it failed, timed out, or could not read the jobs API — then
+        # iOS may still be running, and a reset would empty the environment
+        # underneath it. Refusing here fails closed and stops the Android leg,
+        # which is the right answer: this is exactly the case where nobody can
+        # say what state the environment is in.
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result != 'success' }}
+        env:
+          LEG_ORDER_RESULT: ${{ needs.leg_order.result }}
+        run: |
+          echo "::error title=Cannot prepare between legs::The ordering gate concluded '${LEG_ORDER_RESULT}', so this run cannot establish that the iOS leg has finished. Resetting now could wipe the environment underneath a running suite, and testing without resetting would run the Android leg against unknown state."
+          exit 1
+
+      - name: 📥 Checkout repository
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' }}
+        uses: actions/checkout@v6
+        with:
+          # Nothing downstream needs the git token — see the build job.
+          persist-credentials: false
+
+      - name: 🥟 Setup Bun
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' && inputs.package_manager == 'bun' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 🔧 Setup Node.js
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' }}
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 📦 Install dependencies
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' }}
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error title=Unknown package_manager::'$PACKAGE_MANAGER' is not one of npm, yarn, bun."
+              exit 1
+              ;;
+          esac
+
+      - name: 🧼 Prepare the environment for the Android leg
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' }}
+        env:
+          TARGET: ${{ inputs.prepare_environment }}
+          VERBS: ${{ inputs.prepare_verbs }}
+        run: |
+          set -eu
+          PREPARE=""
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-environment-prepare.mjs" \
+            "scripts/lisa-environment-prepare.mjs" \
+            "all/copy-overwrite/scripts/lisa-environment-prepare.mjs"; do
+            if [ -f "$candidate" ]; then PREPARE="$candidate"; break; fi
+          done
+          if [ -z "$PREPARE" ]; then
+            echo "::error title=Preparation script missing::lisa-environment-prepare.mjs was not found. Install or update @codyswann/lisa, or clear prepare_environment."
+            exit 1
+          fi
+          echo "The iOS leg is finished; preparing \"${TARGET}\" before the Android leg."
+          node "$PREPARE" --env="${TARGET}" --verbs="${VERBS}"
+
   android:
     name: 🤖 Maestro Android
     # `leg_order` is in `needs` purely for the EDGE — it is what makes GitHub
@@ -1342,7 +1545,7 @@ jobs:
     # concurrent behavior (loudly, with a red job) instead of dropping the
     # entire Android suite. Contrast `pre_suite`, which IS result-gated, because
     # established state is a precondition for testing and mere ordering is not.
-    needs: [preflight, build, pre_suite, leg_order]
+    needs: [preflight, build, pre_suite, leg_order, inter_leg_prepare]
     runs-on: ubuntu-latest
     # Caller-tunable, defaulting to 90 to match the iOS job: the 60 inherited
     # from frontend-v2's original workflow started timing out once its suite
@@ -1365,7 +1568,12 @@ jobs:
     # `!cancelled()` deliberately does NOT cover this — it is what lets a job
     # run despite a failed dependency, which is right for a build artifact and
     # wrong for established state.
-    if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) }}
+    #
+    # `inter_leg_prepare` is on the SAME allowlist and for the same reason. It
+    # is not covered by `!cancelled()` either: a between-legs reset that failed
+    # means this leg would run against unknown state, which is the one thing a
+    # suite must never do quietly.
+    if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) && contains(fromJSON('["success", "skipped"]'), needs.inter_leg_prepare.result) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
