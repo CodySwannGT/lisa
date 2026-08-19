@@ -1637,6 +1637,22 @@ export function formatReport(verdict, context) {
  * opened it went unrun.* Asking the question here means a future loosening of
  * row 26 cannot silently re-open that hole.
  *
+ * ## `gated: false` does NOT relax any of this (§10.7, owner ruling)
+ *
+ * Every exclusion below applies in full to a suite declared `"gated": false`.
+ * The two ideas are orthogonal: **evidence quality** is what we know about a
+ * suite's state; **blocking authority** is what follows from knowing it.
+ * `gated: false` changes only the second — what the issue SAYS about merges —
+ * and nothing about what counts as knowing.
+ *
+ * Stated explicitly because the next reader will assume the opposite: "not a
+ * gate" reads as "lower stakes", so relaxing the bar here looks harmless. It is
+ * backwards. A gating suite that closes on evidence it never gathered gets
+ * caught the next morning, when somebody's pull request sails through on a
+ * green that was not earned. **An ungated suite's wrong verdict is the one
+ * nobody is watching** — there is no merge queue downstream to trip over it, so
+ * a false all-clear there can stand indefinitely.
+ *
  * @param {{reason: string}} finding - A finding from `assessSuite`
  * @returns {boolean} True when the run was complete
  */
