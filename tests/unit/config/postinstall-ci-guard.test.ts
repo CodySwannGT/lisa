@@ -15,7 +15,13 @@ import * as path from "node:path";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const CI_GUARD_PREFIX = '[ -n "$CI" ] ||';
-const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
+// The PACKAGE, not one entry point inside it. Keyed on
+// `dist/index.js`, this constant stopped matching the moment the
+// postinstall moved to a script under the same package — and the loop
+// below `continue`s on no match, so every assertion silently stopped
+// running and the suite still reported green. A guard that identifies its
+// subject too narrowly disables itself when the subject moves.
+const LISA_MARKER = "node_modules/@codyswann/lisa/";
 const LISA_BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 node";
 const EXPO_PACKAGE_TEMPLATE = "expo/package-lisa/package.lisa.json";
 const TYPESCRIPT_PACKAGE_TEMPLATE = "typescript/package-lisa/package.lisa.json";
@@ -73,14 +79,27 @@ describe("package.lisa.json templates guard Lisa postinstall with CI-skip prefix
       const forcePostinstall = template.force?.scripts?.postinstall;
       const defaultsPostinstall = template.defaults?.scripts?.postinstall;
 
+      let asserted = 0;
       for (const script of [forcePostinstall, defaultsPostinstall]) {
         if (typeof script !== "string") continue;
         if (!script.includes(LISA_MARKER)) continue;
+        asserted += 1;
         // If the template defines a Lisa postinstall at all, it MUST be
         // CI-guarded. Lisa already relies on PR diffs for drift detection;
         // silently re-applying templates in CI creates race conditions.
         expect(script.startsWith(CI_GUARD_PREFIX)).toBe(true);
         expect(script).toContain(LISA_BOOTSTRAP_PREFIX);
+      }
+
+      // The absent case. A template that declares a postinstall this test
+      // cannot RECOGNISE is the dangerous state: the loop above asserts
+      // nothing and the case reports green. So when a postinstall exists at
+      // all, it must have been recognised.
+      const declared = [forcePostinstall, defaultsPostinstall].filter(
+        script => typeof script === "string"
+      );
+      if (declared.length > 0) {
+        expect(asserted).toBeGreaterThan(0);
       }
     }
   );
