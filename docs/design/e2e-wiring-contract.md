@@ -318,7 +318,7 @@ is merely the one visible from a filename census because it also collides on
 
 | lane | behaviour | converges? |
 | --- | --- | --- |
-| `copy-overwrite` | rewritten on every `lisa apply` | **yes** — drift is corrected automatically |
+| `copy-overwrite` | rewritten on every `lisa apply` **only while the host copy is absent or pristine**; a host-edited copy resolves `stale` and is left alone unless the path is Lisa-owned (`scripts/`, `lisa-*`) or `--refresh-templates` names it | **absent/pristine only** — an existing fork is preserved, not corrected (§1) |
 | `create-only` | created when absent on any apply; skipped forever once present, identical or not | **presence only** — content forks on landing and never returns |
 | `uses:` reusable | resolved at run time from the ref the caller names | **yes, if the caller delegates and the ref is shared** |
 
