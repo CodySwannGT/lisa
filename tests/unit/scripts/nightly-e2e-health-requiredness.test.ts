@@ -335,6 +335,86 @@ describe("nightly e2e reporting — §10.7, the blocking claim is measured", () 
   });
 
   // -------------------------------------------------------------------------
+  // Resolving the context
+  // -------------------------------------------------------------------------
+
+  describe("resolving the configured context — trim BEFORE the fallback", () => {
+    /**
+     * The gate context `resolveSettings` produces for one raw env value.
+     *
+     * @param raw - `NIGHTLY_GATE_CONTEXT`, or undefined to leave it unset
+     * @returns The context every requiredness measurement is made against
+     */
+    function resolved(raw?: string): string {
+      const settings = mod.resolveSettings({
+        GITHUB_TOKEN: "t",
+        GITHUB_REPOSITORY: "o/r",
+        NIGHTLY_BRANCH: BRANCH,
+        NIGHTLY_SUITES: JSON.stringify([
+          { label: "one", workflow: "a.yml", match: { mode: "run" } },
+        ]),
+        ...(raw === undefined ? {} : { NIGHTLY_GATE_CONTEXT: raw }),
+      }) as { gateContext: string };
+      return settings.gateContext;
+    }
+
+    it('BITE: a whitespace-only variable resolves to the default, not to `""`', () => {
+      // `"   "` is truthy, so `(env.X || DEFAULT).trim()` never reached the
+      // fallback and resolved to the empty string. Unset and padded arrive from
+      // the same place — an unfilled workflow input — so they must resolve
+      // identically. `branch` and `suites` in this same file already trim
+      // first; the gate context was the one that did not.
+      expect(resolved()).toBe(mod.DEFAULT_GATE_CONTEXT);
+      expect(resolved("   ")).toBe(mod.DEFAULT_GATE_CONTEXT);
+      expect(resolved("\t\n ")).toBe(mod.DEFAULT_GATE_CONTEXT);
+      expect(resolved("")).toBe(mod.DEFAULT_GATE_CONTEXT);
+    });
+
+    it("still strips padding from a real value", () => {
+      expect(resolved(`  ${GATE_CONTEXT}\n`)).toBe(GATE_CONTEXT);
+    });
+
+    it("BITE: a padded variable still measures `required` on a gated branch", async () => {
+      // The defect end to end. One whitespace-only variable made every required
+      // context fail `contextMatchesGate` — neither `ctx.startsWith(" / ")` nor
+      // `"".startsWith(ctx + " / ")` can hold — so a branch that really is
+      // guarded reported `not_required` while the run exited successfully. A
+      // gate that switches itself off and still prints green.
+      (globalThis as { fetch: unknown }).fetch = async (): Promise<unknown> =>
+        fakeResponse(200, {}, [requiredChecksRule([GATE_CONTEXT])]);
+      const measured = await mod.fetchRequiredness(
+        TEST_API,
+        BRANCH,
+        resolved("   "),
+        noWait
+      );
+      expect(measured.state).toBe(REQUIRED_STATE.required);
+      expect(measured.state).not.toBe(REQUIRED_STATE.notRequired);
+    });
+
+    it("BITE: an empty context measures `unknown`, never `not_required`", async () => {
+      // The second layer, placed where the harm lands rather than only where it
+      // originates. An empty context matches nothing, so the measurement is not
+      // "no rule requires this gate" — it is "nobody told me which check to
+      // look for". This file already has a state for that, and it is not
+      // `not_required`. Throwing instead would make the reporter an outage.
+      (globalThis as { fetch: unknown }).fetch = async (): Promise<unknown> =>
+        fakeResponse(200, {}, [requiredChecksRule([GATE_CONTEXT])]);
+      for (const empty of ["", "   "]) {
+        const measured = await mod.fetchRequiredness(
+          TEST_API,
+          BRANCH,
+          empty,
+          noWait
+        );
+        expect(measured.state).toBe(REQUIRED_STATE.unknown);
+        expect(measured.state).not.toBe(REQUIRED_STATE.notRequired);
+        expect(measured.detail).toBeTruthy();
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Rendering it
   // -------------------------------------------------------------------------
 

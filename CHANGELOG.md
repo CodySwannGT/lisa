@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.4](https://github.com/CodySwannGT/lisa/compare/v3.45.3...v3.45.4) (2026-08-19)
+
+
+### Bug Fixes
+
+* **hooks:** write a jira-cli config only when the tracker is jira ([13a8b19](https://github.com/CodySwannGT/lisa/commit/13a8b19fb3524e1cf1ed283ee649556859ea81d8)), closes [CodySwannGT/lisa#2764](https://github.com/CodySwannGT/lisa/issues/2764)
+
 ### [3.45.3](https://github.com/CodySwannGT/lisa/compare/v3.45.1...v3.45.3) (2026-08-19)
 
 
