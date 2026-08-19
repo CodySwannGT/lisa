@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.41.0](https://github.com/CodySwannGT/lisa/compare/v3.40.5...v3.41.0) (2026-08-19)
+
+
+### Features
+
+* **gates:** ship the skip_jobs → gate mapping so a consumer can migrate ([2bb2373](https://github.com/CodySwannGT/lisa/commit/2bb2373944e55ec47c8949e1db5e7adb1a69bda7)), closes [CodySwannGT/lisa#2719](https://github.com/CodySwannGT/lisa/issues/2719)
+
+
+### Bug Fixes
+
+* **apply:** never merge a host's dependency floor downwards ([d64087a](https://github.com/CodySwannGT/lisa/commit/d64087a28003a6cb89fe632121b812b106272f55)), closes [CodySwannGT/lisa#2726](https://github.com/CodySwannGT/lisa/issues/2726)
+* **apply:** refuse to delete a workflow the consumer still calls ([e7e5a51](https://github.com/CodySwannGT/lisa/commit/e7e5a51210bf00389538843e8af6cc4aba3d273d)), closes [CodySwannGT/lisa#2730](https://github.com/CodySwannGT/lisa/issues/2730)
+
 ### [3.40.5](https://github.com/CodySwannGT/lisa/compare/v3.40.4...v3.40.5) (2026-08-19)
 
 
