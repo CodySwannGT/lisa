@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.45.0](https://github.com/CodySwannGT/lisa/compare/v3.43.2...v3.45.0) (2026-08-19)
+
+
+### Features
+
+* **environment:** a setup seam before the verbs, at every preparation site ([c777a81](https://github.com/CodySwannGT/lisa/commit/c777a81deb24f2f1367f6341202ef968badfd4ba)), closes [CodySwannGT/lisa#2752](https://github.com/CodySwannGT/lisa/issues/2752)
+
+
+### Bug Fixes
+
+* **format:** exempt every managed script from the host format gate, not one ([d6762a1](https://github.com/CodySwannGT/lisa/commit/d6762a141bb4f0c20b913dbe6c0f8a8607364d5b)), closes [CodySwannGT/lisa#2748](https://github.com/CodySwannGT/lisa/issues/2748)
+
 ## [3.44.0](https://github.com/CodySwannGT/lisa/compare/v3.43.2...v3.44.0) (2026-08-19)
 
 
