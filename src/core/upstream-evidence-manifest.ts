@@ -235,7 +235,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "e703c02a5d4359674dd8bbc98f1699585dec61024eb176ef11a314590c2a4fca",
+      "bdade3ffa508c43e2c04c8942a68b74225907a8aad830e7bffb87fe8354e0ed9",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "a3eeeeeab2956e59ae1fd143b30bedcb0bb7180bc9e6a87aab3c8c1467bbc2ec",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
