@@ -24,6 +24,8 @@ For each changed file, evaluate:
 
    Exit 1 is a **Critical** finding under the `design-source-of-truth` rule -- the change is blocked until every UI surface either cites a Figma node (`DESIGN-SOURCE: <figma-url>`, the preferred fix -- sync it back) or carries the exception marker `DESIGN-SOURCE: none — not in Figma`. The gate fails closed: an unreadable file or an uncomputable diff is a FAIL, not a pass. Host design-system rules (`figma-design-system`, `design-system`, `use-the-design-library`, or the project's equivalent) stay authoritative about what to build; this checks only that the source is declared. If the gate script is absent, say so in the review rather than skipping silently.
 
+   Review the same surfaces against the `design-value-binding` rule as well — it asks the orthogonal question of whether each value is *bound* to what the design system publishes, not whether the source is declared. A literal in an axis the project publishes variables for is a **Critical** finding; the identical literal in an axis with no variable collection is correct and must not be flagged. Aesthetic disagreement is never a finding under this rule. Cite the rule; do not restate its conditions here.
+
 ## Output Format
 
 Rank findings by severity:
