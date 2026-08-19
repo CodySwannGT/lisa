@@ -719,7 +719,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
-      "a675f6b17ce7f0d6b9fb7daeba6d2bc59bcb48ef79b034076ea73b2b1e72ee09",
+      "b55988c2a9a74c4dda08f85c269d34527555cac8f023f6ffea6fd20e2498b7c6",
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
@@ -987,7 +987,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-agent-ready/SKILL.md":
       "f65e5e866bc476ba2b40e4fb29e6754bdd5824e1f0706f28d4f2beb2af0faf53",
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
-      "a5863836b8fa9d67825d048e1c2fc086d3df95de33cf110129488959b83cb4b5",
+      "67f49097e7ffefbdaf3e81a27adeb9b78721d4ad25e9beb1df2d99c0e53e1e3d",
     "plugins/src/base/skills/lisa-atlassian-access/SKILL.md":
       "6366ccce961217d1c7bcac4dad9c2293ee4dcc395b27c142a3b59c62f00b685c",
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
@@ -9064,6 +9064,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/manifest.test.ts": true,
     "tests/unit/opencode/mcp-installer.test.ts": true,
     "tests/unit/opencode/parity-safety-net-plugin.test.ts": true,
+    "tests/unit/opencode/session-bootstrap-jira-gate.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,

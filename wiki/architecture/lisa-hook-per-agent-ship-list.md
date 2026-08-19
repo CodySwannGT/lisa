@@ -49,7 +49,7 @@ Each script under `plugins/src/base/hooks/`:
 | `inject-flow-context.sh` | SubagentStart polyfill injecting flow context into sub-agents | Claude + Codex (Codex 0.125.0 now supports SubagentStart per refreshed `reference-codex-hooks-capabilities` memory). **STRIP on Cursor / agy / Copilot** (Copilot has no SubagentStart; Cursor unverified; SubagentStart is not in agy's universal ship-list). |
 | `install-pkgs.sh` | SessionStart(startup) installer ensuring required CLIs are present | universal — every agent's first session |
 | ~~`notify-ntfy.sh`~~ | ~~Stop notification via ntfy.sh~~ | **RETIRED (ticket-1054)** — removed from Lisa's source entirely (the script, the base `Stop` hook entry, the Codex hook def, and every per-agent ship-list). It was emitting a `No such file or directory` Stop-hook error and is no longer used. |
-| `setup-jira-cli.sh` | SessionStart sets up `acli` JIRA CLI auth from settings | universal |
+| `setup-jira-cli.sh` | SessionStart writes the `jira-cli` config from JIRA env vars + `.lisa.config*.json`; no-op unless `tracker: "jira"` | universal |
 | `debug-hook.sh` | Debug helper | **exclude from every per-agent variant by default** (it is a development helper, not a production hook). Wave 3 contract: generator scripts skip any `*debug*.sh`. |
 | `ticket-sync-reminder.sh` | Reminder hook (event TBD — used in some flows) | **unregistered in `plugin.json`** — verify whether the file is intentionally idle or invoked by a non-plugin code path before classifying. Wave 3 contract: generator scripts skip it until classification is resolved. |
 | `track-plan-sessions.sh` | Plan session tracking | **unregistered in `plugin.json`** — same as `ticket-sync-reminder.sh`. Skip in generators until classified. |
