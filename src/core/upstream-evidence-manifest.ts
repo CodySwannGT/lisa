@@ -8253,6 +8253,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-legacy-overlay.ts": true,
     "src/cli/doctor-lisa-owned-artifact-copies.ts": true,
     "src/cli/doctor-lisa-owned-artifacts.ts": true,
+    "src/cli/doctor-lisa-owned-universal.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
     "src/cli/doctor-readiness-audit-allowlist.ts": true,
