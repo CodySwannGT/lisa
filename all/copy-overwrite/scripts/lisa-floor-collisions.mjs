@@ -51,6 +51,22 @@ const DEPENDENCY_SECTIONS = [
 ];
 
 /**
+ * The version triple leading a range branch, anchored.
+ *
+ * Anchored with a `\D*` prefix rather than searched with a bare
+ * `/(\d+)\.(\d+)\.(\d+)/`. An UNANCHORED search re-attempts at every position,
+ * and `\d+` inside it gives the engine something to give back at each one, so
+ * runtime is super-linear in the length of the input — S5852. `\D*` cannot
+ * match a digit, so it has exactly one viable length and the whole match is
+ * one left-to-right pass.
+ *
+ * The prefix it skips is the comparator, which is the only thing that ever
+ * precedes the number in a branch: `>=1.2.3`, `^1.2.3`, `~1.2.3`, `1.2.3`,
+ * `>=1.2.3 <2`.
+ */
+const BRANCH_VERSION = /^\D*(\d+)\.(\d+)\.(\d+)/;
+
+/**
  * Lowest version a single disjunction branch permits.
  *
  * An upper-bound-only branch (`<2.0.0`, `<=2.0.0`) has no floor: it permits
@@ -64,7 +80,7 @@ function branchLowerBound(branch) {
   const trimmed = branch.trim();
   if (trimmed === "") return null;
   if (/^<=?\s*\d/.test(trimmed)) return [0, 0, 0];
-  const match = /(\d+)\.(\d+)\.(\d+)/.exec(trimmed);
+  const match = BRANCH_VERSION.exec(trimmed);
   return match ? match.slice(1, 4).map(Number) : null;
 }
 

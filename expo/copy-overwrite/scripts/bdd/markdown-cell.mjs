@@ -68,6 +68,12 @@ const escapePipeRun = (_match, backslashes) =>
  * failures are invisible in review:
  *
  *  - Pipes are escaped by RUN, not one at a time — see {@link escapePipeRun}.
+ *  - `(?<!\\)` in front of that run. Without it the engine may start a run
+ *    part-way into a longer one, so every position in a backslash run is a
+ *    fresh attempt and the scan is super-linear in the cell's length — S5852,
+ *    on author-supplied text. The lookbehind removes no match: a run's
+ *    leftmost backslash always wins under leftmost-match anyway, so the
+ *    later starts it forbids were never the ones chosen.
  *  - `/\r\n?|\n/` and not `/\r?\n/`. The latter only matches a CR that is
  *    FOLLOWED by an LF, so a lone `\r` survives — and CommonMark treats a lone
  *    CR as a line ending, which ends the row rather than the cell.
@@ -93,7 +99,7 @@ const escapePipeRun = (_match, backslashes) =>
  */
 export const cell = text =>
   String(text ?? "")
-    .replace(/(\\*)\|/g, escapePipeRun)
+    .replace(/(?<!\\)(\\*)\|/g, escapePipeRun)
     .replace(/\r\n?|\n/g, " ");
 
 /**
