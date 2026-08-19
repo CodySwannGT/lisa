@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "71ff42c2cb8ac7022e0066132476764dd745fb92bf19ccd395000b1fe319abc7",
+      "8c3effe804dfbea75011271f9d96eeb125fcbb97dc6397cc2c2dffd935f3aef0",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -8498,6 +8498,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-learnings-merge-driver.ts": true,
     "src/migrations/ensure-lisa-postinstall.ts": true,
     "src/migrations/ensure-oxlint-base-configs.ts": true,
+    "src/migrations/ensure-playwright-dedicated-caller.ts": true,
     "src/migrations/ensure-quality-caller-scopes.ts": true,
     "src/migrations/ensure-sonar-excludes-lisa-harness.ts": true,
     "src/migrations/ensure-tsconfig-local-files-fallback.ts": true,
@@ -9042,6 +9043,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-learnings-merge-driver.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
+    "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
     "tests/unit/migrations/ensure-quality-caller-scopes.test.ts": true,
     "tests/unit/migrations/ensure-sonar-excludes-lisa-harness.test.ts": true,
     "tests/unit/migrations/ensure-tsconfig-local-files-fallback.test.ts": true,
