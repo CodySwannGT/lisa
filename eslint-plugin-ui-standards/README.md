@@ -146,6 +146,95 @@ const MyComponent = () => (
 
 ---
 
+### no-unbound-design-value
+
+Flags a hardcoded style value in an axis that has a published design-variable
+collection behind it.
+
+#### Rule Details
+
+Design handoff has one rule: **values come from design variables where a variable
+system exists.** Visual measurement is supplemental there, and legitimate as the
+primary source where no variable system exists.
+
+The regime is resolved **per axis, not per project**. A library with a mature
+colour system and no spacing scale is the common case, and it has to work:
+colour is bound and a literal is a defect, while spacing is measured and a
+literal is correct — in the same file, on the same day.
+
+**Regime-awareness is by declaration, not by live query.** ESLint cannot ask a
+design tool which collections are published, so the typed axes arrive as the
+`typedAxes` option, mirroring `design.tokens.axes` in `.lisa.config.json`. The
+default is the empty list, so **an unconfigured project sees nothing**. That
+silence is deliberate: a rule that fires on every project is indistinguishable
+from no rule at all, because the first thing anyone does is switch it off.
+
+The rule answers only the objective question — is a value in a typed axis
+written as a literal? It never judges whether a design is ambiguous or ugly.
+That is an opinion, and an agent asked for one blocks on everything or nothing.
+
+**Axes:** `color`, `spacing`, `typography`, `radius`, `elevation`, `motion`.
+
+**Surfaces covered:** style-object properties (`StyleSheet.create`, inline style
+objects, theme objects), JSX attributes, and `styled`/`css` tagged-template
+bodies — whose declarations live inside a string and are invisible to a
+property-name visitor.
+
+**Not covered:** stylesheet files (`.css`, `.scss`) — ESLint does not parse them.
+
+#### Examples
+
+Given `typedAxes: ["color", "radius"]` — colour and radius are published, spacing
+is not:
+
+**Incorrect** (a literal in a typed axis):
+
+```tsx
+const styles = StyleSheet.create({
+  card: { backgroundColor: "#3A7BD5", borderRadius: 12 },
+});
+```
+
+**Correct** (bound in the typed axes, measured in the untyped one):
+
+```tsx
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: tokens.surface.raised,
+    borderRadius: tokens.radius.card,
+    padding: 12, // spacing has no variable collection — measuring is the source
+  },
+});
+```
+
+#### Configuration
+
+```javascript
+// eslint.config.local.ts
+{
+  rules: {
+    "ui-standards/no-unbound-design-value": ["error", {
+      typedAxes: ["color", "radius"],
+    }],
+  },
+}
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `typedAxes` | `string[]` | `[]` | Axes with a published variable collection. Empty means the rule reports nothing. |
+| `ignoreValues` | `(string \| number)[]` | `[0, 1]` | Values never worth a token — a zero is the absence of a value, a one is a hairline. |
+| `tokenSourcePaths` | `string[]` | `["/theme/", "/themes/", "/tokens/", "/design-system/", "/design-tokens/"]` | Path fragments where literals belong, because those files mirror the published variables. |
+
+This rule is the executable rung of the design-handoff policy. The judgment rung
+— regime detection against the live variable collections, the five block
+conditions, and escalation of a blocked item — lives in the `lisa-design-intake`
+skill (`/lisa:design:intake`).
+
+---
+
 ## Installation
 
 This plugin is installed locally as a file dependency:
@@ -172,6 +261,7 @@ export default [
     rules: {
       'ui-standards/no-classname-outside-ui': 'error',
       'ui-standards/no-direct-rn-imports': 'error',
+      'ui-standards/no-unbound-design-value': ['error', { typedAxes: ['color'] }],
     },
   },
 ];
