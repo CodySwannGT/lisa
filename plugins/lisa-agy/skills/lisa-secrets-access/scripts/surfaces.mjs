@@ -308,7 +308,7 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
     rotating: cfg.rotating ?? [],
     propagating: cfg.propagating ?? [],
     namespace,
-    narrow: { ...DEFAULTS.narrow, ...(cfg.narrow ?? {}) },
+    narrow: { ...DEFAULTS.narrow, ...cfg.narrow },
     surface: cfg.surface ?? null,
     routing,
     configPath: path,

@@ -443,8 +443,8 @@ export function satisfiedByNpm(pkg, tool) {
   const viaNpm = KNOWN_TOOLS[tool]?.viaNpm;
   if (!viaNpm) return false;
   const declared = {
-    ...(pkg?.dependencies ?? {}),
-    ...(pkg?.devDependencies ?? {}),
+    ...pkg?.dependencies,
+    ...pkg?.devDependencies,
   };
   return Object.hasOwn(declared, viaNpm);
 }

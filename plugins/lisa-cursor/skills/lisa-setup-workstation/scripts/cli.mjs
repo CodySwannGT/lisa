@@ -204,7 +204,7 @@ export async function run(argv, io = {}) {
 
   let plan;
   try {
-    plan = planWorkstation({ agents, tools, provider, ...(io.probes ?? {}) });
+    plan = planWorkstation({ agents, tools, provider, ...io.probes });
   } catch (error) {
     // A misspelled provider stops here rather than silently provisioning the
     // wrong credential manager.

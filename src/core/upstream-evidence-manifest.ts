@@ -201,7 +201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
       "82f5881f9b1c743f572297e42cdf9acc6102d28cea909a9b6454042b091f8e44",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
-      "53eb89417516f3125a879076a31d50e3738e21163367d475532274fbb41c732e",
+      "f59d95770b72847e21c9581962059cc68260ac5a0086013c753c9f27c90e02c2",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
       "bf64e239b4218bcb83f89e2b9ce1975b5b681450c3828ec0ade620de01a387b4",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
@@ -213,7 +213,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
       "ec556af49f46b02441e59da66b828fb3f2a0f03b6ef16130e43e6d31d119bf5d",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "43558ba985967a3710e75361845afa987e84b17dbc264bb3ff68d8bfdf463318",
+      "b3c89213aab541483cf50c9c7ccbd4dd931fb5ef4d079e970ea82520f22bd01c",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -1021,7 +1021,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs":
       "e28bd61fdde4a336b56ae3395423026943a5816015719d31d04f0d5a0ab50eec",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
-      "3a79e0a09112268c2bfe51575355c10c2fa5305fdac6629cada2028ab3f07a00",
+      "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "a16ded88a648852c02f7ee3e30ef97afb644384f2ea2e977c3e4a288600278de",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
@@ -1287,7 +1287,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs":
       "fa1bdeda4e38bbd149f993ab0288f11b7ba6f2a3b9bf91a5918de7356e21f786",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "1c2ef17fe647c86bfe0540f07bd1d9ca66980e18516fddc874723f69b9df27ce",
+      "d702dff9534b2cdbb0433320571d46bbf8e45eea8a57eb99c8d928907ccbcc29",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
       "563ab35320a0ba58269ac3dd81155ffe3a299f6835210073e6fc9012ab436f41",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
@@ -1337,7 +1337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "eb8ee672fbfdb0ab41dde5f17337dae59912f18eafa6f15a05fd203906d16352",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "c34250b56a158f3876a4134b92210b2b7ed1f26261901840928ef9fa3ce87789",
+      "0293f229e3e93ce51cfb59a5427d6ae409e56513d8b5f773db6becf890d44c6a",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
@@ -1351,7 +1351,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
       "eb0b8ec8a5d4fd81402dcbf40e6ccb55eb5e0c960f11aa928e45b99de43fabbc",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
-      "874c075c63c45d0ffca4e98d7cb28bbeeb804675d1733571c1b3d38705404eb3",
+      "53b369907ce168991169521f50070f9741640c0c466ece7c7c4736455903fb00",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
       "6ab19c08aa9db7643aa49133ba1d0febf1c1dbdc9a503026a01b1ce0a83f68ab",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
@@ -1925,7 +1925,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/scripts/ensure-gitignore.mjs":
       "bb63d234e42eeb80829924bf9dec8fe5061f9f10bfc7ba802627031dd5fde292",
     "plugins/src/wiki/scripts/ensure-wiki.mjs":
-      "04066f0a313b6e54174999da2fd1bd864b253d2b4be3b355c2db456da39bb8f6",
+      "a2c5232c6c83b99805ad84a099f389373ea4b24cea28c7c5a18fccd3241bd672",
     "plugins/src/wiki/scripts/ingest-git.mjs":
       "6d1e07792c22fd6393d35108b307329c2976e2576fe1b7419160cc595a33d820",
     "plugins/src/wiki/scripts/ingest-memory.mjs":
@@ -2197,7 +2197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lisa-assert-eas-profile.mjs":
-      "ad528461325b785cffd8b587dda6dd72052d1fea2f76256f6d8de1a8bd1ba03f",
+      "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
     "scripts/lisa-enforcement-fallback.sh":
@@ -8689,6 +8689,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/deletion-reference-guard.test.ts": true,
+    "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
