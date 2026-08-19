@@ -223,6 +223,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-floor-collisions.mjs": Object.freeze([
     "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
     "3c7a0234b4f5609fce49e44711d2ec86af8cf7fb82b0831e4450e3347ecefe45",
+    "8870dba7b299ddb528e01fee32ec01cd8994a72118708ea8d3255be3daedfa72",
     "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
     "a612f172282d13ba9318fe5e03689d7c6ff42a0122d0c9d5d39051e1967b93dc",
   ]),
