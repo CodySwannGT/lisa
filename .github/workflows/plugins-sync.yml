@@ -82,6 +82,18 @@ jobs:
         run: |
           git fetch --tags --quiet --no-recurse-submodules
           bun run check:template-workflow-refs
+      # #2714: Lisa decides a consumer's tree from two manifests nobody ever
+      # compared — the delivery lanes and the `deletions.json` files. A path in
+      # both is created and then destroyed in one `apply`, because deletions run
+      # after every lane and are unconditional. 52 released tags carried at
+      # least one, including one in `all/` — active for every project — that
+      # survived 32 consecutive releases. Each was caught by hand, later, by
+      # someone who noticed a file that would not stay put. Like the gate above
+      # it, this belongs here rather than in the shared registry: only this repo
+      # carries lane directories, and the gate's refusal to pass an empty scan
+      # would fail every consumer's commit.
+      - name: Check no path is both delivered and deleted
+        run: bun run check:delivery-deletion-conflicts
       - name: Check plugin artifacts are in sync with plugins/src
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
