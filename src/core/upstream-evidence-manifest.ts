@@ -8684,6 +8684,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
+    "tests/integration/floor-collisions-gate-fail-closed.test.ts": true,
     "tests/integration/gate-config-validity-job.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
