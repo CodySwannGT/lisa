@@ -23,7 +23,7 @@
     "src/types/harper-schema.ts": ["types"]
   },
   "ignoreDependencies": ["@types/node", "@vitest/coverage-v8"],
-  "ignoreBinaries": ["audit", "harperdb", "knip", "playwright", "tsx"],
+  "ignoreBinaries": ["audit", "harperdb", "knip", "playwright", "printf", "tsx"],
   "rules": {
     "devDependencies": "off"
   }
