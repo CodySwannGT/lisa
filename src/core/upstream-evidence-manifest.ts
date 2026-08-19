@@ -2289,7 +2289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "eb7778d31dc0ee67cdcb7d843c8cce4cc46d96a7faab14f8d1e313b7a62048a3",
+      "ad396cd6e71ab6500f955442c7d4b172e55af46c378ffdc1e7f5e9c58dbb6a40",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -8900,6 +8900,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/jest-base.test.ts": true,
     "tests/unit/config/jest-expo.test.ts": true,
     "tests/unit/config/js-yaml-security-floor.test.ts": true,
+    "tests/unit/config/managed-scripts-prettierignore.test.ts": true,
     "tests/unit/config/mjs-gate-off-stays-honest.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
