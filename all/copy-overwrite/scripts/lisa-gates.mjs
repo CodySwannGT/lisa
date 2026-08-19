@@ -453,6 +453,213 @@ export const REGISTRY = Object.freeze({
 });
 
 /**
+ * Every `quality.yml` job that resolves through the gate façade, and its gate.
+ *
+ * This table and the two below exist so that the answer to "which gate replaces
+ * this `skip_jobs` token" can be read in a CONSUMER. It could not be, before:
+ * the pairs lived in one of Lisa's own test fixtures, which no consumer
+ * installs, so `lisa doctor` running in a caller repository and an agent working
+ * in a caller checkout both had nothing authoritative to consult.
+ *
+ * Eleven of the pairs cannot be recovered by transforming the name — `lint` is
+ * `code-style`, `sg_scan` is `structural-rules`, `work_item_traceability` is
+ * `traceability`. An underscore-to-hyphen guess gets a minority of them right,
+ * and being wrong here does not break a build: it declares the WRONG gate
+ * `off`, so a check silently stops running while the configuration reads
+ * deliberate. That is why this ships as data rather than as advice.
+ *
+ * It is STATIC on purpose. A consumer holds no copy of `quality.yml` — it calls
+ * the reusable workflow by ref — so the table cannot be derived where it is
+ * read. `tests/integration/quality-gate-skip-jobs-mapping.test.ts` derives it
+ * from the workflow in the one repository that has the workflow and fails when
+ * the two disagree, which is what keeps a static copy true.
+ */
+export const QUALITY_JOB_GATES = Object.freeze({
+  lint: "code-style",
+  lint_slow: "code-style-slow",
+  typecheck: "type-correctness",
+  verification_coverage: "coverage-adequacy",
+  test_unit: "test-correctness",
+  test_mutation: "test-meaningfulness",
+  test_integration: "test-integration",
+  playwright_e2e_aggregate: "e2e-browser",
+  format: "format-conformance",
+  build: "build-integrity",
+  work_item_traceability: "traceability",
+  performance_budget: "performance-budget",
+  test_node_suites: "test-node-suites",
+  environment_reset: "environment-reset",
+  environment_reseed: "environment-reseed",
+  dead_code: "dead-code",
+  sg_scan: "structural-rules",
+  npm_security_scan: "dependency-vulnerability",
+});
+
+/**
+ * Every `skip_jobs` token `quality.yml` honours or advertises, and the jobs it
+ * suppresses.
+ *
+ * Keyed by TOKEN, not by job id, because the two differ and the difference is
+ * invisible from either side: the token is `test:unit` and the job is
+ * `test_unit`, so a table keyed on job ids answers "no such token" for three of
+ * the tokens that do have gates.
+ *
+ * An empty array is a real entry, not a placeholder. `github_issue` is
+ * advertised by the input's own description and honoured by no job at all — it
+ * suppresses nothing today, which a consumer deleting it deserves to be told
+ * rather than left to infer from a check that never changed.
+ */
+export const SKIP_JOB_TOKENS = Object.freeze({
+  lint: Object.freeze(["lint"]),
+  lint_slow: Object.freeze(["lint_slow"]),
+  typecheck: Object.freeze(["typecheck"]),
+  e2e_coverage: Object.freeze(["e2e_coverage"]),
+  state_classification: Object.freeze(["state_classification"]),
+  bdd_coverage: Object.freeze(["bdd_coverage"]),
+  learnings_budget: Object.freeze(["learnings_budget"]),
+  "test:unit": Object.freeze(["test_unit"]),
+  "test:mutation": Object.freeze(["test_mutation"]),
+  "test:integration": Object.freeze(["test_integration"]),
+  "test:e2e": Object.freeze(["test_e2e"]),
+  maestro_e2e: Object.freeze(["maestro_e2e"]),
+  // Three jobs, one token, and only the last of them has a façade. Reporting
+  // this as a clean swap would be the most expensive wrong answer in the table:
+  // the shards keep running, so an operator who deleted the token would see the
+  // work continue and conclude the declaration had not taken effect.
+  playwright_e2e: Object.freeze([
+    "playwright_e2e_setup",
+    "playwright_e2e",
+    "playwright_e2e_aggregate",
+  ]),
+  format: Object.freeze(["format"]),
+  build: Object.freeze(["build"]),
+  skipped_required_checks: Object.freeze(["skipped_required_checks"]),
+  threshold_ratchet: Object.freeze(["threshold_ratchet"]),
+  work_item_traceability: Object.freeze(["work_item_traceability"]),
+  test_node_suites: Object.freeze(["test_node_suites"]),
+  environment_reset: Object.freeze(["environment_reset"]),
+  environment_reseed: Object.freeze(["environment_reseed"]),
+  dead_code: Object.freeze(["dead_code"]),
+  sg_scan: Object.freeze(["sg_scan"]),
+  floor_collisions: Object.freeze(["floor_collisions"]),
+  npm_security_scan: Object.freeze(["npm_security_scan"]),
+  sonarcloud: Object.freeze(["sonarcloud"]),
+  snyk: Object.freeze(["snyk"]),
+  secret_scanning: Object.freeze(["secret_scanning"]),
+  license_compliance: Object.freeze(["license_compliance"]),
+  zap_baseline: Object.freeze(["zap_baseline"]),
+  github_issue: Object.freeze([]),
+});
+
+/**
+ * What a `skip_jobs` token can be resolved to.
+ *
+ * Four of the five are refusals, which is the point. The failure this table
+ * exists to prevent is a confident wrong answer, so anything short of "one gate
+ * covers every job this token suppresses" has to be a distinct, nameable
+ * outcome rather than a best effort.
+ */
+export const SKIP_JOB_STATUS = [
+  "replaceable",
+  "partial",
+  "unmappable",
+  "inert",
+  "unknown",
+  "moment-illegal",
+];
+
+/**
+ * Resolve one `skip_jobs` token to the gate declaration that replaces it.
+ * @param {string} token A `skip_jobs` token, exactly as the caller spells it.
+ * @returns {{token: string, status: string, jobs: string[], gates: string[], gate: string|null, ungated: string[]}} What is known about the token.
+ */
+export function gateForSkipJob(token) {
+  const jobs = Object.hasOwn(SKIP_JOB_TOKENS, token)
+    ? [...SKIP_JOB_TOKENS[token]]
+    : null;
+  if (jobs === null) {
+    // Not a guess declined — a token this workflow has never had. A caller can
+    // reach here by typo, by whitespace (`'lint, lint_slow'` yields the token
+    // `" lint_slow"`), or by carrying a token from a workflow that predates
+    // this one. All three suppress nothing today, and none of them may be
+    // answered with the nearest-looking gate.
+    return {
+      token,
+      status: "unknown",
+      jobs: [],
+      gates: [],
+      gate: null,
+      ungated: [],
+    };
+  }
+
+  const ungated = jobs.filter(job => !Object.hasOwn(QUALITY_JOB_GATES, job));
+  const gates = [
+    ...new Set(
+      jobs.flatMap(job =>
+        Object.hasOwn(QUALITY_JOB_GATES, job) ? [QUALITY_JOB_GATES[job]] : []
+      )
+    ),
+  ];
+
+  const status =
+    jobs.length === 0
+      ? "inert"
+      : gates.length === 0
+        ? "unmappable"
+        : gates.length === 1 && ungated.length === 0
+          ? "replaceable"
+          : "partial";
+
+  return {
+    token,
+    status,
+    jobs,
+    gates,
+    // One gate or none. Two gates behind one token means no single declaration
+    // replaces it, and picking either would turn off half of what the token
+    // turns off while reading as a complete migration.
+    gate: gates.length === 1 ? gates[0] : null,
+    ungated,
+  };
+}
+
+/**
+ * Resolve a token to the declaration that replaces it AT ONE MOMENT.
+ *
+ * The moment is not decoration. `quality.yml` takes it as an input, every job
+ * resolves its gate at it, and a gate's registry entry names the closed set of
+ * moments it may legally be declared at — `traceability` at `push` and
+ * `pull-request` and nowhere else. So a caller running the pre-deploy set has
+ * no legal declaration for that token, and printing one anyway would be
+ * refused by `validate` AFTER the operator had already deleted the token,
+ * leaving the check running unguarded with the configuration reading migrated.
+ *
+ * Emitted by both `lisa doctor` and this file's `skip-jobs` command, from here,
+ * so the string an operator is shown cannot differ between the two.
+ * @param {string} token A `skip_jobs` token, exactly as the caller spells it.
+ * @param {string} [moment] The moment the caller passes to `quality.yml`.
+ * @returns {{token: string, status: string, moment: string, jobs: string[], gates: string[], gate: string|null, ungated: string[], declaration: string|null}} The migration for that token.
+ */
+export function skipJobMigration(token, moment = "pull-request") {
+  const resolved = gateForSkipJob(token);
+  if (resolved.gate === null) {
+    return { ...resolved, moment, declaration: null };
+  }
+  const permitted =
+    isMoment(moment) &&
+    (REGISTRY[resolved.gate]?.moments ?? []).includes(momentFamily(moment));
+  if (!permitted) {
+    return { ...resolved, moment, status: "moment-illegal", declaration: null };
+  }
+  return {
+    ...resolved,
+    moment,
+    declaration: `"${resolved.gate}": { "${moment}": "off" }`,
+  };
+}
+
+/**
  * Guarantees the platform enforces, which no task can implement.
  *
  * These were briefly modelled as gates with `implementation: "lisa"`, which was
@@ -1414,6 +1621,32 @@ function main() {
     return;
   }
 
+  if (command === "skip-jobs") {
+    // Deliberately not gated on reading .lisa.config.json: this answers "what
+    // would replace this token", which a repository that has not migrated yet
+    // must be able to ask. It is the surface an agent in a consumer checkout
+    // uses, so it must work before anything has been declared.
+    const requested = (flag("tokens") ?? "")
+      .split(",")
+      .filter(entry => entry !== "");
+    const moment = flag("moment") ?? "pull-request";
+    const resolved = (
+      requested.length ? requested : Object.keys(SKIP_JOB_TOKENS)
+    ).map(token => skipJobMigration(token, moment));
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(resolved, null, 2));
+      return;
+    }
+    for (const entry of resolved) {
+      console.log(
+        `${entry.token.padEnd(24)} ${entry.status.padEnd(15)} ${
+          entry.declaration ?? "(no declaration — see status)"
+        }`
+      );
+    }
+    return;
+  }
+
   if (command === "audit-config") {
     const findings = auditConfigKeys(config);
     for (const finding of findings) console.error(`  ${finding.message}`);
@@ -1422,7 +1655,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|needs|contexts|audit-config"
+    "usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|audit-config"
   );
 }
 

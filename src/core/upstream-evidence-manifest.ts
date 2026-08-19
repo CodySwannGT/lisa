@@ -19,7 +19,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "9cba6e0103c27850703323da25ac149c0136225172f1a1640abe3b3ac4e50a8e",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "1a456052254f7c7c8b7c0509fb1e3d8c572891056bc0ef4dd4fbde29b0a54011",
+      "5d4099e9c6fe5978fba206a069ae6a68d899ef33a57e110ea65e1d4c39328ee1",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -1021,7 +1021,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "3a79e0a09112268c2bfe51575355c10c2fa5305fdac6629cada2028ab3f07a00",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "f015bd91a615fa22b8e9f2bcb89a8bbce4a3f7d4fd977bfe94970e8d21d640d8",
+      "a16ded88a648852c02f7ee3e30ef97afb644384f2ea2e977c3e4a288600278de",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "41e7a420bffdcbe13ba771858285ba1b9ec0b000c17b0a44e7d67340f7422b4b",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -8290,6 +8290,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-readiness.ts": true,
     "src/cli/doctor-reusable-workflow-refs.ts": true,
     "src/cli/doctor-serialize-legs-contract.ts": true,
+    "src/cli/doctor-skip-jobs-migration.ts": true,
     "src/cli/doctor-sonar.ts": true,
     "src/cli/doctor-traceability-gate.ts": true,
     "src/cli/doctor-worker-epoch.ts": true,
@@ -8713,6 +8714,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-facade.test.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
     "tests/integration/quality-gate-off-state.test.ts": true,
+    "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -8775,6 +8777,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness.test.ts": true,
     "tests/unit/cli/doctor-reusable-workflow-refs.test.ts": true,
     "tests/unit/cli/doctor-serialize-legs-contract.test.ts": true,
+    "tests/unit/cli/doctor-skip-jobs-migration.test.ts": true,
     "tests/unit/cli/doctor-sonar.test.ts": true,
     "tests/unit/cli/doctor-traceability-gate.test.ts": true,
     "tests/unit/cli/doctor-worker-epoch.test.ts": true,
@@ -9099,6 +9102,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
+    "tests/unit/scripts/lisa-gates-skip-jobs.test.ts": true,
     "tests/unit/scripts/lisa-gates.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
