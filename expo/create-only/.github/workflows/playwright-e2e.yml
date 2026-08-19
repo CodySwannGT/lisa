@@ -61,6 +61,36 @@ on:
 # request, and adding one here would also collide with ci.yml: two workflows
 # must not report the same check name, and the identity is the JOB name, not the
 # workflow's.
+#
+# ── THE COLLISION IS STILL LIVE, AND THIS NOTE IS THE ONLY DEFENCE ─────────
+#
+# quality.yml STILL CONTAINS its own copy of the Playwright jobs. Removing them
+# there is a breaking change for every already-installed caller tracking `@main`,
+# so it happens only once consumers have migrated to the dedicated workflow this
+# file now calls. Until that removal lands, a project that runs quality.yml
+# WITHOUT suppressing the suite runs it in two places and reports the same check
+# name from both.
+#
+# SUPPRESS IT WITH THE GATE, NOT WITH `skip_jobs`. `skip_jobs` is being retired
+# in favour of gate levels, and the gate already controls this suite completely
+# inside quality.yml — `off` reaches the "e2e-browser declared off" path and
+# neither the built-in run nor the declared task executes. So declare it off at
+# the moment ci.yml runs at:
+#
+#   {
+#     "gates": {
+#       "e2e-browser": {
+#         "pull-request": "off",
+#         "continuous:development": "required"
+#       }
+#     }
+#   }
+#
+# One declaration, both cadences, and each is a recorded decision rather than an
+# inferred one. Declaring `off` also drops the required context, which is the
+# visible way to stop requiring a check — as opposed to a job that silently
+# stops running. Nothing inside this file can enforce it; the only defence is
+# that whoever seeds it knows.
 
 permissions:
   contents: read
