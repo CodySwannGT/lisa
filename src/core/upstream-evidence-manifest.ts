@@ -1023,7 +1023,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "f015bd91a615fa22b8e9f2bcb89a8bbce4a3f7d4fd977bfe94970e8d21d640d8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "62e257c8f332d54ba5f92f6cfa4d05c9684f554a1aba8424254ddfd6d4a4361d",
+      "41e7a420bffdcbe13ba771858285ba1b9ec0b000c17b0a44e7d67340f7422b4b",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -9299,6 +9299,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-vendor-preflight.test.ts": true,
     "tests/unit/strategies/doctor-wiki-delegation.test.ts": true,
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
+    "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/evidence-ref-contract.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
