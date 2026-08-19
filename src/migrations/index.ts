@@ -4,6 +4,7 @@ import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitatt
 import { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
+import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
 import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
@@ -29,6 +30,7 @@ export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitatt
 export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
+export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
 export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
@@ -57,6 +59,7 @@ export class MigrationRegistry {
       new EnsureLearningsMergeDriverMigration(),
       new EnsureLisaPostinstallMigration(),
       new EnsureOxlintBaseConfigsMigration(),
+      new EnsurePlaywrightDedicatedCallerMigration(),
       new EnsureQualityCallerScopesMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureWikiSourceDeclaredMigration(),
