@@ -408,8 +408,8 @@ export function healthyProject(
 ): string {
   return makeProject({
     map: { ...HEALTHY_MAP, ...patch },
-    features: { ...HEALTHY_FEATURES, ...(extra.features ?? {}) },
-    files: { ...HEALTHY_FILES, ...(extra.files ?? {}) },
+    features: { ...HEALTHY_FEATURES, ...extra.features },
+    files: { ...HEALTHY_FILES, ...extra.files },
   });
 }
 
