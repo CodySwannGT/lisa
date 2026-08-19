@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.1](https://github.com/CodySwannGT/lisa/compare/v3.45.0...v3.45.1) (2026-08-19)
+
+
+### Documentation
+
+* **nightly-e2e:** a rename deadlocks only where the context is required ([3ccc123](https://github.com/CodySwannGT/lisa/commit/3ccc123ddf745f89c8e0b54e10d4c1aede56a729)), closes [CodySwannGT/lisa#2757](https://github.com/CodySwannGT/lisa/issues/2757)
+
 ## [3.45.0](https://github.com/CodySwannGT/lisa/compare/v3.43.2...v3.45.0) (2026-08-19)
 
 
