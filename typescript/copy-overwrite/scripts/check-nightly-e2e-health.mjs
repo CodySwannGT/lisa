@@ -69,8 +69,8 @@
  *
  * ## Inherited from three implementations, with one path closed
  *
- * `DECISIVE_CONCLUSIONS` comes from gemini's `check-nightly-e2e.mjs` and is kept
- * because it is the right vocabulary. What is NOT kept is gemini's
+ * `DECISIVE_CONCLUSIONS` comes from acmeorgb's `check-nightly-e2e.mjs` and is
+ * kept because it is the right vocabulary. What is NOT kept is acmeorgb's
  * `unknown`-passes-with-a-warning: that is a fail-open path, and here `unknown`
  * fails once bootstrap closes. The bypass model and the context-pinning
  * discipline come from acmeorgd (TUN-525 / TUN-402). The job-name filter comes from
@@ -236,7 +236,7 @@ export const ISSUE_ACTIONS = Object.freeze({
  *
  * The reporter used to state, in every issue it filed, that "pull requests into
  * `<branch>` are blocked". That sentence was a hardcoded claim about somebody
- * else's branch ruleset, and in TunnlAI/frontend it was measurably FALSE: not
+ * else's branch ruleset, and in one measured adopter it was measurably FALSE: not
  * one required context on `dev` matched this gate, so the suite blocked nothing
  * — while people burned audited bypass labels to clear a gate that was not
  * gating. An issue that misstates its own consequences is worse than one that
@@ -265,8 +265,8 @@ export const REQUIREDNESS = Object.freeze({
  * easily these two strings drift apart.
  *
  * Overridable via the `gate_context` input, because a repo that has not yet
- * converged onto the template publishes a different string (PropSwapLLC's fork
- * publishes the bare `🌙 Nightly E2E Health`, with no job suffix).
+ * converged onto the template publishes a different string — one adopter's fork
+ * publishes the bare `🌙 Nightly E2E Health`, with no job suffix.
  */
 export const DEFAULT_GATE_CONTEXT = "🌙 Nightly E2E Health / 🌙 Gate";
 
@@ -1858,7 +1858,7 @@ function meaningParagraph(claim, branch) {
  * A bypass recipe printed unconditionally is how people end up applying an
  * audited waiver label to a check that was never required — burning the audit
  * trail the label exists to create, to buy a merge that was never blocked. That
- * happened in TunnlAI/frontend.
+ * happened in a measured adopter repository.
  *
  * @param {{state: string}} claim - Effective claim
  * @param {{branch: string, bypassLabel: string}} context - Reporting context
