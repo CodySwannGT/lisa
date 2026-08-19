@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.46.1](https://github.com/CodySwannGT/lisa/compare/v3.46.0...v3.46.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** refuse a gates.runner that cannot run a task ([24e08ec](https://github.com/CodySwannGT/lisa/commit/24e08ec7bd80749bad35a3c637450dcccccdeced)), closes [CodySwannGT/lisa#2789](https://github.com/CodySwannGT/lisa/issues/2789)
+* **security:** make the floor audit able to fail, and let it see the root ([55d01c9](https://github.com/CodySwannGT/lisa/commit/55d01c9046e2f96b3cabb3a0f8ef924fbafd6df4)), closes [CodySwannGT/lisa#2794](https://github.com/CodySwannGT/lisa/issues/2794)
+
 ## [3.46.0](https://github.com/CodySwannGT/lisa/compare/v3.45.10...v3.46.0) (2026-08-19)
 
 
