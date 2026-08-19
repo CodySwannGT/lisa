@@ -12,10 +12,13 @@
  * Rules:
  * - no-classname-outside-ui: Disallows className prop outside UI components
  * - no-direct-rn-imports: Disallows direct React Native imports
+ * - no-unbound-design-value: Disallows a hardcoded style value in an axis that
+ *   has a published design-variable collection (regime-aware; opt-in per axis)
  * @module eslint-plugin-ui-standards
  */
 const noClassnameOutsideUi = require("./rules/no-classname-outside-ui");
 const noDirectRnImports = require("./rules/no-direct-rn-imports");
+const noUnboundDesignValue = require("./rules/no-unbound-design-value");
 
 const plugin = {
   meta: {
@@ -25,6 +28,7 @@ const plugin = {
   rules: {
     "no-classname-outside-ui": noClassnameOutsideUi,
     "no-direct-rn-imports": noDirectRnImports,
+    "no-unbound-design-value": noUnboundDesignValue,
   },
 };
 
