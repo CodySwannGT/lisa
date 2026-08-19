@@ -382,6 +382,26 @@ on:
         required: false
         default: true
         type: boolean
+      prepare_setup_command:
+        description: >-
+          Shell command run after dependencies are installed and BEFORE the
+          facade verbs, in the same job.
+
+          Exists because the target environment is not always a runtime
+          argument. A project may materialise it as a build-time fact — copying
+          a gitignored `.env.local`, exporting a profile — and its
+          `environment:reset` then refuses unless that file agrees with
+          `--env`. That refusal is correct: the underlying sweeper defaults to
+          a real environment when the file is absent, so "no target named" must
+          never be read as "the default one". Without this seam the job checks
+          out, installs, and runs a verb that has no way to know what it is
+          pointed at.
+
+          The direct analogue of `playwright_setup_command`, and needed for the
+          same reason.
+        required: false
+        default: ''
+        type: string
       prepare_timeout_minutes:
         description: >-
           Ceiling for the between-legs preparation job. Tight on purpose: it
@@ -1065,6 +1085,12 @@ jobs:
               ;;
           esac
 
+      - name: 🔧 Prepare setup command
+        # Runs BEFORE the verbs, after the install — the point at which a
+        # build-time environment selection can still be materialised.
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_setup_command != '' }}
+        run: ${{ inputs.prepare_setup_command }}
+
       - name: 🧼 Prepare the environment
         # Runs BEFORE pre_suite_command, deliberately. Preparation returns the
         # environment to a known state; a project's own command then layers
@@ -1517,6 +1543,12 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: 🔧 Prepare setup command
+        # Runs BEFORE the verbs, after the install — the point at which a
+        # build-time environment selection can still be materialised.
+        if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' && inputs.prepare_setup_command != '' }}
+        run: ${{ inputs.prepare_setup_command }}
 
       - name: 🧼 Prepare the environment for the Android leg
         if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' }}
