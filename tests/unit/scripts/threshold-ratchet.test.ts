@@ -4,14 +4,21 @@
  * only fall; removals and file deletions are conservative weakenings.
  * Tier 2/3 families and enforcement-layer wiring are covered in
  * threshold-ratchet-gates.test.ts.
+ *
+ * The two modules under test are imported STATICALLY and by relative path, not
+ * through `import(pathToFileURL(...).href)`. The difference is not cosmetic: a
+ * URL assembled at runtime is invisible to Vite's module graph, so the mutation
+ * gate cannot see that this file exercises them and reports every mutant in
+ * both as uncovered. Keep these static — an import rewritten back to a runtime
+ * URL silently drops 415 mutants of ratchet logic out of the gate.
  */
-import { beforeAll, describe, expect, it } from "vitest";
-import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const FAMILIES_REL = "plugins/src/base/hooks/threshold-ratchet-families.mjs";
-const COMPARE_REL = "plugins/src/base/hooks/threshold-ratchet-compare.mjs";
+import {
+  compareFile,
+  formatReport,
+} from "../../../plugins/src/base/hooks/threshold-ratchet-compare.mjs";
+import { familyFor } from "../../../plugins/src/base/hooks/threshold-ratchet-families.mjs";
 
 const VITEST_FILE = "vitest.thresholds.json";
 const ESLINT_FILE = "eslint.thresholds.json";
@@ -22,35 +29,7 @@ const METHOD_LENGTH_SECTION = "Metrics/MethodLength:";
 const ABC_SIZE_SECTION = "Metrics/AbcSize:";
 const MAX_20 = "  Max: 20";
 
-/** One reported ratchet violation. */
-interface Finding {
-  readonly file: string;
-  readonly key: string;
-  readonly type: string;
-  readonly message: string;
-}
-
 describe("threshold-ratchet tier 1", () => {
-  let familyFor: (relPath: string) => { id: string } | undefined;
-  let compareFile: (
-    relPath: string,
-    baselineText: string | null,
-    currentText: string | null
-  ) => Finding[];
-  let formatReport: (findings: Finding[]) => string;
-
-  beforeAll(async () => {
-    const families = await import(
-      pathToFileURL(path.join(REPO_ROOT, FAMILIES_REL)).href
-    );
-    const compare = await import(
-      pathToFileURL(path.join(REPO_ROOT, COMPARE_REL)).href
-    );
-    familyFor = families.familyFor;
-    compareFile = compare.compareFile;
-    formatReport = compare.formatReport;
-  });
-
   describe("familyFor", () => {
     it("watches every Tier 1/2/3 family", () => {
       expect(familyFor(VITEST_FILE)?.id).toBe("coverage");
