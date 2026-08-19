@@ -275,6 +275,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "92e0ff52fcb29bc112ddcf1c3d85432032596572a84f3c5806a5b0c286ae55b3",
     "c1b2abf324269c0248136500eb37d7c43559552f152a7c5d07a23c219fdc70b2",
     "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
+    "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",
   ]),
   "scripts/lisa-hooks/block-no-verify.sh": Object.freeze([
