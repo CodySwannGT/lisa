@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.39.0](https://github.com/CodySwannGT/lisa/compare/v3.38.5...v3.39.0) (2026-08-19)
+
+
+### Features
+
+* **gates:** make the performance budget a gate projects can decline ([dca318a](https://github.com/CodySwannGT/lisa/commit/dca318a3209d7995a646183c13ad26ae3ecd40c2)), closes [CodySwannGT/lisa#2715](https://github.com/CodySwannGT/lisa/issues/2715)
+
+
+### Bug Fixes
+
+* **gates:** do not measure a performance budget a project cannot build ([a0df4f2](https://github.com/CodySwannGT/lisa/commit/a0df4f2e5aaf6a9420b019aa9aa5a43f42b2d3b8)), closes [CodySwannGT/lisa#2715](https://github.com/CodySwannGT/lisa/issues/2715)
+
 ### [3.38.5](https://github.com/CodySwannGT/lisa/compare/v3.38.4...v3.38.5) (2026-08-19)
 
 

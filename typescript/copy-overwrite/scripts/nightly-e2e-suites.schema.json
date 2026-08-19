@@ -57,6 +57,10 @@
           "exclusiveMinimum": 0,
           "maximum": 30,
           "description": "How many days after `first_seen` this suite's grace window lasts. Default 14. Requires `first_seen` — a grace length with no anchor forgives nothing and reads as though it forgives everything. Bounded by the same ceiling as the bootstrap window (`bootstrap_max_days`, hard ceiling 30): per-suite grace spends from the same forgiveness budget, and a grace that could outlive that ceiling is acmeorga's forever-bootstrap wearing a per-suite hat."
+        },
+        "gated": {
+          "type": "boolean",
+          "description": "REPORTING ONLY, default `true`. Declares whether this suite's tracking issue may claim that merges are blocked. Set it to `false` for a suite you track but do not enforce, so its issue says \"this suite does not gate merges\" instead of crying wolf — an ungated suite that claimed to block merges teaches people to disbelieve the ones that do. It does NOT change the gate: whether merges are actually blocked is measured from the branch ruleset at report time, and this field can only make the claim WEAKER. `gated: true` on a branch where no required status check matches the gate still renders `not_required`."
         }
       }
     },

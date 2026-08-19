@@ -89,7 +89,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.4.1";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.5.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -230,6 +230,45 @@ export const ISSUE_ACTIONS = Object.freeze({
   close: "close",
   none: "none",
 });
+
+/**
+ * Whether the gate actually blocks merges — MEASURED, never assumed (§10.7).
+ *
+ * The reporter used to state, in every issue it filed, that "pull requests into
+ * `<branch>` are blocked". That sentence was a hardcoded claim about somebody
+ * else's branch ruleset, and in TunnlAI/frontend it was measurably FALSE: not
+ * one required context on `dev` matched this gate, so the suite blocked nothing
+ * — while people burned audited bypass labels to clear a gate that was not
+ * gating. An issue that misstates its own consequences is worse than one that
+ * says nothing, because it is acted on.
+ *
+ * `unknown` is a first-class member of this set, not a tidy-up. If the branch
+ * rules cannot be read, the honest answer is that we do not know — and this
+ * file's whole doctrine is that "we could not check" must never render as an
+ * answer in either direction. Claiming `not_required` on an unreadable API
+ * would tell a reader to ignore a gate that may well be blocking every PR they
+ * have open.
+ */
+export const REQUIREDNESS = Object.freeze({
+  required: "required",
+  notRequired: "not_required",
+  unknown: "unknown",
+});
+
+/**
+ * The status-check context the gate publishes, as Lisa's own caller names it.
+ *
+ * GitHub composes a reusable workflow's check name as
+ * `<caller job name> / <called job name>`, and Lisa's shipped
+ * `nightly-e2e-health.yml` template names those halves `🌙 Nightly E2E Health`
+ * and `🌙 Gate`. Byte for byte, emoji included — §5 is the section about how
+ * easily these two strings drift apart.
+ *
+ * Overridable via the `gate_context` input, because a repo that has not yet
+ * converged onto the template publishes a different string (PropSwapLLC's fork
+ * publishes the bare `🌙 Nightly E2E Health`, with no job suffix).
+ */
+export const DEFAULT_GATE_CONTEXT = "🌙 Nightly E2E Health / 🌙 Gate";
 
 // ---------------------------------------------------------------------------
 // SECURITY LIMITS — source constants, never env-readable (portfolio doctrine)
@@ -435,6 +474,7 @@ const SUITE_KEYS = Object.freeze(
     "required_sha",
     "first_seen",
     "grace_days",
+    "gated",
     "min_flows",
   ])
 );
@@ -657,6 +697,16 @@ export function validateSuites(raw) {
           `${where}: \`required_sha\` must be a full 40-character lowercase commit SHA.`
         );
       }
+    }
+    // §10.7 — a REPORTING-only declaration. The gate ignores it completely; it
+    // exists so a suite that is tracked but not gating can say so in its issue
+    // instead of crying wolf. Boolean and nothing else: a string "false" is
+    // truthy, and a suite that believed it was ungated while claiming to block
+    // merges is the exact confusion this field removes.
+    if (entry.gated !== undefined && typeof entry.gated !== "boolean") {
+      throw new GateConfigError(
+        `${where}: \`gated\` must be a boolean (got ${JSON.stringify(entry.gated)}). It declares whether this suite's tracking issue may say that merges are blocked — it does not change the gate, which is decided by the branch ruleset.`
+      );
     }
     return Object.freeze({ ...entry, match: Object.freeze({ ...match }) });
   });
@@ -1664,13 +1714,160 @@ function evidenceMarker(finding) {
 }
 
 /**
+ * Whether one required-status-check context names THIS gate.
+ *
+ * Matching is a small family rather than string equality, because the same gate
+ * publishes two different context strings depending on how it is wired. GitHub
+ * composes a reusable workflow's check as `<caller job> / <called job>`, so a
+ * repo calling Lisa's reusable is required under
+ * `🌙 Nightly E2E Health / 🌙 Gate` while a repo still running a local
+ * single-job reimplementation is required under the bare
+ * `🌙 Nightly E2E Health`. Both ARE the gate. Demanding equality would report
+ * `not_required` for the second — a false all-clear about a branch that really
+ * is blocked, which is the same defect as the false "blocked" this whole
+ * section exists to delete, pointed the other way.
+ *
+ * So a context matches when it is the configured one, or when one is the other
+ * plus a ` / `-separated job suffix. Nothing looser: a bare substring test would
+ * match `🌙 Nightly E2E Health (advisory)` and any other check somebody names
+ * nearby.
+ *
+ * @param {string} context - A required status-check context
+ * @param {string} gateContext - The configured gate context
+ * @returns {boolean} True when the context denotes this gate
+ */
+export function contextMatchesGate(context, gateContext) {
+  if (typeof context !== "string" || typeof gateContext !== "string")
+    return false;
+  if (context === gateContext) return true;
+  return (
+    context.startsWith(`${gateContext} / `) ||
+    gateContext.startsWith(`${context} / `)
+  );
+}
+
+/**
+ * Resolves what THIS suite's issue may claim about blocking merges.
+ *
+ * Two independent facts combine, and the combination can only ever be WEAKER
+ * than the branch-level measurement:
+ *
+ *   1. `requiredness` — measured from the branch ruleset, for the gate as a
+ *      whole. It is per-BRANCH: one context guards every suite in the table.
+ *   2. `gated: false` — declared per-SUITE by the caller, for a suite that is
+ *      deliberately tracked without gating.
+ *
+ * A caller may therefore silence a blocking claim for one suite, and may never
+ * manufacture one: `gated: true` on a branch where the gate is not required
+ * still renders `not_required`. That asymmetry is the same one §6.2 applies to
+ * the bypass pattern — an override narrows, it never loosens — and here it is
+ * what stops a suite table from asserting a merge consequence that the branch's
+ * rules do not actually impose.
+ *
+ * @param {object} finding - A finding, possibly carrying `gated`
+ * @param {{state: string, detail?: string|null}} requiredness - Branch measurement
+ * @returns {{state: string, detail: string|null, source: string}} The effective claim
+ */
+export function suiteRequiredness(finding, requiredness) {
+  if (finding?.gated === false) {
+    return Object.freeze({
+      state: REQUIREDNESS.notRequired,
+      detail:
+        'this suite is declared `"gated": false` in the gate\'s suite table — it is tracked, not enforced',
+      source: "suite_opt_out",
+    });
+  }
+  return Object.freeze({
+    state: requiredness?.state ?? REQUIREDNESS.unknown,
+    detail: requiredness?.detail ?? null,
+    source: "branch_rules",
+  });
+}
+
+/** The title suffix each requiredness state earns. */
+const REQUIREDNESS_TITLE = Object.freeze({
+  [REQUIREDNESS.required]: " (blocking merges)",
+  [REQUIREDNESS.notRequired]: " (not blocking merges)",
+  [REQUIREDNESS.unknown]: " (merge impact unknown)",
+});
+
+/**
  * The issue title for one suite.
  *
+ * The requiredness state rides in the TITLE, not only in the body, because the
+ * issue list is the surface an operator triages from and "is anything waiting on
+ * this?" is the question they are triaging by. Retitling an existing issue is
+ * safe: identity is the body marker (§10.1), never the title.
+ *
  * @param {object} finding - A finding
+ * @param {{requiredness: {state: string}}} context - Reporting context
  * @returns {string} A title
  */
-function issueTitle(finding) {
-  return `🌙 Nightly e2e is not green: ${finding.label}`;
+function issueTitle(finding, context) {
+  const claim = suiteRequiredness(finding, context.requiredness);
+  return `🌙 Nightly e2e is not green${REQUIREDNESS_TITLE[claim.state] ?? ""}: ${finding.label}`;
+}
+
+/**
+ * The "what this means" paragraph, which used to be a hardcoded falsehood.
+ *
+ * @param {{state: string, detail: string|null, source: string}} claim - Effective claim
+ * @param {string} branch - The branch under gate
+ * @returns {string} One markdown paragraph
+ */
+function meaningParagraph(claim, branch) {
+  if (claim.state === REQUIREDNESS.required) {
+    return `**What this means.** Pull requests into \`${branch}\` are blocked until this suite is green again — measured just now from \`${branch}\`'s branch rules, not assumed. That is deliberate: merging on top of a red suite is how a nightly ends up measuring days of accumulated damage instead of the change that broke it.`;
+  }
+  if (claim.state === REQUIREDNESS.notRequired) {
+    const why =
+      claim.source === "suite_opt_out"
+        ? claim.detail
+        : `no required status check on \`${branch}\` matches this gate`;
+    return `**What this means.** This suite does **not** gate merges — ${why}. Pull requests into \`${branch}\` are going in on top of it. Fixing it is still the point: a nightly nobody fixes stops being evidence of anything, and it is the only signal you have that \`${branch}\` still works end to end. But nothing is waiting on you to merge, so do not treat this as an outage.`;
+  }
+  return `**What this means.** ⚠️ **Not known.** \`${branch}\`'s branch rules could not be read${claim.detail ? ` (${claim.detail})` : ""}, so this issue makes no claim either way about whether pull requests are blocked. Check the branch's ruleset before acting on either assumption — "we could not check" is not the same as "nothing is blocked".`;
+}
+
+/**
+ * The bypass paragraph, which is conditional on the paragraph above it.
+ *
+ * A bypass recipe printed unconditionally is how people end up applying an
+ * audited waiver label to a check that was never required — burning the audit
+ * trail the label exists to create, to buy a merge that was never blocked. That
+ * happened in TunnlAI/frontend.
+ *
+ * @param {{state: string}} claim - Effective claim
+ * @param {{branch: string, bypassLabel: string}} context - Reporting context
+ * @returns {ReadonlyArray<string>} Markdown lines
+ */
+function bypassParagraph(claim, context) {
+  const label = context.bypassLabel;
+  if (claim.state === REQUIREDNESS.notRequired) {
+    return [
+      `**Do you need a waiver? No.** This check is not required on \`${context.branch}\`, so applying the \`${label}\` label would waive nothing — it is an audited escape hatch for a gate that is actually holding a merge, and there is no merge being held. Do not spend one here.`,
+      "",
+    ];
+  }
+  const recipe = [
+    `1. Apply the \`${label}\` label to the pull request.`,
+    "2. Put a line in the **pull request body** naming a ticket and a reason:",
+    "",
+    "   ```",
+    "   Nightly-E2E-Bypass: ABC-123 hotfix for the outage; this suite is red for an unrelated harness bug",
+    "   ```",
+    "",
+    `3. The waiver is time-boxed and only an \`admin\` or \`maintain\` collaborator can grant one. It is recorded on the run, and the label is removed when the PR closes. This tracking issue stays open either way — a bypass waives ONE pull request, it does not make the nightly green.`,
+  ];
+  if (claim.state === REQUIREDNESS.required) {
+    return ["**If you must merge before this is fixed.**", "", ...recipe, ""];
+  }
+  return [
+    `**If you must merge before this is fixed.** ⚠️ Confirm first whether the gate is actually required on \`${context.branch}\` — that could not be read tonight. If it is not, the \`${label}\` label waives nothing and should not be applied. If it is:`,
+    "",
+    ...recipe,
+    "",
+  ];
 }
 
 /**
@@ -1682,7 +1879,8 @@ function issueTitle(finding) {
  * machine detail below a fold.
  *
  * @param {object} finding - A finding
- * @param {{branch: string, now: Date}} context - Reporting context
+ * @param {{branch: string, now: Date, requiredness: object, bypassLabel: string,
+ *   gateContext: string}} context - Reporting context
  * @returns {string} Markdown
  */
 function issueBody(finding, context) {
@@ -1690,13 +1888,22 @@ function issueBody(finding, context) {
   const runLine = finding.url
     ? `[the run that reported it](${finding.url})`
     : "the Actions tab";
+  const claim = suiteRequiredness(finding, context.requiredness);
+  const blockingCell = {
+    [REQUIREDNESS.required]: `yes — \`${context.gateContext}\` is a required status check on \`${context.branch}\``,
+    [REQUIREDNESS.notRequired]:
+      claim.source === "suite_opt_out"
+        ? 'no — declared `"gated": false` for this suite'
+        : `no — no required status check on \`${context.branch}\` matches \`${context.gateContext}\``,
+    [REQUIREDNESS.unknown]: `unknown — the branch rules could not be read${claim.detail ? ` (${claim.detail})` : ""}`,
+  }[claim.state];
   return [
     suiteMarker(finding.label),
     evidenceMarker(finding),
     "",
     `## The \`${finding.label}\` end-to-end suite is not passing on \`${context.branch}\``,
     "",
-    `**What this means.** Pull requests into \`${context.branch}\` are blocked until this suite is green again. That is deliberate: merging on top of a red suite is how a nightly ends up measuring days of accumulated damage instead of the change that broke it.`,
+    meaningParagraph(claim, context.branch),
     "",
     "**What to do, in order.**",
     "",
@@ -1704,6 +1911,7 @@ function issueBody(finding, context) {
     "2. Fix it, or — if the failure is in the test harness rather than the product — say so in a comment here so the next person does not re-diagnose it.",
     `3. Re-run the **whole** suite against \`${context.branch}\`. Leave any platform / tag / shard picker on its \`all\` default: a run that skipped an arm says nothing about that arm, and will not clear the gate.`,
     "",
+    ...bypassParagraph(claim, context),
     "**You do not need to close this issue.** It closes itself the moment a full green run lands, and it is refreshed automatically every night it is still red. Closing it by hand while the suite is red just means tonight re-opens the question.",
     "",
     "<details><summary>Details</summary>",
@@ -1713,6 +1921,7 @@ function issueBody(finding, context) {
     `| Suite | ${finding.label} |`,
     `| Workflow | \`${finding.workflow ?? "—"}\` |`,
     `| Branch | \`${context.branch}\` |`,
+    `| Blocks merges | ${blockingCell} |`,
     `| Newest run | ${finding.conclusion ?? "—"}${finding.createdAt ? ` at ${finding.createdAt}` : ""}${finding.event ? ` via \`${finding.event}\`` : ""} |`,
     `| Why it is not green | ${detail || finding.reason} |`,
     `| Last checked | ${context.now.toISOString()} |`,
@@ -1733,10 +1942,23 @@ function issueBody(finding, context) {
  *   (never run through `decide`, whose bootstrap rendering would hide a suite's
  *   real state from the reporter)
  * @param {ReadonlyArray<object>} openIssues - Open issues carrying the label
- * @param {{branch: string, label: string, now: Date}} context - Reporting context
+ * @param {{branch: string, label: string, now: Date, requiredness?: object,
+ *   bypassLabel?: string, gateContext?: string, pinIssues?: boolean}} context -
+ *   Reporting context
  * @returns {ReadonlyArray<object>} One plan entry per suite
  */
 export function planIssueActions(findings, openIssues, context) {
+  // Every renderer below reads these, and a caller that predates them must not
+  // crash the reporter — the reporting half is the half that must never take
+  // the gate down with it. An absent measurement is `unknown`, which is the
+  // same answer a failed one gets: honest, and never a claim in either
+  // direction.
+  const resolved = {
+    ...context,
+    requiredness: context.requiredness ?? { state: REQUIREDNESS.unknown },
+    bypassLabel: context.bypassLabel ?? "nightly-e2e-bypass",
+    gateContext: context.gateContext ?? DEFAULT_GATE_CONTEXT,
+  };
   return Object.freeze(
     findings.map(finding => {
       const marker = suiteMarker(finding.label);
@@ -1750,13 +1972,24 @@ export function planIssueActions(findings, openIssues, context) {
         .slice()
         .sort((left, right) => left.number - right.number);
       const numbers = Object.freeze(matches.map(issue => issue.number));
+      const nodeIds = Object.freeze(
+        matches.map(issue => issue.node_id ?? null).filter(Boolean)
+      );
+      const claim = suiteRequiredness(finding, resolved.requiredness);
       const base = {
         label: finding.label,
         state: finding.state,
         issues: numbers,
+        // Carried alongside the numbers because pinning is a GraphQL mutation
+        // and GraphQL addresses an issue by node id, never by number.
+        nodeIds,
+        requiredness: claim.state,
         title: null,
         body: null,
         comment: null,
+        // `null` is "do not touch the pin", which is what every entry gets when
+        // pinning is off. Distinct from `false`, which actively UNPINS.
+        pin: null,
       };
       const quiet = reason => ({
         ...base,
@@ -1776,8 +2009,9 @@ export function planIssueActions(findings, openIssues, context) {
             ...base,
             action: ISSUE_ACTIONS.create,
             reason: "red_filed",
-            title: issueTitle(finding),
-            body: issueBody(finding, context),
+            title: issueTitle(finding, resolved),
+            body: issueBody(finding, resolved),
+            pin: resolved.pinIssues === true ? true : null,
           };
         }
         // The oldest open match is the canonical one. A second match means a
@@ -1790,10 +2024,14 @@ export function planIssueActions(findings, openIssues, context) {
         return {
           ...base,
           issues: Object.freeze([matches[0].number]),
+          nodeIds: Object.freeze(
+            matches[0].node_id ? [matches[0].node_id] : []
+          ),
           action: ISSUE_ACTIONS.refresh,
           reason: "red_refreshed",
-          title: issueTitle(finding),
-          body: issueBody(finding, context),
+          pin: resolved.pinIssues === true ? true : null,
+          title: issueTitle(finding, resolved),
+          body: issueBody(finding, resolved),
           // A comment is a notification. One every night for the same failure
           // trains people to mute the issue that is supposed to be alerting
           // them, so only a CHANGE in the evidence earns one.
@@ -1805,11 +2043,28 @@ export function planIssueActions(findings, openIssues, context) {
 
       if (finding.state === SUITE_STATES.pass) {
         if (matches.length === 0) return quiet("green_untracked");
+        // The close comment carries the requiredness claim too. It is the LAST
+        // thing anyone reads on this issue and it is what gets quoted in a
+        // standup — an all-clear that says "merges are unblocked" about a gate
+        // that never blocked anything is the same falsehood as the one at the
+        // top of the body, just harder to catch because everyone is relieved.
+        const relief = {
+          [REQUIREDNESS.required]: ` Merges into \`${resolved.branch}\` are no longer held by this suite.`,
+          [REQUIREDNESS.notRequired]:
+            claim.source === "suite_opt_out"
+              ? " (This suite is tracked but does not gate merges, so nothing was blocked.)"
+              : ` (This suite is not a required check on \`${resolved.branch}\`, so nothing was blocked while it was red.)`,
+          [REQUIREDNESS.unknown]: ` (Whether this suite gates merges on \`${resolved.branch}\` could not be read, so this all-clear says nothing about merges.)`,
+        }[claim.state];
         return {
           ...base,
           action: ISSUE_ACTIONS.close,
           reason: "green_complete",
-          comment: `✅ Closing automatically: a complete green run landed for **${finding.label}** on \`${context.branch}\`.${finding.url ? `\n\n${finding.url}` : ""}`,
+          // Unpinning on green is not cosmetic. A pinned issue is the repo's
+          // "look at this" slot, and one that stays pinned after the suite
+          // recovers is how a pin board stops meaning anything.
+          pin: resolved.pinIssues === true ? false : null,
+          comment: `✅ Closing automatically: a complete green run landed for **${finding.label}** on \`${resolved.branch}\`.${relief ?? ""}${finding.url ? `\n\n${finding.url}` : ""}`,
         };
       }
 
@@ -1822,7 +2077,8 @@ export function planIssueActions(findings, openIssues, context) {
  * Renders the reporting outcome for the job log and summary.
  *
  * @param {ReadonlyArray<object>} results - Output of `applyIssuePlan`
- * @param {{branch: string}} context - Reporting context
+ * @param {{branch: string, requiredness?: object, gateContext?: string}} context -
+ *   Reporting context
  * @returns {string} Markdown
  */
 export function formatIssueReport(results, context) {
@@ -1832,10 +2088,21 @@ export function formatIssueReport(results, context) {
     close: "closed the tracking issue — the suite is green again",
     none: "left the tracking state alone",
   };
+  const state = context.requiredness?.state ?? REQUIREDNESS.unknown;
+  const gateContext = context.gateContext ?? DEFAULT_GATE_CONTEXT;
+  // Printed in the job log as well as the issues, so the measurement is
+  // auditable from the run that made it rather than only from its output.
+  const requirednessLine = {
+    [REQUIREDNESS.required]: `🔒 The gate **is required** on \`${context.branch}\` (\`${gateContext}\`) — a red suite blocks merges.`,
+    [REQUIREDNESS.notRequired]: `🔓 The gate is **not required** on \`${context.branch}\` — no required status check matches \`${gateContext}\`, so a red suite blocks nothing. The issues say so rather than claiming otherwise.`,
+    [REQUIREDNESS.unknown]: `⚪ Whether the gate is required on \`${context.branch}\` could not be read${context.requiredness?.detail ? ` (${context.requiredness.detail})` : ""}. The issues claim neither.`,
+  }[state];
   const lines = [
     "## 🌙 Nightly E2E tracking issues",
     "",
     `Branch: \`${context.branch}\``,
+    "",
+    requirednessLine,
     "",
   ];
   for (const result of results) {
@@ -1847,6 +2114,12 @@ export function formatIssueReport(results, context) {
         ? `- ✅ **${result.label}** — ${say[result.action] ?? result.action}${where} [${result.reason}]`
         : `- ⚠️ **${result.label}** — could not ${result.action} its tracking issue${where}: ${result.error}`
     );
+    // Visible, but never folded into the line's ✅/⚠️ marker: a pin that did
+    // not land is not a tracking issue that did not land, and the report must
+    // not teach a reader to treat them as the same thing.
+    for (const warning of result.warnings ?? []) {
+      lines.push(`  - 📌 ${warning}`);
+    }
   }
   lines.push(
     "",
@@ -2016,6 +2289,87 @@ export async function fetchAllJobs(api, runId, wait) {
 }
 
 /**
+ * Measures whether this gate actually blocks merges into one branch.
+ *
+ * REPORTING ONLY. Nothing on the gate path calls this, and it deliberately
+ * cannot fail the caller: it catches everything and answers `unknown`.
+ *
+ * That is not defensive padding, it is the contract. This measurement decorates
+ * an issue; the issue is the notification channel; §10.4 says an outage in the
+ * notification channel must never become an outage anywhere else. A reporter
+ * that aborted because it could not read a ruleset would stop filing the issues
+ * that tell people the suite is down — trading a missing sentence for a missing
+ * alert.
+ *
+ * `GET /repos/{owner}/{repo}/rules/branches/{branch}` is the right endpoint
+ * rather than `/branches/{branch}/protection`: it returns the EFFECTIVE rules
+ * for a branch from every source (repository rulesets, organization rulesets,
+ * and classic branch protection projected into the same shape), which is the
+ * question being asked. Reading a single ruleset by id would answer "is it in
+ * THIS ruleset", and a context required by an org-level ruleset would render as
+ * `not_required`.
+ *
+ * Note what a 404 means here and why it is `unknown` rather than
+ * `not_required`: `apiGet` maps 404 to `null`, and this endpoint 404s for a
+ * repository or branch it cannot see — including a token with too little scope.
+ * A branch that genuinely has no rules answers `200 []`, which IS
+ * `not_required`. Collapsing the two would report "nothing is blocking you"
+ * because we were not allowed to look.
+ *
+ * @param {object} api - API coordinates
+ * @param {string} branch - The branch whose rules are being read
+ * @param {string} gateContext - The status-check context this gate publishes
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<{state: string, detail: string|null, contexts: ReadonlyArray<string>}>}
+ *   The measurement, never a throw
+ */
+export async function fetchRequiredness(api, branch, gateContext, wait) {
+  const unknown = detail =>
+    Object.freeze({ state: REQUIREDNESS.unknown, detail, contexts: [] });
+  let result;
+  try {
+    result = await apiGet(
+      api,
+      `/repos/${api.repo}/rules/branches/${encodeURIComponent(branch)}`,
+      wait
+    );
+  } catch (error) {
+    return unknown(
+      `the branch-rules API was unreadable: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`
+    );
+  }
+  if (result === null) {
+    return unknown(
+      `\`GET /repos/${api.repo}/rules/branches/${branch}\` returned 404 — the branch or the repository is not visible to this token`
+    );
+  }
+  if (!Array.isArray(result.body)) {
+    return unknown(
+      "the branch-rules API returned something that is not a list of rules"
+    );
+  }
+  const contexts = Object.freeze(
+    result.body
+      .filter(rule => rule?.type === "required_status_checks")
+      .flatMap(rule => rule?.parameters?.required_status_checks ?? [])
+      .map(check => check?.context)
+      .filter(context => typeof context === "string")
+  );
+  const matched = contexts.filter(context =>
+    contextMatchesGate(context, gateContext)
+  );
+  return Object.freeze({
+    state:
+      matched.length > 0 ? REQUIREDNESS.required : REQUIREDNESS.notRequired,
+    detail:
+      matched.length > 0
+        ? `required as ${matched.map(context => `\`${context}\``).join(", ")}`
+        : null,
+    contexts,
+  });
+}
+
+/**
  * The artifact NAMES a run published, paginated to exhaustion.
  *
  * Names only — nothing here downloads an artifact, and the gate still has no zip
@@ -2174,6 +2528,80 @@ export async function apiWrite(api, method, path, payload, wait = sleep) {
 }
 
 /**
+ * Pins or unpins one tracking issue. BEST EFFORT — never throws.
+ *
+ * Pinning is GraphQL-only; REST has no equivalent, which is why this is the one
+ * place in the file that speaks a second protocol. GraphQL addresses an issue by
+ * NODE ID, not by number, so the plan carries `nodeIds` beside `issues`.
+ *
+ * It returns a warning instead of throwing for one specific reason: **GitHub
+ * allows at most three pinned issues per repository**, and the fourth
+ * `pinIssue` fails. That failure is entirely ordinary — a repo with three
+ * pinned issues and a fourth red suite is a Tuesday — and it says nothing about
+ * whether the tracking issue itself was written correctly. Letting it fail the
+ * reporting job would turn a decoration into a red check, and an operator who
+ * sees the report job go red every night for a full pin board learns to ignore
+ * the report job.
+ *
+ * Note also that a GraphQL error arrives as **HTTP 200 with an `errors` array**,
+ * not as a failing status. Checking `response.ok` alone would read the pin limit
+ * as a success and report a pin that never happened.
+ *
+ * @param {object} api - API coordinates, including `graphqlUrl`
+ * @param {string} nodeId - The issue's GraphQL node id
+ * @param {boolean} pinned - True to pin, false to unpin
+ * @returns {Promise<{ok: boolean, warning: string|null}>} Outcome, never a throw
+ */
+export async function setIssuePin(api, nodeId, pinned) {
+  const mutation = pinned ? "pinIssue" : "unpinIssue";
+  if (typeof nodeId !== "string" || nodeId.length === 0) {
+    return Object.freeze({
+      ok: false,
+      warning: `could not ${mutation}: the issue has no GraphQL node id`,
+    });
+  }
+  try {
+    const response = await fetch(api.graphqlUrl ?? `${api.apiUrl}/graphql`, {
+      method: "POST",
+      headers: {
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${api.token}`,
+        "content-type": "application/json",
+        "user-agent": "lisa-nightly-e2e-health",
+      },
+      body: JSON.stringify({
+        query: `mutation($id: ID!) { ${mutation}(input: {issueId: $id}) { issue { number } } }`,
+        variables: { id: nodeId },
+      }),
+    });
+    if (!response.ok) {
+      return Object.freeze({
+        ok: false,
+        warning: `${mutation} returned HTTP ${response.status}`,
+      });
+    }
+    const body = await response.json();
+    if (Array.isArray(body?.errors) && body.errors.length > 0) {
+      const first = body.errors[0]?.message ?? "unknown GraphQL error";
+      return Object.freeze({
+        ok: false,
+        warning: `${mutation} was refused: ${first}${
+          /pinned|limit/i.test(String(first))
+            ? " (GitHub allows at most 3 pinned issues per repository — the tracking issue was still filed and refreshed correctly)"
+            : ""
+        }`,
+      });
+    }
+    return Object.freeze({ ok: true, warning: null });
+  } catch (error) {
+    return Object.freeze({
+      ok: false,
+      warning: `${mutation} could not be sent: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}
+
+/**
  * Every OPEN issue carrying the tracking label, paginated to exhaustion.
  *
  * Read through the issues LIST rather than the search API on purpose. Search is
@@ -2238,6 +2666,21 @@ export async function applyIssuePlan(api, plan, wait) {
       action: entry.action,
       reason: entry.reason,
       issues: entry.issues,
+      requiredness: entry.requiredness ?? null,
+      warnings: Object.freeze([]),
+    };
+    // Pins are applied AFTER the write that matters has landed, and their
+    // outcome is collected as warnings rather than folded into `ok`. `ok`
+    // answers "was the tracking issue written", which is what the job's exit
+    // code is derived from; a full pin board must not redden the report.
+    const pin = async nodeIds => {
+      if (entry.pin === null || entry.pin === undefined) return [];
+      const outcomes = await Promise.all(
+        nodeIds.map(nodeId => setIssuePin(api, nodeId, entry.pin))
+      );
+      return outcomes
+        .filter(outcome => !outcome.ok)
+        .map(outcome => outcome.warning);
     };
     try {
       if (entry.action === ISSUE_ACTIONS.create) {
@@ -2255,6 +2698,7 @@ export async function applyIssuePlan(api, plan, wait) {
         results.push({
           ...base,
           issues: Object.freeze([created.number]),
+          warnings: Object.freeze(await pin([created.node_id])),
           ok: true,
           error: null,
         });
@@ -2278,10 +2722,20 @@ export async function applyIssuePlan(api, plan, wait) {
             wait
           );
         }
-        results.push({ ...base, ok: true, error: null });
+        results.push({
+          ...base,
+          warnings: Object.freeze(await pin(entry.nodeIds ?? [])),
+          ok: true,
+          error: null,
+        });
         continue;
       }
       if (entry.action === ISSUE_ACTIONS.close) {
+        // Unpin BEFORE closing. A closed issue can still be unpinned, but
+        // ordering it this way means the pin board is already correct at the
+        // instant the issue disappears from the open list — there is no window
+        // where the repo advertises a pinned issue that is closed.
+        const warnings = await pin(entry.nodeIds ?? []);
         for (const number of entry.issues) {
           if (entry.comment) {
             await apiWrite(
@@ -2300,7 +2754,12 @@ export async function applyIssuePlan(api, plan, wait) {
             wait
           );
         }
-        results.push({ ...base, ok: true, error: null });
+        results.push({
+          ...base,
+          warnings: Object.freeze(warnings),
+          ok: true,
+          error: null,
+        });
         continue;
       }
       results.push({ ...base, ok: true, error: null });
@@ -2444,8 +2903,22 @@ export function resolveSettings(env) {
       // Carried on the API coordinates so the reporting writes cannot be
       // labelled differently from the reads that look for them.
       issueLabel: env.NIGHTLY_ISSUE_LABEL || TRACKING_ISSUE_LABEL,
+      // GHES publishes GraphQL somewhere other than `${apiUrl}/graphql`, and
+      // the runner already exports the right value.
+      graphqlUrl:
+        env.GITHUB_GRAPHQL_URL ||
+        `${env.GITHUB_API_URL || "https://api.github.com"}/graphql`,
     },
     issueLabel: env.NIGHTLY_ISSUE_LABEL || TRACKING_ISSUE_LABEL,
+    // Reporting-only settings. The gate reads none of them, which is why they
+    // carry defaults rather than failing when absent — a gate that could be
+    // configured into silence by omitting a variable is the shape this file
+    // refuses, but the REPORTER's equivalent risk is the opposite one: a
+    // missing decoration must not stop the notification going out.
+    gateContext: (env.NIGHTLY_GATE_CONTEXT || DEFAULT_GATE_CONTEXT).trim(),
+    // Opt-in. Pinning writes to a repository-wide, three-slot surface that
+    // nothing else in this file touches, so it stays off until a caller asks.
+    pinIssues: /^(1|true|yes)$/i.test(String(env.NIGHTLY_PIN_ISSUES ?? "")),
     branch,
     suites: validateSuites(env.NIGHTLY_SUITES),
     freshnessHours: limits.freshnessHours,
@@ -2566,20 +3039,43 @@ export async function runReport(env, wait) {
     settings.branch,
     wait
   );
-  const findings = settings.suites.map((suite, index) =>
-    assessSuite(suite, observations[index], {
+  const findings = settings.suites.map((suite, index) => {
+    const finding = assessSuite(suite, observations[index], {
       branch: settings.branch,
       freshnessHours: settings.freshnessHours,
       now,
-    })
+    });
+    // Attached only when the caller actually declared the suite ungated, so an
+    // untouched suite table produces byte-identical findings — the same shape
+    // `runGate` uses for `grace`.
+    return suite.gated === false ? { ...finding, gated: false } : finding;
+  });
+  // Measured, not assumed, and measured ONCE per report rather than per suite:
+  // requiredness is a property of the branch, and asking N times would be N
+  // chances to get N different answers into one report.
+  const requiredness = await fetchRequiredness(
+    settings.api,
+    settings.branch,
+    settings.gateContext,
+    wait
   );
+  const context = {
+    branch: settings.branch,
+    label: settings.issueLabel,
+    now,
+    requiredness,
+    gateContext: settings.gateContext,
+    bypassLabel: settings.bypassLabel,
+    pinIssues: settings.pinIssues,
+  };
   const plan = planIssueActions(
     findings,
     await fetchTrackingIssues(settings.api, settings.issueLabel, wait),
-    { branch: settings.branch, label: settings.issueLabel, now }
+    context
   );
   return {
     findings,
+    requiredness,
     plan,
     results: await applyIssuePlan(settings.api, plan, wait),
     settings,
@@ -2616,9 +3112,26 @@ async function reportIssues(asJson) {
   } else {
     const report = formatIssueReport(machine.results, {
       branch: settings.branch,
+      requiredness: machine.requiredness,
+      gateContext: settings.gateContext,
     });
     process.stdout.write(report);
     await appendSummary(report);
+  }
+  // An `unknown` requiredness is annotated on the run, because it means every
+  // issue this report touched is deliberately silent about merge consequences —
+  // and the reason (a scope, a rename, an outage) is fixable.
+  if (machine.requiredness?.state === REQUIREDNESS.unknown) {
+    process.stderr.write(
+      `::warning title=Nightly E2E requiredness unknown::Could not read \`${settings.branch}\`'s branch rules, so the tracking issues claim neither that merges are blocked nor that they are not. ${machine.requiredness.detail ?? ""}\n`
+    );
+  }
+  for (const result of machine.results) {
+    for (const warning of result.warnings ?? []) {
+      process.stderr.write(
+        `::warning title=Nightly E2E tracking issue not pinned::${result.label} — ${warning}\n`
+      );
+    }
   }
   const failed = machine.results.filter(result => !result.ok);
   for (const result of failed) {
