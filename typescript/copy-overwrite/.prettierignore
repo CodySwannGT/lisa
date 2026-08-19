@@ -42,10 +42,47 @@ amplify
 # No-op for projects without an OpenCode mirror.
 .opencode
 
-# Lisa ships scripts/lisa-mutation.mjs as a managed helper, formatted in Lisa's
-# own Prettier style (single quotes). Host projects run varying Prettier configs
-# (commonly the default double-quote style), so the managed script would trip
-# their `prettier --check .` gate through no fault of the host. Keep it out of
-# the format gate. The rails counterpart (scripts/lisa-mutation.sh) is already
-# covered by the *.sh rule above. No-op for projects without it.
+# Lisa ships managed helper scripts into scripts/, formatted in Lisa's own
+# Prettier style. Host projects run varying Prettier configs, so a managed
+# script trips their `prettier --check .` gate through no fault of the host —
+# and reformatting it locally does not help either: copy-overwrite replaces the
+# file on the next `lisa apply`, so the host and Lisa would reformat it against
+# each other forever.
+#
+# This was previously one hand-added line for scripts/lisa-mutation.mjs, added
+# when that file happened to bite someone. Measured 2026-08-19: 13 of the 14
+# other shipped scripts were uncovered, and a consumer's bump went red on
+# scripts/check-e2e-coverage.mjs. Enumerating them one incident at a time means
+# every new managed script reintroduces the same failure. The set is now
+# enumerated in full and a test derives the shipped list and fails when one is
+# missing — or when one is listed that Lisa no longer ships, which would silence
+# a HOST file of that name. Enumerated rather than globbed on purpose:
+# scripts/check-*.mjs would cover every shipped check- script in one line, and
+# would also stop formatting a host'"'"'s own check-something.mjs.
+#
+# The rails counterpart (scripts/lisa-mutation.sh) is already covered by the
+# *.sh rule above. All no-ops for projects without these files.
+scripts/bdd-matrix.mjs
+scripts/check-bdd-coverage.mjs
+scripts/check-e2e-coverage.mjs
+scripts/check-nightly-e2e-health.mjs
+scripts/check-skipped-required-checks.mjs
+scripts/check-state-classification.mjs
+scripts/check-threshold-ratchet.mjs
+scripts/check-verification-coverage.mjs
+scripts/classify-maestro-failures.mjs
+scripts/lisa-command-envelope.mjs
+scripts/lisa-destructive-guard.mjs
+scripts/lisa-environment-prepare.mjs
+scripts/lisa-floor-collisions.mjs
+scripts/lisa-gates.mjs
+scripts/lisa-lint-staged-preflight.mjs
 scripts/lisa-mutation.mjs
+scripts/lisa-postinstall.mjs
+scripts/lisa-reconcile-policy.mjs
+scripts/lisa-run-gates.mjs
+scripts/lisa-schema-validate.mjs
+scripts/lisa-test-node.mjs
+scripts/lisa-work-item.mjs
+scripts/threshold-ratchet-compare.mjs
+scripts/threshold-ratchet-families.mjs
