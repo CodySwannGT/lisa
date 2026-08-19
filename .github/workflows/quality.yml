@@ -3070,28 +3070,86 @@ jobs:
           if ! gh api "$pr_probe" >/dev/null 2>&1; then
             scope_gap "pull-requests: read"
           fi
-          # Needed only for `tracker: github`, whose backlink check reads the
-          # tracker issue. jira/linear read their own APIs with their own
-          # credentials, handled below.
-          if [ "$tracker" = "github" ] && \
+          # How much of the contract this project asked to have proved. The
+          # validator owns the precedence rules (config key, environment
+          # override, default); re-deriving them here in shell would be a
+          # second parser of the same declaration, which is the drift #2721
+          # removed elsewhere in this gate.
+          #
+          # A repository's COPY of the validator updates on its own schedule
+          # while this workflow is consumed @main, so the copy here may predate
+          # the subcommand. That copy can only ever prove the full contract, so
+          # it is reported as `full` and the degrade path below refuses to
+          # pretend otherwise.
+          verify_err="$(mktemp)"
+          if verify="$(node scripts/lisa-work-item.mjs verify-level 2>"$verify_err")"; then
+            levelled=1
+          elif grep -q "Usage: lisa-work-item.mjs" "$verify_err"; then
+            # The validator's own usage text is what an UNKNOWN SUBCOMMAND
+            # produces, and it is the only signature that means "this copy is
+            # older than the subcommand". Reading every failure as staleness
+            # would swallow a broken config into a silent `full`.
+            levelled=0
+            verify=full
+            echo "::warning::scripts/lisa-work-item.mjs predates workItem.verify (#2721), so this run proves the FULL contract regardless of what .lisa.config.json declares. Run 'lisa apply' to update the copied script."
+          else
+            # Anything else is a real refusal — an unrecognised level, an
+            # unreadable config — and it is reported as one. A typo quietly
+            # resolving to a level is exactly what the validator refuses to do,
+            # and re-introducing that here would undo it.
+            cat "$verify_err"
+            echo "::error::Work-Item Traceability could not resolve its verification level. The validator's refusal is printed above; it is a configuration fault, not a missing trailer."
+            rm -f "$verify_err"
+            exit 1
+          fi
+          rm -f "$verify_err"
+          echo "Work-item verification level: $verify"
+          # Needed only when the tracker item is actually READ, which is only
+          # under `full`. A trailer-only project proves its reference from the
+          # commits and the body alone, so demanding issues:read of it would
+          # fail a gate over a scope nothing in the run consumes.
+          if [ "$verify" = "full" ] && [ "$tracker" = "github" ] && \
              ! gh api "repos/${GITHUB_REPOSITORY}/issues?per_page=1" >/dev/null 2>&1; then
             scope_gap "issues: read"
           fi
-          # Credential readiness for the non-GitHub trackers. These remain
-          # warn-and-skip rather than fail: mapping a secret is a different axis
-          # from granting a token scope, with a different blast radius, and
-          # #2476 scoped only the scope gap. It is a KNOWN remaining fail-open —
-          # a jira/linear repo with unmapped credentials still reports success
-          # while checking nothing.
-          if [ "$tracker" = "jira" ] && { [ -z "${JIRA_API_TOKEN:-}" ] || [ -z "${JIRA_LOGIN:-}" ]; }; then
-            echo "::warning::tracker is jira but JIRA_API_TOKEN/JIRA_LOGIN are not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map both secrets in the caller's ci.yml to enable it."
-            exit 0
+          # Credential readiness for the non-GitHub trackers, under `full` only.
+          #
+          # This used to `exit 0` with a warning, and #2476 knowingly left it as
+          # the last fail-open in this gate: a jira or linear repository whose
+          # secret was unmapped got a GREEN required check having verified
+          # nothing — no trailer, no body line, no backlink. One consumer maps
+          # a secret that resolves to the EMPTY STRING, which lands in exactly
+          # this branch.
+          #
+          # A missing credential is now what it always was — an inability to
+          # prove requirements 2-4 — and it degrades to the level that needs no
+          # credential rather than to nothing. The reference checks still run
+          # and a missing trailer still fails the job. The warning stays loud,
+          # because a project that declared `full` and is getting `trailer` has
+          # a gap to close.
+          credential_gap=""
+          if [ "$verify" = "full" ] && [ "$tracker" = "jira" ] && { [ -z "${JIRA_API_TOKEN:-}" ] || [ -z "${JIRA_LOGIN:-}" ]; }; then
+            credential_gap="JIRA_API_TOKEN/JIRA_LOGIN"
           fi
-          if [ "$tracker" = "linear" ] && [ -z "${LINEAR_API_KEY:-}" ]; then
-            echo "::warning::tracker is linear but LINEAR_API_KEY is not mapped to this workflow — work-item traceability cannot verify the tracker backlink and is NOT enforced. Map the secret in the caller's ci.yml to enable it."
-            exit 0
+          if [ "$verify" = "full" ] && [ "$tracker" = "linear" ] && [ -z "${LINEAR_API_KEY:-}" ]; then
+            credential_gap="LINEAR_API_KEY"
           fi
-          node scripts/lisa-work-item.mjs validate-pr
+          if [ -n "$credential_gap" ]; then
+            echo "::warning::tracker is $tracker and workItem.verify is \"full\", but $credential_gap is not mapped to this workflow. The tracker checks (repo scope, claimed state, PR backlink) CANNOT run; the Work-Item reference itself is still enforced. Map the secret in the caller's ci.yml to restore them, or declare workItem.verify=\"trailer\" if that is the intent."
+            if [ "$levelled" = "1" ]; then
+              verify=trailer
+            else
+              # The one place this job still reports success without proving
+              # anything, and it is bounded to a repository whose COPIED
+              # validator predates #2721: that copy has no trailer-only level to
+              # fall back to, and hard-failing it would redden every pull
+              # request in a repository that did nothing wrong on a schedule it
+              # did not choose. It self-heals on the next `lisa apply`.
+              echo "::warning::This repository's copied validator predates the trailer-only level, so there is nothing to degrade to and the gate is NOT enforced on this run. Run 'lisa apply' to update scripts/lisa-work-item.mjs."
+              exit 0
+            fi
+          fi
+          LISA_WORK_ITEM_VERIFY="$verify" node scripts/lisa-work-item.mjs validate-pr
 
   test_node_suites:
     permissions:
