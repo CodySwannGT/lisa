@@ -28,17 +28,74 @@ Six, fixed. Projects declare which of them are typed; they never invent a sevent
 
 ## Regime detection
 
-**Query the published variable collections, per-axis. Never ask a human, and never assume.**
+**Derive the regime per-axis from what the design source actually publishes. Never ask a human, and never assume.**
 
-An axis is **typed** when the authoritative design source (`design.tokens.source`) publishes a variable collection covering it, and **untyped** when it does not. Detection runs per work item, not once per project, because a design system grows: the axis that was untyped last month may be typed today, and the answer has to come from the live collections rather than from a cached judgment.
+An axis is **typed** when the design source publishes a variable collection covering it, and **untyped** when it does not.
 
-Regime detection is the one step that must never degrade quietly. If the collections cannot be listed — no access, an unreachable source, an ambiguous file reference — the axes are **unknown**, and unknown is a block, not a default to untyped. Defaulting to untyped on a failed query converts every access problem into silent permission to hardcode.
+### The obvious implementation does not work headlessly
+
+This is measured, not assumed, and it is load-bearing for everything below.
+
+| Route | Gives names? | Usable headlessly? |
+|---|---|---|
+| Variables REST (`/v1/files/:key/variables/local`) | yes | **no** — Enterprise-plan only. The read scope is not offered in the token scope picker on other plans, so no token change unlocks it. |
+| Design-tool MCP (`get_variable_defs`) | yes, every plan | **no** — browser OAuth. Cron, CI, and a subagent cannot perform it. |
+| `/v1/files/:key/nodes` | **no** — opaque `VariableID:106:15` | **yes**, on a plain personal access token |
+
+A gate built on either of the first two works in an interactive session and silently no-ops in cron and CI — a control that reports success while inert, which is the exact defect class this repository exists to remove.
+
+### The committed id map
+
+The id→name mapping is **static**. So it is resolved once, interactively, by `design-variable-ids.mjs`, committed to the repo, and `design-bindings-probe.mjs` runs headlessly against the access token alone forever after. An axis is typed when the committed map names at least one variable in its namespace (`space/`, `radius/`, `content/`, … — overridable through `design.tokens.namespaces`, because the namespace vocabulary belongs to the design system, not to Lisa).
+
+The generator joins MCP `{name: value}` against REST `{VariableID: value}` on the same nodes. Value alone is ambiguous wherever two variables share a value, so three signals separate them: **property kind** (a padding can only bind a spacing variable), the **light+dark signature** (same-valued variables in light mode diverge in dark — this is the signal that takes the map to complete), and **single occupancy** (a node containing exactly one tied id and exactly one tied name forces the pairing). A tie that survives all three is recorded as ambiguous, never resolved by taking the first candidate.
+
+### Staleness is self-detecting
+
+An id the committed map has never seen makes the probe **fail loudly**, naming the id and telling you to regenerate. It never silently resolves to the wrong variable. That property is the entire reason a committed map is safe to trust, and it is why an unknown id is a block rather than a warning.
+
+### Two API traps that silently under-report
+
+Both cost a real measurement, and both fail green rather than loudly, which is worse.
+
+1. **`rectangleCornerRadii` binds as an object keyed by corner constants** — `{RECTANGLE_TOP_LEFT_CORNER_RADIUS: {type,id}, …}`. It is neither an array nor itself a reference, so a reader handling only the scalar and array shapes reports **zero bound radii on a fully bound file**. Normalise all three shapes.
+2. **Figma omits zero-valued properties from the REST payload.** Boundness must be read from `boundVariables` directly, never inferred from a resolved value being present — otherwise a padding bound to a zero-valued spacing variable vanishes. Reading it correctly moved one measured frame from 55% to 82%.
+
+### Measure the subtree, not the enclosing screen
+
+A frame-level read counts the chrome behind a modal and over-reports. One measured work item scored 14 bound values at frame level and **zero** inside the modal subtree it actually had to build; applying this rule changed 5 of 11 real work-item verdicts. Probe the node you will build.
 
 ### Why the lint rung takes the regime as configuration instead
 
-ESLint runs on source text with no network and no design-tool session, so `ui-standards/no-unbound-design-value` cannot perform this query. It takes the typed axes as its `typedAxes` option, which mirrors `design.tokens.axes`, and reports nothing when that list is empty.
+ESLint runs on source text with no network and no design-tool session, so `ui-standards/no-unbound-design-value` cannot read the map at all. It takes the typed axes as its `typedAxes` option, which mirrors `design.tokens.axes`, and reports nothing when that list is empty.
 
-This is a real difference in kind, and it is worth being precise about: the intake gate's regime is **observed**, the lint rule's regime is **declared**. The declared list can go stale relative to the published collections. It is still the correct division — an over-firing lint rule is a disabled lint rule, and a lint rule that silently skipped an axis it could not verify would be worse than one that skips an axis nobody declared. Intake is the arm that sees the truth; lint is the arm that catches the same defect at authoring time on the axes the project has already committed to.
+The intake probe's regime is **observed**; the lint rule's is **declared**, and the declared list can go stale relative to the map. It is still the correct division — an over-firing lint rule is a disabled lint rule, and a rule that silently skipped an axis it could not verify would be worse than one that skips an axis nobody declared. Intake is the arm that sees the truth; lint is the arm that catches the same defect at authoring time on the axes the project has already committed to.
+
+## A design source is optional
+
+**This matters more than any other requirement in this contract.** Most projects have no designs at all. Detect and skip cleanly:
+
+| Condition | Outcome |
+|---|---|
+| `design.tokens.source` unset | **SKIPPED**, exit 0, reason printed |
+| No access token in the environment | **SKIPPED**, exit 0, reason printed |
+| No committed id map | **SKIPPED**, exit 0, with the command to create one |
+
+Never a silent pass, and never a block. A mandatory gate on an absent integration breaks every non-design project on upgrade, which is a worse outcome than any drift it would have caught.
+
+## Every failure names an owner
+
+Three failures, two owners. Conflating them sends the wrong person the wrong work.
+
+| Owner | Failure | Meaning | Action |
+|---|---|---|---|
+| **design** | Unbound values | The design paints literals where variables exist. | Block the work item with the exact bind-list, most frequent first. |
+| **us** | Unknown id | Our committed map is stale. The value IS bound. | Regenerate the map. Never the designer's problem. |
+| **us** | Ambiguous id | Two variables share a value; our map cannot say which. | Disambiguate with a dark-mode reference frame, or record the choice by hand. Still a failure — guessing is what the contract forbids. |
+
+## The threshold is 100%, and relaxing it is visible
+
+The default is the contract as written: any literal in a required axis fails. A `--min` flag exists so that a deliberate, reviewable policy decision can be made **on the command line where it is visible**, rather than by quietly softening the gate in code — which is the exact failure the gate was written to prevent.
 
 ## The five block conditions
 
@@ -94,8 +151,11 @@ Read from `.lisa.config.json`, with `.lisa.config.local.json` overriding per key
 
 | Key | Required | Description |
 |---|---|---|
-| `design.tokens.source` | to run intake | The authoritative design source — the file or library whose published variable collections define the regime. |
-| `design.tokens.axes` | no | Axes the project declares typed. Mirrors what the collections publish; consumed by the lint rung, which cannot query. Absent means the lint rule reports nothing. |
+| `design.tokens.source` | to run intake | The authoritative design source — the file key whose published variables define the regime. **Absent means SKIPPED, not blocked.** |
+| `design.tokens.idMap` | no | Path to the committed variable-id map. Defaults to `docs/design-system/figma-variable-ids.json`. |
+| `design.tokens.namespaces` | no | Axis → variable-name prefixes, deciding which axis a variable belongs to. The namespace vocabulary is the design system's, not Lisa's, so this overrides the defaults rather than extending them. |
+| `design.tokens.nameMap` | no | Variable name → repo token name. Identity-ish by default (`a/b` → `a-b`), because the mapping is project vocabulary. |
+| `design.tokens.axes` | no | Axes the project declares typed. Mirrors what the map publishes; consumed by the lint rung, which cannot read the map. Absent means the lint rule reports nothing. |
 | `design.escalation.assignee` | **yes** | Who a blocked item is assigned to. |
 | `design.escalation.label` | no | Additive marker applied alongside the `blocked` role. |
 
@@ -139,4 +199,6 @@ Projects that carry their own design-system rules (`figma-design-system`, `desig
 
 Adoption never demands a retroactive backfill. Intake judges the work item in front of it, and the lint rung judges the code being written. Pre-existing unbound values are burndown — recorded, worked down, and increasingly visible through the derived-value inventory — not this work item's blocker.
 
-A project with no variable system at all is not exempt and not blocked: every axis is untyped, everything is measured, and every measurement is recorded. The resulting inventory is the honest record of what a token system would need to cover, which is exactly the input the project needs before it builds one.
+A project with a design source but no variable system at all is not exempt and not blocked: every axis is untyped, everything is measured, and every measurement is recorded. The resulting inventory is the honest record of what a variable system would need to cover, which is exactly the input the project needs before it builds one.
+
+A project with **no design source at all** is SKIPPED entirely — see "A design source is optional" above. That is not a weaker form of the same treatment; it is the correct answer, and getting it wrong breaks every project that has no designs.

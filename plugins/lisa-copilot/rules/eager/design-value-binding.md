@@ -8,7 +8,7 @@ This is **not** `design-source-of-truth`. That contract asks whether a changed s
 
 ## Regime is per-dimension, not per-project
 
-Resolve the source of truth **per-axis** — colour, spacing, typography, radius, elevation, motion — by querying the published variable collections. **Never by asking a human**, and never once per project.
+Resolve the source of truth **per-axis** — colour, spacing, typography, radius, elevation, motion — from what the design source **actually publishes**. **Never by asking a human**, and never once per project.
 
 The axis vocabulary is fixed, and the identifiers are what the config and the lint rule use: `color`, `spacing`, `typography`, `radius`, `elevation`, `motion`. Projects declare which of them are typed; they never invent a seventh.
 
@@ -18,6 +18,12 @@ The axis vocabulary is fixed, and the identifiers are what the config and the li
 | no (**untyped**) | visual measurement | measure it, and record what you derived |
 
 A library with a mature colour system and no spacing scale is the common case and must work: colour blocks while spacing gets measured, in the same work item, without contradiction.
+
+**Asking the design tool "which collections are published?" does not work headlessly, and that is measured.** The Variables REST endpoint returns names but is Enterprise-plan only; the design-tool MCP returns names on every plan but authenticates by browser OAuth, which cron, CI, and a subagent cannot perform. A gate built on either runs interactively and silently no-ops everywhere else. So the regime is derived from a **committed variable-id map**: `/v1/files/:key/nodes` reports every binding as an opaque `VariableID`, that id→name mapping is static, and `design-variable-ids.mjs` resolves it once interactively so `design-bindings-probe.mjs` runs headlessly on a plain access token forever after. An axis is typed when the committed map names at least one variable in its namespace.
+
+**Staleness is self-detecting, and that is what makes a committed map safe to trust.** An id the map has never seen fails loudly telling you to regenerate; it never silently resolves to the wrong variable.
+
+**Measure the subtree you are implementing, not the enclosing screen.** A frame-level read counts the chrome behind a modal and over-reports — one measured work item scored 14 bound values at frame level and zero inside the modal subtree it actually had to build.
 
 ## Block on *unbound*, never on *unsure*
 
@@ -52,8 +58,23 @@ The escalation target, label, and authoritative design source are host configura
 
 The blocked comment is written for the non-technical operator standing at the gate: plain language, no engineering vocabulary, naming the specific missing artifact and what to do about it.
 
-## The gate fails closed
+## A design source is OPTIONAL; a configured one fails closed
 
-`scripts/design-intake-gate.mjs` decides deterministically, and `/lisa:design:intake` carries the judgment that feeds it. Facts it could not gather are a block with a named reason, never a quiet pass — a gate that passes on what it could not look at proves nothing. The lint rung (`ui-standards/no-unbound-design-value`) catches the same defect at authoring time, and is silent on any axis the project has not declared typed.
+**Most projects have no designs, and this contract must not break them.** No configured design source, no access token, or no committed id map is **SKIPPED** — loudly, exit 0. A mandatory gate on an absent integration breaks every non-design project on upgrade, which is a worse outcome than any drift it would have caught.
+
+Where a design source *is* configured, the gate fails closed: `scripts/design-bindings-probe.mjs` gathers the facts, `scripts/design-intake-gate.mjs` decides deterministically, and `/lisa:design:intake` carries the judgment between them. Facts it could not gather are a block with a named reason, never a quiet pass. The threshold is **100% by default** — the rule as written — with a `--min` flag so any relaxation is an explicit reviewable decision on the command line rather than a quiet softening in code.
+
+The lint rung (`ui-standards/no-unbound-design-value`) catches the same defect at authoring time, and is silent on any axis the project has not declared typed.
+
+## Every failure names an OWNER
+
+Conflating these sends the wrong person the wrong work.
+
+| Owner | Failure | What happens |
+|---|---|---|
+| **design** | Values are unbound. | Block the work item with the exact bind-list. |
+| **us** | The committed id map is stale or ambiguous. | The values ARE bound; regenerate the map. Not the designer's problem. |
+
+An ambiguous id is still a failure even though nothing is wrong in the design: two variables share a value, our map cannot say which one is meant, and guessing is exactly what this contract forbids.
 
 Full contract (axis vocabulary, the five conditions in detail, config schema, comment grammar, escalation routing): [reference/design-value-binding.md](../reference/design-value-binding.md).

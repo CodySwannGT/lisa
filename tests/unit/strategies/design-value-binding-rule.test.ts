@@ -91,6 +91,69 @@ describe("design-value-binding rule contract", () => {
       }
     });
 
+    it("records that a live collection query is not headlessly possible", () => {
+      // The premise this contract was first written on. Losing it invites a
+      // rewrite to the "obvious" implementation, which works interactively and
+      // silently no-ops in cron and CI.
+      for (const body of [eager, reference]) {
+        expect(body).toMatch(/Enterprise-plan only/u);
+        expect(body).toMatch(/browser OAuth/u);
+      }
+      expect(reference).toContain("/v1/files/:key/nodes");
+    });
+
+    it("derives the regime from a committed id map whose staleness is self-detecting", () => {
+      for (const body of [eager, reference]) {
+        expect(body).toMatch(/committed variable-id map|committed id map/u);
+        expect(body).toMatch(/fail loudly|fails loudly/u);
+        expect(body).toMatch(/never silently resolves to the wrong variable/u);
+      }
+    });
+
+    it("carries both silent under-reporting traps in the reference body", () => {
+      expect(reference).toContain("rectangleCornerRadii");
+      expect(reference).toMatch(/zero bound radii on a fully bound file/u);
+      expect(reference).toMatch(/omits zero-valued properties/u);
+      expect(reference).toMatch(/never inferred from a resolved value/u);
+    });
+
+    it("requires the implemented subtree to be measured, not the enclosing frame", () => {
+      for (const body of [eager, reference]) {
+        expect(body).toMatch(/subtree/u);
+      }
+      expect(reference).toMatch(/14 bound values at frame level/u);
+    });
+
+    it("makes the design source optional, and says so on both sides", () => {
+      // The requirement that outranks every other one here: a mandatory gate on
+      // an absent integration breaks every project with no designs.
+      for (const body of [eager, reference]) {
+        expect(body).toContain("SKIPPED");
+        expect(body).toMatch(
+          /breaks every (non-design project|project that has no designs)/u
+        );
+      }
+    });
+
+    it("attributes every failure to an owner, keeping design and us distinct", () => {
+      for (const body of [eager, reference]) {
+        expect(body).toMatch(/\*\*design\*\*/u);
+        expect(body).toMatch(/\*\*us\*\*/u);
+        expect(body).toMatch(/stale|ambiguous/u);
+      }
+      expect(eager).toMatch(/wrong person the wrong work/u);
+    });
+
+    it("defaults the threshold to 100% and keeps any relaxation visible", () => {
+      for (const body of [eager, reference]) {
+        expect(body).toContain("100%");
+        expect(body).toContain("--min");
+      }
+      expect(reference).toMatch(
+        /rather than by quietly softening the gate in code/u
+      );
+    });
+
     it("carries all five block conditions on both sides", () => {
       for (const condition of BLOCK_CONDITIONS) {
         expect(eager).toContain(condition);
