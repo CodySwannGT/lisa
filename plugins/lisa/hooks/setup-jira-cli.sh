@@ -3,6 +3,13 @@
 # Writes the JIRA CLI config file from environment variables.
 # Runs on SessionStart so the config is available for every session.
 #
+# Gated on the project's configured tracker: this only writes anything when
+# `.lisa.config*.json` declares `tracker: "jira"`. A project on Linear or GitHub
+# Issues has no use for a jira-cli config, and writing one made a false implicit
+# claim about which tracker the project runs on. The gate fails closed — an
+# unreadable or absent tracker writes nothing — because Lisa treats a missing
+# `tracker` as unconfigured rather than as a jira default (see lisa-tracker-read).
+#
 # Required env vars (must be created in your Claude Code Web environment):
 #   JIRA_INSTALLATION - cloud or local
 #   JIRA_SERVER       - Atlassian instance URL (falls back to .lisa.config*.json atlassian.site)
@@ -41,6 +48,11 @@ read_lisa_config() {
 
   printf '%s' "${value}"
 }
+
+# Tracker gate: do nothing unless this project actually runs on JIRA.
+if [[ "$(read_lisa_config '.tracker')" != "jira" ]]; then
+  exit 0
+fi
 
 if [[ -z "${JIRA_SERVER:-}" ]]; then
   ATLASSIAN_SITE="$(read_lisa_config '.atlassian.site')"

@@ -28,7 +28,7 @@ This skill ships in the base Lisa plugin and is distributed to every host projec
 discover requirements **dynamically from the repo** rather than assuming Lisa-repo specifics. It
 audits two layers together:
 
-- **Lisa's needs** — startup hooks (`install-pkgs.sh`, `setup-jira-cli.sh`, rule injection),
+- **Lisa's needs** — startup hooks (`install-pkgs.sh`, `setup-jira-cli.sh` — tracker-gated, rule injection),
   the configured `tracker`/`source`, and the CLIs/MCP/env those imply.
 - **The host project's needs** — its own package manager, build/test tooling, app runtime
   dependencies, CI-assumed binaries, and project-scoped MCP servers.
@@ -71,7 +71,9 @@ Group the findings as:
    runs, whether it is headless-safe, whether it needs network or write access to system paths,
    and whether it fits the cloud setup-script time budget (~5 minutes for environment caching;
    `SessionStart` hooks re-run every session and must be fast). Lisa's `install-pkgs.sh` and
-   `setup-jira-cli.sh` are the usual headline items.
+   `setup-jira-cli.sh` are the usual headline items. Note that `setup-jira-cli.sh` is gated on
+   `tracker: "jira"` — on a project using another tracker it exits immediately and needs no
+   environment at all, so do not report its JIRA env vars as required there.
 
 3. **External CLIs / binaries** — scan hooks, `scripts/`, committed skills/commands, and
    `.github/workflows/` for invoked binaries that a base cloud image likely lacks. Assume node,
@@ -256,7 +258,7 @@ unsuffixed `…_TOKEN`/`…_KEY` is the simplest to set in a single-account rout
 
 ### JIRA — `tracker: jira`
 - Headless substrate: `jira-cli` + curl (Basic auth). The acli and Atlassian-MCP tiers need prior interactive/OAuth auth → not viable headless.
-- Env: `JIRA_API_TOKEN`, `JIRA_SERVER` (e.g. `https://acme.atlassian.net`), `JIRA_LOGIN` (account email), `JIRA_PROJECT` (default project key); optional `JIRA_INSTALLATION` (default `cloud`), `JIRA_BOARD`. (`setup-jira-cli.sh` writes the jira-cli config from these on SessionStart.)
+- Env: `JIRA_API_TOKEN`, `JIRA_SERVER` (e.g. `https://acme.atlassian.net`), `JIRA_LOGIN` (account email), `JIRA_PROJECT` (default project key); optional `JIRA_INSTALLATION` (default `cloud`), `JIRA_BOARD`. (`setup-jira-cli.sh` writes the jira-cli config from these on SessionStart — but only when `.lisa.config*.json` sets `tracker: "jira"`; on any other tracker the hook is a no-op.)
 - Acquire: `https://id.atlassian.com/manage-profile/security/api-tokens`.
 - Access: the API token inherits the Atlassian user's permissions — the user must have Browse/Create/Edit/Transition on the target project. An unscoped token suffices for jira-cli; a scoped token must cover the JIRA project read/write operations.
 
