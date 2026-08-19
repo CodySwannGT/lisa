@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Lisa-managed Codex hook script (SessionStart).
 # Writes jira-cli configuration from environment variables when available.
+# Gated on `tracker: "jira"` in .lisa.config*.json — a project on another tracker
+# gets nothing. Fails closed when the tracker is absent or unreadable.
 set -euo pipefail
 
 # Drain the hook envelope before any config-dependent early return.
@@ -24,6 +26,11 @@ read_lisa_config() {
 
   printf '%s' "${value}"
 }
+
+# Tracker gate: do nothing unless this project actually runs on JIRA.
+if [[ "$(read_lisa_config '.tracker')" != "jira" ]]; then
+  exit 0
+fi
 
 if [[ -z "${JIRA_SERVER:-}" ]]; then
   ATLASSIAN_SITE="$(read_lisa_config '.atlassian.site')"
