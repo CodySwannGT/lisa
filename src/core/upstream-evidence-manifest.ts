@@ -237,7 +237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "a3eeeeeab2956e59ae1fd143b30bedcb0bb7180bc9e6a87aab3c8c1467bbc2ec",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
-      "e188bba1a9a17c0324868d7fd58b483283210421218d3c5354715f94d4990e57",
+      "ec16aeb025c8a7f5336d1353aefa45a0b0dc0df67ac09778103e71020cfc50ae",
     "expo/create-only/.maestro/flake-classification.json":
       "b1259c17a875dcdc0fa2398bb280f084e898f46fefaf51e35c3c5aadcbef5a5d",
     "expo/create-only/.zap/baseline.conf":
@@ -2495,6 +2495,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/maestro-native-e2e.yml": true,
     ".github/workflows/nightly-e2e-health.yml": true,
     ".github/workflows/nightly-e2e-report.yml": true,
+    ".github/workflows/playwright-e2e.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
     ".github/workflows/quality-rails.yml": true,
@@ -8719,6 +8720,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
     "tests/integration/playwright-caller-template.test.ts": true,
+    "tests/integration/playwright-e2e-workflow.test.ts": true,
     "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
