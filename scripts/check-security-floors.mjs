@@ -23,6 +23,7 @@
  * @module scripts/check-security-floors
  */
 
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { globSync } from "node:fs";
 
@@ -73,18 +74,79 @@ export function resolveSelfReference(manifest, name) {
 }
 
 /**
+ * Where the governance manifests live.
+ *
+ * The root entry is listed separately because the per-stack pattern is one
+ * level deep and never matched it. That miss cost nine floors — the root
+ * manifest is the one whose force/defaults/merge sections decide what every
+ * project's package.json becomes — and the audit reported clean for all of
+ * them, because a floor nobody looked at is indistinguishable in the output
+ * from a floor that passed.
+ */
+const MANIFEST_PATTERNS = Object.freeze([
+  "package.lisa.json",
+  "*/package-lisa/package.lisa.json",
+]);
+
+/** Paths that are copies of a manifest rather than a manifest. */
+const NOT_A_MANIFEST = [
+  "node_modules",
+  ".worktrees",
+  "dist/",
+  "tests/fixtures",
+];
+
+/**
+ * Every manifest git tracks, so the glob can be checked against reality.
+ *
+ * Returns null when the question cannot be asked — outside a checkout, or with
+ * no git. A null is reported as "not reconciled", never folded into "nothing
+ * missing": the whole defect being fixed here is a scan that narrowed silently.
+ * @returns {string[]|null} Tracked manifest paths, or null when unknowable.
+ */
+function trackedManifests() {
+  try {
+    return execFileSync(
+      "/usr/bin/git",
+      ["ls-files", "-z", "*package.lisa.json"],
+      {
+        encoding: "utf8",
+        maxBuffer: 8 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "ignore"],
+      }
+    )
+      .split("\0")
+      .filter(Boolean)
+      .filter(
+        file => !NOT_A_MANIFEST.some(fragment => file.includes(fragment))
+      );
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Every version constraint declared across the template manifests.
  * @returns {{found: Map<string, Array<{file: string, path: string, spec: string}>>,
- *   unresolved: Array<{file: string, path: string, name: string, spec: string}>}}
- *   Constraints by package name, plus self-references pointing at nothing.
+ *   unresolved: Array<{file: string, path: string, name: string, spec: string}>,
+ *   scanned: string[], unscanned: string[]|null}}
+ *   Constraints by package name, self-references pointing at nothing, the
+ *   manifests read, and any tracked manifest the patterns did not reach.
  */
-function collectFloors() {
+export function collectFloors() {
   const found = new Map();
   /** `$name` references pointing at nothing this manifest declares. */
   const unresolved = [];
-  const files = globSync("*/package-lisa/package.lisa.json").filter(
-    file => !file.includes("node_modules") && !file.includes(".worktrees")
+  const files = globSync(MANIFEST_PATTERNS).filter(
+    file => !NOT_A_MANIFEST.some(fragment => file.includes(fragment))
   );
+  // What the patterns reach, against what the repository actually carries. A
+  // glob is exactly the kind of thing that narrows by one level and keeps
+  // reporting a clean sheet for the files it stopped opening.
+  const tracked = trackedManifests();
+  const scanned = new Set(files);
+  const unscanned =
+    tracked === null ? null : tracked.filter(file => !scanned.has(file));
   for (const file of files) {
     let manifest;
     try {
@@ -137,7 +199,7 @@ function collectFloors() {
       }
     }
   }
-  return { found, unresolved };
+  return { found, unresolved, scanned: files, unscanned };
 }
 
 /**
@@ -246,10 +308,11 @@ async function advisoriesFor(name) {
 
 /**
  * Audit every collected floor.
- * @returns {Promise<{problems: Array, unreachable: Array, unresolved: Array, checked: number}>} Findings.
+ * @returns {Promise<{problems: Array, unreachable: Array, unresolved: Array,
+ *   unscanned: string[]|null, manifests: number, checked: number}>} Findings.
  */
 async function audit() {
-  const { found: floors, unresolved } = collectFloors();
+  const { found: floors, unresolved, scanned, unscanned } = collectFloors();
   const problems = [];
   const unreachable = [];
   for (const [name, sites] of floors) {
@@ -281,21 +344,33 @@ async function audit() {
       }
     }
   }
-  return { problems, unreachable, unresolved, checked: floors.size };
+  return {
+    problems,
+    unreachable,
+    unresolved,
+    unscanned,
+    manifests: scanned.length,
+    checked: floors.size,
+  };
 }
 
 async function main() {
   const strict = process.argv.includes("--strict");
   const asJson = process.argv.includes("--json");
-  const { problems, unreachable, unresolved, checked } = await audit();
+  const { problems, unreachable, unresolved, unscanned, manifests, checked } =
+    await audit();
 
   if (asJson) {
     console.log(
-      JSON.stringify({ problems, unreachable, unresolved, checked }, null, 2)
+      JSON.stringify(
+        { problems, unreachable, unresolved, unscanned, manifests, checked },
+        null,
+        2
+      )
     );
   } else if (problems.length === 0) {
     console.log(
-      `## Security floors\n\nNo force-pinned floor permits a high or critical vulnerable release. ${checked} package(s) checked.`
+      `## Security floors\n\nNo force-pinned floor permits a high or critical vulnerable release. ${checked} package(s) across ${manifests} manifest(s) checked.`
     );
   } else {
     console.log("## Security floors\n");
@@ -331,6 +406,23 @@ async function main() {
     );
   }
 
+  // A manifest the patterns never opened is the same failure as a package the
+  // advisory API never answered for: unexamined, and reported clean unless the
+  // difference is stated. Printed whether or not anything else went wrong.
+  if (!asJson && unscanned === null) {
+    console.log(
+      "\n> **Manifest coverage was not reconciled.** `git ls-files` could not be consulted, so nothing confirms the patterns reached every tracked manifest."
+    );
+  }
+  if (!asJson && unscanned !== null && unscanned.length > 0) {
+    console.log(
+      `\n> **${unscanned.length} tracked manifest(s) were NOT scanned.** Their floors are audited by nothing, which reads as clean: ${unscanned.join(", ")}.`
+    );
+    console.log(
+      "> Fix by widening `MANIFEST_PATTERNS` in this script and the `paths:` trigger in `.github/workflows/security-floors.yml` to match."
+    );
+  }
+
   if (!asJson && unreachable.length > 0) {
     const limited = unreachable.filter(entry =>
       entry.reason.includes("rate limited")
@@ -357,9 +449,14 @@ async function main() {
   // degradation this script exists to prevent.
   // An unresolved self-reference gates for the same reason an inconclusive one
   // does: it is a floor nobody checked, and letting it pass reports it clean.
+  // An unscanned tracked manifest gates for the same reason an inconclusive
+  // lookup does: it is a floor nobody checked, and passing reports it clean.
   if (
     strict &&
-    (problems.length > 0 || unreachable.length > 0 || unresolved.length > 0)
+    (problems.length > 0 ||
+      unreachable.length > 0 ||
+      unresolved.length > 0 ||
+      (unscanned !== null && unscanned.length > 0))
   ) {
     process.exitCode = 1;
   }
