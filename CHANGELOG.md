@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.40.1](https://github.com/CodySwannGT/lisa/compare/v3.40.0...v3.40.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **deps:** retire the brace-expansion override that kills ESLint ([945a2be](https://github.com/CodySwannGT/lisa/commit/945a2be52f9503016a5b154dc408c0b6112b44ce)), closes [#2045](https://github.com/CodySwannGT/lisa/issues/2045) [CodySwannGT/lisa#2716](https://github.com/CodySwannGT/lisa/issues/2716)
+
 ## [3.40.0](https://github.com/CodySwannGT/lisa/compare/v3.39.0...v3.40.0) (2026-08-19)
 
 
