@@ -8701,6 +8701,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-checkout-credentials.test.ts": true,
     "tests/integration/maestro-eas-profile-guard.test.ts": true,
     "tests/integration/maestro-eas-quota-diagnosis.test.ts": true,
+    "tests/integration/maestro-environment-prepare.test.ts": true,
     "tests/integration/maestro-flow-app-id-lint.test.ts": true,
     "tests/integration/maestro-leg-order-wait.test.ts": true,
     "tests/integration/maestro-leg-order.test.ts": true,
