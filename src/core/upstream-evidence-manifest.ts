@@ -766,6 +766,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2e4d5a142d7a33da3d01a6a8b3c79cf8b89769b9039c8672f1a14badba30d172",
     "plugins/src/base/rules/eager/design-source-of-truth.md":
       "d85886aa5832f7952bc0768871a335f33a4899ce598bb1a114feb5f300cbc7f2",
+    "plugins/src/base/rules/eager/design-value-binding.md":
+      "efd57c4cc9d11fc39414f7c60bccc9cd50bdf95a684de5edbb12cf02c9346c47",
     "plugins/src/base/rules/eager/do-it-now.md":
       "de0c1565fa7b8a99a7f5d15af1118c3e5eb942a0d893bbb672533149fb82688e",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
@@ -866,6 +868,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "728ef5366d8d2645cce47e4544a7c175d7a7ba8bd6f7768ddb21e4415d53f4ad",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
+    "plugins/src/base/rules/reference/design-value-binding.md":
+      "27dea4763acb5f156192d4524ce0cf1bad0ff40ec3d69f908d0bf6487e1f7cfe",
     "plugins/src/base/rules/reference/do-it-now.md":
       "46fdcc335e115d0f387af398789f443ef8dd3ab17de5f7d95120c31f913a8fce",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
@@ -1079,7 +1083,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "a50f6c92eed59262036c908453a70e3587b79da95264fb99343897e3d75b9167",
+      "a4b41a767e354c69a694dbad42d24062278aea43d096d098f83e8d9ec04ca5c6",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1237,7 +1241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-qa-queue/SKILL.md":
       "1d5f009f60004bf75b5d79bca370096ce40e1d41d585dc8afd4389f21bba84ae",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
-      "520437da40257686203468f39b61fbecb2f5c534faaaa488734e828f74c04825",
+      "774c290f702842f8f751dcdf0e28e74b54e8efa299194c4a29475355da8c22e2",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
       "87c6d34d0511d4afd812d1af3fee80fa3b7aa47db8449760b12f2699fedc1d78",
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
@@ -1253,7 +1257,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
       "42134253cca50e384f36eaa085c0a1e6b8772e9f3e912a8d1231f1cd69199858",
     "plugins/src/base/skills/lisa-review-local/SKILL.md":
-      "348c4cae5a189e9afa9950899a5bd88674db8265d63a99b5b7a1b616e970e885",
+      "74112f88c721825464d962b05111dafe84173fb370d9522d5e155acc46cc55e9",
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "56a5549a1430ea791e5edb71144c0741f09970933fe3f7b54a76e3218b9b9042",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
@@ -1367,7 +1371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
-      "8684a31f1982ec3bcf9803ef028bf2aa7a24cefd324ca40b2ac09d07287ecacd",
+      "e0b0cd7a90abf73b30e752ea81209085ff5a74ffd9231b626bed95522220c45a",
     "plugins/src/base/skills/lisa-tear-down-automations/SKILL.md":
       "3f8215b691ce60a6efd63547b99b4d87760fe99d285f6fe153aaadd451e83731",
     "plugins/src/base/skills/lisa-test-strategy/SKILL.md":
@@ -3765,6 +3769,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/eager/derived-branch-plan.md": true,
     "plugins/lisa-copilot/rules/eager/design-source-of-truth.md": true,
+    "plugins/lisa-copilot/rules/eager/design-value-binding.md": true,
     "plugins/lisa-copilot/rules/eager/do-it-now.md": true,
     "plugins/lisa-copilot/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/eager/empirical-inquiry.md": true,
@@ -3815,6 +3820,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa-copilot/rules/reference/derived-branch-plan.md": true,
     "plugins/lisa-copilot/rules/reference/design-source-of-truth.md": true,
+    "plugins/lisa-copilot/rules/reference/design-value-binding.md": true,
     "plugins/lisa-copilot/rules/reference/do-it-now.md": true,
     "plugins/lisa-copilot/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa-copilot/rules/reference/empirical-inquiry.md": true,
@@ -4241,6 +4247,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/derived-branch-plan.mdc": true,
     "plugins/lisa-cursor/rules/design-source-of-truth-reference.mdc": true,
     "plugins/lisa-cursor/rules/design-source-of-truth.mdc": true,
+    "plugins/lisa-cursor/rules/design-value-binding-reference.mdc": true,
+    "plugins/lisa-cursor/rules/design-value-binding.mdc": true,
     "plugins/lisa-cursor/rules/do-it-now-reference.mdc": true,
     "plugins/lisa-cursor/rules/do-it-now.mdc": true,
     "plugins/lisa-cursor/rules/documentation-source-paths-reference.mdc": true,
@@ -6786,6 +6794,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/dependency-trust-classes.md": true,
     "plugins/lisa/rules/eager/derived-branch-plan.md": true,
     "plugins/lisa/rules/eager/design-source-of-truth.md": true,
+    "plugins/lisa/rules/eager/design-value-binding.md": true,
     "plugins/lisa/rules/eager/do-it-now.md": true,
     "plugins/lisa/rules/eager/documentation-source-paths.md": true,
     "plugins/lisa/rules/eager/empirical-inquiry.md": true,
@@ -6836,6 +6845,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/dependency-trust-classes.md": true,
     "plugins/lisa/rules/reference/derived-branch-plan.md": true,
     "plugins/lisa/rules/reference/design-source-of-truth.md": true,
+    "plugins/lisa/rules/reference/design-value-binding.md": true,
     "plugins/lisa/rules/reference/do-it-now.md": true,
     "plugins/lisa/rules/reference/documentation-source-paths.md": true,
     "plugins/lisa/rules/reference/empirical-inquiry.md": true,
@@ -7429,6 +7439,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/dependency-trust-classes.md": true,
     "plugins/src/base/rules/eager/derived-branch-plan.md": true,
     "plugins/src/base/rules/eager/design-source-of-truth.md": true,
+    "plugins/src/base/rules/eager/design-value-binding.md": true,
     "plugins/src/base/rules/eager/do-it-now.md": true,
     "plugins/src/base/rules/eager/documentation-source-paths.md": true,
     "plugins/src/base/rules/eager/empirical-inquiry.md": true,
@@ -7479,6 +7490,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/dependency-trust-classes.md": true,
     "plugins/src/base/rules/reference/derived-branch-plan.md": true,
     "plugins/src/base/rules/reference/design-source-of-truth.md": true,
+    "plugins/src/base/rules/reference/design-value-binding.md": true,
     "plugins/src/base/rules/reference/do-it-now.md": true,
     "plugins/src/base/rules/reference/documentation-source-paths.md": true,
     "plugins/src/base/rules/reference/empirical-inquiry.md": true,
@@ -9318,6 +9330,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/design-source-gate-verdict.test.ts": true,
     "tests/unit/strategies/design-source-gate.test.ts": true,
     "tests/unit/strategies/design-source-of-truth-rule.test.ts": true,
+    "tests/unit/strategies/design-value-binding-rule.test.ts": true,
     "tests/unit/strategies/distributed-content-round2-contract.test.ts": true,
     "tests/unit/strategies/doctor-automation-readiness.test.ts": true,
     "tests/unit/strategies/doctor-config-readiness.test.ts": true,
