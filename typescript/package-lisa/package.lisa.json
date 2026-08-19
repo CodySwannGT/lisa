@@ -34,7 +34,6 @@
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
-      "brace-expansion": ">=5.0.9",
       "axios": ">=1.18.0",
       "esbuild": ">=0.28.1",
       "handlebars": ">=4.7.9",
@@ -48,7 +47,6 @@
     },
     "overrides": {
       "@isaacs/brace-expansion": "^5.0.1",
-      "brace-expansion": ">=5.0.9",
       "axios": ">=1.18.0",
       "esbuild": ">=0.28.1",
       "handlebars": ">=4.7.9",
@@ -86,6 +84,12 @@
     ]
   },
   "remove": {
+    "overrides": [
+      "brace-expansion"
+    ],
+    "resolutions": [
+      "brace-expansion"
+    ],
     "scripts": [
       "knip"
     ]
