@@ -373,13 +373,28 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("SE-4551 + SE-4552 new inputs", () => {
-    it("defaults Playwright to two shards so large suites fit hosted runners", () => {
-      const input = workflow.on.workflow_call?.inputs?.playwright_shards;
-      expect(input).toBeDefined();
-      expect(input?.required).toBe(false);
-      expect(input?.default).toBe(2);
-      expect(input?.type).toBe("number");
-    });
+    // The two Playwright inputs are INERT here — the suite they configured
+    // moved to `playwright-e2e.yml`, which declares its own copies. What they
+    // still have to be is DECLARED. A caller that passes an input a reusable
+    // workflow does not declare is a `startup_failure` for its ENTIRE run,
+    // decided before any `if:` is evaluated, and installed callers pass both
+    // today. So deleting them would break every one of them at once, on a
+    // change that is otherwise invisible to them.
+    //
+    // Their live behaviour is asserted against the workflow that now owns it,
+    // in `playwright-e2e-workflow.test.ts`. Asserting a default here would
+    // describe a value nothing reads.
+    it.each(["playwright_setup_command", "playwright_shards"])(
+      "keeps %s declared and optional, so installed callers still start",
+      name => {
+        const input = workflow.on.workflow_call?.inputs?.[name];
+        expect(input).toBeDefined();
+        expect(input?.required).toBe(false);
+        // Says so in the description, because the only way a caller finds out
+        // an input stopped doing anything is by being told.
+        expect(input?.description).toContain("INERT");
+      }
+    );
 
     it("declares cache_build with default false (unchanged behavior)", () => {
       const input = workflow.on.workflow_call?.inputs?.cache_build;
@@ -389,36 +404,32 @@ describe("quality.yml reusable workflow", () => {
       expect(input?.type).toBe("boolean");
     });
 
-    it("includes the source root in build cache keys", () => {
-      const playwrightExpoCache = workflow.jobs.playwright_e2e.steps?.find(
-        step => step.id === "expo_cache"
-      );
+    // The `playwright_e2e` half of this pair moved with the job, to
+    // `playwright-e2e-workflow.test.ts`. Both halves still exist; splitting
+    // them was the alternative to asserting against a job that is not here,
+    // where every lookup returns undefined and every assertion passes.
+    it("includes the source root in the build cache key", () => {
       const buildCache = workflow.jobs.build.steps?.find(
         step => step.id === "build_cache"
       );
 
-      // Both keys derive from the git-based fingerprint step rather than
+      // The key derives from the git-based fingerprint step rather than
       // inlining a hashFiles glob — see the node_modules regression test below.
-      expect(playwrightExpoCache?.with?.key).toContain(
-        "steps.build_fingerprint.outputs.hash"
-      );
       expect(buildCache?.with?.key).toContain(
         "steps.build_fingerprint.outputs.hash"
       );
 
-      for (const job of ["playwright_e2e", "build"] as const) {
-        const fingerprint = workflow.jobs[job].steps?.find(
-          step => step.id === "build_fingerprint"
-        );
-        expect(
-          fingerprint,
-          `${job} must compute a build fingerprint`
-        ).toBeDefined();
-        // The source roots and the lockfiles still drive invalidation.
-        expect(fingerprint?.run).toContain("git ls-files");
-        for (const path of ["'src'", "'bun.lock'", "'package.json'"]) {
-          expect(fingerprint?.run).toContain(path);
-        }
+      const fingerprint = workflow.jobs.build.steps?.find(
+        step => step.id === "build_fingerprint"
+      );
+      expect(
+        fingerprint,
+        "build must compute a build fingerprint"
+      ).toBeDefined();
+      // The source roots and the lockfiles still drive invalidation.
+      expect(fingerprint?.run).toContain("git ls-files");
+      for (const path of ["'src'", "'bun.lock'", "'package.json'"]) {
+        expect(fingerprint?.run).toContain(path);
       }
     });
 
@@ -431,17 +442,13 @@ describe("quality.yml reusable workflow", () => {
     // step — after every test had already passed. A green Playwright nightly
     // (73/73) was reported as red, blocking merges repo-wide.
     it("never derives a build cache key from an unanchored source glob", () => {
-      const fingerprintSteps = [
-        ...(workflow.jobs.playwright_e2e.steps ?? []),
-        ...(workflow.jobs.build.steps ?? []),
-      ].filter(
-        step =>
-          step.id === "build_fingerprint" ||
-          step.id === "expo_cache" ||
-          step.id === "build_cache"
+      const fingerprintSteps = (workflow.jobs.build.steps ?? []).filter(
+        step => step.id === "build_fingerprint" || step.id === "build_cache"
       );
 
-      expect(fingerprintSteps.length).toBe(4);
+      // Two here, two in `playwright-e2e-workflow.test.ts`. Counted on both
+      // sides so a step that disappears cannot leave an empty loop passing.
+      expect(fingerprintSteps.length).toBe(2);
 
       for (const step of fingerprintSteps) {
         const text = `${step.run ?? ""}${step.with?.key ?? ""}`;
@@ -484,118 +491,6 @@ describe("quality.yml reusable workflow", () => {
       const group = workflow.concurrency?.group ?? "";
       expect(group).toContain("inputs.concurrency_group");
       expect(group).toContain("github.run_id");
-    });
-  });
-
-  describe("playwright_e2e job preservation", () => {
-    it("preserves runs-on ubuntu-latest and timeout-minutes 60", () => {
-      const job = workflow.jobs.playwright_e2e;
-      expect(job).toBeDefined();
-      expect(job["runs-on"]).toBe("ubuntu-latest");
-      expect(job["timeout-minutes"]).toBe(60);
-    });
-
-    it("declares matrix strategy fed by the setup job's shards output", () => {
-      const job = workflow.jobs.playwright_e2e;
-      expect(job.needs).toBe("playwright_e2e_setup");
-      expect(job.strategy?.["fail-fast"]).toBe(false);
-      expect(job.strategy?.matrix?.shard).toContain(
-        "fromJSON(needs.playwright_e2e_setup.outputs.shards)"
-      );
-    });
-  });
-
-  describe("matrix always uploads blob", () => {
-    it("uploads per-shard blob regardless of playwright_shards value", () => {
-      const steps = workflow.jobs.playwright_e2e.steps ?? [];
-      const uploads = steps.filter(s =>
-        s.uses?.startsWith("actions/upload-artifact")
-      );
-      // Exactly one upload step — the always-blob path — so unsharded and
-      // sharded runs both feed the aggregator uniformly.
-      expect(uploads).toHaveLength(1);
-      const [blob] = uploads;
-      expect(blob.name).toBe("📤 Upload Playwright blob");
-      expect(blob.if).not.toContain("playwright_shards");
-      expect(blob.with?.name).toBe(
-        "playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}"
-      );
-    });
-
-    it("pairs blob with a streaming reporter so a timed-out shard names its tests", () => {
-      const steps = workflow.jobs.playwright_e2e.steps ?? [];
-      const run = steps.find(s => s.name === "🎭 Run Playwright tests")?.run;
-      expect(run).toContain("--reporter=");
-      const reporters =
-        /--reporter=(\S+)/.exec(run ?? "")?.[1].split(",") ?? [];
-      // `blob` must stay — the aggregator merges those artifacts.
-      expect(reporters).toContain("blob");
-      // …but `blob` alone writes only at the END of the run and prints nothing
-      // meanwhile, so a shard killed by the 60-minute job timeout leaves no
-      // artifact AND no console output, naming no test. A streaming reporter
-      // alongside it is what makes such a timeout diagnosable at all.
-      expect(reporters.some(r => ["line", "list", "dot"].includes(r))).toBe(
-        true
-      );
-    });
-  });
-
-  describe("playwright_e2e_aggregate job (ruleset anchor)", () => {
-    it("exists, needs the matrix, and always runs (no shard gate)", () => {
-      const job = workflow.jobs.playwright_e2e_aggregate;
-      expect(job).toBeDefined();
-      expect(job.needs).toBe("playwright_e2e");
-      // Aggregator must emit its check on every run so the unsuffixed
-      // required-status-check context (`🎭 Playwright E2E Tests`) is
-      // produced regardless of `playwright_shards` value.
-      expect(job.if).not.toContain("inputs.playwright_shards");
-      expect(job.if).toContain("always()");
-    });
-
-    it("is named `🎭 Playwright E2E Tests` to match the required check context", () => {
-      // The matrix `playwright_e2e` job shares this display name, but the
-      // matrix suffixes its context with `(<shard>)`, so only the
-      // aggregator produces the unsuffixed context the ruleset requires.
-      expect(workflow.jobs.playwright_e2e_aggregate.name).toBe(
-        "🎭 Playwright E2E Tests"
-      );
-    });
-
-    it("uploads the merged HTML as playwright-report-<run-id>", () => {
-      const steps = workflow.jobs.playwright_e2e_aggregate.steps ?? [];
-      const upload = steps.find(
-        s => s.name === "📤 Upload merged Playwright report"
-      );
-      expect(upload).toBeDefined();
-      // Preserve the original unsharded artifact name so consumers who
-      // download `playwright-report-<run-id>` keep working after opt-in.
-      expect(upload?.with?.name).toBe("playwright-report-${{ github.run_id }}");
-    });
-
-    it("gates merge-reports on has_config so repos without playwright skip cleanly", () => {
-      // Repos with no playwright.config.* produce no blob artifacts from the
-      // shard matrix (check_playwright.has_config=false in each shard). The
-      // aggregator must apply the same has_config gate to its download/merge
-      // steps — otherwise `npx playwright merge-reports` runs against an
-      // empty directory and fails, breaking the required-status-check.
-      const steps = workflow.jobs.playwright_e2e_aggregate.steps ?? [];
-      const check = steps.find(s => s.id === "check_playwright");
-      expect(check).toBeDefined();
-      const merge = steps.find(
-        s => s.name === "🎭 Merge blob reports into HTML"
-      );
-      expect(merge?.if).toContain(
-        "steps.check_playwright.outputs.has_config == 'true'"
-      );
-    });
-  });
-
-  describe("matrix job keeps unified check-context display name", () => {
-    it("uses `🎭 Playwright E2E Tests` so shards produce `(N)` suffix checks", () => {
-      // Matrix always suffixes with `(<matrix-value>)`, giving non-blocking
-      // per-shard checks that coexist with the aggregator's unsuffixed
-      // context under the same display name.
-      expect(workflow.jobs.playwright_e2e.name).toBe("🎭 Playwright E2E Tests");
     });
   });
 
@@ -784,8 +679,12 @@ describe("quality.yml reusable workflow", () => {
 
     it("gives summary-only jobs an empty permissions block", () => {
       // These jobs neither check out the repository nor call the API.
+      // `playwright_e2e_setup` left this list with the job: it moved to
+      // `playwright-e2e.yml`, where the same assertion is made against it.
+      // Leaving it here would have read `undefined?.permissions` and compared
+      // it to `{}` — a failing assertion, and had it been written with `??`
+      // it would have been a passing one about a job that is not there.
       for (const jobName of [
-        "playwright_e2e_setup",
         "security_tools_summary",
         "compliance_validation",
         "performance_summary",
