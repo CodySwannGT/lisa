@@ -470,6 +470,56 @@ matching Phase 4b's safe default. The full procedure is `lisa-linear-sync`
 Phase 4b; when the caller's flow already runs a `pr-merged` sync for this
 merge, confirming that sync ran satisfies this step.
 
+### d. Complete the work item
+
+Run this once the PR reports `MERGED` and the ancestry check has passed:
+
+```
+node scripts/lisa-work-item.mjs complete --ref <work-item>
+```
+
+resolving the script the usual three ways (installed package, host `scripts/`,
+this repo's own tree).
+
+**This step exists because the previous arrangement did not work, measured.**
+The instruction to move a work item to its terminal role lived in
+`lisa-git-submit-pr`, in a section reached *after* that skill delegates the
+entire merge loop to this one. So the skill that observes the merge was never
+told to close anything, and the skill that was told had already handed off. The
+result: **27 of 27** open items carrying the claimed role in this repository had
+a merged pull request — the claimed lane reported 27 things in flight when the
+real number was one.
+
+Three properties make the command safe to run unconditionally:
+
+1. **The terminal role is RESOLVED, never assumed.** `lifecycleContract` reads
+   `github.labels.build.done` (or the Jira/Linear equivalent), which is
+   environment-aware — a repository whose target is `dev` has a different
+   terminal role than one merging to production, and a hardcoded label would
+   apply the wrong one while looking correct in the repository it was written
+   in.
+2. **It refuses without evidence.** Completion requires a merged pull request in
+   the same repository. A command that closes whatever it is pointed at is a way
+   to make unfinished work disappear, and the closure is indistinguishable from
+   a real one afterwards. Cross-repository references do not count: a downstream
+   consumer's PR mentioning an upstream issue is not evidence the upstream issue
+   shipped.
+3. **It is idempotent**, so re-running after a retry converges rather than
+   accumulating.
+
+It also removes the claimed role rather than only adding the terminal one.
+Leaving both produces exactly the drift this step exists to end — an item that
+is closed *and* still reports as in progress.
+
+If the command refuses, do not close by hand. A refusal means the evidence is
+not there, and a lifecycle step performed by hand is one nothing can verify
+happened.
+
+**The backstop, for the ones that still slip:** `lisa-work-item.mjs sweep`
+reports every claimed item that already has a merged pull request, and
+`--apply` completes them. Reporting is the default deliberately — a sweep that
+closes things as a side effect of being run is not one anyone runs twice.
+
 ## 4. Terminal states
 
 Loop until one of:
