@@ -124,6 +124,22 @@ const ENVIRONMENT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const RUNNER_PREFIX = /^[A-Za-z0-9][A-Za-z0-9 ._@:/-]*$/u;
 
 /**
+ * How a refused task runner is named back to the operator.
+ *
+ * A non-string is described by its type rather than interpolated: `[object
+ * Object]` in a refusal message tells a reader nothing about what their config
+ * actually holds, and the value is untrusted config in the first place.
+ * @param {unknown} runner The configured runner value.
+ * @returns {string} A phrase that fits "the configured task runner ___ is not…".
+ */
+function describeRunner(runner) {
+  if (typeof runner === "string") return `"${runner}"`;
+  if (runner === null) return "is null, which";
+  if (Array.isArray(runner)) return "is an array, which";
+  return `is a ${typeof runner}, which`;
+}
+
+/**
  * The argument vector for a verb.
  *
  * A vector rather than a command line, and executed WITHOUT a shell, so no
@@ -207,11 +223,18 @@ export function prepareEnvironment({
     };
   }
 
-  if (!RUNNER_PREFIX.test(runner)) {
+  // TYPE FIRST, then shape. `RegExp.prototype.test` coerces its argument, so
+  // `RUNNER_PREFIX.test(true)` tests the string `"true"` and passes — the
+  // pattern reads as a type check and is not one. This value is not
+  // hypothetical: it comes from `readGates(cwd).runner`, which destructures the
+  // host's `.lisa.config.json` with a string default and returns whatever the
+  // file actually held. The refusal that belongs here instead surfaced one line
+  // later as `runner.trim is not a function` from `argvFor`.
+  if (typeof runner !== "string" || !RUNNER_PREFIX.test(runner)) {
     return {
       ok: false,
       reason: "environment_runner_malformed",
-      message: `the configured task runner "${runner}" is not a plain command. Set gates.runner in .lisa.config.json to something like "bun run".`,
+      message: `the configured task runner ${describeRunner(runner)} is not a plain command. Set gates.runner in .lisa.config.json to something like "bun run".`,
       ran: [],
     };
   }
