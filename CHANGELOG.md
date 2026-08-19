@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.40.4](https://github.com/CodySwannGT/lisa/compare/v3.40.3...v3.40.4) (2026-08-19)
+
+
+### Bug Fixes
+
+* **work-item:** prove traceability without a tracker credential ([dc8c80f](https://github.com/CodySwannGT/lisa/commit/dc8c80fef70a1fc3a5609aa9f7fc64bfe73fea38)), closes [CodySwannGT/lisa#2721](https://github.com/CodySwannGT/lisa/issues/2721) [CodySwannGT/lisa#2721](https://github.com/CodySwannGT/lisa/issues/2721)
+
+
+### Documentation
+
+* **work-item:** name one backlink producer and finish the parser rule ([7ebcdd9](https://github.com/CodySwannGT/lisa/commit/7ebcdd99fa5ca775c395c0960671cf75db4c441d)), closes [CodySwannGT/lisa#2721](https://github.com/CodySwannGT/lisa/issues/2721) [CodySwannGT/lisa#2721](https://github.com/CodySwannGT/lisa/issues/2721)
+
 ### [3.40.3](https://github.com/CodySwannGT/lisa/compare/v3.40.2...v3.40.3) (2026-08-19)
 
 
