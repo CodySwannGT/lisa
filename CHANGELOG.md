@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.40.2](https://github.com/CodySwannGT/lisa/compare/v3.40.1...v3.40.2) (2026-08-19)
+
+
+### Documentation
+
+* **drive-pr:** a conflicted PR runs zero CI, not failing CI ([5438918](https://github.com/CodySwannGT/lisa/commit/5438918934ef3fd4026ec28183c4d0dd2093ddad)), closes [CodySwannGT/lisa#2722](https://github.com/CodySwannGT/lisa/issues/2722)
+
 ### [3.40.1](https://github.com/CodySwannGT/lisa/compare/v3.40.0...v3.40.1) (2026-08-19)
 
 
