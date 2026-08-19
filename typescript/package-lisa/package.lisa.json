@@ -65,7 +65,7 @@
     },
     "scripts": {
       "build": "tsc",
-      "postinstall": "[ -n \"$CI\" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true",
+      "postinstall": "[ -n \"$CI\" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true",
       "test:integration": "vitest run tests/integration"
     },
     "engines": {
