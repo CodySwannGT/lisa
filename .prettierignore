@@ -41,3 +41,9 @@ plugins/lisa-*/**/openai.yaml
 # never reformat it. Enforced project types add the same ignore to their own
 # .prettierignore alongside enabling verification.
 evidence/**
+
+# Mutation gate sandbox: a full second copy of the tree written by
+# `test:mutation`. Formatting or linting it reports every source file twice, and
+# the copy is outside every tsconfig project so the second report is a parse
+# error -- 1191 of them, measured, from one leftover sandbox.
+.stryker-tmp
