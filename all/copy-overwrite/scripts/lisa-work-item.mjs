@@ -1992,10 +1992,36 @@ function bind(args) {
  * to rerun after a failure without inspecting what the last run managed to do.
  * @param {string[]} args CLI arguments.
  */
+/**
+ * The work item bound to this worktree, refusing a binding from another branch.
+ *
+ * `readState` answers "what is written in the binding file", which is not the
+ * same question as "what is this branch working on". A binding survives a
+ * branch switch, so reading it without validating is how a command aimed at
+ * one work item acts on a different one.
+ *
+ * `assertStateMatches` has always validated before trusting it. `backlink` and
+ * `complete` did not, and the consequences differ in kind: a stale binding made
+ * `backlink` write the managed comment to the WRONG ticket, and would make
+ * `complete` apply a terminal role and CLOSE the wrong ticket. Neither is
+ * self-correcting, and the closure is indistinguishable from a real one
+ * afterwards.
+ *
+ * An explicit `--ref` needs no binding at all, so callers consult this only
+ * when falling back.
+ * @returns {string|null} The bound ref, or null when nothing is bound.
+ */
+function boundRef() {
+  const state = readState(true);
+  if (!state) return null;
+  assertStateBranch(state);
+  return state.ref;
+}
+
 function backlink(args) {
   const contract = trackerContract();
   const supplied = option(args, "--ref", "LISA_WORK_ITEM_REF");
-  const bound = readState(true)?.ref;
+  const bound = supplied ? null : boundRef();
   if (!supplied && !bound) {
     throw new TrackingError(
       `${BACKLINK_COMMAND} requires --ref <work-item>, or a worktree binding from \`lisa-work-item.mjs link\``
@@ -2125,7 +2151,7 @@ function completeWorkItem(ref, contract) {
 function complete(args) {
   const contract = trackerContract();
   const supplied = option(args, "--ref", "LISA_WORK_ITEM_REF");
-  const bound = readState(true)?.ref;
+  const bound = supplied ? null : boundRef();
   if (!supplied && !bound) {
     throw new TrackingError(
       "complete requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
