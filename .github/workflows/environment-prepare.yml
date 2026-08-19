@@ -1,0 +1,182 @@
+---
+# Prepare an environment before a suite runs against it.
+#
+# Lisa already defined the `environment:*` facade and already shipped gates that
+# prove a project's reset guard REFUSES. What it never shipped was a caller that
+# actually resets an environment before a suite, so every consumer hand-wired
+# its own: measured 2026-08-19, one frontend reset AFTER its browser suite via
+# `if: always()`, the same repo's native suite reset not at all, and a second
+# repo's shape could not be verified.
+#
+# ## Why before, and not after
+#
+# Cleanup-after is best-effort by construction. It does not run when a runner
+# dies, when a job is cancelled, or when a spot instance is evicted — so the
+# next night starts against whatever the last failure left behind, which is
+# exactly the run you most want a clean environment for. Preparing BEFORE makes
+# the starting state independent of how the previous run ended.
+#
+# ## Why a failure here fails the suite
+#
+# This workflow is a precondition, not a courtesy. A suite that runs against an
+# environment nobody prepared produces failures nobody can trust — the "56
+# failures, one broken precondition" shape, where the real defect is invisible
+# under the noise it caused. Callers wire this as a `needs:` predecessor so a
+# failure here stops the suite instead of colouring it.
+#
+# ## What this workflow does NOT do
+#
+# It does not implement any project's reset, and it does not verify that the
+# environment it named is the environment the project connected to. Those are
+# the project's own layers — the capability not being deployed to production at
+# all, an execution role that cannot invoke it there, the implementation
+# asserting its own resolved stage, and the implementation asserting the
+# database it actually reached. This workflow contributes the layer that fires
+# earliest and costs least: a caller-side refusal on the requested name, before
+# a single process starts.
+name: 🧼 Prepare Environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: >-
+          Target environment name, forwarded to each verb as `--env=<name>`.
+          Mandatory and never defaulted: a default that is safe in one repo is
+          the production default in another. The value is classified by Lisa's
+          shipped destructive guard, which refuses production — and refuses an
+          identity it cannot classify on the same terms.
+        required: true
+        type: string
+      verbs:
+        description: >-
+          Comma-separated facade verbs this caller REQUIRES, in any order; they
+          always run reset before reseed. A verb named here that the project
+          does not declare FAILS the run rather than skipping, which is the
+          entire point of naming them. The facade's two verbs are independently
+          optional, so a suite built on shared persona accounts — one that
+          converges them and has no "empty" operation at all — correctly asks
+          for `reseed` alone.
+        required: false
+        default: reset,reseed
+        type: string
+      node_version:
+        description: Node.js version used to run the preparation.
+        required: false
+        default: '22'
+        type: string
+      package_manager:
+        description: Package manager used to install dependencies.
+        required: false
+        default: bun
+        type: string
+      install_dependencies:
+        description: >-
+          Install the project's dependencies before preparing. Defaults TRUE,
+          unlike the equivalent seam in the native e2e workflow: a reset goes
+          through the project's own tooling and database client far more often
+          than not, and a caller that genuinely needs no install can turn this
+          off, whereas one that needed it and did not get it fails in a way that
+          reads as a broken reset rather than a missing install.
+        required: false
+        default: true
+        type: boolean
+      timeout_minutes:
+        description: >-
+          Ceiling for this job. Deliberately tight: it gates an entire suite, so
+          a wedged reset should surface as a fast, named failure rather than
+          silently spending the suite's budget before a single spec runs.
+        required: false
+        default: 20
+        type: number
+
+# Workflow-level and deliberately minimal. A called workflow may only DOWNGRADE
+# its caller's grant, so anything requested here that a caller does not hold is
+# a `startup_failure` for the ENTIRE run — decided before the run starts, so no
+# `if:` can save it. Reading the checkout is all this needs.
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: 🧼 Prepare ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      # A hard refusal rather than a documented convention. The gate registry
+      # deliberately points `environment-reset` at `environment:reset:verify`
+      # and NOT at the reset itself, precisely so that declaring the gate
+      # required cannot converge a shared environment on every pull request.
+      # This workflow runs the real thing, so it must not become the back door
+      # into the hazard that decision closed.
+      - name: 🚫 Refuse to prepare from a pull-request event
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          echo "::error::environment preparation refused: reached from a ${EVENT} event."
+          echo "This workflow performs a REAL reset. Running it per pull request would"
+          echo "converge a shared environment on every push to every branch — the hazard"
+          echo "the gate registry avoids by verifying the guard instead of invoking it."
+          echo "Call this from a scheduled or dispatched workflow."
+          exit 1
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🥟 Setup Bun
+        if: ${{ inputs.package_manager == 'bun' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 📦 Install dependencies
+        if: ${{ inputs.install_dependencies }}
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *) echo "::error::unsupported package manager: $PACKAGE_MANAGER"; exit 1 ;;
+          esac
+
+      - name: 🧼 Prepare the environment
+        env:
+          TARGET: ${{ inputs.environment }}
+          VERBS: ${{ inputs.verbs }}
+        run: |
+          set -eu
+          # Same three candidates, same order, as every other Lisa gate façade:
+          # the installed package first so a consumer that never copied the
+          # script still resolves it, then a host copy, then this repository's
+          # own tree for Lisa itself.
+          PREPARE=""
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-environment-prepare.mjs" \
+            "scripts/lisa-environment-prepare.mjs" \
+            "all/copy-overwrite/scripts/lisa-environment-prepare.mjs"; do
+            if [ -f "$candidate" ]; then PREPARE="$candidate"; break; fi
+          done
+          # Resolution failure is a FAILURE, never a skip. A caller asked for a
+          # prepared environment; reporting success without having prepared one
+          # is the defect this whole subsystem exists to prevent, and it would
+          # be indistinguishable from a healthy run.
+          if [ -z "$PREPARE" ]; then
+            echo "::error::environment preparation refused: lisa-environment-prepare.mjs was not found."
+            echo "Looked for the installed package, a host copy under scripts/, and this repo's own tree."
+            echo "Install or update @codyswann/lisa, or stop calling this workflow."
+            exit 1
+          fi
+          echo "Preparing \"${TARGET}\" with verbs: ${VERBS}"
+          node "$PREPARE" --env="${TARGET}" --verbs="${VERBS}"

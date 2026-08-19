@@ -84,6 +84,13 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   "create-jira-issue-on-failure.yml": {},
   "create-linear-issue-on-failure.yml": {},
   "create-sentry-issue-on-failure.yml": {},
+  // A NEW workflow, added rather than widened. The hazard this baseline guards
+  // is an ALREADY-INSTALLED caller that does not grant a newly declared scope;
+  // this file has no callers yet, so there is no installed snapshot to break.
+  // `contents: read` matches build.yml and quality.yml — the same floor every
+  // workflow that checks the repository out already declares. From here it is
+  // frozen on the same terms as every other line.
+  "environment-prepare.yml": { contents: "read" },
   "lighthouse.yml": {},
   "load-test.yml": {},
   // `contents: read` only. The leg-ordering job reads the jobs API through the
