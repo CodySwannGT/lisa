@@ -31,6 +31,11 @@ name: 🎭 Playwright Web E2E
 #     }
 #   }
 #
+# READ THE SHARDING NOTE BELOW BEFORE DECLARING IT AT THIS MOMENT. Declaring the
+# gate `required` here is NOT free: it moves the suite off the shard matrix onto
+# a single runner. That is a real trade, and for a suite of any size it is
+# usually the wrong one — see "SHARDING" below for what actually happens.
+#
 # The gate's task is `test:e2e`, so the project needs that script in
 # package.json — Lisa resolves the PROPERTY ("browser journeys pass end to
 # end"), never the tool.
@@ -91,6 +96,14 @@ on:
 # visible way to stop requiring a check — as opposed to a job that silently
 # stops running. Nothing inside this file can enforce it; the only defence is
 # that whoever seeds it knows.
+#
+# **`pull-request: off` ALONE is enough to stop the duplicate run**, and it is
+# what most projects should write. The `continuous:*` half above is shown for
+# completeness, not as a recommendation: declaring the gate at the nightly
+# moment costs you the shard matrix. If this project's suite takes long enough
+# to shard, declare `off` at `pull-request` and leave the nightly moment
+# UNDECLARED — an undeclared gate keeps Lisa's built-in sharded run, which is
+# the behaviour you already have.
 
 permissions:
   contents: read
@@ -143,10 +156,20 @@ jobs:
       # out; that is a visible decision, which a silent skip is not.
       prepare_environment: 'development'
       prepare_verbs: 'reset,reseed'
-      # Applies only while `e2e-browser` is undeclared: Lisa cannot append
-      # `--shard` to a command whose shape it does not know, and the `--`
-      # passthrough differs between npm, yarn and bun. A declared gate runs on
-      # one runner; shard inside the project's own `test:e2e` script instead.
+      # Applies only while `e2e-browser` is undeclared at THIS workflow's
+      # moment. Lisa cannot append `--shard` to a command whose shape it does
+      # not know, and the `--` passthrough differs between npm, yarn and bun.
+      #
+      # The consequence is bigger than it sounds and it is silent: once the
+      # gate resolves to a task, EVERY shard concludes "Shard idle — the
+      # e2e-browser gate owns this suite" and the aggregate job runs the whole
+      # suite by itself. A four-shard nightly becomes a one-runner nightly with
+      # no error and no warning, while still holding whatever concurrency group
+      # the other suites join. Measured on a consumer whose ~25-minute sharded
+      # suite would have become a single serial run.
+      #
+      # So: shard inside the project's own `test:e2e` script if you declare the
+      # gate here, or leave this moment undeclared and keep the matrix.
       playwright_shards: 2
       # Leave false unless the cache key has been checked against this project's
       # layout. Lisa's key is a fingerprint of build inputs, and a key that
