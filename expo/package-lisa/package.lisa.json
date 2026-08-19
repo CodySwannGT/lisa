@@ -103,7 +103,6 @@
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
-      "brace-expansion": ">=5.0.9",
       "eslint-plugin-react-hooks": "^7.0.0",
       "fast-xml-parser": "^5.10.1",
       "tar": ">=7.5.19",
@@ -111,7 +110,6 @@
     },
     "overrides": {
       "@isaacs/brace-expansion": "^5.0.1",
-      "brace-expansion": ">=5.0.9",
       "eslint-plugin-react-hooks": "^7.0.0",
       "fast-xml-parser": "^5.10.1",
       "zod-validation-error": "^4.0.0",
@@ -185,6 +183,12 @@
     }
   },
   "remove": {
+    "overrides": [
+      "brace-expansion"
+    ],
+    "resolutions": [
+      "brace-expansion"
+    ],
     "devDependencies": [
       "@stryker-mutator/vitest-runner"
     ]
