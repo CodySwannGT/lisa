@@ -42,6 +42,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-08-19 — Mutation Gate Scoped at the Guard Scripts](decisions/2026-08-19-guard-mutation-gate.md)
 - [2026-08-12 — Credential-Provider Substrate Precedence](decisions/2026-08-12-credential-substrate-precedence.md)
 - [2026-08-12 — In-Session Filed Tickets and the Ready Role](decisions/2026-08-12-in-session-ticket-ready-role.md)
 - [2026-08-12 — Ratchet Policy: Absolute Floors, No Generic Creep](decisions/2026-08-12-ratchet-policy.md)

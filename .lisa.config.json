@@ -144,6 +144,9 @@
     "version-duplication": {
       "pull-request": "optional"
     },
+    "test-meaningfulness": {
+      "pull-request": "optional"
+    },
     "test-node-suites": {
       "push": "off",
       "pull-request": "off"
