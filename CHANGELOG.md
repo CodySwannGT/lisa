@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.45.5](https://github.com/CodySwannGT/lisa/compare/v3.45.4...v3.45.5) (2026-08-19)
+
+
+### Bug Fixes
+
+* **environment:** type-check the task runner before pattern-matching it ([f5571f9](https://github.com/CodySwannGT/lisa/commit/f5571f94841d788765036f247a152f2d45d8029c)), closes [CodySwannGT/lisa#2765](https://github.com/CodySwannGT/lisa/issues/2765)
+* **hooks:** a shellcheck directive is key=value pairs and nothing else ([c20a632](https://github.com/CodySwannGT/lisa/commit/c20a632ea5fc362f83b4e2203d4876c735e014b1)), closes [CodySwannGT/lisa#2765](https://github.com/CodySwannGT/lisa/issues/2765)
+* **nightly-e2e:** trim the gate context before the fallback, not after ([35a4ad2](https://github.com/CodySwannGT/lisa/commit/35a4ad29f3dd982c4fad7c59b57a19cfcef8a223)), closes [CodySwannGT/lisa#2765](https://github.com/CodySwannGT/lisa/issues/2765)
+* **state:** validate inventory ENTRIES, not just the container ([37c07e8](https://github.com/CodySwannGT/lisa/commit/37c07e854199aec42f2333b75951834ee7b7e4a8)), closes [CodySwannGT/lisa#2765](https://github.com/CodySwannGT/lisa/issues/2765)
+
 ### [3.45.4](https://github.com/CodySwannGT/lisa/compare/v3.45.3...v3.45.4) (2026-08-19)
 
 
