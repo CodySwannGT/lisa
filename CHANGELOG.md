@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.43.1](https://github.com/CodySwannGT/lisa/compare/v3.43.0...v3.43.1) (2026-08-19)
+
+
+### Documentation
+
+* **playwright:** say that declaring the gate costs the shard matrix ([1af92d4](https://github.com/CodySwannGT/lisa/commit/1af92d48c6354733e8ffc39192e5b0b0adfa434a)), closes [CodySwannGT/lisa#2743](https://github.com/CodySwannGT/lisa/issues/2743)
+
 ## [3.43.0](https://github.com/CodySwannGT/lisa/compare/v3.42.0...v3.43.0) (2026-08-19)
 
 
