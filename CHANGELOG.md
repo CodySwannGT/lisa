@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.43.2](https://github.com/CodySwannGT/lisa/compare/v3.43.1...v3.43.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **postinstall:** a failed template apply is now loud and durable, still non-fatal ([c850361](https://github.com/CodySwannGT/lisa/commit/c850361dc1bc8d86116fe0a2ef065ba213d1a222)), closes [#318](https://github.com/CodySwannGT/lisa/issues/318) [CodySwannGT/lisa#2745](https://github.com/CodySwannGT/lisa/issues/2745)
+
 ### [3.43.1](https://github.com/CodySwannGT/lisa/compare/v3.43.0...v3.43.1) (2026-08-19)
 
 
