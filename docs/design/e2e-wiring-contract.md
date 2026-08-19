@@ -90,8 +90,8 @@ repo D      maestro-e2e  -> FULLY LOCAL                  health -> FULLY LOCAL
 **Four of the eight health/maestro callers invoke no Lisa reusable at all** —
 they are local reimplementations, which is the same defect as repo A's
 `nightly-e2e-gate.yml` fork (§4), just spread across three repos. Repo D's
-frontend is not a Lisa e2e consumer in any sense. The callers that
-*do* delegate span **four different refs**, including `@v2.345.1` — where the
+frontend is not a Lisa e2e consumer in any sense. The callers that *do*
+delegate span **four different refs**, including `@v2.345.1` — where the
 reusable does not exist at all, so that call can never load (Lisa #2702).
 
 ### What this means for the fix
@@ -291,8 +291,8 @@ Grepping the basename is not sufficient — it matches comments and docs, which 
 exactly how two of these were mis-scored.
 
 The genuine orphans this test does find in the portfolio are repo A's and
-repo D's `lighthouse.yml`: `on: workflow_call` only,
-no `push`/`schedule`/`dispatch`, and **no `uses:` anywhere**. Byte-identical,
+repo D's `lighthouse.yml`: `on: workflow_call` only, no
+`push`/`schedule`/`dispatch`, and **no `uses:` anywhere**. Byte-identical,
 2653 B each. Unreachable by construction.
 
 **On repo A's fork specifically.** Measured:
