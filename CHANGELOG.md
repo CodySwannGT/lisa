@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.42.0](https://github.com/CodySwannGT/lisa/compare/v3.41.1...v3.42.0) (2026-08-19)
+
+
+### Features
+
+* **environment:** add the environment-prepare reusable workflow ([fbfa0d2](https://github.com/CodySwannGT/lisa/commit/fbfa0d2dd4f11c2f3fee04aebacae499d9865a29)), closes [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [CodySwannGT/lisa#2739](https://github.com/CodySwannGT/lisa/issues/2739)
+* **environment:** ship the caller the facade never had ([29ef31a](https://github.com/CodySwannGT/lisa/commit/29ef31a38c4c214b3acf903c39304947dcbca42b)), closes [CodySwannGT/lisa#2739](https://github.com/CodySwannGT/lisa/issues/2739)
+* **maestro:** prepare the environment before each leg, not once per run ([92ec546](https://github.com/CodySwannGT/lisa/commit/92ec546858d717ea3f2661740b2ea730cd67bb0d)), closes [CodySwannGT/lisa#2739](https://github.com/CodySwannGT/lisa/issues/2739)
+* **playwright:** give the browser suite its own reusable workflow ([59c4e11](https://github.com/CodySwannGT/lisa/commit/59c4e1188925ccc0d75db580ab15043d42952a0c)), closes [CodySwannGT/lisa#2739](https://github.com/CodySwannGT/lisa/issues/2739)
+
+
+### Bug Fixes
+
+* **environment:** refuse an environment name that could become shell syntax ([0d59b9f](https://github.com/CodySwannGT/lisa/commit/0d59b9f1589a6b9b1aa64c9b1cdc8048bfce2cbf)), closes [CodySwannGT/lisa#2739](https://github.com/CodySwannGT/lisa/issues/2739)
+* **playwright:** point the seeded caller at the dedicated workflow ([2f7c579](https://github.com/CodySwannGT/lisa/commit/2f7c579da89308e9ad1445b488e0ba928739d1d4)), closes [CodySwannGT/lisa#2739](https://github.com/CodySwannGT/lisa/issues/2739)
+
 ### [3.41.1](https://github.com/CodySwannGT/lisa/compare/v3.41.0...v3.41.1) (2026-08-19)
 
 
