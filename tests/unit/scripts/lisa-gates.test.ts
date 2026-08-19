@@ -32,6 +32,9 @@ import {
  * @param id - Gate id to look up
  * @returns The registry definition for that gate
  */
+/** The moments a gate needing a running target is confined to. */
+const DEPLOY_MOMENTS = ["pre-deploy", "post-deploy", "continuous"] as const;
+
 const definition = (id: string) =>
   (REGISTRY as Record<string, { moments: string[] }>)[id];
 
@@ -47,21 +50,40 @@ describe("REGISTRY", () => {
 
   it("confines deploy-only gates to deploy moments", () => {
     // Nothing is deployed at commit time for a DAST scan to point at.
+    //
+    // `performance-budget` LEFT this family deliberately, and the distinction
+    // is whether the gate can produce its own target. A DAST scan and a load
+    // test need a service someone else is running; there is nothing to point
+    // at before a deploy. A performance budget builds the bundle it measures —
+    // `export:web` then `lhci autorun` against the local build — so the
+    // premise that put it here does not hold for it.
+    //
+    // This is not theoretical. Every consumer already measures at pull-request
+    // time and has for as long as `lighthouse.yml` has existed; the gate being
+    // deploy-only is what kept the registry from describing what was actually
+    // happening, and therefore from letting a project decline it.
     for (const id of [
       "runtime-web-vulnerability",
-      "performance-budget",
       "load-capacity",
       "accessibility",
     ]) {
       // `continuous` joined this family deliberately: these need something
       // running to point at, and a schedule provides that as readily as a
       // deploy does. What stays excluded is every change-triggered moment.
-      expect(definition(id).moments, id).toEqual([
-        "pre-deploy",
-        "post-deploy",
-        "continuous",
-      ]);
+      expect(definition(id).moments, id).toEqual(DEPLOY_MOMENTS);
     }
+  });
+
+  it("lets the performance budget run where the change is, and at deploy", () => {
+    // Widened from the deploy-only family above. `push` is present so a
+    // project CAN opt in, not so it runs by default: there is deliberately no
+    // built-in for this gate in lisa-run-gates.mjs, so an undeclared gate runs
+    // nothing at push. See tests/unit/config/performance-budget-gate.test.ts.
+    expect(definition("performance-budget").moments).toEqual([
+      "push",
+      "pull-request",
+      ...DEPLOY_MOMENTS,
+    ]);
   });
 
   it("keeps type-aware lint out of commit", () => {
