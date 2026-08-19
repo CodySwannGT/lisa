@@ -2170,6 +2170,22 @@ function sleep(ms) {
 const RATELIMIT_REMAINING_HEADER = "x-ratelimit-remaining";
 
 /**
+ * The `accept` value that selects GitHub's versioned REST media type.
+ *
+ * Named because it is a wire contract shared by every request this file makes:
+ * send a different one and the API answers with a different response shape,
+ * which every parser below would then misread rather than reject.
+ */
+const GITHUB_ACCEPT = "application/vnd.github+json";
+
+/**
+ * The `user-agent` GitHub sees. GitHub requires one, and this value is how a
+ * request from this check is told apart from any other Lisa traffic in an
+ * audit log — so it is one string, not three that can drift apart.
+ */
+const HEALTH_USER_AGENT = "lisa-nightly-e2e-health";
+
+/**
  * How long to wait before retrying a throttled response, bounded.
  *
  * @param {Response} response - The throttled response
@@ -2211,10 +2227,10 @@ export async function apiGet(api, path, wait = sleep) {
     try {
       response = await fetch(`${api.apiUrl}${path}`, {
         headers: {
-          accept: "application/vnd.github+json",
+          accept: GITHUB_ACCEPT,
           authorization: `Bearer ${api.token}`,
           "x-github-api-version": "2022-11-28",
-          "user-agent": "lisa-nightly-e2e-health",
+          "user-agent": HEALTH_USER_AGENT,
         },
       });
     } catch (error) {
@@ -2523,11 +2539,11 @@ export async function apiWrite(api, method, path, payload, wait = sleep) {
       response = await fetch(`${api.apiUrl}${path}`, {
         method,
         headers: {
-          accept: "application/vnd.github+json",
+          accept: GITHUB_ACCEPT,
           authorization: `Bearer ${api.token}`,
           "content-type": "application/json",
           "x-github-api-version": "2022-11-28",
-          "user-agent": "lisa-nightly-e2e-health",
+          "user-agent": HEALTH_USER_AGENT,
         },
         body: JSON.stringify(payload),
       });
@@ -2600,10 +2616,10 @@ export async function setIssuePin(api, nodeId, pinned) {
     const response = await fetch(api.graphqlUrl ?? `${api.apiUrl}/graphql`, {
       method: "POST",
       headers: {
-        accept: "application/vnd.github+json",
+        accept: GITHUB_ACCEPT,
         authorization: `Bearer ${api.token}`,
         "content-type": "application/json",
-        "user-agent": "lisa-nightly-e2e-health",
+        "user-agent": HEALTH_USER_AGENT,
       },
       body: JSON.stringify({
         query: `mutation($id: ID!) { ${mutation}(input: {issueId: $id}) { issue { number } } }`,

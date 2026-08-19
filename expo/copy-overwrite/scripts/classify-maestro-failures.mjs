@@ -150,6 +150,57 @@ const PLACEHOLDER_METHODS = new Set([
 ]);
 
 /**
+ * An `id:` line, with everything after the colon captured verbatim.
+ *
+ * Two deliberate spellings, both there to keep the match linear (S5852):
+ * `[ \t]` rather than `\s`, because this is applied to one already-split line
+ * and `\s`'s newline class only lets the indentation run overlap the next
+ * line's; and `(?:\S.*)?` rather than `.*`, because `[ \t]*(.*)` lets both
+ * halves claim the same spaces, which is a choice the engine has to make at
+ * every one of them.
+ */
+const ID_LINE = /^[ \t]*id:[ \t]*((?:\S.*)?)$/;
+
+/** A `text:` line, read the same way. */
+const TEXT_LINE = /^[ \t]*text:[ \t]*((?:\S.*)?)$/;
+
+/**
+ * A scalar value with one layer of matching quotes removed.
+ *
+ * Character comparison rather than `['"]?(...)['"]?`, because the regex form
+ * cannot express "the same quote at both ends" without a backreference, and
+ * the shape it settled for — a lazy capture between two optional quotes and a
+ * trailing `\s*$` — has three quantifiers competing for the same characters.
+ * That is super-linear in the line's length (S5852) on flow files.
+ * @param {string} value - An already-trimmed scalar.
+ * @returns {string} The value without its surrounding quote pair.
+ */
+function unquote(value) {
+  const first = value.at(0);
+  const isQuote = first === "'" || first === '"';
+  return isQuote && value.length > 1 && value.at(-1) === first
+    ? value.slice(1, -1)
+    : value;
+}
+
+/**
+ * The selector a `key: value` line declares, or null when the line is not one.
+ *
+ * An empty value reads as "no selector here" rather than as the empty
+ * selector, which is what the previous `[^'"\n]+?` (one character minimum)
+ * also did.
+ * @param {string} line - One line of flow YAML.
+ * @param {RegExp} pattern - The key's line pattern.
+ * @returns {string|null} The selector, or null.
+ */
+function scalarSelector(line, pattern) {
+  const match = pattern.exec(line);
+  if (!match) return null;
+  const value = unquote(match[1].trim());
+  return value === "" ? null : value;
+}
+
+/**
  * Pull `id:`/`text:` selectors and their ceilings out of a flow's YAML source.
  *
  * Deliberately a line scanner rather than a YAML parse: this script must run
@@ -178,7 +229,12 @@ export function extractGates(source) {
 
   for (const line of lines) {
     if (/^\s*#/.test(line) || line.trim() === "") continue;
-    const command = line.match(/^(\s*)-?\s*(\w+):/);
+    // `(?:-\s*)?` rather than `-?\s*`: with two `\s*` runs either side of an
+    // optional dash, both can claim the same spaces and the engine has a
+    // choice at every one — super-linear in the line's length (S5852). Tying
+    // the dash to the whitespace that follows it removes the choice and
+    // recognises exactly the same lines.
+    const command = line.match(/^(\s*)(?:-\s*)?(\w+):/);
     if (command && GATE_COMMANDS.includes(command[2])) {
       if (inGate) flush();
       inGate = true;
@@ -198,17 +254,34 @@ export function extractGates(source) {
       timeout = Number(timeoutMatch[1]);
       continue;
     }
-    const idMatch = line.match(/^\s*id:\s*['"]?([^'"\n]+?)['"]?\s*$/);
-    if (idMatch) {
-      pending.push({ kind: "id", selector: idMatch[1] });
+    const idSelector = scalarSelector(line, ID_LINE);
+    if (idSelector !== null) {
+      pending.push({ kind: "id", selector: idSelector });
       continue;
     }
-    const textMatch = line.match(/^\s*text:\s*['"]?([^'"\n]+?)['"]?\s*$/);
-    if (textMatch) pending.push({ kind: "text", selector: textMatch[1] });
+    const textSelector = scalarSelector(line, TEXT_LINE);
+    if (textSelector !== null)
+      pending.push({ kind: "text", selector: textSelector });
   }
   if (inGate) flush();
   return gates;
 }
+
+/** The extension a referenced flow must carry to be followed. */
+const YAML_SUFFIX = ".yaml";
+
+/**
+ * A `runFlow: <path>` line, in the shorthand list-item form.
+ *
+ * `[ \t]` rather than `\s` throughout, and the dash tied to the whitespace
+ * that follows it. Under `m`, a `\s*` run can cross a newline into the next
+ * line's own `^`, so the scan re-attempts the same characters from many start
+ * positions — super-linear in the file's length (S5852).
+ */
+const INLINE_RUN_FLOW = /^[ \t]*(?:-[ \t]*)?runFlow:[ \t]*['"]?([^'"\s]+)/gm;
+
+/** The `file: <path>` line of the expanded `runFlow:` form. */
+const NESTED_RUN_FLOW = /^[ \t]*file:[ \t]*['"]?([^'"\s]+)/gm;
 
 /**
  * Resolve the `runFlow:` targets a flow references, as absolute paths.
@@ -219,10 +292,18 @@ export function extractGates(source) {
 export function extractRunFlowTargets(source, flowPath) {
   const dir = path.dirname(flowPath);
   const targets = [];
-  const inline = source.matchAll(/^\s*-?\s*runFlow:\s*['"]?([^'"\s]+\.yaml)/gm);
-  for (const match of inline) targets.push(path.resolve(dir, match[1]));
-  const nested = source.matchAll(/^\s*file:\s*['"]?([^'"\s]+\.yaml)/gm);
-  for (const match of nested) targets.push(path.resolve(dir, match[1]));
+  // The `.yaml` suffix is checked in JS rather than written as `[^'"\s]+\.yaml`.
+  // A greedy class that already contains `.` has to give characters back one at
+  // a time before the literal suffix can match, at every start position a `g`
+  // scan tries — super-linear in the source's length (S5852), on flow files.
+  // The class stops at whitespace or a quote either way, so the token it
+  // captures is the same one; only the suffix test moved.
+  for (const match of source.matchAll(INLINE_RUN_FLOW))
+    if (match[1].endsWith(YAML_SUFFIX))
+      targets.push(path.resolve(dir, match[1]));
+  for (const match of source.matchAll(NESTED_RUN_FLOW))
+    if (match[1].endsWith(YAML_SUFFIX))
+      targets.push(path.resolve(dir, match[1]));
   return targets;
 }
 
