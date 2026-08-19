@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.40.3](https://github.com/CodySwannGT/lisa/compare/v3.40.2...v3.40.3) (2026-08-19)
+
+
+### Documentation
+
+* **nightly-e2e:** record that `gated: false` relaxes no evidence standard ([836fcb0](https://github.com/CodySwannGT/lisa/commit/836fcb08eeb9d5653dac9cc46b303c2e3697081f)), closes [CodySwannGT/lisa#2704](https://github.com/CodySwannGT/lisa/issues/2704)
+
 ### [3.40.2](https://github.com/CodySwannGT/lisa/compare/v3.40.1...v3.40.2) (2026-08-19)
 
 

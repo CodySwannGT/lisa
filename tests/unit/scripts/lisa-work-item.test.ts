@@ -175,7 +175,12 @@ printf '%s\\n' "$FAKE_CURL_JSON"`
   git(root, ["init", "-q", "-b", "main"], env);
   writeFileSync(
     path.join(root, ".lisa.config.json"),
-    `${JSON.stringify(config, null, 2)}\n`
+    // Every case predating #2721 asserts the FULL contract — live tracker
+    // lookup plus PR backlink — so that is what a fixture gets unless it says
+    // otherwise. The SHIPPED default is trailer-only; the cases exercising it
+    // declare `workItem: { verify: "trailer" }`, which is also how a reader
+    // tells the two apart at a glance.
+    `${JSON.stringify({ workItem: { verify: "full" }, ...config }, null, 2)}\n`
   );
   git(root, ["add", ".lisa.config.json"], env);
   git(root, ["commit", "-q", "-m", "test fixture"], env);
@@ -1650,7 +1655,7 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
     expect(result.status).toBe(0);
   });
 
-  it("still rejects a body carrying two Work-Item lines", () => {
+  it("accepts a body repeating the SAME Work-Item line", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
     expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
@@ -1659,9 +1664,18 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
       "feat: tracked change\n\nWork-Item: acme/widgets#42"
     );
     const bodyFile = path.join(fixture.root, "pr-body.md");
-    // Nothing appends a Work-Item line to a BODY on Lisa's behalf, so a second
-    // one is a person having written two — the opposite of the commit rule,
-    // and deliberately so.
+    // This used to fail, on the reasoning that nothing appends a Work-Item
+    // line to a BODY on Lisa's behalf, so a second one meant a person had
+    // written two. The premise is false: a body that quotes its own commit
+    // message carries the line twice, and #2721 measured six pull requests
+    // across four repositories blocked by this gate in one evening with a
+    // correctly scoped ticket on every one.
+    //
+    // The rule now matches the commit parser's, which is the point: the same
+    // text answered two different ways by two parsers is how this recurs. A
+    // repeat of the SAME reference cannot admit untracked work — it says
+    // exactly what one line says — so rejecting it bought tidiness and cost
+    // traceability.
     writeFileSync(
       bodyFile,
       "Work-Item: acme/widgets#42\n\nmore\n\nWork-Item: acme/widgets#42\n"
@@ -1682,10 +1696,44 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
       ],
       { env: { FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE } }
     );
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "Pull request must contain exactly one Work-Item line; found 2"
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("rejects a body naming two DIFFERENT work items", () => {
+    // The ambiguity that was always the real hazard, and the half that must
+    // stay strict: which of the two is this pull request actually about?
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
     );
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    writeFileSync(
+      bodyFile,
+      "Work-Item: acme/widgets#42\n\nmore\n\nWork-Item: acme/widgets#43\n"
+    );
+
+    const result = command(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        bodyFile,
+        "--pr-url",
+        PR_URL,
+      ],
+      { env: { FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE } }
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("2 different work items");
+    expect(result.stderr).toContain("acme/widgets#43");
   });
 
   it("reports the commit trailer and the tracker backlink in one run", () => {
@@ -1971,5 +2019,263 @@ describe("backlink command refusals", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("writing a Jira backlink requires");
+  });
+});
+
+/**
+ * Traceability with NO tracker credentials (#2721).
+ *
+ * The gate enforces four separate things and three of them need tracker API
+ * access: the `repo:` label, the claimed lifecycle state, and a backlink that
+ * needs WRITE access. Only the first — a well-formed `Work-Item:` reference —
+ * carries the traceability, and it needs nothing at all. A project unwilling to
+ * put a tracker API key in CI could not satisfy the gate in any form.
+ *
+ * `workItem.verify` says which of the two contracts a project is asking for.
+ * `trailer`, the default, proves the reference and makes NO tracker call; the
+ * fixtures below sever every tracker transport, so a passing case is proof that
+ * nothing was contacted rather than a claim about it. `full` is today's
+ * behaviour, unchanged, and is what Lisa's own repository declares.
+ *
+ * The one thing trailer-only must never become is a pass for work with no
+ * reference at all — "cannot verify" reported as "verified" is the vacuous
+ * green this gate exists to prevent, so that case is asserted here too.
+ */
+describe("credential-free traceability (#2721)", () => {
+  /** A project that keeps no tracker credentials — the shipped default. */
+  function trailerOnlyConfig(): object {
+    return { ...githubConfig(), workItem: { verify: "trailer" } };
+  }
+
+  /**
+   * Make every tracker transport fail loudly.
+   *
+   * Not "return an error payload" — refuse to answer at all, and say so on
+   * stderr. A trailer-only run that passes through this has demonstrably not
+   * consulted a tracker, which is a stronger claim than any stub asserting on
+   * what it was asked.
+   * @param fixture - The disposable fixture.
+   */
+  function severTrackerAccess(fixture: Fixture): void {
+    for (const name of ["gh", "acli", "curl"])
+      executable(
+        path.join(fixture.bin, name),
+        `printf 'tracker contacted: %s\\n' "$*" >&2; exit 70`
+      );
+  }
+
+  it("validates a commit with every tracker transport severed", () => {
+    const fixture = createFixture(trailerOnlyConfig());
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    severTrackerAccess(fixture);
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(messageFile, "fix: a change\n\nWork-Item: acme/widgets#42\n");
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("binds a work item with every tracker transport severed", () => {
+    // `link` is the first step Lisa documents, and it called the tracker to
+    // confirm the item exists. With no credential there was no way to start.
+    const fixture = createFixture(trailerOnlyConfig());
+    severTrackerAccess(fixture);
+
+    const result = command(fixture, ["link", "acme/widgets#42"]);
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("still FAILS a commit carrying no Work-Item reference", () => {
+    // The line between credential-free and vacuous. Nothing here can be
+    // checked against a tracker, and the gate still has to refuse.
+    const fixture = createFixture(trailerOnlyConfig());
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    severTrackerAccess(fixture);
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(messageFile, "fix: no reference at all\n");
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the commit message"
+    );
+  });
+
+  it("still FAILS a commit whose reference is outside the configured repo", () => {
+    const fixture = createFixture(trailerOnlyConfig());
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    severTrackerAccess(fixture);
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(
+      messageFile,
+      "fix: wrong repo\n\nWork-Item: acme/elsewhere#42\n"
+    );
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("outside configured tracker repository");
+  });
+
+  it("validates a pull request with no tracker backlink and no tracker call", () => {
+    const fixture = createFixture(trailerOnlyConfig());
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    severTrackerAccess(fixture);
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    writeFileSync(bodyFile, "Summary.\n\nWork-Item: acme/widgets#42\n");
+
+    const result = command(fixture, [
+      "validate-pr",
+      "--base",
+      base,
+      "--head",
+      head,
+      "--body-file",
+      bodyFile,
+    ]);
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("still FAILS a pull request whose body names a different item", () => {
+    const fixture = createFixture(trailerOnlyConfig());
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    severTrackerAccess(fixture);
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    writeFileSync(bodyFile, "Work-Item: acme/widgets#43\n");
+
+    const result = command(fixture, [
+      "validate-pr",
+      "--base",
+      base,
+      "--head",
+      head,
+      "--body-file",
+      bodyFile,
+    ]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "does not match commit Work-Item acme/widgets#42"
+    );
+  });
+
+  it("still FAILS a pull request whose commits carry no reference", () => {
+    const fixture = createFixture(trailerOnlyConfig());
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(fixture, "feat: untracked change");
+    severTrackerAccess(fixture);
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    writeFileSync(bodyFile, "Work-Item: acme/widgets#42\n");
+
+    const result = command(fixture, [
+      "validate-pr",
+      "--base",
+      base,
+      "--head",
+      head,
+      "--body-file",
+      bodyFile,
+    ]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the commit message"
+    );
+  });
+
+  it("keeps every tracker check when the project declares verify: full", () => {
+    // The strict contract is still reachable and still strict — the change is
+    // which one a project gets without saying anything.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = prRange(fixture, base, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no verified backlink");
+  });
+
+  it("degrades a verify: full project to trailer-only on the env override", () => {
+    // What CI does when a declared credential did not arrive. Today that path
+    // prints a warning and exits 0 — the required check reporting success
+    // having verified nothing, a completely absent trailer included.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    expect(command(fixture, ["link", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    severTrackerAccess(fixture);
+    const bodyFile = path.join(fixture.root, "pr-body.md");
+    writeFileSync(bodyFile, "Work-Item: acme/widgets#42\n");
+
+    const result = command(
+      fixture,
+      ["validate-pr", "--base", base, "--head", head, "--body-file", bodyFile],
+      { env: { LISA_WORK_ITEM_VERIFY: "trailer" } }
+    );
+
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+
+  it("reports the resolved level rather than making CI re-derive it", () => {
+    const declared = createFixture();
+    const defaulted = createFixture(githubConfig());
+    // Same fixture shape, no `workItem` key at all — the shipped default.
+    writeFileSync(
+      path.join(defaulted.root, ".lisa.config.json"),
+      `${JSON.stringify(githubConfig(), null, 2)}\n`
+    );
+
+    expect(command(declared, ["verify-level"]).stdout.trim()).toBe("full");
+    expect(command(defaulted, ["verify-level"]).stdout.trim()).toBe("trailer");
+    expect(
+      command(declared, ["verify-level"], {
+        env: { LISA_WORK_ITEM_VERIFY: "trailer" },
+      }).stdout.trim()
+    ).toBe("trailer");
+  });
+
+  it("refuses an unrecognised verify level instead of guessing one", () => {
+    // A typo must not silently pick a level. Defaulting quietly to `trailer`
+    // would weaken the gate on a misspelling; defaulting to `full` would break
+    // a credential-free project on one.
+    const fixture = createFixture({
+      ...githubConfig(),
+      workItem: { verify: "strict" },
+    });
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(messageFile, "fix: a change\n\nWork-Item: acme/widgets#42\n");
+
+    const result = command(fixture, ["validate-commit", messageFile]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("workItem.verify");
+    expect(result.stderr).toContain("strict");
   });
 });

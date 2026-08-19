@@ -429,6 +429,66 @@ function currentRepoIdentity(config) {
   );
 }
 
+/**
+ * The two contracts this gate can be asked to prove.
+ *
+ * `trailer` — the DEFAULT — proves that the change names a work item: a
+ * `Work-Item:` line exists, is well formed, names the configured tracker's
+ * repository or project, matches this worktree's binding, and is the same
+ * reference on the commits and on the pull-request body. Every one of those is
+ * decidable from the text and the local config, so it needs no credential of
+ * any kind.
+ *
+ * `full` adds the three requirements that need tracker API access, two of them
+ * read and one of them WRITE: the item carries a `repo:` label naming this
+ * repository, it sits in a claimed lifecycle state, and it carries a verified
+ * backlink to this pull request.
+ *
+ * The default flipped in #2721. `full` was the only contract on offer, so a
+ * project unwilling to hand a tracker API key to CI could not satisfy the gate
+ * in any form — the traceability requirement and the tracker-integration
+ * requirement were one thing, and only the first is what the gate is for.
+ *
+ * Declared rather than inferred from whichever credentials happen to be
+ * present. Inferring it would make the gate's strength a property of the
+ * environment: delete a secret and the check quietly asks for less, with the
+ * decision recorded nowhere. A level in the config says what the project
+ * decided, and `verify-level` prints what actually resolved.
+ */
+const VERIFY_LEVELS = new Set(["trailer", "full"]);
+
+/** What a project gets when it says nothing. */
+const DEFAULT_VERIFY = "trailer";
+
+/**
+ * Resolve how much of the contract to prove.
+ *
+ * The environment override exists for one caller: CI degrading a project that
+ * declared `full` whose tracker credential did not arrive. That used to be a
+ * warning and `exit 0` — a required check reporting success having verified
+ * nothing at all, an absent trailer included. Degrading to `trailer` still
+ * proves the reference, which is the part that was never credential-bound.
+ * @param {object} config Merged Lisa config.
+ * @returns {string} Either "trailer" or "full".
+ */
+function verifyLevel(config) {
+  const override = process.env.LISA_WORK_ITEM_VERIFY;
+  const raw =
+    override === undefined || override === ""
+      ? config.workItem?.verify
+      : override;
+  if (raw === undefined || raw === "") return DEFAULT_VERIFY;
+  const value = String(raw).trim().toLowerCase();
+  if (!VERIFY_LEVELS.has(value)) {
+    throw new TrackingError(
+      `Unknown workItem.verify '${raw}'. Expected "trailer" (the default: ` +
+        `prove the Work-Item reference, contact no tracker) or "full" (also ` +
+        `prove the tracker item's repo scope, claimed state, and PR backlink)`
+    );
+  }
+  return value;
+}
+
 function trackerContract(config = readConfig()) {
   const provider = requireString(config.tracker, "tracker").toLowerCase();
   const identityRepo = currentRepoIdentity(config);
@@ -445,6 +505,7 @@ function trackerContract(config = readConfig()) {
       provider,
       repository,
       identityRepo,
+      verify: verifyLevel(config),
       lifecycle: lifecycleContract(config, provider),
       repositoryIsIdentity:
         repository.toLowerCase() === `${org}/${githubRepo}`.toLowerCase(),
@@ -454,6 +515,7 @@ function trackerContract(config = readConfig()) {
     return {
       provider,
       identityRepo,
+      verify: verifyLevel(config),
       project: requireString(
         config.jira?.project,
         "jira.project"
@@ -470,6 +532,7 @@ function trackerContract(config = readConfig()) {
     return {
       provider,
       identityRepo,
+      verify: verifyLevel(config),
       workspace: requireString(config.linear?.workspace, "linear.workspace"),
       teamKey: requireString(
         config.linear?.teamKey,
@@ -615,38 +678,56 @@ function workItemLines(message) {
 }
 
 /**
- * The one work item a COMMIT message names.
+ * The one work item a text names, wherever and however often it says so.
  *
- * Repeats of the SAME item pass, and they have to: Lisa's own
- * prepare-commit-msg hook appends `Work-Item:` to the final trailer block, so
- * a message that already carries the trailer above its attribution block comes
- * back out of that hook carrying two identical lines. Rejecting that would
- * reject the layout Lisa itself writes. Two DIFFERENT items is the real
- * ambiguity, and it still fails — naming both, so the author can see which.
+ * ONE function for commit messages and pull-request bodies, because two of
+ * them is how this recurs. #2672 fixed the commit side — read the whole text,
+ * accept repeats of the same reference — and left the body side reading every
+ * line but rejecting a second one. The same text then answered two different
+ * ways depending on which parser saw it, and neither answer explained the
+ * other.
  *
- * A pull-request body keeps the stricter one-line rule (see prWorkItem):
- * nothing appends a trailer there on Lisa's behalf, so a second line in a body
- * is a person having written two.
- * @param {string} message Commit message.
+ * Repeats of the SAME reference pass. They have to on the commit side: Lisa's
+ * own prepare-commit-msg hook appends `Work-Item:` to the final trailer block,
+ * so a message already carrying the trailer above its attribution block comes
+ * back out of that hook with two identical lines. They now pass on the body
+ * side too. The old reasoning there — nothing appends a trailer to a body on
+ * Lisa's behalf, so a second line means a person wrote two — is simply not
+ * true: a body that quotes its own commit message carries the line twice, and
+ * bots edit bodies after review. A repeat of the same reference says exactly
+ * what one line says, so rejecting it bought tidiness and cost traceability.
+ *
+ * Two DIFFERENT references is the real ambiguity — which one is this change
+ * about? — and it still fails, naming both.
+ * @param {string} text Commit message or pull-request body.
  * @param {object} contract Resolved tracker contract.
+ * @param {string} subject What is being read, for the message.
  * @returns {string} The canonical work-item reference.
  */
-function exactWorkItem(message, contract = trackerContract()) {
-  const values = workItemLines(message);
+function soleWorkItem(text, contract, subject) {
+  const values = workItemLines(text);
   if (values.length === 0) {
-    throw new TrackingError(
-      "No Work-Item trailer anywhere in the commit message"
-    );
+    throw new TrackingError(`No Work-Item trailer anywhere in the ${subject}`);
   }
   const refs = [
     ...new Set(values.map(value => canonicalizeRef(value, contract))),
   ];
   if (refs.length > 1) {
     throw new TrackingError(
-      `Commit message names ${refs.length} different work items (${refs.join(", ")}); it must name exactly one`
+      `${subject[0].toUpperCase()}${subject.slice(1)} names ${refs.length} different work items (${refs.join(", ")}); it must name exactly one`
     );
   }
   return refs[0];
+}
+
+/**
+ * The one work item a COMMIT message names.
+ * @param {string} message Commit message.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} The canonical work-item reference.
+ */
+function exactWorkItem(message, contract = trackerContract()) {
+  return soleWorkItem(message, contract, "commit message");
 }
 
 function messageSubject(message) {
@@ -1156,6 +1237,11 @@ function linearIssue(ref, contract) {
  * @returns {object|undefined} The live item, or undefined when unreachable.
  */
 function validateLive(ref, contract = trackerContract()) {
+  // Not a degradation and not a skip — under `trailer` the tracker's answer is
+  // no part of the contract this project asked to have proved, so there is
+  // nothing to report and nothing to contact. A warning here would be noise on
+  // every commit in a project that made a deliberate choice.
+  if (contract.verify !== "full") return undefined;
   try {
     if (contract.provider === "github") return githubIssue(ref, contract);
     if (contract.provider === "jira") return jiraIssue(ref, contract);
@@ -1678,13 +1764,17 @@ function parsePushLines(input, remote) {
  * @param {object} contract Resolved tracker contract.
  * @returns {string} The canonical work-item reference.
  */
+/**
+ * The one work item a PULL-REQUEST BODY names.
+ *
+ * Same rule as the commit message, through the same function. See
+ * `soleWorkItem` for why the two used to disagree and why they no longer do.
+ * @param {string} body Pull-request body.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} The canonical work-item reference.
+ */
 function prWorkItem(body, contract) {
-  const matches = workItemLines(body);
-  if (matches.length !== 1)
-    throw new TrackingError(
-      `Pull request must contain exactly one Work-Item line; found ${matches.length}`
-    );
-  return canonicalizeRef(matches[0], contract);
+  return soleWorkItem(body, contract, "pull request body");
 }
 
 /**
@@ -1814,7 +1904,11 @@ function validatePrData(outcome, prUrl, prBody) {
       scope: IN_THIS_PR,
     });
   const ref = commitRef ?? bodyRef;
-  if (ref) {
+  // Requirement 4 belongs to `full` alone: it needs tracker WRITE access, and
+  // a project that keeps no tracker credentials cannot ever satisfy it. The
+  // reference checks above are what stays, and they still refuse everything
+  // that is genuinely untraceable.
+  if (ref && contract.verify === "full") {
     const before = findings.length;
     collect(findings, OUTSIDE_THIS_PR, () =>
       assertBacklink(ref, prUrl, contract, commitRef ? result.issue : undefined)
@@ -1823,6 +1917,22 @@ function validatePrData(outcome, prUrl, prBody) {
       findings[before].message += `. ${backlinkAdvice(ref, prUrl, contract)}`;
   }
   if (findings.length > 0) throw new TrackingError(requirementReport(findings));
+}
+
+/**
+ * What a successful run actually proved, in its own words.
+ *
+ * A `trailer` run that printed "and tracker backlink" would be claiming a
+ * check it deliberately did not make — the same class of untruth as a gate
+ * that reports success having verified nothing, said in the success line
+ * instead of the exit code.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} The requirements this run proved.
+ */
+function provedHere(contract) {
+  return contract.verify === "full"
+    ? "PR body, and tracker backlink"
+    : 'and PR body (workItem.verify is "trailer": the tracker was not contacted)';
 }
 
 function currentRepository() {
@@ -1954,7 +2064,7 @@ function validatePush(args) {
   }
   validatePrData(outcome, pr.url, pr.body);
   console.log(
-    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), PR body, and tracker backlink`
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), ${provedHere(outcome.result.contract)}`
   );
 }
 
@@ -1980,14 +2090,26 @@ function validatePr(args) {
   const pr = bodyFile
     ? { url: suppliedUrl, body: readFileSync(bodyFile, "utf8") }
     : fetched && { ...fetched, url: suppliedUrl ?? fetched.url };
-  if (!pr?.url) {
+  if (!pr) {
     throw new TrackingError(
-      "validate-pr requires --pr-number, or --pr-url/--url with --body-file, and an accessible GitHub PR"
+      "validate-pr requires --pr-number or --body-file, and an accessible GitHub PR"
+    );
+  }
+  // The URL identifies the pull request a BACKLINK must point at, so it is
+  // required exactly when a backlink is. Demanding it under `trailer` would
+  // reintroduce a credentialled step into the credential-free path for no
+  // check that consumes it.
+  if (
+    !pr.url &&
+    (outcome.result?.contract ?? trackerContract()).verify === "full"
+  ) {
+    throw new TrackingError(
+      "validate-pr requires --pr-url/--url alongside --body-file so the tracker backlink can be verified"
     );
   }
   validatePrData(outcome, pr.url, pr.body);
   console.log(
-    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), PR body, and tracker backlink`
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), ${provedHere(outcome.result.contract)}`
   );
 }
 
@@ -2037,12 +2159,17 @@ function main() {
     return console.log("work-item binding cleared");
   }
   if (command === "backlink") return backlink(args);
+  // One place resolves the level, and everything else asks. The CI job needs
+  // it to decide whether a missing tracker credential is a problem, and a
+  // second implementation of the precedence rules in shell is exactly the
+  // two-parsers drift this change exists to remove.
+  if (command === "verify-level") return console.log(trackerContract().verify);
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|backlink|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
