@@ -2,6 +2,7 @@
 /* eslint-disable sonarjs/no-duplicate-string -- Test fixtures necessarily repeat values */
 import * as fs from "fs-extra";
 import * as path from "node:path";
+import { satisfies } from "semver";
 import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
 import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
 import type { LisaConfig } from "../../../src/core/config.js";
@@ -407,6 +408,194 @@ describe("PackageLisaStrategy", () => {
         // whole point of the mechanism and must not regress.
         expect(content[section].ws).toBe(">=8.21.0");
       }
+    });
+
+    // Regression: the same floor guard covered `overrides`/`resolutions` only,
+    // so a host that had raised `dependencies.tar` above the template was walked
+    // backwards on every apply — the protection existed and the lowered value
+    // simply sat in a section it never looked at.
+    it("never lowers a host direct dependency that sits above the template floor", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          dependencies: { tar: ">=7.5.19", ws: ">=8.21.0" },
+          devDependencies: { "some-tool": ">=2.0.0" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        dependencies: { tar: ">=7.5.21", ws: "^8.0.0" },
+        devDependencies: { "some-tool": ">=3.0.0" },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      // Host floor is HIGHER in both direct-dependency sections — kept.
+      expect(content.dependencies.tar).toBe(">=7.5.21");
+      expect(content.devDependencies["some-tool"]).toBe(">=3.0.0");
+      // Host floor is LOWER — the template still raises it.
+      expect(content.dependencies.ws).toBe(">=8.21.0");
+    });
+
+    // The amplifier: `overrides.tar` / `resolutions.tar` are `"$tar"`, npm's
+    // self-reference, so their effective floor IS `dependencies.tar`. Lowering
+    // the direct dependency lowers every override that points at it, while the
+    // override entry itself survives untouched — a test asserting only that the
+    // `$tar` reference is still there would pass on a weakened tree. This is the
+    // exact postinstall path: skip-git-check restricts the apply to the security
+    // sections, which pulls the backing direct dependency in with them.
+    it("keeps the effective floor of a $name override when the host direct dependency is higher", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          dependencies: { tar: ">=7.5.19" },
+          overrides: { tar: "$tar" },
+          resolutions: { tar: "$tar" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        dependencies: { tar: ">=7.5.21" },
+        overrides: { tar: "$tar" },
+        resolutions: { tar: "$tar" },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.overrides.tar).toBe("$tar");
+      expect(content.resolutions.tar).toBe("$tar");
+      expect(content.dependencies.tar).toBe(">=7.5.21");
+      // What the `$tar` references now resolve to: 7.5.19 and 7.5.20 are the
+      // two releases GHSA-r292-9mhp-454m covers and 7.5.21 is its patch, so
+      // this assertion is the effective floor of every override consumer.
+      expect(satisfies("7.5.19", content.dependencies.tar)).toBe(false);
+      expect(satisfies("7.5.20", content.dependencies.tar)).toBe(false);
+      expect(satisfies("7.5.21", content.dependencies.tar)).toBe(true);
+    });
+
+    // A host ahead of the template is only decidable when one range contains the
+    // other. When neither does, both sides carry a constraint the other drops,
+    // and picking either silently is how a lowered floor got shipped in the
+    // first place — so the apply refuses and names both.
+    it("refuses to merge a dependency pin when neither range contains the other", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: { dependencies: { tar: "~7.5.19" } },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        dependencies: { tar: ">=7.5.21" },
+      });
+
+      const error = await strategy
+        .apply(sourcePath, destPath, "package.json", createContext())
+        .then(
+          () => null,
+          (caught: unknown) => caught as Error
+        );
+
+      expect(error).not.toBeNull();
+      expect(error?.message).toContain("dependencies.tar");
+      expect(error?.message).toContain(">=7.5.21");
+      expect(error?.message).toContain("~7.5.19");
+      // Refusing means refusing: the host manifest is left as it was.
+      const content = await fs.readJson(destPath);
+      expect(content.dependencies.tar).toBe(">=7.5.21");
+    });
+
+    it("reports the host pin it kept and why", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: { dependencies: { tar: ">=7.5.19" } },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        dependencies: { tar: ">=7.5.21" },
+      });
+
+      const result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      expect(result.note).toContain("dependencies.tar");
+      expect(result.note).toContain(">=7.5.21");
+      expect(result.note).toContain(">=7.5.19");
+    });
+
+    it("still raises a host direct dependency that sits below the template floor", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: { dependencies: { tar: ">=7.5.21" } },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        dependencies: { tar: ">=7.5.19" },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.dependencies.tar).toBe(">=7.5.21");
     });
 
     // Regression: a security floor that turns out to be harmful cannot be
