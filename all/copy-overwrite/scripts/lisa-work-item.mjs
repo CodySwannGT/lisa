@@ -2011,6 +2011,206 @@ function backlink(args) {
   console.log(`work-item backlink ${outcome} on ${ref}: ${MARKER} ${prUrl}`);
 }
 
+/**
+ * Cross-references on a work item that are MERGED pull requests in one repo.
+ *
+ * Repo-scoped deliberately. A cross-reference carries no repository constraint,
+ * so a downstream consumer's pull request mentioning an upstream issue appears
+ * here exactly like a local one. Measured while building this: a sweep that
+ * ignored `repository_url` credited two issues with fixes that lived in other
+ * repositories entirely, which is the difference between "shipped" and
+ * "somebody mentioned it".
+ *
+ * Exported so it can be asserted against fixture payloads without a network —
+ * a permissive filter returns MORE numbers rather than throwing, so nothing
+ * observable changes unless something asserts on the returned list.
+ * @param {unknown[]} events Timeline events for the work item.
+ * @param {string} repository `owner/name` the pull request must belong to.
+ * @returns {number[]} Merged pull-request numbers, de-duplicated.
+ */
+export function mergedPullRequestsIn(events, repository) {
+  const suffix = `/${repository}`;
+  const numbers = (Array.isArray(events) ? events : [])
+    .filter(event => event?.event === "cross-referenced")
+    .map(event => event?.source?.issue)
+    .filter(issue => issue?.pull_request?.merged_at)
+    .filter(issue => String(issue?.repository_url ?? "").endsWith(suffix))
+    .map(issue => issue?.number)
+    .filter(number => typeof number === "number");
+  return [...new Set(numbers)];
+}
+
+function githubTimeline(ref) {
+  const [repository, number] = ref.split("#");
+  const result = run(
+    "gh",
+    ["api", `repos/${repository}/issues/${number}/timeline?per_page=100`],
+    { allowFailure: true }
+  );
+  if (result.status !== 0) throw githubFailure(result, ref);
+  const events = safeJson(result.stdout, `GitHub timeline for ${ref}`);
+  return Array.isArray(events) ? events : [];
+}
+
+/**
+ * Move a work item to its configured terminal role and close it.
+ *
+ * The terminal role is RESOLVED from configuration, never assumed. Lisa's own
+ * repository maps `production` to `status:done`, but the map is environment
+ * aware — a project whose target is `dev` has a different terminal role, and a
+ * hardcoded label would silently apply the wrong one there while looking
+ * correct here. `lifecycleContract` already computes this for every provider.
+ *
+ * **It refuses without evidence.** A completion command that closes whatever it
+ * is pointed at is a way to make unfinished work disappear, which is the same
+ * defect class as a gate that passes because it found nothing. Evidence is a
+ * merged pull request in this repository.
+ * @param {string} ref Canonical work-item reference.
+ * @param {object} contract The resolved tracker contract.
+ * @returns {{merged: number[], terminal: string}} What was applied, and why.
+ */
+function completeWorkItem(ref, contract) {
+  if (contract.provider !== "github") {
+    throw new TrackingError(
+      `no completion writer for tracker '${contract.provider}'; only github is supported so far.\n` +
+        `Add one rather than closing by hand — a lifecycle step performed by hand is one nothing can verify happened.`
+    );
+  }
+  const [repository, number] = ref.split("#");
+  const merged = mergedPullRequestsIn(githubTimeline(ref), repository);
+  if (merged.length === 0) {
+    throw new TrackingError(
+      `refusing to complete ${ref}: no merged pull request in ${repository} references it.\n` +
+        `Completion is evidence-based on purpose. A command that closes whatever it is pointed at\n` +
+        `is a way to make unfinished work disappear, and the closure would be indistinguishable\n` +
+        `from a real one afterwards. If the work shipped some other way, say so on the item and close it deliberately.`
+    );
+  }
+  const terminal = contract.lifecycle.terminal;
+  const claimed = contract.lifecycle.claimed;
+  const edit = [
+    "issue",
+    "edit",
+    String(number),
+    "--repo",
+    repository,
+    "--add-label",
+    terminal,
+  ];
+  // Removing the claimed role is what makes the claimed lane mean something.
+  // Leaving it produces the exact drift this command exists to end: an item
+  // that is closed AND still reports as in progress.
+  if (claimed && claimed !== terminal) {
+    edit.push("--remove-label", claimed);
+  }
+  const edited = run("gh", edit, { allowFailure: true });
+  if (edited.status !== 0) throw githubFailure(edited, ref);
+  const closed = run(
+    "gh",
+    [
+      "issue",
+      "close",
+      String(number),
+      "--repo",
+      repository,
+      "--reason",
+      "completed",
+    ],
+    { allowFailure: true }
+  );
+  if (closed.status !== 0) throw githubFailure(closed, ref);
+  return { merged, terminal };
+}
+
+function complete(args) {
+  const contract = trackerContract();
+  const supplied = option(args, "--ref", "LISA_WORK_ITEM_REF");
+  const bound = readState(true)?.ref;
+  if (!supplied && !bound) {
+    throw new TrackingError(
+      "complete requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
+    );
+  }
+  const ref = canonicalizeRef(supplied ?? bound, contract);
+  const { merged, terminal } = completeWorkItem(ref, contract);
+  console.log(
+    `work-item completed: ${ref} -> ${terminal} (merged: ${merged
+      .map(number => `#${number}`)
+      .join(", ")})`
+  );
+}
+
+/**
+ * Report every claimed work item that already has a merged pull request.
+ *
+ * The drift detector. Closing at merge time is the fix; this is what catches
+ * the ones that slipped, and what proves whether the fix is holding. Measured
+ * before either existed: 27 of 27 claimed items in this repository had a merged
+ * pull request, so the claimed lane reported 27 things in flight when the real
+ * number was one.
+ *
+ * Reports by default and only acts under `--apply`, because a sweep that closes
+ * things as a side effect of being run is not something anyone will run twice.
+ */
+function sweep(args) {
+  const contract = trackerContract();
+  if (contract.provider !== "github") {
+    throw new TrackingError(
+      `no sweep for tracker '${contract.provider}'; only github is supported so far.`
+    );
+  }
+  const repository = currentRepository();
+  if (!repository)
+    throw new TrackingError("could not resolve the current GitHub repository");
+  const claimed = contract.lifecycle.claimed;
+  const listing = run(
+    "gh",
+    [
+      "issue",
+      "list",
+      "--repo",
+      repository,
+      "--state",
+      "open",
+      "--label",
+      claimed,
+      "--limit",
+      "200",
+      "--json",
+      "number,title",
+    ],
+    { allowFailure: true }
+  );
+  if (listing.status !== 0) throw githubFailure(listing, repository);
+  const issues = safeJson(listing.stdout, "GitHub issue listing");
+  const apply = args.includes("--apply");
+  let drifted = 0;
+  for (const issue of Array.isArray(issues) ? issues : []) {
+    const ref = `${repository}#${issue.number}`;
+    const merged = mergedPullRequestsIn(githubTimeline(ref), repository);
+    if (merged.length === 0) continue;
+    drifted += 1;
+    const evidence = merged.map(number => `#${number}`).join(", ");
+    if (!apply) {
+      console.log(`DRIFT  ${ref}  merged: ${evidence}  ${issue.title}`);
+      continue;
+    }
+    const { terminal } = completeWorkItem(ref, contract);
+    console.log(`completed ${ref} -> ${terminal}  (merged: ${evidence})`);
+  }
+  if (drifted === 0) {
+    console.log(
+      `No drift: every item carrying "${claimed}" is genuinely in flight.`
+    );
+    return;
+  }
+  if (!apply) {
+    console.log(
+      `\n${drifted} claimed item(s) already have a merged pull request. Re-run with --apply to complete them.`
+    );
+  }
+}
+
 function prepareCommitMessage(args) {
   const [file, source = ""] = args;
   if (!file)
@@ -2159,6 +2359,8 @@ function main() {
     return console.log("work-item binding cleared");
   }
   if (command === "backlink") return backlink(args);
+  if (command === "complete") return complete(args);
+  if (command === "sweep") return sweep(args);
   // One place resolves the level, and everything else asks. The CI job needs
   // it to decide whether a missing tracker credential is a problem, and a
   // second implementation of the precedence rules in shell is exactly the
@@ -2169,7 +2371,7 @@ function main() {
   if (command === "validate-push") return validatePush(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
