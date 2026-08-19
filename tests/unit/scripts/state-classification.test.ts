@@ -30,6 +30,8 @@ const FAILED = "failed";
 const INCOMPLETE_FIXTURE = "inventory-incomplete";
 const NOOP_CONTRADICTED_FIXTURE = "noop-contradicted";
 const INVALID = "invalid";
+const INVENTORY_FILE = "inventory.json";
+const INVALID_INVENTORY = "invalid-inventory";
 
 /** One finding emitted by the check. */
 interface Finding {
@@ -230,6 +232,116 @@ describe("check-state-classification", () => {
     });
   });
 
+  describe("a wrong-shaped inventory is invalid, never empty", () => {
+    /**
+     * A project holding the reference contract and one arbitrary inventory.
+     * @param inventory - Inventory file contents, already serialized
+     * @returns The project root
+     */
+    const projectWithInventory = (inventory: string): string => {
+      const root = projectWithContract(
+        fs.readFileSync(
+          path.join(FIXTURES, "adopter", STATE_DIR, CONTRACT_FILE),
+          UTF8
+        )
+      );
+      fs.writeFileSync(
+        path.join(root, STATE_DIR, INVENTORY_FILE),
+        inventory,
+        UTF8
+      );
+      return root;
+    };
+
+    /**
+     * Check one inventory document against the reference contract.
+     * @param inventory - Inventory file contents, already serialized
+     * @returns The check result
+     */
+    const checkInventory = (inventory: string): CheckResult =>
+      run({
+        root: projectWithInventory(inventory),
+        correlationId: "inventory-shape",
+      });
+
+    it("rejects a document that is not an inventory at all", () => {
+      // Already true before the entry-level check existed; kept as the control
+      // that the widened validation still routes the top-level case the same
+      // way rather than reclassifying it.
+      for (const document of ["null", '"entities"', "[]", "{}"]) {
+        const result = checkInventory(document);
+        expect(result.envelope.status).toBe(INVALID);
+        expect(codes(result)).toEqual([INVALID_INVENTORY]);
+      }
+    });
+
+    it("BITE: a null entry is reported, not thrown — the envelope must survive", () => {
+      // `Array.isArray(entities)` passes for `[null]`, and `compareInventory`
+      // then reads `item.id` and throws a TypeError. The CLI died with a stack
+      // trace before any envelope was emitted — exactly the failure the
+      // surrounding comment says this validation exists to prevent, reached one
+      // level deeper than it was checking.
+      const result = checkInventory(JSON.stringify({ entities: [null] }));
+      expect(result.envelope.status).toBe(INVALID);
+      expect(codes(result)).toEqual([INVALID_INVENTORY]);
+      expect(result.findings[0].message).toContain("entities[0]");
+    });
+
+    it("BITE: an entry with no usable id is invalid, not a finding about `undefined`", () => {
+      // The same crash by a longer route. `item.id` is `undefined`, so the
+      // entry becomes an `unclassified-entity` finding with no subject, and
+      // MEASURED against the pre-fix code the envelope builder then rejects its
+      // own output: `invalid command envelope: .findings[0].subject: expected
+      // type string, got undefined`. Either way the run dies before reporting.
+      for (const entry of [
+        {},
+        { kind: "table" },
+        { id: "" },
+        { id: "   " },
+        { id: 7 },
+        { id: null },
+      ]) {
+        const result = checkInventory(JSON.stringify({ entities: [entry] }));
+        expect(result.envelope.status).toBe(INVALID);
+        expect(codes(result)).toEqual([INVALID_INVENTORY]);
+        expect(result.findings.every(one => one.subject !== undefined)).toBe(
+          true
+        );
+      }
+    });
+
+    it("BITE: a non-object entry is invalid rather than silently id-less", () => {
+      for (const entry of ["public.users", 42, true, ["public.users"]]) {
+        const result = checkInventory(JSON.stringify({ entities: [entry] }));
+        expect(result.envelope.status).toBe(INVALID);
+        expect(codes(result)).toEqual([INVALID_INVENTORY]);
+      }
+    });
+
+    it("names the offending index, because entry 40 of 200 is not findable otherwise", () => {
+      const result = checkInventory(
+        JSON.stringify({
+          entities: [{ id: "public.a" }, { id: "public.b" }, null],
+        })
+      );
+      expect(result.findings[0].message).toContain("entities[2]");
+    });
+
+    it("still accepts a well-formed inventory", () => {
+      // The other half of the bite: a validation that rejects `[null]` by
+      // rejecting everything would pass every case above and break every
+      // adopter. The reference fixture is checked elsewhere; this pins that the
+      // widened check itself lets a real inventory through.
+      const result = checkInventory(
+        fs.readFileSync(
+          path.join(FIXTURES, "adopter", STATE_DIR, INVENTORY_FILE),
+          UTF8
+        )
+      );
+      expect(codes(result)).not.toContain(INVALID_INVENTORY);
+    });
+  });
+
   describe("declared noop", () => {
     it("accepts a verified noop and returns it machine-readably", () => {
       const result = checkFixture("noop-valid");
@@ -270,8 +382,8 @@ describe("check-state-classification", () => {
       delete contract.assurances["production-fails-closed"];
       const root = projectWithContract(JSON.stringify(contract));
       fs.copyFileSync(
-        path.join(FIXTURES, "adopter", STATE_DIR, "inventory.json"),
-        path.join(root, STATE_DIR, "inventory.json")
+        path.join(FIXTURES, "adopter", STATE_DIR, INVENTORY_FILE),
+        path.join(root, STATE_DIR, INVENTORY_FILE)
       );
       const result = run({ root, correlationId: "assurance" });
       expect(result.envelope.status).toBe(FAILED);

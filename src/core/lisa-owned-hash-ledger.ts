@@ -109,6 +109,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f87c1ba298a66833712f57a6550f78f02927d5b9796fe0ac02dcf4bbd24c4e0c",
   ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
+    "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",
     "191608d272178a8fd3126d5b3e4923fadb50e01b699d0376625248d541b14f50",
     "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     "278679aba0d7ca08ce3429015076cd0f227d8b4dfe75875b2fce1cfd4133af0d",
@@ -134,6 +135,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "effd213d5a8b6b5e424262ef8ff45f5927295926692bf2ceafd89084445845fe",
     "f0bf5102f8eb188bc4ff62f81849a96181aa5c397cae865ef7f1c00b7c1c9fc2",
     "f25be9368af95dba5a5ce9891e582d5c1fc04ffca9f31cbbd28bc061154e7605",
+    "f2cdb9d8a682ca0083ce71ccae267a9622f6b9935baf34091752c6ec25590e6e",
   ]),
   "scripts/check-skipped-required-checks.mjs": Object.freeze([
     "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
@@ -151,6 +153,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "301fe3270dc41bf9e984413a1f2967d64d8e008c8cdcf291a23ebf0fd7c69f4e",
     "94dc98e0bbfcf8d43cba035d4805a1c5d61a3a0db88faa791e8e06e34e741f46",
     "96599f9cf25d7d96afc82a92c477ca851e3fa1f918a06a5b81a29dd1b0039f38",
+    "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "ac539349c86a7b5b0083ec0e6aaf0eb4c3e40fbd4dc31511c6460a2bad7af9a5",
     "b218927f64a3db4f37762b60014e29d85a46899f4a0d17fcecc7782ce48bc499",
   ]),
@@ -213,6 +216,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
     "c765c7a44ea81d54c7820f2068c8811fb73ca3e5f063cb55a8c30391d1326323",
     "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
+    "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
   ]),
   "scripts/lisa-floor-collisions.mjs": Object.freeze([
     "2d11968f6852ab745cba939de03c6d6cb5f413975d2cfc8fc447bdd0b218e91a",
@@ -271,6 +275,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "92e0ff52fcb29bc112ddcf1c3d85432032596572a84f3c5806a5b0c286ae55b3",
     "c1b2abf324269c0248136500eb37d7c43559552f152a7c5d07a23c219fdc70b2",
     "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
+    "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",
   ]),
   "scripts/lisa-hooks/block-no-verify.sh": Object.freeze([

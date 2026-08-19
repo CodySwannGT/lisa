@@ -144,14 +144,24 @@ lisaignored() {
         ;;
     esac
     if [ "$selected" -ne 0 ]; then
-      # shellcheck disable=SC2254 -- the pattern is a glob on purpose.
+      # The pattern is a glob on purpose, so it is deliberately unquoted.
+      #
+      # The reason sits on its own line because a shellcheck directive is
+      # `key=value` pairs and NOTHING else. Written as
+      # `disable=SC2254 -- <prose>`, the trailing words are read as more
+      # directive keys: the directive fails with SC1072/SC1073, shellcheck
+      # stops checking the rest of THIS FILE, and SC2254 is left unsuppressed
+      # as well. Measured with shellcheck 0.11.0. Do not rejoin these lines.
+      # shellcheck disable=SC2254
       case "$rel" in $pattern) selected=0 ;; esac
     fi
     if [ "$selected" -ne 0 ]; then
       case "$pattern" in
         */*) ;;
         *)
-          # shellcheck disable=SC2254 -- ditto, matched against the basename.
+          # Ditto, matched against the basename — and ditto about the reason
+          # living on its own line rather than after the directive.
+          # shellcheck disable=SC2254
           case "${rel##*/}" in $pattern) selected=0 ;; esac
           ;;
       esac
