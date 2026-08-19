@@ -260,13 +260,31 @@ permissions:
   pull-requests: read
 
 jobs:
-  # This job's name is HALF of the required status-check context. GitHub composes
-  # the check-run name as `<caller job name> / <this job name>`, and the ruleset
-  # must require that composite string byte for byte, emoji included. Rename
-  # either half alone and GitHub waits forever for a context nobody reports —
-  # which does not de-gate the branch, it DEADLOCKS every PR into it.
+  # This job's name is HALF of the status-check context. GitHub composes the
+  # check-run name as `<caller job name> / <this job name>`, and a ruleset that
+  # requires it must name that composite string byte for byte, emoji included.
   # `tests/integration/nightly-e2e-health-workflow.test.ts` pins this name, the
   # caller template's job name, and the ruleset's `context` against each other.
+  #
+  # RENAMING EITHER HALF FAILS TWO DIFFERENT WAYS, and which one you get depends
+  # on something not visible from this file — whether a ruleset actually
+  # requires the context. Both are bad; only one is loud.
+  #
+  #   required      GitHub waits forever for a context nobody reports. That does
+  #                 not de-gate the branch, it DEADLOCKS every PR into it.
+  #   NOT required  the gate silently stops reporting and nothing blocks. The
+  #                 branch is now ungated while everyone reads the workflow and
+  #                 believes otherwise.
+  #
+  # Do not assume the first. Measured on a consumer 2026-08-19: ZERO of that
+  # repository's 20 required contexts, across two rulesets, matched /nightly/i,
+  # while its workflows described the gate as blocking. Check before asserting:
+  #
+  #   gh api repos/<owner>/<repo>/rulesets --jq '.[].id' | while read id; do
+  #     gh api repos/<owner>/<repo>/rulesets/$id \
+  #       --jq '.rules[]?|select(.type=="required_status_checks")
+  #             |.parameters.required_status_checks[]?.context'
+  #   done
   gate:
     name: 🌙 Gate
     runs-on: ubuntu-latest
