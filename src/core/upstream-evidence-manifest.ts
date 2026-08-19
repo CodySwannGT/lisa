@@ -281,7 +281,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "a4792fddebda1780d60cf80a2a065bfee387dfb6f13ef1951531577210a26947",
+      "3afc41bfca3554579ccdbc7d10094ed36ddefb37bc3536407d4c67bdfa06606d",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -2385,7 +2385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "3730dd948053a8e4537b0ee9493843f6f479372d3f655ccf37f7ac94ab0ef795",
+      "43211ab68ee990afde4b20abf7f8c1420a1c46fdced273f015d1cb7d6e082133",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
@@ -8898,6 +8898,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
+    "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,
