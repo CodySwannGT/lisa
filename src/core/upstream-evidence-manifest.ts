@@ -2319,7 +2319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "6eb93d705a2d645332fbae1dd42cf2d48f85978ebc265451a53790912f277d12",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "3966250ce628357aa94cbb6c53084be8d822e921052ac507f1dd265dedb67026",
+      "e58a0078ef3d1e1ef1c57e8004320010025c6c8414b17d5967fcaf601d28496c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -8743,6 +8743,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
+    "tests/integration/tracked-source-nul-bytes.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
