@@ -893,14 +893,66 @@ export const RETIRED_CONFIG_KEYS = Object.freeze({
 });
 
 /**
+ * The runner Lisa assumes when a project declares none.
+ */
+export const DEFAULT_RUNNER = "npm run";
+
+/**
+ * Commands that ignore their arguments and return a fixed status.
+ *
+ * `:` and `true` are the sharp ones: both are shell builtins that succeed no
+ * matter what follows, so `"runner": ":"` turns every configured gate into
+ * `: <task>` — exit 0, nothing run — while the workflow's `configured ==
+ * 'false'` fallbacks stay skipped because resolution SUCCEEDED. `echo` and
+ * `printf` do the same thing more visibly. `false` is the mirror image: it
+ * cannot run a task either, and a gate that is red for a reason nobody can
+ * read is not a working gate.
+ */
+export const NO_OP_RUNNERS = Object.freeze(
+  new Set([":", "true", "false", "echo", "printf"])
+);
+
+/**
+ * What a runner may be spelled with.
+ *
+ * Deliberately NOT the class a task is checked against, which permits `:`
+ * because task names carry it (`test:cov`, `lint:staged`). A runner never
+ * needs a colon and the shell's no-op builtin IS one, so admitting it made
+ * the allowlist the bypass.
+ */
+const RUNNER_PATTERN = /^[A-Za-z0-9._@/= -]+$/;
+
+/**
+ * Whether a value can prefix a gate task and actually run it.
+ *
+ * Type is checked BEFORE the pattern, because `RegExp.prototype.test` coerces
+ * its argument: `test(true)` examines the string "true" and passes. The
+ * config is host-owned JSON, so a boolean reaches here as a boolean.
+ * @param {unknown} value Candidate runner.
+ * @returns {boolean} True when it is a usable runner.
+ */
+export function isRunner(value) {
+  if (typeof value !== "string") return false;
+  if (!RUNNER_PATTERN.test(value)) return false;
+  const [head] = value.trim().split(" ");
+  return Boolean(head) && !NO_OP_RUNNERS.has(head);
+}
+
+/**
  * Read the config, splitting the runner out of the gates block.
+ *
+ * Refuses a runner that cannot run a task, rather than passing it through.
+ * The previous destructuring default fired only on `undefined`, so `null`,
+ * `true` and `0` all became the runner, and `list --json` emitted whatever was
+ * in the file for nineteen workflow facades to consume.
  * @param {string} [cwd] Directory to look in.
  * @returns {{runner: string, gates: object, policy: object, config: object}} Parsed config.
+ * @throws {Error} When `gates.runner` is present but is not a runner.
  */
 export function readGates(cwd = process.cwd()) {
   const path = join(cwd, ".lisa.config.json");
   if (!existsSync(path)) {
-    return { runner: "npm run", gates: {}, policy: {}, config: {} };
+    return { runner: DEFAULT_RUNNER, gates: {}, policy: {}, config: {} };
   }
   let config;
   try {
@@ -908,7 +960,17 @@ export function readGates(cwd = process.cwd()) {
   } catch (err) {
     throw new Error(`.lisa.config.json is not readable: ${err.message}`);
   }
-  const { runner = "npm run", ...gates } = config.gates ?? {};
+  const { runner: declared, ...gates } = config.gates ?? {};
+  const runner = declared === undefined ? DEFAULT_RUNNER : declared;
+  if (!isRunner(runner)) {
+    throw new Error(
+      `gates.runner is ${JSON.stringify(declared)}, which cannot run a task. ` +
+        `A runner must be a plain STRING (e.g. "npm run", "bun run", "just"), ` +
+        `may not contain a colon, and may not be one of ` +
+        `${[...NO_OP_RUNNERS].join(", ")} — those succeed without running ` +
+        `anything, which turns every configured gate green while proving nothing.`
+    );
+  }
   return { runner, gates, policy: config.policy ?? {}, config };
 }
 
@@ -1284,9 +1346,18 @@ export function auditConfigKeys(config) {
 export function resolveMoment({
   gates,
   moment,
-  runner = "npm run",
+  runner = DEFAULT_RUNNER,
   includeOff = false,
 }) {
+  // The same guard as `readGates`, at the site that BUILDS the command. A
+  // destructuring default fires only on `undefined`, so a caller passing the
+  // raw config value straight through would otherwise emit `null <task>` or
+  // `: <task>` as a `command` for every gate at this moment.
+  if (!isRunner(runner)) {
+    throw new Error(
+      `gates.runner is ${JSON.stringify(runner)}, which cannot run a task.`
+    );
+  }
   // A moment is looked up as a KEY on each gate, so one Lisa does not know
   // matches nothing and yields `[]` — indistinguishable from a real moment at
   // which this project declares no gates. Every consumer reads that as "run
