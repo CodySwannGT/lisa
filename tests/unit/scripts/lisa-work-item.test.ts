@@ -152,6 +152,15 @@ case "\${1:-} \${2:-}" in
     printf '%s\\n' "$FAKE_GH_PR_JSON"
     ;;
   "repo view") printf '%s\\n' '{"nameWithOwner":"acme/code"}' ;;
+  # The two REST calls \`backlink\` makes. Without them the command exits
+  # nonzero through the catch-all below, which is invisible to any assertion
+  # that does not check the status — see the positive-control test.
+  "api --paginate")
+    printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}"
+    ;;
+  "api --method")
+    printf '%s\\n' '{"id":1}'
+    ;;
   *) echo "unexpected gh invocation: $*" >&2; exit 70 ;;
 esac`
   );
@@ -2361,6 +2370,12 @@ describe("commands refuse a binding that belongs to another branch", () => {
       { env: { FAKE_GH_LOG: log } }
     );
 
+    // status 0, not merely "no branch error". Reported by review: without this
+    // the fake `gh` rejected both REST calls `backlink` makes, the command
+    // exited 1, and every assertion here still passed — the control proved the
+    // command REACHED the tracker, not that it SUCCEEDED. A positive control
+    // that passes for the wrong reason is the defect it exists to catch.
+    expect(result.status).toBe(0);
     expect(result.stderr).not.toContain("belongs to branch");
     expect(existsSync(log)).toBe(true);
   });
