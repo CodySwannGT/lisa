@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.46.3](https://github.com/CodySwannGT/lisa/compare/v3.46.2...v3.46.3) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** write the suite-identity separator as an escape, not a raw NUL ([49df396](https://github.com/CodySwannGT/lisa/commit/49df39656cee148ee0ac3739e5d14112ecbf4cbe)), closes [CodySwannGT/lisa#2796](https://github.com/CodySwannGT/lisa/issues/2796)
+
 ### [3.46.2](https://github.com/CodySwannGT/lisa/compare/v3.46.1...v3.46.2) (2026-08-19)
 
 
