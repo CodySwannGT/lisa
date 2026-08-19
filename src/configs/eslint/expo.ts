@@ -143,6 +143,11 @@ export function getExpoConfig({
         // UI standards (all off by default)
         "ui-standards/no-classname-outside-ui": "off",
         "ui-standards/no-direct-rn-imports": "off",
+        // Regime-aware by declaration: silent until the project names the axes
+        // it publishes design variables for. Activate per axis in
+        // eslint.config.local.ts, mirroring `design.tokens.axes` in
+        // .lisa.config.json — e.g. ["error", { typedAxes: ["color"] }].
+        "ui-standards/no-unbound-design-value": "off",
 
         // Tailwind
         "tailwindcss/classnames-order": [
