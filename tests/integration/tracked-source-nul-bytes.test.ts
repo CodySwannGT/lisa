@@ -110,6 +110,34 @@ function scannedFiles(): string[] {
   );
 }
 
+/**
+ * The offender predicate itself, with reading injected.
+ *
+ * Extracted so the control case can drive THIS function rather than a
+ * hand-rolled `includes` beside it. A control that re-implements the predicate
+ * proves the re-implementation works and says nothing about the one in use:
+ * mutate the real predicate to return no offenders and such a control still
+ * passes, which is the failure mode this whole file exists to catch.
+ * @param files Repo-relative paths to examine.
+ * @param read How to obtain a file's bytes as a latin1 string.
+ * @returns The subset carrying a raw NUL.
+ */
+function nulOffenders(
+  files: readonly string[],
+  read: (file: string) => string
+): string[] {
+  return files.filter(file => read(file).includes(NUL));
+}
+
+/**
+ * Reads a tracked file as bytes, one char per byte.
+ * @param file Repo-relative path.
+ * @returns The file's contents.
+ */
+function readTracked(file: string): string {
+  return readFileSync(path.join(REPO_ROOT, file), "latin1");
+}
+
 describe("🕳️ raw NUL bytes in tracked source", () => {
   it("scans essentially every tracked file, so a clean result means something", () => {
     const tracked = trackedFiles();
@@ -136,9 +164,7 @@ describe("🕳️ raw NUL bytes in tracked source", () => {
   });
 
   it("finds no raw NUL byte in any tracked source file", () => {
-    const offenders = scannedFiles().filter(file =>
-      readFileSync(path.join(REPO_ROOT, file), "latin1").includes(NUL)
-    );
+    const offenders = nulOffenders(scannedFiles(), readTracked);
 
     expect(
       offenders,
@@ -149,11 +175,24 @@ describe("🕳️ raw NUL bytes in tracked source", () => {
   });
 
   it("still reports a source file that does carry one", () => {
-    // Bite control. Without this, "no offenders" is indistinguishable from a
-    // predicate that can never be true.
-    const withNul = `const separator = "a${NUL}b";\n`;
+    // Bite control, driving the SAME predicate the scan uses. Without it,
+    // "no offenders" is indistinguishable from a predicate that can never be
+    // true — and a mutation returning `[]` would pass every other case here.
+    const offenders = nulOffenders(
+      ["carries-one.mjs"],
+      () => `const separator = "a${NUL}b";\n`
+    );
 
-    expect(withNul.includes(NUL)).toBe(true);
-    expect("const separator = `a\\u0000b`;\n".includes(NUL)).toBe(false);
+    expect(offenders).toEqual(["carries-one.mjs"]);
+  });
+
+  it("does not report the escape that replaces it", () => {
+    // The other half of the control: the fix must not merely move the byte.
+    const offenders = nulOffenders(
+      ["carries-the-escape.mjs"],
+      () => "const separator = `a\\u0000b`;\n"
+    );
+
+    expect(offenders).toEqual([]);
   });
 });
