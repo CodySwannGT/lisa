@@ -65,16 +65,16 @@ export function getSlowConfig({
         },
       },
       plugins: {
-        ...(importTypescriptConfig?.plugins ?? {}),
+        ...importTypescriptConfig?.plugins,
         sonarjs: sonarjsPlugin,
       },
       settings: {
-        ...(importTypescriptConfig?.settings ?? {}),
+        ...importTypescriptConfig?.settings,
         "import/resolver": {
-          ...((importTypescriptConfig?.settings?.["import/resolver"] as Record<
+          ...(importTypescriptConfig?.settings?.["import/resolver"] as Record<
             string,
             unknown
-          >) ?? {}),
+          >),
           typescript: true,
         },
         // Prevent parse errors from modules that use non-standard JS syntax

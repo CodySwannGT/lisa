@@ -101,7 +101,7 @@ export function resolveProfile(profiles, name) {
   const effective = {};
   for (const link of chain) {
     Object.assign(effective, link, {
-      env: { ...(effective.env ?? {}), ...(link.env ?? {}) },
+      env: { ...effective.env, ...link.env },
     });
   }
   delete effective.extends;
