@@ -21,6 +21,7 @@ type Diagnosis = {
   kind: string;
   summary: string;
   evidence: string[];
+  proves: string | null;
 };
 
 const TIMEOUT_LINE = "Error: Test timed out in 60000ms.";
@@ -149,5 +150,42 @@ describe("diagnoseFailure: evidence stays readable", () => {
     );
 
     expect(verdict.evidence).toEqual(["tests/unit/same.test.ts"]);
+  });
+});
+
+describe("diagnoseFailure: whose property the failure was", () => {
+  // Hardcoded gate ids rather than read back off ATTRIBUTION: a test that
+  // asserts a mapping by consulting the same mapping proves only that it
+  // equals itself.
+  it("blames the test suite for a timeout, not the coverage number", () => {
+    const verdict: Diagnosis = diagnoseFailure(
+      [TIMEOUT_LINE, THRESHOLD_LINE].join("\n")
+    );
+
+    expect(verdict.proves).toBe("test-correctness");
+  });
+
+  it("blames the test suite for a failed assertion", () => {
+    const verdict: Diagnosis = diagnoseFailure(
+      "Tests  2 failed | 14274 passed (14276)"
+    );
+
+    expect(verdict.proves).toBe("test-correctness");
+  });
+
+  it("blames coverage only when the suite finished and the floor was missed", () => {
+    const verdict: Diagnosis = diagnoseFailure(
+      ["Tests  14276 passed (14276)", THRESHOLD_LINE].join("\n")
+    );
+
+    expect(verdict.proves).toBe("coverage-adequacy");
+  });
+
+  it("blames nobody when it recognised nothing", () => {
+    // An attribution invented from an unrecognised transcript would be the
+    // original defect with better prose: a verdict asserted about a property
+    // nothing measured.
+    expect(diagnoseFailure("boom: the widget exploded").proves).toBeNull();
+    expect(diagnoseFailure(null).proves).toBeNull();
   });
 });

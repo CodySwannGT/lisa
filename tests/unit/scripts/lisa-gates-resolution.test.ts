@@ -60,6 +60,9 @@ describe("resolveMoment", () => {
         // Lint rewrites the tree when pointed at a `--fix` task, so it sorts
         // ahead of every gate that verifies the tree. See lisa-gates-order.
         mayRewrite: true,
+        // Lint finishes in seconds, so it still runs after a blocking failure
+        // rather than having its answer thrown away. See `costly`.
+        costly: false,
       },
     ]);
   });
@@ -71,6 +74,17 @@ describe("resolveMoment", () => {
       runner: "bun run",
     });
     expect(resolved[0]?.command).toBe("bun run test:mutation");
+  });
+
+  it("marks a whole-suite gate costly, so a blocked run does not pay for it", () => {
+    // Hardcoded rather than read back off the registry: a test that asserts a
+    // flag by reading the same flag proves only that it equals itself.
+    const [mutation] = resolveMoment({
+      gates: { "test-meaningfulness": { [PULL_REQUEST]: "optional" } },
+      moment: PULL_REQUEST,
+      runner: "bun run",
+    });
+    expect(mutation?.costly).toBe(true);
   });
 
   it("treats an explicit off exactly like an absent moment", () => {

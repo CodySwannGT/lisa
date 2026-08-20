@@ -60,6 +60,30 @@ const TALLY_PATTERN = /Tests\s+(\d+) failed/;
 /** A failing suite header: ` FAIL  tests/unit/foo.test.ts > does a thing`. */
 const FAIL_PATTERN = /^\s*FAIL\s+(\S+)/gm;
 
+/**
+ * Which gate's property each kind of failure actually belongs to.
+ *
+ * Saying WHICH failure it was is half the repair. The other half is saying
+ * WHOSE it was, because the two gates involved legitimately share one prover:
+ * a coverage-instrumented suite proves `test-correctness` by passing and
+ * `coverage-adequacy` by clearing its floor, and one exit code cannot say
+ * which of the two it failed on. Reporting it against both is how a starved
+ * test suite rendered as a coverage regression — and it is also why a real
+ * coverage regression could not be told from that flake.
+ *
+ * `undiagnosed` and `uncaptured` are deliberately absent. Nothing was
+ * recognised, so nothing may be attributed; the failure stays where it landed.
+ *
+ * The runner applies this only when the named gate is itself declared on the
+ * same command at the same moment, so a phrase in some unrelated tool's output
+ * can never invent an attribution.
+ */
+export const ATTRIBUTION = Object.freeze({
+  timeout: "test-correctness",
+  assertion: "test-correctness",
+  threshold: "coverage-adequacy",
+});
+
 /** How many named examples a summary carries before it says "and N more". */
 const MAX_EVIDENCE = 5;
 
@@ -83,6 +107,8 @@ const TAIL_LINES = 3;
  * @property {string} kind One of `DIAGNOSIS`.
  * @property {string} summary A single operator-readable clause.
  * @property {string[]} evidence Concrete names or lines supporting the summary.
+ * @property {string|null} proves The gate whose property this failure belongs
+ *   to, from `ATTRIBUTION`, or null when nothing was recognised.
  */
 
 /**
@@ -176,9 +202,9 @@ function timeoutVerdict(timeouts, suites) {
  * printed "coverage-adequacy failed" six times for a machine under load.
  * @param {string|null|undefined} output The command's combined output, or null
  *   when the runner could not capture it.
- * @returns {Diagnosis} What the failure was.
+ * @returns {object} What the failure was, before it is attributed.
  */
-export function diagnoseFailure(output) {
+function classify(output) {
   if (typeof output !== "string" || output.length === 0) {
     return {
       kind: DIAGNOSIS.UNCAPTURED,
@@ -217,4 +243,20 @@ export function diagnoseFailure(output) {
     summary: "no recognised failure signature; the command's last lines follow",
     evidence: capped(tailLines(output)),
   };
+}
+
+/**
+ * Classify a failure and say whose property it belongs to.
+ *
+ * Attribution is separated from classification on purpose. Reading a
+ * transcript is a fact about a tool's output; deciding which gate that fact
+ * indicts is a fact about the registry, and only the caller knows whether the
+ * indicted gate is part of the run at all.
+ * @param {string|null|undefined} output The command's combined output, or null
+ *   when the runner could not capture it.
+ * @returns {Diagnosis} What the failure was, and whose it was.
+ */
+export function diagnoseFailure(output) {
+  const verdict = classify(output);
+  return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }
