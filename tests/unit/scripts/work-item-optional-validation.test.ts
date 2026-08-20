@@ -15,7 +15,7 @@
  * the mutation gate credits a kill only when the mutated module is loaded in
  * the test's own process.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -34,7 +34,6 @@ import {
 const VALIDATE = "validate-commit";
 const SKIPPED = "live validation SKIPPED";
 const REPO = "widgets";
-const SOURCE = "all/copy-overwrite/scripts/lisa-work-item.mjs";
 
 /** The lifecycle role an item carries BEFORE anything claims it. */
 const READY = "status:ready";
@@ -355,13 +354,14 @@ describe("claim state is not enforced, credential or no credential", () => {
   });
 });
 
-describe("the deprecated lisa-linear keychain entry is gone", () => {
-  it("no code path consults it", () => {
-    const source = readFileSync(SOURCE, "utf8");
-    expect(source).not.toContain("find-generic-password");
-    expect(source).not.toContain("lisa-linear");
-  });
-
+// The companion assertion — that no keychain lookup survives in the shipped
+// bytes — lives in `tests/unit/strategies/tracked-work-contract.test.ts`, not
+// here. A suite that reads the real working tree cannot join the mutation
+// gate's run: Stryker executes it inside a sandbox copy of the tree, and a
+// suite that goes red there for a reason unrelated to any mutant aborts the
+// whole gate in its dry run. That file imports nothing the gate mutates, so it
+// stays outside the run by construction.
+describe("the deprecated keychain entry is gone", () => {
   it("the Linear backlink writer names the variable, not a keychain entry", () => {
     const fixture = createFixture(LINEAR);
     const result = cli(
