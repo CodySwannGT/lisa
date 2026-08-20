@@ -23,7 +23,9 @@
       "check:skipped-required-checks": "node scripts/check-skipped-required-checks.mjs",
       "check:skipped-required-checks:remote": "node scripts/check-skipped-required-checks.mjs --remote",
       "check:vacuous-required-checks": "node scripts/check-skipped-required-checks.mjs",
-      "test:node": "node scripts/lisa-test-node.mjs"
+      "test:node": "node scripts/lisa-test-node.mjs",
+      "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
+      "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push"
     },
     "devDependencies": {
       "eslint-plugin-oxlint": "^1.62.0",

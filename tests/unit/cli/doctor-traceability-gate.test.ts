@@ -32,12 +32,28 @@ const roots: string[] = [];
 
 /**
  * Write a project with the given `.lisa.config.json` contents.
+ *
+ * The fixture also carries the gate's task as a package script. Since #2810 a
+ * project without it is a project doctor REFUSES to declare the gate in —
+ * declaring a gate whose task is missing is what reddens a passing pipeline —
+ * so a fixture lacking the script would exercise the decline path rather than
+ * the declaration path these assertions are about. The decline path has its own
+ * suite in `doctor-gate-recommendation.test.ts`.
  * @param config - Object to serialize, or a raw string for malformed cases.
  * @returns The project root.
  */
 const project = (config: object | string | null): string => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-trace-"));
   roots.push(root);
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({
+      name: "fixture",
+      scripts: {
+        "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
+      },
+    })
+  );
   if (config !== null) {
     fs.writeFileSync(
       path.join(root, CONFIG),

@@ -370,6 +370,33 @@ a gate whose default prover differs by moment has no single default, and
 resolving the wrong one would fail every first push of a branch while looking
 like a traceability failure.
 
+**Both provers ship as package scripts, and `lisa doctor` may not recommend a
+gate whose prover it cannot see.** Until #2810 neither half was true.
+`check:work-item` was defined in Lisa's own `package.json` and in no
+`package.lisa.json`, while `lisa doctor` declared `gates.traceability:
+{"pull-request": "required"}` in any project that had not made a decision about
+it. Measured on a repository upgrading to 3.46.3: taking doctor's advice turned
+a passing pipeline red with `Missing script`. The failure is asymmetric, which
+is why it survived — a project that already defines the script sees nothing
+wrong and never reports it; only a project lacking it discovers the defect, and
+discovers it as a red build mid-upgrade.
+
+Two changes, and the second is the durable one:
+
+1. `typescript/package-lisa/package.lisa.json` forces both `check:work-item`
+   and `check:work-item:push`. `typescript` is the parent of every npm stack in
+   `PROJECT_TYPE_HIERARCHY` and `force` sections are deep-merged
+   parent-before-child, so one declaration reaches all six. Rails has no parent
+   and no `package-lisa` template; it is covered by the guard, not the line.
+2. `declareGate` in `cli/doctor-gate-recommendation` performs the verification
+   AND the write, so no doctor check can recommend a gate whose task it cannot
+   resolve — not "the traceability gate", any gate. A gate declared `off` is
+   exempt: off runs nothing, so there is no command to be missing, which is what
+   keeps the `skip_jobs` migration's `off` fragments legal.
+
+A gate whose prover is absent is worse than a gate nobody declared, because the
+operator who gets it is the one who ran doctor to avoid exactly that.
+
 **Why the hook decides twice.** The push-moment declaration is resolved at the
 top of the hook, directly, rather than from the `--coverage` file every other
 built-in step reads — the validator has to run before the repository-local
