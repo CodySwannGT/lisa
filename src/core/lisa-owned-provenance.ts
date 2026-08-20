@@ -179,6 +179,28 @@ export function mayRefreshLisaOwned(
 }
 
 /**
+ * Explain a Lisa-owned file that could not be classified at all.
+ *
+ * Distinct from `describePreserved`, which reports a verdict. There is no
+ * verdict here: one side's bytes could not be read, so nothing is known about
+ * which copy is ahead. Saying "your copy is stronger" would be inventing a
+ * finding, and saying "out of date" would be inventing the opposite one — so
+ * this names the unreadable side and the one action that resolves it.
+ * @param relativePath - Repo-relative destination path of the artifact
+ * @param hostUnreadable - True when the project's copy is the unreadable side
+ * @returns One operator-readable sentence
+ */
+export function describeUnclassifiable(
+  relativePath: string,
+  hostUnreadable: boolean
+): string {
+  const which = hostUnreadable
+    ? "your project's copy of this file"
+    : "its own packaged copy of this file";
+  return `${relativePath}: Lisa could not read ${which}, so it could not tell whether yours is out of date or deliberately stronger. Kept yours and changed nothing. Check the file is readable, then run \`lisa apply\` again.`;
+}
+
+/**
  * Explain a preserved file to whoever is reading the apply output.
  *
  * Written for an operator who did not make the change and may not be an
