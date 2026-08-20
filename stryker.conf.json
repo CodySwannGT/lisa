@@ -23,6 +23,7 @@
     "all/copy-overwrite/scripts/lisa-run-gates.mjs",
     "all/copy-overwrite/scripts/lisa-test-node.mjs",
     "all/copy-overwrite/scripts/lisa-work-item.mjs",
+    "typescript/copy-overwrite/scripts/lisa-mutation.mjs",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs"
   ],

@@ -2228,6 +2228,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
     "scripts/lisa-github-rulesets.sh":
       "3e496f8d2d294d68c9f4d156684943dd2c7e35f2aaccf476ea4c7309c3a57b77",
+    "scripts/lisa-mutation.mjs":
+      "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
@@ -2291,7 +2293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "e37bf7e8e49139fd726bda6bfeb69dd30008d8e5d14fa562a3ff4f541f217e6f",
     "typescript/copy-contents/.husky/pre-push":
-      "7569605ea9a0cf6444cfd7271edaa8e7d04b8d26a469176bace602518cec03c8",
+      "a8005d506320dafe752aa9bc2d59c3f6cc787eded92dacf3990ecc8e9ec1e0f4",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -2347,7 +2349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
+      "227dfa273802d6a5c03c3bf67136b743de98370127c7417db454f2e7424e98a0",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2774,6 +2776,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "harper-fabric/merge/.oxlintrc.json": true,
     "harper-fabric/package-lisa/package.lisa.json": true,
     "knip.json": true,
+    "mutation.gate.json": true,
     "nestjs/copy-overwrite/eslint.config.ts": true,
     "nestjs/copy-overwrite/eslint.nestjs.ts": true,
     "nestjs/copy-overwrite/eslint.slow.config.ts": true,
@@ -8276,6 +8279,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
     "scripts/lisa-github-rulesets.sh": true,
+    "scripts/lisa-mutation.mjs": true,
     "scripts/lisa-remote-env/session-start.sh": true,
     "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-update-local.sh": true,
@@ -8776,6 +8780,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
     "tests/integration/mutation-gate-bite.test.ts": true,
+    "tests/integration/mutation-gate-diff-bite.test.ts": true,
     "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
@@ -9203,6 +9208,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
+    "tests/unit/scripts/lisa-mutation-gate.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
