@@ -51,6 +51,27 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
+    // Before any branch below decides *how* to replace the file, ask whether
+    // replacing it is an upgrade at all.
+    //
+    // This classification used to live inside `applyNonInteractive`, which is
+    // reached only when `skipGitCheck` is set — the postinstall's flag, not the
+    // command's. So `lisa apply` typed by an operator, `lisa apply --yes`, and
+    // every non-TTY run took the prompt branch instead and replaced the file
+    // without ever classifying it. Non-TTY is not the exotic case: with no
+    // usable stdin `createPrompter` returns `AutoAcceptPrompter`, whose
+    // `promptOverwrite` answers "yes" without asking anyone, which is what
+    // every scripted and agent-driven apply gets. The guard that stops a guard
+    // being silently downgraded could be walked around by running the command
+    // the normal way (#2577).
+    const preserved = await this.preserveOwnedHostCopy(
+      sourcePath,
+      destPath,
+      relativePath,
+      context
+    );
+    if (preserved !== undefined) return preserved;
+
     // A non-interactive apply (postinstall / `--skip-git-check`) cannot prompt,
     // and replacing a file the project may have customised without asking is
     // not a decision this path gets to make. So the file is left alone — but
@@ -110,10 +131,10 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
    * That refresh is unconditional only where Lisa can prove the installed copy
    * is behind. "Differs from mine" is not that proof — it is equally consistent
    * with the host being *ahead*, which is how `acmeorga/frontend` had a guard
-   * they had hardened themselves silently replaced by a weaker upstream one. So
-   * a Lisa-owned artifact is now classified before it is replaced, and anything
-   * short of proof that it is stale leaves the host's copy alone with an
-   * explanation. See `classifyHostCopy`.
+   * they had hardened themselves silently replaced by a weaker upstream one.
+   * That classification now runs in `apply`, before any branch here is chosen,
+   * so it covers the prompted routes too — see `preserveOwnedHostCopy`.
+   * Anything arriving here is either not Lisa's to judge, or provably behind.
    * @param sourcePath - Packaged template path
    * @param destPath - Installed file path
    * @param relativePath - Repo-relative path for reporting
@@ -127,23 +148,12 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     context: StrategyContext
   ): Promise<FileOperationResult> {
     const { config, backupFile } = context;
-    const lisaOwned = isLisaOwnedTemplate(relativePath);
 
     if (
-      !lisaOwned &&
+      !isLisaOwnedTemplate(relativePath) &&
       !mayRefreshTemplate(relativePath, config.refreshTemplates)
     ) {
       return { relativePath, strategy: this.name, action: "stale" };
-    }
-
-    if (lisaOwned) {
-      const preserved = await this.preserveIfHostAhead(
-        sourcePath,
-        destPath,
-        relativePath,
-        context.hashLedger
-      );
-      if (preserved !== undefined) return preserved;
     }
 
     // Backed up first: opting in to an overwrite is not opting out of being
@@ -153,6 +163,42 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       await copyFile(sourcePath, destPath);
     }
     return { relativePath, strategy: this.name, action: "overwritten" };
+  }
+
+  /**
+   * Hold back a replacement of a Lisa-owned artifact on every route that has
+   * one, rather than on the single unattended route.
+   *
+   * Two conditions still let a replacement through. The file must be one Lisa
+   * owns outright — a `tsconfig.json` the project customised is not Lisa's to
+   * judge, and keeps its existing prompt-or-stale behaviour. And the operator
+   * must not have named it to `--refresh-templates`, which is them saying in
+   * advance "take upstream's version of these". That flag is the exit
+   * `describePreserved` tells them to use, so it has to actually work; the
+   * postinstall passes no flags, so honouring it here changes nothing for the
+   * unattended fleet.
+   * @param sourcePath - Packaged template path
+   * @param destPath - Installed file path
+   * @param relativePath - Repo-relative path for reporting
+   * @param context - Strategy context with config and ledger
+   * @returns A preserved result when the copy is kept, else undefined
+   */
+  private async preserveOwnedHostCopy(
+    sourcePath: string,
+    destPath: string,
+    relativePath: string,
+    context: StrategyContext
+  ): Promise<FileOperationResult | undefined> {
+    if (!isLisaOwnedTemplate(relativePath)) return undefined;
+    if (mayRefreshTemplate(relativePath, context.config.refreshTemplates)) {
+      return undefined;
+    }
+    return this.preserveIfHostAhead(
+      sourcePath,
+      destPath,
+      relativePath,
+      context.hashLedger
+    );
   }
 
   /**
