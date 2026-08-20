@@ -433,4 +433,35 @@ it knows it is a finding rather than a misconfiguration.
 
 **The diff-scoped run — what this branch actually pays.**
 
-AFTER_PLACEHOLDER
+On this branch — which changes 17 files, one of which is a mutate target —
+`bun run test:mutation` selects that one file and hands it to Stryker:
+
+```
+🧬 mutation-gate: scoped-run — Stryker on 1 of 17 changed file(s), selected by stryker.conf.json:
+   • typescript/copy-overwrite/scripts/lisa-mutation.mjs
+INFO ProjectReader   Found 1 of 7656 file(s) to be mutated.
+INFO Instrumenter    Instrumented 1 source file(s) with 356 mutant(s)
+INFO DryRunExecutor  Initial test run succeeded. Ran 52 tests in 32 seconds.
+Final mutation score of 81.93 is greater than or equal to break threshold 32
+Done in 3 minutes and 52 seconds.
+```
+
+| | whole-list | diff-scoped |
+| --- | ---: | ---: |
+| Wall clock, end to end | **2,332s (38m52s)** | **246s (4m06s)** |
+| Mutants generated | 5,515 | 356 |
+| Mutants tested | 4,812 | 321 |
+| Tests in the dry run | every suite reaching any target | 52 |
+| Score | 53.62 | 81.93 |
+| Floor | 32 | 32 |
+
+**9.5x less wall clock at the push moment**, on the same machine minutes apart.
+The dry run is most of what remains: 32s of the 246s, and it is 32s rather than
+the whole suite because `MUTATION_SCOPE` narrowed `vitest.config.mutation.ts`'s
+`include` to the one suite that reaches the one guard being mutated.
+
+The two scores are not comparable and should not be compared — 53.62 is nine
+guards, 81.93 is one file, and the second number says nothing about the other
+eight. What makes the scoped run trustworthy is not its score but that it names
+what it measured: **1 of 17 changed files, 356 mutants, 52 tests**. A run that
+measured nothing prints `nothing-to-mutate` and says so in five lines.
