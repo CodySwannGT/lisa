@@ -480,10 +480,20 @@ function currentRepoIdentity(config) {
  * decidable from the text and the local config, so it needs no credential of
  * any kind.
  *
- * `full` adds the three requirements that need tracker API access, two of them
- * read and one of them WRITE: the item carries a `repo:` label naming this
- * repository, it sits in a claimed lifecycle state, and it carries a verified
- * backlink to this pull request.
+ * `full` adds the requirements that need tracker API access, two of them read
+ * and one of them WRITE: the item exists, is open, carries a `repo:` label
+ * naming this repository, is a leaf, and carries a verified backlink to this
+ * pull request.
+ *
+ * `full` is not a promise that any of the read checks RAN. When the tracker
+ * cannot be asked — no credential, no binary, an outage — they are reported as
+ * skipped and the commit proceeds on the offline checks alone. An absent
+ * credential is not a verdict about a work item, and treating it as one refuses
+ * finished work on every surface that has no key. The pull-request check is
+ * where a credential is genuinely required, and it does not degrade.
+ *
+ * Claim state is deliberately NOT in that list; see the note where
+ * `assertClaimedLifecycle` used to be.
  *
  * The default flipped in #2721. `full` was the only contract on offer, so a
  * project unwilling to hand a tracker API key to CI could not satisfy the gate
@@ -830,22 +840,24 @@ function assertRepoScope(ref, contract, labels, components = []) {
   }
 }
 
-function assertClaimedLifecycle(ref, contract, currentRoles) {
-  const roles = namesFrom(currentRoles);
-  if (
-    contract.lifecycle.terminal &&
-    roles.includes(contract.lifecycle.terminal)
-  ) {
-    throw new TrackingError(
-      `Work item ${ref} is in terminal lifecycle role ${contract.lifecycle.terminal}`
-    );
-  }
-  if (!roles.some(role => contract.lifecycle.active.includes(role))) {
-    throw new TrackingError(
-      `Work item ${ref} is not claimed; require ${contract.lifecycle.claimed} or a later non-terminal lifecycle role`
-    );
-  }
-}
+// CLAIM-STATE ENFORCEMENT USED TO LIVE HERE, and it is deliberately gone.
+//
+// `assertClaimedLifecycle` refused any work item that did not already carry the
+// claimed lifecycle role. It was the only check on this path that could refuse
+// work that was entirely correct — right ticket, right trailer, right branch,
+// the tracker's label simply not transitioned yet — and it did, twice in one
+// day. One of those stalled an agent, which spawned two subagents that died,
+// and needed a human to move a label before anything could commit again.
+//
+// It protected nothing in exchange. A label's timing says nothing about whether
+// a commit belongs to the ticket it names; the trailer's FORMAT is what carries
+// traceability, and that is checked offline on every commit, always. The
+// lifecycle roles remain real and are still what intake dispatches on — they
+// are just no longer a precondition for committing.
+//
+// The checks it sat beside stay: the item must exist, be open, be scoped to
+// this repository, and be a leaf. Those can only fail on something genuinely
+// wrong, and they now run only when a credential happens to be present.
 
 function assertLeaf(ref, type, childStates = []) {
   const normalizedType = String(type ?? "")
@@ -1027,7 +1039,6 @@ function githubIssue(ref, contract) {
   if (!contract.repositoryIsIdentity) {
     assertRepoScope(ref, contract, issue.labels);
   }
-  assertClaimedLifecycle(ref, contract, issue.labels);
   assertLeaf(
     ref,
     typeFromLabels(issue.labels),
@@ -1102,7 +1113,6 @@ function jiraIssue(ref, contract) {
       issue.fields?.labels,
       issue.fields?.components
     );
-    assertClaimedLifecycle(ref, contract, [issue.fields?.status?.name]);
     assertLeaf(
       ref,
       issue.fields?.issuetype?.name,
@@ -1118,8 +1128,11 @@ function jiraIssue(ref, contract) {
       .status === 0
   ) {
     if (!contract.site) {
-      throw new TrackingError(
-        "Jira acli validation requires atlassian.site so the active account can be identity-matched"
+      throw new TrackerUnreachableError(
+        `Jira cannot be reached for ${ref}: acli is installed but ` +
+          `atlassian.site is unset, so the active account cannot be ` +
+          `identity-matched.\nThis is a configuration gap, not a problem with ` +
+          `the work item.`
       );
     }
     const auth = run("acli", ["auth", "status"], { allowFailure: true });
@@ -1127,8 +1140,10 @@ function jiraIssue(ref, contract) {
       auth.status !== 0 ||
       !auth.stdout.toLowerCase().includes(contract.site.toLowerCase())
     ) {
-      throw new TrackingError(
-        `Jira acli is not authenticated to configured site ${contract.site}`
+      throw new TrackerUnreachableError(
+        `Jira cannot be reached for ${ref}: acli is not authenticated to ` +
+          `configured site ${contract.site}.\nThis is a credential gap, not a ` +
+          `problem with the work item.`
       );
     }
     const result = run(
@@ -1160,9 +1175,6 @@ function jiraIssue(ref, contract) {
       issue.fields?.labels ?? issue.labels,
       issue.fields?.components ?? issue.components
     );
-    assertClaimedLifecycle(ref, contract, [
-      issue.fields?.status?.name ?? issue.status?.name,
-    ]);
     assertLeaf(
       ref,
       issue.fields?.issuetype?.name ?? issue.issueType?.name,
@@ -1172,33 +1184,55 @@ function jiraIssue(ref, contract) {
     );
     return issue;
   }
-  throw new TrackingError(
-    "Jira validation requires identity-matched acli or ATLASSIAN_API_TOKEN/JIRA_API_TOKEN with JIRA_LOGIN and atlassian.cloudId/site"
+  // Same rule as the Linear and GitHub paths: no credential means Jira could
+  // not be ASKED. Refusing here made the absence of a token a verdict about the
+  // work item, which is the one thing it can never be.
+  throw new TrackerUnreachableError(
+    `Jira cannot be reached for ${ref}: no identity-matched acli, and no ` +
+      `ATLASSIAN_API_TOKEN/JIRA_API_TOKEN with JIRA_LOGIN and ` +
+      `atlassian.cloudId/site.\nThis is a credential gap, not a problem with ` +
+      `the work item.`
   );
 }
 
+/**
+ * The Linear token, from the environment and nowhere else.
+ *
+ * There used to be a third step here: a macOS keychain lookup for a
+ * Lisa-specific entry, deliberately not named again anywhere in this file. It
+ * read as a fallback and was, on the machines that actually ran it, the SOLE
+ * source — the two environment variables above it were unset. So a deprecated
+ * credential was quietly load-bearing, and the day it was retired every commit
+ * carrying a `Work-Item:` trailer would have been refused, for humans and
+ * agents alike.
+ *
+ * Worse, it regenerated itself. An agent blocked by the hook opened this file
+ * to understand the refusal, found the keychain call, and adopted the
+ * deprecated path; three did exactly that in one day. A credential that teaches
+ * itself to everyone who trips over it does not age out — removing the code is
+ * the only thing that ends it.
+ * @param {string} workspace Configured Linear workspace slug.
+ * @returns {string | undefined} The token, or undefined when none is set.
+ */
 function readLinearKey(workspace) {
   if (process.env.LINEAR_API_KEY) return process.env.LINEAR_API_KEY;
   const suffix = workspace.toLowerCase().replace(/-/g, "_");
-  if (process.env[`LINEAR_API_KEY_${suffix}`])
-    return process.env[`LINEAR_API_KEY_${suffix}`];
-  if (process.platform === "darwin") {
-    return (
-      run(
-        "security",
-        ["find-generic-password", "-s", "lisa-linear", "-a", workspace, "-w"],
-        { allowFailure: true }
-      ).stdout.trim() || undefined
-    );
-  }
-  return undefined;
+  return process.env[`LINEAR_API_KEY_${suffix}`] || undefined;
 }
 
 function linearIssue(ref, contract) {
   const token = readLinearKey(contract.workspace);
+  // UNREACHABLE, not invalid. No token means Linear could not be ASKED, which
+  // is the same class as a missing binary or a refused credential — never a
+  // verdict about the work item. The trailer has already been proved present,
+  // well formed, and bound to this branch, offline; that is what traceability
+  // rests on. What is skipped here is re-run with credentials by the required
+  // pull-request check before anything can merge.
   if (!token)
-    throw new TrackingError(
-      "Linear validation requires LINEAR_API_KEY or a lisa-linear keychain entry"
+    throw new TrackerUnreachableError(
+      `Linear cannot be reached for ${ref}: no LINEAR_API_KEY (or ` +
+        `LINEAR_API_KEY_${contract.workspace.toLowerCase().replace(/-/g, "_")}) ` +
+        `is set.\nThis is a credential gap, not a problem with the work item.`
     );
   const query =
     "query($id:String!){issue(id:$id){id identifier team{key} state{name type} labels{nodes{name}} children{nodes{state{type}}} attachments{nodes{url}} comments{nodes{body}}}}";
@@ -1242,10 +1276,6 @@ function linearIssue(ref, contract) {
     );
   }
   assertRepoScope(ref, contract, issue.labels?.nodes);
-  // Lifecycle comes from the workflow STATE, the same shape the Jira path uses
-  // (`[issue.fields?.status?.name]`). Repo scope stays on labels above, because
-  // repo scoping genuinely IS a label.
-  assertClaimedLifecycle(ref, contract, [issue.state?.name]);
   assertLeaf(
     ref,
     typeFromLabels(issue.labels?.nodes),
@@ -1478,9 +1508,15 @@ function linearGraphql(token, query, variables, context) {
  */
 function linearBacklink(ref, prUrl, contract) {
   const token = readLinearKey(contract.workspace);
+  // A refusal, not a degradation, and the asymmetry with `linearIssue` is
+  // deliberate: this is a WRITE. Reading can be skipped and re-run later by the
+  // pull-request check; a comment that was never posted stays never posted, and
+  // reporting success would leave the backlink gate failing later with nothing
+  // to explain it.
   if (!token)
     throw new TrackingError(
-      "writing a Linear backlink requires LINEAR_API_KEY or a lisa-linear keychain entry"
+      `writing a Linear backlink requires LINEAR_API_KEY (or ` +
+        `LINEAR_API_KEY_${contract.workspace.toLowerCase().replace(/-/g, "_")})`
     );
   const issue = linearGraphql(
     token,
@@ -1939,7 +1975,7 @@ function gateSummary(contract) {
     "",
     "All four gates, and when each one bites:",
     `  1. the item carries the ready role "${contract.lifecycle.ready}" — required before the work may be created or claimed`,
-    `  2. the item carries the claimed role "${contract.lifecycle.claimed}" — required by the commit-msg hook, on every single commit`,
+    `  2. the item carries the claimed role "${contract.lifecycle.claimed}" — set when intake dispatches the work; NOT checked here, and no commit is ever refused for it`,
     "  3. every commit AND the pull-request body carry ONE matching `Work-Item:` trailer — required on commit, on push, and here",
     `  ${backlink}`,
   ].join("\n");
