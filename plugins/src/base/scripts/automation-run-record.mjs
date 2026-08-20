@@ -6,7 +6,13 @@
  * file per loop under `.lisa/automations/runs/`.
  */
 
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  rename,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -58,7 +64,7 @@ export const DEFAULT_AUTOMATION_RUN_HISTORY_MAX_ENTRIES = 50;
  * same `run_id` and trimming the file to the configured history bound.
  *
  * @param {RecordAutomationRunInput} input
- * @returns {Promise<{ readonly path: string, readonly record: AutomationRunRecord, readonly records: readonly AutomationRunRecord[], readonly appended: boolean, readonly skippedCorruptLines: number, readonly maxEntries: number }>}
+ * @returns {Promise<{ readonly path: string, readonly record: AutomationRunRecord, readonly records: readonly AutomationRunRecord[], readonly appended: boolean, readonly skippedCorruptLines: number, readonly quarantinedLines: number, readonly quarantinePath: string, readonly maxEntries: number }>}
  */
 export async function recordAutomationRun(input) {
   // Write path only. Stored rows are re-validated on read through
@@ -78,6 +84,11 @@ export async function recordAutomationRun(input) {
   const filePath = automationRunRecordPath(projectRoot, record.loop_id);
   const readResult = await readAutomationRunRecords(filePath);
 
+  const quarantinePath = automationRunQuarantinePath(
+    projectRoot,
+    record.loop_id
+  );
+
   if (readResult.records.some(existing => existing.run_id === record.run_id)) {
     return {
       path: filePath,
@@ -85,6 +96,8 @@ export async function recordAutomationRun(input) {
       records: readResult.records,
       appended: false,
       skippedCorruptLines: readResult.skippedCorruptLines,
+      quarantinedLines: 0,
+      quarantinePath,
       maxEntries,
     };
   }
@@ -95,11 +108,38 @@ export async function recordAutomationRun(input) {
   // recognise came back as `[]`, and a row that failed validation came back as
   // nothing at all (#2682, #2578). Only the row being appended is serialised
   // here, so an append can no longer be a fleet-wide migration nobody ran.
-  const nextEntries = [
+  const allEntries = [
     ...readResult.entries,
     { line: JSON.stringify(record), record },
-  ].slice(-maxEntries);
+  ];
+  const nextEntries = allEntries.slice(-maxEntries);
+  // Keeping an unreadable row in place only postponed its deletion. The bound
+  // applies to every stored line, so a row this module could not parse sat in
+  // the window counting down, and somewhere around `maxEntries` appends later
+  // it fell off the front and was gone — with nothing said, and with
+  // `skippedCorruptLines` dropping back to 0 on the next read, so afterwards a
+  // destroyed row looked exactly like one that never existed (#2578).
+  //
+  // A row nobody can parse is the evidence of whatever went wrong, and it is
+  // needed precisely when it is unreadable. Evicting a WELL-FORMED row is the
+  // bounded-history contract working as designed; evicting one nobody could
+  // read is throwing away the only copy. So the second kind is copied to a
+  // sidecar first and the ledger stays bounded.
+  const quarantined = allEntries
+    .slice(0, Math.max(0, allEntries.length - maxEntries))
+    .filter(entry => entry.record === undefined)
+    .map(entry => entry.line);
+
   await mkdir(path.dirname(filePath), { recursive: true });
+  // Sidecar first, ledger second, and a sidecar failure aborts the append
+  // rather than being swallowed. A crash between the two writes leaves the row
+  // in BOTH files, which anyone reading them can reconcile; the other order
+  // leaves it in neither, which nobody can reconstruct. Failing to record one
+  // outcome is recoverable — the runbook contract says a recording failure is
+  // a degradation to report — and destroying the evidence is not.
+  if (quarantined.length > 0) {
+    await quarantineUnreadableLines(quarantinePath, quarantined);
+  }
   await writeJsonlAtomically(
     filePath,
     nextEntries.map(entry => entry.line)
@@ -111,8 +151,72 @@ export async function recordAutomationRun(input) {
     records: nextEntries.flatMap(entry => (entry.record ? [entry.record] : [])),
     appended: true,
     skippedCorruptLines: readResult.skippedCorruptLines,
+    quarantinedLines: quarantined.length,
+    quarantinePath,
     maxEntries,
   };
+}
+
+/**
+ * Where rows this module could not read are kept once the history bound
+ * evicts them from the ledger.
+ *
+ * A sidecar rather than a bigger ledger: the ledger's bound is what keeps a
+ * status read cheap and its history honest, and unreadable rows are not run
+ * history — they are evidence, and evidence has no reason to expire.
+ * @param {string} projectRoot
+ * @param {string} loopId
+ * @returns {string}
+ */
+export function automationRunQuarantinePath(projectRoot, loopId) {
+  return path.join(
+    path.resolve(projectRoot),
+    ".lisa",
+    "automations",
+    "runs",
+    `${normalizeLoopId(loopId)}.quarantine.jsonl`
+  );
+}
+
+/**
+ * Append evicted, unreadable rows verbatim to the quarantine sidecar.
+ *
+ * Appended rather than rewritten, and never parsed or re-serialised: whatever
+ * made a row unreadable is the thing worth keeping, so it is stored as the
+ * exact bytes that were on disk.
+ * @param {string} quarantinePath
+ * @param {readonly string[]} lines
+ * @returns {Promise<void>}
+ */
+async function quarantineUnreadableLines(quarantinePath, lines) {
+  await mkdir(path.dirname(quarantinePath), { recursive: true });
+  await appendFile(quarantinePath, `${lines.join("\n")}\n`, "utf8");
+}
+
+/**
+ * One operator-readable sentence about rows the ledger holds that this module
+ * cannot read, or undefined when there are none.
+ *
+ * `skippedCorruptLines` existed, was returned by both the read and the write
+ * path, and was destructured by every caller — and printed by none of them.
+ * A counter nobody reads is not a control (#2578), so this is the wording the
+ * CLI and the status surface share, and neither has to invent its own.
+ * @param {{ readonly path: string, readonly skippedCorruptLines: number, readonly quarantinedLines: number, readonly quarantinePath: string }} input
+ * @returns {string | undefined}
+ */
+export function describeUnreadableLedgerRows(input) {
+  const sentences = [];
+  if (input.quarantinedLines > 0) {
+    sentences.push(
+      `${input.path}: ${input.quarantinedLines} row(s) this run could not read reached the end of the bounded history. They were copied to ${input.quarantinePath} before the ledger was trimmed, so nothing was deleted.`
+    );
+  }
+  if (input.skippedCorruptLines > 0) {
+    sentences.push(
+      `${input.path}: ${input.skippedCorruptLines} stored row(s) are not readable as run records. They are kept exactly as written and are excluded from run history, and each will be copied to ${input.quarantinePath} before the history bound evicts it. Open the file, fix or remove those lines, and the message stops.`
+    );
+  }
+  return sentences.length > 0 ? sentences.join(" ") : undefined;
 }
 
 /**
@@ -501,8 +605,24 @@ export async function runAutomationRunRecordCli(argv) {
         outcome: result.record.outcome,
         loop_id: result.record.loop_id,
         run_id: result.record.run_id,
+        skipped_corrupt_lines: result.skippedCorruptLines,
+        quarantined_lines: result.quarantinedLines,
       })}\n`
     );
+    // Printed, not merely returned. Every registered loop runs this CLI on
+    // every cycle, and its stderr is read by whoever ran it — so this is the
+    // most frequently consulted surface the condition has, and it is the one
+    // that used to say nothing at all (#2578).
+    const notice = describeUnreadableLedgerRows(result);
+    if (notice !== undefined) {
+      process.stderr.write(`${notice}\n`);
+    }
+    // Still 0. The append SUCCEEDED, and reporting a successful write as a
+    // failure is the same defect pointed the other way — the loop would record
+    // a degradation that did not happen, on every cycle, until someone edited
+    // the file. The refusal that matters is already above: an append that
+    // cannot save an evicted row throws before the ledger is rewritten, and
+    // lands here as exit 1 with the reason.
     return 0;
   } catch (error) {
     process.stderr.write(`${error.message}\n`);

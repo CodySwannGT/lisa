@@ -945,11 +945,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
-      "f03c05aaa75432d1c87b241762fc1cf1d31a33b7c076d5fab67113d19081b162",
+      "24351f445c9c9dc7e9136be918bb0c4fbea567f0c3972cbe62afbdc83653ce2a",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
-      "1f77b28fd59986ac3f76a55296b70d8c45385bbdb759e97691e49db121725ee2",
+      "f377d6384d05a97af2a33dc6c1ddb255bc07c7af308c595f6f6fc2789e24d46b",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
-      "640b0b4d140f8e6f7e8789eb86376e71454da07ba134a01e0b71fa4be10ff424",
+      "6b0f1ae532a451c45975d8db09c776a03e50e65788b30286b3416e55e39078e7",
     "plugins/src/base/scripts/automation-status-contract-drift.mjs":
       "5f3f327fddedd6870017a86f2702d9cbb17352384fb225ab353eed54241182ef",
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs":
@@ -957,7 +957,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-status-report.mjs":
       "520f77645c5b7cab3f69848fb5cf19e8b1d802cd1f8ce6a35aa36a0bf6a0d146",
     "plugins/src/base/scripts/automation-status-run-history.mjs":
-      "a07f0d1af412f0d2747a9cbe82fa0edbeb8cc8dd4bdf4c51526e779090f08208",
+      "7a84d3abf27a5fe1715a9869c4862711622c004ad9710aae55912ff9c6a5658d",
     "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs":
       "e6063e072b9cf0928bf94df034937326444d542143f5d7264a9c2c7180c035ae",
     "plugins/src/base/scripts/cross-pollinate.mjs":
@@ -9351,6 +9351,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
     "tests/unit/strategies/automation-run-record-preservation.test.ts": true,
+    "tests/unit/strategies/automation-run-record-quarantine.test.ts": true,
     "tests/unit/strategies/automation-run-record.test.ts": true,
     "tests/unit/strategies/automation-runbook-contract-rule.test.ts": true,
     "tests/unit/strategies/automation-status-claude-adapter.test.ts": true,
@@ -9362,6 +9363,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automation-status-expected-fleet.test.ts": true,
     "tests/unit/strategies/automation-status-fixture-smoke-and-parity.test.ts": true,
     "tests/unit/strategies/automation-status-fleet-runbooks.test.ts": true,
+    "tests/unit/strategies/automation-status-ledger-integrity.test.ts": true,
     "tests/unit/strategies/automation-status-operator-docs.test.ts": true,
     "tests/unit/strategies/automation-status-opt-in-group.test.ts": true,
     "tests/unit/strategies/automation-status-report-rendering.test.ts": true,
