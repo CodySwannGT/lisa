@@ -10,8 +10,8 @@
  * because the template is copy-overwrite, every Lisa update clobbered any
  * project's hand-added `wiki/**` entry. `eslint .` then linted
  * `wiki/lisa-wiki.config.json` and failed `sonarjs/no-duplicate-string` on the
- * schema-required enum literals — hitting thumbwar-infrastructure, api-creator,
- * qualis-infrastructure, and thumbwar-frontend.
+ * schema-required enum literals — hitting acmeorgd-infrastructure, api-creator,
+ * acmeorgc-infrastructure, and acmeorgd-frontend.
  *
  * These tests keep the template and the compiled default in lock-step so the
  * regression cannot return silently.

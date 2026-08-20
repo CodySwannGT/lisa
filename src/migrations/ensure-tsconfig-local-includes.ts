@@ -95,7 +95,7 @@ async function loadTemplateDefaults(
  *
  * Additionally, this migration preserves a project's narrower include/exclude from
  * the pre-strategy tsconfig.json when the stack template's include/exclude would
- * widen tsc scope. Evidence: thumbwar-backend's tsconfig.json pinned `include: ["src/**\/*"]`
+ * widen tsc scope. Evidence: acmeorgd-backend's tsconfig.json pinned `include: ["src/**\/*"]`
  * but after Lisa overwrote tsconfig.json the stack template's include was used,
  * pulling `vitest.*.ts` into typecheck scope.
  */
