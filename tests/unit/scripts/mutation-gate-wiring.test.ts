@@ -55,7 +55,53 @@ describe("mutation gate wiring", () => {
     // .github/workflows/quality.yml `test_mutation` → "Check for test:mutation
     // script": `grep -q '"test:mutation"' package.json`. A miss is a skip
     // notice and a green job, not a failure.
-    expect(manifest.scripts["test:mutation"]).toBe("stryker run");
+    expect(manifest.scripts["test:mutation"]).toBe(
+      "node scripts/lisa-mutation.mjs"
+    );
+  });
+
+  it("runs the diff-only gate Lisa ships, not a variant of it", () => {
+    // The dogfood property. `test:mutation` used to be a bare `stryker run`
+    // here while every consumer got `node scripts/lisa-mutation.mjs` under a
+    // `force` pin — so the one repository able to notice a defect in the
+    // shipped gate was the one repository not running it.
+    const entrypoint = fs.readFileSync(
+      path.join(ROOT, "scripts", "lisa-mutation.mjs"),
+      "utf8"
+    );
+    expect(entrypoint).toContain(
+      "../typescript/copy-overwrite/scripts/lisa-mutation.mjs"
+    );
+    expect(manifest.scripts["test:mutation"]).toContain(
+      "scripts/lisa-mutation.mjs"
+    );
+  });
+
+  it("keeps a way to reproduce the full-run measurement the floor came from", () => {
+    // `thresholds.break` is a measured whole-list score. Without a committed
+    // command that reproduces that measurement, the number becomes folklore.
+    expect(manifest.scripts["test:mutation:full"]).toBe("stryker run");
+  });
+
+  it("has the gate switched on, so the shipped self-skip cannot hide it", () => {
+    // `mutation.gate.json` defaults to `"enabled": false` and the gate then
+    // prints a notice and exits 0. That default is right for a consumer
+    // adopting Lisa and wrong for Lisa: a gate that self-skips in the
+    // repository that ships it proves exactly nothing about it.
+    const gate = JSON.parse(
+      fs.readFileSync(path.join(ROOT, "mutation.gate.json"), "utf8")
+    ) as { readonly enabled: boolean; readonly since: string };
+    expect(gate.enabled).toBe(true);
+    expect(gate.since).toBe("main");
+  });
+
+  it("mutates the gate script itself", () => {
+    // The wrapper decides what gets mutated, so a defect in it disables
+    // everything downstream of it silently. It is in the mutate list for the
+    // same reason the guards are.
+    expect(mutatedGuards()).toContain(
+      "typescript/copy-overwrite/scripts/lisa-mutation.mjs"
+    );
   });
 
   it("declares the runner the gate needs", () => {

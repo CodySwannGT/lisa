@@ -20,6 +20,14 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { NameMatcher } from "../../../src/core/downstream-names.js";
+import {
+  HOST_NAME_ENTRIES,
+  hostNameEntries,
+  MIN_NAME_LENGTH,
+  NAME_ENV_VAR,
+  nameEntry,
+} from "../../../src/core/downstream-names.js";
 import {
   findDownstreamReferences,
   PLACEHOLDER_ACCOUNTS,
@@ -135,5 +143,142 @@ describe("Lisa never names a downstream project", () => {
     for (const org of PUBLIC_ORGS) {
       expect(org).toBe(org.toLowerCase());
     }
+  });
+});
+
+/**
+ * A matcher built from names that belong to nobody.
+ *
+ * Every example below is invented. The committed list is proved separately, by
+ * its shape and by the scan above — a test that spelled a real name out to
+ * prove the guard catches real names would be the leak the guard exists to
+ * prevent.
+ * @returns A matcher over the synthetic names.
+ */
+const syntheticMatcher = (): NameMatcher =>
+  hostNameEntries({ [NAME_ENV_VAR]: "somehost, Widget Foundry" });
+
+describe("the known-name check reaches the shape the regex cannot", () => {
+  it("flags a bare host name in running prose", () => {
+    // The measurement that made this necessary: the shape guard reported zero
+    // violations on a tree that had 189, and every one of them looked like
+    // this — a name in a sentence, with no `github.com` in front of it.
+    const found = findDownstreamReferences(
+      "Measured against somehost last week.",
+      syntheticMatcher()
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0]?.match).toBe("somehost");
+  });
+
+  it("flags a bare host name in a code comment and in a local path", () => {
+    expect(
+      findDownstreamReferences(
+        "// Evidence: somehost-backend pinned its tsconfig include.",
+        syntheticMatcher()
+      )
+    ).toHaveLength(1);
+    expect(
+      findDownstreamReferences(
+        "/Users/someone/workspace/somehost/infrastructure",
+        syntheticMatcher()
+      )
+    ).toHaveLength(1);
+  });
+
+  it("flags a host name spelled with a separator or a different case", () => {
+    for (const spelling of [
+      "SomeHost",
+      "SOMEHOST",
+      "Widget Foundry",
+      "widget-foundry",
+      "widget_foundry",
+      "WidgetFoundry",
+    ]) {
+      expect(
+        findDownstreamReferences(
+          `see ${spelling} for context`,
+          syntheticMatcher()
+        )
+      ).toHaveLength(1);
+    }
+  });
+
+  it("does NOT fire on file paths, date fractions or option syntax", () => {
+    // This control is the whole reason the shape guard refused to match bare
+    // `a/b` in prose, and it is the property a known list buys outright: none
+    // of these tokens is a name, so none of them can hash to one. A guard that
+    // fired here would be switched off within a day, and a switched-off guard
+    // catches nothing at all.
+    for (const line of [
+      "import { x } from '../../src/core/index.js';",
+      "see src/core/downstream-references.ts:42 for the reason",
+      "Measured 2026/08/20, and again on 08/20/2026",
+      "roughly 3/4 of the tracked files",
+      "run with --exclude=a/b and -o n/a",
+      "docs/decisions/2026-08-19-guard-mutation-gate.md",
+      "uses: actions/checkout@v6",
+      "https://github.com/CodySwannGT/lisa/issues/1",
+    ]) {
+      expect(findDownstreamReferences(line, syntheticMatcher())).toEqual([]);
+    }
+  });
+
+  it("does NOT fire on a longer word that merely starts with a name", () => {
+    // Boundary anchoring at both ends. Without the trailing boundary, an entry
+    // would fire inside every word it happens to prefix, which is the
+    // false-positive class that gets a guard disabled.
+    for (const line of [
+      "somehosting is a different word",
+      "the somehostile takeover",
+      "presomehost and somehostx",
+    ]) {
+      expect(findDownstreamReferences(line, syntheticMatcher())).toEqual([]);
+    }
+  });
+
+  it("does NOT join two words across a sentence boundary", () => {
+    // `". "` is two characters, so it cannot glue `widget` to `Foundry`. One
+    // separator may; a sentence may not.
+    expect(
+      findDownstreamReferences(
+        "shipped the widget. Foundry work lands next.",
+        syntheticMatcher()
+      )
+    ).toEqual([]);
+    expect(
+      findDownstreamReferences(
+        "the widget, foundry, and mill teams",
+        syntheticMatcher()
+      )
+    ).toEqual([]);
+  });
+
+  it("refuses an environment name too short to be safe", () => {
+    // A three-character entry matches an initialism in almost any repository.
+    // Accepting one would hand back the false-positive problem a known list
+    // exists to avoid.
+    const short = hostNameEntries({ [NAME_ENV_VAR]: "abc" });
+    expect(short.entries.size).toBe(HOST_NAME_ENTRIES.length);
+    expect(MIN_NAME_LENGTH).toBeGreaterThan(3);
+  });
+
+  it("keeps the committed list armed and stored as digests, not names", () => {
+    // Two claims, both load-bearing. Armed: an empty list is a guard that
+    // reports a clean tree for the same reason a broken one does. Digests: a
+    // plaintext list in a public repository publishes what it protects.
+    expect(HOST_NAME_ENTRIES.length).toBeGreaterThan(0);
+    for (const entry of HOST_NAME_ENTRIES) {
+      expect(entry).toMatch(/^\d+:[0-9a-f]{10}$/u);
+      expect(Number(entry.split(":")[0])).toBeGreaterThanOrEqual(
+        MIN_NAME_LENGTH
+      );
+    }
+  });
+
+  it("treats case and separators as spelling rather than identity", () => {
+    expect(nameEntry("Some-Host")).toBe(nameEntry("some host"));
+    expect(nameEntry("SomeHost")).toBe(nameEntry("somehost"));
+    expect(nameEntry("somehost")).not.toBe(nameEntry("somehosts"));
   });
 });
