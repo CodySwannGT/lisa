@@ -137,8 +137,9 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -775,6 +776,6 @@ function main() {
   if (result.violations.length > 0) process.exitCode = 1;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (invokedAsScript(import.meta.url)) {
   main();
 }

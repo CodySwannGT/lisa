@@ -40,11 +40,19 @@ const ANY_MODULE_URL = "file:///anything.mjs";
  */
 const HELPER_LANES = ["all", "typescript", "expo"] as const;
 
-/** Template trees whose `.mjs` entry points must route through the helper. */
+/** Script trees whose `.mjs` entry points must route through the helper. */
 const SHIPPED_SCRIPT_DIRS = [
   "all/copy-overwrite/scripts",
   "typescript/copy-overwrite/scripts",
   "expo/copy-overwrite/scripts",
+  // This repository's OWN scripts, absent until they were measured to be in
+  // the same uniformly-wrong state the expo lane was: five of thirty-six
+  // modules carried a defective guard, including the artifact-freshness gate
+  // `.husky/pre-commit` runs on every commit. Not a template tree, and swept
+  // for a stronger reason than the others — every Lisa agent works in a git
+  // worktree, so a symlinked path is the ordinary invocation here, not an
+  // exotic one.
+  "scripts",
   // Added after measuring that this lane had never been swept: four of its
   // eighteen modules carried a defective guard and NONE carried a correct one.
   // That it was uniformly wrong rather than mixed is the tell — no rule had
@@ -59,6 +67,13 @@ const SHIPPED_SCRIPT_DIRS = [
 /**
  * Guard spellings that are wrong, each matched by shape rather than by exact
  * text so a reformat cannot slip one past.
+ *
+ * The `fileURLToPath(import.meta.url)` entry matches the comparison from BOTH
+ * sides. It used to require `===` on the right only, which made the detector
+ * operand-order-sensitive — invisible in review, and the reason five modules in
+ * this repository's own `scripts/` tree read as clean: every one of them writes
+ * `process.argv[1] === fileURLToPath(import.meta.url)`, with the call on the
+ * right. Widening the swept directories alone would still have reported clean.
  */
 const DEFECTIVE_GUARDS: readonly { name: string; pattern: RegExp }[] = [
   {
@@ -66,8 +81,9 @@ const DEFECTIVE_GUARDS: readonly { name: string; pattern: RegExp }[] = [
     pattern: /pathToFileURL\(\s*process\.argv\[1\]\s*\)/u,
   },
   {
-    name: "fileURLToPath(import.meta.url) === resolve(process.argv[1])",
-    pattern: /fileURLToPath\(\s*import\.meta\.url\s*\)\s*===/u,
+    name: "fileURLToPath(import.meta.url) compared to argv[1], either order",
+    pattern:
+      /(fileURLToPath\(\s*import\.meta\.url\s*\)\s*===)|(===\s*fileURLToPath\(\s*import\.meta\.url\s*\))/u,
   },
   {
     name: 'process.argv[1].endsWith("<basename>")',
@@ -289,15 +305,46 @@ describe("shared entry guard wiring", () => {
     // A rename or a moved tree would empty the sweep and let it pass by
     // testing nothing, which is the failure mode this whole file exists for.
     //
-    // Raised from 10 when `plugins/src/base/scripts` joined the lane list: 42
-    // modules are swept today, so a floor of 10 would have survived losing
-    // three quarters of them. The floor tracks the real count with enough slack
-    // for ordinary churn, and is deliberately not `=== 42`, which would turn
-    // every added script into a failing test that teaches people to edit the
-    // number without reading why it is there.
-    expect(swept).toBeGreaterThan(35);
+    // Raised from 10 when `plugins/src/base/scripts` joined the lane list, and
+    // again from 35 when this repository's own `scripts/` did: 82 modules are
+    // swept today, so the old floor would have survived losing more than half
+    // of them. The floor tracks the real count with enough slack for ordinary
+    // churn, and is deliberately not `=== 82`, which would turn every added
+    // script into a failing test that teaches people to edit the number
+    // without reading why it is there.
+    expect(swept).toBeGreaterThan(70);
     expect(offenders).toEqual([]);
   });
+
+  it("BITE: the pre-commit artifact gate reaches its verdict through a symlink", () => {
+    // The behavioural half, against the real gate rather than a fixture. It is
+    // wired at `.husky/pre-commit` and runs on every commit; reached through a
+    // symlinked path it used to load, never call `main()`, and report success
+    // having examined nothing. Every Lisa agent works in a git worktree, so
+    // that path is ordinary.
+    //
+    // Both verdicts are asserted to be the same, not merely that the symlinked
+    // run exits 0 — exit 0 is exactly what the no-op produced.
+    const dir = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.tmpdir(), "derived-artifacts-link-"))
+    );
+    const gate = path.join(REPO_ROOT, "scripts", "check-derived-artifacts.mjs");
+    const link = path.join(dir, "check-derived-artifacts.mjs");
+    fs.symlinkSync(gate, link);
+
+    const direct = spawnSync(process.execPath, [gate], {
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+    });
+    const through = spawnSync(process.execPath, [link], {
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+    });
+
+    expect(through.stdout.trim()).not.toBe("");
+    expect(through.stdout.trim()).toBe(direct.stdout.trim());
+    expect(through.status).toBe(direct.status);
+  }, 60_000);
 
   it("bites: a planted defective guard is caught by the same sweep", () => {
     // The negative above is only worth its runtime if it can fail. Rather than
@@ -324,6 +371,36 @@ describe("shared entry guard wiring", () => {
         )
       )
     ).toBe(true);
+  });
+
+  it("bites: the detector is not operand-order-sensitive", () => {
+    // The half of the sweep nobody checked. The pattern required `===` AFTER
+    // the call, and five modules in this repository's own `scripts/` tree put
+    // the call on the right — so widening the swept directories alone would
+    // still have reported clean, which is this very defect class applied to
+    // its own detector.
+    const both = [
+      "if (fileURLToPath(import.meta.url) === process.argv[1]) main();",
+      "if (process.argv[1] === fileURLToPath(import.meta.url)) main();",
+    ];
+
+    for (const planted of both) {
+      expect(
+        DEFECTIVE_GUARDS.some(guard => guard.pattern.test(planted)),
+        planted
+      ).toBe(true);
+    }
+  });
+
+  it("bites: the sweep now reaches this repository's own scripts/", () => {
+    // Scope was the other half. Both holes had to close together: with the
+    // operand order fixed but `scripts/` out of scope the sweep sees nothing,
+    // and with `scripts/` in scope but the order unfixed it sees one of five.
+    expect(SHIPPED_SCRIPT_DIRS).toContain("scripts");
+    expect(shippedModules("scripts").length).toBeGreaterThan(20);
+    expect(shippedModules("scripts")).toContain(
+      "scripts/check-derived-artifacts.mjs"
+    );
   });
 
   it("does not flag the accepted spelling", () => {
