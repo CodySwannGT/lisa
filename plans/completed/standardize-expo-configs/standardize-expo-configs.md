@@ -5,7 +5,7 @@
 
 ## Context
 
-Three Expo projects (acmeorga, acmeorgb, thumbwar) share the same Lisa-managed base files but have divergent project-specific configs. Investigation revealed:
+Three Expo projects (acmeorga, acmeorgb, acmeorgd) share the same Lisa-managed base files but have divergent project-specific configs. Investigation revealed:
 
 1. **acmeorga's `tsconfig.expo.json`** predates the current Lisa template — uses explicit per-directory path aliases instead of catch-all `@/*`, missing `noEmit`/`allowImportingTsExtensions`, has unnecessary `useUnknownInCatchVariables: false`
 2. **Lisa expo templates are missing** a create-only `jest.config.local.ts` and `babel.config.js`, causing each project to independently create these files with inconsistent patterns
@@ -34,7 +34,7 @@ Content based on the common pattern across all three projects:
 - `babel-preset-expo` with `jsxImportSource: "nativewind"`
 - `nativewind/babel` preset
 
-No `module-resolver` plugin — thumbwar works fine without it (the catch-all `@/*` tsconfig path + jest `moduleNameMapper` handle resolution). Projects that need it can add it in their copy.
+No `module-resolver` plugin — acmeorgd works fine without it (the catch-all `@/*` tsconfig path + jest `moduleNameMapper` handle resolution). Projects that need it can add it in their copy.
 
 ### 3. Add `expo/create-only/jest.setup.pre.js`
 
@@ -62,7 +62,7 @@ Content: Minimal shared mocks (PlatformConstants, AppState, Appearance, DeviceIn
 
 ### 6. Update `expo/copy-overwrite/tsconfig.json` to include `nativewind-env.d.ts`
 
-The Lisa template's `tsconfig.json` doesn't include `nativewind-env.d.ts` in its `include` array, but acmeorgb and thumbwar both added it manually. Since all expo projects use NativeWind, add it to the template.
+The Lisa template's `tsconfig.json` doesn't include `nativewind-env.d.ts` in its `include` array, but acmeorgb and acmeorgd both added it manually. Since all expo projects use NativeWind, add it to the template.
 
 **File**: `expo/copy-overwrite/tsconfig.json`
 

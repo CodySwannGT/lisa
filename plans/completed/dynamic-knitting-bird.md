@@ -1,4 +1,4 @@
-# Apply Lisa to thumbwar/frontend and acmeorgb/frontend-v2
+# Apply Lisa to acmeorgd/frontend and acmeorgb/frontend-v2
 
 ## Overview
 
@@ -8,7 +8,7 @@ Both projects are on Lisa v1.12.1 (current Lisa is v1.15.0+ with the jest setupF
 
 ## Key Risks
 
-### thumbwar/frontend
+### acmeorgd/frontend
 - **On `main` branch** - must create a feature branch first
 - Has `jest.config.js` (CommonJS, multi-project config for eslint-plugins + expo tests). Lisa will create `jest.config.ts` alongside it - the .js file must be deleted or it will conflict
 - `jest.setup.pre.js` is minimal (only `__ExpoImportMetaRegistry` + `structuredClone`) - does NOT define `__DEV__`. Since the updated Lisa template has empty `setupFiles`, no jest-expo setup will run automatically. Need to either use `jest-expo` preset in local config or add `__DEV__` definition to setup.pre.js
@@ -25,17 +25,17 @@ Both projects are on Lisa v1.12.1 (current Lisa is v1.15.0+ with the jest setupF
 ## Execution Plan
 
 ### Task 1: Create feature branches (parallel)
-- `cd ~/workspace/thumbwar/frontend && git checkout -b chore/update-lisa`
+- `cd ~/workspace/acmeorgd/frontend && git checkout -b chore/update-lisa`
 - `cd ~/workspace/acmeorgb/frontend-v2 && git checkout -b chore/update-lisa`
 
 ### Task 2: Run Lisa on both (sequential, from lisa dir)
 ```bash
 cd ~/workspace/lisa
-bun run dev ~/workspace/thumbwar/frontend -y
+bun run dev ~/workspace/acmeorgd/frontend -y
 bun run dev ~/workspace/acmeorgb/frontend-v2 -y
 ```
 
-### Task 3: Fix thumbwar/frontend post-Lisa
+### Task 3: Fix acmeorgd/frontend post-Lisa
 1. **Delete old jest.config.js** - conflicts with new jest.config.ts
 2. **Create jest.config.local.ts** with:
    - Multi-project support for eslint plugin tests (node env)
@@ -73,10 +73,10 @@ bun run dev ~/workspace/acmeorgb/frontend-v2 -y
 
 | File | Project | Action |
 |------|---------|--------|
-| `jest.config.js` | thumbwar | Delete (replaced by jest.config.ts) |
-| `jest.config.local.ts` | thumbwar | Create with project-specific config |
-| `jest.setup.pre.js` | thumbwar | Update to add __DEV__ and RN globals |
-| `jest.thresholds.json` | thumbwar | Update to 98% thresholds |
+| `jest.config.js` | acmeorgd | Delete (replaced by jest.config.ts) |
+| `jest.config.local.ts` | acmeorgd | Create with project-specific config |
+| `jest.setup.pre.js` | acmeorgd | Update to add __DEV__ and RN globals |
+| `jest.thresholds.json` | acmeorgd | Update to 98% thresholds |
 | `jest.config.local.ts` | acmeorgb | Create with project-specific config |
 | Various Lisa-managed files | both | Auto-applied by Lisa |
 
@@ -87,8 +87,8 @@ bun run dev ~/workspace/acmeorgb/frontend-v2 -y
 ## Verification
 
 ```bash
-# thumbwar - verify all quality gates pass
-cd ~/workspace/thumbwar/frontend
+# acmeorgd - verify all quality gates pass
+cd ~/workspace/acmeorgd/frontend
 bun run test:cov
 bun run test:integration
 bun run lint
