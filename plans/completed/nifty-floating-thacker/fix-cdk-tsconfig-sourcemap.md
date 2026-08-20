@@ -119,13 +119,13 @@ Create tasks using `TaskCreate` in the following order:
 
 ### Task 2: Run Lisa integration test against downstream CDK project
 
-- **subject:** "Run Lisa integration test against Qualis infrastructure"
-- **activeForm:** "Running Lisa integration test against Qualis infrastructure"
+- **subject:** "Run Lisa integration test against AcmeOrgC infrastructure"
+- **activeForm:** "Running Lisa integration test against AcmeOrgC infrastructure"
 - **Description:**
 
   **Type:** Task
 
-  **Description:** Apply the updated Lisa templates to `/Users/cody/workspace/qualis/infrastructure` and verify the sourceMap conflict is resolved.
+  **Description:** Apply the updated Lisa templates to `/Users/cody/workspace/acmeorgc/infrastructure` and verify the sourceMap conflict is resolved.
 
   **Acceptance Criteria:**
   - [ ] `lisa .` runs successfully against the CDK project
@@ -133,13 +133,13 @@ Create tasks using `TaskCreate` in the following order:
   - [ ] No `TS5053` error when running the build
 
   **Relevant Research:**
-  - Downstream project: `/Users/cody/workspace/qualis/infrastructure`
+  - Downstream project: `/Users/cody/workspace/acmeorgc/infrastructure`
   - Use `/lisa:integration-test` skill
 
   **Skills to Invoke:** `/coding-philosophy`, `/lisa:integration-test`
 
   **Implementation Details:**
-  - Run Lisa against `/Users/cody/workspace/qualis/infrastructure`
+  - Run Lisa against `/Users/cody/workspace/acmeorgc/infrastructure`
   - Verify `tsconfig.cdk.json` in the downstream project now includes `sourceMap: false`
   - Run the project's build script to confirm no TS5053 error
 
@@ -147,7 +147,7 @@ Create tasks using `TaskCreate` in the following order:
 
   **Verification:**
   - **Type:** `manual-check`
-  - **Command:** `cd /Users/cody/workspace/qualis/infrastructure && cat tsconfig.cdk.json | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('/dev/stdin','utf8')); console.log('sourceMap:', d.compilerOptions.sourceMap, 'inlineSourceMap:', d.compilerOptions.inlineSourceMap);"`
+  - **Command:** `cd /Users/cody/workspace/acmeorgc/infrastructure && cat tsconfig.cdk.json | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('/dev/stdin','utf8')); console.log('sourceMap:', d.compilerOptions.sourceMap, 'inlineSourceMap:', d.compilerOptions.inlineSourceMap);"`
   - **Expected:** `sourceMap: false inlineSourceMap: true`
 
   **Metadata:**
@@ -158,7 +158,7 @@ Create tasks using `TaskCreate` in the following order:
     "skills": ["/coding-philosophy", "/lisa:integration-test"],
     "verification": {
       "type": "manual-check",
-      "command": "cd /Users/cody/workspace/qualis/infrastructure && cat tsconfig.cdk.json | node -e \"...\"",
+      "command": "cd /Users/cody/workspace/acmeorgc/infrastructure && cat tsconfig.cdk.json | node -e \"...\"",
       "expected": "sourceMap: false inlineSourceMap: true"
     }
   }
@@ -262,7 +262,7 @@ Create tasks using `TaskCreate` in the following order:
 ## Verification
 
 1. Verify `cdk/copy-overwrite/tsconfig.cdk.json` has `sourceMap: false`
-2. Run Lisa against `/Users/cody/workspace/qualis/infrastructure` and confirm no `TS5053` error
+2. Run Lisa against `/Users/cody/workspace/acmeorgc/infrastructure` and confirm no `TS5053` error
 3. PR is open targeting `main`
 
 ## Sessions
