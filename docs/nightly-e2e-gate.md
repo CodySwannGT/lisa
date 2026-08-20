@@ -1073,7 +1073,7 @@ Until this shipped, every issue the reporter filed said, unconditionally:
 > Pull requests into `dev` are blocked until this suite is green again.
 
 That was a hardcoded assertion about somebody else's branch ruleset, and it was
-**measurably false**. `GET /repos/TunnlAI/frontend/rules/branches/dev` returns
+**measurably false**. `GET /repos/AcmeOrgB/frontend/rules/branches/dev` returns
 twelve required contexts and not one of them matches this gate. The suite
 blocked nothing — while people applied audited `nightly-e2e-bypass` labels to
 clear a gate that was not gating, spending the audit trail the label exists to
@@ -1118,8 +1118,8 @@ single-job reimplementation publishes the bare `🌙 Nightly E2E Health` and tha
 is the same gate. Nothing looser: a substring test would match
 `🌙 Nightly E2E Health (advisory)`.
 
-**This is a knowing divergence from both prior implementations.** TunnlAI's
-`describe-nightly-e2e-requiredness.mjs` and geminisportsai's
+**This is a knowing divergence from both prior implementations.** AcmeOrgB's
+`describe-nightly-e2e-requiredness.mjs` and acmeorga's
 `report-nightly-e2e.mjs` each compare the full context string exactly
 (`contexts.includes(context)`), and each documents that choice against the
 looser alternative of searching for `"nightly"`. They are right that a substring

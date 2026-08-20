@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.5](https://github.com/CodySwannGT/lisa/compare/v3.47.4...v3.47.5) (2026-08-20)
+
+
+### Bug Fixes
+
+* **schema:** the keyword allowlist checks a keyword's form, not just its name ([2b816d5](https://github.com/CodySwannGT/lisa/commit/2b816d57d72e1915d1117067ed111d5143aaad7a)), closes [CodySwannGT/lisa#2791](https://github.com/CodySwannGT/lisa/issues/2791)
+
 ### [3.47.4](https://github.com/CodySwannGT/lisa/compare/v3.47.3...v3.47.4) (2026-08-20)
 
 ### [3.47.3](https://github.com/CodySwannGT/lisa/compare/v3.47.2...v3.47.3) (2026-08-20)

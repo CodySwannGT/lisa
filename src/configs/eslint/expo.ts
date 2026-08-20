@@ -16,7 +16,9 @@
 import oxlint from "eslint-plugin-oxlint";
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
+import { readFileSync } from "fs";
 import { createRequire } from "module";
+import path from "path";
 import { fileURLToPath } from "url";
 
 // Import TypeScript config and utilities
@@ -67,12 +69,93 @@ const jsxA11y = require("eslint-plugin-jsx-a11y");
 const tailwind = require("eslint-plugin-tailwindcss");
 
 /**
+ * A project's `.lisa.config.json`, when it has one.
+ *
+ * Absence is not an error: a project that has never run `lisa apply` has no
+ * such file and declares no axes.
+ * @param file - Absolute path to the candidate `.lisa.config.json`.
+ * @returns Its text, or undefined when the project has no such file.
+ */
+function readConfigText(file: string): string | undefined {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Axes a project declares typed, read from its own `.lisa.config.json`.
+ *
+ * #2807: the design-value rule shipped installed, severity `"off"`, and arming
+ * it needed a severity AND a `typedAxes` option hand-written into
+ * `eslint.config.local.ts`. Nothing carried `design.tokens.axes` from
+ * `.lisa.config.json` to the rule, so a project could declare every axis,
+ * install the policy, pass every test, and enforce nothing.
+ *
+ * It is read HERE, at ESLint **config** load, rather than inside the rule at
+ * **rule** load. That distinction is what makes it unremarkable: the managed
+ * `eslint.config.ts` already reads `eslint.thresholds.json` and
+ * `eslint.ignore.config.json` from disk at exactly this moment, so this adds no
+ * new class of behaviour and gives ESLint's config cache nothing to fight. A
+ * rule reading project files on every `create()` would do both.
+ *
+ * It also needs no generation step, which is what the alternative — emitting
+ * rule options into a generated file during `lisa apply` — would have cost. A
+ * generated file can go stale against the config it was generated from; a value
+ * read at load cannot.
+ * @param projectRoot - Directory holding the project's `.lisa.config.json`.
+ * @returns The declared axes, or an empty list when none are declared.
+ * @throws {TypeError} When `design.tokens.axes` is present but is not a list of strings.
+ */
+export function readTypedAxes(projectRoot: string): string[] {
+  const file = path.join(projectRoot, ".lisa.config.json");
+  const raw = readConfigText(file);
+  if (raw === undefined) return [];
+  const axes = (JSON.parse(raw) as { design?: { tokens?: { axes?: unknown } } })
+    .design?.tokens?.axes;
+  if (axes === undefined) return [];
+  if (!Array.isArray(axes) || axes.some(axis => typeof axis !== "string")) {
+    // Coercing a malformed declaration to "no axes" would disarm the rule
+    // silently — #2807 reproduced one layer down. Refuse loudly instead.
+    throw new TypeError(
+      `${file}: design.tokens.axes must be an array of axis names, e.g. ["color"].`
+    );
+  }
+  return axes as string[];
+}
+
+/**
+ * The `ui-standards/no-unbound-design-value` entry for a set of typed axes.
+ *
+ * Silence-by-default is deliberate and unchanged: an axis with no published
+ * variable collection behind it has no token to bind to, and a rule that fires
+ * on every project is a rule that gets switched off. What changes is that
+ * declaring an axis is now SUFFICIENT to arm it. Previously nothing was.
+ *
+ * An axis name outside the rule's fixed vocabulary is passed through rather
+ * than filtered out, so ESLint's own schema validation rejects it by name. A
+ * filter would turn a typo into silent non-enforcement, which is the defect
+ * this function exists to remove.
+ * @param typedAxes - Axes the project declares typed.
+ * @returns `"off"` when none are declared, an armed error entry otherwise.
+ */
+export function getDesignValueBindingRule(
+  typedAxes: readonly string[]
+): import("eslint").Linter.RuleEntry {
+  return typedAxes.length > 0
+    ? ["error", { typedAxes: [...typedAxes] }]
+    : "off";
+}
+
+/**
  * Creates the Expo ESLint configuration.
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore
  * @param {object} [options.thresholds] - Threshold overrides
  * @param {string} [options.sourceRoot] - Prefix for source-relative file globs (e.g. `"src/"` for the SDK 55+/56 `/src` convention; defaults to `""`)
+ * @param {string[]} [options.typedAxes] - Axes the project declares typed, mirroring `design.tokens.axes`. Empty leaves the design-value rule off.
  * @returns {import("eslint").Linter.Config[]} ESLint flat config array
  */
 export function getExpoConfig({
@@ -80,6 +163,7 @@ export function getExpoConfig({
   ignorePatterns = defaultIgnores,
   thresholds = defaultThresholds,
   sourceRoot = "",
+  typedAxes = [],
 }: {
   tsconfigRootDir: string;
   ignorePatterns?: string[];
@@ -92,6 +176,13 @@ export function getExpoConfig({
    * `src/features`, etc. Globs anchored with a leading globstar are unaffected.
    */
   sourceRoot?: string;
+  /**
+   * Axes the project declares typed, mirroring `design.tokens.axes` in
+   * `.lisa.config.json`. Read by the managed `eslint.config.ts` via
+   * {@link readTypedAxes}. Empty — the default — leaves
+   * `ui-standards/no-unbound-design-value` off.
+   */
+  typedAxes?: readonly string[];
 }): import("eslint").Linter.Config[] {
   return [
     // Global ignores
@@ -144,10 +235,13 @@ export function getExpoConfig({
         "ui-standards/no-classname-outside-ui": "off",
         "ui-standards/no-direct-rn-imports": "off",
         // Regime-aware by declaration: silent until the project names the axes
-        // it publishes design variables for. Activate per axis in
-        // eslint.config.local.ts, mirroring `design.tokens.axes` in
-        // .lisa.config.json — e.g. ["error", { typedAxes: ["color"] }].
-        "ui-standards/no-unbound-design-value": "off",
+        // it publishes design variables for. Declaring `design.tokens.axes` in
+        // .lisa.config.json is what arms it — the managed eslint.config.ts
+        // reads that key and hands it here (#2807). Declaring nothing leaves
+        // the rule off, which is the correct default and was previously the
+        // ONLY reachable state.
+        "ui-standards/no-unbound-design-value":
+          getDesignValueBindingRule(typedAxes),
 
         // Tailwind
         "tailwindcss/classnames-order": [
