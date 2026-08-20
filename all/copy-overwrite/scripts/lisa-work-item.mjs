@@ -431,10 +431,12 @@ function lifecycleContract(config, provider) {
     typeof roles.done === "string"
       ? roles.done
       : (roles.done?.production ?? done.at(-1));
+  // No `active` set any more. It existed for exactly one reader — the claim
+  // check — and dead code inside a mutation-gated file is not merely untidy: it
+  // is a block of mutants nothing can kill, so it lowers the measured score
+  // while proving nothing. `done` still feeds `terminal`, which the completion
+  // writer reads.
   return {
-    active: [roles.claimed, roles.review, roles.blocked, ...done]
-      .filter(value => typeof value === "string" && value !== terminal)
-      .map(value => value.toLowerCase()),
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
     terminal: String(terminal ?? "").toLowerCase(),
