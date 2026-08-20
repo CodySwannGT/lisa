@@ -725,7 +725,7 @@ describe("PackageLisaStrategy", () => {
   // `$name` self-reference must be accompanied by the backing direct dependency,
   // otherwise the postinstall (skip-git-check) apply writes a dangling `$esbuild`
   // that passes local checks but fails `npm ci` in CI only. See the fleet ledger:
-  // qualis-infra #177, gemini infra-v2 #335, cdkstarter #13.
+  // acmeorgc-infra #177, gemini infra-v2 #335, cdkstarter #13.
   describe("$name self-reference backing dependency", () => {
     it("materializes the forced devDependency backing a $ref under skip-git-check", async () => {
       await createPackageLisaTemplate("cdk", {
@@ -2022,7 +2022,7 @@ describe("PackageLisaStrategy", () => {
     // jest-expo, the react-native-* runtime libs, @sentry/react-native, etc.)
     // in `force`. Because force REPLACES project values, updating Lisa on an
     // Expo SDK 54 app force-bundled a full SDK 54->56 + RN 0.81->0.85 major
-    // upgrade (blocked acmeorga/frontend, thumbwar/frontend, expostarter).
+    // upgrade (blocked acmeorga/frontend, acmeorgd/frontend, expostarter).
     // The fix moves the SDK-version-coupled packages to `defaults` (project
     // value wins; Lisa is only a fallback for fresh projects), while pure
     // tooling stays in `force`. These tests load the REAL template
@@ -2206,7 +2206,7 @@ describe("PackageLisaStrategy", () => {
       //     calls `Sentry.configureScope`, which Sentry v8 REMOVED — so 3.3.0
       //     throws `(0, t.configureScope) is not a function` on EVERY GraphQL
       //     request at runtime (broke acmeorgb/frontend-v2 in dev and the
-      //     prod path of expostarter/thumbwar where the Sentry DSN is set).
+      //     prod path of expostarter/acmeorgd where the Sentry DSN is set).
       // 4.4.0 (Apollo v3 peer + Sentry v8 API) is the only compatible version,
       // so it is pinned exactly — a range re-opens one failure mode or the other.
       expect(template.force.dependencies["@apollo/client"]).toMatch(/^\^?3\./);
@@ -2419,7 +2419,7 @@ describe("PackageLisaStrategy", () => {
 
   describe("CDK real template: aws-cdk-lib stays in defaults", () => {
     // Regression: aws-cdk-lib was force-pinned EXACTLY (2.246.0), so a
-    // project that had moved ahead (qualis/infrastructure on 2.259.0) got a
+    // project that had moved ahead (acmeorgc/infrastructure on 2.259.0) got a
     // 13-minor downgrade on the next apply — which can break synth for
     // stacks using newer constructs. Projects own their aws-cdk-lib pace;
     // CVE-driven bumps go through per-repo security gates instead. The

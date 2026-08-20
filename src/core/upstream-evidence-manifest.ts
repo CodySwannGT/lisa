@@ -8471,6 +8471,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/apply-receipt.ts": true,
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
+    "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
     "src/core/git-service.ts": true,
     "src/core/guard-capabilities.ts": true,
