@@ -175,6 +175,84 @@ for code review: an agentic review before push, a bot on the pull request.
 Awaiting before a pull request exists is refused. A check that can never fire is
 a declared guarantee that never runs.
 
+## An exit code is one bit, and two gates may share one prover
+
+A coverage-instrumented suite proves `test-correctness` by passing and
+`coverage-adequacy` by clearing its threshold. Running it twice cannot prove
+more than running it once, so one command legitimately proves both properties —
+and then exits `1` for either reason, with no way for the caller to tell which.
+
+Reporting that single bit against both gates is what the runner used to do, and
+it is the organising defect running backwards: **a property nobody measured was
+reported as measured and found wanting.** In practice the gate printed
+`coverage-adequacy — bun run test:cov (exit 1)` when what had happened was a
+test's child process being starved of CPU by its own siblings. Six sightings
+across three agents each cost a full investigation of a coverage threshold that
+was never involved — and, worse, a genuine coverage regression would have been
+indistinguishable from that flake.
+
+Two repairs, and both are needed. `lib/gate-failure-diagnosis.mjs` reads the
+failing command's own transcript and says WHICH failure it was, with precedence
+timeout → assertion → threshold, because a run whose tests died still prints
+coverage errors and they are always low. `ATTRIBUTION` then says WHOSE it was:
+the property the transcript indicts reports **FAILED with the reason**, and a
+gate that merely shares the prover reports **UNPROVABLE**. An attribution may
+only ever move a verdict onto a gate that is itself declared on that same
+command at that same moment, so a stray phrase in an unrelated tool's output
+cannot invent one.
+
+## Three ways not to be green, and they are not the same question
+
+A reviewer looking at a gate that is not green is really asking *"does somebody
+need to go and find out?"*. Collapsing the answers is how a careful observer
+read six grey CI badges as "not applicable" when the honest reading was "we
+never found out" — a misreading that, measured afterwards, was wrong about that
+particular run and exactly right about the rendering.
+
+| state | means | does somebody need to find out? |
+| --- | --- | --- |
+| `SKIPPED` | **not applicable** — nothing to run here, and there never was | no |
+| `UNPROVABLE` | **ran, proved nothing** — no task resolved, or a shared prover failed on another property | yes, and it blocks |
+| `NOT_RUN` | **verdict unknown** — the run reached a blocking failure first | yes, and nothing is known either way |
+
+Fail-fast survives only where it buys something. A required failure no longer
+stops the whole run: the cheap gates behind it still execute, so one push
+attempt reports everything that is wrong instead of one thing per attempt. What
+used to happen was that an intermittent test failure took the work-item check
+and the type check with it — two checks that finish in under a minute and
+answer questions a test suite says nothing about. Gates flagged `costly` in the
+registry (a whole suite, a mutation run, an E2E pass) are the exception: paying
+minutes for information about a push that cannot land is a bad trade, so they
+report `NOT_RUN` and name the gate that stopped them. Like `mayRewrite`, the
+flag is registry-only — the safe answer must not depend on who remembers to
+type it.
+
+## A suite that spawns a suite starves itself
+
+`bun run test:cov` runs the whole suite across one worker per core. One of the
+files in that suite spawned Stryker, which asks for one test-runner process per
+core of its own. The child then waits for CPU that its own siblings are holding
+and dies on its five-minute dry-run timeout — with **zero** other agents on the
+machine required. Concurrent load makes it worse and is not the cause; the
+correlation with a busy box was real and the causation was backwards.
+
+CI never saw it because CI runs the unit pass and the integration pass as
+separate jobs. That is the whole difference, and it is therefore the fix: the
+push-moment provers run their passes separately too, via per-moment `run`
+declarations (`test:cov:unit`, `test:integration:push`). The bite test is not
+dropped — deleting the control that proves the mutation gate can fail would be
+the defect at the top of this document — it moves to the moment that owns its
+cost, alongside the pull-request mutation gate it is the control for.
+
+Measured on the same machine at load ~150 on 18 cores: the split pass completed
+745 files and 13,388 tests in 501s with **no timeout failures**, against a
+merged pass that had been aborting at 460s on the nested dry run.
+
+The general lesson is worth stating without the specifics: **a wall-clock budget
+over a subprocess is a measurement of the machine, not of the code**, and a
+suite that spawns a second copy of itself is the case where the machine is
+guaranteed to be busy.
+
 ## Hollow results
 
 Two forms, one response model.
