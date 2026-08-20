@@ -38,6 +38,22 @@ const FINDING_KINDS = [
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
 
+/**
+ * The body of one `##` section, so a redaction assertion can be scoped to the
+ * prose that carries the motivating example rather than to the whole file —
+ * which legitimately contains the `org/repo#123` argument placeholder.
+ * @param body - Full document text.
+ * @param heading - The exact `## …` heading line.
+ * @returns Text between that heading and the next `##` heading.
+ */
+const section = (body: string, heading: string): string => {
+  const start = body.indexOf(heading);
+  if (start === -1) return "";
+  const rest = body.slice(start + heading.length);
+  const end = rest.indexOf("\n## ");
+  return end === -1 ? rest : rest.slice(0, end);
+};
+
 describe("lisa-design-intake skill contract", () => {
   describe.each(ROOTS)("%s", root => {
     const skill = read(root, "skills/lisa-design-intake/SKILL.md");
@@ -173,6 +189,84 @@ describe("lisa-design-intake skill contract", () => {
     it("keeps the threshold at 100% unless relaxed visibly", () => {
       expect(skill).toContain("100%");
       expect(skill).toContain("--min");
+    });
+
+    describe("motivating example", () => {
+      const rationale = section(
+        skill,
+        "## Why this gate is executable and not advisory"
+      );
+
+      it("carries the observed failure, not an abstract argument for executability", () => {
+        expect(rationale).toMatch(
+          /A block downgraded to a warning, by the agent enforcing it, inside the document enforcing it/u
+        );
+        expect(rationale).toContain(
+          "snap unbound dimensions via the snap tables (ties round down) and flag the rest"
+        );
+        expect(rationale).toMatch(/had read that rule/u);
+      });
+
+      it("keeps the coverage figures, which are the argument", () => {
+        for (const figure of [
+          "96-100%",
+          "82-97%",
+          "88-93%",
+          "1-4%",
+          "0-2%",
+          "0-3%",
+        ]) {
+          expect(rationale).toContain(figure);
+        }
+        expect(rationale).toMatch(
+          /Five of the eleven items blocked back to design; six proceeded/u
+        );
+        expect(rationale).toMatch(/\*\*zero variable references\*\*/u);
+        expect(rationale).toMatch(/every style value was invented/u);
+      });
+
+      it("names the frame-vs-subtree distinction as decision-changing", () => {
+        expect(rationale).toMatch(
+          /frame-vs-subtree distinction is what moved items between build and block/u
+        );
+        expect(rationale).toMatch(/14 bound values at frame level/u);
+      });
+
+      it("carries the counterargument to delivery pressure, not a footnote", () => {
+        expect(rationale).toMatch(
+          /domain types, adapters, CRUD, formatters — was completed and preserved/u
+        );
+        expect(rationale).toMatch(
+          /Blocking cost far less than it appeared it would/u
+        );
+      });
+
+      it("carries the rationale line the executable form rests on", () => {
+        expect(rationale).toMatch(
+          /A gate that depends on an agent choosing to honour it under delivery pressure is not a gate/u
+        );
+      });
+
+      it("shows the rule holding once absolute rather than advisory", () => {
+        expect(rationale).toContain("radius/none");
+        expect(rationale).toMatch(/refused to build an icon disc/u);
+      });
+
+      it("attributes the failure to no project, tracker item, or individual", () => {
+        expect(rationale).toMatch(/a portfolio frontend/u);
+        // A tracker key, any issue-number reference, and any link out.
+        expect(rationale).not.toMatch(/\b[A-Z][A-Z0-9]{1,9}-\d{1,6}\b/u);
+        expect(rationale).not.toMatch(/#\d/u);
+        expect(rationale).not.toMatch(/https?:\/\//u);
+      });
+    });
+
+    it("states that an unknown variable id fails loudly rather than nearest-matching", () => {
+      expect(skill).toMatch(/never resolves to a nearest match/u);
+      expect(skill).toMatch(
+        /An unknown id fails loudly naming the id|An unknown variable id fails loudly/u
+      );
+      expect(skill).toMatch(/stale map an error instead of silent corruption/u);
     });
 
     it("surfaces as /lisa:design:intake with an argument hint", () => {
