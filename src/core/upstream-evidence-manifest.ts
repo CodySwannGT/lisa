@@ -2301,7 +2301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "ad396cd6e71ab6500f955442c7d4b172e55af46c378ffdc1e7f5e9c58dbb6a40",
+      "cbb2b76ffd7f6e1d63030e4c9d2ea2a9925954dbd402e6914c0a4e190722a779",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2329,7 +2329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.config.ts":
       "1a2f6eb5dd19a7dfc445c61bac8bd08a5f8908f023655c920aff08b633b30fb6",
     "typescript/copy-overwrite/eslint.ignore.config.json":
-      "ca6a5cc3de7e5505fc824d3d367ae0ef30d0e8d9636e59619af14f6162462b2c",
+      "b9a6c5cdd82cd76fe1c6f409b1e7630bfb42f037728c4ff7354906ed960a03c6",
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":
@@ -8631,6 +8631,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "state/demo-project/README.md": true,
     "state/demo-project/state/inventory.json": true,
     "state/demo-project/state/state-contract.json": true,
+    "stryker.conf.json": true,
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
@@ -8768,6 +8769,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-pre-suite-exports.test.ts": true,
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
+    "tests/integration/mutation-gate-bite.test.ts": true,
     "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
@@ -9208,6 +9210,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
+    "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-completeness.test.ts": true,
@@ -9629,6 +9632,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "ui/README.md": true,
     "ui/index.html": true,
     "vitest.config.local.ts": true,
+    "vitest.config.mutation.ts": true,
     "vitest.config.ts": true,
     "vitest.thresholds.json": true,
     "wiki/architecture/.gitkeep": true,
@@ -9651,6 +9655,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/decisions/2026-08-12-credential-substrate-precedence.md": true,
     "wiki/decisions/2026-08-12-in-session-ticket-ready-role.md": true,
     "wiki/decisions/2026-08-12-ratchet-policy.md": true,
+    "wiki/decisions/2026-08-19-guard-mutation-gate.md": true,
     "wiki/documentation/assets/lisa-architecture.svg": true,
     "wiki/documentation/claude/overinstructions.md": true,
     "wiki/documentation/claude/review.md": true,

@@ -8,6 +8,8 @@
     "test": "vitest run",
     "test:unit": "vitest run --exclude='**/integration/**'",
     "test:cov": "vitest run --coverage",
+    "pretest:mutation": "[ -d dist/configs ] || bun run build",
+    "test:mutation": "stryker run",
     "lint": "oxlint --disable-nested-config && eslint . --quiet",
     "lint:fix": "oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
@@ -264,6 +266,8 @@
   "devDependencies": {
     "@codyswann/lisa": "^2.328.0",
     "@playwright/test": "^1.61.1",
+    "@stryker-mutator/core": "^9.0.0",
+    "@stryker-mutator/vitest-runner": "^9.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/semver": "^7.7.1",
     "eslint-plugin-oxlint": "^1.62.0",
