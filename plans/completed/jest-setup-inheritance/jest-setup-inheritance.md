@@ -162,11 +162,11 @@ Update the JSDoc remarks to remove the note about `setupFiles` needing to define
 
 This was already done earlier in this session — verify the change is present (added `"components/ui"` to `exclude` array).
 
-### Task 9: Apply Lisa to ThumbWar and migrate project-specific mocks
+### Task 9: Apply Lisa to AcmeOrgD and migrate project-specific mocks
 
-Run `bun run dev /Users/cody/workspace/thumbwar/frontend` to apply updated templates.
+Run `bun run dev /Users/cody/workspace/acmeorgd/frontend` to apply updated templates.
 
-Then migrate ThumbWar's project-specific mocks:
+Then migrate AcmeOrgD's project-specific mocks:
 
 **`jest.setup.local.ts`** — move these mocks from the current `jest.setup.ts`:
 - `expo/src/winter` mock
@@ -182,7 +182,7 @@ Then migrate ThumbWar's project-specific mocks:
 - `afterEach` clearAllTimers
 - `afterAll` restore warn + useRealTimers
 
-**`jest.setup.pre.local.js`** — move these from `jest.setup.pre.js` (if ThumbWar has project-specific additions beyond the base):
+**`jest.setup.pre.local.js`** — move these from `jest.setup.pre.js` (if AcmeOrgD has project-specific additions beyond the base):
 - `setImmediate`/`clearImmediate` polyfill
 - `ErrorUtils` mock
 - `__ExpoImportMetaRegistry` mock
@@ -191,10 +191,10 @@ Then migrate ThumbWar's project-specific mocks:
 
 **`jest.config.local.ts`** — remove `setupFiles` and `setupFilesAfterEnv` entries (now managed by `jest.expo.ts`).
 
-### Task 10: Verify ThumbWar tests pass
+### Task 10: Verify AcmeOrgD tests pass
 
 ```bash
-cd /Users/cody/workspace/thumbwar/frontend && bun run test
+cd /Users/cody/workspace/acmeorgd/frontend && bun run test
 ```
 
 Expected: 18 suites, 232 tests passing.
@@ -203,7 +203,7 @@ Expected: 18 suites, 232 tests passing.
 
 Run `bun run dev /Users/cody/workspace/acmeorga/frontend` to apply updated templates.
 
-Same migration pattern as ThumbWar: acmeorga has `jest.setup.js` (old) + `jest.setup.ts` (Lisa create-only) + `jest.setup.pre.js`. Move project-specific mocks from `jest.setup.js`/`jest.setup.ts` into `jest.setup.local.ts`, move project-specific pre-setup from `jest.setup.pre.js` into `jest.setup.pre.local.js`, remove `setupFiles`/`setupFilesAfterEnv` from `jest.config.local.ts`, delete old `jest.setup.js`.
+Same migration pattern as AcmeOrgD: acmeorga has `jest.setup.js` (old) + `jest.setup.ts` (Lisa create-only) + `jest.setup.pre.js`. Move project-specific mocks from `jest.setup.js`/`jest.setup.ts` into `jest.setup.local.ts`, move project-specific pre-setup from `jest.setup.pre.js` into `jest.setup.pre.local.js`, remove `setupFiles`/`setupFilesAfterEnv` from `jest.config.local.ts`, delete old `jest.setup.js`.
 
 ### Task 12: Verify acmeorga/frontend tests pass
 
@@ -279,8 +279,8 @@ Re-run all verification commands from completed tasks.
 # Lisa's own tests
 bun run test
 
-# ThumbWar tests after migration
-cd /Users/cody/workspace/thumbwar/frontend && bun run test
+# AcmeOrgD tests after migration
+cd /Users/cody/workspace/acmeorgd/frontend && bun run test
 
 # acmeorga/frontend tests after migration
 cd /Users/cody/workspace/acmeorga/frontend && bun run test
