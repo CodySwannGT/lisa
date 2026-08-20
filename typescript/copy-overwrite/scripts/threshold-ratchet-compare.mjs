@@ -31,7 +31,7 @@ const KIND_ALLOW_LIST = "allow-list";
  * @typedef {object} Finding
  * @property {string} file Repo-relative path of the gate file
  * @property {string} key Dotted key path within the file
- * @property {"weakened"|"removed"|"exemption-added"|"file-deleted"|"allow-added"|"unparseable"} type
+ * @property {"weakened"|"removed"|"exemption-added"|"file-deleted"|"allow-added"|"unparseable"|"unparseable-baseline"} type
  *   Which ratchet rule the change violated
  * @property {number|string} [base] Baseline value
  * @property {number|string} [current] Current value
@@ -49,6 +49,25 @@ function unparseable(relPath) {
     key: "*",
     type: "unparseable",
     message: `${relPath} is no longer valid JSON — a broken gate file disables the gate.`,
+  };
+}
+
+/**
+ * Build the "baseline could not be parsed" finding.
+ *
+ * Separate from `unparseable` because the two send an operator to different
+ * files. Told only that `vitest.thresholds.json` is not valid JSON, they open
+ * the current file, find it well-formed, and conclude the gate is broken; the
+ * defect is at the base ref.
+ * @param {string} relPath Repo-relative path
+ * @returns {Finding} The unparseable-baseline finding
+ */
+function unparseableBaseline(relPath) {
+  return {
+    file: relPath,
+    key: "*",
+    type: "unparseable-baseline",
+    message: `${relPath} is not valid JSON in the baseline — with no baseline to compare against, the ratchet cannot see a loosening in this file and will not see one in any later change either, until the baseline is repaired. A UTF-8 BOM, a trailing comma or an empty file all land here.`,
   };
 }
 
@@ -245,7 +264,27 @@ export function compareFile(relPath, baselineText, currentText) {
 
   const base = parseJson(baselineText);
   const current = parseJson(currentText);
-  if (base === undefined) return [];
+  // Both sides are reported, and both used to not be. An unparseable baseline
+  // returned no findings at all, which did not merely miss one change: once a
+  // malformed threshold file is on the base branch, every later pull request
+  // compares against a baseline that yields no constraints, so the ratchet
+  // stops having an opinion about that file — permanently, and in silence.
+  //
+  // This is only reached for a file that EXISTS at the baseline and did not
+  // parse. A file absent from the base ref arrives as a null `baselineText`
+  // and returned above: new gate files have nothing to weaken, and the caller
+  // separates absent from present-but-unreadable with `cat-file -e` before
+  // calling.
+  //
+  // The allow-list carve-out is symmetric with the current side and holds for
+  // the same reason: an allow list nobody can read grants no exceptions, so an
+  // unreadable one on either side already fails closed. Reporting it would
+  // block every change touching the file without making anything safer.
+  if (base === undefined) {
+    return family.kind === KIND_ALLOW_LIST
+      ? []
+      : [unparseableBaseline(relPath)];
+  }
   if (current === undefined) {
     return family.kind === KIND_ALLOW_LIST ? [] : [unparseable(relPath)];
   }
