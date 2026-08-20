@@ -533,7 +533,13 @@ elif jq -e '.scripts["test:mutation"]' package.json >/dev/null 2>&1; then
   echo "🧬 Running mutation-testing gate..."
   $RUNNER test:mutation
   if [ $? -ne 0 ]; then
-    echo "❌ Mutation-testing gate failed (mutation score below threshold). Strengthen tests before pushing."
+    # Deliberately does NOT name a cause. This line used to say "mutation score
+    # below threshold" for every nonzero exit, including a dry run killed by its
+    # own timeout — a sentence that was false twice over, since no score was
+    # computed and no test was weak. The gate prints its own outcome; that is
+    # the line to read.
+    echo "❌ Mutation-testing gate failed. Read the 'mutation-gate:' line above for"
+    echo "   which outcome it was — this message does not know."
     exit 1
   fi
 fi

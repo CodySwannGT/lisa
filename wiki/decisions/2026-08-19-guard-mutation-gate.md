@@ -264,3 +264,173 @@ ignore entries in both the root and template lint/format configs.
   suite reaches.
 - Converting a guard's suite from a runtime-URL import to a static one is the
   cheapest way to raise the score, and it raises it for a real reason.
+
+## Amendment — 2026-08-20: Lisa runs the gate it ships
+
+Ticket: CodySwannGT/lisa#2823
+
+`test:mutation` in this repository was `stryker run` — the whole list, every
+time — while every consumer got `node scripts/lisa-mutation.mjs` under a `force`
+pin: diff-only, self-skipping, and pointed at just the files a branch changed.
+So the one repository able to notice a defect in the shipped gate was the one
+repository not running it, and the pre-push hook's own comment described a
+script this repository did not have. `test:mutation` is now
+`node scripts/lisa-mutation.mjs`, a twelve-line entry point into the shipped
+implementation — the same arrangement `scripts/lisa-work-item.mjs` already uses.
+
+### A straight copy would have installed an inert gate
+
+The shipped wrapper's eligibility filter was
+`f.startsWith("src/") || f.startsWith("lib/")` with a `.ts`/`.tsx` extension
+test. **Zero of this repository's mutate targets survive it** — they are `.mjs`
+guard scripts under `all/copy-overwrite/scripts/` and `plugins/src/base/hooks/`.
+Adopting it unchanged would have replaced a gate that at least fails loudly with
+one that selects no file, generates no mutant and exits 0 on every run: the
+defect class this gate exists to find, installed as the gate.
+
+So the filter now reads the project's own Stryker `mutate` declaration and
+matches changed files against those globs, falling back to exactly the old
+hardcoded patterns when no `mutate` key is declared. Two things follow for
+consumers, both corrections rather than changes of intent:
+
+- A project whose sources are not under `src/` or `lib/` gets a gate that works
+  instead of one that is silently empty.
+- `--mutate` REPLACES the configured patterns, so a changed `lib/` file used to
+  be handed to Stryker even though both shipped `stryker.conf.json` templates
+  exclude `lib/`. It no longer is.
+
+### Empty and clean are now different outcomes
+
+A diff-only gate that mutates nothing exits 0, exactly like one that mutated
+plenty and killed everything. The wrapper now separates them by name:
+
+| Outcome | Exit | Means |
+| --- | ---: | --- |
+| `mutation-gate: scoped-run` | Stryker's | Files were selected and mutated |
+| `mutation-gate: nothing-to-mutate` | 0 | The branch changed no mutate target |
+| `mutation-gate: inert-mutate-config` | **1** | The patterns select no tracked file **at all** |
+| `mutation-gate: no-diff-base` | 0 | No merge-base resolved (shallow clone) |
+| `mutation-gate: disabled` | 0 | `mutation.gate.json` says so |
+
+`nothing-to-mutate` prints how many files changed, how many were selected, which
+declaration selected them, and the sentence *"NO mutant was generated and NO
+score was computed"*. `inert-mutate-config` is the one that matters most and it
+costs one `git ls-files`: a legitimate empty diff and a permanently broken gate
+produce the same empty selection, and only the second is a defect — so the
+second fails.
+
+### The diff-scoped variant this document rejected, and what changed
+
+The original text rejected diff scoping on the ground that "with `break` a
+single global number, scoping the run to changed files changes the denominator,
+and a pull request touching only `lisa-work-item.mjs` would score 6.10% against
+a 32% floor and be red on arrival for no defect at all."
+
+That objection is answered in three parts, and one part of it still stands.
+
+**The premise moved.** `lisa-work-item.mjs` is no longer 6.10; the measured
+per-file table below is what to read instead.
+
+**The whole-list score is still gated on every pull request.**
+`tests/integration/mutation-gate-bite` runs the committed configuration over
+every mutate target with no threshold override and requires the intact run to
+clear `thresholds.break`. That is a full run, on current suites, on every PR —
+so nothing the full gate used to catch stopped being caught, including the case
+diff scoping structurally cannot see: **a test file gutted without touching the
+guard it covers is not in the diff**, and the intact run is what notices.
+
+**Where a single target scores below the floor, red-on-arrival is real.** The
+honest framing is that the aggregate floor is what lets a weak guard hide behind
+strong ones; scoped to a diff, the floor applies to what you touched. The fix
+when that bites is to strengthen the tests for the file you changed, or to
+accept the wider diff — never to lower `break`, which the ratchet refuses
+anyway.
+
+### The gate script is itself a mutate target
+
+`typescript/copy-overwrite/scripts/lisa-mutation.mjs` joined the mutate list in
+the same change. It decides what every other guard's mutants are computed from,
+so a defect in it disables everything downstream of it silently — the same
+argument that put the guards in the list. It joined
+`mutation-gate-bite`'s `WITHHELD_GUARDS` at the same time, because a new
+well-covered target raises the weakened run as well as the intact one, which is
+the margin erosion that list was rewritten to prevent.
+
+### The diff-scoped run narrows the dry run too
+
+The dry run is the fixed cost a diff-scoped run cannot otherwise shrink — 159s
+of the whole gate's work, paid whether one guard is mutated or nine. The wrapper
+exports `MUTATION_SCOPE` with the files it selected, and
+`vitest.config.mutation.ts` narrows its derived `include` to the suites reaching
+those guards. A suite that cannot reach a mutated guard cannot kill one of its
+mutants, so dropping it is free; and narrowing can only ever remove kills, so no
+value of `MUTATION_SCOPE` turns a failing gate green. An unrecognised scope falls
+back to the whole list, because running everything is slow and running nothing is
+a gate that reports success having mutated nothing.
+
+### Bite tests
+
+`tests/integration/mutation-gate-diff-bite` drives the real `scripts/lisa-mutation.mjs`
+against a real Stryker in a throwaway project, three times: the mutate target
+changed with tests that kill every mutant (passes), the same change with the
+assertions gutted to a `typeof` check (**fails**), and a doc-only branch (exits 0
+having reported `nothing-to-mutate`, with no Stryker sandbox on disk to show it
+never started). The fixture's `break` is 100 — *every mutant must die* — which is
+the one threshold that cannot be a number invented to sit between two scores.
+
+`tests/unit/scripts/lisa-mutation-gate` covers selection and the outcome
+vocabulary, driving `runGate` against real temporary git repositories with a
+stand-in for the Stryker binary that records its argv and chooses its exit code.
+
+Shown failing against the pre-fix code rather than asserted to be meaningful.
+Restoring the hardcoded `src/`+`lib/` filter fails seven by name, including
+*selects Lisa's own .mjs guard scripts*, *selects a .mjs guard outside src/,
+which the old filter could not*, and *fails when the mutate config selects
+nothing in the repository*. Restoring the old one-line "Nothing to mutate."
+message fails the empty-diff control by name: *reports nothing-to-mutate
+distinguishably, and never starts Stryker*.
+
+### Measured
+
+Measured 2026-08-20 on an 18-core machine under heavy contention (loadavg 76–160
+throughout, dozens of concurrent Stryker processes from other agents). Every
+number below is from that machine, so treat them as an upper bound on wall clock
+and read the RATIO, not the seconds.
+
+**The whole-list run — what every push used to pay.** `bun run test:mutation:full`,
+the committed configuration, 5,515 mutants over nine targets:
+
+```
+Final mutation score of 53.62 is greater than or equal to break threshold 32
+Done in 38 minutes and 38 seconds.
+```
+
+122 of the kills are timeouts, which the contention inflates: a timeout counts as
+a kill, so a busier machine scores slightly higher. The 32.14 recorded above was
+measured before `lisa-work-item.mjs`'s suites improved.
+
+Per-file, which is the part that matters for a diff-scoped gate:
+
+| Guard | Score |
+| --- | ---: |
+| `lisa-test-node.mjs` | 66.67 |
+| `lisa-reconcile-policy.mjs` | 62.43 |
+| `lisa-floor-collisions.mjs` | 59.85 |
+| `lisa-gates.mjs` | 59.40 |
+| `lisa-work-item.mjs` | 55.48 |
+| `threshold-ratchet-compare.mjs` | 47.24 |
+| `threshold-ratchet-families.mjs` | 38.94 |
+| `lisa-run-gates.mjs` | 37.83 |
+| `lisa-destructive-guard.mjs` | **19.61** |
+
+**Eight of the nine clear the floor on their own; `lisa-destructive-guard.mjs`
+does not.** So the red-on-arrival case the original text warned about is real and
+has exactly one address today: a branch touching only that guard scores 19.61
+against 32 and the gate refuses it. That is not a reason to lower `break` — 19.61
+means 120 of its 153 mutants have no test that can be shown to bite, and the
+aggregate is what was hiding it. It is recorded here so the next person to meet
+it knows it is a finding rather than a misconfiguration.
+
+**The diff-scoped run — what this branch actually pays.**
+
+AFTER_PLACEHOLDER
