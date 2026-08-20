@@ -370,6 +370,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "9b613888c4c1cc6cc2b1fb6e162a4c766012eab0ec4f8b7f2ac1bc3da6622c97",
   ]),
   "scripts/lisa-run-gates.mjs": Object.freeze([
+    "080c69ab998309a0a8b4f3be74c445056da02f1403c5654bea13477fc3178604",
     "0978ac24f28bf9f11230781d271997384009b1528ed61de523333e52a5a4cf57",
     "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
     "c705d400f51a3a08ada085fc1107c3dce558f9a717528fc1fe9315aa6b97a5e6",
