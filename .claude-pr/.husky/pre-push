@@ -216,9 +216,24 @@ else
   echo "ℹ️  Skipping dead code detection (knip not configured)"
 fi
 
-# Run unit tests with coverage
-echo "🧪 Running unit tests with coverage..."
-$RUNNER test:cov
+# Run unit tests with coverage.
+#
+# WHICH coverage script, and why it decides the cost of every push (#2827).
+# `test:cov` is force-pinned to `vitest run --coverage` with no integration
+# exclusion, so it collects the whole `tests/integration/**` tree — and the
+# integration step below then collects the same tree a second time.
+#
+# `test:cov:unit` is the same run scoped to the unit tree, so the two steps
+# stop overlapping. A project whose package.json predates it falls back to
+# `test:cov` and behaves exactly as it did before — slower, but never with the
+# integration tree silently dropped.
+COVERAGE_SCRIPT="test:cov"
+if node -e 'const s=require("./package.json").scripts||{};process.exit(s["test:cov:unit"]?0:1)' >/dev/null 2>&1; then
+  COVERAGE_SCRIPT="test:cov:unit"
+fi
+
+echo "🧪 Running unit tests with coverage ($COVERAGE_SCRIPT)..."
+$RUNNER "$COVERAGE_SCRIPT"
 if [ $? -ne 0 ]; then
   echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
   exit 1
