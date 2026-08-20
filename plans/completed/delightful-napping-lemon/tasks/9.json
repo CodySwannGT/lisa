@@ -1,8 +1,8 @@
 {
   "id": "9",
-  "subject": "Qualis downstream — clean up Gemfile and install",
-  "description": "**Type:** Task\\n\\n**Description:** In `~/workspace/qualis/app`:\\n1. Run `bun run dev -- ~/workspace/qualis/app --yes` from Lisa repo to apply templates\\n2. Remove duplicate gems from Qualis Gemfile (brakeman, rubocop-rails, rubocop-performance already in Gemfile.lisa)\\n3. Remove `rubocop-rails-omakase` gem (replaced by Lisa's .rubocop.yml)\\n4. Remove `overcommit` gem\\n5. Run `cd ~/workspace/qualis/app && bundle install`\\n\\n**Acceptance Criteria:**\\n- [ ] Lisa templates applied to Qualis\\n- [ ] Duplicate gems removed from Gemfile\\n- [ ] overcommit gem removed\\n- [ ] `bundle install` succeeds\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"cd ~/workspace/qualis/app && bundle check\\\",\\\"expected\\\":\\\"The Gemfile's dependencies are satisfied\\\"}}\\n```",
-  "activeForm": "Cleaning up Qualis Gemfile and installing",
+  "subject": "AcmeOrgC downstream — clean up Gemfile and install",
+  "description": "**Type:** Task\\n\\n**Description:** In `~/workspace/acmeorgc/app`:\\n1. Run `bun run dev -- ~/workspace/acmeorgc/app --yes` from Lisa repo to apply templates\\n2. Remove duplicate gems from AcmeOrgC Gemfile (brakeman, rubocop-rails, rubocop-performance already in Gemfile.lisa)\\n3. Remove `rubocop-rails-omakase` gem (replaced by Lisa's .rubocop.yml)\\n4. Remove `overcommit` gem\\n5. Run `cd ~/workspace/acmeorgc/app && bundle install`\\n\\n**Acceptance Criteria:**\\n- [ ] Lisa templates applied to AcmeOrgC\\n- [ ] Duplicate gems removed from Gemfile\\n- [ ] overcommit gem removed\\n- [ ] `bundle install` succeeds\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"cd ~/workspace/acmeorgc/app && bundle check\\\",\\\"expected\\\":\\\"The Gemfile's dependencies are satisfied\\\"}}\\n```",
+  "activeForm": "Cleaning up AcmeOrgC Gemfile and installing",
   "owner": "implementer-1",
   "status": "completed",
   "blocks": [
@@ -18,7 +18,7 @@
     "skills": [],
     "verification": {
       "type": "manual-check",
-      "command": "cd ~/workspace/qualis/app && bundle check",
+      "command": "cd ~/workspace/acmeorgc/app && bundle check",
       "expected": "The Gemfile's dependencies are satisfied"
     },
     "owner": "implementer-1",

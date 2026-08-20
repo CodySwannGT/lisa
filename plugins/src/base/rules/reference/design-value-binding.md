@@ -69,6 +69,10 @@ A frame-level read counts the chrome behind a modal and over-reports. One measur
 
 ESLint runs on source text with no network and no design-tool session, so `ui-standards/no-unbound-design-value` cannot read the map at all. It takes the typed axes as its `typedAxes` option, which mirrors `design.tokens.axes`, and reports nothing when that list is empty.
 
+**How the option is armed (#2807).** The managed `eslint.config.ts` reads `design.tokens.axes` out of `.lisa.config.json` at ESLint **config** load — alongside `eslint.thresholds.json` and `eslint.ignore.config.json`, which it has always read there — and hands the list to the config factory, which emits `["error", { typedAxes }]` for a non-empty list and `"off"` for an empty one. **Declaring an axis is therefore sufficient to arm the rule; nothing has to be written into `eslint.config.local.ts`.** Before this the rule shipped severity `"off"` with no path from configuration to activation at all, so a project could declare every axis, install the policy, pass every test, and enforce nothing — a control installed, adopted, green and inert.
+
+An axis name outside the six is passed straight through to ESLint's own schema validation, which rejects it by name. Filtering it out instead would turn a typo into silent non-enforcement, which is the same failure one layer down.
+
 The intake probe's regime is **observed**; the lint rule's is **declared**, and the declared list can go stale relative to the map. It is still the correct division — an over-firing lint rule is a disabled lint rule, and a rule that silently skipped an axis it could not verify would be worse than one that skips an axis nobody declared. Intake is the arm that sees the truth; lint is the arm that catches the same defect at authoring time on the axes the project has already committed to.
 
 ## A design source is optional

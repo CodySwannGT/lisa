@@ -63,7 +63,7 @@
     },
     "mutation": {
       "gate": {
-        "enabled": false,
+        "enabled": true,
         "since": "main"
       },
       "strykerThresholds": {
