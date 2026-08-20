@@ -107,14 +107,17 @@
     "test-correctness": {
       "push": "required",
       "pull-request": "required",
-      "run": "test:cov"
+      "run": "test:cov:unit"
     },
     "test-integration": {
-      "push": "required",
+      "push": {
+        "level": "required",
+        "run": "test:integration:push"
+      },
       "pull-request": "required"
     },
     "coverage-adequacy": {
-      "run": "test:cov",
+      "run": "test:cov:unit",
       "push": "required"
     },
     "structural-rules": {

@@ -298,3 +298,55 @@ describe("gates backing a required branch-protection context", () => {
     );
   });
 });
+
+describe("the push moment does not run a nested mutation run inside a suite", () => {
+  /**
+   * `tests/integration/mutation-gate-bite.test.ts` spawns the real Stryker
+   * gate — twice — and Stryker in turn spawns one test-runner process per
+   * core. Inside a parallel run of the whole 800-file suite that child starves
+   * waiting for CPU its own siblings hold, which is the mechanism behind six
+   * sightings of "coverage-adequacy failed, and passed on retry" against
+   * diffs that could not move a coverage number.
+   *
+   * CI does not hit it because CI runs the unit pass and the integration pass
+   * as separate jobs. Splitting the local passes the same way is the fix, so
+   * both push provers below must leave that file out of the parallel run.
+   */
+  const PUSH = "push";
+
+  /** The one pass that proves both correctness and coverage at push. */
+  const SPLIT_COVERAGE_TASK = "test:cov:unit";
+
+  it("keeps the coverage prover out of the integration directory", () => {
+    const covering = gatesAt(parsedConfig(), PUSH).filter(entry =>
+      ["coverage-adequacy", "test-correctness"].includes(entry.id)
+    );
+    expect(covering.map(entry => entry.task)).toEqual([
+      SPLIT_COVERAGE_TASK,
+      SPLIT_COVERAGE_TASK,
+    ]);
+    expect(script(SPLIT_COVERAGE_TASK)).toBe(
+      "vitest run --coverage --exclude='**/integration/**'"
+    );
+  });
+
+  it("keeps the Stryker-spawning bite test out of the push integration pass", () => {
+    const gate = gatesAt(parsedConfig(), PUSH).find(
+      entry => entry.id === "test-integration"
+    );
+    expect(gate?.task).toBe("test:integration:push");
+    expect(script("test:integration:push")).toBe(
+      "vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts'"
+    );
+  });
+
+  it("does not drop the bite test — it moves to the moment that owns its cost", () => {
+    // The mutation gate it is the bite control for is a pull-request gate, and
+    // the pull-request integration pass still collects the whole directory.
+    const onPr = gatesAt(parsedConfig(), PULL_REQUEST).find(
+      entry => entry.id === "test-integration"
+    );
+    expect(onPr?.task).toBe("test:integration");
+    expect(script("test:integration")).toBe("vitest run tests/integration");
+  });
+});

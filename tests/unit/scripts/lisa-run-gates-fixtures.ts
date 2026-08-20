@@ -36,6 +36,8 @@ export type GateOutcome = {
   diagnosis?: string | null;
   /** Concrete lines backing the diagnosis. */
   evidence?: string[];
+  /** The gate whose property the failure belongs to, from `ATTRIBUTION`. */
+  proves?: string | null;
   /** The gate whose run proved this one, when they share a command. */
   provedBy: string | null;
 };
@@ -50,6 +52,8 @@ export type GateRun = {
   results: GateOutcome[];
   passed: GateOutcome[];
   failed: GateOutcome[];
+  /** Ran and proved nothing — a shared prover failed on another property. */
+  unprovable: GateOutcome[];
   skipped: GateOutcome[];
   notRun: GateOutcome[];
 };

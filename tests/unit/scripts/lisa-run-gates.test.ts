@@ -56,21 +56,25 @@ describe("runGates: required failures block", () => {
     expect(result.failed.map(entry => entry.id)).toEqual([STYLE]);
   });
 
-  it("does not run, or claim, the gates queued behind the failure", () => {
+  it("keeps running the cheap gates queued behind the failure", () => {
     const { calls, exec } = stubExec({ [LINT_COMMAND]: 1 });
-    const { lines, out } = sink();
     const result: GateRun = runGates({
       gates,
       moment: COMMIT,
       runner: RUNNER,
       exec,
-      out,
+      out: () => {},
     });
 
-    expect(calls).toEqual([LINT_COMMAND]);
-    expect(result.notRun.map(entry => entry.id)).toEqual([LEAKAGE]);
-    expect(result.passed).toEqual([]);
-    expect(lines.some(line => line.includes("NOT-RUN"))).toBe(true);
+    // Stopping dead here is what took the work-item check and the type check
+    // down with an unrelated failure. Leak detection costs a second and
+    // answers a question the lint failure says nothing about, so it runs and
+    // the operator learns everything wrong in one attempt.
+    expect(calls).toEqual([LINT_COMMAND, LEAKAGE_COMMAND]);
+    expect(result.notRun).toEqual([]);
+    expect(result.passed.map(entry => entry.id)).toEqual([LEAKAGE]);
+    expect(result.blocked).toBe(true);
+    expect(result.blockedBy).toBe(STYLE);
   });
 
   it("passes when every required gate exits zero", () => {

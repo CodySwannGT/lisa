@@ -18,16 +18,19 @@
  *
  * - An `optional` gate that FAILS prints as FAILED. It does not block, and it
  *   is not swallowed. "Optional" governs the response, never the verdict.
- * - When a required gate fails we stop, and every gate after it prints as
- *   NOT RUN with its verdict called UNKNOWN. Fail-fast is what the hardcoded
- *   hooks always did; what would be new — and wrong — is letting an unrun gate
- *   look proved, or letting it look like a gate that had nothing to run.
+ * - When a required gate fails, the cheap gates behind it still run and the
+ *   COSTLY ones print as NOT RUN with their verdict called UNKNOWN. What would
+ *   be new — and wrong — is letting an unrun gate look proved, or letting it
+ *   look like a gate that had nothing to run.
  * - A gate that resolves to no command is UNPROVABLE, not passing. Nothing
  *   executed, so nothing was proved, whatever its level says.
- * - A FAILED gate says WHICH failure it was. `exit 1` is the same sentence for
- *   a coverage regression and for a subprocess starved past its timeout, and
- *   when two opposite facts share a sentence the cheaper response — re-run —
- *   is the rational one for both, so the real regression is never looked at.
+ * - A FAILED gate says WHICH failure it was, and WHOSE it was. `exit 1` is the
+ *   same sentence for a coverage regression and for a subprocess starved past
+ *   its timeout, and when two opposite facts share a sentence the cheaper
+ *   response — re-run — is the rational one for both, so the real regression is
+ *   never looked at. A gate that merely SHARES the failing prover reports
+ *   UNPROVABLE rather than FAILED: it blocks, and it stops claiming a
+ *   measurement that never happened.
  *
  * ## Exit codes are the hook's control flow
  *
@@ -197,6 +200,7 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {GateOutcome[]} results Every gate, in execution order.
  * @property {GateOutcome[]} passed Gates that ran and exited zero.
  * @property {GateOutcome[]} failed Gates that failed or could not be proved.
+ * @property {GateOutcome[]} unprovable Gates that ran and proved nothing.
  * @property {GateOutcome[]} skipped Gates with nothing to run locally.
  * @property {GateOutcome[]} notRun Gates queued behind a blocking failure.
  */
@@ -305,6 +309,45 @@ function execute(gate, exec) {
     code: typeof code === "number" ? code : null,
     diagnosis: diagnosis.kind,
     evidence: diagnosis.evidence,
+    proves: diagnosis.proves,
+  };
+}
+
+/**
+ * Re-attribute one command's failure to the property it actually belongs to.
+ *
+ * Saying WHICH failure it was leaves half the defect standing. Two gates
+ * legitimately share one prover, so when that prover exits nonzero the runner
+ * still reports the failure against BOTH — and one of the two properties was
+ * never measured at all. A starved suite therefore still printed
+ * `coverage-adequacy FAILED`, now with a sentence attached saying it was not a
+ * coverage problem: better, and still a gate claiming a verdict it does not
+ * have.
+ *
+ * So a gate that shares a failing prover with the property the transcript
+ * actually indicts reports UNPROVABLE instead. It still blocks — an unmeasured
+ * required property is not a pass — but it stops asserting a measurement that
+ * never happened, which is what made a real coverage regression indistinguishable
+ * from a busy machine.
+ *
+ * `siblings` is the guard that keeps this honest: an attribution may only ever
+ * move a verdict onto a gate that is itself declared on this same command at
+ * this same moment. A phrase in some unrelated tool's output cannot invent one.
+ * @param {GateOutcome} gate The gate the verdict is being reported for.
+ * @param {object} outcome The outcome the command produced.
+ * @param {Set<string>} siblings Gate ids sharing this command at this moment.
+ * @returns {object} The outcome as it should read for THIS gate.
+ */
+function attributed(gate, outcome, siblings) {
+  if (outcome.state !== STATE.FAILED) return outcome;
+  const owner = outcome.proves;
+  if (!owner || owner === gate.id || !siblings.has(owner)) return outcome;
+  return {
+    ...outcome,
+    state: STATE.UNPROVABLE,
+    detail:
+      `${outcome.detail}. That is a ${owner} failure, so ${gate.id} was ` +
+      `never measured by this run`,
   };
 }
 
@@ -337,7 +380,8 @@ function classifyStatic(gate) {
  */
 function summarise(result) {
   const lines = [];
-  const byLevel = level => result.failed.filter(entry => entry.level === level);
+  const truly = result.failed.filter(entry => entry.state === STATE.FAILED);
+  const byLevel = level => truly.filter(entry => entry.level === level);
   const failedOptional = byLevel("optional");
 
   for (const entry of byLevel("required")) {
@@ -347,6 +391,15 @@ function summarise(result) {
     lines.push(
       `⚠️  optional gate FAILED: ${entry.id} — ${entry.detail} ` +
         `(reported, not blocking)`
+    );
+  }
+  // Its own headline, and deliberately not the word "failed". A property
+  // nobody measured has not been found wanting, and saying it failed sends the
+  // reader hunting a regression that may not exist — which is exactly what six
+  // sightings of a starved suite each cost.
+  for (const entry of result.unprovable) {
+    lines.push(
+      `❓ ${entry.level} gate NOT PROVED: ${entry.id} — ${entry.detail}`
     );
   }
   // Two different sentences on purpose. Rendering these as one "skipped"
@@ -404,16 +457,21 @@ function summarise(result) {
  * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
-function verdictFor(gate, { proved, blockedBy, exec }) {
+function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
   const own = classifyStatic(gate);
   if (own) return { outcome: own, shared: undefined, ran: false };
 
   const shared = gate.command ? proved.get(gate.command) : undefined;
   if (shared) {
+    // The RAW outcome is what is shared, and each gate reads it for itself.
+    // Sharing the already-attributed view would hand the second gate the first
+    // gate's reading of whose failure it was, which is how one exit code came
+    // to be reported as two failures in the first place.
+    const view = attributed(gate, shared.outcome, siblings);
     return {
       outcome: {
-        ...shared.outcome,
-        detail: `${shared.outcome.detail} (proved by the ${shared.id} run)`,
+        ...view,
+        detail: `${view.detail} (proved by the ${shared.id} run)`,
       },
       shared,
       ran: false,
@@ -425,18 +483,33 @@ function verdictFor(gate, { proved, blockedBy, exec }) {
   // run here, and that is the answer. This one has NO verdict: it might pass,
   // it might fail, and this run does not say. Naming the blocker is what lets
   // a reader tell which of the two they are looking at without guessing.
-  if (blockedBy) {
+  //
+  // Only COSTLY gates stop, though. Short-circuiting everything is what let an
+  // intermittent test failure take the work-item check and the type check with
+  // it — two checks that finish in under a minute and answer questions a test
+  // suite says nothing about. Those now run, so one attempt reports everything
+  // that is wrong. A second full suite still does not: paying minutes for
+  // information about a push that cannot land is a bad trade.
+  if (blockedBy && gate.costly) {
     return {
       outcome: {
         state: STATE.NOT_RUN,
-        detail: `verdict UNKNOWN — never ran; ${blockedBy} failed first`,
+        detail:
+          `verdict UNKNOWN — never ran; ${blockedBy} failed first and this ` +
+          `gate is too expensive to run for information alone`,
         code: null,
       },
       shared: undefined,
       ran: false,
     };
   }
-  return { outcome: execute(gate, exec), shared: undefined, ran: true };
+  const raw = execute(gate, exec);
+  return {
+    outcome: attributed(gate, raw, siblings),
+    raw,
+    shared: undefined,
+    ran: true,
+  };
 }
 
 /**
@@ -467,6 +540,20 @@ export function runGates({
   // line is indistinguishable from a gate that had nothing to run.
   let blockedBy = null;
 
+  // Which gates name each command, built before anything runs. Attribution
+  // needs the answer on the FIRST execution: gates run alphabetically, so the
+  // gate that executes a shared prover is usually not the gate whose property
+  // the failure belongs to — `coverage-adequacy` runs `test:cov` and
+  // `test-correctness` is the one the timeout indicts.
+  const sharers = new Map();
+  for (const gate of resolved) {
+    if (!gate.command) continue;
+    sharers.set(
+      gate.command,
+      (sharers.get(gate.command) ?? new Set()).add(gate.id)
+    );
+  }
+
   // One command proves every gate that names it, so it runs once.
   //
   // Two gates legitimately share a prover: a coverage-instrumented suite proves
@@ -482,10 +569,11 @@ export function runGates({
   // gate can run for minutes, and an operator watching a hook needs to know
   // which gate is being proved right now, not only what the tally was.
   for (const gate of resolved) {
-    const { outcome, shared, ran } = verdictFor(gate, {
+    const { outcome, shared, ran, raw } = verdictFor(gate, {
       proved,
       blockedBy,
       exec,
+      siblings: sharers.get(gate.command) ?? new Set(),
     });
 
     // Only what this iteration actually executed is shareable, and `ran` says
@@ -495,7 +583,7 @@ export function runGates({
     // next gate to run it again — re-running a whole suite an operator has
     // just interrupted.
     if (ran && gate.command) {
-      proved.set(gate.command, { id: gate.id, outcome });
+      proved.set(gate.command, { id: gate.id, outcome: raw ?? outcome });
     }
 
     results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
@@ -520,6 +608,7 @@ export function runGates({
     results,
     passed: bucket(STATE.PASSED),
     failed: [...bucket(STATE.FAILED), ...bucket(STATE.UNPROVABLE)],
+    unprovable: bucket(STATE.UNPROVABLE),
     skipped: bucket(STATE.SKIPPED),
     notRun: bucket(STATE.NOT_RUN),
   };

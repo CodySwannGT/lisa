@@ -134,6 +134,26 @@ export const GATE_FIELDS = new Set(["run", "needs", "task"]);
  * whoever remembers to type it, which is how the defect got here.
  */
 
+/**
+ * Registry flag: this gate's task costs minutes, not seconds.
+ *
+ * It exists so that a run which is already blocked can keep going without
+ * doubling the cost of a failing push. When a required gate failed, the runner
+ * used to stop dead and print every later gate as not-run — which is how one
+ * intermittent test failure took the work-item check and the type check down
+ * with it, both of which finish in well under a minute and answer questions
+ * that have nothing to do with a test suite. Continuing into those is nearly
+ * free and tells the operator everything that is wrong in one attempt instead
+ * of one thing per attempt. Continuing into a second full suite is not free,
+ * and buys information about a push that cannot land regardless.
+ *
+ * Registry-only, for the same reason `mayRewrite` is. The safe answer must not
+ * depend on whoever remembers to type it, and Lisa knows which of its own
+ * canonical gates run a whole suite. A project that points `test-correctness`
+ * at something fast loses nothing: the flag only ever suppresses a gate on a
+ * run that is already blocked.
+ */
+
 /** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
 
@@ -205,6 +225,7 @@ export const REGISTRY = Object.freeze({
     task: "test:unit",
     moments: PUSH_ONWARD,
     work: "tests run",
+    costly: true,
   },
   "test-node-suites": {
     label: "🧪 Run .mjs Suites",
@@ -219,6 +240,7 @@ export const REGISTRY = Object.freeze({
     task: "test:integration",
     moments: PUSH_ONWARD,
     work: "tests run",
+    costly: true,
   },
   "test-meaningfulness": {
     label: "🧬 Mutation Testing Gate",
@@ -226,6 +248,7 @@ export const REGISTRY = Object.freeze({
     task: "test:mutation",
     moments: PR_ONWARD,
     work: "mutants generated",
+    costly: true,
   },
   "coverage-adequacy": {
     label: "✅ Verification Coverage",
@@ -233,6 +256,7 @@ export const REGISTRY = Object.freeze({
     task: "test:coverage",
     moments: PUSH_ONWARD,
     work: "files measured",
+    costly: true,
   },
   "e2e-browser": {
     label: "🎭 Playwright E2E Tests",
@@ -240,6 +264,7 @@ export const REGISTRY = Object.freeze({
     task: "test:e2e",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "specs run",
+    costly: true,
   },
   "e2e-native": {
     label: "📱 Maestro Native E2E",
@@ -247,6 +272,7 @@ export const REGISTRY = Object.freeze({
     task: "test:e2e:native",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "flows run",
+    costly: true,
   },
   // ---------------------------------------------------------------------
   // Environment facade. Lisa defines and enforces the interface; each project
@@ -297,6 +323,7 @@ export const REGISTRY = Object.freeze({
     // pinned to the per-change gate re-walks the same ground forever.
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "cases generated",
+    costly: true,
   },
   "structural-rules": {
     label: "🔎 AST Grep Scan",
@@ -381,6 +408,7 @@ export const REGISTRY = Object.freeze({
     task: "perf:load",
     moments: DEPLOY_ONLY,
     work: "requests issued",
+    costly: true,
   },
   accessibility: {
     label: "♿ Accessibility",
@@ -1400,6 +1428,7 @@ export function resolveMoment({
           work: null,
           evidence: null,
           mayRewrite: false,
+          costly: false,
         });
       }
       continue;
@@ -1432,6 +1461,7 @@ export function resolveMoment({
       work: definition?.work ?? null,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
       mayRewrite: definition?.mayRewrite === true,
+      costly: definition?.costly === true,
     });
   }
   // Rewriters first, then alphabetical within each group. See `mayRewrite`:

@@ -157,34 +157,39 @@ describe("bite: a timeout and a coverage regression get different verdicts", () 
 
 describe("bite: unknown and not-applicable are different states", () => {
   const gates = {
-    "code-style": { commit: { level: "required", run: "lint" } },
-    "code-review": { commit: { await: "CodeRabbit", level: "required" } },
-    typecheck: { commit: { level: "required", run: "typecheck" } },
+    "code-style-slow": { push: { level: "required", run: "lint:slow" } },
+    "code-review": { push: { await: "CodeRabbit", level: "required" } },
+    // Costly: a whole second suite. It stops, and says nothing is known.
+    "test-integration": { push: "required" },
+    // Cheap: seconds, and unrelated to whatever the lint failure was about.
+    "type-correctness": { push: "required" },
   };
 
   /**
-   * Run the commit moment with `lint` failing, collecting every printed line.
+   * Run the push moment with slow lint failing, collecting every printed line.
    * @returns The run result and the operator-facing transcript.
    */
   function blockedRun(): { transcript: string; result: GateRun } {
     const { lines, out } = sink();
     const result: GateRun = runGates({
       gates,
-      moment: "commit",
+      moment: "push",
       runner: "bun run",
-      exec: (command: string) => (command === "bun run lint" ? 1 : 0),
+      exec: (command: string) => (command === "bun run lint:slow" ? 1 : 0),
       out,
     });
     return { transcript: lines.join("\n"), result };
   }
 
-  it("says a gate queued behind the blocker has NO verdict, and names the blocker", () => {
+  it("says a costly gate queued behind the blocker has NO verdict, and names it", () => {
     const { transcript, result } = blockedRun();
-    const queued = result.results.find(entry => entry.id === "typecheck");
+    const queued = result.results.find(
+      entry => entry.id === "test-integration"
+    );
 
     expect(queued?.state).toBe(STATE.NOT_RUN);
     expect(queued?.detail).toContain("verdict UNKNOWN");
-    expect(queued?.detail).toContain("code-style");
+    expect(queued?.detail).toContain("code-style-slow");
     expect(transcript).toContain("UNKNOWN");
   });
 
@@ -196,5 +201,85 @@ describe("bite: unknown and not-applicable are different states", () => {
     // buckets used one word, an early failure would leave later gates silently
     // unknown with nothing saying so.
     expect(transcript).toMatch(/UNKNOWN[\s\S]*NOT APPLICABLE/);
+  });
+
+  it("still runs the cheap gates behind the blocker rather than unrunning them", () => {
+    // Five gates went unrun behind an intermittent coverage failure, two of
+    // them the work-item check and the type check. Both finish in seconds and
+    // answer questions a test suite says nothing about, so throwing their
+    // answers away bought a minute and cost the operator a whole push cycle.
+    const { result } = blockedRun();
+
+    expect(result.passed.map(entry => entry.id)).toContain("type-correctness");
+    expect(result.blocked).toBe(true);
+  });
+});
+
+describe("bite: two gates on one prover do not both claim the failure", () => {
+  /** Exactly the shared-prover shape this issue was filed against. */
+  const gates = {
+    "coverage-adequacy": { push: { level: "required", run: "test:cov" } },
+    "test-correctness": { push: { level: "required", run: "test:cov" } },
+  };
+
+  /**
+   * Run both shared-prover gates against one recorded transcript.
+   * @param output What the prover printed before exiting 1.
+   * @returns Each gate's state, keyed by gate id.
+   */
+  function statesFor(output: string): Record<string, string | undefined> {
+    const result: GateRun = runGates({
+      gates,
+      moment: "push",
+      runner: "bun run",
+      exec: () => ({ code: 1, output }),
+      out: () => {},
+    });
+    return Object.fromEntries(
+      result.results.map(entry => [entry.id, entry.state])
+    );
+  }
+
+  it("inverts which gate is FAILED between a starved run and a real regression", () => {
+    const starved = statesFor(TIMEOUT_OUTPUT);
+    const regressed = statesFor(THRESHOLD_OUTPUT);
+
+    // Same command, same exit code, same two gates — and the gate that is
+    // FAILED in one run is the gate that was never measured in the other.
+    expect(starved["test-correctness"]).toBe(STATE.FAILED);
+    expect(starved["coverage-adequacy"]).toBe(STATE.UNPROVABLE);
+    expect(regressed["coverage-adequacy"]).toBe(STATE.FAILED);
+    expect(regressed["test-correctness"]).toBe(STATE.UNPROVABLE);
+  });
+
+  it("blocks either way, because unmeasured is not proved", () => {
+    for (const output of [TIMEOUT_OUTPUT, THRESHOLD_OUTPUT]) {
+      const result: GateRun = runGates({
+        gates,
+        moment: "push",
+        runner: "bun run",
+        exec: () => ({ code: 1, output }),
+        out: () => {},
+      });
+      expect(result.blocked).toBe(true);
+    }
+  });
+
+  it("never moves a verdict onto a gate that is not part of the run", () => {
+    // With `test-correctness` undeclared, the timeout has nowhere to move the
+    // blame to. A diagnosis may explain a failure; it may not invent an
+    // attribution to a property nobody asked about.
+    const result: GateRun = runGates({
+      gates: {
+        "coverage-adequacy": { push: { level: "required", run: "test:cov" } },
+      },
+      moment: "push",
+      runner: "bun run",
+      exec: () => ({ code: 1, output: TIMEOUT_OUTPUT }),
+      out: () => {},
+    });
+
+    expect(result.results[0]?.state).toBe(STATE.FAILED);
+    expect(result.results[0]?.detail).toContain("60000ms");
   });
 });
