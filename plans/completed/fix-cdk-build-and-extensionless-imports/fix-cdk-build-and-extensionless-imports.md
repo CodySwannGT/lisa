@@ -169,25 +169,25 @@ Projects with non-standard directories override via `tsconfig.local.json` (creat
    bun run test -- --listTests
    ```
 
-5. **Run Lisa against Qualis infrastructure (CDK project):**
+5. **Run Lisa against AcmeOrgC infrastructure (CDK project):**
    ```bash
-   cd /Users/cody/workspace/qualis/infrastructure && npx @codyswann/lisa@local .
+   cd /Users/cody/workspace/acmeorgc/infrastructure && npx @codyswann/lisa@local .
    ```
 
-6. **Qualis build passes:**
+6. **AcmeOrgC build passes:**
    ```bash
-   cd /Users/cody/workspace/qualis/infrastructure && npm run build
+   cd /Users/cody/workspace/acmeorgc/infrastructure && npm run build
    ```
 
-7. **Qualis npm install prepare step works:**
+7. **AcmeOrgC npm install prepare step works:**
    ```bash
-   cd /Users/cody/workspace/qualis/infrastructure && npm install
+   cd /Users/cody/workspace/acmeorgc/infrastructure && npm install
    ```
    Expected: prepare runs `husky install || true`
 
-8. **Qualis ESLint works:**
+8. **AcmeOrgC ESLint works:**
    ```bash
-   cd /Users/cody/workspace/qualis/infrastructure && npm run lint
+   cd /Users/cody/workspace/acmeorgc/infrastructure && npm run lint
    ```
 
 ## Task List
@@ -215,9 +215,9 @@ Create these tasks using `TaskCreate`. Tasks 1-3 can run in parallel (independen
 **Skills:** `/coding-philosophy`
 **Verification:** `jq '.force.scripts.prepare' cdk/package-lisa/package.lisa.json` outputs `"husky install || true"` AND `jq '.include' cdk/copy-overwrite/tsconfig.cdk.json` outputs the array
 
-### Task 4: Integration test against Qualis infrastructure
+### Task 4: Integration test against AcmeOrgC infrastructure
 **Type:** Task (blocked by Tasks 1-3)
-**Description:** Run Lisa locally against `/Users/cody/workspace/qualis/infrastructure`. Verify `npm run build` passes, `npm install` prepare step runs `husky install || true`, and `npm run lint` works.
+**Description:** Run Lisa locally against `/Users/cody/workspace/acmeorgc/infrastructure`. Verify `npm run build` passes, `npm install` prepare step runs `husky install || true`, and `npm run lint` works.
 **Skills:** `/coding-philosophy`, `/lisa:integration-test`
 **Verification:** All three commands exit 0
 
