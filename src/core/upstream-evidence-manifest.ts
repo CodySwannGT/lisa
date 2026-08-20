@@ -8773,6 +8773,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-driver-retry.test.ts": true,
     "tests/integration/maestro-native-flake-classification.test.ts": true,
     "tests/integration/maestro-native-flow-runner.test.ts": true,
+    "tests/integration/maestro-native-per-flow-retry.test.ts": true,
     "tests/integration/maestro-native-suite-scope.test.ts": true,
     "tests/integration/maestro-native-workflow.test.ts": true,
     "tests/integration/maestro-native-zero-flow.test.ts": true,
