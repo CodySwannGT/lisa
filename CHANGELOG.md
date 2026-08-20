@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.7](https://github.com/CodySwannGT/lisa/compare/v3.47.6...v3.47.7) (2026-08-20)
+
+
+### Bug Fixes
+
+* **automations:** quarantine a row the ledger cannot read, and say so ([3671919](https://github.com/CodySwannGT/lisa/commit/367191957aa68155fd6326fb326ad8570f009419)), closes [#2682](https://github.com/CodySwannGT/lisa/issues/2682) [CodySwannGT/lisa#2578](https://github.com/CodySwannGT/lisa/issues/2578)
+
 ### [3.47.6](https://github.com/CodySwannGT/lisa/compare/v3.47.5...v3.47.6) (2026-08-20)
 
 

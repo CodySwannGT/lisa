@@ -444,7 +444,17 @@ on:
         default: ''
         type: string
       flow_runner:
-        description: 'Optional shell script path that runs Maestro flows and writes the supplied JUnit report/debug outputs'
+        description: >-
+          Optional shell script path that runs Maestro flows and writes the
+          supplied JUnit report/debug outputs.
+
+          It is invoked as `<runner> <report-path> <debug-dir> <maestro args…>
+          <target>`. The TARGET is the flows directory for a suite run and a
+          single flow FILE when the iOS arm re-runs one failed flow in
+          isolation, so a runner must pass the target through to Maestro rather
+          than assuming it is a directory. The REPORT PATH likewise varies —
+          an isolated re-run is written to its own report so the suite's
+          original one stays intact as the record of what happened first.
         required: false
         default: ''
         type: string
@@ -505,6 +515,61 @@ on:
         description: 'MAESTRO_DRIVER_STARTUP_TIMEOUT for the iOS XCUITest driver, in milliseconds. Bounds how long Maestro waits for the driver to bind its port before abandoning the whole suite.'
         required: false
         default: 240000
+        type: number
+      ios_flow_retry_tag:
+        description: >-
+          Maestro tag that marks a flow as SAFE TO RE-RUN ON ITS OWN, enabling
+          per-flow retry on the iOS arm. Empty (the default) disables the
+          feature entirely and preserves today's behaviour exactly.
+
+          Retry is opt-in per flow because nothing can derive isolation
+          safety. Flows inherit session state and some mutate shared data, and
+          a flow that reads a record an earlier flow created is
+          indistinguishable, from its source, from one that creates its own.
+          Re-running a dependent flow alone manufactures a FALSE failure, which
+          is worse than the flake it was meant to absorb — so a flow is retried
+          only where the project has asserted it stands alone.
+
+          Set this to the tag your project uses (e.g. `retryable`) and add that
+          tag to the flows that carry their own sign-in preamble and own their
+          own fixtures. Leave it empty and no flow is ever re-run.
+        required: false
+        default: ''
+        type: string
+      ios_flow_retry_attempts:
+        description: >-
+          Extra attempts granted to a single retry-eligible flow that failed,
+          on top of its first run. Default 1.
+
+          1 is not timidity, it is what the evidence supports: the faults this
+          exists for are single-shot host and simulator transients — a
+          CoreSimulator placeholder that never got promoted, a touch-up event
+          the starved host never delivered — and a fault that survives a fresh
+          isolated re-run is not one of them. Raising this buys green for a
+          flow that is genuinely sick, which is the failure mode of retry.
+        required: false
+        default: 1
+        type: number
+      ios_flow_retry_rate_percent:
+        description: >-
+          Ceiling on the share of executed flows allowed to fail their first
+          attempt before the run is failed OUTRIGHT and nothing is retried.
+          Default 10.
+
+          This is the honest cost of retry made visible. Retry hides
+          flakiness — that is what it is for — so it needs a rate above which
+          it refuses to help. 10% is set from measurement: the environmental
+          losses this feature absorbs ran at 1 flow in 41 (2.4%), so 10 leaves
+          four times that headroom while a suite losing 5 of 41 still reds. It
+          is checked BEFORE any retry runs, so a breach costs no extra minutes.
+
+          The rate bounds one run. The cross-run signal — a flow that keeps
+          needing a retry — comes from the ledger, which every run publishes as
+          `maestro-ios-retries-<count>`: the count is in the artifact NAME, so
+          a reader compares nights from the artifacts list without opening
+          anything.
+        required: false
+        default: 10
         type: number
       concurrency_group:
         description: >-
@@ -1771,6 +1836,27 @@ jobs:
           echo "MAESTRO_E2E_ARGS=$ARGS" >> "$GITHUB_ENV"
 
       - name: 📱 Run Maestro flows on emulator
+        # THIS ARM IS SINGLE-ATTEMPT BY DECISION, NOT BY OMISSION. The iOS arm
+        # carries both a driver-startup retry and a per-flow retry; this one
+        # carries neither, and a reader comparing the two is owed the reason.
+        #
+        # `android-emulator-runner` executes each LINE of `script:` as its own
+        # `sh -c`, which is why the Maestro invocation below is one very long
+        # line. A retry needs shell state that survives across commands — a
+        # function to call twice, a failed-flow list, a loop counter — and none
+        # of that survives a per-line `sh -c`. Nor can the retry move to a step
+        # AFTER this one: the emulator exists only for the duration of this
+        # action, so by the time a later step could read the JUnit report there
+        # is no device left to re-run anything on. The remaining option is a
+        # SECOND invocation of the action, which boots and provisions a fresh
+        # AVD — minutes of setup to re-run one flow, on a fresh device whose
+        # state is not the state the flow failed in.
+        #
+        # So parity here is not a matter of copying the iOS block across. It
+        # needs the suite invocation extracted behind the `flow_runner` seam
+        # (a caller-supplied script CAN hold multi-line shell), and that is a
+        # larger change than this one. Until then: Android reds on the first
+        # flow failure, exactly as it always has.
         uses: reactivecircus/android-emulator-runner@v2
         env:
           FLOW_RUNNER: ${{ inputs.flow_runner }}
@@ -2286,6 +2372,14 @@ jobs:
           # buys a slow one more room. The retry below is what covers a driver
           # that fails to come up at all.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: ${{ inputs.ios_driver_startup_timeout_ms }}
+          # Per-flow retry policy. Passed through `env` for the same reason
+          # FLOWS_DIR is: a `${{ }}` expansion is substituted into the script
+          # TEXT before bash parses it, so a caller wiring a reusable input to
+          # event-controlled data could inject shell commands. As env vars
+          # these values are only ever data.
+          FLOW_RETRY_TAG: ${{ inputs.ios_flow_retry_tag }}
+          FLOW_RETRY_ATTEMPTS: ${{ inputs.ios_flow_retry_attempts }}
+          FLOW_RETRY_RATE_PERCENT: ${{ inputs.ios_flow_retry_rate_percent }}
         # EXPLICIT `shell: bash` is load-bearing, not style. The default `run`
         # shell is `bash -e {0}` WITHOUT pipefail, and every suite invocation
         # below is piped into `tee` — so without this the exit status read
@@ -2294,49 +2388,370 @@ jobs:
         run: |
           # MAESTRO_E2E_ARGS is a flag list that needs word splitting.
           # shellcheck disable=SC2086
-          run_suite() {
+          run_target() {
             if [ -n "$FLOW_RUNNER" ]; then
-              bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"
+              bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"
             else
-              maestro test "$FLOWS_DIR" \
+              maestro test "$2" \
                 $MAESTRO_E2E_ARGS \
                 --format junit \
-                --output maestro-ios-report.xml \
+                --output "$1" \
                 --debug-output maestro-debug
             fi
           }
 
-          # Retry ONLY on driver startup, never on flow failures. A blanket
-          # retry would double a four-hour suite every time one assertion
-          # reds, and would also paper over the real regressions this suite
-          # exists to find. The signature below is the exception Maestro
-          # throws when the XCUITest runner never binds its port — the whole
-          # suite is lost before flow 1, so re-running it costs nothing that
-          # was not already lost.
+          run_suite() {
+            run_target maestro-ios-report.xml "$FLOWS_DIR"
+          }
+
+          # ------------------------------------------------------------------
+          # Per-flow retry — state, helpers, and the policy that uses them.
+          #
+          # WHAT IS BROKEN TODAY, stated plainly so the next reader does not
+          # have to rediscover it: the driver-startup retry below is the ONLY
+          # retry this workflow has, it fires on one regex, and it re-runs the
+          # WHOLE suite. Every flake that is not a driver-startup timeout —
+          # every per-flow environmental fault — therefore reds the run with no
+          # retry at all. Two measured examples, from nights where one arm was
+          # fully green and the other lost exactly one flow of forty-one:
+          #
+          #   * `launchApp: clearState` failed having executed ZERO steps. On
+          #     iOS `clearState` is uninstall+reinstall; the reinstall
+          #     succeeded (`Success (End) : Install (New)`) but SpringBoard
+          #     never promoted the placeholder, so the launch retried for 10s
+          #     against `LaunchServicesDataMismatch` and then failed with
+          #     `NotFound ("Application ... is unknown to FrontBoard")`.
+          #   * An `assertNotVisible` failed because the touch-UP event was
+          #     never delivered. The driver tapped the correct pixel; the
+          #     simulator log shows `down` with no matching `up` and no
+          #     touch-move evaluations, while the identical tap on the
+          #     identical component 13s earlier received both. The host was
+          #     starved: the pre-tap screenshot took 3,257ms against 132ms
+          #     earlier, and simulator log volume had tripled to ~12,000
+          #     lines/sec.
+          #
+          # Neither has a code fix. Neither matches DRIVER_FAILURE. Both cost a
+          # whole suite re-run to clear by hand.
+          #
+          # DO NOT gate this retry on the failure TEXT. The first example's
+          # JUnit `<failure>` element read, in its entirety, `Unknown error` —
+          # the cause was only in `maestro-debug/.maestro/tests/<ts>/<flow>/`.
+          # A retry keyed on an error string would be the same too-narrow regex
+          # this exists to replace. The report is read for WHICH flows failed,
+          # never for why.
+          # ------------------------------------------------------------------
+          LEDGER="maestro-ios-retries.txt"
+          ROWS="maestro-ios-retry-rows.txt"
+          : > "$ROWS"
+          RETRY_ENABLED=false
+          if [ -n "$FLOW_RETRY_TAG" ]; then
+            RETRY_ENABLED=true
+          fi
+          EXECUTED=0
+          FAILED_COUNT=0
+          SKIPPED_COUNT=0
+          RETRIED=0
+          RECOVERED=0
+          UNRECOVERED=0
+          BREACH=false
+
+          # Count the `<testcase` elements a report actually contains. Same
+          # reading as the flow-count step: the elements are what happened, the
+          # `tests="N"` attribute is what the writer claimed.
+          count_testcases() {
+            { grep -o '<testcase' "$1" || true; } | wc -l | tr -d ' '
+          }
+
+          # The flow FILES that failed, one per line, deduped and sorted.
+          #
+          # Sorted on purpose, not as a tidiness habit: the ledger this feeds
+          # is compared across nights and across arms, and Maestro's execution
+          # order is not a stable key. A set that reorders itself must not read
+          # as a different set.
+          #
+          # The split at EVERY `<testcase` is also load-bearing. A greedy match
+          # over `<testcase .../>` swallows the self-closing slash and then
+          # hunts for the next `</testcase>`, which merges a PASSING case into
+          # the following failing one and reports the passing flow's name
+          # against the failing flow's message. Splitting first means a record
+          # can hold at most one case's body. `${record%%>*}` then trims the
+          # record to its open tag before `file=` is read, so failure TEXT that
+          # happens to contain `file="` cannot be mistaken for the attribute.
+          failed_flow_files() {
+            tr '\n' ' ' < "$1" \
+              | awk '{ gsub(/<testcase/, "\n<testcase"); print }' \
+              | while IFS= read -r record; do
+                  case "$record" in
+                    "<testcase"*) ;;
+                    *) continue ;;
+                  esac
+                  case "$record" in
+                    *"<failure"* | *"<error"*) ;;
+                    *) continue ;;
+                  esac
+                  printf '%s\n' "${record%%>*}" \
+                    | sed -n 's/.*file="\([^"]*\)".*/\1/p'
+                done \
+              | sed '/^$/d' \
+              | LC_ALL=C sort -u
+          }
+
+          # Resolve a report's `file` attribute to a path on disk. The reported
+          # path is repo-relative and exact in every report this workflow
+          # produces; the flows-dir fallback keeps reports from older runners
+          # readable. Mirrors the classifier's `resolveFlowPath`.
+          resolve_flow_path() {
+            if [ -f "$1" ]; then
+              printf '%s\n' "$1"
+              return 0
+            fi
+            if [ -n "$FLOWS_DIR" ] && [ -f "$FLOWS_DIR/$(basename "$1")" ]; then
+              printf '%s\n' "$FLOWS_DIR/$(basename "$1")"
+              return 0
+            fi
+            return 1
+          }
+
+          # Is this flow SAFE to re-run on its own?
+          #
+          # Nothing can derive that. A flow that reads a record an earlier flow
+          # created looks exactly like one that creates its own, so no
+          # inspection of the file can prove independence — and a wrong guess
+          # here manufactures a false failure, which is worse than the flake it
+          # was meant to absorb. So eligibility is DECLARED, per flow, by a
+          # Maestro tag the project names in `ios_flow_retry_tag`. Untagged is
+          # never re-run. A project that configures no tag retries nothing and
+          # behaves exactly as it does today. Silence produces the safe answer,
+          # never the flattering one — the same asymmetry the flake classifier
+          # is built on.
+          #
+          # Both `tags: [a, b]` and the block form are accepted, and only the
+          # flow's Maestro header — everything before the first `---` — is read.
+          flow_is_retryable() {
+            if [ ! -f "$1" ]; then
+              return 1
+            fi
+            awk -v want="$FLOW_RETRY_TAG" '
+              /^---[[:space:]]*$/ { exit }
+              /^tags:/ {
+                intags = 1
+                rest = $0
+                sub(/^tags:[[:space:]]*/, "", rest)
+                if (rest ~ /^\[/) {
+                  gsub(/[][,]/, " ", rest)
+                  n = split(rest, parts, /[[:space:]]+/)
+                  for (i = 1; i <= n; i++) {
+                    gsub(/["]/, "", parts[i])
+                    if (parts[i] == want) { found = 1 }
+                  }
+                  intags = 0
+                }
+                next
+              }
+              intags == 1 && /^[[:space:]]*-[[:space:]]/ {
+                v = $0
+                sub(/^[[:space:]]*-[[:space:]]*/, "", v)
+                gsub(/[[:space:]"]/, "", v)
+                if (v == want) { found = 1 }
+                next
+              }
+              intags == 1 && /^[^[:space:]#]/ { intags = 0 }
+              END { exit(found ? 0 : 1) }
+            ' "$1"
+          }
+
+          # The ledger is the point of this feature, not a by-product of it.
+          # A retry that leaves no trace turns a flow failing 40% of the time
+          # into a permanently green flow nobody ever looks at, and real
+          # defects get found precisely because flakes fail loudly. EVERY run
+          # writes this file — including a clean one, so "0 retries" is a
+          # recorded reading rather than an absence.
+          write_ledger() {
+            RATE=0
+            if [ "$EXECUTED" -gt 0 ]; then
+              RATE=$(( FAILED_COUNT * 100 / EXECUTED ))
+            fi
+            {
+              echo "platform=ios"
+              echo "retry_enabled=$RETRY_ENABLED"
+              echo "retry_tag=$FLOW_RETRY_TAG"
+              echo "retry_attempts_allowed=$FLOW_RETRY_ATTEMPTS"
+              echo "retry_rate_threshold_percent=$FLOW_RETRY_RATE_PERCENT"
+              echo "executed=$EXECUTED"
+              echo "failed_first_attempt=$FAILED_COUNT"
+              echo "retried=$RETRIED"
+              echo "recovered=$RECOVERED"
+              echo "unrecovered=$UNRECOVERED"
+              echo "not_eligible=$SKIPPED_COUNT"
+              echo "retry_rate_percent=$RATE"
+              echo "rate_breach=$BREACH"
+              LC_ALL=C sort "$ROWS"
+            } > "$LEDGER"
+            cat "$LEDGER"
+          }
+
+          record_row() {
+            printf 'flow|%s|%s|%s\n' "$1" "$2" "$3" >> "$ROWS"
+          }
+
+          count_report_flows() {
+            if [ -f maestro-ios-report.xml ]; then
+              count_testcases maestro-ios-report.xml
+            else
+              echo 0
+            fi
+          }
+
+          retry_failed_flows() {
+            if [ -f maestro-ios-report.xml ]; then
+              EXECUTED=$(count_testcases maestro-ios-report.xml)
+              FAILED_LIST=$(failed_flow_files maestro-ios-report.xml)
+            else
+              FAILED_LIST=""
+            fi
+            if [ -n "$FAILED_LIST" ]; then
+              FAILED_COUNT=$(printf '%s\n' "$FAILED_LIST" | wc -l | tr -d ' ')
+            fi
+
+            if [ "$RETRY_ENABLED" != "true" ]; then
+              SKIPPED_COUNT=$FAILED_COUNT
+              echo "::notice::Per-flow retry is off (ios_flow_retry_tag is empty) — $FAILED_COUNT failed flow(s) stand."
+              write_ledger
+              return 1
+            fi
+
+            if [ "$FAILED_COUNT" -eq 0 ]; then
+              echo "::notice::The suite failed but its report names no failed flow — there is nothing to re-run."
+              write_ledger
+              return 1
+            fi
+
+            # The rate budget is checked BEFORE anything is re-run, and a
+            # breach means nothing is re-run at all. Above the budget the arm
+            # is degraded or the failures are real; either way, spending the
+            # job's remaining minutes on retries buys a green that hides which
+            # of the two it was.
+            if [ "$EXECUTED" -gt 0 ] && [ "$(( FAILED_COUNT * 100 ))" -gt "$(( FLOW_RETRY_RATE_PERCENT * EXECUTED ))" ]; then
+              BREACH=true
+              SKIPPED_COUNT=$FAILED_COUNT
+              while IFS= read -r reported; do
+                if [ -n "$reported" ]; then
+                  record_row "$reported" 1 over-budget
+                fi
+              done <<< "$FAILED_LIST"
+              echo "::error title=Maestro retry budget exceeded (ios)::$FAILED_COUNT of $EXECUTED flow(s) failed on the first attempt, above the ${FLOW_RETRY_RATE_PERCENT}% budget. NOTHING was retried. A rate this high is a degraded arm or a real regression, and retrying would spend the job's budget hiding which."
+              write_ledger
+              return 1
+            fi
+
+            ELIGIBLE_LIST=""
+            SKIPPED_LIST=""
+            while IFS= read -r reported; do
+              if [ -z "$reported" ]; then
+                continue
+              fi
+              resolved=$(resolve_flow_path "$reported" || true)
+              if [ -n "$resolved" ] && flow_is_retryable "$resolved"; then
+                ELIGIBLE_LIST=$(printf '%s\n%s' "$ELIGIBLE_LIST" "$resolved")
+              else
+                SKIPPED_LIST=$(printf '%s\n%s' "$SKIPPED_LIST" "$reported")
+              fi
+            done <<< "$FAILED_LIST"
+            ELIGIBLE_LIST=$(printf '%s\n' "$ELIGIBLE_LIST" | sed '/^$/d' | LC_ALL=C sort -u)
+            SKIPPED_LIST=$(printf '%s\n' "$SKIPPED_LIST" | sed '/^$/d' | LC_ALL=C sort -u)
+
+            while IFS= read -r skipped; do
+              if [ -n "$skipped" ]; then
+                SKIPPED_COUNT=$(( SKIPPED_COUNT + 1 ))
+                record_row "$skipped" 1 not-eligible
+                echo "::notice::$skipped failed and carries no '$FLOW_RETRY_TAG' tag — not re-run. Tag it only if it is genuinely safe to run on its own."
+              fi
+            done <<< "$SKIPPED_LIST"
+
+            while IFS= read -r flow; do
+              if [ -z "$flow" ]; then
+                continue
+              fi
+              attempt=0
+              outcome=unrecovered
+              while [ "$attempt" -lt "$FLOW_RETRY_ATTEMPTS" ]; do
+                attempt=$(( attempt + 1 ))
+                slug=$(printf '%s' "$flow" | tr -c 'A-Za-z0-9._-' '-')
+                retry_report="maestro-ios-retry-${slug}-${attempt}.xml"
+                echo "::warning title=Maestro flow retried (ios)::$flow failed and is being re-run on its own (attempt $(( attempt + 1 ))). A retry is a SYMPTOM. Read the maestro-ios-retries artifact before treating this run as a clean green."
+                if run_target "$retry_report" "$flow" 2>&1 | tee "maestro-ios-retry-${slug}-${attempt}.log"; then
+                  ran=0
+                  if [ -f "$retry_report" ]; then
+                    ran=$(count_testcases "$retry_report")
+                  fi
+                  if [ "$ran" -eq 0 ]; then
+                    # A re-run that executed nothing exits 0. Trusting that
+                    # status would turn every tag-filtered flow into a
+                    # permanent false green — the same fail-open shape as a
+                    # suite reporting success having tested nothing.
+                    echo "::error title=Retry executed nothing (ios)::The isolated re-run of $flow succeeded having executed 0 flows, so this run's tag filters exclude it. Counting it as NOT recovered: a zero-flow re-run proves nothing."
+                    outcome=vacuous
+                    break
+                  fi
+                  outcome=recovered
+                  break
+                fi
+              done
+              RETRIED=$(( RETRIED + 1 ))
+              record_row "$flow" "$(( attempt + 1 ))" "$outcome"
+              if [ "$outcome" = "recovered" ]; then
+                RECOVERED=$(( RECOVERED + 1 ))
+              else
+                UNRECOVERED=$(( UNRECOVERED + 1 ))
+              fi
+            done <<< "$ELIGIBLE_LIST"
+
+            write_ledger
+
+            if [ "$FAILED_COUNT" -gt 0 ] && [ "$RECOVERED" -eq "$FAILED_COUNT" ]; then
+              echo "::notice title=iOS suite green only after per-flow retry::$RECOVERED of $EXECUTED flow(s) needed an isolated re-run. This is NOT the same result as a first-time green; a flow that keeps appearing here is a defect, not luck."
+              return 0
+            fi
+            return 1
+          }
+
+          # Retry the WHOLE SUITE only on driver startup. A blanket suite retry
+          # would double a four-hour run every time one assertion reds. The
+          # signature below is the exception Maestro throws when the XCUITest
+          # runner never binds its port — the whole suite is lost before flow 1,
+          # so re-running it costs nothing that was not already lost.
           DRIVER_FAILURE='IOSDriverTimeoutException|iOS driver not ready in time'
 
           if run_suite 2>&1 | tee maestro-ios-run-1.log; then
+            EXECUTED=$(count_report_flows)
+            write_ledger
             exit 0
           fi
 
-          if ! grep -Eq "$DRIVER_FAILURE" maestro-ios-run-1.log; then
-            echo "::notice::Suite failed on flow results, not on driver startup — not retrying."
+          if grep -Eq "$DRIVER_FAILURE" maestro-ios-run-1.log; then
+            echo "::warning title=iOS driver failed to start::The XCUITest driver did not bind its port within ${MAESTRO_DRIVER_STARTUP_TIMEOUT}ms and NO flow executed. Recycling the simulator and retrying once."
+            xcrun simctl shutdown "$IOS_SIM_UDID" || true
+            xcrun simctl erase "$IOS_SIM_UDID" || true
+            xcrun simctl boot "$IOS_SIM_UDID"
+            xcrun simctl bootstatus "$IOS_SIM_UDID"
+            xcrun simctl install "$IOS_SIM_UDID" "$IOS_APP_PATH"
+
+            if run_suite 2>&1 | tee maestro-ios-run-2.log; then
+              echo "::notice title=iOS driver recovered on retry::The first attempt lost the driver; the retry ran the suite. Treat repeated warnings of this kind as a real defect, not as noise — see the flow-count artifact for what each attempt actually ran."
+              EXECUTED=$(count_report_flows)
+              write_ledger
+              exit 0
+            fi
             exit 1
           fi
 
-          echo "::warning title=iOS driver failed to start::The XCUITest driver did not bind its port within ${MAESTRO_DRIVER_STARTUP_TIMEOUT}ms and NO flow executed. Recycling the simulator and retrying once."
-          xcrun simctl shutdown "$IOS_SIM_UDID" || true
-          xcrun simctl erase "$IOS_SIM_UDID" || true
-          xcrun simctl boot "$IOS_SIM_UDID"
-          xcrun simctl bootstatus "$IOS_SIM_UDID"
-          xcrun simctl install "$IOS_SIM_UDID" "$IOS_APP_PATH"
-
-          if run_suite 2>&1 | tee maestro-ios-run-2.log; then
-            echo "::notice title=iOS driver recovered on retry::The first attempt lost the driver; the retry ran the suite. Treat repeated warnings of this kind as a real defect, not as noise — see the flow-count artifact for what each attempt actually ran."
+          # Not a driver-startup loss, so the suite ran and individual flows
+          # reported. Do not re-run the suite; re-run the failed flows.
+          echo "::notice::Suite failed on flow results, not on driver startup — not retrying the whole suite."
+          if retry_failed_flows; then
             exit 0
           fi
           exit 1
-
       - name: 🔢 Count executed flows
         # Byte-identical to the android job's copy with the platform swapped —
         # see the comment there for why the duplication is deliberate and why
@@ -2474,6 +2889,97 @@ jobs:
           fi
           echo "✅ iOS executed $EXECUTED flow(s)."
 
+      - name: 🚦 Enforce the per-flow retry budget
+        # The loud half of per-flow retry, and the reason the feature is
+        # allowed to exist at all.
+        #
+        # A retry that is invisible is a lie told once per night: a flow
+        # failing 40% of the time goes green forever and nobody looks at it
+        # again. Real defects get found because flakes fail LOUDLY, so every
+        # retry this workflow performs is published three ways — an annotation
+        # on the run, a table in the job summary, and an artifact whose NAME
+        # carries the retry count so nights are comparable from the artifacts
+        # list without opening anything.
+        #
+        # It is also an independent gate. The run step already exits non-zero
+        # for the same conditions; this step re-derives the verdict from the
+        # ledger on disk so neither one alone can turn a red arm green. That is
+        # the same pairing the zero-flow detector uses — a counting step and a
+        # separate assertion that shouts.
+        id: retry_budget
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          LEDGER: maestro-ios-retries.txt
+        run: |
+          if [[ ! -f "$LEDGER" ]]; then
+            # The suite step writes the ledger on every path it can reach. No
+            # ledger means it never ran (a cancelled or crashed job), and there
+            # is no reading to enforce — the zero-flow assertion above owns
+            # that case.
+            echo "retried=0" >> "${GITHUB_OUTPUT:-/dev/null}"
+            echo "No $LEDGER — the suite step never reached a verdict; nothing to enforce."
+            exit 0
+          fi
+          key() { { grep "^$1=" "$LEDGER" || true; } | tail -1 | cut -d= -f2-; }
+          ENABLED=$(key retry_enabled)
+          EXECUTED=$(key executed)
+          FAILED=$(key failed_first_attempt)
+          RETRIED=$(key retried)
+          RECOVERED=$(key recovered)
+          UNRECOVERED=$(key unrecovered)
+          NOT_ELIGIBLE=$(key not_eligible)
+          RATE=$(key retry_rate_percent)
+          THRESHOLD=$(key retry_rate_threshold_percent)
+          BREACH=$(key rate_breach)
+          echo "retried=${RETRIED:-0}" >> "${GITHUB_OUTPUT:-/dev/null}"
+          {
+            echo "### 🍎 iOS per-flow retry ledger"
+            echo ""
+            echo "| flow | attempts | outcome |"
+            echo "| --- | --- | --- |"
+            # Rows are written sorted by flow path, so this table is
+            # byte-comparable between two runs that executed the same flows in
+            # a different order.
+            { grep '^flow|' "$LEDGER" || true; } \
+              | awk -F'|' '{ printf "| `%s` | %s | %s |\n", $2, $3, $4 }'
+            echo ""
+            echo "Executed **$EXECUTED**; failed first attempt **$FAILED**; retried **$RETRIED**; recovered **$RECOVERED**."
+            echo ""
+            echo "First-attempt failure rate **${RATE}%**, budget **${THRESHOLD}%**. Per-flow retry enabled: \`$ENABLED\`."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          if [[ "${RETRIED:-0}" -gt 0 ]]; then
+            echo "::warning title=iOS flows needed a retry::$RETRIED flow(s) of $EXECUTED did not pass on their first attempt this run. Green after a retry is NOT green first time. A flow that appears in this ledger on consecutive nights is a defect — open maestro-ios-retries-$RETRIED and compare."
+          fi
+          if [[ "$BREACH" == "true" ]]; then
+            echo "::error title=iOS retry budget exceeded::$FAILED of $EXECUTED flow(s) failed their first attempt (${RATE}%), above the ${THRESHOLD}% budget. Nothing was retried and this arm is FAILED. Retry is not the lever here — find out why the arm is losing flows."
+            exit 1
+          fi
+          if [[ "${UNRECOVERED:-0}" -gt 0 ]]; then
+            echo "::error title=iOS flows failed after retry::${UNRECOVERED} flow(s) failed again when re-run on their own. An isolated re-run removes ordering and host contention as explanations, so this is the arm's most credible real-failure signal."
+            exit 1
+          fi
+          if [[ "${NOT_ELIGIBLE:-0}" -gt 0 ]]; then
+            echo "::error title=iOS flows failed and were not retried::${NOT_ELIGIBLE} failed flow(s) are not marked safe to run in isolation, so they were not re-run. Their failures stand."
+            exit 1
+          fi
+          echo "✅ iOS retry budget respected (retried ${RETRIED:-0}, rate ${RATE}% of ${THRESHOLD}%)."
+
+      - name: 📤 Publish the per-flow retry ledger
+        # The RETRY COUNT IS THE ARTIFACT NAME, for the reason the flow-count
+        # artifact gives: a reader — or a nightly health gate — reads the
+        # number off the artifacts LIST, without downloading anything, and can
+        # therefore compare tonight's retries against last night's. `ignore`
+        # rather than `error` because a project that has not enabled the
+        # feature legitimately produces no ledger on a cancelled job.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-retries-${{ steps.retry_budget.outputs.retried }}
+          path: maestro-ios-retries.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: 🔍 Classify Maestro failures (diagnostic, never gating)
         # Byte-identical to the android job's copy with the platform swapped,
         # for the reason the flow-count step gives: a reader compares the two
@@ -2508,6 +3014,9 @@ jobs:
             maestro-ios-report.xml
             maestro-ios-run-1.log
             maestro-ios-run-2.log
+            maestro-ios-retries.txt
+            maestro-ios-retry-*.xml
+            maestro-ios-retry-*.log
             maestro-debug
           # See the Android upload above: `maestro-debug/.maestro/` is hidden,
           # and without this the artifact is the junit XML and nothing else.
