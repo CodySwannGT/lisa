@@ -32,6 +32,10 @@ export type GateOutcome = {
   state: string;
   detail: string;
   code: number | null;
+  /** Which failure this was, from `DIAGNOSIS`; null unless it failed. */
+  diagnosis?: string | null;
+  /** Concrete lines backing the diagnosis. */
+  evidence?: string[];
   /** The gate whose run proved this one, when they share a command. */
   provedBy: string | null;
 };
@@ -40,6 +44,8 @@ export type GateOutcome = {
 export type GateRun = {
   moment: string;
   blocked: boolean;
+  /** The first required gate that went unproved, or null when none did. */
+  blockedBy: string | null;
   total: number;
   results: GateOutcome[];
   passed: GateOutcome[];
