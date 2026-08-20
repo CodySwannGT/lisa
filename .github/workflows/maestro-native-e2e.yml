@@ -287,6 +287,27 @@ on:
         required: false
         default: 'android-only'
         type: string
+      android_full_suite_exclude_tags:
+        description: >-
+          The exclude tags that constitute the FULL Android suite — this
+          project's permanent platform partition plus anything quarantined
+          long-term. A run whose `android_exclude_tags` equal this baseline
+          records itself as `scope-full`; any other value is a slice and
+          records `scope-filtered`. Compared as a SET, so order, surrounding
+          whitespace and duplicates are all irrelevant. Defaults to the
+          `android_exclude_tags` default so that a caller passing nothing
+          describes a FULL suite instead of disqualifying itself.
+        required: false
+        default: 'ios-only'
+        type: string
+      ios_full_suite_exclude_tags:
+        description: >-
+          The exclude tags that constitute the FULL iOS suite. See
+          `android_full_suite_exclude_tags`; same semantics, same set
+          comparison, defaulted to the `ios_exclude_tags` default.
+        required: false
+        default: 'android-only'
+        type: string
       android_include_tags:
         description: 'Comma-separated flow tags to include on Android (empty = all flows)'
         required: false
@@ -1911,18 +1932,70 @@ jobs:
         # NOT gated on `steps.flows`: the scope is known from the inputs before a
         # single flow starts, and a run that dies mid-suite is exactly when a
         # reader most needs to know whether it was narrowed.
+        # WHY THIS IS SHELL AND NOT AN EXPRESSION ON THE ARTIFACT NAME.
+        # It used to be the latter, and the marker was wrong on every run ever
+        # produced by this workflow. The predicate was `exclude_tags != ''`,
+        # while THIS FILE's own defaults are `ios-only` / `android-only` — both
+        # non-empty — so `scope-full` was unreachable unless a caller passed
+        # `''` and thereby ran each platform's opposite-only flows. Row 36 of
+        # `check-nightly-e2e-health.mjs` disqualifies a `filtered` run
+        # unconditionally, so the nightly gate's Maestro arm could not reach
+        # `pass` for anybody. A `${{ }}` string is also unrunnable, which is why
+        # nothing caught it: there was no way to write a test that executed the
+        # decision. Now there is, and `maestro-native-suite-scope.test.ts`
+        # exercises both directions.
+        #
+        # The distinction being drawn is STRUCTURAL PARTITION versus RUN-TIME
+        # SLICE. `ios-only` on the Android leg does not narrow the suite — the
+        # union of the two legs IS the suite — whereas `--include-tags=smoke`
+        # genuinely does. A caller declares its partition once, and only a
+        # departure from that declaration counts as narrowing.
+        #
+        # Set comparison, not string comparison: `a,b` and `b,a` are the same
+        # declaration. Comparing raw strings would let a caller reordering its
+        # own tag list silently flip the marker back to `filtered`, which is
+        # this same bug in a form that is harder to see.
+        id: scope
         if: ${{ !cancelled() }}
         shell: bash
         env:
           INCLUDE_TAGS: ${{ inputs.android_include_tags }}
           EXCLUDE_TAGS: ${{ inputs.android_exclude_tags }}
+          FULL_SUITE_EXCLUDE_TAGS: ${{ inputs.android_full_suite_exclude_tags }}
         run: |
+          # Normalise a comma-separated tag list to a canonical set: split,
+          # trim, drop empties, dedupe, sort, rejoin. `sed '/^$/d'` rather than
+          # `grep -v` on purpose — grep exits 1 on no matches, which under
+          # `bash -eo pipefail` would abort this step for the perfectly legal
+          # case of an empty tag list.
+          normalize() {
+            printf '%s' "${1:-}" \
+              | tr ',' '\n' \
+              | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d' \
+              | LC_ALL=C sort -u \
+              | paste -sd, -
+          }
+          baseline="$(normalize "$FULL_SUITE_EXCLUDE_TAGS")"
+          excluded="$(normalize "$EXCLUDE_TAGS")"
+          if [[ -n "$INCLUDE_TAGS" ]]; then
+            # An include list is narrowing by construction: it names what to
+            # run rather than what to leave out, so there is no baseline it
+            # could equal.
+            scope=filtered
+          elif [[ "$excluded" == "$baseline" ]]; then
+            scope=full
+          else
+            scope=filtered
+          fi
           {
             echo "platform=android"
             echo "include_tags=$INCLUDE_TAGS"
             echo "exclude_tags=$EXCLUDE_TAGS"
+            echo "full_suite_exclude_tags=$FULL_SUITE_EXCLUDE_TAGS"
+            echo "scope=$scope"
           } > maestro-android-scope.txt
           cat maestro-android-scope.txt
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
 
       - name: 📤 Publish suite scope
         # Same trick as the flow count and for the same two reasons: the answer
@@ -1935,7 +2008,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: maestro-android-scope-${{ (inputs.android_include_tags != '' || inputs.android_exclude_tags != '') && 'filtered' || 'full' }}
+          name: maestro-android-scope-${{ steps.scope.outputs.scope }}
           path: maestro-android-scope.txt
           if-no-files-found: error
           retention-days: 30
@@ -2328,26 +2401,57 @@ jobs:
           retention-days: 30
 
       - name: 🔎 Record the suite scope
-        # See the android copy for why a run has to write its own inputs down.
+        # See the android copy for why a run has to write its own inputs down,
+        # and for why the full-vs-filtered decision lives in shell rather than
+        # in an expression on the artifact name.
+        id: scope
         if: ${{ !cancelled() }}
         shell: bash
         env:
           INCLUDE_TAGS: ${{ inputs.ios_include_tags }}
           EXCLUDE_TAGS: ${{ inputs.ios_exclude_tags }}
+          FULL_SUITE_EXCLUDE_TAGS: ${{ inputs.ios_full_suite_exclude_tags }}
         run: |
+          # Normalise a comma-separated tag list to a canonical set: split,
+          # trim, drop empties, dedupe, sort, rejoin. `sed '/^$/d'` rather than
+          # `grep -v` on purpose — grep exits 1 on no matches, which under
+          # `bash -eo pipefail` would abort this step for the perfectly legal
+          # case of an empty tag list.
+          normalize() {
+            printf '%s' "${1:-}" \
+              | tr ',' '\n' \
+              | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d' \
+              | LC_ALL=C sort -u \
+              | paste -sd, -
+          }
+          baseline="$(normalize "$FULL_SUITE_EXCLUDE_TAGS")"
+          excluded="$(normalize "$EXCLUDE_TAGS")"
+          if [[ -n "$INCLUDE_TAGS" ]]; then
+            # An include list is narrowing by construction: it names what to
+            # run rather than what to leave out, so there is no baseline it
+            # could equal.
+            scope=filtered
+          elif [[ "$excluded" == "$baseline" ]]; then
+            scope=full
+          else
+            scope=filtered
+          fi
           {
             echo "platform=ios"
             echo "include_tags=$INCLUDE_TAGS"
             echo "exclude_tags=$EXCLUDE_TAGS"
+            echo "full_suite_exclude_tags=$FULL_SUITE_EXCLUDE_TAGS"
+            echo "scope=$scope"
           } > maestro-ios-scope.txt
           cat maestro-ios-scope.txt
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
 
       - name: 📤 Publish suite scope
         # The scope is the artifact NAME — see the android copy.
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: maestro-ios-scope-${{ (inputs.ios_include_tags != '' || inputs.ios_exclude_tags != '') && 'filtered' || 'full' }}
+          name: maestro-ios-scope-${{ steps.scope.outputs.scope }}
           path: maestro-ios-scope.txt
           if-no-files-found: error
           retention-days: 30

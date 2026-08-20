@@ -12,11 +12,26 @@
  * keyword it does not implement**, so a schema can never silently validate less
  * than it claims: an unsupported keyword is a validator error, not a pass.
  *
- * Supported: `type` (a single name or an array of names), `const`, `enum`,
- * `required`, `properties`,
- * `additionalProperties` (boolean), `items`, `minLength`, `minimum`, `pattern`,
- * `$ref` (local `#/$defs/<name>` only), `$defs`, plus the annotation-only
- * keywords `$schema`, `$id`, `title`, `description`.
+ * That promise is enforced on a keyword's FORM as well as its name. A name-only
+ * allowlist let four keywords through and then dropped them —
+ * `additionalProperties` as a subschema, siblings beside a `$ref`,
+ * `items: false`, a string `required` — each a schema validating less than it
+ * says, which is the very outcome the allowlist exists to prevent. Every
+ * supported keyword therefore declares the shape it must be written in
+ * (`KEYWORD_FORMS`), and any other shape is a validator error.
+ *
+ * Refusing an unimplemented form rather than implementing it is deliberate.
+ * Implementing subschema `additionalProperties` and `$ref` siblings would grow
+ * a dependency-free validator into a general one, which this module declines to
+ * be; refusing is both smaller and the behaviour the header already promises.
+ *
+ * Supported: `type` (a single name or a non-empty array of names), `const`,
+ * `enum` (a non-empty array), `required` (an array of names), `properties` (an
+ * object of subschemas), `additionalProperties` (a boolean), `items` (a
+ * subschema object), `minLength`, `minimum` (numbers), `pattern` (a string),
+ * `$ref` (a local `#/$defs/<name>` string, with no validating siblings),
+ * `$defs`, plus the annotation-only keywords `$schema`, `$id`, `title`,
+ * `description`.
  * @module scripts/lisa-schema-validate
  */
 
@@ -31,20 +46,61 @@ const ANNOTATION_KEYWORDS = new Set([
   "default",
 ]);
 
-/** Keywords this validator implements. Anything else is an error. */
-const SUPPORTED_KEYWORDS = new Set([
-  "type",
-  "const",
-  "enum",
-  "required",
-  "properties",
-  "additionalProperties",
-  "items",
-  "minLength",
-  "minimum",
-  "pattern",
-  "$ref",
-]);
+/**
+ * Whether a value is a plain JSON object — the shape a subschema takes.
+ * @param {unknown} value - Value to test
+ * @returns {boolean} Whether it is a non-null, non-array object
+ */
+function isSchemaObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The keywords this validator implements, each with the FORM it must be written
+ * in and a description of that form for the error message.
+ *
+ * The form is the load-bearing half. A name-only allowlist accepts
+ * `additionalProperties: {"type": "string"}`, `items: false` and
+ * `required: ""` and then applies none of them, which is a schema silently
+ * validating less than it claims — the exact failure the allowlist exists to
+ * prevent, reached through the one door nobody checked.
+ *
+ * `const` takes any JSON value, so its form is unconstrained; that is a real
+ * property of the keyword, not an omission.
+ */
+const KEYWORD_FORMS = Object.freeze({
+  type: {
+    accepts: value =>
+      typeof value === "string" ||
+      (Array.isArray(value) &&
+        value.length > 0 &&
+        value.every(entry => typeof entry === "string")),
+    form: "a type name or a non-empty array of type names",
+  },
+  const: { accepts: () => true, form: "any JSON value" },
+  enum: {
+    accepts: value => Array.isArray(value) && value.length > 0,
+    form: "a non-empty array",
+  },
+  required: {
+    accepts: value =>
+      Array.isArray(value) && value.every(entry => typeof entry === "string"),
+    form: "an array of property names",
+  },
+  properties: { accepts: isSchemaObject, form: "an object of subschemas" },
+  additionalProperties: {
+    accepts: value => typeof value === "boolean",
+    form: "a boolean (a subschema is not implemented)",
+  },
+  items: {
+    accepts: isSchemaObject,
+    form: "a subschema object (a boolean is not implemented)",
+  },
+  minLength: { accepts: value => typeof value === "number", form: "a number" },
+  minimum: { accepts: value => typeof value === "number", form: "a number" },
+  pattern: { accepts: value => typeof value === "string", form: "a string" },
+  $ref: { accepts: value => typeof value === "string", form: "a string" },
+});
 
 /**
  * JSON type name for a value, using JSON Schema's vocabulary.
@@ -83,19 +139,61 @@ function resolveRef(ref, root) {
 }
 
 /**
- * Refuse any keyword this validator does not implement.
+ * Refuse any keyword this validator does not implement, in name or in form.
  * @param {object} schema - Subschema to inspect
  * @param {string} instancePath - JSON-pointer-ish path for messages
  * @returns {void}
- * @throws {Error} When the subschema uses an unimplemented keyword
+ * @throws {Error} When the subschema uses an unimplemented keyword or form
  */
 function assertSupportedKeywords(schema, instancePath) {
+  const where = instancePath || "/";
   for (const keyword of Object.keys(schema)) {
-    if (!SUPPORTED_KEYWORDS.has(keyword) && !ANNOTATION_KEYWORDS.has(keyword)) {
+    if (ANNOTATION_KEYWORDS.has(keyword)) {
+      continue;
+    }
+    const expected = KEYWORD_FORMS[keyword];
+    if (!expected) {
       throw new Error(
-        `schema at ${instancePath || "/"} uses unsupported keyword "${keyword}"`
+        `schema at ${where} uses unsupported keyword "${keyword}"`
       );
     }
+    if (!expected.accepts(schema[keyword])) {
+      throw new Error(
+        `schema at ${where} writes "${keyword}" in an unimplemented form; expected ${expected.form}`
+      );
+    }
+  }
+  assertNoRefSiblings(schema, where);
+}
+
+/**
+ * Refuse a `$ref` that carries validating siblings.
+ *
+ * `validateNode` validates against the resolved target and returns, discarding
+ * every sibling keyword — so `{"$ref": ..., "enum": [...]}` applied the target
+ * and dropped the enum, reporting a violating value as valid. In JSON Schema
+ * 2020-12 siblings ARE applied, so ignoring them is a spec deviation on top of
+ * a silent under-validation.
+ *
+ * Annotation-only siblings are fine and common: `{"$ref": ..., "description":
+ * ...}` carries no validation semantics, and refusing it would be a false
+ * positive on ordinary schemas.
+ * @param {object} schema - Subschema to inspect
+ * @param {string} where - Location for the message
+ * @returns {void}
+ * @throws {Error} When a validating keyword sits beside a `$ref`
+ */
+function assertNoRefSiblings(schema, where) {
+  if (!("$ref" in schema)) {
+    return;
+  }
+  const siblings = Object.keys(schema).filter(
+    keyword => keyword !== "$ref" && !ANNOTATION_KEYWORDS.has(keyword)
+  );
+  if (siblings.length > 0) {
+    throw new Error(
+      `schema at ${where} places validating keyword(s) ${siblings.map(entry => `"${entry}"`).join(", ")} beside a "$ref"; $ref siblings are not implemented`
+    );
   }
 }
 
@@ -120,6 +218,11 @@ function typeAccepts(declared, actualType) {
  * `typeof === "string"` test entirely: the keyword passed the allowlist, so the
  * module's central promise — an unimplemented keyword is an error, never a
  * silent pass — was broken for the one form nobody checked.
+ *
+ * Any THIRD form is refused before this function is reached: `KEYWORD_FORMS`
+ * declares what `type` may be written as and `assertSupportedKeywords` runs
+ * first, so the two branches below are the only two that exist. Repeating the
+ * check here would be unreachable code claiming to be a guard.
  * @param {object} schema - Subschema to apply
  * @param {string} actualType - The observed type
  * @param {string} where - Location for the message
@@ -133,15 +236,6 @@ function typeError(schema, actualType, where) {
       : `${where}: expected type ${declared}, got ${actualType}`;
   }
   if (declared === undefined) return null;
-  if (
-    !Array.isArray(declared) ||
-    declared.length === 0 ||
-    !declared.every(entry => typeof entry === "string")
-  ) {
-    throw new Error(
-      `schema at ${where} declares a "type" that is neither a name nor an array of names`
-    );
-  }
   return declared.some(entry => typeAccepts(entry, actualType))
     ? null
     : `${where}: expected type ${declared.join(" or ")}, got ${actualType}`;

@@ -3,11 +3,13 @@
     "build": "bun run build:dist && bun run build:plugins",
     "build:dist": "node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "test:integration": "vitest run tests/integration",
+    "test:integration:push": "vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts'",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true",
     "pretest": "[ -d dist/configs ] || bun run build",
     "test": "vitest run",
     "test:unit": "vitest run --exclude='**/integration/**'",
     "test:cov": "vitest run --coverage",
+    "test:cov:unit": "vitest run --coverage --exclude='**/integration/**'",
     "pretest:mutation": "[ -d dist/configs ] || bun run build",
     "test:mutation": "stryker run",
     "lint": "oxlint --disable-nested-config && eslint . --quiet",
@@ -138,7 +140,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "3.47.4",
+  "version": "3.47.5",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
