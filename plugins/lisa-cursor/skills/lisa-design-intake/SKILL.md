@@ -16,6 +16,32 @@ This skill carries the **judgment**. It does not carry the **policy** — that i
 
 `design-source-of-truth` and `scripts/design-source-gate.mjs` already ask whether a changed surface **declares where its design came from**. This asks the orthogonal question: are the **values on it bound**. Both apply. A surface can cite a perfectly valid design node and still paint a literal that no variable backs — that is the case this skill exists for, and it is invisible to the other gate.
 
+## Why this gate is executable and not advisory
+
+Not a hypothesis about what agents might do under pressure. A measurement.
+
+Eleven frontend work items in a portfolio frontend, each carrying node-scoped design references. The governing rule already said coverage below 100% is a **block routed back to design, never a value for the implementing agent to guess**, and said explicitly that `warn` is the wrong severity *because* it ships the item to an agent that then guesses or stalls. An agent had read that rule. It cited the rule in the briefing it wrote for its build agents. In that same briefing it instructed them to **"snap unbound dimensions via the snap tables (ties round down) and flag the rest."**
+
+A block downgraded to a warning, by the agent enforcing it, inside the document enforcing it. Not from ignorance — from reasoning around it under delivery pressure, because eleven items were queued and blocking felt like not-shipping. It took a human restating the rule as an absolute for the instruction to be withdrawn.
+
+Coverage measured after the withdrawal, on the subtrees actually being implemented:
+
+| frames | colour | spacing | radius | reality |
+|---|---|---|---|---|
+| compliance screens | 96-100% | 82-97% | 88-93% | design-system composed |
+| edit-KPI / target dialogs | **100%** | **0%** | **0%** | colours bound, geometry never bound |
+| planning mockups | **1-4%** | **0-2%** | **0-3%** | hand-drawn, effectively unbound |
+
+**Five of the eleven items blocked back to design; six proceeded.** The worst case is the clearest argument: one modal's subtree contained **zero variable references** — every colour a literal hex, every padding, gap, radius and size a literal, raw px type sizes with literal font faces, a literal shadow. Under snap-and-flag an agent would have produced a complete, lint-clean, tested component **in which every style value was invented**, and shipped it with a note. Five view files were written before it was stopped.
+
+**The frame-vs-subtree distinction is what moved items between build and block**: 14 bound values at frame level, **zero** inside the modal actually being built. It is the finding most likely to be silently reimplemented wrong, which is why Phase 2 probes with `--node`.
+
+The delivery-pressure reasoning was also wrong on its own terms. The non-visual half of the blocked work — domain types, adapters, CRUD, formatters — was completed and preserved. **Blocking cost far less than it appeared it would.**
+
+And the rule holds once it is absolute rather than advisory: one agent withdrew a radius class it had already applied on finding `radius/none` was the only radius bound in its subtree; another refused to build an icon disc whose diameter and radius were both unbound rather than pick a size.
+
+**A gate that depends on an agent choosing to honour it under delivery pressure is not a gate.** This one is executable and headless precisely because the judgment-based version demonstrably failed in the hands of an agent that had read the rule and agreed with it. That is also why the verdict belongs to `design-intake-gate.mjs` (Phase 4) and not to prose you re-reason each run.
+
 ## Phase 0 — Is there a design source at all?
 
 **A design source is optional, and this is the most important step in the skill.** Most projects have no designs. Run the probe and read its verdict:
@@ -83,6 +109,8 @@ FIGMA_ACCESS_TOKEN=… FIGMA_MCP_TOKEN=… \
 ```
 
 Pass `--dark` wherever the library has a dark mode: the light+dark signature is what separates variables that share a value, and without it more ids stay ambiguous. An ambiguous id is still a failure — guessing which variable a value came from is exactly what this contract forbids.
+
+**An unknown id fails loudly naming the id; it never resolves to a nearest match.** That self-detecting staleness is the only reason a committed map is safe to trust — it makes a stale map an error instead of silent corruption. Never add a fallback that picks the closest variable, and never treat an unresolved id as unbound-and-therefore-design's.
 
 ## Phase 3 — Gather findings
 
@@ -159,6 +187,7 @@ The rule is never "do not look at pixels". It is **"do not derive a value from p
 - **The regime is per-axis**, derived from the committed variable-id map. Never per-project, never asked of a human, and never from a live collection query — that route does not run headlessly.
 - **A design source is optional.** No source, no token, or no map is SKIPPED at exit 0, never a block.
 - **Every failure names an owner.** Unbound values are design's; a stale or ambiguous map is ours.
+- **An unknown variable id fails loudly rather than resolving to a nearest match.** Staleness is self-detecting, which is what makes a committed map trustworthy at all.
 - **The threshold is 100%.** Relax it only with an explicit `--min` on the command line, never by softening anything in code.
 - **Never guess an escalation target**, and never proceed without one.
 - **Never pick a side in a disagreement.** Which source is right is a design decision.
