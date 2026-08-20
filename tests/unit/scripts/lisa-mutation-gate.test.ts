@@ -163,7 +163,9 @@ const fakeStryker = (root: string, exitCode: number): void => {
   fs.mkdirSync(bin, { recursive: true });
   fs.writeFileSync(
     path.join(bin, "stryker"),
-    `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, "stryker-argv.txt")}"\nexit ${exitCode}\n`
+    `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, "stryker-argv.txt")}"\n` +
+      `printf '%s' "\${MUTATION_SCOPE-<unset>}" > "${path.join(root, "stryker-scope.txt")}"\n` +
+      `exit ${exitCode}\n`
   );
   fs.chmodSync(path.join(bin, "stryker"), 0o755);
 };
@@ -173,6 +175,13 @@ const strykerArgv = (root: string): string[] | null => {
   const recorded = path.join(root, "stryker-argv.txt");
   if (!fs.existsSync(recorded)) return null;
   return fs.readFileSync(recorded, "utf8").trim().split("\n");
+};
+
+/** The `MUTATION_SCOPE` the stand-in saw, or null when it never ran. */
+const strykerScope = (root: string): string | null => {
+  const recorded = path.join(root, "stryker-scope.txt");
+  if (!fs.existsSync(recorded)) return null;
+  return fs.readFileSync(recorded, "utf8");
 };
 
 describe("path normalization", () => {
@@ -584,6 +593,34 @@ describe("the gate end to end", () => {
         "selected by stryker.conf.json:\n" +
         "   • src/guard.ts"
     );
+  });
+
+  it("tells Stryker's environment what the run was scoped to", () => {
+    // `MUTATION_SCOPE` is what lets a test-runner config narrow its own suite
+    // list to the guards actually being mutated — the dry run is otherwise the
+    // one cost a diff-scoped run cannot shrink. Documented and unproven is how
+    // a contract quietly stops holding, so it is asserted where it is set.
+    scenario([SRC_TS], [GUARD_TS, DOC]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(strykerScope(root)).toBe(GUARD_TS);
+  });
+
+  it("joins several selected files the way --mutate parses them", () => {
+    // One selected file hides the separator entirely: `join(",")` and
+    // `join("")` produce the same string. Two do not, and `--mutate` is a
+    // comma-separated list, so the separator is a real part of the contract.
+    scenario([SRC_TS], [GUARD_TS, "src/second.ts", DOC]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(strykerArgv(root)).toEqual([
+      "run",
+      "--mutate",
+      `${GUARD_TS},src/second.ts`,
+    ]);
+    expect(strykerScope(root)).toBe(`${GUARD_TS},src/second.ts`);
   });
 
   it("fails the gate when Stryker fails it", () => {
