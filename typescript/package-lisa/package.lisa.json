@@ -8,6 +8,7 @@
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
       "test:cov": "vitest run --coverage",
+      "test:cov:unit": "vitest run --coverage --exclude='**/integration/**'",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "vitest",
       "lint:fix": "oxlint --fix && eslint . --fix",
