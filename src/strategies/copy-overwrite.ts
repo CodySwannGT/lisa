@@ -6,6 +6,7 @@ import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
 import {
   classifyHostCopy,
   describePreserved,
+  describeUnclassifiable,
   mayRefreshLisaOwned,
 } from "../core/lisa-owned-provenance.js";
 import type { HashLedger } from "../core/lisa-owned-provenance.js";
@@ -213,6 +214,13 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
    * bytes cannot be read they cannot be classified, and a classifier that
    * defaults to "overwrite" when it is confused is the original defect wearing a
    * different hat.
+   *
+   * That sentence described the intent and not the code until now: an
+   * unreadable file returned `undefined`, which is this method's word for
+   * "nothing to preserve", and the caller carried straight on to the overwrite.
+   * `filesIdentical` swallows its own read errors and answers "differs", so an
+   * unreadable Lisa-owned guard reached here on every apply and was replaced
+   * without ever being classified. Now it is kept, and the reason is named.
    * @param sourcePath - Packaged template path
    * @param destPath - Installed file path
    * @param relativePath - Repo-relative path for reporting
@@ -229,7 +237,14 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       readFile(destPath).catch(() => undefined),
       readFile(sourcePath).catch(() => undefined),
     ]);
-    if (hostBytes === undefined || lisaBytes === undefined) return undefined;
+    if (hostBytes === undefined || lisaBytes === undefined) {
+      return {
+        relativePath,
+        strategy: this.name,
+        action: "host-ahead",
+        note: describeUnclassifiable(relativePath, hostBytes === undefined),
+      };
+    }
 
     const verdict = classifyHostCopy(
       relativePath,

@@ -43,6 +43,9 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 /** The capability token an upstream copy predating the hardening lacks. */
 const CAPABILITY = "git-config-key";
 
+/** The action a preserved Lisa-owned copy is reported under. */
+const HOST_AHEAD = "host-ahead";
+
 /** The check that implements it, and the only place this text appears. */
 const HARDENED_VECTOR = "git_config_key_";
 
@@ -123,7 +126,7 @@ describe("lisa apply on a repo carrying the current guard (#2577)", () => {
       promptedApplyContext()
     );
 
-    expect(result.action).toBe("host-ahead");
+    expect(result.action).toBe(HOST_AHEAD);
     expect(await fs.readFile(destFile, "utf8")).toBe(hostGuard);
   });
 
@@ -158,7 +161,63 @@ describe("lisa apply on a repo carrying the current guard (#2577)", () => {
       promptedApplyContext({ dryRun: true })
     );
 
-    expect(result.action).toBe("host-ahead");
+    expect(result.action).toBe(HOST_AHEAD);
+  });
+
+  it("keeps a copy it could not read rather than replacing it unclassified", async () => {
+    // `preserveIfHostAhead` returned `undefined` when either side could not be
+    // read, and `undefined` is this path's word for "nothing to preserve" — so
+    // the apply carried straight on and overwrote it. `filesIdentical` swallows
+    // its own read errors and answers "differs", so an unreadable Lisa-owned
+    // guard reached that branch on every apply.
+    //
+    // Unreadability is staged with a chmod, which is how it happens in the
+    // field. The first assertion is not decoration: a process that CAN still
+    // read the file has not staged the condition, and this must go red rather
+    // than pass having tested nothing.
+    await fs.chmod(destFile, 0o000);
+    await expect(fs.readFile(destFile, "utf8")).rejects.toThrow();
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GUARD,
+      promptedApplyContext()
+    );
+
+    expect(result.action).toBe(HOST_AHEAD);
+  });
+
+  it("says which side it could not read instead of inventing a verdict", async () => {
+    await fs.chmod(destFile, 0o000);
+    await expect(fs.readFile(destFile, "utf8")).rejects.toThrow();
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GUARD,
+      promptedApplyContext()
+    );
+
+    expect(result.note).toContain("could not read your project's copy");
+  });
+
+  it("keeps the host copy when Lisa's own packaged copy is the unreadable one", async () => {
+    // The symmetric case, staged as a directory so it holds regardless of which
+    // user the suite runs as. Either way `readFile` rejects, which is the only
+    // thing the branch under test looks at.
+    await fs.remove(srcFile);
+    await fs.ensureDir(srcFile);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GUARD,
+      promptedApplyContext()
+    );
+
+    expect(result.action).toBe(HOST_AHEAD);
+    expect(await fs.readFile(destFile, "utf8")).toBe(hostGuard);
   });
 
   it("still hands over Lisa's copy when the operator asked for it by name", async () => {
