@@ -67,13 +67,23 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * on its own, so the margin grows with that guard's coverage instead of being
  * eroded by it — which is exactly how the single-filename version went stale.
  *
- * And the two named guards are the two largest contributors of kills
+ * And the first two named guards are the two largest contributors of kills
  * (`lisa-work-item.mjs` 1,157 and `lisa-gates.mjs` 469 of 2,523), so the margin
  * is the widest obtainable rather than merely sufficient.
+ *
+ * `lisa-mutation.mjs` — the diff-only gate script itself — joined the mutate
+ * list and this set in the same change, and the second half is not optional. A
+ * new, well-covered target raises BOTH runs: its kills land in the intact run
+ * and, unless its suites are withheld, in the weakened one too. That is exactly
+ * the erosion recorded above, arriving from the other direction. Withholding a
+ * guard's suites can only ever REMOVE kills, so every guard added here moves the
+ * weakened score down and the margin up; adding a mutate target WITHOUT adding
+ * it here is the move that needs justifying.
  */
 const WITHHELD_GUARDS = [
   "all/copy-overwrite/scripts/lisa-work-item.mjs",
   "all/copy-overwrite/scripts/lisa-gates.mjs",
+  "typescript/copy-overwrite/scripts/lisa-mutation.mjs",
 ];
 
 /** How Stryker reports a score at or above the threshold: score, threshold. */

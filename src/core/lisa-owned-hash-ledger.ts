@@ -362,6 +362,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
   ]),
   "scripts/lisa-mutation.mjs": Object.freeze([
+    "227dfa273802d6a5c03c3bf67136b743de98370127c7417db454f2e7424e98a0",
     "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "7d8d24dea151ef2178807046e97aea7ebfadd9c88eb50347feb7bb4bb190227d",
     "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
@@ -377,6 +378,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "9b613888c4c1cc6cc2b1fb6e162a4c766012eab0ec4f8b7f2ac1bc3da6622c97",
   ]),
   "scripts/lisa-run-gates.mjs": Object.freeze([
+    "080c69ab998309a0a8b4f3be74c445056da02f1403c5654bea13477fc3178604",
     "0978ac24f28bf9f11230781d271997384009b1528ed61de523333e52a5a4cf57",
     "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
     "94453bdae8ab3dd2eba0883c4b278027396090e0bdc8e2f102414abc6415912a",

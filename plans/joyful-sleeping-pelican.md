@@ -6,7 +6,7 @@ The Jest→Vitest infrastructure migration (Phases 0-7) is complete for Lisa, Ty
 
 1. **CDK/infrastructure projects** — were initially excluded but should migrate to Vitest (CDK tests use Template assertions, not jest.fn/mock, so migration is clean)
 2. **acme-product-b** — merged with Jest preserved, needs test file transformation (48 files, 5 with `jest.isolateModules`)
-3. **NestJS backends** (acmeorga/backend, acmeorgb/backend-v2, thumbwar/backend) — PRs open with vitest config but test files still use Jest APIs via compat shim
+3. **NestJS backends** (acmeorga/backend, acmeorgb/backend-v2, acmeorgd/backend) — PRs open with vitest config but test files still use Jest APIs via compat shim
 
 **Goal:** After this work, only Expo projects should have Jest. All TypeScript, NestJS, CDK, and npm-package projects use Vitest.
 
@@ -79,7 +79,7 @@ Transform test files in downstream projects from Jest APIs to Vitest APIs.
 
 ### B1. Mechanical transformations (all projects)
 
-Applied to: acme-product-b, acmeorga/backend, acmeorgb/backend-v2, thumbwar/backend
+Applied to: acme-product-b, acmeorga/backend, acmeorgb/backend-v2, acmeorgd/backend
 
 For every `.test.ts` and `.spec.ts` file:
 - `jest.fn()` → `vi.fn()`
@@ -146,8 +146,8 @@ NestJS projects had test execution commented out in `.husky/pre-push`. Re-enable
 After Lisa publishes CDK vitest support:
 - acmeorga/infrastructure → main (new PR, previous one already merged with Jest)
 - acmeorgb/infrastructure-v2 → main (new PR)
-- qualis/infrastructure → main (new PR)
-- thumbwar/infrastructure → main (update existing PR #75 or new PR)
+- acmeorgc/infrastructure → main (new PR)
+- acmeorgd/infrastructure → main (update existing PR #75 or new PR)
 
 CDK tests don't use jest.fn(), so no codemod needed — just config swap.
 
@@ -156,7 +156,7 @@ CDK tests don't use jest.fn(), so no codemod needed — just config swap.
 - acmeorgb/acme-product-b → dev (update existing merged code, new PR)
 - acmeorga/backend → staging (update existing open PR #571)
 - acmeorgb/backend-v2 → dev (update existing open PR #612)
-- thumbwar/backend → main (update existing open PR #113)
+- acmeorgd/backend → main (update existing open PR #113)
 
 ---
 
@@ -176,7 +176,7 @@ After each phase:
 - `bun run build && bun run test && bun run typecheck && bun run lint`
 - For downstream: `bun test` locally before pushing
 - Watch CI checks pass before merging
-- Verify deploys succeed (except thumbwar — expected to fail)
+- Verify deploys succeed (except acmeorgd — expected to fail)
 
 ## Sessions
 

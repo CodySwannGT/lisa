@@ -2,13 +2,13 @@
 
 ## Summary
 
-Run Lisa v1.15.0 against `acmeorgb/backend-v2` and `thumbwar/backend` to bring them up from v1.12.1. This mirrors the frontend sync already completed for acmeorga, acmeorgb, and thumbwar frontends.
+Run Lisa v1.15.0 against `acmeorgb/backend-v2` and `acmeorgd/backend` to bring them up from v1.12.1. This mirrors the frontend sync already completed for acmeorga, acmeorgb, and acmeorgd frontends.
 
 ## Branch Strategy
 
 - **Lisa repo**: Already on `fix/expo-knip-and-tsconfig` with open PR #137 to `main`. Any Lisa template changes push here.
 - **acmeorgb/backend-v2**: Currently on `dev` (protected). Create `chore/lisa-sync-v1.15` from `dev`. PR targets `dev`.
-- **thumbwar/backend**: Currently on `main` (protected). Create `chore/lisa-sync-v1.15` from `main`. PR targets `main`.
+- **acmeorgd/backend**: Currently on `main` (protected). Create `chore/lisa-sync-v1.15` from `main`. PR targets `main`.
 
 ## What Lisa Sync Will Do
 
@@ -49,7 +49,7 @@ The critical manual step is migrating project-specific Jest config into the new 
 
 **`jest.thresholds.json`**: Default 70/70/70/70 matches — no overrides needed (use template default).
 
-### thumbwar/backend
+### acmeorgd/backend
 
 **`jest.config.local.ts`** needs:
 - `rootDir` override: `"."` (template uses `"src"` — need to check which is correct for this project)
@@ -63,7 +63,7 @@ The critical manual step is migrating project-specific Jest config into the new 
 
 ## Post-Sync Cleanup
 
-### thumbwar/backend — Delete legacy files
+### acmeorgd/backend — Delete legacy files
 - `eslint.base.mjs` (replaced by `eslint.base.ts`)
 - `eslint.config.mjs` (replaced by `eslint.config.ts`)
 - `eslint.slow.config.mjs` (replaced by `eslint.slow.config.ts`)
@@ -87,7 +87,7 @@ bun run knip
 
 ## Execution Order
 
-Sequential: acmeorgb/backend-v2 first, then thumbwar/backend. The first sync may reveal issues that inform the second.
+Sequential: acmeorgb/backend-v2 first, then acmeorgd/backend. The first sync may reveal issues that inform the second.
 
 ## Skills Used
 
@@ -104,16 +104,16 @@ Create tasks using `TaskCreate` with the following items. Subagents should handl
 3. **Post-sync cleanup for acmeorgb/backend-v2** — Remove duplicate scripts, verify package.lisa.json, run `bun install`
 4. **Verify acmeorgb/backend-v2** — Run `bun run typecheck`, `bun run test`, `bun run lint`, `bun run format:check`, `bun run knip`. Fix any failures.
 5. **Commit and PR for acmeorgb/backend-v2** — Use `/git:commit` then `/git:submit-pr` targeting `dev`
-6. **Create branch and run Lisa sync on thumbwar/backend** — `cd /Users/cody/workspace/thumbwar/backend && git checkout -b chore/lisa-sync-v1.15 main`, then `cd /Users/cody/workspace/lisa && bun run dev /Users/cody/workspace/thumbwar/backend -y`
-7. **Migrate thumbwar jest config to modular structure** — Move project-specific settings (testRegex `.test.ts`, rootDir `.`, coverage exclusions, moduleNameMapper) into `jest.config.local.ts`, set `jest.thresholds.json` with `{ "global": { "branches": 70, "functions": 68, "lines": 77, "statements": 77 } }`
-8. **Post-sync cleanup for thumbwar/backend** — Delete 4 legacy files (`eslint.base.mjs`, `eslint.config.mjs`, `eslint.slow.config.mjs`, `eslint.thresholds.config.json`), remove duplicate scripts, run `bun install`
-9. **Verify thumbwar/backend** — Run `bun run typecheck`, `bun run test`, `bun run lint`, `bun run format:check`, `bun run knip`. Fix any failures.
-10. **Commit and PR for thumbwar/backend** — Use `/git:commit` then `/git:submit-pr` targeting `main`
+6. **Create branch and run Lisa sync on acmeorgd/backend** — `cd /Users/cody/workspace/acmeorgd/backend && git checkout -b chore/lisa-sync-v1.15 main`, then `cd /Users/cody/workspace/lisa && bun run dev /Users/cody/workspace/acmeorgd/backend -y`
+7. **Migrate acmeorgd jest config to modular structure** — Move project-specific settings (testRegex `.test.ts`, rootDir `.`, coverage exclusions, moduleNameMapper) into `jest.config.local.ts`, set `jest.thresholds.json` with `{ "global": { "branches": 70, "functions": 68, "lines": 77, "statements": 77 } }`
+8. **Post-sync cleanup for acmeorgd/backend** — Delete 4 legacy files (`eslint.base.mjs`, `eslint.config.mjs`, `eslint.slow.config.mjs`, `eslint.thresholds.config.json`), remove duplicate scripts, run `bun install`
+9. **Verify acmeorgd/backend** — Run `bun run typecheck`, `bun run test`, `bun run lint`, `bun run format:check`, `bun run knip`. Fix any failures.
+10. **Commit and PR for acmeorgd/backend** — Use `/git:commit` then `/git:submit-pr` targeting `main`
 11. **Update/add/remove tests** — Verify existing tests still pass in both repos after config migration. No new tests needed (config-only changes).
 12. **Update/add/remove documentation** — Update JSDoc preambles in any new `jest.config.local.ts` files. No markdown doc changes expected.
 13. **Archive this plan** — Create folder `sync-nestjs-backends` in `./plans/completed/`, rename this plan to `sync-nestjs-backends.md`, move it into `./plans/completed/sync-nestjs-backends/`, read session IDs from the plan file, move `~/.claude/tasks/<session-id>` directories to `./plans/completed/sync-nestjs-backends/tasks`
 
-Tasks 1-5 are sequential (acmeorgb). Tasks 6-10 are sequential (thumbwar). Tasks 11-12 can run in parallel after tasks 4 and 9 complete. Task 13 runs last after all others complete.
+Tasks 1-5 are sequential (acmeorgb). Tasks 6-10 are sequential (acmeorgd). Tasks 11-12 can run in parallel after tasks 4 and 9 complete. Task 13 runs last after all others complete.
 
 ## Critical Files
 
@@ -122,6 +122,6 @@ Tasks 1-5 are sequential (acmeorgb). Tasks 6-10 are sequential (thumbwar). Tasks
 - `typescript/copy-overwrite/jest.base.ts` — Shared jest utilities (mergeConfigs, mergeThresholds)
 - `nestjs/package-lisa/package.lisa.json` — NestJS package.json governance
 - `acmeorgb/backend-v2/jest.config.ts` — 99-line custom config to decompose
-- `thumbwar/backend/jest.config.ts` — 41-line custom config to decompose
+- `acmeorgd/backend/jest.config.ts` — 41-line custom config to decompose
 
 ## Sessions
