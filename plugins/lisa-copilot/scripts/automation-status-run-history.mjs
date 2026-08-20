@@ -19,6 +19,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import {
+  automationRunQuarantinePath,
   automationRunRecordPath,
   readAutomationRunRecords,
 } from "./automation-run-record.mjs";
@@ -59,6 +60,8 @@ const NO_RECORDED_RUNS_LINE = "no recorded runs yet";
  *   readonly recoveryRequiredStreak: number
  *   readonly recoverySummaries: readonly string[]
  *   readonly skippedCorruptLines: number
+ *   readonly recordsPath: string
+ *   readonly quarantinePath: string
  * }} AutomationRunDisplay
  */
 
@@ -75,9 +78,9 @@ const NO_RECORDED_RUNS_LINE = "no recorded runs yet";
 export async function resolveAutomationRunDisplay(input) {
   const projectRoot = path.resolve(input.projectRoot ?? process.cwd());
   const runbook = await resolveRunbookLine(projectRoot, input.runbookPath);
-  const { records, skippedCorruptLines } = await readAutomationRunRecords(
-    automationRunRecordPath(projectRoot, input.loopId)
-  );
+  const recordsPath = automationRunRecordPath(projectRoot, input.loopId);
+  const { records, skippedCorruptLines } =
+    await readAutomationRunRecords(recordsPath);
 
   const newestFirst = records.toReversed();
   const latest = records.at(-1);
@@ -101,6 +104,34 @@ export async function resolveAutomationRunDisplay(input) {
     recoveryRequiredStreak: trailingRecovery.length,
     recoverySummaries: trailingRecovery.map(record => record.summary),
     skippedCorruptLines,
+    recordsPath,
+    quarantinePath: automationRunQuarantinePath(projectRoot, input.loopId),
+  };
+}
+
+/**
+ * Report a ledger holding rows this module cannot read as drift.
+ *
+ * `skippedCorruptLines` was computed on every read, returned by both the read
+ * and the write path, and destructured by every caller — and printed by none
+ * of them. A counter nobody reads is not a control, and this one guarded the
+ * only evidence that a loop's own history had been damaged (#2578).
+ *
+ * `DRIFTED`, not `FAILING`: the ledger is local scheduler state, and rows it
+ * cannot read say nothing about whether the loop is doing its job. Escalating
+ * it to a loop failure would misattribute a storage problem to the automation
+ * and bury the real health signal underneath it.
+ * @param {AutomationRunDisplay | undefined} runDisplay
+ * @returns {{ readonly status: "DRIFTED", readonly summary: string, readonly remediation: string } | null}
+ */
+export function resolveLedgerIntegrityFinding(runDisplay) {
+  if (!runDisplay || runDisplay.skippedCorruptLines < 1) {
+    return null;
+  }
+  return {
+    status: "DRIFTED",
+    summary: `${runDisplay.skippedCorruptLines} stored run record(s) in this loop's history cannot be read`,
+    remediation: `Open ${runDisplay.recordsPath} and look at the lines that are not valid run records. They are left exactly as written and are left out of the history above, so the outcomes shown are an incomplete picture. Nothing deletes them: each is copied to ${runDisplay.quarantinePath} before the history bound would evict it. Fix or remove those lines and this stops being reported.`,
   };
 }
 
