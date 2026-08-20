@@ -1969,21 +1969,26 @@ function gateSummary(contract) {
  * at the earliest moment they are known, rather than at the next moment they
  * happen to be enforced.
  *
- * Resolving the contract can itself fail, and a configuration fault must not be
- * replaced by a different error while trying to be helpful about it: when no
- * role names resolve there is no honest checklist to print, so the original
- * refusal stands alone.
+ * Re-resolving the contract here is safe rather than lucky, and the reason is
+ * worth writing down because the obvious defensive try/catch around it is DEAD
+ * CODE. Every caller reaches this only after a refusal, and both refusal paths
+ * — `validateMessage` and `validateCommits` — call `trackerContract()` as their
+ * first real step. So either the contract resolves, and resolving it a second
+ * time from the same files resolves again; or it does not, in which case the
+ * refusal being decorated IS the configuration error and re-resolving rethrows
+ * that identical error. There is no third case, and no input reaches a branch
+ * where the original message could be lost.
+ *
+ * That was established by mutation: a guard clause was written here first, with
+ * a test for it, and deleting the guard left the test passing. An unreachable
+ * branch and a test that cannot fail are the same defect wearing two hats.
  * @param {Error} error The refusal as raised.
- * @returns {Error} The refusal, with the checklist when one can be built.
+ * @returns {Error} The refusal, with the checklist appended.
  */
 function withGateSummary(error) {
-  try {
-    return new TrackingError(
-      `${error.message}\n${gateSummary(trackerContract())}`
-    );
-  } catch {
-    return error;
-  }
+  return new TrackingError(
+    `${error.message}\n${gateSummary(trackerContract())}`
+  );
 }
 
 /**
