@@ -23,7 +23,7 @@ A library with a mature colour system and no spacing scale is the common case an
 
 **Staleness is self-detecting, and that is what makes a committed map safe to trust.** An id the map has never seen fails loudly telling you to regenerate; it never silently resolves to the wrong variable.
 
-**Measure the subtree you are implementing, not the enclosing screen.** A frame-level read counts the chrome behind a modal and over-reports — one measured work item scored 14 bound values at frame level and zero inside the modal subtree it actually had to build.
+**Measure the subtree you are implementing, not the enclosing screen.** A frame-level read counts the chrome behind a modal and over-reports — one measured work item scored 14 bound values at frame level and zero inside the modal subtree it actually had to build. **That distinction is decision-changing, not a refinement**: applying it moved 5 of 11 real work items between build and block.
 
 ## Block on *unbound*, never on *unsure*
 
@@ -43,6 +43,24 @@ This distinction is the whole contract. "I cannot tell what they meant" is a jud
 - One-off values that are not semantic (an illustration's exact offset).
 - Anything where a token exists and is bound — the happy path.
 - **Aesthetic uncertainty.** If every value needed is bound and the agent merely finds the design ambiguous or ugly, that is an opinion, not a block.
+
+## Why this is a block and not a warning — the measured case
+
+An agent that had read this contract, and cited it in the briefing it wrote for its own build agents, instructed them in that same briefing to **"snap unbound dimensions via the snap tables (ties round down) and flag the rest."** A block downgraded to a warning, by the agent enforcing it, inside the document enforcing it — not from ignorance, but from reasoning around it under delivery pressure with eleven work items queued and blocking feeling like not-shipping. It took a human restating the rule as an absolute for the instruction to be withdrawn.
+
+Coverage measured afterwards, on the subtrees actually being implemented:
+
+| frames | colour | spacing | radius | reality |
+|---|---|---|---|---|
+| compliance screens | 96-100% | 82-97% | 88-93% | design-system composed |
+| edit-KPI / target dialogs | **100%** | **0%** | **0%** | colours bound, geometry never bound |
+| planning mockups | **1-4%** | **0-2%** | **0-3%** | hand-drawn, effectively unbound |
+
+**Five of the eleven items blocked back to design; six proceeded.** One modal's subtree contained **zero variable references** — under snap-and-flag an agent would have produced a complete, lint-clean, tested component **in which every style value was invented**, and shipped it with a note. Five view files were written before it was stopped.
+
+Blocking cost far less than it appeared it would: the non-visual half of the blocked work — domain types, adapters, CRUD, formatters — was completed and preserved. That is the answer to the delivery-pressure reasoning that produced the softening. And the contract holds once it is absolute rather than advisory: one agent withdrew a radius class it had already applied on finding `radius/none` was the only radius bound in its subtree; another refused to build an icon disc whose diameter and radius were both unbound rather than pick a size.
+
+**A gate that depends on an agent choosing to honour it under delivery pressure is not a gate.** That is why this contract has an executable, headless rung at all — the judgment-based version demonstrably failed in the hands of an agent that had read the rule and agreed with it.
 
 ## What visual matching is for, precisely
 
