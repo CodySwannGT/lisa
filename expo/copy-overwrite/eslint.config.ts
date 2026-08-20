@@ -24,6 +24,7 @@ import {
   defaultIgnores,
   defaultThresholds,
   getExpoConfig,
+  readTypedAxes,
 } from "@codyswann/lisa/eslint/expo";
 
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
@@ -47,6 +48,13 @@ const localIgnores: string[] = existsSync(
   ? (require("./eslint.ignore.config.local.json").ignores ?? [])
   : [];
 
+// Arm ui-standards/no-unbound-design-value from `design.tokens.axes` in
+// .lisa.config.json. Declaring an axis is what arms the rule; declaring none
+// leaves it silent. Read here, at config load, exactly like
+// eslint.thresholds.json and eslint.ignore.config.json above — so there is no
+// generation step and nothing that can go stale against the config (#2807).
+const typedAxes = readTypedAxes(__dirname);
+
 // Type only the managed factory result, then trust project-owned additions at
 // their spread boundary. The double assertion is intentional: one custom-plugin
 // entry can be structurally different enough for a direct cast to raise TS2352,
@@ -66,6 +74,7 @@ const config: ReturnType<typeof getExpoConfig> = [
     ],
     thresholds: { ...defaultThresholds, ...thresholdsConfig },
     sourceRoot,
+    typedAxes,
   }),
   ...(localConfig as unknown as ReturnType<typeof getExpoConfig>),
 ];
