@@ -1856,9 +1856,10 @@ const SCOPE_ORDER = [OUTSIDE_THIS_PR, IN_THIS_PR];
 /**
  * Validate the commits, keeping a refusal rather than aborting the run.
  *
- * The pull-request gate checks four separate things and used to stop at the
+ * The pull-request gate checks several separate things and used to stop at the
  * first unmet one, so each CI cycle revealed exactly one requirement. It knew
- * the rest at the same moment; it was simply not saying.
+ * the rest at the same moment; it was simply not saying. See `gateSummary` for
+ * the full count, which is five and was itself miscounted as four.
  * @param {string[]} commits Commits in the pull request range.
  * @returns {{result?: object, error?: Error}} Outcome, never a throw.
  */
@@ -1914,35 +1915,75 @@ function backlinkAdvice(ref, prUrl, contract) {
 }
 
 /**
- * The four gates a work item passes on its way to merged, and when each bites.
+ * The FIVE gates a work item passes on its way to merged, and when each bites.
  *
- * They are four separate checks, enforced in four different places, at four
- * different moments — so clearing three says nothing about the fourth, and the
- * reader has no way to learn the fourth exists until it goes red. Measured: two
- * agents in one day each satisfied three and were surprised by the remaining
- * one, on a pull request that was otherwise finished.
+ * They are five separate checks, enforced in five different places, at five
+ * different moments — so clearing four says nothing about the fifth, and the
+ * reader has no way to learn the fifth exists until it goes red. Measured: two
+ * agents in one day each satisfied three of them and were surprised by another,
+ * on a pull request that was otherwise finished.
  *
- * Listing all four in the report an operator actually reads costs five lines
- * and turns a sequence of surprises into one checklist. The role NAMES come
- * from the resolved contract rather than from Lisa's own defaults, because a
- * project configures its own, and a summary that confidently names the wrong
- * label is worse than none.
+ * This said FOUR until #2681 counted them properly. Gates 3 and 4 shared a
+ * line — "every commit AND the pull-request body carry ONE matching trailer" —
+ * which reads as one requirement and is two: the commit-msg hook enforces the
+ * message, and a separate check enforces the BODY. An operator whose commits
+ * carried the trailer read that line as cleared. Measured: an agent went
+ * BLOCKED on "No Work-Item trailer anywhere in the pull request body" holding a
+ * commit that carried the trailer, an item in the claimed role, and a backlink
+ * already posted — four of the five satisfied, and the fifth invisible until CI
+ * said so, one cycle later.
+ *
+ * `Closes owner/repo#N` is called out by name because it is the substitution a
+ * reader reaches for: it closes the item on merge and satisfies nothing here.
+ *
+ * Listing all five in the report an operator actually reads costs six lines and
+ * turns a sequence of surprises into one checklist. The role NAMES come from
+ * the resolved contract rather than from Lisa's own defaults, because a project
+ * configures its own — lifecycle is a workflow STATE on Jira and Linear and a
+ * LABEL only on GitHub — and a summary that confidently names the wrong label
+ * is worse than none.
  * @param {object} contract Resolved tracker contract.
  * @returns {string} The checklist.
  */
 function gateSummary(contract) {
   const backlink =
     contract.verify === "full"
-      ? `4. the item carries a managed \`${MARKER}\` backlink comment to this pull request — checked here, at CI time, and only under workItem.verify "full"`
-      : `4. the tracker backlink is NOT required here: workItem.verify is "trailer", so this run contacted no tracker`;
+      ? `5. the item carries a managed \`${MARKER}\` backlink comment to this pull request — checked at push once a pull request exists, again at CI time, and only under workItem.verify "full"`
+      : `5. the tracker backlink is NOT required here: workItem.verify is "trailer", so this run contacted no tracker`;
   return [
     "",
-    "All four gates, and when each one bites:",
+    "All five gates, and when each one bites:",
     `  1. the item carries the ready role "${contract.lifecycle.ready}" — required before the work may be created or claimed`,
     `  2. the item carries the claimed role "${contract.lifecycle.claimed}" — required by the commit-msg hook, on every single commit`,
-    "  3. every commit AND the pull-request body carry ONE matching `Work-Item:` trailer — required on commit, on push, and here",
+    "  3. every commit message carries ONE matching `Work-Item:` trailer — required by the commit-msg hook, on every single commit",
+    "  4. the pull-request BODY carries that same `Work-Item:` trailer — a SEPARATE check from gate 3, run at push once a pull request exists and again at CI time; `Closes owner/repo#N` does NOT satisfy it",
     `  ${backlink}`,
   ].join("\n");
+}
+
+/**
+ * The same refusal, with the whole checklist appended.
+ *
+ * Used where a check knows only its OWN gate — the commit-msg hook, and a push
+ * with no pull request yet — so that the gates it cannot check are still named
+ * at the earliest moment they are known, rather than at the next moment they
+ * happen to be enforced.
+ *
+ * Resolving the contract can itself fail, and a configuration fault must not be
+ * replaced by a different error while trying to be helpful about it: when no
+ * role names resolve there is no honest checklist to print, so the original
+ * refusal stands alone.
+ * @param {Error} error The refusal as raised.
+ * @returns {Error} The refusal, with the checklist when one can be built.
+ */
+function withGateSummary(error) {
+  try {
+    return new TrackingError(
+      `${error.message}\n${gateSummary(trackerContract())}`
+    );
+  } catch {
+    return error;
+  }
 }
 
 /**
@@ -2366,9 +2407,18 @@ function validateCommit(args) {
   const file = args[0];
   if (!file)
     throw new TrackingError("validate-commit requires the commit message file");
-  const result = validateMessage(readFileSync(file, "utf8"), {
-    allowInProgressMerge: true,
-  });
+  let result;
+  try {
+    result = validateMessage(readFileSync(file, "utf8"), {
+      allowInProgressMerge: true,
+    });
+  } catch (error) {
+    // The commit-msg hook is the EARLIEST moment an operator meets any of this,
+    // and all five gates are knowable here even though only two are enforced
+    // here. Withholding the other three buys nothing and costs a CI cycle each.
+    if (!(error instanceof TrackingError)) throw error;
+    throw withGateSummary(error);
+  }
   console.log(`WORK_ITEM_TRACKING_OK ${result.exempt ?? result.ref}`);
 }
 
@@ -2378,11 +2428,13 @@ function validatePush(args) {
   const outcome = commitOutcome(parsePushLines(input, remote));
   const pr = currentPullRequest();
   if (!pr) {
-    // No pull request means no body and no backlink to check, so there is
-    // nothing to report alongside a commit refusal — raise it as it stands.
-    if (outcome.error) throw outcome.error;
+    // No pull request means gates 4 and 5 cannot be CHECKED here. They are
+    // still perfectly well KNOWN here, and this is the last local moment before
+    // CI — so the checklist goes out either way. Saying nothing is precisely
+    // what made those two gates separate CI-cycle surprises (#2681).
+    if (outcome.error) throw withGateSummary(outcome.error);
     console.log(
-      `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s); no pull request exists yet, CI will verify PR linkage`
+      `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s); no pull request exists yet, so gates 4 and 5 could not be checked here — CI will verify both${gateSummary(outcome.result.contract)}`
     );
     return;
   }
