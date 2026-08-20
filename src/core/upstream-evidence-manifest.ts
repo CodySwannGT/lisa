@@ -727,7 +727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/sonar-secrets.sh":
       "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
+      "13808dd202fbd7539ee1ea198b7998d9912e93389d3faf6920c428eb6a857e5e",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
@@ -2083,7 +2083,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
+      "b5e064971bc29a052ee3757c24696c2fd8c2cd83cd3200a2420dba52351c395c",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
     "rails/copy-overwrite/sgconfig.yml":
@@ -2349,7 +2349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
+      "b5e064971bc29a052ee3757c24696c2fd8c2cd83cd3200a2420dba52351c395c",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
     "typescript/copy-overwrite/sgconfig.yml":
@@ -9239,6 +9239,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
+    "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-promotion.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-symlinked-entry.test.ts": true,
