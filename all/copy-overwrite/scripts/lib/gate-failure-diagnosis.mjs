@@ -57,8 +57,16 @@ const THRESHOLD_PATTERN =
 /** vitest's tally line: `Tests  4 failed | 14272 passed (14276)`. */
 const TALLY_PATTERN = /Tests\s+(\d+) failed/;
 
-/** A failing suite header: ` FAIL  tests/unit/foo.test.ts > does a thing`. */
-const FAIL_PATTERN = /^\s*FAIL\s+(\S+)/gm;
+/**
+ * A failing suite header: ` FAIL  tests/unit/foo.test.ts > does a thing`.
+ *
+ * Horizontal whitespace only, never `\s`. Under the `m` flag `^\s*` can consume
+ * newline after newline before failing, which is super-linear backtracking on
+ * exactly the input this module is fed: a multi-megabyte suite transcript. The
+ * shipped ruleset refuses it, and this is a parser reading untrusted-sized
+ * output inside a git hook, so the refusal is right.
+ */
+const FAIL_PATTERN = /^[ \t]*FAIL[ \t]+(\S+)/gm;
 
 /**
  * Which gate's property each kind of failure actually belongs to.

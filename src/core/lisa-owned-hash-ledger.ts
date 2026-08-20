@@ -202,6 +202,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
+    "503b51e9239411d07ce6b51dbe2b3079bb12e94bf7c0310e76247af19ff667e6",
     "6b72a6a71078c838fdb0531e74898a5e36d942cad424b20480e2cd370b5264eb",
     "d234617dc907bb563455419957f2f419702fcd1c10b9d39e19d5bab8ca962008",
     "e07bab7dc4c4c296e2007cf26fab694b1238545dc37816e88d849606d8f9e760",
