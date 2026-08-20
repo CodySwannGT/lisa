@@ -182,6 +182,28 @@ describe("Implement tracked-work gate", () => {
   });
 });
 
+describe("the work-item guard reads no OS keychain", () => {
+  // The rung this pins removed read as a fallback and was, on the machines that
+  // ran it, the SOLE Linear token source — the two environment variables above
+  // it were unset. It also regenerated itself: an agent blocked by the hook
+  // opened the guard, found the keychain call, and adopted the deprecated path.
+  // Three did so in one day, which is why the assertion is on the shipped bytes
+  // and not only on behaviour. The service name is deliberately reconstructed
+  // rather than written as a literal, so this file does not reintroduce the
+  // string it exists to keep out.
+  const DEPRECATED_ENTRY = ["lisa", "linear"].join("-");
+
+  it.each([
+    "all/copy-overwrite/scripts/lisa-work-item.mjs",
+    "scripts/lisa-work-item.mjs",
+  ])("%s consults no keychain", file => {
+    const source = read(file);
+
+    expect(source).not.toContain("find-generic-password");
+    expect(source).not.toContain(DEPRECATED_ENTRY);
+  });
+});
+
 describe("tracked-work rules", () => {
   it.each(["eager", "reference"] as const)(
     "%s rule pins the invariant",
