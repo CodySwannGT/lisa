@@ -177,9 +177,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/.easignore.extra":
       "1d30dac09405c41e23f6212553abacea478d7759b69c18edac0c0053f00e0d37",
     "expo/copy-overwrite/eslint.config.ts":
-      "b5880798d99ea6eb02bc665b6d7a4d6fa51ed80374646e54b06d280624175753",
+      "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "9909cdb039dbf4ea4f2b9724b7b0fce65465aac278dc762309c4637af5b8dd7b",
+      "31ec984b1922dbd8c177588d37a8d6c25bc5e91063186cc8d60197c83f6c707f",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -873,7 +873,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
     "plugins/src/base/rules/reference/design-value-binding.md":
-      "2df41a214d1ab224a61b08c638d17a584e6b1a670bcf1db47b00a76a9f64a921",
+      "d93b79608cd7d6b5795a46c103a0cfa54d7b96d193058d08ce2139709353a008",
     "plugins/src/base/rules/reference/do-it-now.md":
       "46fdcc335e115d0f387af398789f443ef8dd3ab17de5f7d95120c31f913a8fce",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
@@ -2228,6 +2228,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
     "scripts/lisa-github-rulesets.sh":
       "3e496f8d2d294d68c9f4d156684943dd2c7e35f2aaccf476ea4c7309c3a57b77",
+    "scripts/lisa-mutation.mjs":
+      "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
@@ -2291,7 +2293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "e37bf7e8e49139fd726bda6bfeb69dd30008d8e5d14fa562a3ff4f541f217e6f",
     "typescript/copy-contents/.husky/pre-push":
-      "7569605ea9a0cf6444cfd7271edaa8e7d04b8d26a469176bace602518cec03c8",
+      "a8005d506320dafe752aa9bc2d59c3f6cc787eded92dacf3990ecc8e9ec1e0f4",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -2347,7 +2349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
+      "227dfa273802d6a5c03c3bf67136b743de98370127c7417db454f2e7424e98a0",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2774,6 +2776,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "harper-fabric/merge/.oxlintrc.json": true,
     "harper-fabric/package-lisa/package.lisa.json": true,
     "knip.json": true,
+    "mutation.gate.json": true,
     "nestjs/copy-overwrite/eslint.config.ts": true,
     "nestjs/copy-overwrite/eslint.nestjs.ts": true,
     "nestjs/copy-overwrite/eslint.slow.config.ts": true,
@@ -8276,6 +8279,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-github-repo-settings.sh": true,
     "scripts/lisa-github-repo-setup.sh": true,
     "scripts/lisa-github-rulesets.sh": true,
+    "scripts/lisa-mutation.mjs": true,
     "scripts/lisa-remote-env/session-start.sh": true,
     "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-update-local.sh": true,
@@ -8467,6 +8471,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/apply-receipt.ts": true,
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
+    "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
     "src/core/git-service.ts": true,
     "src/core/guard-capabilities.ts": true,
@@ -8775,6 +8780,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
     "tests/integration/mutation-gate-bite.test.ts": true,
+    "tests/integration/mutation-gate-diff-bite.test.ts": true,
     "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
@@ -8960,6 +8966,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
+    "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
     "tests/unit/config/gitleaks-template.test.ts": true,
@@ -9201,6 +9208,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
+    "tests/unit/scripts/lisa-mutation-gate.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
