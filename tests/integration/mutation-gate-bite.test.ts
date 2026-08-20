@@ -3,19 +3,25 @@
  *
  * A gate that cannot fail is the exact defect this gate was built to catch, so
  * asserting its wiring is not enough — something has to weaken a guard's tests
- * and watch the gate go red. That is what this does: it runs the real gate over
- * one guard script twice, once with every suite that reaches it and once with a
- * suite withheld, and requires the first to pass and the second to fail.
+ * and watch the gate go red. That is what this does: it runs the gate that
+ * actually guards pull requests, twice, once with every suite and once with one
+ * withheld, and requires the first to pass and the second to fail.
+ *
+ * **It runs the COMMITTED configuration, and overrides no threshold.** An
+ * earlier draft mutated a single guard against a threshold of 45 invented for
+ * the occasion. It went red, which looked like proof and was not: the withheld
+ * run scored 36.27, and 36.27 passes the real floor of 32. The test failed only
+ * because of the substituted number, so it proved the gate could fail in a
+ * world that does not exist — a bite test that cannot bite, inside the gate
+ * built to find those. Hence {@link assertNoSyntheticThreshold}: the threshold
+ * Stryker reports back is compared against the committed one on every run, so
+ * reintroducing an override fails this test by name instead of quietly
+ * restoring the illusion.
  *
  * The weakening is withholding a suite rather than editing assertions on disk,
  * for two reasons. It is the same thing mechanically — a test that no longer
  * runs cannot kill a mutant, which is what a gutted assertion amounts to — and
  * it cannot leave the working tree modified if the process dies mid-run.
- *
- * The three scores are asserted in relation to each other, not just the two exit
- * codes. If someone strengthens the remaining suites until the weakened run
- * clears the threshold, this test must fail loudly rather than keep passing
- * while proving nothing.
  * @module tests/integration/mutation-gate-bite
  */
 import { execFileSync } from "node:child_process";
@@ -25,32 +31,34 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { suitesByGuard } from "../../vitest.config.mutation";
+import { suitesReachingGuards } from "../../vitest.config.mutation";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 
-/** The guard the bite test mutates — several suites reach it, so one can go. */
-const GUARD = "all/copy-overwrite/scripts/lisa-run-gates.mjs";
-
-/** The suite withheld to weaken the guard's tests. */
-const WITHHELD = "tests/unit/scripts/lisa-run-gates.test.ts";
-
 /**
- * Break threshold for both runs.
+ * The suite withheld to weaken the guards' tests.
  *
- * Chosen to sit between the two measured scores (48.59 with every suite, 36.27
- * with {@link WITHHELD} gone) so the same threshold passes one run and fails the
- * other. The assertions below re-derive that ordering from the live scores, so a
- * shift in either direction reports itself instead of quietly disarming this.
+ * Chosen by measurement, not by eye. Withholding it takes the whole gate from
+ * 32.14 to 28.72 against a committed floor of 32 — a 3.42-point margin, the
+ * widest of the candidates tried, so an ordinary improvement elsewhere in the
+ * suite cannot quietly lift the weakened run back over the line. Withholding
+ * `lisa-reconcile-policy-verdicts` also works (31.02) but leaves under a point
+ * of room.
  */
-const BREAK = 45;
+const WITHHELD = "tests/unit/scripts/lisa-gates.test.ts";
 
-/** How Stryker reports a score at or above the threshold. */
-const PASSED = /score of ([\d.]+) is greater than or equal to break threshold/;
+/** How Stryker reports a score at or above the threshold: score, threshold. */
+const PASSED =
+  /score of ([\d.]+) is greater than or equal to break threshold ([\d.]+)/;
 
-/** How Stryker reports a score below it. */
-const FAILED = /score ([\d.]+) under breaking threshold/;
+/** How Stryker reports a score below it: score, threshold. */
+const FAILED = /score ([\d.]+) under breaking threshold ([\d.]+)/;
+
+/** The committed gate configuration — the one that guards pull requests. */
+const committed = JSON.parse(
+  fs.readFileSync(path.join(ROOT, "stryker.conf.json"), "utf8")
+) as { readonly thresholds: { readonly break: number } };
 
 /** One completed gate run. */
 interface Run {
@@ -59,23 +67,19 @@ interface Run {
 }
 
 /**
- * Run the real mutation gate over {@link GUARD} with a chosen set of suites.
+ * Run the real mutation gate with a chosen set of suites.
  *
- * The config is the COMMITTED `stryker.conf.json` with four keys overridden —
- * never a fresh object listing the same settings again. A second copy of the
- * runner's configuration is a second thing to keep in step, and the failure mode
- * is precise: this test would keep passing against settings the real gate no
- * longer uses. It happened once already, on `ignorePatterns`.
+ * The config is the COMMITTED `stryker.conf.json` with three keys overridden —
+ * reporting and the sandbox path, never `mutate` and never `thresholds`. A
+ * second copy of the runner's configuration is a second thing to keep in step,
+ * and the failure mode is precise: this test would keep passing against
+ * settings the real gate no longer uses. It has happened twice already, on
+ * `ignorePatterns` and on the break threshold.
  * @param suites - Repo-relative suite paths the run is allowed to use
- * @param tempDirName - Sandbox directory. Nested under `.stryker-tmp/`, which
- *   Stryker always ignores, so one run's sandbox can never be copied into the
- *   next one's.
+ * @param tempDirName - Sandbox directory, so the two runs cannot collide
  * @returns The exit status and combined output
  */
 const runGate = (suites: readonly string[], tempDirName: string): Run => {
-  const committed = JSON.parse(
-    fs.readFileSync(path.join(ROOT, "stryker.conf.json"), "utf8")
-  ) as Record<string, unknown>;
   const confPath = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-bite-")),
     "stryker.conf.json"
@@ -87,8 +91,6 @@ const runGate = (suites: readonly string[], tempDirName: string): Run => {
       reporters: ["clear-text"],
       clearTextReporter: { maxTestsToLog: 0, logTests: false, maxSurvived: 0 },
       tempDirName,
-      mutate: [GUARD],
-      thresholds: { high: 100, low: 0, break: BREAK },
     })
   );
 
@@ -111,38 +113,54 @@ const runGate = (suites: readonly string[], tempDirName: string): Run => {
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
     };
   } finally {
-    // Stryker leaves its sandbox behind, and the sandbox is a full second copy
-    // of the tree. Leaving one costs the next `lint:slow` 1191 parse errors,
-    // every one of them a real file reported at a path outside every tsconfig
-    // project. The ignore lists cover it too; this keeps the tree clean whether
-    // or not a consumer has them.
+    // `cleanTempDir: "always"` in the committed config already covers this;
+    // belt and braces, because a sandbox is a full second copy of the tree and
+    // one left behind costs the next `lint:slow` 1191 parse errors.
     fs.rmSync(path.join(ROOT, tempDirName), { recursive: true, force: true });
   }
 };
 
 /**
- * Pull the reported mutation score out of a gate run.
+ * Read the score and the threshold Stryker judged it against.
  * @param run - A completed run
- * @param pattern - The reporter line to read it from
- * @returns The score Stryker reported
+ * @param pattern - The reporter line to read them from
+ * @returns The reported score and threshold
  */
-const scoreFrom = (run: Run, pattern: RegExp): number => {
+const reportedBy = (
+  run: Run,
+  pattern: RegExp
+): { readonly score: number; readonly threshold: number } => {
   const match = pattern.exec(run.output);
-  if (!match) throw new Error(`no score in gate output:\n${run.output}`);
-  return Number(match[1]);
+  if (!match) throw new Error(`no verdict in gate output:\n${run.output}`);
+  return { score: Number(match[1]), threshold: Number(match[2]) };
+};
+
+/**
+ * Require that the run was judged against the committed floor.
+ *
+ * This is the assertion that keeps the proof honest. Stryker echoes the
+ * threshold it used, so comparing it against `stryker.conf.json` catches any
+ * future override at the only place it could hide.
+ * @param threshold - The threshold Stryker reported using
+ */
+const assertNoSyntheticThreshold = (threshold: number): void => {
+  expect(
+    threshold,
+    "the gate must be judged against the committed thresholds.break, never a number invented for this test"
+  ).toBe(committed.thresholds.break);
 };
 
 describe("mutation gate bite", () => {
-  const reaching = suitesByGuard().get(GUARD) ?? [];
+  const reaching = suitesReachingGuards();
 
-  it("has more than one suite reaching the guard it weakens", () => {
+  it("withholds a suite the gate actually runs", () => {
     expect(reaching).toContain(WITHHELD);
     expect(reaching.length).toBeGreaterThan(1);
   });
 
   it(
-    "passes intact and fails when a guard suite is withheld",
-    { timeout: 900_000 },
+    "passes intact and fails at the committed floor when a suite is withheld",
+    { timeout: 1_200_000 },
     () => {
       const intact = runGate(reaching, ".stryker-tmp/bite-intact");
       const weakened = runGate(
@@ -155,12 +173,15 @@ describe("mutation gate bite", () => {
         1
       );
 
-      const intactScore = scoreFrom(intact, PASSED);
-      const weakenedScore = scoreFrom(weakened, FAILED);
+      const whole = reportedBy(intact, PASSED);
+      const damaged = reportedBy(weakened, FAILED);
 
-      expect(intactScore).toBeGreaterThanOrEqual(BREAK);
-      expect(weakenedScore).toBeLessThan(BREAK);
-      expect(weakenedScore).toBeLessThan(intactScore);
+      assertNoSyntheticThreshold(whole.threshold);
+      assertNoSyntheticThreshold(damaged.threshold);
+
+      expect(whole.score).toBeGreaterThanOrEqual(committed.thresholds.break);
+      expect(damaged.score).toBeLessThan(committed.thresholds.break);
+      expect(damaged.score).toBeLessThan(whole.score);
     }
   );
 });
