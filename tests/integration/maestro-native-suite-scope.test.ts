@@ -75,6 +75,24 @@ interface ReusableWorkflow {
 /** The two platform arms this workflow fans out into. */
 type Platform = "android" | "ios";
 
+/**
+ * The scope step's env block: shell variable name -> the input it must carry.
+ *
+ * This mapping is what keeps the executed cases honest. The harness below sets
+ * these three names itself, so a workflow that bound `INCLUDE_TAGS` to the
+ * wrong input would still satisfy every behavioural case in this file — the
+ * decision would be right about the values it was handed and wrong about which
+ * ones it was reading. Pinning the bindings closes that, and the same mapping
+ * doubles as the list that must NOT appear in the step's shell text.
+ * @param platform - Which platform arm's bindings to describe
+ * @returns Each env variable and the `${{ }}` expression that must supply it
+ */
+const tagEnv = (platform: Platform): Record<string, string> => ({
+  INCLUDE_TAGS: `\${{ inputs.${platform}_include_tags }}`,
+  EXCLUDE_TAGS: `\${{ inputs.${platform}_exclude_tags }}`,
+  FULL_SUITE_EXCLUDE_TAGS: `\${{ inputs.${platform}_full_suite_exclude_tags }}`,
+});
+
 /** The tag inputs a run is given, as the caller would set them. */
 interface ScopeInputs {
   include?: string;
@@ -314,9 +332,13 @@ describe("maestro-native-e2e suite-scope contract", () => {
       // Known before a flow starts, and most needed when a run dies mid-suite.
       expect(step?.if).toBe("${{ !cancelled() }}");
       expect(step?.shell).toBe("bash");
-      expect(step?.env?.FULL_SUITE_EXCLUDE_TAGS).toBe(
-        `\${{ inputs.${platform}_full_suite_exclude_tags }}`
-      );
+      // Every tag list the step reads, bound to the input it must come from.
+      // The executed cases cannot see a misbinding — they supply these names
+      // themselves — so this is the only assertion standing between a swapped
+      // `${{ inputs.… }}` expression and a green suite.
+      for (const [name, expression] of Object.entries(tagEnv(platform))) {
+        expect(step?.env?.[name]).toBe(expression);
+      }
     }
   });
 
@@ -331,12 +353,8 @@ describe("maestro-native-e2e suite-scope contract", () => {
       // injection seam AND make the decision unrunnable again — the same
       // property whose absence let the original marker bug survive review.
       // Asserting the script needs no substitution to run is that proof.
-      for (const input of [
-        `${platform}_include_tags`,
-        `${platform}_exclude_tags`,
-        `${platform}_full_suite_exclude_tags`,
-      ]) {
-        expect(step?.run).not.toContain(`\${{ inputs.${input} }}`);
+      for (const expression of Object.values(tagEnv(platform))) {
+        expect(step?.run).not.toContain(expression);
       }
       expect(step?.run).not.toContain("${{");
     }
