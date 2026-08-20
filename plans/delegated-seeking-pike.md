@@ -4,7 +4,7 @@
 
 When `@codyswann/lisa` is installed in a downstream project, bun won't run Lisa's postinstall script unless the package is already in `trustedDependencies`. But Lisa's postinstall is what applies templates that add `@codyswann/lisa` to `trustedDependencies` (via the `merge` section). This chicken-and-egg problem means new projects never get Lisa's postinstall to run, so trustedDependencies never gets populated.
 
-**Observed in:** thumbwar/frontend — has `@codyswann/lisa` as a devDependency but it's missing from `trustedDependencies`.
+**Observed in:** acmeorgd/frontend — has `@codyswann/lisa` as a devDependency but it's missing from `trustedDependencies`.
 
 ## Solution
 
@@ -62,4 +62,4 @@ Add test cases:
 1. Run `bun run test:unit` — all existing + new tests pass
 2. Run `bun run lint` — no new violations
 3. Run `bun run typecheck` — no type errors
-4. Integration test: Apply Lisa to thumbwar/frontend and verify `trustedDependencies` includes `@codyswann/lisa`
+4. Integration test: Apply Lisa to acmeorgd/frontend and verify `trustedDependencies` includes `@codyswann/lisa`

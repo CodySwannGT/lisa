@@ -835,7 +835,7 @@ describe("push and pull-request proof", () => {
     });
     expect(firstPush.status).toBe(0);
     expect(firstPush.stdout).toContain(
-      "no pull request exists yet, CI will verify"
+      "no pull request exists yet, so gates 4 and 5 could not be checked here"
     );
 
     commit(fixture, "fix: another ticket\n\nWork-Item: acme/widgets#43");
@@ -1393,6 +1393,38 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("mixed Work-Item references");
+  });
+
+  /**
+   * The FIRST push of a branch is the last local moment before CI, and it is
+   * the moment #2681 measured as silent: no pull request exists, so gates 4
+   * and 5 cannot be CHECKED here — but they are perfectly well KNOWN here, and
+   * saying nothing is what turns them into two separate CI-cycle surprises.
+   */
+  it("names the gates it could not check when no pull request exists yet", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: branch work\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("no pull request exists yet");
+    expect(result.stdout).toContain("All five gates, and when each one bites:");
+    expect(result.stdout).toContain("the pull-request BODY carries");
+    expect(result.stdout).toContain("backlink comment");
   });
 
   it("still rejects a branch-authored commit with no Work-Item trailer", () => {
