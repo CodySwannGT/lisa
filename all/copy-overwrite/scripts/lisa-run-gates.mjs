@@ -19,10 +19,15 @@
  * - An `optional` gate that FAILS prints as FAILED. It does not block, and it
  *   is not swallowed. "Optional" governs the response, never the verdict.
  * - When a required gate fails we stop, and every gate after it prints as
- *   NOT RUN. Fail-fast is what the hardcoded hooks always did; what would be
- *   new — and wrong — is letting an unrun gate look proved.
+ *   NOT RUN with its verdict called UNKNOWN. Fail-fast is what the hardcoded
+ *   hooks always did; what would be new — and wrong — is letting an unrun gate
+ *   look proved, or letting it look like a gate that had nothing to run.
  * - A gate that resolves to no command is UNPROVABLE, not passing. Nothing
  *   executed, so nothing was proved, whatever its level says.
+ * - A FAILED gate says WHICH failure it was. `exit 1` is the same sentence for
+ *   a coverage regression and for a subprocess starved past its timeout, and
+ *   when two opposite facts share a sentence the cheaper response — re-run —
+ *   is the rational one for both, so the real regression is never looked at.
  *
  * ## Exit codes are the hook's control flow
  *
@@ -34,9 +39,17 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { readGates, resolveMoment } from "./lisa-gates.mjs";
 
@@ -170,6 +183,8 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {string} state One of `STATE`.
  * @property {string} detail The command, the skip reason, or the failure note.
  * @property {number|null} code Exit code; null when nothing ran or was killed.
+ * @property {string|null} [diagnosis] Which failure this was, from `DIAGNOSIS`.
+ * @property {string[]} [evidence] Concrete lines backing the diagnosis.
  */
 
 /**
@@ -177,6 +192,7 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @typedef {object} GateRun
  * @property {string} moment The moment that was run.
  * @property {boolean} blocked Whether a required gate went unproved.
+ * @property {string|null} blockedBy The first required gate that went unproved.
  * @property {number} total Gates declared at this moment.
  * @property {GateOutcome[]} results Every gate, in execution order.
  * @property {GateOutcome[]} passed Gates that ran and exited zero.
@@ -233,25 +249,62 @@ function formatLine(state, gate, detail) {
 }
 
 /**
+ * Read an executor's answer, whichever of the two shapes it returned.
+ *
+ * An executor may answer with a bare exit code or with `{code, output}`. Both
+ * are supported on purpose: the exit code is the whole verdict, and the output
+ * is only ever used to EXPLAIN a verdict already reached. An executor that
+ * cannot capture output — a stub, a Windows shell, a run with capture switched
+ * off — therefore loses the diagnosis and nothing else.
+ * @param {number|null|undefined|{code: number|null, output: string|null}} raw
+ *   Whatever the executor returned.
+ * @returns {{code: number|null, output: string|null}} The normalised answer.
+ */
+function normaliseExec(raw) {
+  if (raw !== null && typeof raw === "object") {
+    return {
+      code: typeof raw.code === "number" ? raw.code : null,
+      output: typeof raw.output === "string" ? raw.output : null,
+    };
+  }
+  return { code: typeof raw === "number" ? raw : null, output: null };
+}
+
+/**
  * Execute one gate and classify the result.
  *
  * A `null` or `undefined` exit code — which `spawnSync` produces when a child
  * is killed by a signal — is a failure. It is emphatically not a pass: the
  * command was terminated, so whatever it was proving went unproved.
+ *
+ * A failure carries WHICH failure it was. `exit 1` alone cannot distinguish a
+ * coverage regression from a starved subprocess, so the two render identically
+ * and an operator's only rational response to either is to re-run — which is
+ * how a real regression hides behind a flake.
  * @param {GateOutcome} gate The resolved gate.
- * @param {function(string, GateOutcome): (number|null)} exec Command executor.
- * @returns {{state: string, detail: string, code: number|null}} The outcome.
+ * @param {function(string, GateOutcome): (number|null|object)} exec Executor.
+ * @returns {{state: string, detail: string, code: number|null,
+ *   diagnosis: string|null, evidence: string[]}} The outcome.
  */
 function execute(gate, exec) {
-  const code = exec(gate.command, gate);
+  const { code, output } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
-    return { state: STATE.PASSED, detail: gate.command, code: 0 };
+    return {
+      state: STATE.PASSED,
+      detail: gate.command,
+      code: 0,
+      diagnosis: null,
+      evidence: [],
+    };
   }
   const shown = typeof code === "number" ? code : "terminated";
+  const diagnosis = diagnoseFailure(output);
   return {
     state: STATE.FAILED,
-    detail: `${gate.command} (exit ${shown})`,
+    detail: `${gate.command} (exit ${shown}) — ${diagnosis.summary}`,
     code: typeof code === "number" ? code : null,
+    diagnosis: diagnosis.kind,
+    evidence: diagnosis.evidence,
   };
 }
 
@@ -296,19 +349,35 @@ function summarise(result) {
         `(reported, not blocking)`
     );
   }
+  // Two different sentences on purpose. Rendering these as one "skipped"
+  // bucket is what makes an early failure produce a report whose later gates
+  // are silently unknown, with nothing telling the reader that they are.
   if (result.notRun.length) {
     lines.push(
-      `⏭️  ${result.notRun.length} gate(s) NOT RUN after the blocking failure: ` +
-        `${result.notRun.map(entry => entry.id).join(", ")}`
+      `❓ ${result.notRun.length} gate(s) UNKNOWN — never ran, verdict not ` +
+        `established: ${result.notRun.map(entry => entry.id).join(", ")}`
+    );
+    lines.push(
+      `   Each of those may pass or fail; this run does not say which. ` +
+        `${result.blockedBy} failed first and stopped them.`
     );
   }
-  if (result.blocked) return lines;
+  if (result.blocked) {
+    if (result.skipped.length) {
+      lines.push(
+        `⏭️  ${result.skipped.length} gate(s) NOT APPLICABLE here — their ` +
+          `verdict IS established, there was nothing to run: ` +
+          `${result.skipped.map(entry => entry.id).join(", ")}`
+      );
+    }
+    return lines;
+  }
 
   // Every count is stated, including the ones that are zero, so the headline
   // can never imply more was proved than actually ran.
   const counts =
     `${result.passed.length} proved, ${failedOptional.length} failed ` +
-    `(optional), ${result.skipped.length} not provable here`;
+    `(optional), ${result.skipped.length} not applicable here`;
   lines.push(
     `${failedOptional.length ? "⚠️ " : "✅"} ${result.moment}: ${counts}, ` +
       `of ${result.total} gate(s) declared.${
@@ -332,10 +401,10 @@ function summarise(result) {
  * would understate what was proved — the mirror image of overstating it, and
  * just as untrue.
  * @param {GateOutcome} gate The resolved gate.
- * @param {{proved: Map<string, object>, blocked: boolean, exec: Function}} ctx Run state.
+ * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
-function verdictFor(gate, { proved, blocked, exec }) {
+function verdictFor(gate, { proved, blockedBy, exec }) {
   const own = classifyStatic(gate);
   if (own) return { outcome: own, shared: undefined, ran: false };
 
@@ -351,9 +420,18 @@ function verdictFor(gate, { proved, blocked, exec }) {
     };
   }
 
-  if (blocked) {
+  // "Not run" and "not applicable" are opposite facts and must never render
+  // as one another. A SKIPPED gate has a known verdict — there was nothing to
+  // run here, and that is the answer. This one has NO verdict: it might pass,
+  // it might fail, and this run does not say. Naming the blocker is what lets
+  // a reader tell which of the two they are looking at without guessing.
+  if (blockedBy) {
     return {
-      outcome: { state: STATE.NOT_RUN, detail: "not run", code: null },
+      outcome: {
+        state: STATE.NOT_RUN,
+        detail: `verdict UNKNOWN — never ran; ${blockedBy} failed first`,
+        code: null,
+      },
       shared: undefined,
       ran: false,
     };
@@ -384,7 +462,10 @@ export function runGates({
 }) {
   const resolved = resolveMoment({ gates, moment, runner });
   const results = [];
-  let blocked = false;
+  // The id of the first required gate to go unproved, not merely a boolean:
+  // every gate queued behind it has to be able to say WHAT stopped it, or its
+  // line is indistinguishable from a gate that had nothing to run.
+  let blockedBy = null;
 
   // One command proves every gate that names it, so it runs once.
   //
@@ -403,7 +484,7 @@ export function runGates({
   for (const gate of resolved) {
     const { outcome, shared, ran } = verdictFor(gate, {
       proved,
-      blocked,
+      blockedBy,
       exec,
     });
 
@@ -419,19 +500,22 @@ export function runGates({
 
     results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
     out(formatLine(outcome.state, gate, outcome.detail));
+    for (const line of outcome.evidence ?? []) out(`${" ".repeat(6)}↳ ${line}`);
     const unproved =
       outcome.state === STATE.FAILED || outcome.state === STATE.UNPROVABLE;
     // The strictest level wins when gates share a prover. Letting a required
     // gate inherit only the pass, or letting a failure count only against the
     // optional gate that ran first, would be the original defect again: a
     // required gate satisfied by a run that failed.
-    if (unproved && gate.level === "required") blocked = true;
+    if (unproved && gate.level === "required" && !blockedBy)
+      blockedBy = gate.id;
   }
 
   const bucket = state => results.filter(entry => entry.state === state);
   const result = {
     moment,
-    blocked,
+    blocked: blockedBy !== null,
+    blockedBy,
     total: resolved.length,
     results,
     passed: bucket(STATE.PASSED),
@@ -522,18 +606,105 @@ function readPackageScripts(cwd) {
 }
 
 /**
- * The default executor: run the command in a shell, inheriting stdio.
+ * How much of a gate's output is kept for diagnosis. A suite of 14,000 tests
+ * prints megabytes; the signatures that matter are all near the end.
+ */
+const CAPTURE_TAIL_BYTES = 512 * 1024;
+
+/**
+ * Run the command in a shell with stdio inherited, capturing nothing.
+ *
+ * This is the original executor, kept verbatim as the fallback, so that
+ * everything about capture is additive: if capture is unavailable or refused,
+ * the exit code is produced by exactly the code path that produced it before.
+ * @param {string} command The command line to run.
+ * @returns {{code: number|null, output: null}} Exit code; null when killed.
+ */
+function plainExec(command) {
+  const child = spawnSync(command, { shell: true, stdio: "inherit" });
+  if (child.error) return { code: null, output: null };
+  return { code: child.status, output: null };
+}
+
+/**
+ * Whether this machine can tee a gate's output without changing its verdict.
+ *
+ * Probed rather than assumed: on a shell without `tee` — Windows `cmd`, a
+ * stripped container — the wrapper below would produce no status file, and the
+ * runner would report every gate as terminated. A capability the runner cannot
+ * confirm is one it does not use.
+ * @returns {boolean} Whether to take the capturing path.
+ */
+function captureAvailable() {
+  if (process.env.LISA_GATES_CAPTURE === "0") return false;
+  const probe = spawnSync("sh", ["-c", "command -v tee"], { stdio: "ignore" });
+  return !probe.error && probe.status === 0;
+}
+
+/**
+ * Read back what the wrapper recorded, keeping only the tail of the log.
+ * @param {string} statusPath File the wrapper wrote the exit code into.
+ * @param {string} logPath File the wrapper tee'd the output into.
+ * @returns {{code: number|null, output: string|null}} The recorded answer.
+ */
+function readCaptured(statusPath, logPath) {
+  let output = null;
+  try {
+    output = readFileSync(logPath, "utf8").slice(-CAPTURE_TAIL_BYTES);
+  } catch {
+    output = null;
+  }
+  try {
+    const code = Number.parseInt(readFileSync(statusPath, "utf8").trim(), 10);
+    // Fail closed. An unreadable status is not a zero: the one thing this
+    // runner may never do is turn "I do not know" into "it passed".
+    return { code: Number.isInteger(code) ? code : null, output };
+  } catch {
+    return { code: null, output };
+  }
+}
+
+/**
+ * The default executor: run the command in a shell, streaming AND recording.
  *
  * stdio is inherited so a failing gate's own output reaches the operator
- * unaltered. Swallowing it and reprinting a summary is how a failure becomes
- * unactionable.
+ * unaltered and as it happens — a push gate runs for minutes and an operator
+ * needs to watch it, not receive it in a lump at the end. `tee` is what lets
+ * both be true: the operator sees the stream, and the runner keeps a copy to
+ * say WHICH failure it was rather than only that there was one.
+ *
+ * The price is that the command's stdout is a pipe rather than a terminal, so
+ * tools that colourise or animate for a TTY print their plain form. That is a
+ * deliberate trade: a plain, diagnosable failure beats a coloured, mute one.
+ * `LISA_GATES_CAPTURE=0` buys the colour back at the cost of the diagnosis.
+ *
+ * The exit code comes from a status file written INSIDE the pipeline, never
+ * from the pipeline itself — a pipeline reports `tee`'s status, which is
+ * almost always zero, and reading it would report every failing gate as
+ * passing. That is the single most dangerous mistake available here.
  * @param {string} command The command line to run.
- * @returns {number|null} Exit code, or null when killed by a signal.
+ * @returns {{code: number|null, output: string|null}} Exit code and output.
  */
 function spawnExec(command) {
-  const child = spawnSync(command, { shell: true, stdio: "inherit" });
-  if (child.error) return null;
-  return child.status;
+  if (!captureAvailable()) return plainExec(command);
+  let dir;
+  try {
+    dir = mkdtempSync(join(tmpdir(), "lisa-gate-run-"));
+  } catch {
+    return plainExec(command);
+  }
+  const logPath = join(dir, "output.log");
+  const statusPath = join(dir, "status");
+  // Newline-separated inside a group, so a command ending in a trailing
+  // comment or redirection still has `echo` run as its own statement.
+  const script = `{\n${command}\necho $? > '${statusPath}'\n} 2>&1 | tee '${logPath}'\n`;
+  try {
+    const child = spawnSync("sh", ["-c", script], { stdio: "inherit" });
+    if (child.error) return { code: null, output: null };
+    return readCaptured(statusPath, logPath);
+  } finally {
+    rmSync(dir, { force: true, recursive: true });
+  }
 }
 
 /**
