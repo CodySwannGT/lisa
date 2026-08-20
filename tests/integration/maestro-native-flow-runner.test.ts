@@ -103,15 +103,26 @@ describe("maestro-native flow_runner seam", () => {
     // script text.
     expect(iosRun?.env?.FLOWS_DIR).toBe(FLOWS_DIR_EXPANSION);
     expect(iosRun?.run).not.toContain(FLOWS_DIR_EXPANSION);
+    // The invocation is now parameterised by REPORT PATH and TARGET, because
+    // per-flow retry re-runs one flow file through the same seam and writes it
+    // to its own report. The caller's runner therefore still receives the
+    // report path first, the debug dir second, the assembled args, and the
+    // thing to run last — the contract is unchanged, only the two variable
+    // positions are.
     expect(iosRun?.run).toContain(
-      'bash "$FLOW_RUNNER" maestro-ios-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"'
+      'bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"'
     );
-    // Indentation-agnostic on purpose: the invocation now lives inside a
-    // `run_suite()` function so the driver-startup retry can call it twice,
-    // which shifts it two columns. What matters is that the flows dir and the
+    // …and the suite call still supplies exactly the pair the assertion above
+    // used to spell out inline.
+    expect(iosRun?.run).toContain(
+      'run_target maestro-ios-report.xml "$FLOWS_DIR"'
+    );
+    // Indentation-agnostic on purpose: the invocation lives inside functions
+    // so the driver-startup retry and the per-flow retry can both call it,
+    // which shifts it two columns. What matters is that the target and the
     // assembled args still reach the same command, not how deep it sits.
     expect(iosRun?.run.replace(/\n\s+/g, " ")).toContain(
-      'maestro test "$FLOWS_DIR" \\ $MAESTRO_E2E_ARGS'
+      'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
     );
   });
 });
