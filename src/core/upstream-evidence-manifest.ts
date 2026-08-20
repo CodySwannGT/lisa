@@ -971,7 +971,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
-      "5ef1c323d7cbfda8976f6fb0c24f7a8e5f5757475fd1d71c6e5bec91023cebe3",
+      "c15020b5411d100a7393769e7006ad2e960181d92e616690cdadfc4672680296",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
       "135a9b5a0894f70562b54d2071caff1e679c0fe542a606caca39e9e6a5b65f24",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
@@ -2133,15 +2133,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "e7fe0064ad82a4dba17436657630a46891568a3d18930eb172fe9ee3f54196aa",
     "scripts/check-derived-artifacts.mjs":
-      "1a35cc935515d29f0223a87d56dbfd5537aba19162d9d20e70fce8255688b76f",
+      "62c895baffad41c25fa919b798a53e2e969163897bcbb09b0e26345c61f61320",
     "scripts/check-duplicate-versions.mjs":
-      "84d97e94eb834522848ddce951bb54ae9da1e4be252e2c51fed0c01c4f4d6b72",
+      "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
       "007430c2d6938efcc79ccbfd5717ebe2c7cf66b4de9a21a3e67b8db7f3600349",
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
-      "3f1e8915dc9a467f16ca74cc016d6cd0216c6c790573f44886b41afbb829a269",
+      "5e630ed713d7942a8f083f9171457c0559a830cdeb3e9c81da7ea113793248ad",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
@@ -2177,7 +2177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-agy-plugin-artifacts.mjs":
       "a952d25eeb83aa21d71ea7e46c7ba06c8c1ecd0fcf25a734900728191ce52105",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "96df6b67d4dad87a2277b90463ed15cef96bf20e641f31a35ff346522b0dc383",
+      "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
       "7af923118c49101e6ba46da73a8eee8aee9b797e074618aa5345913e638d7cdb",
     "scripts/generate-cursor-plugin-artifacts.mjs":
@@ -2235,7 +2235,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-work-item.mjs":
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/materialize-copy-overwrite.mjs":
-      "3f8dea8027087b83d0f985dc070a529b5e62755643d946684d780b86c498a411",
+      "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
     "scripts/plugin-parity-drift.mjs":
       "d53dc9b1f60bbfe0de64ade5f205d4222cf7959f40073cd8e8928c36339994e8",
     "scripts/plugin-routing-validate.mjs":

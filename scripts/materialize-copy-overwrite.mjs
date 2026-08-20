@@ -25,7 +25,8 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
  * The `copy-overwrite` ownership contract, verbatim from the header #2545
@@ -151,7 +152,7 @@ export const materialize = (source, destination) => {
   );
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (invokedAsScript(import.meta.url)) {
   const [source, destination] = process.argv.slice(2);
   if (!source || !destination) {
     console.error(
