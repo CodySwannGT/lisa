@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.6](https://github.com/CodySwannGT/lisa/compare/v3.47.5...v3.47.6) (2026-08-20)
+
+
+### Bug Fixes
+
+* **ci:** make the Maestro suite-scope marker decidable ([72a443a](https://github.com/CodySwannGT/lisa/commit/72a443a6e4086f3a439c96ef01a18ff3812cf2d9)), closes [CodySwannGT/lisa#2819](https://github.com/CodySwannGT/lisa/issues/2819)
+* **ci:** pin bun in the one quality job that floats to latest ([1aa8a78](https://github.com/CodySwannGT/lisa/commit/1aa8a78b39d30c3d9b71df3d1b08fc4f0cf45be9)), closes [CodySwannGT/lisa#2836](https://github.com/CodySwannGT/lisa/issues/2836)
+* **eslint:** declaring a typed axis arms the design rule, which nothing did ([ec779d8](https://github.com/CodySwannGT/lisa/commit/ec779d89f97ed87598a844697569d1b951c4eeb4)), closes [#2802](https://github.com/CodySwannGT/lisa/issues/2802) [CodySwannGT/lisa#2807](https://github.com/CodySwannGT/lisa/issues/2807)
+* **gates:** say WHICH failure it was, and stop calling unknown "skipped" ([55fbec4](https://github.com/CodySwannGT/lisa/commit/55fbec44f2ee789c399f5e3260902203200d6d3c)), closes [CodySwannGT/lisa#2813](https://github.com/CodySwannGT/lisa/issues/2813)
+* **gates:** split the passes CI already splits, and say whose failure it was ([7eeea1b](https://github.com/CodySwannGT/lisa/commit/7eeea1b9dbd0fbe603ab9db975760c0d652a96d9)), closes [CodySwannGT/lisa#2813](https://github.com/CodySwannGT/lisa/issues/2813)
+* **gates:** the transcript parser must not backtrack over the transcript ([0d46391](https://github.com/CodySwannGT/lisa/commit/0d4639147382e3cfa05e5505c61c73499d0331ee)), closes [CodySwannGT/lisa#2813](https://github.com/CodySwannGT/lisa/issues/2813)
+* **guard:** catch the host-name shape that was 100% of the live problem ([6ee740a](https://github.com/CodySwannGT/lisa/commit/6ee740a5fc97fa39f03207a2853e5899404e40a6)), closes [CodySwannGT/lisa#2783](https://github.com/CodySwannGT/lisa/issues/2783) [CodySwannGT/lisa#2783](https://github.com/CodySwannGT/lisa/issues/2783)
+* **mutation:** give the dry run a budget the machine can actually meet ([11d22cd](https://github.com/CodySwannGT/lisa/commit/11d22cdda2b76ea7617cba03e0ca02e3df1a8b5c)), closes [#2490](https://github.com/CodySwannGT/lisa/issues/2490) [#2823](https://github.com/CodySwannGT/lisa/issues/2823) [CodySwannGT/lisa#2813](https://github.com/CodySwannGT/lisa/issues/2813)
+* **mutation:** run the diff-only gate this repository ships ([ecc3058](https://github.com/CodySwannGT/lisa/commit/ecc305867ef5ddf37cb0a918e5d95fa0addb7587)), closes [CodySwannGT/lisa#2823](https://github.com/CodySwannGT/lisa/issues/2823)
+* **work-item:** count five traceability gates, not four, and say so earliest ([24a0976](https://github.com/CodySwannGT/lisa/commit/24a09767807a2eb58682271da1b15bede3280592)), closes [#2817](https://github.com/CodySwannGT/lisa/issues/2817) [#2681](https://github.com/CodySwannGT/lisa/issues/2681) [CodySwannGT/lisa#2681](https://github.com/CodySwannGT/lisa/issues/2681)
+
+
+### Code Refactoring
+
+* **work-item:** drop an unreachable guard in withGateSummary ([ab41d81](https://github.com/CodySwannGT/lisa/commit/ab41d81e8c7228f72191523fed4fb07befb9b610)), closes [CodySwannGT/lisa#2681](https://github.com/CodySwannGT/lisa/issues/2681)
+
 ### [3.47.5](https://github.com/CodySwannGT/lisa/compare/v3.47.4...v3.47.5) (2026-08-20)
 
 
