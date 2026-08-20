@@ -173,12 +173,43 @@ export const suitesByGuard = (): ReadonlyMap<string, readonly string[]> => {
 };
 
 /**
+ * The guards a diff-scoped run is actually mutating.
+ *
+ * `scripts/lisa-mutation.mjs` — the shipped gate — passes Stryker `--mutate`
+ * for only the changed targets and exports the same list as `MUTATION_SCOPE`.
+ * Without this, the dry run still loads every suite that reaches ANY mutate
+ * target, and the dry run is the fixed cost that a diff-scoped run cannot
+ * otherwise shrink: it was measured at 159s of the whole gate's work.
+ *
+ * A suite that cannot reach a mutated guard cannot kill one of its mutants, so
+ * dropping it is free. That also bounds the damage from a wrong value here:
+ * narrowing only ever removes kills, so every reachable setting of
+ * `MUTATION_SCOPE` lowers the score or leaves it alone. It is not a bypass.
+ *
+ * An unrecognised scope falls back to the whole list rather than to nothing —
+ * running everything is slow, running nothing is a gate that reports success
+ * having mutated nothing.
+ * @returns The mutate targets this run is scoped to
+ */
+const scopedGuards = (): readonly string[] => {
+  const requested = (process.env.MUTATION_SCOPE ?? "")
+    .split(",")
+    .map(entry => path.normalize(entry.trim()))
+    .filter(Boolean);
+  const declared = mutatedGuards();
+  if (requested.length === 0) return declared;
+  const wanted = new Set(requested);
+  const narrowed = declared.filter(guard => wanted.has(path.normalize(guard)));
+  return narrowed.length > 0 ? narrowed : declared;
+};
+
+/**
  * Every unit suite that reaches at least one mutated guard.
  * @returns Repo-relative suite paths for vitest's `include`
  */
 export const suitesReachingGuards = (): readonly string[] =>
   suitesReaching(
-    mutatedGuards().map(guard => path.resolve(ROOT, guard)),
+    scopedGuards().map(guard => path.resolve(ROOT, guard)),
     importerIndex()
   );
 
