@@ -5,13 +5,27 @@
  * public and `dist/` is in the npm `files` allowlist, so a comment in `src/` is
  * published twice — on github.com and to every consumer that installs.
  *
- * **Shape detection, not a name list.** A guard that enumerated the client
- * names would publish the very list it exists to protect, in the same public
- * repository. So this allowlists the orgs that are legitimately public and
- * flags everything else, which also means a NEW downstream project is caught
- * without anyone remembering to add it.
+ * **Two detectors, because one shape was never the whole problem.**
+ *
+ * The first is shape detection: allowlist the orgs that are legitimately
+ * public, flag every other `github.com/owner/repo` or workflow `uses:`, and a
+ * newly onboarded downstream project is caught without anyone remembering to
+ * add it. That reach is real and it is kept.
+ *
+ * The second is a known-name check, added because the first measured zero
+ * violations on a tree that had them. Every occurrence that actually happens is
+ * a bare name in prose, in a code comment, or inside a local absolute path —
+ * no `github.com` in front of it, and frequently no slash in it at all. Shape
+ * detection cannot reach that without matching bare `a/b` everywhere, which
+ * collides with file paths, date fractions and option syntax; a guard with
+ * false positives gets disabled, which is worse than a known blind spot. A
+ * fixed list has no false-positive problem to trade against, and the objection
+ * to a list — that it publishes the names — is answered by storing digests
+ * rather than names. See `./downstream-names.js`.
  * @module core/downstream-references
  */
+import type { NameMatcher } from "./downstream-names.js";
+import { findHostNames, hostNameEntries } from "./downstream-names.js";
 
 /**
  * GitHub orgs this repository may legitimately name.
@@ -181,7 +195,6 @@ const OWNER_REPO =
 
 /**
  * Whether a captured owner is something other than a real account name.
- *
  * @param owner - The lowercased first path segment.
  * @returns True when it must not be treated as an org.
  */
@@ -239,17 +252,41 @@ function accountViolations(
 }
 
 /**
+ * Known host names spelled out on one line.
+ * @param text - The line's text.
+ * @param line - 1-indexed line number.
+ * @param matcher - Prepared name matcher.
+ * @returns Violations on this line.
+ */
+function nameViolations(
+  text: string,
+  line: number,
+  matcher: NameMatcher
+): readonly DownstreamReference[] {
+  return findHostNames(text, matcher).map(match => ({
+    line,
+    match,
+    reason:
+      "names a downstream host project — write the evidence, not the identity",
+  }));
+}
+
+/**
  * Find downstream-project references in one file's contents.
  * @param contents - The file's text.
+ * @param matcher - Name matcher to use; defaults to the committed list plus
+ *   anything the environment adds.
  * @returns Every violation found, in line order.
  */
 export function findDownstreamReferences(
-  contents: string
+  contents: string,
+  matcher: NameMatcher = hostNameEntries()
 ): readonly DownstreamReference[] {
   return contents
     .split("\n")
     .flatMap((text, index) => [
       ...ownerViolations(text, index + 1),
       ...accountViolations(text, index + 1),
+      ...nameViolations(text, index + 1, matcher),
     ]);
 }

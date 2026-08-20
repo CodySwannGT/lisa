@@ -2,7 +2,7 @@
 
 ## Context
 
-Lisa currently supports JavaScript/TypeScript ecosystems: `typescript`, `expo`, `nestjs`, `cdk`, `npm-package`. This plan adds a `rails` stack to govern Ruby on Rails projects, with Qualis (`~/workspace/qualis/app`) as the first downstream target.
+Lisa currently supports JavaScript/TypeScript ecosystems: `typescript`, `expo`, `nestjs`, `cdk`, `npm-package`. This plan adds a `rails` stack to govern Ruby on Rails projects, with AcmeOrgC (`~/workspace/acmeorgc/app`) as the first downstream target.
 
 **Plan type:** Epic (30+ new files, source code changes, downstream integration)
 
@@ -14,7 +14,7 @@ Lisa currently supports JavaScript/TypeScript ecosystems: `typescript`, `expo`, 
 2. **`all/` pack is safe** — `CLAUDE.md` and `.claude/rules/lisa.md` are JS-specific and get overridden by `rails/copy-overwrite/` versions. 5 JS-specific skills also overridden. All TS-specific config files (`.prettierrc.json`, `eslint.*`, `jest.*`, `tsconfig.*`) live in `typescript/copy-overwrite/` and won't be deployed.
 3. **Gemfile governance via `eval_gemfile`** — Lisa manages `rails/copy-overwrite/Gemfile.lisa` (governance gems with `~>` version constraints). A `rails/copy-contents/Gemfile` appends `eval_gemfile "Gemfile.lisa"` to the project's Gemfile with `# BEGIN/END: AI GUARDRAILS` markers.
 4. **Lefthook hooks**: pre-commit runs RuboCop (staged files) + bundler-audit (fast). pre-push runs `bundle exec rspec` + `bundle exec brakeman` (moved from pre-commit per security review — Brakeman is slow on large codebases). commit-msg validates conventional commit format.
-5. **RSpec-only pack** — Pack ships with RSpec as standard. Qualis Minitest-to-RSpec migration is a **separate follow-up plan**. Minitest projects should add `lefthook.yml` to `.lisaignore` to skip the pre-push hook until migration.
+5. **RSpec-only pack** — Pack ships with RSpec as standard. AcmeOrgC Minitest-to-RSpec migration is a **separate follow-up plan**. Minitest projects should add `lefthook.yml` to `.lisaignore` to skip the pre-push hook until migration.
 6. **`quality.yml` is create-only** — Each project configures its own database services and CI environment. Lisa provides a starting template.
 7. **`sonar-project.properties` is create-only** — Projects customize SonarQube project keys.
 8. **`coding-philosophy.md` from `all/` kept for MVP** — Principles are universal even though examples are TS. Ruby-specific version is a future enhancement.
@@ -92,7 +92,7 @@ rails/
 - `tests/integration/lisa.test.ts` — Append Rails stack integration tests
 - `tests/helpers/test-utils.ts` — Add `createRailsProject()` helper + extend `createMockLisaDir()` for rails/ pack
 
-### Qualis Downstream (in `~/workspace/qualis/app`)
+### AcmeOrgC Downstream (in `~/workspace/acmeorgc/app`)
 
 - Remove duplicate gems from Gemfile (brakeman, rubocop-rails, rubocop-performance, rubocop-rails-omakase)
 - Remove overcommit gem from Gemfile
@@ -545,18 +545,18 @@ describe("DetectorRegistry") // append to existing
 }
 ```
 
-### Task 9: Build and dry-run against Qualis
+### Task 9: Build and dry-run against AcmeOrgC
 
 **Type:** Task
 
-**Description:** Build Lisa locally and run against Qualis to verify output:
+**Description:** Build Lisa locally and run against AcmeOrgC to verify output:
 1. `bun run build` in Lisa repo
-2. `bun run dev -- ~/workspace/qualis/app --dry-run` to preview changes
+2. `bun run dev -- ~/workspace/acmeorgc/app --dry-run` to preview changes
 3. Verify: Rails detected, CLAUDE.md is Rails-specific, .rubocop.yml deployed, lefthook.yml deployed, Gemfile.lisa deployed, Gemfile gets eval_gemfile, .overcommit.yml marked for deletion, NO TS artifacts
 
 **Acceptance Criteria:**
 - [ ] Lisa builds without errors
-- [ ] Dry-run detects "rails" type for Qualis
+- [ ] Dry-run detects "rails" type for AcmeOrgC
 - [ ] No TypeScript artifacts in dry-run output
 
 **Verification:**
@@ -567,25 +567,25 @@ describe("DetectorRegistry") // append to existing
   "skills": [],
   "verification": {
     "type": "manual-check",
-    "command": "bun run build && bun run dev -- ~/workspace/qualis/app --dry-run 2>&1 | grep -i 'rails'",
+    "command": "bun run build && bun run dev -- ~/workspace/acmeorgc/app --dry-run 2>&1 | grep -i 'rails'",
     "expected": "Build succeeds, dry-run shows Rails detected"
   }
 }
 ```
 
-### Task 10: Qualis downstream — clean up Gemfile and install
+### Task 10: AcmeOrgC downstream — clean up Gemfile and install
 
 **Type:** Task
 
-**Description:** In `~/workspace/qualis/app`:
-1. Run `bun run dev -- ~/workspace/qualis/app --yes` from Lisa repo to apply templates
-2. Remove duplicate gems from Qualis Gemfile (brakeman, rubocop-rails, rubocop-performance already in Gemfile.lisa)
+**Description:** In `~/workspace/acmeorgc/app`:
+1. Run `bun run dev -- ~/workspace/acmeorgc/app --yes` from Lisa repo to apply templates
+2. Remove duplicate gems from AcmeOrgC Gemfile (brakeman, rubocop-rails, rubocop-performance already in Gemfile.lisa)
 3. Remove `rubocop-rails-omakase` gem (replaced by Lisa's .rubocop.yml)
 4. Remove `overcommit` gem
-5. Run `cd ~/workspace/qualis/app && bundle install`
+5. Run `cd ~/workspace/acmeorgc/app && bundle install`
 
 **Acceptance Criteria:**
-- [ ] Lisa templates applied to Qualis
+- [ ] Lisa templates applied to AcmeOrgC
 - [ ] Duplicate gems removed from Gemfile
 - [ ] overcommit gem removed
 - [ ] `bundle install` succeeds
@@ -598,20 +598,20 @@ describe("DetectorRegistry") // append to existing
   "skills": [],
   "verification": {
     "type": "manual-check",
-    "command": "cd ~/workspace/qualis/app && bundle check",
+    "command": "cd ~/workspace/acmeorgc/app && bundle check",
     "expected": "The Gemfile's dependencies are satisfied"
   }
 }
 ```
 
-### Task 11: Qualis downstream — migrate Overcommit to Lefthook
+### Task 11: AcmeOrgC downstream — migrate Overcommit to Lefthook
 
 **Type:** Task
 
-**Description:** In `~/workspace/qualis/app`:
-1. Uninstall overcommit: `cd ~/workspace/qualis/app && overcommit --uninstall` (if overcommit binary available, otherwise manually remove `.git/hooks/overcommit-hook`)
-2. Install lefthook: `cd ~/workspace/qualis/app && bundle exec lefthook install`
-3. Verify pre-commit hooks work: `cd ~/workspace/qualis/app && bundle exec lefthook run pre-commit`
+**Description:** In `~/workspace/acmeorgc/app`:
+1. Uninstall overcommit: `cd ~/workspace/acmeorgc/app && overcommit --uninstall` (if overcommit binary available, otherwise manually remove `.git/hooks/overcommit-hook`)
+2. Install lefthook: `cd ~/workspace/acmeorgc/app && bundle exec lefthook install`
+3. Verify pre-commit hooks work: `cd ~/workspace/acmeorgc/app && bundle exec lefthook run pre-commit`
 
 **Note:** `.overcommit.yml` should already be deleted by Lisa's `deletions.json`. Verify it's gone.
 
@@ -629,26 +629,26 @@ describe("DetectorRegistry") // append to existing
   "skills": [],
   "verification": {
     "type": "manual-check",
-    "command": "cd ~/workspace/qualis/app && ls .overcommit.yml 2>&1; bundle exec lefthook run pre-commit 2>&1 | tail -3",
+    "command": "cd ~/workspace/acmeorgc/app && ls .overcommit.yml 2>&1; bundle exec lefthook run pre-commit 2>&1 | tail -3",
     "expected": ".overcommit.yml not found; lefthook pre-commit runs (may show rubocop output)"
   }
 }
 ```
 
-### Task 12: Qualis downstream — preserve project-specific CLAUDE.md content
+### Task 12: AcmeOrgC downstream — preserve project-specific CLAUDE.md content
 
 **Type:** Task
 
-**Description:** In `~/workspace/qualis/app`:
+**Description:** In `~/workspace/acmeorgc/app`:
 1. Lisa has already overwritten CLAUDE.md with Rails governance version
 2. The original CLAUDE.md content (Docker setup, architecture docs, AWS access, deployment) was committed in git before Lisa ran
-3. Retrieve the original content: `cd ~/workspace/qualis/app && git show HEAD~1:CLAUDE.md` (or from git history)
+3. Retrieve the original content: `cd ~/workspace/acmeorgc/app && git show HEAD~1:CLAUDE.md` (or from git history)
 4. Move relevant sections to `.claude/rules/PROJECT_RULES.md` (create-only, Lisa won't overwrite)
 5. Organize content under clear headings: Local Development, Architecture, Deployment, Environment Variables
 
 **Acceptance Criteria:**
 - [ ] CLAUDE.md contains Rails governance rules (from Lisa)
-- [ ] `.claude/rules/PROJECT_RULES.md` contains Qualis-specific operational docs
+- [ ] `.claude/rules/PROJECT_RULES.md` contains AcmeOrgC-specific operational docs
 - [ ] No content lost from original CLAUDE.md
 
 **Verification:**
@@ -659,22 +659,22 @@ describe("DetectorRegistry") // append to existing
   "skills": [],
   "verification": {
     "type": "manual-check",
-    "command": "cd ~/workspace/qualis/app && grep 'bundle exec rubocop' CLAUDE.md && grep -c 'Docker\\|ECS\\|deployment' .claude/rules/PROJECT_RULES.md",
+    "command": "cd ~/workspace/acmeorgc/app && grep 'bundle exec rubocop' CLAUDE.md && grep -c 'Docker\\|ECS\\|deployment' .claude/rules/PROJECT_RULES.md",
     "expected": "CLAUDE.md has rubocop reference; PROJECT_RULES.md has Docker/deployment content"
   }
 }
 ```
 
-### Task 13: Qualis downstream — verify and commit
+### Task 13: AcmeOrgC downstream — verify and commit
 
 **Type:** Task
 
-**Description:** In `~/workspace/qualis/app`:
+**Description:** In `~/workspace/acmeorgc/app`:
 1. Run `bundle exec rubocop` — may have violations from existing code (expected, not blocking)
 2. Run `bundle exec brakeman --no-pager` — verify it runs (may have findings)
 3. Run `bundle exec lefthook run pre-commit` — verify hooks execute
 4. Create a branch, commit all changes, push
-5. Note: Qualis uses Minitest, so `bundle exec rspec` will fail (no spec/ tests yet). This is expected per design decision #5.
+5. Note: AcmeOrgC uses Minitest, so `bundle exec rspec` will fail (no spec/ tests yet). This is expected per design decision #5.
 
 **Acceptance Criteria:**
 - [ ] RuboCop runs without errors (violations OK)
@@ -690,7 +690,7 @@ describe("DetectorRegistry") // append to existing
   "skills": [],
   "verification": {
     "type": "manual-check",
-    "command": "cd ~/workspace/qualis/app && bundle exec brakeman --no-pager 2>&1 | tail -3",
+    "command": "cd ~/workspace/acmeorgc/app && bundle exec brakeman --no-pager 2>&1 | tail -3",
     "expected": "Brakeman runs and produces output (findings OK)"
   }
 }
@@ -946,10 +946,10 @@ Tasks 2-7 (implementation) ─── can run in parallel after Task 1
 Task 8 (integration tests) ─── blocked by Tasks 2-7
 
 Task 9 (build + dry-run) ─── blocked by Task 8
-Task 10 (Qualis Gemfile) ─── blocked by Task 9
-Task 11 (Qualis Lefthook) ─── blocked by Task 10
-Task 12 (Qualis CLAUDE.md) ─── blocked by Task 10
-Task 13 (Qualis verify) ─── blocked by Tasks 11, 12
+Task 10 (AcmeOrgC Gemfile) ─── blocked by Task 9
+Task 11 (AcmeOrgC Lefthook) ─── blocked by Task 10
+Task 12 (AcmeOrgC CLAUDE.md) ─── blocked by Task 10
+Task 13 (AcmeOrgC verify) ─── blocked by Tasks 11, 12
 
 Tasks 14-17 (reviews) ─── blocked by Task 13, can run in parallel
 Task 18 (implement suggestions) ─── blocked by Tasks 14-17
@@ -973,7 +973,7 @@ To implement this plan, use `/plan:implement`. Create an Agent Team with these s
 | `code-simplifier:code-simplifier` | Code simplification — Task 19 |
 | `learner` | Learning collection — Task 23 |
 
-The **team lead** handles: Task 1 (branch/PR), Task 9 (build/dry-run), Task 13 (Qualis verify), Task 18 (review implementation), Task 24 (archive), and all git operations (commits, pushes).
+The **team lead** handles: Task 1 (branch/PR), Task 9 (build/dry-run), Task 13 (AcmeOrgC verify), Task 18 (review implementation), Task 24 (archive), and all git operations (commits, pushes).
 
 ## Verification
 
@@ -990,17 +990,17 @@ bun run test
 # 4. Lisa builds successfully
 bun run build
 
-# 5. Dry-run against Qualis shows Rails detected
-bun run dev -- ~/workspace/qualis/app --dry-run 2>&1 | grep -i "rails"
+# 5. Dry-run against AcmeOrgC shows Rails detected
+bun run dev -- ~/workspace/acmeorgc/app --dry-run 2>&1 | grep -i "rails"
 
-# 6. Qualis RuboCop runs after apply
-cd ~/workspace/qualis/app && bundle exec rubocop
+# 6. AcmeOrgC RuboCop runs after apply
+cd ~/workspace/acmeorgc/app && bundle exec rubocop
 
-# 7. Qualis Brakeman runs
-cd ~/workspace/qualis/app && bundle exec brakeman --no-pager
+# 7. AcmeOrgC Brakeman runs
+cd ~/workspace/acmeorgc/app && bundle exec brakeman --no-pager
 
-# 8. Qualis Lefthook hooks installed
-cd ~/workspace/qualis/app && bundle exec lefthook run pre-commit
+# 8. AcmeOrgC Lefthook hooks installed
+cd ~/workspace/acmeorgc/app && bundle exec lefthook run pre-commit
 ```
 
 ## Sessions

@@ -954,7 +954,7 @@
 | 4a7284a56ae7588fa5fcce0962b21d52b794a255 | 2026-02-13T06:08:25-05:00 | Cody Swann |  | Merge branch 'main' into chore/agent-delegation-rule |
 | 488d2e2c63d02aba7997cd6b94c0a218ce779704 | 2026-02-13T06:08:15-05:00 | Cody Swann |  | Merge pull request #179 from CodySwannGT/feat/rails-versioning |
 | 1b03add6aa347e146c33966ee6bb9ffc84454caa | 2026-02-13T06:08:08-05:00 | Cody Swann |  | Merge branch 'main' into feat/rails-versioning |
-| 74fe66f23e8637cb9441571c62384de705a5ddc1 | 2026-02-12T19:56:10-05:00 | Cody Swann |  | chore: add qualis staging version display screenshot |
+| 74fe66f23e8637cb9441571c62384de705a5ddc1 | 2026-02-12T19:56:10-05:00 | Cody Swann |  | chore: add acmeorgc staging version display screenshot |
 | 2f49ad260f957d5694e9b3408fb2642358b7ce0c | 2026-02-12T19:56:04-05:00 | Cody Swann |  | docs: add agent team delegation rule to CLAUDE.md templates |
 | 7e12af1050476677a7da387a19925c5650019b72 | 2026-02-12T19:51:49-05:00 | Cody Swann |  | Merge branch 'main' of https://github.com/CodySwannGT/lisa |
 | 847d052971c6d1baef022f10318b27186b09b60a | 2026-02-12T18:26:44-05:00 | Cody Swann |  | feat(rails): add action-controller and action-view best practices skills |
