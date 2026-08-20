@@ -57,6 +57,51 @@ function prArgs(base: string, bodyFile: string): string[] {
   return [VALIDATE_PR, "--base", base, BODY_FILE, bodyFile, "--url", PR_URL];
 }
 
+/**
+ * Every gate the traceability machinery enforces, with the moment it bites.
+ *
+ * A TABLE, not four `toContain` calls in a row, because #2681 is a counting
+ * defect and a flat list of substrings cannot detect one. The summary used to
+ * name FOUR gates: the commit-message trailer and the pull-request BODY
+ * trailer shared line 3, so an operator whose commits carried the trailer read
+ * that gate as cleared and learned about the body one CI cycle later. Measured:
+ * an agent went BLOCKED on "No Work-Item trailer anywhere in the pull request
+ * body" with the commit trailer present, the item claimed, and the backlink
+ * already posted — three of the requirements satisfied, and the fourth
+ * invisible until CI said so.
+ *
+ * Each row is looked up by its OWN ordinal, so deleting any single gate fails
+ * this test by name instead of shifting the rest up one and passing.
+ */
+/**
+ * Just the checklist block, split into trimmed lines.
+ *
+ * Scoped deliberately: the UNMET-requirement list above it also numbers from 1,
+ * so an unscoped search for a line starting "1." finds a finding rather than a
+ * gate. The two lists answer different questions — "what is wrong now" and
+ * "what must be true eventually" — and a test that conflated them would assert
+ * nothing about either.
+ * @param stderr - The validator's full output.
+ * @returns The checklist lines, trimmed, header excluded.
+ */
+function checklist(stderr: string): string[] {
+  const start = stderr.indexOf("All five gates, and when each one bites:");
+  if (start === -1) return [];
+  return stderr
+    .slice(start)
+    .split("\n")
+    .slice(1)
+    .map(line => line.trim());
+}
+
+const GATES: readonly (readonly [number, string, string])[] = [
+  [1, "the item carries the ready role", "before the work may be created"],
+  [2, "the item carries the claimed role", "commit-msg hook"],
+  [3, "every commit message carries", "commit-msg hook"],
+  [4, "the pull-request BODY carries", "SEPARATE check"],
+  [5, "backlink comment", "at CI time"],
+];
+
 describe("in-process CLI: verification level", () => {
   it('defaults to "trailer" when the project says nothing', () => {
     const fixture = createFixture({
@@ -188,15 +233,61 @@ describe("in-process CLI: validate-pr", () => {
     expect(inside).toBeGreaterThan(outside);
   });
 
-  it("names all four gates, so clearing three is not a surprise", () => {
+  it("names all five gates, each on its own line with the moment it bites", () => {
     const fixture = createFixture();
     const { base, bodyFile } = goodPr(fixture);
     const result = cli(fixture, prArgs(base, bodyFile));
-    expect(result.stderr).toContain("All four gates, and when each one bites:");
-    expect(result.stderr).toContain('ready role "status:ready"');
-    expect(result.stderr).toContain('claimed role "status:in-progress"');
-    expect(result.stderr).toContain("ONE matching `Work-Item:` trailer");
+    expect(result.stderr).toContain("All five gates, and when each one bites:");
+    const lines = checklist(result.stderr);
+    for (const [ordinal, subject, moment] of GATES) {
+      const line = lines.find(candidate => candidate.startsWith(`${ordinal}.`));
+      expect(line, `the summary has no gate numbered ${ordinal}`).toBeDefined();
+      expect(line, `gate ${ordinal} names the wrong requirement`).toContain(
+        subject
+      );
+      expect(line, `gate ${ordinal} does not say when it bites`).toContain(
+        moment
+      );
+    }
+  });
+
+  it("keeps the commit trailer and the body trailer on SEPARATE lines", () => {
+    const fixture = createFixture();
+    const { base, bodyFile } = goodPr(fixture);
+    const lines = checklist(cli(fixture, prArgs(base, bodyFile)).stderr);
+    const commitGate = lines.findIndex(line => line.startsWith("3."));
+    const bodyGate = lines.findIndex(line => line.startsWith("4."));
+    expect(commitGate).toBeGreaterThan(-1);
+    expect(bodyGate).toBe(commitGate + 1);
+    expect(lines[commitGate]).toContain("every commit message");
+    expect(lines[commitGate]).not.toContain("pull-request BODY");
+    expect(lines[bodyGate]).toContain("pull-request BODY");
+    expect(lines[bodyGate]).not.toContain("every commit message");
+  });
+
+  it("says outright that `Closes owner/repo#N` is not the body trailer", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    commit(fixture, `feat: tracked\n\nWork-Item: ${REF}`);
+    const bodyFile = path.join(fixture.root, "BODY");
+    writeFileSync(bodyFile, `Closes ${REF}\n`);
+    const result = cli(fixture, prArgs(base, bodyFile));
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the pull request body"
+    );
+    expect(result.stderr).toContain("does NOT satisfy it");
+  });
+
+  it("names the backlink gate as gate 5, not gate 4", () => {
+    const fixture = createFixture();
+    const { base, bodyFile } = goodPr(fixture);
+    const result = cli(fixture, prArgs(base, bodyFile));
     expect(result.stderr).toContain(`managed \`${MARKER}\` backlink comment`);
+    const backlink = checklist(result.stderr).find(line =>
+      line.includes(`managed \`${MARKER}\` backlink comment`)
+    );
+    expect(backlink?.startsWith("5.")).toBe(true);
   });
 
   it("names the project's OWN role names, not Lisa's defaults", () => {

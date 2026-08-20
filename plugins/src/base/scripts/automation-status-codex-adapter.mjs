@@ -27,6 +27,7 @@ import {
 import {
   RUNBOOK_NOT_SCAFFOLDED_LINE,
   resolveAutomationRunDisplay,
+  resolveLedgerIntegrityFinding,
   resolveRecoveryEscalation,
 } from "./automation-status-run-history.mjs";
 import { resolveUnrecordedRunFinding } from "./automation-status-unrecorded-runs.mjs";
@@ -689,13 +690,20 @@ function createObservedStatusItem(input) {
       ? resolveObservedCadenceMs({ observed, expected })
       : null,
   });
+  // Ranked last of the three. A suspended scheduler entry, or a run the ledger
+  // never received, describes the loop; unreadable rows describe the ledger.
+  // Reporting the storage problem over either cause would bury the cause — but
+  // with nothing else to say, it is said rather than counted where nobody
+  // looks (#2578).
+  const ledgerIntegrity = resolveLedgerIntegrityFinding(runDisplay);
   const runSignal =
     primaryRunSignal ??
     (unrecorded && {
       status: /** @type {const} */ ("DRIFTED"),
       summary: unrecorded.summary,
       remediation: unrecorded.remediation,
-    });
+    }) ??
+    ledgerIntegrity;
 
   const observedDetails = [comparison.observed];
   if (observed?.status) {
