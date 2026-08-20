@@ -350,7 +350,7 @@ describe("the blocking claim is wired end to end (§10.7)", () => {
     // read a `not_required` issue concludes the reporter is broken and
     // hardcodes the sentence back.
     expect(doc).toContain("measurably false");
-    expect(doc).toContain("TunnlAI/frontend");
+    expect(doc).toContain("AcmeOrgB/frontend");
   });
 
   it("the guard reads the EFFECTIVE rules endpoint, never one ruleset by id", () => {

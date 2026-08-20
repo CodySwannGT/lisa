@@ -610,7 +610,7 @@ describe("postinstall-trampoline", () => {
       // no lifecycle env var is set so the trampoline never schedules. Without
       // an in-process regen, package-lock.json drifts from package.json and
       // `npm ci` fails. This is the exact failure mode that hit
-      // acmeorgb/infrastructure-v2 and thumbwar/infrastructure during the
+      // acmeorgb/infrastructure-v2 and acmeorgd/infrastructure during the
       // 2.8.0 batch upgrade.
       const { spawnSpy, dir } = await runRegen([NPM_LOCK]);
       try {
