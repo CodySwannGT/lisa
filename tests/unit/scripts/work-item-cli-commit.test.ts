@@ -96,6 +96,36 @@ describe("in-process CLI: prepare-commit-msg", () => {
   });
 });
 
+/**
+ * The commit-msg hook is the EARLIEST moment the machinery speaks to an
+ * operator, and #2681 is about withholding what is already known. Every one of
+ * the five gates is knowable here — the checklist costs six lines and replaces
+ * a sequence of surprises with one read.
+ */
+describe("in-process CLI: the checklist at the earliest moment", () => {
+  it("names all five gates when the commit-msg hook refuses", () => {
+    const fixture = createFixture();
+    const file = message(fixture, UNTRACKED);
+    const result = cli(fixture, [VALIDATE, file]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("All five gates, and when each one bites:");
+    expect(result.stderr).toContain("the pull-request BODY carries");
+    expect(result.stderr).toContain("backlink comment");
+  });
+
+  it("keeps the original refusal above the checklist", () => {
+    const fixture = createFixture();
+    const file = message(fixture, UNTRACKED);
+    const result = cli(fixture, [VALIDATE, file]);
+    const refusal = result.stderr.indexOf(
+      "No Work-Item trailer anywhere in the commit message"
+    );
+    const checklist = result.stderr.indexOf("All five gates");
+    expect(refusal).toBeGreaterThan(-1);
+    expect(checklist).toBeGreaterThan(refusal);
+  });
+});
+
 describe("in-process CLI: validate-commit", () => {
   it("accepts a message naming the bound work item", () => {
     const fixture = offlineFixture();
