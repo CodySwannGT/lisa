@@ -4,8 +4,9 @@
  * A gate that cannot fail is the exact defect this gate was built to catch, so
  * asserting its wiring is not enough — something has to weaken a guard's tests
  * and watch the gate go red. That is what this does: it runs the gate that
- * actually guards pull requests, twice, once with every suite and once with one
- * withheld, and requires the first to pass and the second to fail.
+ * actually guards pull requests, twice — once with every suite, and once with a
+ * guard's suites withheld — and requires the first to pass and the second to
+ * fail.
  *
  * **It runs the COMMITTED configuration, and overrides no threshold.** An
  * earlier draft mutated a single guard against a threshold of 45 invented for
@@ -18,10 +19,13 @@
  * reintroducing an override fails this test by name instead of quietly
  * restoring the illusion.
  *
- * The weakening is withholding a suite rather than editing assertions on disk,
+ * The weakening is withholding suites rather than editing assertions on disk,
  * for two reasons. It is the same thing mechanically — a test that no longer
  * runs cannot kill a mutant, which is what a gutted assertion amounts to — and
  * it cannot leave the working tree modified if the process dies mid-run.
+ *
+ * WHICH suites is not a fixed list; see {@link WITHHELD_GUARDS} for why a
+ * hardcoded filename went stale the moment a guard's coverage improved.
  * @module tests/integration/mutation-gate-bite
  */
 import { execFileSync } from "node:child_process";
@@ -31,22 +35,46 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { suitesReachingGuards } from "../../vitest.config.mutation";
+import {
+  suitesByGuard,
+  suitesReachingGuards,
+} from "../../vitest.config.mutation";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 
 /**
- * The suite withheld to weaken the guards' tests.
+ * The guards whose suites are withheld to weaken the gate.
  *
- * Chosen by measurement, not by eye. Withholding it takes the whole gate from
- * 32.14 to 28.72 against a committed floor of 32 — a 3.42-point margin, the
- * widest of the candidates tried, so an ordinary improvement elsewhere in the
- * suite cannot quietly lift the weakened run back over the line. Withholding
- * `lisa-reconcile-policy-verdicts` also works (31.02) but leaves under a point
- * of room.
+ * This used to name one file, `tests/unit/scripts/lisa-gates.test.ts`, chosen
+ * because withholding it took the whole gate from 32.14 to 28.72 against a
+ * floor of 32. That 3.42-point margin was the widest available at the time and
+ * it still was not enough: the comment beside it said an *ordinary* improvement
+ * could not lift the weakened run back over the line, and then a large one did.
+ * Raising `lisa-work-item.mjs` from 6.10 to ~54 took the intact gate to ~54, and
+ * the weakened run — the one required to FAIL — scored 50.31 and passed. The
+ * bite test stopped biting, silently, as a side effect of the suite improving.
+ *
+ * So the weakening is no longer a filename. It is a RULE: withhold every suite
+ * that reaches a named guard. Three things follow, and the third is the point.
+ *
+ * It models the real failure. `vitest.config.mutation.ts` exists because a guard
+ * whose suites drop out of the run reports its mutants as uncovered and
+ * contributes nothing but denominator. Withholding a guard's suites IS that
+ * event, staged deliberately.
+ *
+ * It is self-maintaining. A suite added for either guard joins the withheld set
+ * on its own, so the margin grows with that guard's coverage instead of being
+ * eroded by it — which is exactly how the single-filename version went stale.
+ *
+ * And the two named guards are the two largest contributors of kills
+ * (`lisa-work-item.mjs` 1,157 and `lisa-gates.mjs` 469 of 2,523), so the margin
+ * is the widest obtainable rather than merely sufficient.
  */
-const WITHHELD = "tests/unit/scripts/lisa-gates.test.ts";
+const WITHHELD_GUARDS = [
+  "all/copy-overwrite/scripts/lisa-work-item.mjs",
+  "all/copy-overwrite/scripts/lisa-gates.mjs",
+];
 
 /** How Stryker reports a score at or above the threshold: score, threshold. */
 const PASSED =
@@ -152,19 +180,33 @@ const assertNoSyntheticThreshold = (threshold: number): void => {
 
 describe("mutation gate bite", () => {
   const reaching = suitesReachingGuards();
+  const byGuard = suitesByGuard();
+  const withheld = new Set(
+    WITHHELD_GUARDS.flatMap(guard => byGuard.get(guard) ?? [])
+  );
 
-  it("withholds a suite the gate actually runs", () => {
-    expect(reaching).toContain(WITHHELD);
-    expect(reaching.length).toBeGreaterThan(1);
+  it("withholds suites the gate actually runs, and not all of them", () => {
+    for (const guard of WITHHELD_GUARDS) {
+      expect(
+        byGuard.get(guard),
+        `${guard} must be a mutate target with suites of its own`
+      ).toBeTruthy();
+    }
+    expect(withheld.size).toBeGreaterThan(0);
+    for (const suite of withheld) expect(reaching).toContain(suite);
+    // A weakening that removes EVERY suite would prove nothing about the gate:
+    // with no tests at all the run is trivially red for reasons that have
+    // nothing to do with a mutant surviving.
+    expect(withheld.size).toBeLessThan(reaching.length);
   });
 
   it(
-    "passes intact and fails at the committed floor when a suite is withheld",
-    { timeout: 1_200_000 },
+    "passes intact and fails at the committed floor when a guard's suites are withheld",
+    { timeout: 1_800_000 },
     () => {
       const intact = runGate(reaching, ".stryker-tmp/bite-intact");
       const weakened = runGate(
-        reaching.filter(suite => suite !== WITHHELD),
+        reaching.filter(suite => !withheld.has(suite)),
         ".stryker-tmp/bite-weakened"
       );
 
