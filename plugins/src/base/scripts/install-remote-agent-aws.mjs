@@ -11,10 +11,42 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+/**
+ * True when `moduleUrl` names the module node was asked to run.
+ *
+ * The obvious spelling — comparing `import.meta.url` against a raw
+ * `process.argv[1]` — is false whenever the script is reached through a
+ * symlinked path: a symlinked checkout, a bin shim, a git worktree, or `/tmp`
+ * on macOS, which is itself a symlink to `/private/tmp`. `main()` then never
+ * runs and the process exits 0 having done nothing. That is what this module
+ * used to do, and an installer that silently installs nothing reports success
+ * while leaving the host unconfigured.
+ *
+ * Both sides are realpath'd, not just `argv[1]`: `import.meta.url` is the real
+ * path by default and the symlinked one under `--preserve-symlinks-main`, so
+ * normalizing one side reopens the same hole on that flag.
+ *
+ * Written out rather than imported: this is a plugin payload, which has no
+ * `./lib/` to resolve against. Same rule and same reasoning as
+ * `scripts/lib/invoked-as-script.mjs`.
+ * @param {string} moduleUrl - The caller's own `import.meta.url`.
+ * @param {string | undefined} [argv1] - Entry path; defaults to `process.argv[1]`.
+ * @returns {boolean} Whether the caller should run its CLI body.
+ */
+export function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
 
 const SCRIPT_NAME = "remote-agent-aws-setup.sh";
 const INSTALL_COMMAND = `bash scripts/${SCRIPT_NAME}`;
@@ -333,7 +365,7 @@ export function installRemoteAgentAws(arguments_ = process.argv.slice(2)) {
   return { project, platform, secretName, written };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (invokedAsScript(import.meta.url)) {
   try {
     process.stdout.write(
       `${JSON.stringify(installRemoteAgentAws(), null, 2)}\n`

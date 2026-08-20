@@ -229,6 +229,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
     "aafd027c4b6092da15d0389f9e8dcedbd9105e9083057e2da39f78fd5f72e0df",
+    "b4cc14d5dc02c790ea3e51b0134b9c3d5e4a0e8ef08a652817f7485a0badde17",
     "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
     "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
   ]),
@@ -437,6 +438,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "67b5769dde341d06799c7a49c1fbcd46d92df1268177cc575e704e5a8a2d3096",
     "8bc4b379d7057b2fecf9cb35820c39efad0a65df7df49073786f996cc2a74810",
     "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
+    "b5e064971bc29a052ee3757c24696c2fd8c2cd83cd3200a2420dba52351c395c",
+    "c93f0b0d00c367845a29dca72c18ae5d6deb36250e422cbcbd112a1b2e839875",
     "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
   ]),
   "scripts/threshold-ratchet-families.mjs": Object.freeze([

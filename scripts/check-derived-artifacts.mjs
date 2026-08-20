@@ -41,7 +41,8 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 
@@ -232,6 +233,6 @@ function main() {
   process.exit(1);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (invokedAsScript(import.meta.url)) {
   main();
 }

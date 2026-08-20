@@ -38,6 +38,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
 const CODEX_PLUGIN_DIR = ".codex-plugin";
@@ -1115,9 +1117,6 @@ function metadataFor(pluginName, claudeManifest) {
 
 // Run the generator only when invoked directly (e.g. via build-plugins.sh),
 // not when this module is imported (e.g. by unit tests for the parser).
-if (
-  process.argv[1] &&
-  fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])
-) {
+if (invokedAsScript(import.meta.url)) {
   main();
 }

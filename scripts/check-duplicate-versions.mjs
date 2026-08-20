@@ -93,6 +93,8 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
@@ -710,6 +712,6 @@ function main() {
   if (options.strict && violations > 0) process.exitCode = 1;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (invokedAsScript(import.meta.url)) {
   main();
 }
