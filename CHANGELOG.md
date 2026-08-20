@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.2](https://github.com/CodySwannGT/lisa/compare/v3.47.1...v3.47.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **ratchet:** an unparseable baseline is reported, not silently skipped ([165b6d1](https://github.com/CodySwannGT/lisa/commit/165b6d1c7e7eabf38d4154f0bf5af617e8897f67)), closes [CodySwannGT/lisa#2792](https://github.com/CodySwannGT/lisa/issues/2792)
+* **scripts:** the entry-guard sweep sees scripts/, and sees it either way round ([836a300](https://github.com/CodySwannGT/lisa/commit/836a300ccdef48edf22ae90e94fe209fd732d7f8)), closes [CodySwannGT/lisa#2793](https://github.com/CodySwannGT/lisa/issues/2793)
+
 ### [3.47.1](https://github.com/CodySwannGT/lisa/compare/v3.47.0...v3.47.1) (2026-08-20)
 
 
