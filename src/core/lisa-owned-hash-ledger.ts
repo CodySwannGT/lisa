@@ -436,6 +436,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "67b5769dde341d06799c7a49c1fbcd46d92df1268177cc575e704e5a8a2d3096",
     "8bc4b379d7057b2fecf9cb35820c39efad0a65df7df49073786f996cc2a74810",
     "90affbeaed0d65c032dccfc0bd4a4b26eda291f6b61aa8b12599f41842452e0a",
+    "b5e064971bc29a052ee3757c24696c2fd8c2cd83cd3200a2420dba52351c395c",
+    "c93f0b0d00c367845a29dca72c18ae5d6deb36250e422cbcbd112a1b2e839875",
     "cf99167b05d210afad01fb41fc4aed548c66ee0e9a7c4decb8afa1f180eb5640",
   ]),
   "scripts/threshold-ratchet-families.mjs": Object.freeze([
